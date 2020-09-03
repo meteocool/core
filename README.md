@@ -17,7 +17,7 @@ information from the awesome blitzortung.org project.
 
 ## Features
 
-<img src="/doc/ios-lockscreen.png?raw=true" alt="iOS Notifications" width="50%" align="right">
+<img src="https://raw.githubusercontent.com/v4lli/meteocool/master/doc/ios-lockscreen.png" alt="iOS Notifications" width="50%" align="right">
 
 * **Automatic Map Updates:** the biggest inconvenience with most weather radar
   visualisations is out-of-date data. Meteocool notifies its clients as
