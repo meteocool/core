@@ -5,7 +5,7 @@ visualisation & aggregation platform with focus on severe weather.
 Optimized for mobile devices, you can use it to both chase or
 avoid upcoming weather - that's up to you.
 
-![An exemplary cloud formation with high reflectivity (aka thunderstorm)](/doc/pano-thunderstorm.jpg?raw=true "An exemplary cloud formation with high reflectivity")
+![An exemplary cloud formation with high reflectivity (aka thunderstorm)](https://raw.githubusercontent.com/v4lli/meteocool/master/doc/pano-thunderstorm.jpg "An exemplary cloud formation with high reflectivity")
 
 meteocool currently uses radar data provided by DWD and realtime lightning
 information from the awesome blitzortung.org project.
