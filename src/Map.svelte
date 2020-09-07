@@ -39,10 +39,6 @@
     import LayerGroup from "ol/layer/Group";
 
     let baseUrl = "https://api.ng.meteocool.com";
-    if (process.env.NODE_ENV === "production") {
-        baseUrl = "";
-    }
-
     let map = null;
 
     var roadStyleCache = {};
