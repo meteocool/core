@@ -38,7 +38,7 @@
     import TopoJSON from "ol/format/TopoJSON";
     import LayerGroup from "ol/layer/Group";
 
-    let baseUrl = "https://app.ng.meteocool.com";
+    let baseUrl = "https://api.ng.meteocool.com";
     if (process.env.NODE_ENV === "production") {
         baseUrl = "";
     }
