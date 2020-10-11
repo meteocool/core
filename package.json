@@ -4,9 +4,10 @@
   "devDependencies": {
     "cross-env": "^5.2.0",
     "css-loader": "^2.1.1",
-    "eslint": "^7.6.0",
+    "eslint": "^7.11.0",
     "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-import": "^2.22.1",
+    "fa-svelte": "^3.1.0",
     "file-loader": "^6.0.0",
     "mini-css-extract-plugin": "^0.6.0",
     "serve": "^11.0.0",
@@ -22,6 +23,9 @@
     "dev": "webpack-dev-server --content-base public"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.15.1",
+    "@fortawesome/free-solid-svg-icons": "^5.15.1",
+    "babel-eslint": "^10.1.0",
     "ol": "^6.4.2",
     "ol-ext": "^3.1.14",
     "ol-mapbox-style": "^6.1.2",
