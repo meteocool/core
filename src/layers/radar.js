@@ -20,7 +20,7 @@ let cmap = viridis;
 // eslint-disable-next-line import/prefer-default-export
 export const dwdLayer = (tileset) => {
   const reflectivitySource = new XYZ({
-    url: `${tileBaseUrl}/radar/${tileset.tileID}/{z}/{x}/{-y}.png`,
+    url: `${tileBaseUrl}/meteoradar/${tileset.tileID}/{z}/{x}/{-y}.png`,
     attributions: [dwdAttribution],
     crossOrigin: 'anonymous',
     minZoom: 7,
