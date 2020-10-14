@@ -12,7 +12,7 @@ export const sentinel2 = () => new LayerGroup({
   layers: [
     new TileLayer({
       source: new XYZ({
-        url: `${tileBaseUrl}/meteosatellite/sentinel2/{z}/{x}/{y}.png`,
+        url: `${tileBaseUrl}/meteosatellite/sentinel2/{z}/{x}/{-y}.png`,
         tileSize: 256,
         minZoom: 1,
         maxZoom: 13,
