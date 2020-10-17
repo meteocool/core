@@ -1,10 +1,10 @@
 <script>
     import Icon from 'fa-svelte'
-    import {faLayerGroup} from '@fortawesome/free-solid-svg-icons/faLayerGroup'
+    import {faSatelliteDish} from '@fortawesome/free-solid-svg-icons/faSatelliteDish'
     import MiniMap from "./MiniMap.svelte";
     import { createEventDispatcher } from 'svelte';
 
-    let icon = faLayerGroup;
+    let icon = faSatelliteDish;
 
     function open(elem) {
         elem.target.classList.remove("pulsate");
@@ -101,7 +101,8 @@
         top: 0px;
         left: 0px;
         display: none;
-        background-color: #f8f9fa;
+        background-color: black;
+        overflow-y: hidden;
     }
 
     .gridContainer {
@@ -116,7 +117,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr;
-        gap: 0.25em 0.1em;
+        gap: 0.15em 0.1em;
         grid-template-areas: "reflectivity satellite" "weather x";
         height: 100%;
     }
@@ -129,11 +130,30 @@
     .cell {
         height: 100%;
         cursor: pointer;
-        border: 1px solid white;
+        color: white;
     }
 
-    .cell:hover {
-        border: 1px solid green;
+    .label {
+        background: #212529;
+        border-radius: 10px;
+        position: relative;
+        z-index: 100;
+        display: inline-block;
+        top: 50%;
+        padding: 4px 12px;
+        opacity: 1;
+    }
+
+    .cover {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.1);
+        top: -100%;
+    }
+
+    .cover:hover {
+        background-color: rgba(0,0,0,0);
     }
 
 </style>
@@ -147,15 +167,27 @@
         <div class="grid">
             <div class="reflectivity cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"reflectivity"} bind:this={maps["reflectivity"]}/>
+                <div class="cover">
+                    <div class="label">Radar Reflectivity 1km/5min</div>
+                </div>
             </div>
             <div class="satellite cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"sentinel2"} bind:this={maps["satellite"]}/>
+                <div class="cover">
+                    <div class="label">Satellite 19m/5days</div>
+                </div>
             </div>
             <div class="weather cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"osm"} bind:this={maps["weather"]}/>
+                <div class="cover">
+                    <div class="label">this n that</div>
+                </div>
             </div>
             <div class="x cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"osm"} bind:this={maps["x"]}/>
+                <div class="cover">
+                    <div class="label">this n that</div>
+                </div>
             </div>
         </div>
     </div>
