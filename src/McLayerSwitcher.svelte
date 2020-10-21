@@ -43,8 +43,8 @@
 
 <style>
     .lsToggle {
-        width: 74px;
-        height: 74px;
+        width: 42px;
+        height: 42px;
         background-color: #f8f9fa;
         border: 3px solid #333333;
         border-radius: 40px;

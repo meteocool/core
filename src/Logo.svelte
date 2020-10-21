@@ -1,6 +1,9 @@
 <script>
 	import logo from "../assets/logo.svg";
     import InlineSVG from 'svelte-inline-svg'
+	import About from './About.svelte';
+
+	let showAbout = false;
 
 </script>
 
@@ -43,5 +46,11 @@
 <div class="logo-wrapper">
     <InlineSVG src={logo} alt="meteocool" class="logo" style="height: 90%; float: left; padding: 0.5vh 1vh 1vh; "/>
     <div class="name">meteocool.com</div>
-    <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="https://play.google.com/store/apps/details?id=com.meteocool">Android</a>.</div>
+    <div class="claim"><a on:click="{() => showAbout = true}">Find out more, get the App!</a></div>
+    {#if showAbout}
+	<About on:close="{() => showAbout = false}">
+        <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
+        Lorem ipsum dolor sit, amet consectetur adipisicing elit. Nemo doloribus tenetur dolorem vero rem minus numquam. Voluptate, tenetur dolore, quidem quae voluptas voluptatibus itaque minus eligendi adipisci quibusdam dignissimos quo!
+	</About>
+    {/if}
 </div>
