@@ -1,6 +1,5 @@
 <script>
-	import { createEventDispatcher, onDestroy } from 'svelte';
-
+    import { createEventDispatcher, onDestroy } from 'svelte';
 	const dispatch = createEventDispatcher();
 	const close = () => dispatch('close');
 
@@ -47,7 +46,7 @@
 	<slot></slot>
 	<hr>
 	<!-- svelte-ignore a11y-autofocus -->
-	<button autofocus on:click={close}>close modal</button>
+	<sl-button autofocus on:click={close}>close modal</sl-button>
 </div>
 
 <style>
@@ -72,9 +71,5 @@
 		padding: 1em;
 		border-radius: 0.2em;
 		background: white;
-	}
-
-	button {
-		display: block;
 	}
 </style>
