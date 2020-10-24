@@ -1,25 +1,8 @@
-import {
-  XYZ, TileJSON, Raster as RasterSource, Stamen,
-} from 'ol/source';
-import TileLayer from 'ol/layer/Tile.js';
-import TileGrid from 'ol/tilegrid/TileGrid';
-import { getTopLeft } from 'ol/extent';
-import { createXYZ } from 'ol/tilegrid';
-import { transformExtent, get as getProjection } from 'ol/proj';
-import VectorLayer from 'ol/layer/Vector';
-import { fromExtent } from 'ol/geom/Polygon';
-import VectorSource from 'ol/source/Vector';
-import Feature from 'ol/Feature';
-import Style from 'ol/style/Style';
-import Fill from 'ol/style/Fill';
-import { LinearRing, Polygon } from 'ol/geom';
-import LayerGroup from 'ol/layer/Group';
-import ImageLayer from 'ol/layer/Image';
+import { reportError } from './Toast';
 
-import Stroke from 'ol/style/Stroke';
-import { viridis, meteocoolClassic } from './colormaps.js';
-import { dwdLayer } from './layers/radar';
-import {sentinel2} from "./layers/satellite";
+import { viridis, meteocoolClassic } from '../colormaps.js';
+import { dwdLayer } from '../layers/radar';
+import { sentinel2 } from '../layers/satellite';
 
 // var whenMapIsReady = (map, callback) => {
 //  if (map.get('ready')) {
@@ -34,7 +17,7 @@ import {sentinel2} from "./layers/satellite";
  */
 // eslint-disable-next-line import/prefer-default-export
 export class LayerManager {
-  constructor(mainTileUrl, opacity, enableIOSHooks) {
+  constructor(mainTileUrl, opacity, enableIOSHooks, nb) {
     // this.numForecastLayers = numForecastLayers;
     // this.forecastLayers = new Array(numForecastLayers);
     this.forecastDownloaded = false;
@@ -47,6 +30,7 @@ export class LayerManager {
     this.currentForecastNo = -1;
     this.playPaused = false;
     this.enableIOSHooks = enableIOSHooks;
+    this.nanobar = nb;
 
     this.currentLayer = {};
     this.lastReflectivity = null;
@@ -58,13 +42,18 @@ export class LayerManager {
     // }
 
     this.current = null;
-
+    this.nanobar.start(mainTileUrl);
     fetch(mainTileUrl)
       .then((response) => response.json())
-      .then((obj) => this.processReflectivity(obj));
+      .then((obj) => this.processReflectivity(obj))
+      .then(() => this.nanobar.finish(mainTileUrl))
+      .catch((error) => {
+        this.nanobar.finish(mainTileUrl);
+        reportError(error);
+      });
   }
 
-  registerMap(what, newMap, populate=false) {
+  registerMap(what, newMap, populate = false) {
     what.forEach((w) => {
       if (w in this.map) {
         this.map[w].push(newMap);
@@ -94,9 +83,9 @@ export class LayerManager {
       if (k in this.map && k === 'reflectivity') {
         const newLayer = dwdLayer(obj[k]);
         this.map.reflectivity.forEach((m) => m.addLayer(newLayer));
-        //if ('reflectivity' in this.currentLayer) {
+        // if ('reflectivity' in this.currentLayer) {
         //  this.map.reflectivity.forEach((m) => m.removeLayer(this.currentLayer.reflectivity));
-        //}
+        // }
         this.currentLayer.reflectivity = newLayer;
         this.lastReflectivity = obj[k];
       }

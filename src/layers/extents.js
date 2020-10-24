@@ -2,7 +2,7 @@ import { transformExtent } from 'ol/proj';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinearRing } from 'ol/geom';
 
-export const centralEuropeExtent = transformExtent([-19.98902381657924, 32.750667412687676, 29.840756983321853, 62.440050453973896], 'EPSG:4326', 'EPSG:3857');
+export const centralEuropeExtent = transformExtent([-19.98902381657924, 32.750667412687676, 29.840756983321853, 62.440050453973896], 'EPSG:4326', 'EPSG:3857'); // XXX change/sync to backend
 
 export const dwdExtentInv = fromExtent(transformExtent([-180, -90, 180, 90], 'EPSG:4326', 'EPSG:3857'));
 dwdExtentInv.appendLinearRing(new LinearRing([

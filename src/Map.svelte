@@ -1,7 +1,7 @@
 <script>
     import {Map, View} from "ol";
     import {fromLonLat} from "ol/proj.js";
-    import {mapTiler} from "./layers/base";
+    import {mapTilerOutdoor} from "./layers/base";
     import McLayerSwitcher from "./McLayerSwitcher.svelte";
     import Attribution from "ol/control/Attribution";
     import "ol/ol.css";
@@ -32,7 +32,7 @@
 
         map = new Map({
             target: node.id,
-            layers: [mapTiler()],
+            layers: [mapTilerOutdoor()],
             view: new View({
                 constrainResolution: true,
                 zoom: 7,

@@ -1,11 +1,9 @@
 <script>
     import {Map} from "ol";
-    import {mapTiler, osm} from "./layers/base";
+    import {mapTilerOutdoor, mapTilerSatellite, osm} from "./layers/base";
     import {defaults} from "ol/control";
     import {mainView} from "./view";
     import {sentinel2} from "./layers/satellite";
-    import OSM from "ol/source/OSM";
-    import TileLayer from "ol/layer/Tile";
 
     export let layerManager;
     let baseUrl = "https://api.ng.meteocool.com";
@@ -16,9 +14,9 @@
     function getLayersByName(name) {
         switch(name) {
             case "sentinel2":
-                return [mapTiler(), sentinel2()];
+                return [mapTilerSatellite(), sentinel2()];
             case "reflectivity":
-                return [mapTiler()];
+                return [mapTilerOutdoor()];
             case "osm":
                 return [osm()];
             default:

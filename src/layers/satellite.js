@@ -12,26 +12,16 @@ export const sentinel2 = () => new LayerGroup({
   layers: [
     new TileLayer({
       source: new XYZ({
-        url: `${tileBaseUrl}/meteosatellite/sentinel2/{z}/{x}/{-y}.png`,
+        // url: `${tileBaseUrl}/meteosatellite/sentinel2grid/{z}/{x}/{-y}.png`,
+        url: 'https://ot-tiles-dev.s3.eu-central-1.amazonaws.com/s2_msi_worldgrid/{z}/{x}/{-y}.png',
         minZoom: 1,
-        maxZoom: 13,
+        maxZoom: 14,
         attributions: [copernicusAttribution],
       }),
       zIndex: 5,
       extent: centralEuropeExtent,
+      preload: Infinity,
     }),
     bordersAndWays(),
   ],
 });
-
-// new TileLayer({
-//    title: "Sentinel-3 (300m/0.5 days)",
-//    source: new XYZ({
-//        url: 'https://s3-meteocool.diecktator.xyz/satellite/sentinel3/{z}/{x}/{y}.png',
-//        tileSize: 256,
-//        minZoom: 1,
-//        maxZoom: 14,
-//        attributions: [copernicusAttribution],
-//    }),
-//    enabled: false,
-// })

@@ -1,17 +1,14 @@
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
 import TopoJSON from 'ol/format/TopoJSON';
-import { Stroke, Style } from 'ol/style';
+import {
+  Stroke, Style, Fill, Text,
+} from 'ol/style';
+import CircleStyle from 'ol/style/Circle';
 import { centralEuropeExtent } from './extents';
 import { osmAttribution, wofAttribution } from './attributions';
 
-const roadStyleCache = {};
 const boundaryStyleCache = {};
-const roadColor = {
-  major_road: '#776',
-  minor_road: '#ccb',
-  highway: '#ffa333',
-};
 const boundaryStyle = function (feature) {
   const kind = feature.get('kind');
   if (kind !== 'country') {
@@ -26,55 +23,104 @@ const boundaryStyle = function (feature) {
       }),
       zIndex: 1,
     });
-    roadStyleCache[kind] = style;
+    boundaryStyle[kind] = style;
   }
   return style;
 };
-const roadStyle = function (feature) {
-  const kind = feature.get('kind');
-  const railway = feature.get('railway');
-  const sortKey = feature.get('sort_key');
-  const styleKey = `${kind}/${railway}/${sortKey}`;
-  let style = roadStyleCache[styleKey];
-  if (!style) {
-    let color; let
-      width;
-    if (railway) {
-      color = '#7de';
-      width = 1;
-    } else {
-      color = roadColor[kind];
-      width = kind === 'highway' ? 1.5 : 1;
-    }
-    style = new Style({
-      stroke: new Stroke({
-        color,
-        width,
-      }),
-      zIndex: sortKey,
-    });
-    roadStyleCache[styleKey] = style;
-  }
-  return style;
-};
+
+const countryStyle = new Style({
+  text: new Text({
+    font: '18px Calibri,sans-serif',
+    fill: new Fill({
+      color: '#000',
+    }),
+    overflow: true,
+    stroke: new Stroke({
+      color: '#fff',
+      width: 4,
+    }),
+    zIndex: 100,
+  }),
+});
+
+const regionStyle = new Style({
+  text: new Text({
+    font: '16px Calibri,sans-serif',
+    fill: new Fill({
+      color: '#000',
+    }),
+    overflow: true,
+    stroke: new Stroke({
+      color: '#fff',
+      width: 3,
+    }),
+    zIndex: 90,
+  }),
+});
+
+const localityStyle = new Style({
+  text: new Text({
+    font: '12px Calibri,sans-serif',
+    fill: new Fill({
+      color: '#000',
+    }),
+    overflow: true,
+    stroke: new Stroke({
+      color: '#fff',
+      width: 2,
+    }),
+    zIndex: 90,
+  }),
+});
+
+const microLabelStyle = new Style({
+  text: new Text({
+    font: '11px Calibri,sans-serif',
+    fill: new Fill({
+      color: '#000',
+    }),
+    overflow: true,
+    stroke: new Stroke({
+      color: '#fff',
+      width: 1.5,
+    }),
+    zIndex: 90,
+  }),
+});
 
 // eslint-disable-next-line import/prefer-default-export
 export const bordersAndWays = () => new VectorTileLayer({
   extent: centralEuropeExtent,
   zIndex: 99,
+  declutter: true,
   source: new VectorTileSource({
     attributions: [wofAttribution, osmAttribution],
     format: new TopoJSON({
       layerName: 'layer',
-      layers: ['roads', 'boundaries'],
+      layers: ['boundaries', 'places'],
     }),
-    maxZoom: 18,
+    maxZoom: 17,
     url: 'https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.topojson?api_key=qW-EcxRGQcanc6upJoSHSA',
   }),
-  style(feature/* , resolution */) {
+  style(feature) {
+    let style;
     switch (feature.get('layer')) {
-      case 'roads':
-        return roadStyle(feature);
+      case 'places':
+        switch (feature.get('kind')) {
+          case 'country':
+            style = countryStyle;
+            break;
+          case 'region':
+            style = regionStyle;
+            break;
+          case 'locality':
+            style = localityStyle;
+            break;
+          default:
+            style = microLabelStyle;
+        }
+        style.getText().setText(feature.get('name:de'));
+        return style;
       case 'boundaries':
         return boundaryStyle(feature);
       default:

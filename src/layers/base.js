@@ -4,8 +4,7 @@ import { DEVICE_PIXEL_RATIO } from 'ol/has';
 import OSM from 'ol/source/OSM';
 import { maptilerAttribution, osmAttribution } from './attributions';
 
-// eslint-disable-next-line import/prefer-default-export
-export const mapTiler = () => new TileLayer({
+export const mapTilerOutdoor = () => new TileLayer({
   source: new XYZ({
     url: 'https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}@2x.png?key=OfAx6294bL9EoRCgzR2o',
     tileSize: 512,
@@ -13,6 +12,19 @@ export const mapTiler = () => new TileLayer({
     attributions: [osmAttribution, maptilerAttribution],
   }),
   base: true,
+  preload: Infinity,
+  zIndex: 1,
+});
+
+export const mapTilerSatellite = () => new TileLayer({
+  source: new XYZ({
+    url: 'https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=zrIk1CJI5tdOGxsTUHo9',
+    tileSize: 512,
+    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+    attributions: [maptilerAttribution],
+  }),
+  base: true,
+  preload: Infinity,
   zIndex: 1,
 });
 
