@@ -85,6 +85,7 @@ export const dwdLayer = (tileset) => {
     id: tileset.tileID,
     openInLayerSwitcher: false,
     layers: [rasterRadarImageLayer, greyOverlay],
+    zIndex: 10000,
   });
 
   const control = document.getElementById('cmap');

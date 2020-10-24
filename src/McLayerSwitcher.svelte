@@ -143,19 +143,6 @@
         padding: 4px 12px;
         opacity: 1;
     }
-
-    .cover {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.1);
-        top: -100%;
-    }
-
-    .cover:hover {
-        background-color: rgba(0,0,0,0);
-    }
-
 </style>
 
 <div class="lsToggle pulsate" on:click={open}>
@@ -167,27 +154,19 @@
         <div class="grid">
             <div class="reflectivity cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"reflectivity"} bind:this={maps["reflectivity"]}/>
-                <div class="cover">
-                    <div class="label">Radar Reflectivity 1km/5min</div>
-                </div>
+                <div class="label">Radar Reflectivity 1km/5min</div>
             </div>
             <div class="satellite cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"sentinel2"} bind:this={maps["satellite"]}/>
-                <div class="cover">
-                    <div class="label">Satellite 19m/5days</div>
-                </div>
+                <div class="label">Satellite 19m/5days</div>
             </div>
             <div class="weather cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"osm"} bind:this={maps["weather"]}/>
-                <div class="cover">
-                    <div class="label">this n that</div>
-                </div>
+                <div class="label">this n that</div>
             </div>
             <div class="x cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"osm"} bind:this={maps["x"]}/>
-                <div class="cover">
-                    <div class="label">this n that</div>
-                </div>
+                <div class="label">this n that</div>
             </div>
         </div>
     </div>
