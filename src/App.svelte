@@ -23,6 +23,7 @@
     //baseUrl = "http://localhost:5000/api/";
     let nb = new NanobarWrapper();
     export let lm = new LayerManager(baseUrl + "tiles/", 0.8, false, nb);
+    export let device = document.currentScript.getAttribute('device');
 </script>
 
 <style>
@@ -50,7 +51,7 @@
 
 </style>
 
-<Logo />
+<Logo device={device} />
 <ColorSwitcher />
 <div id="nanobar" />
 <Map layerManager={lm} />
