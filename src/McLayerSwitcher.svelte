@@ -145,9 +145,11 @@
     }
 </style>
 
+{#if document.currentScript.getAttribute('device') !== 'ios'}
 <div class="lsToggle pulsate" on:click={open}>
     <Icon icon={icon} class="lsIcon"></Icon>
 </div>
+{/if}
 
 <div class="ls" id="ls">
     <div class="gridContainer">

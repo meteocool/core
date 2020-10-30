@@ -7,6 +7,13 @@
     import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
     import { defineCustomElements, setAssetPath } from '@shoelace-style/shoelace';
 
+    export let device;
+    //let topMargin = "1vh";
+
+    //$: if (device === "ios") {
+    //    topMargin = "10vh";
+    //}
+
     setAssetPath(document.currentScript.src);
     defineCustomElements();
 </script>
@@ -15,7 +22,7 @@
     .logo-wrapper {
         z-index: 10;
         position: absolute;
-        top: 1vh;
+        top: env(safe-area-inset-top);
         left: 0;
         margin-left: 0;
         padding: 0;

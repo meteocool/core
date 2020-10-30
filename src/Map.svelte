@@ -6,6 +6,7 @@
     import Attribution from "ol/control/Attribution";
     import "ol/ol.css";
     import {defaults} from "ol/control";
+    import Collection from "ol/Collection";
 
     let map = null;
     export let layerManager;
@@ -26,9 +27,13 @@
     }
 
     function mapInit(node) {
-        let attribution = new Attribution({
-            collapsible: false
-        });
+        let controls = new Collection();
+
+        if (document.currentScript.getAttribute('device') !== 'ios') {
+            controls = defaults({ attribution: false }).extend([new Attribution({
+                collapsible: false
+            })]);
+        }
 
         map = new Map({
             target: node.id,
@@ -38,9 +43,7 @@
                 zoom: 7,
                 center: fromLonLat([11, 49]),
             }),
-            controls: defaults({ attribution: false }).extend([
-                attribution
-            ]),
+            controls: controls,
         });
         layerManager.registerMap(["reflectivity"], map);
 

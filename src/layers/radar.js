@@ -88,15 +88,15 @@ export const dwdLayer = (tileset) => {
     zIndex: 10000,
   });
 
-  const control = document.getElementById('cmap');
-  control.addEventListener('input', () => {
-    if (control.value === 'meteocool_classic') {
-      cmap = meteocoolClassic;
-    } else {
-      cmap = viridis;
-    }
-    rasterRadar.changed();
-  });
+  //const control = document.getElementById('cmap');
+  //control.addEventListener('input', () => {
+  //  if (control.value === 'meteocool_classic') {
+  //    cmap = meteocoolClassic;
+  //  } else {
+  //    cmap = viridis;
+  //  }
+  //  rasterRadar.changed();
+  //});
 
   return radarLg;
 };
