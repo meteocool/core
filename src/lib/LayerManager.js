@@ -1,10 +1,18 @@
 import { Map, View } from 'ol';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, getTransformFromProjections, get as getProjection } from 'ol/proj';
 import Collection from 'ol/Collection';
 import { defaults } from 'ol/control';
 import Attribution from 'ol/control/Attribution';
-import { reportError } from './Toast';
+import { circular as circularPolygon } from 'ol/geom/Polygon.js';
 
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
+import Style from 'ol/style/Style';
+import CircleStyle from 'ol/style/Circle';
+import Fill from 'ol/style/Fill';
+import Stroke from 'ol/style/Stroke';
 import { viridis, meteocoolClassic } from '../colormaps.js';
 import { dwdLayer } from '../layers/radar';
 import { sentinel2 } from '../layers/satellite';
@@ -29,6 +37,8 @@ export class LayerManager {
     this.settings = options.settings;
     this.capabilities = options.capabilities;
     this.maps = [];
+    this.accuracyFeatures = [];
+    this.positionFeatures = [];
 
     // this.options.nanobar.start(mainTileUrl);
     // fetch(mainTileUrl)
@@ -47,8 +57,23 @@ export class LayerManager {
     });
   }
 
+  updateLocation(lat, lon, accuracy, zoom = false) {
+    let accuracyPoly = null;
+    if (accuracy > 0) {
+      accuracyPoly = circularPolygon([lon, lat], accuracy);
+      accuracyPoly.applyTransform(getTransformFromProjections(getProjection('EPSG:4326'), getProjection('EPSG:3857')));
+    }
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
+    const center = fromLonLat([lon, lat]);
+    const centerPoint = center ? new Point(center) : null;
+    this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
+    if (zoom) {
+      // XXX only once?
+      this.forEachMap((map) => map.getView().animate({ center, zoom: 9 }));
+    }
+  }
+
   setTarget(cap, target) {
-    console.log("cap " + cap + " to " + target);
     this.capabilities[cap].setTarget(target);
   }
 
@@ -63,8 +88,47 @@ export class LayerManager {
         collapsible: false,
       })]);
     }
+
+    const accuracyFeature = new Feature({
+      style: new Style({
+        image: new CircleStyle({
+          radius: 8,
+          fill: new Fill({
+            color: '#3399CC',
+          }),
+          stroke: new Stroke({
+            color: '#fff',
+            width: 2.5,
+          }),
+        }),
+      }),
+    });
+    this.accuracyFeatures.push(accuracyFeature);
+    const positionFeature = new Feature({
+      style: new Style({
+        image: new CircleStyle({
+          radius: 8,
+          fill: new Fill({
+            color: '#3399CC',
+          }),
+          stroke: new Stroke({
+            color: '#fff',
+            width: 2.5,
+          }),
+        }),
+      }),
+    });
+    this.positionFeatures.push(accuracyFeature);
+    const geolocationLayer = new VectorLayer({
+      source: new VectorSource({
+        features: [accuracyFeature, positionFeature],
+        kind: 'geolocationLayer',
+      }),
+      zIndex: 99999,
+    });
+
     return new Map({
-      layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer'))],
+      layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer')), geolocationLayer],
       view: new View({
         constrainResolution: true,
         zoom: 7,
