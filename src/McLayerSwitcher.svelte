@@ -12,7 +12,7 @@
         let ls = document.getElementById("ls");
         ls.style.display = "block";
         //layerManager.forEachMap(map => map.updateMap());
-        
+
     }
 
     function close() {
