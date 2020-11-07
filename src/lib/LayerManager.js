@@ -1,8 +1,15 @@
+import { Map, View } from 'ol';
+import { fromLonLat } from 'ol/proj';
+import Collection from 'ol/Collection';
+import { defaults } from 'ol/control';
+import Attribution from 'ol/control/Attribution';
 import { reportError } from './Toast';
 
 import { viridis, meteocoolClassic } from '../colormaps.js';
 import { dwdLayer } from '../layers/radar';
 import { sentinel2 } from '../layers/satellite';
+import { cartoDark, mapTilerOutdoor } from '../layers/base';
+import { layerManager } from '../Map.svelte';
 
 // var whenMapIsReady = (map, callback) => {
 //  if (map.get('ready')) {
@@ -17,40 +24,55 @@ import { sentinel2 } from '../layers/satellite';
  */
 // eslint-disable-next-line import/prefer-default-export
 export class LayerManager {
-  constructor(mainTileUrl, opacity, enableIOSHooks, nb) {
-    // this.numForecastLayers = numForecastLayers;
-    // this.forecastLayers = new Array(numForecastLayers);
-    this.forecastDownloaded = false;
-    this.mainLayer = false;
-    this.map = {};
-    this.numInFlightTiles = 0;
-    this.appHandlers = [];
-    this.mainTileUrl = mainTileUrl;
-    this.opacity = opacity;
-    this.currentForecastNo = -1;
-    this.playPaused = false;
-    this.enableIOSHooks = enableIOSHooks;
-    this.nanobar = nb;
+  constructor(options) {
+    this.options = options; // XXX defaults?
+    this.settings = options.settings;
+    this.capabilities = options.capabilities;
+    this.maps = [];
 
-    this.currentLayer = {};
-    this.lastReflectivity = null;
+    // this.options.nanobar.start(mainTileUrl);
+    // fetch(mainTileUrl)
+    //  .then((response) => response.json())
+    //  .then((obj) => this.processReflectivity(obj))
+    //  .then(() => this.nanobar.finish(mainTileUrl))
+    //  .catch((error) => {
+    //    this.nanobar.finish(mainTileUrl);
+    //    reportError(error);
+    //  });
 
-    // if (enableIOSHooks) {
-    //   this.appHandlers.push((handler, action) => {
-    //     if (handler in window.webkit.messageHandlers) { window.webkit.messageHandlers[handler].postMessage(action); }
-    //   });
-    // }
+    Object.keys(this.capabilities).forEach((capability) => {
+      const newMap = this.makeMap();
+      this.capabilities[capability].setMap(newMap);
+      this.maps.push(newMap);
+    });
+  }
 
-    this.current = null;
-    this.nanobar.start(mainTileUrl);
-    fetch(mainTileUrl)
-      .then((response) => response.json())
-      .then((obj) => this.processReflectivity(obj))
-      .then(() => this.nanobar.finish(mainTileUrl))
-      .catch((error) => {
-        this.nanobar.finish(mainTileUrl);
-        reportError(error);
-      });
+  setTarget(cap, target) {
+    console.log("cap " + cap + " to " + target);
+    this.capabilities[cap].setTarget(target);
+  }
+
+  setDefaultTarget(target) {
+    this.setTarget(this.settings.get('capability'), target);
+  }
+
+  makeMap() {
+    let controls = new Collection();
+    if (document.currentScript.getAttribute('device') !== 'ios') {
+      controls = defaults({ attribution: false }).extend([new Attribution({
+        collapsible: false,
+      })]);
+    }
+    return new Map({
+      layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer'))],
+      view: new View({
+        constrainResolution: true,
+        zoom: 7,
+        center: fromLonLat([11, 49]),
+        enableRotation: this.settings.get('mapRotation'),
+      }),
+      controls,
+    });
   }
 
   registerMap(what, newMap, populate = false) {
@@ -69,6 +91,27 @@ export class LayerManager {
     });
   }
 
+  baseLayerFactory(layer) {
+    switch (layer) {
+      case 'dark':
+        return cartoDark();
+      case 'topographic':
+      default:
+        return mapTilerOutdoor();
+    }
+  }
+
+  switchBaseLayer(newBaseLayer) {
+    this.forEachMap((map) => {
+      map.getLayersArray().filter((layer) => layer.get('base') === true).forEach((layer) => map.removeLayer(layer));
+      map.addLayer(this.baseLayerFactory(newBaseLayer));
+    });
+  }
+
+  forEachMap(cb) {
+    this.maps.forEach((map) => cb(map));
+  }
+
   unregisterAll(map) {
     const layers = [...map.getLayers().getArray().filter((layer) => !layer.get('base'))];
     layers.forEach((layer) => map.removeLayer(layer));
@@ -78,19 +121,19 @@ export class LayerManager {
     });
   }
 
-  processReflectivity(obj) {
-    Object.keys(obj).forEach((k) => {
-      if (k in this.map && k === 'reflectivity') {
-        const newLayer = dwdLayer(obj[k]);
-        this.map.reflectivity.forEach((m) => m.addLayer(newLayer));
-        // if ('reflectivity' in this.currentLayer) {
-        //  this.map.reflectivity.forEach((m) => m.removeLayer(this.currentLayer.reflectivity));
-        // }
-        this.currentLayer.reflectivity = newLayer;
-        this.lastReflectivity = obj[k];
-      }
-    });
-  }
+  // processReflectivity(obj) {
+  //  Object.keys(obj).forEach((k) => {
+  //    if (k in this.map && k === 'reflectivity') {
+  //      const newLayer = dwdLayer(obj[k]);
+  //      this.map.reflectivity.forEach((m) => m.addLayer(newLayer));
+  //      // if ('reflectivity' in this.currentLayer) {
+  //      //  this.map.reflectivity.forEach((m) => m.removeLayer(this.currentLayer.reflectivity));
+  //      // }
+  //      this.currentLayer.reflectivity = newLayer;
+  //      this.lastReflectivity = obj[k];
+  //    }
+  //  });
+  // }
 
   // hook (handler, action) {
   //  // console.log("emitting event " + action + " to handler: " + handler);

@@ -7,13 +7,6 @@
     import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
     import { defineCustomElements, setAssetPath } from '@shoelace-style/shoelace';
 
-    export let device;
-    //let topMargin = "1vh";
-
-    //$: if (device === "ios") {
-    //    topMargin = "10vh";
-    //}
-
     setAssetPath(document.currentScript.src);
     defineCustomElements();
 </script>

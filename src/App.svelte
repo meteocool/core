@@ -1,12 +1,14 @@
 <script>
 	import Map from './Map.svelte';
 	import Logo from './Logo.svelte';
-	import ColorSwitcher from "./ColorSwitcher.svelte";
     import {LayerManager} from "./lib/LayerManager";
     import {NanobarWrapper} from "./lib/NanobarWrapper.js"
 
     import * as Sentry from "@sentry/browser";
     import { Integrations } from "@sentry/tracing";
+    import {Settings} from "./lib/Settings";
+    import View from "ol/View";
+    import {RadarCapability} from "./lib/RadarCapability";
 
     Sentry.init({
         dsn: 'https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137',
@@ -21,9 +23,50 @@
 
     let baseUrl = "https://api.ng.meteocool.com/api/";
     //baseUrl = "http://localhost:5000/api/";
-    let nb = new NanobarWrapper();
-    export let lm = new LayerManager(baseUrl + "tiles/", 0.8, false, nb);
+    window.settings = new Settings({
+        mapRotation: {
+            type: 'boolean',
+            default: false,
+            cb: (value) => {
+                lm.forEachMap((map) => map.setView(new View({
+                    center: map.getView().getCenter(),
+                    zoom: map.getView().getZoom(),
+                    minzoom: 5,
+                    enableRotation: value,
+                })));
+            },
+        },
+        mapBaseLayer: {
+            type: 'string',
+            default: 'topographic',
+            cb: (value) => {
+                lm.switchBaseLayer(value);
+            },
+        },
+        radarColorMap: {
+            type: 'string',
+            default: 'classic',
+        },
+        capability: {
+            type: 'string',
+            default: 'radar',
+        },
+    });
+
+    export let lm = new LayerManager({
+        baseURL: baseUrl + "tiles/",
+        settings: window.settings,
+        nanobar: new NanobarWrapper(),
+        capabilities: {
+            "radar": new RadarCapability(),
+        },
+    });
     export let device = document.currentScript.getAttribute('device');
+    window.lm = lm;
+
+    if (device == "ios" && "webkit" in window) {
+        window.webkit.messageHandlers["scriptHandler"].postMessage("requestSettings");
+    }
 </script>
 
 <style>
@@ -52,6 +95,5 @@
 </style>
 
 <Logo device={device} />
-<ColorSwitcher />
 <div id="nanobar" />
 <Map layerManager={lm} />

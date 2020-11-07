@@ -1,12 +1,6 @@
 <script>
-    import {Map, View} from "ol";
-    import {fromLonLat} from "ol/proj.js";
-    import {mapTilerOutdoor} from "./layers/base";
     import McLayerSwitcher from "./McLayerSwitcher.svelte";
-    import Attribution from "ol/control/Attribution";
     import "ol/ol.css";
-    import {defaults} from "ol/control";
-    import Collection from "ol/Collection";
 
     let map = null;
     export let layerManager;
@@ -27,25 +21,7 @@
     }
 
     function mapInit(node) {
-        let controls = new Collection();
-
-        if (document.currentScript.getAttribute('device') !== 'ios') {
-            controls = defaults({ attribution: false }).extend([new Attribution({
-                collapsible: false
-            })]);
-        }
-
-        map = new Map({
-            target: node.id,
-            layers: [mapTilerOutdoor()],
-            view: new View({
-                constrainResolution: true,
-                zoom: 7,
-                center: fromLonLat([11, 49]),
-            }),
-            controls: controls,
-        });
-        layerManager.registerMap(["reflectivity"], map);
+        layerManager.setDefaultTarget(node.id);
 
         return {
             destroy() {

@@ -26,21 +26,7 @@
     }
 
     function mapInit(node) {
-        map = new Map({
-            target: node.id,
-            layers: getLayersByName(layer),
-            view: mainView,
-            controls: defaults({ attribution: false }),
-        });
-        layerManager.registerMap([layer], map);
-        return {
-            destroy() {
-                if (map) {
-                    map.setTarget(null);
-                    map = null;
-                }
-            }
-        };
+        layerManager.setTarget(layer, node.id)
     }
     export function updateMap() {
         map.updateSize();
