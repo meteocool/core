@@ -60,7 +60,7 @@ export class LayerManager {
   updateLocation(lat, lon, accuracy, zoom = false) {
     let accuracyPoly = null;
     if (accuracy > 0) {
-      accuracyPoly = circularPolygon([lon, lat], accuracy);
+      accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
       accuracyPoly.applyTransform(getTransformFromProjections(getProjection('EPSG:4326'), getProjection('EPSG:3857')));
     }
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
@@ -69,8 +69,27 @@ export class LayerManager {
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
     if (zoom) {
       // XXX only once?
-      this.forEachMap((map) => map.getView().animate({ center, zoom: 9 }));
+      let zoomLevel;
+      if (accuracy < 200) {
+        zoomLevel = 14;
+      } else if (accuracy < 400) {
+        zoomLevel = 13;
+      } else if (accuracy < 800) {
+        zoomLevel = 12;
+      } else if (accuracy < 2000) {
+        zoomLevel = 11;
+      } else if (accuracy < 4000) {
+        zoomLevel = 10;
+      } else {
+        zoomLevel = 9;
+      }
+      this.forEachMap((map) => map.getView().animate({ center, zoom: zoomLevel }));
     }
+  }
+
+  resetLocation() {
+    this.positionFeatures.forEach((feature) => feature.setGeometry(null));
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(null));
   }
 
   setTarget(cap, target) {
@@ -89,46 +108,39 @@ export class LayerManager {
       })]);
     }
 
-    const accuracyFeature = new Feature({
-      style: new Style({
-        image: new CircleStyle({
-          radius: 8,
-          fill: new Fill({
-            color: '#3399CC',
-          }),
-          stroke: new Stroke({
-            color: '#fff',
-            width: 2.5,
-          }),
-        }),
-      }),
-    });
+    const accuracyFeature = new Feature();
     this.accuracyFeatures.push(accuracyFeature);
-    const positionFeature = new Feature({
+    const positionFeature = new Feature();
+    this.positionFeatures.push(positionFeature);
+    const geolocationPositionLayer = new VectorLayer({
+      source: new VectorSource({
+        features: [positionFeature],
+        kind: 'geolocationPositionLayer',
+      }),
       style: new Style({
         image: new CircleStyle({
-          radius: 8,
+          radius: 10,
           fill: new Fill({
-            color: '#3399CC',
+            color: '#048EF9',
           }),
           stroke: new Stroke({
             color: '#fff',
-            width: 2.5,
+            width: 3.5,
           }),
         }),
       }),
+      zIndex: 99999,
     });
-    this.positionFeatures.push(accuracyFeature);
-    const geolocationLayer = new VectorLayer({
+    const geolocationAccuracyLayer = new VectorLayer({
       source: new VectorSource({
-        features: [accuracyFeature, positionFeature],
-        kind: 'geolocationLayer',
+        features: [accuracyFeature],
+        kind: 'geolocationPositionLayer',
       }),
       zIndex: 99999,
     });
 
     return new Map({
-      layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer')), geolocationLayer],
+      layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer')), geolocationAccuracyLayer, geolocationPositionLayer],
       view: new View({
         constrainResolution: true,
         zoom: 7,
