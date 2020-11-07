@@ -10,6 +10,7 @@ export const mapTilerOutdoor = () => new TileLayer({
     tileSize: 512,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     attributions: [osmAttribution, maptilerAttribution],
+    maxZoom: 20,
   }),
   base: true,
   preload: Infinity,
@@ -22,6 +23,7 @@ export const mapTilerSatellite = () => new TileLayer({
     tileSize: 512,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     attributions: [maptilerAttribution],
+    maxZoom: 20,
   }),
   base: true,
   preload: Infinity,
@@ -32,6 +34,7 @@ export const cartoDark = () => new TileLayer({
   source: new XYZ({
     url: 'https://cartodb-basemaps-{a-c}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
     attributions: [osmAttribution, cartoAttribution],
+    maxZoom: 20,
   }),
   base: true,
   preload: Infinity,
