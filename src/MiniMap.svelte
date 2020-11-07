@@ -1,8 +1,7 @@
 <script>
-    import {Map} from "ol";
     import {mapTilerOutdoor, mapTilerSatellite, osm} from "./layers/base";
-    import {defaults} from "ol/control";
-    import {mainView} from "./view";
+    import { createEventDispatcher } from 'svelte';
+    const dispatch = createEventDispatcher();
     import {sentinel2} from "./layers/satellite";
 
     export let layerManager;
@@ -10,6 +9,11 @@
     let map = null;
     export let layer;
     let uniqueID = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    import { onMount } from 'svelte';
+
+    onMount(async () => {
+        dispatch("mount", {"id": `map-{uniqueID}`});
+    });
 
     function getLayersByName(name) {
         switch(name) {
@@ -34,6 +38,8 @@
     export function getMap() {
         return map;
     }
+
+
 </script>
 
 <style>

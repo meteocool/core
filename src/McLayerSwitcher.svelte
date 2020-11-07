@@ -7,12 +7,15 @@
     let icon = faSatelliteDish;
     export let layerManager;
 
-    function open(elem) {
-        elem.target.classList.remove("pulsate");
+    window.openLayerswitcher = () => {
         let ls = document.getElementById("ls");
         ls.style.display = "block";
-        //layerManager.forEachMap(map => map.updateMap());
+    }
 
+    function open(elem) {
+        elem.target.classList.remove("pulsate");
+        window.openLayerswitcher();
+        //layerManager.forEachMap(map => map.setTarget()
     }
 
     function close() {
@@ -157,6 +160,10 @@
             <div class="reflectivity cell" on:click={select}>
                 <MiniMap layerManager={layerManager} layer={"radar"} />
                 <div class="label">Radar Reflectivity 1km/5min</div>
+            </div>
+            <div class="satellite cell" on:click={select}>
+                <MiniMap layerManager={layerManager} layer={"satellite"} on:mount />
+                <div class="label">Near-Realtime Satellite</div>
             </div>
         </div>
     </div>

@@ -16,7 +16,7 @@ import Stroke from 'ol/style/Stroke';
 import { viridis, meteocoolClassic } from '../colormaps.js';
 import { dwdLayer } from '../layers/radar';
 import { sentinel2 } from '../layers/satellite';
-import { cartoDark, mapTilerOutdoor } from '../layers/base';
+import {cartoDark, mapTilerOutdoor, osm} from '../layers/base';
 import { layerManager } from '../Map.svelte';
 
 // var whenMapIsReady = (map, callback) => {
@@ -57,7 +57,7 @@ export class LayerManager {
     });
   }
 
-  updateLocation(lat, lon, accuracy, zoom = false) {
+  updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
     let accuracyPoly = null;
     if (accuracy > 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
@@ -67,9 +67,11 @@ export class LayerManager {
     const center = fromLonLat([lon, lat]);
     const centerPoint = center ? new Point(center) : null;
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
+
+    const view = this.maps[0].getView();
+    let zoomLevel = view.getZoom();
+    const oldCenter = view.getCenter();
     if (zoom) {
-      // XXX only once?
-      let zoomLevel;
       if (accuracy < 200) {
         zoomLevel = 14;
       } else if (accuracy < 400) {
@@ -83,8 +85,17 @@ export class LayerManager {
       } else {
         zoomLevel = 9;
       }
-      this.forEachMap((map) => map.getView().animate({ center, zoom: zoomLevel }));
     }
+    let newCenter;
+    if (focus) {
+      newCenter = center;
+    } else {
+      newCenter = oldCenter;
+    }
+    if (zoom || focus) {
+      view.animate({ center: newCenter, zoom: zoomLevel });
+    }
+    this.forEachMap((map) => map.updateSize());
   }
 
   resetLocation() {
@@ -169,6 +180,8 @@ export class LayerManager {
 
   baseLayerFactory(layer) {
     switch (layer) {
+      case 'osm':
+        return osm();
       case 'dark':
         return cartoDark();
       case 'topographic':
@@ -179,7 +192,7 @@ export class LayerManager {
 
   switchBaseLayer(newBaseLayer) {
     this.forEachMap((map) => {
-      map.getLayersArray().filter((layer) => layer.get('base') === true).forEach((layer) => map.removeLayer(layer));
+      map.getLayers().getArray().filter((layer) => layer.get('base') === true).forEach((layer) => map.removeLayer(layer));
       map.addLayer(this.baseLayerFactory(newBaseLayer));
     });
   }

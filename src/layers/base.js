@@ -42,7 +42,8 @@ export const cartoDark = () => new TileLayer({
 });
 
 export const osm = () => new TileLayer({
-  source: new OSM({}),
+  source: new OSM(),
   base: true,
+  preload: Infinity,
   zIndex: 1,
 });

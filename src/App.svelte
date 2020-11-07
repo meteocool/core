@@ -9,6 +9,7 @@
     import {Settings} from "./lib/Settings";
     import View from "ol/View";
     import {RadarCapability} from "./lib/RadarCapability";
+    import {SatelliteCapability} from "./lib/SatelliteCapability";
 
     Sentry.init({
         dsn: 'https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137',
@@ -59,6 +60,7 @@
         nanobar: new NanobarWrapper(),
         capabilities: {
             "radar": new RadarCapability(),
+            "satellite": new SatelliteCapability(),
         },
     });
     export let device = document.currentScript.getAttribute('device');
