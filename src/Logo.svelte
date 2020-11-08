@@ -15,7 +15,7 @@
     .logo-wrapper {
         z-index: 10;
         position: absolute;
-        top: env(safe-area-inset-top);
+        top: max(env(safe-area-inset-top), 1vh);
         left: 0;
         margin-left: 0;
         padding: 0;

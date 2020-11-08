@@ -9,7 +9,6 @@ import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import ImageLayer from 'ol/layer/Image';
 import LayerGroup from 'ol/layer/Group';
-// import { meteocoolClassic, viridis } from '../colormaps';
 import { tileBaseUrl } from './urls';
 import { dwdAttribution } from './attributions';
 import { dwdExtentInv } from './extents';
@@ -88,15 +87,17 @@ export const dwdLayer = (tileset) => {
     zIndex: 10000,
   });
 
-  //const control = document.getElementById('cmap');
-  //control.addEventListener('input', () => {
-  //  if (control.value === 'meteocool_classic') {
-  //    cmap = meteocoolClassic;
-  //  } else {
-  //    cmap = viridis;
-  //  }
-  //  rasterRadar.changed();
-  //});
+  // XXX
+  window.updateColormap = (colorMapString) => {
+    console.log(colorMapString);
+    if (colorMapString === 'classic') {
+      cmap = meteocoolClassic;
+    } else {
+      cmap = viridis;
+    }
+    rasterRadar.changed();
+    return true;
+  };
 
   return radarLg;
 };
