@@ -14,10 +14,7 @@ import CircleStyle from 'ol/style/Circle';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import { viridis, meteocoolClassic } from '../colormaps.js';
-import { dwdLayer } from '../layers/radar';
-import { sentinel2 } from '../layers/satellite';
-import {cartoDark, mapTilerOutdoor, osm} from '../layers/base';
-import { layerManager } from '../Map.svelte';
+import { cartoDark, mapTilerOutdoor, osm } from '../layers/base';
 
 // var whenMapIsReady = (map, callback) => {
 //  if (map.get('ready')) {
@@ -39,23 +36,6 @@ export class LayerManager {
     this.maps = [];
     this.accuracyFeatures = [];
     this.positionFeatures = [];
-
-    this.sharedView = new View({
-      constrainResolution: true,
-      zoom: 7,
-      center: fromLonLat([11, 49]),
-      enableRotation: this.settings.get('mapRotation'),
-    });
-
-    // this.options.nanobar.start(mainTileUrl);
-    // fetch(mainTileUrl)
-    //  .then((response) => response.json())
-    //  .then((obj) => this.processReflectivity(obj))
-    //  .then(() => this.nanobar.finish(mainTileUrl))
-    //  .catch((error) => {
-    //    this.nanobar.finish(mainTileUrl);
-    //    reportError(error);
-    //  });
 
     Object.keys(this.capabilities).forEach((capability) => {
       const newMap = this.makeMap(capability);
@@ -115,6 +95,7 @@ export class LayerManager {
   }
 
   setDefaultTarget(target) {
+    console.log(`Starting with default cap ${this.settings.get('capability')}`);
     this.setTarget(this.settings.get('capability'), target);
   }
 
@@ -159,28 +140,17 @@ export class LayerManager {
 
     const newMap = new Map({
       layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer')), geolocationAccuracyLayer, geolocationPositionLayer],
-      view: this.sharedView,
+      view: this.maps.length > 0 ? this.maps[0].getView() : new View({
+        constrainResolution: true,
+        zoom: 7,
+        center: fromLonLat([11, 49]),
+        enableRotation: this.settings.get('mapRotation'),
+      }),
       capability,
       controls,
     });
     newMap.set('capability', capability);
     return newMap;
-  }
-
-  registerMap(what, newMap, populate = false) {
-    what.forEach((w) => {
-      if (w in this.map) {
-        this.map[w].push(newMap);
-      } else {
-        this.map[w] = [newMap];
-      }
-      if (w === 'satellite' && populate) {
-        newMap.addLayer(sentinel2());
-      }
-      if (w === 'reflectivity' && populate) {
-        newMap.addLayer(dwdLayer(this.lastReflectivity));
-      }
-    });
   }
 
   baseLayerFactory(layer) {
@@ -205,29 +175,6 @@ export class LayerManager {
   forEachMap(cb) {
     this.maps.forEach((map) => cb(map));
   }
-
-  unregisterAll(map) {
-    const layers = [...map.getLayers().getArray().filter((layer) => !layer.get('base'))];
-    layers.forEach((layer) => map.removeLayer(layer));
-
-    Object.keys(this.map).forEach((w) => {
-      this.map[w] = this.map[w].filter((item) => item !== map);
-    });
-  }
-
-  // processReflectivity(obj) {
-  //  Object.keys(obj).forEach((k) => {
-  //    if (k in this.map && k === 'reflectivity') {
-  //      const newLayer = dwdLayer(obj[k]);
-  //      this.map.reflectivity.forEach((m) => m.addLayer(newLayer));
-  //      // if ('reflectivity' in this.currentLayer) {
-  //      //  this.map.reflectivity.forEach((m) => m.removeLayer(this.currentLayer.reflectivity));
-  //      // }
-  //      this.currentLayer.reflectivity = newLayer;
-  //      this.lastReflectivity = obj[k];
-  //    }
-  //  });
-  // }
 
   // hook (handler, action) {
   //  // console.log("emitting event " + action + " to handler: " + handler);

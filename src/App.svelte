@@ -10,6 +10,7 @@
     import View from "ol/View";
     import {RadarCapability} from "./lib/RadarCapability";
     import {SatelliteCapability} from "./lib/SatelliteCapability";
+    import {WeatherCapability} from "./lib/WeatherCapability";
 
     Sentry.init({
         dsn: 'https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137',
@@ -29,12 +30,13 @@
             type: 'boolean',
             default: false,
             cb: (value) => {
-                lm.forEachMap((map) => map.setView(new View({
+                const newView = new View({
                     center: map.getView().getCenter(),
                     zoom: map.getView().getZoom(),
                     minzoom: 5,
                     enableRotation: value,
-                })));
+                });
+                lm.forEachMap((map) => map.setView(newView));
             },
         },
         mapBaseLayer: {
@@ -54,13 +56,15 @@
         },
     });
 
+    const nb = new NanobarWrapper();
     export let lm = new LayerManager({
         baseURL: baseUrl + "tiles/",
         settings: window.settings,
-        nanobar: new NanobarWrapper(),
+        nanobar: nb,
         capabilities: {
-            "radar": new RadarCapability(),
-            "satellite": new SatelliteCapability(),
+            "radar": new RadarCapability({"nanobar": nb, "tileURL": baseUrl + "tiles/"}),
+            "satellite": new SatelliteCapability(nb),
+            "weather": new WeatherCapability(nb),
         },
     });
     export let device = document.currentScript.getAttribute('device');

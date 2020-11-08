@@ -4,25 +4,16 @@
 
     let map = null;
     export let layerManager;
+    let mapID;
 
     function changeLayer(newLayer) {
-        layerManager.unregisterAll(map);
-        switch(newLayer.detail) {
-            case "reflectivity":
-                layerManager.registerMap(["reflectivity"], map, true);
-                return;
-            case "satellite":
-                layerManager.registerMap(["satellite"], map, true);
-                return;
-            default:
-                console.log(newLayer.detail);
-                return;
-        }
+        console.log(newLayer);
+        layerManager.setTarget(newLayer.detail, mapID);
     }
 
     function mapInit(node) {
-        layerManager.setDefaultTarget(node.id);
-
+        mapID = node.id;
+        layerManager.setDefaultTarget(mapID);
         return {
             destroy() {
                 console.log("destroy");

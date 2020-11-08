@@ -1,15 +1,11 @@
 <script>
-    import {mapTilerOutdoor, mapTilerSatellite, osm} from "./layers/base";
     import { createEventDispatcher } from 'svelte';
-    const dispatch = createEventDispatcher();
-    import {sentinel2} from "./layers/satellite";
-
-    export let layerManager;
-    let baseUrl = "https://api.ng.meteocool.com";
-    let map = null;
-    export let layer;
-    let uniqueID = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     import { onMount } from 'svelte';
+    const dispatch = createEventDispatcher();
+    export let layerManager;
+    export let layer;
+    export let label;
+    let uniqueID = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
     onMount(async () => {
         dispatch("mount", {
@@ -18,30 +14,25 @@
         });
     });
 
-    function getLayersByName(name) {
-        switch(name) {
-            case "sentinel2":
-                return [mapTilerSatellite(), sentinel2()];
-            case "reflectivity":
-                return [mapTilerOutdoor()];
-            case "osm":
-                return [osm()];
-            default:
-                console.log(name);
-                return [];
-        }
-    }
-
     function mapInit(node) {
         layerManager.setTarget(layer, node.id)
     }
-    export function updateMap() {
-        map.updateSize();
-    }
-    export function getMap() {
-        return map;
+
+    let down = false;
+    let lastX = 0;
+    let lastY = 0;
+    function mouseDown(evt) {
+        down = true;
+        lastX = evt.clientX
+        lastY = evt.clientY
     }
 
+    function mouseUp(evt) {
+        if (Math.abs(evt.clientX - lastX) < 10 && Math.abs(evt.clientY - lastY) < 10) {
+            dispatch('changeLayer', layer);
+        }
+        down = false;
+    }
 
 </script>
 
@@ -54,6 +45,19 @@
         top: 0;
         left: 0;
     }
-</style>
 
-<div id="map-{uniqueID}" class="map" use:mapInit/>
+    .label {
+        background: #212529;
+        border-radius: 10px;
+        position: relative;
+        z-index: 100;
+        display: block;
+        top: -50%;
+        padding: 4px 12px;
+        opacity: 1;
+        margin-left: 5%;
+        margin-right: 5%;
+    }
+</style>
+<div id="map-{uniqueID}" class="map" use:mapInit on:mousedown={mouseDown} on:mouseup={mouseUp}></div>
+<div class="label">{label}</div>
