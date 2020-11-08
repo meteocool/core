@@ -49,6 +49,7 @@
         radarColorMapping: {
             type: 'string',
             default: 'classic',
+            cb: (val) => window.updateColormap ? window.updateColormap(val) : true,
         },
         capability: {
             type: 'string',
