@@ -40,6 +40,13 @@ export class LayerManager {
     this.accuracyFeatures = [];
     this.positionFeatures = [];
 
+    this.sharedView = new View({
+      constrainResolution: true,
+      zoom: 7,
+      center: fromLonLat([11, 49]),
+      enableRotation: this.settings.get('mapRotation'),
+    });
+
     // this.options.nanobar.start(mainTileUrl);
     // fetch(mainTileUrl)
     //  .then((response) => response.json())
@@ -51,7 +58,7 @@ export class LayerManager {
     //  });
 
     Object.keys(this.capabilities).forEach((capability) => {
-      const newMap = this.makeMap();
+      const newMap = this.makeMap(capability);
       this.capabilities[capability].setMap(newMap);
       this.maps.push(newMap);
     });
@@ -111,7 +118,7 @@ export class LayerManager {
     this.setTarget(this.settings.get('capability'), target);
   }
 
-  makeMap() {
+  makeMap(capability) {
     let controls = new Collection();
     if (document.currentScript.getAttribute('device') !== 'ios') {
       controls = defaults({ attribution: false }).extend([new Attribution({
@@ -150,16 +157,14 @@ export class LayerManager {
       zIndex: 99999,
     });
 
-    return new Map({
+    const newMap = new Map({
       layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer')), geolocationAccuracyLayer, geolocationPositionLayer],
-      view: new View({
-        constrainResolution: true,
-        zoom: 7,
-        center: fromLonLat([11, 49]),
-        enableRotation: this.settings.get('mapRotation'),
-      }),
+      view: this.sharedView,
+      capability,
       controls,
     });
+    newMap.set('capability', capability);
+    return newMap;
   }
 
   registerMap(what, newMap, populate = false) {

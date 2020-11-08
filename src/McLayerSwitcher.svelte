@@ -6,24 +6,35 @@
 
     let icon = faSatelliteDish;
     export let layerManager;
+    let childCanvases = {};
 
     window.openLayerswitcher = () => {
         let ls = document.getElementById("ls");
         ls.style.display = "block";
+        layerManager.forEachMap(map => {
+            const cap = map.get("capability");
+            const target = childCanvases[map.get("capability")];
+            console.log(`set ${cap} -> ${target}`)
+            map.setTarget(target);
+            map.updateSize();
+        });
     }
 
     function open(elem) {
         elem.target.classList.remove("pulsate");
         window.openLayerswitcher();
-        //layerManager.forEachMap(map => map.setTarget()
     }
 
     function close() {
         document.getElementById("ls").style.display = "none";
     }
 
-    const dispatch = createEventDispatcher();
+    function childMounted(data) {
+        console.log(data.detail);
+        childCanvases[data.detail.layer] = data.detail.id;
+    }
 
+    const dispatch = createEventDispatcher();
 
     function select(evt) {
         let node = evt.target.parentNode;
@@ -106,6 +117,7 @@
         display: none;
         background-color: black;
         overflow-y: hidden;
+        z-index: 10000000;
     }
 
     .gridContainer {
@@ -158,11 +170,11 @@
     <div class="gridContainer">
         <div class="grid">
             <div class="reflectivity cell" on:click={select}>
-                <MiniMap layerManager={layerManager} layer={"radar"} />
+                <MiniMap layerManager={layerManager} layer={"radar"} on:mount={childMounted} />
                 <div class="label">Radar Reflectivity 1km/5min</div>
             </div>
             <div class="satellite cell" on:click={select}>
-                <MiniMap layerManager={layerManager} layer={"satellite"} on:mount />
+                <MiniMap layerManager={layerManager} layer={"satellite"} on:mount={childMounted} />
                 <div class="label">Near-Realtime Satellite</div>
             </div>
         </div>

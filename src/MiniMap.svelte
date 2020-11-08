@@ -12,7 +12,10 @@
     import { onMount } from 'svelte';
 
     onMount(async () => {
-        dispatch("mount", {"id": `map-{uniqueID}`});
+        dispatch("mount", {
+            "id": `map-${uniqueID}`,
+            "layer": layer,
+        });
     });
 
     function getLayersByName(name) {
