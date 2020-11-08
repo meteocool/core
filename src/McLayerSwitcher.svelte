@@ -1,8 +1,9 @@
 <script>
     import Icon from 'fa-svelte'
     import {faSatelliteDish} from '@fortawesome/free-solid-svg-icons/faSatelliteDish'
-    import MiniMap from "./MiniMap.svelte";
+    import MiniMap, {layer} from "./MiniMap.svelte";
     import { createEventDispatcher } from 'svelte';
+    import {device} from "./App.svelte";
 
     let icon = faSatelliteDish;
     export let layerManager;
@@ -27,30 +28,20 @@
 
     function close() {
         document.getElementById("ls").style.display = "none";
+        if (device == "ios" && "webkit" in window) {
+            window.webkit.messageHandlers["scriptHandler"].postMessage("layerSwitcherClosed");
+        }
     }
 
     function childMounted(data) {
-        console.log(data.detail);
         childCanvases[data.detail.layer] = data.detail.id;
     }
 
     const dispatch = createEventDispatcher();
 
-    function select(evt) {
-        let node = evt.target.parentNode;
-        while (node) {
-            if (node.classList.contains("reflectivity")) {
-                dispatch('changeLayer', "reflectivity");
-                close();
-                return;
-            }
-            if (node.classList.contains("satellite")) {
-                dispatch('changeLayer', "satellite");
-                close();
-                return;
-            }
-            node = node.parentNode;
-        }
+    function changeLayer(event) {
+        close()
+        dispatch('changeLayer', event.detail);
     }
 
 </script>
@@ -140,7 +131,6 @@
     .reflectivity { grid-area: reflectivity; }
     .satellite { grid-area: satellite; }
     .weather { grid-area: weather; }
-    .x { grid-area: x; }
 
     .cell {
         height: 100%;
@@ -148,16 +138,7 @@
         color: white;
     }
 
-    .label {
-        background: #212529;
-        border-radius: 10px;
-        position: relative;
-        z-index: 100;
-        display: inline-block;
-        top: 50%;
-        padding: 4px 12px;
-        opacity: 1;
-    }
+
 </style>
 
 {#if document.currentScript.getAttribute('device') !== 'ios'}
@@ -169,13 +150,23 @@
 <div class="ls" id="ls">
     <div class="gridContainer">
         <div class="grid">
-            <div class="reflectivity cell" on:click={select}>
-                <MiniMap layerManager={layerManager} layer={"radar"} on:mount={childMounted} />
-                <div class="label">Radar Reflectivity 1km/5min</div>
+            <div class="reflectivity cell">
+                <MiniMap layerManager={layerManager} layer={"radar"} label={"⚡️ Rain & Thunderstorms"}
+                         on:mount={childMounted}
+                         on:changeLayer={changeLayer}
+                />
             </div>
-            <div class="satellite cell" on:click={select}>
-                <MiniMap layerManager={layerManager} layer={"satellite"} on:mount={childMounted} />
-                <div class="label">Near-Realtime Satellite</div>
+            <div class="satellite cell">
+                <MiniMap layerManager={layerManager} layer={"satellite"} label={"🛰️ Real-Time Satellite"}
+                         on:mount={childMounted}
+                         on:changeLayer={changeLayer}
+                />
+            </div>
+            <div class="weather cell">
+                <MiniMap layerManager={layerManager} layer={"weather"} label={"🌤 Weather "}
+                         on:mount={childMounted}
+                         on:changeLayer={changeLayer}
+                />
             </div>
         </div>
     </div>
