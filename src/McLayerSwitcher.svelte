@@ -28,7 +28,7 @@
 
     function close() {
         document.getElementById("ls").style.display = "none";
-        if (device == "ios" && "webkit" in window) {
+        if ("webkit" in window) {
             window.webkit.messageHandlers["scriptHandler"].postMessage("layerSwitcherClosed");
         }
     }
