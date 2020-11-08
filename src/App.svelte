@@ -44,7 +44,7 @@
                 lm.switchBaseLayer(value);
             },
         },
-        radarColorMap: {
+        radarColorMapping: {
             type: 'string',
             default: 'classic',
         },

@@ -25,10 +25,7 @@
 
         return {
             destroy() {
-                if (map) {
-                    map.setTarget(null);
-                    map = null;
-                }
+                console.log("destroy");
             }
         };
     }
