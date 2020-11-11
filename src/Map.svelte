@@ -7,7 +7,6 @@
     let mapID;
 
     function changeLayer(newLayer) {
-        console.log(newLayer);
         layerManager.setTarget(newLayer.detail, mapID);
     }
 
