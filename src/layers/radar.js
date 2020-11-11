@@ -8,22 +8,25 @@ import Feature from 'ol/Feature';
 import Style from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import ImageLayer from 'ol/layer/Image';
-import LayerGroup from 'ol/layer/Group';
 import { tileBaseUrl } from './urls';
 import { dwdAttribution } from './attributions';
 import { dwdExtentInv } from './extents';
 import { meteocoolClassic, viridis } from '../colormaps';
+import {DEVICE_PIXEL_RATIO} from "ol/has";
 
 let cmap = viridis;
 
 // eslint-disable-next-line import/prefer-default-export
-export const dwdLayer = (tileset) => {
+export const dwdLayer = (tileId, bucket = 'meteoradar') => {
   const reflectivitySource = new XYZ({
-    url: `${tileBaseUrl}/meteoradar/${tileset.tileID}/{z}/{x}/{-y}.png`,
+    url: `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`,
     attributions: [dwdAttribution],
     crossOrigin: 'anonymous',
-    minZoom: 7,
+    minZoom: 1,
     maxZoom: 8,
+    transition: 0,
+    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+    tileSize: 512,
   });
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
@@ -36,25 +39,9 @@ export const dwdLayer = (tileset) => {
     evt.context.msImageSmoothingEnabled = false;
   });
 
-  const greyOverlay = new VectorLayer({
-    title: 'Radar 1km Germany',
-    zIndex: 2,
-    source: new VectorSource({
-      features: [new Feature({
-        geometry: dwdExtentInv,
-        name: 'DarkOverlay',
-      })],
-    }),
-    style: new Style({
-      fill: new Fill({
-        color: 'rgba(0, 0, 0, 0.1)',
-      }),
-    }),
-  });
-
   const rasterRadar = new RasterSource({
     sources: [reflectivityLayer],
-    // XXX eslint converts this to a syntax error. good job y'all
+    // XXX eslint converts the following to a syntax error. good job y'all
     // eslint-disable-next-line object-shorthand
     operation: function (pixels, data) {
       let dbz = pixels[0][0];
@@ -76,20 +63,13 @@ export const dwdLayer = (tileset) => {
   const rasterRadarImageLayer = new ImageLayer({
     zIndex: 3,
     source: rasterRadar,
+    title: 'Radar Composite',
+    id: tileId,
   });
   rasterRadarImageLayer.setExtent(transformExtent([2.8125, 45, 19.6875, 56.25], 'EPSG:4326', 'EPSG:3857'));
 
-  const radarLg = new LayerGroup({
-    title: 'Radar Composite',
-    id: tileset.tileID,
-    openInLayerSwitcher: false,
-    layers: [rasterRadarImageLayer, greyOverlay],
-    zIndex: 10000,
-  });
-
   // XXX
   window.updateColormap = (colorMapString) => {
-    console.log(colorMapString);
     if (colorMapString === 'classic') {
       cmap = meteocoolClassic;
     } else {
@@ -99,5 +79,20 @@ export const dwdLayer = (tileset) => {
     return true;
   };
 
-  return radarLg;
+  return [rasterRadarImageLayer, reflectivitySource];
 };
+
+export const greyOverlay = () => new VectorLayer({
+  zIndex: 1000,
+  source: new VectorSource({
+    features: [new Feature({
+      geometry: dwdExtentInv,
+      name: 'DarkOverlay',
+    })],
+  }),
+  style: new Style({
+    fill: new Fill({
+      color: 'rgba(0, 0, 0, 0.1)',
+    }),
+  }),
+});

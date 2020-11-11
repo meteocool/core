@@ -5,6 +5,8 @@ export class NanobarWrapper {
     this.nb = new Nanobar(params);
     this.clients = {};
     this.activeTimeout = null;
+    this.manual = 0;
+    this.manualHighwater = 0;
   }
 
   start(id) {
@@ -14,6 +16,20 @@ export class NanobarWrapper {
       this.clients[id] = 1;
     }
     this.tick();
+  }
+
+  manualUp() {
+    this.manual += 1;
+    if (this.manual > this.manualHighwater) {
+      this.manualHighwater = this.manual;
+    }
+  }
+
+  manualDown() {
+    this.manual -= 1;
+    if (this.manual <= 0) {
+      this.manualHighwater = 0;
+    }
   }
 
   finish(id) {
@@ -39,13 +55,16 @@ export class NanobarWrapper {
       clearTimeout(this.activeTimeout);
       this.activeTimeout = null;
     } else {
-      const nSteps = nActive + 2;
+      let nSteps = nActive + 2;
+      if (this.manual > 0) {
+        nSteps += 1;
+      }
       if (this.activeTimeout) {
         // Animation is running and needs to be restarted with new parameters
         clearTimeout(this.activeTimeout);
         this.activeTimeout = null;
       }
-      this.arm(Math.ceil(100 / nSteps + 1));
+      this.arm(Math.ceil(100 / nSteps + 1) + (this.manualHighwater / this.manual) * (100 / nSteps + 1));
     }
   }
 }

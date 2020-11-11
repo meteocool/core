@@ -336,66 +336,6 @@ export class LayerManager {
   //  this.currentForecastNo = -1;
   // }
 
-  // downloadForecast (cb) {
-  //  let forecastArrayIdx = 0;
-
-  //  this.layersFinishedCounter = 0;
-  //  //for (var ahead = 5; ahead <= 5 * this.numForecastLayers; ahead += 5) {
-  //  //  // capture the idx to make it available inside the callback
-  //  //  let idx = forecastArrayIdx;
-
-  //  //  /* javascript be like: because who the fuck needs proper printf? */
-  //  //  var numStr;
-  //  //  if (ahead === 5) {
-  //  //    numStr = "05";
-  //  //  } else {
-  //  //    numStr = ahead.toString();
-  //  //  }
-  //  //  let url = "https://a.tileserver.unimplemented.org/data/FX_0" + numStr + "-latest.json";
-
-  //  //  $.getJSON({
-  //  //    dataType: "json",
-  //  //    url: url,
-  //  //    success: (data) => {
-  //  //      // create new source + transparent layer, which keep track of
-  //  //      // downloaded/still not downloaded tiles.
-  //  //      var source = new TileJSON({
-  //  //        tileJSON: data,
-  //  //        crossOrigin: "anonymous",
-  //  //        transition: 0
-  //  //      });
-  //  //      source.on("tileloadstart", () => { ++this.numInFlightTiles; });
-  //  //      source.on("tileloadend", () => { --this.numInFlightTiles; });
-  //  //      var newLayer = new TileLayer({
-  //  //        source: source,
-  //  //        opacity: 0
-  //  //      });
-
-  //  //      this.forecastLayers[idx] = { "layer": newLayer, "version": data["version"] };
-  //  //      // This starts the tile download process:
-  //  //      this.map.set("ready", false);
-  //  //      this.map.addLayer(newLayer);
-
-  //  //      whenMapIsReady(this.map, () => {
-  //  //        this.layersFinishedCounter++;
-  //  //        if (this.layersFinishedCounter === this.numForecastLayers) {
-  //  //          this.forecastDownloaded = true;
-  //  //          console.log("finished all tiles: " + this.layersFinishedCounter);
-  //  //          this.forecastLayers.forEach((layer) => {
-  //  //            if (layer) {
-  //  //              this.map.removeLayer(layer["layer"]);
-  //  //              layer["layer"].setOpacity(0.5);
-  //  //            }
-  //  //          });
-  //  //          if (cb) { cb(); }
-  //  //        }
-  //  //      });
-  //  //    }
-  //  //  });
-  //  //  forecastArrayIdx++;
-  //  //}
-  // }
-
   // forecastReady(readyness) {
   //  if (readyness) {
   //    document.getElementById("nowcastLoading").style.display = "none";
