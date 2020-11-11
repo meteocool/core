@@ -29,7 +29,9 @@ export class NanobarWrapper {
     this.manual -= 1;
     if (this.manual <= 0) {
       this.manualHighwater = 0;
+      this.nb.go(100);
     }
+    if (this.manual % 10 === 0) this.tick();
   }
 
   finish(id) {
@@ -50,7 +52,7 @@ export class NanobarWrapper {
 
   tick() {
     const nActive = Object.keys(this.clients).length;
-    if (nActive === 0) {
+    if (nActive === 0 && this.manual <= 0) {
       this.nb.go(100);
       clearTimeout(this.activeTimeout);
       this.activeTimeout = null;
@@ -64,7 +66,7 @@ export class NanobarWrapper {
         clearTimeout(this.activeTimeout);
         this.activeTimeout = null;
       }
-      this.arm(Math.ceil(100 / nSteps + 1) + (this.manualHighwater / this.manual) * (100 / nSteps + 1));
+      this.arm(Math.ceil(100 / nSteps + 1) + ((this.manualHighwater-this.manual) / this.manualHighwater) * (100 / nSteps));
     }
   }
 }
