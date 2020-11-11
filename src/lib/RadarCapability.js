@@ -63,7 +63,6 @@ export class RadarCapability {
       const doneCb = () => {
         this.nanobar.manualDown();
         this.numInFlightTiles -= 1;
-        console.log(this.numInFlightTiles);
         if (this.numInFlightTiles === 0) {
           Object.values(this.forecastLayers).forEach((layer) => {
             this.map.removeLayer(layer);

@@ -107,6 +107,7 @@ export class LayerManager {
       controls = defaults({ attribution: false }).extend([new Attribution({
         collapsible: false,
       })]);
+    } else {
       mapCb = () => {
         window.webkit.messageHandlers["scriptHandler"].postMessage("mapMoveEnd");
       };

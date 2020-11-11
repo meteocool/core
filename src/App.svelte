@@ -91,12 +91,12 @@
     :global(.bar) {
         width: 0;
         height: 100%;
-        background: rgb(137, 205, 217);
+        background: rgb(135, 202, 214);
         border-radius: 2px;
-        height: 1px;
+        height: 2px;
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
-        box-shadow: 0 0 2px #0000ff;
+        box-shadow: 0 0 3px rgb(135, 202, 214);
     }
 
     :global(.sl-toast-stack) {
