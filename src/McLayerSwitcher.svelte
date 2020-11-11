@@ -3,7 +3,6 @@
     import {faSatelliteDish} from '@fortawesome/free-solid-svg-icons/faSatelliteDish'
     import MiniMap, {layer} from "./MiniMap.svelte";
     import { createEventDispatcher } from 'svelte';
-    import {device} from "./App.svelte";
 
     let icon = faSatelliteDish;
     export let layerManager;

@@ -63,7 +63,7 @@
         settings: window.settings,
         nanobar: nb,
         capabilities: {
-            "radar": new RadarCapability({"nanobar": nb, "tileURL": baseUrl + "tiles/"}),
+            "radar": new RadarCapability({"nanobar": nb, "tileURL": baseUrl + "radar/"}),
             "satellite": new SatelliteCapability(nb),
             "weather": new WeatherCapability(nb),
         },
@@ -99,8 +99,15 @@
         box-shadow: 0 0 2px #0000ff;
     }
 
+    :global(.sl-toast-stack) {
+        bottom: env(safe-area-inset-top);
+        top: auto;
+    }
+
 </style>
 
-<Logo device={device} />
+{#if device !== 'ios'}
+<Logo />
+{/if}
 <div id="nanobar" />
 <Map layerManager={lm} />
