@@ -15,6 +15,7 @@ import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import { viridis, meteocoolClassic } from '../colormaps.js';
 import { cartoDark, mapTilerOutdoor, osm } from '../layers/base';
+import {device} from "../App.svelte";
 
 // var whenMapIsReady = (map, callback) => {
 //  if (map.get('ready')) {
@@ -101,10 +102,14 @@ export class LayerManager {
 
   makeMap(capability) {
     let controls = new Collection();
+    let mapCb = null;
     if (document.currentScript.getAttribute('device') !== 'ios') {
       controls = defaults({ attribution: false }).extend([new Attribution({
         collapsible: false,
       })]);
+      mapCb = () => {
+        window.webkit.messageHandlers["scriptHandler"].postMessage("mapMoveEnd");
+      };
     }
 
     const accuracyFeature = new Feature();
@@ -150,6 +155,7 @@ export class LayerManager {
       controls,
     });
     newMap.set('capability', capability);
+    if (mapCb) newMap.on('moveend', mapCb);
     return newMap;
   }
 
