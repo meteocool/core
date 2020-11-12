@@ -85,7 +85,7 @@ export class LayerManager {
     if ((zoom || focus) && !this.mapBeingMoved) {
       view.animate({ center: newCenter, zoom: zoomLevel });
     }
-    this.forEachMap((map) => map.updateSize());
+    this.forEachMap((map) => map.render());
     this.inhibitDisableTracking = true;
     setTimeout(() => { this.inhibitDisableTracking = false; }, 333);
   }
