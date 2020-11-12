@@ -15,7 +15,7 @@ import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import { viridis, meteocoolClassic } from '../colormaps.js';
 import { cartoDark, mapTilerOutdoor, osm } from '../layers/base';
-import {device} from "../App.svelte";
+import { device } from '../App.svelte';
 
 // var whenMapIsReady = (map, callback) => {
 //  if (map.get('ready')) {
@@ -37,6 +37,8 @@ export class LayerManager {
     this.maps = [];
     this.accuracyFeatures = [];
     this.positionFeatures = [];
+    this.inhibitDisableTracking = false;
+    this.mapBeingMoved = false;
 
     Object.keys(this.capabilities).forEach((capability) => {
       const newMap = this.makeMap(capability);
@@ -80,10 +82,12 @@ export class LayerManager {
     } else {
       newCenter = oldCenter;
     }
-    if (zoom || focus) {
+    if ((zoom || focus) && !this.mapBeingMoved) {
       view.animate({ center: newCenter, zoom: zoomLevel });
     }
     this.forEachMap((map) => map.updateSize());
+    this.inhibitDisableTracking = true;
+    setTimeout(() => { this.inhibitDisableTracking = false; }, 333);
   }
 
   resetLocation() {
@@ -102,14 +106,19 @@ export class LayerManager {
 
   makeMap(capability) {
     let controls = new Collection();
-    let mapCb = null;
+    let mapCb = () => {
+      this.mapBeingMoved = false;
+    };
     if (document.currentScript.getAttribute('device') !== 'ios') {
       controls = defaults({ attribution: false }).extend([new Attribution({
         collapsible: false,
       })]);
     } else {
       mapCb = () => {
-        window.webkit.messageHandlers["scriptHandler"].postMessage("mapMoveEnd");
+        this.mapBeingMoved = false;
+        if (!this.inhibitDisableTracking) {
+          window.webkit.messageHandlers.scriptHandler.postMessage('mapMoveEnd');
+        }
       };
     }
 
@@ -157,6 +166,9 @@ export class LayerManager {
     });
     newMap.set('capability', capability);
     if (mapCb) newMap.on('moveend', mapCb);
+    newMap.on('movestart', () => {
+      this.mapBeingMoved = true;
+    });
     return newMap;
   }
 
