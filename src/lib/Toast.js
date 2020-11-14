@@ -12,3 +12,15 @@ export function reportError(message, type = 'warning', icon = 'exclamation-trian
   document.body.append(alert);
   return alert.toast();
 }
+
+export function reportToast(message, type = 'primary', icon = 'info-circle') {
+  const alert = Object.assign(document.createElement('sl-alert'), {
+    type,
+    closable: true,
+    duration: 2000,
+    innerHTML: `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`,
+  });
+  console.log(message);
+  document.body.append(alert);
+  return alert.toast();
+}
