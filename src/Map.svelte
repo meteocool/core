@@ -1,7 +1,7 @@
 <script>
     import McLayerSwitcher from "./McLayerSwitcher.svelte";
     import "ol/ol.css";
-    import {uiState} from "./stores";
+    import {showTimeSlider} from "./stores";
 
     let map = null;
     export let layerManager;
@@ -14,16 +14,12 @@
     function mapInit(node) {
         mapID = node.id;
         layerManager.setDefaultTarget(mapID);
-        return {
-            destroy() {
-                console.log("destroy");
-            }
-        };
 
-        uiState.subscribe(obj => {
-            console.log(obj.nowcastPlayback);
-            if (obj.nowcastPlayback == true) {
-                document.getElementById(node.id).style.height = "calc(90% + 11pt)";
+        showTimeSlider.subscribe(val => {
+            console.log("SUB VALUE");
+            console.log(val);
+            if (val === true) {
+                document.getElementById(node.id).style.height = "calc(min(90%, calc(100% - 100px)) + 11px)";
             } else {
                 document.getElementById(node.id).style.height = "100%";
             }
@@ -31,6 +27,12 @@
                 map.updateSize();
             });
         });
+
+        return {
+            destroy() {
+                console.log("destroy");
+            }
+        };
     }
 </script>
 
@@ -50,7 +52,7 @@
 
     :global(.ol-attribution.ol-uncollapsible) {
         height: 1.2em;
-        padding-bottom: 1.9em;
+        padding-bottom: 1.6em;
         font-size: 7pt;
     }
 
