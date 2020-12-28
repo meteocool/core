@@ -2,10 +2,11 @@
     import Icon from 'fa-svelte'
     import { Timeline } from "vis-timeline";
     import {DataSet} from "vis-timeline/standalone";
-    import {uiState} from "./stores"
+    import {showTimeSlider} from "./stores"
     import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay'
     import { faPause } from '@fortawesome/free-solid-svg-icons/faPause'
     import { faShareSquare } from '@fortawesome/free-solid-svg-icons/faShareSquare'
+    import { fly } from 'svelte/transition';
 
     export let nowcast;
     export let cap;
@@ -20,23 +21,21 @@
     let playing = false;
     let activeForecastTimeout;
     let lastSliderTime;
-
-    //uiState.subscribe(obj => {
-    //    if (obj.nowcastPlayback == true) {
-    //        show();
-    //    } else {
-    //        hide();
-    //    }
-    //});
+    let visible = false;
 
     function show() {
-      if (par) par.style.display="block";
-      uiState.set("nowcastPlayback", true);
-      nowcast.downloadNowcast();
+      visible = true;
+      setTimeout(() => {
+        showTimeSlider.set(true);
+        nowcast.downloadNowcast();
+      }, 400);
     }
 
     function hide() {
-      if (par) par.style.display="none";
+      visible = false;
+      setTimeout(() => {
+        showTimeSlider.set(false);
+      }, 400);
     }
 
     function updateSlider(subject, body) {
@@ -176,7 +175,6 @@
         background-color: white;
         border-top-left-radius: 11px;
         border-top-right-radius: 11px;
-        display: none;
         min-height: 100px;
         border-top: 1px solid lightgray;
     }
@@ -268,7 +266,8 @@
   </div>
 {/if}
 
-<div class="timeslider" id="timeslider" use:init>
+{#if visible}
+<div class="timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
   <div class="controls">
     <div class="controlButton buttonDisabled" on:click={play} id="playButton">
       <Icon icon={playPauseButton} class="controlIcon" on:click={play}></Icon>
@@ -285,3 +284,4 @@
   </div>
   <div id="timesliderTarget"></div>
 </div>
+{/if}

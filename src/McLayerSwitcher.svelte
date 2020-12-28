@@ -1,12 +1,10 @@
 <script>
     import Icon from 'fa-svelte'
     import { faSatelliteDish } from '@fortawesome/free-solid-svg-icons/faSatelliteDish'
-    import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay'
-    import MiniMap, {layer} from "./MiniMap.svelte";
+    import MiniMap from "./MiniMap.svelte";
     import { createEventDispatcher } from 'svelte';
 
     let icon = faSatelliteDish;
-    let playIcon = faPlay;
     export let layerManager;
     let childCanvases = {};
 
@@ -65,29 +63,6 @@
         background-color: #666666;
         color: white;
         cursor: pointer;
-    }
-
-    .pulsate {
-        box-shadow: 0 0 0 0 rgba(0, 0, 0, 1);
-        transform: scale(1);
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
-        }
-
-        70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
-        }
-
-        100% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-        }
     }
 
     div :global(.lsIcon) {
