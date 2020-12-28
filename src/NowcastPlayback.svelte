@@ -17,6 +17,9 @@
     let timeline;
     let playbackMarkerID;
     let playPauseButton = faPlay;
+    let playing = false;
+    let activeForecastTimeout;
+    let lastSliderTime;
 
     //uiState.subscribe(obj => {
     //    if (obj.nowcastPlayback == true) {
@@ -43,13 +46,12 @@
 
       loadingIndicator.style.display="none";
 
-      const tzOffset = new Date().getTimezoneOffset()*60;
       let vals = Object.values(body.layers);
-      //let datasetItems = []
       let datasetItems = vals.map((val, i) => ({
-        "id": i,
-        "start": new Date((val.absTime)*1000),
-        "end": new Date((val.absTime+5*60)*1000),
+        id: i,
+        start: new Date((val.absTime)*1000),
+        end: new Date((val.absTime+5*60)*1000),
+        style : i%2 == 0 ? "background: #eeeeee;" : "background: #ffffff;",
       }));
       datasetItems.push({"id": 98, "type": "point", "content": "Radar Published", "start": new Date((body.processedTime)*1000)});
       datasetItems.push({"id": 99, "type": "point", "content": "Radar Acquisition", "start": new Date((body.baseTime)*1000)});
@@ -72,11 +74,39 @@
 
       // Create a Timeline
       timeline = new Timeline(target, items, options);
+      setTimeSlider(timeline);
     }
 
-    window.play = play;
+    function timeChangeHandler(properties) {
+      const newSliderTime = Math.floor(properties.time.getTime() / 1000);
+      if (newSliderTime != lastSliderTime) {
+        lastSliderTime = newSliderTime;
+        const index = Object.values(nowcast.forecastLayers).map((item) => (item.absTime)).findIndex(t => t === lastSliderTime);
+        if (index >= 0) {
+          cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
+          cap.getMap().addLayer(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[index]].layer);
+        }
+      }
+    }
+
+    function setTimeSlider(timeline) {
+      playbackMarkerID = timeline.addCustomTime(new Date((nowcast.forecastLayers["0"].absTime)*1000), "playbackMarker");
+      timeline.setCustomTimeMarker(new Date((nowcast.forecastLayers["0"].absTime)*1000), "playbackMarker");
+      timeline.on('timechange', timeChangeHandler);
+    }
+
 
     function play() {
+      if (playing) {
+        window.clearTimeout(activeForecastTimeout);
+        playPauseButton = faPlay;
+      } else {
+        timeline.on('timechange', () => {});
+        playTick();
+      }
+    }
+
+    function playTick() {
       if (!nowcast.downloaded) {
         console.log('not all forecasts downloaded yet');
         return;
@@ -87,25 +117,26 @@
         cap.getMap().addLayer(nowcast.mainLayer);
         cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
         currentForecastID = -1;
-        playPaused = false;
         playPauseButton = faPlay;
-        if (playbackMarkerID) timeline.removeCustomTime(playbackMarkerID);
-        playbackMarkerID = undefined;
+        timeline.removeCustomTime("playbackMarker");
+        playing = false;
+        setTimeSlider(timeline);
         // UI Hooks XXX
         return;
       }
 
+      timeline.removeCustomTime("playbackMarker");
       if (currentForecastID < 0) {
         // play not yet in progress, remove main layer
         cap.getMap().removeLayer(nowcast.mainLayer);
         playPauseButton = faPause;
+        playing = true;
         // this.hook('scriptHandler', 'playStarted');
         //if (!this.enableIOSHooks) {
         //  $('#forecastTimeWrapper').css('display', 'block');
         //}
       } else {
         // remove previous layer
-        if (playbackMarkerID) timeline.removeCustomTime(playbackMarkerID);
         cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
       }
       currentForecastID++;
@@ -120,7 +151,7 @@
       //  $('.forecastTimeInner').html(dtStr);
       //  this.hook('layerTimeHandler', layerTime);
       //}
-      let activeForecastTimeout = window.setTimeout(() => { play(); }, 500);
+      activeForecastTimeout = window.setTimeout(() => { playTick(); }, 500);
     }
 
     function init(node) {
