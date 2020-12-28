@@ -75,6 +75,8 @@
       // Create a Timeline
       timeline = new Timeline(target, items, options);
       setTimeSlider(timeline);
+
+      document.getElementById("playButton").classList.remove("buttonDisabled");
     }
 
     function timeChangeHandler(properties) {
@@ -176,11 +178,10 @@
         border-top-right-radius: 11px;
         display: none;
         min-height: 100px;
-        border: 0px;
+        border-top: 1px solid lightgray;
     }
 
     .parent {
-      float: left;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -247,6 +248,13 @@
       cursor: pointer;
     }
 
+    .buttonDisabled {
+      cursor: not-allowed !important;
+      background-color: #eeeeee !important;
+      border: 1px solid #AAAAAA !important;
+      color: #666666 !important;
+    }
+
     #timesliderTarget {
       width: 100%;
       position: static !important;
@@ -262,10 +270,10 @@
 
 <div class="timeslider" id="timeslider" use:init>
   <div class="controls">
-    <div class="controlButton" on:click={play}>
+    <div class="controlButton buttonDisabled" on:click={play} id="playButton">
       <Icon icon={playPauseButton} class="controlIcon" on:click={play}></Icon>
     </div>
-    <div class="controlButton">
+    <div class="controlButton buttonDisabled" id="shareButton">
       <Icon icon={faShareSquare} class="controlIcon"></Icon>
     </div>
   </div>
