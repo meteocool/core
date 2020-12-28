@@ -1,10 +1,12 @@
 <script>
     import Icon from 'fa-svelte'
-    import {faSatelliteDish} from '@fortawesome/free-solid-svg-icons/faSatelliteDish'
+    import { faSatelliteDish } from '@fortawesome/free-solid-svg-icons/faSatelliteDish'
+    import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay'
     import MiniMap, {layer} from "./MiniMap.svelte";
     import { createEventDispatcher } from 'svelte';
 
     let icon = faSatelliteDish;
+    let playIcon = faPlay;
     export let layerManager;
     let childCanvases = {};
 
@@ -59,6 +61,12 @@
         vertical-align: center;
     }
 
+    .lsToggle:hover {
+        background-color: #666666;
+        color: white;
+        cursor: pointer;
+    }
+
     .pulsate {
         box-shadow: 0 0 0 0 rgba(0, 0, 0, 1);
         transform: scale(1);
@@ -80,12 +88,6 @@
             transform: scale(0.95);
             box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
         }
-    }
-
-    .lsToggle:hover {
-        background-color: #666666;
-        color: white;
-        cursor: pointer;
     }
 
     div :global(.lsIcon) {
@@ -141,7 +143,7 @@
 </style>
 
 {#if document.currentScript.getAttribute('device') !== 'ios'}
-<div class="lsToggle pulsate" on:click={open}>
+<div class="lsToggle" on:click={open}>
     <Icon icon={icon} class="lsIcon"></Icon>
 </div>
 {/if}

@@ -30,10 +30,13 @@
     "@sentry/tracing": "^5.27.1",
     "@shoelace-style/shoelace": "^2.0.0-beta.21",
     "babel-eslint": "^10.1.0",
+    "moment": "^2.29.1",
     "nanobar": "^0.4.2",
     "ol": "^6.4.2",
     "ol-ext": "^3.1.14",
     "ol-mapbox-style": "^6.1.2",
-    "svelte-inline-svg": "^1.0.0"
+    "svelte-inline-svg": "^1.0.0",
+    "vis-data": "^7.1.1",
+    "vis-timeline": "^7.4.5"
   }
 }
