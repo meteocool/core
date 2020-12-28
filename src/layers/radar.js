@@ -17,7 +17,7 @@ import { tileBaseUrl } from './urls';
 let cmap = viridis;
 
 // eslint-disable-next-line import/prefer-default-export
-export const dwdLayer = (tileId, bucket = 'meteoradar') => {
+export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
   const reflectivitySource = new XYZ({
     url: `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`,
     attributions: [dwdAttribution],
@@ -62,6 +62,7 @@ export const dwdLayer = (tileId, bucket = 'meteoradar') => {
     source: rasterRadar,
     title: 'Radar Composite',
     id: tileId,
+    ...extra,
   });
   rasterRadarImageLayer.setExtent(transformExtent([2.8125, 45, 19.6875, 56.25], 'EPSG:4326', 'EPSG:3857'));
 

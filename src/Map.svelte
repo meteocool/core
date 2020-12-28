@@ -1,6 +1,7 @@
 <script>
     import McLayerSwitcher from "./McLayerSwitcher.svelte";
     import "ol/ol.css";
+    import {uiState} from "./stores";
 
     let map = null;
     export let layerManager;
@@ -18,6 +19,18 @@
                 console.log("destroy");
             }
         };
+
+        uiState.subscribe(obj => {
+            console.log(obj.nowcastPlayback);
+            if (obj.nowcastPlayback == true) {
+                document.getElementById(node.id).style.height = "calc(90% + 11pt)";
+            } else {
+                document.getElementById(node.id).style.height = "100%";
+            }
+            layerManager.forEachMap(map => {
+                map.updateSize();
+            });
+        });
     }
 </script>
 
@@ -37,6 +50,7 @@
 
     :global(.ol-attribution.ol-uncollapsible) {
         height: 1.2em;
+        padding-bottom: 1.9em;
         font-size: 7pt;
     }
 

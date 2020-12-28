@@ -6,10 +6,16 @@ export class Nowcast {
   constructor(options) {
     this.settings = options.settings;
     this.nanobar = options.nanobar;
-    this.map = options.map;
+    this.setMap(options.map);
+
+    this.downloaded = false;
+    this.currentIndex = -1;
+    this.numInFlightTiles = 0;
+
     this.nowcast = [];
     this.forecastLayers = {};
-    this.appHandlers = [];
+    this.observers = [];
+
     window.nc = this;
   }
 
@@ -17,18 +23,40 @@ export class Nowcast {
     this.map = map;
   }
 
-  processNowcast(nowcasts) {
+  // getMainLayer() {
+  //  if (this.map == null) {
+  //    return null;
+  //  }
+  //  const layers = this.map.getLayers().getArray().filter((layer) => layer.get('mainLayer'));
+  //  if (layers.length > 0) {
+  //    return layers[0];
+  //  }
+  //  return null;
+  // }
+
+  processNowcast(nowcasts, baseTime, processedTime, mainLayer) {
     this.nowcast = nowcasts;
-    this.downloadNowcast(nowcasts);
+    this.mainLayer = mainLayer;
+    this.baseTime = baseTime;
+    this.processedTime = processedTime;
+  }
+
+  notify(subject, body) {
+    console.log(`emitting event regarding ${subject}`);
+    this.observers.forEach((h) => {
+      h(subject, body);
+    });
   }
 
   downloadNowcast(cb) {
     console.log(`${this.nowcast.length} nowcast steps available`);
-    if (this.nowcast.length === 0) return;
+    if (this.nowcast.length === 0) alert('please reload in 30 seconds, nowcast still processing');
 
+    this.downloaded = false;
     this.nanobar.start('nowcast');
+    const self = this;
     this.nowcast.forEach((interval) => {
-      const [nowcastLayer, nowcastSource] = dwdLayer(interval.tile_id, 'meteonowcast');
+      const [nowcastLayer, nowcastSource] = dwdLayer(interval.tile_id, { nowcastLayer: true }, 'meteonowcast');
       nowcastLayer.setOpacity(0);
 
       nowcastSource.on('tileloadstart', () => {
@@ -40,184 +68,62 @@ export class Nowcast {
         this.numInFlightTiles -= 1;
         if (this.numInFlightTiles === 0) {
           Object.values(this.forecastLayers).forEach((layer) => {
-            this.map.removeLayer(layer);
-            layer.setOpacity(0.5);
+            this.map.removeLayer(layer.layer);
+            layer.layer.setOpacity(0.85);
           });
           this.nanobar.finish('nowcast');
+          self.downloaded = true;
           if (cb) cb();
+          nowcastSource.on('tileloadend', null);
+          nowcastSource.on('tileloaderror', null);
+          self.notify('update', { layers: this.forecastLayers, baseTime: this.baseTime, processedTime: this.processedTime });
         }
       };
       nowcastSource.on('tileloadend', doneCb);
       nowcastSource.on('tileloaderror', doneCb);
-      this.forecastLayers[interval] = { layer: nowcastLayer };
+      this.forecastLayers[interval.prediction_time] = {
+        layer: nowcastLayer,
+        absTime: self.baseTime + interval.prediction_time * 60,
+      };
       this.map.addLayer(nowcastLayer);
     });
   }
 
-  hook(handler, action) {
-    console.log(`emitting event ${action} to handler: ${handler}`);
-    this.appHandlers.forEach((h) => {
-      h(handler, action);
-    });
-  }
-
-  playInProgress() {
-    return this.currentForecastNo !== -1 && !this.playPaused;
-  }
-
-  smartDownloadAndPlay() {
-    if (this.playInProgress()) {
-      clearTimeout(this.activeForecastTimeout);
-      document.getElementById('nowcastIcon').src = './player-play.png';
-      document.getElementById('nowcastIcon').style.display = '';
-      this.playPaused = true;
-      return;
-    }
-
-    if (!this.forecastDownloaded) {
-      document.getElementById('nowcastIcon').style.display = 'none';
-      document.getElementById('nowcastLoading').style.display = '';
-      this.downloadForecast(() => {
-        document.getElementById('nowcastLoading').style.display = 'none';
-        document.getElementById('nowcastIcon').style.display = '';
-        document.getElementById('nowcastIcon').src = './player-pause.png';
-        this.playForecast();
-      });
-    } else {
-      document.getElementById('nowcastIcon').style.display = '';
-      document.getElementById('nowcastIcon').src = './player-pause.png';
-      this.playForecast();
-    }
-  }
-
-  switchMainLayer(newLayer) {
-    // invalidate old forecast
-    if (this.playInProgress()) {
-      this.removeForecast();
-    }
-    this.stopPlay();
-    // reset internal forecast state
-    this.invalidateLayers();
-
-    // first add & fetch the new layer, then remove the old one to avoid
-    // having no layer at all at some point.
-    this.map.addLayer(newLayer);
-    this.map.removeLayer(this.mainLayer);
-    this.mainLayer = newLayer;
-  }
-
-  // invalidate (i.e. throw away) downloaded forecast stuff AND reset map to a
-  // defined state.
-  invalidateLayers() {
-    this.forecastDownloaded = false;
-    // this.forecastLayers.forEach((layer) => {
-    //  if (layer) {
-    //    this.map.removeLayer(layer["layer"]);
-    //    layer = false;
-    //  }
-    // });
-    this.hook('scriptHandler', 'forecastInvalid');
+  addObserver(cb) {
+    this.observers.push(cb);
   }
 
   setForecastLayer(num) {
-    if (num === this.currentForecastNo) { return 1; }
-    if (!this.forecastDownloaded) { return 2; }
-    if (this.playInProgress()) { return 3; }
-    // if (num > this.numForecastLayers - 1) { return 4; }
-
-    this.playPaused = true;
-
-    if (num === -1) {
-      this.map.addLayer(this.mainLayer);
-    } else {
-      this.map.addLayer(this.forecastLayers[num].layer);
-    }
-
-    if (this.currentForecastNo === -1) {
-      this.map.removeLayer(this.mainLayer);
-    } else {
-      this.map.removeLayer(this.forecastLayers[this.currentForecastNo].layer);
-    }
-
-    this.currentForecastNo = num;
-    return true;
-  }
-
-  // bring map back to a defined state, without touching the forecast stuff
-  clear() {
-    this.map.getLayers().forEach((layer) => {
-      this.map.removeLayer(layer);
-    });
-  }
-
-  stopPlay() {
-    this.currentForecastNo = -1;
-    this.playPaused = false;
-    const elem = document.getElementById('nowcastIcon');
-    if (elem) {
-      elem.src = './player-play.png';
-      elem.style.display = '';
-      $('#forecastTimeWrapper').css('display', 'none');
-      this.hook('scriptHandler', 'playFinished');
-    }
-  }
-
-  playForecast(e) {
-    if (!this.forecastDownloaded) {
-      console.log('not all forecasts downloaded yet');
-      return;
-    }
-    this.playPaused = false;
-
-    if (this.currentForecastNo === this.forecastLayers.length - 1) {
-      // we're past the last downloaded layer, so end the play
-      this.map.addLayer(this.mainLayer);
-      this.map.removeLayer(this.forecastLayers[this.currentForecastNo].layer);
-      this.stopPlay();
-      $('#forecastTimeWrapper').css('display', 'none');
+    if (num === this.currentIndex) { return; }
+    if (!this.downloaded) {
+      console.log('Forecast not downloaded');
       return;
     }
 
-    if (this.currentForecastNo < 0) {
-      // play not yet in progress, remove main layer
+    let i;
+    if (!(num.toString() in this.forecastLayers)) {
+      console.log(`Time step ${num} not available`);
+      i = -1;
+    } else {
+      i = num;
+    }
+
+    if (this.currentIndex === -1 && i === -1) {
+      return;
+    }
+
+    if (i === -1) {
+      this.map.addLayer(this.mainLayer);
+    } else {
+      this.map.addLayer(this.forecastLayers[i].layer);
+    }
+
+    if (this.currentIndex === -1) {
       this.map.removeLayer(this.mainLayer);
-      this.hook('scriptHandler', 'playStarted');
-      if (!this.enableIOSHooks) {
-        $('#forecastTimeWrapper').css('display', 'block');
-      }
     } else {
-      // remove previous layer
-      this.map.removeLayer(this.forecastLayers[this.currentForecastNo].layer);
+      this.map.removeLayer(this.forecastLayers[this.currentIndex].layer);
     }
-    this.currentForecastNo++;
-    this.map.addLayer(this.forecastLayers[this.currentForecastNo].layer);
 
-    if (this.currentForecastNo >= 0) {
-      const layerTime = (parseInt(this.forecastLayers[this.currentForecastNo].version) + (this.currentForecastNo + 1) * 5 * 60) * 1000;
-      const dt = new Date(layerTime);
-      const dtStr = `${(`0${dt.getHours()}`).slice(-2)}:${(`0${dt.getMinutes()}`).slice(-2)}`;
-      $('.forecastTimeInner').html(dtStr);
-      this.hook('layerTimeHandler', layerTime);
-    }
-    this.activeForecastTimeout = window.setTimeout(() => { this.playForecast(); }, 600);
-  }
-
-  removeForecast() {
-    if (this.currentForecastNo >= 0) {
-      this.map.removeLayer(this.forecastLayers[this.currentForecastNo].layer);
-    }
-    this.hook('scriptHandler', 'playFinished');
-    this.currentForecastNo = -1;
-  }
-
-  forecastReady(readyness) {
-    if (readyness) {
-      document.getElementById('nowcastLoading').style.display = 'none';
-      document.getElementById('nowcastIcon').style.display = '';
-      document.getElementById('nowcastIcon').src = './player-play.png';
-    } else {
-      document.getElementById('nowcastLoading').style.display = '';
-      document.getElementById('nowcastIcon').style.display = 'none';
-    }
+    this.currentIndex = i;
   }
 }

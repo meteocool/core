@@ -1,25 +1,23 @@
 <script>
-	import Map from './Map.svelte';
-	import Logo from './Logo.svelte';
+    import Map from './Map.svelte';
+    import Logo from './Logo.svelte';
     import {LayerManager} from "./lib/LayerManager";
     import {NanobarWrapper} from "./lib/NanobarWrapper.js"
 
     import * as Sentry from "@sentry/browser";
-    import { Integrations } from "@sentry/tracing";
+    import {Integrations} from "@sentry/tracing";
     import {Settings} from "./lib/Settings";
     import View from "ol/View";
     import {RadarCapability} from "./lib/RadarCapability";
     import {SatelliteCapability} from "./lib/SatelliteCapability";
     import {WeatherCapability} from "./lib/WeatherCapability";
+    import NowcastPlayback from "./NowcastPlayback.svelte";
 
     Sentry.init({
         dsn: 'https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137',
         integrations: [
             new Integrations.BrowserTracing(),
         ],
-
-        // We recommend adjusting this value in production, or using tracesSampler
-        // for finer control
         tracesSampleRate: 1.0,
     });
 
@@ -58,13 +56,14 @@
     });
 
     const nb = new NanobarWrapper();
+    export const radar = new RadarCapability({"nanobar": nb, "tileURL": baseUrl + "radar/"});
     export let lm = new LayerManager({
         baseURL: baseUrl + "tiles/",
         settings: window.settings,
         nanobar: nb,
         capabilities: {
-            "radar": new RadarCapability({"nanobar": nb, "tileURL": baseUrl + "radar/"}),
-            "satellite": new SatelliteCapability(nb),
+            "radar": radar,
+            "satellite": new SatelliteCapability({"nanobar": nb}),
             "weather": new WeatherCapability(nb),
         },
     });
@@ -111,3 +110,4 @@
 {/if}
 <div id="nanobar" />
 <Map layerManager={lm} />
+<NowcastPlayback cap={radar} nowcast={radar.nowcast} />

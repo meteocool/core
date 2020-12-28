@@ -1,7 +1,6 @@
-// eslint-disable-next-line import/prefer-default-export
-import { reportError } from './Toast';
 import { dwdLayer, greyOverlay } from '../layers/radar';
 import { Nowcast } from './Nowcast';
+import { reportError } from './Toast';
 
 // eslint-disable-next-line import/prefer-default-export
 export class RadarCapability {
@@ -20,8 +19,8 @@ export class RadarCapability {
     fetch(this.url)
       .then((response) => response.json())
       .then((obj) => {
-        this.processRadar(obj.radar);
-        this.nowcast.processNowcast(obj.nowcast);
+        const newRadarLayer = this.processRadar(obj.radar);
+        this.nowcast.processNowcast(obj.nowcast, obj.radar.upstream_time, obj.radar.processed_time, newRadarLayer);
       })
       .then(() => this.nanobar.finish(this.url))
       .catch((error) => {
@@ -31,17 +30,19 @@ export class RadarCapability {
   }
 
   processRadar(obj) {
-    const newLayer = dwdLayer(obj.tile_id)[0];
+    const newLayer = dwdLayer(obj.tile_id, { mainLayer: true })[0];
+    newLayer.setOpacity(0.85);
     if (this.map) {
       if (this.layer) {
         if (this.layer.getId() === newLayer.getId()) {
-          return;
+          return this.layer;
         }
         this.map.removeLayer(this.layer);
       }
       this.map.addLayer(newLayer);
     }
     this.layer = newLayer;
+    return this.layer;
   }
 
   setTarget(target) {
@@ -55,5 +56,9 @@ export class RadarCapability {
       this.map.addLayer(this.layer);
     }
     this.nowcast.setMap(map);
+  }
+
+  getMap() {
+    return this.map;
   }
 }

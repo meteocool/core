@@ -1,8 +1,8 @@
 // eslint-disable-next-line import/prefer-default-export
-import {sentinel2} from "../layers/satellite";
+import { sentinel2 } from '../layers/satellite';
 
 export class SatelliteCapability {
-  constructor(params) {
+  constructor(options) {
     this.map = null;
   }
 

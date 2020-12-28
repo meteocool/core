@@ -78,12 +78,11 @@ export class LayerManager {
     }
     this.forEachMap((map) => map.render());
     this.inhibitDisableTracking = true;
-    reportToast("this.inhibitDisableTracking = true (location update)");
+    // reportToast('this.inhibitDisableTracking = true (location update)');
     setTimeout(() => {
       this.inhibitDisableTracking = false;
-      reportToast("this.inhibitDisableTracking = false");
-
-      }, 333);
+      // reportToast('this.inhibitDisableTracking = false');
+    }, 333);
   }
 
   resetLocation() {
@@ -104,7 +103,7 @@ export class LayerManager {
     let controls = new Collection();
     let mapCb = () => {
       this.mapBeingMoved = false;
-      reportToast('this.mapBeingMoved=false');
+      // reportToast('this.mapBeingMoved=false');
     };
     if (document.currentScript.getAttribute('device') !== 'ios') {
       controls = defaults({ attribution: false }).extend([new Attribution({
@@ -113,9 +112,9 @@ export class LayerManager {
     } else {
       mapCb = () => {
         this.mapBeingMoved = false;
-        reportToast('this.mapBeingMoved=false');
+        // reportToast('this.mapBeingMoved=false');
         if (!this.inhibitDisableTracking) {
-          reportToast('!this.inhibitDisableTracking: mapMoveEnd');
+          // reportToast('!this.inhibitDisableTracking: mapMoveEnd');
           window.webkit.messageHandlers.scriptHandler.postMessage('mapMoveEnd');
         }
       };
@@ -167,7 +166,7 @@ export class LayerManager {
     if (mapCb) newMap.on('moveend', mapCb);
     newMap.on('movestart', () => {
       this.mapBeingMoved = true;
-      reportToast('this.mapBeingMoved=true');
+      // reportToast('this.mapBeingMoved=true');
     });
     return newMap;
   }
@@ -194,27 +193,6 @@ export class LayerManager {
   forEachMap(cb) {
     this.maps.forEach((map) => cb(map));
   }
-
-  // processTiles(data) {
-  //  // We assume that there is always a reflectivity layer
-  //  let newLayer = new TileLayer({
-  //    source: new XYZ({
-  //      url: this.baseURL + "/" + data["reflectivity"]["tileID"] + "/{z}/{x}/{-y}.png",
-  //      maxZoom: 9,
-  //      minZoom: 6
-  //    }),
-  //    opacity: this.opacity
-  //  });
-  //  newLayer.on("prerender", (evt) => {
-  //    // Disable browser up-sampling for satellite maps
-  //    evt.context.imageSmoothingEnabled = false;
-  //    evt.context.msImageSmoothingEnabled = false;
-  //  });
-  //  this.switchMainLayer(newLayer);
-  //  this.forecastReady(data["forecast"] == true);
-  //  this.forecasts = data["forecast"];
-  //  //this.hook("timeHandler", data.version.toString());
-  // }
 }
 
 /* vim: set ts=2 sw=2 expandtab: */
