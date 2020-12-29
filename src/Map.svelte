@@ -16,8 +16,6 @@
         layerManager.setDefaultTarget(mapID);
 
         showTimeSlider.subscribe(val => {
-            console.log("SUB VALUE");
-            console.log(val);
             if (val === true) {
                 document.getElementById(node.id).style.height = "calc(min(90%, calc(100% - 100px)) + 11px)";
             } else {
