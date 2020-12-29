@@ -3,16 +3,17 @@
     import { Timeline } from "vis-timeline";
     import {DataSet} from "vis-timeline/standalone";
     import {showTimeSlider} from "./stores"
-    import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay'
-    import { faPause } from '@fortawesome/free-solid-svg-icons/faPause'
-    import { faShareSquare } from '@fortawesome/free-solid-svg-icons/faShareSquare'
+    import {faPlay} from '@fortawesome/free-solid-svg-icons/faPlay'
+    import {faPause} from '@fortawesome/free-solid-svg-icons/faPause'
+    import {faUndoAlt} from '@fortawesome/free-solid-svg-icons/faUndoAlt'
+    import {faArrowsAltH} from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
     import { fly } from 'svelte/transition';
+    import {reportToast} from "./lib/Toast";
 
     export let nowcast;
     export let cap;
     let target;
-    let par;
-    let loadingIndicator;
+    let loadingIndicator = true;
     let playPaused = true;
     let currentForecastID = -1;
     let timeline;
@@ -22,20 +23,38 @@
     let activeForecastTimeout;
     let lastSliderTime;
     let visible = false;
+    let uiMessage = "Downloading Nowcast";
+    let iconHTML;
+    let baseTime;
+    let warned = false;
 
     function show() {
+      if (visible) {
+        hide();
+        return;
+      }
       visible = true;
       setTimeout(() => {
         showTimeSlider.set(true);
         nowcast.downloadNowcast();
-      }, 400);
+      }, 200);
     }
 
     function hide() {
       visible = false;
       setTimeout(() => {
         showTimeSlider.set(false);
-      }, 400);
+      }, 200);
+    }
+
+    function reset() {
+      if (!lastSliderTime) return;
+      timeline.removeCustomTime("playbackMarker");
+      cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
+      cap.getMap().addLayer(nowcast.mainLayer);
+      setTimeSlider(timeline);
+      lastSliderTime = undefined;
+      warned = false;
     }
 
     function updateSlider(subject, body) {
@@ -43,25 +62,28 @@
         return;
       }
 
-      loadingIndicator.style.display="none";
+      if (!body.complete) {
+        uiMessage = "Processing Nowcast";
+        return;
+      }
 
       let vals = Object.values(body.layers);
       let datasetItems = vals.map((val, i) => ({
         id: i,
         start: new Date((val.absTime)*1000),
         end: new Date((val.absTime+5*60)*1000),
-        style : i%2 == 0 ? "background: #eeeeee;" : "background: #ffffff;",
+        //style : i%2 == 0 ? "background: #eeffee;" : "background: #ddffdd;",
+        style : "background: #33508A;",
       }));
-      datasetItems.push({"id": 98, "type": "point", "content": "Radar Published", "start": new Date((body.processedTime)*1000)});
-      datasetItems.push({"id": 99, "type": "point", "content": "Radar Acquisition", "start": new Date((body.baseTime)*1000)});
-      console.log(datasetItems);
+      datasetItems.push({"id": 98, "type": "point", "content": "Published", "start": new Date((body.processedTime)*1000)});
+      datasetItems.push({"id": 99, "type": "point", "content": "Acquired", "start": new Date((body.baseTime)*1000)});
       let items = new DataSet(datasetItems);
+      baseTime = body.baseTime;
 
       // Configuration for the Timeline
       const options = {
         min: new Date((vals[0].absTime-60*60)*1000),
         max: new Date((vals[vals.length-1].absTime+60*60)*1000),
-        //stack: false,
         zoomFriction: 20,
         horizontalScroll: true,
         zoomKey: 'ctrlKey',
@@ -71,14 +93,23 @@
         margin: {axis:0,item:{horizontal:0,vertical:-5}},
       };
 
+      loadingIndicator = false;
+
       // Create a Timeline
       timeline = new Timeline(target, items, options);
       setTimeSlider(timeline);
-
-      document.getElementById("playButton").classList.remove("buttonDisabled");
+      Array.prototype.forEach.call(document.getElementsByClassName("controlButton"), (button) => button.classList.remove("buttonDisabled"));
     }
 
     function timeChangeHandler(properties) {
+      if (!lastSliderTime) {
+        cap.getMap().removeLayer(nowcast.mainLayer);
+        if (!warned) {
+          reportToast("You are now viewing forecasted data. To go back to measured radar data, close or reset the timeline.");
+          warned = true;
+        }
+      }
+
       const newSliderTime = Math.floor(properties.time.getTime() / 1000);
       if (newSliderTime != lastSliderTime) {
         lastSliderTime = newSliderTime;
@@ -87,13 +118,19 @@
           cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
           cap.getMap().addLayer(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[index]].layer);
         }
+        if (newSliderTime === baseTime) {
+          document.getElementById("backButton").classList.add("buttonInactive");
+        } else {
+          document.getElementById("backButton").classList.remove("buttonInactive");
+        }
       }
     }
 
     function setTimeSlider(timeline) {
       playbackMarkerID = timeline.addCustomTime(new Date((nowcast.forecastLayers["0"].absTime)*1000), "playbackMarker");
-      timeline.setCustomTimeMarker(new Date((nowcast.forecastLayers["0"].absTime)*1000), "playbackMarker");
+      timeline.setCustomTimeMarker("", "playbackMarker");
       timeline.on('timechange', timeChangeHandler);
+      document.getElementById("backButton").classList.add("buttonInactive");
     }
 
 
@@ -122,7 +159,6 @@
         timeline.removeCustomTime("playbackMarker");
         playing = false;
         setTimeSlider(timeline);
-        // UI Hooks XXX
         return;
       }
 
@@ -132,10 +168,6 @@
         cap.getMap().removeLayer(nowcast.mainLayer);
         playPauseButton = faPause;
         playing = true;
-        // this.hook('scriptHandler', 'playStarted');
-        //if (!this.enableIOSHooks) {
-        //  $('#forecastTimeWrapper').css('display', 'block');
-        //}
       } else {
         // remove previous layer
         cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
@@ -143,23 +175,16 @@
       currentForecastID++;
       cap.getMap().addLayer(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[currentForecastID]].layer);
       playbackMarkerID = timeline.addCustomTime(new Date((nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[currentForecastID]].absTime)*1000), "playbackMarker");
-      timeline.setCustomTimeMarker(new Date((nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[currentForecastID]].absTime)*1000), "playbackMarker");
-
-      //if (this.currentForecastNo >= 0) {
-      //  const layerTime = (parseInt(this.forecastLayers[this.currentForecastNo].version) + (this.currentForecastNo + 1) * 5 * 60) * 1000;
-      //  const dt = new Date(layerTime);
-      //  const dtStr = `${(`0${dt.getHours()}`).slice(-2)}:${(`0${dt.getMinutes()}`).slice(-2)}`;
-      //  $('.forecastTimeInner').html(dtStr);
-      //  this.hook('layerTimeHandler', layerTime);
-      //}
-      activeForecastTimeout = window.setTimeout(() => { playTick(); }, 500);
+      activeForecastTimeout = window.setTimeout(() => { playTick(); }, 600);
     }
 
     function init(node) {
       nowcast.addObserver(updateSlider);
-      par = document.getElementById(node.id);
       target = document.getElementById("timesliderTarget");
-      loadingIndicator = document.getElementById("loadingIndicator");
+    }
+
+    function renderIcon(el) {
+      iconHTML = el.innerHTML;
     }
 
 </script>
@@ -253,12 +278,42 @@
       color: #666666 !important;
     }
 
+    .buttonInactive {
+      opacity: 0.5;
+    }
+
     #timesliderTarget {
       width: 100%;
       position: static !important;
     }
 
+    :global(.vis-custom-time) > :global(.vis-custom-time-marker) {
+      top: unset;
+      bottom: 0;
+      transform:translateX(-47%);
+    }
+
+    :global(.vis-custom-time) > :global(.vis-custom-time-marker):before {
+      content: "↔︎";
+    }
+
+    :global(.vis-group) {
+      background: repeating-linear-gradient(
+              45deg,
+              #F0D1DF,
+              #F0D1DF 10px,
+              #CD7482 10px,
+              #CD7482 20px
+      );
+    }
+
+    :global(.vis-item-content) {
+      color: white;
+      font-size: 85%;
+    }
 </style>
+
+<span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
 {#if document.currentScript.getAttribute('device') !== 'ios'}
   <div class="lsToggle" on:click={show} style="top: calc(1vh + 74px + 1vh + 6px);">
@@ -267,21 +322,23 @@
 {/if}
 
 {#if visible}
-<div class="timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
-  <div class="controls">
-    <div class="controlButton buttonDisabled" on:click={play} id="playButton">
-      <Icon icon={playPauseButton} class="controlIcon" on:click={play}></Icon>
+  <div class="timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
+    <div class="controls">
+      <div class="controlButton buttonDisabled" on:click={play} title="Play/Pause">
+        <Icon icon={playPauseButton} class="controlIcon"></Icon>
+      </div>
+      <div class="controlButton buttonDisabled buttonInactive" on:click={reset} title="Go Back To Current Radar" id="backButton">
+        <Icon icon={faUndoAlt} class="controlIcon"></Icon>
+      </div>
     </div>
-    <div class="controlButton buttonDisabled" id="shareButton">
-      <Icon icon={faShareSquare} class="controlIcon"></Icon>
+    {#if loadingIndicator}
+    <div class="parent" id="loadingIndicator">
+      <div style="display: inline-block;">
+        <sl-spinner style="font-size: 2.5rem; float: left;"></sl-spinner>
+        <div style="opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; line-height: 2.5rem; white-space: nowrap;">{uiMessage}...</div>
+      </div>
     </div>
+    {/if}
+    <div id="timesliderTarget"></div>
   </div>
-  <div class="parent" id="loadingIndicator">
-    <div style="display: inline-block;">
-      <sl-spinner style="font-size: 2.5rem; float: left;"></sl-spinner>
-      <div style="opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; line-height: 2.5rem; white-space: nowrap;">Nowcast is being processed.</div>
-    </div>
-  </div>
-  <div id="timesliderTarget"></div>
-</div>
 {/if}

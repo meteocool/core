@@ -14,7 +14,6 @@ import CircleStyle from 'ol/style/Circle';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import { cartoDark, mapTilerOutdoor, osm } from '../layers/base';
-import { reportToast } from './Toast';
 
 /**
  * Manages the reflectivity + forecast layers shown on the map.

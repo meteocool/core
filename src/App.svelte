@@ -100,7 +100,7 @@
     }
 
     :global(.sl-toast-stack) {
-        bottom: env(safe-area-inset-top);
+        bottom: calc(env(safe-area-inset-top) + max(100px, 10%));
         top: auto;
     }
 

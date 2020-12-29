@@ -17,7 +17,7 @@ export function reportToast(message, type = 'primary', icon = 'info-circle') {
   const alert = Object.assign(document.createElement('sl-alert'), {
     type,
     closable: true,
-    duration: 2000,
+    duration: 20000,
     innerHTML: `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`,
   });
   console.log(message);

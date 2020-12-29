@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/prefer-default-export
 import { dwdLayer } from '../layers/radar';
+import { cap } from '../NowcastPlayback.svelte';
 
 // eslint-disable-next-line import/prefer-default-export
 export class Nowcast {
@@ -49,10 +50,19 @@ export class Nowcast {
   }
 
   downloadNowcast(cb) {
-    console.log(`${this.nowcast.length} nowcast steps available`);
-    if (this.nowcast.length === 0) alert('please reload in 30 seconds, nowcast still processing');
-
     this.downloaded = false;
+
+    console.log(`${this.nowcast.length} nowcast steps available`);
+    if (this.nowcast.length === 0) {
+      this.notify('update', {
+        layers: {},
+        baseTime: this.baseTime,
+        processedTime: this.processedTime,
+        complete: false,
+      });
+      return;
+    }
+
     this.nanobar.start('nowcast');
     const self = this;
     this.nowcast.forEach((interval) => {
@@ -76,7 +86,12 @@ export class Nowcast {
           if (cb) cb();
           nowcastSource.on('tileloadend', null);
           nowcastSource.on('tileloaderror', null);
-          self.notify('update', { layers: this.forecastLayers, baseTime: this.baseTime, processedTime: this.processedTime });
+          self.notify('update', {
+            layers: this.forecastLayers,
+            baseTime: this.baseTime,
+            processedTime: this.processedTime,
+            complete: true,
+          });
         }
       };
       nowcastSource.on('tileloadend', doneCb);
@@ -115,6 +130,12 @@ export class Nowcast {
     if (i === -1) {
       this.map.addLayer(this.mainLayer);
     } else {
+      this.map.getLayers().getArray().filter((layer) => layer.get('preloadee')).forEach((layer) => {
+        this.map.removeLayer(layer);
+        layer.setOpacity(0.85);
+        layer.unset('preloadee');
+      });
+      this.forecastLayers[i].layer.setOpacity(0.85);
       this.map.addLayer(this.forecastLayers[i].layer);
     }
 
@@ -125,5 +146,26 @@ export class Nowcast {
     }
 
     this.currentIndex = i;
+
+    // preload next layer
+    let nextLayer = i + 5;
+    if (nextLayer.toString() in this.forecastLayers) {
+      this.forecastLayers[nextLayer].layer.setOpacity(0);
+      this.forecastLayers[nextLayer].layer.set('preloadee', true);
+      this.map.addLayer(this.forecastLayers[nextLayer].layer);
+      console.log(`Preloading ${nextLayer}`);
+    } else {
+      console.log(`Preloading not available for ${nextLayer}`);
+    }
+
+    nextLayer = i + 10;
+    if (nextLayer.toString() in this.forecastLayers) {
+      this.forecastLayers[nextLayer].layer.setOpacity(0);
+      this.forecastLayers[nextLayer].layer.set('preloadee', true);
+      this.map.addLayer(this.forecastLayers[nextLayer].layer);
+      console.log(`Preloading ${nextLayer}`);
+    } else {
+      console.log(`Preloading not available for ${nextLayer}`);
+    }
   }
 }
