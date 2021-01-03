@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/prefer-default-export
 import { dwdLayer } from '../layers/radar';
-import { cap } from '../NowcastPlayback.svelte';
+import { reportError } from './Toast';
 
 // eslint-disable-next-line import/prefer-default-export
 export class Nowcast {
@@ -49,6 +49,30 @@ export class Nowcast {
     });
   }
 
+  downloadHistoric() {
+    this.nanobar.start('historic_nowcast');
+    const baseUrl = 'https://api.ng.meteocool.com/api/';
+    fetch(`${baseUrl}radar_historic/`)
+      .then((response) => response.json())
+      .then((obj) => {
+        const historic = {};
+        obj.forEach((radar) => {
+          const [nowcastLayer, nowcastSource] = dwdLayer(radar.tile_id, { nowcastLayer: true }, 'meteoradar');
+          historic[radar.upstream_time] = {
+            layer: nowcastLayer,
+          };
+        });
+        this.notify('historic', {
+          layers: historic,
+        });
+      })
+      .then(() => this.nanobar.finish('historic_nowcast'))
+      .catch((error) => {
+        this.nanobar.finish('historic_nowcast');
+        reportError(error);
+      });
+  }
+
   downloadNowcast(cb) {
     this.downloaded = false;
 
@@ -62,6 +86,8 @@ export class Nowcast {
       });
       return;
     }
+
+    this.downloadHistoric();
 
     this.nanobar.start('nowcast');
     const self = this;
