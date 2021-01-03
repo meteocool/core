@@ -60,6 +60,7 @@ export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
   const rasterRadarImageLayer = new ImageLayer({
     zIndex: 3,
     source: rasterRadar,
+    renderBuffer: 500,
     title: 'Radar Composite',
     id: tileId,
     ...extra,
@@ -82,6 +83,7 @@ export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
 
 export const greyOverlay = () => new VectorLayer({
   zIndex: 1000,
+  renderBuffer: 500,
   source: new VectorSource({
     features: [new Feature({
       geometry: dwdExtentInv,

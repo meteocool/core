@@ -27,6 +27,8 @@
     let iconHTML;
     let baseTime;
     let warned = false;
+    let historicLayers = [];
+    let historicLayersObj;
 
     function show() {
       if (visible) {
@@ -57,7 +59,28 @@
       warned = false;
     }
 
-    function updateSlider(subject, body) {
+    function updateSliderHistoric(subject, body) {
+      if (subject !== "historic") {
+        return;
+      }
+      return;
+      historicLayers = [];
+      historicLayersObj = body.layers;
+      Object.entries(body.layers).forEach((entry, i) => {
+        const [absTime, layer] = entry;
+        if (i < 1000) {
+          historicLayers.push({
+            id: 10000 + i,
+            type: "background",
+            start: new Date(absTime * 1000),
+            end: new Date((absTime + 5 * 60) * 1000),
+            style : "background: #00ff00;",
+          });
+        }
+      })
+    }
+
+    function updateSliderNowcast(subject, body) {
       if (subject !== "update") {
         return;
       }
@@ -75,14 +98,14 @@
         //style : i%2 == 0 ? "background: #eeffee;" : "background: #ddffdd;",
         style : "background: #33508A;",
       }));
-      datasetItems.push({"id": 98, "type": "point", "content": "Published", "start": new Date((body.processedTime)*1000)});
-      datasetItems.push({"id": 99, "type": "point", "content": "Acquired", "start": new Date((body.baseTime)*1000)});
-      let items = new DataSet(datasetItems);
+      datasetItems.push({"id": 998, "type": "point", "content": "Published", "start": new Date((body.processedTime)*1000)});
+      datasetItems.push({"id": 999, "type": "point", "content": "Acquired", "start": new Date((body.baseTime)*1000)});
+      let items = new DataSet(datasetItems.concat(historicLayers));
       baseTime = body.baseTime;
 
       // Configuration for the Timeline
       const options = {
-        min: new Date((vals[0].absTime-60*60)*1000),
+        min: new Date((vals[0].absTime-12*60*60)*1000),
         max: new Date((vals[vals.length-1].absTime+60*60)*1000),
         zoomFriction: 20,
         horizontalScroll: true,
@@ -117,6 +140,13 @@
         if (index >= 0) {
           cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
           cap.getMap().addLayer(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[index]].layer);
+        } else {
+          console.log(historicLayersObj);
+          console.log(lastSliderTime);
+          if (lastSliderTime.toString() in historicLayersObj) {
+            cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
+            cap.getMap().addLayer(historicLayersObj[lastSliderTime].layer);
+          }
         }
         if (newSliderTime === baseTime) {
           document.getElementById("backButton").classList.add("buttonInactive");
@@ -179,7 +209,8 @@
     }
 
     function init(node) {
-      nowcast.addObserver(updateSlider);
+      nowcast.addObserver(updateSliderNowcast);
+      nowcast.addObserver(updateSliderHistoric);
       target = document.getElementById("timesliderTarget");
     }
 
@@ -221,7 +252,7 @@
       border: 3px solid #333333;
       border-radius: 40px;
       position: absolute;
-      top: 1vh;
+      top: 50%;
       right: 1vh;
       text-align: center;
       vertical-align: center;
@@ -315,11 +346,9 @@
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
-{#if document.currentScript.getAttribute('device') !== 'ios'}
   <div class="lsToggle" on:click={show} style="top: calc(1vh + 74px + 1vh + 6px);">
     <Icon icon={faPlay} class="lsIcon"></Icon>
   </div>
-{/if}
 
 {#if visible}
   <div class="timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">

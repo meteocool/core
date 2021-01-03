@@ -52,7 +52,8 @@
 <div class="logo-wrapper">
     <InlineSVG src={logo} alt="meteocool" class="logo" style="height: 90%; float: left; padding: 0.5vh 1vh 1vh; "/>
     <div class="name">meteocool.com</div>
-    <div class="claim"><span on:click="{() => showAbout = true}">Find out more, get the App!</span></div>
+    <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="
+https://play.google.com/store/apps/details?id=com.meteocool">Android</a><!--span on:click="{() => showAbout = true}">Find out more, get the App!</span--></div>
     {#if showAbout}
 	<About on:close="{() => showAbout = false}">
         <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
