@@ -5,10 +5,12 @@
 
 	let showAbout = false;
     import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
-    import { defineCustomElements, setAssetPath } from '@shoelace-style/shoelace';
+    import { setAssetPath, SlButton, SlIcon, SlSpinner } from '@shoelace-style/shoelace';
 
     setAssetPath(document.currentScript.src);
-    defineCustomElements();
+    customElements.define('sl-button', SlButton);
+    customElements.define('sl-icon', SlIcon);
+    customElements.define('sl-spinner', SlSpinner);
 </script>
 
 <style>
