@@ -48,9 +48,6 @@
         <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="width: 49%; float: left;"></a>
         <a href="https://play.google.com/store/apps/details?id=com.meteocool"><img class="appstore-logo" alt="google play app store" src="assets/google-play-store.png" style="width: 49%"></a>
     </p>
-
-
-
         <p>meteocool is a free GIS visualisation &amp; aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that’s up to you.</p>
         <p>meteocool currently uses radar data provided by DWD and realtime lightning information from the awesome blitzortung.org project.</p>
         <h2>Features</h2>
@@ -82,13 +79,14 @@
 
 	.modal {
 		position: absolute;
-		left: 50%;
-		top: 50%;
+		/* left: 50%; */
+		/* top: 50%; */
 		width: calc(100vw - 4em);
 		max-width: 32em;
 		max-height: calc(100vh - 4em);
 		overflow: auto;
 		/* transform: translate(-50%,-50%); */
+        transform: translate(100%);
 		padding: 1em;
 		border-radius: 0.2em;
 		background: white;
