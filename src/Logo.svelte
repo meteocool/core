@@ -1,16 +1,31 @@
 <script>
-	import logo from "../assets/logo.svg";
+    import logo from "../assets/logo.svg";
     import InlineSVG from 'svelte-inline-svg'
-	import About from './About.svelte';
+    import About from './About.svelte';
 
-	let showAbout = false;
+    let showAbout = false;
+
+    function toggleAbout() {
+        if (!showAbout) {
+            showAbout = true;
+        } else {
+            showAbout = false;
+        }
+    }
+
     import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
-    import { setAssetPath, SlButton, SlIcon, SlSpinner } from '@shoelace-style/shoelace';
+    import {
+        setAssetPath,
+        SlButton,
+        SlIcon,
+        SlSpinner
+    } from '@shoelace-style/shoelace';
 
     setAssetPath(document.currentScript.src);
     customElements.define('sl-button', SlButton);
     customElements.define('sl-icon', SlIcon);
     customElements.define('sl-spinner', SlSpinner);
+
 </script>
 
 <style>
@@ -26,7 +41,7 @@
         border-bottom-right-radius: 15px;
         background-color: white;
 
-        font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
 
         color: #212529;
         text-align: left;
@@ -36,28 +51,31 @@
         background-color: white;
         min-height: 32px;
     }
+
     .name {
         display: inline-block;
-        vertical-align:top;
+        vertical-align: top;
         margin-right: 10px;
         padding-top: 0px;
         padding-right: 6px;
         font-size: max(2.9vh, 15px);
     }
+
     .claim {
         font-size: max(1.5vh, 8px);
     }
 </style>
 
 <div class="logo-wrapper">
-    <InlineSVG src={logo} alt="meteocool" class="logo" style="height: 90%; float: left; padding: 0.5vh 1vh 1vh; "/>
+    <InlineSVG src={logo} alt="meteocool" class="logo" style="height: 90%; float: left; padding: 0.5vh 1vh 1vh; " />
     <div class="name">meteocool.com</div>
-    <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="
-https://play.google.com/store/apps/details?id=com.meteocool">Android</a><!--span on:click="{() => showAbout = true}">Find out more, get the App!</span--></div>
+    <!-- <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="
+https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
+    </div> -->
+    <div class="claim">
+        <span on:click="{() => toggleAbout()}">Click for more, get the App</span>
+    </div>
     {#if showAbout}
-	<About on:close="{() => showAbout = false}">
-        <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
-        Lorem ipsum dolor sit, amet consectetur adipisicing elit. Nemo doloribus tenetur dolorem vero rem minus numquam. Voluptate, tenetur dolore, quidem quae voluptas voluptatibus itaque minus eligendi adipisci quibusdam dignissimos quo!
-	</About>
+    <About on:close="{() => toggleAbout()}"></About>
     {/if}
 </div>
