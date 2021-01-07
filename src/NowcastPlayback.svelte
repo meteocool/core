@@ -346,9 +346,11 @@
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
+{#if document.currentScript.getAttribute('device') !== 'ios'}
   <div class="lsToggle" on:click={show} style="top: calc(1vh + 74px + 1vh + 6px);">
     <Icon icon={faPlay} class="lsIcon"></Icon>
   </div>
+{/if}
 
 {#if visible}
   <div class="timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
