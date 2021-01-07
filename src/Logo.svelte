@@ -15,17 +15,20 @@
 
     import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
     import {
-        setAssetPath,
+        SlAlert,
         SlButton,
+        SlIconButton,
         SlIcon,
-        SlSpinner
+        SlSpinner,
+        setAssetPath, defineCustomElements,
     } from '@shoelace-style/shoelace';
 
     setAssetPath(document.currentScript.src);
     customElements.define('sl-button', SlButton);
     customElements.define('sl-icon', SlIcon);
+    customElements.define('sl-icon-button', SlIconButton);
     customElements.define('sl-spinner', SlSpinner);
-
+    customElements.define('sl-alert', SlAlert);
 </script>
 
 <style>
