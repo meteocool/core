@@ -3,7 +3,7 @@ import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import { bordersAndWays } from './vector';
 import { centralEuropeExtent } from './extents';
-import { copernicusAttribution } from './attributions';
+import { copernicusAttribution, imprintAttribution } from './attributions';
 import { tileBaseUrl } from './urls';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -16,7 +16,7 @@ export const sentinel2 = () => new LayerGroup({
         url: 'https://ot-tiles-dev.s3.eu-central-1.amazonaws.com/s2_msi_worldgrid/{z}/{x}/{-y}.png',
         minZoom: 1,
         maxZoom: 14,
-        attributions: [copernicusAttribution],
+        attributions: [copernicusAttribution, imprintAttribution],
       }),
       zIndex: 5,
       extent: centralEuropeExtent,

@@ -59,9 +59,12 @@
             <li><strong>Progressive Web App:</strong> responsive, connectivity independent and app-like. Add a shortcut to your iOS or Android Home Screen to use meteocool in “app mode”.</li>
             <li><strong>iOS &amp; Android Apps:</strong> native iOS and Android apps provide battery-efficient background location services to allow for accurate rain notifications without user interaction.</li>
             </ul>
-        <p>
-            <a href="/imprint.html">imprint</a> - <a href="/privacy.html">privacy policy</a>
-        </p>
+            <h2>other things</h2>
+
+                <ul>
+                    <li>contact us</li>
+                    <li><a href="/privacy.html">privacy policy</a></li>
+                </ul>
     </slot>
 	<hr>
 	<!-- svelte-ignore a11y-autofocus -->
