@@ -28,8 +28,6 @@ export class LayerManager {
     this.maps = [];
     this.accuracyFeatures = [];
     this.positionFeatures = [];
-    this.inhibitDisableTracking = false;
-    this.mapBeingMoved = false;
 
     Object.keys(this.capabilities).forEach((capability) => {
       const newMap = this.makeMap(capability);
@@ -46,10 +44,10 @@ export class LayerManager {
     }
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
     let centerPoint;
+    const center = fromLonLat([lon, lat]);
     if (lat === -1 && lon === -1 && accuracy === -1) {
       centerPoint = null;
     } else {
-      const center = fromLonLat([lon, lat]);
       centerPoint = center ? new Point(center) : null;
     }
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
@@ -84,12 +82,6 @@ export class LayerManager {
       view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
     }
     this.forEachMap((map) => map.render());
-    this.inhibitDisableTracking = true;
-    reportToast('this.inhibitDisableTracking = true (location update)');
-    setTimeout(() => {
-      this.inhibitDisableTracking = false;
-      reportToast('this.inhibitDisableTracking = false');
-    }, 333);
   }
 
   resetLocation() {
@@ -108,7 +100,7 @@ export class LayerManager {
 
   makeMap(capability) {
     let controls = new Collection();
-    let mapCb = () => {
+    const mapCb = () => {
       this.mapBeingMoved = false;
       reportToast('this.mapBeingMoved=false');
     };
@@ -116,16 +108,6 @@ export class LayerManager {
       controls = defaults({ attribution: false }).extend([new Attribution({
         collapsible: false,
       })]);
-    } else {
-      const self = this;
-      mapCb = () => {
-        self.mapBeingMoved = false;
-        reportToast('this.mapBeingMoved=false');
-        if (!self.inhibitDisableTracking) {
-          reportToast('!this.inhibitDisableTracking: mapMoveEnd');
-          window.webkit.messageHandlers.scriptHandler.postMessage('mapMoveEnd');
-        }
-      };
     }
 
     const accuracyFeature = new Feature();
@@ -171,11 +153,6 @@ export class LayerManager {
       controls,
     });
     newMap.set('capability', capability);
-    if (mapCb) newMap.on('moveend', mapCb);
-    newMap.on('movestart', () => {
-      this.mapBeingMoved = true;
-      reportToast('this.mapBeingMoved=true');
-    });
     return newMap;
   }
 
