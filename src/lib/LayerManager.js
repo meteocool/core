@@ -40,14 +40,21 @@ export class LayerManager {
 
   updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
     let accuracyPoly = null;
-    if (accuracy > 0) {
+    if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
       accuracyPoly.applyTransform(getTransformFromProjections(getProjection('EPSG:4326'), getProjection('EPSG:3857')));
     }
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
-    const center = fromLonLat([lon, lat]);
-    const centerPoint = center ? new Point(center) : null;
+    let centerPoint;
+    if (lat === -1 && lon === -1 && accuracy === -1) {
+      centerPoint = null;
+    } else {
+      const center = fromLonLat([lon, lat]);
+      centerPoint = center ? new Point(center) : null;
+    }
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
+
+    if (centerPoint === null) return;
 
     const view = this.maps[0].getView();
     let zoomLevel = view.getZoom();
@@ -74,7 +81,7 @@ export class LayerManager {
       newCenter = oldCenter;
     }
     if ((zoom || focus) && !this.mapBeingMoved) {
-      view.animate({ center: newCenter, zoom: zoomLevel });
+      view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
     }
     this.forEachMap((map) => map.render());
     this.inhibitDisableTracking = true;
