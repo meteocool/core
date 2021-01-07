@@ -6,7 +6,7 @@ import {
 } from 'ol/style';
 import CircleStyle from 'ol/style/Circle';
 import { centralEuropeExtent } from './extents';
-import { osmAttribution, wofAttribution } from './attributions';
+import { osmAttribution, wofAttribution, imprintAttribution } from './attributions';
 
 const boundaryStyleCache = {};
 const boundaryStyle = function (feature) {
@@ -94,7 +94,7 @@ export const bordersAndWays = () => new VectorTileLayer({
   zIndex: 99,
   declutter: true,
   source: new VectorTileSource({
-    attributions: [wofAttribution, osmAttribution],
+    attributions: [wofAttribution, osmAttribution, imprintAttribution],
     format: new TopoJSON({
       layerName: 'layer',
       layers: ['boundaries', 'places'],

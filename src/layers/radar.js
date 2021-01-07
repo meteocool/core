@@ -9,7 +9,7 @@ import VectorSource from 'ol/source/Vector';
 import { DEVICE_PIXEL_RATIO } from 'ol/has';
 import { Raster as RasterSource, XYZ } from 'ol/source';
 import { transformExtent } from 'ol/proj';
-import { dwdAttribution } from './attributions';
+import { dwdAttribution, imprintAttribution } from './attributions';
 import { dwdExtentInv } from './extents';
 import { meteocoolClassic, viridis } from '../colormaps';
 import { tileBaseUrl } from './urls';
@@ -20,7 +20,7 @@ let cmap = viridis;
 export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
   const reflectivitySource = new XYZ({
     url: `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`,
-    attributions: [dwdAttribution],
+    attributions: [dwdAttribution, imprintAttribution],
     crossOrigin: 'anonymous',
     minZoom: 1,
     maxZoom: 8,
