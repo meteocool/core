@@ -21,6 +21,22 @@
         tracesSampleRate: 1.0,
     });
 
+    import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
+    import {
+        SlAlert,
+        SlButton,
+        SlIconButton,
+        SlIcon,
+        SlSpinner,
+        setAssetPath, defineCustomElements,
+    } from '@shoelace-style/shoelace';
+    setAssetPath(document.currentScript.src);
+    customElements.define('sl-button', SlButton);
+    customElements.define('sl-icon', SlIcon);
+    customElements.define('sl-icon-button', SlIconButton);
+    customElements.define('sl-spinner', SlSpinner);
+    customElements.define('sl-alert', SlAlert);
+
     let baseUrl = "https://api.ng.meteocool.com/api/";
     //baseUrl = "http://localhost:5000/api/";
     window.settings = new Settings({
