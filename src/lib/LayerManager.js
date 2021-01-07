@@ -14,6 +14,7 @@ import CircleStyle from 'ol/style/Circle';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import { cartoDark, mapTilerOutdoor, osm } from '../layers/base';
+import { reportToast } from './Toast';
 
 /**
  * Manages the reflectivity + forecast layers shown on the map.
@@ -77,10 +78,10 @@ export class LayerManager {
     }
     this.forEachMap((map) => map.render());
     this.inhibitDisableTracking = true;
-    // reportToast('this.inhibitDisableTracking = true (location update)');
+    reportToast('this.inhibitDisableTracking = true (location update)');
     setTimeout(() => {
       this.inhibitDisableTracking = false;
-      // reportToast('this.inhibitDisableTracking = false');
+      reportToast('this.inhibitDisableTracking = false');
     }, 333);
   }
 
@@ -102,18 +103,19 @@ export class LayerManager {
     let controls = new Collection();
     let mapCb = () => {
       this.mapBeingMoved = false;
-      // reportToast('this.mapBeingMoved=false');
+      reportToast('this.mapBeingMoved=false');
     };
     if (document.currentScript.getAttribute('device') !== 'ios') {
       controls = defaults({ attribution: false }).extend([new Attribution({
         collapsible: false,
       })]);
     } else {
+      const self = this;
       mapCb = () => {
-        this.mapBeingMoved = false;
-        // reportToast('this.mapBeingMoved=false');
-        if (!this.inhibitDisableTracking) {
-          // reportToast('!this.inhibitDisableTracking: mapMoveEnd');
+        self.mapBeingMoved = false;
+        reportToast('this.mapBeingMoved=false');
+        if (!self.inhibitDisableTracking) {
+          reportToast('!this.inhibitDisableTracking: mapMoveEnd');
           window.webkit.messageHandlers.scriptHandler.postMessage('mapMoveEnd');
         }
       };
@@ -165,7 +167,7 @@ export class LayerManager {
     if (mapCb) newMap.on('moveend', mapCb);
     newMap.on('movestart', () => {
       this.mapBeingMoved = true;
-      // reportToast('this.mapBeingMoved=true');
+      reportToast('this.mapBeingMoved=true');
     });
     return newMap;
   }
