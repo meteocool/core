@@ -104,7 +104,8 @@ export class LayerManager {
       this.mapBeingMoved = false;
       reportToast('this.mapBeingMoved=false');
     };
-    if (document.currentScript.getAttribute('device') !== 'ios') {
+    if (document.currentScript.getAttribute('device') !== 'ios' &&
+        document.currentScript.getAttribute('device') !== 'android') {
       controls = defaults({ attribution: false }).extend([new Attribution({
         collapsible: false,
       })]);

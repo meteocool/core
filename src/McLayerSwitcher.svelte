@@ -117,7 +117,7 @@
 
 </style>
 
-{#if document.currentScript.getAttribute('device') !== 'ios'}
+{#if document.currentScript.getAttribute('device') !== 'ios' && document.currentScript.getAttribute('device') !== 'android'}
 <div class="lsToggle" on:click={open}>
     <Icon icon={icon} class="lsIcon"></Icon>
 </div>

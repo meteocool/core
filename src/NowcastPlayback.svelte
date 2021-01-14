@@ -346,7 +346,7 @@
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
-{#if document.currentScript.getAttribute('device') !== 'ios'}
+{#if document.currentScript.getAttribute('device') !== 'ios' && document.currentScript.getAttribute('device') !== 'android'}
   <div class="lsToggle" on:click={show} style="top: calc(1vh + 74px + 1vh + 6px);">
     <Icon icon={faPlay} class="lsIcon"></Icon>
   </div>
