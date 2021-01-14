@@ -17,7 +17,8 @@
     "svelte-loader": "2.13.3",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.0",
-    "webpack-dev-server": "^3.3.1"
+    "webpack-dev-server": "^3.3.1",
+    "workbox-webpack-plugin": "^6.0.2"
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack",
@@ -37,6 +38,7 @@
     "ol-mapbox-style": "^6.1.2",
     "svelte-inline-svg": "^1.0.0",
     "vis-data": "^7.1.1",
-    "vis-timeline": "^7.4.5"
+    "vis-timeline": "^7.4.5",
+    "workbox-window": "^6.0.2"
   }
 }

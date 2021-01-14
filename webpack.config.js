@@ -1,6 +1,7 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const { InjectManifest } = require('workbox-webpack-plugin');
 
 const mode = process.env.NODE_ENV || 'development';
 const prod = mode === 'production';
@@ -57,10 +58,22 @@ module.exports = {
       patterns: [{
         from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/shoelace/icons'),
         to: path.resolve(__dirname, 'dist/icons'),
-      }],
+      }, { from: 'public' }],
     }),
     new MiniCssExtractPlugin({
       filename: '[name].css',
+    }),
+    new InjectManifest({
+      swSrc: './src/sw.js',
+      swDest: 'sw.js',
+      maximumFileSizeToCacheInBytes: 8000000,
+      include: [
+        /\.css$/,
+        /\.html$/,
+        /\.js$/,
+        /\.png$/,
+        /site\.webmanifest$/,
+      ],
     }),
   ],
   devtool: prod ? false : 'source-map',
