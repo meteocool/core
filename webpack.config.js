@@ -1,6 +1,8 @@
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { InjectManifest } = require('workbox-webpack-plugin');
 
 const mode = process.env.NODE_ENV || 'development';
@@ -9,6 +11,8 @@ const prod = mode === 'production';
 module.exports = {
   entry: {
     bundle: ['./src/main.js'],
+    android: ['./src/android.js'],
+    ios: ['./src/ios.js'],
   },
   resolve: {
     alias: {
@@ -20,7 +24,7 @@ module.exports = {
   output: {
     path: `${__dirname}/dist`,
     filename: '[name].js',
-    chunkFilename: '[name].[id].js',
+    chunkFilename: '[name].js',
   },
   module: {
     rules: [{
@@ -53,12 +57,43 @@ module.exports = {
     ],
   },
   mode,
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
+  },
   plugins: [
+    new CleanWebpackPlugin(),
     new CopyPlugin({
       patterns: [{
         from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/shoelace/icons'),
         to: path.resolve(__dirname, 'dist/icons'),
       }, { from: 'public' }],
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'index.html',
+      template: 'src/html/index.html',
+      chunks: ['bundle'],
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'android.html',
+      template: 'src/html/android.html',
+      chunks: ['android'],
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'ios.html',
+      template: 'src/html/ios.html',
+      chunks: ['ios'],
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'imprint.html',
+      template: 'src/html/imprint.html',
+      chunks: [],
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'privacy.html',
+      template: 'src/html/privacy.html',
+      chunks: [],
     }),
     new MiniCssExtractPlugin({
       filename: '[name].css',
