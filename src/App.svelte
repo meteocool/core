@@ -21,6 +21,7 @@
         tracesSampleRate: 1.0,
     });
 
+    import './style/global.css';
     import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
     import {
         SlAlert,
@@ -83,7 +84,7 @@
             "weather": new WeatherCapability(nb),
         },
     });
-    export let device = document.currentScript.getAttribute('device');
+    export let device = window.device;
     window.lm = lm;
 
     if (device == "ios" && "webkit" in window) {

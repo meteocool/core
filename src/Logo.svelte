@@ -1,6 +1,5 @@
 <script>
     import logo from "../assets/logo.svg";
-    import InlineSVG from 'svelte-inline-svg'
     import About from './About.svelte';
 
     let showAbout = false;
@@ -55,7 +54,7 @@
 </style>
 
 <div class="logo-wrapper">
-    <InlineSVG src={logo} alt="meteocool" class="logo" style="height: 90%; float: left; padding: 0.5vh 1vh 1vh; " />
+    <img src={logo} alt="meteocool" class="logo" style="height: 90%; float: left; padding: 0.5vh 1vh 1vh; " />
     <div class="name">meteocool.com</div>
     <!-- <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="
 https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
