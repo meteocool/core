@@ -2,6 +2,7 @@
   "name": "svelte-app",
   "version": "1.0.0",
   "devDependencies": {
+    "clean-webpack-plugin": "^3.0.0",
     "copy-webpack-plugin": "^6.2.1",
     "cross-env": "^5.2.0",
     "css-loader": "^2.1.1",
@@ -9,15 +10,17 @@
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-plugin-import": "^2.22.1",
     "fa-svelte": "^3.1.0",
-    "file-loader": "^6.0.0",
+    "html-webpack-plugin": "^4.5.1",
     "mini-css-extract-plugin": "^0.6.0",
     "serve": "^11.0.0",
     "style-loader": "^0.23.1",
     "svelte": "^3.0.0",
     "svelte-loader": "2.13.3",
+    "url-loader": "^4.1.1",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.0",
-    "webpack-dev-server": "^3.3.1"
+    "webpack-dev-server": "^3.3.1",
+    "workbox-webpack-plugin": "^6.0.2"
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack",
@@ -35,8 +38,8 @@
     "ol": "^6.4.2",
     "ol-ext": "^3.1.14",
     "ol-mapbox-style": "^6.1.2",
-    "svelte-inline-svg": "^1.0.0",
     "vis-data": "^7.1.1",
-    "vis-timeline": "^7.4.5"
+    "vis-timeline": "^7.4.5",
+    "workbox-window": "^6.0.2"
   }
 }
