@@ -107,6 +107,9 @@ module.exports = {
         /\.html$/,
         /\.js$/,
         /\.png$/,
+        // https://github.com/shoelace-style/shoelace/issues/297
+        /exclamation-triangle\.svg$/,
+        /x\.svg$/,
         /site\.webmanifest$/,
       ],
     }),
