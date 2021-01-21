@@ -1,10 +1,9 @@
 <script>
     import Icon from 'fa-svelte'
-    import { faSatelliteDish } from '@fortawesome/free-solid-svg-icons/faSatelliteDish'
+    import { faLayerGroup } from '@fortawesome/free-solid-svg-icons/faLayerGroup'
     import MiniMap from "./MiniMap.svelte";
     import { createEventDispatcher } from 'svelte';
 
-    let icon = faSatelliteDish;
     export let layerManager;
     let childCanvases = {};
 
@@ -119,7 +118,7 @@
 
 {#if window.device !== 'ios' && window.device !== 'android'}
 <div class="lsToggle" on:click={open}>
-    <Icon icon={icon} class="lsIcon"></Icon>
+    <Icon icon={faLayerGroup} class="lsIcon"></Icon>
 </div>
 {/if}
 

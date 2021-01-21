@@ -7,6 +7,7 @@
     import {faPause} from '@fortawesome/free-solid-svg-icons/faPause'
     import {faUndoAlt} from '@fortawesome/free-solid-svg-icons/faUndoAlt'
     import {faArrowsAltH} from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
+    import {faGithubSquare} from '@fortawesome/free-brands-svg-icons/faGithubSquare';
     import { fly } from 'svelte/transition';
     import {reportToast} from "./lib/Toast";
 
@@ -221,59 +222,57 @@
 </script>
 
 <style>
+    .githubIcon {
+       font-size: 30px;
+    }
+
+    .bottomToolbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      background-color: white;
+      border-top-left-radius: 11px;
+      border-top-right-radius: 11px;
+      border-top: 1px solid lightgray;
+      width: 100%;
+    }
+
     .timeslider {
-        position: absolute;
-        z-index: 99999;
-        bottom: 0;
-        left: 0;
         height: 10%;
-        width: 100%;
-        background-color: white;
-        border-top-left-radius: 11px;
-        border-top-right-radius: 11px;
         min-height: 100px;
-        border-top: 1px solid lightgray;
+        z-index: 999;
+    }
+
+    .lastUpdatedBottom {
+      min-height: 15px;
+      z-index: 99;
+      padding-top: 0.2em;
+      padding-bottom: 0.2em;
+    }
+
+    .parentz {
+      column-count: 2;
+      column-gap: 50%;
+    }
+
+    .left{
+      transform: translateY(50%);
+    }
+    .right{
+      height: 100%;
+      text-align: right;
     }
 
     .parent {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      height: 100%;
       justify-content: center;
       align-items: center;
     }
 
-    /* XXX deduplicate */
-    .lsToggle {
-      width: 74px;
-      height: 74px;
-      background-color: #f8f9fa;
-      border: 3px solid #333333;
-      border-radius: 40px;
-      position: absolute;
-      top: 50%;
-      right: 1vh;
-      text-align: center;
-      vertical-align: center;
-    }
 
-    .lsToggle:hover {
-      background-color: #666666;
-      color: white;
-      cursor: pointer;
-    }
-
-    div :global(.lsIcon) {
-      font-size: 40px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-      stroke: white;
-    }
-
+    /* timeline controls */
     .controls {
       width: 3em;
       display:flex;
@@ -318,6 +317,8 @@
       position: static !important;
     }
 
+
+    /* vis.js timeline styling */
     :global(.vis-custom-time) > :global(.vis-custom-time-marker) {
       top: unset;
       bottom: 0;
@@ -342,18 +343,58 @@
       color: white;
       font-size: 85%;
     }
+
+    div :global(.githubIcon) {
+      font-size: 32px;
+      text-shadow:
+              3px 3px 0 #ffffff,
+              -1px -1px 0 #ffffff,
+              1px -1px 0 #ffffff,
+              -1px 1px 0 #ffffff,
+              1px 1px 0 #ffffff;
+      color: black !important;
+      padding: 0;
+      margin: 6px 0.2em 0 0;
+    }
+
+    .appstoreLogo {
+      margin-left: 0.1em;
+      padding-left: 0px;
+      display: inline;
+    }
+
+    @media only screen and (max-width: 600px) {
+        .right {
+          display: none;
+        }
+    }
 </style>
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
-{#if window.device !== 'ios' && window.device !== 'android'}
-  <div class="lsToggle" on:click={show} style="top: calc(1vh + 74px + 1vh + 6px);">
-    <Icon icon={faPlay} class="lsIcon"></Icon>
+<div class="bottomToolbar lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
+  <div class="parentz">
+    <div class="section">
+      <div class="left">
+        <div on:click={show} style="height: 28px; width: 28px; text-align: center; float: left; cursor: pointer; text-decoration: underline;">
+          <Icon icon={faPlay}></Icon>
+        </div>
+        <div on:click={show} style="padding-left: 1%; cursor: pointer;">
+          <div>Play...</div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="appstoreLogo"><a target="_blank" href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="height: 30px;"></a></div>
+        <div class="appstoreLogo"><a target="_blank" href="https://play.google.com/store/apps/details?id=com.meteocool"><img class="appstore-logo" alt="google play app store" src="assets/google-play-store.png" style="height: 30px;"></a></div>
+        <div class="appstoreLogo"><a target="_blank" href="https://github.com/meteocool/core"><Icon icon={faGithubSquare} class="githubIcon"></Icon></a></div>
+      </div>
+    </div>
   </div>
-{/if}
+
+</div>
 
 {#if visible}
-  <div class="timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
+  <div class="bottomToolbar timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
     <div class="controls">
       <div class="controlButton buttonDisabled" on:click={play} title="Play/Pause">
         <Icon icon={playPauseButton} class="controlIcon"></Icon>
