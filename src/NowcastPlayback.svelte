@@ -240,11 +240,14 @@
     .timeslider {
         height: 10%;
         min-height: 100px;
-        z-index: 999;
+        z-index: 999999;
+        background-color: red;
     }
 
     .lastUpdatedBottom {
-      min-height: 15px;
+      min-height: 25px;
+      padding-bottom: calc(env(safe-area-inset-bottom) + 25px);
+      bottom: 0;
       z-index: 99;
       padding-top: 0.2em;
       padding-bottom: 0.2em;
@@ -377,10 +380,9 @@
     <div class="section">
       <div class="left">
         <div on:click={show} style="height: 28px; width: 28px; text-align: center; float: left; cursor: pointer; text-decoration: underline;">
-          <Icon icon={faPlay}></Icon>
-        </div>
-        <div on:click={show} style="padding-left: 1%; cursor: pointer;">
-          <div>Play...</div>
+          <div class="controlButton" on:click={show} title="Play/Pause">
+            <Icon icon={faPlay} class="controlIcon"></Icon>
+          </div>
         </div>
       </div>
       <div class="right">
