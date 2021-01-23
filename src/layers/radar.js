@@ -11,10 +11,10 @@ import { Raster as RasterSource, XYZ } from 'ol/source';
 import { transformExtent } from 'ol/proj';
 import { dwdAttribution, imprintAttribution } from './attributions';
 import { dwdExtentInv } from './extents';
-import { meteocoolClassic, viridis } from '../colormaps';
+import { meteocoolClassic, nws, viridis } from '../colormaps';
 import { tileBaseUrl } from './urls';
 
-let cmap = viridis;
+let cmap = nws;
 
 // eslint-disable-next-line import/prefer-default-export
 export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
