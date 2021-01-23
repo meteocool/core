@@ -121,6 +121,12 @@
         top: auto;
     }
 
+    :global(*) {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+    }
+
+
 </style>
 
 {#if device !== 'ios'}
