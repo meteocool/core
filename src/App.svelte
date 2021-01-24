@@ -90,7 +90,10 @@
     capabilities: {
       'radar': radar,
       'satellite': new SatelliteCapability({ 'nanobar': nb }),
-      'weather': new WeatherCapability(nb),
+      'weather': new WeatherCapability({
+        'nanobar': nb,
+        'tileURL': baseUrl + 'icon/t_2m/'
+      }),
     },
   });
   export let device = window.device;
