@@ -109,15 +109,13 @@
         width: 0;
         height: 100%;
         background: rgb(135, 202, 214);
-        border-radius: 2px;
         height: 2px;
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
+        border-radius: 0px 2px 2px 0px;
         box-shadow: 0 0 3px rgb(135, 202, 214);
     }
 
     :global(.sl-toast-stack) {
-        bottom: calc(env(safe-area-inset-top) + max(100px, 10%));
+        bottom: calc(env(safe-area-inset-bottom) + 42px);
         top: auto;
     }
 
@@ -125,8 +123,6 @@
         -webkit-touch-callout: none;
         -webkit-user-select: none;
     }
-
-
 </style>
 
 {#if device !== 'ios'}
