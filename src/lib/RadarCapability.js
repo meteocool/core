@@ -9,6 +9,7 @@ export class RadarCapability {
     this.map = options.map;
     this.nanobar = options.nanobar;
     this.url = options.tileURL;
+    this.observers = [];
 
     this.numInFlightTiles = 0;
     window.radar = this;
@@ -27,6 +28,10 @@ export class RadarCapability {
         this.nanobar.finish(this.url);
         reportError(error);
       });
+  }
+
+  addObserver(cb) {
+    this.observers.push(cb);
   }
 
   processRadar(obj) {
@@ -60,5 +65,11 @@ export class RadarCapability {
 
   getMap() {
     return this.map;
+  }
+
+  willLoseFocus() {
+    this.observers.forEach((obs) => {
+      obs('loseFocus');
+    });
   }
 }

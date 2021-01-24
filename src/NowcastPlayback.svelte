@@ -18,7 +18,6 @@
     let playPaused = true;
     let currentForecastID = -1;
     let timeline;
-    let playbackMarkerID;
     let playPauseButton = faPlay;
     let playing = false;
     let activeForecastTimeout;
@@ -41,6 +40,7 @@
         showTimeSlider.set(true);
         nowcast.downloadNowcast();
       }, 200);
+      css_getclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 90px)";
     }
 
     function hide() {
@@ -48,6 +48,7 @@
       setTimeout(() => {
         showTimeSlider.set(false);
       }, 200);
+      css_getclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
     }
 
     function reset() {
@@ -127,11 +128,10 @@
 
     function timeChangeHandler(properties) {
       if (!lastSliderTime) {
+        timeline.removeCustomTime("playbackMarker");
+        timeline.setCustomTimeMarker("↔", "playbackMarker");
         cap.getMap().removeLayer(nowcast.mainLayer);
-        if (!warned) {
-          reportToast("You are now viewing forecasted data. To go back to measured radar data, close or reset the timeline.");
-          warned = true;
-        }
+        warnNotMostRecent();
       }
 
       const newSliderTime = Math.floor(properties.time.getTime() / 1000);
@@ -142,8 +142,6 @@
           cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
           cap.getMap().addLayer(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[index]].layer);
         } else {
-          console.log(historicLayersObj);
-          console.log(lastSliderTime);
           if (lastSliderTime.toString() in historicLayersObj) {
             cap.getMap().getLayers().getArray().filter((layer) => layer.get('nowcastLayer')).forEach((layer) => cap.getMap().removeLayer(layer));
             cap.getMap().addLayer(historicLayersObj[lastSliderTime].layer);
@@ -158,18 +156,31 @@
     }
 
     function setTimeSlider(timeline) {
-      playbackMarkerID = timeline.addCustomTime(new Date((nowcast.forecastLayers["0"].absTime)*1000), "playbackMarker");
-      timeline.setCustomTimeMarker("", "playbackMarker");
+      timeline.addCustomTime(new Date((nowcast.forecastLayers["0"].absTime)*1000), "playbackMarker");
+      timeline.setCustomTimeMarker("Tracking Most Recent", "playbackMarker");
       timeline.on('timechange', timeChangeHandler);
       document.getElementById("backButton").classList.add("buttonInactive");
     }
 
+    function warnNotMostRecent() {
+      if (!warned) {
+        reportToast("You are now viewing forecasted data.\nTo go back to the most recent radar observation, reset ↺ the timeline.");
+        warned = true;
+      }
+    }
 
     function play() {
       if (playing) {
-        window.clearTimeout(activeForecastTimeout);
+        window.clearTimeout(self.activeForecastTimeout);
+        self.activeForecastTimeout = 0;
         playPauseButton = faPlay;
+        playing = false;
+        timeline.setCustomTimeMarker("↔", "playbackMarker");
+        timeline.on('timechange', timeChangeHandler);
+        warnNotMostRecent();
       } else {
+        playing = true;
+        playPauseButton = faPause;
         timeline.on('timechange', () => {});
         playTick();
       }
@@ -205,13 +216,20 @@
       }
       currentForecastID++;
       cap.getMap().addLayer(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[currentForecastID]].layer);
-      playbackMarkerID = timeline.addCustomTime(new Date((nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[currentForecastID]].absTime)*1000), "playbackMarker");
-      activeForecastTimeout = window.setTimeout(() => { playTick(); }, 600);
+      timeline.addCustomTime(new Date((nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[currentForecastID]].absTime)*1000), "playbackMarker");
+      timeline.setCustomTimeMarker("↔", "playbackMarker");
+      self.activeForecastTimeout = window.setTimeout(() => { playTick(); }, 600);
     }
 
     function init(node) {
       nowcast.addObserver(updateSliderNowcast);
       nowcast.addObserver(updateSliderHistoric);
+      // close playback when switching to another layer, save some memory
+      cap.addObserver((event) => {if (event === "loseFocus") {
+        console.log("radar lost focus");
+        reset();
+        hide();
+      }});
       target = document.getElementById("timesliderTarget");
     }
 
@@ -219,13 +237,25 @@
       iconHTML = el.innerHTML;
     }
 
+    function cssrules() {
+      let rules = {};
+      for (let i=0; i<document.styleSheets.length; ++i) {
+        let cssRules = document.styleSheets[i].cssRules;
+        for (let j=0; j<cssRules.length; ++j)
+          rules[cssRules[j].selectorText] = cssRules[j];
+      }
+      return rules;
+    }
+
+    function css_getclass(name) {
+      const rules = cssrules();
+      if (!rules.hasOwnProperty(name))
+        throw 'TODO: deal_with_notfound_case';
+      return rules[name];
+    }
 </script>
 
 <style>
-    .githubIcon {
-       font-size: 30px;
-    }
-
     .bottomToolbar {
       position: absolute;
       bottom: 0;
@@ -241,12 +271,11 @@
         height: 10%;
         min-height: 100px;
         z-index: 999999;
-        background-color: red;
     }
 
     .lastUpdatedBottom {
-      min-height: 25px;
-      padding-bottom: calc(env(safe-area-inset-bottom) + 25px);
+      height: 42px;
+      padding-bottom: env(safe-area-inset-bottom);
       bottom: 0;
       z-index: 99;
       padding-top: 0.2em;
@@ -254,23 +283,40 @@
     }
 
     .parentz {
-      column-count: 2;
-      column-gap: 50%;
+      display: flex;
     }
 
     .left{
-      transform: translateY(50%);
+      height: 28px;
+      width: 28px;
+      text-align: center;
+      float: left;
+      cursor: pointer;
+      text-decoration: underline;
+      flex: 1;
     }
+
     .right{
       height: 100%;
       text-align: right;
+      flex: 1;
+      white-space: nowrap;
+    }
+    @media only screen and (max-width: 600px) {
+      .right {
+        display: none;
+      }
+    }
+
+    .center {
+      flex: 1;
     }
 
     .parent {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      justify-content: center;
+      translate: translateY(50%);
       align-items: center;
     }
 
@@ -284,6 +330,7 @@
       margin-top: 0.5em;
       margin-left: 0.6em;
       margin-right: 0.25em;
+
     }
 
     .controlButton {
@@ -329,7 +376,7 @@
     }
 
     :global(.vis-custom-time) > :global(.vis-custom-time-marker):before {
-      content: "↔︎";
+      content: " ";
     }
 
     :global(.vis-group) {
@@ -365,38 +412,12 @@
       padding-left: 0px;
       display: inline;
     }
-
-    @media only screen and (max-width: 600px) {
-        .right {
-          display: none;
-        }
-    }
 </style>
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
-<div class="bottomToolbar lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
-  <div class="parentz">
-    <div class="section">
-      <div class="left">
-        <div on:click={show} style="height: 28px; width: 28px; text-align: center; float: left; cursor: pointer; text-decoration: underline;">
-          <div class="controlButton" on:click={show} title="Play/Pause">
-            <Icon icon={faPlay} class="controlIcon"></Icon>
-          </div>
-        </div>
-      </div>
-      <div class="right">
-        <div class="appstoreLogo"><a target="_blank" href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="height: 30px;"></a></div>
-        <div class="appstoreLogo"><a target="_blank" href="https://play.google.com/store/apps/details?id=com.meteocool"><img class="appstore-logo" alt="google play app store" src="assets/google-play-store.png" style="height: 30px;"></a></div>
-        <div class="appstoreLogo"><a target="_blank" href="https://github.com/meteocool/core"><Icon icon={faGithubSquare} class="githubIcon"></Icon></a></div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
 {#if visible}
-  <div class="bottomToolbar timeslider" id="timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
+  <div class="bottomToolbar timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
     <div class="controls">
       <div class="controlButton buttonDisabled" on:click={play} title="Play/Pause">
         <Icon icon={playPauseButton} class="controlIcon"></Icon>
@@ -406,13 +427,35 @@
       </div>
     </div>
     {#if loadingIndicator}
-    <div class="parent" id="loadingIndicator">
-      <div style="display: inline-block;">
-        <sl-spinner style="font-size: 2.5rem; float: left;"></sl-spinner>
-        <div style="opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; line-height: 2.5rem; white-space: nowrap;">{uiMessage}...</div>
+      <div class="parent" id="loadingIndicator">
+        <div style="display: inline-block; transform: translateY(66%);">
+          <sl-spinner style="font-size: 2.5rem; float: left;"></sl-spinner>
+          <div style="display: inline-block;">
+            <div style="margin-top: -0.3em; opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top;">{uiMessage}...</div>
+            <div style="margin-top: -0.7em; opacity: 0.6; float: left; clear:both; font-size: 0.9rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top;">Last radar from then and then</div>
+          </div>
+        </div>
       </div>
-    </div>
     {/if}
     <div id="timesliderTarget"></div>
   </div>
 {/if}
+
+<div class="bottomToolbar lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
+  <div class="parentz">
+    <div on:click={show} style="" class="left">
+      <div class="controlButton" title="Play/Pause">
+        <Icon icon={faPlay} class="controlIcon"></Icon>
+      </div>
+    </div>
+    <div class="center">
+      foo
+    </div>
+    <div class="right">
+      <div class="appstoreLogo"><a target="_blank" href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="height: 30px;"></a></div>
+      <div class="appstoreLogo"><a target="_blank" href="https://play.google.com/store/apps/details?id=com.meteocool"><img class="appstore-logo" alt="google play app store" src="assets/google-play-store.png" style="height: 30px;"></a></div>
+      <div class="appstoreLogo"><a target="_blank" href="https://github.com/meteocool/core#meteocool"><Icon icon={faGithubSquare} class="githubIcon"></Icon></a></div>
+    </div>
+  </div>
+
+</div>

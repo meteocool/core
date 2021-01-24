@@ -28,6 +28,7 @@ export class LayerManager {
     this.maps = [];
     this.accuracyFeatures = [];
     this.positionFeatures = [];
+    this.currentCap = null;
 
     Object.keys(this.capabilities).forEach((capability) => {
       const newMap = this.makeMap(capability);
@@ -90,7 +91,11 @@ export class LayerManager {
   }
 
   setTarget(cap, target) {
+    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus) {
+      this.capabilities[this.currentCap].willLoseFocus();
+    }
     this.capabilities[cap].setTarget(target);
+    this.currentCap = cap;
   }
 
   setDefaultTarget(target) {

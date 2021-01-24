@@ -19,7 +19,7 @@
             if (val === true) {
                 document.getElementById(node.id).style.height = "calc(min(90%, calc(100% - 100px)) + 11px)";
             } else {
-                document.getElementById(node.id).style.height = "100%";
+                document.getElementById(node.id).style.height = "calc(100% - calc(env(safe-area-inset-bottom) + 42px))";
             }
             layerManager.forEachMap(map => {
                 map.updateSize();
@@ -50,8 +50,8 @@
 
     :global(.ol-attribution.ol-uncollapsible) {
         height: 1.2em;
-        padding-bottom: 1.6em;
-        font-size: 7pt;
+        padding-bottom: 1.15em;
+        font-size: 6pt;
     }
 
 </style>
