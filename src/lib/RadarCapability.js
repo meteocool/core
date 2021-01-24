@@ -53,7 +53,7 @@ export class RadarCapability {
 
   setTarget(target) {
     this.map.setTarget(target);
-    capDescription.set("Radar imges");
+    capDescription.set('Last updated 4 minutes ago');
   }
 
   setMap(map) {
