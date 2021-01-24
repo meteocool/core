@@ -7,15 +7,14 @@
     import {faPause} from '@fortawesome/free-solid-svg-icons/faPause'
     import {faUndoAlt} from '@fortawesome/free-solid-svg-icons/faUndoAlt'
     import {faArrowsAltH} from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
-    import {faGithubSquare} from '@fortawesome/free-brands-svg-icons/faGithubSquare';
     import { fly } from 'svelte/transition';
     import {reportToast} from "./lib/Toast";
+    import { cssGetclass } from './lib/css';
 
     export let nowcast;
     export let cap;
     let target;
     let loadingIndicator = true;
-    let playPaused = true;
     let currentForecastID = -1;
     let timeline;
     let playPauseButton = faPlay;
@@ -40,7 +39,7 @@
         showTimeSlider.set(true);
         nowcast.downloadNowcast();
       }, 200);
-      css_getclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 90px)";
+      cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 90px)";
     }
 
     function hide() {
@@ -48,7 +47,7 @@
       setTimeout(() => {
         showTimeSlider.set(false);
       }, 200);
-      css_getclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
+      cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
     }
 
     function reset() {
@@ -236,26 +235,10 @@
     function renderIcon(el) {
       iconHTML = el.innerHTML;
     }
-
-    function cssrules() {
-      let rules = {};
-      for (let i=0; i<document.styleSheets.length; ++i) {
-        let cssRules = document.styleSheets[i].cssRules;
-        for (let j=0; j<cssRules.length; ++j)
-          rules[cssRules[j].selectorText] = cssRules[j];
-      }
-      return rules;
-    }
-
-    function css_getclass(name) {
-      const rules = cssrules();
-      if (!rules.hasOwnProperty(name))
-        throw 'TODO: deal_with_notfound_case';
-      return rules[name];
-    }
 </script>
 
 <style>
+    /* deduplicate with bottomtoolbar.svelte XXX */
     .bottomToolbar {
       position: absolute;
       bottom: 0;
@@ -273,43 +256,10 @@
         z-index: 999999;
     }
 
-    .lastUpdatedBottom {
-      height: 42px;
-      padding-bottom: env(safe-area-inset-bottom);
-      bottom: 0;
-      z-index: 99;
-      padding-top: 0.2em;
-      padding-bottom: 0.2em;
-    }
-
-    .parentz {
-      display: flex;
-    }
-
-    .left{
-      height: 28px;
-      width: 28px;
-      text-align: center;
-      float: left;
-      cursor: pointer;
-      text-decoration: underline;
-      flex: 1;
-    }
-
-    .right{
-      height: 100%;
-      text-align: right;
-      flex: 1;
-      white-space: nowrap;
-    }
-    @media only screen and (max-width: 600px) {
-      .right {
-        display: none;
+    @media (orientation: portrait) {
+      .timeslider {
+        height: 20%;
       }
-    }
-
-    .center {
-      flex: 1;
     }
 
     .parent {
@@ -319,7 +269,6 @@
       translate: translateY(50%);
       align-items: center;
     }
-
 
     /* timeline controls */
     .controls {
@@ -367,7 +316,6 @@
       position: static !important;
     }
 
-
     /* vis.js timeline styling */
     :global(.vis-custom-time) > :global(.vis-custom-time-marker) {
       top: unset;
@@ -406,15 +354,15 @@
       padding: 0;
       margin: 6px 0.2em 0 0;
     }
-
-    .appstoreLogo {
-      margin-left: 0.1em;
-      padding-left: 0px;
-      display: inline;
-    }
 </style>
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
+
+<div on:click={show} style="position: absolute; bottom: 0.2em; left: 0.3em; z-index: 999999;">
+  <div class="controlButton" title="Play/Pause">
+    <Icon icon={faPlay} class="controlIcon"></Icon>
+  </div>
+</div>
 
 {#if visible}
   <div class="bottomToolbar timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
@@ -440,22 +388,3 @@
     <div id="timesliderTarget"></div>
   </div>
 {/if}
-
-<div class="bottomToolbar lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
-  <div class="parentz">
-    <div on:click={show} style="" class="left">
-      <div class="controlButton" title="Play/Pause">
-        <Icon icon={faPlay} class="controlIcon"></Icon>
-      </div>
-    </div>
-    <div class="center">
-      foo
-    </div>
-    <div class="right">
-      <div class="appstoreLogo"><a target="_blank" href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="height: 30px;"></a></div>
-      <div class="appstoreLogo"><a target="_blank" href="https://play.google.com/store/apps/details?id=com.meteocool"><img class="appstore-logo" alt="google play app store" src="assets/google-play-store.png" style="height: 30px;"></a></div>
-      <div class="appstoreLogo"><a target="_blank" href="https://github.com/meteocool/core#meteocool"><Icon icon={faGithubSquare} class="githubIcon"></Icon></a></div>
-    </div>
-  </div>
-
-</div>

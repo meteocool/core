@@ -99,18 +99,29 @@
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr;
         gap: 0.15em 0.1em;
-        grid-template-areas: "reflectivity satellite" "weather x";
+        grid-template-areas: "reflectivity satellite" "weather help";
         height: 100%;
     }
 
     .reflectivity { grid-area: reflectivity; }
     .satellite { grid-area: satellite; }
     .weather { grid-area: weather; }
+    .help { grid-area: help; }
 
     .cell {
         height: 100%;
         cursor: pointer;
         color: white;
+    }
+
+    .help {
+        font-family: Quattrocento;
+        color: white;
+        text-align: center;
+        text-indent: 2em;
+        line-height: 1.5;
+        transform: translateY(30%);
+        cursor: default;
     }
 
 
@@ -142,6 +153,9 @@
                          on:mount={childMounted}
                          on:changeLayer={changeLayer}
                 />
+            </div>
+            <div class="help cell">
+                <div class="help">💡<br />Today's weather is hardly worth mentioning?<br />Explore the near-realtime satellite map!<p><i>More maps coming soon.</i></p></div>
             </div>
         </div>
     </div>

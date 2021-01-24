@@ -1,6 +1,7 @@
 import { dwdLayer, greyOverlay } from '../layers/radar';
 import { Nowcast } from './Nowcast';
 import { reportError } from './Toast';
+import { capDescription } from '../stores';
 
 // eslint-disable-next-line import/prefer-default-export
 export class RadarCapability {
@@ -52,6 +53,7 @@ export class RadarCapability {
 
   setTarget(target) {
     this.map.setTarget(target);
+    capDescription.set("Radar imges");
   }
 
   setMap(map) {
