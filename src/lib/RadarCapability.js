@@ -17,6 +17,10 @@ export class RadarCapability {
 
     this.nowcast = new Nowcast({ nanobar: this.nanobar, map: this.map });
 
+    this.reloadTilesRadar();
+  }
+
+  reloadTilesRadar() {
     this.nanobar.start(this.url);
     fetch(this.url)
       .then((response) => response.json())
@@ -40,7 +44,7 @@ export class RadarCapability {
     newLayer.setOpacity(0.85);
     if (this.map) {
       if (this.layer) {
-        if (this.layer.getId() === newLayer.getId()) {
+        if (this.layer.get('tileId') === newLayer.get('tileId')) {
           return this.layer;
         }
         this.map.removeLayer(this.layer);

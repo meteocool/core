@@ -78,6 +78,7 @@ export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
     return true;
   };
 
+  rasterRadarImageLayer.set('tileId', tileId);
   return [rasterRadarImageLayer, reflectivitySource];
 };
 
