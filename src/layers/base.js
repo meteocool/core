@@ -43,6 +43,17 @@ export const cartoDark = () => new TileLayer({
   zIndex: 1,
 });
 
+export const cartoLight = () => new TileLayer({
+  source: new XYZ({
+    url: 'https://cartodb-basemaps-{a-c}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png',
+    attributions: [osmAttribution, cartoAttribution, imprintAttribution],
+    maxZoom: 20,
+  }),
+  base: true,
+  preload: Infinity,
+  zIndex: 1,
+});
+
 export const osm = () => new TileLayer({
   source: new OSM(),
   base: true,
