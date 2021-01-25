@@ -83,6 +83,16 @@
     'nanobar': nb,
     'tileURL': baseUrl + 'radar/'
   });
+  export const weather = new WeatherCapability({
+      'nanobar': nb,
+      'tileURL': baseUrl + 'icon/t_2m/'
+  });
+
+  window.enterForeground = () => {
+      radar.reloadTilesRadar();
+      weather.reloadTilesWeather();
+  };
+
   export let lm = new LayerManager({
     baseURL: baseUrl + 'tiles/',
     settings: window.settings,
@@ -90,10 +100,7 @@
     capabilities: {
       'radar': radar,
       'satellite': new SatelliteCapability({ 'nanobar': nb }),
-      'weather': new WeatherCapability({
-        'nanobar': nb,
-        'tileURL': baseUrl + 'icon/t_2m/'
-      }),
+      'weather': weather,
     },
   });
   export let device = window.device;

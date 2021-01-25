@@ -5,7 +5,7 @@ import { weatherLayer } from '../layers/weather';
 
 function roundToHour(date) {
   const p = 60 * 60 * 1000; // milliseconds in an hour
-  return new Date(Math.round(date.getTime() / p ) * p).getHours();
+  return new Date(Math.round(date.getTime() / p) * p).getHours();
 }
 
 // eslint-disable-next-line import/prefer-default-export
@@ -14,8 +14,13 @@ export class WeatherCapability {
     this.map = null;
     this.url = options.tileURL;
     this.nanobar = options.nanobar;
-    this.nanobar.start(this.url);
     this.weatherLayer = null;
+
+    this.reloadTilesWeather();
+  }
+
+  reloadTilesWeather() {
+    this.nanobar.start(this.url);
     fetch(this.url)
       .then((response) => response.json())
       .then((obj) => {
