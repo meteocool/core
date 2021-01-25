@@ -134,6 +134,7 @@
     :global(*) {
         -webkit-touch-callout: none;
         -webkit-user-select: none;
+        touch-action: manipulation;
     }
 </style>
 
