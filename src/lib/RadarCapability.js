@@ -1,7 +1,7 @@
 import { dwdLayer, greyOverlay } from '../layers/radar';
 import { Nowcast } from './Nowcast';
 import { reportError } from './Toast';
-import { capDescription } from '../stores';
+import { capDescription, capLastUpdated } from '../stores';
 
 // eslint-disable-next-line import/prefer-default-export
 export class RadarCapability {
@@ -26,7 +26,9 @@ export class RadarCapability {
       .then((response) => response.json())
       .then((obj) => {
         const newRadarLayer = this.processRadar(obj.radar);
-        this.nowcast.processNowcast(obj.nowcast, obj.radar.upstream_time, obj.radar.processed_time, newRadarLayer);
+        capLastUpdated.set(new Date(obj.radar.upstream_time*1000));
+        this.nowcast.processNowcast(obj.nowcast, obj.radar.upstream_time,
+          obj.radar.processed_time, newRadarLayer);
       })
       .then(() => this.nanobar.finish(this.url))
       .catch((error) => {
@@ -57,7 +59,7 @@ export class RadarCapability {
 
   setTarget(target) {
     this.map.setTarget(target);
-    capDescription.set('Last updated 4 minutes ago');
+    capDescription.set('Radar Reflectivity');
   }
 
   setMap(map) {

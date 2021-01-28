@@ -5,7 +5,6 @@
     import {showTimeSlider} from "./stores"
     import {faPlay} from '@fortawesome/free-solid-svg-icons/faPlay'
     import {faPause} from '@fortawesome/free-solid-svg-icons/faPause'
-    import {faUndoAlt} from '@fortawesome/free-solid-svg-icons/faUndoAlt'
     import {faArrowsAltH} from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
     import { fly } from 'svelte/transition';
     import {reportToast} from "./lib/Toast";
@@ -28,6 +27,8 @@
     let warned = false;
     let historicLayers = [];
     let historicLayersObj;
+
+    // XXX refactor with fsm
 
     function show() {
       if (visible) {
@@ -127,7 +128,6 @@
 
     function timeChangeHandler(properties) {
       if (!lastSliderTime) {
-        timeline.removeCustomTime("playbackMarker");
         timeline.setCustomTimeMarker("↔", "playbackMarker");
         cap.getMap().removeLayer(nowcast.mainLayer);
         warnNotMostRecent();
@@ -279,7 +279,6 @@
       margin-top: 0.5em;
       margin-left: 0.6em;
       margin-right: 0.25em;
-
     }
 
     .controlButton {
@@ -291,6 +290,7 @@
       flex:1 1 auto;
       text-align:center;
       margin: 0.25em;
+      cursor: pointer;
     }
 
     .controlButton:hover {
@@ -360,7 +360,13 @@
 
 <div on:click={show} style="position: absolute; bottom: 0.2em; left: 0.3em; z-index: 999999;">
   <div class="controlButton" title="Play/Pause">
-    <Icon icon={faPlay} class="controlIcon"></Icon>
+    <div class="playHover">
+      <Icon icon={faPlay} class="controlIcon"></Icon>
+    </div>
+    <!--div class="playLabel">
+      <div style="text-decoration: inherit; margin-top: -1.6em; float: left; font-size: 1.2rem; height: 2.5rem;">Load &amp; Play</div>
+      <div style="text-decoration: inherit; margin-top: -1.5em; float: left; clear:both; font-size: 0.7rem; height: 2.5rem;">Radar Nowcast...</div>
+    </div-->
   </div>
 </div>
 
@@ -369,9 +375,6 @@
     <div class="controls">
       <div class="controlButton buttonDisabled" on:click={play} title="Play/Pause">
         <Icon icon={playPauseButton} class="controlIcon"></Icon>
-      </div>
-      <div class="controlButton buttonDisabled buttonInactive" on:click={reset} title="Go Back To Current Radar" id="backButton">
-        <Icon icon={faUndoAlt} class="controlIcon"></Icon>
       </div>
     </div>
     {#if loadingIndicator}

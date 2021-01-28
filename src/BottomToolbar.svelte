@@ -1,7 +1,7 @@
 <script>
   import Icon from 'fa-svelte'
-  import { capDescription } from './stores';
-  import {faGithubSquare} from '@fortawesome/free-brands-svg-icons/faGithubSquare';
+  import { capDescription, capLastUpdated } from './stores';
+  import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
   import { fly } from 'svelte/transition';
   import { cssGetclass } from './lib/css';
 
@@ -12,10 +12,26 @@
   let iconHTML;
   let baseTime;
   let description;
+  let lastUpdated;
+  let lastUpdatedStr;
+
+  let slPercent = 75;
 
   capDescription.subscribe(value => {
     description = value;
   });
+
+  let updateTime = () => {
+    lastUpdatedStr = Math.abs((lastUpdated - new Date())/1000);
+    slPercent = 100 - Math.min(lastUpdatedStr/400*100, 100);
+    console.log(slPercent);
+    setTimeout(updateTime, 10000);
+  };
+
+  capLastUpdated.subscribe(value => {
+    lastUpdated = value;
+  });
+  updateTime();
 
   function show() {
     cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
@@ -53,26 +69,21 @@
         float: left;
         cursor: pointer;
         text-decoration: underline;
-        flex-grow: 1;     /* do not grow   - initial value: 0 */
+        flex-grow: 0;     /* do not grow   - initial value: 0 */
         flex-shrink: 0;   /* do not shrink - initial value: 1 */
-        flex-basis: 7%;
+        flex-basis: 3%;
     }
 
     .right{
         height: 100%;
         text-align: right;
         white-space: nowrap;
-        flex-grow: 1;     /* do not grow   - initial value: 0 */
+        flex-grow: 0;     /* do not grow   - initial value: 0 */
         flex-shrink: 0;   /* do not shrink - initial value: 1 */
-        flex-basis: 13%;
+        flex-basis: 10%;
     }
     @media only screen and (max-width: 600px) {
         .right {
-            display: none;
-        }
-    }
-    @media only screen and (max-width: 1350px) {
-        .center {
             display: none;
         }
     }
@@ -82,26 +93,12 @@
         font-family: Quattrocento;
         padding: 0.5em;
         font-size: 9pt;
-        text-indent: 2em;
         font-style: italic;
-    }
-
-    .controlButton {
-        width: 1em;
-        height: 1em;
-        padding: 0.5em;
-        border: 1px solid grey;
-        border-radius: 5px;
-        flex:1 1 auto;
-        text-align:center;
-        margin: 0.25em;
-    }
-
-    .controlButton:hover {
-        background-color: #333333;
-        border: 1px solid #333333;
-        color: white;
-        cursor: pointer;
+        position: relative;
+        flex-grow: 1;     /* do not grow   - initial value: 0 */
+        flex-shrink: 1;   /* do not shrink - initial value: 1 */
+        flex-basis: 90%;
+        text-align: center;
     }
 
     div :global(.githubIcon) {
@@ -131,7 +128,9 @@
             <!-- empty -->
         </div>
         <div class="center">
-            {description}
+            <sl-tag type="info" style="text-indent: unset; font-style: normal; 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;" size="medium">
+                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> {lastUpdated}
+            </sl-tag>
         </div>
         <div class="right">
             <div class="appstoreLogo"><a target="_blank" href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="height: 30px;"></a></div>
