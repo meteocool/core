@@ -13,7 +13,9 @@ import Style from 'ol/style/Style';
 import CircleStyle from 'ol/style/Circle';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
-import { cartoDark, cartoLight, mapTilerOutdoor, osm } from '../layers/base';
+import {
+  cartoDark, cartoLight, mapTilerOutdoor, osm,
+} from '../layers/base';
 import { reportToast } from './Toast';
 
 /**

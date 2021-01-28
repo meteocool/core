@@ -31,7 +31,9 @@
     SlIconButton,
     SlIcon,
     SlSpinner,
-    setAssetPath, defineCustomElements,
+    setAssetPath,
+    SlProgressRing,
+    SlTag,
   } from '@shoelace-style/shoelace';
   import BottomToolbar from './BottomToolbar.svelte';
 
@@ -41,6 +43,8 @@
   customElements.define('sl-icon-button', SlIconButton);
   customElements.define('sl-spinner', SlSpinner);
   customElements.define('sl-alert', SlAlert);
+  customElements.define('sl-progress-ring', SlProgressRing);
+  customElements.define('sl-tag', SlTag);
 
   let baseUrl = 'https://api.ng.meteocool.com/api/';
   //baseUrl = "http://localhost:5000/api/";
@@ -75,6 +79,10 @@
     capability: {
       type: 'string',
       default: 'radar',
+    },
+    experimentalFeatures: {
+      type: 'boolean',
+      default: false,
     },
   });
 
