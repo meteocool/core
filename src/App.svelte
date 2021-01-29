@@ -33,7 +33,7 @@
     SlSpinner,
     setAssetPath,
     SlProgressRing,
-    SlTag,
+    SlTag, SlDialog,
   } from '@shoelace-style/shoelace';
   import BottomToolbar from './BottomToolbar.svelte';
 
@@ -45,6 +45,7 @@
   customElements.define('sl-alert', SlAlert);
   customElements.define('sl-progress-ring', SlProgressRing);
   customElements.define('sl-tag', SlTag);
+  customElements.define('sl-dialog', SlDialog);
 
   let baseUrl = 'https://api.ng.meteocool.com/api/';
   //baseUrl = "http://localhost:5000/api/";
