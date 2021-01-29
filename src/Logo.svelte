@@ -51,6 +51,10 @@
     .claim {
         font-size: max(1.5vh, 8px);
     }
+    .link {
+        text-decoration: underline;
+        cursor: pointer;
+    }
 </style>
 
 <div class="logo-wrapper">
@@ -60,7 +64,7 @@
 https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
     </div> -->
     <div class="claim">
-        <span on:click="{() => toggleAbout()}">Click for more, get the App</span>
+        <span on:click="{() => toggleAbout()}" class="link">About</span> | Join the community
     </div>
     {#if showAbout}
     <About on:close="{() => toggleAbout()}"></About>
