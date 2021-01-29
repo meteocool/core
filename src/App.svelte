@@ -84,6 +84,14 @@
       type: 'boolean',
       default: false,
     },
+    layerMesocyclones: {
+      type: 'boolean',
+      default: true,
+    },
+    layerLightning: {
+      type: 'boolean',
+      default: true,
+    },
   });
 
   const nb = new NanobarWrapper();

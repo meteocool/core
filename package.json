@@ -34,6 +34,7 @@
     "@sentry/tracing": "^5.27.1",
     "@shoelace-style/shoelace": "^2.0.0-beta.21",
     "babel-eslint": "^10.1.0",
+    "date-fns": "^2.16.1",
     "moment": "^2.29.1",
     "nanobar": "^0.4.2",
     "ol": "^6.4.2",
