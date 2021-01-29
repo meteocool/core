@@ -4,9 +4,11 @@
   import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
   import { fly } from 'svelte/transition';
   import { cssGetclass } from './lib/css';
+  import { enUS } from 'date-fns/locale'
+  import {formatDistanceToNow} from "date-fns";
 
-  export let nowcast;
-  export let cap;
+  const dfnLocale = enUS;
+
   let target;
   let activeForecastTimeout;
   let iconHTML;
@@ -21,16 +23,22 @@
     description = value;
   });
 
+  let updateTimeout = 0;
+
   let updateTime = () => {
     lastUpdatedStr = Math.abs((lastUpdated - new Date())/1000);
-    slPercent = 100 - Math.min(lastUpdatedStr/400*100, 100);
-    console.log(slPercent);
-    setTimeout(updateTime, 10000);
+    slPercent = 100 - Math.min((lastUpdatedStr-120)/420*100, 100);
+    lastUpdatedStr = formatDistanceToNow(lastUpdated, { locale: dfnLocale, addSuffix: true });
+    updateTimeout = setTimeout(updateTime, 10000);
   };
 
   capLastUpdated.subscribe(value => {
     lastUpdated = value;
+    if (updateTimeout > 0) window.clearTimeout(updateTimeout);
+    updateTimeout = 0;
+    updateTime();
   });
+
   updateTime();
 
   function show() {
@@ -129,7 +137,7 @@
         </div>
         <div class="center">
             <sl-tag type="info" style="text-indent: unset; font-style: normal; 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;" size="medium">
-                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> {lastUpdated}
+                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> Last updated {lastUpdatedStr}
             </sl-tag>
         </div>
         <div class="right">
