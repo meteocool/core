@@ -4,9 +4,8 @@ import TopoJSON from 'ol/format/TopoJSON';
 import {
   Stroke, Style, Fill, Text,
 } from 'ol/style';
-import CircleStyle from 'ol/style/Circle';
 import { centralEuropeExtent } from './extents';
-import { osmAttribution, wofAttribution, imprintAttribution } from './attributions';
+import { imprintAttribution, osmAttribution, wofAttribution } from './attributions';
 
 const boundaryStyleCache = {};
 const boundaryStyle = function (feature) {
