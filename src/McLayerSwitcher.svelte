@@ -3,9 +3,12 @@
     import { faLayerGroup } from '@fortawesome/free-solid-svg-icons/faLayerGroup'
     import MiniMap from "./MiniMap.svelte";
     import { createEventDispatcher } from 'svelte';
+    import * as attributions from './layers/attributions';
 
     export let layerManager;
     let childCanvases = {};
+
+    const allAttributions = Object.entries(attributions).map(k => k[1]).join(" ");
 
     window.openLayerswitcher = () => {
         let ls = document.getElementById("ls");
@@ -125,7 +128,12 @@
         transform: translate(-50%,-50%);
     }
 
-
+    @media only screen and (max-width: 600px) {
+        .helpText {
+            line-height: 1.5;
+            font-size: 90%;
+        }
+    }
 </style>
 
 {#if window.device !== 'ios' && window.device !== 'android'}
@@ -156,7 +164,8 @@
                 />
             </div>
             <div class="help cell">
-                <div class="helpText">💡 Today's weather is hardly worth mentioning?<br />Explore the near-realtime satellite map! 🌍</div>
+                <div class="helpText">Today's weather is hardly worth mentioning? ☀️<br />Explore the near-realtime satellite map! 🌍</div>
+                <div style="position: absolute; bottom: 0; font-size: 6pt; text-align: center; width: 100%;">&copy; meteocool Contributors {allAttributions}</div>
             </div>
         </div>
     </div>

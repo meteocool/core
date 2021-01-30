@@ -37,13 +37,16 @@
 </script>
 
 <style>
-    .map {
+    :global(.miniMap) {
         width: 100%;
         height: 100%;
         padding: 0;
         margin: 0;
         top: 0;
         left: 0;
+    }
+    :global(.miniMap > div:nth-child(1) > div:nth-child(3) > div:nth-child(3)) {
+        display: none;
     }
 
     .label {
@@ -59,5 +62,5 @@
         margin-right: 5%;
     }
 </style>
-<div id="map-{uniqueID}" class="map" use:mapInit on:mousedown={mouseDown} on:mouseup={mouseUp}></div>
+<div id="map-{uniqueID}" class="miniMap" use:mapInit on:mousedown={mouseDown} on:mouseup={mouseUp}></div>
 <div class="label">{label}</div>
