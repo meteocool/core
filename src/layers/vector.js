@@ -7,24 +7,20 @@ import {
 import { centralEuropeExtent } from './extents';
 import { imprintAttribution, osmAttribution, wofAttribution } from './attributions';
 
-const boundaryStyleCache = {};
-const boundaryStyle = function (feature) {
+const boundaryStyle = new Style({
+  stroke: new Stroke({
+    color: '#454542',
+    width: 2,
+  }),
+  zIndex: 1,
+});
+
+const getBoundaryStyle = function (feature) {
   const kind = feature.get('kind');
   if (kind !== 'country') {
     return null;
   }
-  let style = boundaryStyleCache[kind];
-  if (!style) {
-    style = new Style({
-      stroke: new Stroke({
-        color: '#454542',
-        width: 2,
-      }),
-      zIndex: 1,
-    });
-    boundaryStyle[kind] = style;
-  }
-  return style;
+  return boundaryStyle;
 };
 
 const countryStyle = new Style({
@@ -121,7 +117,7 @@ export const bordersAndWays = () => new VectorTileLayer({
         style.getText().setText(feature.get('name:de'));
         return style;
       case 'boundaries':
-        return boundaryStyle(feature);
+        return getBoundaryStyle(feature);
       default:
         return null;
     }
