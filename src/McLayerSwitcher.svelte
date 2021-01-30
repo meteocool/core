@@ -106,7 +106,7 @@
     .reflectivity { grid-area: reflectivity; }
     .satellite { grid-area: satellite; }
     .weather { grid-area: weather; }
-    .help { grid-area: help; }
+    .help { grid-area: help; position: relative; }
 
     .cell {
         height: 100%;
@@ -114,14 +114,15 @@
         color: white;
     }
 
-    .help {
+    .helpText {
         font-family: Quattrocento;
         color: white;
         text-align: center;
-        text-indent: 2em;
-        line-height: 1.5;
-        transform: translateY(30%);
+        line-height: 2;
         cursor: default;
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%,-50%);
     }
 
 
@@ -155,7 +156,7 @@
                 />
             </div>
             <div class="help cell">
-                <div class="help">💡<br />Today's weather is hardly worth mentioning?<br />Explore the near-realtime satellite map!<p><i>More maps coming soon.</i></p></div>
+                <div class="helpText">💡 Today's weather is hardly worth mentioning?<br />Explore the near-realtime satellite map! 🌍</div>
             </div>
         </div>
     </div>
