@@ -21,6 +21,8 @@
       new Integrations.BrowserTracing(),
     ],
     tracesSampleRate: 1.0,
+    environment: process.env.NODE_ENV,
+    autoSessionTracking: false,
   });
 
   import './style/global.css';
