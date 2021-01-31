@@ -6,6 +6,7 @@
   import { cssGetclass } from './lib/css';
   import { enUS } from 'date-fns/locale'
   import {formatDistanceToNow} from "date-fns";
+  import { _ } from 'svelte-i18n';
 
   const dfnLocale = enUS;
 
@@ -137,7 +138,7 @@
         </div>
         <div class="center">
             <sl-tag type="info" style="text-indent: unset; font-style: normal; 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;" size="medium" pill>
-                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> Last updated {lastUpdatedStr}
+                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> {$_('last_updated')} {lastUpdatedStr}
             </sl-tag>
         </div>
         <div class="right">
