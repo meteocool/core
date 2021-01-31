@@ -8,7 +8,7 @@
     export let layerManager;
     let childCanvases = {};
 
-    const allAttributions = Object.entries(attributions).map(k => k[1]).join(" ");
+    const allAttributions = Object.entries(attributions).filter(k => k[0] !== "imprintAttribution").map(k => k[1]).join(" ");
 
     window.openLayerswitcher = () => {
         let ls = document.getElementById("ls");
