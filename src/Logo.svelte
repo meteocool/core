@@ -1,6 +1,7 @@
 <script>
     import logo from "../assets/logo.svg";
     import About from './About.svelte';
+    import { _ } from 'svelte-i18n';
 
     let showAbout = false;
 
@@ -62,12 +63,12 @@
 
 <div class="logo-wrapper">
     <img src={logo} alt="meteocool" class="logo" style="height: 90%; float: left; padding: 0.5vh 1vh 1vh; " />
-    <div class="name">meteocool.com</div>
+    <div class="name">{$_('url')}</div>
     <!-- <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="
 https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
     </div> -->
     <div class="claim">
-        <span on:click="{() => toggleAbout()}" class="link">About</span> | <a href="https://discord.gg/5y4xDVpwxc" target="_blank">Join Our Discord!</a>
+        <span on:click="{() => toggleAbout()}" class="link">{$_('about')}</span> | <a href="https://discord.gg/5y4xDVpwxc" target="_blank">{$_('join_community')}</a>
     </div>
     {#if showAbout}
     <About on:close="{() => toggleAbout()}"></About>

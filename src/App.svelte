@@ -1,5 +1,5 @@
 <script>
-  import Map from './Map.svelte';
+    import Map from './Map.svelte';
   import Logo from './Logo.svelte';
   import NowcastPlayback from './NowcastPlayback.svelte';
 
@@ -14,6 +14,16 @@
   import * as Sentry from '@sentry/browser';
   import { Integrations } from '@sentry/tracing';
   import View from 'ol/View';
+
+  import { addMessages, init, getLocaleFromNavigator } from 'svelte-i18n';
+  import de from './de.json';
+
+  addMessages('de',de);
+
+  init({
+      fallbackLocale: 'de',
+      initialLocale: getLocaleFromNavigator(),
+  });
 
   Sentry.init({
     dsn: 'https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137',

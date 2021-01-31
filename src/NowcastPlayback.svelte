@@ -9,6 +9,7 @@
     import { fly } from 'svelte/transition';
     import {reportToast} from "./lib/Toast";
     import { cssGetclass } from './lib/css';
+    import { _ } from 'svelte-i18n';
 
     export let nowcast;
     export let cap;
@@ -88,7 +89,7 @@
       }
 
       if (!body.complete) {
-        uiMessage = "Processing Nowcast";
+        uiMessage = $_('processing_nowcast');
         return;
       }
 
@@ -383,7 +384,7 @@
           <sl-spinner style="font-size: 2.5rem; float: left;"></sl-spinner>
           <div style="display: inline-block;">
             <div style="margin-top: -0.3em; opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top;">{uiMessage}...</div>
-            <div style="margin-top: -0.7em; opacity: 0.6; float: left; clear:both; font-size: 0.9rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top;">Last radar from then and then</div>
+            <div style="margin-top: -0.7em; opacity: 0.6; float: left; clear:both; font-size: 0.9rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top;">{$_('last_radar')} then and then</div>
           </div>
         </div>
       </div>

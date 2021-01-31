@@ -1,0 +1,49 @@
+{
+  "about": "Über",
+  "join_community": "Discord beitreten",
+  "url": "meteocool.de",
+  "last_updated": "Letztes updated vor",
+  "processing_nowcast": "Nowcast wird geladen",
+  "last_radar": "Letzte Radar Daten von",
+
+  "title":"Über meteocool",
+  "text1": "meteocool is a free GIS visualisation &amp; aggregation platform with focus on severe weather. Optimized for\n        mobile devices, you can use it to both chase or avoid upcoming weather - that’s up to you.",
+  "text2": "meteocool currently uses radar data provided by DWD and realtime lightning information from the awesome\n        blitzortung.org project.",
+  "features": {
+    "header": "Eigenschaften",
+    "list_title1": "Automatisches Kartenupdate:",
+    "list1": " the biggest inconvenience with most weather radar visualisations\n            is out-of-date data. meteocool notifies its clients as soon as new radar data becomes available and the\n            client tries to be transparent about the dataset age. Say goodbye to hammering F5!",
+    "list_title2": "Live Blitzeinschlagspunkte:",
+    "list2": " new lightning strikes are displayed instantly, giving you an\n            even better feeling for the cloud formation’s intensity, trajectory and speed.",
+    "list_title3": "Push Benachrichtigung:",
+    "list3": " get notified about incoming rain up to 45 minutes in advance. Works\n            on iOS and Android.",
+    "list_title4": "iOS & Android Apps:",
+    "list4": " native iOS and Android apps provide battery-efficient\n            background location services to allow for accurate rain notifications without user interaction."
+  },
+  "credits_help": {
+    "header": "Danksagung & Hilfe",
+    "text1": "meteocool is maintained by ",
+    "text2": "Jonas is still looking for his place, for now he's paying.",
+    "text3": "This project would not have been possible without the help from a few great people:",
+    "list1": "iOS App: Thanks to ",
+    "list2": "Android App: maintained by ",
+    "list3": "Honorable mentions: ",
+    "list4": {
+      "text1": "Icons and adapted artwork made by ",
+      "text2": " (Logo, iOS Onboarding) from ",
+      "text3": " (licensed by "
+    },
+    "text4": "Want to help as well? Check out ",
+    "text5": "meteocool on GitHub",
+    "text6": " especially our ",
+    "text7": "web frontend",
+    "text8": " and ",
+    "text9": " repositories"
+  },
+  "other_things": {
+    "header": "Andere Dinge",
+    "list1": "contact us for questions or if you want to send money our way",
+    "list2": "privacy policy"
+  },
+  "close": "Schließen"
+}
