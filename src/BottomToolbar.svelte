@@ -60,9 +60,8 @@
     }
 
     .lastUpdatedBottom {
-        height: 42px;
-        padding-bottom: env(safe-area-inset-bottom);
-        bottom: 0;
+        height: 40px;
+        bottom: env(safe-area-inset-bottom);
         z-index: 99;
         padding-top: 0.2em;
         padding-bottom: 0.2em;
@@ -137,8 +136,8 @@
             <!-- empty -->
         </div>
         <div class="center">
-            <sl-tag type="info" style="text-indent: unset; font-style: normal; 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;" size="medium" pill>
-                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> {$_('last_updated')} {lastUpdatedStr}
+            <sl-tag type="info" style="padding-top: 5px; text-indent: unset; font-style: normal; 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;" size="medium" pill>
+                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> Last updated 2 minutes ago
             </sl-tag>
         </div>
         <div class="right">

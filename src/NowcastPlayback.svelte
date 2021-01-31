@@ -255,11 +255,12 @@
         height: 10%;
         min-height: 100px;
         z-index: 999999;
+        display: none;
     }
 
     @media (orientation: portrait) {
       .timeslider {
-        height: 20%;
+        height: 80%;
       }
     }
 
@@ -359,7 +360,7 @@
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
-<div on:click={show} style="position: absolute; bottom: 0.2em; left: 0.3em; z-index: 999999;">
+<div on:click={show} style="position: absolute; bottom: calc(-0.2em + env(safe-area-inset-bottom)); left: 0.3em; z-index: 999999;">
   <div class="controlButton" title="Play/Pause">
     <div class="playHover">
       <Icon icon={faPlay} class="controlIcon"></Icon>
