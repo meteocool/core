@@ -33,6 +33,7 @@
     tracesSampleRate: 1.0,
     environment: process.env.NODE_ENV,
     autoSessionTracking: false,
+    release: GIT_COMMIT_HASH,
   });
 
   import './style/global.css';

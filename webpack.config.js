@@ -64,6 +64,9 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin(),
+    new webpack.DefinePlugin({
+      GIT_COMMIT_HASH: JSON.stringify(process.env.GIT_COMMIT_HASH),
+    }),
     new CopyPlugin({
       patterns: [{
         from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/shoelace/icons'),
