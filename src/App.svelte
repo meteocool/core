@@ -67,10 +67,8 @@
       default: false,
       cb: (value) => {
         const newView = new View({
-          center: map.getView()
-            .getCenter(),
-          zoom: map.getView()
-            .getZoom(),
+          center: lm.getCurrentMap().getView().getCenter(),
+          zoom: lm.getCurrentMap().getView().getZoom(),
           minzoom: 5,
           enableRotation: value,
         });
