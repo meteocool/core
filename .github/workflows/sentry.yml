@@ -32,4 +32,4 @@ jobs:
           tagName: ${{github.sha}}
           environment: prod
           releaseNamePrefix: meteocool-web-
-          sourceMapOptions: '{"include": ["build"]}'
+          sourceMapOptions: '{"include": ["dist"]}'
