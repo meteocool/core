@@ -27,6 +27,6 @@ jobs:
           SENTRY_PROJECT: web
         with:
           tagName: ${{github.sha}}
-          environment: prod
+          environment: production
           releaseNamePrefix:
           sourceMapOptions: '{"include": ["dist"]}'
