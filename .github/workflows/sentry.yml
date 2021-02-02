@@ -21,7 +21,7 @@ jobs:
           SENTRY_ORG: meteocool
           SENTRY_PROJECT: web
         with:
-          tagName: ${{ GITHUB_SHA }}
+          tagName: ${GITHUB_SHA::8}
           environment: prod
           releaseNamePrefix: meteocool-web-
           sourceMapOptions: '{"include": ["build"]}'
