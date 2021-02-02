@@ -114,5 +114,6 @@ module.exports = {
       ],
     }),
   ],
-  devtool: prod ? false : 'source-map',
+  target: "node",
+  devtool: 'source-map',
 };
