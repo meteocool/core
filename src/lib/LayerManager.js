@@ -1,22 +1,22 @@
-import { Map, View } from 'ol';
-import { fromLonLat, getTransformFromProjections, get as getProjection } from 'ol/proj';
-import Collection from 'ol/Collection';
-import { defaults } from 'ol/control';
-import Attribution from 'ol/control/Attribution';
-import { circular as circularPolygon } from 'ol/geom/Polygon';
+import { Map, View } from "ol";
+import { fromLonLat, getTransformFromProjections, get as getProjection } from "ol/proj";
+import Collection from "ol/Collection";
+import { defaults } from "ol/control";
+import Attribution from "ol/control/Attribution";
+import { circular as circularPolygon } from "ol/geom/Polygon";
 
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import Feature from 'ol/Feature';
-import Point from 'ol/geom/Point';
-import Style from 'ol/style/Style';
-import CircleStyle from 'ol/style/Circle';
-import Fill from 'ol/style/Fill';
-import Stroke from 'ol/style/Stroke';
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
+import Style from "ol/style/Style";
+import CircleStyle from "ol/style/Circle";
+import Fill from "ol/style/Fill";
+import Stroke from "ol/style/Stroke";
 import {
   cartoDark, cartoLight, mapTilerOutdoor, osm,
-} from '../layers/base';
-import { reportToast } from './Toast';
+} from "../layers/base";
+import { reportToast } from "./Toast";
 
 /**
  * Manages the reflectivity + forecast layers shown on the map.
@@ -43,7 +43,7 @@ export class LayerManager {
     let accuracyPoly = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
-      accuracyPoly.applyTransform(getTransformFromProjections(getProjection('EPSG:4326'), getProjection('EPSG:3857')));
+      accuracyPoly.applyTransform(getTransformFromProjections(getProjection("EPSG:4326"), getProjection("EPSG:3857")));
     }
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
     let centerPoint;
@@ -105,17 +105,17 @@ export class LayerManager {
   }
 
   setDefaultTarget(target) {
-    console.log(`Starting with default cap ${this.settings.get('capability')}`);
-    this.setTarget(this.settings.get('capability'), target);
+    console.log(`Starting with default cap ${this.settings.get("capability")}`);
+    this.setTarget(this.settings.get("capability"), target);
   }
 
   makeMap(capability) {
     let controls = new Collection();
     const mapCb = () => {
       this.mapBeingMoved = false;
-      reportToast('this.mapBeingMoved=false');
+      reportToast("this.mapBeingMoved=false");
     };
-    if (window.device !== 'ios' && window.device !== 'android') {
+    if (window.device !== "ios" && window.device !== "android") {
       controls = defaults({ attribution: false }).extend([new Attribution({
         collapsible: false,
       })]);
@@ -128,16 +128,16 @@ export class LayerManager {
     const geolocationPositionLayer = new VectorLayer({
       source: new VectorSource({
         features: [positionFeature],
-        kind: 'geolocationPositionLayer',
+        kind: "geolocationPositionLayer",
       }),
       style: new Style({
         image: new CircleStyle({
           radius: 10,
           fill: new Fill({
-            color: '#048EF9',
+            color: "#048EF9",
           }),
           stroke: new Stroke({
-            color: '#fff',
+            color: "#fff",
             width: 3.5,
           }),
         }),
@@ -147,35 +147,35 @@ export class LayerManager {
     const geolocationAccuracyLayer = new VectorLayer({
       source: new VectorSource({
         features: [accuracyFeature],
-        kind: 'geolocationPositionLayer',
+        kind: "geolocationPositionLayer",
       }),
       zIndex: 99999,
     });
 
     const newMap = new Map({
-      layers: [this.baseLayerFactory(this.settings.get('mapBaseLayer')), geolocationAccuracyLayer, geolocationPositionLayer],
+      layers: [this.baseLayerFactory(this.settings.get("mapBaseLayer")), geolocationAccuracyLayer, geolocationPositionLayer],
       view: this.maps.length > 0 ? this.maps[0].getView() : new View({
         constrainResolution: true,
         zoom: 7,
         center: fromLonLat([11, 49]),
-        enableRotation: this.settings.get('mapRotation'),
+        enableRotation: this.settings.get("mapRotation"),
       }),
       capability,
       controls,
     });
-    newMap.set('capability', capability);
+    newMap.set("capability", capability);
     return newMap;
   }
 
   baseLayerFactory(layer) {
     switch (layer) {
-      case 'osm':
+      case "osm":
         return osm();
-      case 'dark':
+      case "dark":
         return cartoDark();
-      case 'light':
+      case "light":
         return cartoLight();
-      case 'topographic':
+      case "topographic":
       default:
         return mapTilerOutdoor();
     }
@@ -183,7 +183,7 @@ export class LayerManager {
 
   switchBaseLayer(newBaseLayer) {
     this.forEachMap((map) => {
-      map.getLayers().getArray().filter((layer) => layer.get('base') === true).forEach((layer) => map.removeLayer(layer));
+      map.getLayers().getArray().filter((layer) => layer.get("base") === true).forEach((layer) => map.removeLayer(layer));
       map.addLayer(this.baseLayerFactory(newBaseLayer));
     });
   }

@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/prefer-default-export
-export function reportError(message, type = 'warning', icon = 'exclamation-triangle') {
-  const alert = Object.assign(document.createElement('sl-alert'), {
+export function reportError(message, type = "warning", icon = "exclamation-triangle") {
+  const alert = Object.assign(document.createElement("sl-alert"), {
     type,
     closable: true,
     innerHTML: `
@@ -13,8 +13,8 @@ export function reportError(message, type = 'warning', icon = 'exclamation-trian
   return alert.toast();
 }
 
-export function reportToast(message, type = 'primary', icon = 'info-circle') {
-  const alert = Object.assign(document.createElement('sl-alert'), {
+export function reportToast(message, type = "primary", icon = "info-circle") {
+  const alert = Object.assign(document.createElement("sl-alert"), {
     type,
     closable: true,
     duration: 15000,

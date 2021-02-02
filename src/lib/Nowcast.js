@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/prefer-default-export
-import { dwdLayer } from '../layers/radar';
-import { reportError } from './Toast';
+import { dwdLayer } from "../layers/radar";
+import { reportError } from "./Toast";
 
 // eslint-disable-next-line import/prefer-default-export
 export class Nowcast {
@@ -50,25 +50,25 @@ export class Nowcast {
   }
 
   downloadHistoric() {
-    this.nanobar.start('historic_nowcast');
-    const baseUrl = 'https://api.ng.meteocool.com/api/';
+    this.nanobar.start("historic_nowcast");
+    const baseUrl = "https://api.ng.meteocool.com/api/";
     fetch(`${baseUrl}radar_historic/`)
       .then((response) => response.json())
       .then((obj) => {
         const historic = {};
         obj.forEach((radar) => {
-          const [nowcastLayer, nowcastSource] = dwdLayer(radar.tile_id, { nowcastLayer: true }, 'meteoradar');
+          const [nowcastLayer, nowcastSource] = dwdLayer(radar.tile_id, { nowcastLayer: true }, "meteoradar");
           historic[radar.upstream_time] = {
             layer: nowcastLayer,
           };
         });
-        this.notify('historic', {
+        this.notify("historic", {
           layers: historic,
         });
       })
-      .then(() => this.nanobar.finish('historic_nowcast'))
+      .then(() => this.nanobar.finish("historic_nowcast"))
       .catch((error) => {
-        this.nanobar.finish('historic_nowcast');
+        this.nanobar.finish("historic_nowcast");
         reportError(error);
       });
   }
@@ -78,7 +78,7 @@ export class Nowcast {
 
     console.log(`${this.nowcast.length} nowcast steps available`);
     if (this.nowcast.length === 0) {
-      this.notify('update', {
+      this.notify("update", {
         layers: {},
         baseTime: this.baseTime,
         processedTime: this.processedTime,
@@ -89,13 +89,13 @@ export class Nowcast {
 
     this.downloadHistoric();
 
-    this.nanobar.start('nowcast');
+    this.nanobar.start("nowcast");
     const self = this;
     this.nowcast.forEach((interval) => {
-      const [nowcastLayer, nowcastSource] = dwdLayer(interval.tile_id, { nowcastLayer: true }, 'meteonowcast');
+      const [nowcastLayer, nowcastSource] = dwdLayer(interval.tile_id, { nowcastLayer: true }, "meteonowcast");
       nowcastLayer.setOpacity(0);
 
-      nowcastSource.on('tileloadstart', () => {
+      nowcastSource.on("tileloadstart", () => {
         this.numInFlightTiles += 1;
         this.nanobar.manualUp();
       });
@@ -107,12 +107,12 @@ export class Nowcast {
             this.map.removeLayer(layer.layer);
             layer.layer.setOpacity(0.85);
           });
-          this.nanobar.finish('nowcast');
+          this.nanobar.finish("nowcast");
           self.downloaded = true;
           if (cb) cb();
-          nowcastSource.on('tileloadend', null);
-          nowcastSource.on('tileloaderror', null);
-          self.notify('update', {
+          nowcastSource.on("tileloadend", null);
+          nowcastSource.on("tileloaderror", null);
+          self.notify("update", {
             layers: this.forecastLayers,
             baseTime: this.baseTime,
             processedTime: this.processedTime,
@@ -120,8 +120,8 @@ export class Nowcast {
           });
         }
       };
-      nowcastSource.on('tileloadend', doneCb);
-      nowcastSource.on('tileloaderror', doneCb);
+      nowcastSource.on("tileloadend", doneCb);
+      nowcastSource.on("tileloaderror", doneCb);
       this.forecastLayers[interval.prediction_time] = {
         layer: nowcastLayer,
         absTime: self.baseTime + interval.prediction_time * 60,
@@ -137,7 +137,7 @@ export class Nowcast {
   setForecastLayer(num) {
     if (num === this.currentIndex) { return; }
     if (!this.downloaded) {
-      console.log('Forecast not downloaded');
+      console.log("Forecast not downloaded");
       return;
     }
 
@@ -156,10 +156,10 @@ export class Nowcast {
     if (i === -1) {
       this.map.addLayer(this.mainLayer);
     } else {
-      this.map.getLayers().getArray().filter((layer) => layer.get('preloadee')).forEach((layer) => {
+      this.map.getLayers().getArray().filter((layer) => layer.get("preloadee")).forEach((layer) => {
         this.map.removeLayer(layer);
         layer.setOpacity(0.85);
-        layer.unset('preloadee');
+        layer.unset("preloadee");
       });
       this.forecastLayers[i].layer.setOpacity(0.85);
       this.map.addLayer(this.forecastLayers[i].layer);
@@ -177,7 +177,7 @@ export class Nowcast {
     let nextLayer = i + 5;
     if (nextLayer.toString() in this.forecastLayers) {
       this.forecastLayers[nextLayer].layer.setOpacity(0);
-      this.forecastLayers[nextLayer].layer.set('preloadee', true);
+      this.forecastLayers[nextLayer].layer.set("preloadee", true);
       this.map.addLayer(this.forecastLayers[nextLayer].layer);
       console.log(`Preloading ${nextLayer}`);
     } else {
@@ -187,7 +187,7 @@ export class Nowcast {
     nextLayer = i + 10;
     if (nextLayer.toString() in this.forecastLayers) {
       this.forecastLayers[nextLayer].layer.setOpacity(0);
-      this.forecastLayers[nextLayer].layer.set('preloadee', true);
+      this.forecastLayers[nextLayer].layer.set("preloadee", true);
       this.map.addLayer(this.forecastLayers[nextLayer].layer);
       console.log(`Preloading ${nextLayer}`);
     } else {

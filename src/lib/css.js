@@ -11,6 +11,6 @@ export function cssRules() {
 
 export function cssGetclass(name) {
   const rules = cssRules();
-  if (!rules.hasOwnProperty(name)) throw 'TODO: deal_with_notfound_case';
+  if (!rules.hasOwnProperty(name)) throw "TODO: deal_with_notfound_case";
   return rules[name];
 }

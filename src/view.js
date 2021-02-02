@@ -1,5 +1,5 @@
-import { View } from 'ol';
-import { fromLonLat } from 'ol/proj';
+import { View } from "ol";
+import { fromLonLat } from "ol/proj";
 
 // eslint-disable-next-line import/prefer-default-export
 export const mainView = new View({

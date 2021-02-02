@@ -15,7 +15,7 @@ export class Settings {
   }
 
   get(key) {
-    if (typeof key !== 'string') { return null; }
+    if (typeof key !== "string") { return null; }
 
     const local = localStorage.getItem(key);
     if (local) {
@@ -25,7 +25,7 @@ export class Settings {
   }
 
   set(key, value) {
-    if (typeof key !== 'string') { return; }
+    if (typeof key !== "string") { return; }
     if (typeof value !== this.settings[key].type) { // eslint-disable-line valid-typeof
       return;
     }
@@ -47,7 +47,7 @@ export class Settings {
   }
 
   cb(key) {
-    if (typeof key !== 'string') { return; }
+    if (typeof key !== "string") { return; }
     if (this.settings[key].cb) {
       this.settings[key].cb(this.get(key));
     }
