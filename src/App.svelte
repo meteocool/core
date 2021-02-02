@@ -1,5 +1,5 @@
 <script>
-    import Map from './Map.svelte';
+  import Map from './Map.svelte';
   import Logo from './Logo.svelte';
   import NowcastPlayback from './NowcastPlayback.svelte';
 
@@ -35,6 +35,7 @@
     autoSessionTracking: false,
     release: GIT_COMMIT_HASH,
   });
+  console.log(GIT_COMMIT_HASH);
 
   import './style/global.css';
   import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
