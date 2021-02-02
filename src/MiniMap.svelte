@@ -63,4 +63,4 @@
     }
 </style>
 <div id="map-{uniqueID}" class="miniMap" use:mapInit on:mousedown={mouseDown} on:mouseup={mouseUp}></div>
-<div class="label">{label}</div>
+<div class="label" on:mousedown={mouseDown} on:mouseup={mouseUp}>{label}</div>

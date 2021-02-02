@@ -100,6 +100,10 @@ export class LayerManager {
     this.currentCap = cap;
   }
 
+  getCurrentMap() {
+    return this.capabilities[this.currentCap].map;
+  }
+
   setDefaultTarget(target) {
     console.log(`Starting with default cap ${this.settings.get('capability')}`);
     this.setTarget(this.settings.get('capability'), target);
