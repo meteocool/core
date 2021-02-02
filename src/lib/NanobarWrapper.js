@@ -1,4 +1,4 @@
-import Nanobar from 'nanobar';
+import Nanobar from "nanobar";
 
 export class NanobarWrapper {
   constructor(params) {

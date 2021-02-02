@@ -1,14 +1,14 @@
-import { clientsClaim } from 'workbox-core';
-import { registerRoute } from 'workbox-routing';
-import { CacheFirst } from 'workbox-strategies';
-import { ExpirationPlugin } from 'workbox-expiration';
-import { CacheableResponsePlugin } from 'workbox-cacheable-response';
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
+import { clientsClaim } from "workbox-core";
+import { registerRoute } from "workbox-routing";
+import { CacheFirst } from "workbox-strategies";
+import { ExpirationPlugin } from "workbox-expiration";
+import { CacheableResponsePlugin } from "workbox-cacheable-response";
+import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 
 registerRoute(
-  new RegExp('https://(?:api.maptiler.com|basemaps.cartocdn.com)/.*.png'),
+  new RegExp("https://(?:api.maptiler.com|basemaps.cartocdn.com)/.*.png"),
   new CacheFirst({
-    cacheName: 'tile-cache',
+    cacheName: "tile-cache",
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200],
@@ -22,9 +22,9 @@ registerRoute(
   }),
 );
 registerRoute(
-  new RegExp('https://tiles-b\\.tomatotomatopotatopotato\\.com/meteonowcast/.*\\.png'),
+  new RegExp("https://tiles-b\\.tomatotomatopotatopotato\\.com/meteonowcast/.*\\.png"),
   new CacheFirst({
-    cacheName: 'nowcast-tile-cache',
+    cacheName: "nowcast-tile-cache",
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200, 404],
@@ -38,9 +38,9 @@ registerRoute(
   }),
 );
 registerRoute(
-  new RegExp('https://tiles-b\\.tomatotomatopotatopotato\\.com/meteoradar/.*\\.png'),
+  new RegExp("https://tiles-b\\.tomatotomatopotatopotato\\.com/meteoradar/.*\\.png"),
   new CacheFirst({
-    cacheName: 'nowcast-tile-cache',
+    cacheName: "nowcast-tile-cache",
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200, 404],

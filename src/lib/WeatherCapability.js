@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/prefer-default-export
-import { capDescription } from '../stores';
-import { reportError } from './Toast';
-import { weatherLayer } from '../layers/weather';
+import { capDescription } from "../stores";
+import { reportError } from "./Toast";
+import { weatherLayer } from "../layers/weather";
 
 function roundToHour(date) {
   const p = 60 * 60 * 1000; // milliseconds in an hour
@@ -41,7 +41,7 @@ export class WeatherCapability {
 
   setTarget(target) {
     this.map.setTarget(target);
-    capDescription.set('Temperature at 2m above ground from the ICON weather model.');
+    capDescription.set("Temperature at 2m above ground from the ICON weather model.");
   }
 
   setMap(map) {

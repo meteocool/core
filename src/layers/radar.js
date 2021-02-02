@@ -1,27 +1,27 @@
 /* eslint-disable no-param-reassign */
-import Feature from 'ol/Feature';
-import Fill from 'ol/style/Fill';
-import ImageLayer from 'ol/layer/Image';
-import Style from 'ol/style/Style';
-import TileLayer from 'ol/layer/Tile';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import { DEVICE_PIXEL_RATIO } from 'ol/has';
-import { Raster as RasterSource, XYZ } from 'ol/source';
-import { transformExtent } from 'ol/proj';
-import { dwdAttribution, imprintAttribution } from './attributions';
-import { dwdExtentInv } from './extents';
-import { meteocoolClassic, viridis } from '../colormaps';
-import { tileBaseUrl } from './urls';
+import Feature from "ol/Feature";
+import Fill from "ol/style/Fill";
+import ImageLayer from "ol/layer/Image";
+import Style from "ol/style/Style";
+import TileLayer from "ol/layer/Tile";
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import { DEVICE_PIXEL_RATIO } from "ol/has";
+import { Raster as RasterSource, XYZ } from "ol/source";
+import { transformExtent } from "ol/proj";
+import { dwdAttribution, imprintAttribution } from "./attributions";
+import { dwdExtentInv } from "./extents";
+import { meteocoolClassic, viridis } from "../colormaps";
+import { tileBaseUrl } from "./urls";
 
 let cmap = meteocoolClassic;
 
 // eslint-disable-next-line import/prefer-default-export
-export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
+export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   const reflectivitySource = new XYZ({
     url: `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`,
     attributions: [dwdAttribution, imprintAttribution],
-    crossOrigin: 'anonymous',
+    crossOrigin: "anonymous",
     minZoom: 1,
     maxZoom: 8,
     transition: 0,
@@ -34,7 +34,7 @@ export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
   });
 
   // Disable browser upsampling
-  reflectivityLayer.on('prerender', (evt) => {
+  reflectivityLayer.on("prerender", (evt) => {
     evt.context.imageSmoothingEnabled = false;
     evt.context.msImageSmoothingEnabled = false;
   });
@@ -52,7 +52,7 @@ export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
       return pixels[0];
     },
   });
-  rasterRadar.on('beforeoperations', (event) => {
+  rasterRadar.on("beforeoperations", (event) => {
     event.data.cmap = cmap;
     event.data.cmapLength = cmap.length;
   });
@@ -61,15 +61,15 @@ export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
     zIndex: 3,
     source: rasterRadar,
     renderBuffer: 500,
-    title: 'Radar Composite',
+    title: "Radar Composite",
     id: tileId,
     ...extra,
   });
-  rasterRadarImageLayer.setExtent(transformExtent([2.8125, 45, 19.6875, 56.25], 'EPSG:4326', 'EPSG:3857'));
+  rasterRadarImageLayer.setExtent(transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"));
 
   // XXX
   window.updateColormap = (colorMapString) => {
-    if (colorMapString === 'classic') {
+    if (colorMapString === "classic") {
       cmap = meteocoolClassic;
     } else {
       cmap = viridis;
@@ -78,7 +78,7 @@ export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
     return true;
   };
 
-  rasterRadarImageLayer.set('tileId', tileId);
+  rasterRadarImageLayer.set("tileId", tileId);
   return [rasterRadarImageLayer, reflectivitySource];
 };
 
@@ -88,12 +88,12 @@ export const greyOverlay = () => new VectorLayer({
   source: new VectorSource({
     features: [new Feature({
       geometry: dwdExtentInv,
-      name: 'DarkOverlay',
+      name: "DarkOverlay",
     })],
   }),
   style: new Style({
     fill: new Fill({
-      color: 'rgba(0, 0, 0, 0.1)',
+      color: "rgba(0, 0, 0, 0.1)",
     }),
   }),
 });
