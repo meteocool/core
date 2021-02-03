@@ -2,7 +2,7 @@
     import Icon from 'fa-svelte'
     import { Timeline } from "vis-timeline";
     import {DataSet} from "vis-timeline/standalone";
-    import {showTimeSlider} from "./stores"
+    import {colorSchemeLight, showTimeSlider} from "./stores"
     import {faPlay} from '@fortawesome/free-solid-svg-icons/faPlay'
     import {faPause} from '@fortawesome/free-solid-svg-icons/faPause'
     import {faArrowsAltH} from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
@@ -28,6 +28,7 @@
     let warned = false;
     let historicLayers = [];
     let historicLayersObj;
+    let colorSchemeLightLocal = true;
 
     // XXX refactor with fsm
 
@@ -236,6 +237,8 @@
     function renderIcon(el) {
       iconHTML = el.innerHTML;
     }
+
+    colorSchemeLight.subscribe(value => {colorSchemeLightLocal = value; console.log("Test2: " + colorSchemeLightLocal);});
 </script>
 
 <style>
@@ -244,11 +247,18 @@
       position: absolute;
       bottom: 0;
       left: 0;
-      background-color: white;
       border-top-left-radius: 11px;
       border-top-right-radius: 11px;
       border-top: 1px solid lightgray;
       width: 100%;
+    }
+
+    .bottomToolbar.lightScheme {
+      background-color: white;
+    }
+
+    .bottomToolbar.darkScheme {
+      background-color: rgb(63, 63, 63);
     }
 
     .timeslider {
@@ -295,11 +305,26 @@
       cursor: pointer;
     }
 
+    .controlButton.lightScheme{
+      color:black;
+    }
+    .controlButton.darkScheme{
+      color:white;
+    }
+
     .controlButton:hover {
-      background-color: #333333;
-      border: 1px solid #333333;
-      color: white;
       cursor: pointer;
+    }
+
+    .controlButton.lightScheme:hover{
+      background-color: black;
+      border: 1px solid black;
+      color: white;
+    }
+    .controlButton.darkScheme:hover{
+      background-color: white;
+      border: 1px solid white;
+      color: black;
     }
 
     .buttonDisabled {
@@ -361,7 +386,7 @@
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
 <div on:click={show} style="position: absolute; bottom: calc(-0.2em + env(safe-area-inset-bottom)); left: 0.3em; z-index: 999999;">
-  <div class="controlButton" title="Play/Pause">
+  <div class="{colorSchemeLightLocal ? 'controlButton lightScheme' : 'controlButton darkScheme'}" title="Play/Pause">
     <div class="playHover">
       <Icon icon={faPlay} class="controlIcon"></Icon>
     </div>
@@ -373,9 +398,9 @@
 </div>
 
 {#if visible}
-  <div class="bottomToolbar timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
+  <div class="{colorSchemeLightLocal ? 'bottomToolbar lightScheme' : 'bottomToolbar darkScheme'} timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
     <div class="controls">
-      <div class="controlButton buttonDisabled" on:click={play} title="Play/Pause">
+      <div class="{colorSchemeLightLocal ? 'controlButton lightScheme' : 'controlButton darkScheme'} buttonDisabled" on:click={play} title="Play/Pause">
         <Icon icon={playPauseButton} class="controlIcon"></Icon>
       </div>
     </div>
