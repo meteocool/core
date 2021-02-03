@@ -1,6 +1,6 @@
 <script>
   import Icon from 'fa-svelte'
-  import { capDescription, capLastUpdated } from './stores';
+  import {capDescription, capLastUpdated, colorSchemeLight} from './stores';
   import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
   import { fly } from 'svelte/transition';
   import { cssGetclass } from './lib/css';
@@ -17,8 +17,8 @@
   let description;
   let lastUpdated;
   let lastUpdatedStr;
-
   let slPercent = 75;
+  let colorSchemeLightLocal = true;
 
   capDescription.subscribe(value => {
     description = value;
@@ -45,6 +45,9 @@
   function show() {
     cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
   }
+
+  colorSchemeLight.subscribe(value => {colorSchemeLightLocal = value; console.log("Test: " + colorSchemeLightLocal);});
+
 </script>
 
 <style>
@@ -52,11 +55,18 @@
         position: absolute;
         bottom: 0;
         left: 0;
-        background-color: white;
         border-top-left-radius: 11px;
         border-top-right-radius: 11px;
         border-top: 1px solid lightgray;
         width: 100%;
+    }
+
+    .bottomToolbar.lightScheme {
+        background-color: white;
+    }
+
+    .bottomToolbar.darkScheme {
+        background-color: rgb(63, 63, 63);
     }
 
     .lastUpdatedBottom {
@@ -130,7 +140,7 @@
 </style>
 
 <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Quattrocento" />
-<div class="bottomToolbar lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
+<div class="{colorSchemeLightLocal ? 'bottomToolbar lightScheme' : 'bottomToolbar darkScheme'} lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
     <div class="parentz">
         <div class="left">
             <!-- empty -->
@@ -140,10 +150,12 @@
                 <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> Last updated 2 minutes ago
             </sl-tag>
         </div>
+        {#if device !== 'ios' && device !== 'android'}
         <div class="right">
             <div class="appstoreLogo"><a target="_blank" href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="height: 30px;"></a></div>
             <div class="appstoreLogo"><a target="_blank" href="https://play.google.com/store/apps/details?id=com.meteocool"><img class="appstore-logo" alt="google play app store" src="assets/google-play-store.png" style="height: 30px;"></a></div>
             <div class="appstoreLogo"><a target="_blank" href="https://github.com/meteocool/core#meteocool"><Icon icon={faGithubSquare} class="githubIcon"></Icon></a></div>
         </div>
+        {/if}
     </div>
 </div>
