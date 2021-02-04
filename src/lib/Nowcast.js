@@ -57,7 +57,7 @@ export class Nowcast {
       .then((obj) => {
         const historic = {};
         obj.forEach((radar) => {
-          const [nowcastLayer, nowcastSource] = dwdLayer(radar.tile_id, { nowcastLayer: true }, "meteoradar");
+          const [nowcastLayer, _] = dwdLayer(radar.tile_id, { nowcastLayer: true }, "meteoradar");
           historic[radar.upstream_time] = {
             layer: nowcastLayer,
           };
@@ -89,6 +89,8 @@ export class Nowcast {
 
     this.downloadHistoric();
 
+    this.nowcast = this.nowcast.slice(0, 8);
+
     this.nanobar.start("nowcast");
     const self = this;
     this.nowcast.forEach((interval) => {
@@ -103,6 +105,7 @@ export class Nowcast {
         this.nanobar.manualDown();
         this.numInFlightTiles -= 1;
         if (this.numInFlightTiles === 0) {
+          console.log("Download finished, removing layers");
           Object.values(this.forecastLayers).forEach((layer) => {
             this.map.removeLayer(layer.layer);
             layer.layer.setOpacity(0.85);
@@ -127,6 +130,7 @@ export class Nowcast {
         absTime: self.baseTime + interval.prediction_time * 60,
       };
       this.map.addLayer(nowcastLayer);
+      console.log("Adding download layer");
     });
   }
 
