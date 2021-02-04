@@ -138,6 +138,10 @@
   if (device == 'ios' && 'webkit' in window) {
     window.webkit.messageHandlers['scriptHandler'].postMessage('requestSettings');
   }
+
+  if (device == 'android') {
+    Android.requestSettings();
+  }
 </script>
 
 <style>
