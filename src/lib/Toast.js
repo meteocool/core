@@ -3,15 +3,12 @@ export function reportError(message, type = "warning", icon = "exclamation-trian
   const alert = Object.assign(document.createElement("sl-alert"), {
     type,
     closable: true,
-    style: "--color: tomato",
     innerHTML: `
         <sl-icon name="${icon}" slot="icon"></sl-icon>
         <b>Connection Lost.</b> Please reload the page or contact support@meteocool.com if the problem persists.
       `,
   });
   document.body.append(alert);
-  console.log(alert);
-  window.test = alert;
   return alert.toast();
 }
 
@@ -20,11 +17,8 @@ export function reportToast(message, type = "primary", icon = "info-circle") {
     type,
     closable: true,
     duration: 15000,
-    style: "--color: tomato",
     innerHTML: `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`,
   });
-  alert.classList.add("tomatotomatopotatopotato");
-  console.log(alert);
   document.body.append(alert);
   return alert.toast();
 }
