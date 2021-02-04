@@ -260,7 +260,7 @@
 
     @media (orientation: portrait) {
       .timeslider {
-        height: 80%;
+        height: 20%;
       }
     }
 
