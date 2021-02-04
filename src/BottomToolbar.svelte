@@ -4,11 +4,16 @@
   import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
   import { fly } from 'svelte/transition';
   import { cssGetclass } from './lib/css';
-  import { enUS } from 'date-fns/locale'
+  import { enUS, de } from 'date-fns/locale'
   import {formatDistanceToNow} from "date-fns";
-  import { _ } from 'svelte-i18n';
+  import { _, getLocaleFromNavigator } from "svelte-i18n";
 
-  const dfnLocale = enUS;
+  let dfnLocale;
+  if (getLocaleFromNavigator() === 'de') {
+    dfnLocale = de;
+  } else {
+    dfnLocale = enUS;
+  }
 
   let target;
   let activeForecastTimeout;
@@ -60,7 +65,7 @@
     }
 
     .lastUpdatedBottom {
-        height: 40px;
+        height: 42px;
         bottom: env(safe-area-inset-bottom);
         z-index: 99;
         padding-top: 0.2em;
@@ -86,6 +91,7 @@
         height: 100%;
         text-align: right;
         white-space: nowrap;
+        padding: 0;
         flex-grow: 0;     /* do not grow   - initial value: 0 */
         flex-shrink: 0;   /* do not shrink - initial value: 1 */
         flex-basis: 10%;
@@ -126,6 +132,7 @@
         margin-left: 0.1em;
         padding-left: 0px;
         display: inline;
+        height: 100%;
     }
 </style>
 
@@ -136,8 +143,8 @@
             <!-- empty -->
         </div>
         <div class="center">
-            <sl-tag type="info" style="padding-top: 5px; text-indent: unset; font-style: normal; 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;" size="medium" pill>
-                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> Last updated 2 minutes ago
+            <sl-tag type="info" style="text-indent: unset; font-style: normal; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;" size="medium" pill>
+                <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> {$_('last_updated')} {lastUpdatedStr}
             </sl-tag>
         </div>
         <div class="right">

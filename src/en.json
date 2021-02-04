@@ -4,6 +4,7 @@
   "url": "meteocool.com",
   "last_updated": "Last updated",
   "processing_nowcast": "Processing Nowcast",
+  "downloading_nowcast": "Downloading Nowcast",
   "last_radar": "Last radar from",
 
   "title":"About meteocool",

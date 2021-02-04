@@ -22,7 +22,7 @@
     let activeForecastTimeout;
     let lastSliderTime;
     let visible = false;
-    let uiMessage = "Downloading Nowcast";
+    let uiMessage = $_('downloading_nowcast');
     let iconHTML;
     let baseTime;
     let warned = false;
@@ -33,6 +33,7 @@
 
     function show() {
       if (visible) {
+        console.log("already visible");
         hide();
         return;
       }
@@ -41,7 +42,7 @@
         showTimeSlider.set(true);
         nowcast.downloadNowcast();
       }, 200);
-      cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 90px)";
+      cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 98px)";
     }
 
     function hide() {
@@ -49,7 +50,7 @@
       setTimeout(() => {
         showTimeSlider.set(false);
       }, 200);
-      cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
+      cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 45px)";
     }
 
     function reset() {
@@ -255,7 +256,6 @@
         height: 10%;
         min-height: 100px;
         z-index: 999999;
-        display: none;
     }
 
     @media (orientation: portrait) {
@@ -309,10 +309,6 @@
       color: #666666 !important;
     }
 
-    .buttonInactive {
-      opacity: 0.5;
-    }
-
     #timesliderTarget {
       width: 100%;
       position: static !important;
@@ -360,17 +356,15 @@
 
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
-<div on:click={show} style="position: absolute; bottom: calc(-0.2em + env(safe-area-inset-bottom)); left: 0.3em; z-index: 999999;">
+{#if !visible}
+<div on:click={show} style="position: absolute; bottom: calc(0.2em + env(safe-area-inset-bottom)); left: 0.3em; z-index: 999999;">
   <div class="controlButton" title="Play/Pause">
     <div class="playHover">
       <Icon icon={faPlay} class="controlIcon"></Icon>
     </div>
-    <!--div class="playLabel">
-      <div style="text-decoration: inherit; margin-top: -1.6em; float: left; font-size: 1.2rem; height: 2.5rem;">Load &amp; Play</div>
-      <div style="text-decoration: inherit; margin-top: -1.5em; float: left; clear:both; font-size: 0.7rem; height: 2.5rem;">Radar Nowcast...</div>
-    </div-->
   </div>
 </div>
+{/if}
 
 {#if visible}
   <div class="bottomToolbar timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">

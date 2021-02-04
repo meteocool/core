@@ -17,11 +17,13 @@
 
   import { addMessages, init, getLocaleFromNavigator } from 'svelte-i18n';
   import de from './de.json';
+  import en from './en.json';
 
-  addMessages('de',de);
+  addMessages('de', de);
+  addMessages('en', en);
 
   init({
-      fallbackLocale: 'de',
+      fallbackLocale: 'en',
       initialLocale: getLocaleFromNavigator(),
   });
 
@@ -35,7 +37,6 @@
     autoSessionTracking: false,
     release: GIT_COMMIT_HASH,
   });
-  console.log(GIT_COMMIT_HASH);
 
   import './style/global.css';
   import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
@@ -175,6 +176,10 @@
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         touch-action: manipulation;
+    }
+
+    :root {
+        --sl-color-white: red;
     }
 </style>
 
