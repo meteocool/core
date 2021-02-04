@@ -66,7 +66,7 @@
 
     .lastUpdatedBottom {
         height: 42px;
-        bottom: min(0, calc(env(safe-area-inset-bottom) - 6px));
+        bottom: max(0, calc(env(safe-area-inset-bottom) - 6px));
         z-index: 99;
         padding-top: 0.2em;
         padding-bottom: 0.2em;
