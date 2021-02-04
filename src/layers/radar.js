@@ -1,40 +1,40 @@
 /* eslint-disable no-param-reassign */
-import Feature from "ol/Feature";
-import Fill from "ol/style/Fill";
-import ImageLayer from "ol/layer/Image";
-import Style from "ol/style/Style";
-import TileLayer from "ol/layer/Tile";
-import VectorLayer from "ol/layer/Vector";
-import VectorSource from "ol/source/Vector";
-import { DEVICE_PIXEL_RATIO } from "ol/has";
-import { Raster as RasterSource, XYZ } from "ol/source";
-import { transformExtent } from "ol/proj";
-import { dwdAttribution, imprintAttribution } from "./attributions";
-import { dwdExtentInv } from "./extents";
-import { meteocoolClassic, viridis } from "../colormaps";
-import { tileBaseUrl } from "./urls";
+import Feature from 'ol/Feature';
+import Fill from 'ol/style/Fill';
+import ImageLayer from 'ol/layer/Image';
+import Style from 'ol/style/Style';
+import TileLayer from 'ol/layer/Tile';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import {DEVICE_PIXEL_RATIO} from 'ol/has';
+import {Raster as RasterSource, XYZ} from 'ol/source';
+import {transformExtent} from 'ol/proj';
+import {dwdAttribution, imprintAttribution} from './attributions';
+import {dwdExtentInv} from './extents';
+import {meteocoolClassic, viridis} from '../colormaps';
+import {tileBaseUrl} from './urls';
 
 let cmap = meteocoolClassic;
 
 // eslint-disable-next-line import/prefer-default-export
-export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
+export const dwdLayer = (tileId, extra, bucket = 'meteoradar') => {
   const reflectivitySource = new XYZ({
     url: `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`,
     attributions: [dwdAttribution, imprintAttribution],
-    crossOrigin: "anonymous",
+    crossOrigin: 'anonymous',
     minZoom: 1,
     maxZoom: 8,
     transition: 0,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
-    tileSize: 512,
+    tileSize: 512
   });
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
-    zIndex: 1000,
+    zIndex: 1000
   });
 
   // Disable browser upsampling
-  reflectivityLayer.on("prerender", (evt) => {
+  reflectivityLayer.on('prerender', evt => {
     evt.context.imageSmoothingEnabled = false;
     evt.context.msImageSmoothingEnabled = false;
   });
@@ -50,9 +50,9 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
       }
       [pixels[0][0], pixels[0][1], pixels[0][2], pixels[0][3]] = data.cmap[dbz];
       return pixels[0];
-    },
+    }
   });
-  rasterRadar.on("beforeoperations", (event) => {
+  rasterRadar.on('beforeoperations', event => {
     event.data.cmap = cmap;
     event.data.cmapLength = cmap.length;
   });
@@ -61,15 +61,17 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     zIndex: 3,
     source: rasterRadar,
     renderBuffer: 500,
-    title: "Radar Composite",
+    title: 'Radar Composite',
     id: tileId,
-    ...extra,
+    ...extra
   });
-  rasterRadarImageLayer.setExtent(transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"));
+  rasterRadarImageLayer.setExtent(
+    transformExtent([2.8125, 45, 19.6875, 56.25], 'EPSG:4326', 'EPSG:3857')
+  );
 
   // XXX
-  window.updateColormap = (colorMapString) => {
-    if (colorMapString === "classic") {
+  window.updateColormap = colorMapString => {
+    if (colorMapString === 'classic') {
       cmap = meteocoolClassic;
     } else {
       cmap = viridis;
@@ -78,22 +80,25 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     return true;
   };
 
-  rasterRadarImageLayer.set("tileId", tileId);
+  rasterRadarImageLayer.set('tileId', tileId);
   return [rasterRadarImageLayer, reflectivitySource];
 };
 
-export const greyOverlay = () => new VectorLayer({
-  zIndex: 1000,
-  renderBuffer: 500,
-  source: new VectorSource({
-    features: [new Feature({
-      geometry: dwdExtentInv,
-      name: "DarkOverlay",
-    })],
-  }),
-  style: new Style({
-    fill: new Fill({
-      color: "rgba(0, 0, 0, 0.1)",
+export const greyOverlay = () =>
+  new VectorLayer({
+    zIndex: 1000,
+    renderBuffer: 500,
+    source: new VectorSource({
+      features: [
+        new Feature({
+          geometry: dwdExtentInv,
+          name: 'DarkOverlay'
+        })
+      ]
     }),
-  }),
-});
+    style: new Style({
+      fill: new Fill({
+        color: 'rgba(0, 0, 0, 0.1)'
+      })
+    })
+  });

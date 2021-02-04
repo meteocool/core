@@ -1,4 +1,4 @@
-import Nanobar from "nanobar";
+import Nanobar from 'nanobar';
 
 export class NanobarWrapper {
   constructor(params) {
@@ -46,7 +46,8 @@ export class NanobarWrapper {
 
   arm(target) {
     this.nb.go(target);
-    if (target < 95) this.activeTimeout = setTimeout((t) => this.arm(t), 100, target + 0.1);
+    if (target < 95)
+      this.activeTimeout = setTimeout(t => this.arm(t), 100, target + 0.1);
     else this.activeTimeout = null;
   }
 
@@ -66,7 +67,11 @@ export class NanobarWrapper {
         clearTimeout(this.activeTimeout);
         this.activeTimeout = null;
       }
-      this.arm(Math.ceil(100 / nSteps + 1) + ((this.manualHighwater - this.manual) / this.manualHighwater) * (100 / nSteps));
+      this.arm(
+        Math.ceil(100 / nSteps + 1) +
+          ((this.manualHighwater - this.manual) / this.manualHighwater) *
+            (100 / nSteps)
+      );
     }
   }
 }

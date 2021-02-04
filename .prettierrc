@@ -1,0 +1,7 @@
+{
+  "arrowParens": "avoid",
+  "bracketSpacing": false,
+  "singleQuote": true,
+  "svelteSortOrder": "scripts-styles-markup",
+  "trailingComma": "none"
+}

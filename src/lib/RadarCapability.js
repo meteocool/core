@@ -1,7 +1,7 @@
-import { dwdLayer, greyOverlay } from "../layers/radar";
-import { Nowcast } from "./Nowcast";
-import { reportError } from "./Toast";
-import { capDescription, capLastUpdated } from "../stores";
+import {dwdLayer, greyOverlay} from '../layers/radar';
+import {Nowcast} from './Nowcast';
+import {reportError} from './Toast';
+import {capDescription, capLastUpdated} from '../stores';
 
 // eslint-disable-next-line import/prefer-default-export
 export class RadarCapability {
@@ -15,7 +15,7 @@ export class RadarCapability {
     this.numInFlightTiles = 0;
     window.radar = this;
 
-    this.nowcast = new Nowcast({ nanobar: this.nanobar, map: this.map });
+    this.nowcast = new Nowcast({nanobar: this.nanobar, map: this.map});
 
     this.reloadTilesRadar();
   }
@@ -23,15 +23,19 @@ export class RadarCapability {
   reloadTilesRadar() {
     this.nanobar.start(this.url);
     fetch(this.url)
-      .then((response) => response.json())
-      .then((obj) => {
+      .then(response => response.json())
+      .then(obj => {
         const newRadarLayer = this.processRadar(obj.radar);
         capLastUpdated.set(new Date(obj.radar.upstream_time * 1000));
-        this.nowcast.processNowcast(obj.nowcast, obj.radar.upstream_time,
-          obj.radar.processed_time, newRadarLayer);
+        this.nowcast.processNowcast(
+          obj.nowcast,
+          obj.radar.upstream_time,
+          obj.radar.processed_time,
+          newRadarLayer
+        );
       })
       .then(() => this.nanobar.finish(this.url))
-      .catch((error) => {
+      .catch(error => {
         this.nanobar.finish(this.url);
         reportError(error);
       });
@@ -42,11 +46,11 @@ export class RadarCapability {
   }
 
   processRadar(obj) {
-    const newLayer = dwdLayer(obj.tile_id, { mainLayer: true })[0];
+    const newLayer = dwdLayer(obj.tile_id, {mainLayer: true})[0];
     newLayer.setOpacity(0.85);
     if (this.map) {
       if (this.layer) {
-        if (this.layer.get("tileId") === newLayer.get("tileId")) {
+        if (this.layer.get('tileId') === newLayer.get('tileId')) {
           return this.layer;
         }
         this.map.removeLayer(this.layer);
@@ -59,7 +63,7 @@ export class RadarCapability {
 
   setTarget(target) {
     this.map.setTarget(target);
-    capDescription.set("Radar Reflectivity");
+    capDescription.set('Radar Reflectivity');
   }
 
   setMap(map) {
@@ -76,8 +80,8 @@ export class RadarCapability {
   }
 
   willLoseFocus() {
-    this.observers.forEach((obs) => {
-      obs("loseFocus");
+    this.observers.forEach(obs => {
+      obs('loseFocus');
     });
   }
 }
