@@ -27,16 +27,16 @@
 
         border-top-right-radius: 15px;
         border-bottom-right-radius: 15px;
-        background-color: white;
+        background-color: var(--sl-color-white);
 
         font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
 
-        color: #212529;
+        color: var(--sl-color-black);
         text-align: left;
         height: 6vh;
         vertical-align: top;
-        border: 1px solid #f8f9fa;
-        background-color: white;
+        border: 1px solid var(--sl-color-gray-50);
+        background-color: var(--sl-color-white);
         min-height: 32px;
     }
 
@@ -53,11 +53,15 @@
         font-size: max(1.5vh, 8px);
     }
     .link {
-        color: rgb(0,100,200);
+        color: var(--sl-color-primary-600);
         cursor: pointer;
     }
     .link:hover {
         text-decoration: underline;
+    }
+
+    a{
+        color: var(--sl-color-primary-600);
     }
 </style>
 

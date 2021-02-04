@@ -28,7 +28,6 @@
     let warned = false;
     let historicLayers = [];
     let historicLayersObj;
-    let colorSchemeLightLocal = true;
 
     // XXX refactor with fsm
 
@@ -237,8 +236,6 @@
     function renderIcon(el) {
       iconHTML = el.innerHTML;
     }
-
-    colorSchemeLight.subscribe(value => {colorSchemeLightLocal = value; console.log("Test2: " + colorSchemeLightLocal);});
 </script>
 
 <style>
@@ -249,16 +246,9 @@
       left: 0;
       border-top-left-radius: 11px;
       border-top-right-radius: 11px;
-      border-top: 1px solid lightgray;
+      border-top: 1px solid var(--sl-color-gray-50);
       width: 100%;
-    }
-
-    .bottomToolbar.lightScheme {
-      background-color: white;
-    }
-
-    .bottomToolbar.darkScheme {
-      background-color: rgb(63, 63, 63);
+      background-color: var(--sl-color-white);
     }
 
     .timeslider {
@@ -303,28 +293,14 @@
       text-align:center;
       margin: 0.25em;
       cursor: pointer;
-    }
-
-    .controlButton.lightScheme{
-      color:black;
-    }
-    .controlButton.darkScheme{
-      color:white;
+      color: var(--sl-color-black);
     }
 
     .controlButton:hover {
       cursor: pointer;
-    }
-
-    .controlButton.lightScheme:hover{
-      background-color: black;
-      border: 1px solid black;
-      color: white;
-    }
-    .controlButton.darkScheme:hover{
-      background-color: white;
-      border: 1px solid white;
-      color: black;
+      background-color: var(--sl-color-black);
+      border: 1px solid var(--sl-color-black);
+      color: var(--sl-color-white);
     }
 
     .buttonDisabled {
@@ -365,7 +341,7 @@
     }
 
     :global(.vis-item-content) {
-      color: white;
+      color: var(--sl-color-white);
       font-size: 85%;
     }
 
@@ -377,7 +353,7 @@
               1px -1px 0 #ffffff,
               -1px 1px 0 #ffffff,
               1px 1px 0 #ffffff;
-      color: black !important;
+      color: var(--sl-color-black) !important;
       padding: 0;
       margin: 6px 0.2em 0 0;
     }
@@ -386,7 +362,7 @@
 <span use:renderIcon><Icon icon={faArrowsAltH}></Icon></span>
 
 <div on:click={show} style="position: absolute; bottom: calc(-0.2em + env(safe-area-inset-bottom)); left: 0.3em; z-index: 999999;">
-  <div class="{colorSchemeLightLocal ? 'controlButton lightScheme' : 'controlButton darkScheme'}" title="Play/Pause">
+  <div class="controlButton" title="Play/Pause">
     <div class="playHover">
       <Icon icon={faPlay} class="controlIcon"></Icon>
     </div>
@@ -398,9 +374,9 @@
 </div>
 
 {#if visible}
-  <div class="{colorSchemeLightLocal ? 'bottomToolbar lightScheme' : 'bottomToolbar darkScheme'} timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
+  <div class="bottomToolbar timeslider" use:init transition:fly="{{ y: 100, duration: 400 }}">
     <div class="controls">
-      <div class="{colorSchemeLightLocal ? 'controlButton lightScheme' : 'controlButton darkScheme'} buttonDisabled" on:click={play} title="Play/Pause">
+      <div class="controlButton buttonDisabled" on:click={play} title="Play/Pause">
         <Icon icon={playPauseButton} class="controlIcon"></Icon>
       </div>
     </div>

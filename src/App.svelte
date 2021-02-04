@@ -51,6 +51,8 @@
     } from '@shoelace-style/shoelace';
     import BottomToolbar from './BottomToolbar.svelte';
     import About from "./About.svelte";
+    import {colorSchemeDark} from "./stores";
+    import {subscribe} from "svelte/internal";
 
     setAssetPath(document.currentScript.src);
     customElements.define('sl-button', SlButton);
@@ -138,6 +140,19 @@
 
     if (device == 'ios' && 'webkit' in window) {
         window.webkit.messageHandlers['scriptHandler'].postMessage('requestSettings');
+    }
+
+    //Dark and Light mode
+    let colorSchemeLocal = false;
+    colorSchemeDark.subscribe(value => {colorSchemeLocal = value;});
+    if (colorSchemeLocal){
+        document.documentElement.style.setProperty("--sl-color-white", "#3F3F3F");
+        document.documentElement.style.setProperty("--sl-color-black", "#FFFFFF");
+        document.documentElement.style.setProperty("--sl-color-gray-700", "#FFFFFF");
+        document.documentElement.style.setProperty("--sl-color-gray-200", "#3F3F3F");
+        document.documentElement.style.setProperty("--sl-color-gray-50", "#3F3F3F");
+        document.documentElement.style.setProperty("--sl-color-primary-600", "#38BDF8");
+        document.documentElement.style.setProperty("--sl-color-primary-800", "#0284C7");
     }
 </script>
 
