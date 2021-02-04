@@ -93,7 +93,7 @@ export class Nowcast {
 
     this.downloadHistoric();
 
-    this.nowcast = this.nowcast.slice(0, 8);
+    this.nowcast = this.nowcast.slice(0, 4);
 
     this.nanobar.start('nowcast');
     const self = this;
