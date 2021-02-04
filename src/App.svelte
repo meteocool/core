@@ -3,19 +3,19 @@
   import Logo from './Logo.svelte';
   import NowcastPlayback from './NowcastPlayback.svelte';
 
-  import { RadarCapability } from './lib/RadarCapability';
-  import { SatelliteCapability } from './lib/SatelliteCapability';
-  import { WeatherCapability } from './lib/WeatherCapability';
+  import {RadarCapability} from './lib/RadarCapability';
+  import {SatelliteCapability} from './lib/SatelliteCapability';
+  import {WeatherCapability} from './lib/WeatherCapability';
 
-  import { LayerManager } from './lib/LayerManager';
-  import { NanobarWrapper } from './lib/NanobarWrapper.js';
-  import { Settings } from './lib/Settings';
+  import {LayerManager} from './lib/LayerManager';
+  import {NanobarWrapper} from './lib/NanobarWrapper.js';
+  import {Settings} from './lib/Settings';
 
   import * as Sentry from '@sentry/browser';
-  import { Integrations } from '@sentry/tracing';
+  import {Integrations} from '@sentry/tracing';
   import View from 'ol/View';
 
-  import { addMessages, init, getLocaleFromNavigator } from 'svelte-i18n';
+  import {addMessages, init, getLocaleFromNavigator} from 'svelte-i18n';
   import de from './de.json';
   import en from './en.json';
 
@@ -51,6 +51,9 @@
     SlTag, SlDialog,
   } from '@shoelace-style/shoelace';
   import BottomToolbar from './BottomToolbar.svelte';
+  import About from "./About.svelte";
+  import {colorSchemeDark} from "./stores";
+  import {subscribe} from "svelte/internal";
 
   setAssetPath(document.currentScript.src);
   customElements.define('sl-button', SlButton);
@@ -69,20 +72,20 @@
       type: 'boolean',
       default: false,
       cb: (value) => {
-        const newView = new View({
-          center: lm.getCurrentMap().getView().getCenter(),
-          zoom: lm.getCurrentMap().getView().getZoom(),
-          minzoom: 5,
-          enableRotation: value,
-        });
-        lm.forEachMap((map) => map.setView(newView));
+          const newView = new View({
+              center: lm.getCurrentMap().getView().getCenter(),
+              zoom: lm.getCurrentMap().getView().getZoom(),
+              minzoom: 5,
+              enableRotation: value,
+          });
+          lm.forEachMap((map) => map.setView(newView));
       },
     },
     mapBaseLayer: {
       type: 'string',
       default: 'topographic',
       cb: (value) => {
-        lm.switchBaseLayer(value);
+          lm.switchBaseLayer(value);
       },
     },
     radarColorMapping: {
@@ -114,13 +117,13 @@
     'tileURL': baseUrl + 'radar/'
   });
   export const weather = new WeatherCapability({
-      'nanobar': nb,
-      'tileURL': baseUrl + 'icon/t_2m/'
+    'nanobar': nb,
+    'tileURL': baseUrl + 'icon/t_2m/'
   });
 
   window.enterForeground = () => {
-      radar.reloadTilesRadar();
-      weather.reloadTilesWeather();
+    radar.reloadTilesRadar();
+    weather.reloadTilesWeather();
   };
 
   export let lm = new LayerManager({
@@ -129,7 +132,7 @@
     nanobar: nb,
     capabilities: {
       'radar': radar,
-      'satellite': new SatelliteCapability({ 'nanobar': nb }),
+      'satellite': new SatelliteCapability({'nanobar': nb}),
       'weather': weather,
     },
   });
@@ -143,6 +146,19 @@
   if (device == 'android') {
     Android.requestSettings();
   }
+
+  //Dark and Light mode
+  let colorSchemeLocal = false;
+  colorSchemeDark.subscribe(value => {colorSchemeLocal = value;});
+  if (colorSchemeLocal){
+    document.documentElement.style.setProperty("--sl-color-white", "#3F3F3F");
+    document.documentElement.style.setProperty("--sl-color-black", "#FFFFFF");
+    document.documentElement.style.setProperty("--sl-color-gray-700", "#FFFFFF");
+    document.documentElement.style.setProperty("--sl-color-gray-200", "#3F3F3F");
+    document.documentElement.style.setProperty("--sl-color-gray-50", "#3F3F3F");
+    document.documentElement.style.setProperty("--sl-color-primary-600", "#38BDF8");
+    document.documentElement.style.setProperty("--sl-color-primary-800", "#0284C7");
+    }
 </script>
 
 <style>
@@ -183,10 +199,10 @@
     }
 </style>
 
-{#if device !== 'ios'}
-<Logo />
+{#if device !== 'ios' && device !== 'android'}
+    <Logo />
 {/if}
+<BottomToolbar/>
 <div id="nanobar" />
 <Map layerManager={lm} />
-<BottomToolbar/>
 <NowcastPlayback cap={radar} nowcast={radar.nowcast} />

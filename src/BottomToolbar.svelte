@@ -1,6 +1,6 @@
 <script>
   import Icon from 'fa-svelte'
-  import { capDescription, capLastUpdated } from './stores';
+  import {capDescription, capLastUpdated, colorSchemeLight} from './stores';
   import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
   import { fly } from 'svelte/transition';
   import { cssGetclass } from './lib/css';
@@ -22,7 +22,6 @@
   let description;
   let lastUpdated;
   let lastUpdatedStr;
-
   let slPercent = 75;
 
   capDescription.subscribe(value => {
@@ -50,6 +49,7 @@
   function show() {
     cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
   }
+
 </script>
 
 <style>
@@ -57,11 +57,11 @@
         position: absolute;
         bottom: 0;
         left: 0;
-        background-color: white;
         border-top-left-radius: 11px;
         border-top-right-radius: 11px;
         border-top: 1px solid lightgray;
         width: 100%;
+        background-color: var(--sl-color-white);
     }
 
     .lastUpdatedBottom {
@@ -147,10 +147,12 @@
                 <sl-progress-ring percentage={slPercent} size="16" stroke-width="1" style="position: relative; top: 3px; transform: scaleX(-1);"></sl-progress-ring> {$_('last_updated')} {lastUpdatedStr}
             </sl-tag>
         </div>
+        {#if device !== 'ios' && device !== 'android'}
         <div class="right">
             <div class="appstoreLogo"><a target="_blank" href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"><img src="assets/ios-app-store.png" alt="ios app store link" class="appstore-logo" style="height: 30px;"></a></div>
             <div class="appstoreLogo"><a target="_blank" href="https://play.google.com/store/apps/details?id=com.meteocool"><img class="appstore-logo" alt="google play app store" src="assets/google-play-store.png" style="height: 30px;"></a></div>
             <div class="appstoreLogo"><a target="_blank" href="https://github.com/meteocool/core#meteocool"><Icon icon={faGithubSquare} class="githubIcon"></Icon></a></div>
         </div>
+        {/if}
     </div>
 </div>

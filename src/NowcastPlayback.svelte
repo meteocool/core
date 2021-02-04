@@ -2,7 +2,7 @@
     import Icon from 'fa-svelte'
     import { Timeline } from "vis-timeline";
     import {DataSet} from "vis-timeline/standalone";
-    import {showTimeSlider} from "./stores"
+    import {colorSchemeLight, showTimeSlider} from "./stores"
     import {faPlay} from '@fortawesome/free-solid-svg-icons/faPlay'
     import {faPause} from '@fortawesome/free-solid-svg-icons/faPause'
     import {faArrowsAltH} from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
@@ -245,11 +245,11 @@
       position: absolute;
       bottom: 0;
       left: 0;
-      background-color: white;
       border-top-left-radius: 11px;
       border-top-right-radius: 11px;
-      border-top: 1px solid lightgray;
+      border-top: 1px solid var(--sl-color-gray-50);
       width: 100%;
+      background-color: var(--sl-color-white);
     }
 
     .timeslider {
@@ -293,13 +293,14 @@
       text-align:center;
       margin: 0.25em;
       cursor: pointer;
+      color: var(--sl-color-black);
     }
 
     .controlButton:hover {
-      background-color: #333333;
-      border: 1px solid #333333;
-      color: white;
       cursor: pointer;
+      background-color: var(--sl-color-black);
+      border: 1px solid var(--sl-color-black);
+      color: var(--sl-color-white);
     }
 
     .buttonDisabled {
@@ -336,7 +337,7 @@
     }
 
     :global(.vis-item-content) {
-      color: white;
+      color: var(--sl-color-white);
       font-size: 85%;
     }
 
@@ -348,7 +349,7 @@
               1px -1px 0 #ffffff,
               -1px 1px 0 #ffffff,
               1px 1px 0 #ffffff;
-      color: black !important;
+      color: var(--sl-color-black) !important;
       padding: 0;
       margin: 6px 0.2em 0 0;
     }
