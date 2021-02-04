@@ -15,7 +15,9 @@ export class Settings {
   }
 
   get(key) {
-    if (typeof key !== "string") { return null; }
+    if (typeof key !== 'string') {
+      return null;
+    }
 
     const local = localStorage.getItem(key);
     if (local) {
@@ -25,8 +27,11 @@ export class Settings {
   }
 
   set(key, value) {
-    if (typeof key !== "string") { return; }
-    if (typeof value !== this.settings[key].type) { // eslint-disable-line valid-typeof
+    if (typeof key !== 'string') {
+      return;
+    }
+    if (typeof value !== this.settings[key].type) {
+      // eslint-disable-line valid-typeof
       return;
     }
 
@@ -34,7 +39,10 @@ export class Settings {
 
     if (old !== value && this.settings[key].default !== value) {
       localStorage.setItem(key, value);
-    } else if (this.settings[key].default === value && localStorage.getItem(key) !== null) {
+    } else if (
+      this.settings[key].default === value &&
+      localStorage.getItem(key) !== null
+    ) {
       // remove from localstorage if value is reset to default
       localStorage.removeItem(key);
     }
@@ -47,7 +55,9 @@ export class Settings {
   }
 
   cb(key) {
-    if (typeof key !== "string") { return; }
+    if (typeof key !== 'string') {
+      return;
+    }
     if (this.settings[key].cb) {
       this.settings[key].cb(this.get(key));
     }
