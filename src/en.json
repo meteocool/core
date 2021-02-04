@@ -46,5 +46,10 @@
     "list1": "contact us for questions or if you want to send money our way",
     "list2": "privacy policy"
   },
-  "close": "Close"
+  "close": "Close",
+
+  "published": "Published",
+  "acquired": "Acquired",
+  "trackingMostRecent": "Tracking Most Recent",
+  "forcastPlaying": "You are now viewing forecasted data.\nTo go back to the most recent radar observation, reset ↺ the timeline."
 }
