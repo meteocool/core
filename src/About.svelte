@@ -67,11 +67,20 @@
 
     :global(.dialog-overview::part(base)) {
         bottom: 7%;
+        color: var(--sl-color-gray-700);
     }
 
     .volunteers {
         float: right;
         width: 35%;
         padding: 1em;
+    }
+
+    a{
+        color: var(--sl-color-primary-600);
+    }
+
+    a:visited{
+        color: var(--sl-color-primary-800);
     }
 </style>

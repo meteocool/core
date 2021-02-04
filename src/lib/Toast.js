@@ -3,7 +3,7 @@ export function reportError(message, type = "warning", icon = "exclamation-trian
   const alert = Object.assign(document.createElement("sl-alert"), {
     type,
     closable: true,
-    innerHTML: `
+    innerHTML: ` 
         <sl-icon name="${icon}" slot="icon"></sl-icon>
         <b>Connection Lost.</b> Please reload the page or contact support@meteocool.com if the problem persists.
       `,

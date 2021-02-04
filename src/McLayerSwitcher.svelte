@@ -51,19 +51,21 @@
     .lsToggle {
         width: 74px;
         height: 74px;
-        background-color: #f8f9fa;
-        border: 3px solid #333333;
+        background-color: var(--sl-color-white);
+        border: 3px solid var(--sl-color-gray-700);
         border-radius: 40px;
         position: absolute;
         top: 1vh;
         right: 1vh;
         text-align: center;
         vertical-align: center;
+        color: var(--sl-color-gray-700);
     }
 
     .lsToggle:hover {
-        background-color: #666666;
-        color: white;
+        background-color: var(--sl-color-gray-700);
+        color: var(--sl-color-white);
+        border: 3px solid var(--sl-color-white);
         cursor: pointer;
     }
 
@@ -84,7 +86,7 @@
         top: 0px;
         left: 0px;
         display: none;
-        background-color: black;
+        background-color: var(--sl-color-white);
         overflow-y: hidden;
         z-index: 10000000;
     }
@@ -119,7 +121,7 @@
 
     .helpText {
         font-family: Quattrocento;
-        color: white;
+        color: var(--sl-color-black);
         text-align: center;
         line-height: 2;
         cursor: default;

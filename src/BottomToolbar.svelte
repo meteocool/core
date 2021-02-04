@@ -18,7 +18,6 @@
   let lastUpdated;
   let lastUpdatedStr;
   let slPercent = 75;
-  let colorSchemeLightLocal = true;
 
   capDescription.subscribe(value => {
     description = value;
@@ -46,8 +45,6 @@
     cssGetclass(".sl-toast-stack").style.bottom="calc(env(safe-area-inset-bottom) + 42px)";
   }
 
-  colorSchemeLight.subscribe(value => {colorSchemeLightLocal = value; console.log("Test: " + colorSchemeLightLocal);});
-
 </script>
 
 <style>
@@ -59,14 +56,7 @@
         border-top-right-radius: 11px;
         border-top: 1px solid lightgray;
         width: 100%;
-    }
-
-    .bottomToolbar.lightScheme {
-        background-color: white;
-    }
-
-    .bottomToolbar.darkScheme {
-        background-color: rgb(63, 63, 63);
+        background-color: var(--sl-color-white);
     }
 
     .lastUpdatedBottom {
@@ -140,7 +130,7 @@
 </style>
 
 <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Quattrocento" />
-<div class="{colorSchemeLightLocal ? 'bottomToolbar lightScheme' : 'bottomToolbar darkScheme'} lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
+<div class="bottomToolbar lastUpdatedBottom" transition:fly="{{ y: 100, duration: 200 }}">
     <div class="parentz">
         <div class="left">
             <!-- empty -->
