@@ -193,10 +193,6 @@
         -webkit-user-select: none;
         touch-action: manipulation;
     }
-
-    :root {
-        --sl-color-white: red;
-    }
 </style>
 
 {#if device !== 'ios' && device !== 'android'}
