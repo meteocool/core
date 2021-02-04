@@ -21,38 +21,38 @@ registerRoute(
     ],
   }),
 );
-registerRoute(
-  new RegExp("https://tiles-b\\.tomatotomatopotatopotato\\.com/meteonowcast/.*\\.png"),
-  new CacheFirst({
-    cacheName: "nowcast-tile-cache",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200, 404],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 20000,
-        maxAgeSeconds: 60 * 60,
-        purgeOnQuotaError: true,
-      }),
-    ],
-  }),
-);
-registerRoute(
-  new RegExp("https://tiles-b\\.tomatotomatopotatopotato\\.com/meteoradar/.*\\.png"),
-  new CacheFirst({
-    cacheName: "nowcast-tile-cache",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200, 404],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 20000,
-        maxAgeSeconds: 60 * 60,
-        purgeOnQuotaError: true,
-      }),
-    ],
-  }),
-);
+//registerRoute(
+//  new RegExp("https://tiles-b\\.tomatotomatopotatopotato\\.com/meteonowcast/.*\\.png"),
+//  new CacheFirst({
+//    cacheName: "nowcast-tile-cache",
+//    plugins: [
+//      new CacheableResponsePlugin({
+//        statuses: [0, 200, 404],
+//      }),
+//      new ExpirationPlugin({
+//        maxEntries: 20000,
+//        maxAgeSeconds: 60 * 60,
+//        purgeOnQuotaError: true,
+//      }),
+//    ],
+//  }),
+//);
+//registerRoute(
+//  new RegExp("https://tiles-b\\.tomatotomatopotatopotato\\.com/meteoradar/.*\\.png"),
+//  new CacheFirst({
+//    cacheName: "nowcast-tile-cache",
+//    plugins: [
+//      new CacheableResponsePlugin({
+//        statuses: [0, 200, 404],
+//      }),
+//      new ExpirationPlugin({
+//        maxEntries: 20000,
+//        maxAgeSeconds: 60 * 60,
+//        purgeOnQuotaError: true,
+//      }),
+//    ],
+//  }),
+//);
 
 /* eslint-disable no-restricted-globals, no-underscore-dangle */
 cleanupOutdatedCaches();
