@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/prefer-default-export
-import {capDescription} from '../stores';
-import {reportError} from './Toast';
-import {weatherLayer} from '../layers/weather';
+import { capDescription } from "../stores";
+import { reportError } from "./Toast";
+import { weatherLayer } from "../layers/weather";
 
 function roundToHour(date) {
   const p = 60 * 60 * 1000; // milliseconds in an hour
@@ -22,9 +22,11 @@ export class WeatherCapability {
   reloadTilesWeather() {
     this.nanobar.start(this.url);
     fetch(this.url)
-      .then(response => response.json())
-      .then(obj => {
-        const h = obj.filter(elem => elem.hour === roundToHour(new Date()))[0];
+      .then((response) => response.json())
+      .then((obj) => {
+        const h = obj.filter(
+          (elem) => elem.hour === roundToHour(new Date()),
+        )[0];
         console.log(h);
         this.weatherLayer = weatherLayer(h.tile_id);
         if (this.map != null) {
@@ -33,7 +35,7 @@ export class WeatherCapability {
         }
       })
       .then(() => this.nanobar.finish(this.url))
-      .catch(error => {
+      .catch((error) => {
         this.nanobar.finish(this.url);
         reportError(error);
       });
@@ -42,7 +44,7 @@ export class WeatherCapability {
   setTarget(target) {
     this.map.setTarget(target);
     capDescription.set(
-      'Temperature at 2m above ground from the ICON weather model.'
+      "Temperature at 2m above ground from the ICON weather model.",
     );
   }
 

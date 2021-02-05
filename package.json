@@ -14,6 +14,8 @@
     "fa-svelte": "^3.1.0",
     "html-webpack-plugin": "^4.5.1",
     "mini-css-extract-plugin": "^0.6.0",
+    "prettier": "^2.2.1",
+    "prettier-plugin-svelte": "^2.1.2",
     "serve": "^11.0.0",
     "style-loader": "^0.23.1",
     "svelte": "^3.0.0",
@@ -28,7 +30,7 @@
     "build": "cross-env NODE_ENV=production webpack",
     "build-nocrossenv": "NODE_ENV=production webpack",
     "dev": "webpack-dev-server --content-base public",
-    "fmt": "prettier --write '{public,src}/**/*.{css,html,js,svelte}'"
+    "fmt": "prettier --plugin-search-dir=. --write '{public,src}/**/*.{css,html,js,svelte}'"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.15.1",
