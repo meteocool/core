@@ -26,6 +26,7 @@
   :global(.dialog-overview::part(base)) {
     bottom: 7%;
     color: var(--sl-color-gray-700);
+    --width: 50vw;
   }
 
   .volunteers {
@@ -41,26 +42,36 @@
   a:visited {
     color: var(--sl-color-primary-800);
   }
+
+  .appstoreLogo {
+    float: right;
+    width: 180px;
+    margin: 1em;
+  }
+
+  .appstore-logo.about{
+    width: 100%;
+  }
+
 </style>
 
 <sl-dialog
   label={$_("title")}
   class="dialog-overview"
-  style="--width: 50vw;"
   use:init>
-  <div style="float: right; width: 180px; margin: 1em;">
+  <div class="appstoreLogo">
     <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"
       ><img
         src="assets/ios-app-store.png"
         alt="ios app store link"
-        class="appstore-logo"
-        style="width: 100%;" /></a>
+        class="appstore-logo about"
+        /></a>
     <a href="https://play.google.com/store/apps/details?id=com.meteocool"
       ><img
-        class="appstore-logo"
+        class="appstore-logo about"
         alt="google play app store"
         src="assets/google-play-store.png"
-        style="width: 100%;" /></a>
+        /></a>
   </div>
   <p>{$_("text1")}</p>
   <p>{$_("text2")}</p>
