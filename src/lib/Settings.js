@@ -15,7 +15,7 @@ export class Settings {
   }
 
   get(key) {
-    if (typeof key !== 'string') {
+    if (typeof key !== "string") {
       return null;
     }
 
@@ -27,7 +27,7 @@ export class Settings {
   }
 
   set(key, value) {
-    if (typeof key !== 'string') {
+    if (typeof key !== "string") {
       return;
     }
     if (typeof value !== this.settings[key].type) {
@@ -55,7 +55,7 @@ export class Settings {
   }
 
   cb(key) {
-    if (typeof key !== 'string') {
+    if (typeof key !== "string") {
       return;
     }
     if (this.settings[key].cb) {
