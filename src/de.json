@@ -46,5 +46,10 @@
     "list1": "contact us for questions or if you want to send money our way",
     "list2": "privacy policy"
   },
-  "close": "Schließen"
+  "close": "Schließen",
+
+  "published": "Veröffentlicht",
+  "acquired": "Aufgenommen",
+  "trackingMostRecent": "Immer aktuell",
+  "forcastPlaying": "Es wird dir gerade die Vorhersage angezeigt.\nUm zurück zum aktuellen Radarbild zu gelangen, setzte die Zeitachse zurück ↺."
 }

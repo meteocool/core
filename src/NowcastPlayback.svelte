@@ -102,8 +102,8 @@
         //style : i%2 == 0 ? "background: #eeffee;" : "background: #ddffdd;",
         style : "background: #33508A;",
       }));
-      datasetItems.push({"id": 998, "type": "point", "content": "Published", "start": new Date((body.processedTime)*1000)});
-      datasetItems.push({"id": 999, "type": "point", "content": "Acquired", "start": new Date((body.baseTime)*1000)});
+      datasetItems.push({"id": 998, "type": "point", "content": $_('published'), "start": new Date((body.processedTime)*1000)});
+      datasetItems.push({"id": 999, "type": "point", "content": $_('acquired'), "start": new Date((body.baseTime)*1000)});
       let items = new DataSet(datasetItems.concat(historicLayers));
       baseTime = body.baseTime;
 
@@ -158,14 +158,14 @@
 
     function setTimeSlider(timeline) {
       timeline.addCustomTime(new Date((nowcast.forecastLayers["0"].absTime)*1000), "playbackMarker");
-      timeline.setCustomTimeMarker("Tracking Most Recent", "playbackMarker");
+      timeline.setCustomTimeMarker($_('trackingMostRecent'), "playbackMarker");
       timeline.on('timechange', timeChangeHandler);
       document.getElementById("backButton").classList.add("buttonInactive");
     }
 
     function warnNotMostRecent() {
       if (!warned) {
-        reportToast("You are now viewing forecasted data.\nTo go back to the most recent radar observation, reset ↺ the timeline.");
+        reportToast($_('forcastPlaying'));
         warned = true;
       }
     }
@@ -337,8 +337,12 @@
     }
 
     :global(.vis-item-content) {
-      color: var(--sl-color-white);
+      color: white;
       font-size: 85%;
+    }
+
+    :global(.vis-time-axis .vis-text){
+      color: var(--sl-color-black);
     }
 
     div :global(.githubIcon) {
@@ -377,10 +381,10 @@
     {#if loadingIndicator}
       <div class="parent" id="loadingIndicator">
         <div style="display: inline-block; transform: translateY(66%);">
-          <sl-spinner style="font-size: 2.5rem; float: left;"></sl-spinner>
+          <sl-spinner style="font-size: 2.5rem; float: left; --indicator-color: var(--sl-color-primary-600); --track-color: var(--sl-color-gray-700);"></sl-spinner>
           <div style="display: inline-block;">
-            <div style="margin-top: -0.3em; opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top;">{uiMessage}...</div>
-            <div style="margin-top: -0.7em; opacity: 0.6; float: left; clear:both; font-size: 0.9rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top;">{$_('last_radar')} then and then</div>
+            <div style="margin-top: -0.3em; opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top; color: var(--sl-color-black);">{uiMessage}...</div>
+            <div style="margin-top: -0.7em; opacity: 0.6; float: left; clear:both; font-size: 0.9rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top; color:var(--sl-color-black);">{$_('last_radar')} then and then</div>
           </div>
         </div>
       </div>
