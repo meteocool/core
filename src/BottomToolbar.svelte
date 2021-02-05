@@ -137,6 +137,19 @@
   .appstore-logo{
     margin-top: 8px;
     margin-left: 3px;
+    height: 30px;
+  }
+
+  .tag{
+    text-indent: unset;
+    font-style: normal;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  }
+
+  .progress-ring{
+    --indicator-color: rgb(52,120,246);
+    position: relative;
+    top: 3px; transform: scaleX(-1);
   }
 </style>
 
@@ -154,14 +167,15 @@
     <div class="center">
       <sl-tag
         type="info"
-        style="text-indent: unset; font-style: normal; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;"
+        class="tag"
         size="medium"
         pill>
         <sl-progress-ring
           percentage={slPercent}
           size="16"
           stroke-width="1"
-          style="--indicator-color: rgb(52,120,246); position: relative; top: 3px; transform: scaleX(-1);" />
+          class="progress-ring"
+        />
         {$_("last_updated")}
         {lastUpdatedStr}
       </sl-tag>
@@ -176,7 +190,7 @@
               src="assets/ios-app-store.png"
               alt="ios app store link"
               class="appstore-logo"
-              style="height: 30px;" /></a>
+              /></a>
         </div>
         <div class="appstoreLogo">
           <a
@@ -186,7 +200,7 @@
               class="appstore-logo"
               alt="google play app store"
               src="assets/google-play-store.png"
-              style="height: 30px;" /></a>
+              /></a>
         </div>
         <div class="appstoreLogo">
           <a target="_blank" href="https://github.com/meteocool/core#meteocool"
