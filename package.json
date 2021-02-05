@@ -28,7 +28,7 @@
     "build": "cross-env NODE_ENV=production webpack",
     "build-nocrossenv": "NODE_ENV=production webpack",
     "dev": "webpack-dev-server --content-base public",
-    "fmt": "eslint . --ext .js,.svelte --fix"
+    "fmt": "prettier --write '{public,src}/**/*.{css,html,js,svelte}'"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.15.1",
