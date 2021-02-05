@@ -150,6 +150,14 @@
       font-size: 90%;
     }
   }
+
+  .contributors{
+    position: absolute;
+    bottom: 0;
+    font-size: 6pt;
+    text-align: center;
+    width: 100%;
+  }
 </style>
 
 {#if window.device !== "ios" && window.device !== "android"}
@@ -190,8 +198,7 @@
           Today's weather is hardly worth mentioning? ☀️<br />Explore the
           near-realtime satellite map! 🌍
         </div>
-        <div
-          style="position: absolute; bottom: 0; font-size: 6pt; text-align: center; width: 100%;">
+        <div class="contributors">
           &copy; meteocool Contributors {allAttributions}
         </div>
       </div>

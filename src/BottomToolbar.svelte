@@ -118,19 +118,38 @@
     text-align: center;
   }
 
-  div :global(.githubIcon) {
-    font-size: 32px;
+  :global(.githubIcon) {
+    font-size: 33.6px;
     text-shadow: 3px 3px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff,
       -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
-    color: black !important;
+    color: var(--sl-color-black) !important;
     padding: 0;
-    margin: 6px 0.2em 0 0;
+    border-radius: 0;
+    margin: 6.5px 0.2em 0 0;
+    vertical-align: top;
   }
 
   .appstoreLogo {
-    margin-left: 0.1em;
     padding-left: 0px;
     display: inline;
+  }
+
+  .appstore-logo{
+    margin-top: 8px;
+    margin-left: 3px;
+    height: 30px;
+  }
+
+  .tag{
+    text-indent: unset;
+    font-style: normal;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  }
+
+  .progress-ring{
+    --indicator-color: rgb(52,120,246);
+    position: relative;
+    top: 3px; transform: scaleX(-1);
   }
 </style>
 
@@ -148,14 +167,15 @@
     <div class="center">
       <sl-tag
         type="info"
-        style="text-indent: unset; font-style: normal; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;"
+        class="tag"
         size="medium"
         pill>
         <sl-progress-ring
           percentage={slPercent}
           size="16"
           stroke-width="1"
-          style="position: relative; top: 3px; transform: scaleX(-1);" />
+          class="progress-ring"
+        />
         {$_("last_updated")}
         {lastUpdatedStr}
       </sl-tag>
@@ -170,7 +190,7 @@
               src="assets/ios-app-store.png"
               alt="ios app store link"
               class="appstore-logo"
-              style="height: 30px;" /></a>
+              /></a>
         </div>
         <div class="appstoreLogo">
           <a
@@ -180,7 +200,7 @@
               class="appstore-logo"
               alt="google play app store"
               src="assets/google-play-store.png"
-              style="height: 30px;" /></a>
+              /></a>
         </div>
         <div class="appstoreLogo">
           <a target="_blank" href="https://github.com/meteocool/core#meteocool"
