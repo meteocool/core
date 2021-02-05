@@ -124,7 +124,8 @@
   window.enterForeground = () => {
     radar.reloadTilesRadar();
     weather.reloadTilesWeather();
-  };
+    colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+  }; // may be a second function if you want to have no switch to of the scheme at the start of the app
 
   export let lm = new LayerManager({
     baseURL: baseUrl + "tiles/",
@@ -153,28 +154,41 @@
   let colorSchemeLocal = false;
   colorSchemeDark.subscribe((value) => {
     colorSchemeLocal = value;
+    if (colorSchemeLocal) {
+      document.documentElement.style.setProperty("--sl-color-white", "#3F3F3F");
+      document.documentElement.style.setProperty("--sl-color-black", "#FFFFFF");
+      document.documentElement.style.setProperty(
+        "--sl-color-gray-700",
+        "#FFFFFF",
+      );
+      document.documentElement.style.setProperty(
+              "--sl-color-gray-300",
+              "#FFFFFF",
+      );
+      document.documentElement.style.setProperty(
+        "--sl-color-gray-200",
+        "#3F3F3F",
+      );
+      document.documentElement.style.setProperty("--sl-color-gray-50", "#3F3F3F");
+      document.documentElement.style.setProperty(
+        "--sl-color-primary-600",
+        "#38BDF8",
+      );
+      document.documentElement.style.setProperty(
+        "--sl-color-primary-800",
+        "#0284C7",
+      );
+    } else {
+      document.documentElement.style.removeProperty("--sl-color-white");
+      document.documentElement.style.removeProperty("--sl-color-black");
+      document.documentElement.style.removeProperty("--sl-color-gray-700");
+      document.documentElement.style.removeProperty("--sl-color-gray-200");
+      document.documentElement.style.removeProperty("--sl-color-gray-300");
+      document.documentElement.style.removeProperty("--sl-color-gray-50");
+      document.documentElement.style.removeProperty("--sl-color-primary-600",);
+      document.documentElement.style.removeProperty("--sl-color-primary-800");
+    }
   });
-  if (colorSchemeLocal) {
-    document.documentElement.style.setProperty("--sl-color-white", "#3F3F3F");
-    document.documentElement.style.setProperty("--sl-color-black", "#FFFFFF");
-    document.documentElement.style.setProperty(
-      "--sl-color-gray-700",
-      "#FFFFFF",
-    );
-    document.documentElement.style.setProperty(
-      "--sl-color-gray-200",
-      "#3F3F3F",
-    );
-    document.documentElement.style.setProperty("--sl-color-gray-50", "#3F3F3F");
-    document.documentElement.style.setProperty(
-      "--sl-color-primary-600",
-      "#38BDF8",
-    );
-    document.documentElement.style.setProperty(
-      "--sl-color-primary-800",
-      "#0284C7",
-    );
-  }
 </script>
 
 <style>

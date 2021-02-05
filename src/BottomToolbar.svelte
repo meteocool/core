@@ -118,19 +118,25 @@
     text-align: center;
   }
 
-  div :global(.githubIcon) {
-    font-size: 32px;
+  :global(.githubIcon) {
+    font-size: 33.6px;
     text-shadow: 3px 3px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff,
       -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
-    color: black !important;
+    color: var(--sl-color-black) !important;
     padding: 0;
-    margin: 6px 0.2em 0 0;
+    border-radius: 0;
+    margin: 6.5px 0.2em 0 0;
+    vertical-align: top;
   }
 
   .appstoreLogo {
-    margin-left: 0.1em;
     padding-left: 0px;
     display: inline;
+  }
+
+  .appstore-logo{
+    margin-top: 8px;
+    margin-left: 3px;
   }
 </style>
 
@@ -155,7 +161,7 @@
           percentage={slPercent}
           size="16"
           stroke-width="1"
-          style="position: relative; top: 3px; transform: scaleX(-1);" />
+          style="--indicator-color: rgb(52,120,246); position: relative; top: 3px; transform: scaleX(-1);" />
         {$_("last_updated")}
         {lastUpdatedStr}
       </sl-tag>

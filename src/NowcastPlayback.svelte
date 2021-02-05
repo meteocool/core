@@ -413,15 +413,6 @@
   :global(.vis-time-axis .vis-text) {
     color: var(--sl-color-black);
   }
-
-  div :global(.githubIcon) {
-    font-size: 32px;
-    text-shadow: 3px 3px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff,
-      -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
-    color: var(--sl-color-black) !important;
-    padding: 0;
-    margin: 6px 0.2em 0 0;
-  }
 </style>
 
 <span use:renderIcon><Icon icon={faArrowsAltH} /></span>
@@ -455,7 +446,7 @@
       <div class="parent" id="loadingIndicator">
         <div style="display: inline-block; transform: translateY(66%);">
           <sl-spinner
-            style="font-size: 2.5rem; float: left; --indicator-color: var(--sl-color-primary-600); --track-color: var(--sl-color-gray-700);" />
+            style="font-size: 2.5rem; float: left; --indicator-color: rgb(52,120,246); --track-color: var(--sl-color-gray-200);" />
           <div style="display: inline-block;">
             <div
               style="margin-top: -0.3em; opacity: 0.6; float: left; font-size: 1.5rem; margin-left: 1.5rem; height: 2.5rem; white-space: nowrap; vertical-align: text-top; color: var(--sl-color-black);">
