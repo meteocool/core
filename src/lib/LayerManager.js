@@ -1,24 +1,24 @@
-import {Map, View} from 'ol';
+import { Map, View } from "ol";
 import {
   fromLonLat,
   getTransformFromProjections,
-  get as getProjection
-} from 'ol/proj';
-import Collection from 'ol/Collection';
-import {defaults} from 'ol/control';
-import Attribution from 'ol/control/Attribution';
-import {circular as circularPolygon} from 'ol/geom/Polygon';
+  get as getProjection,
+} from "ol/proj";
+import Collection from "ol/Collection";
+import { defaults } from "ol/control";
+import Attribution from "ol/control/Attribution";
+import { circular as circularPolygon } from "ol/geom/Polygon";
 
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import Feature from 'ol/Feature';
-import Point from 'ol/geom/Point';
-import Style from 'ol/style/Style';
-import CircleStyle from 'ol/style/Circle';
-import Fill from 'ol/style/Fill';
-import Stroke from 'ol/style/Stroke';
-import {cartoDark, cartoLight, mapTilerOutdoor, osm} from '../layers/base';
-import {reportToast} from './Toast';
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
+import Style from "ol/style/Style";
+import CircleStyle from "ol/style/Circle";
+import Fill from "ol/style/Fill";
+import Stroke from "ol/style/Stroke";
+import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
+import { reportToast } from "./Toast";
 
 /**
  * Manages the reflectivity + forecast layers shown on the map.
@@ -34,7 +34,7 @@ export class LayerManager {
     this.positionFeatures = [];
     this.currentCap = null;
 
-    Object.keys(this.capabilities).forEach(capability => {
+    Object.keys(this.capabilities).forEach((capability) => {
       const newMap = this.makeMap(capability);
       this.capabilities[capability].setMap(newMap);
       this.maps.push(newMap);
@@ -47,12 +47,14 @@ export class LayerManager {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
       accuracyPoly.applyTransform(
         getTransformFromProjections(
-          getProjection('EPSG:4326'),
-          getProjection('EPSG:3857')
-        )
+          getProjection("EPSG:4326"),
+          getProjection("EPSG:3857"),
+        ),
       );
     }
-    this.accuracyFeatures.forEach(feature => feature.setGeometry(accuracyPoly));
+    this.accuracyFeatures.forEach((feature) =>
+      feature.setGeometry(accuracyPoly),
+    );
     let centerPoint;
     const center = fromLonLat([lon, lat]);
     if (lat === -1 && lon === -1 && accuracy === -1) {
@@ -60,7 +62,9 @@ export class LayerManager {
     } else {
       centerPoint = center ? new Point(center) : null;
     }
-    this.positionFeatures.forEach(feature => feature.setGeometry(centerPoint));
+    this.positionFeatures.forEach((feature) =>
+      feature.setGeometry(centerPoint),
+    );
 
     if (centerPoint === null) return;
 
@@ -89,14 +93,14 @@ export class LayerManager {
       newCenter = oldCenter;
     }
     if ((zoom || focus) && !this.mapBeingMoved) {
-      view.animate({center: newCenter, zoom: zoomLevel, duration: 500});
+      view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
     }
-    this.forEachMap(map => map.render());
+    this.forEachMap((map) => map.render());
   }
 
   resetLocation() {
-    this.positionFeatures.forEach(feature => feature.setGeometry(null));
-    this.accuracyFeatures.forEach(feature => feature.setGeometry(null));
+    this.positionFeatures.forEach((feature) => feature.setGeometry(null));
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(null));
   }
 
   setTarget(cap, target) {
@@ -112,21 +116,21 @@ export class LayerManager {
   }
 
   setDefaultTarget(target) {
-    console.log(`Starting with default cap ${this.settings.get('capability')}`);
-    this.setTarget(this.settings.get('capability'), target);
+    console.log(`Starting with default cap ${this.settings.get("capability")}`);
+    this.setTarget(this.settings.get("capability"), target);
   }
 
   makeMap(capability) {
     let controls = new Collection();
     const mapCb = () => {
       this.mapBeingMoved = false;
-      reportToast('this.mapBeingMoved=false');
+      reportToast("this.mapBeingMoved=false");
     };
-    if (window.device !== 'ios' && window.device !== 'android') {
-      controls = defaults({attribution: false}).extend([
+    if (window.device !== "ios" && window.device !== "android") {
+      controls = defaults({ attribution: false }).extend([
         new Attribution({
-          collapsible: false
-        })
+          collapsible: false,
+        }),
       ]);
     }
 
@@ -137,35 +141,35 @@ export class LayerManager {
     const geolocationPositionLayer = new VectorLayer({
       source: new VectorSource({
         features: [positionFeature],
-        kind: 'geolocationPositionLayer'
+        kind: "geolocationPositionLayer",
       }),
       style: new Style({
         image: new CircleStyle({
           radius: 10,
           fill: new Fill({
-            color: '#048EF9'
+            color: "#048EF9",
           }),
           stroke: new Stroke({
-            color: '#fff',
-            width: 3.5
-          })
-        })
+            color: "#fff",
+            width: 3.5,
+          }),
+        }),
       }),
-      zIndex: 99999
+      zIndex: 99999,
     });
     const geolocationAccuracyLayer = new VectorLayer({
       source: new VectorSource({
         features: [accuracyFeature],
-        kind: 'geolocationPositionLayer'
+        kind: "geolocationPositionLayer",
       }),
-      zIndex: 99999
+      zIndex: 99999,
     });
 
     const newMap = new Map({
       layers: [
-        this.baseLayerFactory(this.settings.get('mapBaseLayer')),
+        this.baseLayerFactory(this.settings.get("mapBaseLayer")),
         geolocationAccuracyLayer,
-        geolocationPositionLayer
+        geolocationPositionLayer,
       ],
       view:
         this.maps.length > 0
@@ -174,42 +178,42 @@ export class LayerManager {
               constrainResolution: true,
               zoom: 7,
               center: fromLonLat([11, 49]),
-              enableRotation: this.settings.get('mapRotation')
+              enableRotation: this.settings.get("mapRotation"),
             }),
       capability,
-      controls
+      controls,
     });
-    newMap.set('capability', capability);
+    newMap.set("capability", capability);
     return newMap;
   }
 
   baseLayerFactory(layer) {
     switch (layer) {
-      case 'osm':
+      case "osm":
         return osm();
-      case 'dark':
+      case "dark":
         return cartoDark();
-      case 'light':
+      case "light":
         return cartoLight();
-      case 'topographic':
+      case "topographic":
       default:
         return mapTilerOutdoor();
     }
   }
 
   switchBaseLayer(newBaseLayer) {
-    this.forEachMap(map => {
+    this.forEachMap((map) => {
       map
         .getLayers()
         .getArray()
-        .filter(layer => layer.get('base') === true)
-        .forEach(layer => map.removeLayer(layer));
+        .filter((layer) => layer.get("base") === true)
+        .forEach((layer) => map.removeLayer(layer));
       map.addLayer(this.baseLayerFactory(newBaseLayer));
     });
   }
 
   forEachMap(cb) {
-    this.maps.forEach(map => cb(map));
+    this.maps.forEach((map) => cb(map));
   }
 }
 
