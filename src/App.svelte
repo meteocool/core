@@ -150,6 +150,13 @@
     Android.requestSettings();
   }
 
+  colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+
+  window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+    console.log(`changed to ${e.matches ? "dark" : "light"} mode`)
+    colorSchemeDark.set(e.matches);
+  });
+
   //Dark and Light mode
   let colorSchemeLocal = false;
   colorSchemeDark.subscribe((value) => {
@@ -189,6 +196,8 @@
       document.documentElement.style.removeProperty("--sl-color-primary-800");
     }
   });
+
+
 </script>
 
 <style>
