@@ -174,10 +174,6 @@
         "--sl-color-primary-600",
         "#38BDF8",
       );
-      document.documentElement.style.setProperty(
-        "--sl-color-primary-800",
-        "#0284C7",
-      );
     } else {
       document.documentElement.style.removeProperty("--sl-color-white");
       document.documentElement.style.removeProperty("--sl-color-black");
@@ -185,8 +181,7 @@
       document.documentElement.style.removeProperty("--sl-color-gray-200");
       document.documentElement.style.removeProperty("--sl-color-gray-300");
       document.documentElement.style.removeProperty("--sl-color-gray-50");
-      document.documentElement.style.removeProperty("--sl-color-primary-600",);
-      document.documentElement.style.removeProperty("--sl-color-primary-800");
+      document.documentElement.style.removeProperty("--sl-color-primary-600");
     }
   });
 </script>

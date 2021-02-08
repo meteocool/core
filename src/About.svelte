@@ -40,7 +40,7 @@
   }
 
   a:visited {
-    color: var(--sl-color-primary-800);
+    color: var(--sl-color-primary-600);
   }
 
   .appstoreLogo {
