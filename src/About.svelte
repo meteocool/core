@@ -74,7 +74,6 @@
         /></a>
   </div>
   <p>{$_("text1")}</p>
-  <p>{$_("text2")}</p>
   <h2>{$_("features.header")}</h2>
   <ul>
     <li><strong>{$_("features.list_title1")}</strong>{$_("features.list1")}</li>
@@ -90,23 +89,11 @@
       alt="not actually the volunteers" />
   </p>
   <p>
-    {$_("credits_help.text1")}<a href="https://unimplemented.org/"
-      >Valentin Dornauer</a
-    >. {$_("credits_help.text2")}<br />{$_("credits_help.text3")}
+    {$_("credits_help.text1")}</p>
+  <p>
+    {$_("credits_help.text3")}
   </p>
   <ul>
-    <li>
-      {$_("credits_help.list1")}<a href="https://mauracher.eu/"
-        >Florian Mauracher</a
-      >, <a href="https://github.com/nina2244">Nina Loser</a>
-    </li>
-    <li>
-      {$_("credits_help.list2")}<a href="https://github.com/Wheedman"
-        >Jeremias Wiedmann</a>
-    </li>
-    <li>
-      {$_("credits_help.list3")}<a href="https://github.com/NessArt">NessArt</a>
-    </li>
     <li>
       {$_("credits_help.list4.text1")}<a
         href="http://www.freepik.com"
