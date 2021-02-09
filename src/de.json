@@ -1,7 +1,7 @@
 {
   "about": "Über",
   "join_community": "Discord beitreten",
-  "url": "meteocool.de",
+  "url": "meteocool.com",
   "last_updated": "Aktualisiert",
   "processing_nowcast": "Nowcast wird verarbeitet",
   "downloading_nowcast": "Nowcast wird heruntergeladen",
@@ -24,23 +24,23 @@
   "credits_help": {
     "header": "Danksagung & Hilfe",
     "text1": "meteocool ist ein Projekt von Valentin, Jonas, Nina und Jeremias.",
-    "text3": "This project would not have been possible without the help from a few great people: Florian Mauracher and NessArt.",
+    "text3": "Ohne die Hilfe von ein paar besonderen Personen wäre meteocool nicht zustande gekommen: Florian Mauracher and NessArt.",
     "list4": {
-      "text1": "Icons and adapted artwork made by ",
-      "text2": " (Logo, iOS Onboarding) from ",
-      "text3": " (licensed by "
+      "text1": "Symbole und angepasste Grafiken von ",
+      "text2": " (Logo, iOS Onboarding) von ",
+      "text3": " (Lizenz von "
     },
-    "text4": "Want to help as well? Check out ",
-    "text5": "meteocool on GitHub",
-    "text6": " especially our ",
-    "text7": "web frontend",
-    "text8": " and ",
+    "text4": "Du möchtest auch mitmachen? Schau hier ",
+    "text5": "meteocool auf GitHub",
+    "text6": " besonders unsere ",
+    "text7": "web",
+    "text8": " und ",
     "text9": " repositories"
   },
   "other_things": {
     "header": "Andere Dinge",
-    "list1": "contact us for questions or if you want to send money our way",
-    "list2": "privacy policy"
+    "list1": "falls du Fragen hast oder und Geld schicken möchtest",
+    "list2": "Datenschutzerklärung"
   },
   "close": "Schließen",
 
