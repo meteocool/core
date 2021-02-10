@@ -28,6 +28,7 @@
   let warned = false;
   let historicLayers = [];
   let historicLayersObj;
+  let thatForecastSource;
 
   // XXX refactor with fsm
 
@@ -162,35 +163,24 @@
         .map((item) => item.absTime)
         .findIndex((t) => t === lastSliderTime);
       if (index >= 0) {
-        cap
-          .getMap()
-          .getLayers()
-          .getArray()
-          .filter((layer) => layer.get("nowcastLayer"))
-          .forEach((layer) => cap.getMap().removeLayer(layer));
-        cap
-          .getMap()
-          .addLayer(
-            nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[index]]
-              .layer,
-          );
+        thatForecastSource.setUrls(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[index]].source.getUrls());
       } else {
-        if (lastSliderTime.toString() in historicLayersObj) {
-          cap
-            .getMap()
-            .getLayers()
-            .getArray()
-            .filter((layer) => layer.get("nowcastLayer"))
-            .forEach((layer) => cap.getMap().removeLayer(layer));
-          cap.getMap().addLayer(historicLayersObj[lastSliderTime].layer);
-        }
+        //if (lastSliderTime.toString() in historicLayersObj) {
+        //  cap
+        //    .getMap()
+        //    .getLayers()
+        //    .getArray()
+        //    .filter((layer) => layer.get("nowcastLayer"))
+        //    .forEach((layer) => cap.getMap().removeLayer(layer));
+        //  cap.getMap().addLayer(historicLayersObj[lastSliderTime].layer);
+        //}
       }
       if (newSliderTime === baseTime) {
         document.getElementById("backButton").classList.add("buttonInactive");
       } else {
-        document
-          .getElementById("backButton")
-          .classList.remove("buttonInactive");
+        //document
+        //  .getElementById("backButton")
+        //  .classList.remove("buttonInactive");
       }
     }
   }
@@ -202,7 +192,7 @@
     );
     timeline.setCustomTimeMarker($_("trackingMostRecent"), "playbackMarker");
     timeline.on("timechange", timeChangeHandler);
-    document.getElementById("backButton").classList.add("buttonInactive");
+    //document.getElementById("backButton").classList.add("buttonInactive");
   }
 
   function warnNotMostRecent() {
@@ -230,10 +220,10 @@
   }
 
   function playTick() {
-    if (!nowcast.downloaded) {
-      console.log("not all forecasts downloaded yet");
-      return;
-    }
+    //if (!nowcast.downloaded) {
+    //  console.log("not all forecasts downloaded yet");
+    //  return;
+    //}
 
     if (currentForecastID === Object.keys(nowcast.forecastLayers).length - 1) {
       // we're past the last downloaded layer, so end the play
@@ -258,23 +248,12 @@
       cap.getMap().removeLayer(nowcast.mainLayer);
       playPauseButton = faPause;
       playing = true;
-    } else {
-      // remove previous layer
-      cap
-        .getMap()
-        .getLayers()
-        .getArray()
-        .filter((layer) => layer.get("nowcastLayer"))
-        .forEach((layer) => cap.getMap().removeLayer(layer));
+      cap.getMap().addLayer(nowcast.forecastLayers[0].layer);
+      thatForecastSource = nowcast.forecastLayers[0].source;
     }
+
     currentForecastID++;
-    cap
-      .getMap()
-      .addLayer(
-        nowcast.forecastLayers[
-          Object.keys(nowcast.forecastLayers)[currentForecastID]
-        ].layer,
-      );
+    thatForecastSource.setUrls(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[currentForecastID]].source.getUrls());
     timeline.addCustomTime(
       new Date(
         nowcast.forecastLayers[

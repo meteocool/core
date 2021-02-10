@@ -14,7 +14,7 @@ export const weatherLayer = (tileID) => {
         maxZoom: 14,
         attributions: [dwdAttribution, imprintAttribution],
         transition: 300,
-        cache: 99999,
+        cacheSize: 99999,
       });
    return [source, new LayerGroup({
     title: tileID,
