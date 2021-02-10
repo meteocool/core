@@ -9,17 +9,19 @@
 
   "title":"Über meteocool",
   "text1": "meteocool is a free GIS visualisation &amp; aggregation platform with focus on severe weather. Optimized for\n        mobile devices, you can use it to both chase or avoid upcoming weather - that’s up to you.",
-  "text2": "meteocool currently uses radar data provided by DWD and realtime lightning information from the awesome\n        blitzortung.org project.",
+  "text2": "meteocool nutzt Daten vom DWD, Echtzeit Blitzinformationen von blitzortung.org und Satellitenbilder vom EC/ESA Copernicus Erdbeobachtungsprogramm.",
   "features": {
     "header": "Eigenschaften",
-    "list_title1": "Automatisches Kartenupdate:",
-    "list1": " the biggest inconvenience with most weather radar visualisations\n            is out-of-date data. meteocool notifies its clients as soon as new radar data becomes available and the\n            client tries to be transparent about the dataset age. Say goodbye to hammering F5!",
-    "list_title2": "Live Blitzeinschlagspunkte:",
-    "list2": " new lightning strikes are displayed instantly, giving you an\n            even better feeling for the cloud formation’s intensity, trajectory and speed.",
-    "list_title3": "Push Benachrichtigung:",
-    "list3": " get notified about incoming rain up to 45 minutes in advance. Works\n            on iOS and Android.",
+    "list_title0": "Datenschutz:",
+    "list0": "Meteocool erstellt keine Benutzerprofile und benötigt keine Accounts, wir sammeln und verkaufen keinerlei Daten. Mehr dazu in unserer Datenschutzerklärung.",
+    "list_title1": "Automatische Kartenupdates:",
+    "list1": "Keine veralteten Kartendaten in den Apps die erst lange geladen werden müssen. meteocool aktualisiert die Daten sobald sie verfügbar sind automatisch für dich.",
+    "list_title2": "Live Blitz Warnungen:",
+    "list2": "Blitzeinschläge werden in Echtzeit angezeigt, damit gibt es ein noch genaueren Überblick über die aktuellen Wetterbedingungen.",
+    "list_title3": "Push Nachrichten:",
+    "list3": "Bekomme eine Mitteilung über Regen, Niederschlag und Unwetter bis zu 60 Minuten im Voraus. Das funktioniert im Web und in den Apps, die Einstellungen können beliebig angepasst werden, z.B. ab einer bestimmten Niederschlagsmenge.",
     "list_title4": "iOS & Android Apps:",
-    "list4": " native iOS and Android apps provide battery-efficient\n            background location services to allow for accurate rain notifications without user interaction."
+    "list4": "meteocool hat Batteriesparende Apps für iOS und Android, damit du unterwegs immer über das aktuelle Wetter informiert bist."
   },
   "credits_help": {
     "header": "Danksagung & Hilfe",
