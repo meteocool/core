@@ -8,18 +8,22 @@
   "last_radar": "Last radar from",
 
   "title":"About meteocool",
-  "text1": "meteocool is a free GIS visualisation &amp; aggregation platform with focus on severe weather. Optimized for\n        mobile devices, you can use it to both chase or avoid upcoming weather - that’s up to you.",
-  "text2": "meteocool currently uses radar data provided by DWD and realtime lightning information from the awesome\n        blitzortung.org project.",
+  "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
+  "text2": "meteocool currently uses radar data provided by DWD, realtime lightning information from the awesome blitzortung.org project and satellite imagery from the EC/ESA Copernicus Programme.",
   "features": {
     "header": "Features",
+    "list_title0": "Privacy:",
+    "list0": "No user accounts are required to use the application, no location data will be recorded or used for other purposes. See also our Privacy Policy.",
     "list_title1": "Automatic Map Updates:",
-    "list1": " the biggest inconvenience with most weather radar visualisations\n            is out-of-date data. meteocool notifies its clients as soon as new radar data becomes available and the\n            client tries to be transparent about the dataset age. Say goodbye to hammering F5!",
+    "list1": "The biggest inconvenience with most weather radar visualizations is out-of-date data. meteocool notifies its clients as soon as new radar data becomes available and is always ready for you with up-to-date data.",
     "list_title2": "Live Lightning Strikes:",
-    "list2": " new lightning strikes are displayed instantly, giving you an\n            even better feeling for the cloud formation’s intensity, trajectory and speed.",
+    "list2": "New lightning strikes are displayed instantly, giving you an even better feeling for the cloud formation's intensity, trajectory and speed.",
     "list_title3": "Push Notifications:",
-    "list3": " get notified about incoming rain up to 45 minutes in advance. Works\n            on iOS and Android.",
+    "list3": "Get notified about incoming rain and severe weather up to 60 minutes in advance. This works on the web and is available for iOS and Android as well. You can even set the notification level to your liking to only get notified if there's heavy rain for example.",
     "list_title4": "iOS & Android Apps:",
-    "list4": " native iOS and Android apps provide battery-efficient\n            background location services to allow for accurate rain notifications without user interaction."
+    "list4": "Native iOS and Android apps provide battery-efficient background location services to allow for accurate weather notifications everywhere you go",
+    "list_title5": "Dark & Light mode:",
+    "list5": "meteocool offers a dark and light theme to adapt to your preferences."
   },
   "credits_help": {
     "header": "Credits & Help",
