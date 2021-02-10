@@ -91,10 +91,6 @@ export class Nowcast {
       return;
     }
 
-    this.downloadHistoric();
-
-    this.nowcast = this.nowcast.slice(0, 4);
-
     this.nanobar.start("nowcast");
     const self = this;
     this.nowcast.forEach((interval) => {
@@ -103,43 +99,21 @@ export class Nowcast {
         { nowcastLayer: true },
         "meteonowcast",
       );
-      nowcastLayer.setOpacity(0);
-
-      nowcastSource.on("tileloadstart", () => {
-        this.numInFlightTiles += 1;
-        this.nanobar.manualUp();
-      });
-      const doneCb = () => {
-        this.nanobar.manualDown();
-        this.numInFlightTiles -= 1;
-        if (this.numInFlightTiles === 0) {
-          console.log("Download finished, removing layers");
-          Object.values(this.forecastLayers).forEach((layer) => {
-            this.map.removeLayer(layer.layer);
-            layer.layer.setOpacity(0.85);
-          });
-          this.nanobar.finish("nowcast");
-          self.downloaded = true;
-          if (cb) cb();
-          nowcastSource.on("tileloadend", null);
-          nowcastSource.on("tileloaderror", null);
-          self.notify("update", {
-            layers: this.forecastLayers,
-            baseTime: this.baseTime,
-            processedTime: this.processedTime,
-            complete: true,
-          });
-        }
-      };
-      nowcastSource.on("tileloadend", doneCb);
-      nowcastSource.on("tileloaderror", doneCb);
       this.forecastLayers[interval.prediction_time] = {
         layer: nowcastLayer,
+        source: nowcastSource,
         absTime: self.baseTime + interval.prediction_time * 60,
       };
-      this.map.addLayer(nowcastLayer);
       console.log("Adding download layer");
     });
+    //    self.downloaded = true;
+    self.notify("update", {
+      layers: this.forecastLayers,
+      baseTime: this.baseTime,
+      processedTime: this.processedTime,
+      complete: true,
+    });
+    if (cb) cb();
   }
 
   addObserver(cb) {

@@ -24,7 +24,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     crossOrigin: "anonymous",
     minZoom: 1,
     maxZoom: 8,
-    transition: 0,
+    transition: 300,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     tileSize: 512,
   });
