@@ -49,11 +49,10 @@
     SlProgressRing,
     SlTag,
     SlDialog,
+    SlRange
   } from "@shoelace-style/shoelace";
   import BottomToolbar from "./BottomToolbar.svelte";
-  import About from "./About.svelte";
   import { colorSchemeDark } from "./stores";
-  import { subscribe } from "svelte/internal";
 
   setAssetPath(document.currentScript.src);
   customElements.define("sl-button", SlButton);
@@ -64,6 +63,7 @@
   customElements.define("sl-progress-ring", SlProgressRing);
   customElements.define("sl-tag", SlTag);
   customElements.define("sl-dialog", SlDialog);
+  customElements.define("sl-range", SlRange);
 
   let baseUrl = "https://api.ng.meteocool.com/api/";
   //baseUrl = "http://localhost:5000/api/";
