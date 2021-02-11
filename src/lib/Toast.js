@@ -13,6 +13,7 @@ export function reportError(
       `,
   });
   document.body.append(alert);
+  console.log(message);
   return alert.toast();
 }
 

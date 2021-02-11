@@ -7,7 +7,8 @@ import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
-import { Raster as RasterSource, XYZ } from "ol/source";
+import { Raster as RasterSource } from "ol/source";
+import XYZHeavy from "../lib/XYZHeavy";
 import { transformExtent } from "ol/proj";
 import { dwdAttribution, imprintAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
@@ -18,7 +19,7 @@ let cmap = meteocoolClassic;
 
 // eslint-disable-next-line import/prefer-default-export
 export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
-  const reflectivitySource = new XYZ({
+  const reflectivitySource = new XYZHeavy({
     url: `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`,
     attributions: [dwdAttribution, imprintAttribution],
     crossOrigin: "anonymous",
@@ -27,6 +28,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     transition: 300,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     tileSize: 512,
+    cacheSize: 999999,
   });
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
@@ -84,21 +86,20 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   return [rasterRadarImageLayer, reflectivitySource];
 };
 
-export const greyOverlay = () =>
-  new VectorLayer({
-    zIndex: 1000,
-    renderBuffer: 500,
-    source: new VectorSource({
-      features: [
-        new Feature({
-          geometry: dwdExtentInv,
-          name: "DarkOverlay",
-        }),
-      ],
-    }),
-    style: new Style({
-      fill: new Fill({
-        color: "rgba(0, 0, 0, 0.1)",
+export const greyOverlay = () => new VectorLayer({
+  zIndex: 1000,
+  renderBuffer: 500,
+  source: new VectorSource({
+    features: [
+      new Feature({
+        geometry: dwdExtentInv,
+        name: "DarkOverlay",
       }),
+    ],
+  }),
+  style: new Style({
+    fill: new Fill({
+      color: "rgba(0, 0, 0, 0.1)",
     }),
-  });
+  }),
+});

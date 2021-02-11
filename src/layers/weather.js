@@ -16,11 +16,11 @@ export const weatherLayer = (tileID) => {
         transition: 300,
         cacheSize: 99999,
       });
-   return [source, new LayerGroup({
+     return [source, new LayerGroup({
     title: tileID,
     layers: [
       new TileLayer({
-        source: source,
+        source,
         zIndex: 5,
         extent: centralEuropeExtent,
         preload: Infinity,

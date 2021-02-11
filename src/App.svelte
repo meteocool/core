@@ -1,14 +1,15 @@
 <script>
-  import Map from "./Map.svelte";
-  import Logo from "./Logo.svelte";
-  import NowcastPlayback from "./NowcastPlayback.svelte";
+  import Map from "./Map";
+  import Logo from "./Logo";
+  import NowcastPlayback from "./NowcastPlayback";
+  import BottomToolbar from "./BottomToolbar";
 
-  import { RadarCapability } from "./lib/RadarCapability";
-  import { SatelliteCapability } from "./lib/SatelliteCapability";
-  import { WeatherCapability } from "./lib/WeatherCapability";
+  import { RadarCapability } from "./caps/RadarCapability";
+  import { SatelliteCapability } from "./caps/SatelliteCapability";
+  import { WeatherCapability } from "./caps/WeatherCapability";
 
   import { LayerManager } from "./lib/LayerManager";
-  import { NanobarWrapper } from "./lib/NanobarWrapper.js";
+  import { NanobarWrapper } from "./lib/NanobarWrapper";
   import { Settings } from "./lib/Settings";
 
   import * as Sentry from "@sentry/browser";
@@ -18,24 +19,7 @@
   import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
   import de from "./de.json";
   import en from "./en.json";
-
-  addMessages("de", de);
-  addMessages("en", en);
-
-  init({
-    fallbackLocale: "en",
-    initialLocale: getLocaleFromNavigator(),
-  });
-
-  Sentry.init({
-    dsn:
-      "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137",
-    integrations: [new Integrations.BrowserTracing()],
-    tracesSampleRate: 1.0,
-    environment: process.env.NODE_ENV,
-    autoSessionTracking: false,
-    release: GIT_COMMIT_HASH,
-  });
+  import { colorSchemeDark } from "./stores";
 
   import "./style/global.css";
   import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
@@ -51,8 +35,24 @@
     SlDialog,
     SlRange
   } from "@shoelace-style/shoelace";
-  import BottomToolbar from "./BottomToolbar.svelte";
-  import { colorSchemeDark } from "./stores";
+
+  Sentry.init({
+    dsn:
+      "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137",
+    integrations: [new Integrations.BrowserTracing()],
+    tracesSampleRate: 1.0,
+    environment: process.env.NODE_ENV,
+    autoSessionTracking: false,
+    release: GIT_COMMIT_HASH,
+  });
+
+  addMessages("de", de);
+  addMessages("en", en);
+
+  init({
+    fallbackLocale: "en",
+    initialLocale: getLocaleFromNavigator(),
+  });
 
   setAssetPath(document.currentScript.src);
   customElements.define("sl-button", SlButton);
@@ -132,9 +132,9 @@
     settings: window.settings,
     nanobar: nb,
     capabilities: {
-      radar: radar,
+      radar,
       satellite: new SatelliteCapability({ nanobar: nb }),
-      weather: weather,
+      weather,
     },
   });
   export let device = window.device;
@@ -241,4 +241,4 @@
 <BottomToolbar />
 <div id="nanobar" />
 <Map layerManager={lm} />
-<NowcastPlayback cap={radar} nowcast={radar.nowcast} />
+<NowcastPlayback cap={radar} />
