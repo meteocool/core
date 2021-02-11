@@ -1,6 +1,6 @@
 <script>
   import Icon from "fa-svelte";
-  import { capDescription, capLastUpdated, colorSchemeLight } from "./stores";
+  import { capDescription, capLastUpdated } from "./stores";
   import { faGithubSquare } from "@fortawesome/free-brands-svg-icons/faGithubSquare";
   import { fly } from "svelte/transition";
   import { cssGetclass } from "./lib/css";
@@ -22,7 +22,7 @@
   let baseTime;
   let description;
   let lastUpdated;
-  let lastUpdatedStr;
+  let lastUpdatedStr = "Loading...";
   let slPercent = 75;
 
   capDescription.subscribe((value) => {

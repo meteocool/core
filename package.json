@@ -13,6 +13,7 @@
     "eslint-plugin-import": "^2.22.1",
     "fa-svelte": "^3.1.0",
     "html-webpack-plugin": "^4.5.1",
+    "javascript-state-machine": "^3.1.0",
     "mini-css-extract-plugin": "^0.6.0",
     "prettier": "^2.2.1",
     "prettier-plugin-svelte": "^2.1.2",

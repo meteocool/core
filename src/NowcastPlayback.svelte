@@ -1,8 +1,6 @@
 <script>
   import Icon from "fa-svelte";
-  import { Timeline } from "vis-timeline";
-  import { DataSet } from "vis-timeline/standalone";
-  import { colorSchemeLight, showTimeSlider } from "./stores";
+  import { showTimeSlider } from "./stores";
   import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
   import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
   import { faArrowsAltH } from "@fortawesome/free-solid-svg-icons/faArrowsAltH";
@@ -10,8 +8,10 @@
   import { reportToast } from "./lib/Toast";
   import { cssGetclass } from "./lib/css";
   import { _ } from "svelte-i18n";
+  import StateMachine from "javascript-state-machine";
+  import { onMount } from 'svelte';
+  import { dwdLayer } from './layers/radar';
 
-  export let nowcast;
   export let cap;
   let target;
   let loadingIndicator = true;
@@ -26,174 +26,244 @@
   let iconHTML;
   let baseTime;
   let warned = false;
-  let historicLayers = [];
-  let historicLayersObj;
-  let thatForecastSource;
 
-  // XXX refactor with fsm
+  let nowcastLayers; // Set by the callback from Nowcast.js
+  let historicLayers; // ditto
+
+  let sliderLayer; // Layer for forecast & historic steps, initialized by observer cb
+  let sliderSource; // Source short cut for sliderLayer
+
+  let thatForecastSource;
+  let tlItems;
+
+  let slRange = null;
+  let oldUrls;
+
+  onMount(async () => {
+    cap.addObserver((subject, data) => {
+      console.log(`observed ${subject}`);
+      if (subject === "historic") {
+        historicLayers = data.sources;
+      }
+      if (subject === "nowcast") {
+        nowcastLayers = data.sources;
+      }
+      if (nowcastLayers && historicLayers) {
+        fsm.showScrollbar();
+      }
+    });
+    // close playback when switching to another layer, save some memory
+    //cap.addObserver((event) => {
+    //  if (event === "loseFocus") {
+    //    console.log("radar lost focus");
+    //    reset();
+    //    hide();
+    //  }
+    //});
+  });
+
+  let fsm = new StateMachine({
+    init: 'followLatest',
+    transitions: [
+      { name: 'showScrollbar', from: 'followLatest', to: 'manualScrolling' },
+      { name: 'showScrollbar', from: 'waitingForServer', to: 'manualScrolling' },
+      { name: 'waitForServer', from: 'followLatest', to: 'waitingForServer' },
+      { name: 'pressPlay', from: 'manualScrolling', to: 'playing' },
+      { name: 'pressPause', from: 'playing', to: 'manualScrolling' },
+      { name: 'hideScrollbar', from: '*', to: 'followLatest' },
+    ],
+    methods: {
+      onWaitForServer: (param) => {
+        console.log("FSM ===== waiting for server");
+        loadingIndicator = true;
+        setTimeout(() => showTimeSlider.set(true), 200);
+        //cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 98px)";
+        visible = true;
+        cap.downloadHistoric();
+        cap.downloadNowcast();
+      },
+      onShowScrollbar: (transition) => {
+        console.log("FSM ===== waiting for server");
+        loadingIndicator = false;
+        oldUrls = cap.source.getUrls();
+        if (slRange) slRange.value = 0;
+      },
+      onPressPlay: (transition) => {
+        let playTick = () => {
+          if (slRange.value >= 120) {
+            slRange.value = -120;
+          }
+          slRange.value = slRange.value + 5;
+          sliderChangedHandler(slRange.value);
+          window.setTimeout(playTick, 500);
+        };
+        playTick();
+        playPauseButton = faPause;
+      },
+      onHideScrollbar: (transition) => {
+        visible = false;
+        setTimeout(() => {
+          showTimeSlider.set(false);
+        }, 200);
+        //cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 45px)";
+      },
+    }
+  });
+  window.fsm = fsm;
+
+  function initSlider(elem) {
+    elem.tooltipFormatter = value => `${value.toString().padStart(2, 0)}`;
+    elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value));
+    slRange = elem;
+  }
 
   function show() {
-    if (visible) {
-      console.log("already visible");
-      hide();
-      return;
+    if (fsm.state === 'followLatest') {
+      fsm.waitForServer();
     }
-    visible = true;
-    setTimeout(() => {
-      showTimeSlider.set(true);
-      nowcast.downloadNowcast();
-    }, 200);
-    cssGetclass(".sl-toast-stack").style.bottom =
-      "calc(env(safe-area-inset-bottom) + 98px)";
   }
 
   function hide() {
-    visible = false;
-    setTimeout(() => {
-      showTimeSlider.set(false);
-    }, 200);
-    cssGetclass(".sl-toast-stack").style.bottom =
-      "calc(env(safe-area-inset-bottom) + 45px)";
+    fsm.hideScrollbar();
   }
+
+  let oldTimeStep = 0;
+
+  function sliderChangedHandler(value) {
+    if (value === oldTimeStep) return;
+
+    if (value === 0) {
+      cap.source.setUrl(nowcastLayers[value].url);
+    } else {
+      warnNotMostRecent();
+      console.log(value);
+      if (value > 0) {
+        cap.source.setUrl(nowcastLayers[value].url);
+      } else {
+        cap.source.setUrl(historicLayers[value].url);
+      }
+      //if (oldTimeStep === 0) {
+      //  cap.getMap().removeLayer(nowcast.mainLayer);
+      //  cap.getMap().addLayer(sliderLayer);
+      //}
+    }
+    oldTimeStep = value;
+  }
+
+  //  const newSliderTime = Math.floor(properties.time.getTime() / 1000);
+  //  if (newSliderTime != lastSliderTime) {
+  //    lastSliderTime = newSliderTime;
+  //    const index = Object.values(nowcast.forecastLayers)
+  //            .map((item) => item.absTime)
+  //            .findIndex((t) => t === lastSliderTime);
+  //    } else {
+  //      if (lastSliderTime.toString() in historicLayersObj) {
+  //        thatForecastSource.setUrls(historicLayersObj[lastSliderTime].source.getUrls());
+  //      }
+  //    }
+  //    if (newSliderTime === baseTime) {
+  //      //document.getElementById("backButton").classList.add("buttonInactive");
+  //    } else {
+  //      //document
+  //      //  .getElementById("backButton")
+  //      //  .classList.remove("buttonInactive");
+  //    }
+  //  }
+  //}
+
 
   function reset() {
-    if (!lastSliderTime) return;
-    timeline.removeCustomTime("playbackMarker");
-    cap
-      .getMap()
-      .getLayers()
-      .getArray()
-      .filter((layer) => layer.get("nowcastLayer"))
-      .forEach((layer) => cap.getMap().removeLayer(layer));
-    cap.getMap().addLayer(nowcast.mainLayer);
-    setTimeSlider(timeline);
-    lastSliderTime = undefined;
-    warned = false;
+    //if (!lastSliderTime) return;
+    //timeline.removeCustomTime("playbackMarker");
+    //cap
+    //  .getMap()
+    //  .getLayers()
+    //  .getArray()
+    //  .filter((layer) => layer.get("nowcastLayer"))
+    //  .forEach((layer) => cap.getMap().removeLayer(layer));
+    //cap.getMap().addLayer(nowcast.mainLayer);
+    //setTimeSlider(timeline);
+    //lastSliderTime = undefined;
+    //warned = false;
   }
 
-  function updateSliderHistoric(subject, body) {
-    if (subject !== "historic") {
-      return;
-    }
-    return;
-    historicLayers = [];
-    historicLayersObj = body.layers;
-    Object.entries(body.layers).forEach((entry, i) => {
-      const [absTime, layer] = entry;
-      if (i < 1000) {
-        historicLayers.push({
-          id: 10000 + i,
-          type: "background",
-          start: new Date(absTime * 1000),
-          end: new Date((absTime + 5 * 60) * 1000),
-          style: "background: #00ff00;",
-        });
-      }
-    });
-  }
+  //function updateSliderHistoric(subject, body) {
+  //  if (subject !== "historic") {
+  //    return;
+  //  }
+  //  historicLayers = [];
+  //  historicLayersObj = body.layers;
+  //  Object.entries(body.layers).reverse().forEach((entry, i) => {
+  //    const [absTime, layer] = entry;
+  //    if (i < 1000) {
+  //      historicLayers.push({
+  //        id: 10000 + i,
+  //        type: "background",
+  //        start: new Date(absTime * 1000),
+  //        style: "background: #00ff00;",
+  //      });
+  //    }
+  //  });
+  //  //let items = new DataSet(tlItems.concat(historicLayers));
+  //  timeline.setItems(items);
+  //}
 
-  function updateSliderNowcast(subject, body) {
-    if (subject !== "update") {
-      return;
-    }
+  //  let vals = Object.values(body.layers);
+  //  let datasetItems = vals.map((val, i) => ({
+  //    id: i,
+  //    start: new Date(val.absTime * 1000),
+  //    end: new Date((val.absTime + 5 * 60) * 1000),
+  //    //style : i%2 == 0 ? "background: #eeffee;" : "background: #ddffdd;",
+  //    style: "background: #33508A;",
+  //  }));
+  //  datasetItems.push({
+  //    id: 998,
+  //    type: "point",
+  //    content: $_("published"),
+  //    start: new Date(body.processedTime * 1000),
+  //  });
+  //  datasetItems.push({
+  //    id: 999,
+  //    type: "point",
+  //    content: $_("acquired"),
+  //    start: new Date(body.baseTime * 1000),
+  //  });
+  //  baseTime = body.baseTime;
 
-    if (!body.complete) {
-      uiMessage = $_("processing_nowcast");
-      return;
-    }
+  //  // Configuration for the Timeline
+  //  const options = {
+  //    min: new Date((vals[0].absTime - 12 * 60 * 60) * 1000),
+  //    max: new Date((vals[vals.length - 1].absTime + 60 * 60) * 1000),
+  //    zoomFriction: 20,
+  //    horizontalScroll: true,
+  //    zoomKey: "ctrlKey",
+  //    height: Math.max(parseInt(window.innerHeight * 0.1), 100),
+  //    selectable: false,
+  //    type: "background",
+  //    margin: { axis: 0, item: { horizontal: 0, vertical: -5 } },
+  //  };
 
-    let vals = Object.values(body.layers);
-    let datasetItems = vals.map((val, i) => ({
-      id: i,
-      start: new Date(val.absTime * 1000),
-      end: new Date((val.absTime + 5 * 60) * 1000),
-      //style : i%2 == 0 ? "background: #eeffee;" : "background: #ddffdd;",
-      style: "background: #33508A;",
-    }));
-    datasetItems.push({
-      id: 998,
-      type: "point",
-      content: $_("published"),
-      start: new Date(body.processedTime * 1000),
-    });
-    datasetItems.push({
-      id: 999,
-      type: "point",
-      content: $_("acquired"),
-      start: new Date(body.baseTime * 1000),
-    });
-    let items = new DataSet(datasetItems.concat(historicLayers));
-    baseTime = body.baseTime;
+  //  loadingIndicator = false;
 
-    // Configuration for the Timeline
-    const options = {
-      min: new Date((vals[0].absTime - 12 * 60 * 60) * 1000),
-      max: new Date((vals[vals.length - 1].absTime + 60 * 60) * 1000),
-      zoomFriction: 20,
-      horizontalScroll: true,
-      zoomKey: "ctrlKey",
-      height: Math.max(parseInt(window.innerHeight * 0.1), 100),
-      selectable: false,
-      type: "background",
-      margin: { axis: 0, item: { horizontal: 0, vertical: -5 } },
-    };
+  //  // Create a Timeline
+  //  timeline = new Timeline(target, datasetItems, options);
+  //  tlItems = datasetItems;
+  //  setTimeSlider(timeline);
+  //  Array.prototype.forEach.call(
+  //    document.getElementsByClassName("controlButton"),
+  //    (button) => button.classList.remove("buttonDisabled"),
+  //  );
+  //}
 
-    loadingIndicator = false;
-
-    // Create a Timeline
-    timeline = new Timeline(target, items, options);
-    setTimeSlider(timeline);
-    Array.prototype.forEach.call(
-      document.getElementsByClassName("controlButton"),
-      (button) => button.classList.remove("buttonDisabled"),
-    );
-  }
-
-  function timeChangeHandler(properties) {
-    if (!lastSliderTime) {
-      timeline.setCustomTimeMarker("↔", "playbackMarker");
-      cap.getMap().removeLayer(nowcast.mainLayer);
-      warnNotMostRecent();
-    }
-
-    const newSliderTime = Math.floor(properties.time.getTime() / 1000);
-    if (newSliderTime != lastSliderTime) {
-      lastSliderTime = newSliderTime;
-      const index = Object.values(nowcast.forecastLayers)
-        .map((item) => item.absTime)
-        .findIndex((t) => t === lastSliderTime);
-      if (index >= 0) {
-        thatForecastSource.setUrls(nowcast.forecastLayers[Object.keys(nowcast.forecastLayers)[index]].source.getUrls());
-      } else {
-        //if (lastSliderTime.toString() in historicLayersObj) {
-        //  cap
-        //    .getMap()
-        //    .getLayers()
-        //    .getArray()
-        //    .filter((layer) => layer.get("nowcastLayer"))
-        //    .forEach((layer) => cap.getMap().removeLayer(layer));
-        //  cap.getMap().addLayer(historicLayersObj[lastSliderTime].layer);
-        //}
-      }
-      if (newSliderTime === baseTime) {
-        document.getElementById("backButton").classList.add("buttonInactive");
-      } else {
-        //document
-        //  .getElementById("backButton")
-        //  .classList.remove("buttonInactive");
-      }
-    }
-  }
-
-  function setTimeSlider(timeline) {
-    timeline.addCustomTime(
-      new Date(nowcast.forecastLayers["0"].absTime * 1000),
-      "playbackMarker",
-    );
-    timeline.setCustomTimeMarker($_("trackingMostRecent"), "playbackMarker");
-    timeline.on("timechange", timeChangeHandler);
-    //document.getElementById("backButton").classList.add("buttonInactive");
-  }
+  //function setTimeSlider(timeline) {
+  //  timeline.addCustomTime(
+  //    new Date(nowcast.forecastLayers["0"].absTime * 1000),
+  //    "playbackMarker",
+  //  );
+  //  timeline.setCustomTimeMarker($_("trackingMostRecent"), "playbackMarker");
+  //  timeline.on("timechange", timeChangeHandler);
+  //  //document.getElementById("backButton").classList.add("buttonInactive");
+  //}
 
   function warnNotMostRecent() {
     if (!warned) {
@@ -203,20 +273,15 @@
   }
 
   function play() {
-    if (playing) {
-      window.clearTimeout(self.activeForecastTimeout);
-      self.activeForecastTimeout = 0;
-      playPauseButton = faPlay;
-      playing = false;
-      timeline.setCustomTimeMarker("↔", "playbackMarker");
-      timeline.on("timechange", timeChangeHandler);
-      warnNotMostRecent();
-    } else {
-      playing = true;
-      playPauseButton = faPause;
-      timeline.on("timechange", () => {});
-      playTick();
-    }
+    fsm.pressPlay();
+    //if (playing) {
+    //  window.clearTimeout(self.activeForecastTimeout);
+    //  self.activeForecastTimeout = 0;
+    //  playPauseButton = faPlay;
+    //  playing = false;
+    //  timeline.setCustomTimeMarker("↔", "playbackMarker");
+    //  timeline.on("timechange", (param) => {timeChangeHandler(param)});
+    //  warnNotMostRecent();
   }
 
   function playTick() {
@@ -268,23 +333,10 @@
     }, 600);
   }
 
-  function init(node) {
-    nowcast.addObserver(updateSliderNowcast);
-    nowcast.addObserver(updateSliderHistoric);
-    // close playback when switching to another layer, save some memory
-    cap.addObserver((event) => {
-      if (event === "loseFocus") {
-        console.log("radar lost focus");
-        reset();
-        hide();
-      }
-    });
-    target = document.getElementById("timesliderTarget");
-  }
-
   function renderIcon(el) {
     iconHTML = el.innerHTML;
   }
+
 </script>
 
 <style>
@@ -453,7 +505,6 @@
 {#if visible}
   <div
     class="bottomToolbar timeslider"
-    use:init
     transition:fly={{ y: 100, duration: 400 }}>
     <div class="controls">
       <div
@@ -463,6 +514,7 @@
         <Icon icon={playPauseButton} class="controlIcon" />
       </div>
     </div>
+    <span on:click={play}>PLAY</span>
     {#if loadingIndicator}
       <div class="parent" id="loadingIndicator">
         <div class="loadingIndicator">
@@ -477,7 +529,8 @@
           </div>
         </div>
       </div>
+    {:else}
+      <sl-range min="-120" max="120" value="0" step="5" class="range-with-custom-formatter" use:initSlider></sl-range>
     {/if}
-    <div id="timesliderTarget" />
   </div>
 {/if}
