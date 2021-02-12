@@ -9,6 +9,8 @@
   import { _, getLocaleFromNavigator } from "svelte-i18n";
   import { roundToHour } from './lib/util';
 
+  export let device;
+
   let dfnLocale;
   if (getLocaleFromNavigator() === "de") {
     dfnLocale = de;

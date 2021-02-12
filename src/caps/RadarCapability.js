@@ -2,7 +2,8 @@ import { dwdLayer, greyOverlay } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import { capDescription, capLastUpdated } from "../stores";
 import { Capability } from './Capability';
-import { tileBaseUrl } from '../layers/urls';
+import { apiBaseUrl, tileBaseUrl, websocketBaseUrl } from '../urls';
+import { io } from "socket.io-client";
 
 export class RadarCapability extends Capability {
   constructor(options) {
@@ -20,10 +21,18 @@ export class RadarCapability extends Capability {
 
     super.setMap(options.map);
     this.reloadTilesRadar();
+
+    const socket = io(`${websocketBaseUrl}radar_ws/`);
+    socket.on("connect", () => {
+      console.log("radar websocket connected!");
+    });
+    socket.on("poke", () => {
+      console.log("received websocket poke, refreshing layers");
+      this.reloadTilesRadar();
+    });
   }
 
   reloadTilesRadar() {
-    console.log("reloadTilesRadar");
     this.nanobar.start(this.url);
     fetch(this.url)
       .then((response) => response.json())
@@ -57,8 +66,7 @@ export class RadarCapability extends Capability {
 
   downloadHistoric() {
     this.nanobar.start("historic_nowcast");
-    const baseUrl = "https://api.ng.meteocool.com/api/"; // XXX
-    fetch(`${baseUrl}radar_historic/`)
+    fetch(`${apiBaseUrl}radar_historic/`)
       .then((response) => response.json())
       .then((obj) => {
         this.historicLayers = obj;

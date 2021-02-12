@@ -238,7 +238,7 @@
 {#if device !== "ios" && device !== "android"}
   <Logo />
 {/if}
-<BottomToolbar />
+<BottomToolbar device={device} />
 <div id="nanobar" />
 <Map layerManager={lm} />
 <NowcastPlayback cap={radar} />
