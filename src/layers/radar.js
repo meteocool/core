@@ -13,7 +13,7 @@ import { transformExtent } from "ol/proj";
 import { dwdAttribution, imprintAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { meteocoolClassic, viridis } from "../colormaps";
-import { tileBaseUrl } from "./urls";
+import { tileBaseUrl } from "../urls";
 
 let cmap = meteocoolClassic;
 
