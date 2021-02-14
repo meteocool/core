@@ -274,30 +274,30 @@
     color: var(--sl-color-white);
   }
 
-  .spinner{
+  .spinner {
     font-size: 2.5rem;
     float: left;
     --indicator-color: rgb(52,120,246);
     --track-color: var(--sl-color-gray-200);
   }
 
-  .loadingIndicator{
+  .loadingIndicator {
     display: inline-block;
     transform: translateY(66%);
   }
 
-  .buttonBar{
+  .buttonBar {
     position: absolute;
     bottom: calc(0.2em + env(safe-area-inset-bottom));
     left: 0.3em;
     z-index: 999999;
   }
 
-  .textBlock{
+  .textBlock {
     display: inline-block;
   }
 
-  .text{
+  .text {
       opacity: 0.6;
       float: left;
       margin-left: 1.5rem;
@@ -306,13 +306,14 @@
       vertical-align: text-top;
       color:var(--sl-color-black);
   }
-  .bottomText{
+
+  .bottomText {
     clear:both;
     font-size: 0.9rem;
     margin-top: -0.7em;
   }
 
-  .topText{
+  .topText {
     margin-top: -0.3em;
     font-size: 1.5rem;
   }
@@ -322,8 +323,17 @@
     flex-wrap: wrap;
   }
 
-  .gap {
-    gap: 30px;
+  .gap > * {
+    margin-bottom: 30px;
+    margin-right: 30px;
+  }
+
+
+  @media (orientation: portrait) {
+    .gap > * {
+      margin-bottom: 20px;
+      margin-right: 24px;
+    }
   }
 
   .flexbox > .slider {
@@ -370,8 +380,8 @@
       /* background-color: blue; */
   }
 
-  :global(:global) {
-    --track-height: 12px;
+  .range {
+    width: 98%;
   }
 </style>
 
@@ -406,7 +416,7 @@
           </div>
         </div>
         <div class="slider">
-          <sl-range style="width: 98%;" min="-120" max="120" value="0" step="5" class="range-with-custom-formatter" use:initSlider></sl-range>
+          <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
               <div class="button-group-toolbar">
