@@ -60,6 +60,11 @@
     text-decoration: underline;
   }
 
+  a:visited{
+    color: var(--sl-color-primary-600);
+    cursor: pointer;
+  }
+
   a {
     color: var(--sl-color-primary-600);
   }
