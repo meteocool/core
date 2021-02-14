@@ -1,28 +1,28 @@
 <script>
-  import Map from "./Map";
-  import Logo from "./Logo";
-  import NowcastPlayback from "./NowcastPlayback";
-  import BottomToolbar from "./BottomToolbar";
+  import Map from './Map';
+  import Logo from './Logo';
+  import NowcastPlayback from './NowcastPlayback';
+  import BottomToolbar from './BottomToolbar';
 
-  import { RadarCapability } from "./caps/RadarCapability";
-  import { SatelliteCapability } from "./caps/SatelliteCapability";
-  import { WeatherCapability } from "./caps/WeatherCapability";
+  import { RadarCapability } from './caps/RadarCapability';
+  import { SatelliteCapability } from './caps/SatelliteCapability';
+  import { WeatherCapability } from './caps/WeatherCapability';
 
-  import { LayerManager } from "./lib/LayerManager";
-  import { NanobarWrapper } from "./lib/NanobarWrapper";
-  import { Settings } from "./lib/Settings";
+  import { LayerManager } from './lib/LayerManager';
+  import { NanobarWrapper } from './lib/NanobarWrapper';
+  import { Settings } from './lib/Settings';
 
-  import * as Sentry from "@sentry/browser";
-  import { Integrations } from "@sentry/tracing";
-  import View from "ol/View";
+  import * as Sentry from '@sentry/browser';
+  import { Integrations } from '@sentry/tracing';
+  import View from 'ol/View';
 
-  import { addMessages, format, init, getLocaleFromNavigator } from "svelte-i18n";
-  import de from "./de.json";
-  import en from "./en.json";
-  import { colorSchemeDark } from "./stores";
+  import { addMessages, init, getLocaleFromNavigator } from 'svelte-i18n';
+  import de from './locale/de.json';
+  import en from './locale/en.json';
+  import { colorSchemeDark } from './stores';
 
-  import "./style/global.css";
-  import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
+  import './style/global.css';
+  import '@shoelace-style/shoelace/dist/shoelace/shoelace.css';
   import {
     SlAlert,
     SlButton,
@@ -32,13 +32,22 @@
     setAssetPath,
     SlProgressRing,
     SlTag,
+    SlDropdown,
     SlDialog,
+    SlSelect,
+    SlMenuItem,
+    SlCheckbox,
+    SlMenu,
+    SlButtonGroup,
+    SlTooltip,
+    SlMenuLabel,
     SlRange
-  } from "@shoelace-style/shoelace";
+  } from '@shoelace-style/shoelace';
+  import TimeIndicator from './components/TimeIndicator.svelte';
 
   Sentry.init({
     dsn:
-      "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137",
+            'https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137',
     integrations: [new Integrations.BrowserTracing()],
     tracesSampleRate: 1.0,
     environment: process.env.NODE_ENV,
@@ -46,35 +55,47 @@
     release: GIT_COMMIT_HASH,
   });
 
-  addMessages("de", de);
-  addMessages("en", en);
+  addMessages('de', de);
+  addMessages('en', en);
 
   init({
-    fallbackLocale: "en",
+    fallbackLocale: 'en',
     initialLocale: getLocaleFromNavigator(),
   });
 
   setAssetPath(document.currentScript.src);
-  customElements.define("sl-button", SlButton);
-  customElements.define("sl-icon", SlIcon);
-  customElements.define("sl-icon-button", SlIconButton);
-  customElements.define("sl-spinner", SlSpinner);
-  customElements.define("sl-alert", SlAlert);
-  customElements.define("sl-progress-ring", SlProgressRing);
-  customElements.define("sl-tag", SlTag);
-  customElements.define("sl-dialog", SlDialog);
-  customElements.define("sl-range", SlRange);
+  customElements.define('sl-button', SlButton);
+  customElements.define('sl-icon', SlIcon);
+  customElements.define('sl-icon-button', SlIconButton);
+  customElements.define('sl-spinner', SlSpinner);
+  customElements.define('sl-alert', SlAlert);
+  customElements.define('sl-progress-ring', SlProgressRing);
+  customElements.define('sl-tag', SlTag);
+  customElements.define('sl-dialog', SlDialog);
+  customElements.define('sl-range', SlRange);
+  customElements.define('sl-select', SlSelect);
+  customElements.define('sl-dropdown', SlDropdown);
+  customElements.define('sl-menu-item', SlMenuItem);
+  customElements.define('sl-menu-label', SlMenuLabel);
+  customElements.define('sl-menu', SlMenu);
+  customElements.define('sl-checkbox', SlCheckbox);
+  customElements.define('sl-button-group', SlButtonGroup);
+  customElements.define('sl-tooltip', SlTooltip);
 
-  let baseUrl = "https://api.ng.meteocool.com/api/";
+  let baseUrl = 'https://api.ng.meteocool.com/api/';
   //baseUrl = "http://localhost:5000/api/";
   window.settings = new Settings({
     mapRotation: {
-      type: "boolean",
+      type: 'boolean',
       default: false,
       cb: (value) => {
         const newView = new View({
-          center: lm.getCurrentMap().getView().getCenter(),
-          zoom: lm.getCurrentMap().getView().getZoom(),
+          center: lm.getCurrentMap()
+                  .getView()
+                  .getCenter(),
+          zoom: lm.getCurrentMap()
+                  .getView()
+                  .getZoom(),
           minzoom: 5,
           enableRotation: value,
         });
@@ -82,31 +103,31 @@
       },
     },
     mapBaseLayer: {
-      type: "string",
-      default: "topographic",
+      type: 'string',
+      default: 'topographic',
       cb: (value) => {
         lm.switchBaseLayer(value);
       },
     },
     radarColorMapping: {
-      type: "string",
-      default: "classic",
+      type: 'string',
+      default: 'classic',
       cb: (val) => (window.updateColormap ? window.updateColormap(val) : true),
     },
     capability: {
-      type: "string",
-      default: "radar",
+      type: 'string',
+      default: 'radar',
     },
     experimentalFeatures: {
-      type: "boolean",
+      type: 'boolean',
       default: false,
     },
     layerMesocyclones: {
-      type: "boolean",
+      type: 'boolean',
       default: true,
     },
     layerLightning: {
-      type: "boolean",
+      type: 'boolean',
       default: true,
     },
   });
@@ -114,21 +135,21 @@
   const nb = new NanobarWrapper();
   export const radar = new RadarCapability({
     nanobar: nb,
-    tileURL: baseUrl + "radar/",
+    tileURL: baseUrl + 'radar/',
   });
   export const weather = new WeatherCapability({
     nanobar: nb,
-    tileURL: baseUrl + "icon/t_2m/",
+    tileURL: baseUrl + 'icon/t_2m/',
   });
 
   window.enterForeground = () => {
     radar.reloadTilesRadar();
     weather.reloadTilesWeather();
-    colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+    colorSchemeDark.set(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark )').matches);
   }; // may be a second function if you want to have no switch to of the scheme at the start of the app
 
   export let lm = new LayerManager({
-    baseURL: baseUrl + "tiles/",
+    baseURL: baseUrl + 'tiles/',
     settings: window.settings,
     nanobar: nb,
     capabilities: {
@@ -140,54 +161,55 @@
   export let device = window.device;
   window.lm = lm;
 
-  if (device == "ios" && "webkit" in window) {
-    window.webkit.messageHandlers["scriptHandler"].postMessage(
-      "requestSettings",
+  if (device == 'ios' && 'webkit' in window) {
+    window.webkit.messageHandlers['scriptHandler'].postMessage(
+            'requestSettings',
     );
   }
 
-  if (device == "android") {
+  if (device == 'android') {
     Android.requestSettings();
   }
 
-  colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+  colorSchemeDark.set(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark )').matches);
 
-  window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
-    console.log(`changed to ${e.matches ? "dark" : "light"} mode`)
-    colorSchemeDark.set(e.matches);
-  });
+  window.matchMedia('(prefers-color-scheme: dark)')
+          .addListener(function (e) {
+            console.log(`changed to ${e.matches ? 'dark' : 'light'} mode`);
+            colorSchemeDark.set(e.matches);
+          });
 
   //Dark and Light mode
   let colorSchemeLocal = false;
   colorSchemeDark.subscribe((value) => {
     colorSchemeLocal = value;
     if (colorSchemeLocal) {
-      document.documentElement.style.setProperty("--sl-color-white", "#3F3F3F");
-      document.documentElement.style.setProperty("--sl-color-black", "#FFFFFF");
+      document.documentElement.style.setProperty('--sl-color-white', '#3F3F3F');
+      document.documentElement.style.setProperty('--sl-color-black', '#FFFFFF');
       document.documentElement.style.setProperty(
-        "--sl-color-gray-700",
-        "#FFFFFF",
+              '--sl-color-gray-700',
+              '#FFFFFF',
       );
       document.documentElement.style.setProperty(
-              "--sl-color-gray-300",
-              "#FFFFFF",
+              '--sl-color-gray-300',
+              '#FFFFFF',
       );
       document.documentElement.style.setProperty(
-        "--sl-color-gray-200",
-        "#3F3F3F",
+              '--sl-color-gray-200',
+              '#3F3F3F',
       );
-      document.documentElement.style.setProperty("--sl-color-gray-50", "#3F3F3F");
+      document.documentElement.style.setProperty('--sl-color-gray-50', '#3F3F3F');
       document.documentElement.style.setProperty(
-        "--sl-color-primary-600",
-        "#38BDF8",
+              '--sl-color-primary-600',
+              '#38BDF8',
       );
     } else {
-      document.documentElement.style.removeProperty("--sl-color-white");
-      document.documentElement.style.removeProperty("--sl-color-black");
-      document.documentElement.style.removeProperty("--sl-color-gray-700");
-      document.documentElement.style.removeProperty("--sl-color-gray-200");
-      document.documentElement.style.removeProperty("--sl-color-gray-300");
-      document.documentElement.style.removeProperty("--sl-color-gray-50");
+      document.documentElement.style.removeProperty('--sl-color-white');
+      document.documentElement.style.removeProperty('--sl-color-black');
+      document.documentElement.style.removeProperty('--sl-color-gray-700');
+      document.documentElement.style.removeProperty('--sl-color-gray-200');
+      document.documentElement.style.removeProperty('--sl-color-gray-300');
+      document.documentElement.style.removeProperty('--sl-color-gray-50');
       document.documentElement.style.removeProperty("--sl-color-primary-600");
     }
   });
@@ -201,6 +223,10 @@
     padding: 0;
     overflow: hidden;
     background-color: var(--sl-color-white);
+  }
+
+  :global(:root) {
+    --toast-stack-offset: 0px;
   }
 
   :global(.nanobar) {
@@ -219,7 +245,7 @@
   }
 
   :global(.sl-toast-stack) {
-    bottom: calc(env(safe-area-inset-bottom) + 42px);
+    bottom: calc(env(safe-area-inset-bottom) + var(--toast-stack-offset));
     top: auto;
   }
 
@@ -233,7 +259,8 @@
 {#if device !== "ios" && device !== "android"}
   <Logo />
 {/if}
+<TimeIndicator />
 <BottomToolbar device={device} />
 <div id="nanobar" />
 <Map layerManager={lm} />
-<NowcastPlayback cap={radar} />
+<NowcastPlayback cap={radar} device={device} />

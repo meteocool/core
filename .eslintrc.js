@@ -9,7 +9,7 @@ module.exports = {
     "plugin:import/warnings",
   ],
   parserOptions: {
-    ecmaVersion: 12,
+    ecmaVersion: 11,
     sourceType: 'module',
     parser: "@babel/eslint-parser",
     requireConfigFile: false,
