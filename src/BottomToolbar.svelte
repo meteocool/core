@@ -1,79 +1,28 @@
 <script>
-  import Icon from "fa-svelte";
-  import { capDescription, capLastUpdated } from "./stores";
-  import { faGithubSquare } from "@fortawesome/free-brands-svg-icons/faGithubSquare";
-  import { fly } from "svelte/transition";
-  import { cssGetclass } from "./lib/css";
-  import { enUS, de } from "date-fns/locale";
-  import { formatDistanceToNow } from "date-fns";
-  import { _, getLocaleFromNavigator } from "svelte-i18n";
-  import { roundToHour } from './lib/util';
+  import LastUpdated from './components/LastUpdated.svelte';
+
+  import Icon from 'fa-svelte';
+  import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
+  import { fly } from 'svelte/transition';
 
   export let device;
 
-  let dfnLocale;
-  if (getLocaleFromNavigator() === "de") {
-    dfnLocale = de;
-  } else {
-    dfnLocale = enUS;
-  }
-
-  let target;
-  let activeForecastTimeout;
-  let iconHTML;
-  let baseTime;
-  let description;
-  let lastUpdated;
-  let lastUpdatedStr = "Loading...";
-  let slPercent = 75;
-
-  capDescription.subscribe((value) => {
-    description = value;
-  });
-
-  let updateTimeout = 0;
-
-  let updateTime = () => {
-    if (!lastUpdated) return;
-    lastUpdatedStr = Math.abs((lastUpdated - new Date()) / 1000);
-    slPercent = 100 - Math.min(((lastUpdatedStr - 120) / 420) * 100, 100);
-    lastUpdatedStr = formatDistanceToNow(lastUpdated, {
-      locale: dfnLocale,
-      addSuffix: true,
-    });
-    updateTimeout = setTimeout(updateTime, 10000);
-  };
-
-  capLastUpdated.subscribe((value) => {
-    lastUpdated = value;
-    if (updateTimeout > 0 || !value) window.clearTimeout(updateTimeout);
-    updateTimeout = 0;
-    if (value)
-    updateTime();
-  });
-
-  updateTime();
-
-  function show() {
-    cssGetclass(".sl-toast-stack").style.bottom =
-      "calc(env(safe-area-inset-bottom) + 42px)";
-  }
-
   function slider(elem) {
-    elem.tooltipFormatter = value => `${value.toString().padStart(2, 0)}:00`;
+    elem.tooltipFormatter = value => `${value.toString()
+            .padStart(2, 0)}:00`;
     // XXX fix dependency fuckup
-    elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
+    elem.addEventListener('sl-change', (value) => window.weatherSliderChanged(value.target.value));
   }
 </script>
 
 <style>
-  .bottomToolbar {
+  :global(.bottomToolbar) {
     position: absolute;
     bottom: 0;
     left: 0;
     border-top-left-radius: 11px;
     border-top-right-radius: 11px;
-    border-top: 1px solid lightgray;
+    border-top: 1px solid var(--sl-color-gray-50);
     width: 100%;
     background-color: var(--sl-color-white);
   }
@@ -150,18 +99,6 @@
     margin-left: 3px;
     height: 30px;
   }
-
-  .tag{
-    text-indent: unset;
-    font-style: normal;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-  }
-
-  .progress-ring{
-    --indicator-color: rgb(52,120,246);
-    position: relative;
-    top: 3px; transform: scaleX(-1);
-  }
 </style>
 
 <link
@@ -176,8 +113,7 @@
       <!-- empty -->
     </div>
     <div class="center">
-      {#if !lastUpdated}
-      <sl-tag
+      <!--sl-tag
         type="info"
         class="tag"
         size="medium"
@@ -190,23 +126,8 @@
                 size="medium"
                 pill>
       <sl-range min="0" max="24" value="{roundToHour(new Date())}" step="1" class="range-with-custom-formatter" use:slider></sl-range>
-        </sl-tag>
-        {:else}
-      <sl-tag
-              type="info"
-              class="tag"
-              size="medium"
-              pill>
-        <sl-progress-ring
-                percentage={slPercent}
-                size="16"
-                stroke-width="1"
-                class="progress-ring"
-        />
-        {$_("last_updated")}
-        {lastUpdatedStr}
-      </sl-tag>
-        {/if}
+      </sl-tag-->
+      <LastUpdated />
     </div>
     {#if device !== "ios" && device !== "android"}
       <div class="right">

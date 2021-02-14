@@ -48,6 +48,10 @@ export class RadarCapability extends Capability {
       });
   }
 
+  getUpstreamTime() {
+    return this.upstreamTime;
+  }
+
   processRadar(obj) {
     this.upstreamTime = obj.radar.upstream_time;
     this.processedTime = obj.radar.processed_time;

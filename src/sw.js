@@ -40,7 +40,7 @@ registerRoute(
 registerRoute(
   new RegExp("https://tiles-a\\.tomatotomatopotatopotato\\.com/meteoradar/.*\\.png"),
   new CacheFirst({
-    cacheName: "nowcast-tile-cache",
+    cacheName: "radar-tile-cache",
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200, 404],

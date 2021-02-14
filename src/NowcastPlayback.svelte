@@ -1,16 +1,21 @@
 <script>
-  import Icon from "fa-svelte";
-  import { showTimeSlider } from "./stores";
-  import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
-  import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
-  import { faArrowsAltH } from "@fortawesome/free-solid-svg-icons/faArrowsAltH";
-  import { fly } from "svelte/transition";
-  import { reportToast } from "./lib/Toast";
-  import { _ } from "svelte-i18n";
-  import StateMachine from "javascript-state-machine";
+  import Icon from 'fa-svelte';
+  import { capTimeIndicator, showTimeSlider } from './stores';
+  import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
+  import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
+  import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
+  import { faTimesCircle } from '@fortawesome/free-solid-svg-icons/faTimesCircle';
+  import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
+  import { fly } from 'svelte/transition';
+  import { reportToast } from './lib/Toast';
+  import { _ } from 'svelte-i18n';
+  import StateMachine from 'javascript-state-machine';
   import { onMount } from 'svelte';
+  import LastUpdated from './components/LastUpdated.svelte';
+  import {format} from 'date-fns';
 
   export let cap;
+  export let device;
 
   let open = false; // Drawer open/closed. Displays open button if false
   let warned = false; // True if user has been warned about forecast != measurement
@@ -18,7 +23,7 @@
   let oldTimeStep = 0;
 
   let playPauseButton = faPlay;
-  let uiMessage = $_("downloading_nowcast");
+  let uiMessage = $_('downloading_nowcast');
   let iconHTML;
   let baseTime;
   let playTimeout;
@@ -29,13 +34,17 @@
   let slRange = null;
   let oldUrls;
 
+  let loop = true;
+  let historicActive = true;
+  let includeHistoric = false;
+
   onMount(async () => {
     cap.addObserver((subject, data) => {
       console.log(`observed ${subject}`);
-      if (subject === "historic") {
+      if (subject === 'historic') {
         historicLayers = data.sources;
       }
-      if (subject === "nowcast") {
+      if (subject === 'nowcast') {
         nowcastLayers = data.sources;
       }
       if (nowcastLayers && historicLayers) {
@@ -43,8 +52,8 @@
       }
     });
     cap.addObserver((event) => {
-      if (event === "loseFocus") {
-        console.log("radar lost focus");
+      if (event === 'loseFocus') {
+        console.log('radar lost focus');
         hide();
       }
     });
@@ -53,16 +62,40 @@
   let fsm = new StateMachine({
     init: 'followLatest',
     transitions: [
-      { name: 'showScrollbar', from: 'followLatest', to: 'manualScrolling' },
-      { name: 'showScrollbar', from: 'waitingForServer', to: 'manualScrolling' },
-      { name: 'waitForServer', from: 'followLatest', to: 'waitingForServer' },
-      { name: 'pressPlay', from: 'manualScrolling', to: 'playing' },
-      { name: 'pressPause', from: 'playing', to: 'manualScrolling' },
-      { name: 'hideScrollbar', from: '*', to: 'followLatest' },
+      {
+        name: 'showScrollbar',
+        from: 'followLatest',
+        to: 'manualScrolling'
+      },
+      {
+        name: 'showScrollbar',
+        from: 'waitingForServer',
+        to: 'manualScrolling'
+      },
+      {
+        name: 'waitForServer',
+        from: 'followLatest',
+        to: 'waitingForServer'
+      },
+      {
+        name: 'pressPlay',
+        from: 'manualScrolling',
+        to: 'playing'
+      },
+      {
+        name: 'pressPause',
+        from: 'playing',
+        to: 'manualScrolling'
+      },
+      {
+        name: 'hideScrollbar',
+        from: '*',
+        to: 'followLatest'
+      },
     ],
     methods: {
       onWaitForServer: (param) => {
-        console.log("FSM ===== waiting for server");
+        console.log('FSM ===== waiting for server');
         loadingIndicator = true;
         setTimeout(() => showTimeSlider.set(true), 200);
         //cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 98px)";
@@ -71,25 +104,34 @@
         cap.downloadNowcast();
       },
       onShowScrollbar: (transition) => {
-        console.log("FSM ===== waiting for server");
+        console.log('FSM ===== waiting for server');
         loadingIndicator = false;
         oldUrls = cap.source.getUrls();
         if (slRange) slRange.value = 0;
+        document.documentElement.style.setProperty('--toast-stack-offset', '100px');
       },
       onPressPlay: (transition) => {
         let playTick = () => {
           if (slRange.value >= 120) {
-            slRange.value = -120;
+            slRange.value = includeHistoric ? -120 : 0;
+          } else {
+            slRange.value = slRange.value + 5;
           }
-          slRange.value = slRange.value + 5;
+          capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + slRange.value*60)*1000), "⏱ HH:mm, dd MMM"));
           sliderChangedHandler(slRange.value);
-          playTimeout = window.setTimeout(playTick, 500);
+          if (slRange.value !== 0 || loop) {
+            playTimeout = window.setTimeout(playTick, 500);
+          } else {
+            playTimeout = 0;
+            fsm.pressPause();
+          }
         };
         playTick();
         playPauseButton = faPause;
       },
       onPressPause: (transition) => {
-        window.clearTimeout(playTimeout);
+        if (playTimeout !== 0) window.clearTimeout(playTimeout);
+        playTimeout = 0;
         playPauseButton = faPlay;
       },
       onHideScrollbar: (transition) => {
@@ -107,8 +149,13 @@
   window.fsm = fsm;
 
   function initSlider(elem) {
-    elem.tooltipFormatter = value => `${value.toString().padStart(2, 0)}`;
-    elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value));
+    elem.tooltipFormatter = value => {
+      if (value === 0) {
+        return 'Latest Radar Image';
+      }
+      return `${value.toString()[0] !== '-' ? '+' : ''}${value.toString()}m`;
+    };
+    elem.addEventListener('sl-change', (value) => sliderChangedHandler(value.target.value));
     slRange = elem;
   }
 
@@ -128,10 +175,9 @@
     if (value === 0) {
       cap.source.setUrl(nowcastLayers[value].url);
     } else {
-      warnNotMostRecent();
-      console.log(value);
       if (value > 0) {
         cap.source.setUrl(nowcastLayers[value].url);
+        warnNotMostRecent();
       } else {
         cap.source.setUrl(historicLayers[value].url);
       }
@@ -141,7 +187,7 @@
 
   function warnNotMostRecent() {
     if (!warned) {
-      reportToast($_("forcastPlaying"));
+      reportToast($_('forcastPlaying'));
       warned = true;
     }
   }
@@ -157,31 +203,23 @@
   function renderIcon(el) {
     iconHTML = el.innerHTML;
   }
+
+  function toggleLoop(el) {
+    loop = !loop;
+    historicActive = loop;
+    if (!historicActive) includeHistoric = false;
+  }
+
+  function toggleHistoric(el) {
+    includeHistoric = !includeHistoric;
+  }
 </script>
 
 <style>
-  /* deduplicate with bottomtoolbar.svelte XXX */
-  .bottomToolbar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    border-top-left-radius: 11px;
-    border-top-right-radius: 11px;
-    border-top: 1px solid var(--sl-color-gray-50);
-    width: 100%;
-    background-color: var(--sl-color-white);
-  }
-
   .timeslider {
-    height: 10%;
-    min-height: 100px;
+    height: 90px;
     z-index: 999999;
-  }
-
-  @media (orientation: portrait) {
-    .timeslider {
-      height: 20%;
-    }
+    padding-top: 5px;
   }
 
   .parent {
@@ -193,15 +231,17 @@
   }
 
   /* timeline controls */
-  .controls {
-    width: 3em;
-    display: flex;
-    flex-direction: column;
-    float: left;
-    margin-top: 0.5em;
-    margin-left: 0.6em;
-    margin-right: 0.25em;
-  }
+  /*
+  //.controls {
+  //  width: 3em;
+  //  display: flex;
+  //  flex-direction: column;
+  //  float: left;
+  //  margin-top: 0.5em;
+  //  margin-left: 0.6em;
+  //  margin-right: 0.25em;
+  //}
+    */
 
   .controlButton {
     width: 1em;
@@ -272,6 +312,47 @@
     margin-top: -0.3em;
     font-size: 1.5rem;
   }
+
+  .flexbox {
+    display: flex;
+  }
+
+  .gap {
+    gap: 30px;
+  }
+
+  .flexbox > .slider {
+    flex-grow: 1; /* do not grow   - initial value: 0 */
+    flex-shrink: 1; /* do not shrink - initial value: 1 */
+    flex-basis: 85%;
+    padding-left: 2%;
+    /*background-color: green;*/
+  }
+
+  .flexbox > .model {
+    flex-grow: 1; /* do not grow   - initial value: 0 */
+    flex-shrink: 1; /* do not shrink - initial value: 1 */
+    flex-basis: 12%;
+    padding-right: 1%;
+    padding-left: 1%;
+    /*background-color: red;*/
+  }
+
+  .flexbox > .buttons {
+    flex-grow: 0; /* do not grow   - initial value: 0 */
+    flex-shrink: 0; /* do not shrink - initial value: 1 */
+    flex-basis: 3%;
+    min-width: 30px;
+    /*background-color: yellow;*/
+  }
+  .flexbox > .checkbox {
+      /* background-color: blue; */
+  }
+
+  :global(:global) {
+    --track-height: 12px;
+  }
+
 </style>
 
 <span use:renderIcon><Icon icon={faArrowsAltH} /></span>
@@ -280,14 +361,6 @@
   <div
     class="bottomToolbar timeslider"
     transition:fly={{ y: 100, duration: 400 }}>
-    <div class="controls">
-      <div
-        class="controlButton buttonDisabled"
-        on:click={playPause}
-        title="Play/Pause">
-        <Icon icon={playPauseButton} class="controlIcon" />
-      </div>
-    </div>
     {#if loadingIndicator}
       <div class="parent" id="loadingIndicator">
         <div class="loadingIndicator">
@@ -303,7 +376,58 @@
         </div>
       </div>
     {:else}
-      <sl-range style="width: 90%; margin-left: 10%;" min="-120" max="120" value="0" step="5" class="range-with-custom-formatter" use:initSlider></sl-range>
+      <div class="flexbox">
+        <div class="buttons">
+          <div class="controlButton" on:click={playPause} title="Play/Pause">
+            <Icon icon={playPauseButton} class="controlIcon" />
+          </div>
+          <div class="controlButton" on:click={hide} title="Close">
+            <Icon icon={faTimesCircle} class="controlIcon" />
+          </div>
+        </div>
+        <div class="slider">
+          <sl-range style="width: 98%;" min="-120" max="120" value="0" step="5" class="range-with-custom-formatter" use:initSlider></sl-range>
+          <div class="flexbox gap">
+            <div class="checkbox">
+              <div class="button-group-toolbar">
+                <sl-button-group label="History">
+                  <sl-tooltip content="Automatically Loop Playback">
+                    <sl-button size="small" type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} >🔁 Loop️</sl-button>
+                  </sl-tooltip>
+                  <sl-tooltip content="Include Last 2 Hours in Playback Loop">
+                    <sl-button size="small" type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}><Icon icon={faHistory} />  Historic</sl-button>
+                  </sl-tooltip>
+                </sl-button-group>
+              </div>
+            </div>
+            {#if device !== "ios"}
+              <div class="checkbox">
+                <div class="button-group-toolbar">
+                  <sl-button-group label="History">
+                    <sl-tooltip content="Show Lightning Strikes (if any)">
+                      <sl-button size="small" type="primary">⚡ Lightning Strikes</sl-button>
+                    </sl-tooltip>
+                    <sl-tooltip content="Show Mesocyclones (if any)">
+                      <sl-button size="small" type="primary">🌀 Mesocyclones</sl-button>
+                    </sl-tooltip>
+                  </sl-button-group>
+                </div>
+              </div>
+            {/if}
+            {#if false}
+              <div class="checkbox">
+                <sl-select size="small">
+                  <sl-menu-item value="option-1" checked selected>DWD</sl-menu-item>
+                  <sl-menu-item value="option-2">Rainymotion</sl-menu-item>
+                </sl-select>
+              </div>
+            {/if}
+            <div class="checkbox">
+              <LastUpdated />
+            </div>
+          </div>
+        </div>
+      </div>
     {/if}
   </div>
 {:else}
