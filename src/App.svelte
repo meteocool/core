@@ -192,24 +192,32 @@
       );
       document.documentElement.style.setProperty(
               '--sl-color-gray-300',
-              '#FFFFFF',
+              '#717171',
       );
       document.documentElement.style.setProperty(
               '--sl-color-gray-200',
               '#3F3F3F',
       );
       document.documentElement.style.setProperty('--sl-color-gray-50', '#3F3F3F');
+      document.documentElement.style.setProperty('--sl-color-gray-200', '#8b8b8b');
+      document.documentElement.style.setProperty('--sl-color-info-100', '#3F3F3F');
+      document.documentElement.style.setProperty('--sl-color-primary-text', '#ffffff');
+      document.documentElement.style.setProperty('--sl-color-gray-600', '#d6d6d6');
+      document.documentElement.style.setProperty('--sl-color-info-700', '#c2c2c2');
       document.documentElement.style.setProperty(
               '--sl-color-primary-600',
               '#38BDF8',
       );
     } else {
+      document.documentElement.style.removeProperty('--sl-color-gray-600');
       document.documentElement.style.removeProperty('--sl-color-white');
       document.documentElement.style.removeProperty('--sl-color-black');
-      document.documentElement.style.removeProperty('--sl-color-gray-700');
+      document.documentElement.style.removeProperty('--sl-color-info-700');
+      document.documentElement.style.removeProperty('--sl-color-info-100');
+      document.documentElement.style.removeProperty('--sl-color-gray-50');
       document.documentElement.style.removeProperty('--sl-color-gray-200');
       document.documentElement.style.removeProperty('--sl-color-gray-300');
-      document.documentElement.style.removeProperty('--sl-color-gray-50');
+      document.documentElement.style.removeProperty('--sl-color-gray-700');
       document.documentElement.style.removeProperty("--sl-color-primary-600");
     }
   });
