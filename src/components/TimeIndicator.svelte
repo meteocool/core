@@ -19,12 +19,12 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
     position: absolute;
     z-index: 999999;
-    top: max(env(safe-area-inset-top), 1vh);
+    top: max(calc(env(safe-area-inset-top) + 10px), 1vh);
     margin-left: auto;
     margin-right: auto;
     left: 0;
     right: 0;
-    width: 150px;
+    width: 155px; /* XXX make dependant on content */
   }
 </style>
 

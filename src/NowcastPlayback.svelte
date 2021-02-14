@@ -38,6 +38,11 @@
   let historicActive = true;
   let includeHistoric = false;
 
+  let buttonSize = "small";
+  if (device === "ios" || device === "android") {
+    buttonSize = "medium";
+  }
+
   onMount(async () => {
     cap.addObserver((subject, data) => {
       console.log(`observed ${subject}`);
@@ -269,13 +274,6 @@
     color: var(--sl-color-white);
   }
 
-  .buttonDisabled {
-    cursor: not-allowed !important;
-    background-color: #eeeeee !important;
-    border: 1px solid #aaaaaa !important;
-    color: #666666 !important;
-  }
-
   .spinner{
     font-size: 2.5rem;
     float: left;
@@ -345,7 +343,23 @@
     /*background-color: red;*/
   }
 
-  .flexbox > .buttons {
+  .flexbox > .buttonsInline {
+    display: none;
+  }
+
+  @media (orientation: portrait) {
+    .flexbox > .buttonsInline {
+      display: unset;
+    }
+  }
+
+  @media (orientation: portrait) {
+    .flexbox > .buttonsLeft {
+      display: none;
+    }
+  }
+
+  .flexbox > .buttonsLeft {
     flex-grow: 0; /* do not grow   - initial value: 0 */
     flex-shrink: 0; /* do not shrink - initial value: 1 */
     flex-basis: 3%;
@@ -383,7 +397,7 @@
       </div>
     {:else}
       <div class="flexbox">
-        <div class="buttons">
+        <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">
             <Icon icon={playPauseButton} class="controlIcon" />
           </div>
@@ -398,10 +412,10 @@
               <div class="button-group-toolbar">
                 <sl-button-group label="History">
                   <sl-tooltip content="Automatically Loop Playback">
-                    <sl-button size="small" type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} >🔁 Loop️</sl-button>
+                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} >🔁 Loop️</sl-button>
                   </sl-tooltip>
                   <sl-tooltip content="Include Last 2 Hours in Playback Loop">
-                    <sl-button size="small" type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}><Icon icon={faHistory} />  Historic</sl-button>
+                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}><Icon icon={faHistory} />  Historic</sl-button>
                   </sl-tooltip>
                 </sl-button-group>
               </div>
@@ -411,10 +425,10 @@
                 <div class="button-group-toolbar">
                   <sl-button-group label="History">
                     <sl-tooltip content="Show Lightning Strikes (if any)">
-                      <sl-button size="small" type="primary">⚡ Lightning Strikes</sl-button>
+                      <sl-button size={buttonSize} type="primary">⚡ Lightning Strikes</sl-button>
                     </sl-tooltip>
                     <sl-tooltip content="Show Mesocyclones (if any)">
-                      <sl-button size="small" type="primary">🌀 Mesocyclones</sl-button>
+                      <sl-button size={buttonSize} type="primary">🌀 Mesocyclones</sl-button>
                     </sl-tooltip>
                   </sl-button-group>
                 </div>
@@ -422,12 +436,24 @@
             {/if}
             {#if false}
               <div class="checkbox">
-                <sl-select size="small">
+                <sl-select size={buttonSize}>
                   <sl-menu-item value="option-1" checked selected>DWD</sl-menu-item>
                   <sl-menu-item value="option-2">Rainymotion</sl-menu-item>
                 </sl-select>
               </div>
             {/if}
+            <div class="checkbox buttonsInline">
+              <div class="button-group-toolbar">
+                <sl-button-group label="History">
+                  <sl-tooltip content="Play">
+                    <sl-button size={buttonSize} on:click={playPause} ><Icon icon={playPauseButton} />️</sl-button>
+                  </sl-tooltip>
+                  <sl-tooltip content="Close">
+                    <sl-button size={buttonSize} on:click={hide} ><Icon icon={faTimesCircle} />️</sl-button>
+                  </sl-tooltip>
+                </sl-button-group>
+              </div>
+            </div>
             <div class="checkbox">
               <LastUpdated />
             </div>
