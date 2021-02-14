@@ -25,24 +25,20 @@
   },
   "credits_help": {
     "header": "Danksagung & Hilfe",
-    "text1": "meteocool ist ein Projekt von Valentin, Jonas, Nina und Jeremias.",
-    "text3": "Ohne die Hilfe von ein paar besonderen Personen wäre meteocool nicht zustande gekommen: Florian Mauracher and NessArt.",
+    "text1": "meteocool ist ein Projekt von <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> und <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
+    "text3": "Ohne die Hilfe von ein paar besonderen Personen wäre meteocool nicht zustande gekommen: <a href=\"https://github.com/Flowm\">Florian Mauracher</a> and NessArt.",
     "list4": {
-      "text1": "Symbole und angepasste Grafiken von ",
-      "text2": " (Logo, iOS Onboarding) von ",
-      "text3": " (Lizenz von "
+      "text1": "Symbole und angepasste Grafiken von <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
+      "text2": "(Logo, iOS Onboarding) und <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>.",
+      "text3": "(Lizenz von <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
     },
-    "text4": "Du möchtest auch mitmachen? Schau hier ",
-    "text5": "meteocool auf GitHub",
-    "text6": " besonders unsere ",
-    "text7": "web",
-    "text8": " und ",
-    "text9": " repositories"
+    "text4": "Du möchtest auch mitmachen? Du findest <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool bei GitHub</a>,",
+    "text5": "besonders unsere <a href=\"https://github.com/meteocool/core\">web frontend</a>, <a href=\"https://github.com/meteocool/ios\">iOS App</a> und <a href=\"https://github.com/meteocool/android\">Android App</a> repositories."
   },
   "other_things": {
     "header": "Andere Dinge",
-    "list1": "falls du Fragen hast oder und Geld schicken möchtest",
-    "list2": "Datenschutzerklärung"
+    "list1": "<a href=\"mailto:support@meteocool.com\">Kontaktiere uns</a> falls du Fragen hast oder uns Geld schicken möchtest",
+    "list2": "<a href=\"/privacy.html\">Datenschutzerklärung</a>"
   },
   "close": "Schließen",
 

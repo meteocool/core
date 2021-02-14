@@ -27,24 +27,20 @@
   },
   "credits_help": {
     "header": "Credits & Help",
-    "text1": "meteocool is brought to you by Valentin, Jonas, Nina and Jeremias.",
-    "text3": "This project would not have been possible without the help from a few great people: Florian Mauracher and NessArt.",
+    "text1": "meteocool is brought to you by <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> and <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
+    "text3": "This project would not have been possible without the help from a few great people: <a href=\"https://github.com/Flowm\">Florian Mauracher</a> and NessArt.",
     "list4": {
-      "text1": "Icons and adapted artwork made by ",
-      "text2": " (Logo, iOS Onboarding) from ",
-      "text3": " (licensed by "
+      "text1": "Icons and adapted artwork made by <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
+      "text2": "(Logo, iOS Onboarding) and <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
+      "text3": "(licensed by <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
     },
-    "text4": "Want to help as well? Check out ",
-    "text5": "meteocool on GitHub",
-    "text6": " especially our ",
-    "text7": "web frontend",
-    "text8": " and ",
-    "text9": " repositories"
+    "text4": "Want to help as well? Check out <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool on GitHub</a>,",
+    "text5": "especially our <a href=\"https://github.com/meteocool/core\">web frontend</a>, <a href=\"https://github.com/meteocool/ios\">iOS App</a> and <a href=\"https://github.com/meteocool/android\">Android App</a> repositories."
   },
   "other_things": {
     "header": "other things",
-    "list1": "contact us for questions or if you want to send money our way",
-    "list2": "privacy policy"
+    "list1": "<a href=\"mailto:support@meteocool.com\">contact us</a> for questions or if you want to send money our way",
+    "list2": "<a href=\"/privacy.html\">privacy policy</a>"
   },
   "close": "Close",
 

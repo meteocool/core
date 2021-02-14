@@ -99,43 +99,24 @@
       alt="not actually the volunteers" />
   </p>
   <p>
-    {$_("credits_help.text1")}
+    {@html $_("credits_help.text1")}
   </p>
   <p>
-    {$_("credits_help.text3")}
+    {@html $_("credits_help.text3")}
   </p>
   <p>
-    {$_("credits_help.list4.text1")}<a
-      href="http://www.freepik.com"
-      title="Freepik"
-      rel="noreferrer">Freepik</a
-    >{$_("credits_help.list4.text2")}<a
-      href="https://www.flaticon.com/"
-      title="Flaticon">www.flaticon.com</a
-    >{$_("credits_help.list4.text3")}<a
-      href="http://creativecommons.org/licenses/by/3.0/"
-      title="Creative Commons BY 3.0"
-      rel="noreferrer">CC 3.0 BY</a
-    >)
+    {@html $_("credits_help.list4.text1")}
+    {@html $_("credits_help.list4.text2")}
+    {@html $_("credits_help.list4.text3")}
   </p>
   <p>
-    {$_("credits_help.text4")}<a
-      href="https://github.com/meteocool"
-      rel="noreferrer">{$_("credits_help.text5")}</a
-    >{$_("credits_help.text6")}<a href="https://github.com/meteocool/web"
-      >{$_("credits_help.text7")}</a
-    >, <a href="https://github.com/meteocool/ios">iOS</a>{$_(
-      "credits_help.text8",
-    )}<a href="https://github.com/meteocool/android">Android</a>{$_(
-      "credits_help.text9",
-    )}.
+    {@html $_("credits_help.text4")}
+    {@html $_("credits_help.text5")}
   </p>
   <h2>{$_("other_things.header")}</h2>
   <ul>
-    <li>
-      <a href="mailto:support@meteocool.com">{$_("other_things.list1")}</a>
-    </li>
-    <li><a href="/privacy.html">{$_("other_things.list2")}</a></li>
+    <li>{@html $_("other_things.list1")}</li>
+    <li>{@html $_("other_things.list2")}</li>
   </ul>
   <sl-button slot="footer" type="primary" on:click={close}
     >{$_("close")}</sl-button>

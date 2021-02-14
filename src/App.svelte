@@ -16,7 +16,7 @@
   import { Integrations } from "@sentry/tracing";
   import View from "ol/View";
 
-  import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
+  import { addMessages, format, init, getLocaleFromNavigator } from "svelte-i18n";
   import de from "./de.json";
   import en from "./en.json";
   import { colorSchemeDark } from "./stores";
