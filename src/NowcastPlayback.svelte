@@ -222,6 +222,12 @@
     padding-top: 5px;
   }
 
+  @media (orientation: portrait) {
+    .timeslider {
+      height: 180px;
+    }
+  }
+
   .parent {
     display: flex;
     flex-direction: column;
@@ -315,6 +321,7 @@
 
   .flexbox {
     display: flex;
+    flex-wrap: wrap;
   }
 
   .gap {
@@ -352,7 +359,6 @@
   :global(:global) {
     --track-height: 12px;
   }
-
 </style>
 
 <span use:renderIcon><Icon icon={faArrowsAltH} /></span>
