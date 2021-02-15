@@ -38,7 +38,7 @@
     "@fortawesome/free-solid-svg-icons": "^5.15.1",
     "@sentry/browser": "^5.30.0",
     "@sentry/tracing": "^5.30.0",
-    "@shoelace-style/shoelace": "^2.0.0-beta.21",
+    "@shoelace-style/shoelace": "git://github.com/meteocool/shoelace.git#next",
     "babel-eslint": "^10.1.0",
     "date-fns": "^2.16.1",
     "moment": "^2.29.1",
