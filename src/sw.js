@@ -22,7 +22,7 @@ registerRoute(
   }),
 );
 registerRoute(
-  new RegExp("https://tiles-a\\.tomatotomatopotatopotato\\.com/meteonowcast/.*\\.png"),
+  new RegExp("https://tiles-a\\.meteocool\\.com/meteonowcast/.*\\.png"),
   new CacheFirst({
     cacheName: "nowcast-tile-cache",
     plugins: [
@@ -38,7 +38,7 @@ registerRoute(
   }),
 );
 registerRoute(
-  new RegExp("https://tiles-a\\.tomatotomatopotatopotato\\.com/meteoradar/.*\\.png"),
+  new RegExp("https://tiles-a\\.meteocool\\.com/meteoradar/.*\\.png"),
   new CacheFirst({
     cacheName: "radar-tile-cache",
     plugins: [
