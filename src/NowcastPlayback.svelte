@@ -213,11 +213,19 @@
     loop = !loop;
     historicActive = loop;
     if (!historicActive) includeHistoric = false;
+    window.setTimeout(() => {
+      loop = !loop;
+      window.setTimeout(() => {
+        loop = !loop;
+      }, 500);
+    }, 500);
   }
 
   function toggleHistoric(el) {
     includeHistoric = !includeHistoric;
   }
+
+  let hasHover = !window.matchMedia("(hover: none)").matches;
 </script>
 
 <style>
@@ -421,11 +429,14 @@
             <div class="checkbox">
               <div class="button-group-toolbar">
                 <sl-button-group label="History">
-                  <sl-tooltip content="Automatically Loop Playback">
-                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} >🔁 Loop️</sl-button>
+                  <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
+                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>🔁 Loop️</sl-button>
                   </sl-tooltip>
                   <sl-tooltip content="Include Last 2 Hours in Playback Loop">
                     <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}><Icon icon={faHistory} />  Historic</sl-button>
+                  </sl-tooltip>
+                  <sl-tooltip content="Play">
+                    <sl-button size={buttonSize} on:click={playPause}><Icon icon={playPauseButton} />️</sl-button>
                   </sl-tooltip>
                 </sl-button-group>
               </div>
@@ -455,9 +466,6 @@
             <div class="checkbox buttonsInline">
               <div class="button-group-toolbar">
                 <sl-button-group label="History">
-                  <sl-tooltip content="Play">
-                    <sl-button size={buttonSize} on:click={playPause} ><Icon icon={playPauseButton} />️</sl-button>
-                  </sl-tooltip>
                   <sl-tooltip content="Close">
                     <sl-button size={buttonSize} on:click={hide} ><Icon icon={faTimesCircle} />️</sl-button>
                   </sl-tooltip>
