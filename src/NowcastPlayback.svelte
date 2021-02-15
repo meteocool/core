@@ -213,12 +213,6 @@
     loop = !loop;
     historicActive = loop;
     if (!historicActive) includeHistoric = false;
-    window.setTimeout(() => {
-      loop = !loop;
-      window.setTimeout(() => {
-        loop = !loop;
-      }, 500);
-    }, 500);
   }
 
   function toggleHistoric(el) {
