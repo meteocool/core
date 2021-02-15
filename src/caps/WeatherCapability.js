@@ -29,7 +29,7 @@ export class WeatherCapability extends Capability {
       .then((response) => response.json())
       .then((obj) => {
         this.iconLayers = obj;
-        this.onSliderChange(roundToHour(new Date()));
+        //this.onSliderChange(roundToHour(new Date()));
       })
       .then(() => this.nanobar.finish(this.url))
       .catch((error) => {
