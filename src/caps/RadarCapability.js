@@ -1,9 +1,15 @@
+import { io } from "socket.io-client";
 import { dwdLayer, greyOverlay } from "../layers/radar";
 import { reportError } from "../lib/Toast";
-import { capDescription, capLastUpdated } from "../stores";
-import { Capability } from './Capability';
-import { apiBaseUrl, tileBaseUrl, websocketBaseUrl } from '../urls';
-import { io } from "socket.io-client";
+import { capDescription, capLastUpdated, latLon } from "../stores";
+import { Capability } from "./Capability";
+import { apiBaseUrl, tileBaseUrl, websocketBaseUrl } from "../urls";
+
+let lat;
+let lon;
+latLon.subscribe((latlon) => {
+  [lat, lon] = latlon;
+});
 
 export class RadarCapability extends Capability {
   constructor(options) {
@@ -17,7 +23,6 @@ export class RadarCapability extends Capability {
     this.layer = null;
     this.nanobar = options.nanobar;
     this.nowcast = null;
-    this.url = options.tileURL;
 
     super.setMap(options.map);
     this.reloadTilesRadar();
@@ -33,17 +38,18 @@ export class RadarCapability extends Capability {
   }
 
   reloadTilesRadar() {
-    this.nanobar.start(this.url);
-    fetch(this.url)
+    const URL = `${apiBaseUrl}radar/${lat}/${lon}/`;
+    this.nanobar.start(URL);
+    fetch(URL)
       .then((response) => response.json())
       .then((obj) => {
         if ("radar" in obj) this.processRadar(obj);
         this.nowcast = obj.nowcast;
         console.log(obj);
       })
-      .then(() => this.nanobar.finish(this.url))
+      .then(() => this.nanobar.finish(URL))
       .catch((error) => {
-        this.nanobar.finish(this.url);
+        this.nanobar.finish(URL);
         reportError(error);
       });
   }
@@ -70,7 +76,7 @@ export class RadarCapability extends Capability {
 
   downloadHistoric() {
     this.nanobar.start("historic_nowcast");
-    fetch(`${apiBaseUrl}radar_historic/`)
+    fetch(`${apiBaseUrl}radar_historic/${lat}/${lon}/`)
       .then((response) => response.json())
       .then((obj) => {
         this.historicLayers = obj;
@@ -79,6 +85,7 @@ export class RadarCapability extends Capability {
           sources[index * (-5)] = {
             url: `${tileBaseUrl}/meteoradar/${radar.tile_id}/{z}/{x}/{-y}.png`,
             tile_id: radar.tile_id,
+            reported_intensity: radar.reported_intensity,
           };
         });
         this.notify("historic", { sources });
@@ -105,6 +112,7 @@ export class RadarCapability extends Capability {
         response.sources[interval.prediction_time] = {
           url: `${tileBaseUrl}/meteonowcast/${interval.tile_id}/{z}/{x}/{-y}.png`,
           tile_id: interval.tile_id,
+          reported_intensity: interval.reported_intensity,
           time: self.upstreamTime + interval.prediction_time * 60,
         };
       });

@@ -1,6 +1,7 @@
 <script>
   import Icon from 'fa-svelte';
-  import { capTimeIndicator, showTimeSlider } from './stores';
+  import { faRedoAlt } from '@fortawesome/free-solid-svg-icons/faRedoAlt';
+  import { capTimeIndicator, showTimeSlider, latLon } from './stores';
   import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
   import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
   import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
@@ -13,6 +14,10 @@
   import { onMount } from 'svelte';
   import LastUpdated from './components/LastUpdated.svelte';
   import {format} from 'date-fns';
+  import Chart from 'chart.js';
+  import { meteocoolClassic } from './colormaps';
+
+
 
   export let cap;
   export let device;
@@ -53,6 +58,7 @@
         nowcastLayers = data.sources;
       }
       if (nowcastLayers && historicLayers) {
+        console.log()
         fsm.showScrollbar();
       }
     });
@@ -63,6 +69,47 @@
       }
     });
   });
+
+  let canvas;
+  function canvasInit(elem) {
+    canvas = elem;
+    const values = Object.values(historicLayers).map((layer)=>Math.round(layer.reported_intensity+32.5)).concat(Object.values(nowcastLayers).map((layer)=>Math.round(layer.reported_intensity+32.5)));
+    console.log(values.map((value => meteocoolClassic[Math.round(value-32.5)])).map(maybe => maybe ? maybe : [0,0,0,0]).map(([r,g,b,a]) => `rgba(${r}, ${g}, ${b}, ${a/255})`));
+    const ctx = canvas.getContext('2d');
+    var myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: Array(50).fill().map((_, i) => `${-120+i*5}`),
+        datasets: [{
+          data:  values,
+          backgroundColor: values.map((value => meteocoolClassic[Math.round(value*2)])).map(maybe => maybe ? maybe : [0,0,0,0]).map(([r,g,b,a]) => `rgba(${r}, ${g}, ${b}, 1)`),
+          borderColor: getComputedStyle(document.body).getPropertyValue('--sl-color-info-700'),
+        }]
+      },
+      options: {
+        scales: {
+          xAxes: [{
+            gridLines: {
+              display:false
+            },
+            ticks: {
+              fontColor: getComputedStyle(document.body).getPropertyValue('--sl-color-info-700'),
+              fontSize: 9,
+            }
+          }],
+          yAxes: [{
+            gridLines: {
+              display:false
+            },
+            scaleLabel: {
+              display: false,
+              labelString: 'Intensity',
+            },
+            type: 'logarithmic',
+        }]
+      }
+    }});
+  }
 
   let fsm = new StateMachine({
     init: 'followLatest',
@@ -226,7 +273,7 @@
   .timeslider {
     height: 90px;
     z-index: 999999;
-    padding-top: 5px;
+    padding-top: 6px;
   }
 
   @media (orientation: portrait) {
@@ -384,6 +431,12 @@
 
   .range {
     width: 98%;
+    margin-top: 10px;
+  }
+
+  .faIconButton {
+    height: 1.5em !important;
+    width: 1.5em !important;
   }
 </style>
 
@@ -408,6 +461,7 @@
         </div>
       </div>
     {:else}
+      <canvas id="myChart" style="position: absolute; left: 2%; bottom: 69px; z-index: 99999; width: 95%; height: 100px;" use:canvasInit></canvas>
       <div class="flexbox">
         <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">
@@ -424,13 +478,21 @@
               <div class="button-group-toolbar">
                 <sl-button-group label="History">
                   <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
-                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>🔁 Loop️</sl-button>
+                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
+                      <Icon icon={faRedoAlt} class="faIconButton" />️
+                    </sl-button>
                   </sl-tooltip>
                   <sl-tooltip content="Include Last 2 Hours in Playback Loop">
-                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}><Icon icon={faHistory} />  Historic</sl-button>
+                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
+                      <div class="faIconButton">
+                        <Icon icon={faHistory} />
+                      </div>
+                    </sl-button>
                   </sl-tooltip>
                   <sl-tooltip content="Play">
-                    <sl-button size={buttonSize} on:click={playPause}><Icon icon={playPauseButton} />️</sl-button>
+                    <sl-button size={buttonSize} on:click={playPause}>
+                      <Icon icon={playPauseButton} class="faIconButton" />
+                    </sl-button>
                   </sl-tooltip>
                 </sl-button-group>
               </div>
