@@ -99,13 +99,16 @@
           }],
           yAxes: [{
             gridLines: {
-              display:false
+              display:false,
             },
             scaleLabel: {
               display: false,
               labelString: 'Intensity',
             },
             type: 'logarithmic',
+            ticks: {
+              display: false
+            },
         }]
       }
     }});
@@ -438,6 +441,20 @@
     height: 1.5em !important;
     width: 1.5em !important;
   }
+
+  .barChartCanvas {
+    position: absolute;
+    left: 2%;
+    bottom: 69px;
+    z-index: 99999;
+    width: 95%;
+    height: 100px;
+  }
+  @media (orientation: portrait) {
+    .barChartCanvas {
+      bottom: 159px;
+    }
+  }
 </style>
 
 <span use:renderIcon><Icon icon={faArrowsAltH} /></span>
@@ -461,7 +478,7 @@
         </div>
       </div>
     {:else}
-      <canvas id="myChart" style="position: absolute; left: 2%; bottom: 69px; z-index: 99999; width: 95%; height: 100px;" use:canvasInit></canvas>
+      <canvas id="myChart" class="barChartCanvas" use:canvasInit></canvas>
       <div class="flexbox">
         <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">
