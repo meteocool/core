@@ -87,6 +87,12 @@
         }]
       },
       options: {
+        legend: {
+          display: false
+        },
+        tooltips: {
+          enabled: false
+        },
         scales: {
           xAxes: [{
             gridLines: {
@@ -453,6 +459,7 @@
   @media (orientation: portrait) {
     .barChartCanvas {
       bottom: 159px;
+      height: 60px;
     }
   }
 </style>
