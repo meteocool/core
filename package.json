@@ -40,6 +40,7 @@
     "@sentry/tracing": "^5.30.0",
     "@shoelace-style/shoelace": "git://github.com/meteocool/shoelace.git#next",
     "babel-eslint": "^10.1.0",
+    "chart.js": "^2.9.4",
     "date-fns": "^2.16.1",
     "moment": "^2.29.1",
     "nanobar": "^0.4.2",

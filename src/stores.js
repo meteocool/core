@@ -5,3 +5,4 @@ export const capDescription = writable("Meteorology for everyone");
 export const capLastUpdated = writable(null);
 export const capTimeIndicator = writable(null);
 export const colorSchemeDark = writable(false);
+export const latLon = writable([48.138783, 11.585069]);

@@ -83,7 +83,7 @@
   customElements.define('sl-tooltip', SlTooltip);
 
   let baseUrl = 'https://api.ng.meteocool.com/api/';
-  //baseUrl = "http://localhost:5000/api/";
+  baseUrl = "http://localhost:5000/api/";
   window.settings = new Settings({
     mapRotation: {
       type: 'boolean',
@@ -135,7 +135,6 @@
   const nb = new NanobarWrapper();
   export const radar = new RadarCapability({
     nanobar: nb,
-    tileURL: baseUrl + 'radar/',
   });
   export const weather = new WeatherCapability({
     nanobar: nb,
