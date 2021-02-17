@@ -19,8 +19,9 @@ let cmap = meteocoolClassic;
 
 // eslint-disable-next-line import/prefer-default-export
 export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
+  const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZHeavy({
-    url: `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`,
+    url: sourceUrl,
     attributions: [dwdAttribution, imprintAttribution],
     crossOrigin: "anonymous",
     minZoom: 1,
@@ -83,7 +84,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   };
 
   rasterRadarImageLayer.set("tileId", tileId);
-  return [rasterRadarImageLayer, reflectivitySource];
+  return [rasterRadarImageLayer, reflectivitySource, sourceUrl];
 };
 
 export const greyOverlay = () => new VectorLayer({

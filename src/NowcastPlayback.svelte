@@ -49,13 +49,15 @@
   }
 
   onMount(async () => {
+    console.log("ONMOUNT");
     cap.addObserver((subject, data) => {
       console.log(`observed ${subject}`);
       if (subject === 'historic') {
         historicLayers = data.sources;
-      }
-      if (subject === 'nowcast') {
+      } else if (subject === 'nowcast') {
         nowcastLayers = data.sources;
+      } else {
+        return;
       }
       if (nowcastLayers && historicLayers) {
         console.log();
@@ -178,6 +180,11 @@
         from: '*',
         to: 'followLatest'
       },
+      {
+        name: 'hideScrollbar',
+        from: 'followLatest',
+        to: 'followLatest'
+      },
     ],
     methods: {
       onWaitForServer: (param) => {
@@ -221,6 +228,7 @@
         playPauseButton = faPlay;
       },
       onHideScrollbar: (transition) => {
+        if (transition.from == 'followLatest') return;
         open = false;
         oldTimeStep = 0;
         warned = false;
@@ -228,6 +236,7 @@
         setTimeout(() => {
           showTimeSlider.set(false);
         }, 200);
+        cap.source.setUrl(cap.lastSourceUrl);
         //cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 45px)";
       },
     }
@@ -235,6 +244,7 @@
   window.fsm = fsm;
 
   function initSlider(elem) {
+    /*
     elem.tooltipFormatter = value => {
       if (value === 0) {
         return 'Latest Radar Image';
@@ -242,6 +252,7 @@
       return `${value.toString()[0] !== '-' ? '+' : ''}${value.toString()}m`;
     };
     elem.addEventListener('sl-change', (value) => sliderChangedHandler(value.target.value));
+    */
     slRange = elem;
   }
 
@@ -259,7 +270,7 @@
     if (value === oldTimeStep) return;
 
     if (value === 0) {
-      cap.source.setUrl(nowcastLayers[value].url);
+      cap.source.setUrl(cap.lastSourceUrl);
     } else {
       if (value > 0) {
         cap.source.setUrl(nowcastLayers[value].url);

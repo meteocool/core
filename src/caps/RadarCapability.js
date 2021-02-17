@@ -23,6 +23,7 @@ export class RadarCapability extends Capability {
     this.layer = null;
     this.nanobar = options.nanobar;
     this.nowcast = null;
+    this.lastSourceUrl = "";
 
     super.setMap(options.map);
     this.reloadTilesRadar();
@@ -69,7 +70,7 @@ export class RadarCapability extends Capability {
       }
       super.getMap().removeLayer(this.layer);
     }
-    [this.layer, this.source] = dwdLayer(obj.radar.tile_id, { mainLayer: true });
+    [this.layer, this.source, this.lastSourceUrl] = dwdLayer(obj.radar.tile_id, { mainLayer: true });
     this.layer.setOpacity(0.85);
     super.getMap().addLayer(this.layer);
   }
