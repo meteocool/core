@@ -264,7 +264,6 @@
 {#if device !== "ios" && device !== "android"}
   <Logo />
 {/if}
-<TimeIndicator />
 <BottomToolbar device={device} />
 <div id="nanobar" />
 <Map layerManager={lm} />

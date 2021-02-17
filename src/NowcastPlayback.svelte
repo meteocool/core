@@ -13,11 +13,10 @@
   import StateMachine from 'javascript-state-machine';
   import { onMount } from 'svelte';
   import LastUpdated from './components/LastUpdated.svelte';
-  import {format} from 'date-fns';
+  import { format } from 'date-fns';
   import Chart from 'chart.js';
   import { meteocoolClassic } from './colormaps';
-
-
+  import TimeIndicator from './components/TimeIndicator.svelte';
 
   export let cap;
   export let device;
@@ -44,9 +43,9 @@
   let includeHistoric = false;
   let canvas;
 
-  let buttonSize = "small";
-  if (device === "ios" || device === "android") {
-    buttonSize = "medium";
+  let buttonSize = 'small';
+  if (device === 'ios' || device === 'android') {
+    buttonSize = 'medium';
   }
 
   onMount(async () => {
@@ -59,7 +58,7 @@
         nowcastLayers = data.sources;
       }
       if (nowcastLayers && historicLayers) {
-        console.log()
+        console.log();
         fsm.showScrollbar();
       }
     });
@@ -73,17 +72,27 @@
 
   function canvasInit(elem) {
     canvas = elem;
-    const values = Object.values(historicLayers).map((layer)=>Math.round(layer.reported_intensity+32.5)).concat(Object.values(nowcastLayers).map((layer)=>Math.round(layer.reported_intensity+32.5)));
-    console.log(values.map((value => meteocoolClassic[Math.round(value-32.5)])).map(maybe => maybe ? maybe : [0,0,0,0]).map(([r,g,b,a]) => `rgba(${r}, ${g}, ${b}, ${a/255})`));
+    const values = Object.values(historicLayers)
+            .map((layer) => Math.round(layer.reported_intensity + 32.5))
+            .concat(Object.values(nowcastLayers)
+                    .map((layer) => Math.round(layer.reported_intensity + 32.5)));
+    console.log(values.map((value => meteocoolClassic[Math.round(value - 32.5)]))
+            .map(maybe => maybe ? maybe : [0, 0, 0, 0])
+            .map(([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a / 255})`));
     const ctx = canvas.getContext('2d');
     var myChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: Array(49).fill().map((_, i) => `${-120+i*5}`),
+        labels: Array(49)
+                .fill()
+                .map((_, i) => `${-120 + i * 5}`),
         datasets: [{
-          data:  values,
-          backgroundColor: values.map((value => meteocoolClassic[Math.round(value*2)])).map(maybe => maybe ? maybe : [0,0,0,0]).map(([r,g,b,a]) => `rgba(${r}, ${g}, ${b}, 1)`),
-          borderColor: getComputedStyle(document.body).getPropertyValue('--sl-color-info-700'),
+          data: values,
+          backgroundColor: values.map((value => meteocoolClassic[Math.round(value * 2)]))
+                  .map(maybe => maybe ? maybe : [0, 0, 0, 0])
+                  .map(([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, 1)`),
+          borderColor: getComputedStyle(document.body)
+                  .getPropertyValue('--sl-color-info-700'),
           borderWidth: 1,
         }]
       },
@@ -107,16 +116,20 @@
         scales: {
           xAxes: [{
             gridLines: {
-              display:false
+              display: false
             },
             ticks: {
-              fontColor: getComputedStyle(document.body).getPropertyValue('--sl-color-info-700'),
+              fontColor: getComputedStyle(document.body)
+                      .getPropertyValue('--sl-color-info-700'),
               fontSize: 9,
+              autoSkip: true,
+              maxRotation: 90,
+              minRotation: 0,
             }
           }],
           yAxes: [{
             gridLines: {
-              display:false,
+              display: false,
             },
             scaleLabel: {
               display: false,
@@ -126,9 +139,10 @@
             ticks: {
               display: false
             },
-        }]
+          }]
+        }
       }
-    }});
+    });
   }
 
   let fsm = new StateMachine({
@@ -180,7 +194,7 @@
         loadingIndicator = false;
         oldUrls = cap.source.getUrls();
         if (slRange) slRange.value = 0;
-        document.documentElement.style.setProperty('--toast-stack-offset', '100px');
+        document.documentElement.style.setProperty('--toast-stack-offset', '124px');
       },
       onPressPlay: (transition) => {
         let playTick = () => {
@@ -189,7 +203,7 @@
           } else {
             slRange.value = slRange.value + 5;
           }
-          capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + slRange.value*60)*1000), "⏱ HH:mm, dd MMM"));
+          capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + slRange.value * 60) * 1000), '⏱ HH:mm'));
           sliderChangedHandler(slRange.value);
           if (slRange.value !== 0 || loop) {
             playTimeout = window.setTimeout(playTick, 500);
@@ -286,7 +300,7 @@
     includeHistoric = !includeHistoric;
   }
 
-  let hasHover = !window.matchMedia("(hover: none)").matches;
+  let hasHover = !window.matchMedia('(hover: none)').matches;
 </script>
 
 <style>
@@ -298,7 +312,8 @@
 
   @media (orientation: portrait) {
     .timeslider {
-      height: 180px;
+      height: 170px;
+      padding-top: 0px;
     }
   }
 
@@ -400,8 +415,12 @@
 
   @media (orientation: portrait) {
     .gap > * {
-      margin-bottom: 20px;
-      margin-right: 24px;
+      margin-bottom: 16px;
+      margin-right: 18px;
+    }
+    .flexbox {
+      padding-left: 1%;
+      padding-right: 1%;
     }
   }
 
@@ -452,11 +471,12 @@
   .range {
     width: 98%;
     top: 10px;
+    margin-bottom: 5px;
   }
-
-  .faIconButton {
-    height: 1.5em !important;
-    width: 1.5em !important;
+  @media (orientation: portrait) {
+      .range {
+        top: 4px;
+      }
   }
 
   .barChartCanvas {
@@ -470,8 +490,9 @@
   }
   @media (orientation: portrait) {
     .barChartCanvas {
-      bottom: 159px;
-      height: 30px;
+      bottom: 151px;
+      height: 38px;
+      width: 100%;
     }
   }
 </style>
@@ -510,29 +531,36 @@
           <div class="barChartCanvas">
             <canvas id="myChart" use:canvasInit></canvas>
           </div>
-          <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider></sl-range>
+          <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider tooltip="none"></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
               <div class="button-group-toolbar">
-                <sl-button-group label="History">
+                <sl-button-group label="Playback Controls">
+                  <sl-tooltip content="Play" disabled={!hasHover}>
+                    <sl-button size={buttonSize} on:click={playPause}>
+                      <Icon icon={playPauseButton} class="faIconButton" />
+                    </sl-button>
+                  </sl-tooltip>
                   <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
                     <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
                       <Icon icon={faRedoAlt} class="faIconButton" />️
                     </sl-button>
                   </sl-tooltip>
-                  <sl-tooltip content="Include Last 2 Hours in Playback Loop">
+                  <sl-tooltip content="Include Last 2 Hours in Playback Loop" disabled={!hasHover}>
                     <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
                       <div class="faIconButton">
                         <Icon icon={faHistory} />
                       </div>
                     </sl-button>
                   </sl-tooltip>
-                  <sl-tooltip content="Play">
-                    <sl-button size={buttonSize} on:click={playPause}>
-                      <Icon icon={playPauseButton} class="faIconButton" />
-                    </sl-button>
-                  </sl-tooltip>
                 </sl-button-group>
+              </div>
+            </div>
+            <div class="checkbox buttonsInline">
+              <div class="button-group-toolbar">
+                <sl-tooltip content="Close" disabled={!hasHover}>
+                  <sl-button size={buttonSize} on:click={hide} ><Icon icon={faTimesCircle} />️</sl-button>
+                </sl-tooltip>
               </div>
             </div>
             {#if device !== "ios"}
@@ -557,17 +585,11 @@
                 </sl-select>
               </div>
             {/if}
-            <div class="checkbox buttonsInline">
-              <div class="button-group-toolbar">
-                <sl-button-group label="History">
-                  <sl-tooltip content="Close">
-                    <sl-button size={buttonSize} on:click={hide} ><Icon icon={faTimesCircle} />️</sl-button>
-                  </sl-tooltip>
-                </sl-button-group>
-              </div>
-            </div>
             <div class="checkbox">
               <LastUpdated />
+            </div>
+            <div class="checkbox">
+              <TimeIndicator device={device} />
             </div>
           </div>
         </div>
