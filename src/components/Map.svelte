@@ -1,7 +1,7 @@
 <script>
   import McLayerSwitcher from "./McLayerSwitcher.svelte";
   import "ol/ol.css";
-  import { showTimeSlider } from "./stores";
+  import { showTimeSlider } from "../stores";
 
   let map = null;
   export let layerManager;

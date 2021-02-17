@@ -3,7 +3,7 @@
   import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
-  import * as attributions from "./layers/attributions";
+  import * as attributions from "../layers/attributions";
 
   export let layerManager;
   let childCanvases = {};

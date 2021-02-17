@@ -1,8 +1,8 @@
 <script>
-  import Map from './Map';
-  import Logo from './Logo';
-  import NowcastPlayback from './NowcastPlayback';
-  import BottomToolbar from './BottomToolbar';
+  import Map from './components/Map';
+  import Logo from './components/Logo';
+  import NowcastPlayback from './components/NowcastPlayback';
+  import BottomToolbar from './components/BottomToolbar';
 
   import { RadarCapability } from './caps/RadarCapability';
   import { SatelliteCapability } from './caps/SatelliteCapability';
@@ -45,6 +45,7 @@
   } from '@shoelace-style/shoelace';
   import TimeIndicator from './components/TimeIndicator.svelte';
   import { apiBaseUrl } from './urls';
+  import { initUIConstants } from './layers/ui';
 
   Sentry.init({
     dsn:
@@ -82,6 +83,8 @@
   customElements.define('sl-checkbox', SlCheckbox);
   customElements.define('sl-button-group', SlButtonGroup);
   customElements.define('sl-tooltip', SlTooltip);
+
+  initUIConstants();
 
   window.settings = new Settings({
     mapRotation: {
@@ -237,8 +240,8 @@
   :global(.nanobar) {
     width: 100%;
     height: 4px;
-    z-index: 9999;
-    top: 0;
+    z-index: 999999;
+    top: calc(env(safe-area-inset-top) + 0px);
   }
   :global(.bar) {
     width: 0;
