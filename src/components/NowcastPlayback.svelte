@@ -1,22 +1,23 @@
 <script>
   import Icon from 'fa-svelte';
   import { faRedoAlt } from '@fortawesome/free-solid-svg-icons/faRedoAlt';
-  import { capTimeIndicator, showTimeSlider, latLon } from './stores';
+  import { capTimeIndicator, showTimeSlider, latLon } from '../stores';
   import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
   import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
   import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
   import { faTimesCircle } from '@fortawesome/free-solid-svg-icons/faTimesCircle';
   import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
   import { fly } from 'svelte/transition';
-  import { reportToast } from './lib/Toast';
+  import { reportToast } from '../lib/Toast';
   import { _ } from 'svelte-i18n';
   import StateMachine from 'javascript-state-machine';
   import { onMount } from 'svelte';
-  import LastUpdated from './components/LastUpdated.svelte';
+  import LastUpdated from './LastUpdated.svelte';
   import { format } from 'date-fns';
   import Chart from 'chart.js';
-  import { meteocoolClassic } from './colormaps';
-  import TimeIndicator from './components/TimeIndicator.svelte';
+  import { meteocoolClassic } from '../colormaps';
+  import TimeIndicator from './TimeIndicator.svelte';
+  import { resetUIConstant, setUIConstant } from '../layers/ui';
 
   export let cap;
   export let device;
@@ -49,7 +50,6 @@
   }
 
   onMount(async () => {
-    console.log("ONMOUNT");
     cap.addObserver((subject, data) => {
       console.log(`observed ${subject}`);
       if (subject === 'historic') {
@@ -66,7 +66,6 @@
     });
     cap.addObserver((event) => {
       if (event === 'loseFocus') {
-        console.log('radar lost focus');
         hide();
       }
     });
@@ -201,7 +200,7 @@
         loadingIndicator = false;
         oldUrls = cap.source.getUrls();
         if (slRange) slRange.value = 0;
-        document.documentElement.style.setProperty('--toast-stack-offset', '124px');
+        setUIConstant('toast-stack-offset', '124px');
       },
       onPressPlay: (transition) => {
         let playTick = () => {
@@ -232,12 +231,12 @@
         open = false;
         oldTimeStep = 0;
         warned = false;
+        resetUIConstant('toast-stack-offset');
         loadingIndicator = true;
         setTimeout(() => {
           showTimeSlider.set(false);
         }, 200);
         cap.source.setUrl(cap.lastSourceUrl);
-        //cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 45px)";
       },
     }
   });
@@ -442,15 +441,6 @@
     /*background-color: green;*/
   }
 
-  .flexbox > .model {
-    flex-grow: 1; /* do not grow   - initial value: 0 */
-    flex-shrink: 1; /* do not shrink - initial value: 1 */
-    flex-basis: 12%;
-    padding-right: 1%;
-    padding-left: 1%;
-    /*background-color: red;*/
-  }
-
   .flexbox > .buttonsInline {
     display: none;
   }
@@ -574,7 +564,7 @@
                 </sl-tooltip>
               </div>
             </div>
-            {#if device !== "ios"}
+            {#if device !== "ios" && device !== "android"}
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="History">

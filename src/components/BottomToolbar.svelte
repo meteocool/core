@@ -1,5 +1,5 @@
 <script>
-  import LastUpdated from './components/LastUpdated.svelte';
+  import LastUpdated from './LastUpdated.svelte';
 
   import Icon from 'fa-svelte';
   import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';

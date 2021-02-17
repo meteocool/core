@@ -1,5 +1,5 @@
 <script>
-  import logo from "../assets/logo.svg";
+  import logo from "../../assets/logo.svg";
   import About from "./About.svelte";
   import { _ } from "svelte-i18n";
 

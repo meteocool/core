@@ -6,7 +6,7 @@ export class NanobarWrapper {
     this.clients = {};
     this.activeTimeout = null;
     this.manual = 0;
-    this.manualHighwater = 0;
+    this.manualHighwater = 0.1;
   }
 
   start(id) {
@@ -28,7 +28,7 @@ export class NanobarWrapper {
   manualDown() {
     this.manual -= 1;
     if (this.manual <= 0) {
-      this.manualHighwater = 0;
+      this.manualHighwater = 0.1;
       this.nb.go(100);
     }
     if (this.manual % 11 === 0) this.tick();
