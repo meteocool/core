@@ -20,7 +20,7 @@ export class WeatherCapability extends Capability {
     this.weatherLayer = null;
     this.iconLayers = [];
 
-    //this.reloadTilesWeather();
+    this.reloadTilesWeather();
   }
 
   reloadTilesWeather() {
@@ -29,7 +29,6 @@ export class WeatherCapability extends Capability {
       .then((response) => response.json())
       .then((obj) => {
         this.iconLayers = obj;
-        //this.onSliderChange(roundToHour(new Date()));
       })
       .then(() => this.nanobar.finish(this.url))
       .catch((error) => {
