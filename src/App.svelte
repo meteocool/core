@@ -44,6 +44,7 @@
     SlRange
   } from '@shoelace-style/shoelace';
   import TimeIndicator from './components/TimeIndicator.svelte';
+  import { apiBaseUrl } from './urls';
 
   Sentry.init({
     dsn:
@@ -82,8 +83,6 @@
   customElements.define('sl-button-group', SlButtonGroup);
   customElements.define('sl-tooltip', SlTooltip);
 
-  let baseUrl = 'https://api.ng.meteocool.com/api/';
-  baseUrl = "http://localhost:5000/api/";
   window.settings = new Settings({
     mapRotation: {
       type: 'boolean',
@@ -138,7 +137,7 @@
   });
   export const weather = new WeatherCapability({
     nanobar: nb,
-    tileURL: baseUrl + 'icon/t_2m/',
+    tileURL: apiBaseUrl + 'icon/t_2m/',
   });
 
   window.enterForeground = () => {
@@ -148,7 +147,6 @@
   }; // may be a second function if you want to have no switch to of the scheme at the start of the app
 
   export let lm = new LayerManager({
-    baseURL: baseUrl + 'tiles/',
     settings: window.settings,
     nanobar: nb,
     capabilities: {

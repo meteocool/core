@@ -42,6 +42,7 @@
   let loop = true;
   let historicActive = true;
   let includeHistoric = false;
+  let canvas;
 
   let buttonSize = "small";
   if (device === "ios" || device === "android") {
@@ -70,7 +71,6 @@
     });
   });
 
-  let canvas;
   function canvasInit(elem) {
     canvas = elem;
     const values = Object.values(historicLayers).map((layer)=>Math.round(layer.reported_intensity+32.5)).concat(Object.values(nowcastLayers).map((layer)=>Math.round(layer.reported_intensity+32.5)));
@@ -79,14 +79,25 @@
     var myChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: Array(50).fill().map((_, i) => `${-120+i*5}`),
+        labels: Array(49).fill().map((_, i) => `${-120+i*5}`),
         datasets: [{
           data:  values,
           backgroundColor: values.map((value => meteocoolClassic[Math.round(value*2)])).map(maybe => maybe ? maybe : [0,0,0,0]).map(([r,g,b,a]) => `rgba(${r}, ${g}, ${b}, 1)`),
           borderColor: getComputedStyle(document.body).getPropertyValue('--sl-color-info-700'),
+          borderWidth: 1,
         }]
       },
       options: {
+        layout: {
+          padding: {
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0
+          }
+        },
+        responsive: true,
+        maintainAspectRatio: false,
         legend: {
           display: false
         },
@@ -398,7 +409,6 @@
     flex-grow: 1; /* do not grow   - initial value: 0 */
     flex-shrink: 1; /* do not shrink - initial value: 1 */
     flex-basis: 85%;
-    padding-left: 2%;
     /*background-color: green;*/
   }
 
@@ -432,6 +442,7 @@
     flex-shrink: 0; /* do not shrink - initial value: 1 */
     flex-basis: 3%;
     min-width: 30px;
+    margin-right: 1%;
     /*background-color: yellow;*/
   }
   .flexbox > .checkbox {
@@ -440,7 +451,7 @@
 
   .range {
     width: 98%;
-    margin-top: 10px;
+    top: 10px;
   }
 
   .faIconButton {
@@ -450,16 +461,17 @@
 
   .barChartCanvas {
     position: absolute;
-    left: 2%;
-    bottom: 69px;
+    bottom: 72px;
     z-index: 99999;
-    width: 95%;
-    height: 100px;
+    width: 96%;
+    height: 60px;
+    pointer-events: none;
+    transform: translateX(-1.1%);
   }
   @media (orientation: portrait) {
     .barChartCanvas {
       bottom: 159px;
-      height: 60px;
+      height: 30px;
     }
   }
 </style>
@@ -485,7 +497,6 @@
         </div>
       </div>
     {:else}
-      <canvas id="myChart" class="barChartCanvas" use:canvasInit></canvas>
       <div class="flexbox">
         <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">
@@ -496,6 +507,9 @@
           </div>
         </div>
         <div class="slider">
+          <div class="barChartCanvas">
+            <canvas id="myChart" use:canvasInit></canvas>
+          </div>
           <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
