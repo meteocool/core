@@ -47,5 +47,5 @@
   "published": "Published",
   "acquired": "Acquired",
   "trackingMostRecent": "Tracking Most Recent",
-  "forcastPlaying": "You are now viewing forecasted data.\nTo go back to the most recent radar observation, reset ↺ the timeline."
+  "forcastPlaying": "You are now viewing forecasted data. Keep in mind that it might be inaccurate."
 }
