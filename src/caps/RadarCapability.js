@@ -28,7 +28,7 @@ export class RadarCapability extends Capability {
     super.setMap(options.map);
     this.reloadTilesRadar();
 
-    const socket = io(`${websocketBaseUrl}radar_ws/`);
+    const socket = io(`${websocketBaseUrl}radar`);
     socket.on("connect", () => {
       console.log("radar websocket connected!");
     });
