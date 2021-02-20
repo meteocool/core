@@ -50,12 +50,16 @@
         class="tag"
         size="medium"
         pill>
+  {#if lastUpdatedStr}
   <sl-progress-ring
           percentage={slPercent}
-          size="16"
-          stroke-width="1"
+          size="18"
+          stroke-width="1.5"
           class="progress-ring"
   />
   {$_("last_updated")}
   {lastUpdatedStr}
+  {:else}
+    <sl-spinner style="--indicator-color: rgb(52,120,246); position: relative; top: 2px; margin-right: 3px; font-size: 14px; --stroke-width: 1.5px"></sl-spinner> Loading...
+  {/if}
 </sl-tag>

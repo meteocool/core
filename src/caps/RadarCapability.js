@@ -3,7 +3,7 @@ import { dwdLayer, greyOverlay } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import { capDescription, capLastUpdated, latLon } from "../stores";
 import { Capability } from "./Capability";
-import { apiBaseUrl, tileBaseUrl, websocketBaseUrl } from "../urls";
+import { apiBaseUrl, tileBaseUrl } from "../urls";
 
 let lat;
 let lon;
@@ -22,24 +22,23 @@ export class RadarCapability extends Capability {
 
     this.layer = null;
     this.nanobar = options.nanobar;
+    this.socket_io = options.socket_io;
     this.nowcast = null;
     this.lastSourceUrl = "";
 
     super.setMap(options.map);
     this.reloadTilesRadar();
 
-    const socket = io(`${websocketBaseUrl}radar`);
-    socket.on("connect", () => {
-      console.log("radar websocket connected!");
-    });
-    socket.on("poke", () => {
-      console.log("received websocket poke, refreshing layers");
-      this.reloadTilesRadar();
-    });
+    if (this.socket_io) {
+      this.socket_io.on("poke", () => {
+        console.log("received websocket poke, refreshing tiles + forecasts");
+        this.reloadTilesRadar();
+      });
+    }
   }
 
   reloadTilesRadar() {
-    const URL = `${apiBaseUrl}radar/${lat}/${lon}/`;
+    const URL = `${apiBaseUrl}/radar/${lat}/${lon}/`;
     this.nanobar.start(URL);
     fetch(URL)
       .then((response) => response.json())
@@ -77,7 +76,7 @@ export class RadarCapability extends Capability {
 
   downloadHistoric() {
     this.nanobar.start("historic_nowcast");
-    fetch(`${apiBaseUrl}radar_historic/${lat}/${lon}/`)
+    fetch(`${apiBaseUrl}/radar_historic/${lat}/${lon}/`)
       .then((response) => response.json())
       .then((obj) => {
         this.historicLayers = obj;

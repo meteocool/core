@@ -67,6 +67,7 @@ module.exports = {
     new CleanWebpackPlugin(),
     new webpack.DefinePlugin({
       GIT_COMMIT_HASH: JSON.stringify(process.env.COMMIT_REF),
+      BACKEND: JSON.stringify(process.env.BACKEND),
     }),
     new CopyPlugin({
       patterns: [{
