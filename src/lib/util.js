@@ -13,7 +13,7 @@ export class Observable {
   }
 
   notify(subject, body) {
-    console.log(`emitting ${subject} event`);
+    // console.log(`emitting ${subject} event`);
     this.observers.forEach((h) => h(subject, body));
   }
 }

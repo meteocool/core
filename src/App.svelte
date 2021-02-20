@@ -43,9 +43,9 @@
     SlMenuLabel,
     SlRange
   } from '@shoelace-style/shoelace';
-  import TimeIndicator from './components/TimeIndicator.svelte';
-  import { apiBaseUrl } from './urls';
+  import { apiBaseUrl, websocketBaseUrl } from './urls';
   import { initUIConstants } from './layers/ui';
+  import { io } from 'socket.io-client';
 
   Sentry.init({
     dsn:
@@ -135,12 +135,17 @@
   });
 
   const nb = new NanobarWrapper();
+  const socket_io = io(`${websocketBaseUrl}/radar`);
+  socket_io.on("connect", () => {
+    console.log("radar websocket connected!");
+  });
   export const radar = new RadarCapability({
     nanobar: nb,
+    socket_io,
   });
   export const weather = new WeatherCapability({
     nanobar: nb,
-    tileURL: apiBaseUrl + 'icon/t_2m/',
+    tileURL: apiBaseUrl + '/icon/t_2m/',
   });
 
   window.enterForeground = () => {

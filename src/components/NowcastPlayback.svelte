@@ -60,7 +60,6 @@
         return;
       }
       if (nowcastLayers && historicLayers) {
-        console.log();
         fsm.showScrollbar();
       }
     });
@@ -250,8 +249,8 @@
       }
       return `${value.toString()[0] !== '-' ? '+' : ''}${value.toString()}m`;
     };
-    elem.addEventListener('sl-change', (value) => sliderChangedHandler(value.target.value));
     */
+    elem.addEventListener('sl-change', (value) => sliderChangedHandler(value.target.value));
     slRange = elem;
   }
 
