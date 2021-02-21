@@ -19,6 +19,7 @@ import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
 import { reportToast } from "./Toast";
+import { latLon } from '../stores';
 
 /**
  * Manages the reflectivity + forecast layers shown on the map.
@@ -42,6 +43,7 @@ export class LayerManager {
   }
 
   updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
+    latLon.set([lat, lon]);
     let accuracyPoly = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
