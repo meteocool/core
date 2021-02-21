@@ -23,6 +23,7 @@ module.exports = {
   ],
   globals: {
     GIT_COMMIT_HASH: "readonly",
+    BACKEND: "readonly",
     Android: "readonly",
   },
   rules: {

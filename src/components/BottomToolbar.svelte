@@ -1,18 +1,18 @@
 <script>
-  import LastUpdated from './LastUpdated.svelte';
 
-  import Icon from 'fa-svelte';
-  import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
-  import { fly } from 'svelte/transition';
+import Icon from "fa-svelte";
+import { faGithubSquare } from "@fortawesome/free-brands-svg-icons/faGithubSquare";
+import { fly } from "svelte/transition";
+import LastUpdated from "./LastUpdated.svelte";
 
-  export let device;
+export let device;
 
-  function slider(elem) {
-    elem.tooltipFormatter = value => `${value.toString()
-            .padStart(2, 0)}:00`;
-    // XXX fix dependency fuckup
-    elem.addEventListener('sl-change', (value) => window.weatherSliderChanged(value.target.value));
-  }
+function slider(elem) {
+  elem.tooltipFormatter = (value) => `${value.toString()
+    .padStart(2, 0)}:00`;
+  // XXX fix dependency fuckup
+  elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
+}
 </script>
 
 <style>

@@ -1,7 +1,8 @@
-// eslint-disable-next-line import/prefer-default-export
 export const tileBaseUrl = "https://tiles-a.meteocool.com";
 
+// eslint-disable-next-line import/no-mutable-exports
 export let apiBaseUrl;
+// eslint-disable-next-line import/no-mutable-exports
 export let websocketBaseUrl;
 if (BACKEND === "local") {
   apiBaseUrl = "http://localhost:5000/api";

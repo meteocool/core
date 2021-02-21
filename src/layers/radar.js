@@ -8,8 +8,8 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
 import { Raster as RasterSource } from "ol/source";
-import XYZHeavy from "../lib/XYZHeavy";
 import { transformExtent } from "ol/proj";
+import XYZHeavy from "../lib/XYZHeavy";
 import { dwdAttribution, imprintAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { meteocoolClassic, viridis } from "../colormaps";
@@ -46,7 +46,8 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     sources: [reflectivityLayer],
     // XXX eslint converts the following to a syntax error. good job y'all
     // eslint-disable-next-line object-shorthand
-    operation: function (pixels, data) {
+    // eslint-disable-next-line func-names
+    operation: function(pixels, data) {
       let dbz = pixels[0][0];
       if (dbz >= data.cmapLength) {
         dbz = data.cmapLength - 1;

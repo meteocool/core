@@ -1,15 +1,13 @@
 // eslint-disable-next-line import/prefer-default-export
-import { capDescription, capLastUpdated } from '../stores';
+import { capDescription, capLastUpdated } from "../stores";
 import { reportError } from "../lib/Toast";
-import { roundToHour } from '../lib/util';
-import { Capability } from './Capability';
+import Capability from "./Capability";
 
 const WEATHER_DESCRIPTION = `
 Temperature at 2m above ground from the ICON weather model.
 `;
 
-// eslint-disable-next-line import/prefer-default-export
-export class WeatherCapability extends Capability {
+export default class WeatherCapability extends Capability {
   constructor(options) {
     super(null, () => {
       capDescription.set(WEATHER_DESCRIPTION);

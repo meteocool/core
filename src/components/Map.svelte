@@ -3,7 +3,7 @@
   import "ol/ol.css";
   import { showTimeSlider } from "../stores";
 
-  let map = null;
+  const map = null;
   export let layerManager;
   let mapID;
 

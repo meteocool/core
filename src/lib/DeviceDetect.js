@@ -1,14 +1,10 @@
-export class DeviceDetect {
-  static isIos() {
-
-  }
-
+export default class DeviceDetect {
   static isIos() {
     const userAgent = window.navigator.userAgent.toLowerCase();
     return /iphone|ipad|ipod/.test(userAgent);
   }
 
-  static isInStandaloneMode () {
+  static isInStandaloneMode() {
     return ("standalone" in window.navigator) && (window.navigator.standalone);
   }
 
@@ -16,17 +12,16 @@ export class DeviceDetect {
    * XXX change the mobile= parameter readout to something more elegant.
    * This would break if the ifs are re-orderd...
    */
-  static getAndroidAPILevel () {
+  static getAndroidAPILevel() {
     if (window.location.search.indexOf("mobile=android2") !== -1) {
       return 2;
-    } else if (window.location.search.indexOf("mobile=android") !== -1) {
+    } if (window.location.search.indexOf("mobile=android") !== -1) {
       return 1;
-    } else {
-      return -1;
     }
+    return -1;
   }
 
-  static getIosAPILevel () {
+  static getIosAPILevel() {
     if (DeviceDetect.isIos()) {
       if (window.location.search.indexOf("mobile=ios3") !== -1) {
         return 3;
@@ -38,7 +33,7 @@ export class DeviceDetect {
     return -1;
   }
 
-  static isApp () {
+  static isApp() {
     if (DeviceDetect.isIos()) {
       if (window.location.search.indexOf("mobile=ios") !== -1) {
         return true;
@@ -50,5 +45,6 @@ export class DeviceDetect {
       }
       return false;
     }
+    return false;
   }
 }

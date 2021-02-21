@@ -1,7 +1,7 @@
 import { dwdLayer, greyOverlay } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import { capDescription, capLastUpdated, latLon } from "../stores";
-import { Capability } from "./Capability";
+import Capability from "./Capability";
 import { apiBaseUrl, tileBaseUrl } from "../urls";
 
 let lat;
@@ -10,7 +10,7 @@ latLon.subscribe((latlon) => {
   [lat, lon] = latlon;
 });
 
-export class RadarCapability extends Capability {
+export default class RadarCapability extends Capability {
   constructor(options) {
     super((map) => {
       map.addLayer(greyOverlay());

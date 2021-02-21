@@ -1,4 +1,4 @@
-export class Settings {
+export default class Settings {
   constructor(settingsCbs) {
     // expects a structure like this:
     // {

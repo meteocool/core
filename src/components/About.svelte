@@ -1,20 +1,20 @@
 <script>
-  import { createEventDispatcher } from "svelte";
-  import { _ } from "svelte-i18n";
+import { _ } from "svelte-i18n";
+import { createEventDispatcher } from "svelte";
 
-  const dispatch = createEventDispatcher();
+const dispatch = createEventDispatcher();
 
-  function init(elem) {
-    elem.addEventListener("sl-overlay-dismiss", (event) => {
-      dispatch("close");
-      return event.preventDefault();
-    });
-    elem.show();
-  }
-
-  function close() {
+function init(elem) {
+  elem.addEventListener("sl-overlay-dismiss", (event) => {
     dispatch("close");
-  }
+    return event.preventDefault();
+  });
+  elem.show();
+}
+
+function close() {
+  dispatch("close");
+}
 </script>
 
 <style>

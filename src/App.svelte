@@ -29,13 +29,13 @@ import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
 
-import { RadarCapability } from "./caps/RadarCapability";
-import { SatelliteCapability } from "./caps/SatelliteCapability";
-import { WeatherCapability } from "./caps/WeatherCapability";
+import RadarCapability from "./caps/RadarCapability";
+import SatelliteCapability from "./caps/SatelliteCapability";
+import WeatherCapability from "./caps/WeatherCapability";
 
 import { LayerManager } from "./lib/LayerManager";
-import { NanobarWrapper } from "./lib/NanobarWrapper";
-import { Settings } from "./lib/Settings";
+import NanobarWrapper from "./lib/NanobarWrapper";
+import Settings from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
@@ -162,7 +162,7 @@ export const lm = new LayerManager({
     weather,
   },
 });
-export const { device } = window;
+let device = window.device;
 window.lm = lm;
 
 if (device === "ios" && "webkit" in window) {

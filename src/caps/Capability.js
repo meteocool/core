@@ -1,6 +1,6 @@
-import { Observable } from '../lib/util';
+import { Observable } from "../lib/util";
 
-export class Capability extends Observable {
+export default class Capability extends Observable {
   constructor(mapCb, targetCb) {
     super();
     this.map = null;
