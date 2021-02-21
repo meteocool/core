@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/prefer-default-export
-import { sentinel2 } from "../layers/satellite";
+import sentinel2 from "../layers/satellite";
 import { capDescription } from "../stores";
-import { Capability } from './Capability';
+import Capability from "./Capability";
 
 const SATELLITE_DESCRIPTION = `
 💡 Sentinel-2 A and B are two ESA satellites 🛰 orbiting
@@ -12,9 +12,7 @@ seem low. But consider that this data is freely available
 within a few hours after recording, continuously for all
 of Earth. 🚀`;
 
-// eslint-disable-next-line import/prefer-default-export
-export class SatelliteCapability extends Capability {
-  // eslint-disable-next-line no-unused-vars
+export default class SatelliteCapability extends Capability {
   constructor() {
     super((map) => map.addLayer(sentinel2()), () => capDescription.set(SATELLITE_DESCRIPTION));
   }

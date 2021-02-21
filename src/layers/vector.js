@@ -17,7 +17,7 @@ const boundaryStyle = new Style({
   zIndex: 1,
 });
 
-const getBoundaryStyle = function (feature) {
+const getBoundaryStyle = (feature) => {
   const kind = feature.get("kind");
   if (kind !== "country") {
     return null;
@@ -86,44 +86,43 @@ const microLabelStyle = new Style({
 });
 
 // eslint-disable-next-line import/prefer-default-export
-export const bordersAndWays = () =>
-  new VectorTileLayer({
-    extent: centralEuropeExtent,
-    zIndex: 99,
-    declutter: true,
-    source: new VectorTileSource({
-      attributions: [wofAttribution, osmAttribution, imprintAttribution],
-      format: new TopoJSON({
-        layerName: "layer",
-        layers: ["boundaries", "places"],
-      }),
-      maxZoom: 17,
-      url:
-        "https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.topojson?api_key=qW-EcxRGQcanc6upJoSHSA",
+export const bordersAndWays = () => new VectorTileLayer({
+  extent: centralEuropeExtent,
+  zIndex: 99,
+  declutter: true,
+  source: new VectorTileSource({
+    attributions: [wofAttribution, osmAttribution, imprintAttribution],
+    format: new TopoJSON({
+      layerName: "layer",
+      layers: ["boundaries", "places"],
     }),
-    style(feature) {
-      let style;
-      switch (feature.get("layer")) {
-        case "places":
-          switch (feature.get("kind")) {
-            case "country":
-              style = countryStyle;
-              break;
-            case "region":
-              style = regionStyle;
-              break;
-            case "locality":
-              style = localityStyle;
-              break;
-            default:
-              style = microLabelStyle;
-          }
-          style.getText().setText(feature.get("name:de"));
-          return style;
-        case "boundaries":
-          return getBoundaryStyle(feature);
-        default:
-          return null;
-      }
-    },
-  });
+    maxZoom: 17,
+    url:
+        "https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.topojson?api_key=qW-EcxRGQcanc6upJoSHSA",
+  }),
+  style(feature) {
+    let style;
+    switch (feature.get("layer")) {
+      case "places":
+        switch (feature.get("kind")) {
+          case "country":
+            style = countryStyle;
+            break;
+          case "region":
+            style = regionStyle;
+            break;
+          case "locality":
+            style = localityStyle;
+            break;
+          default:
+            style = microLabelStyle;
+        }
+        style.getText().setText(feature.get("name:de"));
+        return style;
+      case "boundaries":
+        return getBoundaryStyle(feature);
+      default:
+        return null;
+    }
+  },
+});

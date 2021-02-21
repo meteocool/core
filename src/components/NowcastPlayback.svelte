@@ -16,7 +16,7 @@
   import { format } from 'date-fns';
   import Chart from 'chart.js';
   import { meteocoolClassic } from '../colormaps';
-  import { getDfnLocale } from '../locale/locale';
+  import getDfnLocale from '../locale/locale';
   import TimeIndicator from './TimeIndicator.svelte';
   import { resetUIConstant, setUIConstant } from '../layers/ui';
 

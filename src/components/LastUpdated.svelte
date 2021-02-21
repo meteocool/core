@@ -2,7 +2,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { _ } from "svelte-i18n";
 import { capLastUpdated } from "../stores";
-import { getDfnLocale } from "../locale/locale";
+import getDfnLocale from "../locale/locale";
 
 let lastUpdated;
 let lastUpdatedStr;
@@ -56,7 +56,7 @@ updateTime();
           stroke-width="1.5"
           class="progress-ring"
   />
-  {_("last_updated")}
+  {$_("last_updated")}
   {lastUpdatedStr}
   {:else}
     <sl-spinner style="--indicator-color: rgb(52,120,246); position: relative; top: 2px; margin-right: 3px; font-size: 14px; --stroke-width: 1.5px"></sl-spinner> Loading...

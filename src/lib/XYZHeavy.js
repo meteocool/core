@@ -1,11 +1,12 @@
+/* eslint no-use-before-define: 0 */
 /**
  * @module ol/source/XYZ
  */
 
-//import {createXYZ, extentFromProjection} from '../tilegrid.js';
-import TileImage from 'ol/source/TileImage';
-import { createXYZ, extentFromProjection } from 'ol/tilegrid';
-import { createFromTemplates, expandUrl } from 'ol/tileurlfunction';
+// import {createXYZ, extentFromProjection} from '../tilegrid.js';
+import TileImage from "ol/source/TileImage";
+import { createXYZ, extentFromProjection } from "ol/tilegrid";
+import { createFromTemplates, expandUrl } from "ol/tileurlfunction";
 
 /**
  * @typedef {Object} Options
@@ -76,18 +77,18 @@ class XYZHeavy extends TileImage {
   constructor(opt_options) {
     const options = opt_options || {};
     const projection =
-      options.projection !== undefined ? options.projection : 'EPSG:3857';
+      options.projection !== undefined ? options.projection : "EPSG:3857";
 
     const tileGrid =
-      options.tileGrid !== undefined
-        ? options.tileGrid
-        : createXYZ({
-            extent: extentFromProjection(projection),
-            maxResolution: options.maxResolution,
-            maxZoom: options.maxZoom,
-            minZoom: options.minZoom,
-            tileSize: options.tileSize,
-          });
+      options.tileGrid !== undefined ?
+        options.tileGrid :
+        createXYZ({
+          extent: extentFromProjection(projection),
+          maxResolution: options.maxResolution,
+          maxZoom: options.maxZoom,
+          minZoom: options.minZoom,
+          tileSize: options.tileSize,
+        });
 
     super({
       attributions: options.attributions,
@@ -95,9 +96,9 @@ class XYZHeavy extends TileImage {
       crossOrigin: options.crossOrigin,
       imageSmoothing: options.imageSmoothing,
       opaque: options.opaque,
-      projection: projection,
+      projection,
       reprojectionErrorThreshold: options.reprojectionErrorThreshold,
-      tileGrid: tileGrid,
+      tileGrid,
       tileLoadFunction: options.tileLoadFunction,
       tilePixelRatio: options.tilePixelRatio,
       tileUrlFunction: options.tileUrlFunction,
@@ -128,7 +129,7 @@ class XYZHeavy extends TileImage {
    */
   setUrls(urls) {
     this.urls = urls;
-    const key = urls.join('\n');
+    const key = urls.join("\n");
     if (this.generateTileUrlFunction_) {
       this.setTileUrlFunction(createFromTemplates(urls, this.tileGrid), key);
     } else {
@@ -144,9 +145,9 @@ class XYZHeavy extends TileImage {
    */
   setTileUrlFunction(tileUrlFunction, key) {
     this.tileUrlFunction = tileUrlFunction;
-    //this.tileCache.pruneExceptNewestZ();
+    // this.tileCache.pruneExceptNewestZ();
     console.log(`${this.tileCache.getCount()}/${this.tileCache.highWaterMark}`);
-    if (typeof key !== 'undefined') {
+    if (typeof key !== "undefined") {
       this.setKey(key);
     } else {
       this.changed();

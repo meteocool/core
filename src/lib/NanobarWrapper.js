@@ -1,6 +1,6 @@
 import Nanobar from "nanobar";
 
-export class NanobarWrapper {
+export default class NanobarWrapper {
   constructor(params) {
     this.nb = new Nanobar(params);
     this.clients = {};
@@ -46,8 +46,7 @@ export class NanobarWrapper {
 
   arm(target) {
     this.nb.go(target);
-    if (target < 95)
-      this.activeTimeout = setTimeout((t) => this.arm(t), 100, target + 0.1);
+    if (target < 95) this.activeTimeout = setTimeout((t) => this.arm(t), 100, target + 0.1);
     else this.activeTimeout = null;
   }
 

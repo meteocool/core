@@ -1,3 +1,5 @@
+/* eslint no-use-before-define: 0 */
+
 import { clientsClaim } from "workbox-core";
 import { registerRoute } from "workbox-routing";
 import { CacheFirst } from "workbox-strategies";

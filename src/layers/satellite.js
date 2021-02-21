@@ -4,11 +4,9 @@ import XYZ from "ol/source/XYZ";
 import { bordersAndWays } from "./vector";
 import { centralEuropeExtent } from "./extents";
 import { copernicusAttribution } from "./attributions";
-import { DEVICE_PIXEL_RATIO } from 'ol/has';
 
-// eslint-disable-next-line import/prefer-default-export
-export const sentinel2 = () =>
-  new LayerGroup({
+export default function sentinel2() {
+  return new LayerGroup({
     title: "Sentinel-2 (19m/5 days)",
     layers: [
       new TileLayer({
@@ -25,3 +23,4 @@ export const sentinel2 = () =>
       bordersAndWays(),
     ],
   });
+}

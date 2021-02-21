@@ -1,5 +1,5 @@
 <script>
-  import { capTimeIndicator } from '../stores';
+  import { capTimeIndicator } from "../stores";
 
   let timeString = "";
   export let device;
