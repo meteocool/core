@@ -1,4 +1,3 @@
-import { io } from "socket.io-client";
 import { dwdLayer, greyOverlay } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import { capDescription, capLastUpdated, latLon } from "../stores";

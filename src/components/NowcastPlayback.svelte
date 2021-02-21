@@ -1,7 +1,7 @@
 <script>
   import Icon from 'fa-svelte';
   import { faRedoAlt } from '@fortawesome/free-solid-svg-icons/faRedoAlt';
-  import { capTimeIndicator, showTimeSlider, latLon } from '../stores';
+  import { capTimeIndicator, showTimeSlider } from '../stores';
   import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
   import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
   import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
@@ -16,6 +16,7 @@
   import { format } from 'date-fns';
   import Chart from 'chart.js';
   import { meteocoolClassic } from '../colormaps';
+  import { getDfnLocale } from '../locale/locale';
   import TimeIndicator from './TimeIndicator.svelte';
   import { resetUIConstant, setUIConstant } from '../layers/ui';
 
@@ -376,7 +377,7 @@
 
   .loadingIndicator {
     display: inline-block;
-    transform: translateY(66%);
+    transform: translateY(40%);
   }
 
   .buttonBar {
@@ -512,7 +513,7 @@
               {uiMessage}...
             </div>
             <div class="text bottomText">
-              {$_("last_radar")} then and then
+              {$_("last_radar")} {format(new Date(cap.upstreamTime), "Pp", {locale: getDfnLocale()})}
             </div>
           </div>
         </div>

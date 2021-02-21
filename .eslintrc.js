@@ -20,6 +20,15 @@ module.exports = {
       ]
     },
   },
+  plugins: [
+    'svelte3'
+  ],
+  overrides: [
+    {
+      files: ['*.svelte'],
+      processor: 'svelte3/svelte3'
+    }
+  ],
   globals: {
     GIT_COMMIT_HASH: "readonly",
   },
