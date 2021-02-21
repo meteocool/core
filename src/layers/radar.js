@@ -14,6 +14,7 @@ import { dwdAttribution, imprintAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { meteocoolClassic, viridis } from "../colormaps";
 import { tileBaseUrl } from "../urls";
+import { NOWCAST_TRANSPARENCY } from './ui';
 
 let cmap = meteocoolClassic;
 
@@ -66,6 +67,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     source: rasterRadar,
     renderBuffer: 500,
     title: "Radar Composite",
+    opacity: NOWCAST_TRANSPARENCY,
     id: tileId,
     ...extra,
   });

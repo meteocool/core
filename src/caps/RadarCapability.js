@@ -69,7 +69,6 @@ export default class RadarCapability extends Capability {
       super.getMap().removeLayer(this.layer);
     }
     [this.layer, this.source, this.lastSourceUrl] = dwdLayer(obj.radar.tile_id, { mainLayer: true });
-    this.layer.setOpacity(0.85);
     super.getMap().addLayer(this.layer);
   }
 

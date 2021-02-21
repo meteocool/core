@@ -2,6 +2,8 @@ export const uiConstantsDefault = {
   "toast-stack-offset": "49px",
 };
 
+export const NOWCAST_TRANSPARENCY = 0.65;
+
 export function resetUIConstant(name) {
   document.documentElement.style.setProperty(`--${name}`, uiConstantsDefault[name]);
 }
