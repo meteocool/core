@@ -1,316 +1,321 @@
 <script>
-  import Icon from 'fa-svelte';
-  import { faRedoAlt } from '@fortawesome/free-solid-svg-icons/faRedoAlt';
-  import { capTimeIndicator, showTimeSlider } from '../stores';
-  import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
-  import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
-  import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
-  import { faTimesCircle } from '@fortawesome/free-solid-svg-icons/faTimesCircle';
-  import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
-  import { fly } from 'svelte/transition';
-  import { reportToast } from '../lib/Toast';
-  import { _ } from 'svelte-i18n';
-  import StateMachine from 'javascript-state-machine';
-  import { onMount } from 'svelte';
-  import LastUpdated from './LastUpdated.svelte';
-  import { format } from 'date-fns';
-  import Chart from 'chart.js';
-  import { meteocoolClassic } from '../colormaps';
-  import getDfnLocale from '../locale/locale';
-  import TimeIndicator from './TimeIndicator.svelte';
-  import { resetUIConstant, setUIConstant } from '../layers/ui';
+import { faRedoAlt } from '@fortawesome/free-solid-svg-icons/faRedoAlt';
+import { capTimeIndicator, lightningLayerVisible, showTimeSlider } from '../stores';
+import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
+import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
+import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
+import { faTimesCircle } from '@fortawesome/free-solid-svg-icons/faTimesCircle';
+import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
+import { fly } from 'svelte/transition';
+import { reportToast } from '../lib/Toast';
+import { _ } from 'svelte-i18n';
+import StateMachine from 'javascript-state-machine';
+import { onMount } from 'svelte';
+import LastUpdated from './LastUpdated.svelte';
+import { format } from 'date-fns';
+import Chart from 'chart.js';
+import { meteocoolClassic } from '../colormaps';
+import getDfnLocale from '../locale/locale';
+import TimeIndicator from './TimeIndicator.svelte';
+import { resetUIConstant, setUIConstant } from '../layers/ui';
+import Icon from 'fa-svelte';
 
-  export let cap;
-  export let device;
+export let cap;
+export let device;
 
-  let open = false; // Drawer open/closed. Displays open button if false
-  let warned = false; // True if user has been warned about forecast != measurement
-  let loadingIndicator = true; // If true, show loading indicator instead of slider
-  let oldTimeStep = 0;
+let open = false; // Drawer open/closed. Displays open button if false
+let warned = false; // True if user has been warned about forecast != measurement
+let loadingIndicator = true; // If true, show loading indicator instead of slider
+let oldTimeStep = 0;
 
-  let playPauseButton = faPlay;
-  let uiMessage = $_('downloading_nowcast');
-  let iconHTML;
-  let baseTime;
-  let playTimeout;
+let playPauseButton = faPlay;
+const uiMessage = $_("downloading_nowcast");
+let iconHTML;
+let baseTime;
+let playTimeout;
 
-  let nowcastLayers; // Set by the callback from Nowcast.js
-  let historicLayers; // ditto
+let nowcastLayers; // Set by the callback from Nowcast.js
+let historicLayers; // ditto
 
-  let slRange = null;
-  let oldUrls;
+let slRange = null;
+let oldUrls;
 
-  let loop = true;
-  let historicActive = true;
-  let includeHistoric = false;
-  let canvas;
+let loop = true;
+let historicActive = true;
+let includeHistoric = false;
+let canvas;
 
-  let buttonSize = 'small';
-  if (device === 'ios' || device === 'android') {
-    buttonSize = 'medium';
-  }
+let buttonSize = "small";
+if (device === "ios" || device === "android") {
+  buttonSize = "medium";
+}
 
-  onMount(async () => {
-    cap.addObserver((subject, data) => {
-      console.log(`observed ${subject}`);
-      if (subject === 'historic') {
-        historicLayers = data.sources;
-      } else if (subject === 'nowcast') {
-        nowcastLayers = data.sources;
-      } else {
-        return;
-      }
-      if (nowcastLayers && historicLayers) {
-        fsm.showScrollbar();
-      }
-    });
-    cap.addObserver((event) => {
-      if (event === 'loseFocus') {
-        hide();
-      }
-    });
+let lightningEnabled = false;
+lightningLayerVisible.subscribe((value) => {
+  lightningEnabled = value;
+});
+
+onMount(async () => {
+  cap.addObserver((subject, data) => {
+    console.log(`observed ${subject}`);
+    if (subject === "historic") {
+      historicLayers = data.sources;
+    } else if (subject === "nowcast") {
+      nowcastLayers = data.sources;
+    } else {
+      return;
+    }
+    if (nowcastLayers && historicLayers) {
+      fsm.showScrollbar();
+    }
   });
+  cap.addObserver((event) => {
+    if (event === "loseFocus") {
+      hide();
+    }
+  });
+});
 
-  function canvasInit(elem) {
-    canvas = elem;
-    const values = Object.values(historicLayers)
-            .map((layer) => Math.round(layer.reported_intensity + 32.5))
-            .concat(Object.values(nowcastLayers)
-                    .map((layer) => Math.round(layer.reported_intensity + 32.5)));
-    console.log(values.map((value => meteocoolClassic[Math.round(value - 32.5)]))
-            .map(maybe => maybe ? maybe : [0, 0, 0, 0])
-            .map(([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, ${a / 255})`));
-    const ctx = canvas.getContext('2d');
-    var myChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: Array(49)
-                .fill()
-                .map((_, i) => `${-120 + i * 5}`),
-        datasets: [{
-          data: values,
-          backgroundColor: values.map((value => meteocoolClassic[Math.round(value * 2)]))
-                  .map(maybe => maybe ? maybe : [0, 0, 0, 0])
-                  .map(([r, g, b, a]) => `rgba(${r}, ${g}, ${b}, 1)`),
-          borderColor: getComputedStyle(document.body)
-                  .getPropertyValue('--sl-color-info-700'),
-          borderWidth: 1,
-        }]
+function canvasInit(elem) {
+  canvas = elem;
+  const values = Object.values(historicLayers)
+    .map((layer) => Math.round(layer.reported_intensity + 32.5))
+    .concat(Object.values(nowcastLayers)
+      .map((layer) => Math.round(layer.reported_intensity + 32.5)));
+  const ctx = canvas.getContext("2d");
+  // eslint-disable-next-line no-new
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: Array(49)
+        .fill()
+        .map((_, i) => `${-120 + i * 5}`),
+      datasets: [{
+        data: values,
+        backgroundColor: values.map(((value) => meteocoolClassic[Math.round(value * 2)]))
+          .map(maybe => maybe ? maybe : [0, 0, 0, 0])
+          .map(([r, g, b, _]) => `rgba(${r}, ${g}, ${b}, 1)`),
+        borderColor: getComputedStyle(document.body)
+          .getPropertyValue("--sl-color-info-700"),
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      layout: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
       },
-      options: {
-        layout: {
-          padding: {
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0
-          }
-        },
-        responsive: true,
-        maintainAspectRatio: false,
-        legend: {
-          display: false
-        },
-        tooltips: {
-          enabled: false
-        },
-        scales: {
-          xAxes: [{
-            gridLines: {
-              display: false
-            },
-            ticks: {
-              fontColor: getComputedStyle(document.body)
-                      .getPropertyValue('--sl-color-info-700'),
-              fontSize: 9,
-              autoSkip: true,
-              maxRotation: 90,
-              minRotation: 0,
-            }
-          }],
-          yAxes: [{
-            gridLines: {
-              display: false,
-            },
-            scaleLabel: {
-              display: false,
-              labelString: 'Intensity',
-            },
-            type: 'logarithmic',
-            ticks: {
-              display: false
-            },
-          }]
+      responsive: true,
+      maintainAspectRatio: false,
+      legend: {
+        display: false,
+      },
+      tooltips: {
+        enabled: false,
+      },
+      scales: {
+        xAxes: [{
+          gridLines: {
+            display: false,
+          },
+          ticks: {
+            fontColor: getComputedStyle(document.body)
+              .getPropertyValue("--sl-color-info-700"),
+            fontSize: 9,
+            autoSkip: true,
+            maxRotation: 90,
+            minRotation: 0,
+          },
+        }],
+        yAxes: [{
+          gridLines: {
+            display: false,
+          },
+          scaleLabel: {
+            display: false,
+            labelString: "Intensity",
+          },
+          type: "logarithmic",
+          ticks: {
+            display: false,
+          },
+        }],
+      },
+    },
+  });
+}
+
+let fsm = new StateMachine({
+  init: "followLatest",
+  transitions: [
+    {
+      name: "showScrollbar",
+      from: "followLatest",
+      to: "manualScrolling",
+    },
+    {
+      name: "showScrollbar",
+      from: "waitingForServer",
+      to: "manualScrolling",
+    },
+    {
+      name: "waitForServer",
+      from: "followLatest",
+      to: "waitingForServer",
+    },
+    {
+      name: "pressPlay",
+      from: "manualScrolling",
+      to: "playing",
+    },
+    {
+      name: "pressPause",
+      from: "playing",
+      to: "manualScrolling",
+    },
+    {
+      name: "hideScrollbar",
+      from: "*",
+      to: "followLatest",
+    },
+    {
+      name: "hideScrollbar",
+      from: "followLatest",
+      to: "followLatest",
+    },
+  ],
+  methods: {
+    onWaitForServer: (param) => {
+      console.log("FSM ===== waiting for server");
+      loadingIndicator = true;
+      setTimeout(() => showTimeSlider.set(true), 200);
+      // cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 98px)";
+      open = true;
+      cap.downloadHistoric();
+      cap.downloadNowcast();
+    },
+    onShowScrollbar: (transition) => {
+      console.log("FSM ===== waiting for server");
+      loadingIndicator = false;
+      oldUrls = cap.source.getUrls();
+      if (slRange) slRange.value = 0;
+      setUIConstant("toast-stack-offset", "124px");
+    },
+    onPressPlay: (transition) => {
+      const playTick = () => {
+        if (slRange.value >= 120) {
+          slRange.value = includeHistoric ? -120 : 0;
+        } else {
+          slRange.value += 5;
         }
-      }
-    });
-  }
-
-  let fsm = new StateMachine({
-    init: 'followLatest',
-    transitions: [
-      {
-        name: 'showScrollbar',
-        from: 'followLatest',
-        to: 'manualScrolling'
-      },
-      {
-        name: 'showScrollbar',
-        from: 'waitingForServer',
-        to: 'manualScrolling'
-      },
-      {
-        name: 'waitForServer',
-        from: 'followLatest',
-        to: 'waitingForServer'
-      },
-      {
-        name: 'pressPlay',
-        from: 'manualScrolling',
-        to: 'playing'
-      },
-      {
-        name: 'pressPause',
-        from: 'playing',
-        to: 'manualScrolling'
-      },
-      {
-        name: 'hideScrollbar',
-        from: '*',
-        to: 'followLatest'
-      },
-      {
-        name: 'hideScrollbar',
-        from: 'followLatest',
-        to: 'followLatest'
-      },
-    ],
-    methods: {
-      onWaitForServer: (param) => {
-        console.log('FSM ===== waiting for server');
-        loadingIndicator = true;
-        setTimeout(() => showTimeSlider.set(true), 200);
-        //cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 98px)";
-        open = true;
-        cap.downloadHistoric();
-        cap.downloadNowcast();
-      },
-      onShowScrollbar: (transition) => {
-        console.log('FSM ===== waiting for server');
-        loadingIndicator = false;
-        oldUrls = cap.source.getUrls();
-        if (slRange) slRange.value = 0;
-        setUIConstant('toast-stack-offset', '124px');
-      },
-      onPressPlay: (transition) => {
-        let playTick = () => {
-          if (slRange.value >= 120) {
-            slRange.value = includeHistoric ? -120 : 0;
-          } else {
-            slRange.value = slRange.value + 5;
-          }
-          capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + slRange.value * 60) * 1000), '⏱ HH:mm'));
-          sliderChangedHandler(slRange.value);
-          if (slRange.value !== 0 || loop) {
-            playTimeout = window.setTimeout(playTick, 500);
-          } else {
-            playTimeout = 0;
-            fsm.pressPause();
-          }
-        };
-        playTick();
-        playPauseButton = faPause;
-      },
-      onPressPause: (transition) => {
-        if (playTimeout !== 0) window.clearTimeout(playTimeout);
-        playTimeout = 0;
-        playPauseButton = faPlay;
-      },
-      onHideScrollbar: (transition) => {
-        if (transition.from == 'followLatest') return;
-        open = false;
-        oldTimeStep = 0;
-        warned = false;
-        resetUIConstant('toast-stack-offset');
-        loadingIndicator = true;
-        setTimeout(() => {
-          showTimeSlider.set(false);
-        }, 200);
-        cap.source.setUrl(cap.lastSourceUrl);
-      },
-    }
-  });
-  window.fsm = fsm;
-
-  function initSlider(elem) {
-    /*
-    elem.tooltipFormatter = value => {
-      if (value === 0) {
-        return 'Latest Radar Image';
-      }
-      return `${value.toString()[0] !== '-' ? '+' : ''}${value.toString()}m`;
-    };
-    */
-    elem.addEventListener('sl-change', (value) => sliderChangedHandler(value.target.value));
-    slRange = elem;
-  }
-
-  function show() {
-    if (fsm.state === 'followLatest') {
-      fsm.waitForServer();
-    }
-  }
-
-  function hide() {
-    fsm.hideScrollbar();
-  }
-
-  function sliderChangedHandler(value) {
-    if (value === oldTimeStep) return;
-
-    if (value === 0) {
+        capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + slRange.value * 60) * 1000), "⏱ HH:mm"));
+        sliderChangedHandler(slRange.value);
+        if (slRange.value !== 0 || loop) {
+          playTimeout = window.setTimeout(playTick, 500);
+        } else {
+          playTimeout = 0;
+          fsm.pressPause();
+        }
+      };
+      playTick();
+      playPauseButton = faPause;
+    },
+    onPressPause: (transition) => {
+      if (playTimeout !== 0) window.clearTimeout(playTimeout);
+      playTimeout = 0;
+      playPauseButton = faPlay;
+    },
+    onHideScrollbar: (transition) => {
+      if (transition.from === "followLatest") return;
+      open = false;
+      oldTimeStep = 0;
+      warned = false;
+      resetUIConstant("toast-stack-offset");
+      loadingIndicator = true;
+      setTimeout(() => {
+        showTimeSlider.set(false);
+      }, 200);
       cap.source.setUrl(cap.lastSourceUrl);
-    } else {
-      if (value > 0) {
-        cap.source.setUrl(nowcastLayers[value].url);
-        warnNotMostRecent();
-      } else {
-        cap.source.setUrl(historicLayers[value].url);
-      }
+    },
+  },
+});
+window.fsm = fsm;
+
+function warnNotMostRecent() {
+  if (!warned) {
+    reportToast($_("forcastPlaying"));
+    warned = true;
+  }
+}
+
+function initSlider(elem) {
+  /*
+  elem.tooltipFormatter = value => {
+    if (value === 0) {
+      return 'Latest Radar Image';
     }
-    oldTimeStep = value;
-  }
+    return `${value.toString()[0] !== '-' ? '+' : ''}${value.toString()}m`;
+  };
+  */
+  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value));
+  slRange = elem;
+}
 
-  function warnNotMostRecent() {
-    if (!warned) {
-      reportToast($_('forcastPlaying'));
-      warned = true;
-    }
+function show() {
+  if (fsm.state === "followLatest") {
+    fsm.waitForServer();
   }
+}
 
-  function playPause() {
-    if (fsm.state === 'playing') {
-      fsm.pressPause();
-    } else {
-      fsm.pressPlay();
-    }
+function hide() {
+  fsm.hideScrollbar();
+}
+
+function sliderChangedHandler(value) {
+  if (value === oldTimeStep) return;
+
+  if (value === 0) {
+    cap.source.setUrl(cap.lastSourceUrl);
+  } else if (value > 0) {
+    cap.source.setUrl(nowcastLayers[value].url);
+    warnNotMostRecent();
+  } else {
+    cap.source.setUrl(historicLayers[value].url);
   }
+  oldTimeStep = value;
+}
 
-  function renderIcon(el) {
-    iconHTML = el.innerHTML;
+function playPause() {
+  if (fsm.state === "playing") {
+    fsm.pressPause();
+  } else {
+    fsm.pressPlay();
   }
+}
 
-  function toggleLoop(el) {
-    loop = !loop;
-    historicActive = loop;
-    if (!historicActive) includeHistoric = false;
-  }
+function renderIcon(el) {
+  iconHTML = el.innerHTML;
+}
 
-  function toggleHistoric(el) {
-    includeHistoric = !includeHistoric;
-  }
+function toggleLoop(el) {
+  loop = !loop;
+  historicActive = loop;
+  if (!historicActive) includeHistoric = false;
+}
 
-  let hasHover = !window.matchMedia('(hover: none)').matches;
+function toggleHistoric(el) {
+  includeHistoric = !includeHistoric;
+}
+
+const hasHover = !window.matchMedia("(hover: none)").matches;
+
+function toggleLightning() {
+  lightningLayerVisible.set(!lightningEnabled);
+}
 </script>
 
 <style>
@@ -513,7 +518,7 @@
               {uiMessage}...
             </div>
             <div class="text bottomText">
-              {$_("last_radar")} {format(new Date(cap.upstreamTime), "Pp", {locale: getDfnLocale()})}
+              {$_("last_radar")} {format(new Date(cap.upstreamTime), "Pp", { locale: getDfnLocale() })}
             </div>
           </div>
         </div>
@@ -567,12 +572,12 @@
             {#if device !== "ios" && device !== "android"}
               <div class="checkbox">
                 <div class="button-group-toolbar">
-                  <sl-button-group label="History">
+                  <sl-button-group label="Map Layers">
                     <sl-tooltip content="Show Lightning Strikes (if any)">
-                      <sl-button size={buttonSize} type="primary">⚡ Lightning Strikes</sl-button>
+                      <sl-button size={buttonSize} type="{ lightningEnabled ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
                     </sl-tooltip>
                     <sl-tooltip content="Show Mesocyclones (if any)">
-                      <sl-button size={buttonSize} type="primary">🌀 Mesocyclones</sl-button>
+                      <sl-button size={buttonSize} type="default">🌀 Mesocyclones</sl-button>
                     </sl-tooltip>
                   </sl-button-group>
                 </div>

@@ -1,3 +1,5 @@
+// XXX this thing has a problem where the datatypes are lost when stuff is saved to localstroage.
+
 export default class Settings {
   constructor(settingsCbs) {
     // expects a structure like this:
@@ -6,12 +8,11 @@ export default class Settings {
     //      ....
     // }
     this.settings = settingsCbs;
-    // XXX breaks iOS:
-    // Object.keys(this.settings).forEach(key => {
-    //  if (this.settings[key]["default"] !== this.get(key)) {
-    //    this.cb(key);
-    //  }
-    // });
+    Object.keys(this.settings).forEach((key) => {
+      if (this.settings[key].default !== this.get(key)) {
+        this.cb(key);
+      }
+    });
   }
 
   get(key) {
@@ -21,9 +22,19 @@ export default class Settings {
 
     const local = localStorage.getItem(key);
     if (local) {
+      if (this.settings[key].type === "boolean") {
+        return local === "true";
+      }
       return local;
     }
     return this.settings[key].default;
+  }
+
+  setCb(key, cb) {
+    if (typeof key !== "string") {
+      return;
+    }
+    this.settings[key].cb = cb;
   }
 
   set(key, value) {

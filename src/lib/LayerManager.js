@@ -42,7 +42,6 @@ export class LayerManager {
   }
 
   updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
-    latLon.set([lat, lon]);
     let accuracyPoly = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
@@ -58,8 +57,10 @@ export class LayerManager {
     const center = fromLonLat([lon, lat]);
     if (lat === -1 && lon === -1 && accuracy === -1) {
       centerPoint = null;
+      latLon.set(null);
     } else {
       centerPoint = center ? new Point(center) : null;
+      latLon.set([lat, lon]);
     }
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
 
@@ -89,7 +90,7 @@ export class LayerManager {
     } else {
       newCenter = oldCenter;
     }
-    if ((zoom || focus) && !this.mapBeingMoved) {
+    if (zoom || focus) {
       view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
     }
     this.forEachMap((map) => map.render());
