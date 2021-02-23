@@ -39,12 +39,14 @@ import Settings from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
-import { colorSchemeDark } from "./stores";
+import { colorSchemeDark, lightningLayerVisible } from './stores';
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
 import { apiBaseUrl, websocketBaseUrl } from "./urls";
 import { initUIConstants } from "./layers/ui";
+import makeLightningLayer from './layers/lightning';
+import StrikeManager from './lib/StrikeManager';
 
 Sentry.init({
   dsn:
@@ -85,30 +87,15 @@ customElements.define("sl-tooltip", SlTooltip);
 
 initUIConstants();
 
+
 window.settings = new Settings({
   mapRotation: {
     type: "boolean",
     default: false,
-    cb: (value) => {
-      const newView = new View({
-        center: lm.getCurrentMap()
-          .getView()
-          .getCenter(),
-        zoom: lm.getCurrentMap()
-          .getView()
-          .getZoom(),
-        minzoom: 5,
-        enableRotation: value,
-      });
-      lm.forEachMap((map) => map.setView(newView));
-    },
   },
   mapBaseLayer: {
     type: "string",
     default: "topographic",
-    cb: (value) => {
-      lm.switchBaseLayer(value);
-    },
   },
   radarColorMapping: {
     type: "string",
@@ -130,17 +117,36 @@ window.settings = new Settings({
   layerLightning: {
     type: "boolean",
     default: true,
+    applyInitial: true,
+    cb: (value) => {
+      lightningLayerVisible.set(value);
+    },
   },
 });
+const [lightningSource, lightningLayer] = makeLightningLayer();
+lightningLayerVisible.subscribe((value) => {
+  lightningLayer.setVisible(value);
+  window.settings.set("layerLightning", value);
+});
+lightningLayerVisible.set(window.settings.get("layerLightning"));
+console.log(window.settings.get("layerLightning"));
 
 const nb = new NanobarWrapper();
-const socketIO = io(`${websocketBaseUrl}/radar`);
-socketIO.on("connect", () => {
-  console.log("radar websocket connected!");
+const radarSocketIO = io(`${websocketBaseUrl}/radar`);
+radarSocketIO.on("connect", () => {
+  console.log("radar/forecast websocket connected!");
 });
+
+const strikemgr = new StrikeManager(1000, lightningSource);
+window.sm = strikemgr;
+radarSocketIO.on("lightning", (data) => {
+  strikemgr.addStrike(data.lon, data.lat);
+});
+
 export const radar = new RadarCapability({
   nanobar: nb,
-  socket_io: socketIO,
+  socket_io: radarSocketIO,
+  additionalLayers: [lightningLayer],
 });
 export const weather = new WeatherCapability({
   nanobar: nb,
@@ -166,8 +172,18 @@ export const lm = new LayerManager({
     weather,
   },
 });
-let device = window.device;
 window.lm = lm;
+window.settings.setCb("mapRotation", (value) => {
+  const newView = new View({
+    center: lm.getCurrentMap().getView().getCenter(),
+    zoom: lm.getCurrentMap().getView().getZoom(),
+    minzoom: 5,
+    enableRotation: value,
+  });
+  lm.forEachMap((map) => map.setView(newView));
+});
+
+let device = window.device;
 
 if (device === "ios" && "webkit" in window) {
   window.webkit.messageHandlers.scriptHandler.postMessage(

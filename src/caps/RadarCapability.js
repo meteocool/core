@@ -3,21 +3,21 @@ import { reportError } from "../lib/Toast";
 import { capDescription, capLastUpdated, latLon } from "../stores";
 import Capability from "./Capability";
 import { apiBaseUrl, tileBaseUrl } from "../urls";
+import { NOWCAST_TRANSPARENCY } from "../layers/ui";
 
-let lat;
-let lon;
-latLon.subscribe((latlon) => {
-  [lat, lon] = latlon;
+let latlon;
+latLon.subscribe((latlonUpdate) => {
+  latlon = latlonUpdate;
 });
 
 export default class RadarCapability extends Capability {
   constructor(options) {
     super((map) => {
       map.addLayer(greyOverlay());
-      if (this.layer) {
-        map.addLayer(this.layer);
-      }
+      const additionalLayers = options.additionalLayers || [];
+      additionalLayers.forEach((l) => super.getMap().addLayer(l));
     }, () => capDescription.set("Radar Reflectivity"));
+    super.setMap(options.map);
 
     this.layer = null;
     this.nanobar = options.nanobar;
@@ -25,26 +25,31 @@ export default class RadarCapability extends Capability {
     this.nowcast = null;
     this.lastSourceUrl = "";
 
-    super.setMap(options.map);
-    this.reloadTilesRadar();
-
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
         console.log("received websocket poke, refreshing tiles + forecasts");
         this.reloadTilesRadar();
       });
     }
+
+    this.reloadTilesRadar();
+  }
+
+  localPostifx() {
+    if (latlon) {
+      return `${latlon[0]}/${latlon[1]}/`;
+    }
+    return "";
   }
 
   reloadTilesRadar() {
-    const URL = `${apiBaseUrl}/radar/${lat}/${lon}/`;
+    const URL = `${apiBaseUrl}/radar/${this.localPostifx()}`;
     this.nanobar.start(URL);
     fetch(URL)
       .then((response) => response.json())
       .then((obj) => {
         if ("radar" in obj) this.processRadar(obj);
         this.nowcast = obj.nowcast;
-        console.log(obj);
       })
       .then(() => this.nanobar.finish(URL))
       .catch((error) => {
@@ -62,6 +67,7 @@ export default class RadarCapability extends Capability {
     this.processedTime = obj.radar.processed_time;
     capLastUpdated.set(new Date(this.upstreamTime * 1000));
 
+    // XXX this should be an .equals() method in the dwd layer namespace
     if (super.getMap() && this.layer) {
       if (this.layer.get("tileId") === obj.tile_id) {
         return;
@@ -69,22 +75,26 @@ export default class RadarCapability extends Capability {
       super.getMap().removeLayer(this.layer);
     }
     [this.layer, this.source, this.lastSourceUrl] = dwdLayer(obj.radar.tile_id, { mainLayer: true });
+    this.layer.setOpacity(NOWCAST_TRANSPARENCY);
+    // XXX instead of this, call mapcb (?)
     super.getMap().addLayer(this.layer);
   }
 
   downloadHistoric() {
     this.nanobar.start("historic_nowcast");
-    fetch(`${apiBaseUrl}/radar_historic/${lat}/${lon}/`)
+    fetch(`${apiBaseUrl}/radar_historic/${this.localPostifx()}`)
       .then((response) => response.json())
       .then((obj) => {
         this.historicLayers = obj;
         const sources = {};
-        obj.forEach((radar, index) => {
+        obj.forEach((interval, index) => {
           sources[index * (-5)] = {
-            url: `${tileBaseUrl}/meteoradar/${radar.tile_id}/{z}/{x}/{-y}.png`,
-            tile_id: radar.tile_id,
-            reported_intensity: radar.reported_intensity,
+            url: `${tileBaseUrl}/meteoradar/${interval.tile_id}/{z}/{x}/{-y}.png`,
+            tile_id: interval.tile_id,
           };
+          if ("reported_intensity" in interval) {
+            sources[index * (-5)].reported_intensity = interval.reported_intensity;
+          }
         });
         this.notify("historic", { sources });
       })
@@ -110,9 +120,11 @@ export default class RadarCapability extends Capability {
         response.sources[interval.prediction_time] = {
           url: `${tileBaseUrl}/meteonowcast/${interval.tile_id}/{z}/{x}/{-y}.png`,
           tile_id: interval.tile_id,
-          reported_intensity: interval.reported_intensity,
           time: self.upstreamTime + interval.prediction_time * 60,
         };
+        if ("reported_intensity" in interval) {
+          response.sources[interval.prediction_time].reported_intensity = interval.reported_intensity;
+        }
       });
     }
     this.notify("nowcast", response);
