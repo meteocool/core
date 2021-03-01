@@ -47,6 +47,8 @@ import { apiBaseUrl, websocketBaseUrl } from "./urls";
 import { initUIConstants } from "./layers/ui";
 import makeLightningLayer from './layers/lightning';
 import StrikeManager from './lib/StrikeManager';
+import MesoCycloneManager from './lib/MesoCycloneManager';
+import makeMesocycloneLayer from './layers/mesocyclones';
 
 Sentry.init({
   dsn:
@@ -138,15 +140,22 @@ radarSocketIO.on("connect", () => {
 });
 
 const strikemgr = new StrikeManager(1000, lightningSource);
-window.sm = strikemgr;
+
+const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
+const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
+
 radarSocketIO.on("lightning", (data) => {
   strikemgr.addStrike(data.lon, data.lat);
+});
+radarSocketIO.on("mesocyclones", (data) => {
+  mesocyclonemgr.clearAll();
+  data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
 
 export const radar = new RadarCapability({
   nanobar: nb,
   socket_io: radarSocketIO,
-  additionalLayers: [lightningLayer],
+  additionalLayers: [lightningLayer, mesocycloneLayer],
 });
 export const weather = new WeatherCapability({
   nanobar: nb,
@@ -177,7 +186,7 @@ window.settings.setCb("mapRotation", (value) => {
   const newView = new View({
     center: lm.getCurrentMap().getView().getCenter(),
     zoom: lm.getCurrentMap().getView().getZoom(),
-    minzoom: 5,
+    minZoom: 5,
     enableRotation: value,
   });
   lm.forEachMap((map) => map.setView(newView));

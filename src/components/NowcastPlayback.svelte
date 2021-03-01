@@ -205,17 +205,21 @@ let fsm = new StateMachine({
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
     },
-    onPressPlay: (transition) => {
+    onPressPlay: () => {
       const playTick = () => {
+        let thisFrameDelayMs = 450;
         if (slRange.value >= 120) {
           slRange.value = includeHistoric ? -120 : 0;
         } else {
           slRange.value += 5;
         }
+        if (slRange.value === 0) {
+          thisFrameDelayMs = 800;
+        }
         capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + slRange.value * 60) * 1000), "⏱ HH:mm"));
         sliderChangedHandler(slRange.value);
         if (slRange.value !== 0 || loop) {
-          playTimeout = window.setTimeout(playTick, 500);
+          playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
         } else {
           playTimeout = 0;
           fsm.pressPause();
@@ -224,7 +228,7 @@ let fsm = new StateMachine({
       playTick();
       playPauseButton = faPause;
     },
-    onPressPause: (transition) => {
+    onPressPause: () => {
       if (playTimeout !== 0) window.clearTimeout(playTimeout);
       playTimeout = 0;
       playPauseButton = faPlay;

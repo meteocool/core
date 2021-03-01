@@ -169,7 +169,7 @@ export class LayerManager {
         this.maps.length > 0 ?
           this.maps[0].getView() :
           new View({
-            constrainResolution: true,
+            constrainResolution: false,
             zoom: 7,
             center: fromLonLat([11, 49]),
             enableRotation: this.settings.get("mapRotation"),
