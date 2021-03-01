@@ -9,19 +9,19 @@ import VectorSource from "ol/source/Vector";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
 import { Raster as RasterSource } from "ol/source";
 import { transformExtent } from "ol/proj";
-import XYZHeavy from "../lib/XYZHeavy";
+import { XYZ } from "ol/source/XYZ";
 import { dwdAttribution, imprintAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { meteocoolClassic, viridis } from "../colormaps";
 import { tileBaseUrl } from "../urls";
-import { NOWCAST_TRANSPARENCY } from './ui';
+import { NOWCAST_TRANSPARENCY } from "./ui";
 
 let cmap = meteocoolClassic;
 
 // eslint-disable-next-line import/prefer-default-export
 export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
-  const reflectivitySource = new XYZHeavy({
+  const reflectivitySource = new XYZ({
     url: sourceUrl,
     attributions: [dwdAttribution, imprintAttribution],
     crossOrigin: "anonymous",
@@ -48,7 +48,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     // XXX eslint converts the following to a syntax error. good job y'all
     // eslint-disable-next-line object-shorthand
     // eslint-disable-next-line func-names
-    operation: function(pixels, data) {
+    operation(pixels, data) {
       let dbz = pixels[0][0];
       if (dbz >= data.cmapLength) {
         dbz = data.cmapLength - 1;
