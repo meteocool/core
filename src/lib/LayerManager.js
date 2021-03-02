@@ -102,7 +102,7 @@ export class LayerManager {
   }
 
   setTarget(cap, target) {
-    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus) {
+    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
     }
     this.capabilities[cap].setTarget(target);

@@ -47,5 +47,5 @@
   "published": "Published",
   "acquired": "Acquired",
   "trackingMostRecent": "Tracking Most Recent",
-  "forcastPlaying": "You are now viewing forecasted data. Keep in mind that it might be inaccurate."
+  "forcastPlaying": "⏱ You are now viewing forecasted data. Keep in mind that it might be less accurate."
 }

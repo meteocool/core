@@ -3,26 +3,7 @@ import * as Sentry from "@sentry/browser";
 import { Integrations } from "@sentry/tracing";
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
-import {
-  SlAlert,
-  SlButton,
-  SlIconButton,
-  SlIcon,
-  SlSpinner,
-  setAssetPath,
-  SlProgressRing,
-  SlTag,
-  SlDropdown,
-  SlDialog,
-  SlSelect,
-  SlMenuItem,
-  SlCheckbox,
-  SlMenu,
-  SlButtonGroup,
-  SlTooltip,
-  SlMenuLabel,
-  SlRange,
-} from "@shoelace-style/shoelace";
+
 import { io } from "socket.io-client";
 import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
@@ -44,7 +25,7 @@ import { colorSchemeDark, lightningLayerVisible } from './stores';
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
 import { apiBaseUrl, websocketBaseUrl } from "./urls";
-import { initUIConstants } from "./layers/ui";
+import { initUIConstants, resetUIConstantByPrefix } from './layers/ui';
 import makeLightningLayer from './layers/lightning';
 import StrikeManager from './lib/StrikeManager';
 import MesoCycloneManager from './lib/MesoCycloneManager';
@@ -68,27 +49,7 @@ init({
   initialLocale: getLocaleFromNavigator(),
 });
 
-setAssetPath(document.currentScript.src);
-customElements.define("sl-button", SlButton);
-customElements.define("sl-icon", SlIcon);
-customElements.define("sl-icon-button", SlIconButton);
-customElements.define("sl-spinner", SlSpinner);
-customElements.define("sl-alert", SlAlert);
-customElements.define("sl-progress-ring", SlProgressRing);
-customElements.define("sl-tag", SlTag);
-customElements.define("sl-dialog", SlDialog);
-customElements.define("sl-range", SlRange);
-customElements.define("sl-select", SlSelect);
-customElements.define("sl-dropdown", SlDropdown);
-customElements.define("sl-menu-item", SlMenuItem);
-customElements.define("sl-menu-label", SlMenuLabel);
-customElements.define("sl-menu", SlMenu);
-customElements.define("sl-checkbox", SlCheckbox);
-customElements.define("sl-button-group", SlButtonGroup);
-customElements.define("sl-tooltip", SlTooltip);
-
 initUIConstants();
-
 
 window.settings = new Settings({
   mapRotation: {
@@ -131,7 +92,6 @@ lightningLayerVisible.subscribe((value) => {
   window.settings.set("layerLightning", value);
 });
 lightningLayerVisible.set(window.settings.get("layerLightning"));
-console.log(window.settings.get("layerLightning"));
 
 const nb = new NanobarWrapper();
 const radarSocketIO = io(`${websocketBaseUrl}/radar`);
@@ -212,48 +172,7 @@ window.matchMedia("(prefers-color-scheme: dark)")
     colorSchemeDark.set(e.matches);
   });
 
-// Dark and Light mode
-let colorSchemeLocal = false;
-colorSchemeDark.subscribe((value) => {
-  colorSchemeLocal = value;
-  if (colorSchemeLocal) {
-    document.documentElement.style.setProperty("--sl-color-white", "#3F3F3F");
-    document.documentElement.style.setProperty("--sl-color-black", "#FFFFFF");
-    document.documentElement.style.setProperty(
-      "--sl-color-gray-700",
-      "#FFFFFF",
-    );
-    document.documentElement.style.setProperty(
-      "--sl-color-gray-300",
-      "#717171",
-    );
-    document.documentElement.style.setProperty(
-      "--sl-color-gray-200",
-      "#3F3F3F",
-    );
-    document.documentElement.style.setProperty("--sl-color-gray-50", "#3F3F3F");
-    document.documentElement.style.setProperty("--sl-color-gray-200", "#8b8b8b");
-    document.documentElement.style.setProperty("--sl-color-info-100", "#3F3F3F");
-    document.documentElement.style.setProperty("--sl-color-primary-text", "#ffffff");
-    document.documentElement.style.setProperty("--sl-color-gray-600", "#d6d6d6");
-    document.documentElement.style.setProperty("--sl-color-info-700", "#c2c2c2");
-    document.documentElement.style.setProperty(
-      "--sl-color-primary-600",
-      "#38BDF8",
-    );
-  } else {
-    document.documentElement.style.removeProperty("--sl-color-gray-600");
-    document.documentElement.style.removeProperty("--sl-color-white");
-    document.documentElement.style.removeProperty("--sl-color-black");
-    document.documentElement.style.removeProperty("--sl-color-info-700");
-    document.documentElement.style.removeProperty("--sl-color-info-100");
-    document.documentElement.style.removeProperty("--sl-color-gray-50");
-    document.documentElement.style.removeProperty("--sl-color-gray-200");
-    document.documentElement.style.removeProperty("--sl-color-gray-300");
-    document.documentElement.style.removeProperty("--sl-color-gray-700");
-    document.documentElement.style.removeProperty("--sl-color-primary-600");
-  }
-});
+
 </script>
 
 <style>
