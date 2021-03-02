@@ -4,8 +4,9 @@ import { capTimeIndicator, lightningLayerVisible, showTimeSlider } from '../stor
 import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
 import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
 import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
-import { faTimesCircle } from '@fortawesome/free-solid-svg-icons/faTimesCircle';
+import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
 import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
+import { faChartBar } from '@fortawesome/free-solid-svg-icons/faChartBar';
 import { fly } from 'svelte/transition';
 import { reportToast } from '../lib/Toast';
 import { _ } from 'svelte-i18n';
@@ -17,7 +18,7 @@ import Chart from 'chart.js';
 import { meteocoolClassic } from '../colormaps';
 import getDfnLocale from '../locale/locale';
 import TimeIndicator from './TimeIndicator.svelte';
-import { resetUIConstant, setUIConstant } from '../layers/ui';
+import { setUIConstant } from '../layers/ui';
 import Icon from 'fa-svelte';
 
 export let cap;
@@ -71,6 +72,8 @@ onMount(async () => {
   });
   cap.addObserver((event) => {
     if (event === "loseFocus") {
+      if (playTimeout !== 0) window.clearTimeout(playTimeout);
+      playTimeout = 0;
       hide();
     }
   });
@@ -201,6 +204,7 @@ let fsm = new StateMachine({
     onShowScrollbar: (transition) => {
       console.log("FSM ===== waiting for server");
       loadingIndicator = false;
+      playPauseButton = faPlay;
       oldUrls = cap.source.getUrls();
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
@@ -238,7 +242,7 @@ let fsm = new StateMachine({
       open = false;
       oldTimeStep = 0;
       warned = false;
-      resetUIConstant("toast-stack-offset");
+      setUIConstant("toast-stack-offset");
       loadingIndicator = true;
       setTimeout(() => {
         showTimeSlider.set(false);
@@ -498,11 +502,16 @@ function toggleLightning() {
     pointer-events: none;
     transform: translateX(-1.1%);
   }
+  /* XXX consolidate media queries into one place */
   @media (orientation: portrait) {
     .barChartCanvas {
       bottom: 151px;
       height: 38px;
       width: 100%;
+    }
+    .faIconButton {
+      font-size: 125%;
+      margin-top: 1px;
     }
   }
 </style>
@@ -534,7 +543,7 @@ function toggleLightning() {
             <Icon icon={playPauseButton} class="controlIcon" />
           </div>
           <div class="controlButton" on:click={hide} title="Close">
-            <Icon icon={faTimesCircle} class="controlIcon" />
+            <Icon icon={faAngleDoubleDown} class="controlIcon" />
           </div>
         </div>
         <div class="slider">
@@ -548,12 +557,16 @@ function toggleLightning() {
                 <sl-button-group label="Playback Controls">
                   <sl-tooltip content="Play" disabled={!hasHover}>
                     <sl-button size={buttonSize} on:click={playPause}>
-                      <Icon icon={playPauseButton} class="faIconButton" />
+                      <div class="faIconButton">
+                        <Icon icon={playPauseButton} />
+                      </div>
                     </sl-button>
                   </sl-tooltip>
                   <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
                     <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
-                      <Icon icon={faRedoAlt} class="faIconButton" />️
+                      <div class="faIconButton">
+                        <Icon icon={faRedoAlt} />️
+                      </div>
                     </sl-button>
                   </sl-tooltip>
                   <sl-tooltip content="Include Last 2 Hours in Playback Loop" disabled={!hasHover}>
@@ -569,7 +582,18 @@ function toggleLightning() {
             <div class="checkbox buttonsInline">
               <div class="button-group-toolbar">
                 <sl-tooltip content="Close" disabled={!hasHover}>
-                  <sl-button size={buttonSize} on:click={hide} ><Icon icon={faTimesCircle} />️</sl-button>
+                  <sl-button-group label="Features">
+                    <sl-button size={buttonSize} on:click={hide}>
+                      <div class="faIconButton">
+                        <Icon icon={faAngleDoubleDown} />️
+                      </div>
+                    </sl-button>
+                    <sl-button size={buttonSize} on:click={hide}>
+                      <div class="faIconButton">
+                        <Icon icon={faChartBar} />️
+                      </div>
+                    </sl-button>
+                  </sl-button-group>
                 </sl-tooltip>
               </div>
             </div>
