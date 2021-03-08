@@ -138,7 +138,6 @@ function canvasInit(elem) {
             display: false,
             labelString: "Intensity",
           },
-          type: "logarithmic",
           ticks: {
             display: false,
           },
