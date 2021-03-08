@@ -43,6 +43,7 @@ let loop = true;
 let historicActive = true;
 let includeHistoric = false;
 let canvas;
+let rainValues;
 
 let buttonSize = "small";
 if (dd.isApp()) {
@@ -64,8 +65,14 @@ onMount(async () => {
     } else {
       return;
     }
-    if (historicLayers && nowcastLayers && fsm.state === "waitingForServer") {
-      fsm.showScrollbar();
+    if (historicLayers && nowcastLayers) {
+      rainValues = Object.values(historicLayers)
+        .map((layer) => Math.round(layer.reported_intensity + 32.5))
+        .concat(Object.values(nowcastLayers)
+        .map((layer) => Math.round(layer.reported_intensity + 32.5)));
+      if (fsm.state === "waitingForServer") {
+        fsm.showScrollbar();
+      }
     }
   });
   cap.addObserver((event) => {
@@ -77,10 +84,6 @@ onMount(async () => {
 
 function canvasInit(elem) {
   canvas = elem;
-  const values = Object.values(historicLayers)
-    .map((layer) => Math.round(layer.reported_intensity + 32.5))
-    .concat(Object.values(nowcastLayers)
-      .map((layer) => Math.round(layer.reported_intensity + 32.5)));
   const ctx = canvas.getContext("2d");
   // eslint-disable-next-line no-new
   new Chart(ctx, {
@@ -90,8 +93,8 @@ function canvasInit(elem) {
         .fill()
         .map((_, i) => `${-120 + i * 5}`),
       datasets: [{
-        data: values,
-        backgroundColor: values.map(((value) => meteocoolClassic[Math.round(value * 2)]))
+        data: rainValues,
+        backgroundColor: rainValues.map(((value) => meteocoolClassic[Math.round(value * 2)]))
           .map(maybe => maybe ? maybe : [0, 0, 0, 0])
           .map(([r, g, b, _]) => `rgba(${r}, ${g}, ${b}, 1)`),
         borderColor: getComputedStyle(document.body)
@@ -320,6 +323,11 @@ const hasHover = !window.matchMedia("(hover: none)").matches;
 
 function toggleLightning() {
   lightningLayerVisible.set(!lightningEnabled);
+}
+
+let showBars = true;
+function toggleBars() {
+  showBars = !showBars;
 }
 </script>
 
@@ -572,11 +580,13 @@ function toggleLightning() {
                         <Icon icon={faAngleDoubleDown} />️
                       </div>
                     </sl-button>
-                    <sl-button size={buttonSize} on:click={hide}>
+                    {#if dd.isApp()}
+                    <sl-button  type="{ showBars ? 'primary' : 'default'}" size={buttonSize} on:click={toggleBars} disabled="{!rainValues.any((p) => p > 0)}">
                       <div class="faIconButton">
                         <Icon icon={faChartBar} />️
                       </div>
                     </sl-button>
+                    {/if}
                   </sl-button-group>
                 </sl-tooltip>
               </div>
