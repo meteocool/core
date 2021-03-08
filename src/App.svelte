@@ -128,7 +128,7 @@ export const weather = new WeatherCapability({
 });
 
 window.enterForeground = () => {
-  radar.reloadTilesRadar();
+  radar.downloadCurrentRadar();
   weather.reloadTilesWeather();
   colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
 }; // may be a second function if you want to have no switch to of the scheme at the start of the app
@@ -208,10 +208,10 @@ if (dd.isAndroid()) {
   }
 </style>
 
-{#if device !== "ios" && device !== "android"}
+{#if !dd.isApp()}
   <Logo />
 {/if}
-<BottomToolbar device={device} />
+<BottomToolbar />
 <div id="nanobar" />
 <Map layerManager={lm} />
-<NowcastPlayback cap={radar} device={device} />
+<NowcastPlayback cap={radar} />

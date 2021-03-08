@@ -1,8 +1,12 @@
 import { Workbox } from "workbox-window";
 import App from "./App.svelte";
 
-window.device = "web";
-const app = new App({ target: document.body });
+const app = new App({
+  target: document.body,
+  props: {
+    device: "web",
+  },
+});
 
 export default app;
 

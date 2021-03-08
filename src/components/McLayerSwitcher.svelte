@@ -4,6 +4,7 @@
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
+  import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
   export let layerManager;
   let childCanvases = {};
@@ -160,7 +161,7 @@
   }
 </style>
 
-{#if window.device !== "ios" && window.device !== "android"}
+{#if !dd.isApp()}
   <div class="lsToggle" on:click={open}>
     <Icon icon={faLayerGroup} class="lsIcon" />
   </div>

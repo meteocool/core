@@ -4,8 +4,7 @@ import Icon from "fa-svelte";
 import { faGithubSquare } from "@fortawesome/free-brands-svg-icons/faGithubSquare";
 import { fly } from "svelte/transition";
 import LastUpdated from "./LastUpdated.svelte";
-
-export let device;
+import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 function slider(elem) {
   elem.tooltipFormatter = (value) => `${value.toString()
@@ -129,7 +128,7 @@ function slider(elem) {
       </sl-tag-->
       <LastUpdated />
     </div>
-    {#if device !== "ios" && device !== "android"}
+    {#if !dd.isApp()}
       <div class="right">
         <div class="appstoreLogo">
           <a

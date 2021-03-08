@@ -19,9 +19,9 @@ import getDfnLocale from '../locale/locale';
 import TimeIndicator from './TimeIndicator.svelte';
 import { setUIConstant } from '../layers/ui';
 import Icon from 'fa-svelte';
+import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 export let cap;
-export let device;
 
 let open = false; // Drawer open/closed. Displays open button if false
 let warned = false; // True if user has been warned about forecast != measurement
@@ -30,8 +30,6 @@ let oldTimeStep = 0;
 
 let playPauseButton = faPlay;
 const uiMessage = $_("downloading_nowcast");
-let iconHTML;
-let baseTime;
 let playTimeout;
 
 let nowcastLayers; // Set by the callback from Nowcast.js
@@ -46,7 +44,7 @@ let includeHistoric = false;
 let canvas;
 
 let buttonSize = "small";
-if (device === "ios" || device === "android") {
+if (dd.isApp()) {
   buttonSize = "medium";
 }
 
@@ -57,7 +55,7 @@ lightningLayerVisible.subscribe((value) => {
 
 onMount(async () => {
   cap.addObserver((subject, data) => {
-    console.log(`observed ${subject}`);
+    console.log(`NowcastPlayback observed event ${subject}`);
     if (subject === "historic") {
       historicLayers = data.sources;
     } else if (subject === "nowcast") {
@@ -65,14 +63,12 @@ onMount(async () => {
     } else {
       return;
     }
-    if (nowcastLayers && historicLayers) {
+    if (historicLayers && nowcastLayers && fsm.state === "waitingForServer") {
       fsm.showScrollbar();
     }
   });
   cap.addObserver((event) => {
     if (event === "loseFocus") {
-      if (playTimeout !== 0) window.clearTimeout(playTimeout);
-      playTimeout = 0;
       hide();
     }
   });
@@ -197,14 +193,14 @@ let fsm = new StateMachine({
       setTimeout(() => showTimeSlider.set(true), 200);
       // cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 98px)";
       open = true;
-      cap.downloadHistoric();
-      cap.downloadNowcast();
     },
     onShowScrollbar: (transition) => {
       console.log("FSM ===== waiting for server");
       loadingIndicator = false;
       playPauseButton = faPlay;
+      open = true;
       oldUrls = cap.source.getUrls();
+      setTimeout(() => showTimeSlider.set(true), 200);
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
     },
@@ -253,10 +249,10 @@ let fsm = new StateMachine({
 window.fsm = fsm;
 
 function warnNotMostRecent() {
-  if (!warned) {
-    reportToast($_("forcastPlaying"));
-    warned = true;
-  }
+  //if (!warned) {
+  //  reportToast($_("forcastPlaying"));
+  //  warned = true;
+  //}
 }
 
 function initSlider(elem) {
@@ -274,11 +270,17 @@ function initSlider(elem) {
 
 function show() {
   if (fsm.state === "followLatest") {
-    fsm.waitForServer();
+    if (historicLayers && nowcastLayers) {
+      fsm.showScrollbar();
+    } else {
+      fsm.waitForServer();
+    }
   }
 }
 
 function hide() {
+  if (playTimeout !== 0) window.clearTimeout(playTimeout);
+  playTimeout = 0;
   fsm.hideScrollbar();
 }
 
@@ -302,10 +304,6 @@ function playPause() {
   } else {
     fsm.pressPlay();
   }
-}
-
-function renderIcon(el) {
-  iconHTML = el.innerHTML;
 }
 
 function toggleLoop(el) {
@@ -517,7 +515,7 @@ function toggleLightning() {
               {uiMessage}...
             </div>
             <div class="text bottomText">
-              {$_("last_radar")} {format(new Date(cap.upstreamTime), "Pp", { locale: getDfnLocale() })}
+              {$_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })}
             </div>
           </div>
         </div>
@@ -583,7 +581,7 @@ function toggleLightning() {
                 </sl-tooltip>
               </div>
             </div>
-            {#if device !== "ios" && device !== "android"}
+            {#if !dd.isApp()}
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
@@ -609,7 +607,7 @@ function toggleLightning() {
               <LastUpdated />
             </div>
             <div class="checkbox">
-              <TimeIndicator device={device} />
+              <TimeIndicator />
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ import VectorLayer from "ol/layer/Vector";
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
 import lightningstrike from "../../assets/lightning.png";
-import { blitzortungAttribution } from './attributions';
+import { blitzortungAttribution, imprintAttribution } from './attributions';
 
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;
@@ -39,7 +39,7 @@ export default function makeLightningLayer() {
   const clusters = new Cluster({
     distance: 8,
     source: ss,
-    attributions: [blitzortungAttribution],
+    attributions: [blitzortungAttribution, imprintAttribution],
   });
   return [ss, new VectorLayer({
     source: clusters,
