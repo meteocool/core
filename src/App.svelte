@@ -25,11 +25,16 @@ import { colorSchemeDark, lightningLayerVisible } from './stores';
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
 import { apiBaseUrl, websocketBaseUrl } from "./urls";
-import { initUIConstants, resetUIConstantByPrefix } from './layers/ui';
+import { initUIConstants } from './layers/ui';
 import makeLightningLayer from './layers/lightning';
 import StrikeManager from './lib/StrikeManager';
 import MesoCycloneManager from './lib/MesoCycloneManager';
 import makeMesocycloneLayer from './layers/mesocyclones';
+import { DeviceDetect as dd } from './lib/DeviceDetect';
+
+export let device;
+
+dd.set(device);
 
 Sentry.init({
   dsn:
@@ -152,26 +157,15 @@ window.settings.setCb("mapRotation", (value) => {
   lm.forEachMap((map) => map.setView(newView));
 });
 
-let device = window.device;
-
-if (device === "ios" && "webkit" in window) {
+if (dd.isIos()) {
   window.webkit.messageHandlers.scriptHandler.postMessage(
     "requestSettings",
   );
 }
 
-if (device === "android") {
+if (dd.isAndroid()) {
   Android.requestSettings();
 }
-
-colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
-
-window.matchMedia("(prefers-color-scheme: dark)")
-  .addListener((e) => {
-    console.log(`changed to ${e.matches ? "dark" : "light"} mode`);
-    colorSchemeDark.set(e.matches);
-  });
-
 
 </script>
 

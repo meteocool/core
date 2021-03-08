@@ -1,9 +1,8 @@
 <script>
-import { faRedoAlt } from '@fortawesome/free-solid-svg-icons/faRedoAlt';
+import repeatIcon from "../../assets/repeat.svg";
 import { capTimeIndicator, lightningLayerVisible, showTimeSlider } from '../stores';
 import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
 import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
-import { faArrowsAltH } from '@fortawesome/free-solid-svg-icons/faArrowsAltH';
 import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
 import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
 import { faChartBar } from '@fortawesome/free-solid-svg-icons/faChartBar';
@@ -349,17 +348,6 @@ function toggleLightning() {
   }
 
   /* timeline controls */
-  /*
-  //.controls {
-  //  width: 3em;
-  //  display: flex;
-  //  flex-direction: column;
-  //  float: left;
-  //  margin-top: 0.5em;
-  //  margin-left: 0.6em;
-  //  margin-right: 0.25em;
-  //}
-    */
 
   .controlButton {
     width: 1em;
@@ -489,7 +477,7 @@ function toggleLightning() {
   }
   @media (orientation: portrait) {
       .range {
-        top: 4px;
+        top: 5px;
       }
   }
 
@@ -511,12 +499,10 @@ function toggleLightning() {
     }
     .faIconButton {
       font-size: 125%;
-      margin-top: 1px;
+      margin-top: 2px;
     }
   }
 </style>
-
-<span use:renderIcon><Icon icon={faArrowsAltH} /></span>
 
 {#if open}
   <div
@@ -548,7 +534,7 @@ function toggleLightning() {
         </div>
         <div class="slider">
           <div class="barChartCanvas">
-            <canvas id="myChart" use:canvasInit></canvas>
+            <canvas use:canvasInit></canvas>
           </div>
           <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider tooltip="none"></sl-range>
           <div class="flexbox gap">
@@ -565,7 +551,7 @@ function toggleLightning() {
                   <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
                     <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
                       <div class="faIconButton">
-                        <Icon icon={faRedoAlt} />️
+                        <img src={repeatIcon} alt="Repeat Playback" width="15" height="15"/>
                       </div>
                     </sl-button>
                   </sl-tooltip>
