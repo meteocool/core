@@ -24,40 +24,41 @@ export default class RadarCapability extends Capability {
     const self = this;
     latLon.subscribe((latlonUpdate) => {
       self.latlon = latlonUpdate;
-      this.reloadTilesRadar();
-      this.reloadTilesHistoric();
+      this.reloadAll();
     });
 
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
         console.log("received websocket poke, refreshing tiles + forecasts");
-        this.reloadTilesRadar();
-        this.reloadTilesHistoric();
+        this.reloadAll();
       });
     }
-
-    this.reloadTilesRadar();
-    this.reloadTilesHistoric();
   }
 
-  localPostifx() {
+  reloadAll() {
+    this.downloadCurrentRadar();
+    this.downloadHistoricRadar();
+  }
+
+  getLocalPostifx() {
     if (this.latlon) {
       return `${this.latlon[0]}/${this.latlon[1]}/`;
     }
     return "";
   }
 
-  reloadTilesRadar() {
+  getUpstreamTime() {
+    return this.upstreamTime;
+  }
+
+  downloadCurrentRadar() {
     // XXX needs more checks to conditionally reload the main layer to save traffic
 
-    const URL = `${apiBaseUrl}/radar/${this.localPostifx()}`;
+    const URL = `${apiBaseUrl}/radar/${this.getLocalPostifx()}`;
     this.nanobar.start(URL);
     fetch(URL)
       .then((response) => response.json())
-      .then((obj) => {
-        if ("radar" in obj) this.processRadar(obj);
-        this.nowcast = obj.nowcast;
-      })
+      .then((obj) => this.processCurrentRadar(obj))
       .then(() => this.nanobar.finish(URL))
       .catch((error) => {
         this.nanobar.finish(URL);
@@ -65,15 +66,9 @@ export default class RadarCapability extends Capability {
       });
   }
 
-  reloadTilesHistoric() {
-    this.downloadHistoric();
-  }
-
-  getUpstreamTime() {
-    return this.upstreamTime;
-  }
-
-  processRadar(obj) {
+  processCurrentRadar(obj) {
+    this.nowcast = obj.nowcast;
+    if (!("radar" in obj)) return;
     this.upstreamTime = obj.radar.upstream_time;
     this.processedTime = obj.radar.processed_time;
     capLastUpdated.set(new Date(this.upstreamTime * 1000));
@@ -89,31 +84,34 @@ export default class RadarCapability extends Capability {
     this.layer.setOpacity(NOWCAST_TRANSPARENCY);
     // XXX instead of this, call mapcb (?)
     super.getMap().addLayer(this.layer);
+    this.downloadNowcast();
   }
 
-  downloadHistoric() {
+  downloadHistoricRadar() {
     this.nanobar.start("historic_nowcast");
-    fetch(`${apiBaseUrl}/radar_historic/${this.localPostifx()}`)
+    fetch(`${apiBaseUrl}/radar_historic/${this.getLocalPostifx()}`)
       .then((response) => response.json())
-      .then((obj) => {
-        this.historicLayers = obj;
-        const sources = {};
-        obj.forEach((interval, index) => {
-          sources[index * (-5)] = {
-            url: `${tileBaseUrl}/meteoradar/${interval.tile_id}/{z}/{x}/{-y}.png`,
-            tile_id: interval.tile_id,
-          };
-          if ("reported_intensity" in interval) {
-            sources[index * (-5)].reported_intensity = interval.reported_intensity;
-          }
-        });
-        this.notify("historic", { sources });
-      })
+      .then((obj) => this.processHistoricRadar(obj))
       .then(() => this.nanobar.finish("historic_nowcast"))
       .catch((error) => {
         this.nanobar.finish("historic_nowcast");
         reportError(error);
       });
+  }
+
+  processHistoricRadar(obj) {
+    this.historicLayers = obj;
+    const sources = {};
+    obj.forEach((interval, index) => {
+      sources[index * (-5)] = {
+        url: `${tileBaseUrl}/meteoradar/${interval.tile_id}/{z}/{x}/{-y}.png`,
+        tile_id: interval.tile_id,
+      };
+      if ("reported_intensity" in interval) {
+        sources[index * (-5)].reported_intensity = interval.reported_intensity;
+      }
+    });
+    this.notify("historic", { sources });
   }
 
   downloadNowcast(cb) {

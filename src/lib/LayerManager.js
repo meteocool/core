@@ -19,6 +19,8 @@ import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
 import { latLon } from "../stores";
+import { DeviceDetect as dd } from '../lib/DeviceDetect';
+
 
 /**
  * Manages the reflectivity + forecast layers shown on the map.
@@ -120,7 +122,7 @@ export class LayerManager {
 
   makeMap(capability) {
     let controls = new Collection();
-    if (window.device !== "ios" && window.device !== "android") {
+    if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
         new Attribution({
           collapsible: false,

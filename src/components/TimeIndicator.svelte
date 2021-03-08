@@ -1,8 +1,8 @@
 <script>
   import { capTimeIndicator } from "../stores";
+  import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
   let timeString = "";
-  export let device;
 
   capTimeIndicator.subscribe((value) => {
     if (!value) {
@@ -31,7 +31,7 @@
 </style>
 
 {#if timeString !== ""}
-    <sl-tag type="info" class="tag" size={device === "ios" || device === "android" ? "medium" : "medium" } pill>
+    <sl-tag type="info" class="tag" size={dd.isApp() ? "medium" : "medium" } pill>
         {timeString}
     </sl-tag>
 {/if}

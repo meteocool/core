@@ -23,7 +23,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
-    attributions: [dwdAttribution, imprintAttribution],
+    attributions: [dwdAttribution],
     crossOrigin: "anonymous",
     minZoom: 1,
     maxZoom: 8,
