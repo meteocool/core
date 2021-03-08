@@ -5,11 +5,6 @@ import Capability from "./Capability";
 import { apiBaseUrl, tileBaseUrl } from "../urls";
 import { NOWCAST_TRANSPARENCY } from "../layers/ui";
 
-let latlon;
-latLon.subscribe((latlonUpdate) => {
-  latlon = latlonUpdate;
-});
-
 export default class RadarCapability extends Capability {
   constructor(options) {
     super((map) => {
@@ -24,25 +19,37 @@ export default class RadarCapability extends Capability {
     this.socket_io = options.socket_io;
     this.nowcast = null;
     this.lastSourceUrl = "";
+    this.latlon = null;
+
+    const self = this;
+    latLon.subscribe((latlonUpdate) => {
+      self.latlon = latlonUpdate;
+      this.reloadTilesRadar();
+      this.reloadTilesHistoric();
+    });
 
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
         console.log("received websocket poke, refreshing tiles + forecasts");
         this.reloadTilesRadar();
+        this.reloadTilesHistoric();
       });
     }
 
     this.reloadTilesRadar();
+    this.reloadTilesHistoric();
   }
 
   localPostifx() {
-    if (latlon) {
-      return `${latlon[0]}/${latlon[1]}/`;
+    if (this.latlon) {
+      return `${this.latlon[0]}/${this.latlon[1]}/`;
     }
     return "";
   }
 
   reloadTilesRadar() {
+    // XXX needs more checks to conditionally reload the main layer to save traffic
+
     const URL = `${apiBaseUrl}/radar/${this.localPostifx()}`;
     this.nanobar.start(URL);
     fetch(URL)
@@ -56,6 +63,10 @@ export default class RadarCapability extends Capability {
         this.nanobar.finish(URL);
         reportError(error);
       });
+  }
+
+  reloadTilesHistoric() {
+    this.downloadHistoric();
   }
 
   getUpstreamTime() {

@@ -55,6 +55,14 @@ export function resetUIConstantByPrefix(prefix) {
 export function initUIConstants() {
   Object.keys(uiConstantsDefault).forEach((key) => setUIConstant(key));
 
+  colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+
+  window.matchMedia("(prefers-color-scheme: dark)")
+    .addListener((e) => {
+      console.log(`changed to ${e.matches ? "dark" : "light"} mode`);
+      colorSchemeDark.set(e.matches);
+    });
+
   setAssetPath(document.currentScript.src);
   customElements.define("sl-button", SlButton);
   customElements.define("sl-icon", SlIcon);
