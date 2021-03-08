@@ -6,6 +6,7 @@ import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
 import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
 import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
 import { faChartBar } from '@fortawesome/free-solid-svg-icons/faChartBar';
+import { faRetweet } from '@fortawesome/free-solid-svg-icons/faRetweet';
 import { fly } from 'svelte/transition';
 import { reportToast } from '../lib/Toast';
 import { _ } from 'svelte-i18n';
@@ -549,7 +550,7 @@ function toggleLightning() {
                   <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
                     <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
                       <div class="faIconButton">
-                        <img src={repeatIcon} alt="Repeat Playback" width="15" height="15"/>
+                        <Icon icon={faRetweet} />
                       </div>
                     </sl-button>
                   </sl-tooltip>
