@@ -581,7 +581,7 @@ function toggleBars() {
                       </div>
                     </sl-button>
                     {#if dd.isApp()}
-                    <sl-button  type="{ showBars ? 'primary' : 'default'}" size={buttonSize} on:click={toggleBars} disabled="{!rainValues.any((p) => p > 0)}">
+                    <sl-button  type="{ showBars ? 'primary' : 'default'}" size={buttonSize} on:click={toggleBars} disabled="{!rainValues.some((p) => p > 0)}">
                       <div class="faIconButton">
                         <Icon icon={faChartBar} />️
                       </div>
