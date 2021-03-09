@@ -1,6 +1,5 @@
 <script>
-import repeatIcon from "../../assets/repeat.svg";
-import { capTimeIndicator, lightningLayerVisible, showTimeSlider } from '../stores';
+import { capTimeIndicator, latLon, lightningLayerVisible, showTimeSlider } from '../stores';
 import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
 import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
 import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
@@ -23,6 +22,15 @@ import Icon from 'fa-svelte';
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 export let cap;
+
+let userLatLon;
+let showBars = true;
+latLon.subscribe((latlonUpdate) => {
+  userLatLon = latlonUpdate;
+  if (!userLatLon) {
+    showBars = false;
+  }
+});
 
 let open = false; // Drawer open/closed. Displays open button if false
 let warned = false; // True if user has been warned about forecast != measurement
@@ -325,8 +333,14 @@ function toggleLightning() {
   lightningLayerVisible.set(!lightningEnabled);
 }
 
-let showBars = true;
 function toggleBars() {
+  if (!userLatLon) {
+    if (!showBars) {
+      reportToast("To enable precipitation bar charts, enable location access on the top right.");
+    }
+    showBars = false;
+    return;
+  }
   showBars = !showBars;
 }
 </script>
@@ -581,7 +595,7 @@ function toggleBars() {
                       </div>
                     </sl-button>
                     {#if dd.isApp()}
-                    <sl-button  type="{ showBars ? 'primary' : 'default'}" size={buttonSize} on:click={toggleBars} disabled="{!rainValues.some((p) => p > 0)}">
+                    <sl-button type="{ showBars ? 'primary' : 'default'}" size={buttonSize} on:click={toggleBars} disabled="{userLatLon && !rainValues.some((p) => p > 0)}">
                       <div class="faIconButton">
                         <Icon icon={faChartBar} />️
                       </div>
