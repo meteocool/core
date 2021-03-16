@@ -20,7 +20,7 @@ import Settings from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
-import { colorSchemeDark, lightningLayerVisible } from './stores';
+import { colorSchemeDark, lightningLayerVisible, mapBaseLayer } from './stores';
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
@@ -63,7 +63,10 @@ window.settings = new Settings({
   },
   mapBaseLayer: {
     type: "string",
-    default: "topographic",
+    default: "light",
+    cb: (val) => {
+      mapBaseLayer.set(val);
+    },
   },
   radarColorMapping: {
     type: "string",
