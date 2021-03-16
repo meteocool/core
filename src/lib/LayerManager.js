@@ -18,7 +18,7 @@ import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
-import { latLon } from "../stores";
+import { latLon, mapBaseLayer } from '../stores';
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 
@@ -41,6 +41,8 @@ export class LayerManager {
       this.capabilities[capability].setMap(newMap);
       this.maps.push(newMap);
     });
+
+    mapBaseLayer.subscribe((newBaseLayer) => { this.switchBaseLayer(newBaseLayer); });
   }
 
   updateLocation(lat, lon, accuracy, zoom = false, focus = true) {

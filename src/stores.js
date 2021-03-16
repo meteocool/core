@@ -7,3 +7,4 @@ export const capTimeIndicator = writable(null);
 export const colorSchemeDark = writable(false);
 export const latLon = writable(null);
 export const lightningLayerVisible = writable(true);
+export const mapBaseLayer = writable("light");

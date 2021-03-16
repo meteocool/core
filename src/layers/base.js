@@ -8,6 +8,8 @@ import {
   osmAttribution,
 } from "./attributions";
 
+const retina = DEVICE_PIXEL_RATIO > 1 ? "@2x" : "";
+
 export const mapTilerOutdoor = () => new TileLayer({
   source: new XYZ({
     url:
@@ -24,8 +26,7 @@ export const mapTilerOutdoor = () => new TileLayer({
 
 export const mapTilerSatellite = () => new TileLayer({
   source: new XYZ({
-    url:
-        "https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=zrIk1CJI5tdOGxsTUHo9",
+    url: `https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}${retina}.jpg?key=zrIk1CJI5tdOGxsTUHo9`,
     tileSize: 512,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     attributions: [maptilerAttribution],
@@ -50,9 +51,9 @@ export const cartoDark = () => new TileLayer({
 
 export const cartoLight = () => new TileLayer({
   source: new XYZ({
-    url:
-        "https://cartodb-basemaps-{a-c}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png",
+    url: `https://cartodb-basemaps-{a-c}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}${retina}.png`,
     attributions: [osmAttribution, cartoAttribution],
+    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     maxZoom: 20,
   }),
   base: true,
