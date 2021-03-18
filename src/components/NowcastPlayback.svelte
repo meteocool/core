@@ -74,15 +74,16 @@ onMount(async () => {
       return;
     }
     if (historicLayers && nowcastLayers) {
+      if (fsm.state === "waitingForServer") {
+        fsm.showScrollbar();
+      }
       const reversed = Object.values(historicLayers);
       reversed.reverse();
       rainValues = reversed
         .map((layer) => Math.round(layer.reported_intensity + 32.5))
         .concat(Object.values(nowcastLayers)
         .map((layer) => Math.round(layer.reported_intensity + 32.5)));
-      if (fsm.state === "waitingForServer") {
-        fsm.showScrollbar();
-      }
+      setChart();
     }
   });
   cap.addObserver((event) => {
@@ -92,11 +93,10 @@ onMount(async () => {
   });
 });
 
-function canvasInit(elem) {
-  canvas = elem;
-  const ctx = canvas.getContext("2d");
+function setChart() {
+  if (!canvas) return;
   // eslint-disable-next-line no-new
-  new Chart(ctx, {
+  new Chart(canvas.getContext("2d"), {
     type: "bar",
     data: {
       labels: Array(49)
@@ -160,6 +160,12 @@ function canvasInit(elem) {
   });
 }
 
+function canvasInit(elem) {
+  canvas = elem;
+  const ctx = canvas.getContext("2d");
+  setChart();
+}
+
 let fsm = new StateMachine({
   init: "followLatest",
   transitions: [
@@ -216,6 +222,7 @@ let fsm = new StateMachine({
       setTimeout(() => showTimeSlider.set(true), 200);
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
+      capTimeIndicator.set(format(new Date(cap.getUpstreamTime() * 1000), "⏱ HH:mm"));
     },
     onPressPlay: () => {
       const playTick = () => {
@@ -228,7 +235,6 @@ let fsm = new StateMachine({
         if (slRange.value === 0) {
           thisFrameDelayMs = 800;
         }
-        capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + slRange.value * 60) * 1000), "⏱ HH:mm"));
         sliderChangedHandler(slRange.value);
         if (slRange.value !== 0 || loop) {
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
@@ -309,6 +315,7 @@ function sliderChangedHandler(value) {
     cap.source.setUrl(historicLayers[value].url);
   }
   oldTimeStep = value;
+  capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + value * 60) * 1000), "⏱ HH:mm"));
 }
 
 function playPause() {
@@ -596,7 +603,7 @@ function toggleBars() {
                         <Icon icon={faAngleDoubleDown} />️
                       </div>
                     </sl-button>
-                    {#if dd.isApp()}
+                    {#if false}
                     <sl-button type="{ showBars ? 'primary' : 'default'}" size={buttonSize} on:click={toggleBars} disabled="{userLatLon && !rainValues.some((p) => p > 0)}">
                       <div class="faIconButton">
                         <Icon icon={faChartBar} />️

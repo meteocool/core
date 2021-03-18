@@ -23,8 +23,20 @@ export default class RadarCapability extends Capability {
 
     const self = this;
     latLon.subscribe((latlonUpdate) => {
-      self.latlon = latlonUpdate;
-      this.reloadAll();
+      console.log("latLon changed: ");
+      console.log(latlonUpdate);
+      if (!latlonUpdate) return true;
+      const [lat, lon] = latlonUpdate;
+      if (self.latlon) {
+        const [oldLat, oldLon] = this.latlon;
+        if (Math.abs(oldLat - lat) > 0.001 || Math.abs(oldLon - lon) > 0.001) {
+          self.latlon = latlonUpdate;
+          this.reloadAll();
+        }
+      } else {
+        self.latlon = latlonUpdate;
+        this.reloadAll();
+      }
     });
 
     if (this.socket_io) {
@@ -33,6 +45,7 @@ export default class RadarCapability extends Capability {
         this.reloadAll();
       });
     }
+    this.reloadAll();
   }
 
   reloadAll() {
