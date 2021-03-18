@@ -134,7 +134,7 @@ window.enterForeground = () => {
   radar.downloadCurrentRadar();
   weather.reloadTilesWeather();
   colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
-}; // may be a second function if you want to have no switch to of the scheme at the start of the app
+};
 
 window.leaveForeground = () => {
   console.log("Left foreground");
