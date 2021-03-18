@@ -284,7 +284,7 @@ function initSlider(elem) {
     return `${value.toString()[0] !== '-' ? '+' : ''}${value.toString()}m`;
   };
   */
-  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value));
+  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
   slRange = elem;
 }
 
@@ -304,8 +304,12 @@ function hide() {
   fsm.hideScrollbar();
 }
 
-function sliderChangedHandler(value) {
+function sliderChangedHandler(value, userInteraction = false) {
   if (value === oldTimeStep) return;
+
+  if (userInteraction && fsm.state === 'playing') {
+    fsm.pressPause();
+  }
 
   if (value === 0) {
     cap.source.setUrl(cap.lastSourceUrl);
