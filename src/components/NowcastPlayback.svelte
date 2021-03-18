@@ -104,6 +104,8 @@ function setChart() {
         .map((_, i) => `${-120 + i * 5}`),
       datasets: [{
         data: rainValues,
+        barPercentage: 0.99,
+        categoryPercentage: 0.99,
         backgroundColor: rainValues.map(((value) => meteocoolClassic[Math.round(value * 2)]))
           .map(maybe => maybe ? maybe : [0, 0, 0, 0])
           .map(([r, g, b, _]) => `rgba(${r}, ${g}, ${b}, 1)`),
@@ -162,7 +164,6 @@ function setChart() {
 
 function canvasInit(elem) {
   canvas = elem;
-  const ctx = canvas.getContext("2d");
   setChart();
 }
 
@@ -523,7 +524,7 @@ function toggleBars() {
   @media (orientation: portrait) {
     .barChartCanvas {
       bottom: 151px;
-      height: 38px;
+      height: 60px;
       width: 100%;
     }
     .faIconButton {
