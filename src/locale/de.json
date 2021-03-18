@@ -3,8 +3,8 @@
   "join_community": "Discord beitreten",
   "url": "meteocool.com",
   "last_updated": "Aktualisiert",
-  "downloading_nowcast": "Vorhersage wird berechnet...",
-  "last_radar": "Letzte Radar Daten von",
+  "downloading_nowcast": "Vorhersage wird berechnet",
+  "last_radar": "Letzte Radadaten von",
 
   "title":"Über meteocool",
   "text1": "meteocool is a free GIS visualisation &amp; aggregation platform with focus on severe weather. Optimized for\n        mobile devices, you can use it to both chase or avoid upcoming weather - that’s up to you.",
