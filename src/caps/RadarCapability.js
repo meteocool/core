@@ -71,7 +71,7 @@ export default class RadarCapability extends Capability {
     if (!("radar" in obj)) return;
     this.upstreamTime = obj.radar.upstream_time;
     this.processedTime = obj.radar.processed_time;
-    capLastUpdated.set(new Date(this.upstreamTime * 1000));
+    capLastUpdated.set(new Date(this.processedTime * 1000));
 
     // XXX this should be an .equals() method in the dwd layer namespace
     if (super.getMap() && this.layer) {

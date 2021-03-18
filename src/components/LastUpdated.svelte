@@ -3,7 +3,6 @@ import { formatDistanceToNow } from "date-fns";
 import { _ } from "svelte-i18n";
 import { capLastUpdated } from "../stores";
 import getDfnLocale from "../locale/locale";
-import { getLocaleFromNavigator } from "svelte-i18n";
 
 let lastUpdated;
 let lastUpdatedStr;
@@ -13,7 +12,7 @@ let updateTimeout = 0;
 const updateTime = () => {
   if (!lastUpdated) return;
   lastUpdatedStr = Math.abs((lastUpdated - new Date()) / 1000);
-  slPercent = 100 - Math.min(((lastUpdatedStr - 120) / 420) * 100, 100);
+  slPercent = 100 - Math.min(((lastUpdatedStr) / 300) * 100, 100);
   lastUpdatedStr = formatDistanceToNow(lastUpdated, {
     locale: getDfnLocale(),
     addSuffix: true,

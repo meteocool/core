@@ -74,7 +74,9 @@ onMount(async () => {
       return;
     }
     if (historicLayers && nowcastLayers) {
-      rainValues = Object.values(historicLayers)
+      const reversed = Object.values(historicLayers);
+      reversed.reverse();
+      rainValues = reversed
         .map((layer) => Math.round(layer.reported_intensity + 32.5))
         .concat(Object.values(nowcastLayers)
         .map((layer) => Math.round(layer.reported_intensity + 32.5)));
