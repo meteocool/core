@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { _ } from "svelte-i18n";
 import { capLastUpdated } from "../stores";
 import getDfnLocale from "../locale/locale";
+import { getLocaleFromNavigator } from "svelte-i18n";
 
 let lastUpdated;
 let lastUpdatedStr;
@@ -17,6 +18,7 @@ const updateTime = () => {
     locale: getDfnLocale(),
     addSuffix: true,
   });
+  lastUpdated += getLocaleFromNavigator();
   updateTimeout = setTimeout(updateTime, 10000);
 };
 
