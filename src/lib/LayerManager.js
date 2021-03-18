@@ -21,14 +21,13 @@ import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
 import { latLon, mapBaseLayer } from '../stores';
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
-
 /**
  * Manages the reflectivity + forecast layers shown on the map.
  */
 // eslint-disable-next-line import/prefer-default-export
 export class LayerManager {
   constructor(options) {
-    this.options = options; // XXX defaults?
+    this.options = options;
     this.settings = options.settings;
     this.capabilities = options.capabilities;
     this.maps = [];
@@ -74,18 +73,16 @@ export class LayerManager {
     let zoomLevel = view.getZoom();
     const oldCenter = view.getCenter();
     if (zoom) {
-      if (accuracy < 200) {
-        zoomLevel = 14;
-      } else if (accuracy < 400) {
-        zoomLevel = 13;
-      } else if (accuracy < 800) {
+      if (accuracy < 400) {
         zoomLevel = 12;
-      } else if (accuracy < 2000) {
+      } else if (accuracy < 800) {
         zoomLevel = 11;
-      } else if (accuracy < 4000) {
+      } else if (accuracy < 2000) {
         zoomLevel = 10;
-      } else {
+      } else if (accuracy < 4000) {
         zoomLevel = 9;
+      } else {
+        zoomLevel = 8;
       }
     }
     let newCenter;

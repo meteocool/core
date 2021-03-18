@@ -3,8 +3,7 @@
   "join_community": "Join Our Discord!",
   "url": "meteocool.com",
   "last_updated": "Last updated",
-  "processing_nowcast": "Processing Nowcast",
-  "downloading_nowcast": "Downloading Nowcast",
+  "downloading_nowcast": "Forecasting...",
   "last_radar": "Last radar from",
 
   "title":"About meteocool",
