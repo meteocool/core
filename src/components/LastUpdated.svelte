@@ -18,8 +18,6 @@ const updateTime = () => {
     locale: getDfnLocale(),
     addSuffix: true,
   });
-  console.log(getLocaleFromNavigator());
-  lastUpdatedStr += getLocaleFromNavigator();
   updateTimeout = setTimeout(updateTime, 10000);
 };
 
