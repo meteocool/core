@@ -1,9 +1,16 @@
-import { dwdLayer, greyOverlay } from "../layers/radar";
+import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from '../layers/radar';
 import { reportError } from "../lib/Toast";
-import { capDescription, capLastUpdated, latLon } from "../stores";
+import {
+  capDescription,
+  capLastUpdated,
+  capTimeIndicator,
+  latLon,
+  radarColorScheme
+} from '../stores';
 import Capability from "./Capability";
 import { apiBaseUrl, tileBaseUrl } from "../urls";
 import { NOWCAST_TRANSPARENCY } from "../layers/ui";
+import { format } from 'date-fns';
 
 export default class RadarCapability extends Capability {
   constructor(options) {
@@ -20,11 +27,22 @@ export default class RadarCapability extends Capability {
     this.nowcast = null;
     this.lastSourceUrl = "";
     this.latlon = null;
+    this.layerFactory = dwdLayerStatic;
+    this.forceRecreate = false;
 
     const self = this;
+    radarColorScheme.subscribe((colorScheme) => {
+      setDwdCmap(colorScheme);
+      if (colorScheme === "classic") {
+        self.layerFactory = dwdLayerStatic;
+      } else {
+        self.layerFactory = dwdLayer;
+      }
+      this.forceRecreate = true;
+      this.reloadAll();
+    });
+
     latLon.subscribe((latlonUpdate) => {
-      console.log("latLon changed: ");
-      console.log(latlonUpdate);
       if (!latlonUpdate) return true;
       const [lat, lon] = latlonUpdate;
       if (self.latlon) {
@@ -45,7 +63,6 @@ export default class RadarCapability extends Capability {
         this.reloadAll();
       });
     }
-    this.reloadAll();
   }
 
   reloadAll() {
@@ -85,15 +102,17 @@ export default class RadarCapability extends Capability {
     this.upstreamTime = obj.radar.upstream_time;
     this.processedTime = obj.radar.processed_time;
     capLastUpdated.set(new Date(this.processedTime * 1000));
+    capTimeIndicator.set(format(new Date(this.upstreamTime * 1000), "⏱ HH:mm"));
 
     // XXX this should be an .equals() method in the dwd layer namespace
     if (super.getMap() && this.layer) {
-      if (this.layer.get("tileId") === obj.tile_id) {
+      if (this.layer.get("tileId") === obj.tile_id && !this.forceRecreate) {
         return;
       }
       super.getMap().removeLayer(this.layer);
+      this.forceRecreate = false;
     }
-    [this.layer, this.source, this.lastSourceUrl] = dwdLayer(obj.radar.tile_id, { mainLayer: true });
+    [this.layer, this.source, this.lastSourceUrl] = this.layerFactory(obj.radar.tile_id, { mainLayer: true });
     this.layer.setOpacity(NOWCAST_TRANSPARENCY);
     // XXX instead of this, call mapcb (?)
     super.getMap().addLayer(this.layer);

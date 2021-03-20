@@ -1,4 +1,5 @@
 <script>
+// Here be dragons
 import { capTimeIndicator, latLon, lightningLayerVisible, showTimeSlider } from '../stores';
 import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
 import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';

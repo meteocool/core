@@ -10,7 +10,7 @@ import { DEVICE_PIXEL_RATIO } from "ol/has";
 import { Raster as RasterSource } from "ol/source";
 import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
-import { dwdAttribution, imprintAttribution } from "./attributions";
+import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { meteocoolClassic, viridis } from "../colormaps";
 import { tileBaseUrl } from "../urls";
@@ -18,14 +18,47 @@ import { NOWCAST_TRANSPARENCY } from "./ui";
 
 let cmap = meteocoolClassic;
 
-// eslint-disable-next-line import/prefer-default-export
+export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
+  const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
+  const reflectivitySource = new XYZ({
+    url: sourceUrl,
+    attributions: [dwdAttribution],
+    crossOrigin: "anonymous",
+    minZoom: 3,
+    maxZoom: 8,
+    transition: 300,
+    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+    tileSize: 512,
+    cacheSize: 999999,
+  });
+  const reflectivityLayer = new TileLayer({
+    source: reflectivitySource,
+    zIndex: 1000,
+  });
+
+  // Disable browser upsampling
+  reflectivityLayer.on("prerender", (evt) => {
+    evt.context.imageSmoothingEnabled = false;
+    evt.context.msImageSmoothingEnabled = false;
+  });
+
+  reflectivityLayer.setExtent(
+    transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
+  );
+
+  reflectivityLayer.set("tileId", tileId);
+  return [reflectivityLayer, reflectivitySource, sourceUrl];
+};
+
+let lastRasterRadar = null;
+
 export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
     attributions: [dwdAttribution],
     crossOrigin: "anonymous",
-    minZoom: 1,
+    minZoom: 3,
     maxZoom: 8,
     transition: 300,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
@@ -57,6 +90,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
       return pixels[0];
     },
   });
+  lastRasterRadar = rasterRadar;
   rasterRadar.on("beforeoperations", (event) => {
     event.data.cmap = cmap;
     event.data.cmapLength = cmap.length;
@@ -75,20 +109,20 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
   );
 
-  // XXX
-  window.updateColormap = (colorMapString) => {
-    if (colorMapString === "classic") {
-      cmap = meteocoolClassic;
-    } else {
-      cmap = viridis;
-    }
-    rasterRadar.changed();
-    return true;
-  };
-
   rasterRadarImageLayer.set("tileId", tileId);
   return [rasterRadarImageLayer, reflectivitySource, sourceUrl];
 };
+
+export function setDwdCmap(colorMapString) {
+  if (colorMapString === "classic") {
+    cmap = meteocoolClassic;
+  } else {
+    cmap = viridis;
+  }
+  if (lastRasterRadar) {
+    lastRasterRadar.changed(); // XXX only works for the last layer
+  }
+}
 
 export const greyOverlay = () => new VectorLayer({
   zIndex: 1000,

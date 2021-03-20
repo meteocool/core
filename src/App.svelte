@@ -20,7 +20,7 @@ import Settings from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
-import { colorSchemeDark, lightningLayerVisible, mapBaseLayer } from './stores';
+import { capLastUpdated, colorSchemeDark, lightningLayerVisible, mapBaseLayer, radarColorScheme } from './stores';
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
@@ -71,7 +71,9 @@ window.settings = new Settings({
   radarColorMapping: {
     type: "string",
     default: "classic",
-    cb: (val) => (window.updateColormap ? window.updateColormap(val) : true),
+    cb: (value) => {
+      radarColorScheme.set(value);
+    },
   },
   capability: {
     type: "string",
@@ -131,6 +133,7 @@ export const weather = new WeatherCapability({
 });
 
 window.enterForeground = () => {
+  capLastUpdated.set(null);
   radar.downloadCurrentRadar();
   weather.reloadTilesWeather();
   colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);

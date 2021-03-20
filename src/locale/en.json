@@ -5,6 +5,7 @@
   "last_updated": "Last updated",
   "downloading_nowcast": "Forecasting",
   "last_radar": "Last radar from",
+  "loading": "Refreshing",
 
   "title":"About meteocool",
   "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
