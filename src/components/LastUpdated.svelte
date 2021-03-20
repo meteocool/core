@@ -24,7 +24,11 @@ capLastUpdated.subscribe((value) => {
   lastUpdated = value;
   if (updateTimeout > 0 || !value) window.clearTimeout(updateTimeout);
   updateTimeout = 0;
-  if (value) updateTime();
+  if (value) {
+    updateTime();
+  } else {
+    lastUpdatedStr = "";
+  }
 });
 
 updateTime();
@@ -56,9 +60,11 @@ updateTime();
           stroke-width="1.5"
           class="progress-ring"
   />
-  {$_("last_updated")}
+  {#if lastUpdatedStr.length < 32}
+    {$_("last_updated")}
+  {/if}
   {lastUpdatedStr}
   {:else}
-    <sl-spinner style="--indicator-color: rgb(52,120,246); position: relative; top: 2px; margin-right: 3px; font-size: 14px; --stroke-width: 1.5px"></sl-spinner> Loading...
+    <sl-spinner style="--indicator-color: rgb(52,120,246); position: relative; top: 2px; margin-right: 3px; font-size: 14px; --stroke-width: 1.5px"></sl-spinner> {$_("loading")}...
   {/if}
 </sl-tag>
