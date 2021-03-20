@@ -576,13 +576,23 @@ function toggleBars() {
             <div class="checkbox">
               <div class="button-group-toolbar">
                 <sl-button-group label="Playback Controls">
-                  <sl-tooltip content="Play" disabled={!hasHover}>
+                  {#if !dd.isApp()}
+                    <!-- XXX this is sadly necessary because sl tooltip throws some weird exception on mobile, even if disabled -->
+                    <sl-tooltip content="Play" disabled={!hasHover}>
+                      <sl-button size={buttonSize} on:click={playPause}>
+                        <div class="faIconButton">
+                          <Icon icon={playPauseButton} />
+                        </div>
+                      </sl-button>
+                    </sl-tooltip>
+                  {:else}
                     <sl-button size={buttonSize} on:click={playPause}>
                       <div class="faIconButton">
                         <Icon icon={playPauseButton} />
                       </div>
                     </sl-button>
-                  </sl-tooltip>
+                  {/if}
+                  {#if !dd.isApp()}
                   <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
                     <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
                       <div class="faIconButton">
@@ -590,6 +600,14 @@ function toggleBars() {
                       </div>
                     </sl-button>
                   </sl-tooltip>
+                  {:else}
+                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
+                      <div class="faIconButton">
+                        <Icon icon={faRetweet} />
+                      </div>
+                    </sl-button>
+                  {/if}
+                  {#if !dd.isApp()}
                   <sl-tooltip content="Include Last 2 Hours in Playback Loop" disabled={!hasHover}>
                     <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
                       <div class="faIconButton">
@@ -597,27 +615,33 @@ function toggleBars() {
                       </div>
                     </sl-button>
                   </sl-tooltip>
+                  {:else}
+                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
+                      <div class="faIconButton">
+                        <Icon icon={faHistory} />
+                      </div>
+                    </sl-button>
+                  {/if}
                 </sl-button-group>
               </div>
             </div>
             <div class="checkbox buttonsInline">
               <div class="button-group-toolbar">
-                <sl-tooltip content="Close" disabled={!hasHover}>
-                  <sl-button-group label="Features">
+                {#if !dd.isApp()}
+                  <sl-tooltip content="Close" disabled={!hasHover}>
                     <sl-button size={buttonSize} on:click={hide}>
                       <div class="faIconButton">
                         <Icon icon={faAngleDoubleDown} />️
                       </div>
                     </sl-button>
-                    {#if false}
-                    <sl-button type="{ showBars ? 'primary' : 'default'}" size={buttonSize} on:click={toggleBars} disabled="{userLatLon && !rainValues.some((p) => p > 0)}">
-                      <div class="faIconButton">
-                        <Icon icon={faChartBar} />️
-                      </div>
-                    </sl-button>
-                    {/if}
-                  </sl-button-group>
-                </sl-tooltip>
+                  </sl-tooltip>
+                {:else}
+                  <sl-button size={buttonSize} on:click={hide}>
+                    <div class="faIconButton">
+                      <Icon icon={faAngleDoubleDown} />️
+                    </div>
+                  </sl-button>
+                {/if}
               </div>
             </div>
             {#if !dd.isApp()}
