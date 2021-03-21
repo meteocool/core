@@ -33,7 +33,7 @@ export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
   });
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
-    zIndex: 1000,
+    zIndex: 80,
   });
 
   // Disable browser upsampling

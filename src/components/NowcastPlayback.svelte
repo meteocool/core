@@ -303,7 +303,7 @@ function sliderChangedHandler(value, userInteraction = false) {
     cap.source.setUrl(historicLayers[value].url);
   }
   oldTimeStep = value;
-  capTimeIndicator.set(cap.getUpstreamTime() + value*60);
+  capTimeIndicator.set(cap.getUpstreamTime() + value * 60);
 }
 
 function playPause() {
@@ -427,6 +427,7 @@ showForecastPlaybutton.subscribe((val) => {
   .flexbox {
     display: flex;
     flex-wrap: wrap;
+    justify-content: space-evenly;
   }
 
   .gap > * {
