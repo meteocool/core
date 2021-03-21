@@ -222,7 +222,7 @@ let fsm = new StateMachine({
       setTimeout(() => showTimeSlider.set(true), 200);
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
-      capTimeIndicator.set(format(new Date(cap.getUpstreamTime() * 1000), "⏱ HH:mm"));
+      capTimeIndicator.set(cap.getUpstreamTime());
     },
     onPressPlay: () => {
       const playTick = () => {
@@ -303,7 +303,7 @@ function sliderChangedHandler(value, userInteraction = false) {
     cap.source.setUrl(historicLayers[value].url);
   }
   oldTimeStep = value;
-  capTimeIndicator.set(format(new Date((cap.getUpstreamTime() + value * 60) * 1000), "⏱ HH:mm"));
+  capTimeIndicator.set(cap.getUpstreamTime() + value*60);
 }
 
 function playPause() {
