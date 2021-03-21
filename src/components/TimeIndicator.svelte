@@ -31,7 +31,7 @@
 </style>
 
 {#if timeString !== ""}
-    <sl-tag type="info" class="tag" size={dd.isApp() ? "medium" : "medium" } pill>
+    <sl-tag type="info" class="tag" size={dd.isApp() ? "large" : "medium" } pill>
         {timeString}
     </sl-tag>
 {/if}
