@@ -87,7 +87,6 @@ const microLabelStyle = new Style({
 
 // eslint-disable-next-line import/prefer-default-export
 export const bordersAndWays = () => new VectorTileLayer({
-  extent: centralEuropeExtent,
   zIndex: 99,
   declutter: true,
   source: new VectorTileSource({
