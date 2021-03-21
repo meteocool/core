@@ -31,6 +31,7 @@ import StrikeManager from "./lib/StrikeManager";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
+import { bordersAndWays, labelsOnly } from './layers/vector';
 
 export let device;
 
@@ -125,7 +126,7 @@ radarSocketIO.on("mesocyclones", (data) => {
 export const radar = new RadarCapability({
   nanobar: nb,
   socket_io: radarSocketIO,
-  additionalLayers: [lightningLayer, mesocycloneLayer],
+  additionalLayers: [lightningLayer, mesocycloneLayer, labelsOnly()],
 });
 export const weather = new WeatherCapability({
   nanobar: nb,
@@ -177,7 +178,7 @@ function reloadLightning() {
         strikemgr.addStrikeWithTime(elem.lon, elem.lat, Math.round(elem.time / 1000 / 1000));
       });
     })
-    .then(() => this.nanobar.finish(URL))
+    .then(() => nb.finish(URL))
     .catch((error) => {
       console.log(error);
     });
@@ -190,7 +191,7 @@ function reloadCyclones() {
       mesocyclonemgr.clearAll();
       data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
     })
-    .then(() => this.nanobar.finish(URL))
+    .then(() => nb.finish(URL))
     .catch((error) => {
       console.log(error);
     });
