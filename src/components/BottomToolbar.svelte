@@ -5,9 +5,23 @@ import { faGithubSquare } from "@fortawesome/free-brands-svg-icons/faGithubSquar
 import { fly } from "svelte/transition";
 import LastUpdated from "./LastUpdated.svelte";
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
-import { capDescription, satelliteLayer, showForecastPlaybutton } from '../stores';
+import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from '../stores';
+
+let s2Enabled = false;
+let s3Disabled = false;
+let e;
+zoomlevel.subscribe((z) => {
+  if (z > 12) {
+    satelliteLayer.set("sentinel2");
+    if (e) e.checked = true;
+    s3Disabled = true;
+  } else {
+    s3Disabled = false;
+  }
+});
 
 function slider(elem) {
+  e = elem;
   //elem.tooltipFormatter = (value) => `${value.toString()
   //  .padStart(2, 0)}:00`;
   //// XXX fix dependency fuckup
@@ -126,6 +140,10 @@ showForecastPlaybutton.subscribe((val) => {
     font-size: 60%;
     opacity: 0.7;
   }
+
+  .switch {
+    --width: 150%;
+  }
 </style>
 
 <div
@@ -154,7 +172,7 @@ showForecastPlaybutton.subscribe((val) => {
       <LastUpdated />
       {:else}
         <sl-tag size="medium" type="info">
-          <span class="sentinel-label pad"><span class="resolution">300m/2x day</span> Sentinel-3</span> <sl-switch use:slider checked></sl-switch> <span class="sentinel-label">Sentinel-2 <span class="resolution">10m/5 days</span></span>
+          <span class="sentinel-label pad">{s3Disabled}<span class="resolution">300m/2x day</span> Sentinel-3</span> <sl-switch class="switch" checked={s2Enabled} use:slider disabled={s3Disabled}></sl-switch> <span class="sentinel-label">Sentinel-2 <span class="resolution">10m/5 days</span></span>
         </sl-tag>
       {/if}
 
