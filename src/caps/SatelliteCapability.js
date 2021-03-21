@@ -1,9 +1,10 @@
 // eslint-disable-next-line import/prefer-default-export
-import sentinel2 from "../layers/satellite";
-import { capDescription } from "../stores";
+import { sentinel2, sentinel3 } from '../layers/satellite';
+import { capDescription, satelliteLayer, showForecastPlaybutton } from '../stores';
 import Capability from "./Capability";
 
-const SATELLITE_DESCRIPTION = `
+const SATELLITE_DESCRIPTION = `Sentinel-2 A / B`;
+const SATELLITE_DESCRIPTION_LONG = `
 💡 Sentinel-2 A and B are two ESA satellites 🛰 orbiting
 earth at 786km. With their multi-spectral cameras, together
 they image almost every place on earth 🌍 once every 5 days.
@@ -14,6 +15,26 @@ of Earth. 🚀`;
 
 export default class SatelliteCapability extends Capability {
   constructor() {
-    super((map) => map.addLayer(sentinel2()), () => capDescription.set(SATELLITE_DESCRIPTION));
+    super((map) => {
+      satelliteLayer.subscribe((layer) => {
+        if (this.oldLayer) {
+          map.removeLayer(this.oldLayer);
+        }
+        switch (layer) {
+          case "sentinel2":
+            this.oldLayer = sentinel2();
+            break;
+          case "sentinel3":
+          default:
+            this.oldLayer = sentinel3();
+            break;
+        }
+        map.addLayer(this.oldLayer);
+      });
+    }, () => {
+      capDescription.set(SATELLITE_DESCRIPTION);
+      showForecastPlaybutton.set(false);
+    });
+    this.oldLayer = null;
   }
 }

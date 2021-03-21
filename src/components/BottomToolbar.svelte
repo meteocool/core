@@ -5,13 +5,32 @@ import { faGithubSquare } from "@fortawesome/free-brands-svg-icons/faGithubSquar
 import { fly } from "svelte/transition";
 import LastUpdated from "./LastUpdated.svelte";
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
+import { capDescription, satelliteLayer, showForecastPlaybutton } from '../stores';
 
 function slider(elem) {
-  elem.tooltipFormatter = (value) => `${value.toString()
-    .padStart(2, 0)}:00`;
-  // XXX fix dependency fuckup
-  elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
+  //elem.tooltipFormatter = (value) => `${value.toString()
+  //  .padStart(2, 0)}:00`;
+  //// XXX fix dependency fuckup
+  //elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
+  elem.addEventListener('sl-change', event => {
+    const satellite = event.target.checked ? "sentinel2" : "sentinel3";
+    if (event.target.checked) {
+      satelliteLayer.set(satellite);
+    } else {
+      satelliteLayer.set(satellite);
+    }
+  });
 }
+
+let description;
+capDescription.subscribe((desc) => {
+  description = desc;
+});
+
+let bottomToolbarVisible = true;
+showForecastPlaybutton.subscribe((val) => {
+  bottomToolbarVisible = val;
+});
 </script>
 
 <style>
@@ -66,10 +85,8 @@ function slider(elem) {
 
   .center {
     flex: auto;
-    font-family: Quattrocento;
     padding: 0.5em;
     font-size: 9pt;
-    font-style: italic;
     position: relative;
     flex-grow: 1; /* do not grow   - initial value: 0 */
     flex-shrink: 1; /* do not shrink - initial value: 1 */
@@ -98,12 +115,19 @@ function slider(elem) {
     margin-left: 3px;
     height: 30px;
   }
+
+  .sentinel-label {
+    color: var(--sl-color-black);
+  }
+  .sentinel-label.pad {
+    margin-right: 0.5em;
+  }
+  .sentinel-label > .resolution {
+    font-size: 60%;
+    opacity: 0.7;
+  }
 </style>
 
-<link
-  rel="stylesheet"
-  type="text/css"
-  href="//fonts.googleapis.com/css?family=Quattrocento" />
 <div
   class="bottomToolbar lastUpdatedBottom"
   transition:fly={{ y: 100, duration: 200 }}>
@@ -126,7 +150,14 @@ function slider(elem) {
                 pill>
       <sl-range min="0" max="24" value="{roundToHour(new Date())}" step="1" class="range-with-custom-formatter" use:slider></sl-range>
       </sl-tag-->
+      {#if bottomToolbarVisible}
       <LastUpdated />
+      {:else}
+        <sl-tag size="medium" type="info">
+          <span class="sentinel-label pad"><span class="resolution">300m/2x day</span> Sentinel-3</span> <sl-switch use:slider checked></sl-switch> <span class="sentinel-label">Sentinel-2 <span class="resolution">10m/5 days</span></span>
+        </sl-tag>
+      {/if}
+
     </div>
     {#if !dd.isApp()}
       <div class="right">

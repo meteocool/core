@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/prefer-default-export
-import { capDescription, capLastUpdated } from "../stores";
+import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
 import { reportError } from "../lib/Toast";
 import Capability from "./Capability";
 
@@ -12,6 +12,7 @@ export default class WeatherCapability extends Capability {
     super(null, () => {
       capDescription.set(WEATHER_DESCRIPTION);
       capLastUpdated.set(null);
+      showForecastPlaybutton.set(true);
     });
     this.url = options.tileURL;
     this.nanobar = options.nanobar;

@@ -9,3 +9,5 @@ export const latLon = writable(null);
 export const lightningLayerVisible = writable(true);
 export const mapBaseLayer = writable("light");
 export const radarColorScheme = writable("classic");
+export const showForecastPlaybutton = writable(true);
+export const satelliteLayer = writable("sentinel2");

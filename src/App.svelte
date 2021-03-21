@@ -136,7 +136,9 @@ window.enterForeground = () => {
   capLastUpdated.set(null);
   radar.downloadCurrentRadar();
   weather.reloadTilesWeather();
-  colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+  if (window.matchMedia) {
+    colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+  }
 };
 
 window.leaveForeground = () => {

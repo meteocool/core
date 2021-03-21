@@ -5,7 +5,7 @@ import {
   capLastUpdated,
   capTimeIndicator,
   latLon,
-  radarColorScheme
+  radarColorScheme, showForecastPlaybutton
 } from '../stores';
 import Capability from "./Capability";
 import { apiBaseUrl, tileBaseUrl } from "../urls";
@@ -18,7 +18,10 @@ export default class RadarCapability extends Capability {
       map.addLayer(greyOverlay());
       const additionalLayers = options.additionalLayers || [];
       additionalLayers.forEach((l) => super.getMap().addLayer(l));
-    }, () => capDescription.set("Radar Reflectivity"));
+    }, () => {
+      capDescription.set("Radar Reflectivity");
+      showForecastPlaybutton.set(true);
+    });
     super.setMap(options.map);
 
     this.layer = null;

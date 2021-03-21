@@ -17,6 +17,7 @@ import {
   SlTooltip,
   SlMenuLabel,
   SlRange,
+  SlSwitch,
 } from "@shoelace-style/shoelace";
 import { colorSchemeDark } from "../stores";
 
@@ -55,13 +56,17 @@ export function resetUIConstantByPrefix(prefix) {
 export function initUIConstants() {
   Object.keys(uiConstantsDefault).forEach((key) => setUIConstant(key));
 
-  colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+  if (window.matchMedia) {
+    colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+  }
 
-  window.matchMedia("(prefers-color-scheme: dark)")
-    .addListener((e) => {
-      console.log(`changed to ${e.matches ? "dark" : "light"} mode`);
-      colorSchemeDark.set(e.matches);
-    });
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)")
+      .addListener((e) => {
+        console.log(`changed to ${e.matches ? "dark" : "light"} mode`);
+        colorSchemeDark.set(e.matches);
+      });
+  }
 
   setAssetPath(document.currentScript.src);
   customElements.define("sl-button", SlButton);
@@ -81,6 +86,7 @@ export function initUIConstants() {
   customElements.define("sl-checkbox", SlCheckbox);
   customElements.define("sl-button-group", SlButtonGroup);
   customElements.define("sl-tooltip", SlTooltip);
+  customElements.define("sl-switch", SlSwitch);
 }
 
 // Dark and Light mode

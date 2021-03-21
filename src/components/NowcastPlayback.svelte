@@ -1,14 +1,12 @@
 <script>
 // Here be dragons
-import { capTimeIndicator, latLon, lightningLayerVisible, showTimeSlider } from '../stores';
+import { capTimeIndicator, latLon, lightningLayerVisible, showForecastPlaybutton, showTimeSlider } from '../stores';
 import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
 import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
 import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
 import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
-import { faChartBar } from '@fortawesome/free-solid-svg-icons/faChartBar';
 import { faRetweet } from '@fortawesome/free-solid-svg-icons/faRetweet';
 import { fly } from 'svelte/transition';
-import { reportToast } from '../lib/Toast';
 import { _ } from 'svelte-i18n';
 import StateMachine from 'javascript-state-machine';
 import { onMount } from 'svelte';
@@ -269,22 +267,7 @@ let fsm = new StateMachine({
 });
 window.fsm = fsm;
 
-function warnNotMostRecent() {
-  //if (!warned) {
-  //  reportToast($_("forcastPlaying"));
-  //  warned = true;
-  //}
-}
-
 function initSlider(elem) {
-  /*
-  elem.tooltipFormatter = value => {
-    if (value === 0) {
-      return 'Latest Radar Image';
-    }
-    return `${value.toString()[0] !== '-' ? '+' : ''}${value.toString()}m`;
-  };
-  */
   elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
   slRange = elem;
 }
@@ -316,7 +299,6 @@ function sliderChangedHandler(value, userInteraction = false) {
     cap.source.setUrl(cap.lastSourceUrl);
   } else if (value > 0) {
     cap.source.setUrl(nowcastLayers[value].url);
-    warnNotMostRecent();
   } else {
     cap.source.setUrl(historicLayers[value].url);
   }
@@ -332,13 +314,13 @@ function playPause() {
   }
 }
 
-function toggleLoop(el) {
+function toggleLoop() {
   loop = !loop;
   historicActive = loop;
   if (!historicActive) includeHistoric = false;
 }
 
-function toggleHistoric(el) {
+function toggleHistoric() {
   includeHistoric = !includeHistoric;
 }
 
@@ -348,16 +330,10 @@ function toggleLightning() {
   lightningLayerVisible.set(!lightningEnabled);
 }
 
-function toggleBars() {
-  if (!userLatLon) {
-    if (!showBars) {
-      reportToast("To enable precipitation bar charts, enable location access on the top right.");
-    }
-    showBars = false;
-    return;
-  }
-  showBars = !showBars;
-}
+let bottomToolbarVisible = true;
+showForecastPlaybutton.subscribe((val) => {
+  bottomToolbarVisible = val;
+});
 </script>
 
 <style>
@@ -539,151 +515,152 @@ function toggleBars() {
   }
 </style>
 
-{#if open}
-  <div
-    class="bottomToolbar timeslider"
-    transition:fly={{ y: 100, duration: 400 }}>
-    {#if loadingIndicator}
-      <div class="parent" id="loadingIndicator">
-        <div class="loadingIndicator">
-          <sl-spinner class="spinner"/>
-          <div class="textBlock">
-            <div class="text topText">
-              {uiMessage}...
-            </div>
-            <div class="text bottomText">
-              {$_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })}
+{#if bottomToolbarVisible}
+  {#if open}
+    <div
+      class="bottomToolbar timeslider"
+      transition:fly={{ y: 100, duration: 400 }}>
+      {#if loadingIndicator}
+        <div class="parent" id="loadingIndicator">
+          <div class="loadingIndicator">
+            <sl-spinner class="spinner"/>
+            <div class="textBlock">
+              <div class="text topText">
+                {uiMessage}...
+              </div>
+              <div class="text bottomText">
+                {$_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    {:else}
-      <div class="flexbox">
-        <div class="buttonsLeft">
-          <div class="controlButton" on:click={playPause} title="Play/Pause">
-            <Icon icon={playPauseButton} class="controlIcon" />
+      {:else}
+        <div class="flexbox">
+          <div class="buttonsLeft">
+            <div class="controlButton" on:click={playPause} title="Play/Pause">
+              <Icon icon={playPauseButton} class="controlIcon" />
+            </div>
+            <div class="controlButton" on:click={hide} title="Close">
+              <Icon icon={faAngleDoubleDown} class="controlIcon" />
+            </div>
           </div>
-          <div class="controlButton" on:click={hide} title="Close">
-            <Icon icon={faAngleDoubleDown} class="controlIcon" />
-          </div>
-        </div>
-        <div class="slider">
-          <div class="barChartCanvas">
-            <canvas use:canvasInit></canvas>
-          </div>
-          <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider tooltip="none"></sl-range>
-          <div class="flexbox gap">
-            <div class="checkbox">
-              <div class="button-group-toolbar">
-                <sl-button-group label="Playback Controls">
-                  {#if !dd.isApp()}
-                    <!-- XXX this is sadly necessary because sl tooltip throws some weird exception on mobile, even if disabled -->
-                    <sl-tooltip content="Play" disabled={!hasHover}>
+          <div class="slider">
+            <div class="barChartCanvas">
+              <canvas use:canvasInit></canvas>
+            </div>
+            <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider tooltip="none"></sl-range>
+            <div class="flexbox gap">
+              <div class="checkbox">
+                <div class="button-group-toolbar">
+                  <sl-button-group label="Playback Controls">
+                    {#if !dd.isApp()}
+                      <!-- XXX this is sadly necessary because sl tooltip throws some weird exception on mobile, even if disabled -->
+                      <sl-tooltip content="Play" disabled={!hasHover}>
+                        <sl-button size={buttonSize} on:click={playPause}>
+                          <div class="faIconButton">
+                            <Icon icon={playPauseButton} />
+                          </div>
+                        </sl-button>
+                      </sl-tooltip>
+                    {:else}
                       <sl-button size={buttonSize} on:click={playPause}>
                         <div class="faIconButton">
                           <Icon icon={playPauseButton} />
                         </div>
                       </sl-button>
+                    {/if}
+                    {#if !dd.isApp()}
+                    <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
+                      <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
+                        <div class="faIconButton">
+                          <Icon icon={faRetweet} />
+                        </div>
+                      </sl-button>
+                    </sl-tooltip>
+                    {:else}
+                      <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
+                        <div class="faIconButton">
+                          <Icon icon={faRetweet} />
+                        </div>
+                      </sl-button>
+                    {/if}
+                    {#if !dd.isApp()}
+                    <sl-tooltip content="Include Last 2 Hours in Playback Loop" disabled={!hasHover}>
+                      <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
+                        <div class="faIconButton">
+                          <Icon icon={faHistory} />
+                        </div>
+                      </sl-button>
+                    </sl-tooltip>
+                    {:else}
+                      <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
+                        <div class="faIconButton">
+                          <Icon icon={faHistory} />
+                        </div>
+                      </sl-button>
+                    {/if}
+                  </sl-button-group>
+                </div>
+              </div>
+              <div class="checkbox buttonsInline">
+                <div class="button-group-toolbar">
+                  {#if !dd.isApp()}
+                    <sl-tooltip content="Close" disabled={!hasHover}>
+                      <sl-button size={buttonSize} on:click={hide}>
+                        <div class="faIconButton">
+                          <Icon icon={faAngleDoubleDown} />️
+                        </div>
+                      </sl-button>
                     </sl-tooltip>
                   {:else}
-                    <sl-button size={buttonSize} on:click={playPause}>
-                      <div class="faIconButton">
-                        <Icon icon={playPauseButton} />
-                      </div>
-                    </sl-button>
-                  {/if}
-                  {#if !dd.isApp()}
-                  <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
-                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
-                      <div class="faIconButton">
-                        <Icon icon={faRetweet} />
-                      </div>
-                    </sl-button>
-                  </sl-tooltip>
-                  {:else}
-                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
-                      <div class="faIconButton">
-                        <Icon icon={faRetweet} />
-                      </div>
-                    </sl-button>
-                  {/if}
-                  {#if !dd.isApp()}
-                  <sl-tooltip content="Include Last 2 Hours in Playback Loop" disabled={!hasHover}>
-                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
-                      <div class="faIconButton">
-                        <Icon icon={faHistory} />
-                      </div>
-                    </sl-button>
-                  </sl-tooltip>
-                  {:else}
-                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
-                      <div class="faIconButton">
-                        <Icon icon={faHistory} />
-                      </div>
-                    </sl-button>
-                  {/if}
-                </sl-button-group>
-              </div>
-            </div>
-            <div class="checkbox buttonsInline">
-              <div class="button-group-toolbar">
-                {#if !dd.isApp()}
-                  <sl-tooltip content="Close" disabled={!hasHover}>
                     <sl-button size={buttonSize} on:click={hide}>
                       <div class="faIconButton">
                         <Icon icon={faAngleDoubleDown} />️
                       </div>
                     </sl-button>
-                  </sl-tooltip>
-                {:else}
-                  <sl-button size={buttonSize} on:click={hide}>
-                    <div class="faIconButton">
-                      <Icon icon={faAngleDoubleDown} />️
-                    </div>
-                  </sl-button>
-                {/if}
-              </div>
-            </div>
-            {#if !dd.isApp()}
-              <div class="checkbox">
-                <div class="button-group-toolbar">
-                  <sl-button-group label="Map Layers">
-                    <sl-tooltip content="Show Lightning Strikes (if any)">
-                      <sl-button size={buttonSize} type="{ lightningEnabled ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
-                    </sl-tooltip>
-                    <sl-tooltip content="Show Mesocyclones (if any)">
-                      <sl-button size={buttonSize} type="default">🌀 Mesocyclones</sl-button>
-                    </sl-tooltip>
-                  </sl-button-group>
+                  {/if}
                 </div>
               </div>
-            {/if}
-            {#if false}
+              {#if !dd.isApp()}
+                <div class="checkbox">
+                  <div class="button-group-toolbar">
+                    <sl-button-group label="Map Layers">
+                      <sl-tooltip content="Show Lightning Strikes (if any)">
+                        <sl-button size={buttonSize} type="{ lightningEnabled ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
+                      </sl-tooltip>
+                      <sl-tooltip content="Show Mesocyclones (if any)">
+                        <sl-button size={buttonSize} type="default">🌀 Mesocyclones</sl-button>
+                      </sl-tooltip>
+                    </sl-button-group>
+                  </div>
+                </div>
+              {/if}
+              {#if false}
+                <div class="checkbox">
+                  <sl-select size={buttonSize}>
+                    <sl-menu-item value="option-1" checked selected>DWD</sl-menu-item>
+                    <sl-menu-item value="option-2">Rainymotion</sl-menu-item>
+                  </sl-select>
+                </div>
+              {/if}
               <div class="checkbox">
-                <sl-select size={buttonSize}>
-                  <sl-menu-item value="option-1" checked selected>DWD</sl-menu-item>
-                  <sl-menu-item value="option-2">Rainymotion</sl-menu-item>
-                </sl-select>
+                <LastUpdated />
               </div>
-            {/if}
-            <div class="checkbox">
-              <LastUpdated />
-            </div>
-            <div class="checkbox">
-              <TimeIndicator />
+              <div class="checkbox">
+                <TimeIndicator />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    {/if}
-  </div>
-{:else}
-  <div on:click={show} class="buttonBar">
-    <div class="controlButton" title="Play/Pause">
-      <div class="playHover">
-        <Icon icon={faPlay} class="controlIcon" />
+      {/if}
+    </div>
+  {:else}
+    <div on:click={show} class="buttonBar">
+      <div class="controlButton" title="Play/Pause">
+        <div class="playHover">
+          <Icon icon={faPlay} class="controlIcon" />
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 {/if}
-
