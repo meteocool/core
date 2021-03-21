@@ -4,6 +4,7 @@ export const tileBaseUrl = "https://tiles-a.meteocool.com";
 export let apiBaseUrl;
 // eslint-disable-next-line import/no-mutable-exports
 export let websocketBaseUrl;
+export const dataUrl = 'https://data.meteocool.com';
 if (BACKEND === "local") {
   apiBaseUrl = "http://localhost:5000/api";
   websocketBaseUrl = "http://localhost:5000";
