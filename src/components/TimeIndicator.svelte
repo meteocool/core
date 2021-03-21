@@ -6,7 +6,7 @@
   let timeString = "";
 
   capTimeIndicator.subscribe((value) => {
-    if (!value) {
+    if (value === 0) {
       timeString = "";
       return;
     }
