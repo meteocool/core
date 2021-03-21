@@ -35,12 +35,6 @@ updateTime();
 </script>
 
 <style>
-  .tag{
-    text-indent: unset;
-    font-style: normal;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-  }
-
   .progress-ring{
     --indicator-color: rgb(52,120,246);
     position: relative;
@@ -50,7 +44,6 @@ updateTime();
 
 <sl-tag
         type="info"
-        class="tag"
         size="medium"
         pill>
   {#if lastUpdatedStr}
