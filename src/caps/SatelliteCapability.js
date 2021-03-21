@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/prefer-default-export
-import { sentinel2, sentinel3 } from '../layers/satellite';
-import { capDescription, satelliteLayer, showForecastPlaybutton } from '../stores';
+import { satelliteCombo, sentinel2, sentinel3 } from '../layers/satellite';
+import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from '../stores';
 import Capability from "./Capability";
 
 const SATELLITE_DESCRIPTION = `Sentinel-2 A / B`;
@@ -16,20 +16,22 @@ of Earth. 🚀`;
 export default class SatelliteCapability extends Capability {
   constructor() {
     super((map) => {
+      const l = satelliteCombo();
+      map.addLayer(l);
+      zoomlevel.subscribe((z) => {
+      });
       satelliteLayer.subscribe((layer) => {
-        if (this.oldLayer) {
-          map.removeLayer(this.oldLayer);
-        }
         switch (layer) {
           case "sentinel2":
-            this.oldLayer = sentinel2();
+            l.getLayersArray()[0].setVisible(true);
+            l.getLayersArray()[1].setVisible(false);
             break;
           case "sentinel3":
           default:
-            this.oldLayer = sentinel3();
+            l.getLayersArray()[0].setVisible(false);
+            l.getLayersArray()[1].setVisible(true);
             break;
         }
-        map.addLayer(this.oldLayer);
       });
     }, () => {
       capDescription.set(SATELLITE_DESCRIPTION);

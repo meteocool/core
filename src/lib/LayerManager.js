@@ -18,7 +18,7 @@ import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
-import { latLon, mapBaseLayer } from '../stores';
+import { latLon, mapBaseLayer, zoomlevel } from '../stores';
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 /**
@@ -177,6 +177,9 @@ export class LayerManager {
           }),
       capability,
       controls,
+    });
+    newMap.on("moveend", (e) => {
+      zoomlevel.set(newMap.getView().getZoom());
     });
     newMap.set("capability", capability);
     return newMap;
