@@ -602,25 +602,6 @@ showForecastPlaybutton.subscribe((val) => {
                   </sl-button-group>
                 </div>
               </div>
-              <div class="checkbox buttonsInline">
-                <div class="button-group-toolbar">
-                  {#if !dd.isApp()}
-                    <sl-tooltip content="Close" disabled={!hasHover}>
-                      <sl-button size={buttonSize} on:click={hide}>
-                        <div class="faIconButton">
-                          <Icon icon={faAngleDoubleDown} />️
-                        </div>
-                      </sl-button>
-                    </sl-tooltip>
-                  {:else}
-                    <sl-button size={buttonSize} on:click={hide}>
-                      <div class="faIconButton">
-                        <Icon icon={faAngleDoubleDown} />️
-                      </div>
-                    </sl-button>
-                  {/if}
-                </div>
-              </div>
               {#if !dd.isApp()}
                 <div class="checkbox">
                   <div class="button-group-toolbar">
@@ -644,10 +625,29 @@ showForecastPlaybutton.subscribe((val) => {
                 </div>
               {/if}
               <div class="checkbox">
-                <LastUpdated />
+                <TimeIndicator />
+              </div>
+              <div class="checkbox buttonsInline">
+                <div class="button-group-toolbar">
+                  {#if !dd.isApp()}
+                    <sl-tooltip content="Close" disabled={!hasHover}>
+                      <sl-button size={buttonSize} on:click={hide}>
+                        <div class="faIconButton">
+                          <Icon icon={faAngleDoubleDown} />️
+                        </div>
+                      </sl-button>
+                    </sl-tooltip>
+                  {:else}
+                    <sl-button size={buttonSize} on:click={hide}>
+                      <div class="faIconButton">
+                        <Icon icon={faAngleDoubleDown} />️
+                      </div>
+                    </sl-button>
+                  {/if}
+                </div>
               </div>
               <div class="checkbox">
-                <TimeIndicator />
+                <LastUpdated />
               </div>
             </div>
           </div>
