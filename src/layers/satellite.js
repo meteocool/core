@@ -1,8 +1,7 @@
 import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import XYZ from "ol/source/XYZ";
-import { bordersAndWays } from "./vector";
-import { centralEuropeExtent } from "./extents";
+import { bordersAndWays } from './vector';
 import { copernicusAttribution } from "./attributions";
 
 export function sentinel2() {
