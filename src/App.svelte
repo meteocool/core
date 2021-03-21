@@ -20,17 +20,17 @@ import Settings from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
-import { capLastUpdated, colorSchemeDark, lightningLayerVisible, mapBaseLayer, radarColorScheme } from './stores';
+import { capLastUpdated, colorSchemeDark, lightningLayerVisible, mapBaseLayer, radarColorScheme } from "./stores";
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
-import { apiBaseUrl, websocketBaseUrl } from "./urls";
-import { initUIConstants } from './layers/ui';
-import makeLightningLayer from './layers/lightning';
-import StrikeManager from './lib/StrikeManager';
-import MesoCycloneManager from './lib/MesoCycloneManager';
-import makeMesocycloneLayer from './layers/mesocyclones';
-import { DeviceDetect as dd } from './lib/DeviceDetect';
+import { apiBaseUrl, dataUrl, websocketBaseUrl } from "./urls";
+import { initUIConstants } from "./layers/ui";
+import makeLightningLayer from "./layers/lightning";
+import StrikeManager from "./lib/StrikeManager";
+import MesoCycloneManager from "./lib/MesoCycloneManager";
+import makeMesocycloneLayer from "./layers/mesocyclones";
+import { DeviceDetect as dd } from "./lib/DeviceDetect";
 
 export let device;
 
@@ -132,15 +132,6 @@ export const weather = new WeatherCapability({
   tileURL: `${apiBaseUrl}/icon/t_2m/`,
 });
 
-window.enterForeground = () => {
-  capLastUpdated.set(null);
-  radar.downloadCurrentRadar();
-  weather.reloadTilesWeather();
-  if (window.matchMedia) {
-    colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
-  }
-};
-
 window.leaveForeground = () => {
   console.log("Left foreground");
 };
@@ -175,6 +166,49 @@ if (dd.isAndroid()) {
   Android.requestSettings();
 }
 
+function reloadLightning() {
+  fetch(`${dataUrl}/lightning_cache`)
+    .then((response) => response.json())
+    .then((data) => {
+      strikemgr.clearAll();
+      // differential download: send timestamp of newest strike to backend
+      // only retrieve the difference.
+      data.forEach((elem) => {
+        strikemgr.addStrikeWithTime(elem.lon, elem.lat, Math.round(elem.time / 1000 / 1000));
+      });
+    })
+    .then(() => this.nanobar.finish(URL))
+    .catch((error) => {
+      console.log(error);
+    });
+}
+
+function reloadCyclones() {
+  fetch(`${dataUrl}/mesocyclones/all/`)
+    .then((response) => response.json())
+    .then((data) => {
+      mesocyclonemgr.clearAll();
+      data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
+    })
+    .then(() => this.nanobar.finish(URL))
+    .catch((error) => {
+      console.log(error);
+    });
+}
+
+reloadLightning();
+reloadCyclones();
+
+window.enterForeground = () => {
+  capLastUpdated.set(null);
+  radar.downloadCurrentRadar();
+  weather.reloadTilesWeather();
+  if (window.matchMedia) {
+    colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
+  }
+  reloadLightning();
+  reloadCyclones();
+};
 </script>
 
 <style>
