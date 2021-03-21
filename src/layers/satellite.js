@@ -14,7 +14,6 @@ export function sentinel2() {
       attributions: [copernicusAttribution],
     }),
     zIndex: 5,
-    extent: centralEuropeExtent,
     preload: Infinity,
   });
 }
@@ -23,7 +22,7 @@ export function sentinel3() {
     source: new XYZ({
       url: "https://ot-tiles.s3.eu-central-1.amazonaws.com/s3_olci_worldgrid/{z}/{x}/{-y}.png",
       minZoom: 1,
-      maxZoom: 10,
+      maxZoom: 8,
       attributions: [copernicusAttribution],
     }),
     zIndex: 5,

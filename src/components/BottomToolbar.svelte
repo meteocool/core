@@ -1,13 +1,11 @@
 <script>
-
 import Icon from "fa-svelte";
 import { faGithubSquare } from "@fortawesome/free-brands-svg-icons/faGithubSquare";
 import { fly } from "svelte/transition";
 import LastUpdated from "./LastUpdated.svelte";
-import { DeviceDetect as dd } from '../lib/DeviceDetect';
-import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from '../stores';
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from "../stores";
 
-let s2Enabled = false;
 let s3Disabled = false;
 let e;
 zoomlevel.subscribe((z) => {
@@ -20,13 +18,23 @@ zoomlevel.subscribe((z) => {
   }
 });
 
+function selectS2() {
+  satelliteLayer.set("sentinel2");
+  if (e) e.checked = true;
+}
+
+function selectS3() {
+  satelliteLayer.set("sentinel3");
+  if (e) e.checked = false;
+}
+
 function slider(elem) {
   e = elem;
-  //elem.tooltipFormatter = (value) => `${value.toString()
+  // elem.tooltipFormatter = (value) => `${value.toString()
   //  .padStart(2, 0)}:00`;
-  //// XXX fix dependency fuckup
-  //elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
-  elem.addEventListener('sl-change', event => {
+  /// / XXX fix dependency fuckup
+  // elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
+  elem.addEventListener("sl-change", (event) => {
     const satellite = event.target.checked ? "sentinel2" : "sentinel3";
     if (event.target.checked) {
       satelliteLayer.set(satellite);
@@ -141,9 +149,7 @@ showForecastPlaybutton.subscribe((val) => {
     opacity: 0.7;
   }
 
-  .switch {
-    --width: 150%;
-  }
+  .switch { }
 </style>
 
 <div
@@ -172,7 +178,7 @@ showForecastPlaybutton.subscribe((val) => {
       <LastUpdated />
       {:else}
         <sl-tag size="medium" type="info">
-          <span class="sentinel-label pad">{s3Disabled}<span class="resolution">300m/2x day</span> Sentinel-3</span> <sl-switch class="switch" checked={s2Enabled} use:slider disabled={s3Disabled}></sl-switch> <span class="sentinel-label">Sentinel-2 <span class="resolution">10m/5 days</span></span>
+          <span class="sentinel-label pad" on:click={selectS3}><span class="resolution">300m/2x day</span> Sentinel-3</span> <sl-switch class="switch" checked="true" use:slider disabled={s3Disabled}></sl-switch> <span class="sentinel-label" on:click={selectS2}>Sentinel-2 <span class="resolution">10m/5 days</span></span>
         </sl-tag>
       {/if}
 
