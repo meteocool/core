@@ -17,6 +17,9 @@ const updateTime = () => {
     locale: getDfnLocale(),
     addSuffix: true,
   });
+  if (lastUpdatedStr.length < 22) {
+    lastUpdatedStr = `${$_("last_updated")} ${lastUpdatedStr}`;
+  }
   updateTimeout = setTimeout(updateTime, 10000);
 };
 
@@ -47,16 +50,13 @@ updateTime();
         size="medium"
         pill>
   {#if lastUpdatedStr}
-  <sl-progress-ring
-          percentage={slPercent}
-          size="18"
-          stroke-width="1.5"
-          class="progress-ring"
-  />
-  {#if lastUpdatedStr.length < 30}
-    {$_("last_updated")}
-  {/if}
-  {lastUpdatedStr}
+    <sl-progress-ring
+            percentage={slPercent}
+            size="18"
+            stroke-width="1.5"
+            class="progress-ring"
+    />
+    {lastUpdatedStr}
   {:else}
     <sl-spinner style="--indicator-color: rgb(52,120,246); position: relative; top: 2px; margin-right: 3px; font-size: 14px; --stroke-width: 1.5px"></sl-spinner> {$_("loading")}...
   {/if}
