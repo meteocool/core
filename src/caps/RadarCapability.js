@@ -101,6 +101,10 @@ export default class RadarCapability extends Capability {
 
   processCurrentRadar(obj) {
     this.nowcast = obj.nowcast;
+    if (!this.nowcast) {
+      this.notify("nowcast", { sources: null });
+    }
+
     if (!("radar" in obj)) return;
     this.upstreamTime = obj.radar.upstream_time;
     this.processedTime = obj.radar.processed_time;

@@ -15,7 +15,9 @@
 </script>
 
 <style>
-  .tag { }
+  .tag {
+      width: 75px;
+  }
 </style>
 
 {#if timeString}

@@ -53,7 +53,7 @@ updateTime();
           stroke-width="1.5"
           class="progress-ring"
   />
-  {#if lastUpdatedStr.length < 32}
+  {#if lastUpdatedStr.length < 30}
     {$_("last_updated")}
   {/if}
   {lastUpdatedStr}
