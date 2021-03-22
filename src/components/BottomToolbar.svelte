@@ -97,10 +97,10 @@ showForecastPlaybutton.subscribe((val) => {
     padding: 0;
     flex-grow: 0; /* do not grow   - initial value: 0 */
     flex-shrink: 0; /* do not shrink - initial value: 1 */
-    flex-basis: 10%;
+    flex-basis: 3%;
   }
   @media only screen and (max-width: 600px) {
-    .right {
+    .app-logos {
       display: none;
     }
   }
@@ -120,7 +120,7 @@ showForecastPlaybutton.subscribe((val) => {
     font-size: 33.6px;
     text-shadow: 3px 3px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff,
       -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
-    color: var(--sl-color-black) !important;
+    color: var(--sl-color-info-700) !important;
     padding: 0;
     border-radius: 0;
     margin: 6.5px 0.2em 0 0;
@@ -185,29 +185,31 @@ showForecastPlaybutton.subscribe((val) => {
     </div>
     {#if !dd.isApp()}
       <div class="right">
-        <div class="appstoreLogo">
-          <a
-            target="_blank"
-            href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"
+        <div class="app-logos">
+          <div class="appstoreLogo">
+            <a
+                    target="_blank"
+                    href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"
             ><img
-              src="assets/ios-app-store.png"
-              alt="ios app store link"
-              class="appstore-logo"
-              /></a>
-        </div>
-        <div class="appstoreLogo">
-          <a
-            target="_blank"
-            href="https://play.google.com/store/apps/details?id=com.meteocool"
+                    src="assets/ios-app-store.png"
+                    alt="ios app store link"
+                    class="appstore-logo"
+            /></a>
+          </div>
+          <div class="appstoreLogo">
+            <a
+                    target="_blank"
+                    href="https://play.google.com/store/apps/details?id=com.meteocool"
             ><img
-              class="appstore-logo"
-              alt="google play app store"
-              src="assets/google-play-store.png"
-              /></a>
-        </div>
-        <div class="appstoreLogo">
-          <a target="_blank" href="https://github.com/meteocool/core#meteocool"
+                    class="appstore-logo"
+                    alt="google play app store"
+                    src="assets/google-play-store.png"
+            /></a>
+          </div>
+          <div class="appstoreLogo">
+            <a target="_blank" href="https://github.com/meteocool/core#meteocool"
             ><Icon icon={faGithubSquare} class="githubIcon" /></a>
+          </div>
         </div>
       </div>
     {/if}

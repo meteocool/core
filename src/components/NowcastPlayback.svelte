@@ -453,8 +453,15 @@ showForecastPlaybutton.subscribe((val) => {
   }
 
   .buttonBar.right {
-    left: unset;
-    right: 0.3em;
+    left: 3em;
+    right: unset;
+  }
+
+  @media only screen and (max-width: 600px) {
+    .buttonBar.right {
+      left: unset;
+      right: 0.3em;
+    }
   }
 
   .textBlock {
@@ -718,14 +725,14 @@ showForecastPlaybutton.subscribe((val) => {
       {/if}
     </div>
   {:else}
-    <div on:click={show} class="buttonBar">
+    <div on:click={show} class="buttonBar right">
       <div class="controlButton" title="Playback Controls">
         <div class="playHover">
           <Icon icon={faAngleDoubleUp} class="controlIcon" />
         </div>
       </div>
     </div>
-    <div on:click={showAndPlay} class="buttonBar right">
+    <div on:click={showAndPlay} class="buttonBar">
       <div class="controlButton" title="Play/Pause">
         <div class="playHover">
           <Icon icon={faPlay} class="controlIcon" />
