@@ -83,6 +83,18 @@ onMount(async () => {
         .concat(Object.values(nowcastLayers)
         .map((layer) => Math.round(layer.reported_intensity + 32.5)));
       setChart();
+    } else {
+      switch (fsm.state) {
+        case "manualScrolling":
+          fsm.enterWaitingState();
+          break;
+        case "playing":
+          fsm.pressPause();
+          fsm.enterWaitingState();
+          break;
+        default:
+          break;
+      }
     }
   });
   cap.addObserver((event) => {
@@ -117,7 +129,7 @@ function setChart() {
       layout: {
         padding: {
           left: 0,
-          right: 0,
+          right: 5,
           top: 0,
           bottom: 0,
         },
@@ -134,14 +146,21 @@ function setChart() {
         xAxes: [{
           gridLines: {
             display: false,
+            tickMarkLength: 4,
+          },
+          afterFit: (scale) => {
+            scale.height = 18;
+            scale.paddingTop = 0;
+            scale.paddingBottom = 0;
           },
           ticks: {
             fontColor: getComputedStyle(document.body)
               .getPropertyValue("--sl-color-info-700"),
             fontSize: 9,
             autoSkip: true,
-            maxRotation: 90,
-            minRotation: 0,
+            maxRotation: 45,
+            minRotation: dd.isApp() ? 45 : 0,
+            padding: 0,
           },
         }],
         yAxes: [{
@@ -150,7 +169,6 @@ function setChart() {
           },
           scaleLabel: {
             display: false,
-            labelString: "Intensity",
           },
           ticks: {
             display: false,
@@ -204,6 +222,16 @@ let fsm = new StateMachine({
       from: "followLatest",
       to: "followLatest",
     },
+    {
+      name: "enterWaitingState",
+      from: "manualScrolling",
+      to: "waitingForServer",
+    },
+    {
+      name: "enterWaitingState",
+      from: "playing",
+      to: "waitingForServer",
+    },
   ],
   methods: {
     onWaitForServer: (param) => {
@@ -223,6 +251,9 @@ let fsm = new StateMachine({
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
       capTimeIndicator.set(cap.getUpstreamTime());
+    },
+    onEnterWaitingState: (t) => {
+      loadingIndicator = true;
     },
     onPressPlay: () => {
       const playTick = () => {
@@ -505,13 +536,16 @@ showForecastPlaybutton.subscribe((val) => {
   /* XXX consolidate media queries into one place */
   @media (orientation: portrait) {
     .barChartCanvas {
-      bottom: 151px;
+      bottom: 153px;
       height: 60px;
       width: 100%;
     }
     .faIconButton {
       font-size: 125%;
       margin-top: 2px;
+    }
+    .loadingIndicator {
+      transform: translateY(70%);
     }
   }
 </style>
@@ -551,6 +585,9 @@ showForecastPlaybutton.subscribe((val) => {
             </div>
             <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider tooltip="none"></sl-range>
             <div class="flexbox gap">
+              <div class="checkbox">
+                <TimeIndicator />
+              </div>
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="Playback Controls">
@@ -625,9 +662,6 @@ showForecastPlaybutton.subscribe((val) => {
                   </sl-select>
                 </div>
               {/if}
-              <div class="checkbox">
-                <TimeIndicator />
-              </div>
               <div class="checkbox buttonsInline">
                 <div class="button-group-toolbar">
                   {#if !dd.isApp()}
