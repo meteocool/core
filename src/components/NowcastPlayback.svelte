@@ -62,6 +62,8 @@ lightningLayerVisible.subscribe((value) => {
   lightningEnabled = value;
 });
 
+let playbackInterruptedByServer = false;
+
 onMount(async () => {
   cap.addObserver((subject, data) => {
     console.log(`NowcastPlayback observed event ${subject}`);
@@ -89,7 +91,7 @@ onMount(async () => {
           fsm.enterWaitingState();
           break;
         case "playing":
-          fsm.pressPause();
+          playbackInterruptedByServer = true;
           fsm.enterWaitingState();
           break;
         default:
@@ -146,7 +148,7 @@ function setChart() {
         xAxes: [{
           gridLines: {
             display: false,
-            tickMarkLength: 4,
+            tickMarkLength: 6,
           },
           afterFit: (scale) => {
             scale.height = 18;
@@ -251,8 +253,22 @@ let fsm = new StateMachine({
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
       capTimeIndicator.set(cap.getUpstreamTime());
+
+      if (playbackInterruptedByServer) {
+        setTimeout(() => {
+          fsm.pressPlay();
+        }, 500);
+        playbackInterruptedByServer = false;
+      }
     },
     onEnterWaitingState: (t) => {
+      if (t.from === "playing") {
+        playbackInterruptedByServer = true;
+        // XXX deduplicate with onPressPause:
+        if (playTimeout !== 0) window.clearTimeout(playTimeout);
+        playTimeout = 0;
+        playPauseButton = faPlay;
+      }
       loadingIndicator = true;
     },
     onPressPlay: () => {
@@ -516,11 +532,11 @@ showForecastPlaybutton.subscribe((val) => {
   .range {
     width: 98%;
     top: 10px;
-    margin-bottom: 5px;
+    margin-bottom: 7px;
   }
   @media (orientation: portrait) {
       .range {
-        top: 5px;
+        top: 7px;
       }
   }
 
@@ -539,6 +555,7 @@ showForecastPlaybutton.subscribe((val) => {
       bottom: 153px;
       height: 60px;
       width: 100%;
+      transform: translateX(-1.15%);
     }
     .faIconButton {
       font-size: 125%;
