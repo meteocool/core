@@ -1,8 +1,8 @@
 import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import XYZ from "ol/source/XYZ";
-import { bordersAndWays } from './vector';
-import { copernicusAttribution } from "./attributions";
+import { bordersAndWays } from "./vector";
+import { copernicusAttribution, ororatechAttribution } from "./attributions";
 
 export function sentinel2() {
   return new TileLayer({
@@ -10,10 +10,9 @@ export function sentinel2() {
       url: "https://ot-tiles.s3.eu-central-1.amazonaws.com/s2_msi_worldgrid/{z}/{x}/{-y}.png",
       minZoom: 1,
       maxZoom: 14,
-      attributions: [copernicusAttribution],
+      attributions: [copernicusAttribution, ororatechAttribution],
     }),
     zIndex: 5,
-    preload: Infinity,
   });
 }
 export function sentinel3() {
@@ -22,10 +21,9 @@ export function sentinel3() {
       url: "https://ot-tiles.s3.eu-central-1.amazonaws.com/s3_olci_worldgrid/{z}/{x}/{-y}.png",
       minZoom: 1,
       maxZoom: 8,
-      attributions: [copernicusAttribution],
+      attributions: [copernicusAttribution, ororatechAttribution],
     }),
     zIndex: 5,
-    preload: Infinity,
   });
 }
 

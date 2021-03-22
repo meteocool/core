@@ -17,6 +17,7 @@
 <style>
   .tag {
       width: 75px;
+      margin-left: 5px;
   }
 </style>
 
