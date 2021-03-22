@@ -4,6 +4,7 @@ import { capTimeIndicator, latLon, lightningLayerVisible, showForecastPlaybutton
 import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
 import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
 import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
+import { faAngleDoubleUp } from '@fortawesome/free-solid-svg-icons/faAngleDoubleUp';
 import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
 import { faRetweet } from '@fortawesome/free-solid-svg-icons/faRetweet';
 import { fly } from 'svelte/transition';
@@ -62,7 +63,7 @@ lightningLayerVisible.subscribe((value) => {
   lightningEnabled = value;
 });
 
-let playbackInterruptedByServer = false;
+let autoPlay = false;
 
 onMount(async () => {
   cap.addObserver((subject, data) => {
@@ -91,7 +92,7 @@ onMount(async () => {
           fsm.enterWaitingState();
           break;
         case "playing":
-          playbackInterruptedByServer = true;
+          autoPlay = true;
           fsm.enterWaitingState();
           break;
         default:
@@ -254,16 +255,16 @@ let fsm = new StateMachine({
       setUIConstant("toast-stack-offset", "124px");
       capTimeIndicator.set(cap.getUpstreamTime());
 
-      if (playbackInterruptedByServer) {
+      if (autoPlay) {
         setTimeout(() => {
           fsm.pressPlay();
         }, 500);
-        playbackInterruptedByServer = false;
+        autoPlay = false;
       }
     },
     onEnterWaitingState: (t) => {
       if (t.from === "playing") {
-        playbackInterruptedByServer = true;
+        autoPlay = true;
         // XXX deduplicate with onPressPause:
         if (playTimeout !== 0) window.clearTimeout(playTimeout);
         playTimeout = 0;
@@ -327,6 +328,11 @@ function show() {
       fsm.waitForServer();
     }
   }
+}
+
+function showAndPlay() {
+  autoPlay = true;
+  show();
 }
 
 function hide() {
@@ -444,6 +450,11 @@ showForecastPlaybutton.subscribe((val) => {
     bottom: calc(0.2em + env(safe-area-inset-bottom));
     left: 0.3em;
     z-index: 999999;
+  }
+
+  .buttonBar.right {
+    left: unset;
+    right: 0.3em;
   }
 
   .textBlock {
@@ -708,6 +719,13 @@ showForecastPlaybutton.subscribe((val) => {
     </div>
   {:else}
     <div on:click={show} class="buttonBar">
+      <div class="controlButton" title="Playback Controls">
+        <div class="playHover">
+          <Icon icon={faAngleDoubleUp} class="controlIcon" />
+        </div>
+      </div>
+    </div>
+    <div on:click={showAndPlay} class="buttonBar right">
       <div class="controlButton" title="Play/Pause">
         <div class="playHover">
           <Icon icon={faPlay} class="controlIcon" />
