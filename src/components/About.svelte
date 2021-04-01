@@ -18,15 +18,9 @@ function close() {
 </script>
 
 <style>
-  .appstore-logo {
-    width: 200px;
-    height: auto;
-  }
-
   :global(.dialog-overview::part(base)) {
     bottom: 7%;
     color: var(--sl-color-gray-700);
-    --width: 50vw;
   }
 
   .volunteers {
@@ -43,14 +37,19 @@ function close() {
     color: var(--sl-color-primary-600);
   }
 
+  .appstore-logo {
+    width: 95%;
+  }
+
   .appstoreLogo {
-    float: right;
-    width: 180px;
     margin: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .appstore-logo.about {
-    width: 100%;
+    flex: 50%;
   }
 
   .dialog-overview {
@@ -59,6 +58,7 @@ function close() {
 </style>
 
 <sl-dialog label={$_("title")} class="dialog-overview" use:init>
+  <span>{$_("text1")}</span>
   <div class="appstoreLogo">
     <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"
       ><img
@@ -71,7 +71,6 @@ function close() {
         alt="google play app store"
         src="assets/google-play-store.png" /></a>
   </div>
-  <p>{$_("text1")}</p>
   <h2>{$_("features.header")}</h2>
   <ul>
     <li>
