@@ -144,9 +144,6 @@ export const weather = new WeatherCapability({
   tileURL: `${apiBaseUrl}/icon/t_2m/`,
 });
 
-window.leaveForeground = () => {
-  console.log("Left foreground");
-};
 
 export const lm = new LayerManager({
   settings: window.settings,
