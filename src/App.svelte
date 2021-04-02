@@ -20,7 +20,14 @@ import Settings from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
-import { capLastUpdated, colorSchemeDark, lightningLayerVisible, mapBaseLayer, radarColorScheme } from "./stores";
+import {
+  capLastUpdated,
+  colorSchemeDark,
+  cycloneLayerVisible,
+  lightningLayerVisible,
+  mapBaseLayer,
+  radarColorScheme,
+} from "./stores";
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
@@ -31,7 +38,7 @@ import StrikeManager from "./lib/StrikeManager";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
-import { bordersAndWays, labelsOnly } from './layers/vector';
+import { labelsOnly } from "./layers/vector";
 
 export let device;
 
@@ -87,6 +94,10 @@ window.settings = new Settings({
   layerMesocyclones: {
     type: "boolean",
     default: true,
+    applyInitial: true,
+    cb: (value) => {
+      cycloneLayerVisible.set(value);
+    },
   },
   layerLightning: {
     type: "boolean",

@@ -1,25 +1,38 @@
 <script>
+import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
+import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
+import { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoubleDown";
+import { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDoubleUp";
+import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
+import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
+
+import { fly } from "svelte/transition";
+import { _ } from "svelte-i18n";
+import { onMount } from "svelte";
+import Icon from "fa-svelte";
+
+import StateMachine from "javascript-state-machine";
+import Chart from "chart.js";
+import { format } from "date-fns";
+
+import { meteocoolClassic } from "../colormaps";
+import getDfnLocale from "../locale/locale";
+import { setUIConstant } from "../layers/ui";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
+
+import {
+  capTimeIndicator,
+  cycloneLayerVisible,
+  latLon,
+  lightningLayerVisible,
+  showForecastPlaybutton,
+  showTimeSlider
+} from '../stores';
+
+import TimeIndicator from "./TimeIndicator.svelte";
+import LastUpdated from "./LastUpdated.svelte";
+
 // Here be dragons
-import { capTimeIndicator, latLon, lightningLayerVisible, showForecastPlaybutton, showTimeSlider } from '../stores';
-import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
-import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
-import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
-import { faAngleDoubleUp } from '@fortawesome/free-solid-svg-icons/faAngleDoubleUp';
-import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
-import { faRetweet } from '@fortawesome/free-solid-svg-icons/faRetweet';
-import { fly } from 'svelte/transition';
-import { _ } from 'svelte-i18n';
-import StateMachine from 'javascript-state-machine';
-import { onMount } from 'svelte';
-import LastUpdated from './LastUpdated.svelte';
-import { format } from 'date-fns';
-import Chart from 'chart.js';
-import { meteocoolClassic } from '../colormaps';
-import getDfnLocale from '../locale/locale';
-import TimeIndicator from './TimeIndicator.svelte';
-import { setUIConstant } from '../layers/ui';
-import Icon from 'fa-svelte';
-import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 export let cap;
 
@@ -30,6 +43,11 @@ latLon.subscribe((latlonUpdate) => {
   if (!userLatLon) {
     showBars = false;
   }
+});
+
+let bottomToolbarVisible = true;
+showForecastPlaybutton.subscribe((val) => {
+  bottomToolbarVisible = val;
 });
 
 let open = false; // Drawer open/closed. Displays open button if false
@@ -63,50 +81,12 @@ lightningLayerVisible.subscribe((value) => {
   lightningEnabled = value;
 });
 
-let autoPlay = false;
-
-onMount(async () => {
-  cap.addObserver((subject, data) => {
-    console.log(`NowcastPlayback observed event ${subject}`);
-    if (subject === "historic") {
-      historicLayers = data.sources;
-    } else if (subject === "nowcast") {
-      nowcastLayers = data.sources;
-    } else {
-      return;
-    }
-    if (historicLayers && nowcastLayers) {
-      if (fsm.state === "waitingForServer") {
-        fsm.showScrollbar();
-      }
-      const reversed = Object.values(historicLayers);
-      reversed.reverse();
-      rainValues = reversed
-        .map((layer) => Math.round(layer.reported_intensity + 32.5))
-        .concat(Object.values(nowcastLayers)
-        .map((layer) => Math.round(layer.reported_intensity + 32.5)));
-      setChart();
-    } else {
-      switch (fsm.state) {
-        case "manualScrolling":
-          fsm.enterWaitingState();
-          break;
-        case "playing":
-          autoPlay = true;
-          fsm.enterWaitingState();
-          break;
-        default:
-          break;
-      }
-    }
-  });
-  cap.addObserver((event) => {
-    if (event === "loseFocus") {
-      hide();
-    }
-  });
+let cyclonesEnabled = false;
+cycloneLayerVisible.subscribe((value) => {
+  cyclonesEnabled = value;
 });
 
+let autoPlay = false;
 function setChart() {
   if (!canvas) return;
   // eslint-disable-next-line no-new
@@ -115,14 +95,14 @@ function setChart() {
     data: {
       labels: Array(49)
         .fill()
-        .map((_, i) => `${-120 + i * 5}`),
+        .map((__, i) => `${-120 + i * 5}`),
       datasets: [{
         data: rainValues,
         barPercentage: 0.99,
         categoryPercentage: 0.99,
         backgroundColor: rainValues.map(((value) => meteocoolClassic[Math.round(value * 2)]))
-          .map(maybe => maybe ? maybe : [0, 0, 0, 0])
-          .map(([r, g, b, _]) => `rgba(${r}, ${g}, ${b}, 1)`),
+          .map((maybe) => maybe || [0, 0, 0, 0])
+          .map(([r, g, b]) => `rgba(${r}, ${g}, ${b}, 1)`),
         borderColor: getComputedStyle(document.body)
           .getPropertyValue("--sl-color-info-700"),
         borderWidth: 1,
@@ -187,7 +167,7 @@ function canvasInit(elem) {
   setChart();
 }
 
-let fsm = new StateMachine({
+const fsm = new StateMachine({
   init: "followLatest",
   transitions: [
     {
@@ -237,14 +217,13 @@ let fsm = new StateMachine({
     },
   ],
   methods: {
-    onWaitForServer: (param) => {
+    onWaitForServer: () => {
       console.log("FSM ===== waiting for server");
       loadingIndicator = true;
       setTimeout(() => showTimeSlider.set(true), 200);
-      // cssGetclass(".sl-toast-stack").style.bottom = "calc(env(safe-area-inset-bottom) + 98px)";
       open = true;
     },
-    onShowScrollbar: (transition) => {
+    onShowScrollbar: () => {
       console.log("FSM ===== waiting for server");
       loadingIndicator = false;
       playPauseButton = faPlay;
@@ -313,12 +292,6 @@ let fsm = new StateMachine({
     },
   },
 });
-window.fsm = fsm;
-
-function initSlider(elem) {
-  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
-  slRange = elem;
-}
 
 function show() {
   if (fsm.state === "followLatest") {
@@ -341,10 +314,52 @@ function hide() {
   fsm.hideScrollbar();
 }
 
+onMount(async () => {
+  cap.addObserver((subject, data) => {
+    console.log(`NowcastPlayback observed event ${subject}`);
+    if (subject === "historic") {
+      historicLayers = data.sources;
+    } else if (subject === "nowcast") {
+      nowcastLayers = data.sources;
+    } else {
+      return;
+    }
+    if (historicLayers && nowcastLayers) {
+      if (fsm.state === "waitingForServer") {
+        fsm.showScrollbar();
+      }
+      const reversed = Object.values(historicLayers);
+      reversed.reverse();
+      rainValues = reversed
+        .map((layer) => Math.round(layer.reported_intensity + 32.5))
+        .concat(Object.values(nowcastLayers)
+          .map((layer) => Math.round(layer.reported_intensity + 32.5)));
+      setChart();
+    } else {
+      switch (fsm.state) {
+        case "manualScrolling":
+          fsm.enterWaitingState();
+          break;
+        case "playing":
+          autoPlay = true;
+          fsm.enterWaitingState();
+          break;
+        default:
+          break;
+      }
+    }
+  });
+  cap.addObserver((event) => {
+    if (event === "loseFocus") {
+      hide();
+    }
+  });
+});
+
 function sliderChangedHandler(value, userInteraction = false) {
   if (value === oldTimeStep) return;
 
-  if (userInteraction && fsm.state === 'playing') {
+  if (userInteraction && fsm.state === "playing") {
     fsm.pressPause();
   }
 
@@ -357,6 +372,11 @@ function sliderChangedHandler(value, userInteraction = false) {
   }
   oldTimeStep = value;
   capTimeIndicator.set(cap.getUpstreamTime() + value * 60);
+}
+
+function initSlider(elem) {
+  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
+  slRange = elem;
 }
 
 function playPause() {
@@ -377,16 +397,13 @@ function toggleHistoric() {
   includeHistoric = !includeHistoric;
 }
 
-const hasHover = !window.matchMedia("(hover: none)").matches;
-
 function toggleLightning() {
   lightningLayerVisible.set(!lightningEnabled);
 }
 
-let bottomToolbarVisible = true;
-showForecastPlaybutton.subscribe((val) => {
-  bottomToolbarVisible = val;
-});
+function toggleCyclones() {
+  cycloneLayerVisible.set(!cyclonesEnabled);
+}
 </script>
 
 <style>
@@ -628,7 +645,7 @@ showForecastPlaybutton.subscribe((val) => {
                   <sl-button-group label="Playback Controls">
                     {#if !dd.isApp()}
                       <!-- XXX this is sadly necessary because sl tooltip throws some weird exception on mobile, even if disabled -->
-                      <sl-tooltip content="Play" disabled={!hasHover}>
+                      <sl-tooltip content="Play">
                         <sl-button size={buttonSize} on:click={playPause}>
                           <div class="faIconButton">
                             <Icon icon={playPauseButton} />
@@ -643,7 +660,7 @@ showForecastPlaybutton.subscribe((val) => {
                       </sl-button>
                     {/if}
                     {#if !dd.isApp()}
-                    <sl-tooltip content="Automatically Loop Playback" disabled={!hasHover}>
+                    <sl-tooltip content="Automatically Loop Playback">
                       <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
                         <div class="faIconButton">
                           <Icon icon={faRetweet} />
@@ -658,7 +675,7 @@ showForecastPlaybutton.subscribe((val) => {
                       </sl-button>
                     {/if}
                     {#if !dd.isApp()}
-                    <sl-tooltip content="Include Last 2 Hours in Playback Loop" disabled={!hasHover}>
+                    <sl-tooltip content="Include Last 2 Hours in Playback Loop">
                       <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
                         <div class="faIconButton">
                           <Icon icon={faHistory} />
@@ -683,7 +700,7 @@ showForecastPlaybutton.subscribe((val) => {
                         <sl-button size={buttonSize} type="{ lightningEnabled ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
                       </sl-tooltip>
                       <sl-tooltip content="Show Mesocyclones (if any)">
-                        <sl-button size={buttonSize} type="default">🌀 Mesocyclones</sl-button>
+                        <sl-button size={buttonSize} type="{ cyclonesEnabled ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 Mesocyclones</sl-button>
                       </sl-tooltip>
                     </sl-button-group>
                   </div>
@@ -700,7 +717,7 @@ showForecastPlaybutton.subscribe((val) => {
               <div class="checkbox buttonsInline">
                 <div class="button-group-toolbar">
                   {#if !dd.isApp()}
-                    <sl-tooltip content="Close" disabled={!hasHover}>
+                    <sl-tooltip content="Close">
                       <sl-button size={buttonSize} on:click={hide}>
                         <div class="faIconButton">
                           <Icon icon={faAngleDoubleDown} />️

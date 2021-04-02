@@ -7,7 +7,7 @@ import { copernicusAttribution, ororatechAttribution } from "./attributions";
 export function sentinel2() {
   return new TileLayer({
     source: new XYZ({
-      url: "https://ot-tiles.s3.eu-central-1.amazonaws.com/s2_msi_worldgrid/{z}/{x}/{-y}.png",
+      url: "https://tiles.ororatech.com/worldgrid/s2_msi_worldgrid/{z}/{x}/{-y}.png",
       minZoom: 1,
       maxZoom: 14,
       attributions: [copernicusAttribution, ororatechAttribution],
@@ -18,7 +18,7 @@ export function sentinel2() {
 export function sentinel3() {
   return new TileLayer({
     source: new XYZ({
-      url: "https://ot-tiles.s3.eu-central-1.amazonaws.com/s3_olci_worldgrid/{z}/{x}/{-y}.png",
+      url: "https://tiles.ororatech.com/worldgrid/s3_olci_worldgrid/{z}/{x}/{-y}.png",
       minZoom: 1,
       maxZoom: 8,
       attributions: [copernicusAttribution, ororatechAttribution],
