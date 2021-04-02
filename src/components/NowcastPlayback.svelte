@@ -315,6 +315,11 @@ function hide() {
 }
 
 onMount(async () => {
+  window.leaveForeground = () => {
+    if (fsm.state === "playing") {
+      fsm.pressPause();
+    }
+  };
   cap.addObserver((subject, data) => {
     console.log(`NowcastPlayback observed event ${subject}`);
     if (subject === "historic") {

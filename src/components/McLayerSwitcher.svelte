@@ -4,10 +4,10 @@
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
-  import { DeviceDetect as dd } from '../lib/DeviceDetect';
+  import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
   export let layerManager;
-  let childCanvases = {};
+  const childCanvases = {};
 
   const allAttributions = Object.entries(attributions)
     .filter((k) => k[0] !== "imprintAttribution")
@@ -15,7 +15,7 @@
     .join(" ");
 
   window.openLayerswitcher = () => {
-    let ls = document.getElementById("ls");
+    const ls = document.getElementById("ls");
     ls.style.display = "block";
     layerManager.forEachMap((map) => {
       const cap = map.get("capability");
@@ -34,7 +34,7 @@
   function close() {
     document.getElementById("ls").style.display = "none";
     if ("webkit" in window) {
-      window.webkit.messageHandlers["scriptHandler"].postMessage(
+      window.webkit.messageHandlers.scriptHandler.postMessage(
         "layerSwitcherClosed",
       );
     }
@@ -121,6 +121,7 @@
   }
   .weather {
     grid-area: weather;
+    position: relative;
   }
   .help {
     grid-area: help;
@@ -134,7 +135,6 @@
   }
 
   .helpText {
-    font-family: Quattrocento;
     color: var(--sl-color-black);
     text-align: center;
     line-height: 2;
@@ -158,6 +158,10 @@
     font-size: 6pt;
     text-align: center;
     width: 100%;
+  }
+
+  .hidden {
+    display: none;
   }
 </style>
 
@@ -187,17 +191,22 @@
           on:changeLayer={changeLayer} />
       </div>
       <div class="weather cell">
-        <MiniMap
-          {layerManager}
-          layer={"weather"}
-          label={"🌤 Weather "}
-          on:mount={childMounted}
-          on:changeLayer={changeLayer} />
+        <div class="helpText">
+          More Layers Coming Soon 🔥
+        </div>
+        <div class="hidden">
+          <MiniMap
+                  {layerManager}
+                  layer={"weather"}
+                  label={"🌤 Weather "}
+                  on:mount={childMounted}
+                  on:changeLayer={changeLayer}
+                  class="hidden" />
+        </div>
       </div>
       <div class="help cell">
         <div class="helpText">
-          Today's weather is hardly worth mentioning? ☀️<br />Explore the
-          near-realtime satellite map! 🌍
+          ☀️ Today's weather is hardly worth mentioning? ️<br />Explore the near-realtime satellite map!
         </div>
         <div class="contributors">
           &copy; meteocool Contributors {allAttributions}
