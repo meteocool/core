@@ -38,6 +38,7 @@
     "@fortawesome/fontawesome-free": "^5.15.1",
     "@fortawesome/free-solid-svg-icons": "^5.15.1",
     "@sentry/browser": "^5.30.0",
+    "@sentry/integrations": "^6.2.5",
     "@sentry/tracing": "^5.30.0",
     "@shoelace-style/shoelace": "*",
     "babel-eslint": "^10.1.0",

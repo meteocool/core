@@ -236,6 +236,7 @@ const fsm = new StateMachine({
 
       if (autoPlay) {
         setTimeout(() => {
+          console.log("Triggering auto-play");
           fsm.pressPlay();
         }, 500);
         autoPlay = false;
@@ -252,7 +253,16 @@ const fsm = new StateMachine({
       loadingIndicator = true;
     },
     onPressPlay: () => {
-      const playTick = () => {
+      const playTick = (ttl = 10) => {
+        if (!slRange) {
+          // "Workaround" for #2320876836
+          if (ttl < 1) {
+            console.error("slRange element did not appear");
+            return;
+          }
+          setTimeout(() => playTick(ttl - 1), 200);
+          return;
+        }
         let thisFrameDelayMs = 450;
         const sliderValueInt = parseInt(slRange.value, 10);
         if (sliderValueInt >= 120) {
