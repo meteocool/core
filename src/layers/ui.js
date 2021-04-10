@@ -1,24 +1,25 @@
-import {
-  SlAlert,
-  SlButton,
-  SlIconButton,
-  SlIcon,
-  SlSpinner,
-  setAssetPath,
-  SlProgressRing,
-  SlTag,
-  SlDropdown,
-  SlDialog,
-  SlSelect,
-  SlMenuItem,
-  SlCheckbox,
-  SlMenu,
-  SlButtonGroup,
-  SlTooltip,
-  SlMenuLabel,
-  SlRange,
-  SlSwitch,
-} from "@shoelace-style/shoelace";
+/* Imported for side effects (registering the pseudo elements) */
+/* eslint-disable no-unused-vars */
+import SlAlert from "@shoelace-style/shoelace/dist/components/alert/alert";
+import SlButton from "@shoelace-style/shoelace/dist/components/button/button";
+import SlButtonGroup from "@shoelace-style/shoelace/dist/components/button-group/button-group";
+import SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox";
+import SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog";
+import SlDrodown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown";
+import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon";
+import SlIconButton from "@shoelace-style/shoelace/dist/components/icon-button/icon-button";
+import SlMenu from "@shoelace-style/shoelace/dist/components/menu/menu";
+import SlMenuItem from "@shoelace-style/shoelace/dist/components/menu-item/menu-item";
+import SlMenuLabel from "@shoelace-style/shoelace/dist/components/menu-label/menu-label";
+import SlProgressRing from "@shoelace-style/shoelace/dist/components/progress-ring/progress-ring";
+import SlRange from "@shoelace-style/shoelace/dist/components/range/range";
+import SlSelect from "@shoelace-style/shoelace/dist/components/select/select";
+import SlSpinner from "@shoelace-style/shoelace/dist/components/spinner/spinner";
+import SlSwitch from "@shoelace-style/shoelace/dist/components/switch/switch";
+import SlTag from "@shoelace-style/shoelace/dist/components/tag/tag";
+import SlTooltip from "@shoelace-style/shoelace/dist/components/tooltip/tooltip";
+import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path";
+
 import { colorSchemeDark } from "../stores";
 
 export const uiConstantsDefault = {
@@ -68,25 +69,7 @@ export function initUIConstants() {
       });
   }
 
-  setAssetPath(document.currentScript.src);
-  customElements.define("sl-button", SlButton);
-  customElements.define("sl-icon", SlIcon);
-  customElements.define("sl-icon-button", SlIconButton);
-  customElements.define("sl-spinner", SlSpinner);
-  customElements.define("sl-alert", SlAlert);
-  customElements.define("sl-progress-ring", SlProgressRing);
-  customElements.define("sl-tag", SlTag);
-  customElements.define("sl-dialog", SlDialog);
-  customElements.define("sl-range", SlRange);
-  customElements.define("sl-select", SlSelect);
-  customElements.define("sl-dropdown", SlDropdown);
-  customElements.define("sl-menu-item", SlMenuItem);
-  customElements.define("sl-menu-label", SlMenuLabel);
-  customElements.define("sl-menu", SlMenu);
-  customElements.define("sl-checkbox", SlCheckbox);
-  customElements.define("sl-button-group", SlButtonGroup);
-  customElements.define("sl-tooltip", SlTooltip);
-  customElements.define("sl-switch", SlSwitch);
+  setBasePath(document.currentScript.src);
 }
 
 // Dark and Light mode
