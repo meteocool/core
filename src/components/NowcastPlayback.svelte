@@ -254,12 +254,13 @@ const fsm = new StateMachine({
     onPressPlay: () => {
       const playTick = () => {
         let thisFrameDelayMs = 450;
-        if (slRange.value >= 120) {
-          slRange.value = includeHistoric ? -120 : 0;
+        const sliderValueInt = parseInt(slRange.value, 10);
+        if (sliderValueInt >= 120) {
+          slRange.value = (includeHistoric ? -120 : 0).toString();
         } else {
-          slRange.value += 5;
+          slRange.value = (sliderValueInt + 5).toString();
         }
-        if (slRange.value === 0) {
+        if (sliderValueInt === 0) {
           thisFrameDelayMs = 800;
         }
         sliderChangedHandler(slRange.value);
@@ -620,9 +621,11 @@ function toggleCyclones() {
               <div class="text topText">
                 {uiMessage}...
               </div>
-              <div class="text bottomText">
-                {$_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })}
-              </div>
+              {#if cap.upstreamTime}
+                <div class="text bottomText">
+                  {$_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })}
+                </div>
+              {/if}
             </div>
           </div>
         </div>

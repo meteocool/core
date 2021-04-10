@@ -30,7 +30,7 @@ import {
 } from "./stores";
 
 import "./style/global.css";
-import "@shoelace-style/shoelace/dist/shoelace/shoelace.css";
+import "@shoelace-style/shoelace/dist/themes/base.css";
 import { apiBaseUrl, dataUrl, websocketBaseUrl } from "./urls";
 import { initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";

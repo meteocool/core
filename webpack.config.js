@@ -69,12 +69,6 @@ module.exports = {
       GIT_COMMIT_HASH: JSON.stringify(process.env.COMMIT_REF),
       BACKEND: JSON.stringify(process.env.BACKEND),
     }),
-    new CopyPlugin({
-      patterns: [{
-        from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/shoelace/icons'),
-        to: path.resolve(__dirname, 'dist/icons'),
-      }, { from: 'public' }],
-    }),
     new HtmlWebpackPlugin({
       filename: 'index.html',
       template: 'src/html/index.html',
@@ -102,6 +96,15 @@ module.exports = {
     }),
     new MiniCssExtractPlugin({
       filename: '[name].css',
+    }),
+    new CopyPlugin({
+      patterns: [
+        // Copy Shoelace assets to dist/shoelace
+        {
+          from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
+          to: path.resolve(__dirname, 'dist/shoelace/assets')
+        }
+      ]
     }),
     new InjectManifest({
       swSrc: './src/sw.js',
