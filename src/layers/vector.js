@@ -111,6 +111,7 @@ export const bordersAndWays = () => new VectorTileLayer({
             style = localityStyle;
             break;
           default:
+            style = localityStyle;
             break;
         }
         style.getText().setText(feature.get("name"));
