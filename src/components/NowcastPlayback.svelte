@@ -24,7 +24,7 @@ import {
   capTimeIndicator,
   cycloneLayerVisible,
   latLon,
-  lightningLayerVisible,
+  lightningLayerVisible, processedForecastsCount,
   showForecastPlaybutton,
   showTimeSlider
 } from '../stores';
@@ -84,6 +84,13 @@ lightningLayerVisible.subscribe((value) => {
 let cyclonesEnabled = false;
 cycloneLayerVisible.subscribe((value) => {
   cyclonesEnabled = value;
+});
+
+let processedForecasts = 0;
+processedForecastsCount.subscribe((value) => {
+  processedForecasts = value;
+  console.log(processedForecasts);
+  console.log((processedForecasts / 25) * 100);
 });
 
 let autoPlay = false;
@@ -237,7 +244,15 @@ const fsm = new StateMachine({
       if (autoPlay) {
         setTimeout(() => {
           console.log("Triggering auto-play");
-          fsm.pressPlay();
+          if (cap.source) {
+            fsm.pressPlay();
+          } else {
+            setTimeout(() => {
+              // Workaround for #2279954594 (wtf is going on Android people)
+              console.log("Triggering deferred auto-play");
+              fsm.pressPlay();
+            }, 1000);
+          }
         }, 500);
         autoPlay = false;
       }
@@ -616,6 +631,13 @@ function toggleCyclones() {
       transform: translateY(70%);
     }
   }
+
+  .server-progress {
+    --indicator-color: rgb(52, 120, 246);
+    position: relative;
+    transform: translateY(-37%);
+  }
+
 </style>
 
 {#if bottomToolbarVisible}
@@ -626,7 +648,16 @@ function toggleCyclones() {
       {#if loadingIndicator}
         <div class="parent" id="loadingIndicator">
           <div class="loadingIndicator">
-            <sl-spinner class="spinner"/>
+            {#if processedForecasts > 0 && processedForecasts < 25}
+              <sl-progress-ring
+                      percentage={(processedForecasts / 25) * 100}
+                      stroke-width="2"
+                      size="46"
+                      class="server-progress"
+              />
+            {:else}
+              <sl-spinner class="spinner" />
+            {/if}
             <div class="textBlock">
               <div class="text topText">
                 {uiMessage}...

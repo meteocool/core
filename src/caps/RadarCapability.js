@@ -4,7 +4,7 @@ import {
   capDescription,
   capLastUpdated,
   capTimeIndicator,
-  latLon,
+  latLon, processedForecastsCount,
   radarColorScheme, showForecastPlaybutton
 } from '../stores';
 import Capability from "./Capability";
@@ -32,6 +32,7 @@ export default class RadarCapability extends Capability {
     this.latlon = null;
     this.layerFactory = dwdLayerStatic;
     this.forceRecreate = false;
+    this.serverProcessed = 0;
 
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
@@ -64,6 +65,11 @@ export default class RadarCapability extends Capability {
       this.socket_io.on("poke", () => {
         console.log("received websocket poke, refreshing tiles + forecasts");
         this.reloadAll();
+      });
+      this.socket_io.on("progress", (obj) => {
+        if ("nowcast" in obj) {
+          processedForecastsCount.set(obj.nowcast);
+        }
       });
     }
   }
