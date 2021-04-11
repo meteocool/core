@@ -1,0 +1,4 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; connect-src 'self' *.ng.meteocool.com *.meteocool.com *.ingest.sentry.io tile.nextzen.org cartodb-basemaps-a.global.ssl.fastly.net cartodb-basemaps-b.global.ssl.fastly.net cartodb-basemaps-c.global.ssl.fastly.net ot-tiles.s3.eu-central-1.amazonaws.com tiles.ororatech.com *.tile.openstreetmap.org/ api.maptiler.com/ wss: ws:; font-src 'self'; frame-src 'self'; img-src 'self' cartodb-basemaps-a.global.ssl.fastly.net cartodb-basemaps-b.global.ssl.fastly.net cartodb-basemaps-c.global.ssl.fastly.net ot-tiles.s3.eu-central-1.amazonaws.com tiles.ororatech.com *.meteocool.com *.tile.openstreetmap.org/ api.maptiler.com/ data:; manifest-src 'self'; media-src 'self'; worker-src 'self' blob:; frame-ancestors 'none';
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
