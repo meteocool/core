@@ -103,7 +103,8 @@ module.exports = {
         {
           from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
           to: path.resolve(__dirname, 'dist/shoelace/assets')
-        }
+        },
+        { from: 'public' }
       ]
     }),
     new InjectManifest({
