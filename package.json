@@ -40,7 +40,7 @@
     "@sentry/browser": "^5.30.0",
     "@sentry/integrations": "^6.2.5",
     "@sentry/tracing": "^5.30.0",
-    "@shoelace-style/shoelace": "*",
+    "@shoelace-style/shoelace": "git://github.com/v4lli/shoelace.git#next",
     "babel-eslint": "^10.1.0",
     "chart.js": "^2.9.4",
     "date-fns": "^2.16.1",
