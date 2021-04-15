@@ -244,11 +244,11 @@ const fsm = new StateMachine({
       if (autoPlay) {
         setTimeout(() => {
           console.log("Triggering auto-play");
-          if (cap.source) {
+          if (cap.source && fsm.state === "manualScrolling") {
             fsm.pressPlay();
           } else {
             setTimeout(() => {
-              // Workaround for #2279954594 (wtf is going on Android people)
+              // Workaround for #2279954594 (wtf is going on Android people) and #2217587657
               console.log("Triggering deferred auto-play");
               fsm.pressPlay();
             }, 1000);

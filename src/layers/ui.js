@@ -69,7 +69,7 @@ export function initUIConstants() {
       });
   }
 
-  setBasePath(document.currentScript.src);
+  setBasePath("/dist/shoelace/assets/");
 }
 
 // Dark and Light mode

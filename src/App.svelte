@@ -40,6 +40,7 @@ import MesoCycloneManager from "./lib/MesoCycloneManager";
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";
+import { reportError, reportToast } from './lib/Toast';
 
 export let device;
 
@@ -218,6 +219,7 @@ window.enterForeground = () => {
   reloadLightning();
   reloadCyclones();
 };
+
 </script>
 
 <style>
