@@ -18,6 +18,7 @@ import SlSpinner from "@shoelace-style/shoelace/dist/components/spinner/spinner"
 import SlSwitch from "@shoelace-style/shoelace/dist/components/switch/switch";
 import SlTag from "@shoelace-style/shoelace/dist/components/tag/tag";
 import SlTooltip from "@shoelace-style/shoelace/dist/components/tooltip/tooltip";
+import SlResizeObserver from "@shoelace-style/shoelace/dist/components/resize-observer/resize-observer";
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path";
 
 import { colorSchemeDark } from "../stores";
