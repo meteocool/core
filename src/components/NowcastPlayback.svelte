@@ -89,8 +89,6 @@ cycloneLayerVisible.subscribe((value) => {
 let processedForecasts = 0;
 processedForecastsCount.subscribe((value) => {
   processedForecasts = value;
-  console.log(processedForecasts);
-  console.log((processedForecasts / 25) * 100);
 });
 
 let autoPlay = false;

@@ -1,7 +1,4 @@
 <script>
-import * as Sentry from "@sentry/browser";
-import { Integrations } from "@sentry/tracing";
-import { CaptureConsole } from "@sentry/integrations";
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
@@ -45,15 +42,6 @@ import { reportError, reportToast } from './lib/Toast';
 export let device;
 
 dd.set(device);
-
-Sentry.init({
-  dsn: "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137",
-  integrations: [new Integrations.BrowserTracing(), new CaptureConsole({ levels: ["error"] })],
-  tracesSampleRate: 1.0,
-  environment: process.env.NODE_ENV,
-  autoSessionTracking: false,
-  release: GIT_COMMIT_HASH,
-});
 
 addMessages("de", de);
 addMessages("en", en);
