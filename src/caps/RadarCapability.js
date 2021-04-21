@@ -126,6 +126,7 @@ export default class RadarCapability extends Capability {
       this.forceRecreate = false;
     }
     [this.layer, this.source, this.lastSourceUrl] = this.layerFactory(obj.radar.tile_id, { mainLayer: true });
+    window.l = this.source;
     this.layer.setOpacity(NOWCAST_TRANSPARENCY);
     // XXX instead of this, call mapcb (?)
     super.getMap().addLayer(this.layer);
@@ -170,6 +171,7 @@ export default class RadarCapability extends Capability {
     if (this.nowcast.length > 0) {
       response.sources = {};
       const self = this;
+      caches.delete("radar-tile-cache");
       this.nowcast.forEach((interval) => {
         response.sources[interval.prediction_time] = {
           url: `${tileBaseUrl}/meteonowcast/${interval.tile_id}/{z}/{x}/{-y}.png`,
