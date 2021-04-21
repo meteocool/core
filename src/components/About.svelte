@@ -1,15 +1,16 @@
 <script>
 import { _ } from "svelte-i18n";
-import { createEventDispatcher } from "svelte";
+import { tick, createEventDispatcher } from "svelte";
 
 const dispatch = createEventDispatcher();
 
-function init(elem) {
+async function init(elem) {
+  await tick(); // Workaround for Safari
+  elem.show();
   elem.addEventListener("sl-overlay-dismiss", (event) => {
     dispatch("close");
     return event.preventDefault();
   });
-  elem.show();
 }
 
 function close() {
