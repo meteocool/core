@@ -291,6 +291,7 @@ const fsm = new StateMachine({
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
         } else {
           playTimeout = 0;
+          console.log("Pausing due to slider usage");
           fsm.pressPause();
         }
       };
@@ -341,6 +342,7 @@ function hide() {
 onMount(async () => {
   window.leaveForeground = () => {
     if (fsm.state === "playing") {
+      console.log("Pausing due to window.leaveForeground();");
       fsm.pressPause();
     }
   };
@@ -389,6 +391,7 @@ function sliderChangedHandler(value, userInteraction = false) {
   if (value === oldTimeStep) return;
 
   if (userInteraction && fsm.state === "playing") {
+    console.log("Pausing due to sliderChangedHandler");
     fsm.pressPause();
   }
 
@@ -410,6 +413,7 @@ function initSlider(elem) {
 
 function playPause() {
   if (fsm.state === "playing") {
+    console.log("Pausing due to button");
     fsm.pressPause();
   } else {
     fsm.pressPlay();
