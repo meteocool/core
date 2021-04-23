@@ -466,7 +466,8 @@ function toggleCyclones() {
   .controlButton {
     width: 1em;
     height: 1em;
-    padding: 0.5em;
+    padding: 0.50em;
+    margin-top: 0.3em;
     border: 1px solid grey;
     border-radius: 5px;
     flex: 1 1 auto;
