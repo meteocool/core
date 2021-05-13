@@ -3,7 +3,7 @@ import { Cluster } from "ol/source.js";
 import VectorLayer from "ol/layer/Vector";
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
-import lightningstrike from "../../assets/lightning.png";
+import lightningstrike from "../../public/assets/lightning.png";
 import { blitzortungAttribution, imprintAttribution } from './attributions';
 
 const styleCache = {};

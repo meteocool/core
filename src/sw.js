@@ -8,7 +8,7 @@ import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 
 registerRoute(
-  new RegExp("https://(?:api.maptiler.com|basemaps.cartocdn.com)/.*.png"),
+  new RegExp("https://(?:api.maptiler.com|basemaps.cartocdn.com|tile.nextzen.org|cartodb-basemaps-b.global.ssl.fastly.net)/.*.(png|mvt)"),
   new CacheFirst({
     cacheName: "tile-cache",
     plugins: [
@@ -24,7 +24,7 @@ registerRoute(
   }),
 );
 registerRoute(
-  new RegExp("https://tiles-a\\.meteocool\\.com/meteonowcast/.*\\.png"),
+  new RegExp("https://tiles-(a|b|c)\\.meteocool\\.com/meteonowcast/.*\\.png"),
   new CacheFirst({
     cacheName: "nowcast-tile-cache",
     plugins: [
@@ -40,7 +40,7 @@ registerRoute(
   }),
 );
 registerRoute(
-  new RegExp("https://tiles-a\\.meteocool\\.com/meteoradar/.*\\.png"),
+  new RegExp("https://tiles-(a|b|c)\\.meteocool\\.com/meteoradar/.*\\.png"),
   new CacheFirst({
     cacheName: "radar-tile-cache",
     plugins: [
