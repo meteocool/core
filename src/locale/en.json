@@ -7,6 +7,11 @@
   "last_radar": "Radar data from",
   "loading": "Refreshing",
 
+  "drizzle": "Drizzle",
+  "rain": "Rain",
+  "heavy_rain": "Heavy Rain",
+  "hail": "Hail",
+
   "title":"About meteocool",
   "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
   "text2": "meteocool currently uses radar data provided by DWD, realtime lightning information from the awesome blitzortung.org project and satellite imagery from the EC/ESA Copernicus Programme.",
