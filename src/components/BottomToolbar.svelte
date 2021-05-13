@@ -10,6 +10,7 @@
   import legendRain from "../../public/assets/legend_rain.svg";
   import legendHail from "../../public/assets/legend_hail.svg";
   import legendThunderstorm from "../../public/assets/legend_thunderstorm.svg";
+  import { _ } from 'svelte-i18n';
 
   let s3Disabled = false;
   let e;
@@ -228,13 +229,13 @@
           case "64":
             return " ";
           case "74":
-            return `<img src=${legendClouds} alt='Niesel' class="legend-icon"/> <span class='legendLabel'>Niesel</span>`;
+            return `<img src=${legendClouds} alt='${$_("drizzle")}' class="legend-icon"/> <span class='legendLabel'>${$_("drizzle")}</span>`;
           case "94":
-            return `<img src=${legendRain} alt='Regen' class="legend-icon"/> <span class='legendLabel'>Regen</span>`;
+            return `<img src=${legendRain} alt='${$_("rain")}' class="legend-icon"/> <span class='legendLabel'>${$_("rain")}</span>`;
           case "104":
-            return `<img src=${legendThunderstorm} alt='Starkregen' class="legend-icon"/> <span class='legendLabel'>Starkregen</span>`;
+            return `<img src=${legendThunderstorm} alt='${$_("heavy_rain")}' class="legend-icon"/> <span class='legendLabel'>${$_("heavy_rain")}</span>`;
           case "114":
-            return `<img src=${legendHail} alt='Hagel' class="legend-icon"/> <span class='legendLabel'>Hagel</span>`;
+            return `<img src=${legendHail} alt='${$_("hail")}' class="legend-icon"/> <span class='legendLabel'>${$_("hail")}</span>`;
           default:
             return "";
         }
