@@ -6,6 +6,10 @@
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from "../stores";
   import ScaleLine from "./ScaleLine.svelte";
+  import legendClouds from "../../assets/legend_clouds.png";
+  import legendRain from "../../assets/legend_rain.png";
+  import legendHail from "../../assets/legend_hail.png";
+  import legendThunderstorm from "../../assets/legend_thunderstorm.png";
 
   let s3Disabled = false;
   let e;
@@ -200,6 +204,11 @@
       display: none;
     }
   }
+
+  :global(.legend-icon) {
+    height: 1em;
+    vertical-align: bottom;
+  }
 </style>
 
 <div
@@ -215,15 +224,13 @@
           case "64":
             return " ";
           case "74":
-            return "🌤 <span class='legendLabel'>Bedeckt</span>";
-          case "84":
-            return "🌦 <span class='legendLabel'>Niesel</span>";
+            return `<img src=${legendClouds} alt='Niesel' class="legend-icon"/> <span class='legendLabel'>Niesel</span>`;
           case "94":
-            return "🌧 <span class='legendLabel'>Regen</span>";
+            return `<img src=${legendRain} alt='Regen' class="legend-icon"/> <span class='legendLabel'>Regen</span>`;
           case "104":
-            return "⛈ <span class='legendLabel'>Starkregen</span>";
+            return `<img src=${legendThunderstorm} alt='Starkregen' class="legend-icon"/> <span class='legendLabel'>Starkregen</span>`;
           case "114":
-            return "🌩 <span class='legendLabel'>Hagel</span>";
+            return `<img src=${legendHail} alt='Hagel' class="legend-icon"/> <span class='legendLabel'>Hagel</span>`;
           default:
             return "";
         }
