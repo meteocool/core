@@ -2,7 +2,7 @@ import VectorSource from "ol/source/Vector";
 import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
-import mesocycloneIcon from "../../assets/mesocyclone.png";
+import mesocycloneIcon from "../../public/assets/mesocyclone.png";
 
 const mesoStyleCache = {};
 

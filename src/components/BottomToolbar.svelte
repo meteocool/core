@@ -6,10 +6,10 @@
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from "../stores";
   import ScaleLine from "./ScaleLine.svelte";
-  import legendClouds from "../../assets/legend_clouds.png";
-  import legendRain from "../../assets/legend_rain.png";
-  import legendHail from "../../assets/legend_hail.png";
-  import legendThunderstorm from "../../assets/legend_thunderstorm.png";
+  import legendClouds from "../../public/assets/legend_clouds.png";
+  import legendRain from "../../public/assets/legend_rain.png";
+  import legendHail from "../../public/assets/legend_hail.png";
+  import legendThunderstorm from "../../public/assets/legend_thunderstorm.png";
 
   let s3Disabled = false;
   let e;

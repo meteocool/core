@@ -25,7 +25,3 @@ if ("serviceWorker" in navigator) {
   });
   wb.register();
 }
-
-workbox.setConfig({
-  debug: true,
-});
