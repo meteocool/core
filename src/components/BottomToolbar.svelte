@@ -6,10 +6,10 @@
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from "../stores";
   import ScaleLine from "./ScaleLine.svelte";
-  import legendClouds from "../../public/assets/legend_clouds.png";
-  import legendRain from "../../public/assets/legend_rain.png";
-  import legendHail from "../../public/assets/legend_hail.png";
-  import legendThunderstorm from "../../public/assets/legend_thunderstorm.png";
+  import legendClouds from "../../public/assets/legend_clouds.svg";
+  import legendRain from "../../public/assets/legend_rain.svg";
+  import legendHail from "../../public/assets/legend_hail.svg";
+  import legendThunderstorm from "../../public/assets/legend_thunderstorm.svg";
 
   let s3Disabled = false;
   let e;
@@ -193,11 +193,11 @@
   :global(.legendLabel) {
     font-size: 80%;
     padding-left: 0.15em;
-    text-shadow: 0 0 1px #ffffff,
-            -1px -1px 1px #ffffff,
-            -1px 1px 1px #ffffff,
-            1px 1px 1px #ffffff,
-            1px -1px 1px #ffffff;
+    text-shadow: 0 0 1px rgba(255,255,255,0.6),
+            -1px -1px 1px rgba(255,255,255,0.6),
+            -1px 1px 1px rgba(255,255,255,0.6),
+            1px 1px 1px rgba(255,255,255,0.6),
+            1px -1px 1px rgba(255,255,255,0.6);
   }
   @media only screen and (max-width: 990px) {
     :global(.legendLabel) {
@@ -211,6 +211,7 @@
   :global(.legend-icon) {
     height: 1em;
     vertical-align: bottom;
+    filter: drop-shadow(0px 0px 1px #ffffff) drop-shadow(0px 0px 1px #ffffff);
   }
 </style>
 
