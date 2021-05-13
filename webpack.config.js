@@ -62,6 +62,7 @@ module.exports = {
     splitChunks: {
       chunks: "all",
     },
+    usedExports: true,
   },
   plugins: [
     new CleanWebpackPlugin(),
@@ -108,20 +109,18 @@ module.exports = {
       ]
     }),
     new InjectManifest({
-      swSrc: './src/sw.js',
-      swDest: 'sw.js',
-      maximumFileSizeToCacheInBytes: 8000000,
-      include: [
-        /\.css$/,
-        /\.html$/,
-        /\.js$/,
-        /\.png$/,
-        // https://github.com/shoelace-style/shoelace/issues/297
-        /exclamation-triangle\.svg$/,
-        /x\.svg$/,
-        /site\.webmanifest$/,
+      swSrc: "./src/sw.js",
+      swDest: "sw.js",
+      maximumFileSizeToCacheInBytes: 50000000,
+      exclude: [
+        /volunteers\.png$/,
+        /imprint\.html$/,
+        /_headers$/,
+        /_redirects$/,
+        /\.map$/,
+        /shoelace\/assets\/icons\/(.*)$/,
       ],
     }),
   ],
-  devtool: 'source-map',
+  devtool: "source-map",
 };
