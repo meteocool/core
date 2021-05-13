@@ -448,7 +448,7 @@ function toggleCyclones() {
 
   @media (orientation: portrait) {
     .timeslider {
-      height: 170px;
+      height: 170px !important;
       padding-top: 0px;
     }
   }
