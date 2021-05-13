@@ -203,6 +203,9 @@
     :global(.legendLabel) {
       display: none;
     }
+    :global(.legend-icon) {
+      height: 1.4em !important;
+    }
   }
 
   :global(.legend-icon) {
