@@ -194,11 +194,12 @@
   :global(.legendLabel) {
     font-size: 80%;
     padding-left: 0.15em;
-    text-shadow: 0 0 1px rgba(255,255,255,0.6),
-            -1px -1px 1px rgba(255,255,255,0.6),
-            -1px 1px 1px rgba(255,255,255,0.6),
-            1px 1px 1px rgba(255,255,255,0.6),
-            1px -1px 1px rgba(255,255,255,0.6);
+    color: #ffffff;
+    text-shadow: 0 0 1px rgba(0,0,0,0.6),
+            -1px -1px 1px rgba(0,0,0,0.6),
+            -1px 1px 1px  rgba(0,0,0,0.6),
+            1px 1px 1px   rgba(0,0,0,0.6),
+            1px -1px 1px  rgba(0,0,0,0.6);
   }
   @media only screen and (max-width: 990px) {
     :global(.legendLabel) {
@@ -212,7 +213,7 @@
   :global(.legend-icon) {
     height: 1em;
     vertical-align: bottom;
-    filter: drop-shadow(0px 0px 1px #ffffff) drop-shadow(0px 0px 1px #ffffff);
+    filter: drop-shadow(0px 0px 1px #000000) drop-shadow(0px 0px 1px #000000);
   }
 </style>
 

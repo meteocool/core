@@ -38,6 +38,7 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";
 import { reportError, reportToast } from './lib/Toast';
+import Router from './lib/Router';
 
 export let device;
 
@@ -126,13 +127,12 @@ radarSocketIO.on("mesocyclones", (data) => {
 export const radar = new RadarCapability({
   nanobar: nb,
   socket_io: radarSocketIO,
-  additionalLayers: [lightningLayer, mesocycloneLayer, labelsOnly()],
+  additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly()],
 });
 export const weather = new WeatherCapability({
   nanobar: nb,
   tileURL: `${apiBaseUrl}/icon/t_2m/`,
 });
-
 
 export const lm = new LayerManager({
   settings: window.settings,
@@ -207,6 +207,8 @@ window.enterForeground = () => {
   reloadLightning();
   reloadCyclones();
 };
+
+console.log(Router.ParseURL(window.location.href));
 
 </script>
 
