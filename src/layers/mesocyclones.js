@@ -61,7 +61,7 @@ export default function makeMesocycloneLayer() {
   });
   return [ss, new VectorLayer({
     source: ss,
-    zIndex: 101,
+    zIndex: 201,
     style: (feature) => mesoStyleFactory((new Date().getTime() - feature.getId()) / 1000 / 1000,
       feature.get("intensity")),
   })];
