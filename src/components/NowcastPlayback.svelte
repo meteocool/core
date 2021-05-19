@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import { meteocoolClassic } from "../colormaps";
 import getDfnLocale from "../locale/locale";
 import { setUIConstant } from "../layers/ui";
-import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { DeviceDetect, DeviceDetect as dd } from '../lib/DeviceDetect';
 
 import {
   capTimeIndicator,
@@ -393,6 +393,14 @@ function sliderChangedHandler(value, userInteraction = false) {
   if (userInteraction && fsm.state === "playing") {
     console.log("Pausing due to sliderChangedHandler");
     fsm.pressPause();
+  }
+
+  if (userInteraction && dd.isIos()) {
+    let impact = "Light";
+    if (value === 0) {
+      impact = "Heavy";
+    }
+    window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`);
   }
 
   if (value === 0) {
