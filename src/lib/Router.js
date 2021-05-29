@@ -1,6 +1,6 @@
 export default class Router {
   static ParseURL(url) {
-    const parts = url.split("#");
+    const parts = new URL(window.location.href).searchParams;
     if (parts.length > 1) {
       console.log(parts);
       Router.parseFragment(parts[1]);
@@ -22,3 +22,9 @@ export default class Router {
       });
   }
 }
+
+export function ParseURL() {
+  return new URL(document.location).searchParams.entries();
+}
+
+window.pu = ParseURL;

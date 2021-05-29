@@ -2,8 +2,8 @@ import { Map, View } from "ol";
 import {
   fromLonLat,
   getTransformFromProjections,
-  get as getProjection,
-} from "ol/proj";
+  get as getProjection, toLonLat,
+} from 'ol/proj';
 import Collection from "ol/Collection";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
@@ -21,6 +21,8 @@ import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
 import { latLon, mapBaseLayer, zoomlevel } from '../stores';
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
+let shouldUpdate = true;
+
 /**
  * Manages the reflectivity + forecast layers shown on the map.
  */
@@ -34,6 +36,7 @@ export class LayerManager {
     this.accuracyFeatures = [];
     this.positionFeatures = [];
     this.currentCap = null;
+    this.mapCount = 0;
 
     Object.keys(this.capabilities).forEach((capability) => {
       const newMap = this.makeMap(capability);
@@ -160,6 +163,17 @@ export class LayerManager {
       zIndex: 99999,
     });
 
+    const parts = this.settings.get("latLonZ").split(",");
+    let lat;
+    let lon;
+    let z;
+
+    if (parts.length !== 3) {
+      [lat, lon, z] = parts.map(parseFloat);
+    } else {
+      [lat, lon, z] = [50.0, 11.0, 7];
+    }
+
     const newMap = new Map({
       layers: [
         this.baseLayerFactory(this.settings.get("mapBaseLayer")),
@@ -171,8 +185,8 @@ export class LayerManager {
           this.maps[0].getView() :
           new View({
             constrainResolution: false,
-            zoom: 7,
-            center: fromLonLat([11, 49]),
+            zoom: z,
+            center: fromLonLat([lon, lat]),
             enableRotation: this.settings.get("mapRotation"),
           }),
       capability,
@@ -182,6 +196,22 @@ export class LayerManager {
       zoomlevel.set(newMap.getView().getZoom());
     });
     newMap.set("capability", capability);
+    if (this.mapCount === 0) {
+      newMap.on("moveend", () => {
+        if (!shouldUpdate) {
+          // do not update the URL when the view was changed in the 'popstate' handler
+          shouldUpdate = true;
+          return;
+        }
+
+        const center = newMap.getView().getCenter();
+        const center4326 = toLonLat(center);
+        this.settings.set("latLonZ",
+          `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
+          false);
+      });
+    }
+    this.mapCount += 1;
     return newMap;
   }
 
