@@ -39,6 +39,7 @@ import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";
 import { reportError, reportToast } from './lib/Toast';
 import Router from './lib/Router';
+import { fromLonLat } from 'ol/proj';
 
 export let device;
 
@@ -84,15 +85,19 @@ window.settings = new Settings({
   layerMesocyclones: {
     type: "boolean",
     default: true,
-    applyInitial: true,
     cb: (value) => {
       cycloneLayerVisible.set(value);
     },
   },
+  latLonZ: {
+    type: "string",
+    default: "49.0,11.0,6",
+    source: "url",
+    applyInitial: true,
+  },
   layerLightning: {
     type: "boolean",
     default: true,
-    applyInitial: true,
     cb: (value) => {
       lightningLayerVisible.set(value);
     },
@@ -153,6 +158,20 @@ window.settings.setCb("mapRotation", (value) => {
   });
   lm.forEachMap((map) => map.setView(newView));
 });
+window.settings.setCb("latLonZ", (value) => {
+  if (!value) return;
+  const parts = value.split(",");
+  if (parts.length !== 3) return;
+  const [lat, lon, z] = parts.map(parseFloat);
+
+  const newView = new View({
+    center: fromLonLat([lon, lat]),
+    zoom: z,
+    minZoom: lm.getCurrentMap().getView().getMinZoom(),
+    rotation: lm.getCurrentMap().getView().getRotation(),
+  });
+  lm.getCurrentMap().setView(newView);
+});
 
 if (dd.isIos()) {
   window.webkit.messageHandlers.scriptHandler.postMessage(
@@ -207,8 +226,6 @@ window.enterForeground = () => {
   reloadLightning();
   reloadCyclones();
 };
-
-console.log(Router.ParseURL(window.location.href));
 
 </script>
 
