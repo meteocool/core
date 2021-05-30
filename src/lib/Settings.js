@@ -55,6 +55,15 @@ export default class Settings {
     if (trigger) cb(this.get(key));
   }
 
+  cb(key) {
+    if (typeof key !== "string") {
+      return;
+    }
+    if (this.settings[key].cb) {
+      this.settings[key].cb(this.get(key));
+    }
+  }
+
   set(key, value, apply = true) {
     if (typeof key !== "string") {
       return;
@@ -66,6 +75,7 @@ export default class Settings {
     }
 
     const old = this.get(key);
+    console.log(`Updating ${key} => ${value} with old ${old}, apply=${apply}`);
     const url = new URL(window.location);
     switch (this.getSourceForKey(key)) {
       case "localStorage":
@@ -79,10 +89,10 @@ export default class Settings {
       case "url":
         if (old !== value && this.settings[key].default !== value) {
           url.searchParams.set(key, value);
-          window.history.pushState({}, "meteocool 2.0", url);
+          window.history.pushState({ location: window.location.toString() }, `meteocool 2.0 ${window.location.toString()}`, url);
         } else if (this.settings[key].default === value && url.searchParams.has(key)) {
           url.searchParams.delete(key);
-          window.history.pushState({}, "meteocool 2.0", url);
+          window.history.pushState({ location: window.location.toString() }, "meteocool 2.0", url);
         }
         break;
       default:
@@ -97,20 +107,11 @@ export default class Settings {
   }
 
   getSourceForKey(key) {
-    let source = 'localStorage';
-    if ('source' in this.settings[key]) {
+    let source = "localStorage";
+    if ("source" in this.settings[key]) {
       source = this.settings[key].source;
     }
     return source;
-  }
-
-  cb(key) {
-    if (typeof key !== "string") {
-      return;
-    }
-    if (this.settings[key].cb) {
-      this.settings[key].cb(this.get(key));
-    }
   }
 
   injectSettings(newSettings) {

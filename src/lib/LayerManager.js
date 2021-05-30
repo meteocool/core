@@ -163,15 +163,13 @@ export class LayerManager {
       zIndex: 99999,
     });
 
-    const parts = this.settings.get("latLonZ").split(",");
-    let lat;
-    let lon;
-    let z;
+    let lat = 51.0;
+    let lon = 11.0;
+    let z = 6;
 
+    const parts = this.settings.get("latLonZ").split(",");
     if (parts.length !== 3) {
       [lat, lon, z] = parts.map(parseFloat);
-    } else {
-      [lat, lon, z] = [50.0, 11.0, 7];
     }
 
     const newMap = new Map({
@@ -206,9 +204,23 @@ export class LayerManager {
 
         const center = newMap.getView().getCenter();
         const center4326 = toLonLat(center);
-        this.settings.set("latLonZ",
-          `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
-          false);
+        const url = new URL(window.location.href);
+        url.searchParams.set("latLonZ",
+          `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`);
+        window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
+      });
+
+      // restore the view state when navigating through the history, see
+      // https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onpopstate
+      window.addEventListener("popstate", (event) => {
+        if (event.state === null) {
+          return;
+        }
+        shouldUpdate = false;
+        const url = new URL(event.state.location);
+        if (url.searchParams.has("latLonZ")) {
+          this.settings.cb("latLonZ");
+        }
       });
     }
     this.mapCount += 1;
