@@ -19,13 +19,14 @@ import Settings from "./lib/Settings";
 import de from "./locale/de.json";
 import en from "./locale/en.json";
 import {
+  bottomToolbarMode,
   capLastUpdated,
   colorSchemeDark,
-  cycloneLayerVisible,
-  lightningLayerVisible,
+  cycloneLayerVisible, layerswitcherVisible,
+  lightningLayerVisible, logoStyle,
   mapBaseLayer,
-  radarColorScheme,
-} from "./stores";
+  radarColorScheme, toolbarVisible,
+} from './stores';
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/themes/base.css";
@@ -93,6 +94,34 @@ window.settings = new Settings({
     type: "string",
     default: "49.0,11.0,6",
     source: "url",
+  },
+  logo: {
+    type: "string",
+    default: "full",
+    source: "url",
+    cb: (value) => {
+      logoStyle.set(value);
+    },
+  },
+  layerswitcher: {
+    type: "string",
+    default: "yes",
+    source: "url",
+    cb: (value) => {
+      layerswitcherVisible.set(value);
+    },
+  },
+  toolbar: {
+    type: "string",
+    default: "yes",
+    source: "url",
+    cb: (value) => {
+      toolbarVisible.set(value);
+      if (value !== "yes") {
+        bottomToolbarMode.set("hidden");
+        document.documentElement.style.setProperty("--attributions-bottom-padding", "0px");
+      }
+    },
   },
   layerLightning: {
     type: "boolean",
@@ -226,6 +255,10 @@ window.enterForeground = () => {
   reloadCyclones();
 };
 
+let toolbar;
+toolbarVisible.subscribe((value) => {
+  toolbar = value;
+});
 </script>
 
 <style>
@@ -270,7 +303,12 @@ window.enterForeground = () => {
 {#if !dd.isApp()}
   <Logo />
 {/if}
-<BottomToolbar />
+
+{#if toolbar}
+  <BottomToolbar />
+{/if}
 <div id="nanobar" />
 <Map layerManager={lm} />
+{#if toolbar}
 <NowcastPlayback cap={radar} />
+{/if}
