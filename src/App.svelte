@@ -93,7 +93,6 @@ window.settings = new Settings({
     type: "string",
     default: "49.0,11.0,6",
     source: "url",
-    applyInitial: true,
   },
   layerLightning: {
     type: "boolean",

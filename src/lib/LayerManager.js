@@ -168,7 +168,7 @@ export class LayerManager {
     let z = 6;
 
     const parts = this.settings.get("latLonZ").split(",");
-    if (parts.length !== 3) {
+    if (parts.length === 3) {
       [lat, lon, z] = parts.map(parseFloat);
     }
 
