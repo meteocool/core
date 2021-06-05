@@ -1,11 +1,16 @@
 <script>
   import McLayerSwitcher from "./McLayerSwitcher.svelte";
   import "ol/ol.css";
-  import { showTimeSlider } from "../stores";
+  import { layerswitcherVisible, bottomToolbarMode } from "../stores";
 
   const map = null;
   export let layerManager;
   let mapID;
+
+  let visible;
+  layerswitcherVisible.subscribe((value) => {
+    visible = value;
+  });
 
   function changeLayer(newLayer) {
     layerManager.setTarget(newLayer.detail, mapID);
@@ -15,16 +20,18 @@
     mapID = node.id;
     layerManager.setDefaultTarget(mapID);
 
-    showTimeSlider.subscribe((val) => {
-      if (val === true) {
+    bottomToolbarMode.subscribe((val) => {
+      if (val === "player") {
         document.getElementById(node.id).style.height =
           "calc(min(90%, calc(100% - 100px)) + 11px)";
-      } else {
+      } else if (val === "collapsed") {
         document.getElementById(node.id).style.height =
           "calc(100% - calc(env(safe-area-inset-bottom) + 42px))";
+      } else {
+        document.getElementById(node.id).style.height = "100%";
       }
-      layerManager.forEachMap((map) => {
-        map.updateSize();
+      layerManager.forEachMap((m) => {
+        m.updateSize();
       });
     });
 
@@ -50,12 +57,18 @@
     /* XXX */
   }
 
+  :global(:root) {
+    --attributions-bottom-padding: 0.9em;
+  }
+
   :global(.ol-attribution.ol-uncollapsible) {
     height: 1.2em;
-    padding-bottom: 1.15em;
+    padding-bottom: calc(0.25em + var(--attributions-bottom-padding));
     font-size: 6pt;
   }
 </style>
 
 <div id="map" use:mapInit />
-<McLayerSwitcher {layerManager} on:changeLayer={changeLayer} />
+{#if visible === "yes"}
+  <McLayerSwitcher {layerManager} on:changeLayer={changeLayer} />
+{/if}

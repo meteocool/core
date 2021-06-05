@@ -26,7 +26,7 @@ import {
   latLon,
   lightningLayerVisible, processedForecastsCount,
   showForecastPlaybutton,
-  showTimeSlider
+  bottomToolbarMode
 } from '../stores';
 
 import TimeIndicator from "./TimeIndicator.svelte";
@@ -225,7 +225,7 @@ const fsm = new StateMachine({
     onWaitForServer: () => {
       console.log("FSM ===== waiting for server");
       loadingIndicator = true;
-      setTimeout(() => showTimeSlider.set(true), 200);
+      setTimeout(() => bottomToolbarMode.set("player"), 200);
       open = true;
     },
     onShowScrollbar: () => {
@@ -234,7 +234,7 @@ const fsm = new StateMachine({
       playPauseButton = faPlay;
       open = true;
       oldUrls = cap.source.getUrls();
-      setTimeout(() => showTimeSlider.set(true), 200);
+      setTimeout(() => bottomToolbarMode.set("player"), 200);
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
       capTimeIndicator.set(cap.getUpstreamTime());
@@ -311,7 +311,7 @@ const fsm = new StateMachine({
       setUIConstant("toast-stack-offset");
       loadingIndicator = true;
       setTimeout(() => {
-        showTimeSlider.set(false);
+        bottomToolbarMode.set("collapsed");
       }, 200);
       cap.source.setUrl(cap.lastSourceUrl);
     },

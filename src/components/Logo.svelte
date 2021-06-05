@@ -2,8 +2,13 @@
   import logo from "../../public/assets/logo.svg";
   import About from "./About.svelte";
   import { _ } from "svelte-i18n";
+  import { logoStyle } from '../stores';
 
   let showAbout = false;
+  let style;
+  logoStyle.subscribe((value) => {
+    style = value;
+  });
 
   function toggleAbout() {
     if (!showAbout) {
@@ -76,22 +81,24 @@
   }
 </style>
 
-<div class="logo-wrapper">
-  <img
-    src={logo}
-    alt="meteocool"
-    class="logo"
+{#if style === "full"}
+  <div class="logo-wrapper">
+    <img
+            src={logo}
+            alt="meteocool"
+            class="logo"
     />
-  <div class="name">{$_("url")}</div>
-  <!-- <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="
-https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
-    </div> -->
-  <div class="claim">
-    <span on:click={() => toggleAbout()} class="link">{$_("about")}</span> |
-    <a href="https://discord.gg/5y4xDVpwxc" target="_blank"
+    <div class="name">{$_("url")}</div>
+    <!-- <div class="claim">Get the App! <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623">iOS</a> & <a href="
+  https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
+      </div> -->
+    <div class="claim">
+      <span on:click={() => toggleAbout()} class="link">{$_("about")}</span> |
+      <a href="https://discord.gg/5y4xDVpwxc" target="_blank"
       >{$_("join_community")}</a>
+    </div>
+    {#if showAbout}
+      <About on:close={() => toggleAbout()} />
+    {/if}
   </div>
-  {#if showAbout}
-    <About on:close={() => toggleAbout()} />
-  {/if}
-</div>
+{/if}
