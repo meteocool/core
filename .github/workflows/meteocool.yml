@@ -18,6 +18,8 @@ jobs:
       -
         name: "build meteocool docker image"
         run: |
+            ls
+            pwd
             DOCKER_TAG=$(echo $GITHUB_SHA | head -c7)
-            docker build . --tag ghcr.io/meteocool/core/meteocool:$DOCKER_TAG
+            docker build --tag ghcr.io/meteocool/core/meteocool:$DOCKER_TAG .
             docker push ghcr.io/meteocool/core/meteocool:$DOCKER_TAG
