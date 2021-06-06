@@ -1,0 +1,23 @@
+name: meteocool
+true:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: "Login to GitHub Container Registry"
+        uses: docker/login-action@v1
+        with:
+          password: "${{ secrets.GITHUB_TOKEN }}"
+          registry: ghcr.io
+          username: "${{ github.repository_owner }}"
+      -
+        name: "build meteocool docker image"
+        run: |
+            DOCKER_TAG=$(echo $GITHUB_SHA | head -c7)
+            docker build . --tag ghcr.io/meteocool/core/meteocool:$DOCKER_TAG
+            docker push ghcr.io/meteocool/core/meteocool:$DOCKER_TAG
