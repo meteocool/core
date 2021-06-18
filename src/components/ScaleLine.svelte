@@ -38,10 +38,10 @@
 
   .scale-line {
     width: 100%;
-    border-radius: 4px;
+    border-radius: var(--sl-border-radius-pill);
     border: 1px solid grey;
     background-image: var(--backgroundImage), var(--backgroundUrl);
-    height: 100%;
+    height: calc(var(--sl-input-height-medium) * 0.8);
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
