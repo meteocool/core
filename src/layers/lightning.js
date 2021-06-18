@@ -43,7 +43,7 @@ export default function makeLightningLayer() {
   });
   return [ss, new VectorLayer({
     source: clusters,
-    zIndex: 9999999,
+    zIndex: 100,
     style: (feature) => {
       const size = feature.get("features").length;
       const now = new Date().getTime();

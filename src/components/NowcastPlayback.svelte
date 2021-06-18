@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import { meteocoolClassic } from "../colormaps";
 import getDfnLocale from "../locale/locale";
 import { setUIConstant } from "../layers/ui";
-import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { DeviceDetect, DeviceDetect as dd } from '../lib/DeviceDetect';
 
 import {
   capTimeIndicator,
@@ -26,7 +26,7 @@ import {
   latLon,
   lightningLayerVisible, processedForecastsCount,
   showForecastPlaybutton,
-  showTimeSlider
+  bottomToolbarMode
 } from '../stores';
 
 import TimeIndicator from "./TimeIndicator.svelte";
@@ -225,7 +225,7 @@ const fsm = new StateMachine({
     onWaitForServer: () => {
       console.log("FSM ===== waiting for server");
       loadingIndicator = true;
-      setTimeout(() => showTimeSlider.set(true), 200);
+      setTimeout(() => bottomToolbarMode.set("player"), 200);
       open = true;
     },
     onShowScrollbar: () => {
@@ -234,7 +234,7 @@ const fsm = new StateMachine({
       playPauseButton = faPlay;
       open = true;
       oldUrls = cap.source.getUrls();
-      setTimeout(() => showTimeSlider.set(true), 200);
+      setTimeout(() => bottomToolbarMode.set("player"), 200);
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
       capTimeIndicator.set(cap.getUpstreamTime());
@@ -311,7 +311,7 @@ const fsm = new StateMachine({
       setUIConstant("toast-stack-offset");
       loadingIndicator = true;
       setTimeout(() => {
-        showTimeSlider.set(false);
+        bottomToolbarMode.set("collapsed");
       }, 200);
       cap.source.setUrl(cap.lastSourceUrl);
     },
@@ -393,6 +393,14 @@ function sliderChangedHandler(value, userInteraction = false) {
   if (userInteraction && fsm.state === "playing") {
     console.log("Pausing due to sliderChangedHandler");
     fsm.pressPause();
+  }
+
+  if (userInteraction && dd.isIos()) {
+    let impact = "Light";
+    if (value === 0) {
+      impact = "Heavy";
+    }
+    window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`);
   }
 
   if (value === 0) {

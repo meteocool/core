@@ -19,13 +19,14 @@ import Settings from "./lib/Settings";
 import de from "./locale/de.json";
 import en from "./locale/en.json";
 import {
+  bottomToolbarMode,
   capLastUpdated,
   colorSchemeDark,
-  cycloneLayerVisible,
-  lightningLayerVisible,
+  cycloneLayerVisible, layerswitcherVisible,
+  lightningLayerVisible, logoStyle,
   mapBaseLayer,
-  radarColorScheme,
-} from "./stores";
+  radarColorScheme, toolbarVisible,
+} from './stores';
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/themes/base.css";
@@ -38,6 +39,8 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";
 import { reportError, reportToast } from './lib/Toast';
+import Router from './lib/Router';
+import { fromLonLat } from 'ol/proj';
 
 export let device;
 
@@ -83,15 +86,46 @@ window.settings = new Settings({
   layerMesocyclones: {
     type: "boolean",
     default: true,
-    applyInitial: true,
     cb: (value) => {
       cycloneLayerVisible.set(value);
+    },
+  },
+  latLonZ: {
+    type: "string",
+    default: "49.0,11.0,6",
+    source: "url",
+  },
+  logo: {
+    type: "string",
+    default: "full",
+    source: "url",
+    cb: (value) => {
+      logoStyle.set(value);
+    },
+  },
+  layerswitcher: {
+    type: "string",
+    default: "yes",
+    source: "url",
+    cb: (value) => {
+      layerswitcherVisible.set(value);
+    },
+  },
+  toolbar: {
+    type: "string",
+    default: "yes",
+    source: "url",
+    cb: (value) => {
+      toolbarVisible.set(value);
+      if (value !== "yes") {
+        bottomToolbarMode.set("hidden");
+        document.documentElement.style.setProperty("--attributions-bottom-padding", "0px");
+      }
     },
   },
   layerLightning: {
     type: "boolean",
     default: true,
-    applyInitial: true,
     cb: (value) => {
       lightningLayerVisible.set(value);
     },
@@ -126,13 +160,12 @@ radarSocketIO.on("mesocyclones", (data) => {
 export const radar = new RadarCapability({
   nanobar: nb,
   socket_io: radarSocketIO,
-  additionalLayers: [lightningLayer, mesocycloneLayer, labelsOnly()],
+  additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly()],
 });
 export const weather = new WeatherCapability({
   nanobar: nb,
   tileURL: `${apiBaseUrl}/icon/t_2m/`,
 });
-
 
 export const lm = new LayerManager({
   settings: window.settings,
@@ -152,6 +185,20 @@ window.settings.setCb("mapRotation", (value) => {
     enableRotation: value,
   });
   lm.forEachMap((map) => map.setView(newView));
+});
+window.settings.setCb("latLonZ", (value) => {
+  if (!value) return;
+  const parts = value.split(",");
+  if (parts.length !== 3) return;
+  const [lat, lon, z] = parts.map(parseFloat);
+
+  const newView = new View({
+    center: fromLonLat([lon, lat]),
+    zoom: z,
+    minZoom: lm.getCurrentMap().getView().getMinZoom(),
+    rotation: lm.getCurrentMap().getView().getRotation(),
+  });
+  lm.getCurrentMap().setView(newView);
 });
 
 if (dd.isIos()) {
@@ -208,6 +255,10 @@ window.enterForeground = () => {
   reloadCyclones();
 };
 
+let toolbar;
+toolbarVisible.subscribe((value) => {
+  toolbar = value;
+});
 </script>
 
 <style>
@@ -252,7 +303,12 @@ window.enterForeground = () => {
 {#if !dd.isApp()}
   <Logo />
 {/if}
-<BottomToolbar />
+
+{#if toolbar}
+  <BottomToolbar />
+{/if}
 <div id="nanobar" />
 <Map layerManager={lm} />
+{#if toolbar}
 <NowcastPlayback cap={radar} />
+{/if}
