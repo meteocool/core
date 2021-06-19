@@ -82,6 +82,9 @@ window.settings = new Settings({
   experimentalFeatures: {
     type: "boolean",
     default: false,
+    cb: (value) => {
+      reportToast(`Experimental features ${value}`);
+    },
   },
   layerMesocyclones: {
     type: "boolean",
