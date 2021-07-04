@@ -6,7 +6,9 @@ import { dwdPrecipTypes } from "../layers/radar";
 
 export default class PrecipitationTypesCapability extends Capability {
   constructor(args) {
-    super(() => {
+    super((map) => {
+      const additionalLayers = args.additionalLayers || [];
+      additionalLayers.forEach((l) => super.getMap().addLayer(l));
     }, () => {
       capDescription.set("foo");
       showForecastPlaybutton.set(false);
