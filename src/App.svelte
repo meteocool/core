@@ -41,6 +41,7 @@ import { labelsOnly } from "./layers/vector";
 import { reportError, reportToast } from './lib/Toast';
 import Router from './lib/Router';
 import { fromLonLat } from 'ol/proj';
+import PrecipitationTypesCapability from './caps/PrecipitationTypesCapability';
 
 export let device;
 
@@ -83,7 +84,7 @@ window.settings = new Settings({
     type: "boolean",
     default: false,
     cb: (value) => {
-      reportToast(`Experimental features ${value}`);
+      // reportToast(`Experimental features ${value}`);
     },
   },
   layerMesocyclones: {
@@ -169,6 +170,10 @@ export const weather = new WeatherCapability({
   nanobar: nb,
   tileURL: `${apiBaseUrl}/icon/t_2m/`,
 });
+export const precipTypes = new PrecipitationTypesCapability({
+  nanobar: nb,
+  tileURL: `${apiBaseUrl}/precip_types/`,
+});
 
 export const lm = new LayerManager({
   settings: window.settings,
@@ -177,6 +182,7 @@ export const lm = new LayerManager({
     radar,
     satellite: new SatelliteCapability({ nanobar: nb }),
     weather,
+    precipTypes,
   },
 });
 window.lm = lm;
