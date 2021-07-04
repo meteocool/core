@@ -19,3 +19,4 @@ export const zoomlevel = writable(3);
 export const processedForecastsCount = writable(0);
 
 export const sharedActiveCap = writable("");
+export const sharedCmap = writable("");

@@ -2,8 +2,8 @@
   import { formatDistanceToNow } from 'date-fns';
   import { _ } from 'svelte-i18n';
   import { capLastUpdated } from '../stores';
+
   import getDfnLocale from '../locale/locale';
-  import ScaleLine from './ScaleLine.svelte';
 
   let lastUpdated;
   let lastUpdatedStr;
