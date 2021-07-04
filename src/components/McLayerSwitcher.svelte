@@ -109,7 +109,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 0.15em 0.1em;
-    grid-template-areas: "reflectivity satellite" "weather help";
+    grid-template-areas: "reflectivity satellite" "precip-types help";
     height: 100%;
   }
 
@@ -119,8 +119,8 @@
   .satellite {
     grid-area: satellite;
   }
-  .weather {
-    grid-area: weather;
+  .precip-types {
+    grid-area: precip-types;
     position: relative;
   }
   .help {
@@ -190,19 +190,14 @@
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
       </div>
-      <div class="weather cell">
-        <div class="helpText">
-          More Layers Coming Soon 🔥
-        </div>
-        <div class="hidden">
+      <div class="precip-types cell">
           <MiniMap
                   {layerManager}
-                  layer={"weather"}
-                  label={"🌤 Weather "}
+                  layer={"precipTypes"}
+                  label={"💧 Precipitation Types "}
                   on:mount={childMounted}
                   on:changeLayer={changeLayer}
                   class="hidden" />
-        </div>
       </div>
       <div class="help cell">
         <div class="helpText">

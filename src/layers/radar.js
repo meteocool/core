@@ -141,3 +141,30 @@ export const greyOverlay = () => new VectorLayer({
     }),
   }),
 });
+
+export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
+  const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
+  const reflectivitySource = new XYZ({
+    url: sourceUrl,
+    attributions: [dwdAttribution],
+    crossOrigin: "anonymous",
+    minZoom: 3,
+    maxZoom: 8,
+    transition: 300,
+    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+    tileSize: 512,
+    cacheSize: 999999,
+  });
+  const reflectivityLayer = new TileLayer({
+    source: reflectivitySource,
+    zIndex: 1000,
+    opacity: 0.7,
+  });
+
+  // Disable browser upsampling
+  reflectivityLayer.on("prerender", (evt) => {
+    evt.context.imageSmoothingEnabled = false;
+    evt.context.msImageSmoothingEnabled = false;
+  });
+  return reflectivityLayer;
+};

@@ -17,3 +17,5 @@ export const showForecastPlaybutton = writable(true);
 export const satelliteLayer = writable("sentinel2");
 export const zoomlevel = writable(3);
 export const processedForecastsCount = writable(0);
+
+export const sharedActiveCap = writable("");
