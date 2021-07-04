@@ -42,6 +42,13 @@ import { reportError, reportToast } from './lib/Toast';
 import Router from './lib/Router';
 import { fromLonLat } from 'ol/proj';
 import PrecipitationTypesCapability from './caps/PrecipitationTypesCapability';
+import { greyOverlay } from './layers/radar';
+
+import {easeOut} from 'ol/easing';
+import {getVectorContext} from 'ol/render';
+import {unByKey} from 'ol/Observable';
+import { Stroke, Style } from 'ol/style';
+import CircleStyle from 'ol/style/Circle';
 
 export let device;
 
@@ -153,9 +160,49 @@ const strikemgr = new StrikeManager(1000, lightningSource);
 const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
 const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
 
+const duration = 3000;
+const flash = (feature, layer) => {
+  var start = new Date().getTime();
+  var listenerKey = layer.on('postrender', (event) => {
+    var vectorContext = getVectorContext(event);
+    var frameState = event.frameState;
+    var flashGeom = feature.getGeometry().clone();
+    var elapsed = frameState.time - start;
+    var elapsedRatio = elapsed / duration;
+    // radius will be 5 at start and 30 at end.
+    var radius = easeOut(elapsedRatio) * 25 + 5;
+    var opacity = easeOut(1 - elapsedRatio);
+
+    var style = new Style({
+      image: new CircleStyle({
+        radius: radius,
+        stroke: new Stroke({
+          color: 'rgba(255, 0, 0, ' + opacity + ')',
+          width: 0.25 + opacity,
+        }),
+      }),
+    });
+
+    vectorContext.setStyle(style);
+    vectorContext.drawGeometry(flashGeom);
+    if (elapsed > duration) {
+      unByKey(listenerKey);
+      return;
+    }
+    // tell OpenLayers to continue postrender animation
+    lm.getCurrentMap().render();
+  });
+}
+
+window.flash = flash;
+window.sm = strikemgr;
+
 radarSocketIO.on("lightning", (data) => {
-  strikemgr.addStrike(data.lon, data.lat);
+  strikemgr.addStrike(data.lon, data.lat, (feature) => {
+    flash(feature, lightningLayer);
+  });
 });
+window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
   mesocyclonemgr.clearAll();
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
@@ -173,7 +220,7 @@ export const weather = new WeatherCapability({
 export const precipTypes = new PrecipitationTypesCapability({
   nanobar: nb,
   tileURL: `${apiBaseUrl}/precip_types/`,
-  additionalLayers: [labelsOnly()],
+  additionalLayers: [labelsOnly(), greyOverlay()],
 });
 
 export const lm = new LayerManager({

@@ -1,21 +1,25 @@
 // eslint-disable-next-line import/prefer-default-export
-import { capDescription, showForecastPlaybutton } from "../stores";
+import { capDescription, capLastUpdated, sharedCmap, showForecastPlaybutton } from '../stores';
 import Capability from "./Capability";
 import { apiBaseUrl } from "../urls";
 import { dwdPrecipTypes } from "../layers/radar";
+import { writable } from 'svelte/store';
 
 export default class PrecipitationTypesCapability extends Capability {
   constructor(args) {
     super((map) => {
       const additionalLayers = args.additionalLayers || [];
-      additionalLayers.forEach((l) => super.getMap().addLayer(l));
+      additionalLayers.forEach((l) => map.addLayer(l));
     }, () => {
       capDescription.set("foo");
       showForecastPlaybutton.set(false);
+      this.fetchPrecipTypes();
     });
+
+    if ("cmap" in args) super.setCmap(args.cmap);
+
     this.currentLayer = null;
     this.nb = args.nanobar;
-    this.fetchPrecipTypes();
   }
 
   fetchPrecipTypes() {
@@ -24,12 +28,14 @@ export default class PrecipitationTypesCapability extends Capability {
     fetch(URL)
       .then((response) => response.json())
       .then((data) => {
+        if (!data) return;
         const newLayer = dwdPrecipTypes(data.tile_id);
         super.getMap().addLayer(newLayer);
         if (this.currentLayer) {
           super.getMap().removeLayer(this.currentLayer);
         }
         this.currentLayer = newLayer;
+        capLastUpdated.set(new Date(data.processed_time * 1000));
       })
       .then(() => this.nb.finish(URL))
       .catch((error) => {
