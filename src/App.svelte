@@ -173,6 +173,7 @@ export const weather = new WeatherCapability({
 export const precipTypes = new PrecipitationTypesCapability({
   nanobar: nb,
   tileURL: `${apiBaseUrl}/precip_types/`,
+  additionalLayers: [labelsOnly()],
 });
 
 export const lm = new LayerManager({
