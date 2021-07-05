@@ -4,6 +4,6 @@ export const precipTypeNames = {
   Schneeregen: "00ff00",
   Schnee: "ffff00",
   Regen: "0000ff",
-  Sprühregen: "87CFEB",
+  Niesel: "87CFEB",
   "n/a": "787878",
 };
