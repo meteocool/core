@@ -13,29 +13,22 @@
   $: scaleStyle = {
     backgroundImage: `linear-gradient(to right, ${palette})`,
   };
-
 </script>
 
 <style>
-  .tag {
-      width: 75px;
-      margin-left: 5px;
-      text-align: center;
-  }
-
   .scale-divider {
       float: left;
   }
 
   .scale-divider {
-    padding-top: 1.4em;
+    padding-top: 1.2em;
     text-shadow:
             0 0 6px #636363B0,
                 -1px -1px 6px #636363B0,
             -1px 1px 6px #636363B0,
             1px 1px 6px #636363B0,
                 1px -1px 6px #636363B0;
-    font-size: 77%;
+    font-size: 74%;
     color: var(--sl-color-primary-100);
   }
 
@@ -44,7 +37,7 @@
     border-radius: var(--sl-border-radius-pill);
     border: 1px solid grey;
     background-image: var(--backgroundImage);
-    height: calc(var(--sl-input-height-medium) * 0.3);
+    height: calc(var(--sl-input-height-medium) * 0.25);
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
@@ -52,9 +45,11 @@
 
   .scale {
     width: 100%;
-    height: 16px;
+    height: var(--sl-input-height-medium);
     float: left;
     margin-right: 2em;
+    padding-bottom: 0;
+    margin-top: 0.1em;
   }
 </style>
 

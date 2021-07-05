@@ -26,14 +26,10 @@
     display: flex;
     justify-content: space-between;
     padding-top: 0.3em;
-    text-shadow:
-            0 0 6px #636363B0,
-            -1px -1px 6px #636363B0,
-            -1px 1px 6px #636363B0,
-            1px 1px 6px #636363B0,
-            1px -1px 6px #636363B0;
     padding-left: 5%;
     padding-right: 5%;
+    padding-top: 1em;
+    font-size: 75%;
   }
 
   .scale-line {
@@ -41,7 +37,7 @@
     border-radius: var(--sl-border-radius-pill);
     border: 1px solid grey;
     background-image: var(--backgroundImage), var(--backgroundUrl);
-    height: calc(var(--sl-input-height-medium) * 0.8);
+    height: calc(var(--sl-input-height-medium) * 0.25);
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
@@ -49,9 +45,11 @@
 
   .scale {
     width: 100%;
-    height: 31px;
     float: left;
     margin-right: 2em;
+    padding-bottom: 0.4em;
+    height: var(--sl-input-height-medium);
+    margin-top: 0.1em;
   }
 </style>
 
