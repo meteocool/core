@@ -46,6 +46,7 @@
   }
 
   .flt {
+    margin-top: 0.15em;
   }
 </style>
 

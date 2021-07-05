@@ -1,6 +1,6 @@
 <script>
   import Icon from 'fa-svelte';
-  import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
+  import { faGithub } from '@fortawesome/free-brands-svg-icons/faGithub';
   import { fly } from 'svelte/transition';
   import LastUpdated from './LastUpdated.svelte';
   import { DeviceDetect as dd } from '../lib/DeviceDetect';
@@ -105,6 +105,7 @@
   .parentz {
     display: flex;
     flex-wrap: wrap;
+    padding-top: 0.3em;
   }
 
   .left {
@@ -144,31 +145,31 @@
     flex-basis: 2%;
     text-align: center;
     margin-right: 1.5%;
+    padding-top: 0;
   }
 
   .palette {
     flex: auto;
     padding: 0.5em;
-    padding-top: 0.32em;
+    padding-top: 0;
     padding-bottom: 0;
     position: relative;
     flex-grow: 1; /* do not grow   - initial value: 0 */
     flex-shrink: 1; /* do not shrink - initial value: 1 */
     flex-basis: 50%;
     text-align: center;
-    height: 100%;
     margin-left: 1.5%;
     margin-right: 1.5%;
   }
 
   :global(.githubIcon) {
-    font-size: 35px;
+    font-size: 30px;
     text-shadow: 3px 3px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff,
       -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
     color: var(--sl-color-info-700) !important;
     padding: 0;
     border-radius: 0;
-    margin: 4.5px 0.2em 0 0;
+    margin: 0.03em 0.2em 0 0.1em;
     vertical-align: top;
   }
 
@@ -178,7 +179,6 @@
   }
 
   .appstore-logo{
-    margin-top: 6px;
     margin-left: 3px;
     height: 34px;
   }
@@ -306,7 +306,7 @@
           </div>
           <div class="appstoreLogo">
             <a target="_blank" href="https://github.com/meteocool/core#meteocool"
-            ><Icon icon={faGithubSquare} class="githubIcon" /></a>
+            ><Icon icon={faGithub} class="githubIcon" /></a>
           </div>
         </div>
       </div>

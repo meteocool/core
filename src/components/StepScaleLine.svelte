@@ -8,7 +8,6 @@
   $ : ncol = Object.values(steps).length;
   $ : palette = Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100/ncol))}% ${Math.round((index+1)*(100/ncol))}%`).join(",");
   $ : vs = Object.keys(steps).map((c) => (valueFormat ? valueFormat(c) : c)).filter((e) => e !== "");
-  $ : console.log(palette);
 
   $: scaleStyle = {
     backgroundImage: `linear-gradient(to right, ${palette})`,
@@ -22,22 +21,17 @@
 
   .scale-divider {
     padding-top: 1.2em;
-    text-shadow:
-            0 0 6px #636363B0,
-                -1px -1px 6px #636363B0,
-            -1px 1px 6px #636363B0,
-            1px 1px 6px #636363B0,
-                1px -1px 6px #636363B0;
     font-size: 74%;
     color: var(--sl-color-primary-100);
   }
 
+  /* XXX share styles with scaleline */
   .scale-line {
     width: 100%;
     border-radius: var(--sl-border-radius-pill);
-    border: 1px solid grey;
+    border: 0.5px solid var(--sl-color-info-200);
     background-image: var(--backgroundImage);
-    height: calc(var(--sl-input-height-medium) * 0.25);
+    height: 25%;
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
@@ -45,11 +39,20 @@
 
   .scale {
     width: 100%;
-    height: var(--sl-input-height-medium);
+    height: calc(var(--sl-input-height-medium) * 0.8);
     float: left;
     margin-right: 2em;
     padding-bottom: 0;
-    margin-top: 0.1em;
+  }
+
+  @media only screen and (max-width: 990px) {
+      .scale-divider {
+          padding-top: 1.2em;
+      }
+      .scale {
+          height: calc(var(--sl-input-height-medium) * 1.2);
+          padding-bottom: 0.25em;
+      }
   }
 </style>
 

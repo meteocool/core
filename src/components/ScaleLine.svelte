@@ -28,28 +28,38 @@
     padding-top: 0.3em;
     padding-left: 5%;
     padding-right: 5%;
-    padding-top: 1em;
-    font-size: 75%;
+    font-size: 92%;
+    position: relative;
+    top: 0.5em;
+    color: var(--sl-color-primary-100);
   }
 
   .scale-line {
     width: 100%;
     border-radius: var(--sl-border-radius-pill);
-    border: 1px solid grey;
+    border: 0.5px solid var(--sl-color-info-200);
     background-image: var(--backgroundImage), var(--backgroundUrl);
-    height: calc(var(--sl-input-height-medium) * 0.25);
+    height: 25%;
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
+  }
+
+  @media only screen and (max-width: 990px) {
+    .scale-dividers {
+      font-size: 60%;
+      top: 1.1em;
+    }
+    .scale-line {
+      height: 20%;
+    }
   }
 
   .scale {
     width: 100%;
     float: left;
     margin-right: 2em;
-    padding-bottom: 0.4em;
     height: var(--sl-input-height-medium);
-    margin-top: 0.1em;
   }
 </style>
 
