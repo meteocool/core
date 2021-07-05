@@ -29,7 +29,11 @@ export default class PrecipitationTypesCapability extends Capability {
       .then((response) => response.json())
       .then((data) => {
         if (!data) return;
+        if (this.currentLayer) {
+          if (this.currentLayer.get("tile_id") === data.tile_id) return;
+        }
         const newLayer = dwdPrecipTypes(data.tile_id);
+        newLayer.set("tile_id", data.tile_id);
         super.getMap().addLayer(newLayer);
         if (this.currentLayer) {
           super.getMap().removeLayer(this.currentLayer);

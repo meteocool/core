@@ -398,7 +398,7 @@ function sliderChangedHandler(value, userInteraction = false) {
   if (userInteraction && dd.isIos()) {
     let impact = "Light";
     if (value === 0) {
-      impact = "Heavy";
+      impact = "Medium";
     }
     window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`);
   }
