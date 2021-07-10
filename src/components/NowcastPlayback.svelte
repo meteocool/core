@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import { meteocoolClassic } from "../colormaps";
 import getDfnLocale from "../locale/locale";
 import { setUIConstant } from "../layers/ui";
-import { DeviceDetect, DeviceDetect as dd } from '../lib/DeviceDetect';
+import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 import {
   capTimeIndicator,
@@ -32,9 +32,24 @@ import {
 import TimeIndicator from "./TimeIndicator.svelte";
 import LastUpdated from "./LastUpdated.svelte";
 
-// Here be dragons
-
 export let cap;
+
+// Initialize grid
+function generateGrid() {
+  let now = new Date().getTime() / 1000;
+  now -= (now % (60 * 5));
+  const start = now - (60 * 120);
+  const end = now + (60 * 120);
+  const nSteps = (end - start) / (60 * 5);
+  [...Array(nSteps).keys()].map((i) => new Date(start + i * (5 * 60)))
+          .forEach((step) => {
+            grid[step.getTime()] = {
+              dbz: 0,
+              url: null,
+            };
+          });
+}
+const grid = generateGrid();
 
 let userLatLon;
 let showBars = true;
@@ -51,7 +66,6 @@ showForecastPlaybutton.subscribe((val) => {
 });
 
 let open = false; // Drawer open/closed. Displays open button if false
-let warned = false; // True if user has been warned about forecast != measurement
 let loadingIndicator = true; // If true, show loading indicator instead of slider
 let oldTimeStep = 0;
 
@@ -69,7 +83,6 @@ let loop = true;
 let historicActive = true;
 let includeHistoric = false;
 let canvas;
-let rainValues;
 
 let buttonSize = "small";
 if (dd.isApp()) {
@@ -92,20 +105,35 @@ processedForecastsCount.subscribe((value) => {
 });
 
 let autoPlay = false;
-function setChart() {
-  if (!canvas) return;
+function redraw() {
+  if (!canvas) {
+    console.log("Grid not yet initialized, skipping redraw");
+    return;
+  }
+  // eslint-disable-next-line no-new
+  const sortedKeys = Object.keys(grid).map((e) => parseInt(e, 10)).sort();
+  const d = sortedKeys.map((step) => {
+    if (!grid[step]) {
+      console.log(`Grid step ${step} is empty`);
+      return 0;
+    }
+    if (grid[step].dbz) {
+      console.log(`Grid step ${step} has DBZ`);
+      return grid[step].dbz + 32.5;
+    }
+    console.log(`Grid step ${step} has NO DBZ`);
+    return 0;
+  });
   // eslint-disable-next-line no-new
   new Chart(canvas.getContext("2d"), {
     type: "bar",
     data: {
-      labels: Array(49)
-        .fill()
-        .map((__, i) => `${-120 + i * 5}`),
+      labels: sortedKeys,
       datasets: [{
-        data: rainValues,
+        data: d,
         barPercentage: 0.99,
         categoryPercentage: 0.99,
-        backgroundColor: rainValues.map(((value) => meteocoolClassic[Math.round(value * 2)]))
+        backgroundColor: d.map(((value) => meteocoolClassic[Math.round(value * 2)]))
           .map((maybe) => maybe || [0, 0, 0, 0])
           .map(([r, g, b]) => `rgba(${r}, ${g}, ${b}, 1)`),
         borderColor: getComputedStyle(document.body)
@@ -169,7 +197,7 @@ function setChart() {
 
 function canvasInit(elem) {
   canvas = elem;
-  setChart();
+  redraw();
 }
 
 const fsm = new StateMachine({
@@ -179,16 +207,6 @@ const fsm = new StateMachine({
       name: "showScrollbar",
       from: "followLatest",
       to: "manualScrolling",
-    },
-    {
-      name: "showScrollbar",
-      from: "waitingForServer",
-      to: "manualScrolling",
-    },
-    {
-      name: "waitForServer",
-      from: "followLatest",
-      to: "waitingForServer",
     },
     {
       name: "pressPlay",
@@ -210,30 +228,15 @@ const fsm = new StateMachine({
       from: "followLatest",
       to: "followLatest",
     },
-    {
-      name: "enterWaitingState",
-      from: "manualScrolling",
-      to: "waitingForServer",
-    },
-    {
-      name: "enterWaitingState",
-      from: "playing",
-      to: "waitingForServer",
-    },
   ],
   methods: {
-    onWaitForServer: () => {
-      console.log("FSM ===== waiting for server");
-      loadingIndicator = true;
+    onShowScrollbar: () => {
       setTimeout(() => bottomToolbarMode.set("player"), 200);
       open = true;
-    },
-    onShowScrollbar: () => {
-      console.log("FSM ===== waiting for server");
       loadingIndicator = false;
       playPauseButton = faPlay;
       open = true;
-      oldUrls = cap.source.getUrls();
+      //oldUrls = cap.source.getUrls();
       setTimeout(() => bottomToolbarMode.set("player"), 200);
       if (slRange) slRange.value = 0;
       setUIConstant("toast-stack-offset", "124px");
@@ -307,24 +310,18 @@ const fsm = new StateMachine({
       if (transition.from === "followLatest") return;
       open = false;
       oldTimeStep = 0;
-      warned = false;
       setUIConstant("toast-stack-offset");
-      loadingIndicator = true;
       setTimeout(() => {
         bottomToolbarMode.set("collapsed");
       }, 200);
-      cap.source.setUrl(cap.lastSourceUrl);
+      // cap.source.setUrl(cap.lastSourceUrl); XXX
     },
   },
 });
 
 function show() {
   if (fsm.state === "followLatest") {
-    if (historicLayers && nowcastLayers) {
-      fsm.showScrollbar();
-    } else {
-      fsm.waitForServer();
-    }
+    fsm.showScrollbar();
   }
 }
 
@@ -339,6 +336,26 @@ function hide() {
   fsm.hideScrollbar();
 }
 
+function updateBars(data) {
+  console.log(`updateBars: ${data}`);
+  const gridSteps = Object.keys(grid);
+  let changed = false;
+  console.log(`Frontend grid: ${gridSteps.sort()}`);
+  console.log(`Backend grid: ${Object.keys(data).sort()}`);
+  Object.keys(data).forEach((key) => {
+    // console.log(`checking ${key} in ${gridSteps}`);
+    console.log(key);
+    console.log(typeof key);
+    if (key in grid) {
+      grid[key].dbz = data[key].dbz;
+      grid[key].url = data[key].url;
+      changed = true;
+      console.log("changed");
+    }
+  });
+  if (changed) redraw();
+}
+
 onMount(async () => {
   window.leaveForeground = () => {
     if (fsm.state === "playing") {
@@ -346,40 +363,47 @@ onMount(async () => {
       fsm.pressPause();
     }
   };
+
   cap.addObserver((subject, data) => {
     console.log(`NowcastPlayback observed event ${subject}`);
-    if (subject === "historic") {
-      historicLayers = data.sources;
-    } else if (subject === "nowcast") {
-      nowcastLayers = data.sources;
-    } else {
-      return;
+    if (subject === "radar") {
+      updateBars(data);
     }
-    if (historicLayers && nowcastLayers) {
-      if (fsm.state === "waitingForServer") {
-        fsm.showScrollbar();
-      }
-      const reversed = Object.values(historicLayers);
-      reversed.reverse();
-      rainValues = reversed
-        .map((layer) => Math.round(layer.reported_intensity + 32.5))
-        .concat(Object.values(nowcastLayers)
-          .map((layer) => Math.round(layer.reported_intensity + 32.5)));
-      setChart();
-    } else {
-      switch (fsm.state) {
-        case "manualScrolling":
-          fsm.enterWaitingState();
-          break;
-        case "playing":
-          autoPlay = true;
-          fsm.enterWaitingState();
-          break;
-        default:
-          break;
-      }
-    }
+    //if (subject === "historic") {
+    //  historicLayers = data.sources;
+    //} else if (subject === "nowcast") {
+    //  nowcastLayers = data.sources;
+    //} else {
+    //  return;
+    //}
+    // if (historicLayers && nowcastLayers) {
+    //   if (fsm.state === "waitingForServer") {
+    //     fsm.showScrollbar();
+    //   }
+    //   const reversed = Object.values(historicLayers);
+    //   reversed.reverse();
+    //   rainValues = reversed
+    //     .map((layer) => Math.round(layer.reported_intensity + 32.5))
+    //     .concat(Object.values(nowcastLayers)
+    //       .map((layer) => Math.round(layer.reported_intensity + 32.5)));
+    //   setChart();
+    // } else {
+    //   switch (fsm.state) {
+    //     case "manualScrolling":
+    //       fsm.enterWaitingState();
+    //       break;
+    //     case "playing":
+    //       autoPlay = true;
+    //       fsm.enterWaitingState();
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // }
   });
+  cap.notifyObservers();
+
+  return;
   cap.addObserver((event) => {
     if (event === "loseFocus") {
       hide();
@@ -403,15 +427,9 @@ function sliderChangedHandler(value, userInteraction = false) {
     window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`);
   }
 
-  if (value === 0) {
-    cap.source.setUrl(cap.lastSourceUrl);
-  } else if (value > 0) {
-    cap.source.setUrl(nowcastLayers[value].url);
-  } else {
-    cap.source.setUrl(historicLayers[value].url);
-  }
+  cap.setUrl(grid[value].url);
   oldTimeStep = value;
-  capTimeIndicator.set(cap.getUpstreamTime() + value * 60);
+  //capTimeIndicator.set(cap.getUpstreamTime() + value * 60);
 }
 
 function initSlider(elem) {
@@ -673,11 +691,11 @@ function toggleCyclones() {
               <div class="text topText">
                 {uiMessage}...
               </div>
-              {#if cap.upstreamTime}
+              <!-- if cap.upstreamTime -->
                 <div class="text bottomText">
-                  {$_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })}
+                  <!-- $_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })-->
                 </div>
-              {/if}
+             <!-- if -->
             </div>
           </div>
         </div>
@@ -695,10 +713,10 @@ function toggleCyclones() {
             <div class="barChartCanvas">
               <canvas use:canvasInit></canvas>
             </div>
-            <sl-range min="-120" max="120" value="0" step="5" class="range" use:initSlider tooltip="none"></sl-range>
+            <sl-range min="{start}" max="{end}" value="0" step="{60*5}" class="range" use:initSlider tooltip="none"></sl-range>
             <div class="flexbox gap">
               <div class="checkbox">
-                <TimeIndicator />
+                <!--TimeIndicator /-->
               </div>
               <div class="checkbox">
                 <div class="button-group-toolbar">

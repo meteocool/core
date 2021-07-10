@@ -18,7 +18,7 @@ import { NOWCAST_TRANSPARENCY } from "./ui";
 
 let cmap = meteocoolClassic;
 
-export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
+export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
@@ -31,6 +31,12 @@ export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
     tileSize: 512,
     cacheSize: 999999,
   });
+  reflectivitySource.set("tile_id", tileId);
+  return reflectivitySource;
+};
+
+export const dwdLayerStatic = (tileId, bucket, extra) => {
+  const reflectivitySource = dwdSource(tileId, bucket);
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
     zIndex: 80,
@@ -46,8 +52,8 @@ export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
     transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
   );
 
-  reflectivityLayer.set("tileId", tileId);
-  return [reflectivityLayer, reflectivitySource, sourceUrl];
+  reflectivityLayer.set("tile_id", tileId);
+  return [reflectivityLayer, reflectivitySource, ""];
 };
 
 let lastRasterRadar = null;

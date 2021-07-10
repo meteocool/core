@@ -21,8 +21,8 @@
 
   .scale-divider {
     padding-top: 1.2em;
-    font-size: 74%;
-    color: var(--sl-color-primary-100);
+    font-size: 76%;
+    color: var(--sl-color-black);
   }
 
   /* XXX share styles with scaleline */
@@ -47,7 +47,7 @@
 
   @media only screen and (max-width: 990px) {
       .scale-divider {
-          padding-top: 1.2em;
+          font-size: 74%;
       }
       .scale {
           height: calc(var(--sl-input-height-medium) * 1.2);
