@@ -5,7 +5,7 @@ export default class Capability extends Observable {
   constructor(mapCb, targetCb) {
     super();
     this.map = null;
-    this.mapCb = mapCb;
+    this.mapCb = [mapCb];
     this.targetCb = targetCb;
     this.cmap = null;
   }
@@ -24,7 +24,11 @@ export default class Capability extends Observable {
 
   setMap(map) {
     this.map = map;
-    if (this.mapCb && map) this.mapCb(map);
+    if (map) {
+      this.mapCb.forEach((cb) => {
+        if (cb) cb(map);
+      });
+    }
   }
 
   getMap() {
@@ -33,5 +37,10 @@ export default class Capability extends Observable {
 
   willLoseFocus() {
     super.notify("loseFocus", null);
+  }
+
+  addMapCb(cb) {
+    this.mapCb.push(cb);
+    if (this.map) cb(this.map);
   }
 }
