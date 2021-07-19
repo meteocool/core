@@ -22,7 +22,7 @@ import {
   bottomToolbarMode,
   capLastUpdated,
   colorSchemeDark,
-  cycloneLayerVisible, layerswitcherVisible,
+  cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
   mapBaseLayer,
   radarColorScheme, toolbarVisible,
@@ -160,47 +160,45 @@ const strikemgr = new StrikeManager(1000, lightningSource);
 const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
 const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
 
-const duration = 3000;
-const flash = (feature, layer) => {
-  var start = new Date().getTime();
-  var listenerKey = layer.on('postrender', (event) => {
-    var vectorContext = getVectorContext(event);
-    var frameState = event.frameState;
-    var flashGeom = feature.getGeometry().clone();
-    var elapsed = frameState.time - start;
-    var elapsedRatio = elapsed / duration;
-    // radius will be 5 at start and 30 at end.
-    var radius = easeOut(elapsedRatio) * 25 + 5;
-    var opacity = easeOut(1 - elapsedRatio);
-
-    var style = new Style({
-      image: new CircleStyle({
-        radius: radius,
-        stroke: new Stroke({
-          color: 'rgba(255, 0, 0, ' + opacity + ')',
-          width: 0.25 + opacity,
-        }),
-      }),
-    });
-
-    vectorContext.setStyle(style);
-    vectorContext.drawGeometry(flashGeom);
-    if (elapsed > duration) {
-      unByKey(listenerKey);
-      return;
-    }
-    // tell OpenLayers to continue postrender animation
-    lm.getCurrentMap().render();
-  });
-}
-
-window.flash = flash;
-window.sm = strikemgr;
+// const duration = 3000;
+// const flash = (feature, layer) => {
+//   var start = new Date().getTime();
+//   var listenerKey = layer.on('postrender', (event) => {
+//     var vectorContext = getVectorContext(event);
+//     var frameState = event.frameState;
+//     var flashGeom = feature.getGeometry().clone();
+//     var elapsed = frameState.time - start;
+//     var elapsedRatio = elapsed / duration;
+//     // radius will be 5 at start and 30 at end.
+//     var radius = easeOut(elapsedRatio) * 25 + 5;
+//     var opacity = easeOut(1 - elapsedRatio);
+//
+//     var style = new Style({
+//       image: new CircleStyle({
+//         radius: radius,
+//         stroke: new Stroke({
+//           color: 'rgba(255, 0, 0, ' + opacity + ')',
+//           width: 0.25 + opacity,
+//         }),
+//       }),
+//     });
+//
+//     vectorContext.setStyle(style);
+//     vectorContext.drawGeometry(flashGeom);
+//     if (elapsed > duration) {
+//       unByKey(listenerKey);
+//       return;
+//     }
+//     // tell OpenLayers to continue postrender animation
+//     lm.getCurrentMap().render();
+//   });
+// }
+//
+// window.flash = flash;
+// window.sm = strikemgr;
 
 radarSocketIO.on("lightning", (data) => {
-  strikemgr.addStrike(data.lon, data.lat, (feature) => {
-    flash(feature, lightningLayer);
-  });
+  strikemgr.addStrike(data.lon, data.lat);
 });
 window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
@@ -302,20 +300,13 @@ reloadLightning();
 reloadCyclones();
 
 window.enterForeground = () => {
-  capLastUpdated.set(null);
-  radar.downloadCurrentRadar();
-  weather.reloadTilesWeather();
+  lastFocus.set(new Date());
   if (window.matchMedia) {
     colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
   }
   reloadLightning();
   reloadCyclones();
 };
-
-let toolbar;
-toolbarVisible.subscribe((value) => {
-  toolbar = value;
-});
 </script>
 
 <style>
@@ -361,11 +352,13 @@ toolbarVisible.subscribe((value) => {
   <Logo />
 {/if}
 
-{#if toolbar}
+{#if $toolbarVisible}
   <BottomToolbar />
 {/if}
+
 <div id="nanobar" />
 <Map layerManager={lm} />
-{#if toolbar}
+
+{#if $toolbarVisible}
 <NowcastPlayback cap={radar} />
 {/if}

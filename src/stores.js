@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+﻿import { writable } from "svelte/store";
 
 export const bottomToolbarMode = writable("collapsed");
 export const capDescription = writable("Meteorology for everyone");
@@ -20,3 +20,5 @@ export const processedForecastsCount = writable(0);
 
 export const sharedActiveCap = writable("");
 export const sharedCmap = writable("");
+
+export const lastFocus = writable(new Date());
