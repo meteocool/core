@@ -1,11 +1,11 @@
 import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
-  capDescription,
+  capDescription, lastFocus,
   latLon, processedForecastsCount,
   radarColorScheme,
   showForecastPlaybutton
-} from "../stores";
+} from '../stores';
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 
@@ -14,7 +14,7 @@ export default class RadarCapability extends Capability {
     super((map) => {
       map.addLayer(greyOverlay());
       const additionalLayers = options.additionalLayers || [];
-      additionalLayers.forEach((l) => super.getMap().addLayer(l));
+      additionalLayers.forEach((l) => map.addLayer(l));
     }, () => {
       capDescription.set("Radar Reflectivity");
       showForecastPlaybutton.set(true);
@@ -26,7 +26,6 @@ export default class RadarCapability extends Capability {
     this.nanobar = options.nanobar;
     this.socket_io = options.socket_io;
     this.nowcast = null;
-    this.lastSourceUrl = "";
     this.latlon = null;
     this.sources = {};
     this.layerFactory = dwdLayerStatic;
@@ -57,16 +56,20 @@ export default class RadarCapability extends Capability {
       }
     });
 
+    lastFocus.subscribe(() => {
+      this.reloadAll();
+    });
+
     if (this.socket_io) {
-      this.socket_io.on("poke", () => {
-        console.log("received websocket poke, refreshing tiles + forecasts");
-        this.reloadAll();
-      });
-      this.socket_io.on("progress", (obj) => {
-        if ("nowcast" in obj) {
-          processedForecastsCount.set(obj.nowcast);
-        }
-      });
+      // this.socket_io.on("poke", () => {
+      //   console.log("received websocket poke, refreshing tiles + forecasts");
+      //   this.reloadAll();
+      // });
+      // this.socket_io.on("progress", (obj) => {
+      //   if ("nowcast" in obj) {
+      //     processedForecastsCount.set(obj.nowcast);
+      //   }
+      // });
     }
   }
 
@@ -110,7 +113,7 @@ export default class RadarCapability extends Capability {
   getMostRecentObservation() {
     let mostRecent = 0;
     for (const [step, frame] of Object.entries(this.sources)) {
-      if (frame.source === "observation" && step < mostRecent) {
+      if (frame.source === "observation" && step > mostRecent) {
         mostRecent = step;
       }
     }
@@ -135,12 +138,13 @@ export default class RadarCapability extends Capability {
       body[step] = this.sources[step];
     });
 
-    const last = this.sources[this.getMostRecentObservation()];
-    [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
-    super.addMapCb((map) => {
-      map.addLayer(this.layer);
-    });
-
+    if (!this.layer) {
+      const last = this.sources[this.getMostRecentObservation()];
+      [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
+      super.addMapCb((map) => {
+        map.addLayer(this.layer);
+      });
+    }
     this.notify("radar", body);
   }
 

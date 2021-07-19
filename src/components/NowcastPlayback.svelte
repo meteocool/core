@@ -12,11 +12,15 @@ import { onMount } from "svelte";
 import Icon from "fa-svelte";
 
 import StateMachine from "javascript-state-machine";
-import Chart from "chart.js";
-import { format } from "date-fns";
+import {CategoryScale, LinearScale, BarController, BarElement} from 'chart.js';
+import { BarWithErrorBarsChart } from 'chartjs-chart-error-bars';
+Chart.register(CategoryScale);
+Chart.register(LinearScale);
+Chart.register(BarController);
+Chart.register(BarElement);
+import {Chart} from "chart.js";
 
 import { meteocoolClassic } from "../colormaps";
-import getDfnLocale from "../locale/locale";
 import { setUIConstant } from "../layers/ui";
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
@@ -25,7 +29,6 @@ import {
   cycloneLayerVisible,
   latLon,
   lightningLayerVisible, processedForecastsCount,
-  showForecastPlaybutton,
   bottomToolbarMode
 } from '../stores';
 
@@ -33,14 +36,20 @@ import TimeIndicator from "./TimeIndicator.svelte";
 import LastUpdated from "./LastUpdated.svelte";
 
 export let cap;
+let grid = {};
+let start;
+let end;
+let nSteps;
+let gridNow;
 
 // Initialize grid
 function generateGrid() {
-  let now = new Date().getTime() / 1000;
-  now -= (now % (60 * 5));
-  const start = now - (60 * 120);
-  const end = now + (60 * 120);
-  const nSteps = (end - start) / (60 * 5);
+  gridNow = new Date().getTime() / 1000;
+  gridNow -= (gridNow % (60 * 5));
+  start = gridNow - (60 * 120);
+  end = gridNow + (60 * 120);
+  nSteps = ((end - start) / (60 * 5)) + 1;
+
   [...Array(nSteps).keys()].map((i) => new Date(start + i * (5 * 60)))
           .forEach((step) => {
             grid[step.getTime()] = {
@@ -49,7 +58,7 @@ function generateGrid() {
             };
           });
 }
-const grid = generateGrid();
+generateGrid();
 
 let userLatLon;
 let showBars = true;
@@ -58,11 +67,6 @@ latLon.subscribe((latlonUpdate) => {
   if (!userLatLon) {
     showBars = false;
   }
-});
-
-let bottomToolbarVisible = true;
-showForecastPlaybutton.subscribe((val) => {
-  bottomToolbarVisible = val;
 });
 
 let open = false; // Drawer open/closed. Displays open button if false
@@ -74,7 +78,6 @@ const uiMessage = $_("downloading_nowcast");
 let playTimeout;
 
 let nowcastLayers; // Set by the callback from Nowcast.js
-let historicLayers; // ditto
 
 let slRange = null;
 let oldUrls;
@@ -105,37 +108,46 @@ processedForecastsCount.subscribe((value) => {
 });
 
 let autoPlay = false;
+let chart = null;
 function redraw() {
   if (!canvas) {
     console.log("Grid not yet initialized, skipping redraw");
     return;
   }
+  if (Object.values(grid).map((step) => step.dbz).reduce((a, b) => a + b, 0) === 0) {
+    canvas.style.display = "none";
+    return;
+  }
+  canvas.style.display = "";
   // eslint-disable-next-line no-new
   const sortedKeys = Object.keys(grid).map((e) => parseInt(e, 10)).sort();
   const d = sortedKeys.map((step) => {
     if (!grid[step]) {
-      console.log(`Grid step ${step} is empty`);
-      return 0;
+      return {y: 0};
     }
-    if (grid[step].dbz) {
-      console.log(`Grid step ${step} has DBZ`);
-      return grid[step].dbz + 32.5;
+    if (grid[step].dbz && grid[step].source !== "observation") {
+      return {y: grid[step].dbz, yMin: grid[step].dbz - grid[step].dbzMin, yMax: grid[step].dbz + grid[step].dbzMax};
+    } else if (grid[step].dbz) {
+      return {y: grid[step].dbz};
     }
-    console.log(`Grid step ${step} has NO DBZ`);
-    return 0;
+    return {y: 0};
   });
+  console.log(d);
   // eslint-disable-next-line no-new
-  new Chart(canvas.getContext("2d"), {
-    type: "bar",
+  if (chart) chart.destroy();
+  chart = new BarWithErrorBarsChart(canvas.getContext("2d"), {
     data: {
-      labels: sortedKeys,
+      labels: sortedKeys.map((key) => ((key - gridNow) / 60)),
       datasets: [{
         data: d,
         barPercentage: 0.99,
         categoryPercentage: 0.99,
-        backgroundColor: d.map(((value) => meteocoolClassic[Math.round(value * 2)]))
+        backgroundColor: d.map(((value) => meteocoolClassic[Math.round((value.y+32.5) * 2)]))
           .map((maybe) => maybe || [0, 0, 0, 0])
-          .map(([r, g, b]) => `rgba(${r}, ${g}, ${b}, 1)`),
+          .map(([r, g, b], index) => {
+            const certain = grid[sortedKeys[index]].source === "observation" ? 1 : 0.5;
+            return `rgba(${r}, ${g}, ${b}, ${certain})`;
+          }),
         borderColor: getComputedStyle(document.body)
           .getPropertyValue("--sl-color-info-700"),
         borderWidth: 1,
@@ -159,8 +171,8 @@ function redraw() {
         enabled: false,
       },
       scales: {
-        xAxes: [{
-          gridLines: {
+        x: {
+          grid: {
             display: false,
             tickMarkLength: 6,
           },
@@ -177,19 +189,21 @@ function redraw() {
             maxRotation: 45,
             minRotation: dd.isApp() ? 45 : 0,
             padding: 0,
-          },
-        }],
-        yAxes: [{
-          gridLines: {
             display: false,
           },
-          scaleLabel: {
+        },
+        y: {
+          type: "linear",
+          grid: {
             display: false,
+            drawBorder: false,
           },
           ticks: {
             display: false,
           },
-        }],
+          max: 95,
+          min: 0,
+        },
       },
     },
   });
@@ -233,14 +247,16 @@ const fsm = new StateMachine({
     onShowScrollbar: () => {
       setTimeout(() => bottomToolbarMode.set("player"), 200);
       open = true;
+      chart.options.scales.x.ticks.display = true;
+      chart.update();
       loadingIndicator = false;
       playPauseButton = faPlay;
       open = true;
       //oldUrls = cap.source.getUrls();
       setTimeout(() => bottomToolbarMode.set("player"), 200);
-      if (slRange) slRange.value = 0;
+      // if (slRange) slRange.value = gridNow;
       setUIConstant("toast-stack-offset", "124px");
-      capTimeIndicator.set(cap.getUpstreamTime());
+      // capTimeIndicator.set(cap.getUpstreamTime());
 
       if (autoPlay) {
         setTimeout(() => {
@@ -300,6 +316,9 @@ const fsm = new StateMachine({
       };
       playTick();
       playPauseButton = faPause;
+      document.getElementById("barChartCanvas").classList.remove("barChartCanvasWithoutPlayback");
+      chart.options.scales.x.ticks.display = false;
+      chart.update();
     },
     onPressPause: () => {
       if (playTimeout !== 0) window.clearTimeout(playTimeout);
@@ -311,6 +330,8 @@ const fsm = new StateMachine({
       open = false;
       oldTimeStep = 0;
       setUIConstant("toast-stack-offset");
+      document.getElementById("barChartCanvas").classList.add("barChartCanvasWithoutPlayback");
+
       setTimeout(() => {
         bottomToolbarMode.set("collapsed");
       }, 200);
@@ -337,20 +358,18 @@ function hide() {
 }
 
 function updateBars(data) {
-  console.log(`updateBars: ${data}`);
   const gridSteps = Object.keys(grid);
   let changed = false;
   console.log(`Frontend grid: ${gridSteps.sort()}`);
   console.log(`Backend grid: ${Object.keys(data).sort()}`);
   Object.keys(data).forEach((key) => {
-    // console.log(`checking ${key} in ${gridSteps}`);
-    console.log(key);
-    console.log(typeof key);
     if (key in grid) {
       grid[key].dbz = data[key].dbz;
+      grid[key].dbzMin = data[key].dbzMin;
+      grid[key].dbzMax = data[key].dbzMax;
       grid[key].url = data[key].url;
+      grid[key].source = data[key].source;
       changed = true;
-      console.log("changed");
     }
   });
   if (changed) redraw();
@@ -427,14 +446,20 @@ function sliderChangedHandler(value, userInteraction = false) {
     window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`);
   }
 
-  cap.setUrl(grid[value].url);
+  if (value in grid && "url" in grid[value] && grid[value].url) {
+    cap.setUrl(grid[value].url);
+    capTimeIndicator.set(value);
+  } else {
+    capTimeIndicator.set(0);
+    // Set slider color to invalid XXX
+  }
   oldTimeStep = value;
-  //capTimeIndicator.set(cap.getUpstreamTime() + value * 60);
 }
 
 function initSlider(elem) {
   elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
   slRange = elem;
+  window.slr = slRange;
 }
 
 function playPause() {
@@ -474,7 +499,7 @@ function toggleCyclones() {
 
   @media (orientation: portrait) {
     .timeslider {
-      height: 170px !important;
+      height: 170px;
       padding-top: 0px;
     }
   }
@@ -510,18 +535,6 @@ function toggleCyclones() {
     color: var(--sl-color-white);
   }
 
-  .spinner {
-    font-size: 2.5rem;
-    float: left;
-    --indicator-color: rgb(52,120,246);
-    --track-color: var(--sl-color-gray-200);
-  }
-
-  .loadingIndicator {
-    display: inline-block;
-    transform: translateY(40%);
-  }
-
   .buttonBar {
     position: absolute;
     bottom: calc(0.2em + env(safe-area-inset-bottom));
@@ -539,31 +552,6 @@ function toggleCyclones() {
       left: unset;
       right: 0.3em;
     }
-  }
-
-  .textBlock {
-    display: inline-block;
-  }
-
-  .text {
-      opacity: 0.6;
-      float: left;
-      margin-left: 1.5rem;
-      height: 2.5rem;
-      white-space: nowrap;
-      vertical-align: text-top;
-      color:var(--sl-color-black);
-  }
-
-  .bottomText {
-    clear:both;
-    font-size: 0.9rem;
-    margin-top: -0.7em;
-  }
-
-  .topText {
-    margin-top: -0.3em;
-    font-size: 1.5rem;
   }
 
   .flexbox {
@@ -593,7 +581,6 @@ function toggleCyclones() {
     flex-grow: 1; /* do not grow   - initial value: 0 */
     flex-shrink: 1; /* do not shrink - initial value: 1 */
     flex-basis: 85%;
-    /*background-color: green;*/
   }
 
   .flexbox > .buttonsInline {
@@ -620,9 +607,6 @@ function toggleCyclones() {
     margin-right: 1%;
     /*background-color: yellow;*/
   }
-  .flexbox > .checkbox {
-      /* background-color: blue; */
-  }
 
   .range {
     width: 98%;
@@ -637,202 +621,166 @@ function toggleCyclones() {
 
   .barChartCanvas {
     position: absolute;
-    bottom: 72px;
-    z-index: 99999;
+    bottom: 79px;
     width: 96%;
-    height: 60px;
+    height: 80px;
     pointer-events: none;
-    transform: translateX(-1.1%);
+    left: 3em;
+    margin-right: 0.5em;
+    z-index: 99999999;
+  }
+  .barChartCanvasWithoutPlayback {
+    bottom: 31px !important;
+    width: 100% !important;
   }
   /* XXX consolidate media queries into one place */
   @media (orientation: portrait) {
     .barChartCanvas {
       bottom: 153px;
-      height: 60px;
       width: 100%;
-      transform: translateX(-1.15%);
     }
     .faIconButton {
       font-size: 125%;
       margin-top: 2px;
     }
-    .loadingIndicator {
-      transform: translateY(70%);
-    }
   }
-
-  .server-progress {
-    --indicator-color: rgb(52, 120, 246);
-    position: relative;
-    transform: translateY(-37%);
-  }
-
 </style>
 
-{#if bottomToolbarVisible}
-  {#if open}
-    <div
-      class="bottomToolbar timeslider"
-      transition:fly={{ y: 100, duration: 400 }}>
-      {#if loadingIndicator}
-        <div class="parent" id="loadingIndicator">
-          <div class="loadingIndicator">
-            {#if processedForecasts > 0 && processedForecasts < 25}
-              <sl-progress-ring
-                      percentage={(processedForecasts / 25) * 100}
-                      stroke-width="2"
-                      size="46"
-                      class="server-progress"
-              />
-            {:else}
-              <sl-spinner class="spinner" />
-            {/if}
-            <div class="textBlock">
-              <div class="text topText">
-                {uiMessage}...
-              </div>
-              <!-- if cap.upstreamTime -->
-                <div class="text bottomText">
-                  <!-- $_("last_radar")} {format(new Date(cap.upstreamTime * 1000), "Pp", { locale: getDfnLocale() })-->
-                </div>
-             <!-- if -->
-            </div>
+<div class="barChartCanvas barChartCanvasWithoutPlayback" id="barChartCanvas">
+  <canvas use:canvasInit></canvas>
+</div>
+{#if open}
+  <div
+    class="bottomToolbar timeslider"
+    transition:fly={{ y: 100, duration: 400 }}>
+      <div class="flexbox">
+        <div class="buttonsLeft">
+          <div class="controlButton" on:click={playPause} title="Play/Pause">
+            <Icon icon={playPauseButton} class="controlIcon" />
+          </div>
+          <div class="controlButton" on:click={hide} title="Close">
+            <Icon icon={faAngleDoubleDown} class="controlIcon" />
           </div>
         </div>
-      {:else}
-        <div class="flexbox">
-          <div class="buttonsLeft">
-            <div class="controlButton" on:click={playPause} title="Play/Pause">
-              <Icon icon={playPauseButton} class="controlIcon" />
+        <div class="slider">
+          <sl-range min="{start}" max="{end}" value="{gridNow.toString()}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 26px;"></sl-range>
+          <div class="flexbox gap">
+            <div class="checkbox">
+              <TimeIndicator />
             </div>
-            <div class="controlButton" on:click={hide} title="Close">
-              <Icon icon={faAngleDoubleDown} class="controlIcon" />
-            </div>
-          </div>
-          <div class="slider">
-            <div class="barChartCanvas">
-              <canvas use:canvasInit></canvas>
-            </div>
-            <sl-range min="{start}" max="{end}" value="0" step="{60*5}" class="range" use:initSlider tooltip="none"></sl-range>
-            <div class="flexbox gap">
-              <div class="checkbox">
-                <!--TimeIndicator /-->
-              </div>
-              <div class="checkbox">
-                <div class="button-group-toolbar">
-                  <sl-button-group label="Playback Controls">
-                    {#if !dd.isApp()}
-                      <!-- XXX this is sadly necessary because sl tooltip throws some weird exception on mobile, even if disabled -->
-                      <sl-tooltip content="Play">
-                        <sl-button size={buttonSize} on:click={playPause}>
-                          <div class="faIconButton">
-                            <Icon icon={playPauseButton} />
-                          </div>
-                        </sl-button>
-                      </sl-tooltip>
-                    {:else}
+            <div class="checkbox">
+              <div class="button-group-toolbar">
+                <sl-button-group label="Playback Controls">
+                  {#if !dd.isApp()}
+                    <!-- XXX this is sadly necessary because sl tooltip throws some weird exception on mobile, even if disabled -->
+                    <sl-tooltip content="Play">
                       <sl-button size={buttonSize} on:click={playPause}>
                         <div class="faIconButton">
                           <Icon icon={playPauseButton} />
                         </div>
                       </sl-button>
-                    {/if}
-                    {#if !dd.isApp()}
-                    <sl-tooltip content="Automatically Loop Playback">
-                      <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
-                        <div class="faIconButton">
-                          <Icon icon={faRetweet} />
-                        </div>
-                      </sl-button>
                     </sl-tooltip>
-                    {:else}
-                      <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
-                        <div class="faIconButton">
-                          <Icon icon={faRetweet} />
-                        </div>
-                      </sl-button>
-                    {/if}
-                    {#if !dd.isApp()}
-                    <sl-tooltip content="Include Last 2 Hours in Playback Loop">
-                      <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
-                        <div class="faIconButton">
-                          <Icon icon={faHistory} />
-                        </div>
-                      </sl-button>
+                  {:else}
+                    <sl-button size={buttonSize} on:click={playPause}>
+                      <div class="faIconButton">
+                        <Icon icon={playPauseButton} />
+                      </div>
+                    </sl-button>
+                  {/if}
+                  {#if !dd.isApp()}
+                  <sl-tooltip content="Automatically Loop Playback">
+                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
+                      <div class="faIconButton">
+                        <Icon icon={faRetweet} />
+                      </div>
+                    </sl-button>
+                  </sl-tooltip>
+                  {:else}
+                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
+                      <div class="faIconButton">
+                        <Icon icon={faRetweet} />
+                      </div>
+                    </sl-button>
+                  {/if}
+                  {#if !dd.isApp()}
+                  <sl-tooltip content="Include Last 2 Hours in Playback Loop">
+                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
+                      <div class="faIconButton">
+                        <Icon icon={faHistory} />
+                      </div>
+                    </sl-button>
+                  </sl-tooltip>
+                  {:else}
+                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
+                      <div class="faIconButton">
+                        <Icon icon={faHistory} />
+                      </div>
+                    </sl-button>
+                  {/if}
+                </sl-button-group>
+              </div>
+            </div>
+            {#if !dd.isApp()}
+              <div class="checkbox">
+                <div class="button-group-toolbar">
+                  <sl-button-group label="Map Layers">
+                    <sl-tooltip content="Show Lightning Strikes (if any)">
+                      <sl-button size={buttonSize} type="{ lightningEnabled ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
                     </sl-tooltip>
-                    {:else}
-                      <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
-                        <div class="faIconButton">
-                          <Icon icon={faHistory} />
-                        </div>
-                      </sl-button>
-                    {/if}
+                    <sl-tooltip content="Show Mesocyclones (if any)">
+                      <sl-button size={buttonSize} type="{ cyclonesEnabled ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 Mesocyclones</sl-button>
+                    </sl-tooltip>
                   </sl-button-group>
                 </div>
               </div>
-              {#if !dd.isApp()}
-                <div class="checkbox">
-                  <div class="button-group-toolbar">
-                    <sl-button-group label="Map Layers">
-                      <sl-tooltip content="Show Lightning Strikes (if any)">
-                        <sl-button size={buttonSize} type="{ lightningEnabled ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
-                      </sl-tooltip>
-                      <sl-tooltip content="Show Mesocyclones (if any)">
-                        <sl-button size={buttonSize} type="{ cyclonesEnabled ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 Mesocyclones</sl-button>
-                      </sl-tooltip>
-                    </sl-button-group>
-                  </div>
-                </div>
-              {/if}
-              {#if false}
-                <div class="checkbox">
-                  <sl-select size={buttonSize}>
-                    <sl-menu-item value="option-1" checked selected>DWD</sl-menu-item>
-                    <sl-menu-item value="option-2">Rainymotion</sl-menu-item>
-                  </sl-select>
-                </div>
-              {/if}
-              <div class="checkbox buttonsInline">
-                <div class="button-group-toolbar">
-                  {#if !dd.isApp()}
-                    <sl-tooltip content="Close">
-                      <sl-button size={buttonSize} on:click={hide}>
-                        <div class="faIconButton">
-                          <Icon icon={faAngleDoubleDown} />️
-                        </div>
-                      </sl-button>
-                    </sl-tooltip>
-                  {:else}
+            {/if}
+            {#if false}
+              <div class="checkbox">
+                <sl-select size={buttonSize}>
+                  <sl-menu-item value="option-1" checked selected>DWD</sl-menu-item>
+                  <sl-menu-item value="option-2">Rainymotion</sl-menu-item>
+                </sl-select>
+              </div>
+            {/if}
+            <div class="checkbox buttonsInline">
+              <div class="button-group-toolbar">
+                {#if !dd.isApp()}
+                  <sl-tooltip content="Close">
                     <sl-button size={buttonSize} on:click={hide}>
                       <div class="faIconButton">
                         <Icon icon={faAngleDoubleDown} />️
                       </div>
                     </sl-button>
-                  {/if}
-                </div>
+                  </sl-tooltip>
+                {:else}
+                  <sl-button size={buttonSize} on:click={hide}>
+                    <div class="faIconButton">
+                      <Icon icon={faAngleDoubleDown} />️
+                    </div>
+                  </sl-button>
+                {/if}
               </div>
-              <div class="checkbox">
-                <LastUpdated />
-              </div>
+            </div>
+            <div class="checkbox">
+              <LastUpdated />
             </div>
           </div>
         </div>
-      {/if}
-    </div>
-  {:else}
-    <div on:click={show} class="buttonBar right">
-      <div class="controlButton" title="Playback Controls">
-        <div class="playHover">
-          <Icon icon={faAngleDoubleUp} class="controlIcon" />
-        </div>
+      </div>
+  </div>
+{:else}
+  <div on:click={show} class="buttonBar right">
+    <div class="controlButton" title="Playback Controls">
+      <div class="playHover">
+        <Icon icon={faAngleDoubleUp} class="controlIcon" />
       </div>
     </div>
-    <div on:click={showAndPlay} class="buttonBar">
-      <div class="controlButton" title="Play/Pause">
-        <div class="playHover">
-          <Icon icon={faPlay} class="controlIcon" />
-        </div>
+  </div>
+  <div on:click={showAndPlay} class="buttonBar">
+    <div class="controlButton" title="Play/Pause">
+      <div class="playHover">
+        <Icon icon={faPlay} class="controlIcon" />
       </div>
     </div>
-  {/if}
+  </div>
 {/if}

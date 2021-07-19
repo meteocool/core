@@ -159,10 +159,6 @@
     text-align: center;
     width: 100%;
   }
-
-  .hidden {
-    display: none;
-  }
 </style>
 
 {#if !dd.isApp()}
