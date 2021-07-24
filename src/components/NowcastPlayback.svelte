@@ -7,7 +7,6 @@ import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
 import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
 
 import { fly } from "svelte/transition";
-import { _ } from "svelte-i18n";
 import { onMount } from "svelte";
 import Icon from "fa-svelte";
 
@@ -70,14 +69,10 @@ latLon.subscribe((latlonUpdate) => {
 });
 
 let open = false; // Drawer open/closed. Displays open button if false
-let loadingIndicator = true; // If true, show loading indicator instead of slider
 let oldTimeStep = 0;
 
 let playPauseButton = faPlay;
-const uiMessage = $_("downloading_nowcast");
 let playTimeout;
-
-let nowcastLayers; // Set by the callback from Nowcast.js
 
 let slRange = null;
 let oldUrls;
@@ -102,11 +97,6 @@ cycloneLayerVisible.subscribe((value) => {
   cyclonesEnabled = value;
 });
 
-let processedForecasts = 0;
-processedForecastsCount.subscribe((value) => {
-  processedForecasts = value;
-});
-
 let autoPlay = false;
 let chart = null;
 function redraw() {
@@ -119,7 +109,6 @@ function redraw() {
     return;
   }
   canvas.style.display = "";
-  // eslint-disable-next-line no-new
   const sortedKeys = Object.keys(grid).map((e) => parseInt(e, 10)).sort();
   const d = sortedKeys.map((step) => {
     if (!grid[step]) {
@@ -132,9 +121,9 @@ function redraw() {
     }
     return {y: 0};
   });
-  console.log(d);
-  // eslint-disable-next-line no-new
   if (chart) chart.destroy();
+
+  const gridKeys = Object.keys(grid);
   chart = new BarWithErrorBarsChart(canvas.getContext("2d"), {
     data: {
       labels: sortedKeys.map((key) => ((key - gridNow) / 60)),
@@ -148,8 +137,7 @@ function redraw() {
             const certain = grid[sortedKeys[index]].source === "observation" ? 1 : 0.5;
             return `rgba(${r}, ${g}, ${b}, ${certain})`;
           }),
-        borderColor: getComputedStyle(document.body)
-          .getPropertyValue("--sl-color-info-700"),
+        borderColor: d.map((value, index) => gridKeys[index] === `${gridNow}` ? "#ff0000" : getComputedStyle(document.body).getPropertyValue("--sl-color-info-700")),
         borderWidth: 1,
       }],
     },
@@ -181,15 +169,34 @@ function redraw() {
             scale.paddingTop = 0;
             scale.paddingBottom = 0;
           },
+          afterUpdate: (scale) => {
+            scale.height = 18;
+            scale.paddingTop = 0;
+            scale.paddingBottom = 0;
+          },
           ticks: {
-            fontColor: getComputedStyle(document.body)
-              .getPropertyValue("--sl-color-info-700"),
-            fontSize: 9,
-            autoSkip: true,
-            maxRotation: 45,
-            minRotation: dd.isApp() ? 45 : 0,
-            padding: 0,
+            fontColor: getComputedStyle(document.body).getPropertyValue("--sl-color-info-700"),
+            fontSize: 5,
+            autoSkip: false,
+            callback: function(value) {
+              const label = this.getLabelForValue(value);
+              if (label === 0) {
+                return "now";
+              }
+              if (Math.abs(label) % 10 === 0) {
+                if (label > 0) {
+                  return `+${label}`
+                }
+                return label;
+              }
+              return "";
+            },
+            minRotation: 0,
+            maxRotation: 0,
+            responsive: true,
+            padding: -4,
             display: false,
+            autoSkipPadding: 0,
           },
         },
         y: {
@@ -249,14 +256,12 @@ const fsm = new StateMachine({
       open = true;
       chart.options.scales.x.ticks.display = true;
       chart.update();
-      loadingIndicator = false;
       playPauseButton = faPlay;
-      open = true;
-      //oldUrls = cap.source.getUrls();
       setTimeout(() => bottomToolbarMode.set("player"), 200);
-      // if (slRange) slRange.value = gridNow;
+      if (slRange) slRange.value = `${gridNow}`;
       setUIConstant("toast-stack-offset", "124px");
       // capTimeIndicator.set(cap.getUpstreamTime());
+      document.getElementById("barChartCanvas").classList.remove("barChartCanvasWithoutPlayback");
 
       if (autoPlay) {
         setTimeout(() => {
@@ -282,7 +287,6 @@ const fsm = new StateMachine({
         playTimeout = 0;
         playPauseButton = faPlay;
       }
-      loadingIndicator = true;
     },
     onPressPlay: () => {
       const playTick = (ttl = 10) => {
@@ -297,16 +301,16 @@ const fsm = new StateMachine({
         }
         let thisFrameDelayMs = 450;
         const sliderValueInt = parseInt(slRange.value, 10);
-        if (sliderValueInt >= 120) {
-          slRange.value = (includeHistoric ? -120 : 0).toString();
+        if (sliderValueInt >= end) {
+          slRange.value = (includeHistoric ? start : start).toString();
         } else {
-          slRange.value = (sliderValueInt + 5).toString();
+          slRange.value = (sliderValueInt + 5*60).toString();
         }
         if (sliderValueInt === 0) {
           thisFrameDelayMs = 800;
         }
         sliderChangedHandler(slRange.value);
-        if (slRange.value !== 0 || loop) {
+        if (slRange.value !== gridNow || loop) {
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
         } else {
           playTimeout = 0;
@@ -316,9 +320,6 @@ const fsm = new StateMachine({
       };
       playTick();
       playPauseButton = faPause;
-      document.getElementById("barChartCanvas").classList.remove("barChartCanvasWithoutPlayback");
-      chart.options.scales.x.ticks.display = false;
-      chart.update();
     },
     onPressPause: () => {
       if (playTimeout !== 0) window.clearTimeout(playTimeout);
@@ -329,6 +330,7 @@ const fsm = new StateMachine({
       if (transition.from === "followLatest") return;
       open = false;
       oldTimeStep = 0;
+      chart.options.scales.x.ticks.display = false;
       setUIConstant("toast-stack-offset");
       document.getElementById("barChartCanvas").classList.add("barChartCanvasWithoutPlayback");
 
@@ -460,6 +462,10 @@ function initSlider(elem) {
   elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
   slRange = elem;
   window.slr = slRange;
+  window.setTimeout(() => {
+    window.slr.value = `${gridNow}`;
+    console.log(`${gridNow}`);
+  }, 200);
 }
 
 function playPause() {
@@ -663,7 +669,7 @@ function toggleCyclones() {
           </div>
         </div>
         <div class="slider">
-          <sl-range min="{start}" max="{end}" value="{gridNow.toString()}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 26px;"></sl-range>
+          <sl-range min="{start}" max="{end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 26px;"></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
               <TimeIndicator />
