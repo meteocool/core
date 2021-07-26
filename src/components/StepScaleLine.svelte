@@ -16,10 +16,7 @@
 
 <style>
   .scale-divider {
-      float: left;
-  }
-
-  .scale-divider {
+    float: left;
     padding-top: 1.2em;
     font-size: 76%;
     color: var(--sl-color-black);
