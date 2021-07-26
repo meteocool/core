@@ -31,7 +31,7 @@
     font-size: 92%;
     position: relative;
     top: 0.5em;
-    color: var(--sl-color-primary-100);
+    color: var(--sl-color-black);
   }
 
   .scale-line {

@@ -145,7 +145,7 @@ function redraw() {
       layout: {
         padding: {
           left: 0,
-          right: 5,
+          right: 8,
           top: 0,
           bottom: 0,
         },
@@ -183,7 +183,7 @@ function redraw() {
               if (label === 0) {
                 return "now";
               }
-              if (Math.abs(label) % 10 === 0) {
+              if (Math.abs(label) % 20 === 0) {
                 if (label > 0) {
                   return `+${label}`
                 }
@@ -503,21 +503,6 @@ function toggleCyclones() {
     padding-top: 6px;
   }
 
-  @media (orientation: portrait) {
-    .timeslider {
-      height: 170px;
-      padding-top: 0px;
-    }
-  }
-
-  .parent {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    translate: translateY(50%);
-    align-items: center;
-  }
-
   /* timeline controls */
 
   .controlButton {
@@ -553,13 +538,6 @@ function toggleCyclones() {
     right: unset;
   }
 
-  @media only screen and (max-width: 600px) {
-    .buttonBar.right {
-      left: unset;
-      right: 0.3em;
-    }
-  }
-
   .flexbox {
     display: flex;
     flex-wrap: wrap;
@@ -569,18 +547,6 @@ function toggleCyclones() {
   .gap > * {
     margin-bottom: 30px;
     margin-right: 30px;
-  }
-
-
-  @media (orientation: portrait) {
-    .gap > * {
-      margin-bottom: 16px;
-      margin-right: 18px;
-    }
-    .flexbox {
-      padding-left: 1%;
-      padding-right: 1%;
-    }
   }
 
   .flexbox > .slider {
@@ -593,61 +559,73 @@ function toggleCyclones() {
     display: none;
   }
 
-  @media (orientation: portrait) {
-    .flexbox > .buttonsInline {
-      display: unset;
-    }
-  }
-
-  @media (orientation: portrait) {
-    .flexbox > .buttonsLeft {
-      display: none;
-    }
-  }
-
   .flexbox > .buttonsLeft {
     flex-grow: 0; /* do not grow   - initial value: 0 */
     flex-shrink: 0; /* do not shrink - initial value: 1 */
     flex-basis: 3%;
     min-width: 30px;
     margin-right: 1%;
-    /*background-color: yellow;*/
   }
 
   .range {
     width: 98%;
-    top: 10px;
     margin-bottom: 7px;
-  }
-  @media (orientation: portrait) {
-      .range {
-        top: 7px;
-      }
   }
 
   .barChartCanvas {
     position: absolute;
-    bottom: 79px;
+    bottom: calc(env(safe-area-inset-bottom) + 108px);
     width: 96%;
+    padding-right: 2%;
+    left: 2%;
     height: 80px;
     pointer-events: none;
-    left: 3em;
     margin-right: 0.5em;
     z-index: 99999999;
   }
+
   .barChartCanvasWithoutPlayback {
-    bottom: 31px !important;
+    bottom: calc(env(safe-area-inset-bottom) + 73px);
     width: 100% !important;
+    left: 0;
   }
-  /* XXX consolidate media queries into one place */
+
   @media (orientation: portrait) {
     .barChartCanvas {
-      bottom: 153px;
-      width: 100%;
     }
+
     .faIconButton {
       font-size: 125%;
       margin-top: 2px;
+    }
+
+    .flexbox > .buttonsInline {
+      display: unset;
+    }
+
+    .flexbox > .buttonsLeft {
+      display: none;
+    }
+
+    .gap > * {
+      margin-bottom: 16px;
+      margin-right: 18px;
+    }
+
+    .flexbox {
+      padding-left: 1%;
+      padding-right: 1%;
+    }
+
+    .timeslider {
+      height: 153px !important;
+    }
+  }
+
+  @media only screen and (max-width: 600px) {
+    .buttonBar.right {
+      left: unset;
+      right: 0.3em;
     }
   }
 </style>

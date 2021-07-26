@@ -4,7 +4,7 @@
   import { fly } from 'svelte/transition';
   import LastUpdated from './LastUpdated.svelte';
   import { DeviceDetect as dd } from '../lib/DeviceDetect';
-  import { capDescription, satelliteLayer, sharedActiveCap, showForecastPlaybutton, zoomlevel } from '../stores';
+  import { capDescription, satelliteLayer, sharedActiveCap, bottomToolbarMode, zoomlevel } from '../stores';
   import ScaleLine from './ScaleLine.svelte';
   import legendClouds from '../../public/assets/legend_clouds.svg';
   import legendRain from '../../public/assets/legend_rain.svg';
@@ -197,12 +197,12 @@
   :global(.legendLabel) {
     font-size: 80%;
     padding-left: 0.15em;
-    color: #ffffff;
-    text-shadow: 0 0 1px rgba(0,0,0,0.6),
+    color: var(--sl-color-black);
+    /*text-shadow: 0 0 1px rgba(0,0,0,0.6),
             -1px -1px 1px rgba(0,0,0,0.6),
             -1px 1px 1px  rgba(0,0,0,0.6),
             1px 1px 1px   rgba(0,0,0,0.6),
-            1px -1px 1px  rgba(0,0,0,0.6);
+            1px -1px 1px  rgba(0,0,0,0.6);*/
   }
   @media only screen and (max-width: 990px) {
     :global(.legendLabel) {
@@ -216,7 +216,7 @@
   :global(.legend-icon) {
     height: 1em;
     vertical-align: bottom;
-    filter: drop-shadow(0px 0px 1px #000000) drop-shadow(0px 0px 1px #000000);
+    /*filter: drop-shadow(0px 0px 1px #000000) drop-shadow(0px 0px 1px #000000);*/
   }
 </style>
 
@@ -227,7 +227,7 @@
     <div class="left">
       <!-- empty -->
     </div>
-      {#if activeCap === "radar"}
+      {#if activeCap === "radar" && $bottomToolbarMode === "collapsed"}
         <div class="palette">
           <ScaleLine style="width: 100%;" valueFormat={ (fmt) => {
         switch (fmt) {
@@ -268,7 +268,7 @@
                 pill>
       <sl-range min="0" max="24" value="{roundToHour(new Date())}" step="1" class="range-with-custom-formatter" use:slider></sl-range>
       </sl-tag-->
-      {#if activeCap === "radar" || activeCap === "precipTypes"}
+      {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
       <LastUpdated />
       {/if}
       {#if activeCap === "satellite"}
