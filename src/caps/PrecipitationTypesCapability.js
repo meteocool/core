@@ -1,9 +1,8 @@
 // eslint-disable-next-line import/prefer-default-export
-import { capDescription, capLastUpdated, sharedCmap, showForecastPlaybutton } from '../stores';
+import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
 import Capability from "./Capability";
 import { apiBaseUrl } from "../urls";
 import { dwdPrecipTypes } from "../layers/radar";
-import { writable } from 'svelte/store';
 
 export default class PrecipitationTypesCapability extends Capability {
   constructor(args) {

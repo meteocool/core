@@ -6,7 +6,7 @@ import { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDouble
 import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
 import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
 
-import { fly } from "svelte/transition";
+import { fly, fade } from "svelte/transition";
 import { onMount } from "svelte";
 import Icon from "fa-svelte";
 
@@ -17,6 +17,7 @@ Chart.register(CategoryScale);
 Chart.register(LinearScale);
 Chart.register(BarController);
 Chart.register(BarElement);
+
 import {Chart} from "chart.js";
 
 import { meteocoolClassic } from "../colormaps";
@@ -27,7 +28,7 @@ import {
   capTimeIndicator,
   cycloneLayerVisible,
   latLon,
-  lightningLayerVisible, processedForecastsCount,
+  lightningLayerVisible,
   bottomToolbarMode
 } from '../stores';
 
@@ -68,14 +69,14 @@ latLon.subscribe((latlonUpdate) => {
   }
 });
 
-let open = false; // Drawer open/closed. Displays open button if false
+let canvasVisible = true;
+
 let oldTimeStep = 0;
 
 let playPauseButton = faPlay;
 let playTimeout;
 
 let slRange = null;
-let oldUrls;
 
 let loop = true;
 let historicActive = true;
@@ -87,16 +88,6 @@ if (dd.isApp()) {
   buttonSize = "medium";
 }
 
-let lightningEnabled = false;
-lightningLayerVisible.subscribe((value) => {
-  lightningEnabled = value;
-});
-
-let cyclonesEnabled = false;
-cycloneLayerVisible.subscribe((value) => {
-  cyclonesEnabled = value;
-});
-
 let autoPlay = false;
 let chart = null;
 function redraw() {
@@ -105,10 +96,10 @@ function redraw() {
     return;
   }
   if (Object.values(grid).map((step) => step.dbz).reduce((a, b) => a + b, 0) === 0) {
-    canvas.style.display = "none";
+    canvasVisible = false;
     return;
   }
-  canvas.style.display = "";
+  canvasVisible = true;
   const sortedKeys = Object.keys(grid).map((e) => parseInt(e, 10)).sort();
   const d = sortedKeys.map((step) => {
     if (!grid[step]) {
@@ -124,6 +115,7 @@ function redraw() {
   if (chart) chart.destroy();
 
   const gridKeys = Object.keys(grid);
+  const isApp = dd.isApp();
   chart = new BarWithErrorBarsChart(canvas.getContext("2d"), {
     data: {
       labels: sortedKeys.map((key) => ((key - gridNow) / 60)),
@@ -142,6 +134,36 @@ function redraw() {
       }],
     },
     options: {
+      animation: {
+        duration: 0
+      },
+      hover: {
+        animationDuration: 0
+      },
+      // animation: {
+      //   onComplete: (chart) => {
+      //     const chartInstance = chart,
+      //             ctx = canvas.getContext("2d");
+
+      //     ctx.font = fontString(
+      //             18,
+      //             "Italic",
+      //             "Sans",
+      //     );
+      //     ctx.textAlign = "center";
+      //     ctx.textBaseline = "bottom";
+      //     console.log(chartInstance.data.datasets);
+
+      //     chartInstance.data.datasets.forEach(function(dataset, i) {
+      //       const meta = chartInstance.controller.getDatasetMeta(i);
+      //       meta.data.forEach(function(bar, index) {
+      //         const data = dataset.data[index];
+      //         ctx.fillStyle = "#000";
+      //         ctx.fillText(data, bar._model.x, bar._model.y - 2);
+      //       });
+      //     });
+      //   }
+      // },
       layout: {
         padding: {
           left: 0,
@@ -153,10 +175,10 @@ function redraw() {
       responsive: true,
       maintainAspectRatio: false,
       legend: {
-        display: false,
+        display: true,
       },
       tooltips: {
-        enabled: false,
+        enabled: true,
       },
       scales: {
         x: {
@@ -183,7 +205,7 @@ function redraw() {
               if (label === 0) {
                 return "now";
               }
-              if (Math.abs(label) % 20 === 0) {
+              if (Math.abs(label) % (isApp ? 20 : 5) === 0) {
                 if (label > 0) {
                   return `+${label}`
                 }
@@ -195,7 +217,7 @@ function redraw() {
             maxRotation: 0,
             responsive: true,
             padding: -4,
-            display: false,
+            display: $bottomToolbarMode === "player",
             autoSkipPadding: 0,
           },
         },
@@ -218,6 +240,9 @@ function redraw() {
 
 function canvasInit(elem) {
   canvas = elem;
+  if ($bottomToolbarMode === "player") {
+    canvas.parentNode.classList.remove("barChartCanvasWithoutPlayback");
+  }
   redraw();
 }
 
@@ -252,16 +277,19 @@ const fsm = new StateMachine({
   ],
   methods: {
     onShowScrollbar: () => {
-      setTimeout(() => bottomToolbarMode.set("player"), 200);
-      open = true;
-      chart.options.scales.x.ticks.display = true;
-      chart.update();
+      bottomToolbarMode.set("player");
+      if (chart) {
+        canvasVisible = false;
+        chart.options.scales.x.ticks.display = true;
+        setTimeout(() => {
+          canvasVisible = true;
+          chart.update();
+        }, 400);
+      }
       playPauseButton = faPlay;
-      setTimeout(() => bottomToolbarMode.set("player"), 200);
       if (slRange) slRange.value = `${gridNow}`;
       setUIConstant("toast-stack-offset", "124px");
-      // capTimeIndicator.set(cap.getUpstreamTime());
-      document.getElementById("barChartCanvas").classList.remove("barChartCanvasWithoutPlayback");
+      capTimeIndicator.set(gridNow);
 
       if (autoPlay) {
         setTimeout(() => {
@@ -328,11 +356,20 @@ const fsm = new StateMachine({
     },
     onHideScrollbar: (transition) => {
       if (transition.from === "followLatest") return;
-      open = false;
       oldTimeStep = 0;
-      chart.options.scales.x.ticks.display = false;
+      slRange = null;
+      if (chart) {
+        chart.options.scales.x.ticks.display = false;
+        canvasVisible = false;
+        setTimeout(() => {
+          canvasVisible = true;
+          chart.update();
+          document.getElementById("barChartCanvas")
+                  .classList
+                  .remove("barChartCanvasWithoutPlayback");
+        }, 400);
+      }
       setUIConstant("toast-stack-offset");
-      document.getElementById("barChartCanvas").classList.add("barChartCanvasWithoutPlayback");
 
       setTimeout(() => {
         bottomToolbarMode.set("collapsed");
@@ -362,8 +399,8 @@ function hide() {
 function updateBars(data) {
   const gridSteps = Object.keys(grid);
   let changed = false;
-  console.log(`Frontend grid: ${gridSteps.sort()}`);
-  console.log(`Backend grid: ${Object.keys(data).sort()}`);
+  // console.log(`Frontend grid: ${gridSteps.sort()}`);
+  // console.log(`Backend grid: ${Object.keys(data).sort()}`);
   Object.keys(data).forEach((key) => {
     if (key in grid) {
       grid[key].dbz = data[key].dbz;
@@ -462,8 +499,9 @@ function initSlider(elem) {
   elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
   slRange = elem;
   window.slr = slRange;
+  // XXX why...
   window.setTimeout(() => {
-    window.slr.value = `${gridNow}`;
+    slRange = `${gridNow}`;
     console.log(`${gridNow}`);
   }, 200);
 }
@@ -488,11 +526,11 @@ function toggleHistoric() {
 }
 
 function toggleLightning() {
-  lightningLayerVisible.set(!lightningEnabled);
+  lightningLayerVisible.set(!$lightningLayerVisible);
 }
 
 function toggleCyclones() {
-  cycloneLayerVisible.set(!cyclonesEnabled);
+  cycloneLayerVisible.set(!$cycloneLayerVisible);
 }
 </script>
 
@@ -574,7 +612,7 @@ function toggleCyclones() {
 
   .barChartCanvas {
     position: absolute;
-    bottom: calc(env(safe-area-inset-bottom) + 108px);
+    bottom: calc(env(safe-area-inset-bottom) + 77px);
     width: 96%;
     padding-right: 2%;
     left: 2%;
@@ -585,13 +623,17 @@ function toggleCyclones() {
   }
 
   .barChartCanvasWithoutPlayback {
-    bottom: calc(env(safe-area-inset-bottom) + 73px);
+    bottom: calc(env(safe-area-inset-bottom) + 31px);
     width: 100% !important;
     left: 0;
   }
 
   @media (orientation: portrait) {
     .barChartCanvas {
+      bottom: calc(env(safe-area-inset-bottom) + 108px);
+    }
+    .barChartCanvasWithoutPlayback {
+      bottom: calc(env(safe-area-inset-bottom) + 73px);
     }
 
     .faIconButton {
@@ -630,10 +672,12 @@ function toggleCyclones() {
   }
 </style>
 
-<div class="barChartCanvas barChartCanvasWithoutPlayback" id="barChartCanvas">
+{#if canvasVisible}
+<div class="barChartCanvas barChartCanvasWithoutPlayback" id="barChartCanvas" out:fly={{ y: 60, duration: 200 }} in:fade={{duration: 200}}>
   <canvas use:canvasInit></canvas>
 </div>
-{#if open}
+{/if}
+{#if $bottomToolbarMode === "player"}
   <div
     class="bottomToolbar timeslider"
     transition:fly={{ y: 100, duration: 400 }}>
@@ -709,10 +753,10 @@ function toggleCyclones() {
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
                     <sl-tooltip content="Show Lightning Strikes (if any)">
-                      <sl-button size={buttonSize} type="{ lightningEnabled ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
+                      <sl-button size={buttonSize} type="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
                     </sl-tooltip>
                     <sl-tooltip content="Show Mesocyclones (if any)">
-                      <sl-button size={buttonSize} type="{ cyclonesEnabled ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 Mesocyclones</sl-button>
+                      <sl-button size={buttonSize} type="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 Mesocyclones</sl-button>
                     </sl-tooltip>
                   </sl-button-group>
                 </div>

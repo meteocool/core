@@ -16,7 +16,6 @@
 
 <style>
   .tag {
-      width: 75px;
       margin-left: 5px;
       text-align: center;
   }
@@ -24,6 +23,8 @@
 
 {#if timeString}
     <sl-tag type="info" class="tag" size={dd.isApp() ? "large" : "medium" } pill>
-        {timeString}
+        <div style="width: 60px;">
+            {timeString}
+        </div>
     </sl-tag>
 {/if}
