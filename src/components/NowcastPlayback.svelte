@@ -54,6 +54,8 @@
     end = gridNow + (60 * 120);
     nSteps = ((end - start) / (60 * 5)) + 1;
 
+    grid = {};
+
     [...Array(nSteps)
             .keys()].map((i) => new Date(start + i * (5 * 60)))
             .forEach((step) => {
@@ -63,9 +65,7 @@
               };
             });
   }
-
   generateGrid();
-  window.generateGrid = generateGrid;
 
   let userLatLon;
   let showBars = true;
