@@ -44,16 +44,12 @@
     position: relative;
     top: 3px; transform: scaleX(-1);
   }
-
-  .flt {
-    margin-top: 0.15em;
-  }
 </style>
 
 <sl-tag
         type="info"
         size="medium"
-        pill class="flt">
+        pill>
   {#if lastUpdatedStr}
     <sl-progress-ring
             percentage={slPercent}
