@@ -1,10 +1,7 @@
 import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
-  capDescription, lastFocus,
-  latLon, processedForecastsCount,
-  radarColorScheme,
-  showForecastPlaybutton
+  capDescription, lastFocus, latLon, radarColorScheme, showForecastPlaybutton,
 } from '../stores';
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";

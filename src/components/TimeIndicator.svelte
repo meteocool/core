@@ -18,13 +18,12 @@
   .tag {
       margin-left: 5px;
       text-align: center;
+      width: 64px;
   }
 </style>
 
 {#if timeString}
     <sl-tag type="info" class="tag" size={dd.isApp() ? "large" : "medium" } pill>
-        <div style="width: 60px;">
-            {timeString}
-        </div>
+        {timeString}
     </sl-tag>
 {/if}

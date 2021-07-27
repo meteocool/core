@@ -15,7 +15,7 @@
 
     .appstore-logo{
         margin-left: 3px;
-        height: 34px;
+        height: 32px;
     }
 
 
