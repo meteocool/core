@@ -83,9 +83,14 @@
   }
 
   :global(.legend-icon) {
+    filter: var(--svg-dark-to-light);
     height: 1em;
     vertical-align: bottom;
     /*filter: drop-shadow(0px 0px 1px #000000) drop-shadow(0px 0px 1px #000000);*/
+  }
+
+  :root {
+    --svg-dark-to-light: "";
   }
 </style>
 

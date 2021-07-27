@@ -12,6 +12,7 @@
     .scale {
         width: 100%;
     }
+
 </style>
 
 <ScaleLine class="scale" valueFormat={ (fmt) => {
@@ -19,7 +20,7 @@
           case "64":
             return " ";
           case "74":
-            return `<img src=${legendClouds} alt='${$_("drizzle")}' class="legend-icon"/> <span class='legendLabel'>${$_("drizzle")}</span>`;
+            return `<img src=${legendClouds} alt='${$_("drizzle")}' class="legend-icon" /> <span class='legendLabel'>${$_("drizzle")}</span>`;
           case "94":
             return `<img src=${legendRain} alt='${$_("rain")}' class="legend-icon"/> <span class='legendLabel'>${$_("rain")}</span>`;
           case "104":
