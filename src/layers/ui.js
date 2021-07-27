@@ -39,6 +39,8 @@ const darkmodeConstants = {
   "sl-color-gray-600": "#d6d6d6",
   "sl-color-info-700": "#c2c2c2",
   "sl-color-primary-600": "#38BDF8",
+  // CSS people be like https://codepen.io/sosuke/pen/Pjoqqp
+  "svg-dark-to-light": "invert(99%) sepia(0%) saturate(469%) hue-rotate(31deg) brightness(119%) contrast(100%)",
 };
 
 export const NOWCAST_TRANSPARENCY = 0.65;
