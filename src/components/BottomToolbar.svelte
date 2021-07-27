@@ -1,6 +1,4 @@
 <script>
-  import Icon from 'fa-svelte';
-  import { faGithub } from '@fortawesome/free-brands-svg-icons/faGithub';
   import { fly } from 'svelte/transition';
   import LastUpdated from './LastUpdated.svelte';
   import { DeviceDetect as dd } from '../lib/DeviceDetect';
@@ -13,6 +11,7 @@
   import { _ } from 'svelte-i18n';
   import { precipTypeNames } from '../cmaps';
   import StepScaleLine from './StepScaleLine.svelte';
+  import Appendix from './Appendix.svelte';
 
   let s3Disabled = false;
   let e;
@@ -162,26 +161,6 @@
     margin-right: 1.5%;
   }
 
-  :global(.githubIcon) {
-    font-size: 30px;
-    text-shadow: 3px 3px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff,
-      -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
-    color: var(--sl-color-info-700) !important;
-    padding: 0;
-    border-radius: 0;
-    margin: 0.03em 0.2em 0 0.1em;
-    vertical-align: top;
-  }
-
-  .appstoreLogo {
-    padding-left: 0px;
-    display: inline;
-  }
-
-  .appstore-logo{
-    margin-left: 3px;
-    height: 34px;
-  }
 
   .sentinel-label {
     color: var(--sl-color-black);
@@ -282,33 +261,8 @@
 
     </div>
     {#if !dd.isApp()}
-      <div class="right">
-        <div class="app-logos">
-          <div class="appstoreLogo">
-            <a
-                    target="_blank"
-                    href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"
-            ><img
-                    src="assets/ios-app-store.png"
-                    alt="ios app store link"
-                    class="appstore-logo"
-            /></a>
-          </div>
-          <div class="appstoreLogo">
-            <a
-                    target="_blank"
-                    href="https://play.google.com/store/apps/details?id=com.meteocool"
-            ><img
-                    class="appstore-logo"
-                    alt="google play app store"
-                    src="assets/google-play-store.png"
-            /></a>
-          </div>
-          <div class="appstoreLogo">
-            <a target="_blank" href="https://github.com/meteocool/core#meteocool"
-            ><Icon icon={faGithub} class="githubIcon" /></a>
-          </div>
-        </div>
+      <div class="right app-logos">
+        <Appendix />
       </div>
     {/if}
   </div>

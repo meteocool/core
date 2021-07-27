@@ -310,8 +310,6 @@ window.enterForeground = () => {
 
 if (device === "web" && "geolocation" in navigator) {
   navigator.geolocation.getCurrentPosition((position) => {
-    // show the location on a map, perhaps using the Google Maps API
-    // console.log();
     lm.updateLocation(position.coords.latitude, position.coords.longitude, 1, 0);
   });
 }
