@@ -1,7 +1,7 @@
 import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
-  capDescription, lastFocus, latLon, radarColorScheme, showForecastPlaybutton,
+  capDescription, capLastUpdated, lastFocus, latLon, radarColorScheme, showForecastPlaybutton,
 } from '../stores';
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
@@ -58,10 +58,10 @@ export default class RadarCapability extends Capability {
     });
 
     if (this.socket_io) {
-      // this.socket_io.on("poke", () => {
-      //   console.log("received websocket poke, refreshing tiles + forecasts");
-      //   this.reloadAll();
-      // });
+      this.socket_io.on("poke", () => {
+        console.log("received websocket poke, refreshing tiles + forecasts");
+        this.reloadAll();
+      });
       // this.socket_io.on("progress", (obj) => {
       //   if ("nowcast" in obj) {
       //     processedForecastsCount.set(obj.nowcast);
@@ -121,7 +121,9 @@ export default class RadarCapability extends Capability {
     if (!obj) return;
 
     const body = {};
+    let latestRadar = new Date(0);
     Object.keys(obj.frames).forEach((step) => {
+      // console.log(step);
       const layerAttributes = obj.frames[step];
       if (!layerAttributes) return;
 
@@ -133,7 +135,12 @@ export default class RadarCapability extends Capability {
       this.sources[step].bucket = bucket;
 
       body[step] = this.sources[step];
+
+      const processedDt = new Date(layerAttributes.processed_time * 1000);
+      if (processedDt > latestRadar) latestRadar = processedDt;
     });
+    capLastUpdated.set(latestRadar);
+    console.log(latestRadar);
 
     if (!this.layer) {
       const last = this.sources[this.getMostRecentObservation()];
@@ -152,7 +159,6 @@ export default class RadarCapability extends Capability {
     // this.upstreamTime = obj.radar.upstream_time;
     // this.processedTime = obj.radar.processed_time;
 
-    // capLastUpdated.set(new Date(this.processedTime * 1000));
     // capTimeIndicator.set(this.upstreamTime);
 
     // XXX this should be an .equals() method in the dwd layer namespace

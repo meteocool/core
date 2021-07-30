@@ -159,6 +159,11 @@ const strikemgr = new StrikeManager(1000, lightningSource);
 
 const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
 const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
+cycloneLayerVisible.subscribe((value) => {
+  mesocycloneLayer.setVisible(value);
+  window.settings.set("layerMesocyclones", value);
+});
+lightningLayerVisible.set(window.settings.get("layerMesocyclones"));
 
 // const duration = 3000;
 // const flash = (feature, layer) => {
