@@ -64,6 +64,9 @@
                 url: null,
               };
             });
+    setTimeout(() => {
+      generateGrid();
+    }, 60*1000);
   }
   generateGrid();
 
@@ -128,7 +131,6 @@
     if (chart) chart.destroy();
 
     const gridKeys = Object.keys(grid);
-    const isApp = dd.isApp();
     let skip = 5;
     if (dd.breakpoint() === "reduced") {
       skip = 10;
@@ -149,7 +151,7 @@
                     const certain = grid[sortedKeys[index]].source === 'observation' ? 1 : 0.7;
                     return `rgba(${r}, ${g}, ${b}, ${certain})`;
                   }),
-          borderColor: d.map((value, index) => gridKeys[index] === `${gridNow}` ? '#ff0000' : getComputedStyle(document.body)
+          borderColor: d.map((value, index) => gridKeys[index] === `${cap.getMostRecentObservation()}` ? '#ff0000' : getComputedStyle(document.body)
                   .getPropertyValue('--sl-color-info-700')),
           borderWidth: 1,
         }],
@@ -219,7 +221,7 @@
               scale.paddingBottom = 0;
             },
             ticks: {
-              fontColor: getComputedStyle(document.body)
+              color: getComputedStyle(document.body)
                       .getPropertyValue('--sl-color-info-700'),
               fontSize: 5,
               autoSkip: false,
@@ -353,7 +355,7 @@
           let thisFrameDelayMs = 450;
           const sliderValueInt = parseInt(slRange.value, 10);
           if (sliderValueInt >= end) {
-            slRange.value = (includeHistoric ? start : start).toString();
+            slRange.value = (includeHistoric ? start : gridNow).toString();
           } else {
             slRange.value = (sliderValueInt + 5 * 60).toString();
           }
@@ -417,7 +419,7 @@
   }
 
   function updateBars(data) {
-    const gridSteps = Object.keys(grid);
+    // const gridSteps = Object.keys(grid);
     let changed = false;
     // console.log(`Frontend grid: ${gridSteps.sort()}`);
     // console.log(`Backend grid: ${Object.keys(data).sort()}`);
@@ -433,6 +435,12 @@
               }
             });
     if (changed) redraw();
+
+    const mostRecentTimestamp = cap.getMostRecentObservation();
+    if ($bottomToolbarMode !== "player" && mostRecentTimestamp in grid) {
+      cap.setUrl(grid[mostRecentTimestamp].url);
+      capTimeIndicator.set(mostRecentTimestamp);
+    }
   }
 
   onMount(async () => {
@@ -653,12 +661,13 @@
   @media (orientation: portrait) {
     .range {
       margin-bottom: 5px;
-      top: 8px;
+      top: 7px;
     }
 
     .barChartCanvas {
-      bottom: calc(env(safe-area-inset-bottom) + 108px);
+      bottom: 142px;
       left: 0.5%;
+      width: 99%;
     }
     .barChartCanvasWithoutPlayback {
       bottom: calc(env(safe-area-inset-bottom) + 73px);
@@ -689,6 +698,10 @@
 
     .timeslider {
       height: 153px !important;
+    }
+
+    .hide-on-small-screens {
+      display: none;
     }
   }
 
@@ -781,10 +794,10 @@
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
                     <sl-tooltip content="Show Lightning Strikes (if any)">
-                      <sl-button size={buttonSize} type="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ Lightning Strikes</sl-button>
+                      <sl-button size={buttonSize} type="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
                     </sl-tooltip>
                     <sl-tooltip content="Show Mesocyclones (if any)">
-                      <sl-button size={buttonSize} type="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 Mesocyclones</sl-button>
+                      <sl-button size={buttonSize} type="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
                     </sl-tooltip>
                   </sl-button-group>
                 </div>
@@ -821,10 +834,10 @@
               <LastUpdated />
             </div>
             {#if !dd.isApp()}
-              <div class="checkbox" style="flex-grow: 1;">
+              <div class="checkbox hide-on-small-screens" style="flex-grow: 1;">
                 <RadarScaleLine />
               </div>
-              <div class="checkbox" style="margin-right: 8px;">
+              <div class="checkbox hide-on-small-screens" style="margin-right: 8px;">
                 <Appendix />
               </div>
             {/if}
