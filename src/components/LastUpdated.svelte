@@ -1,7 +1,7 @@
 <script>
   import { formatDistanceToNow } from 'date-fns';
   import { _ } from 'svelte-i18n';
-  import { capLastUpdated } from '../stores';
+  import { capLastUpdated, lastFocus } from '../stores';
 
   import getDfnLocale from '../locale/locale';
 
@@ -9,6 +9,7 @@
   let lastUpdatedStr;
   let slPercent = 75;
   let updateTimeout = 0;
+  let loading = false;
 
   const updateTime = () => {
     if (!lastUpdated) return;
@@ -19,10 +20,15 @@
       addSuffix: true,
     });
     if (lastUpdatedStr.length < 22) {
-      lastUpdatedStr = `${$_('last_updated')} ${lastUpdatedStr}`;
+      lastUpdatedStr = `${$_("last_updated")} ${lastUpdatedStr}`;
     }
     updateTimeout = setTimeout(updateTime, 10000);
+    loading = false;
   };
+
+  lastFocus.subscribe(() => {
+    loading = true;
+  });
 
   capLastUpdated.subscribe((value) => {
     lastUpdated = value;
@@ -31,7 +37,7 @@
     if (value) {
       updateTime();
     } else {
-      lastUpdatedStr = '';
+      lastUpdatedStr = "";
     }
   });
 
@@ -44,6 +50,15 @@
     position: relative;
     top: 3px; transform: scaleX(-1);
   }
+
+  .spinner {
+    --indicator-color: rgb(52,120,246);
+    --stroke-width: 1.5px;
+    position: relative;
+    top: 2px;
+    margin-right: 3px;
+    font-size: 14px;
+  }
 </style>
 
 <sl-tag
@@ -51,15 +66,19 @@
         size="medium"
         pill>
   {#if lastUpdatedStr}
-    <sl-progress-ring
-            percentage={slPercent}
-            size="18"
-            stroke-width="1.5"
-            class="progress-ring"
-    />
+    {#if loading}
+      <sl-spinner class="spinner"></sl-spinner>
+    {:else}
+      <sl-progress-ring
+              percentage={slPercent}
+              size="18"
+              stroke-width="1.5"
+              class="progress-ring"
+      />
+    {/if}
     {lastUpdatedStr}
   {:else}
-    <sl-spinner style="--indicator-color: rgb(52,120,246); position: relative; top: 2px; margin-right: 3px; font-size: 14px; --stroke-width: 1.5px"></sl-spinner> {$_("loading")}...
+    <sl-spinner class="spinner"></sl-spinner> {$_("loading")}...
   {/if}
 </sl-tag>
 
