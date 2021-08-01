@@ -1,22 +1,21 @@
 <script>
-  import { DeviceDetect as dd } from "../lib/DeviceDetect";
-  import { faCircle } from '@fortawesome/free-solid-svg-icons/faCircle';
-  import Icon from "fa-svelte";
+import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
+import Icon from "fa-svelte";
 
-  let lightRed = true;
+let lightRed = true;
 
-  function blink(elem) {
-    setTimeout(() => {
-      if (lightRed) {
-        elem.classList.add("circle-container-light-red");
-        lightRed = false;
-      } else {
-        elem.classList.remove("circle-container-light-red");
-        lightRed = true;
-      }
-      blink(elem);
-    }, 1000);
-  }
+function blink(elem) {
+  setTimeout(() => {
+    if (lightRed) {
+      elem.classList.add("circle-container-light-red");
+      lightRed = false;
+    } else {
+      elem.classList.remove("circle-container-light-red");
+      lightRed = true;
+    }
+    blink(elem);
+  }, 1000);
+}
 </script>
 
 <style>

@@ -15,7 +15,7 @@ const app = new App({
 export default app;
 
 // Register service worker
-if ("serviceWorker" in navigator) {
+if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {
   const wb = new Workbox("sw.js");
   wb.addEventListener("controlling", (evt) => {
     if (evt.isUpdate) {

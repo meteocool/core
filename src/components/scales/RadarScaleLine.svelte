@@ -1,19 +1,11 @@
 <script>
-  import ScaleLine from '../ScaleLine.svelte';
-  import legendClouds from '../../../public/assets/legend_clouds.svg';
-  import legendRain from '../../../public/assets/legend_rain.svg';
-  import legendHail from '../../../public/assets/legend_hail.svg';
-  import legendThunderstorm from '../../../public/assets/legend_thunderstorm.svg';
-  import { _ } from "svelte-i18n";
-
+import { _ } from "svelte-i18n";
+import ScaleLine from "../ScaleLine.svelte";
+import legendClouds from "../../../public/assets/legend_clouds.svg";
+import legendRain from "../../../public/assets/legend_rain.svg";
+import legendHail from "../../../public/assets/legend_hail.svg";
+import legendThunderstorm from "../../../public/assets/legend_thunderstorm.svg";
 </script>
-
-<style>
-    .scale {
-        width: 100%;
-    }
-
-</style>
 
 <ScaleLine class="scale" valueFormat={ (fmt) => {
         switch (fmt) {

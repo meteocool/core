@@ -43,7 +43,7 @@ const darkmodeConstants = {
   "svg-dark-to-light": "invert(99%) sepia(0%) saturate(469%) hue-rotate(31deg) brightness(119%) contrast(100%)",
 };
 
-export const NOWCAST_TRANSPARENCY = 0.65;
+export const NOWCAST_OPACITY = 0.65;
 
 export function setUIConstant(name, suite = uiConstantsDefault) {
   document.documentElement.style.setProperty(`--${name}`, suite[name]);
