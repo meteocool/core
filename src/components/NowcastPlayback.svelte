@@ -38,6 +38,7 @@
   import LastUpdated from './LastUpdated.svelte';
   import Appendix from './Appendix.svelte';
   import RadarScaleLine from './scales/RadarScaleLine.svelte';
+  import LiveIndicator from './LiveIndicator.svelte';
 
   export let cap;
   let grid = {};
@@ -66,8 +67,9 @@
             });
     setTimeout(() => {
       generateGrid();
-    }, 60*1000);
+    }, 60 * 1000);
   }
+
   generateGrid();
 
   let userLatLon;
@@ -132,10 +134,10 @@
 
     const gridKeys = Object.keys(grid);
     let skip = 5;
-    if (dd.breakpoint() === "reduced") {
+    if (dd.breakpoint() === 'reduced') {
       skip = 10;
     }
-    if (dd.breakpoint() === "small") {
+    if (dd.breakpoint() === 'small') {
       skip = 20;
     }
     chart = new BarWithErrorBarsChart(canvas.getContext('2d'), {
@@ -242,7 +244,7 @@
               maxRotation: 0,
               responsive: true,
               padding: -4,
-              display: $bottomToolbarMode === "player",
+              display: $bottomToolbarMode === 'player',
               autoSkipPadding: 0,
             },
           },
@@ -437,7 +439,7 @@
     if (changed) redraw();
 
     const mostRecentTimestamp = cap.getMostRecentObservation();
-    if ($bottomToolbarMode !== "player" && mostRecentTimestamp in grid) {
+    if ($bottomToolbarMode !== 'player' && mostRecentTimestamp in grid) {
       cap.setUrl(grid[mostRecentTimestamp].url);
       capTimeIndicator.set(mostRecentTimestamp);
     }
@@ -713,7 +715,9 @@
   }
 </style>
 
-{#if canvasVisible}
+<LiveIndicator />
+
+{#if canvasVisible && $sharedActiveCap === "radar"}
 <div class="barChartCanvas barChartCanvasWithoutPlayback" id="barChartCanvas" out:fly={{ y: 60, duration: 200 }} in:fade={{duration: 200}}>
   <canvas use:canvasInit></canvas>
 </div>
