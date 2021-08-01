@@ -14,7 +14,7 @@ import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { meteocoolClassic, viridis } from "../colormaps";
 import { tileBaseUrl } from "../urls";
-import { NOWCAST_TRANSPARENCY } from "./ui";
+import { NOWCAST_OPACITY } from "./ui";
 
 let cmap = meteocoolClassic;
 
@@ -40,6 +40,7 @@ export const dwdLayerStatic = (tileId, bucket, extra) => {
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
     zIndex: 80,
+    opacity: NOWCAST_OPACITY,
   });
 
   // Disable browser upsampling
@@ -107,7 +108,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     source: rasterRadar,
     renderBuffer: 500,
     title: "Radar Composite",
-    opacity: NOWCAST_TRANSPARENCY,
+    opacity: NOWCAST_OPACITY,
     id: tileId,
     ...extra,
   });
@@ -164,7 +165,7 @@ export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
     zIndex: 1000,
-    opacity: 0.7,
+    opacity: NOWCAST_OPACITY,
   });
 
   // Disable browser upsampling

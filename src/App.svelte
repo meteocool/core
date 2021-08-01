@@ -3,6 +3,7 @@ import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
 import { io } from "socket.io-client";
+import { fromLonLat } from "ol/proj";
 import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -20,13 +21,12 @@ import de from "./locale/de.json";
 import en from "./locale/en.json";
 import {
   bottomToolbarMode,
-  capLastUpdated,
   colorSchemeDark,
   cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
   mapBaseLayer,
   radarColorScheme, toolbarVisible,
-} from './stores';
+} from "./stores";
 
 import "./style/global.css";
 import "@shoelace-style/shoelace/dist/themes/base.css";
@@ -38,18 +38,10 @@ import MesoCycloneManager from "./lib/MesoCycloneManager";
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";
-import { reportError, reportToast } from './lib/Toast';
-import Router from './lib/Router';
-import { fromLonLat } from 'ol/proj';
-import PrecipitationTypesCapability from './caps/PrecipitationTypesCapability';
-import { greyOverlay } from './layers/radar';
+import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
+import { greyOverlay } from "./layers/radar";
 
-import {easeOut} from 'ol/easing';
-import {getVectorContext} from 'ol/render';
-import {unByKey} from 'ol/Observable';
-import { Stroke, Style } from 'ol/style';
-import CircleStyle from 'ol/style/Circle';
-
+// eslint-disable-next-line import/no-mutable-exports
 export let device;
 
 dd.set(device);
@@ -90,7 +82,7 @@ window.settings = new Settings({
   experimentalFeatures: {
     type: "boolean",
     default: false,
-    cb: (value) => {
+    cb: () => {
       // reportToast(`Experimental features ${value}`);
     },
   },
@@ -343,7 +335,7 @@ if (device === "web" && "geolocation" in navigator) {
     height: 100%;
     background: rgb(135, 202, 214);
     height: 2px;
-    border-radius: 0px 2px 2px 0px;
+    border-radius: 0 2px 2px 0;
     box-shadow: 0 0 3px rgb(135, 202, 214);
   }
 

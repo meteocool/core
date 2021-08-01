@@ -1,10 +1,10 @@
 <script>
-  import { faGithub } from '@fortawesome/free-brands-svg-icons/faGithub';
-  import Icon from "fa-svelte";
+import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
+import Icon from "fa-svelte";
 
-  function init() {
-    return;
-  }
+function init() {
+
+}
 </script>
 
 <style>

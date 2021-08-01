@@ -1,60 +1,60 @@
 <script>
-  import { fly } from 'svelte/transition';
-  import LastUpdated from './LastUpdated.svelte';
-  import { DeviceDetect as dd } from '../lib/DeviceDetect';
-  import { capDescription, satelliteLayer, sharedActiveCap, bottomToolbarMode, zoomlevel } from '../stores';
-  import { precipTypeNames } from '../cmaps';
-  import StepScaleLine from './StepScaleLine.svelte';
-  import Appendix from './Appendix.svelte';
-  import RadarScaleLine from './scales/RadarScaleLine.svelte';
+import LastUpdated from "./LastUpdated.svelte";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { capDescription, satelliteLayer, sharedActiveCap, bottomToolbarMode, zoomlevel } from "../stores";
+import { precipTypeNames } from "../cmaps";
+import StepScaleLine from "./StepScaleLine.svelte";
+import Appendix from "./Appendix.svelte";
+import { fly } from 'svelte/transition';
+import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 
-  let s3Disabled = false;
-  let e;
-  zoomlevel.subscribe((z) => {
-    if (z > 12) {
-      satelliteLayer.set('sentinel2');
-      if (e) e.checked = true;
-      s3Disabled = true;
+let s3Disabled = false;
+let e;
+zoomlevel.subscribe((z) => {
+  if (z > 12) {
+    satelliteLayer.set("sentinel2");
+    if (e) e.checked = true;
+    s3Disabled = true;
+  } else {
+    s3Disabled = false;
+  }
+});
+
+function selectS2() {
+  satelliteLayer.set("sentinel2");
+  if (e) e.checked = true;
+}
+
+function selectS3() {
+  satelliteLayer.set("sentinel3");
+  if (e) e.checked = false;
+}
+
+function slider(elem) {
+  e = elem;
+  // elem.tooltipFormatter = (value) => `${value.toString()
+  //  .padStart(2, 0)}:00`;
+  /// / XXX fix dependency fuckup
+  // elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
+  elem.addEventListener("sl-change", (event) => {
+    const satellite = event.target.checked ? "sentinel2" : "sentinel3";
+    if (event.target.checked) {
+      satelliteLayer.set(satellite);
     } else {
-      s3Disabled = false;
+      satelliteLayer.set(satellite);
     }
   });
+}
 
-  function selectS2() {
-    satelliteLayer.set('sentinel2');
-    if (e) e.checked = true;
-  }
+let description;
+capDescription.subscribe((desc) => {
+  description = desc;
+});
 
-  function selectS3() {
-    satelliteLayer.set('sentinel3');
-    if (e) e.checked = false;
-  }
-
-  function slider(elem) {
-    e = elem;
-    // elem.tooltipFormatter = (value) => `${value.toString()
-    //  .padStart(2, 0)}:00`;
-    /// / XXX fix dependency fuckup
-    // elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
-    elem.addEventListener('sl-change', (event) => {
-      const satellite = event.target.checked ? 'sentinel2' : 'sentinel3';
-      if (event.target.checked) {
-        satelliteLayer.set(satellite);
-      } else {
-        satelliteLayer.set(satellite);
-      }
-    });
-  }
-
-  let description;
-  capDescription.subscribe((desc) => {
-    description = desc;
-  });
-
-  let activeCap;
-  sharedActiveCap.subscribe((val) => {
-    activeCap = val;
-  });
+let activeCap;
+sharedActiveCap.subscribe((val) => {
+  activeCap = val;
+});
 </script>
 
 <style>
