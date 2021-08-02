@@ -1,6 +1,9 @@
 import * as Sentry from "@sentry/browser";
 import SENTRY_ARGS from "./lib/sentry";
-Sentry.init(SENTRY_ARGS);
+
+if (process.env.NODE_ENV !== "development") {
+  Sentry.init(SENTRY_ARGS);
+}
 
 import { Workbox } from "workbox-window";
 import App from "./App.svelte";

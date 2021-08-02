@@ -5,10 +5,6 @@ import { _ } from "svelte-i18n";
 import { logoStyle } from '../stores';
 
 let showAbout = false;
-let style;
-logoStyle.subscribe((value) => {
-  style = value;
-});
 
 function toggleAbout() {
   if (!showAbout) {
@@ -81,7 +77,7 @@ function toggleAbout() {
   }
 </style>
 
-{#if style === "full"}
+{#if $logoStyle === "full"}
   <div class="logo-wrapper">
     <img
             src={logo}

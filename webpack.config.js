@@ -2,7 +2,7 @@ const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const ProgressBarPlugin = require("progress-bar-webpack-plugin");
+const WebpackBar = require('webpackbar');
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { InjectManifest } = require("workbox-webpack-plugin");
 const webpack = require("webpack");
@@ -109,7 +109,7 @@ module.exports = {
         { from: "public" },
       ],
     }),
-    new ProgressBarPlugin(),
+    new WebpackBar(),
     new InjectManifest({
       swSrc: "./src/sw.js",
       swDest: "sw.js",
