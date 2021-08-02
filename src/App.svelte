@@ -28,13 +28,14 @@ import {
   radarColorScheme, toolbarVisible,
 } from "./stores";
 
-import "./style/global.css";
+import "./html/global.css";
 import "@shoelace-style/shoelace/dist/themes/base.css";
 import { apiBaseUrl, dataUrl, websocketBaseUrl } from "./urls";
 import { initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
 import StrikeManager from "./lib/StrikeManager";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
+
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";

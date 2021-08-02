@@ -2,7 +2,7 @@
 import LastUpdated from "./LastUpdated.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { capDescription, satelliteLayer, sharedActiveCap, bottomToolbarMode, zoomlevel } from "../stores";
-import { precipTypeNames } from "../cmaps";
+import { precipTypeNames } from "../lib/cmaps";
 import StepScaleLine from "./StepScaleLine.svelte";
 import Appendix from "./Appendix.svelte";
 import { fly } from 'svelte/transition';
