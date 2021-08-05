@@ -42,6 +42,7 @@
     "@shoelace-style/shoelace": "git://github.com/v4lli/shoelace.git#next",
     "chart.js": "^3.5.0",
     "chartjs-chart-error-bars": "^3.1.0",
+    "chartjs-plugin-datalabels": "^2.0.0",
     "date-fns": "^2.23.0",
     "javascript-state-machine": "^3.1.0",
     "moment": "^2.29.1",
