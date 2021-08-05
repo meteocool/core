@@ -1,8 +1,10 @@
 <script>
 import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
 import Icon from "fa-svelte";
+import { capLastUpdated, lastFocus } from "../stores";
 
 let lightRed = true;
+let livePill = null;
 
 function blink(elem) {
   setTimeout(() => {
@@ -16,6 +18,26 @@ function blink(elem) {
     blink(elem);
   }, 1000);
 }
+
+function init(elem) {
+  livePill = elem;
+}
+
+function hide() {
+  if (livePill) livePill.style.display = "none";
+}
+
+function show() {
+  if (livePill) livePill.style.display = "";
+}
+
+lastFocus.subscribe(() => {
+  hide();
+});
+
+capLastUpdated.subscribe(() => {
+  show();
+});
 </script>
 
 <style>
@@ -53,7 +75,7 @@ function blink(elem) {
 </style>
 
 <div class="live-wrapper">
-<sl-tag type="danger" class="live" size="small" pill>
+<sl-tag type="danger" class="live" size="small" pill use:init>
     <div class="circle-container circle-container-light-red" use:blink>
         <Icon icon={faCircle} />
     </div>

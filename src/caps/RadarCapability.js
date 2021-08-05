@@ -2,7 +2,7 @@ import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from "../layers/rad
 import { reportError } from "../lib/Toast";
 import {
   capDescription, capLastUpdated, lastFocus, latLon, radarColorScheme, showForecastPlaybutton,
-} from '../stores';
+} from "../stores";
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 
@@ -22,10 +22,12 @@ export default class RadarCapability extends Capability {
     this.layers = {};
     this.nanobar = options.nanobar;
     this.socket_io = options.socket_io;
-    this.nowcast = null;
     this.latlon = null;
     this.sources = {};
     this.layerFactory = dwdLayerStatic;
+    this.serverGrid = null;
+    this.clientGrid = null;
+    this.trackingMode = "live";
 
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
@@ -35,7 +37,7 @@ export default class RadarCapability extends Capability {
       } else {
         self.layerFactory = dwdLayer;
       }
-      this.reloadAll();
+      if (this.layer) this.reloadAll();
     });
 
     latLon.subscribe((latlonUpdate) => {
@@ -54,8 +56,10 @@ export default class RadarCapability extends Capability {
     });
 
     lastFocus.subscribe(() => {
-      this.reloadAll();
+      if (this.layer) this.reloadAll();
     });
+
+    window.radar_cap = this;
 
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
@@ -68,6 +72,77 @@ export default class RadarCapability extends Capability {
       //   }
       // });
     }
+
+    this.gridconfig = {};
+
+    // Initialize grid
+    this.gridconfig = this.regenerateGridConfig();
+    const restartHandler = () => {
+      setTimeout(restartHandler, 60000);
+      this.gridconfig = this.regenerateGridConfig();
+      if (this.serverGrid) {
+        this.updateClientGridFromServerGrid(this.serverGrid);
+        this.notify("grid", this.clientGridConfig);
+      }
+    };
+    restartHandler();
+  }
+
+  updateClientGridFromServerGrid(server) {
+    let latestRadar = new Date(0);
+    const body = { ...this.gridconfig.grid };
+    Object.keys(server).forEach((step) => {
+      const layerAttributes = server[step];
+      if (!(step in body)) {
+        console.log("step not in body");
+        return;
+        // this.gridconfig.grid[step] = this.sources[step];
+      }
+      if (!layerAttributes) return;
+
+      const bucket = layerAttributes.source === "observation" ? "meteoradar" : "meteonowcast";
+      const sourceUrl = `${tileBaseUrl}/${bucket}/${layerAttributes.tile_id}/{z}/{x}/{-y}.png`;
+
+      body[step] = layerAttributes;
+      body[step].bucket = bucket;
+      body[step].url = sourceUrl;
+
+      if (layerAttributes.source === "observation") {
+        const processedDt = new Date(layerAttributes.processed_time * 1000);
+        if (processedDt > latestRadar) latestRadar = processedDt;
+      }
+    });
+    this.clientGrid = body;
+    this.clientGridConfig = { ...this.gridconfig, grid: body };
+    return latestRadar;
+  }
+
+  regenerateGridConfig() {
+    let gridNow = new Date().getTime() / 1000;
+    gridNow -= (gridNow % (60 * 5));
+    const start = gridNow - (60 * 120);
+    const end = gridNow + (60 * 120);
+    const nSteps = ((end - start) / (60 * 5)) + 1;
+
+    const newGridconfig = {
+      grid: {},
+    };
+
+    [...Array(nSteps)
+      .keys()].map((i) => new Date(start + i * (5 * 60)))
+      .forEach((step) => {
+        newGridconfig.grid[step.getTime()] = {
+          dbz: 0,
+          url: null,
+          tile_id: "",
+          source: "",
+        };
+      });
+    newGridconfig.start = start;
+    newGridconfig.end = end;
+    newGridconfig.now = gridNow;
+    newGridconfig.length = nSteps;
+    return newGridconfig;
   }
 
   setUrl(url) {
@@ -75,6 +150,7 @@ export default class RadarCapability extends Capability {
   }
 
   reloadAll() {
+    console.log("reloadAll");
     this.downloadCurrentRadar();
   }
 
@@ -83,10 +159,6 @@ export default class RadarCapability extends Capability {
       return `?lat=${this.latlon[0]}&lon=${this.latlon[1]}`;
     }
     return "";
-  }
-
-  getUpstreamTime() {
-    return this.upstreamTime;
   }
 
   downloadCurrentRadar() {
@@ -104,12 +176,12 @@ export default class RadarCapability extends Capability {
   }
 
   notifyObservers() {
-    this.notify("radar", this.sources);
+    this.notify("grid", this.clientGridConfig);
   }
 
   getMostRecentObservation() {
     let mostRecent = 0;
-    for (const [step, frame] of Object.entries(this.sources)) {
+    for (const [step, frame] of Object.entries(this.clientGrid)) {
       if (frame.source === "observation" && step > mostRecent) {
         mostRecent = step;
       }
@@ -120,64 +192,68 @@ export default class RadarCapability extends Capability {
   processRadar(obj) {
     if (!obj) return;
 
-    const body = {};
-    let latestRadar = new Date(0);
-    Object.keys(obj.frames).forEach((step) => {
-      // console.log(step);
-      const layerAttributes = obj.frames[step];
-      if (!layerAttributes) return;
+    this.serverGrid = obj.frames;
+    this.gridconfig = this.regenerateGridConfig();
+    const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
+    this.notify("grid", this.clientGridConfig);
 
-      const bucket = layerAttributes.source === "observation" ? "meteoradar" : "meteonowcast";
-      const sourceUrl = `${tileBaseUrl}/${bucket}/${layerAttributes.tile_id}/{z}/{x}/{-y}.png`;
-
-      this.sources[step] = layerAttributes;
-      this.sources[step].url = sourceUrl;
-      this.sources[step].bucket = bucket;
-
-      body[step] = this.sources[step];
-
-      const processedDt = new Date(layerAttributes.processed_time * 1000);
-      if (processedDt > latestRadar) latestRadar = processedDt;
-    });
-    capLastUpdated.set(latestRadar);
-    console.log(latestRadar);
-
-    if (!this.layer) {
-      const last = this.sources[this.getMostRecentObservation()];
+    if (this.layer) {
+      switch (this.trackingMode) {
+        case "live":
+          this.source.setUrl(this.clientGrid[this.getMostRecentObservation()].url);
+          break;
+        default:
+          break;
+      }
+    } else {
+      const last = this.clientGrid[this.getMostRecentObservation()];
       [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
       super.addMapCb((map) => {
         map.addLayer(this.layer);
       });
     }
-    this.notify("radar", body);
+    capLastUpdated.set(latestRadar);
   }
 
-    // if (!this.nowcast) {
-    //   this.notify("nowcast", { sources: null });
-    // }
+  resetToLatest() {
+    this.source.setUrl(this.sources[this.getMostRecentObservation()].url);
+  }
 
-    // this.upstreamTime = obj.radar.upstream_time;
-    // this.processedTime = obj.radar.processed_time;
+  setSource(timestep) {
+    if (timestep in this.clientGrid && this.clientGrid[timestep].url !== "") {
+      this.source.setUrl(this.clientGrid[timestep].url);
+    }
+  }
+  // trackRelativeTimestep(timestamp) {
+  //   // track this +(relative forcast amount) into the future
+  // }
 
-    // capTimeIndicator.set(this.upstreamTime);
+  // if (!this.nowcast) {
+  //   this.notify("nowcast", { sources: null });
+  // }
 
-    // XXX this should be an .equals() method in the dwd layer namespace
-    // if (super.getMap() && this.layer) {
-    //   if (this.layer.get("tileId") === obj.tile_id && !this.forceRecreate) {
-    //     return;
-    //   }
-    //   super.getMap().removeLayer(this.layer);
-    //   this.forceRecreate = false;
-    // }
-    // [this.layer, this.source, this.lastSourceUrl] =
-    // window.l = this.source;
-    // this.layer.setOpacity(NOWCAST_TRANSPARENCY);
-    // XXX instead of this, call mapcb (?)
-    //super.getMap().addLayer(this.layer);
-    //this.downloadNowcast();
-  //}
+  // this.upstreamTime = obj.radar.upstream_time;
+  // this.processedTime = obj.radar.processed_time;
 
-  //downloadHistoricRadar() {
+  // capTimeIndicator.set(this.upstreamTime);
+
+  // XXX this should be an .equals() method in the dwd layer namespace
+  // if (super.getMap() && this.layer) {
+  //   if (this.layer.get("tileId") === obj.tile_id && !this.forceRecreate) {
+  //     return;
+  //   }
+  //   super.getMap().removeLayer(this.layer);
+  //   this.forceRecreate = false;
+  // }
+  // [this.layer, this.source, this.lastSourceUrl] =
+  // window.l = this.source;
+  // this.layer.setOpacity(NOWCAST_TRANSPARENCY);
+  // XXX instead of this, call mapcb (?)
+  // super.getMap().addLayer(this.layer);
+  // this.downloadNowcast();
+  // }
+
+  // downloadHistoricRadar() {
   //  this.nanobar.start("historic_nowcast");
   //  fetch(`${apiBaseUrl}/radar_historic/${this.getLocalPostifx()}`)
   //    .then((response) => response.json())
@@ -187,7 +263,7 @@ export default class RadarCapability extends Capability {
   //      this.nanobar.finish("historic_nowcast");
   //      reportError(error);
   //    });
-  //}
+  // }
 
   // processHistoricRadar(obj) {
   //   this.historicLayers = obj;
@@ -204,7 +280,7 @@ export default class RadarCapability extends Capability {
   //   this.notify("historic", { sources });
   // }
 
-  //downloadNowcast(cb) {
+  // downloadNowcast(cb) {
   //  const response = {
   //    upstreamTime: this.upstreamTime,
   //    processedTime: this.processedTime,
@@ -229,5 +305,5 @@ export default class RadarCapability extends Capability {
   //  }
   //  this.notify("nowcast", response);
   //  if (cb) cb(response);
-  //}
+  // }
 }

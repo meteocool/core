@@ -306,10 +306,16 @@ window.enterForeground = () => {
   reloadCyclones();
 };
 
-if (device === "web" && "geolocation" in navigator) {
-  navigator.geolocation.getCurrentPosition((position) => {
-    lm.updateLocation(position.coords.latitude, position.coords.longitude, 1, 0);
-  });
+if (device === "web") {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      lm.updateLocation(position.coords.latitude, position.coords.longitude, 1, 0);
+    });
+  }
+  // window.onfocus = function () {
+  //   // if (lastFocus)
+  //   window.enterForeground();
+  // };
 }
 </script>
 
