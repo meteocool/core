@@ -1,17 +1,17 @@
 <script>
-  import { capTimeIndicator } from "../stores";
-  import { DeviceDetect as dd } from "../lib/DeviceDetect";
-  import { format } from 'date-fns';
+import { format } from "date-fns";
+import { capTimeIndicator } from "../stores";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
-  let timeString = "";
+let timeString = "";
 
-  capTimeIndicator.subscribe((value) => {
-    if (value === 0) {
-      timeString = "";
-      return;
-    }
-    timeString = format(new Date(value * 1000), "HH:mm");
-  });
+capTimeIndicator.subscribe((value) => {
+  if (value === 0) {
+    timeString = "";
+    return;
+  }
+  timeString = format(new Date(value * 1000), "HH:mm");
+});
 </script>
 
 <style>
@@ -20,10 +20,16 @@
       text-align: center;
       width: 64px;
   }
+  .wrap {
+      width: 100%;
+      text-align: center;
+  }
 </style>
 
 {#if timeString}
     <sl-tag type="info" class="tag" size={dd.isApp() ? "large" : "medium" } pill>
-        {timeString}
+        <div class="wrap">
+            {timeString}
+        </div>
     </sl-tag>
 {/if}

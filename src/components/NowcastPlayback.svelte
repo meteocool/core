@@ -668,8 +668,6 @@ function toggleCyclones() {
   }
 
   .gap > * {
-    margin-bottom: 30px;
-    margin-right: 30px;
   }
 
   .flexbox > .slider {
@@ -747,11 +745,10 @@ function toggleCyclones() {
     }
 
     .gap > * {
-      margin-bottom: 16px;
-      margin-right: 18px;
     }
 
     .flexbox {
+      gap: 16px;
       padding-left: 1%;
       padding-right: 1%;
     }
@@ -790,15 +787,12 @@ function toggleCyclones() {
             <Icon icon={playPauseButton} class="controlIcon" />
           </div>
           <div class="controlButton" on:click={hide} title="Close">
-            <Icon icon={faAngleDoubleDown} class="controlIcon" />
+            <Icon icon={faAngleDoubleDown} class="controlIcon" />m";
           </div>
         </div>
         <div class="slider">
           <sl-range min="{gridConfig.start}" max="{gridConfig.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 25px;"></sl-range>
           <div class="flexbox gap">
-            <div class="checkbox">
-              <TimeIndicator />
-            </div>
             <div class="checkbox">
               <div class="button-group-toolbar">
                 <sl-button-group label="Playback Controls">
@@ -864,6 +858,25 @@ function toggleCyclones() {
                   </sl-button-group>
                 </div>
               </div>
+              <div class="checkbox buttonsInline">
+                <div class="button-group-toolbar">
+                  {#if !dd.isApp()}
+                    <sl-tooltip content="Close">
+                      <sl-button size={buttonSize} on:click={hide}>
+                        <div class="faIconButton">
+                          <Icon icon={faAngleDoubleDown} />️
+                        </div>
+                      </sl-button>
+                    </sl-tooltip>
+                  {:else}
+                    <sl-button size={buttonSize} on:click={hide}>
+                      <div class="faIconButton">
+                        <Icon icon={faAngleDoubleDown} />️
+                      </div>
+                    </sl-button>
+                  {/if}
+                </div>
+              </div>
             {/if}
             {#if false}
               <div class="checkbox">
@@ -874,26 +887,10 @@ function toggleCyclones() {
               </div>
             {/if}
             <div class="checkbox">
-              <LastUpdated />
+              <TimeIndicator />
             </div>
-            <div class="checkbox buttonsInline">
-              <div class="button-group-toolbar">
-                {#if !dd.isApp()}
-                  <sl-tooltip content="Close">
-                    <sl-button size={buttonSize} on:click={hide}>
-                      <div class="faIconButton">
-                        <Icon icon={faAngleDoubleDown} />️
-                      </div>
-                    </sl-button>
-                  </sl-tooltip>
-                {:else}
-                  <sl-button size={buttonSize} on:click={hide}>
-                    <div class="faIconButton">
-                      <Icon icon={faAngleDoubleDown} />️
-                    </div>
-                  </sl-button>
-                {/if}
-              </div>
+            <div class="checkbox">
+              <LastUpdated />
             </div>
             {#if !dd.isApp()}
               <div class="checkbox hide-on-small-screens" style="flex-grow: 1;">
