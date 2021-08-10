@@ -205,13 +205,13 @@ export default class RadarCapability extends Capability {
           this.resetToLatest();
           break;
         case "manual":
-          if ("server_time" in obj) {
-            const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
-            console.log(`wanttimestep=${wantTimestep}`);
-            if (wantTimestep in this.gridconfig.grid) {
-              this.setSource(wantTimestep);
-            }
-          }
+          //if ("server_time" in obj) {
+          //  const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
+          //  console.log(`wanttimestep=${wantTimestep}`);
+          //  if (wantTimestep in this.gridconfig.grid) {
+          //    this.setSource(wantTimestep);
+          //  }
+          //}
           break;
         default:
           break;
@@ -241,6 +241,7 @@ export default class RadarCapability extends Capability {
       this.trackingMode = "live";
       live.set(true);
     }
+    this.timestep = timestep;
     if (timestep in this.clientGrid && this.clientGrid[timestep].url != null) {
       this.source.setUrl(this.clientGrid[timestep].url);
     }
