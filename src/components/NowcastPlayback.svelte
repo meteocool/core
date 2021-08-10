@@ -41,6 +41,7 @@ import LastUpdated from './LastUpdated.svelte';
 import Appendix from './Appendix.svelte';
 import RadarScaleLine from './scales/RadarScaleLine.svelte';
 import LiveIndicator from './LiveIndicator.svelte';
+import DevStatus from './DevStatus.svelte';
 
 export let cap;
 
@@ -113,6 +114,7 @@ function redraw(config) {
   const max = Math.max(...values);
   const maxIndexes = [];
   values.forEach((item, index) => item === max ? maxIndexes.push(index): null);
+  const disabled = values.every((e) => e === 0);
 
   const gridKeys = Object.keys(grid);
   let rendered = {};
@@ -210,35 +212,30 @@ function redraw(config) {
             return context.dataset.backgroundColor;
           },
           formatter: (val, context) => {
-            if (context.dataIndex == 0) {
-              rendered[context.dataIndex] = true;
-              return "2h ago";
+            if (disabled) {
+              return null;
             }
-
             if (context.chart.data.labels[context.dataIndex] === "0") {
               rendered[context.dataIndex] = true;
               return "Now";
             }
 
-            if (context.dataIndex == 48) {
-              rendered[context.dataIndex] = true;
-              return "In 2h";
-            }
-
             // XXX calculate slope instead
-            if (context.chart.data.datasets[0].data[context.dataIndex-1].y-dataMin === 0 && val.y-dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex+1].y-dataMin !== 0 && !((context.dataIndex-1) in rendered) && !((context.dataIndex-2) in rendered)) {
-              rendered[context.dataIndex] = true;
-              return `${context.chart.data.labels[context.dataIndex]}m`;
-            }
+            if (context.dataIndex > 0) {
+              if (context.chart.data.datasets[0].data[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin !== 0 && !((context.dataIndex - 1) in rendered) && !((context.dataIndex - 2) in rendered)) {
+                rendered[context.dataIndex] = true;
+                return `${context.chart.data.labels[context.dataIndex]}m`;
+              }
 
-            if (val.y-dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex+1].y-dataMin === 0  && !((context.dataIndex-1) in rendered) && !((context.dataIndex-2) in rendered)) {
-              rendered[context.dataIndex] = true;
-              return `${context.chart.data.labels[context.dataIndex]}m`;
-            }
+              if (val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin === 0 && !((context.dataIndex - 1) in rendered) && !((context.dataIndex - 2) in rendered)) {
+                rendered[context.dataIndex] = true;
+                return `${context.chart.data.labels[context.dataIndex]}m`;
+              }
 
-            if (maxIndexes.includes(context.dataIndex)) {
-              rendered[context.dataIndex] = true;
-              return `${context.chart.data.labels[context.dataIndex]}m`;
+              if (maxIndexes.includes(context.dataIndex)) {
+                rendered[context.dataIndex] = true;
+                return `${context.chart.data.labels[context.dataIndex]}m`;
+              }
             }
             return null;
           },
@@ -274,10 +271,16 @@ function redraw(config) {
                 return 'now';
               }
               if (label == -120) {
-                return "2h ago";
+                return "-2h";
+              }
+              if (label == -60) {
+                return "-1h";
+              }
+              if (label == 60) {
+                return "1h";
               }
               if (label == 120) {
-                return "In 2h";
+                return "2h";
               }
               if (Math.abs(label) % skip === 0) {
                 return label;
@@ -310,6 +313,10 @@ function redraw(config) {
   });
 }
 $: redraw(gridConfig);
+function updateSliderToLatest(config) {
+  if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
+}
+$: updateSliderToLatest(gridConfig);
 
 function canvasInit(elem) {
   canvas = elem;
@@ -360,9 +367,9 @@ const fsm = new StateMachine({
         }, 400);
       }
       playPauseButton = faPlay;
-      if (slRange) slRange.value = `${gridConfig.now}`;
+      if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
       setTimeout(() => {
-        if (slRange) slRange.value = `${gridConfig.now}`;
+        if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
       }, 200);
       setUIConstant('toast-stack-offset', '124px');
       capTimeIndicator.set(gridConfig.now);
@@ -434,6 +441,7 @@ const fsm = new StateMachine({
       if (transition.from === 'followLatest') return;
       oldTimeStep = 0;
       slRange = null;
+      cap.resetToLatest();
       if (chart) {
         chart.options.scales.x.ticks.display = false;
         canvasVisible = false;
@@ -444,9 +452,7 @@ const fsm = new StateMachine({
       }
       setUIConstant('toast-stack-offset');
 
-      setTimeout(() => {
-        bottomToolbarMode.set('collapsed');
-      }, 200);
+      bottomToolbarMode.set('collapsed');
       // cap.source.setUrl(cap.lastSourceUrl); XXX
     },
   },
@@ -469,6 +475,8 @@ function hide() {
   fsm.hideScrollbar();
 }
 
+let latest;
+
 
 onMount(async () => {
   window.leaveForeground = () => {
@@ -483,6 +491,7 @@ onMount(async () => {
     if (subject === 'grid' && data) {
       gridConfig = data;
       showOpenControls = true;
+      latest = cap.getMostRecentObservation();
     }
     //   // const gridSteps = Object.keys(grid);
     //   let changed = false;
@@ -697,14 +706,14 @@ function toggleCyclones() {
     width: 96%;
     padding-right: 2%;
     left: 3.5%;
-    height: 80px;
+    height: 150px;
     pointer-events: none;
     margin-right: 0.5em;
     z-index: 9999999;
   }
 
   .barChartCanvasWithoutPlayback {
-    bottom: calc(env(safe-area-inset-bottom) + 31px);
+    bottom: calc(env(safe-area-inset-bottom) + 30px);
     width: 100% !important;
     left: 0;
   }
@@ -774,7 +783,7 @@ function toggleCyclones() {
 {#if $bottomToolbarMode === "player"}
   <div
     class="bottomToolbar timeslider"
-    transition:fly={{ y: 100, duration: 400 }}>
+    transition:fly={{ y: 150, duration: 400 }}>
       <div class="flexbox">
         <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">
@@ -864,6 +873,9 @@ function toggleCyclones() {
                 </sl-select>
               </div>
             {/if}
+            <div class="checkbox">
+              <LastUpdated />
+            </div>
             <div class="checkbox buttonsInline">
               <div class="button-group-toolbar">
                 {#if !dd.isApp()}
@@ -883,15 +895,16 @@ function toggleCyclones() {
                 {/if}
               </div>
             </div>
-            <div class="checkbox">
-              <LastUpdated />
-            </div>
             {#if !dd.isApp()}
               <div class="checkbox hide-on-small-screens" style="flex-grow: 1;">
                 <RadarScaleLine />
               </div>
               <div class="checkbox hide-on-small-screens" style="margin-right: 8px;">
-                <Appendix />
+                {#if process.env.NODE_ENV === "development"}
+                  <DevStatus gridConfig="{gridConfig}" latest="{latest}"/>
+                {:else}
+                  <Appendix />
+                {/if}
               </div>
             {/if}
           </div>

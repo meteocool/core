@@ -1,8 +1,8 @@
 import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
-  capDescription, capLastUpdated, lastFocus, latLon, radarColorScheme, showForecastPlaybutton,
-} from "../stores";
+  capDescription, capLastUpdated, lastFocus, latLon, live, radarColorScheme, showForecastPlaybutton,
+} from '../stores';
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 
@@ -71,6 +71,7 @@ export default class RadarCapability extends Capability {
       //     processedForecastsCount.set(obj.nowcast);
       //   }
       // });
+      this.downloadCurrentRadar();
     }
 
     this.gridconfig = {};
@@ -164,6 +165,7 @@ export default class RadarCapability extends Capability {
   downloadCurrentRadar() {
     const URL = `${v2APIBaseUrl}/radar/${this.getLocalPostifx()}`;
     console.log(`Reloading ${URL}`);
+    live.set(false);
     this.nanobar.start(URL);
     fetch(URL)
       .then((response) => response.json())
@@ -171,6 +173,7 @@ export default class RadarCapability extends Capability {
       .then(() => this.nanobar.finish(URL))
       .catch((error) => {
         this.nanobar.finish(URL);
+        live.set(false);
         reportError(error);
       });
   }
@@ -195,12 +198,20 @@ export default class RadarCapability extends Capability {
     this.serverGrid = obj.frames;
     this.gridconfig = this.regenerateGridConfig();
     const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
-    this.notify("grid", this.clientGridConfig);
 
     if (this.layer) {
       switch (this.trackingMode) {
         case "live":
-          this.source.setUrl(this.clientGrid[this.getMostRecentObservation()].url);
+          this.resetToLatest();
+          break;
+        case "manual":
+          if ("server_time" in obj) {
+            const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
+            console.log(`wanttimestep=${wantTimestep}`);
+            if (wantTimestep in this.gridconfig.grid) {
+              this.setSource(wantTimestep);
+            }
+          }
           break;
         default:
           break;
@@ -213,14 +224,24 @@ export default class RadarCapability extends Capability {
       });
     }
     capLastUpdated.set(latestRadar);
+    this.notify("grid", this.clientGridConfig);
   }
 
   resetToLatest() {
-    this.source.setUrl(this.sources[this.getMostRecentObservation()].url);
+    this.source.setUrl(this.clientGrid[this.getMostRecentObservation()].url);
+    live.set(true);
   }
 
   setSource(timestep) {
-    if (timestep in this.clientGrid && this.clientGrid[timestep].url !== "") {
+    if (this.trackingMode !== "manual") {
+      this.trackingMode = "manual";
+      live.set(false);
+    }
+    if (timestep === this.gridconfig.now) {
+      this.trackingMode = "live";
+      live.set(true);
+    }
+    if (timestep in this.clientGrid && this.clientGrid[timestep].url != null) {
       this.source.setUrl(this.clientGrid[timestep].url);
     }
   }

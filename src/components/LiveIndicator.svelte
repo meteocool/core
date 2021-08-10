@@ -1,7 +1,7 @@
 <script>
 import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
 import Icon from "fa-svelte";
-import { capLastUpdated, lastFocus } from "../stores";
+import { lastFocus, live } from '../stores';
 
 let lightRed = true;
 let livePill = null;
@@ -21,6 +21,7 @@ function blink(elem) {
 
 function init(elem) {
   livePill = elem;
+  window.live = live;
 }
 
 function hide() {
@@ -28,15 +29,15 @@ function hide() {
 }
 
 function show() {
-  if (livePill) livePill.style.display = "";
+  if (livePill) livePill.style.display = "flex";
 }
 
 lastFocus.subscribe(() => {
   hide();
 });
 
-capLastUpdated.subscribe(() => {
-  show();
+live.subscribe((value) => {
+  if (value) { show(); } else { hide(); }
 });
 </script>
 
@@ -74,11 +75,11 @@ capLastUpdated.subscribe(() => {
   }
 </style>
 
-<div class="live-wrapper">
-<sl-tag type="danger" class="live" size="small" pill use:init>
+<div class="live-wrapper" use:init>
+<sl-tag type="danger" class="live" size="small" pill>
     <div class="circle-container circle-container-light-red" use:blink>
         <Icon icon={faCircle} />
     </div>
-    <span class="label">LIVE</span>
+    <span class="label">Live</span>
 </sl-tag>
 </div>
