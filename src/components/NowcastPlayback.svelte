@@ -76,6 +76,13 @@ let buttonSize = "small";
 if (dd.isApp()) {
   buttonSize = "medium";
 }
+// window.onresize = () => {
+//   if (window.innerWidth < 990) {
+//     buttonSize = "medium";
+//   } else {
+//     buttonSize = "small";
+//   }
+// };
 
 let autoPlay = false;
 let chart = null;
@@ -663,11 +670,9 @@ function toggleCyclones() {
 
   .flexbox {
     display: flex;
+    gap: 18px;
     flex-wrap: wrap;
     justify-content: space-evenly;
-  }
-
-  .gap > * {
   }
 
   .flexbox > .slider {
@@ -717,9 +722,12 @@ function toggleCyclones() {
   }
 
   @media (orientation: portrait) {
+    .flexbox > .slider {
+      margin-bottom: 0px;
+    }
+
     .range {
-      margin-bottom: 5px;
-      top: 7px;
+      margin-bottom: 0px;
     }
 
     .barChartCanvas {
@@ -744,13 +752,11 @@ function toggleCyclones() {
       display: none;
     }
 
-    .gap > * {
-    }
-
     .flexbox {
-      gap: 16px;
+      gap: 4px !important;
       padding-left: 1%;
       padding-right: 1%;
+      margin-top: -2px;
     }
 
     .timeslider {
@@ -763,6 +769,11 @@ function toggleCyclones() {
   }
 
   @media only screen and (max-width: 600px) {
+    .break {
+      flex-basis: 100%;
+      height: 0;
+    }
+
     .buttonBar.right {
       left: unset;
       right: 0.3em;
@@ -787,11 +798,11 @@ function toggleCyclones() {
             <Icon icon={playPauseButton} class="controlIcon" />
           </div>
           <div class="controlButton" on:click={hide} title="Close">
-            <Icon icon={faAngleDoubleDown} class="controlIcon" />m";
+            <Icon icon={faAngleDoubleDown} class="controlIcon" />
           </div>
         </div>
         <div class="slider">
-          <sl-range min="{gridConfig.start}" max="{gridConfig.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 25px;"></sl-range>
+          <sl-range min="{gridConfig.start}" max="{gridConfig.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 21px;"></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
               <div class="button-group-toolbar">
@@ -845,7 +856,7 @@ function toggleCyclones() {
                 </sl-button-group>
               </div>
             </div>
-            {#if !dd.isIos()}
+            {#if true}
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
@@ -886,6 +897,7 @@ function toggleCyclones() {
                 </sl-select>
               </div>
             {/if}
+            <div class="break"></div>
             <div class="checkbox">
               <TimeIndicator />
             </div>

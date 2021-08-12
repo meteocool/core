@@ -59,6 +59,7 @@
     width: 100%;
     float: left;
     margin-right: 2em;
+    margin-bottom: 2px;
     height: var(--sl-input-height-medium);
   }
 

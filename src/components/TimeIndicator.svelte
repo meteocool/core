@@ -18,7 +18,6 @@ capTimeIndicator.subscribe((value) => {
   .tag {
       margin-left: 5px;
       text-align: center;
-      width: 64px;
   }
   .wrap {
       width: 100%;
@@ -27,7 +26,7 @@ capTimeIndicator.subscribe((value) => {
 </style>
 
 {#if timeString}
-    <sl-tag type="info" class="tag" size={dd.isApp() ? "large" : "medium" } pill>
+    <sl-tag type="info" class="tag" size="medium" pill>
         <div class="wrap">
             {timeString}
         </div>
