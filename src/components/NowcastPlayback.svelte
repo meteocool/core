@@ -5,7 +5,7 @@ import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoub
 import { faAngleDoubleUp } from '@fortawesome/free-solid-svg-icons/faAngleDoubleUp';
 import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
 import { faRetweet } from '@fortawesome/free-solid-svg-icons/faRetweet';
-import { sharedActiveCap } from '../stores';
+import { lastFocus, sharedActiveCap } from '../stores';
 
 import { fly, fade } from 'svelte/transition';
 import { onMount } from 'svelte';
@@ -29,7 +29,6 @@ import { setUIConstant } from '../layers/ui';
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
 import {
-  capTimeIndicator,
   cycloneLayerVisible,
   latLon,
   lightningLayerVisible,
@@ -45,6 +44,7 @@ import DevStatus from './DevStatus.svelte';
 
 export let cap;
 
+let currentTimestep;
 let gridConfig = null;
 
 let userLatLon;
@@ -176,9 +176,9 @@ function redraw(config) {
       // },
       layout: {
         padding: {
-          left: 8,
-          right: 8,
-          top: 0,
+          left: 4,
+          right: 4,
+          top: 40,
           bottom: 0,
         },
       },
@@ -222,6 +222,9 @@ function redraw(config) {
             if (disabled) {
               return null;
             }
+            if (((context.dataIndex - 1) in rendered) || ((context.dataIndex - 2) in rendered)) {
+              return null;
+            }
             if (context.chart.data.labels[context.dataIndex] === "0") {
               rendered[context.dataIndex] = true;
               return "Now";
@@ -229,12 +232,12 @@ function redraw(config) {
 
             // XXX calculate slope instead
             if (context.dataIndex > 0) {
-              if (context.chart.data.datasets[0].data[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin !== 0 && !((context.dataIndex - 1) in rendered) && !((context.dataIndex - 2) in rendered)) {
+              if (context.chart.data.datasets[0].data[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin !== 0) {
                 rendered[context.dataIndex] = true;
                 return `${context.chart.data.labels[context.dataIndex]}m`;
               }
 
-              if (val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin === 0 && !((context.dataIndex - 1) in rendered) && !((context.dataIndex - 2) in rendered)) {
+              if (val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin === 0) {
                 rendered[context.dataIndex] = true;
                 return `${context.chart.data.labels[context.dataIndex]}m`;
               }
@@ -259,12 +262,10 @@ function redraw(config) {
           },
           afterFit: (scale) => {
             scale.height = 18;
-            scale.paddingTop = 0;
             scale.paddingBottom = 0;
           },
           afterUpdate: (scale) => {
             scale.height = 18;
-            scale.paddingTop = 0;
             scale.paddingBottom = 0;
           },
           ticks: {
@@ -379,7 +380,6 @@ const fsm = new StateMachine({
         if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
       }, 200);
       setUIConstant('toast-stack-offset', '124px');
-      capTimeIndicator.set(gridConfig.now);
 
       if (autoPlay) {
         setTimeout(() => {
@@ -625,6 +625,14 @@ function toggleLightning() {
 function toggleCyclones() {
   cycloneLayerVisible.set(!$cycloneLayerVisible);
 }
+
+let last = new Date();
+lastFocus.subscribe((focus) => {
+  if (focus.getTime() > (last.getTime() + 2*60*1000) && cap.trackingMode !== "live") {
+    hide();
+  }
+  last = focus;
+});
 </script>
 
 <style>
@@ -707,7 +715,6 @@ function toggleCyclones() {
     position: absolute;
     bottom: calc(env(safe-area-inset-bottom) + 79px);
     width: 96%;
-    padding-right: 2%;
     left: 3.5%;
     height: 150px;
     pointer-events: none;
@@ -721,7 +728,7 @@ function toggleCyclones() {
     left: 0;
   }
 
-  @media (orientation: portrait) {
+  @media only screen and (max-width: 600px) {
     .flexbox > .slider {
       margin-bottom: 0px;
     }
@@ -732,11 +739,11 @@ function toggleCyclones() {
 
     .barChartCanvas {
       bottom: 142px;
-      left: 0.5%;
+      left: 0;
       width: 99%;
     }
     .barChartCanvasWithoutPlayback {
-      bottom: calc(env(safe-area-inset-bottom) + 73px);
+      bottom: calc(env(safe-area-inset-bottom) + 72px);
     }
 
     .faIconButton {
@@ -766,9 +773,7 @@ function toggleCyclones() {
     .hide-on-small-screens {
       display: none;
     }
-  }
 
-  @media only screen and (max-width: 600px) {
     .break {
       flex-basis: 100%;
       height: 0;
@@ -904,6 +909,7 @@ function toggleCyclones() {
             <div class="checkbox">
               <LastUpdated />
             </div>
+            <div class="break"></div>
             {#if !dd.isApp()}
               <div class="checkbox hide-on-small-screens" style="flex-grow: 1;">
                 <RadarScaleLine />

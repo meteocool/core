@@ -70,8 +70,8 @@ live.subscribe((value) => {
   }
 
   .label {
-      font-size: 115%;
-      letter-spacing: 1px;
+      font-size: 110%;
+      letter-spacing: 0px;
   }
 </style>
 
@@ -80,6 +80,6 @@ live.subscribe((value) => {
     <div class="circle-container circle-container-light-red" use:blink>
         <Icon icon={faCircle} />
     </div>
-    <span class="label">Live</span>
+    <span class="label">Latest</span>
 </sl-tag>
 </div>

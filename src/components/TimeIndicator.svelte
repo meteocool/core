@@ -1,7 +1,6 @@
 <script>
 import { format } from "date-fns";
 import { capTimeIndicator } from "../stores";
-import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
 let timeString = "";
 
