@@ -10,7 +10,7 @@ export let latest;
     }
 </style>
 
-<sl-tag type="danger" size="small" pill>
+<sl-tag type="danger" size="medium" pill>
     <div class="dev">
     Now: { new Date(gridConfig.now*1000.0) }<br/>
     WX: { new Date(latest*1000.0) }

@@ -1,7 +1,14 @@
 import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
-  capDescription, capLastUpdated, lastFocus, latLon, live, radarColorScheme, showForecastPlaybutton,
+  capDescription,
+  capLastUpdated,
+  capTimeIndicator,
+  lastFocus,
+  latLon,
+  live,
+  radarColorScheme,
+  showForecastPlaybutton,
 } from '../stores';
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
@@ -58,8 +65,6 @@ export default class RadarCapability extends Capability {
     lastFocus.subscribe(() => {
       if (this.layer) this.reloadAll();
     });
-
-    window.radar_cap = this;
 
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
@@ -228,7 +233,9 @@ export default class RadarCapability extends Capability {
   }
 
   resetToLatest() {
-    this.source.setUrl(this.clientGrid[this.getMostRecentObservation()].url);
+    const mostRecent = this.getMostRecentObservation();
+    this.source.setUrl(this.clientGrid[mostRecent].url);
+    capTimeIndicator.set(mostRecent);
     live.set(true);
   }
 
@@ -241,7 +248,7 @@ export default class RadarCapability extends Capability {
       this.trackingMode = "live";
       live.set(true);
     }
-    this.timestep = timestep;
+    capTimeIndicator.set(timestep);
     if (timestep in this.clientGrid && this.clientGrid[timestep].url != null) {
       this.source.setUrl(this.clientGrid[timestep].url);
     }
