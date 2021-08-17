@@ -234,9 +234,11 @@ export default class RadarCapability extends Capability {
 
   resetToLatest() {
     const mostRecent = this.getMostRecentObservation();
-    this.source.setUrl(this.clientGrid[mostRecent].url);
-    capTimeIndicator.set(mostRecent);
-    live.set(true);
+    if (mostRecent in this.clientGrid) {
+      this.source.setUrl(this.clientGrid[mostRecent].url);
+      capTimeIndicator.set(mostRecent);
+      live.set(true);
+    }
   }
 
   setSource(timestep) {

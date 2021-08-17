@@ -17,9 +17,10 @@
 <style>
   .scale-divider {
     float: left;
-    padding-top: 1.2em;
+    padding-top: 1.05em;
     font-size: 76%;
     color: var(--sl-color-black);
+    line-height: 80%;
   }
 
   /* XXX share styles with scaleline */
@@ -28,7 +29,7 @@
     border-radius: var(--sl-border-radius-pill);
     border: 0.5px solid var(--sl-color-info-200);
     background-image: var(--backgroundImage);
-    height: 25%;
+    height: 16%;
     background-repeat: repeat;
     background-size: contain;
     background-position: left;

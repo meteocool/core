@@ -69,8 +69,8 @@ sharedActiveCap.subscribe((val) => {
     background-color: var(--sl-color-white);
   }
 
-  @media (orientation: portrait) {
-    :global(.bottomToolbar) {
+  @media only screen and (max-width: 620px) {
+      :global(.bottomToolbar) {
       height: 84px !important;
       padding-top: 0px;
     }
@@ -87,11 +87,10 @@ sharedActiveCap.subscribe((val) => {
     }
   }
 
-
   .lastUpdatedBottom {
     height: 42px;
     bottom: env(safe-area-inset-bottom);
-    z-index: 99;
+    z-index: 4;
     padding-top: 0.2em;
     padding-bottom: 0.2em;
   }
@@ -99,7 +98,8 @@ sharedActiveCap.subscribe((val) => {
   .parentz {
     display: flex;
     flex-wrap: wrap;
-    padding-top: 0.3em;
+    padding-top: 0.4em;
+    gap: 1px;
   }
 
   .left {
@@ -123,7 +123,7 @@ sharedActiveCap.subscribe((val) => {
     flex-shrink: 0; /* do not shrink - initial value: 1 */
     flex-basis: 3%;
   }
-  @media only screen and (max-width: 600px) {
+  @media only screen and (max-width: 650px) {
     .app-logos {
       display: none;
     }
@@ -138,7 +138,6 @@ sharedActiveCap.subscribe((val) => {
     flex-shrink: 1; /* do not shrink - initial value: 1 */
     flex-basis: 2%;
     text-align: center;
-    margin-right: 1.5%;
     padding-top: 0;
   }
 
@@ -146,14 +145,12 @@ sharedActiveCap.subscribe((val) => {
     flex: auto;
     padding: 0.5em;
     padding-top: 0;
-    padding-bottom: 0;
     position: relative;
     flex-grow: 1; /* do not grow   - initial value: 0 */
     flex-shrink: 1; /* do not shrink - initial value: 1 */
     flex-basis: 50%;
     text-align: center;
-    margin-left: 1.5%;
-    margin-right: 1.5%;
+    height: 32px;
   }
 
 

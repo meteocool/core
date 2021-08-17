@@ -145,7 +145,7 @@
     transform: translate(-50%, -50%);
   }
 
-  @media only screen and (max-width: 600px) {
+  @media only screen and (max-width: 620px) {
     .helpText {
       line-height: 1.5;
       font-size: 90%;

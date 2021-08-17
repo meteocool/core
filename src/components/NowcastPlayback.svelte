@@ -460,7 +460,6 @@ const fsm = new StateMachine({
       setUIConstant('toast-stack-offset');
 
       bottomToolbarMode.set('collapsed');
-      // cap.source.setUrl(cap.lastSourceUrl); XXX
     },
   },
 });
@@ -638,7 +637,7 @@ lastFocus.subscribe((focus) => {
 <style>
   .timeslider {
     height: 90px;
-    z-index: 999999;
+    z-index: 6;
     padding-top: 6px;
   }
 
@@ -652,7 +651,7 @@ lastFocus.subscribe((focus) => {
     border-radius: 5px;
     flex: 1 1 auto;
     text-align: center;
-    margin: 0.3em 0.25em 0.5em 0.25em;
+    margin: 0.3em 0.25em 0.4em 0.25em;
     cursor: pointer;
     color: var(--sl-color-black);
   }
@@ -668,7 +667,7 @@ lastFocus.subscribe((focus) => {
     position: absolute;
     bottom: env(safe-area-inset-bottom);
     left: 0.3em;
-    z-index: 999999;
+    z-index: 4;
   }
 
   .buttonBar.right {
@@ -678,7 +677,6 @@ lastFocus.subscribe((focus) => {
 
   .flexbox {
     display: flex;
-    gap: 18px;
     flex-wrap: wrap;
     justify-content: space-evenly;
   }
@@ -687,6 +685,7 @@ lastFocus.subscribe((focus) => {
     flex-grow: 1; /* do not grow   - initial value: 0 */
     flex-shrink: 1; /* do not shrink - initial value: 1 */
     flex-basis: 85%;
+    padding-right: 1em;
   }
 
   .flexbox > .buttonsInline {
@@ -703,7 +702,7 @@ lastFocus.subscribe((focus) => {
   }
 
   .range {
-    width: 98.75%;
+    width: 100%;
     top: 5px;
   }
 
@@ -714,23 +713,28 @@ lastFocus.subscribe((focus) => {
   .barChartCanvas {
     position: absolute;
     bottom: calc(env(safe-area-inset-bottom) + 79px);
-    width: 96%;
-    left: 3.5%;
+    width: 97%;
+    left: 2.9%;
     height: 150px;
     pointer-events: none;
     margin-right: 0.5em;
-    z-index: 9999999;
+    z-index: 7;
   }
 
   .barChartCanvasWithoutPlayback {
-    bottom: calc(env(safe-area-inset-bottom) + 30px);
+    bottom: calc(env(safe-area-inset-bottom) + 31px);
     width: 100% !important;
     left: 0;
   }
 
-  @media only screen and (max-width: 600px) {
+  .gap {
+    gap: 18px;
+  }
+
+  @media only screen and (max-width: 620px) {
     .flexbox > .slider {
       margin-bottom: 0px;
+      padding-right: 0.1em;
     }
 
     .range {
@@ -743,12 +747,7 @@ lastFocus.subscribe((focus) => {
       width: 99%;
     }
     .barChartCanvasWithoutPlayback {
-      bottom: calc(env(safe-area-inset-bottom) + 72px);
-    }
-
-    .faIconButton {
-      font-size: 125%;
-      margin-top: 2px;
+      bottom: calc(env(safe-area-inset-bottom) + 73px);
     }
 
     .flexbox > .buttonsInline {
@@ -760,7 +759,7 @@ lastFocus.subscribe((focus) => {
     }
 
     .flexbox {
-      gap: 4px !important;
+      gap: 5px !important;
       padding-left: 1%;
       padding-right: 1%;
       margin-top: -2px;
@@ -800,7 +799,7 @@ lastFocus.subscribe((focus) => {
       <div class="flexbox">
         <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">
-            <Icon icon={playPauseButton} class="controlIcon" />
+            <Icon icon={playPauseButton} class="controlIconInline" />
           </div>
           <div class="controlButton" on:click={hide} title="Close">
             <Icon icon={faAngleDoubleDown} class="controlIcon" />
@@ -810,90 +809,43 @@ lastFocus.subscribe((focus) => {
           <sl-range min="{gridConfig.start}" max="{gridConfig.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 21px;"></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
-              <div class="button-group-toolbar">
+              <div class="button-group-toolbar" >
                 <sl-button-group label="Playback Controls">
-                  {#if !dd.isApp()}
-                    <!-- XXX this is sadly necessary because sl tooltip throws some weird exception on mobile, even if disabled -->
-                    <sl-tooltip content="Play">
-                      <sl-button size={buttonSize} on:click={playPause}>
-                        <div class="faIconButton">
-                          <Icon icon={playPauseButton} />
-                        </div>
-                      </sl-button>
-                    </sl-tooltip>
-                  {:else}
-                    <sl-button size={buttonSize} on:click={playPause}>
-                      <div class="faIconButton">
-                        <Icon icon={playPauseButton} />
-                      </div>
-                    </sl-button>
-                  {/if}
-                  {#if !dd.isApp()}
-                  <sl-tooltip content="Automatically Loop Playback">
-                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
-                      <div class="faIconButton">
-                        <Icon icon={faRetweet} />
-                      </div>
-                    </sl-button>
-                  </sl-tooltip>
-                  {:else}
-                    <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop}>
-                      <div class="faIconButton">
-                        <Icon icon={faRetweet} />
-                      </div>
-                    </sl-button>
-                  {/if}
-                  {#if !dd.isApp()}
-                  <sl-tooltip content="Include Last 2 Hours in Playback Loop">
-                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
-                      <div class="faIconButton">
-                        <Icon icon={faHistory} />
-                      </div>
-                    </sl-button>
-                  </sl-tooltip>
-                  {:else}
-                    <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}>
-                      <div class="faIconButton">
-                        <Icon icon={faHistory} />
-                      </div>
-                    </sl-button>
-                  {/if}
+                  <sl-button size={buttonSize} on:click={playPause} style="--sl-button-font-size-small: 16px; --sl-button-font-size-medium: 16px;">
+                    <div class="faIconButton" slot="prefix" style="margin-top: 4px !important; margin-left: 10%; margin-right: 10%;">
+                      &nbsp;<Icon icon={playPauseButton} />&nbsp;
+                    </div>
+                  </sl-button>
+                  <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
+                    <div class="faIconButton" style="margin-top: 3px !important;">
+                      <Icon icon={faRetweet} />
+                    </div>
+                  </sl-button>
+                  <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
+                    <div class="faIconButton" style="margin-top: 2px !important;">
+                      <Icon icon={faHistory} />
+                    </div>
+                  </sl-button>
                 </sl-button-group>
               </div>
             </div>
-            {#if true}
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
-                    <sl-tooltip content="Show Lightning Strikes (if any)">
-                      <sl-button size={buttonSize} type="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
-                    </sl-tooltip>
-                    <sl-tooltip content="Show Mesocyclones (if any)">
-                      <sl-button size={buttonSize} type="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
-                    </sl-tooltip>
+                    <sl-button size={buttonSize} type="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
+                    <sl-button size={buttonSize} type="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
                   </sl-button-group>
                 </div>
               </div>
               <div class="checkbox buttonsInline">
                 <div class="button-group-toolbar">
-                  {#if !dd.isApp()}
-                    <sl-tooltip content="Close">
-                      <sl-button size={buttonSize} on:click={hide}>
-                        <div class="faIconButton">
-                          <Icon icon={faAngleDoubleDown} />️
-                        </div>
-                      </sl-button>
-                    </sl-tooltip>
-                  {:else}
-                    <sl-button size={buttonSize} on:click={hide}>
-                      <div class="faIconButton">
-                        <Icon icon={faAngleDoubleDown} />️
-                      </div>
-                    </sl-button>
-                  {/if}
+                   <sl-button size={buttonSize} on:click={hide}>
+                     <div class="faIconButton">
+                       <Icon icon={faAngleDoubleDown} />️
+                     </div>
+                   </sl-button>
                 </div>
               </div>
-            {/if}
             {#if false}
               <div class="checkbox">
                 <sl-select size={buttonSize}>
@@ -914,7 +866,7 @@ lastFocus.subscribe((focus) => {
               <div class="checkbox hide-on-small-screens" style="flex-grow: 1;">
                 <RadarScaleLine />
               </div>
-              <div class="checkbox hide-on-small-screens" style="margin-right: 8px;">
+              <div class="checkbox hide-on-small-screens">
                 {#if process.env.NODE_ENV === "development"}
                   <DevStatus gridConfig="{gridConfig}" latest="{latest}"/>
                 {:else}
