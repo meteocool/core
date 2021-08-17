@@ -26,7 +26,7 @@
     "list_title3": "Push Nachrichten:",
     "list3": "Bekomme eine Mitteilung über Regen, Niederschlag und Unwetter bis zu 60 Minuten im Voraus. Das funktioniert im Web und in den Apps, die Einstellungen können beliebig angepasst werden, z.B. ab einer bestimmten Niederschlagsmenge.",
     "list_title4": "iOS & Android Apps:",
-    "list4": "meteocool hat Batteriesparende Apps für iOS und Android, damit du unterwegs immer über das aktuelle Wetter informiert bist."
+    "list4": "meteocool hat batteriesparende Apps für iOS und Android, damit du unterwegs immer über das aktuelle Wetter informiert bist."
   },
   "credits_help": {
     "header": "Danksagung & Hilfe",
@@ -50,5 +50,11 @@
   "published": "Veröffentlicht",
   "acquired": "Aufgenommen",
   "trackingMostRecent": "Immer aktuell",
-  "forcastPlaying": "Es wird dir gerade die Vorhersage angezeigt.\nUm zurück zum aktuellen Radarbild zu gelangen, setzte die Zeitachse zurück ↺."
+  "forcastPlaying": "Es wird dir gerade die Vorhersage angezeigt.\nUm zurück zum aktuellen Radarbild zu gelangen, setzte die Zeitachse zurück ↺.",
+  "now": "Jetzt",
+  "latest": "Aktuell",
+  "rain_and_thunderstorms": "Regen & Gewitter",
+  "nrt_satellite": "Satellit",
+  "precpitation_types": "Niederschlags-\narten",
+  "layer_switcher_placeholder": "Dir gefällt meteocool? Dann schreib uns doch eine gute Bewertung. ❤️"
 }

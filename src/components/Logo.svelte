@@ -1,22 +1,18 @@
 <script>
-  import logo from "../../public/assets/logo.svg";
-  import About from "./About.svelte";
-  import { _ } from "svelte-i18n";
-  import { logoStyle } from '../stores';
+import logo from "../../public/assets/logo.svg";
+import About from "./About.svelte";
+import { _ } from "svelte-i18n";
+import { logoStyle } from '../stores';
 
-  let showAbout = false;
-  let style;
-  logoStyle.subscribe((value) => {
-    style = value;
-  });
+let showAbout = false;
 
-  function toggleAbout() {
-    if (!showAbout) {
-      showAbout = true;
-    } else {
-      showAbout = false;
-    }
+function toggleAbout() {
+  if (!showAbout) {
+    showAbout = true;
+  } else {
+    showAbout = false;
   }
+}
 </script>
 
 <style>
@@ -81,7 +77,7 @@
   }
 </style>
 
-{#if style === "full"}
+{#if $logoStyle === "full"}
   <div class="logo-wrapper">
     <img
             src={logo}

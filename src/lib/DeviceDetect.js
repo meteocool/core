@@ -17,4 +17,14 @@ export class DeviceDetect {
   static isApp() {
     return this.isIos() || this.isAndroid();
   }
+
+  static breakpoint() {
+    if (window.innerWidth > 1620) {
+      return "wide";
+    }
+    if (window.innerWidth > 1200) {
+      return "reduced";
+    }
+    return "small";
+  }
 }

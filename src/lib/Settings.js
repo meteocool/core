@@ -68,6 +68,11 @@ export default class Settings {
     if (typeof key !== "string") {
       return;
     }
+    if (!(key in this.settings)) {
+      console.error(`Key ${key} not found in settings`);
+      return;
+    }
+
     // eslint-disable-line valid-typeof
     if (typeof value !== this.settings[key].type) {
       console.log(`Type missmatch for key ${key}`);

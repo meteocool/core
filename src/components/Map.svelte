@@ -23,10 +23,10 @@
     bottomToolbarMode.subscribe((val) => {
       if (val === "player") {
         document.getElementById(node.id).style.height =
-          "calc(min(90%, calc(100% - 100px)) + 11px)";
+          "calc(100% - 88px)";
       } else if (val === "collapsed") {
         document.getElementById(node.id).style.height =
-          "calc(100% - calc(env(safe-area-inset-bottom) + 42px))";
+          "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
       } else {
         document.getElementById(node.id).style.height = "100%";
       }

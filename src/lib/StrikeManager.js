@@ -9,8 +9,8 @@ export default class StrikeManager {
     this.enabled = true;
   }
 
-  addStrike(lon, lat) {
-    return this.addStrikeWithTime(lon, lat, new Date().getTime());
+  addStrike(lon, lat, addCb = null) {
+    return this.addStrikeWithTime(lon, lat, new Date().getTime(), addCb);
   }
 
   removeOne(id, idx) {
@@ -23,7 +23,7 @@ export default class StrikeManager {
     }
   }
 
-  addStrikeWithTime(lon, lat, time) {
+  addStrikeWithTime(lon, lat, time, addCb = null) {
     if (!this.enabled) return false;
     const lightning = new Feature(new Point([lon, lat]));
     lightning.setId(time);
@@ -31,6 +31,9 @@ export default class StrikeManager {
     if (this.strikes.length > this.maxStrikes) {
       const toRemove = this.strikes.shift();
       this.removeOne(toRemove, -1);
+    }
+    if (addCb) {
+      addCb(lightning);
     }
     return this.vs.addFeature(lightning);
   }

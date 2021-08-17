@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+﻿import { writable } from "svelte/store";
 
 export const bottomToolbarMode = writable("collapsed");
 export const capDescription = writable("Meteorology for everyone");
@@ -16,4 +16,9 @@ export const radarColorScheme = writable("classic");
 export const showForecastPlaybutton = writable(true);
 export const satelliteLayer = writable("sentinel2");
 export const zoomlevel = writable(3);
-export const processedForecastsCount = writable(0);
+export const live = writable(false);
+
+export const sharedActiveCap = writable("");
+export const sharedCmap = writable("");
+
+export const lastFocus = writable(new Date());

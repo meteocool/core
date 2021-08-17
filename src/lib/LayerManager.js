@@ -3,7 +3,7 @@ import {
   fromLonLat,
   getTransformFromProjections,
   get as getProjection, toLonLat,
-} from 'ol/proj';
+} from "ol/proj";
 import Collection from "ol/Collection";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
@@ -18,8 +18,8 @@ import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
-import { latLon, mapBaseLayer, zoomlevel } from '../stores';
-import { DeviceDetect as dd } from '../lib/DeviceDetect';
+import { latLon, mapBaseLayer, sharedActiveCap, zoomlevel } from "../stores";
+import { DeviceDetect as dd } from "./DeviceDetect";
 
 let shouldUpdate = true;
 
@@ -110,6 +110,7 @@ export class LayerManager {
       this.capabilities[this.currentCap].willLoseFocus();
     }
     this.capabilities[cap].setTarget(target);
+    sharedActiveCap.set(cap);
     this.currentCap = cap;
   }
 

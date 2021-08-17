@@ -3,6 +3,7 @@ import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
 import { io } from "socket.io-client";
+import { fromLonLat } from "ol/proj";
 import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -20,28 +21,28 @@ import de from "./locale/de.json";
 import en from "./locale/en.json";
 import {
   bottomToolbarMode,
-  capLastUpdated,
   colorSchemeDark,
-  cycloneLayerVisible, layerswitcherVisible,
+  cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
   mapBaseLayer,
   radarColorScheme, toolbarVisible,
-} from './stores';
+} from "./stores";
 
-import "./style/global.css";
+import "./html/global.css";
 import "@shoelace-style/shoelace/dist/themes/base.css";
 import { apiBaseUrl, dataUrl, websocketBaseUrl } from "./urls";
 import { initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
 import StrikeManager from "./lib/StrikeManager";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
+
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";
-import { reportError, reportToast } from './lib/Toast';
-import Router from './lib/Router';
-import { fromLonLat } from 'ol/proj';
+import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
+import { greyOverlay } from "./layers/radar";
 
+// eslint-disable-next-line import/no-mutable-exports
 export let device;
 
 dd.set(device);
@@ -82,6 +83,9 @@ window.settings = new Settings({
   experimentalFeatures: {
     type: "boolean",
     default: false,
+    cb: () => {
+      // reportToast(`Experimental features ${value}`);
+    },
   },
   layerMesocyclones: {
     type: "boolean",
@@ -148,10 +152,53 @@ const strikemgr = new StrikeManager(1000, lightningSource);
 
 const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
 const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
+cycloneLayerVisible.subscribe((value) => {
+  mesocycloneLayer.setVisible(value);
+  window.settings.set("layerMesocyclones", value);
+});
+lightningLayerVisible.set(window.settings.get("layerMesocyclones"));
+
+// const duration = 3000;
+// const flash = (feature, layer) => {
+//   var start = new Date().getTime();
+//   var listenerKey = layer.on('postrender', (event) => {
+//     var vectorContext = getVectorContext(event);
+//     var frameState = event.frameState;
+//     var flashGeom = feature.getGeometry().clone();
+//     var elapsed = frameState.time - start;
+//     var elapsedRatio = elapsed / duration;
+//     // radius will be 5 at start and 30 at end.
+//     var radius = easeOut(elapsedRatio) * 25 + 5;
+//     var opacity = easeOut(1 - elapsedRatio);
+//
+//     var style = new Style({
+//       image: new CircleStyle({
+//         radius: radius,
+//         stroke: new Stroke({
+//           color: 'rgba(255, 0, 0, ' + opacity + ')',
+//           width: 0.25 + opacity,
+//         }),
+//       }),
+//     });
+//
+//     vectorContext.setStyle(style);
+//     vectorContext.drawGeometry(flashGeom);
+//     if (elapsed > duration) {
+//       unByKey(listenerKey);
+//       return;
+//     }
+//     // tell OpenLayers to continue postrender animation
+//     lm.getCurrentMap().render();
+//   });
+// }
+//
+// window.flash = flash;
+// window.sm = strikemgr;
 
 radarSocketIO.on("lightning", (data) => {
   strikemgr.addStrike(data.lon, data.lat);
 });
+window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
   mesocyclonemgr.clearAll();
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
@@ -166,6 +213,11 @@ export const weather = new WeatherCapability({
   nanobar: nb,
   tileURL: `${apiBaseUrl}/icon/t_2m/`,
 });
+export const precipTypes = new PrecipitationTypesCapability({
+  nanobar: nb,
+  tileURL: `${apiBaseUrl}/precip_types/`,
+  additionalLayers: [labelsOnly(), greyOverlay()],
+});
 
 export const lm = new LayerManager({
   settings: window.settings,
@@ -174,6 +226,7 @@ export const lm = new LayerManager({
     radar,
     satellite: new SatelliteCapability({ nanobar: nb }),
     weather,
+    precipTypes,
   },
 });
 window.lm = lm;
@@ -245,9 +298,7 @@ reloadLightning();
 reloadCyclones();
 
 window.enterForeground = () => {
-  capLastUpdated.set(null);
-  radar.downloadCurrentRadar();
-  weather.reloadTilesWeather();
+  lastFocus.set(new Date());
   if (window.matchMedia) {
     colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
   }
@@ -255,10 +306,17 @@ window.enterForeground = () => {
   reloadCyclones();
 };
 
-let toolbar;
-toolbarVisible.subscribe((value) => {
-  toolbar = value;
-});
+if (device === "web") {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      lm.updateLocation(position.coords.latitude, position.coords.longitude, 1, 0);
+    });
+  }
+  // window.onfocus = function () {
+  //   // if (lastFocus)
+  //   window.enterForeground();
+  // };
+}
 </script>
 
 <style>
@@ -284,7 +342,7 @@ toolbarVisible.subscribe((value) => {
     height: 100%;
     background: rgb(135, 202, 214);
     height: 2px;
-    border-radius: 0px 2px 2px 0px;
+    border-radius: 0 2px 2px 0;
     box-shadow: 0 0 3px rgb(135, 202, 214);
   }
 
@@ -304,11 +362,13 @@ toolbarVisible.subscribe((value) => {
   <Logo />
 {/if}
 
-{#if toolbar}
+{#if $toolbarVisible}
   <BottomToolbar />
 {/if}
+
 <div id="nanobar" />
 <Map layerManager={lm} />
-{#if toolbar}
+
+{#if $toolbarVisible}
 <NowcastPlayback cap={radar} />
 {/if}
