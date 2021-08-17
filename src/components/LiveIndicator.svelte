@@ -2,6 +2,7 @@
 import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
 import Icon from "fa-svelte";
 import { lastFocus, live } from '../stores';
+import { _ } from 'svelte-i18n';
 
 let lightRed = true;
 let livePill = null;
@@ -80,6 +81,6 @@ live.subscribe((value) => {
     <div class="circle-container circle-container-light-red" use:blink>
         <Icon icon={faCircle} />
     </div>
-    <span class="label">Latest</span>
+    <span class="label">{$_("latest")}</span>
 </sl-tag>
 </div>

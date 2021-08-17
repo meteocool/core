@@ -41,6 +41,7 @@ import Appendix from './Appendix.svelte';
 import RadarScaleLine from './scales/RadarScaleLine.svelte';
 import LiveIndicator from './LiveIndicator.svelte';
 import DevStatus from './DevStatus.svelte';
+import { _ } from 'svelte-i18n';
 
 export let cap;
 
@@ -227,7 +228,7 @@ function redraw(config) {
             }
             if (context.chart.data.labels[context.dataIndex] === "0") {
               rendered[context.dataIndex] = true;
-              return "Now";
+              return $_("now");
             }
 
             // XXX calculate slope instead
