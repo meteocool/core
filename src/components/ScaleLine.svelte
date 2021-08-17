@@ -43,6 +43,7 @@
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
+    margin-top: 1px;
   }
 
   @media only screen and (max-width: 990px) {
