@@ -1,37 +1,38 @@
-const path = require('path');
-const CopyPlugin = require('copy-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const path = require("path");
+const CopyPlugin = require("copy-webpack-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const WebpackBar = require('webpackbar');
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const { InjectManifest } = require('workbox-webpack-plugin');
-const webpack = require('webpack');
+const { InjectManifest } = require("workbox-webpack-plugin");
+const webpack = require("webpack");
 
-const mode = process.env.NODE_ENV || 'development';
-const prod = mode === 'production';
+const mode = process.env.NODE_ENV || "development";
+const prod = mode === "production";
 
 module.exports = {
   entry: {
-    bundle: ['./src/main.js'],
-    android: ['./src/android.js'],
-    ios: ['./src/ios.js'],
+    bundle: ["./src/main.js"],
+    android: ["./src/android.js"],
+    ios: ["./src/ios.js"],
   },
   resolve: {
     alias: {
-      svelte: path.resolve('node_modules', 'svelte'),
+      svelte: path.resolve("node_modules", "svelte"),
     },
-    extensions: ['.mjs', '.js', '.svelte'],
-    mainFields: ['svelte', 'browser', 'module', 'main'],
+    extensions: [".mjs", ".js", ".svelte"],
+    mainFields: ["svelte", "browser", "module", "main"],
   },
   output: {
     path: `${__dirname}/dist`,
-    filename: '[name].js',
-    chunkFilename: '[name].js',
+    filename: "[name].js",
+    chunkFilename: "[name].js",
   },
   module: {
     rules: [{
       test: /\.svelte$/,
       use: {
-        loader: 'svelte-loader',
+        loader: "svelte-loader",
         options: {
           emitCss: true,
           hotReload: true,
@@ -45,14 +46,14 @@ module.exports = {
           * MiniCssExtractPlugin doesn't support HMR.
           * For developing, use 'style-loader' instead.
           * */
-        prod ? MiniCssExtractPlugin.loader : 'style-loader',
-        'css-loader',
+        prod ? MiniCssExtractPlugin.loader : "style-loader",
+        "css-loader",
       ],
     },
     {
       test: /\.(png|svg|jpg|gif)$/,
       use: [
-        'url-loader',
+        "url-loader",
       ],
     },
     ],
@@ -71,43 +72,44 @@ module.exports = {
       BACKEND: JSON.stringify(process.env.BACKEND),
     }),
     new HtmlWebpackPlugin({
-      filename: 'index.html',
-      template: 'src/html/index.html',
-      chunks: ['bundle'],
+      filename: "index.html",
+      template: "src/html/index.html",
+      chunks: ["bundle"],
     }),
     new HtmlWebpackPlugin({
-      filename: 'android.html',
-      template: 'src/html/android.html',
-      chunks: ['android'],
+      filename: "android.html",
+      template: "src/html/android.html",
+      chunks: ["android"],
     }),
     new HtmlWebpackPlugin({
-      filename: 'ios.html',
-      template: 'src/html/ios.html',
-      chunks: ['ios'],
+      filename: "ios.html",
+      template: "src/html/ios.html",
+      chunks: ["ios"],
     }),
     new HtmlWebpackPlugin({
-      filename: 'imprint.html',
-      template: 'src/html/imprint.html',
+      filename: "imprint.html",
+      template: "src/html/imprint.html",
       chunks: [],
     }),
     new HtmlWebpackPlugin({
-      filename: 'privacy.html',
-      template: 'src/html/privacy.html',
+      filename: "privacy.html",
+      template: "src/html/privacy.html",
       chunks: [],
     }),
     new MiniCssExtractPlugin({
-      filename: '[name].css',
+      filename: "[name].css",
     }),
     new CopyPlugin({
       patterns: [
         // Copy Shoelace assets to dist/shoelace
         {
-          from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
-          to: path.resolve(__dirname, 'dist/shoelace/assets')
+          from: path.resolve(__dirname, "node_modules/@shoelace-style/shoelace/dist/assets"),
+          to: path.resolve(__dirname, "dist/shoelace/assets"),
         },
-        { from: 'public' }
-      ]
+        { from: "public" },
+      ],
     }),
+    new WebpackBar(),
     new InjectManifest({
       swSrc: "./src/sw.js",
       swDest: "sw.js",

@@ -5,6 +5,7 @@
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
+  import { _ } from 'svelte-i18n';
 
   export let layerManager;
   const childCanvases = {};
@@ -109,7 +110,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 0.15em 0.1em;
-    grid-template-areas: "reflectivity satellite" "weather help";
+    grid-template-areas: "reflectivity satellite" "precip-types help";
     height: 100%;
   }
 
@@ -119,8 +120,8 @@
   .satellite {
     grid-area: satellite;
   }
-  .weather {
-    grid-area: weather;
+  .precip-types {
+    grid-area: precip-types;
     position: relative;
   }
   .help {
@@ -145,7 +146,7 @@
     transform: translate(-50%, -50%);
   }
 
-  @media only screen and (max-width: 600px) {
+  @media only screen and (max-width: 620px) {
     .helpText {
       line-height: 1.5;
       font-size: 90%;
@@ -158,10 +159,6 @@
     font-size: 6pt;
     text-align: center;
     width: 100%;
-  }
-
-  .hidden {
-    display: none;
   }
 </style>
 
@@ -178,7 +175,7 @@
         <MiniMap
           {layerManager}
           layer={"radar"}
-          label={"⚡️ Rain & Thunderstorms"}
+          label={`⚡️ ${$_("rain_and_thunderstorms")}`}
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
       </div>
@@ -186,27 +183,22 @@
         <MiniMap
           {layerManager}
           layer={"satellite"}
-          label={"🛰️ Real-Time Satellite"}
+          label={`🛰️ ${$_("nrt_satellite")}`}
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
       </div>
-      <div class="weather cell">
-        <div class="helpText">
-          More Layers Coming Soon 🔥
-        </div>
-        <div class="hidden">
+      <div class="precip-types cell">
           <MiniMap
                   {layerManager}
-                  layer={"weather"}
-                  label={"🌤 Weather "}
+                  layer={"precipTypes"}
+                  label={`💧 ${$_("precpitation_types")}`}
                   on:mount={childMounted}
                   on:changeLayer={changeLayer}
                   class="hidden" />
-        </div>
       </div>
       <div class="help cell">
         <div class="helpText">
-          ☀️ Today's weather is hardly worth mentioning? ️<br />Explore the near-realtime satellite map!
+          {$_("layer_switcher_placeholder")}
         </div>
         <div class="contributors">
           &copy; meteocool Contributors {allAttributions}

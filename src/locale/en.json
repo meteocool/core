@@ -52,5 +52,11 @@
   "published": "Published",
   "acquired": "Acquired",
   "trackingMostRecent": "Tracking Most Recent",
-  "forcastPlaying": "⏱ You are now viewing forecasted data. Keep in mind that it might be less accurate."
+  "forcastPlaying": "⏱ You are now viewing forecasted data. Keep in mind that it might be less accurate.",
+  "now": "Now",
+  "latest": "Latest",
+  "rain_and_thunderstorms": "Rain & Thunderstorms",
+  "nrt_satellite": "Near Real-Time Satellite",
+  "precpitation_types": "Precipitation Types",
+  "layer_switcher_placeholder": "Like meteocool? Then leave us a good review. ❤️"
 }

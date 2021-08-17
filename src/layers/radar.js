@@ -14,11 +14,11 @@ import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { meteocoolClassic, viridis } from "../colormaps";
 import { tileBaseUrl } from "../urls";
-import { NOWCAST_TRANSPARENCY } from "./ui";
+import { NOWCAST_OPACITY } from "./ui";
 
 let cmap = meteocoolClassic;
 
-export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
+export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
@@ -31,9 +31,16 @@ export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
     tileSize: 512,
     cacheSize: 999999,
   });
+  reflectivitySource.set("tile_id", tileId);
+  return reflectivitySource;
+};
+
+export const dwdLayerStatic = (tileId, bucket, extra) => {
+  const reflectivitySource = dwdSource(tileId, bucket);
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
     zIndex: 80,
+    opacity: NOWCAST_OPACITY,
   });
 
   // Disable browser upsampling
@@ -46,8 +53,8 @@ export const dwdLayerStatic = (tileId, extra, bucket = "meteoradar") => {
     transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
   );
 
-  reflectivityLayer.set("tileId", tileId);
-  return [reflectivityLayer, reflectivitySource, sourceUrl];
+  reflectivityLayer.set("tile_id", tileId);
+  return [reflectivityLayer, reflectivitySource, ""];
 };
 
 let lastRasterRadar = null;
@@ -101,7 +108,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     source: rasterRadar,
     renderBuffer: 500,
     title: "Radar Composite",
-    opacity: NOWCAST_TRANSPARENCY,
+    opacity: NOWCAST_OPACITY,
     id: tileId,
     ...extra,
   });
@@ -141,3 +148,30 @@ export const greyOverlay = () => new VectorLayer({
     }),
   }),
 });
+
+export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
+  const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
+  const reflectivitySource = new XYZ({
+    url: sourceUrl,
+    attributions: [dwdAttribution],
+    crossOrigin: "anonymous",
+    minZoom: 3,
+    maxZoom: 8,
+    transition: 300,
+    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+    tileSize: 512,
+    cacheSize: 999999,
+  });
+  const reflectivityLayer = new TileLayer({
+    source: reflectivitySource,
+    zIndex: 1000,
+    opacity: NOWCAST_OPACITY,
+  });
+
+  // Disable browser upsampling
+  reflectivityLayer.on("prerender", (evt) => {
+    evt.context.imageSmoothingEnabled = false;
+    evt.context.msImageSmoothingEnabled = false;
+  });
+  return reflectivityLayer;
+};
