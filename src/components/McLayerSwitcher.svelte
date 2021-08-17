@@ -5,6 +5,7 @@
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
+  import { _ } from 'svelte-i18n';
 
   export let layerManager;
   const childCanvases = {};
@@ -174,7 +175,7 @@
         <MiniMap
           {layerManager}
           layer={"radar"}
-          label={"⚡️ Rain & Thunderstorms"}
+          label={`⚡️ ${$_("rain_and_thunderstorms")}`}
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
       </div>
@@ -182,7 +183,7 @@
         <MiniMap
           {layerManager}
           layer={"satellite"}
-          label={"🛰️ Real-Time Satellite"}
+          label={`🛰️ ${$_("nrt_satellite")}`}
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
       </div>
@@ -190,14 +191,14 @@
           <MiniMap
                   {layerManager}
                   layer={"precipTypes"}
-                  label={"💧 Precipitation Types "}
+                  label={`💧 ${$_("precpitation_types")}`}
                   on:mount={childMounted}
                   on:changeLayer={changeLayer}
                   class="hidden" />
       </div>
       <div class="help cell">
         <div class="helpText">
-          ☀️ Today's weather is hardly worth mentioning? ️<br />Explore the near-realtime satellite map!
+          {$_("layer_switcher_placeholder")}
         </div>
         <div class="contributors">
           &copy; meteocool Contributors {allAttributions}
