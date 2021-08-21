@@ -76,13 +76,9 @@ export class LayerManager {
     let zoomLevel = view.getZoom();
     const oldCenter = view.getCenter();
     if (zoom) {
-      if (accuracy < 400) {
-        zoomLevel = 12;
-      } else if (accuracy < 800) {
-        zoomLevel = 11;
-      } else if (accuracy < 2000) {
+      if (accuracy < 800) {
         zoomLevel = 10;
-      } else if (accuracy < 4000) {
+      } else if (accuracy < 2000) {
         zoomLevel = 9;
       } else {
         zoomLevel = 8;

@@ -1,6 +1,6 @@
 <script>
   import cssVars from 'svelte-css-vars';
-  import mapBg from "../../public/assets/map-bg.png";
+  import mapBg from "../../../public/assets/map-bg.png";
 
   export let palette;
   export let valueFormat;

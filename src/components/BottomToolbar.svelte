@@ -3,7 +3,7 @@ import LastUpdated from "./LastUpdated.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { capDescription, satelliteLayer, sharedActiveCap, bottomToolbarMode, zoomlevel } from "../stores";
 import { precipTypeNames } from "../lib/cmaps";
-import StepScaleLine from "./StepScaleLine.svelte";
+import StepScaleLine from "./scales/StepScaleLine.svelte";
 import Appendix from "./Appendix.svelte";
 import { fly } from 'svelte/transition';
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
