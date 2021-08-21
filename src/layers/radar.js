@@ -12,11 +12,11 @@ import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
 import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
-import { meteocoolClassic, viridis } from "../colormaps";
+import { nws } from "../colormaps";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 
-let cmap = meteocoolClassic;
+let cmap = nws;
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
@@ -68,7 +68,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     minZoom: 3,
     maxZoom: 8,
     transition: 300,
-    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+    tilePixelRatio: 1,
     tileSize: 512,
     cacheSize: 999999,
   });
@@ -89,18 +89,25 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     // eslint-disable-next-line object-shorthand
     // eslint-disable-next-line func-names
     operation: function(pixels, data) {
-      let dbz = pixels[0][0];
-      if (dbz >= data.cmapLength) {
-        dbz = data.cmapLength - 1;
+      function d2h(d) {
+        return (d).toString(16)
+          .padStart(2, '0');
       }
-      [pixels[0][0], pixels[0][1], pixels[0][2], pixels[0][3]] = data.cmap[dbz];
+
+      const key = `${d2h(pixels[0][0])}${d2h(pixels[0][1])}${d2h(pixels[0][2])}${d2h(pixels[0][3])}`;
+      if (!(key in data.cmap)) {
+        [pixels[0][0], pixels[0][1], pixels[0][2], pixels[0][3]] = [0, 0, 0, 0];
+      } else {
+        // const value = `${d2h(data.cmap[key][0])}${d2h(data.cmap[key][1])}${d2h(data.cmap[key][2])}${d2h(data.cmap[key][3])}`;
+        // console.log(`${key} => ${value}`);
+        [pixels[0][0], pixels[0][1], pixels[0][2], pixels[0][3]] = data.cmap[key];
+      }
       return pixels[0];
     },
   });
   lastRasterRadar = rasterRadar;
   rasterRadar.on("beforeoperations", (event) => {
     event.data.cmap = cmap;
-    event.data.cmapLength = cmap.length;
   });
 
   const rasterRadarImageLayer = new ImageLayer({
@@ -121,10 +128,10 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
 };
 
 export function setDwdCmap(colorMapString) {
-  if (colorMapString === "classic") {
-    cmap = meteocoolClassic;
+  if (colorMapString === "nws") {
+    cmap = nws;
   } else {
-    cmap = viridis;
+    cmap = nws;
   }
   if (lastRasterRadar) {
     lastRasterRadar.changed(); // XXX only works for the last layer

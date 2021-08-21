@@ -24,7 +24,6 @@ Chart.register(ChartDataLabels);
 
 import { Chart } from 'chart.js';
 
-import { meteocoolClassic } from '../colormaps';
 import { setUIConstant } from '../layers/ui';
 import { DeviceDetect as dd } from '../lib/DeviceDetect';
 
@@ -133,12 +132,12 @@ function redraw(config) {
         data: d,
         barPercentage: 0.99,
         categoryPercentage: 0.99,
-        backgroundColor: d.map(((value) => meteocoolClassic[Math.round((value.y + 32.5) * 2)]))
-                .map((maybe) => maybe || [0, 0, 0, 0])
-                .map(([r, g, b], index) => {
-                  const certain = grid[sortedKeys[index]].source === 'observation' ? 1 : 0.7;
-                  return `rgba(${r}, ${g}, ${b}, ${certain})`;
-                }),
+        // backgroundColor: d.map(((value) => meteocoolClassic[Math.round((value.y + 32.5) * 2)]))
+        //         .map((maybe) => maybe || [0, 0, 0, 0])
+        //         .map(([r, g, b], index) => {
+        //           const certain = grid[sortedKeys[index]].source === 'observation' ? 1 : 0.7;
+        //           return `rgba(${r}, ${g}, ${b}, ${certain})`;
+        //         }),
         borderColor: d.map((value, index) => gridKeys[index] === `${cap.getMostRecentObservation()}` ? '#ff0000' : getComputedStyle(document.body)
                 .getPropertyValue('--sl-color-info-700')),
         borderWidth: 1,

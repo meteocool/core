@@ -5,7 +5,7 @@
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
-  import { _ } from 'svelte-i18n';
+  import { _ } from "svelte-i18n";
 
   export let layerManager;
   const childCanvases = {};
@@ -153,12 +153,13 @@
     }
   }
 
-  .contributors{
+  .contributors {
     position: absolute;
     bottom: 0;
     font-size: 6pt;
-    text-align: center;
+    text-align: justify-all;
     width: 100%;
+    font-style: italic;
   }
 </style>
 
