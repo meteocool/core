@@ -449,6 +449,7 @@ const fsm = new StateMachine({
       oldTimeStep = 0;
       slRange = null;
       cap.resetToLatest();
+      if (canvas) canvas.parentNode.classList.add('barChartCanvasWithoutPlayback');
       if (chart) {
         chart.options.scales.x.ticks.display = false;
         canvasVisible = false;

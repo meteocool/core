@@ -24,9 +24,9 @@ import {
   colorSchemeDark,
   cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer,
+  mapBaseLayer, radarColormap,
   radarColorScheme, toolbarVisible,
-} from "./stores";
+} from './stores';
 
 import "./html/global.css";
 import "@shoelace-style/shoelace/dist/themes/base.css";
@@ -74,6 +74,7 @@ window.settings = new Settings({
     default: "classic",
     cb: (value) => {
       radarColorScheme.set(value);
+      radarColormap.set(value);
     },
   },
   capability: {

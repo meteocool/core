@@ -9,7 +9,7 @@ import {
   live,
   radarColorScheme,
   showForecastPlaybutton,
-} from '../stores';
+} from "../stores";
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 
@@ -39,12 +39,16 @@ export default class RadarCapability extends Capability {
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
       setDwdCmap(colorScheme);
+
+      const oldLayer = self.layer;
+      if (super.getMap()) super.getMap().removeLayer(oldLayer);
+      self.layer = null;
       if (colorScheme === "classic") {
         self.layerFactory = dwdLayerStatic;
       } else {
         self.layerFactory = dwdLayer;
       }
-      if (this.layer) this.reloadAll();
+      this.reloadAll();
     });
 
     latLon.subscribe((latlonUpdate) => {
@@ -102,7 +106,6 @@ export default class RadarCapability extends Capability {
       if (!(step in body)) {
         console.log("step not in body");
         return;
-        // this.gridconfig.grid[step] = this.sources[step];
       }
       if (!layerAttributes) return;
 
@@ -235,7 +238,7 @@ export default class RadarCapability extends Capability {
   resetToLatest() {
     const mostRecent = this.getMostRecentObservation();
     if (mostRecent in this.clientGrid) {
-      this.source.setUrl(this.clientGrid[mostRecent].url);
+      if (this.source) this.source.setUrl(this.clientGrid[mostRecent].url);
       capTimeIndicator.set(mostRecent);
       live.set(true);
     }
@@ -251,7 +254,7 @@ export default class RadarCapability extends Capability {
       live.set(true);
     }
     capTimeIndicator.set(timestep);
-    if (timestep in this.clientGrid && this.clientGrid[timestep].url != null) {
+    if (this.source && timestep in this.clientGrid && this.clientGrid[timestep].url != null) {
       this.source.setUrl(this.clientGrid[timestep].url);
     }
   }
