@@ -9,6 +9,15 @@ import { radarColormap } from "../../stores";
 import { getPalette } from "../../colormaps";
 
 const mode = "dbz";
+
+let unique = {};
+
+function restart() {
+  unique = {}; // every {} is unique, {} === {} evaluates to false
+}
+radarColormap.subscribe(() => {
+  restart();
+});
 </script>
 
 <style>
@@ -18,10 +27,11 @@ const mode = "dbz";
     }
 </style>
 
+{#key unique}
 <ScaleLine class="scale" valueFormat={ (fmt) => {
   if (mode === "dbz") {
     if (fmt % 10 === 0) {
-      return `${fmt}<span class="dbz"> dBZ</span>`;
+      return `${Math.round(fmt/2 - 32.5)}<span class="dbz"> dBZ</span>`;
     }
     return "";
   }
@@ -40,3 +50,5 @@ const mode = "dbz";
         return "";
   }
     }} palette="{getPalette($radarColormap)}" />
+
+{/key}
