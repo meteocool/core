@@ -5,16 +5,17 @@ import legendClouds from "../../../public/assets/legend_clouds.svg";
 import legendRain from "../../../public/assets/legend_rain.svg";
 import legendHail from "../../../public/assets/legend_hail.svg";
 import legendThunderstorm from "../../../public/assets/legend_thunderstorm.svg";
-import { radarColormap } from "../../stores";
+import { radarColormap, unit } from "../../stores";
 import { getPalette } from "../../colormaps";
-
-const mode = "dbz";
 
 let unique = {};
 
 function restart() {
   unique = {}; // every {} is unique, {} === {} evaluates to false
 }
+unit.subscribe(() => {
+  restart();
+});
 radarColormap.subscribe(() => {
   restart();
 });
@@ -29,7 +30,7 @@ radarColormap.subscribe(() => {
 
 {#key unique}
 <ScaleLine class="scale" valueFormat={ (fmt) => {
-  if (mode === "dbz") {
+  if ($unit === "dbz") {
     if (fmt % 10 === 0) {
       return `${Math.round(fmt/2 - 32.5)}<span class="dbz"> dBZ</span>`;
     }

@@ -1,8 +1,8 @@
 <script>
 import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
 import Icon from "fa-svelte";
-import { lastFocus, live } from '../stores';
-import { _ } from 'svelte-i18n';
+import { _ } from "svelte-i18n";
+import { lastFocus, live } from "../stores";
 
 let lightRed = true;
 let livePill = null;
@@ -20,17 +20,37 @@ function blink(elem) {
   }, 1000);
 }
 
+let future = 0;
+function deferredFadeOut() {
+  if (future > 0) clearTimeout(future);
+  future = setTimeout(() => {
+    const steps = 10;
+    const fade = (n) => {
+      const index = (n / steps) * 0.5;
+      if (livePill) livePill.style.opacity = 0.5 + index;
+      if (n > 0) {
+        future = setTimeout(() => {
+          fade(n - 1);
+        }, 70);
+      }
+    };
+    fade(steps);
+  }, 3000);
+}
+
 function init(elem) {
   livePill = elem;
-  window.live = live;
 }
 
 function hide() {
   if (livePill) livePill.style.display = "none";
+  if (future > 0) clearTimeout(future);
+  future = 0;
 }
 
 function show() {
   if (livePill) livePill.style.display = "flex";
+  deferredFadeOut();
 }
 
 lastFocus.subscribe(() => {
