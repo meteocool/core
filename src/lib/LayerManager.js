@@ -17,7 +17,7 @@ import Style from "ol/style/Style";
 import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
-import { cartoDark, cartoLight, mapTilerOutdoor, osm } from "../layers/base";
+import { cartoDark, cartoLight, mapTilerOutdoor, osm, cyclosm } from "../layers/base";
 import { latLon, mapBaseLayer, sharedActiveCap, zoomlevel } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
 
@@ -231,8 +231,10 @@ export class LayerManager {
       case "dark":
         return cartoDark();
       case "light":
-        return cartoLight();
       case "topographic":
+        return cartoLight();
+      case "cyclosm":
+        return cyclosm();
       default:
         return mapTilerOutdoor();
     }

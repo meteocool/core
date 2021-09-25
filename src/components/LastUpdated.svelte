@@ -26,7 +26,15 @@ const updateTime = () => {
   loading = false;
 };
 
-lastFocus.subscribe(() => {
+let lastFocusDt = null;
+lastFocus.subscribe((updated) => {
+  if (lastFocusDt) {
+    console.log(updated);
+    if (updated.getTime() + 5 * 60 < lastFocusDt.getTime()) {
+      lastUpdatedStr = "";
+    }
+  }
+  lastFocusDt = updated;
   loading = true;
 });
 

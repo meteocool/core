@@ -4,8 +4,8 @@ import { DEVICE_PIXEL_RATIO } from "ol/has";
 import OSM from "ol/source/OSM";
 import {
   cartoAttribution,
-  maptilerAttribution,
   osmAttribution,
+  cyclosmAttribution,
 } from "./attributions";
 
 const retina = DEVICE_PIXEL_RATIO > 1 ? "@2x" : "";
@@ -16,20 +16,7 @@ export const mapTilerOutdoor = () => new TileLayer({
         "https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}@2x.png?key=OfAx6294bL9EoRCgzR2o",
     tileSize: 512,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
-    attributions: [osmAttribution, maptilerAttribution],
-    maxZoom: 20,
-  }),
-  base: true,
-  preload: Infinity,
-  zIndex: 1,
-});
-
-export const mapTilerSatellite = () => new TileLayer({
-  source: new XYZ({
-    url: `https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}${retina}.jpg?key=zrIk1CJI5tdOGxsTUHo9`,
-    tileSize: 512,
-    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
-    attributions: [maptilerAttribution],
+    attributions: [osmAttribution],
     maxZoom: 20,
   }),
   base: true,
@@ -62,6 +49,18 @@ export const cartoLight = () => new TileLayer({
 
 export const osm = () => new TileLayer({
   source: new OSM(),
+  base: true,
+  preload: Infinity,
+  zIndex: 1,
+});
+
+export const cyclosm = () => new TileLayer({
+  source: new XYZ({
+    url: `https://{a-c}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png`,
+    attributions: [osmAttribution, cyclosmAttribution],
+    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+    maxZoom: 20,
+  }),
   base: true,
   preload: Infinity,
   zIndex: 1,
