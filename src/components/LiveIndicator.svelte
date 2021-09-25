@@ -24,14 +24,14 @@ let future = 0;
 function deferredFadeOut() {
   if (future > 0) clearTimeout(future);
   future = setTimeout(() => {
-    const steps = 10;
+    const steps = 20;
     const fade = (n) => {
       const index = (n / steps) * 0.5;
       if (livePill) livePill.style.opacity = 0.5 + index;
       if (n > 0) {
         future = setTimeout(() => {
           fade(n - 1);
-        }, 70);
+        }, 500 / steps);
       }
     };
     fade(steps);
