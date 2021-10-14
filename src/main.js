@@ -26,5 +26,9 @@ if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {
       window.location.reload();
     }
   });
-  wb.register();
+  try {
+    wb.register();
+  } catch (error) {
+    console.log(error);
+  }
 }

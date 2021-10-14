@@ -23,7 +23,12 @@ export default class Settings {
     }
 
     const url = new URL(document.location);
-    const local = localStorage.getItem(key);
+    let local = null;
+    try {
+      local = localStorage.getItem(key);
+    } catch (error) {
+      console.error(error);
+    }
     switch (this.getSourceForKey(key)) {
       case "localStorage":
         if (local) {
