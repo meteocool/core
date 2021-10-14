@@ -25,7 +25,7 @@ export default class Settings {
     const url = new URL(document.location);
     let local = null;
     try {
-      local = localStorage.getItem(key);
+      if (localStorage) local = localStorage.getItem(key);
     } catch (error) {
       console.error(error);
     }
