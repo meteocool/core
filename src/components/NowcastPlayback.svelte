@@ -232,19 +232,24 @@ function redraw(config) {
 
             // XXX calculate slope instead
             if (context.dataIndex > 0) {
-              if (context.chart.data.datasets[0].data[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin !== 0) {
-                rendered[context.dataIndex] = true;
-                return `${context.chart.data.labels[context.dataIndex]}m`;
-              }
+              try {
+                if (context.chart.data.datasets[0].data[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin !== 0) {
+                  rendered[context.dataIndex] = true;
+                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                }
 
-              if (val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin === 0) {
-                rendered[context.dataIndex] = true;
-                return `${context.chart.data.labels[context.dataIndex]}m`;
-              }
+                if (val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin === 0) {
+                  rendered[context.dataIndex] = true;
+                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                }
 
-              if (maxIndexes.includes(context.dataIndex)) {
-                rendered[context.dataIndex] = true;
-                return `${context.chart.data.labels[context.dataIndex]}m`;
+                if (maxIndexes.includes(context.dataIndex)) {
+                  rendered[context.dataIndex] = true;
+                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                }
+              } catch (e) {
+                console.error(e);
+                return null;
               }
             }
             return null;
