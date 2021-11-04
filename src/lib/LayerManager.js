@@ -18,8 +18,9 @@ import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { cartoDark, cartoLight, mapTilerOutdoor, osm, cyclosm } from "../layers/base";
-import { latLon, mapBaseLayer, sharedActiveCap, zoomlevel } from "../stores";
+import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from '../stores';
 import { DeviceDetect as dd } from "./DeviceDetect";
+import { get } from 'svelte/store'
 
 let shouldUpdate = true;
 
@@ -179,7 +180,7 @@ export class LayerManager {
         this.maps.length > 0 ?
           this.maps[0].getView() :
           new View({
-            constrainResolution: false,
+            constrainResolution: get(radarColorScheme) !== "classic",
             zoom: z,
             center: fromLonLat([lon, lat]),
             enableRotation: this.settings.get("mapRotation"),

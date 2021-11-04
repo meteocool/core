@@ -12,7 +12,7 @@ import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
 import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
-import { nws, viridis } from '../colormaps';
+import { nws, viridis } from "../colormaps";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 
@@ -69,6 +69,7 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     tilePixelRatio: 1,
     tileSize: 512,
     cacheSize: 999999,
+    imageSmoothing: false,
   });
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
@@ -84,6 +85,9 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   });
 
   const rasterRadar = new RasterSource({
+    imageSmoothing: false,
+    minZoom: 4,
+    maxZoom: 7,
     sources: [reflectivityLayer],
     // XXX eslint converts the following to a syntax error. good job y'all
     // eslint-disable-next-line object-shorthand
@@ -95,7 +99,8 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
 
       const key = `${d2h(pixels[0][0])}${d2h(pixels[0][1])}${d2h(pixels[0][2])}`;
       if (!(key in data.cmap)) {
-        return (0,0,0,0);
+        const avg = (pixels[0][0] + pixels[0][1] + pixels[0][2]) / 3;
+        return [avg, avg, avg];
       }
       // const value = `${d2h(data.cmap[key][0])}${d2h(data.cmap[key][1])}${d2h(data.cmap[key][2])}${d2h(data.cmap[key][3])}`;
       // console.log(`${key} => ${value}`);

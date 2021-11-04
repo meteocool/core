@@ -26,7 +26,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, radarColormap,
   radarColorScheme, toolbarVisible,
-} from './stores';
+} from "./stores";
 
 import "./html/global.css";
 import "@shoelace-style/shoelace/dist/themes/base.css";
