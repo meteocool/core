@@ -8,15 +8,6 @@ if (process.env.NODE_ENV !== "development") {
 import { Workbox } from "workbox-window";
 import App from "./App.svelte";
 
-const app = new App({
-  target: document.body,
-  props: {
-    device: "web",
-  },
-});
-
-export default app;
-
 // Register service worker
 if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {
   const wb = new Workbox("sw.js");
@@ -32,3 +23,12 @@ if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {
     console.log(error);
   }
 }
+
+const app = new App({
+  target: document.body,
+  props: {
+    device: "web",
+  },
+});
+
+export default app;

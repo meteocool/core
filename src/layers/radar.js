@@ -12,7 +12,7 @@ import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
 import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
-import { nws, viridis } from "../colormaps";
+import { cmapDiffFromString } from "../colormaps";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 
@@ -102,9 +102,10 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
         const avg = (pixels[0][0] + pixels[0][1] + pixels[0][2]) / 3;
         return [avg, avg, avg];
       }
-      // const value = `${d2h(data.cmap[key][0])}${d2h(data.cmap[key][1])}${d2h(data.cmap[key][2])}${d2h(data.cmap[key][3])}`;
-      // console.log(`${key} => ${value}`);
-      [pixels[0][0], pixels[0][1], pixels[0][2], pixels[0][3]] = data.cmap[key];
+      pixels[0][0] -= data.cmap[key][0];
+      pixels[0][1] -= data.cmap[key][1];
+      pixels[0][2] -= data.cmap[key][2];
+      pixels[0][3] -= data.cmap[key][3];
 
       return pixels[0];
     },
@@ -131,18 +132,10 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   return [rasterRadarImageLayer, reflectivitySource, sourceUrl];
 };
 
-function getColormapByName(colorMapString) {
-  if (colorMapString === "nws") {
-    return nws;
-  } else {
-    return viridis;
-  }
-}
-
-let cmap = nws;
+let cmap = null;
 
 export function setDwdCmap(colorMapString) {
-  cmap = getColormapByName(colorMapString);
+  cmap = cmapDiffFromString(colorMapString);
   if (lastRasterRadar) {
     lastRasterRadar.changed(); // XXX only works for the last layer
   }

@@ -61,9 +61,12 @@
     --attributions-bottom-padding: 0.9em;
   }
 
-  :global(.ol-attribution.ol-uncollapsible) {
+  :global(.ol-attribution) {
     height: 1.2em;
     padding-bottom: calc(0.25em + var(--attributions-bottom-padding));
+    font-size: 6pt;
+  }
+  :global(.ol-attribution ul) {
     font-size: 6pt;
   }
 </style>

@@ -5,15 +5,6 @@ Sentry.init(SENTRY_ARGS);
 import { Workbox } from "workbox-window";
 import App from "./App.svelte";
 
-const app = new App({
-  target: document.body,
-  props: {
-    device: "ios",
-  },
-});
-
-export default app;
-
 // Register service worker
 if ("serviceWorker" in navigator) {
   const wb = new Workbox("sw.js");
@@ -25,3 +16,12 @@ if ("serviceWorker" in navigator) {
   });
   wb.register();
 }
+
+const app = new App({
+  target: document.body,
+  props: {
+    device: "ios",
+  },
+});
+
+export default app;
