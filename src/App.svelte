@@ -159,43 +159,6 @@ cycloneLayerVisible.subscribe((value) => {
 });
 lightningLayerVisible.set(window.settings.get("layerMesocyclones"));
 
-// const duration = 3000;
-// const flash = (feature, layer) => {
-//   var start = new Date().getTime();
-//   var listenerKey = layer.on('postrender', (event) => {
-//     var vectorContext = getVectorContext(event);
-//     var frameState = event.frameState;
-//     var flashGeom = feature.getGeometry().clone();
-//     var elapsed = frameState.time - start;
-//     var elapsedRatio = elapsed / duration;
-//     // radius will be 5 at start and 30 at end.
-//     var radius = easeOut(elapsedRatio) * 25 + 5;
-//     var opacity = easeOut(1 - elapsedRatio);
-//
-//     var style = new Style({
-//       image: new CircleStyle({
-//         radius: radius,
-//         stroke: new Stroke({
-//           color: 'rgba(255, 0, 0, ' + opacity + ')',
-//           width: 0.25 + opacity,
-//         }),
-//       }),
-//     });
-//
-//     vectorContext.setStyle(style);
-//     vectorContext.drawGeometry(flashGeom);
-//     if (elapsed > duration) {
-//       unByKey(listenerKey);
-//       return;
-//     }
-//     // tell OpenLayers to continue postrender animation
-//     lm.getCurrentMap().render();
-//   });
-// }
-//
-// window.flash = flash;
-// window.sm = strikemgr;
-
 radarSocketIO.on("lightning", (data) => {
   strikemgr.addStrike(data.lon, data.lat);
 });
@@ -255,16 +218,6 @@ window.settings.setCb("latLonZ", (value) => {
   lm.getCurrentMap().setView(newView);
 });
 
-if (dd.isIos()) {
-  window.webkit.messageHandlers.scriptHandler.postMessage(
-    "requestSettings",
-  );
-}
-
-if (dd.isAndroid()) {
-  Android.requestSettings();
-}
-
 function reloadLightning() {
   fetch(`${dataUrl}/lightning_cache`)
     .then((response) => response.json())
@@ -317,6 +270,14 @@ if (device === "web") {
   //   // if (lastFocus)
   //   window.enterForeground();
   // };
+}
+
+if (dd.isIos()) {
+  window.webkit.messageHandlers.scriptHandler.postMessage("requestSettings");
+}
+
+if (dd.isAndroid()) {
+  Android.requestSettings();
 }
 </script>
 

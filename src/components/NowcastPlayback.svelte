@@ -1,20 +1,24 @@
 <script>
-import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
-import { faPause } from '@fortawesome/free-solid-svg-icons/faPause';
-import { faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons/faAngleDoubleDown';
-import { faAngleDoubleUp } from '@fortawesome/free-solid-svg-icons/faAngleDoubleUp';
-import { faHistory } from '@fortawesome/free-solid-svg-icons/faHistory';
-import { faRetweet } from '@fortawesome/free-solid-svg-icons/faRetweet';
-import { lastFocus, sharedActiveCap } from '../stores';
-
-import { fly, fade } from 'svelte/transition';
-import { onMount } from 'svelte';
-import Icon from 'fa-svelte';
-
-import StateMachine from 'javascript-state-machine';
-import { CategoryScale, LinearScale, BarController, BarElement } from 'chart.js';
-import { BarWithErrorBarsChart } from 'chartjs-chart-error-bars';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
+import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
+import { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoubleDown";
+import { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDoubleUp";
+import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
+import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
+import Icon from "fa-svelte";
+import StateMachine from "javascript-state-machine";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+import { fly, fade } from "svelte/transition";
+import { onMount } from "svelte";
+import { CategoryScale, LinearScale, BarController, BarElement, Chart } from "chart.js";
+import { BarWithErrorBarsChart } from "chartjs-chart-error-bars";
+import {
+  lastFocus, sharedActiveCap,
+  cycloneLayerVisible,
+  latLon,
+  lightningLayerVisible,
+  bottomToolbarMode, radarColormap,
+} from '../stores';
 
 Chart.register(CategoryScale);
 Chart.register(LinearScale);
@@ -22,25 +26,18 @@ Chart.register(BarController);
 Chart.register(BarElement);
 Chart.register(ChartDataLabels);
 
-import { Chart } from 'chart.js';
+import { setUIConstant } from "../layers/ui";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
-import { setUIConstant } from '../layers/ui';
-import { DeviceDetect as dd } from '../lib/DeviceDetect';
-
-import {
-  cycloneLayerVisible,
-  latLon,
-  lightningLayerVisible,
-  bottomToolbarMode
-} from '../stores';
-
-import TimeIndicator from './TimeIndicator.svelte';
-import LastUpdated from './LastUpdated.svelte';
-import Appendix from './Appendix.svelte';
-import RadarScaleLine from './scales/RadarScaleLine.svelte';
-import LiveIndicator from './LiveIndicator.svelte';
-import DevStatus from './DevStatus.svelte';
-import { _ } from 'svelte-i18n';
+import TimeIndicator from "./TimeIndicator.svelte";
+import LastUpdated from "./LastUpdated.svelte";
+import Appendix from "./Appendix.svelte";
+import RadarScaleLine from "./scales/RadarScaleLine.svelte";
+import LiveIndicator from "./LiveIndicator.svelte";
+import DevStatus from "./DevStatus.svelte";
+import { _ } from "svelte-i18n";
+import { dbz2color } from '../colormaps';
+import { get } from 'svelte/store';
 
 export let cap;
 
@@ -58,7 +55,6 @@ latLon.subscribe((latlonUpdate) => {
 
 let canvasVisible = true;
 let showOpenControls = false;
-
 
 let oldTimeStep = 0;
 
@@ -120,11 +116,11 @@ function redraw(config) {
   // XXX replace by local maxima/sliding window
   const max = Math.max(...values);
   const maxIndexes = [];
-  values.forEach((item, index) => item === max ? maxIndexes.push(index): null);
+  values.forEach((item, index) => (item === max ? maxIndexes.push(index) : null));
   const disabled = values.every((e) => e === 0);
 
   const gridKeys = Object.keys(grid);
-  let rendered = {};
+  const rendered = {};
   chart = new BarWithErrorBarsChart(canvas.getContext("2d"), {
     data: {
       labels: sortedKeys.map((key) => ((key - config.now) / 60)).map((v) => `${v}`),
@@ -132,14 +128,13 @@ function redraw(config) {
         data: d,
         barPercentage: 0.99,
         categoryPercentage: 0.99,
-        // backgroundColor: d.map(((value) => meteocoolClassic[Math.round((value.y + 32.5) * 2)]))
-        //         .map((maybe) => maybe || [0, 0, 0, 0])
-        //         .map(([r, g, b], index) => {
-        //           const certain = grid[sortedKeys[index]].source === 'observation' ? 1 : 0.7;
-        //           return `rgba(${r}, ${g}, ${b}, ${certain})`;
-        //         }),
-        borderColor: d.map((value, index) => gridKeys[index] === `${cap.getMostRecentObservation()}` ? '#ff0000' : getComputedStyle(document.body)
-                .getPropertyValue('--sl-color-info-700')),
+        backgroundColor: d.map(((value) => dbz2color(value.y, get(radarColormap))))
+          .map(([r, g, b], index) => {
+            const certain = grid[sortedKeys[index]].source === "observation" ? 1 : 0.7;
+            return `rgba(${r}, ${g}, ${b}, ${certain})`;
+          }),
+        borderColor: d.map((value, index) => (gridKeys[index] === `${cap.getMostRecentObservation()}` ? "#ff0000" : getComputedStyle(document.body)
+          .getPropertyValue("--sl-color-info-700"))),
         borderWidth: 1,
       }],
     },
@@ -193,29 +188,29 @@ function redraw(config) {
       plugins: {
         datalabels: {
           clamp: true,
-          textAlign: function (context) {
+          textAlign(context) {
             if (context.dataIndex > 25) {
               return "end";
             }
             return "end";
           },
-          align: function (context) {
+          align() {
             return "top";
           },
-          anchor: function (context) {
+          anchor() {
             // if (context.dataIndex > 25) {
             //   return "start";
             // }
             return "end";
           },
           borderRadius: 4,
-          color: 'white',
-          borderColor: 'white',
+          color: "white",
+          borderColor: "white",
           borderWidth: 1,
-          rotation: function (context) {
+          rotation() {
             return 270;
           },
-          backgroundColor: function (context) {
+          backgroundColor(context) {
             return context.dataset.backgroundColor;
           },
           formatter: (val, context) => {
@@ -275,13 +270,13 @@ function redraw(config) {
           },
           ticks: {
             color: getComputedStyle(document.body)
-                    .getPropertyValue('--sl-color-info-700'),
+              .getPropertyValue("--sl-color-info-700"),
             fontSize: 5,
             autoSkip: false,
-            callback: function (value) {
+            callback(value) {
               const label = this.getLabelForValue(value);
               if (label === 0) {
-                return 'now';
+                return "now";
               }
               if (label == -120) {
                 return "-2h";
@@ -298,18 +293,18 @@ function redraw(config) {
               if (Math.abs(label) % skip === 0) {
                 return label;
               }
-              return '';
+              return "";
             },
             minRotation: 0,
             maxRotation: 0,
             responsive: true,
             padding: -4,
-            display: $bottomToolbarMode === 'player',
+            display: $bottomToolbarMode === "player",
             autoSkipPadding: 0,
           },
         },
         y: {
-          type: 'linear',
+          type: "linear",
           grid: {
             display: false,
             drawBorder: false,
@@ -333,44 +328,44 @@ $: updateSliderToLatest(gridConfig);
 
 function canvasInit(elem) {
   canvas = elem;
-  if ($bottomToolbarMode === 'player') {
-    canvas.parentNode.classList.remove('barChartCanvasWithoutPlayback');
+  if ($bottomToolbarMode === "player") {
+    canvas.parentNode.classList.remove("barChartCanvasWithoutPlayback");
   }
   redraw(gridConfig);
 }
 
 const fsm = new StateMachine({
-  init: 'followLatest',
+  init: "followLatest",
   transitions: [
     {
-      name: 'showScrollbar',
-      from: 'followLatest',
-      to: 'manualScrolling',
+      name: "showScrollbar",
+      from: "followLatest",
+      to: "manualScrolling",
     },
     {
-      name: 'pressPlay',
-      from: 'manualScrolling',
-      to: 'playing',
+      name: "pressPlay",
+      from: "manualScrolling",
+      to: "playing",
     },
     {
-      name: 'pressPause',
-      from: 'playing',
-      to: 'manualScrolling',
+      name: "pressPause",
+      from: "playing",
+      to: "manualScrolling",
     },
     {
-      name: 'hideScrollbar',
-      from: '*',
-      to: 'followLatest',
+      name: "hideScrollbar",
+      from: "*",
+      to: "followLatest",
     },
     {
-      name: 'hideScrollbar',
-      from: 'followLatest',
-      to: 'followLatest',
+      name: "hideScrollbar",
+      from: "followLatest",
+      to: "followLatest",
     },
   ],
   methods: {
     onShowScrollbar: () => {
-      bottomToolbarMode.set('player');
+      bottomToolbarMode.set("player");
       if (chart) {
         canvasVisible = false;
         chart.options.scales.x.ticks.display = true;
@@ -384,17 +379,17 @@ const fsm = new StateMachine({
       setTimeout(() => {
         if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
       }, 200);
-      setUIConstant('toast-stack-offset', '124px');
+      setUIConstant("toast-stack-offset", "124px");
 
       if (autoPlay) {
         setTimeout(() => {
-          console.log('Triggering auto-play');
-          if (cap.source && fsm.state === 'manualScrolling') {
+          console.log("Triggering auto-play");
+          if (cap.source && fsm.state === "manualScrolling") {
             fsm.pressPlay();
           } else {
             setTimeout(() => {
               // Workaround for #2279954594 (wtf is going on Android people) and #2217587657
-              console.log('Triggering deferred auto-play');
+              console.log("Triggering deferred auto-play");
               fsm.pressPlay();
             }, 1000);
           }
@@ -403,7 +398,7 @@ const fsm = new StateMachine({
       }
     },
     onEnterWaitingState: (t) => {
-      if (t.from === 'playing') {
+      if (t.from === "playing") {
         autoPlay = true;
         // XXX deduplicate with onPressPause:
         if (playTimeout !== 0) window.clearTimeout(playTimeout);
@@ -416,7 +411,7 @@ const fsm = new StateMachine({
         if (!slRange) {
           // "Workaround" for #2320876836
           if (ttl < 1) {
-            console.error('slRange element did not appear');
+            console.error("slRange element did not appear");
             return;
           }
           setTimeout(() => playTick(ttl - 1), 200);
@@ -425,7 +420,7 @@ const fsm = new StateMachine({
         let thisFrameDelayMs = 450;
         const sliderValueInt = parseInt(slRange.value, 10);
         if (sliderValueInt >= gridConfig.end) {
-          slRange.value = (includeHistoric ? gridConfig.start: gridConfig.now).toString();
+          slRange.value = (includeHistoric ? gridConfig.start : gridConfig.now).toString();
         } else {
           slRange.value = (sliderValueInt + 5 * 60).toString();
         }
@@ -437,7 +432,7 @@ const fsm = new StateMachine({
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
         } else {
           playTimeout = 0;
-          console.log('Pausing due to slider usage');
+          console.log("Pausing due to slider usage");
           fsm.pressPause();
         }
       };
@@ -450,11 +445,11 @@ const fsm = new StateMachine({
       playPauseButton = faPlay;
     },
     onHideScrollbar: (transition) => {
-      if (transition.from === 'followLatest') return;
+      if (transition.from === "followLatest") return;
       oldTimeStep = 0;
       slRange = null;
       cap.resetToLatest();
-      if (canvas) canvas.parentNode.classList.add('barChartCanvasWithoutPlayback');
+      if (canvas) canvas.parentNode.classList.add("barChartCanvasWithoutPlayback");
       if (chart) {
         chart.options.scales.x.ticks.display = false;
         canvasVisible = false;
@@ -463,15 +458,15 @@ const fsm = new StateMachine({
           chart.update();
         }, 400);
       }
-      setUIConstant('toast-stack-offset');
+      setUIConstant("toast-stack-offset");
 
-      bottomToolbarMode.set('collapsed');
+      bottomToolbarMode.set("collapsed");
     },
   },
 });
 
 function show() {
-  if (fsm.state === 'followLatest') {
+  if (fsm.state === "followLatest") {
     fsm.showScrollbar();
   }
 }
@@ -489,18 +484,17 @@ function hide() {
 
 let latest;
 
-
 onMount(async () => {
   window.leaveForeground = () => {
-    if (fsm.state === 'playing') {
-      console.log('Pausing due to window.leaveForeground();');
+    if (fsm.state === "playing") {
+      console.log("Pausing due to window.leaveForeground();");
       fsm.pressPause();
     }
   };
 
   cap.addObserver((subject, data) => {
     console.log(`NowcastPlayback observed event ${subject}`);
-    if (subject === 'grid' && data) {
+    if (subject === "grid" && data) {
       gridConfig = data;
       showOpenControls = true;
       latest = cap.getMostRecentObservation();
@@ -528,13 +522,13 @@ onMount(async () => {
     //     capTimeIndicator.set(mostRecentTimestamp);
     //   }
     // }
-    //if (subject === "historic") {
+    // if (subject === "historic") {
     //  historicLayers = data.sources;
-    //} else if (subject === "nowcast") {
+    // } else if (subject === "nowcast") {
     //  nowcastLayers = data.sources;
-    //} else {
+    // } else {
     //  return;
-    //}
+    // }
     // if (historicLayers && nowcastLayers) {
     //   if (fsm.state === "waitingForServer") {
     //     fsm.showScrollbar();
@@ -563,7 +557,7 @@ onMount(async () => {
   cap.notifyObservers();
 
   cap.addObserver((event) => {
-    if (event === 'loseFocus') {
+    if (event === "loseFocus") {
       hide();
     }
   });
@@ -572,15 +566,15 @@ onMount(async () => {
 function sliderChangedHandler(value, userInteraction = false) {
   if (value === oldTimeStep) return;
 
-  if (userInteraction && fsm.state === 'playing') {
-    console.log('Pausing due to sliderChangedHandler');
+  if (userInteraction && fsm.state === "playing") {
+    console.log("Pausing due to sliderChangedHandler");
     fsm.pressPause();
   }
 
   if (userInteraction && dd.isIos()) {
-    let impact = 'Light';
+    let impact = "Light";
     if (value === 0) {
-      impact = 'Medium';
+      impact = "Medium";
     }
     window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`);
   }
@@ -594,19 +588,19 @@ function sliderChangedHandler(value, userInteraction = false) {
 }
 
 function initSlider(elem) {
-  elem.addEventListener('sl-change', (value) => sliderChangedHandler(value.target.value, true));
+  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
   slRange = elem;
   window.slr = slRange;
   // XXX why...
-  //window.setTimeout(() => {
+  // window.setTimeout(() => {
   //  slRange.value = `${gridNow}`;
   //  console.log(`${gridNow}`);
-  //}, 200);
+  // }, 200);
 }
 
 function playPause() {
-  if (fsm.state === 'playing') {
-    console.log('Pausing due to button');
+  if (fsm.state === "playing") {
+    console.log("Pausing due to button");
     fsm.pressPause();
   } else {
     fsm.pressPlay();
@@ -633,7 +627,7 @@ function toggleCyclones() {
 
 let last = new Date();
 lastFocus.subscribe((focus) => {
-  if (focus.getTime() > (last.getTime() + 2*60*1000) && cap.trackingMode !== "live") {
+  if (focus.getTime() > (last.getTime() + 2 * 60 * 1000) && cap.trackingMode !== "live") {
     hide();
   }
   last = focus;
@@ -794,7 +788,7 @@ lastFocus.subscribe((focus) => {
 <LiveIndicator />
 
 {#if canvasVisible && $sharedActiveCap === "radar"}
-<div class="barChartCanvas barChartCanvasWithoutPlayback" id="barChartCanvas" out:fly={{ y: 60, duration: 200 }} in:fade={{duration: 200}}>
+<div class="barChartCanvas barChartCanvasWithoutPlayback" id="barChartCanvas" out:fly={{ y: 60, duration: 200 }} in:fade={{ duration: 200 }}>
   <canvas use:canvasInit></canvas>
 </div>
 {/if}
