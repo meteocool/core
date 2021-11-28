@@ -36,8 +36,8 @@ import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import DevStatus from "./DevStatus.svelte";
 import { _ } from "svelte-i18n";
-import { dbz2color } from '../colormaps';
 import { get } from 'svelte/store';
+import { dbz2color } from '../lib/cmap_utils';
 
 export let cap;
 

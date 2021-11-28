@@ -13,7 +13,6 @@ export default class Capability extends Observable {
   setTarget(target) {
     if (!this.map) return;
     this.map.setTarget(target);
-    this.map.updateSize();
     if (this.targetCb && target) this.targetCb(target);
     if (this.cmap) sharedCmap.set(this.cmap);
   }
