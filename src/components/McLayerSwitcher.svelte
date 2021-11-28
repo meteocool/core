@@ -160,6 +160,7 @@
     text-align: justify-all;
     width: 100%;
     font-style: italic;
+    color: var(--sl-color-black);
   }
 </style>
 
