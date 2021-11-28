@@ -12,9 +12,9 @@ import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
 import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
-import { cmapDiffFromString } from "../colormaps";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
+import { cmapDiffFromString } from "../lib/cmap_utils";
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;

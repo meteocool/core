@@ -4,6 +4,10 @@
 
   export let palette;
   export let valueFormat;
+  export let prettyName;
+
+  let minDbz;
+  let maxDbz;
 
   function colorMap() {
     if (!palette) {
@@ -12,7 +16,13 @@
     return palette.split(";").map((c) => c.split(":"));
   }
 
+  function capitalizeFirst(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }
+
   $ : vs = colorMap().map((c) => (valueFormat ? valueFormat(c[0]) : c[0])).filter((e) => e !== "");
+  $ : [minDbz] = colorMap(palette)[0];
+  $ : [maxDbz] = colorMap(palette).pop();
   $ : colors = colorMap().map((c) => `#${c[1]}`);
 
   $: scaleStyle = {
@@ -96,12 +106,12 @@
   }
 </style>
 
-<div class="scale">
+<div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
     <div class="scale-line" use:cssVars="{scaleStyle}">
         <div class="scale-dividers">
             {#each vs as value}
                 <div class="scale-divider">
-                    {@html value }
+                    {@html value}
                 </div>
             {/each}
         </div>

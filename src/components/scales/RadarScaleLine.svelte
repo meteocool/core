@@ -6,7 +6,7 @@ import legendRain from "../../../public/assets/legend_rain.svg";
 import legendHail from "../../../public/assets/legend_hail.svg";
 import legendThunderstorm from "../../../public/assets/legend_thunderstorm.svg";
 import { radarColormap, unit } from "../../stores";
-import { getPalette } from "../../colormaps";
+import { getPalette } from "../../lib/cmap_utils";
 
 let unique = {};
 
@@ -32,7 +32,7 @@ radarColormap.subscribe(() => {
 <ScaleLine class="scale" valueFormat={ (fmt) => {
   if ($unit === "dbz") {
     if (fmt % 10 === 0) {
-      return `${Math.round(fmt/2 - 32.5)}<span class="dbz"> dBZ</span>`;
+      return `${Math.round(fmt / 2 - 32.5)}<span class="dbz"> dBZ</span>`;
     }
     return "";
   }
@@ -50,6 +50,6 @@ radarColormap.subscribe(() => {
       default:
         return "";
   }
-    }} palette="{getPalette($radarColormap)}" />
+    }} palette="{getPalette($radarColormap)}" prettyName="{$radarColormap}" />
 
 {/key}
