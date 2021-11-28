@@ -171,7 +171,7 @@ radarSocketIO.on("mesocyclones", (data) => {
 export const radar = new RadarCapability({
   nanobar: nb,
   socket_io: radarSocketIO,
-  additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly()],
+  additionalLayers: [mesocycloneLayer, lightningLayer],
 });
 export const weather = new WeatherCapability({
   nanobar: nb,
@@ -180,7 +180,7 @@ export const weather = new WeatherCapability({
 export const precipTypes = new PrecipitationTypesCapability({
   nanobar: nb,
   tileURL: `${apiBaseUrl}/precip_types/`,
-  additionalLayers: [labelsOnly(), greyOverlay()],
+  additionalLayers: [greyOverlay()],
 });
 
 export const lm = new LayerManager({
