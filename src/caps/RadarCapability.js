@@ -35,6 +35,7 @@ export default class RadarCapability extends Capability {
     this.serverGrid = null;
     this.clientGrid = null;
     this.trackingMode = "live";
+    this.serverTime = 0;
 
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
@@ -102,16 +103,23 @@ export default class RadarCapability extends Capability {
     restartHandler();
   }
 
-  updateClientGridFromServerGrid(server) {
+  updateClientGridFromServerGrid(server, serverTime) {
     let latestRadar = new Date(0);
     const body = { ...this.gridconfig.grid };
+
+    latestRadar = new Date(serverTime * 1000);
+    this.serverTime = serverTime;
+
     Object.keys(server).forEach((step) => {
       const layerAttributes = server[step];
       if (!(step in body)) {
         console.log("step not in body");
         return;
       }
-      if (!layerAttributes) return;
+      if (!layerAttributes) {
+        body[step] = null;
+        return;
+      }
 
       const bucket = layerAttributes.source === "observation" ? "meteoradar" : "meteonowcast";
       const sourceUrl = `${tileBaseUrl}/${bucket}/${layerAttributes.tile_id}/{z}/{x}/{-y}.png`;
@@ -195,10 +203,15 @@ export default class RadarCapability extends Capability {
   }
 
   getMostRecentObservation() {
-    let mostRecent = 0;
+    let mostRecent = this.serverTime;
     for (const [step, frame] of Object.entries(this.clientGrid)) {
-      if (frame.source === "observation" && step > mostRecent) {
-        mostRecent = step;
+      if (frame) {
+        if (frame.source === "") {
+          break;
+        }
+        if (frame.source === "observation" && parseInt(step, 10) > mostRecent) {
+          mostRecent = parseInt(step, 10);
+        }
       }
     }
     return mostRecent;
@@ -209,7 +222,7 @@ export default class RadarCapability extends Capability {
 
     this.serverGrid = obj.frames;
     this.gridconfig = this.regenerateGridConfig();
-    const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
+    const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid, obj.server_time);
 
     if (this.layer) {
       switch (this.trackingMode) {
@@ -230,10 +243,12 @@ export default class RadarCapability extends Capability {
       }
     } else {
       const last = this.clientGrid[this.getMostRecentObservation()];
-      [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
-      super.addMapCb((map) => {
-        map.addLayer(this.layer);
-      });
+      if (last) {
+        [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
+        super.addMapCb((map) => {
+          map.addLayer(this.layer);
+        });
+      }
     }
     capLastUpdated.set(latestRadar);
     this.notify("grid", this.clientGridConfig);

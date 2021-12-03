@@ -98,7 +98,9 @@ function redraw(config) {
   const sortedKeys = Object.keys(grid).map((e) => parseInt(e, 10)).sort();
   // with error bars:
   // return {y: grid[step].dbz, yMin: grid[step].dbz - grid[step].dbzMin, yMax: grid[step].dbz + grid[step].dbzMax};
-  const d = sortedKeys.map((step) => ({ y: Math.max(0, grid[step].dbz) }));
+  const d = sortedKeys.map((step) => (
+          { y: Math.max(0, grid[step] != null ? grid[step].dbz : 0) }
+  ));
   if (chart) chart.destroy();
 
   let skip = 5;
@@ -130,6 +132,9 @@ function redraw(config) {
         categoryPercentage: 0.99,
         backgroundColor: d.map(((value) => dbz2color(value.y, get(radarColormap))))
           .map(([r, g, b], index) => {
+            if (grid[sortedKeys[index]] == null) {
+              return `rgba(0, 0, 0, 1)`;
+            }
             const certain = grid[sortedKeys[index]].source === "observation" ? 1 : 0.7;
             return `rgba(${r}, ${g}, ${b}, ${certain})`;
           }),
