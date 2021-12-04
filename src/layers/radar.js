@@ -16,6 +16,8 @@ import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 import { cmapDiffFromString } from "../lib/cmap_utils";
 
+let cmap = cmapDiffFromString("nws");
+
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
@@ -33,7 +35,7 @@ export const dwdSource = (tileId, bucket = "meteoradar") => {
   return reflectivitySource;
 };
 
-export const dwdLayerStatic = (tileId, bucket, extra) => {
+export const dwdLayerStatic = (tileId, bucket) => {
   const reflectivitySource = dwdSource(tileId, bucket);
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
@@ -57,7 +59,7 @@ export const dwdLayerStatic = (tileId, bucket, extra) => {
 
 let lastRasterRadar = null;
 
-export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
+export const dwdLayer = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
@@ -122,7 +124,6 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
     title: "Radar Composite",
     opacity: NOWCAST_OPACITY,
     id: tileId,
-    ...extra,
   });
   rasterRadarImageLayer.setExtent(
     transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
@@ -131,8 +132,6 @@ export const dwdLayer = (tileId, extra, bucket = "meteoradar") => {
   rasterRadarImageLayer.set("tileId", tileId);
   return [rasterRadarImageLayer, reflectivitySource, sourceUrl];
 };
-
-let cmap = null;
 
 export function setDwdCmap(colorMapString) {
   cmap = cmapDiffFromString(colorMapString);
