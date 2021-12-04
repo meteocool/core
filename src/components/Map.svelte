@@ -18,15 +18,23 @@
 
   function mapInit(node) {
     mapID = node.id;
-    layerManager.setDefaultTarget(mapID);
+    return {
+      destroy() {
+        console.log("destroy");
+      },
+    };
+  }
 
+  function mainMapInit(node) {
+    mapInit(node);
+    layerManager.setDefaultTarget(node.id);
     bottomToolbarMode.subscribe((val) => {
       if (val === "player") {
         document.getElementById(node.id).style.height =
-          "calc(100% - 88px)";
+                "calc(100% - 88px)";
       } else if (val === "collapsed") {
         document.getElementById(node.id).style.height =
-          "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
+                "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
       } else {
         document.getElementById(node.id).style.height = "100%";
       }
@@ -34,12 +42,6 @@
         m.updateSize();
       });
     });
-
-    return {
-      destroy() {
-        console.log("destroy");
-      },
-    };
   }
 </script>
 
@@ -71,7 +73,7 @@
   }
 </style>
 
-<div id="map" use:mapInit />
+<div id="map" use:mainMapInit />
 {#if visible === "yes"}
   <McLayerSwitcher {layerManager} on:changeLayer={changeLayer} />
 {/if}

@@ -16,7 +16,7 @@ import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 import { cmapDiffFromString } from "../lib/cmap_utils";
 
-let cmap = cmapDiffFromString("nws");
+let cmap = null;
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
