@@ -2,6 +2,7 @@
   import McLayerSwitcher from "./McLayerSwitcher.svelte";
   import "ol/ol.css";
   import { layerswitcherVisible, bottomToolbarMode } from "../stores";
+  import { tick } from "svelte";
 
   export let layerManager;
   let mapID;
@@ -15,8 +16,28 @@
     layerManager.setTarget(newLayer.detail, mapID);
   }
 
+  function updateMapSize() {
+    layerManager.forEachMap((map) => map.updateSize());
+  }
+
   function mapInit(node) {
     mapID = node.id;
+    layerManager.setDefaultTarget(mapID);
+    bottomToolbarMode.subscribe((val) => {
+      if (val === "player") {
+        document.getElementById(mapID).style.height =
+                "calc(100% - 88px)";
+      } else if (val === "collapsed") {
+        document.getElementById(mapID).style.height =
+                "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
+      } else {
+        document.getElementById(mapID).style.height = "100%";
+      }
+      layerManager.forEachMap((m) => {
+        m.updateSize();
+      });
+    });
+    setTimeout(updateMapSize, 300);
     return {
       destroy() {
         console.log("destroy");
@@ -24,27 +45,6 @@
     };
   }
 
-  function mainMapInit(node) {
-    mapInit(node);
-    layerManager.setDefaultTarget(node.id);
-    setTimeout(() => {
-      layerManager.setDefaultTarget(node.id);
-    }, 300);
-    bottomToolbarMode.subscribe((val) => {
-      if (val === "player") {
-        document.getElementById(node.id).style.height =
-                "calc(100% - 88px)";
-      } else if (val === "collapsed") {
-        document.getElementById(node.id).style.height =
-                "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
-      } else {
-        document.getElementById(node.id).style.height = "100%";
-      }
-      layerManager.forEachMap((m) => {
-        m.updateSize();
-      });
-    });
-  }
 </script>
 
 <style>
@@ -75,7 +75,7 @@
   }
 </style>
 
-<div id="map" use:mainMapInit />
+<div id="map" use:mapInit />
 {#if visible === "yes"}
   <McLayerSwitcher {layerManager} on:changeLayer={changeLayer} />
 {/if}
