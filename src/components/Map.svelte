@@ -2,6 +2,7 @@
   import McLayerSwitcher from "./McLayerSwitcher.svelte";
   import "ol/ol.css";
   import { layerswitcherVisible, bottomToolbarMode } from "../stores";
+  import { tick } from 'svelte';
 
   export let layerManager;
   let mapID;
@@ -15,7 +16,12 @@
     layerManager.setTarget(newLayer.detail, mapID);
   }
 
-  function mapInit(node) {
+  async function updateMapSize() {
+    await tick();
+    layerManager.getCurrentMap().updateSize();
+  }
+
+    function mapInit(node) {
     mapID = node.id;
     return {
       destroy() {
@@ -27,9 +33,7 @@
   function mainMapInit(node) {
     mapInit(node);
     layerManager.setDefaultTarget(node.id);
-    setTimeout(() => {
-      layerManager.setDefaultTarget(node.id);
-    }, 300);
+    updateMapSize();
     bottomToolbarMode.subscribe((val) => {
       if (val === "player") {
         document.getElementById(node.id).style.height =
