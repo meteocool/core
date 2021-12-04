@@ -26,7 +26,10 @@
 
   function mainMapInit(node) {
     mapInit(node);
-    layerManager.setDefaultTarget(node);
+    layerManager.setDefaultTarget(node.id);
+    setTimeout(() => {
+      layerManager.setDefaultTarget(node.id);
+    }, 300);
     bottomToolbarMode.subscribe((val) => {
       if (val === "player") {
         document.getElementById(node.id).style.height =
