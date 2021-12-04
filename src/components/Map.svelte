@@ -3,7 +3,6 @@
   import "ol/ol.css";
   import { layerswitcherVisible, bottomToolbarMode } from "../stores";
 
-  const map = null;
   export let layerManager;
   let mapID;
 
@@ -28,6 +27,9 @@
   function mainMapInit(node) {
     mapInit(node);
     layerManager.setDefaultTarget(node.id);
+    setTimeout(() => {
+      layerManager.setDefaultTarget(node.id);
+    }, 300);
     bottomToolbarMode.subscribe((val) => {
       if (val === "player") {
         document.getElementById(node.id).style.height =
