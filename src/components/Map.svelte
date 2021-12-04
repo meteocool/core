@@ -3,7 +3,6 @@
   import "ol/ol.css";
   import { layerswitcherVisible, bottomToolbarMode } from "../stores";
 
-  const map = null;
   export let layerManager;
   let mapID;
 
