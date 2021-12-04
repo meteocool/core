@@ -43,14 +43,20 @@ export default class RadarCapability extends Capability {
 
       const oldLayer = self.layer;
       if (super.getMap()) {
-        super.getMap().removeLayer(oldLayer);
+        super.getMap()
+          .removeLayer(oldLayer);
       }
       self.layer = null;
-      if (colorScheme === "classic") {
-        if (super.getMap()) super.getMap().getView().setConstrainResolution(false);
+      self.source = null;
+      if (colorScheme === "classic" && this.layer !== dwdLayerStatic) {
+        if (super.getMap()) super.getMap()
+          .getView()
+          .setConstrainResolution(false);
         self.layerFactory = dwdLayerStatic;
-      } else {
-        if (super.getMap()) super.getMap().getView().setConstrainResolution(true);
+      } else if (colorScheme !== "classic" && this.layer !== dwdLayer) {
+        if (super.getMap()) super.getMap()
+          .getView()
+          .setConstrainResolution(true);
         self.layerFactory = dwdLayer;
       }
       this.reloadAll();
@@ -224,24 +230,7 @@ export default class RadarCapability extends Capability {
     this.gridconfig = this.regenerateGridConfig();
     const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid, obj.server_time);
 
-    if (this.layer) {
-      switch (this.trackingMode) {
-        case "live":
-          this.resetToLatest();
-          break;
-        case "manual":
-          //if ("server_time" in obj) {
-          //  const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
-          //  console.log(`wanttimestep=${wantTimestep}`);
-          //  if (wantTimestep in this.gridconfig.grid) {
-          //    this.setSource(wantTimestep);
-          //  }
-          //}
-          break;
-        default:
-          break;
-      }
-    } else {
+    if (!this.layer) {
       const last = this.clientGrid[this.getMostRecentObservation()];
       if (last) {
         [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
@@ -249,6 +238,22 @@ export default class RadarCapability extends Capability {
           map.addLayer(this.layer);
         });
       }
+    }
+    switch (this.trackingMode) {
+      case "live":
+        this.resetToLatest();
+        break;
+      case "manual":
+        //if ("server_time" in obj) {
+        //  const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
+        //  console.log(`wanttimestep=${wantTimestep}`);
+        //  if (wantTimestep in this.gridconfig.grid) {
+        //    this.setSource(wantTimestep);
+        //  }
+        //}
+        break;
+      default:
+        break;
     }
     capLastUpdated.set(latestRadar);
     this.notify("grid", this.clientGridConfig);
