@@ -45,6 +45,9 @@ export class LayerManager {
       this.maps.push(newMap);
     });
 
+    const active = this.settings.get("capability");
+    this.capabilities[active].setTarget(document.getElementById("map"));
+
     mapBaseLayer.subscribe((newBaseLayer) => { this.switchBaseLayer(newBaseLayer); });
   }
 
