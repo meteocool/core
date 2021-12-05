@@ -569,7 +569,10 @@ onMount(async () => {
 });
 
 function sliderChangedHandler(value, userInteraction = false) {
-  console.log(`sliderChangedHandler: ${value} (${userInteraction})`);
+  if (Number.isNaN(value)) {
+    console.log("sliderChangedHandler called with NaN");
+    return;
+  }
   if (value === oldTimeStep) return;
 
   if (userInteraction && fsm.state === "playing") {
