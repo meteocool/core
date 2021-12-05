@@ -1,5 +1,3 @@
-/ios /ios.html
-/ios/ /ios.html
 http://www.meteocool.de/* https://meteocool.com/:splat 301!
 https://www.meteocool.de/* https://meteocool.com/:splat 301!
 http://meteocool.de/* https://meteocool.com/:splat 301!
