@@ -569,6 +569,7 @@ onMount(async () => {
 });
 
 function sliderChangedHandler(value, userInteraction = false) {
+  console.log(`sliderChangedHandler: ${value} (${userInteraction})`);
   if (value === oldTimeStep) return;
 
   if (userInteraction && fsm.state === "playing") {
