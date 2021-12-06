@@ -1,4 +1,4 @@
-export const tileBaseUrl = "https://tiles-a.meteocool.com";
+export const tileBaseUrl = "https://tiles-{a-c}.meteocool.com";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let apiBaseUrl;

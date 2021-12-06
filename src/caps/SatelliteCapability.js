@@ -1,9 +1,14 @@
 // eslint-disable-next-line import/prefer-default-export
-import { satelliteCombo, sentinel2, sentinel3 } from '../layers/satellite';
-import { capDescription, satelliteLayer, showForecastPlaybutton, zoomlevel } from '../stores';
+import { sentinel2, sentinel3 } from '../layers/satellite';
+import {
+  capDescription,
+  satelliteLayer,
+  satelliteLayerCloudmask,
+  showForecastPlaybutton,
+} from '../stores';
 import Capability from "./Capability";
+import { get } from 'svelte/store';
 
-const SATELLITE_DESCRIPTION = `Sentinel-2 A / B`;
 const SATELLITE_DESCRIPTION_LONG = `
 💡 Sentinel-2 A and B are two ESA satellites 🛰 orbiting
 earth at 786km. With their multi-spectral cameras, together
@@ -14,29 +19,40 @@ within a few hours after recording, continuously for all
 of Earth. 🚀`;
 
 export default class SatelliteCapability extends Capability {
-  constructor() {
-    super((map) => {
-      const l = satelliteCombo();
-      map.addLayer(l);
-      zoomlevel.subscribe((z) => {
-      });
-      satelliteLayer.subscribe((layer) => {
-        switch (layer) {
-          case "sentinel2":
-            l.getLayersArray()[0].setVisible(true);
-            l.getLayersArray()[1].setVisible(false);
-            break;
-          case "sentinel3":
-          default:
-            l.getLayersArray()[0].setVisible(false);
-            l.getLayersArray()[1].setVisible(true);
-            break;
-        }
-      });
-    }, () => {
-      capDescription.set(SATELLITE_DESCRIPTION);
+  constructor(map) {
+    super(map, "satellite", () => {
+      capDescription.set(SATELLITE_DESCRIPTION_LONG);
       showForecastPlaybutton.set(false);
     });
-    this.oldLayer = null;
+
+    this.sentinel3 = sentinel3();
+    map.addLayer(this.sentinel3);
+    this.sentinel2 = sentinel2(false);
+    if (get(satelliteLayer) !== "sentinel2") {
+      this.sentinel2.setVisible(false);
+    }
+    const self = this;
+    satelliteLayerCloudmask.subscribe((cloudy) => {
+      if (self.sentinel2.get("cloudy") !== cloudy) {
+        self.recreateS2(cloudy);
+      }
+    });
+    satelliteLayer.subscribe((layer) => {
+      switch (layer) {
+        case "sentinel2":
+          self.sentinel2.setVisible(true);
+          break;
+        case "sentinel3":
+        default:
+          self.sentinel2.setVisible(false);
+          break;
+      }
+    });
+  }
+
+  recreateS2(cloudy) {
+    super.getMap().removeLayer(this.sentinel2);
+    this.sentinel2 = sentinel2(cloudy, this.sentinel2.getVisible());
+    super.getMap().addLayer(this.sentinel2);
   }
 }

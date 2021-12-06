@@ -168,31 +168,36 @@ radarSocketIO.on("mesocyclones", (data) => {
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
 
-export const radar = new RadarCapability({
-  nanobar: nb,
-  socket_io: radarSocketIO,
-  additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly()],
-});
-export const weather = new WeatherCapability({
-  nanobar: nb,
-  tileURL: `${apiBaseUrl}/icon/t_2m/`,
-});
-export const precipTypes = new PrecipitationTypesCapability({
-  nanobar: nb,
-  tileURL: `${apiBaseUrl}/precip_types/`,
-  additionalLayers: [labelsOnly(), greyOverlay()],
-});
-
-export const lm = new LayerManager({
+export let lm;
+lm = new LayerManager({
   settings: window.settings,
   nanobar: nb,
-  capabilities: {
-    radar,
-    satellite: new SatelliteCapability({ nanobar: nb }),
-    weather,
-    precipTypes,
-  },
+  capabilities: [
+    {
+      capability: RadarCapability,
+      options: {
+        nanobar: nb,
+        socket_io: radarSocketIO,
+        additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly()],
+      },
+    },
+    {
+      capability: SatelliteCapability,
+      options: {
+        nanobar: nb,
+        hasBaseLayer: false,
+      },
+    },
+    {
+      capability: PrecipitationTypesCapability,
+      options: {
+        nanobar: nb,
+        tileURL: `${apiBaseUrl}/precip_types/`,
+        additionalLayers: [labelsOnly(), greyOverlay()],
+      },
+    }],
 });
+
 window.lm = lm;
 window.settings.setCb("mapRotation", (value) => {
   const newView = new View({
@@ -332,5 +337,5 @@ if (dd.isAndroid()) {
 <Map layerManager={lm} />
 
 {#if $toolbarVisible}
-<NowcastPlayback cap={radar} />
+<NowcastPlayback cap={lm.getCapability("radar")} />
 {/if}

@@ -14,16 +14,15 @@ import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 
 export default class RadarCapability extends Capability {
-  constructor(options) {
-    super((map) => {
-      map.addLayer(greyOverlay());
-      const additionalLayers = options.additionalLayers || [];
-      additionalLayers.forEach((l) => map.addLayer(l));
-    }, () => {
+  constructor(map, options) {
+    super(map, "radar", () => {
       capDescription.set("Radar Reflectivity");
       showForecastPlaybutton.set(true);
     });
-    super.setMap(options.map);
+
+    map.addLayer(greyOverlay());
+    const additionalLayers = options.additionalLayers || [];
+    additionalLayers.forEach((l) => map.addLayer(l));
 
     this.layer = null;
     this.layers = {};
@@ -109,12 +108,11 @@ export default class RadarCapability extends Capability {
     restartHandler();
   }
 
-  updateClientGridFromServerGrid(server, serverTime) {
+  updateClientGridFromServerGrid(server) {
     let latestRadar = new Date(0);
     const body = { ...this.gridconfig.grid };
 
-    latestRadar = new Date(serverTime * 1000);
-    this.serverTime = serverTime;
+    latestRadar = new Date(this.serverTime * 1000);
 
     Object.keys(server).forEach((step) => {
       const layerAttributes = server[step];
@@ -134,7 +132,7 @@ export default class RadarCapability extends Capability {
       body[step].bucket = bucket;
       body[step].url = sourceUrl;
 
-      if (layerAttributes.source === "observation") {
+      if (layerAttributes.source === "observation_wn") {
         const processedDt = new Date(layerAttributes.processed_time * 1000);
         if (processedDt > latestRadar) latestRadar = processedDt;
       }
@@ -215,7 +213,7 @@ export default class RadarCapability extends Capability {
         if (frame.source === "") {
           break;
         }
-        if (frame.source === "observation" && parseInt(step, 10) > mostRecent) {
+        if (frame.source === "observation_wn" && parseInt(step, 10) > mostRecent) {
           mostRecent = parseInt(step, 10);
         }
       }
@@ -227,16 +225,15 @@ export default class RadarCapability extends Capability {
     if (!obj) return;
 
     this.serverGrid = obj.frames;
+    this.serverTime = obj.server_time;
     this.gridconfig = this.regenerateGridConfig();
-    const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid, obj.server_time);
+    const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
 
     if (!this.layer) {
       const last = this.clientGrid[this.getMostRecentObservation()];
       if (last) {
         [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
-        super.addMapCb((map) => {
-          map.addLayer(this.layer);
-        });
+        super.getMap().addLayer(this.layer);
       }
     }
     switch (this.trackingMode) {

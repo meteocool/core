@@ -17,6 +17,7 @@ export const mapBaseLayer = writable("light");
 export const radarColorScheme = writable("classic");
 export const showForecastPlaybutton = writable(true);
 export const satelliteLayer = writable("sentinel2");
+export const satelliteLayerCloudmask = writable(true);
 export const zoomlevel = writable(3);
 export const live = writable(false);
 export const unit = writable("pictogram");
