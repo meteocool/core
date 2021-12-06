@@ -159,7 +159,6 @@ export class LayerManager {
     if (parts.length === 3) {
       [lat, lon, z] = parts.map(parseFloat);
     }
-    console.log([...fromLonLat([-180.0, -90.0]), ...fromLonLat([180.0, 90.0])]);
 
     let layers = [];
     if (baselayer) {
@@ -177,7 +176,7 @@ export class LayerManager {
             zoom: z,
             center: fromLonLat([lon, lat]),
             enableRotation: this.settings.get("mapRotation"),
-            extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 60.0])],
+            extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
             minZoom: 4,
           }),
       controls,
