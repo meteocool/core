@@ -38,9 +38,9 @@ import MesoCycloneManager from "./lib/MesoCycloneManager";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
-import { labelsOnly } from "./layers/vector";
+import { bordersAndWays, labelsOnly } from './layers/vector';
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
-import { greyOverlay } from "./layers/radar";
+import { radolanOverlay } from "./layers/radar";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let device;
@@ -175,14 +175,15 @@ lm = new LayerManager({
   capabilities: [
     {
       capability: RadarCapability,
+      additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay()],
       options: {
         nanobar: nb,
         socket_io: radarSocketIO,
-        additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly()],
       },
     },
     {
       capability: SatelliteCapability,
+      additionalLayers: [bordersAndWays()],
       options: {
         nanobar: nb,
         hasBaseLayer: false,
@@ -190,10 +191,10 @@ lm = new LayerManager({
     },
     {
       capability: PrecipitationTypesCapability,
+      additionalLayers: [labelsOnly(), radolanOverlay()],
       options: {
         nanobar: nb,
         tileURL: `${apiBaseUrl}/precip_types/`,
-        additionalLayers: [labelsOnly(), greyOverlay()],
       },
     }],
 });

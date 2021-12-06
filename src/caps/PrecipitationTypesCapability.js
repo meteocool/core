@@ -5,15 +5,12 @@ import { apiBaseUrl } from "../urls";
 import { dwdPrecipTypes } from "../layers/radar";
 
 export default class PrecipitationTypesCapability extends Capability {
-  constructor(map, args) {
+  constructor(map, additionalLayers, args) {
     super(map, "precipTypes", () => {
       capDescription.set("foo");
       showForecastPlaybutton.set(false);
       this.fetchPrecipTypes();
-    });
-
-    const additionalLayers = args.additionalLayers || [];
-    additionalLayers.forEach((l) => map.addLayer(l));
+    }, additionalLayers);
 
     if ("cmap" in args) super.setCmap(args.cmap);
 

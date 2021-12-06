@@ -1,13 +1,13 @@
 // eslint-disable-next-line import/prefer-default-export
-import { sentinel2, sentinel3 } from '../layers/satellite';
+import { get } from "svelte/store";
+import { sentinel2, sentinel3 } from "../layers/satellite";
 import {
   capDescription,
   satelliteLayer,
   satelliteLayerCloudmask,
   showForecastPlaybutton,
-} from '../stores';
+} from "../stores";
 import Capability from "./Capability";
-import { get } from 'svelte/store';
 
 const SATELLITE_DESCRIPTION_LONG = `
 💡 Sentinel-2 A and B are two ESA satellites 🛰 orbiting
@@ -19,11 +19,11 @@ within a few hours after recording, continuously for all
 of Earth. 🚀`;
 
 export default class SatelliteCapability extends Capability {
-  constructor(map) {
+  constructor(map, additionalLayers) {
     super(map, "satellite", () => {
       capDescription.set(SATELLITE_DESCRIPTION_LONG);
       showForecastPlaybutton.set(false);
-    });
+    }, additionalLayers);
 
     this.sentinel3 = sentinel3();
     map.addLayer(this.sentinel3);
@@ -31,6 +31,7 @@ export default class SatelliteCapability extends Capability {
     if (get(satelliteLayer) !== "sentinel2") {
       this.sentinel2.setVisible(false);
     }
+
     const self = this;
     satelliteLayerCloudmask.subscribe((cloudy) => {
       if (self.sentinel2.get("cloudy") !== cloudy) {

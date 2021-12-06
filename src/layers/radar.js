@@ -140,7 +140,7 @@ export function setDwdCmap(colorMapString) {
   }
 }
 
-export const greyOverlay = () => new VectorLayer({
+export const radolanOverlay = () => new VectorLayer({
   zIndex: 1000,
   renderBuffer: 500,
   source: new VectorSource({
