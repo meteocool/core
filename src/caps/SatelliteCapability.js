@@ -4,9 +4,9 @@ import { sentinel2, sentinel3 } from "../layers/satellite";
 import {
   capDescription,
   satelliteLayer,
-  satelliteLayerCloudmask,
+  satelliteLayerCloudy, satelliteLayerLabels,
   showForecastPlaybutton,
-} from "../stores";
+} from '../stores';
 import Capability from "./Capability";
 
 const SATELLITE_DESCRIPTION_LONG = `
@@ -27,16 +27,17 @@ export default class SatelliteCapability extends Capability {
 
     this.sentinel3 = sentinel3();
     map.addLayer(this.sentinel3);
-    this.sentinel2 = sentinel2(false);
-    if (get(satelliteLayer) !== "sentinel2") {
-      this.sentinel2.setVisible(false);
-    }
+    this.sentinel2 = sentinel2(false, get(satelliteLayer) === "sentinel2");
+    map.addLayer(this.sentinel2);
 
     const self = this;
-    satelliteLayerCloudmask.subscribe((cloudy) => {
+    satelliteLayerCloudy.subscribe((cloudy) => {
       if (self.sentinel2.get("cloudy") !== cloudy) {
         self.recreateS2(cloudy);
       }
+    });
+    satelliteLayerLabels.subscribe((vis) => {
+      additionalLayers.forEach((layer) => layer.setVisible(vis));
     });
     satelliteLayer.subscribe((layer) => {
       switch (layer) {
