@@ -173,7 +173,7 @@ export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
   });
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
-    zIndex: 1000,
+    zIndex: 3,
     opacity: NOWCAST_OPACITY,
   });
 

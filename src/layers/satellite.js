@@ -1,10 +1,24 @@
 import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import XYZ from "ol/source/XYZ";
-import { bordersAndWays } from "./vector";
+import { closestSquaredDistanceXY } from "ol/extent";
 import { copernicusAttribution, ororatechAttribution } from "./attributions";
 
-export function sentinel2() {
+export function sentinel2(cloudy, visible = true) {
+  const s2 = new TileLayer({
+    source: new XYZ({
+      url: `https://tiles.ororatech.com/worldgrid/s2_msi_worldgrid_tci${cloudy ? "_cloud_masked" : ""}/{z}/{x}/{-y}.png`,
+      minZoom: 1,
+      maxZoom: 13,
+      attributions: [copernicusAttribution, ororatechAttribution],
+    }),
+    zIndex: 6,
+  });
+  s2.set("cloudy", cloudy);
+  s2.setVisible(visible);
+  return s2;
+}
+export function sentinel2cloudy() {
   return new TileLayer({
     source: new XYZ({
       url: "https://tiles.ororatech.com/worldgrid/s2_msi_worldgrid_tci_cloud_masked/{z}/{x}/{-y}.png",
@@ -12,7 +26,7 @@ export function sentinel2() {
       maxZoom: 13,
       attributions: [copernicusAttribution, ororatechAttribution],
     }),
-    zIndex: 5,
+    zIndex: 6,
   });
 }
 export function sentinel3() {
@@ -30,8 +44,7 @@ export function sentinel3() {
 export function satelliteCombo() {
   return new LayerGroup({
     layers: [
-      sentinel2(),
       sentinel3(),
-      bordersAndWays(),
+      sentinel2(),
     ] });
 }

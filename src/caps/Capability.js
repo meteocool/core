@@ -1,13 +1,19 @@
 import { Observable } from "../lib/util";
-import { sharedCmap } from '../stores';
+import { sharedCmap } from "../stores";
 
+/**
+ * A Capability implements map-related functionality (controller) on an OpenLayers map (view).
+ * It has a 1-to-1 relationship to an @OL.Map Object, which must be valid during the entire lifetime
+ * of the Capability.
+ *
+ */
 export default class Capability extends Observable {
-  constructor(mapCb, targetCb) {
+  constructor(map, name, targetCb) {
     super();
-    this.map = null;
-    this.mapCb = [mapCb];
+    this.map = map;
     this.targetCb = targetCb;
     this.cmap = null;
+    this.name = name;
   }
 
   setTarget(target) {
@@ -22,25 +28,15 @@ export default class Capability extends Observable {
     sharedCmap.set(cmap);
   }
 
-  setMap(map) {
-    this.map = map;
-    if (map) {
-      this.mapCb.forEach((cb) => {
-        if (cb) cb(map);
-      });
-    }
-  }
-
   getMap() {
     return this.map;
   }
 
-  willLoseFocus() {
-    super.notify("loseFocus", null);
+  getName() {
+    return this.name;
   }
 
-  addMapCb(cb) {
-    this.mapCb.push(cb);
-    if (this.map) cb(this.map);
+  willLoseFocus() {
+    super.notify("loseFocus", null);
   }
 }

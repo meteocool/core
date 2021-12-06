@@ -2,11 +2,19 @@
 import { fly } from "svelte/transition";
 import LastUpdated from "./LastUpdated.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
-import { capDescription, satelliteLayer, sharedActiveCap, bottomToolbarMode, zoomlevel } from "../stores";
+import {
+  capDescription,
+  satelliteLayer,
+  sharedActiveCap,
+  bottomToolbarMode,
+  zoomlevel,
+  satelliteLayerCloudmask
+} from '../stores';
 import { precipTypeNames } from "../lib/cmaps";
 import StepScaleLine from "./scales/StepScaleLine.svelte";
 import Appendix from "./Appendix.svelte";
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
+import { get } from 'svelte/store';
 
 let s3Disabled = false;
 let e;
@@ -28,6 +36,12 @@ function selectS2() {
 function selectS3() {
   satelliteLayer.set("sentinel3");
   if (e) e.checked = false;
+}
+
+function cloudmask(elem) {
+  elem.addEventListener("sl-change", (event) => {
+    satelliteLayerCloudmask.set(event.target.checked);
+  });
 }
 
 function slider(elem) {
@@ -205,6 +219,9 @@ sharedActiveCap.subscribe((val) => {
       {#if activeCap === "satellite"}
         <sl-tag size="medium" type="info">
           <span class="sentinel-label pad" on:click={selectS3}><span class="resolution">300m/2x day</span> Sentinel-3</span> <sl-switch class="switch" checked="true" use:slider disabled={s3Disabled}></sl-switch> <span class="sentinel-label" on:click={selectS2}>Sentinel-2 <span class="resolution">10m/5 days</span></span>
+        </sl-tag>
+        <sl-tag size="medium" type="info">
+          <sl-checkbox use:cloudmask checked="true" /> Cloud Mask
         </sl-tag>
       {/if}
       {#if activeCap === "precipTypes"}

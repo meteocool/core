@@ -135,7 +135,7 @@ function redraw(config) {
             if (grid[sortedKeys[index]] == null) {
               return `rgba(0, 0, 0, 1)`;
             }
-            const certain = grid[sortedKeys[index]].source === "observation" ? 1 : 0.7;
+            const certain = grid[sortedKeys[index]].source === "observation_wn" ? 1 : 0.7;
             return `rgba(${r}, ${g}, ${b}, ${certain})`;
           }),
         borderColor: d.map((value, index) => (gridKeys[index] === `${cap.getMostRecentObservation()}` ? "#ff0000" : getComputedStyle(document.body)

@@ -18,9 +18,8 @@
   window.openLayerswitcher = () => {
     const ls = document.getElementById("ls");
     ls.style.display = "block";
-    layerManager.forEachMap((map) => {
-      const cap = map.get("capability");
-      const target = childCanvases[map.get("capability")];
+    layerManager.forEachMap((map, cap) => {
+      const target = childCanvases[cap];
       console.log(`set ${cap} -> ${target}`);
       map.setTarget(target);
       map.updateSize();

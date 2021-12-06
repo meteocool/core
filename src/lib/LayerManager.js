@@ -17,31 +17,35 @@ import Style from "ol/style/Style";
 import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
-import { cartoDark, cartoLight, osm, cyclosm, bw } from '../layers/base';
-import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from '../stores';
+import { get } from "svelte/store";
+import { cartoDark, cartoLight, osm, cyclosm, bw } from "../layers/base";
+import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
-import { get } from "svelte/store"
+import { satelliteCombo } from "../layers/satellite";
 
 let shouldUpdate = true;
 
 /**
- * Manages the reflectivity + forecast layers shown on the map.
+ * Manages the reflectivity + forecast layers shown on the map. should be called MapManager
  */
 // eslint-disable-next-line import/prefer-default-export
 export class LayerManager {
   constructor(options) {
     this.options = options;
     this.settings = options.settings;
-    this.capabilities = options.capabilities;
+    this.capabilities = {};
     this.maps = [];
     this.accuracyFeatures = [];
     this.positionFeatures = [];
     this.currentCap = null;
     this.mapCount = 0;
 
-    Object.keys(this.capabilities).forEach((capability) => {
-      const newMap = this.makeMap(capability);
-      this.capabilities[capability].setMap(newMap);
+    options.capabilities.forEach((capability) => {
+      const newMap = this.mapFactory(capability.options.hasBaseLayer);
+      // eslint-disable-next-line new-cap
+      const newCap = new capability.capability(newMap, capability.options);
+      this.capabilities[newCap.getName()] = newCap;
+      newMap.set("capability", newCap.getName());
       this.maps.push(newMap);
     });
 
@@ -51,6 +55,7 @@ export class LayerManager {
     mapBaseLayer.subscribe((newBaseLayer) => { this.switchBaseLayer(newBaseLayer); });
   }
 
+  // XXX move somewhere else
   updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
     let accuracyPoly = null;
     if (accuracy >= 0) {
@@ -105,25 +110,7 @@ export class LayerManager {
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(null));
   }
 
-  setTarget(cap, target) {
-    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && cap !== this.currentCap) {
-      this.capabilities[this.currentCap].willLoseFocus();
-    }
-    this.capabilities[cap].setTarget(target);
-    sharedActiveCap.set(cap);
-    this.currentCap = cap;
-  }
-
-  getCurrentMap() {
-    return this.capabilities[this.currentCap].map;
-  }
-
-  setDefaultTarget(target) {
-    console.log(`Starting with default cap ${this.settings.get("capability")}`);
-    this.setTarget(this.settings.get("capability"), target);
-  }
-
-  makeMap(capability) {
+  mapFactory(baselayer = true) {
     let controls = new Collection();
     if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
@@ -172,13 +159,16 @@ export class LayerManager {
     if (parts.length === 3) {
       [lat, lon, z] = parts.map(parseFloat);
     }
+    console.log([...fromLonLat([-180.0, -90.0]), ...fromLonLat([180.0, 90.0])]);
+
+    let layers = [];
+    if (baselayer) {
+      layers = [this.baseLayerFactory(this.settings.get("mapBaseLayer"))];
+    }
+    layers = [...layers, geolocationAccuracyLayer, geolocationPositionLayer];
 
     const newMap = new Map({
-      layers: [
-        this.baseLayerFactory(this.settings.get("mapBaseLayer")),
-        geolocationAccuracyLayer,
-        geolocationPositionLayer,
-      ],
+      layers,
       view:
         this.maps.length > 0 ?
           this.maps[0].getView() :
@@ -187,14 +177,14 @@ export class LayerManager {
             zoom: z,
             center: fromLonLat([lon, lat]),
             enableRotation: this.settings.get("mapRotation"),
+            extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 61.0])],
+            minZoom: 4,
           }),
-      capability,
       controls,
     });
-    newMap.on("moveend", (e) => {
+    newMap.on("moveend", () => {
       zoomlevel.set(newMap.getView().getZoom());
     });
-    newMap.set("capability", capability);
     if (this.mapCount === 0) {
       newMap.on("moveend", () => {
         if (!shouldUpdate) {
@@ -206,8 +196,10 @@ export class LayerManager {
         const center = newMap.getView().getCenter();
         const center4326 = toLonLat(center);
         const url = new URL(window.location.href);
-        url.searchParams.set("latLonZ",
-          `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`);
+        url.searchParams.set(
+          "latLonZ",
+          `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
+        );
         window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
       });
 
@@ -225,6 +217,7 @@ export class LayerManager {
       });
     }
     this.mapCount += 1;
+    newMap.set("baselayer", baselayer);
     return newMap;
   }
 
@@ -234,6 +227,8 @@ export class LayerManager {
         return osm();
       case "dark":
         return cartoDark();
+      case "satellite":
+        return satelliteCombo();
       case "bw":
         return bw();
       case "cyclosm":
@@ -247,17 +242,41 @@ export class LayerManager {
 
   switchBaseLayer(newBaseLayer) {
     this.forEachMap((map) => {
+      if (map.get("baselayer") === false) return;
       map
         .getLayers()
         .getArray()
         .filter((layer) => layer.get("base") === true)
         .forEach((layer) => map.removeLayer(layer));
-      map.addLayer(this.baseLayerFactory(newBaseLayer));
+      if (newBaseLayer) map.addLayer(this.baseLayerFactory(newBaseLayer));
     });
   }
 
   forEachMap(cb) {
-    this.maps.forEach((map) => cb(map));
+    this.maps.forEach((map) => cb(map, map.get("capability")));
+  }
+
+  getCurrentMap() {
+    return this.capabilities[this.currentCap].map;
+  }
+
+  getCapability(name) {
+    return this.capabilities[name];
+  }
+
+  setTarget(cap, target) {
+    console.log(cap);
+    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && cap !== this.currentCap) {
+      this.capabilities[this.currentCap].willLoseFocus();
+    }
+    this.capabilities[cap].setTarget(target);
+    sharedActiveCap.set(cap);
+    this.currentCap = cap;
+  }
+
+  setDefaultTarget(target) {
+    console.log(`Starting with default cap ${this.settings.get("capability")}`);
+    this.setTarget(this.settings.get("capability"), target);
   }
 }
 
