@@ -30,9 +30,12 @@ export function sentinel3() {
 }
 
 export function satelliteCombo() {
-  return new LayerGroup({
+  const lg = new LayerGroup({
     layers: [
-      sentinel3(),
+      sentinel3(true),
       sentinel2(false),
-    ] });
+    ],
+  });
+  lg.set("base", true);
+  return lg;
 }
