@@ -63,3 +63,14 @@ export const bw = () => new TileLayer({
   preload: Infinity,
   zIndex: 1,
 });
+
+export function supportsVectorLabels(layer) {
+  switch (layer) {
+    case "light":
+    case "dark":
+    case "satellite":
+      return true;
+    default:
+      return false;
+  }
+}

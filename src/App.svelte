@@ -11,7 +11,6 @@ import BottomToolbar from "./components/BottomToolbar.svelte";
 
 import RadarCapability from "./caps/RadarCapability";
 import SatelliteCapability from "./caps/SatelliteCapability";
-import WeatherCapability from "./caps/WeatherCapability";
 
 import { LayerManager } from "./lib/LayerManager";
 import NanobarWrapper from "./lib/NanobarWrapper";

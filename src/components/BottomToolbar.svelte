@@ -8,8 +8,8 @@ import {
   sharedActiveCap,
   bottomToolbarMode,
   zoomlevel,
-  satelliteLayerCloudmask
-} from '../stores';
+  satelliteLayerCloudy, satelliteLayerLabels,
+} from "../stores";
 import { precipTypeNames } from "../lib/cmaps";
 import StepScaleLine from "./scales/StepScaleLine.svelte";
 import Appendix from "./Appendix.svelte";
@@ -28,35 +28,22 @@ zoomlevel.subscribe((z) => {
   }
 });
 
-function selectS2() {
-  satelliteLayer.set("sentinel2");
-  if (e) e.checked = true;
-}
-
-function selectS3() {
-  satelliteLayer.set("sentinel3");
-  if (e) e.checked = false;
-}
-
 function cloudmask(elem) {
   elem.addEventListener("sl-change", (event) => {
-    satelliteLayerCloudmask.set(event.target.checked);
+    satelliteLayerCloudy.set(!get(satelliteLayerCloudy));
   });
 }
 
-function slider(elem) {
-  e = elem;
-  // elem.tooltipFormatter = (value) => `${value.toString()
-  //  .padStart(2, 0)}:00`;
-  /// / XXX fix dependency fuckup
-  // elem.addEventListener("sl-change", (value) => window.weatherSliderChanged(value.target.value));
+function labelsBorders(elem) {
+  elem.addEventListener("sl-change", (event) => {
+    satelliteLayerLabels.set(event.target.checked);
+  });
+}
+
+function sentinel2(elem) {
   elem.addEventListener("sl-change", (event) => {
     const satellite = event.target.checked ? "sentinel2" : "sentinel3";
-    if (event.target.checked) {
-      satelliteLayer.set(satellite);
-    } else {
-      satelliteLayer.set(satellite);
-    }
+    satelliteLayer.set(satellite);
   });
 }
 
@@ -178,6 +165,11 @@ sharedActiveCap.subscribe((val) => {
     font-size: 60%;
     opacity: 0.7;
   }
+  .float {
+    display: inline-block;
+    margin-right: 2em;
+    margin-top: 0.5em;
+  }
 </style>
 
 <div
@@ -199,35 +191,20 @@ sharedActiveCap.subscribe((val) => {
       {/if}
     <div class="break"></div>
     <div class="center">
-      <!--sl-tag
-        type="info"
-        class="tag"
-        size="medium"
-        pill>
-        ICON 12Z Run 10. Feb
-      </sl-tag>
-        <sl-tag
-                type="info"
-                class="tag"
-                size="medium"
-                pill>
-      <sl-range min="0" max="24" value="{roundToHour(new Date())}" step="1" class="range-with-custom-formatter" use:slider></sl-range>
-      </sl-tag-->
       {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
           <LastUpdated />
       {/if}
       {#if activeCap === "satellite"}
-        <sl-tag size="medium" type="info">
-          <span class="sentinel-label pad" on:click={selectS3}><span class="resolution">300m/2x day</span> Sentinel-3</span> <sl-switch class="switch" checked="true" use:slider disabled={s3Disabled}></sl-switch> <span class="sentinel-label" on:click={selectS2}>Sentinel-2 <span class="resolution">10m/5 days</span></span>
-        </sl-tag>
-        <sl-tag size="medium" type="info">
-          <sl-checkbox use:cloudmask checked="true" /> Cloud Mask
-        </sl-tag>
+        <div class="float">
+          <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
+        </div>
+        <div class="float">
+          <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== 'sentinel2'}">Clouds</sl-checkbox>
+        </div>
+        <div class="float">
+          <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>
+        </div>
       {/if}
-      {#if activeCap === "precipTypes"}
-          <!-- needs a legend -->
-      {/if}
-
     </div>
     {#if !dd.isApp()}
       <div class="right app-logos">
