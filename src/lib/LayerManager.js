@@ -241,6 +241,11 @@ export class LayerManager {
 
   switchBaseLayer(newBaseLayer) {
     this.forEachMap((map) => {
+      console.log(map
+        .getLayers()
+        .getArray());
+    });
+    this.forEachMap((map) => {
       if (map.get("baselayer") === false) return;
       map
         .getLayers()
