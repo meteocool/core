@@ -33,6 +33,11 @@
 
   function close() {
     document.getElementById("ls").style.display = "none";
+    layerManager.forEachMap((map, cap) => {
+      console.log(`set ${cap} -> null`);
+      map.setTarget(null);
+      map.updateSize();
+    });
     if (dd.isIos()) {
       window.webkit.messageHandlers.scriptHandler.postMessage(
         "layerSwitcherClosed",

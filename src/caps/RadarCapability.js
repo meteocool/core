@@ -1,4 +1,4 @@
-import { dwdLayer, dwdLayerStatic, greyOverlay, setDwdCmap } from "../layers/radar";
+import { dwdLayer, dwdLayerStatic, radolanOverlay, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
   capDescription,
@@ -14,15 +14,11 @@ import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 
 export default class RadarCapability extends Capability {
-  constructor(map, options) {
+  constructor(map, additionalLayers, options) {
     super(map, "radar", () => {
       capDescription.set("Radar Reflectivity");
       showForecastPlaybutton.set(true);
-    });
-
-    map.addLayer(greyOverlay());
-    const additionalLayers = options.additionalLayers || [];
-    additionalLayers.forEach((l) => map.addLayer(l));
+    }, additionalLayers);
 
     this.layer = null;
     this.layers = {};

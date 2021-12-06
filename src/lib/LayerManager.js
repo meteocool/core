@@ -43,7 +43,7 @@ export class LayerManager {
     options.capabilities.forEach((capability) => {
       const newMap = this.mapFactory(capability.options.hasBaseLayer);
       // eslint-disable-next-line new-cap
-      const newCap = new capability.capability(newMap, capability.options);
+      const newCap = new capability.capability(newMap, capability.additionalLayers || [], capability.options);
       this.capabilities[newCap.getName()] = newCap;
       newMap.set("capability", newCap.getName());
       this.maps.push(newMap);

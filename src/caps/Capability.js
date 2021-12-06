@@ -8,12 +8,14 @@ import { sharedCmap } from "../stores";
  *
  */
 export default class Capability extends Observable {
-  constructor(map, name, targetCb) {
+  constructor(map, name, targetCb, additionalLayers) {
     super();
     this.map = map;
     this.targetCb = targetCb;
     this.cmap = null;
     this.name = name;
+
+    additionalLayers.forEach((l) => map.addLayer(l));
   }
 
   setTarget(target) {
