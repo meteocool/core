@@ -125,6 +125,7 @@ export default class Settings {
   }
 
   injectSettings(newSettings) {
+    console.log(newSettings);
     for (const key in newSettings) {
       this.set(key, newSettings[key]);
     }

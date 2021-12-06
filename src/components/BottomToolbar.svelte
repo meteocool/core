@@ -169,6 +169,7 @@ sharedActiveCap.subscribe((val) => {
     display: inline-block;
     margin-right: 2em;
     margin-top: 0.5em;
+    margin-bottom: 1.5em;
   }
 </style>
 
