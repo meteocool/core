@@ -4,6 +4,10 @@ import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
 import { io } from "socket.io-client";
 import { fromLonLat } from "ol/proj";
+import VectorTileLayer from "ol/layer/VectorTile";
+import VectorTileSource from "ol/source/VectorTile";
+import { Fill, Stroke, Style } from "ol/style";
+import MVT from "ol/format/MVT";
 import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -37,7 +41,7 @@ import MesoCycloneManager from "./lib/MesoCycloneManager";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
-import { bordersAndWays, labelsOnly } from './layers/vector';
+import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import { radolanOverlay } from "./layers/radar";
 

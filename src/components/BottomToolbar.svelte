@@ -153,19 +153,7 @@ sharedActiveCap.subscribe((val) => {
     text-align: center;
     height: 32px;
   }
-
-
-  .sentinel-label {
-    color: var(--sl-color-black);
-  }
-  .sentinel-label.pad {
-    margin-right: 0.5em;
-  }
-  .sentinel-label > .resolution {
-    font-size: 60%;
-    opacity: 0.7;
-  }
-  .float {
+  float {
     display: inline-block;
     margin-right: 2em;
     margin-top: 0.5em;

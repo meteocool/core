@@ -1,4 +1,9 @@
-import { dwdLayer, dwdLayerStatic, radolanOverlay, setDwdCmap } from "../layers/radar";
+import VectorTileLayer from "ol/layer/VectorTile";
+import VectorTileSource from "ol/source/VectorTile";
+import MVT from "ol/format/MVT";
+import { Fill, Stroke, Style } from 'ol/style';
+import snow from "../../public/assets/snow_transparent.png";
+import { dwdLayer, dwdLayerStatic, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
   capDescription,
@@ -31,6 +36,7 @@ export default class RadarCapability extends Capability {
     this.clientGrid = null;
     this.trackingMode = "live";
     this.serverTime = 0;
+    this.snowOverlay = null;
 
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
@@ -44,14 +50,18 @@ export default class RadarCapability extends Capability {
       self.layer = null;
       self.source = null;
       if (colorScheme === "classic" && this.layer !== dwdLayerStatic) {
-        if (super.getMap()) super.getMap()
-          .getView()
-          .setConstrainResolution(false);
+        if (super.getMap()) {
+          super.getMap()
+            .getView()
+            .setConstrainResolution(false);
+        }
         self.layerFactory = dwdLayerStatic;
       } else if (colorScheme !== "classic" && this.layer !== dwdLayer) {
-        if (super.getMap()) super.getMap()
-          .getView()
-          .setConstrainResolution(true);
+        if (super.getMap()) {
+          super.getMap()
+            .getView()
+            .setConstrainResolution(true);
+        }
         self.layerFactory = dwdLayer;
       }
       this.reloadAll();
@@ -76,10 +86,16 @@ export default class RadarCapability extends Capability {
       if (this.layer) this.reloadAll();
     });
 
+    this.downloadSnowOverlay();
+
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
         console.log("received websocket poke, refreshing tiles + forecasts");
         this.reloadAll();
+      });
+      this.socket_io.on("snow", () => {
+        console.log("received websocket snow overlay poke, refreshing");
+        this.downloadSnowOverlay();
       });
       // this.socket_io.on("progress", (obj) => {
       //   if ("nowcast" in obj) {
@@ -198,6 +214,58 @@ export default class RadarCapability extends Capability {
       });
   }
 
+  downloadSnowOverlay() {
+    const URL = `${v2APIBaseUrl}/snow/`;
+    console.log(`Reloading ${URL}`);
+    this.nanobar.start(URL);
+    fetch(URL)
+      .then((response) => response.json())
+      .then((obj) => this.processSnowOverlay(obj))
+      .then(() => this.nanobar.finish(URL))
+      .catch((error) => {
+        this.nanobar.finish(URL);
+        reportError(error);
+      });
+  }
+
+  processSnowOverlay(obj) {
+    const URL = `${tileBaseUrl}/meteoradar/${obj.tile_id}/{z}/{x}/{y}.pbf`;
+    if (this.snowOverlay) {
+      if (obj.active) {
+        console.log("Updating snow overlay URL");
+        this.snowOverlay.getSource()
+          .setUrl(URL);
+      } else {
+        console.log("No more snow :(");
+        this.map.removeLayer(this.snowOverlay);
+        this.snowOverlay = null;
+      }
+    } else if (obj.active) {
+      console.log("Initializing snow overlay");
+      const cnv = document.createElement("canvas");
+      const ctx = cnv.getContext("2d");
+      const img = new Image();
+      img.src = snow;
+      const pattern = ctx.createPattern(img, "repeat");
+      this.snowOverlay = new VectorTileLayer({
+        zIndex: 90,
+        source: new VectorTileSource({
+          format: new MVT(),
+          url: URL,
+          maxZoom: 5,
+          minZoom: 0,
+        }),
+        style: new Style({
+          // stroke: new Stroke({ color: "blue"}),
+          fill: new Fill({
+            color: pattern,
+          }),
+        }),
+      });
+      this.map.addLayer(this.snowOverlay);
+    }
+  }
+
   notifyObservers() {
     this.notify("grid", this.clientGridConfig);
   }
@@ -237,13 +305,13 @@ export default class RadarCapability extends Capability {
         this.resetToLatest();
         break;
       case "manual":
-        //if ("server_time" in obj) {
+        // if ("server_time" in obj) {
         //  const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
         //  console.log(`wanttimestep=${wantTimestep}`);
         //  if (wantTimestep in this.gridconfig.grid) {
         //    this.setSource(wantTimestep);
         //  }
-        //}
+        // }
         break;
       default:
         break;
