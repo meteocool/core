@@ -1,8 +1,8 @@
 import VectorTileLayer from "ol/layer/VectorTile";
 import VectorTileSource from "ol/source/VectorTile";
 import MVT from "ol/format/MVT";
-import { Fill, Stroke, Style } from 'ol/style';
-import snow from "../../public/assets/snow_transparent.png";
+import { Fill, Style } from "ol/style";
+import snow from "../../public/assets/snow.png";
 import { dwdLayer, dwdLayerStatic, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
@@ -17,6 +17,19 @@ import {
 } from "../stores";
 import Capability from "./Capability";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
+
+function setPattern(style) {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  const photo = new Image();
+  photo.onload = function () {
+    canvas.width = photo.width;
+    canvas.height = photo.height;
+    const pattern = context.createPattern(photo, "repeat");
+    style.getFill().setColor(pattern);
+  };
+  photo.src = snow;
+}
 
 export default class RadarCapability extends Capability {
   constructor(map, additionalLayers, options) {
@@ -242,11 +255,8 @@ export default class RadarCapability extends Capability {
       }
     } else if (obj.active) {
       console.log("Initializing snow overlay");
-      const cnv = document.createElement("canvas");
-      const ctx = cnv.getContext("2d");
-      const img = new Image();
-      img.src = snow;
-      const pattern = ctx.createPattern(img, "repeat");
+      const style = new Style({ fill: new Fill() });
+      setPattern(style);
       this.snowOverlay = new VectorTileLayer({
         zIndex: 90,
         source: new VectorTileSource({
@@ -255,12 +265,7 @@ export default class RadarCapability extends Capability {
           maxZoom: 5,
           minZoom: 0,
         }),
-        style: new Style({
-          // stroke: new Stroke({ color: "blue"}),
-          fill: new Fill({
-            color: pattern,
-          }),
-        }),
+        style,
       });
       this.map.addLayer(this.snowOverlay);
     }
