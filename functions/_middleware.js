@@ -24,7 +24,12 @@ export async function onRequest(context) {
     return res
   }
   name = searchParams.get("latLonZ")
-  ogtag = `<meta property="og:image" content="https://api.meteocool.com/v2/preview.png?${name ? name : "default"}" />`
+  ogtag = `
+    <meta property="og:title" content="meteocool" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${request.url}" />
+    <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?${name ? name : "default"}" />
+  `
 
   return rewriter.transform(res)
 }
