@@ -3,7 +3,7 @@ let ogtag
 
 async function fixRoute(url) {
   const route = await deployment_id.get("route")
-  const preview_name = await deployment_id("preview_name")
+  const preview_name = await deployment_id.get("preview_name")
   return url.replace(preview_name, route)
 }
 
