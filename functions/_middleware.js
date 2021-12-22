@@ -1,6 +1,12 @@
 let name
 let ogtag
 
+async function fixRoute(url) {
+  const route = await deployment_id.get("route")
+  const preview_name = await deployment_id("preview_name")
+  return url.replace(preview_name, route)
+}
+
 class ElementHandler {
   element(element) {
     element.append(ogtag, { html: true })
@@ -18,7 +24,7 @@ export async function onRequest(context) {
     data, // arbitrary space for passing data between middlewares
   } = context
   let res = await next()
-  const { searchParams, pathname } = new URL(request.url)
+  const { searchParams, pathname, hostname } = new URL(request.url)
 
   if (!(pathname === "/index.html" || pathname === "/")) {
     return res
@@ -27,7 +33,7 @@ export async function onRequest(context) {
   ogtag = `
     <meta property="og:title" content="meteocool" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="${request.url}" />
+    <meta property="og:url" content="${hostname === "meteocool.com" ? request.url : await fixRoute(request.url)}" />
     <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?${name ? name : "default"}" />
   `
 
