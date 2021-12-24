@@ -1,12 +1,6 @@
 let name
 let ogtag
 
-async function fixRoute(url, env) {
-  const route = await env.better.get("route")
-  const preview_name = await env.better.get("preview_name")
-  return url.replace(preview_name, route)
-}
-
 class ElementHandler {
   element(element) {
     element.append(ogtag, { html: true })
@@ -33,7 +27,7 @@ export async function onRequest(context) {
   ogtag = `
     <meta property="og:title" content="meteocool" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="${hostname === "meteocool.com" ? request.url : await fixRoute(request.url, env)}" />
+    <meta property="og:url" content="${request.url}" />
     <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?${name ? name : "default"}" />
   `
 
