@@ -30,7 +30,7 @@
     "build": "cross-env NODE_ENV=production webpack",
     "build-nocrossenv": "NODE_ENV=production webpack",
     "dev": "webpack-dev-server",
-    "dev-local": "BACKEND=local webpack-dev-server --env BACKEND=local --content-base public"
+    "dev-local": "BACKEND=local webpack-dev-server --env BACKEND=local"
   },
   "dependencies": {
     "@babel/eslint-parser": "^7.16.3",
