@@ -101,6 +101,12 @@ export default class RadarCapability extends Capability {
 
     this.downloadSnowOverlay();
 
+    live.subscribe((value) => {
+      if (this.snowOverlay) {
+        this.snowOverlay.setVisible(value);
+      }
+    });
+
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
         console.log("received websocket poke, refreshing tiles + forecasts");
