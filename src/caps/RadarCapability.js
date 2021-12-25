@@ -97,6 +97,7 @@ export default class RadarCapability extends Capability {
 
     lastFocus.subscribe(() => {
       if (this.layer) this.reloadAll();
+      this.downloadSnowOverlay();
     });
 
     this.downloadSnowOverlay();
