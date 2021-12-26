@@ -28,7 +28,7 @@ export async function onRequest(context) {
     <meta property="og:title" content="meteocool" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${request.url}" />
-    <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?latLonZ=${name ? name : "default"}" />
+    <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?${name ? "latLonZ="+name : "default"}" />
   `
 
   return rewriter.transform(res)
