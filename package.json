@@ -24,13 +24,15 @@
     "webpack-cli": "^4.9.1",
     "webpack-dev-server": "^4.6.0",
     "webpackbar": "^5.0.2",
-    "workbox-webpack-plugin": "^6.4.2"
+    "workbox-webpack-plugin": "^6.4.2",
+    "wrangler": "^0.0.6"
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack",
     "build-nocrossenv": "NODE_ENV=production webpack",
     "dev": "webpack-dev-server",
-    "dev-local": "BACKEND=local webpack-dev-server --env BACKEND=local"
+    "dev-local": "BACKEND=local webpack-dev-server --env BACKEND=local",
+    "cf": "wrangler pages dev -- npm run dev"
   },
   "dependencies": {
     "@babel/eslint-parser": "^7.16.3",
