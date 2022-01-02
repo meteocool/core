@@ -29,7 +29,18 @@ module.exports = {
     chunkFilename: "[name].js",
   },
   module: {
-    rules: [{
+    rules: [
+      {
+        test: /\.m?js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ['@babel/preset-env']
+          }
+        }
+      },
+      {
       test: /\.svelte$/,
       use: {
         loader: "svelte-loader",
@@ -56,7 +67,7 @@ module.exports = {
         "url-loader",
       ],
     },
-    ],
+    ]
   },
   mode,
   optimization: {
