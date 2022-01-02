@@ -25,10 +25,22 @@ export async function onRequest(context) {
   }
   name = searchParams.get("latLonZ")
   ogtag = `
-    <meta property="og:title" content="meteocool" />
+    <meta property="og:title" content="meteocool Open Radar & Lightnig Tracking" />
+    <meta property="og:description" content="Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD)." />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="de_DE" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${request.url}" />
-    <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?${name ? "latLonZ="+name : "default"}" />
+    <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?aspectRatio=wide&frame=true&${name ? "latLonZ="+name : "default"}" />
+
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content="1200" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="meteocool Open Radar & Lightnig Tracking" />
+    <meta name="twitter:description" content="Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD)." />
+
+    <meta name="description" content="Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD)." />
   `
 
   return rewriter.transform(res)

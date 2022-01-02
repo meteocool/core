@@ -177,7 +177,7 @@ export class LayerManager {
             center: fromLonLat([lon, lat]),
             enableRotation: this.settings.get("mapRotation"),
             extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
-            minZoom: 4,
+            minZoom: 1,
           }),
       controls,
     });
