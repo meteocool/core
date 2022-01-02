@@ -181,11 +181,11 @@ export class LayerManager {
           }),
       controls,
     });
-    newMap.on("moveend", () => {
-      zoomlevel.set(newMap.getView().getZoom());
-    });
     if (this.mapCount === 0) {
+      const isApp = dd.isApp();
       newMap.on("moveend", () => {
+        zoomlevel.set(newMap.getView().getZoom());
+        if (isApp) return;
         if (!shouldUpdate) {
           // do not update the URL when the view was changed in the 'popstate' handler
           shouldUpdate = true;

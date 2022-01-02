@@ -351,7 +351,7 @@ export default class RadarCapability extends Capability {
       live.set(true);
     }
     capTimeIndicator.set(timestep);
-    if (this.source && timestep in this.clientGrid && this.clientGrid[timestep].url != null) {
+    if (this.source && timestep in this.clientGrid && this.clientGrid[timestep] && this.clientGrid[timestep].url != null) {
       this.source.setUrl(this.clientGrid[timestep].url);
     }
   }
