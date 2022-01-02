@@ -153,7 +153,8 @@ sharedActiveCap.subscribe((val) => {
     text-align: center;
     height: 32px;
   }
-  float {
+
+  .float {
     display: inline-block;
     margin-right: 2em;
     margin-top: 0.5em;
