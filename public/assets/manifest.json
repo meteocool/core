@@ -5,6 +5,12 @@
   "start_url": "/",
   "display": "standalone",
   "description": "Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD).",
+  "background_color": "#fff",
+  "icons": [{
+    "src": "assets/logo-192.png",
+    "sizes": "192x192",
+    "type": "image/png"
+  }],
   "icons": [{
     "src": "assets/logo.png",
     "sizes": "512x512",
@@ -16,5 +22,6 @@
   }, {
     "platform": "itunes",
     "url": "https://apps.apple.com/de/app/meteocool-regenradar/id1438364623"
-  }]
+  }],
+  "prefer_related_applications": true
 }
