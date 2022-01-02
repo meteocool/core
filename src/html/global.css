@@ -1,3 +1,12 @@
+@media (prefers-color-scheme: dark) {
+  a {
+    color: rgb(72,146,254) !important;
+  }
+  a:visited {
+    color: rgb(72,146,254) !important;
+  }
+}
+
 html,
 body {
   position: relative;
