@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "meteocool Rain Radar",
+  "short_name": "meteocool",
+  "start_url": "/",
+  "display": "standalone",
+  "description": "Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD).",
+  "icons": [{
+    "src": "assets/logo.png",
+    "sizes": "512x512",
+    "type": "image/png"
+  }],
+  "related_applications": [{
+    "platform": "play",
+    "url": "https://play.google.com/store/apps/details?id=com.meteocool"
+  }, {
+    "platform": "itunes",
+    "url": "https://apps.apple.com/de/app/meteocool-regenradar/id1438364623"
+  }]
+}
