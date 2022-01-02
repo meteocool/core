@@ -56,5 +56,12 @@
   "rain_and_thunderstorms": "Regen & Gewitter",
   "nrt_satellite": "Satellit",
   "precpitation_types": "Niederschlags-\narten",
-  "layer_switcher_placeholder": "Wenn du dankbar für meteocool bist, gib jemand Bedürftigem etwas dafür."
+  "layer_switcher_placeholder": "Wenn du dankbar für meteocool bist, gib jemand Bedürftigem etwas dafür.",
+  "snow": "Schnee",
+  "hail": "Hagel",
+  "graupel": "Graupel",
+  "sleet": "Schnee&shy;regen",
+  "rain": "Regen",
+  "drizzle": "Niesel",
+  "n/a": "n/a"
 }
