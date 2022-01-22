@@ -115,6 +115,14 @@ export default class RadarCapability extends Capability {
       }
     });
 
+    snowLayerVisible.subscribe((value) => {
+      if (value) {
+        this.downloadSnowOverlay();
+      } else {
+        this.processSnowOverlay({ active: false });
+      }
+    });
+
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
         console.log("received websocket poke, refreshing tiles + forecasts");

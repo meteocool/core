@@ -190,7 +190,6 @@ export class LayerManager {
 
     const newMap = new Map({
       layers,
-      pixelRatio: 2,
       view:
         this.maps.length > 0 ?
           this.maps[0].getView() :
