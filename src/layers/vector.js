@@ -130,6 +130,7 @@ export const labelsOnly = () => {
   const layer = new VectorTileLayer({
     zIndex: 99,
     declutter: true,
+    renderMode: "vector",
     source: new VectorTileSource({
       attributions: [wofAttribution, osmAttribution, imprintAttribution],
       format: new MVT({
