@@ -13,11 +13,12 @@ import {
   latLon,
   live,
   radarColorScheme,
-  showForecastPlaybutton, snowLayerVisible,
+  showForecastPlaybutton, snowLayerVisible, zoomlevel,
 } from '../stores';
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 import { get } from 'svelte/store';
+const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
 function setPattern(style) {
   const canvas = document.createElement("canvas");
@@ -115,11 +116,9 @@ export default class RadarCapability extends Capability {
       }
     });
 
-    snowLayerVisible.subscribe((value) => {
-      if (value) {
-        this.downloadSnowOverlay();
-      } else {
-        this.processSnowOverlay({ active: false });
+    zoomlevel.subscribe((z) => {
+      if (this.snowOverlay) {
+        this.snowOverlay.setOpacity(z > DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL ? 0.5 : 1);
       }
     });
 
@@ -284,6 +283,7 @@ export default class RadarCapability extends Capability {
           minZoom: 0,
         }),
         style,
+        opacity: get(zoomlevel) > DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL ? 0.5 : 1,
       });
       this.map.addLayer(this.snowOverlay);
     }
