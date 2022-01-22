@@ -15,7 +15,7 @@ import {
   radarColorScheme,
   showForecastPlaybutton,
 } from "../stores";
-import Capability from "./Capability";
+import Capability from "./Capability.ts";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
 
 function setPattern(style) {

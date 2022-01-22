@@ -7,7 +7,7 @@ import {
   satelliteLayerCloudy, satelliteLayerLabels,
   showForecastPlaybutton,
 } from '../stores';
-import Capability from "./Capability";
+import Capability from "./Capability.ts";
 
 const SATELLITE_DESCRIPTION_LONG = `
 💡 Sentinel-2 A and B are two ESA satellites 🛰 orbiting

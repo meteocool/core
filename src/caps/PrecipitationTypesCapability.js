@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/prefer-default-export
 import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
-import Capability from "./Capability";
+import Capability from "./Capability.ts";
 import { apiBaseUrl } from "../urls";
 import { dwdPrecipTypes } from "../layers/radar";
 

@@ -3,11 +3,13 @@
   "version": "2.2.0",
   "devDependencies": {
     "@fortawesome/free-brands-svg-icons": "^5.15.4",
+    "@typescript-eslint/eslint-plugin": "^5.10.0",
+    "@typescript-eslint/parser": "^5.10.0",
     "clean-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^10.0.0",
     "cross-env": "^7.0.3",
     "css-loader": "^6.5.1",
-    "eslint": "^8.4.0",
+    "eslint": "^8.7.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-import-resolver-webpack": "^0.13.2",
     "eslint-plugin-import": "^2.25.3",
@@ -53,8 +55,11 @@
     "ol-ext": "^3.2.16",
     "ol-mapbox-style": "^6.5.3",
     "socket.io-client": "^4.4.0",
+    "source-map-loader": "^3.0.1",
     "svelte-css-vars": "^0.0.3",
     "svelte-i18n": "^3.3.13",
+    "ts-loader": "^9.2.6",
+    "typescript": "^4.5.5",
     "workbox-window": "^6.4.2"
   }
 }
