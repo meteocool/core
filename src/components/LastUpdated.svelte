@@ -29,7 +29,7 @@ const updateTime = () => {
 let lastFocusDt = null;
 lastFocus.subscribe((updated) => {
   if (lastFocusDt) {
-    if (updated.getTime() + 5 * 60 < lastFocusDt.getTime()) {
+    if (updated.getTime() + (60 * 1000) < lastFocusDt.getTime()) {
       lastUpdatedStr = "";
     }
   }
@@ -55,7 +55,7 @@ updateTime();
 .progress-ring {
     --indicator-color: rgb(52, 120, 246);
     position: relative;
-    top: 3px;
+    top: 4px;
     transform: scaleX(-1);
 }
 
@@ -72,7 +72,7 @@ updateTime();
 <sl-tag
         pill
         size="medium"
-        type="info">
+        type="info" style="--sl-color-info-200: var(--sl-color-info-100);">
     {#if lastUpdatedStr}
         {#if loading}
             <sl-spinner class="spinner"></sl-spinner>

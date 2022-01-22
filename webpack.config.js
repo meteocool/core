@@ -6,6 +6,7 @@ const WebpackBar = require("webpackbar");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { InjectManifest } = require("workbox-webpack-plugin");
 const webpack = require("webpack");
+const sveltePreprocess = require('svelte-preprocess');
 
 const mode = process.env.NODE_ENV || "development";
 const prod = mode === "production";
@@ -39,6 +40,7 @@ module.exports = {
           loader: "svelte-loader",
           options: {
             emitCss: true,
+            preprocess: sveltePreprocess({}),
             hotReload: true,
           },
         },

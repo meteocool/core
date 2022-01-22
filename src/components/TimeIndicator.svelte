@@ -25,7 +25,7 @@ capTimeIndicator.subscribe((value) => {
 </style>
 
 {#if timeString}
-    <sl-tag type="info" class="tag" size="medium" pill>
+    <sl-tag type="info" class="tag" size="medium" pill style="--sl-color-info-200: var(--sl-color-info-100);">
         <div class="wrap">
             {timeString}
         </div>
