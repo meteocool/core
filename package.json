@@ -27,7 +27,7 @@
     "webpack-dev-server": "^4.6.0",
     "webpackbar": "^5.0.2",
     "workbox-webpack-plugin": "^6.4.2",
-    "wrangler": "^0.0.6"
+    "wrangler": "^0.0.4"
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack",
@@ -49,6 +49,8 @@
     "chartjs-plugin-datalabels": "^2.0.0",
     "date-fns": "^2.27.0",
     "javascript-state-machine": "^3.1.0",
+    "less": "^4.1.2",
+    "less-loader": "^10.2.0",
     "moment": "^2.29.1",
     "nanobar": "^0.4.2",
     "ol": "^6.9.0",
@@ -56,8 +58,10 @@
     "ol-mapbox-style": "^6.5.3",
     "socket.io-client": "^4.4.0",
     "source-map-loader": "^3.0.1",
+    "svelte-check": "^2.3.0",
     "svelte-css-vars": "^0.0.3",
     "svelte-i18n": "^3.3.13",
+    "svelte-preprocess": "^4.10.2",
     "ts-loader": "^9.2.6",
     "typescript": "^4.5.5",
     "workbox-window": "^6.4.2"
