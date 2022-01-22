@@ -213,7 +213,7 @@ lm = new LayerManager({
     minZoom: lm.getCurrentMap().getView().getMinZoom(),
     enableRotation: value,
     constrainResolution: lm.getCurrentMap().getView().getConstrainResolution(),
-    extent: lm.getCurrentMap().getView().getExtent(),
+    extent: lm.getCurrentMap().getView().extent,
   });
   lm.forEachMap((map) => map.setView(newView));
 });
