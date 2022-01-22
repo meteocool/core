@@ -1,3 +1,4 @@
+import { Map } from "ol";
 import { Observable } from "../lib/util";
 import { sharedCmap } from "../stores";
 
@@ -8,6 +9,14 @@ import { sharedCmap } from "../stores";
  *
  */
 export default class Capability extends Observable {
+  map: Map;
+
+  name: string;
+
+  cmap: any;
+
+  targetCb: any;
+
   constructor(map, name, targetCb, additionalLayers) {
     super();
     this.map = map;
