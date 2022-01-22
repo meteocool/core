@@ -13,10 +13,11 @@ import {
   latLon,
   live,
   radarColorScheme,
-  showForecastPlaybutton,
-} from "../stores";
+  showForecastPlaybutton, snowLayerVisible,
+} from '../stores';
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
+import { get } from 'svelte/store';
 
 function setPattern(style) {
   const canvas = document.createElement("canvas");
@@ -100,11 +101,17 @@ export default class RadarCapability extends Capability {
       this.downloadSnowOverlay();
     });
 
-    this.downloadSnowOverlay();
-
     live.subscribe((value) => {
       if (this.snowOverlay) {
         this.snowOverlay.setVisible(value);
+      }
+    });
+
+    snowLayerVisible.subscribe((value) => {
+      if (value) {
+        this.downloadSnowOverlay();
+      } else {
+        this.processSnowOverlay({ active: false });
       }
     });
 
@@ -117,11 +124,6 @@ export default class RadarCapability extends Capability {
         console.log("received websocket snow overlay poke, refreshing");
         this.downloadSnowOverlay();
       });
-      // this.socket_io.on("progress", (obj) => {
-      //   if ("nowcast" in obj) {
-      //     processedForecastsCount.set(obj.nowcast);
-      //   }
-      // });
       this.downloadCurrentRadar();
     }
 
@@ -235,6 +237,7 @@ export default class RadarCapability extends Capability {
   }
 
   downloadSnowOverlay() {
+    if (!get(snowLayerVisible)) return;
     const URL = `${v2APIBaseUrl}/snow/`;
     console.log(`Reloading ${URL}`);
     this.nanobar.start(URL);

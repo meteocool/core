@@ -24,7 +24,7 @@ import {
   cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, radarColormap,
-  radarColorScheme, toolbarVisible,
+  radarColorScheme, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
 import "./html/global.css";
@@ -92,6 +92,13 @@ initUIConstants();
     default: true,
     cb: (value) => {
       cycloneLayerVisible.set(value);
+    },
+  },
+  layerSnow: {
+    type: "boolean",
+    default: true,
+    cb: (value) => {
+      snowLayerVisible.set(value);
     },
   },
   latLonZ: {

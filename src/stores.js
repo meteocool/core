@@ -13,6 +13,7 @@ export const logoStyle = writable("full");
 export const layerswitcherVisible = writable("yes");
 export const toolbarVisible = writable("yes");
 export const cycloneLayerVisible = writable(true);
+export const snowLayerVisible = writable(true);
 export const mapBaseLayer = writable("light");
 export const radarColorScheme = writable("classic");
 export const showForecastPlaybutton = writable(true);
