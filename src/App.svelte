@@ -207,15 +207,17 @@ lm = new LayerManager({
 
 (window as any).lm = lm;
 (window as any).settings.setCb("mapRotation", (value) => {
-  const newView = new View({
-    center: lm.getCurrentMap().getView().getCenter(),
-    zoom: lm.getCurrentMap().getView().getZoom(),
-    minZoom: lm.getCurrentMap().getView().getMinZoom(),
-    enableRotation: value,
-    constrainResolution: lm.getCurrentMap().getView().getConstrainResolution(),
-    extent: lm.getCurrentMap().getView().extent,
-  });
-  lm.forEachMap((map) => map.setView(newView));
+  // XXX map rotation is currently broken:
+  // https://github.com/openlayers/openlayers/issues/12908
+  // const newView = new View({
+  //   center: lm.getCurrentMap().getView().getCenter(),
+  //   zoom: lm.getCurrentMap().getView().getZoom(),
+  //   minZoom: lm.getCurrentMap().getView().getMinZoom(),
+  //   enableRotation: value,
+  //   constrainResolution: lm.getCurrentMap().getView().getConstrainResolution(),
+  //   extent: lm.getCurrentMap().getView().extent,
+  // });
+  // lm.forEachMap((map) => map.setView(newView));
 });
 (window as any).settings.setCb("latLonZ", (value) => {
   if (!value) return;

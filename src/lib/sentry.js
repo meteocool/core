@@ -8,6 +8,13 @@ export const SENTRY_ARGS = {
   environment: process.env.NODE_ENV,
   autoSessionTracking: false,
   release: GIT_COMMIT_HASH,
+  autoBreadcrumbs: {
+    xhr: true,
+    console: true,
+    dom: true,
+    location: false,
+    sentry: true,
+  },
 };
 
 export { SENTRY_ARGS as default };

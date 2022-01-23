@@ -26,12 +26,10 @@ const updateTime = () => {
   loading = false;
 };
 
-let lastFocusDt = null;
+let lastFocusDt = new Date();
 lastFocus.subscribe((updated) => {
-  if (lastFocusDt) {
-    if (updated.getTime() + (60 * 1000) < lastFocusDt.getTime()) {
-      lastUpdatedStr = "";
-    }
+  if (updated.getTime() - (60 * 1000) > lastFocusDt.getTime()) {
+    lastUpdatedStr = "";
   }
   lastFocusDt = updated;
   loading = true;

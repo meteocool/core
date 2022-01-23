@@ -5,12 +5,6 @@ Sentry.init(SENTRY_ARGS);
 import { Workbox } from "workbox-window";
 import App from "./App.svelte";
 
-HTMLCanvasElement.prototype.getContext = (function (orig) {
-  return function (type) {
-    return type !== "webgl2" ? orig.apply(this, arguments) : null;
-  };
-}(HTMLCanvasElement.prototype.getContext));
-
 // Register service worker
 if ("serviceWorker" in navigator) {
   const wb = new Workbox("sw.js");
