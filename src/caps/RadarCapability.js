@@ -173,7 +173,7 @@ export default class RadarCapability extends Capability {
       body[step].bucket = bucket;
       body[step].url = sourceUrl;
 
-      if (layerAttributes.source === "observation_wn") {
+      if (layerAttributes.source === "observation") {
         const processedDt = new Date(layerAttributes.processed_time * 1000);
         if (processedDt > latestRadar) latestRadar = processedDt;
       }
@@ -300,7 +300,7 @@ export default class RadarCapability extends Capability {
         if (frame.source === "") {
           break;
         }
-        if (frame.source === "observation_wn" && parseInt(step, 10) > mostRecent) {
+        if (frame.source === "observation" && parseInt(step, 10) > mostRecent) {
           mostRecent = parseInt(step, 10);
         }
       }
