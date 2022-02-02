@@ -1,4 +1,4 @@
-import TileLayer from "ol/layer/Tile";
+import TileLayer from "ol/layer/WebGLTile";
 import XYZ from "ol/source/XYZ";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
 import OSM from "ol/source/OSM";
