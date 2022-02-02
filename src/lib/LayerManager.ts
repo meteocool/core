@@ -194,10 +194,10 @@ export class LayerManager {
         this.maps.length > 0 ?
           this.maps[0].getView() :
           new View({
-            constrainResolution: get(radarColorScheme) !== "classic",
             zoom: z,
             center: fromLonLat([lon, lat]),
             enableRotation: this.settings.get("mapRotation"),
+            constrainResolution: false,
             extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
             minZoom: 5,
           }),

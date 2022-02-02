@@ -3,7 +3,7 @@ import Feature from "ol/Feature";
 import Fill from "ol/style/Fill";
 import ImageLayer from "ol/layer/Image";
 import Style from "ol/style/Style";
-import TileLayer from "ol/layer/Tile";
+import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
@@ -14,9 +14,10 @@ import { dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
-import { cmapDiffFromString } from "../lib/cmap_utils";
+import { cmapDiffFromString, cmapFromString } from '../lib/cmap_utils';
+import { RVP6_CLASSIC, RVP6_HOMEYER, RVP6_NWS } from '../colormaps';
 
-let cmap = null;
+let cmap = RVP6_CLASSIC;
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
@@ -30,6 +31,7 @@ export const dwdSource = (tileId, bucket = "meteoradar") => {
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     tileSize: 512,
     cacheSize: 999999,
+    imageSmoothing: false,
   });
   reflectivitySource.set("tile_id", tileId);
   return reflectivitySource;
@@ -73,68 +75,41 @@ export const dwdLayer = (tileId, bucket = "meteoradar") => {
     cacheSize: 999999,
     imageSmoothing: false,
   });
+
+  const toColorId = [
+    "+",
+    ["*", 255 * 256 * 256, ["band", 1]],
+    ["+", ["*", 255 * 256, ["band", 2]], ["*", 255, ["band", 3]]],
+  ];
+
+  const indexes = RVP6_CLASSIC.map((rgba) => {
+    const [r, g, b, _] = rgba;
+    return (r * 256 * 256) + (g * 256) + b;
+  });
+
+  const cmapAlphaNorm = cmap.map((color) => [color[0], color[1], color[2], color[3] / 255]);
+  const matches = indexes.map((element, index) => [element, cmapAlphaNorm[index]]).flat();
+
   const reflectivityLayer = new TileLayer({
+    zIndex: 3,
+    opacity: NOWCAST_OPACITY,
     source: reflectivitySource,
-    zIndex: 1000,
-  });
-
-  // Disable browser upsampling
-  reflectivityLayer.on("prerender", (evt) => {
-    evt.context.imageSmoothingEnabled = false;
-    evt.context.msImageSmoothingEnabled = false;
-    evt.context.webkitImageSmoothingEnabled = false;
-    evt.context.mozImageSmoothingEnabled = false;
-  });
-
-  const rasterRadar = new RasterSource({
-    imageSmoothing: false,
-    minZoom: 4,
-    maxZoom: 7,
-    sources: [reflectivityLayer],
-    // XXX eslint converts the following to a syntax error. good job y'all
-    // eslint-disable-next-line object-shorthand
-    // eslint-disable-next-line func-names
-    operation: function(pixels, data) {
-      function d2h(d) {
-        return (d).toString(16).padStart(2, "0");
-      }
-
-      const key = `${d2h(pixels[0][0])}${d2h(pixels[0][1])}${d2h(pixels[0][2])}`;
-      if (!(key in data.cmap)) {
-        const avg = (pixels[0][0] + pixels[0][1] + pixels[0][2]) / 3;
-        return [avg, avg, avg];
-      }
-      pixels[0][0] -= data.cmap[key][0];
-      pixels[0][1] -= data.cmap[key][1];
-      pixels[0][2] -= data.cmap[key][2];
-      pixels[0][3] -= data.cmap[key][3];
-
-      return pixels[0];
+    extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
+    style: {
+      color: [
+        "match",
+        toColorId,
+        ...matches,
+        [255, 0, 0, 0],
+      ],
     },
   });
-  lastRasterRadar = rasterRadar;
-  rasterRadar.on("beforeoperations", (event) => {
-    event.data.cmap = cmap;
-  });
-
-  const rasterRadarImageLayer = new ImageLayer({
-    zIndex: 3,
-    source: rasterRadar,
-    renderBuffer: 500,
-    title: "Radar Composite",
-    opacity: NOWCAST_OPACITY,
-    id: tileId,
-  });
-  rasterRadarImageLayer.setExtent(
-    transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
-  );
-
-  rasterRadarImageLayer.set("tileId", tileId);
-  return [rasterRadarImageLayer, reflectivitySource, sourceUrl];
+  reflectivityLayer.set("tileId", tileId);
+  return [reflectivityLayer, reflectivitySource, sourceUrl];
 };
 
 export function setDwdCmap(colorMapString) {
-  cmap = cmapDiffFromString(colorMapString);
+  [cmap] = cmapFromString(colorMapString);
   if (lastRasterRadar) {
     lastRasterRadar.changed(); // XXX only works for the last layer
   }
@@ -170,17 +145,12 @@ export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     tileSize: 512,
     cacheSize: 999999,
+    imageSmoothing: false,
   });
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
     zIndex: 3,
     opacity: NOWCAST_OPACITY,
-  });
-
-  // Disable browser upsampling
-  reflectivityLayer.on("prerender", (evt) => {
-    evt.context.imageSmoothingEnabled = false;
-    evt.context.msImageSmoothingEnabled = false;
   });
   return reflectivityLayer;
 };

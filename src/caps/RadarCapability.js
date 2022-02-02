@@ -65,18 +65,8 @@ export default class RadarCapability extends Capability {
       self.layer = null;
       self.source = null;
       if (colorScheme === "classic" && this.layer !== dwdLayerStatic) {
-        if (super.getMap()) {
-          super.getMap()
-            .getView()
-            .setConstrainResolution(false);
-        }
         self.layerFactory = dwdLayerStatic;
       } else if (colorScheme !== "classic" && this.layer !== dwdLayer) {
-        if (super.getMap()) {
-          super.getMap()
-            .getView()
-            .setConstrainResolution(true);
-        }
         self.layerFactory = dwdLayer;
       }
       this.reloadAll();
