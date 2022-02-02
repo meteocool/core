@@ -25,6 +25,7 @@ export const weatherLayer = (tileID) => {
         extent: centralEuropeExtent,
         preload: Infinity,
         opacity: 0.9,
+        cacheSize: 256,
       }),
     ],
   })];
