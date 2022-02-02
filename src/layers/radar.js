@@ -43,23 +43,13 @@ export const dwdLayerStatic = (tileId, bucket) => {
     source: reflectivitySource,
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
+    cacheSize: 256,
+    extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
   });
-
-  // Disable browser upsampling
-  reflectivityLayer.on("prerender", (evt) => {
-    evt.context.imageSmoothingEnabled = false;
-    evt.context.msImageSmoothingEnabled = false;
-  });
-
-  reflectivityLayer.setExtent(
-    transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
-  );
 
   reflectivityLayer.set("tile_id", tileId);
   return [reflectivityLayer, reflectivitySource, ""];
 };
-
-let lastRasterRadar = null;
 
 export const dwdLayer = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
@@ -72,8 +62,8 @@ export const dwdLayer = (tileId, bucket = "meteoradar") => {
     transition: 300,
     tilePixelRatio: 1,
     tileSize: 512,
-    cacheSize: 999999,
     imageSmoothing: false,
+    cacheSize: 256,
   });
 
   const toColorId = [
@@ -92,6 +82,7 @@ export const dwdLayer = (tileId, bucket = "meteoradar") => {
 
   const reflectivityLayer = new TileLayer({
     zIndex: 3,
+    cacheSize: 256,
     opacity: NOWCAST_OPACITY,
     source: reflectivitySource,
     extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
@@ -110,9 +101,6 @@ export const dwdLayer = (tileId, bucket = "meteoradar") => {
 
 export function setDwdCmap(colorMapString) {
   [cmap] = cmapFromString(colorMapString);
-  if (lastRasterRadar) {
-    lastRasterRadar.changed(); // XXX only works for the last layer
-  }
 }
 
 export const radolanOverlay = () => new VectorLayer({
@@ -151,6 +139,7 @@ export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
     source: reflectivitySource,
     zIndex: 3,
     opacity: NOWCAST_OPACITY,
+    cacheSize: 256,
   });
   return reflectivityLayer;
 };

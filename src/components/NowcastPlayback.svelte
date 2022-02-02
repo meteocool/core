@@ -638,6 +638,7 @@ let last = new Date();
 lastFocus.subscribe((focus) => {
   if (focus.getTime() > (last.getTime() + 2 * 60 * 1000) && cap.trackingMode !== "live") {
     hide();
+    cap.resetToLatest();
   }
   last = focus;
 });
