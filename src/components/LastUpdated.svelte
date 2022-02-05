@@ -59,17 +59,24 @@ updateTime();
 
 .spinner {
     --indicator-color: rgb(52, 120, 246);
-    --stroke-width: 1.5px;
+    --stroke-width: 1.66px;
     position: relative;
-    top: 2px;
+    top: 5px;
+    margin-top: 3px;
     margin-right: 3px;
-    font-size: 14px;
+    font-size: 15px;
+    transform: scaleX(-1);
 }
 
 .info {
     color: var(--sl-color-gray-600);
-    font-size: 12px;
+    font-size: 13px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    min-width: 100px;
+    white-space: nowrap;
 }
+
 </style>
 
 <div class="info">

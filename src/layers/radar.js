@@ -10,7 +10,7 @@ import { DEVICE_PIXEL_RATIO } from "ol/has";
 import { Raster as RasterSource } from "ol/source";
 import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
-import { dwdAttribution } from "./attributions";
+import { blitzortungAttribution, dwdAttribution } from './attributions';
 import { dwdExtentInv } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
@@ -23,7 +23,7 @@ export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
-    attributions: [dwdAttribution],
+    attributions: [dwdAttribution, blitzortungAttribution],
     crossOrigin: "anonymous",
     minZoom: 3,
     maxZoom: 8,
@@ -55,7 +55,7 @@ export const dwdLayer = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
-    attributions: [dwdAttribution],
+    attributions: [dwdAttribution, blitzortungAttribution],
     crossOrigin: "anonymous",
     minZoom: 3,
     maxZoom: 8,
