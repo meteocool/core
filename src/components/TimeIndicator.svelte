@@ -16,7 +16,8 @@ capTimeIndicator.subscribe((value) => {
 <style>
 .tag {
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
+    min-width: 40px;
     color: var(--sl-color-gray-600);
     height: 30px;
     width: 40px;
