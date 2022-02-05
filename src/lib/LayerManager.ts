@@ -169,7 +169,7 @@ export class LayerManager {
       source: new VectorSource({
         features: [accuracyFeature],
       }),
-      zIndex: 99999,
+      zIndex: 99998,
     });
     geolocationAccuracyLayer.set("kind", "geolocationPositionLayer");
 
