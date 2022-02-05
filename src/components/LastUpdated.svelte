@@ -53,7 +53,7 @@ updateTime();
 .progress-ring {
     --indicator-color: rgb(52, 120, 246);
     position: relative;
-    top: 4px;
+    top: 6px;
     transform: scaleX(-1);
 }
 
@@ -65,19 +65,21 @@ updateTime();
     margin-right: 3px;
     font-size: 14px;
 }
+
+.info {
+    color: var(--sl-color-gray-600);
+    font-size: 12px;
+}
 </style>
 
-<sl-tag
-        pill
-        size="medium"
-        type="info" style="--sl-color-info-200: var(--sl-color-info-100);">
+<div class="info">
     {#if lastUpdatedStr}
         {#if loading}
             <sl-spinner class="spinner"></sl-spinner>
         {:else}
             <sl-progress-ring
                     percentage={slPercent}
-                    size="18"
+                    size="20"
                     stroke-width="1.5"
                     class="progress-ring"></sl-progress-ring>
         {/if}
@@ -85,5 +87,5 @@ updateTime();
     {:else}
         <sl-spinner class="spinner"></sl-spinner> {$_("loading")}...
     {/if}
-</sl-tag>
+</div>
 

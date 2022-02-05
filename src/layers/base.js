@@ -20,7 +20,6 @@ export const cartoDark = () => new TileLayer({
   base: true,
   preload: Infinity,
   zIndex: 1,
-  cacheSize: 256,
 });
 
 export const cartoLight = () => new TileLayer({
@@ -34,7 +33,6 @@ export const cartoLight = () => new TileLayer({
   base: true,
   preload: Infinity,
   zIndex: 1,
-  cacheSize: 256,
 });
 
 export const osm = () => new TileLayer({
@@ -42,7 +40,6 @@ export const osm = () => new TileLayer({
   base: true,
   preload: Infinity,
   zIndex: 1,
-  cacheSize: 256,
 });
 
 export const cyclosm = () => new TileLayer({
@@ -56,7 +53,6 @@ export const cyclosm = () => new TileLayer({
   base: true,
   preload: Infinity,
   zIndex: 1,
-  cacheSize: 256,
 });
 
 export const bw = () => new TileLayer({
@@ -70,7 +66,6 @@ export const bw = () => new TileLayer({
   base: true,
   preload: Infinity,
   zIndex: 1,
-  cacheSize: 256,
 });
 
 export function supportsVectorLabels(layer) {
