@@ -1,13 +1,11 @@
 /* eslint-disable no-param-reassign */
 import Feature from "ol/Feature";
 import Fill from "ol/style/Fill";
-import ImageLayer from "ol/layer/Image";
 import Style from "ol/style/Style";
 import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
-import { Raster as RasterSource } from "ol/source";
 import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
 import { blitzortungAttribution, dwdAttribution } from './attributions';
