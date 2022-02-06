@@ -17,8 +17,8 @@ import {
   cycloneLayerVisible,
   latLon,
   lightningLayerVisible,
-  bottomToolbarMode, radarColormap,
-} from '../stores';
+  bottomToolbarMode, radarColormap, precacheForecast,
+} from "../stores";
 
 Chart.register(CategoryScale);
 Chart.register(LinearScale);
@@ -36,12 +36,11 @@ import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import DevStatus from "./DevStatus.svelte";
 import { _ } from "svelte-i18n";
-import { get } from 'svelte/store';
-import { dbz2color } from '../lib/cmap_utils';
+import { get } from "svelte/store";
+import { dbz2color } from "../lib/cmap_utils";
 
 export let cap;
 
-let currentTimestep;
 let gridConfig = null;
 
 let userLatLon;
@@ -99,7 +98,7 @@ function redraw(config) {
   // with error bars:
   // return {y: grid[step].dbz, yMin: grid[step].dbz - grid[step].dbzMin, yMax: grid[step].dbz + grid[step].dbzMax};
   const d = sortedKeys.map((step) => (
-          { y: Math.max(0, grid[step] != null ? grid[step].dbz : 0) }
+    { y: Math.max(0, grid[step] != null ? grid[step].dbz : 0) }
   ));
   if (chart) chart.destroy();
 
@@ -371,6 +370,9 @@ const fsm = new StateMachine({
   methods: {
     onShowScrollbar: () => {
       bottomToolbarMode.set("player");
+      if ($precacheForecast === true) {
+        cap.precacheForecast();
+      }
       if (chart) {
         canvasVisible = false;
         chart.options.scales.x.ticks.display = true;

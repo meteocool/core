@@ -23,6 +23,7 @@ export const satelliteLayerLabels = writable(true);
 export const zoomlevel = writable(3);
 export const live = writable(false);
 export const unit = writable("pictogram");
+export const precacheForecast = writable(true);
 
 export const sharedActiveCap = writable("");
 export const sharedCmap = writable("");
