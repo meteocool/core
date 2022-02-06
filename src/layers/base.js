@@ -12,33 +12,32 @@ const retina = DEVICE_PIXEL_RATIO > 1 ? "@2x" : "";
 
 export const cartoDark = () => new TileLayer({
   source: new XYZ({
-    url: `https://cartodb-basemaps-{a-c}.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}${retina}.png`,
+    urls: [`https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}${retina}.png`,
+      `https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}${retina}.png`],
     crossOrigin: null,
     attributions: [osmAttribution, cartoAttribution],
     maxZoom: 20,
   }),
   base: true,
-  preload: Infinity,
   zIndex: 1,
 });
 
 export const cartoLight = () => new TileLayer({
   source: new XYZ({
-    url: `https://cartodb-basemaps-{a-c}.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}${retina}.png`,
+    urls: [`https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}${retina}.png`,
+      `https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}${retina}.png`],
     crossOrigin: null,
     attributions: [osmAttribution, cartoAttribution],
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     maxZoom: 20,
   }),
   base: true,
-  preload: Infinity,
   zIndex: 1,
 });
 
 export const osm = () => new TileLayer({
   source: new OSM(),
   base: true,
-  preload: Infinity,
   zIndex: 1,
 });
 
@@ -51,20 +50,6 @@ export const cyclosm = () => new TileLayer({
     maxZoom: 20,
   }),
   base: true,
-  preload: Infinity,
-  zIndex: 1,
-});
-
-export const bw = () => new TileLayer({
-  source: new XYZ({
-    url: `https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png `,
-    attributions: [osmAttribution, cyclosmAttribution],
-    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
-    maxZoom: 20,
-    crossOrigin: null,
-  }),
-  base: true,
-  preload: Infinity,
   zIndex: 1,
 });
 
