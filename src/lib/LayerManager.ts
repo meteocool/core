@@ -18,7 +18,7 @@ import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
-import { cartoDark, cartoLight, osm, cyclosm, bw } from "../layers/base";
+import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
 import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { satelliteCombo } from "../layers/satellite";
@@ -250,8 +250,6 @@ export class LayerManager {
         return cartoDark();
       case "satellite":
         return satelliteCombo();
-      case "bw":
-        return bw();
       case "cyclosm":
         return cyclosm();
       case "light":

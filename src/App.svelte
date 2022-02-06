@@ -23,7 +23,7 @@ import {
   colorSchemeDark,
   cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, radarColormap,
+  mapBaseLayer, precacheForecast, radarColormap,
   radarColorScheme, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
@@ -60,6 +60,13 @@ initUIConstants();
   mapRotation: {
     type: "boolean",
     default: false,
+  },
+  precacheForecast: {
+    type: "boolean",
+    default: true,
+    cb: (val) => {
+      precacheForecast.set(val);
+    },
   },
   mapBaseLayer: {
     type: "string",

@@ -2,6 +2,7 @@ import VectorTileLayer from "ol/layer/VectorTile";
 import VectorTileSource from "ol/source/VectorTile";
 import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
+import { get } from "svelte/store";
 import snow from "../../public/assets/snow.png";
 import { dwdLayer, dwdLayerStatic, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
@@ -14,10 +15,10 @@ import {
   live,
   radarColorScheme,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
-} from '../stores';
+} from "../stores";
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v2APIBaseUrl } from "../urls";
-import { get } from 'svelte/store';
+
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
 function setPattern(style) {
@@ -52,6 +53,8 @@ export default class RadarCapability extends Capability {
     this.trackingMode = "live";
     this.serverTime = 0;
     this.snowOverlay = null;
+
+    window.radar = this;
 
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
@@ -171,6 +174,38 @@ export default class RadarCapability extends Capability {
     this.clientGrid = body;
     this.clientGridConfig = { ...this.gridconfig, grid: body };
     return latestRadar;
+  }
+
+  precacheForecast() {
+    if (!this.layer) {
+      return;
+    }
+
+    const source = this.layer.getSource();
+    const extent = this.map.getView().calculateExtent(window.lm.getCurrentMap().getSize());
+    const zoom = Math.max(Math.min(Math.round(this.map.getView().getZoom()) - 1, source.getTileGrid().getMaxZoom()), source.getTileGrid().getMinZoom());
+
+    const urls = Object.values(this.clientGridConfig.grid)
+      .filter((e) => e.source === "nowcast_phys")
+      .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
+      .map((tile) => `https://tiles-a.meteocool.com/${tile.bucket}/${tile.tile_id}/`);
+
+    source.getTileGrid().forEachTileCoord(extent, zoom, (tileCoord) => {
+      const [z, x, y] = tileCoord;
+      urls.forEach((url) => {
+        const URL = `${url}${z}/${x}/${(2 ** z) - y - 1}.png`;
+        this.nanobar.start(URL);
+        fetch(URL)
+          .then((_) => {
+            console.log(`precached ${URL}`);
+            this.nanobar.finish(URL);
+          })
+          .catch((_) => {
+            console.log(`error precaching ${URL}`);
+            this.nanobar.finish(URL);
+          });
+      });
+    });
   }
 
   regenerateGridConfig() {
