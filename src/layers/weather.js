@@ -1,5 +1,5 @@
 import LayerGroup from "ol/layer/Group";
-import TileLayer from "ol/layer/Tile";
+import TileLayer from 'ol/layer/WebGLTile';
 import XYZ from "ol/source/XYZ";
 import { centralEuropeExtent } from "./extents";
 import { tileBaseUrl } from "../urls";
@@ -25,6 +25,7 @@ export const weatherLayer = (tileID) => {
         extent: centralEuropeExtent,
         preload: Infinity,
         opacity: 0.9,
+        cacheSize: 256,
       }),
     ],
   })];

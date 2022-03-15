@@ -2,10 +2,11 @@ const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const WebpackBar = require('webpackbar');
+const WebpackBar = require("webpackbar");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { InjectManifest } = require("workbox-webpack-plugin");
 const webpack = require("webpack");
+const sveltePreprocess = require('svelte-preprocess');
 
 const mode = process.env.NODE_ENV || "development";
 const prod = mode === "production";
@@ -20,7 +21,7 @@ module.exports = {
     alias: {
       svelte: path.resolve("node_modules", "svelte"),
     },
-    extensions: [".mjs", ".js", ".svelte"],
+    extensions: [".mjs", ".js", ".svelte", ".ts", ".tsx", "", ".webpack.js", ".web.js",],
     mainFields: ["svelte", "browser", "module", "main"],
   },
   output: {
@@ -29,33 +30,38 @@ module.exports = {
     chunkFilename: "[name].js",
   },
   module: {
-    rules: [{
-      test: /\.svelte$/,
-      use: {
-        loader: "svelte-loader",
-        options: {
-          emitCss: true,
-          hotReload: true,
+    rules: [
+      // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
+      { test: /\.tsx?$/, loader: "ts-loader" },
+      // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
+      { test: /\.js$/, loader: "source-map-loader" },
+      { test: /\.svelte$/,
+        use: {
+          loader: "svelte-loader",
+          options: {
+            emitCss: true,
+            preprocess: sveltePreprocess({}),
+            hotReload: true,
+          },
         },
       },
-    },
-    {
-      test: /\.css$/,
-      use: [
+      {
+        test: /\.css$/,
+        use: [
         /**
           * MiniCssExtractPlugin doesn't support HMR.
           * For developing, use 'style-loader' instead.
           * */
-        prod ? MiniCssExtractPlugin.loader : "style-loader",
-        "css-loader",
-      ],
-    },
-    {
-      test: /\.(png|svg|jpg|gif)$/,
-      use: [
-        "url-loader",
-      ],
-    },
+          prod ? MiniCssExtractPlugin.loader : "style-loader",
+          "css-loader",
+        ],
+      },
+      {
+        test: /\.(png|svg|jpg|gif)$/,
+        use: [
+          "url-loader",
+        ],
+      },
     ],
   },
   mode,
