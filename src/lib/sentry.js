@@ -6,7 +6,7 @@ export const SENTRY_ARGS = {
   integrations: [new Integrations.BrowserTracing(), new CaptureConsole({ levels: ["error"] })],
   tracesSampleRate: 1.0,
   environment: process.env.NODE_ENV,
-  autoSessionTracking: false,
+  autoSessionTracking: true,
   release: GIT_COMMIT_HASH,
   autoBreadcrumbs: {
     xhr: true,
