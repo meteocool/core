@@ -10,10 +10,11 @@
   export let layerManager;
   const childCanvases = {};
 
-  const allAttributions = Object.entries(attributions)
+  const allAttributionsArray = Object.entries(attributions)
     .filter((k) => k[0] !== "imprintAttribution")
-    .map((k) => k[1])
-    .join(" ");
+    .map((k) => k[1]);
+  allAttributionsArray.sort();
+  const allAttributions = allAttributionsArray.join(" ");
 
   window.openLayerswitcher = () => {
     const ls = document.getElementById("ls");
@@ -27,7 +28,6 @@
   };
 
   function open(elem) {
-    elem.target.classList.remove("pulsate");
     window.openLayerswitcher();
   }
 
@@ -102,18 +102,18 @@
   }
 
   .gridContainer {
-    height: 99%;
+    height: 99.5%;
     width: 99.5%;
     text-align: center;
     display: block;
-    margin: 0.1em auto;
+    margin: 0.1em auto 0;
   }
 
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 0.15em 0.1em;
+    gap: 0.15em 0.15em;
     grid-template-areas: "reflectivity satellite" "precip-types help";
     height: 100%;
   }

@@ -1,5 +1,5 @@
 import LayerGroup from "ol/layer/Group";
-import TileLayer from "ol/layer/Tile";
+import TileLayer from 'ol/layer/WebGLTile';
 import XYZ from "ol/source/XYZ";
 import { copernicusAttribution, ororatechAttribution } from "./attributions";
 
@@ -12,6 +12,7 @@ export function sentinel2(cloudy, visible = true) {
       attributions: [copernicusAttribution, ororatechAttribution],
     }),
     zIndex: 6,
+    cacheSize: 256,
   });
   s2.set("cloudy", cloudy);
   s2.setVisible(visible);
@@ -25,6 +26,7 @@ export function sentinel3() {
       maxZoom: 8,
       attributions: [copernicusAttribution, ororatechAttribution],
     }),
+    cacheSize: 256,
     zIndex: 5,
   });
 }
