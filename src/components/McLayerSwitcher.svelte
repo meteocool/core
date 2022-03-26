@@ -114,7 +114,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 0.15em 0.15em;
-    grid-template-areas: "reflectivity satellite" "precip-types help";
+    grid-template-areas: "reflectivity satellite" "precip-types aerosols";
     height: 100%;
   }
 
@@ -128,8 +128,8 @@
     grid-area: precip-types;
     position: relative;
   }
-  .help {
-    grid-area: help;
+  .aerosols {
+    grid-area: aerosols;
     position: relative;
   }
 
@@ -137,24 +137,6 @@
     height: 100%;
     cursor: pointer;
     color: white;
-  }
-
-  .helpText {
-    color: var(--sl-color-black);
-    text-align: center;
-    line-height: 2;
-    cursor: default;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  @media only screen and (max-width: 620px) {
-    .helpText {
-      line-height: 1.5;
-      font-size: 90%;
-    }
   }
 
   .contributors {
@@ -202,13 +184,13 @@
                   on:changeLayer={changeLayer}
                   class="hidden" />
       </div>
-      <div class="help cell">
-        <div class="helpText">
-          {$_("layer_switcher_placeholder")}
-        </div>
-        <div class="contributors">
-          &copy; meteocool Contributors {allAttributions}
-        </div>
+      <div class="aerosols cell">
+        <MiniMap
+                {layerManager}
+                layer={"aerosols"}
+                label={`💨 ${$_("aerosols")}`}
+                on:mount={childMounted}
+                on:changeLayer={changeLayer} />
       </div>
     </div>
   </div>
