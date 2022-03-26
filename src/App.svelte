@@ -40,6 +40,7 @@ import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import { radolanOverlay } from "./layers/radar";
+import AerosolsCapability from "./caps/AerosolsCapability";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let device;
@@ -196,6 +197,14 @@ lm = new LayerManager({
     },
     {
       capability: SatelliteCapability,
+      additionalLayers: [bordersAndWays()],
+      options: {
+        nanobar: nb,
+        hasBaseLayer: false,
+      },
+    },
+    {
+      capability: AerosolsCapability,
       additionalLayers: [bordersAndWays()],
       options: {
         nanobar: nb,

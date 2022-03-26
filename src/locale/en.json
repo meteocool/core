@@ -64,5 +64,6 @@
   "sleet": "Sleet",
   "rain": "Rain",
   "drizzle": "Drizzle",
-  "n/a": "n/a"
+  "n/a": "n/a",
+  "aerosols": "Aerosol Index"
 }
