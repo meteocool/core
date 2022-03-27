@@ -7,12 +7,16 @@ module.exports = {
     "airbnb-base",
     "plugin:import/errors",
     "plugin:import/warnings",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
   ],
+  parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: 2019,
     sourceType: "module",
   },
   plugins: [
+    "@typescript-eslint",
     "svelte3",
   ],
   overrides: [
@@ -44,7 +48,11 @@ module.exports = {
   },
   settings: {
     "import/resolver": {
+      node: {
+        extensions: [".js", ".jsx", ".ts", ".tsx"],
+      },
       webpack: {
+        extensions: [".js", ".jsx", ".ts", ".tsx"],
         config: "webpack.config.js",
       },
     },

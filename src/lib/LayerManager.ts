@@ -18,10 +18,11 @@ import CircleStyle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
-import { cartoDark, cartoLight, osm, cyclosm, bw } from "../layers/base";
+import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
 import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { satelliteCombo } from "../layers/satellite";
+import Capability from "../caps/Capability";
 
 let shouldUpdate = true;
 
@@ -29,7 +30,27 @@ let shouldUpdate = true;
  * Manages the reflectivity + forecast layers shown on the map. should be called MapManager
  */
 // eslint-disable-next-line import/prefer-default-export
+interface CapabilityMap {
+  [name: string]: Capability;
+}
+
 export class LayerManager {
+  options: object;
+
+  settings: any;
+
+  capabilities: CapabilityMap;
+
+  maps: Array<any>;
+
+  accuracyFeatures: Array<any>;
+
+  positionFeatures: Array<any>;
+
+  currentCap: string;
+
+  mapCount: number;
+
   constructor(options) {
     this.options = options;
     this.settings = options.settings;
@@ -111,7 +132,7 @@ export class LayerManager {
   }
 
   mapFactory(baselayer = true) {
-    let controls = new Collection();
+    let controls;
     if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
         new Attribution({
@@ -124,11 +145,12 @@ export class LayerManager {
     this.accuracyFeatures.push(accuracyFeature);
     const positionFeature = new Feature();
     this.positionFeatures.push(positionFeature);
+    const src = new VectorSource({
+      features: [positionFeature],
+    });
+    src.set("kind", "geolocationPositionLayer");
     const geolocationPositionLayer = new VectorLayer({
-      source: new VectorSource({
-        features: [positionFeature],
-        kind: "geolocationPositionLayer",
-      }),
+      source: src,
       style: new Style({
         image: new CircleStyle({
           radius: 10,
@@ -146,10 +168,10 @@ export class LayerManager {
     const geolocationAccuracyLayer = new VectorLayer({
       source: new VectorSource({
         features: [accuracyFeature],
-        kind: "geolocationPositionLayer",
       }),
-      zIndex: 99999,
+      zIndex: 99998,
     });
+    geolocationAccuracyLayer.set("kind", "geolocationPositionLayer");
 
     let lat = 51.0;
     let lon = 11.0;
@@ -172,20 +194,20 @@ export class LayerManager {
         this.maps.length > 0 ?
           this.maps[0].getView() :
           new View({
-            constrainResolution: get(radarColorScheme) !== "classic",
             zoom: z,
             center: fromLonLat([lon, lat]),
             enableRotation: this.settings.get("mapRotation"),
+            constrainResolution: false,
             extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
-            minZoom: 1,
+            minZoom: 5,
           }),
       controls,
     });
-    newMap.on("moveend", () => {
-      zoomlevel.set(newMap.getView().getZoom());
-    });
     if (this.mapCount === 0) {
+      const isApp = dd.isApp();
       newMap.on("moveend", () => {
+        zoomlevel.set(newMap.getView().getZoom());
+        if (isApp) return;
         if (!shouldUpdate) {
           // do not update the URL when the view was changed in the 'popstate' handler
           shouldUpdate = true;
@@ -228,8 +250,6 @@ export class LayerManager {
         return cartoDark();
       case "satellite":
         return satelliteCombo();
-      case "bw":
-        return bw();
       case "cyclosm":
         return cyclosm();
       case "light":
@@ -270,12 +290,12 @@ export class LayerManager {
     }
     this.capabilities[cap].setTarget(target);
     sharedActiveCap.set(cap);
-    this.currentCap = cap;
+    (this as any).currentCap = cap;
   }
 
   setDefaultTarget(target) {
-    console.log(`Starting with default cap ${this.settings.get("capability")}`);
-    this.setTarget(this.settings.get("capability"), target);
+    console.log(`Starting with default cap ${(this as any).settings.get("capability")}`);
+    this.setTarget((this as any).settings.get("capability"), target);
   }
 }
 

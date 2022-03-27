@@ -57,5 +57,13 @@
   "rain_and_thunderstorms": "Rain & Thunderstorms",
   "nrt_satellite": "Near Real-Time Satellite",
   "precpitation_types": "Precipitation Types",
-  "layer_switcher_placeholder": "If you are thankful for meteocool, give something back to someone in need."
+  "layer_switcher_placeholder": "If you are thankful for meteocool, give something back to someone in need.",
+  "snow": "Snow",
+  "hail": "Hail",
+  "graupel": "Graupel",
+  "sleet": "Sleet",
+  "rain": "Rain",
+  "drizzle": "Drizzle",
+  "n/a": "n/a",
+  "aerosols": "Aerosol Index"
 }
