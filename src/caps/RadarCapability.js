@@ -17,7 +17,7 @@ import {
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
 } from "../stores";
 import Capability from "./Capability.ts";
-import { tileBaseUrl, v2APIBaseUrl } from "../urls";
+import { tileBaseUrl, v3APIBaseUrl } from "../urls";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
@@ -253,7 +253,7 @@ export default class RadarCapability extends Capability {
   }
 
   downloadCurrentRadar() {
-    const URL = `${v2APIBaseUrl}/radar/${this.getLocalPostifx()}`;
+    const URL = `${v3APIBaseUrl}/radar/timeseries${this.getLocalPostifx()}`;
     console.log(`Reloading ${URL}`);
     live.set(false);
     this.nanobar.start(URL);
@@ -270,7 +270,7 @@ export default class RadarCapability extends Capability {
 
   downloadSnowOverlay() {
     if (!get(snowLayerVisible)) return;
-    const URL = `${v2APIBaseUrl}/snow/`;
+    const URL = `${v3APIBaseUrl}/radar/snow`;
     console.log(`Reloading ${URL}`);
     this.nanobar.start(URL);
     fetch(URL)

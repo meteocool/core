@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/prefer-default-export
 import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
 import Capability from "./Capability.ts";
-import { apiBaseUrl } from "../urls";
+import { apiBaseUrl, v3APIBaseUrl } from '../urls';
 import { dwdPrecipTypes } from "../layers/radar";
 
 export default class PrecipitationTypesCapability extends Capability {
@@ -19,7 +19,7 @@ export default class PrecipitationTypesCapability extends Capability {
   }
 
   fetchPrecipTypes() {
-    const URL = `${apiBaseUrl}/precip_types/`;
+    const URL = `${v3APIBaseUrl}/radar/classification`;
     this.nb.start(URL);
     fetch(URL)
       .then((response) => response.json())

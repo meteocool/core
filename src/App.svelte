@@ -216,7 +216,7 @@ lm = new LayerManager({
       additionalLayers: [labelsOnly(), radolanOverlay()],
       options: {
         nanobar: nb,
-        tileURL: `${apiBaseUrl}/precip_types/`,
+        tileURL: `${apiBaseUrl}/radar/classification`,
       },
     }],
 });
