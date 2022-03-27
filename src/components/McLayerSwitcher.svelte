@@ -10,10 +10,11 @@
   export let layerManager;
   const childCanvases = {};
 
-  const allAttributions = Object.entries(attributions)
+  const allAttributionsArray = Object.entries(attributions)
     .filter((k) => k[0] !== "imprintAttribution")
-    .map((k) => k[1])
-    .join(" ");
+    .map((k) => k[1]);
+  allAttributionsArray.sort();
+  const allAttributions = allAttributionsArray.join(" ");
 
   window.openLayerswitcher = () => {
     const ls = document.getElementById("ls");
@@ -27,7 +28,6 @@
   };
 
   function open(elem) {
-    elem.target.classList.remove("pulsate");
     window.openLayerswitcher();
   }
 
@@ -102,19 +102,19 @@
   }
 
   .gridContainer {
-    height: 99%;
+    height: 99.5%;
     width: 99.5%;
     text-align: center;
     display: block;
-    margin: 0.1em auto;
+    margin: 0.1em auto 0;
   }
 
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 0.15em 0.1em;
-    grid-template-areas: "reflectivity satellite" "precip-types help";
+    gap: 0.15em 0.15em;
+    grid-template-areas: "reflectivity satellite" "precip-types aerosols";
     height: 100%;
   }
 
@@ -128,8 +128,8 @@
     grid-area: precip-types;
     position: relative;
   }
-  .help {
-    grid-area: help;
+  .aerosols {
+    grid-area: aerosols;
     position: relative;
   }
 
@@ -137,24 +137,6 @@
     height: 100%;
     cursor: pointer;
     color: white;
-  }
-
-  .helpText {
-    color: var(--sl-color-black);
-    text-align: center;
-    line-height: 2;
-    cursor: default;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  @media only screen and (max-width: 620px) {
-    .helpText {
-      line-height: 1.5;
-      font-size: 90%;
-    }
   }
 
   .contributors {
@@ -202,13 +184,13 @@
                   on:changeLayer={changeLayer}
                   class="hidden" />
       </div>
-      <div class="help cell">
-        <div class="helpText">
-          {$_("layer_switcher_placeholder")}
-        </div>
-        <div class="contributors">
-          &copy; meteocool Contributors {allAttributions}
-        </div>
+      <div class="aerosols cell">
+        <MiniMap
+                {layerManager}
+                layer={"aerosols"}
+                label={`💨 ${$_("aerosols")}`}
+                on:mount={childMounted}
+                on:changeLayer={changeLayer} />
       </div>
     </div>
   </div>

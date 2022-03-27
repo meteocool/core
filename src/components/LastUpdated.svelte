@@ -26,12 +26,10 @@ const updateTime = () => {
   loading = false;
 };
 
-let lastFocusDt = null;
+let lastFocusDt = new Date();
 lastFocus.subscribe((updated) => {
-  if (lastFocusDt) {
-    if (updated.getTime() + 5 * 60 < lastFocusDt.getTime()) {
-      lastUpdatedStr = "";
-    }
+  if (updated.getTime() - (60 * 1000) > lastFocusDt.getTime()) {
+    lastUpdatedStr = "";
   }
   lastFocusDt = updated;
   loading = true;
@@ -55,31 +53,40 @@ updateTime();
 .progress-ring {
     --indicator-color: rgb(52, 120, 246);
     position: relative;
-    top: 3px;
+    top: 6px;
     transform: scaleX(-1);
 }
 
 .spinner {
     --indicator-color: rgb(52, 120, 246);
-    --stroke-width: 1.5px;
+    --stroke-width: 1.66px;
     position: relative;
-    top: 2px;
+    top: 5px;
+    margin-top: 3px;
     margin-right: 3px;
-    font-size: 14px;
+    font-size: 15px;
+    transform: scaleX(-1);
 }
+
+.info {
+    color: var(--sl-color-gray-600);
+    font-size: 13px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    min-width: 100px;
+    white-space: nowrap;
+}
+
 </style>
 
-<sl-tag
-        pill
-        size="medium"
-        type="info">
+<div class="info">
     {#if lastUpdatedStr}
         {#if loading}
             <sl-spinner class="spinner"></sl-spinner>
         {:else}
             <sl-progress-ring
                     percentage={slPercent}
-                    size="18"
+                    size="20"
                     stroke-width="1.5"
                     class="progress-ring"></sl-progress-ring>
         {/if}
@@ -87,5 +94,5 @@ updateTime();
     {:else}
         <sl-spinner class="spinner"></sl-spinner> {$_("loading")}...
     {/if}
-</sl-tag>
+</div>
 

@@ -1,13 +1,9 @@
-<script>
+<script lang="ts" >
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
 import { io } from "socket.io-client";
 import { fromLonLat } from "ol/proj";
-import VectorTileLayer from "ol/layer/VectorTile";
-import VectorTileSource from "ol/source/VectorTile";
-import { Fill, Stroke, Style } from "ol/style";
-import MVT from "ol/format/MVT";
 import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -27,8 +23,8 @@ import {
   colorSchemeDark,
   cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, radarColormap,
-  radarColorScheme, toolbarVisible,
+  mapBaseLayer, precacheForecast, radarColormap,
+  radarColorScheme, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
 import "./html/global.css";
@@ -44,6 +40,7 @@ import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import { radolanOverlay } from "./layers/radar";
+import AerosolsCapability from "./caps/AerosolsCapability";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let device;
@@ -60,10 +57,17 @@ init({
 
 initUIConstants();
 
-window.settings = new Settings({
+(window as any).settings = new Settings({
   mapRotation: {
     type: "boolean",
     default: false,
+  },
+  precacheForecast: {
+    type: "boolean",
+    default: true,
+    cb: (val) => {
+      precacheForecast.set(val);
+    },
   },
   mapBaseLayer: {
     type: "string",
@@ -96,6 +100,13 @@ window.settings = new Settings({
     default: true,
     cb: (value) => {
       cycloneLayerVisible.set(value);
+    },
+  },
+  layerSnow: {
+    type: "boolean",
+    default: true,
+    cb: (value) => {
+      snowLayerVisible.set(value);
     },
   },
   latLonZ: {
@@ -142,9 +153,9 @@ window.settings = new Settings({
 const [lightningSource, lightningLayer] = makeLightningLayer();
 lightningLayerVisible.subscribe((value) => {
   lightningLayer.setVisible(value);
-  window.settings.set("layerLightning", value);
+  (window as any).settings.set("layerLightning", value);
 });
-lightningLayerVisible.set(window.settings.get("layerLightning"));
+lightningLayerVisible.set((window as any).settings.get("layerLightning"));
 
 const nb = new NanobarWrapper();
 const radarSocketIO = io(`${websocketBaseUrl}/radar`);
@@ -158,14 +169,14 @@ const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
 const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
 cycloneLayerVisible.subscribe((value) => {
   mesocycloneLayer.setVisible(value);
-  window.settings.set("layerMesocyclones", value);
+  (window as any).settings.set("layerMesocyclones", value);
 });
-lightningLayerVisible.set(window.settings.get("layerMesocyclones"));
+lightningLayerVisible.set((window as any).settings.get("layerMesocyclones"));
 
 radarSocketIO.on("lightning", (data) => {
   strikemgr.addStrike(data.lon, data.lat);
 });
-window.ll = lightningLayer;
+(window as any).ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
   mesocyclonemgr.clearAll();
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
@@ -173,7 +184,7 @@ radarSocketIO.on("mesocyclones", (data) => {
 
 export let lm;
 lm = new LayerManager({
-  settings: window.settings,
+  settings: (window as any).settings,
   nanobar: nb,
   capabilities: [
     {
@@ -193,38 +204,41 @@ lm = new LayerManager({
       },
     },
     {
+      capability: AerosolsCapability,
+      additionalLayers: [bordersAndWays()],
+      options: {
+        nanobar: nb,
+        hasBaseLayer: false,
+      },
+    },
+    {
       capability: PrecipitationTypesCapability,
       additionalLayers: [labelsOnly(), radolanOverlay()],
       options: {
         nanobar: nb,
-        tileURL: `${apiBaseUrl}/precip_types/`,
+        tileURL: `${apiBaseUrl}/radar/classification`,
       },
     }],
 });
 
-window.lm = lm;
-window.settings.setCb("mapRotation", (value) => {
+(window as any).lm = lm;
+(window as any).settings.setCb("mapRotation", (value) => {
   const newView = new View({
     center: lm.getCurrentMap().getView().getCenter(),
     zoom: lm.getCurrentMap().getView().getZoom(),
-    minZoom: 5,
+    minZoom: lm.getCurrentMap().getView().getMinZoom(),
     enableRotation: value,
+    extent: lm.getCurrentMap().getView().extent,
   });
   lm.forEachMap((map) => map.setView(newView));
 });
-window.settings.setCb("latLonZ", (value) => {
+(window as any).settings.setCb("latLonZ", (value) => {
   if (!value) return;
   const parts = value.split(",");
   if (parts.length !== 3) return;
   const [lat, lon, z] = parts.map(parseFloat);
-
-  const newView = new View({
-    center: fromLonLat([lon, lat]),
-    zoom: z,
-    minZoom: lm.getCurrentMap().getView().getMinZoom(),
-    rotation: lm.getCurrentMap().getView().getRotation(),
-  });
-  lm.getCurrentMap().setView(newView);
+  lm.getCurrentMap().getView().setCenter(fromLonLat([lon, lat]));
+  lm.getCurrentMap().getView().setZoom(z);
 });
 
 function reloadLightning() {
@@ -260,7 +274,7 @@ function reloadCyclones() {
 reloadLightning();
 reloadCyclones();
 
-window.enterForeground = () => {
+(window as any).enterForeground = () => {
   lastFocus.set(new Date());
   if (window.matchMedia) {
     colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
@@ -282,7 +296,7 @@ if (device === "web") {
 }
 
 if (dd.isIos()) {
-  window.webkit.messageHandlers.scriptHandler.postMessage("requestSettings");
+  (window as any).webkit.messageHandlers.scriptHandler.postMessage("requestSettings");
 }
 
 if (dd.isAndroid()) {

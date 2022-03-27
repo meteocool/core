@@ -14,20 +14,19 @@ capTimeIndicator.subscribe((value) => {
 </script>
 
 <style>
-  .tag {
-      margin-left: 5px;
-      text-align: center;
-  }
-  .wrap {
-      width: 100%;
-      text-align: center;
-  }
+.tag {
+    text-align: center;
+    font-size: 13px;
+    min-width: 40px;
+    color: var(--sl-color-gray-600);
+    height: 30px;
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 </style>
 
 {#if timeString}
-    <sl-tag type="info" class="tag" size="medium" pill>
-        <div class="wrap">
-            {timeString}
-        </div>
-    </sl-tag>
+<div class="tag">{timeString}</div>
 {/if}

@@ -34,7 +34,7 @@ export async function onRequest(context) {
       <meta property="og:locale:alternate" content="en_US" />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="${request.url}" />
-      <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?aspectRatio=wide&frame=true&${name ? "latLonZ="+name : "default"}" />
+      <meta property="og:image" content="https://api.meteocool.com/v3/preview/og.png?aspectRatio=wide&frame=true&${name ? "latLonZ="+name : "default"}" />
 
       <meta property="og:image:height" content="630" />
       <meta property="og:image:width" content="1200" />
@@ -53,7 +53,7 @@ export async function onRequest(context) {
       <meta property="og:locale:alternate" content="de_DE" />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="${request.url}" />
-      <meta property="og:image" content="https://api.meteocool.com/v2/preview.png?aspectRatio=wide&frame=true&${name ? "latLonZ="+name : "default"}" />
+      <meta property="og:image" content="https://api.meteocool.com/v3/preview/og.png?aspectRatio=wide&frame=true&${name ? "latLonZ="+name : "default"}" />
 
       <meta property="og:image:height" content="630" />
       <meta property="og:image:width" content="1200" />

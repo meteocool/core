@@ -15,6 +15,7 @@ import StepScaleLine from "./scales/StepScaleLine.svelte";
 import Appendix from "./Appendix.svelte";
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import { get } from 'svelte/store';
+import { _ } from 'svelte-i18n';
 
 let s3Disabled = false;
 let e;
@@ -176,7 +177,7 @@ sharedActiveCap.subscribe((val) => {
       {/if}
       {#if activeCap === "precipTypes"}
         <div class="palette">
-          <StepScaleLine steps="{precipTypeNames}" />
+          <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} />
         </div>
       {/if}
     <div class="break"></div>
