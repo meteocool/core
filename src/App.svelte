@@ -41,6 +41,7 @@ import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import { radolanOverlay } from "./layers/radar";
 import AerosolsCapability from "./caps/AerosolsCapability";
+import LightningCapability from "./caps/LightningCapability";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let device;
@@ -209,6 +210,14 @@ lm = new LayerManager({
       options: {
         nanobar: nb,
         hasBaseLayer: false,
+      },
+    },
+    {
+      capability: LightningCapability,
+      additionalLayers: [labelsOnly()],
+      options: {
+        nanobar: nb,
+        hasBaseLayer: true,
       },
     },
     {

@@ -199,7 +199,7 @@ export class LayerManager {
             enableRotation: this.settings.get("mapRotation"),
             constrainResolution: false,
             extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
-            minZoom: 5,
+            minZoom: 3,
           }),
       controls,
     });
