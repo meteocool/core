@@ -1,10 +1,16 @@
 import VectorSource from "ol/source/Vector";
 import { Cluster } from "ol/source.js";
 import VectorLayer from "ol/layer/Vector";
-import Style from 'ol/style/Style';
-import Icon from 'ol/style/Icon';
+import Style from "ol/style/Style";
+import Icon from "ol/style/Icon";
+import WebGLPointsLayer from "ol/layer/WebGLPoints";
+import MVT from "ol/format/MVT";
+import VectorTileSource from "ol/source/VectorTile";
+import VectorTileLayer from "ol/layer/VectorTile";
+import { Fill, RegularShape, Stroke } from "ol/style";
 import lightningstrike from "../../public/assets/lightning.png";
-import { blitzortungAttribution, imprintAttribution } from './attributions';
+import { blitzortungAttribution, imprintAttribution } from "./attributions";
+import { tileBaseUrl } from "../urls";
 
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;
@@ -30,6 +36,26 @@ const styleFactory = (age, size) => {
     });
   }
   return styleCache[age][size];
+};
+
+const crossCache = {};
+const crossFactory = (ts) => {
+  const minute = Math.floor(ts / 10e9 / 60);
+  if (minute in crossCache) {
+    return crossCache[minute];
+  }
+  const cross = new Style({
+    image: new RegularShape({
+      fill: new Fill({ color: "red" }),
+      stroke: new Stroke({ color: "black", width: 2 }),
+      points: 4,
+      radius: 10,
+      radius2: 0,
+      angle: 0,
+    }),
+  });
+  crossCache[minute] = cross;
+  return cross;
 };
 
 export default function makeLightningLayer() {
@@ -69,3 +95,17 @@ export default function makeLightningLayer() {
     },
   })];
 }
+
+export const lightningLayerGL = (tileId, map) => {
+  const URL = `${tileBaseUrl}/meteoradar/${tileId}/{z}/{x}/{y}.pbf`;
+  return new VectorTileLayer({
+    zIndex: 90,
+    source: new VectorTileSource({
+      format: new MVT(),
+      url: URL,
+      maxZoom: 5,
+      minZoom: 0,
+    }),
+    style: (feature) => crossFactory(Math.floor(age / 60)),
+  });
+};

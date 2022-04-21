@@ -25,10 +25,10 @@ export const dwdSource = (tileId, bucket = "meteoradar") => {
     crossOrigin: "anonymous",
     minZoom: 3,
     maxZoom: 8,
-    transition: 300,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     tileSize: 512,
     cacheSize: 999999,
+    transition: 0,
     imageSmoothing: false,
   });
   reflectivitySource.set("tile_id", tileId);
