@@ -218,6 +218,7 @@ lm = new LayerManager({
       options: {
         nanobar: nb,
         hasBaseLayer: true,
+        socket: radarSocketIO,
       },
     },
     {
