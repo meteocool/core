@@ -1,17 +1,17 @@
-import VectorSource from 'ol/source/Vector';
-import { Cluster } from 'ol/source.js';
-import VectorLayer from 'ol/layer/Vector';
-import Style from 'ol/style/Style';
-import Icon from 'ol/style/Icon';
-import WebGLPointsLayer from 'ol/layer/WebGLPoints';
-import MVT from 'ol/format/MVT';
-import VectorTileSource from 'ol/source/VectorTile';
-import VectorTileLayer from 'ol/layer/VectorTile';
-import { Fill, RegularShape, Stroke } from 'ol/style';
-import lightningstrike from '../../public/assets/lightning.png';
-import { blitzortungAttribution, imprintAttribution } from './attributions';
-import { tileBaseUrl } from '../urls';
-import { LightningColors } from '../colormaps';
+import VectorSource from "ol/source/Vector";
+import { Cluster } from "ol/source.js";
+import VectorLayer from "ol/layer/Vector";
+import Style from "ol/style/Style";
+import Icon from "ol/style/Icon";
+import WebGLPointsLayer from "ol/layer/WebGLPoints";
+import MVT from "ol/format/MVT";
+import VectorTileSource from "ol/source/VectorTile";
+import VectorTileLayer from "ol/layer/VectorTile";
+import { Fill, RegularShape, Stroke } from "ol/style";
+import lightningstrike from "../../public/assets/lightning.png";
+import { blitzortungAttribution, imprintAttribution } from "./attributions";
+import { tileBaseUrl } from "../urls";
+import { LightningColors } from "../colormaps";
 
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;
@@ -42,9 +42,9 @@ const styleFactory = (age, size) => {
 const crossCache = {};
 const greyCross = new Style({
   image: new RegularShape({
-    fill: new Fill({ color: '#aaaaaa' }),
+    fill: new Fill({ color: "#aaaaaa" }),
     stroke: new Stroke({
-      color: '#aaaaaa',
+      color: "#aaaaaa",
       width: 3,
     }),
     points: 4,
@@ -97,12 +97,12 @@ export default function makeLightningLayer() {
     source: clusters,
     zIndex: 100,
     style: (feature) => {
-      const size = feature.get('features').length;
+      const size = feature.get("features").length;
       const now = new Date().getTime();
       let age = 0;
       let textsize = 24;
       if (size > 1) {
-        feature.get('features')
+        feature.get("features")
           .forEach((f) => {
             age += (now - f.getId()) / STRIKE_MINS;
           });
@@ -115,7 +115,7 @@ export default function makeLightningLayer() {
           textsize = 29;
         }
       } else {
-        age = (Math.round((now - feature.get('features')[0].getId()) / STRIKE_MINS / 2.5)) + 1;
+        age = (Math.round((now - feature.get("features")[0].getId()) / STRIKE_MINS / 2.5)) + 1;
       }
       return styleFactory(age, textsize);
     },
@@ -130,15 +130,15 @@ export const lightningLayerGL = (tileId, map) => {
       format: new MVT(),
       attributions: [blitzortungAttribution],
       url: URL,
-      maxZoom: 7,
+      maxZoom: 9,
       minZoom: 0,
     }),
-    style: (feature) => crossFactory(feature.get('time_wall') * 1000),
+    style: (feature) => crossFactory(feature.get("time_wall") * 1000),
   });
 };
 
 export const lightningLayerDumb = (tileId, map) => new VectorLayer({
   zIndex: 91,
   source: new VectorSource({}),
-  style: (feature) => crossFactory(feature.get('time_wall')),
+  style: (feature) => crossFactory(feature.get("time_wall")),
 });

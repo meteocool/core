@@ -1,20 +1,21 @@
 <script>
-  import cssVars from 'svelte-css-vars';
-  import mapBg from '../../../public/assets/map-bg.png';
+  import cssVars from "svelte-css-vars";
+  import mapBg from "../../../public/assets/map-bg.png";
 
   export let palette;
   export let valueFormat;
   export let prettyName;
+  export let title = "";
 
   let minDbz;
   let maxDbz;
 
   function colorMap() {
     if (!palette) {
-      return '#ffffff';
+      return "#ffffff";
     }
-    return palette.split(';')
-      .map((c) => c.split(':'));
+    return palette.split(";")
+      .map((c) => c.split(":"));
   }
 
   function capitalizeFirst(string) {
@@ -24,7 +25,7 @@
 
   $ : vs = colorMap()
     .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
-    .filter((e) => e !== '');
+    .filter((e) => e !== "");
   $ : [minDbz] = colorMap(palette)[0];
   $ : [maxDbz] = colorMap(palette)
     .pop();
@@ -32,7 +33,7 @@
     .map((c) => `#${c[1]}`);
 
   $: scaleStyle = {
-    backgroundImage: `linear-gradient(to right, ${colors.join(',')})`,
+    backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
     backgroundUrl: `url(${mapBg})`,
   };
 </script>
@@ -76,11 +77,28 @@
   .scale {
     width: 100%;
     float: left;
-    margin-right: 2em;
+    /*margin-right: 2em;*/
     margin-bottom: 2px;
     height: var(--sl-input-height-medium);
+    flex: 1;
   }
 
+  .legend-label {
+    height: 100%;
+    color: var(--sl-color-gray-600);
+    line-height: 1.21;
+    font-size: 80%;
+    text-align: right;
+    word-break: break-word;
+  }
+  .scale {
+    flex: 1;
+  }
+  .wrapper {
+    display: flex;
+    gap: 0.75em;
+    justify-content: space-around;
+  }
 
   :global(.legendLabel) {
     font-size: 80%;
@@ -115,14 +133,18 @@
   }
 </style>
 
-<div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
-    <div class="scale-line" use:cssVars="{scaleStyle}">
-        <div class="scale-dividers">
-            {#each vs as value}
-                <div class="scale-divider">
-                    {@html value}
-                </div>
-            {/each}
+<div class="wrapper">
+    <div class="legend-label">{@html title}</div>
+    <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
+        <div class="scale-line" use:cssVars="{scaleStyle}">
+            <div class="scale-dividers">
+                {#each vs as value}
+                    <div class="scale-divider">
+                        {@html value}
+                    </div>
+                {/each}
+            </div>
         </div>
     </div>
 </div>
+
