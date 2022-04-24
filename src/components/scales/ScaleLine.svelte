@@ -1,6 +1,6 @@
 <script>
-  import cssVars from "svelte-css-vars";
-  import mapBg from "../../../public/assets/map-bg.png";
+  import cssVars from 'svelte-css-vars';
+  import mapBg from '../../../public/assets/map-bg.png';
 
   export let palette;
   export let valueFormat;
@@ -11,22 +11,28 @@
 
   function colorMap() {
     if (!palette) {
-      return "#ffffff";
+      return '#ffffff';
     }
-    return palette.split(";").map((c) => c.split(":"));
+    return palette.split(';')
+      .map((c) => c.split(':'));
   }
 
   function capitalizeFirst(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
+    return string.charAt(0)
+      .toUpperCase() + string.slice(1);
   }
 
-  $ : vs = colorMap().map((c) => (valueFormat ? valueFormat(c[0]) : c[0])).filter((e) => e !== "");
+  $ : vs = colorMap()
+    .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
+    .filter((e) => e !== '');
   $ : [minDbz] = colorMap(palette)[0];
-  $ : [maxDbz] = colorMap(palette).pop();
-  $ : colors = colorMap().map((c) => `#${c[1]}`);
+  $ : [maxDbz] = colorMap(palette)
+    .pop();
+  $ : colors = colorMap()
+    .map((c) => `#${c[1]}`);
 
   $: scaleStyle = {
-    backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
+    backgroundImage: `linear-gradient(to right, ${colors.join(',')})`,
     backgroundUrl: `url(${mapBg})`,
   };
 </script>
@@ -61,6 +67,7 @@
       font-size: 60%;
       top: 1.1em;
     }
+
     .scale-line {
       height: 20%;
     }
@@ -85,10 +92,12 @@
             1px 1px 1px   rgba(0,0,0,0.6),
             1px -1px 1px  rgba(0,0,0,0.6);*/
   }
+
   @media only screen and (max-width: 990px) {
     :global(.legendLabel) {
       display: none;
     }
+
     :global(.legend-icon) {
       height: 1.4em !important;
     }

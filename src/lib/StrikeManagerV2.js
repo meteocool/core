@@ -30,6 +30,6 @@ export default class StrikeManagerV2 {
   }
 
   addStrikes(lst) {
-    lst.forEach((elem) => this.addStrike(elem.lon, elem.lat, elem.time_wall));
+    lst.forEach((elem) => this.addStrike(elem.lon, elem.lat, elem.time_wall * 1000));
   }
 }

@@ -1,4 +1,4 @@
-﻿import { writable } from "svelte/store";
+import { writable } from "svelte/store";
 
 export const bottomToolbarMode = writable("collapsed");
 export const capDescription = writable("Meteorology for everyone");
