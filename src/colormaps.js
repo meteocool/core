@@ -780,4 +780,5 @@ export const LightningColors = [
   "#8b0026",
   "#880026",
   "#840026",
+  "#7e0025",
 ];

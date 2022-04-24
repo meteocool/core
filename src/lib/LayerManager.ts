@@ -31,7 +31,7 @@ let shouldUpdate = true;
  */
 // eslint-disable-next-line import/prefer-default-export
 interface CapabilityMap {
-  [name: string]: Capability;
+    [name: string]: Capability;
 }
 
 export class LayerManager {
@@ -73,7 +73,9 @@ export class LayerManager {
     const active = this.settings.get("capability");
     this.capabilities[active].setTarget(document.getElementById("map"));
 
-    mapBaseLayer.subscribe((newBaseLayer) => { this.switchBaseLayer(newBaseLayer); });
+    mapBaseLayer.subscribe((newBaseLayer) => {
+      this.switchBaseLayer(newBaseLayer);
+    });
   }
 
   // XXX move somewhere else
@@ -190,40 +192,42 @@ export class LayerManager {
 
     const newMap = new Map({
       layers,
-      view:
-        this.maps.length > 0 ?
-          this.maps[0].getView() :
-          new View({
-            zoom: z,
-            center: fromLonLat([lon, lat]),
-            enableRotation: this.settings.get("mapRotation"),
-            constrainResolution: false,
-            extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
-            minZoom: 3,
-          }),
+      view: this.maps.length > 0 ?
+        this.maps[0].getView() :
+        new View({
+          zoom: z,
+          center: fromLonLat([lon, lat]),
+          enableRotation: this.settings.get("mapRotation"),
+          constrainResolution: false,
+          extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
+          minZoom: 3,
+        }),
       controls,
     });
+    const isApp = dd.isApp();
+    newMap.on("moveend", () => {
+      if (get(sharedActiveCap) !== newMap.get("capability")) {
+        return;
+      }
+      zoomlevel.set(newMap.getView().getZoom());
+      if (isApp) return;
+      if (!shouldUpdate) {
+        // do not update the URL when the view was changed in the 'popstate' handler
+        shouldUpdate = true;
+        return;
+      }
+
+      const center = newMap.getView().getCenter();
+      const center4326 = toLonLat(center);
+      const url = new URL(window.location.href);
+      url.searchParams.set(
+        "latLonZ",
+        `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
+      );
+      window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
+    });
+
     if (this.mapCount === 0) {
-      const isApp = dd.isApp();
-      newMap.on("moveend", () => {
-        zoomlevel.set(newMap.getView().getZoom());
-        if (isApp) return;
-        if (!shouldUpdate) {
-          // do not update the URL when the view was changed in the 'popstate' handler
-          shouldUpdate = true;
-          return;
-        }
-
-        const center = newMap.getView().getCenter();
-        const center4326 = toLonLat(center);
-        const url = new URL(window.location.href);
-        url.searchParams.set(
-          "latLonZ",
-          `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
-        );
-        window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
-      });
-
       // restore the view state when navigating through the history, see
       // https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onpopstate
       window.addEventListener("popstate", (event) => {

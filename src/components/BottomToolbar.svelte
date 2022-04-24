@@ -1,28 +1,33 @@
 <script>
-  import { fly } from 'svelte/transition';
-  import LastUpdated from './LastUpdated.svelte';
-  import { DeviceDetect as dd } from '../lib/DeviceDetect';
+  import { fly } from "svelte/transition";
+  import { get } from "svelte/store";
+  import { _ } from "svelte-i18n";
+  import { Chart, LineController, Line, LineElement } from "chart.js";
+  import LastUpdated from "./LastUpdated.svelte";
+  import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import {
     capDescription,
     satelliteLayer,
     sharedActiveCap,
     bottomToolbarMode,
     zoomlevel,
-    satelliteLayerCloudy, satelliteLayerLabels,
-  } from '../stores';
-  import { precipTypeNames } from '../lib/cmaps';
-  import StepScaleLine from './scales/StepScaleLine.svelte';
-  import Appendix from './Appendix.svelte';
-  import RadarScaleLine from './scales/RadarScaleLine.svelte';
-  import { get } from 'svelte/store';
-  import { _ } from 'svelte-i18n';
-  import LightningScaleLine from './scales/LightningScaleLine.svelte';
+    satelliteLayerCloudy, satelliteLayerLabels, radarColormap,
+  } from "../stores";
+  import { precipTypeNames } from "../lib/cmaps";
+  import StepScaleLine from "./scales/StepScaleLine.svelte";
+  import Appendix from "./Appendix.svelte";
+  import RadarScaleLine from "./scales/RadarScaleLine.svelte";
+  import LightningScaleLine from "./scales/LightningScaleLine.svelte";
+  import AerosolScaleLine from './scales/AerosolScaleLine.svelte';
+
+  Chart.register(LineController);
+  Chart.register(LineElement);
 
   let s3Disabled = false;
   let e;
   zoomlevel.subscribe((z) => {
     if (z > 12) {
-      satelliteLayer.set('sentinel2');
+      satelliteLayer.set("sentinel2");
       if (e) e.checked = true;
       s3Disabled = true;
     } else {
@@ -31,20 +36,20 @@
   });
 
   function cloudmask(elem) {
-    elem.addEventListener('sl-change', (event) => {
+    elem.addEventListener("sl-change", (event) => {
       satelliteLayerCloudy.set(!get(satelliteLayerCloudy));
     });
   }
 
   function labelsBorders(elem) {
-    elem.addEventListener('sl-change', (event) => {
+    elem.addEventListener("sl-change", (event) => {
       satelliteLayerLabels.set(event.target.checked);
     });
   }
 
   function sentinel2(elem) {
-    elem.addEventListener('sl-change', (event) => {
-      const satellite = event.target.checked ? 'sentinel2' : 'sentinel3';
+    elem.addEventListener("sl-change", (event) => {
+      const satellite = event.target.checked ? "sentinel2" : "sentinel3";
       satelliteLayer.set(satellite);
     });
   }
@@ -58,6 +63,91 @@
   sharedActiveCap.subscribe((val) => {
     activeCap = val;
   });
+
+  let lightningCanvas;
+  let chart;
+  function redrawLightningChart() {
+    chart = new Chart(lightningCanvas.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: ["now", "-1min", "-2min", "-3min", "-4min", "-5min", "-6min", "-7min", "-8min", "-9min", "-10m"],
+        datasets: [
+          {
+            data: [200, 100, 80, 60, 80, 90, 120, 180, 100, 60, 20],
+            borderColor: "#ff0000",
+            backgroundColor: "#ffffff",
+            datalabels: {
+              display: false,
+            },
+          },
+        ],
+      },
+      options: {
+        plugins: {
+          legend: {
+            display: false,
+          },
+        },
+        animation: {
+          duration: 0,
+        },
+        hover: {
+          animationDuration: 0,
+        },
+        layout: {
+          padding: {
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: -10,
+          },
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+        tooltips: {
+          enabled: false,
+        },
+        legend: {
+          display: false,
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false,
+              drawBorder: false,
+              tickMarkLength: 6,
+            },
+            afterFit: (scale) => {
+              scale.height = 20;
+              scale.paddingBottom = 0;
+              scale.paddingTop = -20;
+            },
+            afterUpdate: (scale) => {
+              scale.height = 20;
+              scale.paddingBottom = 0;
+              scale.paddingTop = -20;
+            },
+          },
+          y: {
+            type: "linear",
+            grid: {
+              display: false,
+              drawBorder: false,
+            },
+            ticks: {
+              display: false,
+            },
+            min: 0,
+          },
+        },
+      },
+    });
+  }
+
+  function lightningChartCanvas(elem) {
+    lightningCanvas = elem;
+    redrawLightningChart();
+  }
 </script>
 
 <style>
@@ -166,23 +256,33 @@
         margin-top: 0.5em;
         margin-bottom: 1.5em;
     }
+
+    .lightningChart {
+        height: 36px;
+        width: 300px;
+    }
 </style>
 
 <div
         class="bottomToolbar lastUpdatedBottom"
         transition:fly={{ y: 100, duration: 200 }}>
     <div class="parentz">
-        <div class="left">
-            <!-- empty -->
-        </div>
         {#if activeCap === "radar" && $bottomToolbarMode === "collapsed"}
+            <div class="left">
+                <!-- empty -->
+            </div>
             <div class="palette">
                 <RadarScaleLine/>
             </div>
         {/if}
         {#if activeCap === "precipTypes"}
             <div class="palette">
-                <StepScaleLine steps="{precipTypeNames}" valueFormat={$_}/>
+                <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title="Precipitation<br />Types" />
+            </div>
+        {/if}
+        {#if activeCap === "aerosols"}
+            <div class="palette">
+                <AerosolScaleLine steps="{precipTypeNames}" valueFormat={$_}/>
             </div>
         {/if}
         {#if activeCap === "lightning" && $bottomToolbarMode === "collapsed"}
@@ -191,22 +291,29 @@
             </div>
         {/if}
         <div class="break"></div>
-        <div class="center">
-            {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
-                <LastUpdated/>
-            {/if}
-            {#if activeCap === "satellite"}
-                <div class="float">
-                    <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
-                </div>
-                <div class="float">
-                    <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== 'sentinel2'}">Clouds</sl-checkbox>
-                </div>
-                <div class="float">
-                    <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>
-                </div>
-            {/if}
-        </div>
+        {#if activeCap !== "aerosols" && activeCap !== "lightning"}
+            <div class="center">
+                {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
+                    <LastUpdated/>
+                {/if}
+                {#if activeCap === "satellite"}
+                    <div class="float">
+                        <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
+                    </div>
+                    <div class="float">
+                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== 'sentinel2'}">Clouds</sl-checkbox>
+                    </div>
+                    <div class="float">
+                        <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>
+                    </div>
+                {/if}
+                {#if activeCap === "lightning" && false}
+                    <div class="lightningChart">
+                        <canvas use:lightningChartCanvas></canvas>
+                    </div>
+                {/if}
+            </div>
+        {/if}
         {#if !dd.isApp()}
             <div class="right app-logos">
                 <Appendix/>
