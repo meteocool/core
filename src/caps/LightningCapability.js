@@ -74,7 +74,7 @@ export default class LightningCapability extends Capability {
       });
 
     if (this.socketio) {
-      this.socketio.on('lightning', (data) => this.sm.addStrike(data.lon, data.lat, data.time_wall / 10e6));
+      this.socketio.on('lightning', (data) => this.sm.addStrike(data.lon, data.lat, data.time / 10e5));
     }
   }
 }

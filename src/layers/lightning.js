@@ -11,6 +11,7 @@ import { Fill, RegularShape, Stroke } from 'ol/style';
 import lightningstrike from '../../public/assets/lightning.png';
 import { blitzortungAttribution, imprintAttribution } from './attributions';
 import { tileBaseUrl } from '../urls';
+import { LightningColors } from '../colormaps';
 
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;
@@ -39,65 +40,37 @@ const styleFactory = (age, size) => {
 };
 
 const crossCache = {};
-const lightningColors = [
-  '#fed470',
-  '#fecf6b',
-  '#feca66',
-  '#fec45f',
-  '#febf5a',
-  '#feba55',
-  '#feb54f',
-  '#feaf4b',
-  '#feab49',
-  '#fea647',
-  '#fea145',
-  '#fd9c42',
-  '#fd9740',
-  '#fd923e',
-  '#fd8c3c',
-  '#fd8439',
-  '#fd7c37',
-  '#fd7435',
-  '#fc6a32',
-  '#fc6330',
-  '#fc5b2e',
-  '#fc532b',
-  '#fa4a29',
-  '#f74327',
-  '#f43d25',
-  '#f13624',
-  '#ed2e21',
-  '#e92720',
-  '#e6211e',
-  '#e2191c',
-  '#dd161d',
-  '#d9131f',
-  '#d41020',
-  '#ce0c22',
-  '#c90823',
-  '#c40524',
-  '#c00225',
-  '#b70026',
-  '#b00026',
-  '#a80026',
-  '#a10026',
-  '#970026',
-  '#8f0026',
-  '#880026',
-];
+const greyCross = new Style({
+  image: new RegularShape({
+    fill: new Fill({ color: '#aaaaaa' }),
+    stroke: new Stroke({
+      color: '#aaaaaa',
+      width: 3,
+    }),
+    points: 4,
+    radius: 8,
+    radius2: 0,
+    angle: 0,
+  }),
+  zIndex: 0,
+});
+
 const crossFactory = (ts) => {
-  const then = new Date(ts * 1000).getTime();
-  const now = Date.now();
-  const minutes = Math.floor((now - then) / 1000 / 60);
-  const index = Math.min(lightningColors.length - 1, minutes);
+  const then = ts;
+  const now = +new Date();
+  const minutes = (now - then) / 1000 / 60;
+  const index = Math.round(Math.min(LightningColors.length - 1, Math.max(0, minutes)));
+  if (minutes > 120) {
+    return greyCross;
+  }
   if (index in crossCache) {
     return crossCache[index];
   }
   const cross = new Style({
     image: new RegularShape({
-      fill: new Fill({ color: lightningColors[index] }),
+      fill: new Fill({ color: LightningColors[Math.min(index - Math.max(-20 * index, -30), LightningColors.length - 1)] }),
       stroke: new Stroke({
-        color: lightningColors[index],
+        color: LightningColors[Math.min(index - Math.max(-20 * index, -30), LightningColors.length - 1)],
         width: 3,
       }),
       points: 4,
@@ -105,6 +78,7 @@ const crossFactory = (ts) => {
       radius2: 0,
       angle: 0,
     }),
+    zIndex: index,
   });
   crossCache[index] = cross;
   return cross;
@@ -156,10 +130,10 @@ export const lightningLayerGL = (tileId, map) => {
       format: new MVT(),
       attributions: [blitzortungAttribution],
       url: URL,
-      maxZoom: 5,
+      maxZoom: 7,
       minZoom: 0,
     }),
-    style: (feature) => crossFactory(feature.get('time_wall')),
+    style: (feature) => crossFactory(feature.get('time_wall') * 1000),
   });
 };
 

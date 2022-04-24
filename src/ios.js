@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/browser";
 import SENTRY_ARGS from "./lib/sentry";
+
 Sentry.init(SENTRY_ARGS);
 
 import { Workbox } from "workbox-window";
