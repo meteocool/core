@@ -49,10 +49,12 @@ planning to use meteocool for a dashboard/status display, I'd
 recommend to check out possible HTTP request parameters for further
 customization.
 
-### Disclaimer
+### Warning: Recreational Programming
 
 I do not consider myself to be a web (nor frontend) developer, and
 since I'm basically the only person working on this particular
 component, nothing is clean, good practice or mature.  Some
 code smells are documented in the issue tracker, most of
-them are not. Here be dragons, you have been warned. 🐲
+them are not.
+
+Here be dragons, you have been warned. 🐲
