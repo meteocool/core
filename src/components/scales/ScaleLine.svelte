@@ -27,9 +27,9 @@
   $ : vs = colorMap()
     .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
     .filter((e) => e !== "");
-  if (dd.isApp()) {
-    $ : vs = vs.filter((element, index) => index % 2 === 0);
-  }
+  // if (dd.isApp()) {
+  //   $ : vs = vs.filter((element, index) => index % 2 === 0);
+  // }
 
   $ : [minDbz] = colorMap(palette)[0];
   $ : [maxDbz] = colorMap(palette)
