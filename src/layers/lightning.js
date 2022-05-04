@@ -55,7 +55,7 @@ const greyCross = new Style({
   zIndex: 0,
 });
 
-const crossFactory = (ts) => {
+const crossFactory = (ts, zIndexOffset = 0) => {
   const then = ts;
   const now = +new Date();
   const minutes = (now - then) / 1000 / 60;
@@ -78,7 +78,7 @@ const crossFactory = (ts) => {
       radius2: 0,
       angle: 0,
     }),
-    zIndex: index,
+    zIndex: (120 - index) + zIndexOffset,
   });
   crossCache[index] = cross;
   return cross;
@@ -140,5 +140,5 @@ export const lightningLayerGL = (tileId, map) => {
 export const lightningLayerDumb = (tileId, map) => new VectorLayer({
   zIndex: 91,
   source: new VectorSource({}),
-  style: (feature) => crossFactory(feature.get("time_wall")),
+  style: (feature) => crossFactory(feature.get("time_wall"), 1000),
 });

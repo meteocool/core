@@ -371,7 +371,7 @@ const fsm = new StateMachine({
     onShowScrollbar: () => {
       bottomToolbarMode.set("player");
       if ($precacheForecast === true) {
-        cap.precacheForecast();
+        cap.precacheAllForecasts();
       }
       if (chart) {
         canvasVisible = false;
