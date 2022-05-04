@@ -11,14 +11,16 @@
     sharedActiveCap,
     bottomToolbarMode,
     zoomlevel,
-    satelliteLayerCloudy, satelliteLayerLabels, radarColormap,
+    satelliteLayerCloudy, satelliteLayerLabels, radarColormap, capLastUpdated,
   } from "../stores";
   import { precipTypeNames } from "../lib/cmaps";
   import StepScaleLine from "./scales/StepScaleLine.svelte";
   import Appendix from "./Appendix.svelte";
   import RadarScaleLine from "./scales/RadarScaleLine.svelte";
   import LightningScaleLine from "./scales/LightningScaleLine.svelte";
-  import AerosolScaleLine from './scales/AerosolScaleLine.svelte';
+  import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
+  import { v3APIBaseUrl } from "../urls";
+  import { dwdPrecipTypes } from "../layers/radar";
 
   Chart.register(LineController);
   Chart.register(LineElement);
@@ -66,14 +68,14 @@
 
   let lightningCanvas;
   let chart;
-  function redrawLightningChart() {
+  function redrawLightningChart(data) {
     chart = new Chart(lightningCanvas.getContext("2d"), {
       type: "line",
       data: {
         labels: ["now", "-1min", "-2min", "-3min", "-4min", "-5min", "-6min", "-7min", "-8min", "-9min", "-10m"],
         datasets: [
           {
-            data: [200, 100, 80, 60, 80, 90, 120, 180, 100, 60, 20],
+            data,
             borderColor: "#ff0000",
             backgroundColor: "#ffffff",
             datalabels: {
@@ -146,7 +148,42 @@
 
   function lightningChartCanvas(elem) {
     lightningCanvas = elem;
-    redrawLightningChart();
+    const URL = `${v3APIBaseUrl}/lightning/stats`;
+    fetch(URL, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ coordinates: [
+        [
+          -152.2265625,
+          80.35699541661764,
+        ],
+        [
+          -157.85156249999997,
+          -72.50172235139388,
+        ],
+        [
+          155.390625,
+          -68.39918004344187,
+        ],
+        [
+          158.90625,
+          82.1183836069127,
+        ],
+        [
+          -152.2265625,
+          80.35699541661764,
+        ],
+      ],
+      }) })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data) return;
+        redrawLightningChart(data.bins);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   }
 </script>
 
@@ -291,7 +328,7 @@
             </div>
         {/if}
         <div class="break"></div>
-        {#if activeCap !== "aerosols" && activeCap !== "lightning"}
+        {#if activeCap !== "aerosols"}
             <div class="center">
                 {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
                     <LastUpdated/>
@@ -307,7 +344,7 @@
                         <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>
                     </div>
                 {/if}
-                {#if activeCap === "lightning" && false}
+                {#if activeCap === "lightning"}
                     <div class="lightningChart">
                         <canvas use:lightningChartCanvas></canvas>
                     </div>
