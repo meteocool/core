@@ -3,8 +3,9 @@ import VectorTileSource from "ol/source/VectorTile";
 import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
 import { get } from "svelte/store";
+import { openDB } from "idb";
 import snow from "../../public/assets/snow.png";
-import { dwdLayer, dwdLayerStatic, setDwdCmap } from "../layers/radar";
+import { dwdLayer, dwdLayerStatic, indexDbPromise, setDwdCmap } from "../layers/radar";
 import { reportError } from "../lib/Toast";
 import {
   capDescription,
@@ -190,16 +191,28 @@ export default class RadarCapability extends Capability {
       .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
       .map((tile) => `https://tiles-a.meteocool.com/${tile.bucket}/${tile.tile_id}/`);
 
+    const tilegrid = source.getTileGrid();
+    const projection = this.map.getView().getProjection();
+    const getUrl = source.getTileUrlFunction();
+    tilegrid.forEachTileCoord(extent, zoom, (tilecoord) => {
+    });
+
     source.getTileGrid().forEachTileCoord(extent, zoom, (tileCoord) => {
+      // const url = getUrl(tileCoord, devicePixelRatio, projection);
+
       const [z, x, y] = tileCoord;
       urls.forEach((url) => {
         const URL = `${url}${z}/${x}/${(2 ** z) - y - 1}.png`;
         this.nanobar.start(URL);
-        fetch(URL)
-          .then((_) => {
-            console.log(`precached ${URL}`);
-            this.nanobar.finish(URL);
-          })
+        fetch(URL).then((response) => {
+          if (response.ok) {
+            response.blob().then(async (blob) => {
+              const tx = await (await indexDbPromise).put("tiles", blob, URL);
+              console.log(`precached ${URL}: ${blob}`);
+            });
+          }
+          this.nanobar.finish(URL);
+        })
           .catch((_) => {
             console.log(`error precaching ${URL}`);
             this.nanobar.finish(URL);
