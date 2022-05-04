@@ -48,6 +48,7 @@
     "chartjs-chart-error-bars": "^3.7.1",
     "chartjs-plugin-datalabels": "^2.0.0",
     "date-fns": "^2.28.0",
+    "idb": "^7.0.1",
     "javascript-state-machine": "^3.1.0",
     "less": "^4.1.2",
     "less-loader": "^10.2.0",
