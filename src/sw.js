@@ -22,38 +22,6 @@ registerRoute(
     ],
   }),
 );
-registerRoute(
-  new RegExp("https://tiles-(a|b|c)\\.meteocool\\.com/meteonowcast/.*\\.png"),
-  new CacheFirst({
-    cacheName: "nowcast-tile-cache",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200, 404],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 20000,
-        maxAgeSeconds: 7 * 60,
-        purgeOnQuotaError: true,
-      }),
-    ],
-  }),
-);
-registerRoute(
-  new RegExp("https://tiles-(a|b|c)\\.meteocool\\.com/meteoradar/.*\\.png"),
-  new CacheFirst({
-    cacheName: "radar-tile-cache",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200, 404],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 20000,
-        maxAgeSeconds: 7 * 60,
-        purgeOnQuotaError: true,
-      }),
-    ],
-  }),
-);
 
 /* eslint-disable no-restricted-globals, no-underscore-dangle */
 cleanupOutdatedCaches();

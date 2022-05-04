@@ -8,56 +8,34 @@ import VectorSource from "ol/source/Vector";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
 import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
-import { openDB } from "idb";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 import { cmapDiffFromString, cmapFromString } from "../lib/cmap_utils";
 import { RVP6_CLASSIC, RVP6_HOMEYER, RVP6_NWS } from "../colormaps";
+import { cachingTileLoadFunction as tileLoadFunction } from "../lib/TileCache";
 
 let cmap = RVP6_CLASSIC;
 
-export const indexDbPromise = openDB("tiles", 1, {
-  upgrade(db) {
-    db.createObjectStore("tiles");
-    console.log(`created INDEX`);
-  },
-});
+const commonDWDParameters = {
+  attributions: [dwdAttribution, blitzortungAttribution],
+  crossOrigin: "anonymous",
+  minZoom: 3,
+  maxZoom: 8,
+  tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+  tileSize: 512,
+  transition: 0,
+  imageSmoothing: false,
+  tileLoadFunction,
+  cacheSize: 999999,
+};
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
+    ...commonDWDParameters,
     url: sourceUrl,
-    attributions: [dwdAttribution, blitzortungAttribution],
-    crossOrigin: "anonymous",
-    minZoom: 3,
-    maxZoom: 8,
-    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
-    tileSize: 512,
-    transition: 0,
-    imageSmoothing: false,
-  });
-  reflectivitySource.setTileLoadFunction(async (tile, src) => {
-    const tx = (await indexDbPromise).transaction("tiles", "readonly");
-    const tiles = tx.objectStore("tiles");
-    const image = tile.getImage();
-
-    const blob = await (await indexDbPromise).get("tiles", src);
-    if (!blob) {
-      console.log(`${src} not found - downloading`);
-      // XXX cache
-      image.src = src;
-      return;
-    } else {
-      console.log(`${src} CACHED`);
-    }
-    const objUrl = URL.createObjectURL(blob);
-    image.onload = function () {
-      URL.revokeObjectURL(objUrl);
-    };
-    image.src = objUrl;
-
   });
   reflectivitySource.set("tile_id", tileId);
   return reflectivitySource;
@@ -81,59 +59,8 @@ export const dwdLayer = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
-    attributions: [dwdAttribution, blitzortungAttribution],
-    crossOrigin: "anonymous",
-    minZoom: 3,
-    maxZoom: 8,
-    transition: 0,
+    ...commonDWDParameters,
     tilePixelRatio: 1,
-    tileSize: 512,
-    imageSmoothing: false,
-    cacheSize: 256,
-  });
-  reflectivitySource.setTileLoadFunction(async (tile, src) => {
-    const tx = (await indexDbPromise).transaction("tiles", "readonly");
-    const tiles = tx.objectStore("tiles");
-    const image = tile.getImage();
-
-    const blob = await (await indexDbPromise).get("tiles", src);
-    if (!blob) {
-      console.log(`${src} not found - downloading`);
-      // XXX cache
-      image.src = src;
-      return;
-    } else {
-      console.log(`${src} CACHED`);
-    }
-    const objUrl = URL.createObjectURL(blob);
-    image.onload = function () {
-      URL.revokeObjectURL(objUrl);
-    };
-    image.src = objUrl;
-
-    // const xhr = new XMLHttpRequest();
-    // xhr.responseType = "blob";
-    // xhr.addEventListener("loadend", (evt) => {
-    //  const data = this.response;
-    //  if (data !== undefined) {
-    //    const cache = reflectivitySource.getTileCacheForProjection(reflectivitySource.getProjection());
-    //    const tileCoord = tile.getTileCoord();
-    //    let t;
-    //    const tileCoordKey = reflectivitySource.getKey(tileCoord);
-    //    if (!cache.containsKey(tileCoordKey)) {
-    //      cache.set(tileCoordKey, reflectivitySource.createTile_(tileCoord[0], tileCoord[1],
-    //          tileCoord[2], reflectivitySource.getTilePixelRatio(), reflectivitySource.getProjection(), reflectivitySource.getKey()));
-    //    }
-    //    t.getImage().src = URL.createObjectURL(data);
-    //  } else {
-    //    tile.setState(TileState.ERROR);
-    //  }
-    // });
-    // xhr.addEventListener("error", () => {
-    //  tile.setState(TileState.ERROR);
-    // });
-    // xhr.open("GET", src);
-    // xhr.send();
   });
 
   const toColorId = [
