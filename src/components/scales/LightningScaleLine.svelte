@@ -40,5 +40,5 @@
       return "";
     }}
                palette="{LightningColors.map((value, index) => `${index}:${value.slice(1)}`).join(';')}"
-               prettyName="" title="Blitzortung.org<br />Global"/>
+               prettyName="" title="Blitzortung.org<br />Live"/>
 {/key}
