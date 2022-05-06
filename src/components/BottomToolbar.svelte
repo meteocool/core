@@ -25,7 +25,8 @@
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
   import { v3APIBaseUrl } from "../urls";
   import { dwdPrecipTypes } from "../layers/radar";
-  import { LightningColors } from '../colormaps';
+  import { LightningColors } from "../colormaps";
+
   Chart.defaults.font.size = 10;
 
   export let layerManager;
@@ -81,22 +82,91 @@
       chart.data.datasets[0].data = data;
       chart.options.scales.y.max = Math.max.apply(this, data);
       chart.update();
-      return;
     }
+  }
+
+  let loading = true;
+  let unavailable = false;
+  let noLightning = false;
+  let delayedLoader;
+
+  function updateLightningChart() {
+    const map = layerManager.getCurrentMap();
+    const extent = transformExtent(map.getView().calculateExtent(map.getSize()), "EPSG:3857", "EPSG:4326");
+    const p = fromExtent(extent);
+
+    const URL = `${v3APIBaseUrl}/lightning/stats?`;
+    fetch(URL + new URLSearchParams({
+      bbox: JSON.stringify({ coordinates: p.getLinearRing(0).getCoordinates() }),
+    }))
+      .then((response) => {
+        if (response.ok) return response.json();
+        throw new Error("Server error");
+      })
+      .then((data) => {
+        if (!data) return;
+        unavailable = false;
+        if (data.bins.reduce((partialSum, a) => partialSum + a, 0) === 0) {
+          noLightning = true;
+          return;
+        }
+        noLightning = false;
+        redrawLightningChart(data.bins);
+      })
+      .catch((error) => {
+        noLightning = true;
+        unavailable = true;
+        console.log(error);
+      });
+    delayedLoader = null;
+    loading = false;
+  }
+
+  function lightningChartCanvas(elem) {
+    lightningCanvas = elem;
+
     chart = new Chart(lightningCanvas.getContext("2d"), {
       type: "bar",
       data: {
-        labels: data.map((_, i) => (i === data.length - 1 ? "now" : `-${data.length - i} min`)),
+        labels: Array(30).fill(null).map((_, i) => (i === 30 - 1 ? "now" : `-${30 - i} min`)),
         datasets: [
           {
-            data,
-            borderColor: "#ff0000",
-            backgroundColor: data.map((_, i) => LightningColors[Math.min((data.length - i) - Math.max(-20 * (data.length - i), -30), LightningColors.length - 1)]),
+            data: [
+              222,
+              151,
+              141,
+              184,
+              155,
+              125,
+              296,
+              148,
+              199,
+              151,
+              144,
+              219,
+              133,
+              158,
+              184,
+              194,
+              166,
+              140,
+              166,
+              125,
+              123,
+              154,
+              115,
+              158,
+              207,
+              117,
+              193,
+              113,
+              215,
+              164,
+            ],
+            backgroundColor: Array(30).fill(null).map((_, i) => LightningColors[Math.min((30 - i) - Math.max(-20 * (30 - i), -30), LightningColors.length - 1)]),
             datalabels: {
               display: false,
             },
-            cubicInterpolationMode: "monotone",
-            tension: 0.4,
           },
         ],
       },
@@ -104,11 +174,6 @@
         plugins: {
           legend: {
             display: false,
-            labels: {
-              font: {
-                size: 3,
-              },
-            },
           },
         },
         hover: {
@@ -125,7 +190,7 @@
         responsive: true,
         maintainAspectRatio: false,
         tooltips: {
-          enabled: false,
+          enabled: true,
         },
         legend: {
           display: false,
@@ -159,7 +224,7 @@
               drawBorder: false,
             },
             min: 0,
-            max: Math.max.apply(this, data),
+            max: 300,
             callback(value, index, values) {
               if (index === values.length - 1) return Math.min.apply(this, chart.data.datasets[0].data);
               if (index === 0) return Math.max.apply(this, chart.data.datasets[0].data);
@@ -169,34 +234,6 @@
         },
       },
     });
-  }
-
-  let loading = false;
-  let delayedLoader;
-
-  function updateLightningChart() {
-    const map = layerManager.getCurrentMap();
-    const extent = transformExtent(map.getView().calculateExtent(map.getSize()), "EPSG:3857", "EPSG:4326");
-    const p = fromExtent(extent);
-
-    const URL = `${v3APIBaseUrl}/lightning/stats?`;
-    fetch(URL + new URLSearchParams({
-      bbox: JSON.stringify({ coordinates: p.getLinearRing(0).getCoordinates() }),
-    }))
-      .then((response) => response.json())
-      .then((data) => {
-        if (!data) return;
-        redrawLightningChart(data.bins);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-    delayedLoader = null;
-    loading = false;
-  }
-
-  function lightningChartCanvas(elem) {
-    lightningCanvas = elem;
 
     layerManager.getCurrentMap().on("movestart", () => {
       if (get(sharedActiveCap) !== "lightning") return;
@@ -328,10 +365,27 @@
         height: 45px;
         width: 100%;
         margin-top: -4px;
+        z-index: 99;
     }
 
     .loading {
-        opacity: 0.5;
+        opacity: 0.55;
+    }
+
+    .lightning_chart_overlay_opacity {
+        opacity: 0.4;
+    }
+
+    .lightning-chart-overlay {
+        position: absolute;
+        top: 10px;
+        text-align: center;
+        width: 100%;
+        color: var(--sl-color-black);
+        font-weight: bold;
+        text-shadow: var(--sl-color-white);
+        font-size: 110%;
+        z-index: 100;
     }
 </style>
 
@@ -380,7 +434,16 @@
                     </div>
                 {/if}
                 {#if activeCap === "lightning"}
-                    <div class="lightningChart" class:loading>
+                    {#if noLightning}
+                        <div class="lightning-chart-overlay">
+                            {#if unavailable}
+                                Statistics currently unavailable.
+                            {:else}
+                                No recent lightning in this area. ⚡️
+                            {/if}
+                        </div>
+                    {/if}
+                    <div class="lightningChart" class:loading class:lightning_chart_overlay_opacity={noLightning || unavailable}>
                         <canvas use:lightningChartCanvas></canvas>
                     </div>
                 {/if}
