@@ -1,24 +1,39 @@
 // eslint-disable-next-line import/prefer-default-export
-import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
-import Capability from './Capability.ts';
-import { apiBaseUrl, v3APIBaseUrl } from '../urls';
-import { dwdPrecipTypes } from '../layers/radar';
-import { lightningLayerDumb, lightningLayerGL } from '../layers/lightning';
-import StrikeManagerV2 from '../lib/StrikeManagerV2';
+import { ImageWMS, TileWMS } from "ol/source";
+import TileLayer from "ol/layer/Tile";
+import ImageLayer from "ol/layer/Image";
+import { capDescription, capLastUpdated, showForecastPlaybutton } from "../stores";
+import Capability from "./Capability.ts";
+import { apiBaseUrl, v3APIBaseUrl } from "../urls";
+import { dwdPrecipTypes } from "../layers/radar";
+import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
+import StrikeManagerV2 from "../lib/StrikeManagerV2";
 
 export default class LightningCapability extends Capability {
   constructor(map, additionalLayers, args) {
-    super(map, 'lightning', () => {
-      capDescription.set('foo');
+    super(map, "lightning", () => {
+      capDescription.set("foo");
       showForecastPlaybutton.set(false);
       this.fetchLightning();
     }, additionalLayers);
 
-    if ('cmap' in args) super.setCmap(args.cmap);
+    if ("cmap" in args) super.setCmap(args.cmap);
 
     this.currentLayer = null;
     this.nb = args.nanobar;
     this.socketio = args.socket;
+
+    map.addLayer(new TileLayer({
+      source: new TileWMS({
+        url: "https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?version=1.3.0",
+        params: { LAYERS: "conus_bref_qcd", TILED: true, SRS: "EPSG:3857" },
+        projection: "EPSG:3857",
+        zIndex: 80,
+        attributions: ["© NOAA"],
+      }),
+      zIndex: 80,
+      opacity: 0.8,
+    }));
   }
 
   fetchLightning() {
@@ -29,10 +44,10 @@ export default class LightningCapability extends Capability {
       .then((data) => {
         if (!data) return;
         if (this.currentLayer) {
-          if (this.currentLayer.get('tile_id') === data.tile_id) return;
+          if (this.currentLayer.get("tile_id") === data.tile_id) return;
         }
         const newLayer = lightningLayerGL(data.tile_id, super.getMap());
-        newLayer.set('tile_id', data.tile_id);
+        newLayer.set("tile_id", data.tile_id);
         super.getMap()
           .addLayer(newLayer);
         if (this.currentLayer) {
@@ -74,7 +89,7 @@ export default class LightningCapability extends Capability {
       });
 
     if (this.socketio) {
-      this.socketio.on('lightning', (data) => this.sm.addStrike(data.lon, data.lat, data.time / 10e5));
+      this.socketio.on("lightning", (data) => this.sm.addStrike(data.lon, data.lat, data.time / 10e5));
     }
   }
 }
