@@ -358,7 +358,7 @@ if (dd.isAndroid()) {
 {/if}
 
 {#if $toolbarVisible}
-  <BottomToolbar />
+  <BottomToolbar layerManager={lm} />
 {/if}
 
 <div id="nanobar" />

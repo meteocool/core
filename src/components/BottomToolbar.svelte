@@ -3,6 +3,10 @@
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
   import { Chart, LineController, Line, LineElement } from "chart.js";
+  import { Polygon } from "ol/geom";
+  import { transformExtent } from "ol/proj";
+  import { fromExtent } from "ol/geom/Polygon";
+  import { GeoJSON } from "ol/format";
   import LastUpdated from "./LastUpdated.svelte";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import {
@@ -11,7 +15,7 @@
     sharedActiveCap,
     bottomToolbarMode,
     zoomlevel,
-    satelliteLayerCloudy, satelliteLayerLabels, radarColormap, capLastUpdated,
+    satelliteLayerCloudy, satelliteLayerLabels, radarColormap, capLastUpdated, latLon,
   } from "../stores";
   import { precipTypeNames } from "../lib/cmaps";
   import StepScaleLine from "./scales/StepScaleLine.svelte";
@@ -21,6 +25,10 @@
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
   import { v3APIBaseUrl } from "../urls";
   import { dwdPrecipTypes } from "../layers/radar";
+  import { LightningColors } from '../colormaps';
+  Chart.defaults.font.size = 10;
+
+  export let layerManager;
 
   Chart.register(LineController);
   Chart.register(LineElement);
@@ -69,18 +77,26 @@
   let lightningCanvas;
   let chart;
   function redrawLightningChart(data) {
+    if (chart) {
+      chart.data.datasets[0].data = data;
+      chart.options.scales.y.max = Math.max.apply(this, data);
+      chart.update();
+      return;
+    }
     chart = new Chart(lightningCanvas.getContext("2d"), {
-      type: "line",
+      type: "bar",
       data: {
-        labels: ["now", "-1min", "-2min", "-3min", "-4min", "-5min", "-6min", "-7min", "-8min", "-9min", "-10m"],
+        labels: data.map((_, i) => (i === data.length - 1 ? "now" : `-${data.length - i} min`)),
         datasets: [
           {
             data,
             borderColor: "#ff0000",
-            backgroundColor: "#ffffff",
+            backgroundColor: data.map((_, i) => LightningColors[Math.min((data.length - i) - Math.max(-20 * (data.length - i), -30), LightningColors.length - 1)]),
             datalabels: {
               display: false,
             },
+            cubicInterpolationMode: "monotone",
+            tension: 0.4,
           },
         ],
       },
@@ -88,10 +104,12 @@
         plugins: {
           legend: {
             display: false,
+            labels: {
+              font: {
+                size: 3,
+              },
+            },
           },
-        },
-        animation: {
-          duration: 0,
         },
         hover: {
           animationDuration: 0,
@@ -101,7 +119,7 @@
             left: 0,
             right: 0,
             top: 0,
-            bottom: -10,
+            bottom: -2,
           },
         },
         responsive: true,
@@ -117,17 +135,21 @@
             grid: {
               display: false,
               drawBorder: false,
-              tickMarkLength: 6,
+              tickMarkLength: 1,
+              autoSkip: true,
+            },
+            ticks: {
+              padding: -5,
+              maxRotation: 0,
+              minRotation: 0,
             },
             afterFit: (scale) => {
               scale.height = 20;
               scale.paddingBottom = 0;
-              scale.paddingTop = -20;
             },
             afterUpdate: (scale) => {
               scale.height = 20;
               scale.paddingBottom = 0;
-              scale.paddingTop = -20;
             },
           },
           y: {
@@ -136,46 +158,31 @@
               display: false,
               drawBorder: false,
             },
-            ticks: {
-              display: false,
-            },
             min: 0,
+            max: Math.max.apply(this, data),
+            callback(value, index, values) {
+              if (index === values.length - 1) return Math.min.apply(this, chart.data.datasets[0].data);
+              if (index === 0) return Math.max.apply(this, chart.data.datasets[0].data);
+              return "";
+            },
           },
         },
       },
     });
   }
 
-  function lightningChartCanvas(elem) {
-    lightningCanvas = elem;
-    const URL = `${v3APIBaseUrl}/lightning/stats`;
-    fetch(URL, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ coordinates: [
-        [
-          -152.2265625,
-          80.35699541661764,
-        ],
-        [
-          -157.85156249999997,
-          -72.50172235139388,
-        ],
-        [
-          155.390625,
-          -68.39918004344187,
-        ],
-        [
-          158.90625,
-          82.1183836069127,
-        ],
-        [
-          -152.2265625,
-          80.35699541661764,
-        ],
-      ],
-      }) })
+  let loading = false;
+  let delayedLoader;
+
+  function updateLightningChart() {
+    const map = layerManager.getCurrentMap();
+    const extent = transformExtent(map.getView().calculateExtent(map.getSize()), "EPSG:3857", "EPSG:4326");
+    const p = fromExtent(extent);
+
+    const URL = `${v3APIBaseUrl}/lightning/stats?`;
+    fetch(URL + new URLSearchParams({
+      bbox: JSON.stringify({ coordinates: p.getLinearRing(0).getCoordinates() }),
+    }))
       .then((response) => response.json())
       .then((data) => {
         if (!data) return;
@@ -184,6 +191,29 @@
       .catch((error) => {
         console.log(error);
       });
+    delayedLoader = null;
+    loading = false;
+  }
+
+  function lightningChartCanvas(elem) {
+    lightningCanvas = elem;
+
+    layerManager.getCurrentMap().on("movestart", () => {
+      if (get(sharedActiveCap) !== "lightning") return;
+      if (delayedLoader) {
+        clearTimeout(delayedLoader);
+        delayedLoader = null;
+      }
+      loading = true;
+    });
+
+    layerManager.getCurrentMap().on("moveend", () => {
+      if (get(sharedActiveCap) !== "lightning") return;
+      if (delayedLoader) {
+        return;
+      }
+      delayedLoader = setTimeout(() => updateLightningChart(), 650);
+    });
   }
 </script>
 
@@ -295,8 +325,13 @@
     }
 
     .lightningChart {
-        height: 36px;
-        width: 300px;
+        height: 45px;
+        width: 100%;
+        margin-top: -4px;
+    }
+
+    .loading {
+        opacity: 0.5;
     }
 </style>
 
@@ -345,7 +380,7 @@
                     </div>
                 {/if}
                 {#if activeCap === "lightning"}
-                    <div class="lightningChart">
+                    <div class="lightningChart" class:loading>
                         <canvas use:lightningChartCanvas></canvas>
                     </div>
                 {/if}

@@ -3,7 +3,6 @@ import { Cluster } from "ol/source.js";
 import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
-import WebGLPointsLayer from "ol/layer/WebGLPoints";
 import MVT from "ol/format/MVT";
 import VectorTileSource from "ol/source/VectorTile";
 import VectorTileLayer from "ol/layer/VectorTile";
