@@ -27,7 +27,7 @@ import Capability from "../caps/Capability";
 let shouldUpdate = true;
 
 /**
- * Manages the reflectivity + forecast layers shown on the map. should be called MapManager
+ * Manages the reflectivity + forecast layers shown on the map. should be called MapManager XXX
  */
 // eslint-disable-next-line import/prefer-default-export
 interface CapabilityMap {

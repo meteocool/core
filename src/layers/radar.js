@@ -12,8 +12,8 @@ import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
-import { cmapDiffFromString, cmapFromString } from "../lib/cmap_utils";
-import { RVP6_CLASSIC, RVP6_HOMEYER, RVP6_NWS } from "../colormaps";
+import { cmapFromString } from "../lib/cmap_utils";
+import { RVP6_CLASSIC }  from "../colormaps";
 import { cachingTileLoadFunction as tileLoadFunction } from "../lib/TileCache";
 
 let cmap = RVP6_CLASSIC;
