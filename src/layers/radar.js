@@ -8,28 +8,34 @@ import VectorSource from "ol/source/Vector";
 import { DEVICE_PIXEL_RATIO } from "ol/has";
 import { transformExtent } from "ol/proj";
 import XYZ from "ol/source/XYZ";
-import { blitzortungAttribution, dwdAttribution } from './attributions';
+import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
-import { cmapDiffFromString, cmapFromString } from '../lib/cmap_utils';
-import { RVP6_CLASSIC, RVP6_HOMEYER, RVP6_NWS } from '../colormaps';
+import { cmapFromString } from "../lib/cmap_utils";
+import { RVP6_CLASSIC }  from "../colormaps";
+import { cachingTileLoadFunction as tileLoadFunction } from "../lib/TileCache";
 
 let cmap = RVP6_CLASSIC;
+
+const commonDWDParameters = {
+  attributions: [dwdAttribution, blitzortungAttribution],
+  crossOrigin: "anonymous",
+  minZoom: 3,
+  maxZoom: 8,
+  tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
+  tileSize: 512,
+  transition: 0,
+  imageSmoothing: false,
+  tileLoadFunction,
+  cacheSize: 999999,
+};
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
+    ...commonDWDParameters,
     url: sourceUrl,
-    attributions: [dwdAttribution, blitzortungAttribution],
-    crossOrigin: "anonymous",
-    minZoom: 3,
-    maxZoom: 8,
-    transition: 300,
-    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
-    tileSize: 512,
-    cacheSize: 999999,
-    imageSmoothing: false,
   });
   reflectivitySource.set("tile_id", tileId);
   return reflectivitySource;
@@ -53,15 +59,8 @@ export const dwdLayer = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
-    attributions: [dwdAttribution, blitzortungAttribution],
-    crossOrigin: "anonymous",
-    minZoom: 3,
-    maxZoom: 8,
-    transition: 300,
+    ...commonDWDParameters,
     tilePixelRatio: 1,
-    tileSize: 512,
-    imageSmoothing: false,
-    cacheSize: 256,
   });
 
   const toColorId = [

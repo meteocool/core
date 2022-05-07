@@ -1,5 +1,6 @@
 <script>
   export let steps;
+  export let title = "";
 
   import cssVars from 'svelte-css-vars';
 
@@ -52,17 +53,36 @@
           padding-bottom: 0.25em;
       }
   }
+
+  .legend-label {
+      height: 100%;
+      color: var(--sl-color-gray-600);
+      line-height: 1.21;
+      font-size: 80%;
+      text-align: right;
+      word-break: break-word;
+  }
+  .scale {
+      flex: 1;
+  }
+  .wrapper {
+      display: flex;
+      gap: 0.75em;
+      justify-content: space-around;
+  }
 </style>
 
-<div class="scale">
-    <div class="scale-line" use:cssVars="{scaleStyle}">
-        <div class="scale-dividers">
-            {#each vs as value}
-                <div class="scale-divider" style="width: {100/ncol}%;">
-                    {@html value }
-                </div>
-            {/each}
+<div class="wrapper">
+    <div class="legend-label">{@html title}</div>
+    <div class="scale">
+        <div class="scale-line" use:cssVars="{scaleStyle}">
+            <div class="scale-dividers">
+                {#each vs as value}
+                    <div class="scale-divider" style="width: {100/ncol}%;">
+                        {@html value }
+                    </div>
+                {/each}
+            </div>
         </div>
     </div>
 </div>
-

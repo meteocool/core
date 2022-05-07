@@ -41,6 +41,7 @@ import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import { radolanOverlay } from "./layers/radar";
 import AerosolsCapability from "./caps/AerosolsCapability";
+import LightningCapability from "./caps/LightningCapability";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let device;
@@ -212,6 +213,15 @@ lm = new LayerManager({
       },
     },
     {
+      capability: LightningCapability,
+      additionalLayers: [labelsOnly()],
+      options: {
+        nanobar: nb,
+        hasBaseLayer: true,
+        socket: radarSocketIO,
+      },
+    },
+    {
       capability: PrecipitationTypesCapability,
       additionalLayers: [labelsOnly(), radolanOverlay()],
       options: {
@@ -348,7 +358,7 @@ if (dd.isAndroid()) {
 {/if}
 
 {#if $toolbarVisible}
-  <BottomToolbar />
+  <BottomToolbar layerManager={lm} />
 {/if}
 
 <div id="nanobar" />

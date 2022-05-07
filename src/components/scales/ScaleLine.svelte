@@ -1,10 +1,12 @@
 <script>
   import cssVars from "svelte-css-vars";
   import mapBg from "../../../public/assets/map-bg.png";
+  import { DeviceDetect as dd } from '../../lib/DeviceDetect';
 
   export let palette;
   export let valueFormat;
   export let prettyName;
+  export let title = "";
 
   let minDbz;
   let maxDbz;
@@ -13,17 +15,27 @@
     if (!palette) {
       return "#ffffff";
     }
-    return palette.split(";").map((c) => c.split(":"));
+    return palette.split(";")
+      .map((c) => c.split(":"));
   }
 
   function capitalizeFirst(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
+    return string.charAt(0)
+      .toUpperCase() + string.slice(1);
   }
 
-  $ : vs = colorMap().map((c) => (valueFormat ? valueFormat(c[0]) : c[0])).filter((e) => e !== "");
+  $ : vs = colorMap()
+    .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
+    .filter((e) => e !== "");
+  // if (dd.isApp()) {
+  //   $ : vs = vs.filter((element, index) => index % 2 === 0);
+  // }
+
   $ : [minDbz] = colorMap(palette)[0];
-  $ : [maxDbz] = colorMap(palette).pop();
-  $ : colors = colorMap().map((c) => `#${c[1]}`);
+  $ : [maxDbz] = colorMap(palette)
+    .pop();
+  $ : colors = colorMap()
+    .map((c) => `#${c[1]}`);
 
   $: scaleStyle = {
     backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
@@ -61,6 +73,7 @@
       font-size: 60%;
       top: 1.1em;
     }
+
     .scale-line {
       height: 20%;
     }
@@ -69,11 +82,28 @@
   .scale {
     width: 100%;
     float: left;
-    margin-right: 2em;
+    /*margin-right: 2em;*/
     margin-bottom: 2px;
     height: var(--sl-input-height-medium);
+    flex: 1;
   }
 
+  .legend-label {
+    height: 100%;
+    color: var(--sl-color-gray-600);
+    line-height: 1.21;
+    font-size: 80%;
+    text-align: right;
+    word-break: break-word;
+  }
+  .scale {
+    flex: 1;
+  }
+  .wrapper {
+    display: flex;
+    gap: 0.75em;
+    justify-content: space-around;
+  }
 
   :global(.legendLabel) {
     font-size: 80%;
@@ -85,10 +115,18 @@
             1px 1px 1px   rgba(0,0,0,0.6),
             1px -1px 1px  rgba(0,0,0,0.6);*/
   }
+
+  @media only screen and (max-width: 620px) {
+    .legend-label {
+      display: none;
+    }
+  }
+
   @media only screen and (max-width: 990px) {
     :global(.legendLabel) {
       display: none;
     }
+
     :global(.legend-icon) {
       height: 1.4em !important;
     }
@@ -106,14 +144,18 @@
   }
 </style>
 
-<div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
-    <div class="scale-line" use:cssVars="{scaleStyle}">
-        <div class="scale-dividers">
-            {#each vs as value}
-                <div class="scale-divider">
-                    {@html value}
-                </div>
-            {/each}
+<div class="wrapper">
+    <div class="legend-label">{@html title}</div>
+    <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
+        <div class="scale-line" use:cssVars="{scaleStyle}">
+            <div class="scale-dividers">
+                {#each vs as value}
+                    <div class="scale-divider">
+                        {@html value}
+                    </div>
+                {/each}
+            </div>
         </div>
     </div>
 </div>
+

@@ -112,9 +112,9 @@
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     gap: 0.15em 0.15em;
-    grid-template-areas: "reflectivity satellite" "precip-types aerosols";
+    grid-template-areas: "reflectivity satellite" "precip-types aerosols" "lightning lightning";
     height: 100%;
   }
 
@@ -131,6 +131,10 @@
   .aerosols {
     grid-area: aerosols;
     position: relative;
+  }
+
+  .lightning {
+    grid-area: lightning;
   }
 
   .cell {
@@ -163,7 +167,7 @@
         <MiniMap
           {layerManager}
           layer={"radar"}
-          label={`⚡️ ${$_("rain_and_thunderstorms")}`}
+          label={`🌧 ${$_("rain_and_thunderstorms")}`}
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
       </div>
@@ -189,6 +193,14 @@
                 {layerManager}
                 layer={"aerosols"}
                 label={`💨 ${$_("aerosols")}`}
+                on:mount={childMounted}
+                on:changeLayer={changeLayer} />
+      </div>
+      <div class="lightning cell">
+        <MiniMap
+                {layerManager}
+                layer={"lightning"}
+                label={`⚡️ ${$_("lightning")}`}
                 on:mount={childMounted}
                 on:changeLayer={changeLayer} />
       </div>

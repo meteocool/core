@@ -18,6 +18,7 @@ import {
 } from "../stores";
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v3APIBaseUrl } from "../urls";
+import { fetchAndCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
@@ -176,7 +177,19 @@ export default class RadarCapability extends Capability {
     return latestRadar;
   }
 
-  precacheForecast() {
+  tilesetToURL(tileset) {
+    return `${tileBaseUrl}/${tileset.bucket}/${tileset.tile_id}/`;
+  }
+
+  precacheAllForecasts() {
+    Object.values(this.clientGridConfig.grid)
+      .filter((e) => e.source === "nowcast_phys")
+      .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
+      .map((tileset) => this.tilesetToURL(tileset))
+      .forEach((tileset) => this.precacheForecastLayer(tileset));
+  }
+
+  precacheForecastLayer(url) {
     if (!this.layer) {
       return;
     }
@@ -185,26 +198,9 @@ export default class RadarCapability extends Capability {
     const extent = this.map.getView().calculateExtent(window.lm.getCurrentMap().getSize());
     const zoom = Math.max(Math.min(Math.round(this.map.getView().getZoom()) - 1, source.getTileGrid().getMaxZoom()), source.getTileGrid().getMinZoom());
 
-    const urls = Object.values(this.clientGridConfig.grid)
-      .filter((e) => e.source === "nowcast_phys")
-      .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
-      .map((tile) => `https://tiles-a.meteocool.com/${tile.bucket}/${tile.tile_id}/`);
-
-    source.getTileGrid().forEachTileCoord(extent, zoom, (tileCoord) => {
+    source.getTileGrid().forEachTileCoord(extent, zoom, async (tileCoord) => {
       const [z, x, y] = tileCoord;
-      urls.forEach((url) => {
-        const URL = `${url}${z}/${x}/${(2 ** z) - y - 1}.png`;
-        this.nanobar.start(URL);
-        fetch(URL)
-          .then((_) => {
-            console.log(`precached ${URL}`);
-            this.nanobar.finish(URL);
-          })
-          .catch((_) => {
-            console.log(`error precaching ${URL}`);
-            this.nanobar.finish(URL);
-          });
-      });
+      await fetchAndCache(`${url}${z}/${x}/${(2 ** z) - y - 1}.png`);
     });
   }
 
