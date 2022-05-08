@@ -6,22 +6,22 @@ const WebpackBar = require("webpackbar");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { InjectManifest } = require("workbox-webpack-plugin");
 const webpack = require("webpack");
-const sveltePreprocess = require('svelte-preprocess');
+const sveltePreprocess = require("svelte-preprocess");
 
 const mode = process.env.NODE_ENV || "development";
 const prod = mode === "production";
 
 module.exports = {
   entry: {
-    bundle: ["./src/main.js"],
-    android: ["./src/android.js"],
-    ios: ["./src/ios.js"],
+    bundle: ["./src/entrypoints/main.js"],
+    android: ["./src/entrypoints/android.js"],
+    ios: ["./src/entrypoints/ios.js"],
   },
   resolve: {
     alias: {
       svelte: path.resolve("node_modules", "svelte"),
     },
-    extensions: [".mjs", ".js", ".svelte", ".ts", ".tsx", "", ".webpack.js", ".web.js",],
+    extensions: [".mjs", ".js", ".svelte", ".ts", ".tsx", "", ".webpack.js", ".web.js"],
     mainFields: ["svelte", "browser", "module", "main"],
   },
   output: {
@@ -29,12 +29,20 @@ module.exports = {
     filename: "[name].js",
     chunkFilename: "[name].js",
   },
+  ignoreWarnings: [/Failed to parse source map/],
   module: {
     rules: [
       // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
       { test: /\.tsx?$/, loader: "ts-loader" },
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: "babel-loader",
+        },
+      },
       // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
-      { test: /\.js$/, loader: "source-map-loader" },
+      { test: /\.(js|tsx?)$/, loader: "source-map-loader" },
       { test: /\.svelte$/,
         use: {
           loader: "svelte-loader",

@@ -4,7 +4,7 @@ import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
 import { get } from "svelte/store";
 import snow from "../../public/assets/snow.png";
-import { dwdLayer, dwdLayerStatic, setDwdCmap } from "../layers/radar";
+import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd.js";
 import { reportError } from "../lib/Toast";
 import {
   capDescription,
@@ -70,8 +70,8 @@ export default class RadarCapability extends Capability {
       self.source = null;
       if (colorScheme === "classic" && this.layer !== dwdLayerStatic) {
         self.layerFactory = dwdLayerStatic;
-      } else if (colorScheme !== "classic" && this.layer !== dwdLayer) {
-        self.layerFactory = dwdLayer;
+      } else if (colorScheme !== "classic" && this.layer !== DWDLayerFactoryGL) {
+        self.layerFactory = DWDLayerFactoryGL;
       }
       this.reloadAll();
     });

@@ -58,3 +58,8 @@ code smells are documented in the issue tracker, most of
 them are not.
 
 Here be dragons, you have been warned. 🐲
+
+### Local Development
+- `npm install`
+- `npm run dev` to connect to the upstream backend
+- You might need to disable CORS in your browser during development.

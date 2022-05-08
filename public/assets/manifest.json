@@ -4,7 +4,7 @@
   "short_name": "meteocool",
   "start_url": "/",
   "display": "standalone",
-  "description": "Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD).",
+  "description": "Free & open-source real-time storm tracking, rain radar and live lightning viewer for iOS, Android and the web.",
   "background_color": "#fff",
   "icons": [{
     "src": "assets/logo-192.png",

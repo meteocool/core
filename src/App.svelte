@@ -1,4 +1,4 @@
-<script lang="ts" >
+<script lang="ts">
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
@@ -39,12 +39,13 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
-import { radolanOverlay } from "./layers/radar";
+import { radolanOverlay } from "./layers/dwd";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let device;
+export let postInitCb;
 
 dd.set(device);
 
@@ -88,13 +89,6 @@ initUIConstants();
   capability: {
     type: "string",
     default: "radar",
-  },
-  experimentalFeatures: {
-    type: "boolean",
-    default: false,
-    cb: () => {
-      // reportToast(`Experimental features ${value}`);
-    },
   },
   layerMesocyclones: {
     type: "boolean",
@@ -158,7 +152,7 @@ lightningLayerVisible.subscribe((value) => {
 });
 lightningLayerVisible.set((window as any).settings.get("layerLightning"));
 
-const nb = new NanobarWrapper();
+const nb = new NanobarWrapper({});
 const radarSocketIO = io(`${websocketBaseUrl}/radar`);
 radarSocketIO.on("connect", () => {
   console.log("radar/forecast websocket connected!");
@@ -231,7 +225,6 @@ lm = new LayerManager({
     }],
 });
 
-(window as any).lm = lm;
 (window as any).settings.setCb("mapRotation", (value) => {
   const newView = new View({
     center: lm.getCurrentMap().getView().getCenter(),
@@ -256,10 +249,8 @@ function reloadLightning() {
     .then((response) => response.json())
     .then((data) => {
       strikemgr.clearAll();
-      // differential download: send timestamp of newest strike to backend
-      // only retrieve the difference.
       data.forEach((elem) => {
-        strikemgr.addStrikeWithTime(elem.lon, elem.lat, Math.round(elem.time / 1000 / 1000));
+        strikemgr.addStrikeWithTime(elem.lon, elem.lat, Math.round(elem.time));
       });
     })
     .then(() => nb.finish(URL))
@@ -293,25 +284,7 @@ reloadCyclones();
   reloadCyclones();
 };
 
-if (device === "web") {
-  if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition((position) => {
-      lm.updateLocation(position.coords.latitude, position.coords.longitude, 1, 0);
-    });
-  }
-  // window.onfocus = function () {
-  //   // if (lastFocus)
-  //   window.enterForeground();
-  // };
-}
-
-if (dd.isIos()) {
-  (window as any).webkit.messageHandlers.scriptHandler.postMessage("requestSettings");
-}
-
-if (dd.isAndroid()) {
-  Android.requestSettings();
-}
+if (postInitCb) postInitCb(lm);
 </script>
 
 <style>
@@ -365,5 +338,5 @@ if (dd.isAndroid()) {
 <Map layerManager={lm} />
 
 {#if $toolbarVisible}
-<NowcastPlayback cap={lm.getCapability("radar")} />
+  <NowcastPlayback cap={lm.getCapability("radar")} />
 {/if}

@@ -55,7 +55,7 @@ export const dwdLayerStatic = (tileId, bucket) => {
   return [reflectivityLayer, reflectivitySource, ""];
 };
 
-export const dwdLayer = (tileId, bucket = "meteoradar") => {
+export const DWDLayerFactoryGL = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = new XYZ({
     url: sourceUrl,
