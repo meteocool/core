@@ -231,6 +231,7 @@ lm = new LayerManager({
       },
     }],
 });
+(window as any).lm = lm;
 
 (window as any).settings.setCb("mapRotation", (value) => {
   const newView = new View({
