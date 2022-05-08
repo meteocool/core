@@ -60,6 +60,13 @@ init({
 initUIConstants();
 
 (window as any).settings = new Settings({
+  experimentalFeatures: {
+    type: "boolean",
+    default: false,
+    cb: () => {
+      // reportToast(`Experimental features ${value}`);
+    },
+  },
   mapRotation: {
     type: "boolean",
     default: false,
