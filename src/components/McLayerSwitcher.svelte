@@ -142,16 +142,6 @@
     cursor: pointer;
     color: white;
   }
-
-  .contributors {
-    position: absolute;
-    bottom: 0;
-    font-size: 6pt;
-    text-align: justify-all;
-    width: 100%;
-    font-style: italic;
-    color: var(--sl-color-black);
-  }
 </style>
 
 {#if !dd.isApp()}

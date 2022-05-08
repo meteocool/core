@@ -2,7 +2,7 @@
 import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
 import Capability from "./Capability.ts";
 import { apiBaseUrl, v3APIBaseUrl } from '../urls';
-import { dwdPrecipTypes } from "../layers/radar";
+import { dwdPrecipTypes } from "../layers/dwd.js";
 
 export default class PrecipitationTypesCapability extends Capability {
   constructor(map, additionalLayers, args) {

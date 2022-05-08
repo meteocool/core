@@ -11,6 +11,7 @@ import lightningstrike from "../../public/assets/lightning.png";
 import { blitzortungAttribution, imprintAttribution } from "./attributions";
 import { tileBaseUrl } from "../urls";
 import { LightningColors } from "../colormaps";
+import { TIME_KEY } from '../lib/StrikeManagerV2';
 
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;
@@ -139,5 +140,5 @@ export const lightningLayerGL = (tileId, map) => {
 export const lightningLayerDumb = (tileId, map) => new VectorLayer({
   zIndex: 91,
   source: new VectorSource({}),
-  style: (feature) => crossFactory(feature.get("time_wall"), 1000),
+  style: (feature) => crossFactory(feature.get(TIME_KEY), 1000),
 });

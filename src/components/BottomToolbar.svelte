@@ -3,10 +3,8 @@
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
   import { Chart, LineController, Line, LineElement } from "chart.js";
-  import { Polygon } from "ol/geom";
   import { transformExtent } from "ol/proj";
   import { fromExtent } from "ol/geom/Polygon";
-  import { GeoJSON } from "ol/format";
   import LastUpdated from "./LastUpdated.svelte";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import {
@@ -17,15 +15,13 @@
     zoomlevel,
     satelliteLayerCloudy, satelliteLayerLabels, radarColormap, capLastUpdated, latLon,
   } from "../stores";
-  import { precipTypeNames } from "../lib/cmaps";
   import StepScaleLine from "./scales/StepScaleLine.svelte";
   import Appendix from "./Appendix.svelte";
   import RadarScaleLine from "./scales/RadarScaleLine.svelte";
   import LightningScaleLine from "./scales/LightningScaleLine.svelte";
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
   import { v3APIBaseUrl } from "../urls";
-  import { dwdPrecipTypes } from "../layers/radar";
-  import { LightningColors } from "../colormaps";
+  import { LightningColors, precipTypeNames } from "../colormaps";
 
   Chart.defaults.font.size = 10;
 
