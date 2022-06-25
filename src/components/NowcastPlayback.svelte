@@ -798,6 +798,9 @@ lastFocus.subscribe((focus) => {
 </style>
 
 <LiveIndicator />
+{#if process.env.NODE_ENV === "development"}
+  <DevStatus />
+{/if}
 
 {#if canvasVisible && $sharedActiveCap === "radar"}
 <div class="barChartCanvas barChartCanvasWithoutPlayback" id="barChartCanvas" out:fly={{ y: 60, duration: 200 }} in:fade={{ duration: 200 }}>
@@ -879,11 +882,7 @@ lastFocus.subscribe((focus) => {
                 <RadarScaleLine />
               </div>
               <div class="checkbox hide-on-small-screens">
-                {#if process.env.NODE_ENV === "development"}
-                  <DevStatus gridConfig="{gridConfig}" latest="{latest}"/>
-                {:else}
                   <Appendix />
-                {/if}
               </div>
             {/if}
           </div>

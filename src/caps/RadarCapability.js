@@ -4,7 +4,7 @@ import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
 import { get } from "svelte/store";
 import snow from "../../public/assets/snow.png";
-import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd.js";
+import { DWDLayerFactoryGL, dwdLayerStatic, dwdSource, setDwdCmap } from "../layers/dwd.js";
 import { reportError } from "../lib/Toast";
 import {
   capDescription,
@@ -14,11 +14,11 @@ import {
   latLon,
   live,
   radarColorScheme,
-  showForecastPlaybutton, snowLayerVisible, zoomlevel,
+  showForecastPlaybutton, snowLayerVisible, tileCacheStatus, zoomlevel,
 } from "../stores";
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v3APIBaseUrl } from "../urls";
-import { fetchAndCache } from "../lib/TileCache";
+import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
@@ -56,6 +56,8 @@ export default class RadarCapability extends Capability {
     this.snowOverlay = null;
 
     window.radar = this;
+
+    mcTileCache.setMap(map);
 
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
@@ -186,22 +188,10 @@ export default class RadarCapability extends Capability {
       .filter((e) => e.source === "nowcast_phys")
       .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
       .map((tileset) => this.tilesetToURL(tileset))
-      .forEach((tileset) => this.precacheForecastLayer(tileset));
-  }
-
-  precacheForecastLayer(url) {
-    if (!this.layer) {
-      return;
-    }
-
-    const source = this.layer.getSource();
-    const extent = this.map.getView().calculateExtent(window.lm.getCurrentMap().getSize());
-    const zoom = Math.max(Math.min(Math.round(this.map.getView().getZoom()) - 1, source.getTileGrid().getMaxZoom()), source.getTileGrid().getMinZoom());
-
-    source.getTileGrid().forEachTileCoord(extent, zoom, async (tileCoord) => {
-      const [z, x, y] = tileCoord;
-      await fetchAndCache(`${url}${z}/${x}/${(2 ** z) - y - 1}.png`);
-    });
+      .forEach((tileset) => {
+        mcTileCache.cacheTileset(tileset);
+        mcTileCache.trackTileset(tileset, 5);
+      });
   }
 
   regenerateGridConfig() {
@@ -341,6 +331,7 @@ export default class RadarCapability extends Capability {
       const last = this.clientGrid[this.getMostRecentObservation()];
       if (last) {
         [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
+        mcTileCache.setSource(this.source);
         super.getMap().addLayer(this.layer);
       }
     }
@@ -374,6 +365,7 @@ export default class RadarCapability extends Capability {
   }
 
   setSource(timestep) {
+    this.source.getTileCacheForProjection(this.source.getProjection()).clear();
     if (this.trackingMode !== "manual") {
       this.trackingMode = "manual";
       live.set(false);

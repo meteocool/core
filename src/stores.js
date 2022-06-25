@@ -36,3 +36,7 @@ export const sharedActiveCap = writable("");
 export const sharedCmap = writable("");
 
 export const lastFocus = writable(new Date());
+
+export const tileCacheHit = writable(0);
+export const tileCacheDownloaded = writable(0);
+export const tileCachePending = writable(0);
