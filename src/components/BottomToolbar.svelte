@@ -22,6 +22,7 @@
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
   import { v3APIBaseUrl } from "../urls";
   import { LightningColors, precipTypeNames } from "../colormaps";
+  import DevStatus from "./DevStatus.svelte";
 
   Chart.defaults.font.size = 10;
 
@@ -432,6 +433,7 @@
                 {#if activeCap === "lightning"}
                     {#if noLightning}
                         <div class="lightning-chart-overlay">
+                            if (successCb) successCb(blob);
                             {#if unavailable}
                                 Statistics currently unavailable.
                             {:else}

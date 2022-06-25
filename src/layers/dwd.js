@@ -14,7 +14,7 @@ import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 import { cmapFromString } from "../lib/cmap_utils";
 import { RVP6_CLASSIC }  from "../colormaps";
-import { cachingTileLoadFunction as tileLoadFunction } from "../lib/TileCache";
+import { mcTileCache } from "../lib/TileCache";
 
 let cmap = RVP6_CLASSIC;
 
@@ -27,8 +27,8 @@ const commonDWDParameters = {
   tileSize: 512,
   transition: 0,
   imageSmoothing: false,
-  tileLoadFunction,
-  cacheSize: 999999,
+  tileLoadFunction: mcTileCache.getTileLoadingFunction(),
+  cacheSize: 0,
 };
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
@@ -47,7 +47,7 @@ export const dwdLayerStatic = (tileId, bucket) => {
     source: reflectivitySource,
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
-    cacheSize: 256,
+    cacheSize: 1024,
     extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
   });
 
@@ -79,7 +79,7 @@ export const DWDLayerFactoryGL = (tileId, bucket = "meteoradar") => {
 
   const reflectivityLayer = new TileLayer({
     zIndex: 3,
-    cacheSize: 256,
+    cacheSize: 1024,
     opacity: NOWCAST_OPACITY,
     source: reflectivitySource,
     extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
