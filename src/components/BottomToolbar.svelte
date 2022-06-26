@@ -433,7 +433,6 @@
                 {#if activeCap === "lightning"}
                     {#if noLightning}
                         <div class="lightning-chart-overlay">
-                            if (successCb) successCb(blob);
                             {#if unavailable}
                                 Statistics currently unavailable.
                             {:else}
