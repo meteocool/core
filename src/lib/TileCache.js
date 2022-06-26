@@ -8,13 +8,13 @@ export class MeteoTileCache {
     this.map = null;
     this.source = null;
 
-    this.idb = openDB("tiles", 2, {
+    this.idb = openDB("tiles2", 1, {
       upgrade(db) {
         db.createObjectStore("tiles");
         db.createObjectStore("ttl");
       },
     });
-    this.idbTilesets = openDB("tilesets", 2, {
+    this.idbTilesets = openDB("tilesets2", 1, {
       upgrade(db) {
         db.createObjectStore("tilesets");
       },
@@ -128,7 +128,7 @@ export class MeteoTileCache {
     const store = tx.objectStore("tiles");
     const cachedBlob = await store.get(url);
     if (cachedBlob) {
-      console.log(`Already cached ${url}`);
+      //console.log(`Already cached ${url}`);
       if (successCb) successCb(cachedBlob, true);
       return;
     }
