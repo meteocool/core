@@ -47,7 +47,7 @@ export const dwdLayerStatic = (tileId, bucket) => {
     source: reflectivitySource,
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
-    cacheSize: 1024,
+    cacheSize: 512,
     extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
   });
 
@@ -79,7 +79,7 @@ export const DWDLayerFactoryGL = (tileId, bucket = "meteoradar") => {
 
   const reflectivityLayer = new TileLayer({
     zIndex: 3,
-    cacheSize: 1024,
+    cacheSize: 512,
     opacity: NOWCAST_OPACITY,
     source: reflectivitySource,
     extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),

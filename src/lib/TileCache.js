@@ -8,13 +8,13 @@ export class MeteoTileCache {
     this.map = null;
     this.source = null;
 
-    this.idb = openDB("tiles", 1, {
+    this.idb = openDB("tiles", 2, {
       upgrade(db) {
         db.createObjectStore("tiles");
         db.createObjectStore("ttl");
       },
     });
-    this.idbTilesets = openDB("tilesets", 1, {
+    this.idbTilesets = openDB("tilesets", 2, {
       upgrade(db) {
         db.createObjectStore("tilesets");
       },
