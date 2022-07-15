@@ -22,7 +22,7 @@
     "mini-css-extract-plugin": "^2.6.0",
     "serve": "^13.0.2",
     "style-loader": "^3.3.1",
-    "svelte": "^3.48.0",
+    "svelte": "^3.49.0",
     "svelte-loader": "github:sveltejs/svelte-loader",
     "url-loader": "^4.1.1",
     "webpack": "^5.72.1",
