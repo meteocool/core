@@ -35,8 +35,8 @@
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack",
     "build-nocrossenv": "NODE_ENV=production webpack",
-    "dev": "webpack-dev-server",
-    "dev-local": "BACKEND=local webpack-dev-server --env BACKEND=local",
+    "dev": "webpack-dev-server --host 127.0.0.1",
+    "dev-local": "BACKEND=local webpack-dev-server --env BACKEND=local --host 127.0.0.1",
     "cf": "wrangler pages dev -- npm run dev"
   },
   "dependencies": {
