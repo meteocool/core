@@ -2,7 +2,6 @@ import VectorTileLayer from "ol/layer/VectorTile";
 import VectorTileSource from "ol/source/VectorTile";
 import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
-import { get } from "svelte/store";
 import snow from "../../public/assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, dwdSource, setDwdCmap } from "../layers/dwd.js";
 import { reportError } from "../lib/Toast";
@@ -18,6 +17,7 @@ import {
 } from "../stores";
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v3APIBaseUrl } from "../urls";
+import { get } from "svelte/store";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
