@@ -1,5 +1,5 @@
 <script>
-import logo from "../../public/assets/logo.svg";
+const logo = "/assets/logo.svg";
 import About from "./About.svelte";
 import { _ } from "svelte-i18n";
 import { logoStyle } from '../stores';

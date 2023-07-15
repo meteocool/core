@@ -2,7 +2,7 @@
   export let steps;
   export let title = "";
 
-  import cssVars from 'svelte-css-vars';
+  // CSS vars are now handled natively by Svelte
 
   export let valueFormat;
 
@@ -75,7 +75,7 @@
 <div class="wrapper">
     <div class="legend-label">{@html title}</div>
     <div class="scale">
-        <div class="scale-line" use:cssVars="{scaleStyle}">
+        <div class="scale-line" style="--backgroundImage: {scaleStyle.backgroundImage}">
             <div class="scale-dividers">
                 {#each vs as value}
                     <div class="scale-divider" style="width: {100/ncol}%;">

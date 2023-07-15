@@ -29,7 +29,7 @@ let shouldUpdate = true;
 /**
  * Manages the reflectivity + forecast layers shown on the map. should be called MapManager XXX
  */
-// eslint-disable-next-line import/prefer-default-export
+
 interface CapabilityMap {
     [name: string]: Capability;
 }
@@ -47,11 +47,11 @@ export class LayerManager {
 
   positionFeatures: Array<any>;
 
-  currentCap: string;
+  currentCap: string | null;
 
   mapCount: number;
 
-  constructor(options) {
+  constructor(options: any) {
     this.options = options;
     this.settings = options.settings;
     this.capabilities = {};
@@ -61,7 +61,7 @@ export class LayerManager {
     this.currentCap = null;
     this.mapCount = 0;
 
-    options.capabilities.forEach((capability) => {
+    options.capabilities.forEach((capability: any) => {
       const newMap = this.mapFactory(capability.options.hasBaseLayer);
       // eslint-disable-next-line new-cap
       const newCap = new capability.capability(newMap, capability.additionalLayers || [], capability.options);
@@ -73,22 +73,23 @@ export class LayerManager {
     const active = this.settings.get("capability");
     this.capabilities[active].setTarget(document.getElementById("map"));
 
-    mapBaseLayer.subscribe((newBaseLayer) => {
+    mapBaseLayer.subscribe((newBaseLayer: any) => {
       this.switchBaseLayer(newBaseLayer);
     });
   }
 
   // XXX move somewhere else
-  updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
+  updateLocation(lat: number, lon: number, accuracy: number, zoom = false, focus = true) {
     let accuracyPoly = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
-      accuracyPoly.applyTransform(
-        getTransformFromProjections(
-          getProjection("EPSG:4326"),
-          getProjection("EPSG:3857"),
-        ),
+      const transform = getTransformFromProjections(
+        getProjection("EPSG:4326"),
+        getProjection("EPSG:3857"),
       );
+      if (transform) {
+        accuracyPoly.applyTransform(transform);
+      }
     }
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
     let centerPoint;
@@ -184,7 +185,7 @@ export class LayerManager {
       [lat, lon, z] = parts.map(parseFloat);
     }
 
-    let layers = [];
+    let layers: any[] = [];
     if (baselayer) {
       layers = [this.baseLayerFactory(this.settings.get("mapBaseLayer"))];
     }
@@ -209,7 +210,10 @@ export class LayerManager {
       if (get(sharedActiveCap) !== newMap.get("capability")) {
         return;
       }
-      zoomlevel.set(newMap.getView().getZoom());
+      const zoom = newMap.getView().getZoom();
+      if (zoom !== undefined) {
+        zoomlevel.set(zoom);
+      }
       if (isApp) return;
       if (!shouldUpdate) {
         // do not update the URL when the view was changed in the 'popstate' handler
@@ -218,13 +222,18 @@ export class LayerManager {
       }
 
       const center = newMap.getView().getCenter();
-      const center4326 = toLonLat(center);
-      const url = new URL(window.location.href);
-      url.searchParams.set(
-        "latLonZ",
-        `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
-      );
-      window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
+      if (center) {
+        const center4326 = toLonLat(center);
+        const zoom = newMap.getView().getZoom();
+        if (zoom !== undefined) {
+          const url = new URL(window.location.href);
+          url.searchParams.set(
+            "latLonZ",
+            `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${zoom.toFixed(2)}`,
+          );
+          window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
+        }
+      }
     });
 
     if (this.mapCount === 0) {
@@ -246,7 +255,7 @@ export class LayerManager {
     return newMap;
   }
 
-  baseLayerFactory(layer) {
+  baseLayerFactory(layer: string) {
     switch (layer) {
       case "osm":
         return osm();
@@ -263,33 +272,33 @@ export class LayerManager {
     }
   }
 
-  switchBaseLayer(newBaseLayer) {
-    this.forEachMap((map) => {
+  switchBaseLayer(newBaseLayer: string) {
+    this.forEachMap((map: any) => {
       if (map.get("baselayer") === false) return;
       map
         .getLayers()
         .getArray()
-        .filter((layer) => layer.get("base") === true)
-        .forEach((layer) => map.removeLayer(layer));
+        .filter((layer: any) => layer.get("base") === true)
+        .forEach((layer: any) => map.removeLayer(layer));
       if (newBaseLayer) map.addLayer(this.baseLayerFactory(newBaseLayer));
     });
   }
 
-  forEachMap(cb) {
+  forEachMap(cb: (map: any, capability: string) => void) {
     this.maps.forEach((map) => cb(map, map.get("capability")));
   }
 
   getCurrentMap() {
-    return this.capabilities[this.currentCap].map;
+    return this.currentCap ? this.capabilities[this.currentCap].map : null;
   }
 
-  getCapability(name) {
+  getCapability(name: string) {
     return this.capabilities[name];
   }
 
-  setTarget(cap, target) {
+  setTarget(cap: string, target: string | HTMLElement) {
     console.log(cap);
-    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && cap !== this.currentCap) {
+    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && typeof this.capabilities[this.currentCap].willLoseFocus === 'function' && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
     }
     this.capabilities[cap].setTarget(target);
@@ -297,7 +306,7 @@ export class LayerManager {
     (this as any).currentCap = cap;
   }
 
-  setDefaultTarget(target) {
+  setDefaultTarget(target: string | HTMLElement) {
     console.log(`Starting with default cap ${(this as any).settings.get("capability")}`);
     this.setTarget((this as any).settings.get("capability"), target);
   }

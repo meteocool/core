@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm outdated)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm ls:*)",
+      "Bash(ls:*)",
+      "Bash(npm run lint)",
+      "Bash(npm:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx svelte-migrate:*)",
+      "Bash(npx:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm info:*)",
+      "WebFetch(domain:docs.sentry.io)",
+      "Bash(npm run lint:*)",
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(grep:*)",
+      "Bash(/dev/null)",
+      "Bash(echo:*)",
+      "Bash(node:*)",
+      "Bash(NODE_ENV=production npx webpack-bundle-analyzer dist/bundle.js --mode static --report bundle-report.html --no-open)",
+      "Bash(ffmpeg:*)"
+    ],
+    "deny": []
+  }
+}

@@ -5,7 +5,7 @@ import { centralEuropeExtent } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { dwdAttribution, imprintAttribution } from "./attributions";
 
-// eslint-disable-next-line import/prefer-default-export
+
 export const weatherLayer = (tileID) => {
   const source =
       new XYZ({

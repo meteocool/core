@@ -17,24 +17,24 @@ export default class Capability extends Observable {
 
   targetCb: any;
 
-  constructor(map, name, targetCb, additionalLayers) {
+  constructor(map: Map, name: string, targetCb: any, additionalLayers: any[]) {
     super();
     this.map = map;
     this.targetCb = targetCb;
     this.cmap = null;
     this.name = name;
 
-    additionalLayers.forEach((l) => map.addLayer(l));
+    additionalLayers.forEach((l: any) => map.addLayer(l));
   }
 
-  setTarget(target) {
+  setTarget(target: any) {
     if (!this.map) return;
     this.map.setTarget(target);
     if (this.targetCb && target) this.targetCb(target);
     if (this.cmap) sharedCmap.set(this.cmap);
   }
 
-  setCmap(cmap) {
+  setCmap(cmap: any) {
     this.cmap = cmap;
     sharedCmap.set(cmap);
   }

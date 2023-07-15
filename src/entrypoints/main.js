@@ -6,7 +6,7 @@ if (process.env.NODE_ENV !== "development") {
 }
 
 import { Workbox } from "workbox-window";
-import App, { lm } from "../App.svelte";
+import App from "../App.svelte";
 
 // Register service worker
 if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {

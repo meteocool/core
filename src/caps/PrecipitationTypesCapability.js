@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/prefer-default-export
+
 import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
 import Capability from "./Capability.ts";
 import { apiBaseUrl, v3APIBaseUrl } from '../urls';

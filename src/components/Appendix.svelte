@@ -1,6 +1,5 @@
 <script>
-import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
-import Icon from "fa-svelte";
+import { faGithub, Icon } from "../lib/IconRegistry";
 
 function init() {
 

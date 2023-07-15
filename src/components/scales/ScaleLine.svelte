@@ -1,7 +1,21 @@
 <script>
-  import cssVars from "svelte-css-vars";
-  import mapBg from "../../../public/assets/map-bg.png";
+  // CSS vars are now handled natively by Svelte
+  const mapBgWebp = "/assets/map-bg.webp";
+  const mapBgPng = "/assets/map-bg.png";
   import { DeviceDetect as dd } from '../../lib/DeviceDetect';
+
+  // Function to get optimized background image with WebP fallback
+  function getBackgroundUrl() {
+    // Check if WebP is supported
+    if (typeof window !== 'undefined') {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx && canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0) {
+        return `url(${mapBgWebp})`;
+      }
+    }
+    return `url(${mapBgPng})`;
+  }
 
   export let palette;
   export let valueFormat;
@@ -39,7 +53,7 @@
 
   $: scaleStyle = {
     backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
-    backgroundUrl: `url(${mapBg})`,
+    backgroundUrl: getBackgroundUrl(),
   };
 </script>
 
@@ -147,7 +161,7 @@
 <div class="wrapper">
     <div class="legend-label">{@html title}</div>
     <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
-        <div class="scale-line" use:cssVars="{scaleStyle}">
+        <div class="scale-line" style="--backgroundImage: {scaleStyle.backgroundImage}; --backgroundUrl: {scaleStyle.backgroundUrl}">
             <div class="scale-dividers">
                 {#each vs as value}
                     <div class="scale-divider">

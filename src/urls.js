@@ -1,11 +1,11 @@
 export const tileBaseUrl = "https://tiles-a.meteocool.com";
 
-// eslint-disable-next-line import/no-mutable-exports
+
 export let apiBaseUrl = "https://api.ng.meteocool.com/api";
-// eslint-disable-next-line import/no-mutable-exports
+
 export let websocketBaseUrl = "https://api.ng.meteocool.com";
 export const dataUrl = "https://data.meteocool.com";
-// eslint-disable-next-line import/no-mutable-exports
+
 export let v3APIBaseUrl = "https://api.meteocool.com/v3";
 
 if (BACKEND === "local") {

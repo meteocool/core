@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/prefer-default-export
+
 import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
 import { reportError } from "../lib/Toast";
 import Capability from "./Capability";

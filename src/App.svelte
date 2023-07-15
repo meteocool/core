@@ -43,7 +43,7 @@ import { radolanOverlay } from "./layers/dwd";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
 
-// eslint-disable-next-line import/no-mutable-exports
+
 export let device;
 export let postInitCb;
 
@@ -184,8 +184,7 @@ radarSocketIO.on("mesocyclones", (data) => {
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
 
-export let lm;
-lm = new LayerManager({
+let lm = new LayerManager({
   settings: (window as any).settings,
   nanobar: nb,
   capabilities: [

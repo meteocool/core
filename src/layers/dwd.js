@@ -27,7 +27,7 @@ const commonDWDParameters = {
   tileSize: 512,
   transition: 0,
   imageSmoothing: false,
-  tileLoadFunction: mcTileCache.getTileLoadingFunction(),
+  //tileLoadFunction: mcTileCache.getTileLoadingFunction(),
   cacheSize: 0,
 };
 

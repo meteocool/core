@@ -3,7 +3,6 @@ import SENTRY_ARGS from "../lib/sentry.js";
 
 Sentry.init(SENTRY_ARGS);
 
-// eslint-disable-next-line import/order
 import { Workbox } from "workbox-window";
 import App from "../App.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";

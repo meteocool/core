@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/prefer-default-export
+
 import { get } from "svelte/store";
 import { sentinel2, sentinel3 } from "../layers/satellite";
 import {

@@ -2,7 +2,7 @@ import VectorTileLayer from "ol/layer/VectorTile";
 import VectorTileSource from "ol/source/VectorTile";
 import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
-import snow from "../../public/assets/snow.png";
+const snow = "/assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, dwdSource, setDwdCmap } from "../layers/dwd.js";
 import { reportError } from "../lib/Toast";
 import {
@@ -13,7 +13,7 @@ import {
   latLon,
   live,
   radarColorScheme,
-  showForecastPlaybutton, snowLayerVisible, tileCacheStatus, zoomlevel,
+  showForecastPlaybutton, snowLayerVisible, tileCacheHit, tileCacheDownloaded, tileCachePending, zoomlevel,
 } from "../stores";
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v3APIBaseUrl } from "../urls";

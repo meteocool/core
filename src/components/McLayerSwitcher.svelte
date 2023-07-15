@@ -1,6 +1,5 @@
 <script>
-  import Icon from "fa-svelte";
-  import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
+  import { faLayerGroup, Icon } from "../lib/IconRegistry";
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";

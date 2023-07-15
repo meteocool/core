@@ -1,10 +1,10 @@
 <script>
   import { _ } from "svelte-i18n";
   import ScaleLine from "./ScaleLine.svelte";
-  import legendClouds from "../../../public/assets/legend_clouds.svg";
-  import legendRain from "../../../public/assets/legend_rain.svg";
-  import legendHail from "../../../public/assets/legend_hail.svg";
-  import legendThunderstorm from "../../../public/assets/legend_thunderstorm.svg";
+  const legendClouds = "/assets/legend_clouds.svg";
+  const legendRain = "/assets/legend_rain.svg";
+  const legendHail = "/assets/legend_hail.svg";
+  const legendThunderstorm = "/assets/legend_thunderstorm.svg";
   import { radarColormap, unit } from "../../stores";
   import { getPalette } from "../../lib/cmap_utils";
 

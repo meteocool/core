@@ -1,17 +1,16 @@
 <script>
-import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
-import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
-import { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoubleDown";
-import { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDoubleUp";
-import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
-import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
-import Icon from "fa-svelte";
+import { 
+  faPlay, 
+  faPause, 
+  faAngleDoubleDown, 
+  faAngleDoubleUp, 
+  faHistory, 
+  faRetweet, 
+  Icon 
+} from "../lib/IconRegistry";
 import StateMachine from "javascript-state-machine";
-import ChartDataLabels from "chartjs-plugin-datalabels";
 import { fly, fade } from "svelte/transition";
 import { onMount } from "svelte";
-import { CategoryScale, LinearScale, BarController, BarElement, Chart } from "chart.js";
-import { BarWithErrorBarsChart } from "chartjs-chart-error-bars";
 import {
   lastFocus, sharedActiveCap,
   cycloneLayerVisible,
@@ -20,11 +19,36 @@ import {
   bottomToolbarMode, radarColormap, precacheForecast,
 } from "../stores";
 
-Chart.register(CategoryScale);
-Chart.register(LinearScale);
-Chart.register(BarController);
-Chart.register(BarElement);
-Chart.register(ChartDataLabels);
+// Lazy loading function for Chart.js
+let chartLibraryLoaded = false;
+let Chart, BarWithErrorBarsChart, ChartDataLabels;
+
+async function loadChartLibrary() {
+  if (chartLibraryLoaded) return;
+  
+  try {
+    // Dynamically import Chart.js modules
+    const chartjsModule = await import("chart.js");
+    const chartErrorBarsModule = await import("chartjs-chart-error-bars");
+    const chartDataLabelsModule = await import("chartjs-plugin-datalabels");
+    
+    // Extract the needed classes
+    Chart = chartjsModule.Chart;
+    BarWithErrorBarsChart = chartErrorBarsModule.BarWithErrorBarsChart;
+    ChartDataLabels = chartDataLabelsModule.default;
+    
+    // Register chart components
+    Chart.register(chartjsModule.CategoryScale);
+    Chart.register(chartjsModule.LinearScale);
+    Chart.register(chartjsModule.BarController);
+    Chart.register(chartjsModule.BarElement);
+    Chart.register(ChartDataLabels);
+    
+    chartLibraryLoaded = true;
+  } catch (error) {
+    console.error("Failed to load Chart.js library:", error);
+  }
+}
 
 import { setUIConstant } from "../layers/ui";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -82,12 +106,19 @@ if (dd.isApp()) {
 let autoPlay = false;
 let chart = null;
 
-function redraw(config) {
+async function redraw(config) {
   if (!config) return;
   console.log("Redrawing");
   const { grid } = config;
   if (!canvas) {
     console.log("Grid not yet initialized, skipping redraw");
+    return;
+  }
+  
+  // Lazy load Chart.js when needed
+  await loadChartLibrary();
+  if (!chartLibraryLoaded) {
+    console.error("Chart.js library failed to load");
     return;
   }
   // if (Object.values(grid).map((step) => step.dbz).reduce((a, b) => a + b, 0) === 0) {

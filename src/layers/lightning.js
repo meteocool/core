@@ -7,7 +7,7 @@ import MVT from "ol/format/MVT";
 import VectorTileSource from "ol/source/VectorTile";
 import VectorTileLayer from "ol/layer/VectorTile";
 import { Fill, RegularShape, Stroke } from "ol/style";
-import lightningstrike from "../../public/assets/lightning.png";
+const lightningstrike = "/assets/lightning.png";
 import { blitzortungAttribution, imprintAttribution } from "./attributions";
 import { tileBaseUrl } from "../urls";
 import { LightningColors } from "../colormaps";

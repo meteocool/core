@@ -1,4 +1,4 @@
-import { openDB } from "idb/with-async-ittr";
+import { openDB } from "idb";
 import { tileCacheDownloaded, tileCacheHit, tileCachePending } from "../stores";
 
 export class MeteoTileCache {
