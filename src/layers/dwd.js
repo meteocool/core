@@ -14,7 +14,6 @@ import { tileBaseUrl } from "../urls";
 import { NOWCAST_OPACITY } from "./ui";
 import { cmapFromString } from "../lib/cmap_utils";
 import { RVP6_CLASSIC }  from "../colormaps";
-import { mcTileCache } from "../lib/TileCache";
 
 let cmap = RVP6_CLASSIC;
 
@@ -27,7 +26,6 @@ const commonDWDParameters = {
   tileSize: 512,
   transition: 0,
   imageSmoothing: false,
-  //tileLoadFunction: mcTileCache.getTileLoadingFunction(),
   cacheSize: 0,
 };
 
