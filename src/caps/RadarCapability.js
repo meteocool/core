@@ -2,7 +2,6 @@ import VectorTileLayer from "ol/layer/VectorTile";
 import VectorTileSource from "ol/source/VectorTile";
 import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
-import { get } from "svelte/store";
 import snow from "../../public/assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, dwdSource, setDwdCmap } from "../layers/dwd.js";
 import { reportError } from "../lib/Toast";
@@ -18,7 +17,8 @@ import {
 } from "../stores";
 import Capability from "./Capability.ts";
 import { tileBaseUrl, v3APIBaseUrl } from "../urls";
-import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
+import { get } from "svelte/store";
+//import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
@@ -57,7 +57,7 @@ export default class RadarCapability extends Capability {
 
     window.radar = this;
 
-    mcTileCache.setMap(map);
+    //mcTileCache.setMap(map);
 
     const self = this;
     radarColorScheme.subscribe((colorScheme) => {
@@ -184,14 +184,14 @@ export default class RadarCapability extends Capability {
   }
 
   precacheAllForecasts() {
-    Object.values(this.clientGridConfig.grid)
-      .filter((e) => e.source === "nowcast_phys")
-      .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
-      .map((tileset) => this.tilesetToURL(tileset))
-      .forEach((tileset) => {
-        mcTileCache.cacheTileset(tileset);
-        mcTileCache.trackTileset(tileset, 5);
-      });
+    // Object.values(this.clientGridConfig.grid)
+    //   .filter((e) => e.source === "nowcast_phys")
+    //   .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
+    //   .map((tileset) => this.tilesetToURL(tileset))
+    //   .forEach((tileset) => {
+    //     mcTileCache.cacheTileset(tileset);
+    //     mcTileCache.trackTileset(tileset, 5);
+    //   });
   }
 
   regenerateGridConfig() {
@@ -331,7 +331,7 @@ export default class RadarCapability extends Capability {
       const last = this.clientGrid[this.getMostRecentObservation()];
       if (last) {
         [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
-        mcTileCache.setSource(this.source);
+        // mcTileCache.setSource(this.source);
         super.getMap().addLayer(this.layer);
       }
     }
