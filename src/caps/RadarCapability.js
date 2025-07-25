@@ -365,7 +365,14 @@ export default class RadarCapability extends Capability {
   }
 
   setSource(timestep) {
-    this.source.getTileCacheForProjection(this.source.getProjection()).clear();
+    if (!this.source) {
+      console.warn('RadarCapability: source not initialized yet, skipping setSource');
+      return;
+    }
+    // Clear tile cache if the method exists (not all source types support this)
+    if (typeof this.source.getTileCacheForProjection === 'function') {
+      this.source.getTileCacheForProjection(this.source.getProjection()).clear();
+    }
     if (this.trackingMode !== "manual") {
       this.trackingMode = "manual";
       live.set(false);

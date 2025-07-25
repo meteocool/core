@@ -101,6 +101,14 @@ export default [
     },
   },
   {
+    files: ['vite.config.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+      },
+    },
+  },
+  {
     ignores: [
       'dist/',
       'node_modules/',

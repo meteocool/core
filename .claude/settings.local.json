@@ -22,7 +22,13 @@
       "Bash(echo:*)",
       "Bash(node:*)",
       "Bash(NODE_ENV=production npx webpack-bundle-analyzer dist/bundle.js --mode static --report bundle-report.html --no-open)",
-      "Bash(ffmpeg:*)"
+      "Bash(ffmpeg:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_install",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(VITE_MAP_VERSION=20250602 npm run build)",
+      "Bash(timeout 10s npm run dev:*)"
     ],
     "deny": []
   }

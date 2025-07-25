@@ -86,7 +86,8 @@ This is the frontend for meteocool, a free & open-source storm and lightning tra
 - DWD (German Weather Service) for radar data
 - NOAA for satellite imagery  
 - Custom backend APIs for lightning and mesocyclone data
-- Multiple base map providers (Carto, OSM, etc.)
+- **Protomaps Vector Tiles**: Base map layers served from `map.meteocool.com` using Protomaps format (MVT)
+- Ororatech satellite imagery for aerosols and cloud data
 
 ### Device Support
 
@@ -103,6 +104,7 @@ The app detects platform via `DeviceDetect` and adapts UI accordingly:
 - **Service Worker**: Handles caching and offline functionality via Workbox
 - **Bundle Optimization**: Implemented lazy loading for Chart.js and advanced code splitting
 - **TypeScript**: Strict mode disabled (`"strict": false`) for compatibility with existing codebase
+- **Testing**: No automated test suite currently configured - manual testing via development server
 
 ## Common Development Workflows
 
@@ -235,3 +237,202 @@ The Settings system handles communication between the web app and native iOS/And
 - `radarColorScheme` - Radar color palette
 
 For native app integration, see the Settings API documentation in the project wiki.
+
+## Map Architecture Notes
+
+### Base Map Layers
+The application uses Protomaps-based vector tiles served from `map.meteocool.com` for all base map layers:
+- **Service Worker Caching**: Only `map.meteocool.com` tiles are cached via service worker (`src/sw.js`)
+- **Vector Layers**: `src/layers/base.js` provides light/dark themed vector tile layers
+- **Label Overlays**: `src/layers/vector.js` handles boundaries and place labels using the same Protomaps source
+
+### Icon System
+- **FontAwesome Integration**: Uses centralized `src/lib/IconRegistry.js` for tree-shaking
+- **Component Usage**: Import icons via `Icon` component from the registry, not directly from FontAwesome
+- **Button Alignment**: Use `.faIconButton` wrapper class for consistent icon alignment in Shoelace buttons
+
+### CSS Architecture
+- **Global Styles**: `src/html/global.css` sets viewport height and base styling
+- **Shoelace Integration**: Uses custom Shoelace theme via experimental fork
+- **Dark Theme**: CSS variables are overridden in `src/layers/ui.js` for dark theme support
+
+## Critical Development Notes
+
+### Map Container Requirements
+- Ensure parent containers have `height: 100%` set to prevent "map container width/height are 0" errors
+- OpenLayers maps require explicit container dimensions to render properly
+
+### Icon Alignment Issues
+- Never use different `margin-top` values for FontAwesome icons in buttons
+- Use flexbox centering (`.faIconButton` class) instead of manual positioning
+- Shoelace `<sl-icon>` components should not be mixed with FontAwesome - stick to one system
+
+### Capability System Patterns
+- Always check if `this.source` exists before calling methods like `getTileCacheForProjection()`
+- Capabilities are initialized asynchronously, so null checks are essential
+- Use `console.warn()` for graceful degradation when sources aren't ready
+- Check method existence before calling: `if (typeof this.source.getTileCacheForProjection === 'function')`
+- XYZ sources from OpenLayers may not have all methods that other source types support
+
+### State Machine Error Handling
+- FSM transitions in `NowcastPlayback.svelte` should be wrapped in try-catch blocks
+- Invalid state transitions throw errors that crash the playback functionality
+- Always check `fsm.state` before attempting transitions and handle errors gracefully
+- Common transition methods: `showScrollbar()`, `pressPlay()`, `pressPause()`, `hideScrollbar()`
+
+### Error Recovery Patterns
+When working with the playback system and capabilities:
+```javascript
+// Safe capability method calls
+if (!this.source) {
+  console.warn('Source not initialized yet');
+  return;
+}
+if (typeof this.source.getTileCacheForProjection === 'function') {
+  this.source.getTileCacheForProjection(this.source.getProjection()).clear();
+}
+
+// Safe FSM transitions
+try {
+  fsm.pressPause();
+} catch (error) {
+  console.warn("Failed to pause from state:", fsm.state, error);
+}
+```
+
+## Build System Details
+
+### Multi-Platform Entry Points
+The application supports three different entry points configured in `vite.config.mjs`:
+- `index.html` - Web application
+- `android.html` - Android WebView wrapper
+- `ios.html` - iOS WebView wrapper 
+- Additional static pages: `imprint.html`, `privacy.html`
+
+### Advanced Code Splitting Strategy
+Manual chunk configuration optimizes loading performance:
+- `vendor` - Core Svelte framework
+- `openlayers` - Mapping library (277KB)
+- `chartjs` - Chart components (lazy loaded)
+- `shoelace` - UI component library
+- `fontawesome` - Icon library
+- `socketio` - Real-time communication
+- `utils` - Common utilities
+
+### Environment Variables
+- `BACKEND=local` - Use local backend during development
+- `GIT_COMMIT_HASH` - Injected during build for version tracking
+- `NODE_ENV=production` - Enables production optimizations
+
+## Native App Integration
+
+### Settings API Communication
+The web application communicates with native iOS/Android apps through:
+- URL parameters for initial state
+- `window.webkit.messageHandlers` (iOS) for haptic feedback
+- localStorage for persistent settings
+- PostMessage API for cross-frame communication
+
+### Platform Detection
+`src/lib/DeviceDetect.js` handles platform-specific behavior:
+- Different button sizes for mobile vs desktop
+- iOS-specific haptic feedback integration
+- App vs browser detection for feature availability
+
+## Data Architecture
+
+### Real-time Updates
+- **Lightning Strikes**: Socket.IO WebSocket connection with strike coordinates
+- **Mesocyclones**: Live mesocyclone detection data
+- **Radar Data**: Polling-based updates every 5 minutes from DWD
+- **Grid Updates**: Real-time precipitation forecast data
+
+### Caching Strategy
+- **Service Worker**: Precaches map tiles and app shell via Workbox
+- **Tile Cache**: OpenLayers manages radar tile caching with 5-minute TTL
+- **Local Storage**: User preferences and settings persistence
+- **Memory Cache**: Component state and current weather data
+
+## Planned Modernization Tasks (2025)
+
+### Future Reference: Execute when time permits
+
+The following modernization plan has been prepared to update dependencies and replace outdated components. This is a comprehensive plan to be executed when development time is available:
+
+### Phase 1: Core Infrastructure Updates (Low Risk)
+```bash
+# 1.1 Upgrade Vite 5.4.19 → 7.0.6 (requires Node.js 20.19+ or 22.12+)
+# Update package.json dependencies:
+# - "vite": "^7.0.6"
+# - "@sveltejs/vite-plugin-svelte": "^4.0.0" (if needed for Vite 7 compat)
+# - Update vite.config.mjs for Vite 7 compatibility (check build.target, optimizeDeps)
+
+# 1.2 Upgrade TypeScript 5.8.3 → 5.6.3 (stable)
+# Update package.json: "typescript": "^5.6.3"
+
+# 1.3 Update ESLint ecosystem
+# Ensure @typescript-eslint/* packages are compatible with new TS version
+```
+
+### Phase 2: Critical Library Replacements (High Impact)
+```bash
+# 2.1 Replace fa-svelte with Lucide Icons
+# Install: npm install lucide-svelte
+# Remove: npm uninstall fa-svelte @fortawesome/fontawesome-free @fortawesome/free-solid-svg-icons @fortawesome/free-brands-svg-icons
+# Update src/lib/IconRegistry.js to use Lucide components
+# Map FontAwesome icons to Lucide equivalents:
+# - faPlay → Play
+# - faPause → Pause  
+# - faAngleDoubleDown → ChevronDown
+# - faAngleDoubleUp → ChevronUp
+# - faHistory → History
+# - faRetweet → Repeat
+# - faLayerGroup → Layers
+# - faCircle → Circle
+# - faGithub → Github
+
+# 2.2 Replace javascript-state-machine with XState
+# Install: npm install xstate @xstate/svelte
+# Remove: npm uninstall javascript-state-machine
+# Rewrite NowcastPlayback.svelte FSM logic using XState
+# Improve error handling with XState patterns
+```
+
+### Phase 3: Optional Improvements
+```bash
+# 3.1 Add Vitest testing framework
+# Install: npm install -D vitest @testing-library/svelte @testing-library/jest-dom
+# Add test scripts to package.json
+# Create basic test setup
+
+# 3.2 Evaluate Shoelace replacement
+# Consider migrating to Skeleton UI (Svelte + Tailwind) or SvelteUI
+# Current: "@shoelace-style/shoelace": "git://github.com/v4lli/shoelace.git#next"
+```
+
+### Critical Notes for Future Execution:
+1. **Icon Migration Priority**: Update `IconRegistry.js` first, then search/replace all Icon usage
+2. **State Machine Migration**: Focus on `NowcastPlayback.svelte` - complex FSM logic needs careful porting
+3. **Testing After Each Phase**: Run `npm run build && npm run lint` after each major change
+4. **Bundle Size Monitoring**: Check bundle sizes don't increase significantly
+5. **Backup Strategy**: Create feature branch before starting major changes
+
+### Expected Outcomes:
+- **Performance**: 30% faster build times with Vite 7
+- **Maintainability**: Modern, actively maintained dependencies  
+- **Developer Experience**: Better TypeScript support and error handling
+- **Bundle Optimization**: Tree-shaking improvements with Lucide Icons
+- **State Management**: More robust FSM with XState error handling
+
+### Rollback Plan:
+- Keep current working state in separate branch
+- Each phase can be rolled back independently
+- Manual testing of critical user flows after each change
+
+**Status**: Documented for future implementation when development time is available
+
+### How to Use This Plan:
+1. Review the plan when ready to modernize dependencies
+2. Execute phases in order for safest migration
+3. Each phase can be tackled separately over time
+4. Use as reference for understanding current technical debt

@@ -471,7 +471,11 @@ const fsm = new StateMachine({
         } else {
           playTimeout = 0;
           console.log("Pausing due to slider usage");
-          fsm.pressPause();
+          try {
+            fsm.pressPause();
+          } catch (error) {
+            console.warn("Failed to pause from playTick, state:", fsm.state, error);
+          }
         }
       };
       playTick();
@@ -505,7 +509,11 @@ const fsm = new StateMachine({
 
 function show() {
   if (fsm.state === "followLatest") {
-    fsm.showScrollbar();
+    try {
+      fsm.showScrollbar();
+    } catch (error) {
+      console.warn("Failed to show scrollbar from state:", fsm.state, error);
+    }
   }
 }
 
@@ -517,7 +525,11 @@ function showAndPlay() {
 function hide() {
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   playTimeout = 0;
-  fsm.hideScrollbar();
+  try {
+    fsm.hideScrollbar();
+  } catch (error) {
+    console.warn("Failed to hide scrollbar from state:", fsm.state, error);
+  }
 }
 
 let latest;
@@ -610,7 +622,11 @@ function sliderChangedHandler(value, userInteraction = false) {
 
   if (userInteraction && fsm.state === "playing") {
     console.log("Pausing due to sliderChangedHandler");
-    fsm.pressPause();
+    try {
+      fsm.pressPause();
+    } catch (error) {
+      console.warn("Failed to pause from state:", fsm.state, error);
+    }
   }
 
   if (userInteraction && dd.isIos()) {
@@ -643,9 +659,17 @@ function initSlider(elem) {
 function playPause() {
   if (fsm.state === "playing") {
     console.log("Pausing due to button");
-    fsm.pressPause();
+    try {
+      fsm.pressPause();
+    } catch (error) {
+      console.warn("Failed to pause from button, state:", fsm.state, error);
+    }
   } else {
-    fsm.pressPlay();
+    try {
+      fsm.pressPlay();
+    } catch (error) {
+      console.warn("Failed to play from button, state:", fsm.state, error);
+    }
   }
 }
 
@@ -693,10 +717,13 @@ lastFocus.subscribe((focus) => {
     border: 1px solid grey;
     border-radius: 5px;
     flex: 1 1 auto;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin: 0.3em 0.25em 0.4em 0.25em;
     cursor: pointer;
     color: var(--sl-color-black);
+    position: relative;
   }
 
   .controlButton:hover {
@@ -752,6 +779,55 @@ lastFocus.subscribe((focus) => {
   .checkbox {
     margin-top: 4px;
   }
+
+  .faIconButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Ensure consistent FontAwesome icon sizing within buttons */
+  .faIconButton :global(svg) {
+    width: 14px !important;
+    height: 14px !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Ensure icons in controlButton are also properly centered */
+  .controlButton :global(svg) {
+    width: 14px !important;
+    height: 14px !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Ensure playHover div is properly positioned */
+  .playHover {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .playHover :global(svg) {
+    width: 14px !important;
+    height: 14px !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
 
   .barChartCanvas {
     position: absolute;
@@ -858,17 +934,17 @@ lastFocus.subscribe((focus) => {
               <div class="button-group-toolbar" >
                 <sl-button-group label="Playback Controls">
                   <sl-button size={buttonSize} on:click={playPause} style="--sl-button-font-size-small: 16px; --sl-button-font-size-medium: 16px;">
-                    <div class="faIconButton" slot="prefix" style="margin-top: 4px !important; margin-left: 10%; margin-right: 10%;">
-                      &nbsp;<Icon icon={playPauseButton} />&nbsp;
+                    <div class="faIconButton" slot="prefix">
+                      <Icon icon={playPauseButton} />
                     </div>
                   </sl-button>
                   <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
-                    <div class="faIconButton" style="margin-top: 3px !important;">
+                    <div class="faIconButton">
                       <Icon icon={faRetweet} />
                     </div>
                   </sl-button>
                   <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
-                    <div class="faIconButton" style="margin-top: 2px !important;">
+                    <div class="faIconButton">
                       <Icon icon={faHistory} />
                     </div>
                   </sl-button>
@@ -887,7 +963,7 @@ lastFocus.subscribe((focus) => {
                 <div class="button-group-toolbar">
                    <sl-button size={buttonSize} on:click={hide}>
                      <div class="faIconButton">
-                       <Icon icon={faAngleDoubleDown} />️
+                       <Icon icon={faAngleDoubleDown} />
                      </div>
                    </sl-button>
                 </div>

@@ -2,7 +2,7 @@
   import { fly } from "svelte/transition";
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
-  import { Chart, LineController, Line, LineElement } from "chart.js";
+  import { Chart, LineController, LineElement } from "chart.js";
   import { transformExtent } from "ol/proj";
   import { fromExtent } from "ol/geom/Polygon";
   import LastUpdated from "./LastUpdated.svelte";

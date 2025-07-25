@@ -5,10 +5,12 @@ import MVT from "ol/format/MVT";
 import {
   imprintAttribution,
   osmAttribution,
-  wofAttribution,
 } from "./attributions";
 import { mapBaseLayer } from '../stores';
 import { supportsVectorLabels } from './base';
+
+// Protomaps base URL from your Cloudflare Workers setup - version configured via environment
+const mapEndpoint = `https://map.meteocool.com/${import.meta.env.VITE_MAP_VERSION}/`;
 
 const boundaryStyle = new Style({
   stroke: new Stroke({
@@ -91,11 +93,11 @@ export const bordersAndWays = () => new VectorTileLayer({
   zIndex: 99,
   declutter: true,
   source: new VectorTileSource({
-    attributions: [wofAttribution, osmAttribution, imprintAttribution],
+    attributions: [osmAttribution, imprintAttribution],
     format: new MVT({
       layers: ["boundaries", "places"],
     }),
-    url: `https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.mvt?api_key=qW-EcxRGQcanc6upJoSHSA`,
+    url: `${PROTOMAPS_URL}{z}/{x}/{y}.mvt`,
     maxZoom: 17,
   }),
   style(feature) {
@@ -132,11 +134,11 @@ export const labelsOnly = () => {
     declutter: true,
     renderMode: "vector",
     source: new VectorTileSource({
-      attributions: [wofAttribution, osmAttribution, imprintAttribution],
+      attributions: [osmAttribution, imprintAttribution],
       format: new MVT({
         layers: ["places"],
       }),
-      url: `https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.mvt?api_key=qW-EcxRGQcanc6upJoSHSA`,
+      url: `${mapEndpoint}{z}/{x}/{y}.mvt`,
       maxZoom: 17,
     }),
     style(feature, res) {

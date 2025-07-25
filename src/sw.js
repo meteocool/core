@@ -7,7 +7,7 @@ import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 
 registerRoute(
-  new RegExp("https://(?:api.maptiler.com|basemaps.cartocdn.com|tile.nextzen.org|cartodb-basemaps-b.global.ssl.fastly.net)/.*.(png|mvt)"),
+  /^https:\/\/map\.meteocool\.com\/.*\.(png|mvt)$/,
   new CacheFirst({
     cacheName: "tile-cache",
     plugins: [
