@@ -9,10 +9,6 @@ html, body {
   height: 100%;
 }
 
-* {
-  box-sizing: border-box;
-}
-
 .hide-on-small-screens {
   display: none;
 }

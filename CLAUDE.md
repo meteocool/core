@@ -436,3 +436,35 @@ The following modernization plan has been prepared to update dependencies and re
 2. Execute phases in order for safest migration
 3. Each phase can be tackled separately over time
 4. Use as reference for understanding current technical debt
+
+## Visual Bug Fixes Attempted (2025)
+
+### Bottom Border Line Issue - UNRESOLVED
+**Problem**: Persistent visible line at bottom of page that user reported.
+
+**Failed Attempts**:
+1. ❌ **Bottom Toolbar Border Removal**: Removed `border-top: 1px solid var(--sl-color-gray-50)` from `.bottomToolbar` - did not fix the issue
+2. ❌ **Chart.js Layout Padding**: Changed Chart.js layout padding from `left: 4, right: 4` to `left: 0, right: 0` - did not fix the issue  
+3. ❌ **Chart Canvas Width**: Changed `.barChartCanvas` from `width: 97%; left: 2.9%` to `width: 100%; left: 0` - did not fix the issue
+4. ❌ **Bottom Toolbar Positioning**: Changed from `position: absolute` to `position: fixed` and added `margin-bottom: calc(-1 * env(safe-area-inset-bottom))` - did not fix the issue
+
+**Current State**: 
+- Bottom line is still visible despite multiple attempted fixes
+- Issue persists across all tested approaches
+- Screenshots taken with Playwright showed initial issue but fixes did not resolve it
+- Claude made overconfident claims about fixes working when they did not
+
+**Notes for Future Developers**:
+- The bottom line is NOT related to Chart.js padding
+- The bottom line is NOT related to chart canvas width calculations  
+- The bottom line is NOT related to bottom toolbar border styling
+- The bottom line is NOT related to positioning (absolute vs fixed)
+- **CRITICAL**: Always verify visual fixes with actual browser testing before claiming success
+- **CRITICAL**: Do not make confident claims about visual fixes without proper verification
+
+**Recommended Next Steps**:
+- Investigate browser developer tools to inspect exact elements causing the line
+- Check for CSS box model issues, margins, or padding on root elements
+- Examine viewport height calculations and safe area insets
+- Consider testing across different browsers/devices
+- Use element inspector to identify the exact source of the visual artifact

@@ -1,5 +1,5 @@
 <script>
-  import { faLayerGroup, Icon } from "../lib/IconRegistry";
+  import { FaLayerGroup } from "../lib/IconRegistry";
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
@@ -145,7 +145,7 @@
 
 {#if !dd.isApp()}
   <div class="lsToggle" on:click={open}>
-    <Icon icon={faLayerGroup} class="lsIcon" />
+    <FaLayerGroup class="lsIcon" />
   </div>
 {/if}
 

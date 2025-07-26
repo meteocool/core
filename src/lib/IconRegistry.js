@@ -1,21 +1,46 @@
 /**
- * Centralized FontAwesome icon registry for meteocool
- * This centralizes all FontAwesome icon imports for better tree-shaking
+ * Centralized Lucide icon registry for meteocool
+ * This centralizes all Lucide icon imports for better tree-shaking
  * and bundle optimization.
  */
 
-// Solid icons
-export { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
-export { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
-export { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoubleDown";
-export { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDoubleUp";
-export { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
-export { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
-export { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
-export { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
+// Lucide icons - direct component exports with proper capitalization for Svelte
+export { 
+  Play as FaPlay,
+  Pause as FaPause,
+  ChevronsDown as FaAngleDoubleDown,
+  ChevronsUp as FaAngleDoubleUp,
+  History as FaHistory,
+  Repeat as FaRetweet,
+  Layers as FaLayerGroup,
+  Circle as FaCircle,
+  Github as FaGithub
+} from "lucide-svelte";
 
-// Brand icons
-export { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
+// Keep old names for backward compatibility but with proper naming
+export { 
+  Play as faPlay,
+  Pause as faPause,
+  ChevronsDown as faAngleDoubleDown,
+  ChevronsUp as faAngleDoubleUp,
+  History as faHistory,
+  Repeat as faRetweet,
+  Layers as faLayerGroup,
+  Circle as faCircle,
+  Github as faGithub
+} from "lucide-svelte";
 
-// Re-export the Icon component for convenience
-export { default as Icon } from "fa-svelte";
+// For backwards compatibility, also export individual icons with their Lucide names
+export { 
+  Play,
+  Pause,
+  ChevronsDown,
+  ChevronsUp,
+  History,
+  Repeat,
+  Layers,
+  Circle,
+  Github
+} from "lucide-svelte";
+
+// Note: Lucide icons are used directly as components, no wrapper Icon component needed

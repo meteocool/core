@@ -1,5 +1,5 @@
 <script>
-import { faCircle, Icon } from "../lib/IconRegistry";
+import { FaCircle } from "../lib/IconRegistry";
 import { _ } from "svelte-i18n";
 import { lastFocus, live } from "../stores";
 
@@ -98,7 +98,7 @@ live.subscribe((value) => {
 <div class="live-wrapper" use:init>
 <sl-tag type="danger" class="live" size="small" pill>
     <div class="circle-container circle-container-light-red" use:blink>
-        <Icon icon={faCircle} />
+        <FaCircle />
     </div>
     <span class="label">{$_("latest")}</span>
 </sl-tag>

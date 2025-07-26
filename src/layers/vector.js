@@ -97,7 +97,7 @@ export const bordersAndWays = () => new VectorTileLayer({
     format: new MVT({
       layers: ["boundaries", "places"],
     }),
-    url: `${PROTOMAPS_URL}{z}/{x}/{y}.mvt`,
+    url: `${mapEndpoint}{z}/{x}/{y}.mvt`,
     maxZoom: 17,
   }),
   style(feature) {

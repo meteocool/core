@@ -1,5 +1,5 @@
 <script>
-import { faGithub, Icon } from "../lib/IconRegistry";
+import { FaGithub } from "../lib/IconRegistry";
 
 function init() {
 
@@ -53,6 +53,6 @@ function init() {
     </div>
     <div class="appstoreLogo">
         <a target="_blank" href="https://github.com/meteocool/core#meteocool"
-        ><Icon icon={faGithub} class="githubIcon" /></a>
+        ><FaGithub class="githubIcon" /></a>
     </div>
 </div>

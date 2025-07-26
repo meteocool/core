@@ -253,14 +253,14 @@
 
 <style>
     :global(.bottomToolbar) {
-        position: absolute;
+        position: fixed;
         bottom: 0;
         left: 0;
         border-top-left-radius: 11px;
         border-top-right-radius: 11px;
-        border-top: 1px solid var(--sl-color-gray-50);
         width: 100%;
         background-color: var(--sl-color-white);
+        margin-bottom: calc(-1 * env(safe-area-inset-bottom));
     }
 
     @media only screen and (max-width: 620px) {

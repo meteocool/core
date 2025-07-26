@@ -5,7 +5,6 @@
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
-    "@fortawesome/free-brands-svg-icons": "^6.7.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.2",
     "@types/node": "^24.0.14",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
@@ -13,7 +12,6 @@
     "cross-env": "^7.0.3",
     "eslint": "^9.31.0",
     "eslint-plugin-svelte": "^3.11.0",
-    "fa-svelte": "^3.1.0",
     "less": "^4.4.0",
     "serve": "^14.2.0",
     "svelte": "^4.2.20",
@@ -38,8 +36,7 @@
   },
   "dependencies": {
     "@babel/eslint-parser": "^7.26.0",
-    "@fortawesome/fontawesome-free": "^6.7.0",
-    "@fortawesome/free-solid-svg-icons": "^6.7.0",
+    "@playwright/test": "^1.54.1",
     "@sentry/browser": "^9.40.0",
     "@shoelace-style/shoelace": "git://github.com/v4lli/shoelace.git#next",
     "chart.js": "^4.5.0",
@@ -48,6 +45,7 @@
     "date-fns": "^4.1.0",
     "idb": "^8.0.3",
     "javascript-state-machine": "^3.1.0",
+    "lucide-svelte": "^0.525.0",
     "nanobar": "^0.4.2",
     "ol": "^10.6.1",
     "ol-mapbox-style": "^13.0.1",

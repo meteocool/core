@@ -42,7 +42,7 @@ export default defineConfig({
           openlayers: ['ol'],
           chartjs: ['chart.js', 'chartjs-chart-error-bars', 'chartjs-plugin-datalabels'],
           shoelace: ['@shoelace-style/shoelace'],
-          fontawesome: ['@fortawesome/fontawesome-free', '@fortawesome/free-solid-svg-icons', '@fortawesome/free-brands-svg-icons'],
+          lucide: ['lucide-svelte'],
           socketio: ['socket.io-client'],
           utils: ['date-fns', 'idb', 'javascript-state-machine', 'nanobar'],
         },

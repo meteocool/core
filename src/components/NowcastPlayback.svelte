@@ -1,12 +1,11 @@
 <script>
-import { 
-  faPlay, 
-  faPause, 
-  faAngleDoubleDown, 
-  faAngleDoubleUp, 
-  faHistory, 
-  faRetweet, 
-  Icon 
+import {
+  FaPlay,
+  FaPause,
+  FaAngleDoubleDown,
+  FaAngleDoubleUp,
+  FaHistory,
+  FaRetweet
 } from "../lib/IconRegistry";
 import StateMachine from "javascript-state-machine";
 import { fly, fade } from "svelte/transition";
@@ -25,25 +24,25 @@ let Chart, BarWithErrorBarsChart, ChartDataLabels;
 
 async function loadChartLibrary() {
   if (chartLibraryLoaded) return;
-  
+
   try {
     // Dynamically import Chart.js modules
     const chartjsModule = await import("chart.js");
     const chartErrorBarsModule = await import("chartjs-chart-error-bars");
     const chartDataLabelsModule = await import("chartjs-plugin-datalabels");
-    
+
     // Extract the needed classes
     Chart = chartjsModule.Chart;
     BarWithErrorBarsChart = chartErrorBarsModule.BarWithErrorBarsChart;
     ChartDataLabels = chartDataLabelsModule.default;
-    
+
     // Register chart components
     Chart.register(chartjsModule.CategoryScale);
     Chart.register(chartjsModule.LinearScale);
     Chart.register(chartjsModule.BarController);
     Chart.register(chartjsModule.BarElement);
     Chart.register(ChartDataLabels);
-    
+
     chartLibraryLoaded = true;
   } catch (error) {
     console.error("Failed to load Chart.js library:", error);
@@ -81,7 +80,7 @@ let showOpenControls = false;
 
 let oldTimeStep = 0;
 
-let playPauseButton = faPlay;
+let playPauseButton = FaPlay;
 let playTimeout;
 
 let slRange = null;
@@ -114,7 +113,7 @@ async function redraw(config) {
     console.log("Grid not yet initialized, skipping redraw");
     return;
   }
-  
+
   // Lazy load Chart.js when needed
   await loadChartLibrary();
   if (!chartLibraryLoaded) {
@@ -412,7 +411,7 @@ const fsm = new StateMachine({
           chart.update();
         }, 400);
       }
-      playPauseButton = faPlay;
+      playPauseButton = FaPlay;
       if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
       setTimeout(() => {
         if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
@@ -441,7 +440,7 @@ const fsm = new StateMachine({
         // XXX deduplicate with onPressPause:
         if (playTimeout !== 0) window.clearTimeout(playTimeout);
         playTimeout = 0;
-        playPauseButton = faPlay;
+        playPauseButton = FaPlay;
       }
     },
     onPressPlay: () => {
@@ -479,12 +478,12 @@ const fsm = new StateMachine({
         }
       };
       playTick();
-      playPauseButton = faPause;
+      playPauseButton = FaPause;
     },
     onPressPause: () => {
       if (playTimeout !== 0) window.clearTimeout(playTimeout);
       playTimeout = 0;
-      playPauseButton = faPlay;
+      playPauseButton = FaPlay;
     },
     onHideScrollbar: (transition) => {
       if (transition.from === "followLatest") return;
@@ -703,7 +702,7 @@ lastFocus.subscribe((focus) => {
 
 <style>
   .timeslider {
-    height: 90px;
+    height: 100px;
     z-index: 6;
     padding-top: 6px;
   }
@@ -832,11 +831,10 @@ lastFocus.subscribe((focus) => {
   .barChartCanvas {
     position: absolute;
     bottom: calc(env(safe-area-inset-bottom) + 79px);
-    width: 97%;
-    left: 2.9%;
+    width: 100%;
+    left: 0;
     height: 150px;
     pointer-events: none;
-    margin-right: 0.5em;
     z-index: 7;
   }
 
@@ -863,7 +861,7 @@ lastFocus.subscribe((focus) => {
     .barChartCanvas {
       bottom: 142px;
       left: 0;
-      width: 99%;
+      width: 100%;
     }
     .barChartCanvasWithoutPlayback {
       bottom: calc(env(safe-area-inset-bottom) + 73px);
@@ -921,10 +919,10 @@ lastFocus.subscribe((focus) => {
       <div class="flexbox">
         <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">
-            <Icon icon={playPauseButton} class="controlIconInline" />
+            <svelte:component this={playPauseButton} class="controlIconInline" />
           </div>
           <div class="controlButton" on:click={hide} title="Close">
-            <Icon icon={faAngleDoubleDown} class="controlIcon" />
+            <FaAngleDoubleDown class="controlIcon" />
           </div>
         </div>
         <div class="slider">
@@ -935,17 +933,17 @@ lastFocus.subscribe((focus) => {
                 <sl-button-group label="Playback Controls">
                   <sl-button size={buttonSize} on:click={playPause} style="--sl-button-font-size-small: 16px; --sl-button-font-size-medium: 16px;">
                     <div class="faIconButton" slot="prefix">
-                      <Icon icon={playPauseButton} />
+                      <svelte:component this={playPauseButton} />
                     </div>
                   </sl-button>
                   <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
                     <div class="faIconButton">
-                      <Icon icon={faRetweet} />
+                      <FaRetweet />
                     </div>
                   </sl-button>
                   <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
                     <div class="faIconButton">
-                      <Icon icon={faHistory} />
+                      <FaHistory />
                     </div>
                   </sl-button>
                 </sl-button-group>
@@ -963,7 +961,7 @@ lastFocus.subscribe((focus) => {
                 <div class="button-group-toolbar">
                    <sl-button size={buttonSize} on:click={hide}>
                      <div class="faIconButton">
-                       <Icon icon={faAngleDoubleDown} />
+                       <FaAngleDoubleDown />
                      </div>
                    </sl-button>
                 </div>
@@ -1002,14 +1000,14 @@ lastFocus.subscribe((focus) => {
       <div on:click={show} class="buttonBar right">
         <div class="controlButton" title="Playback Controls">
           <div class="playHover">
-            <Icon icon={faAngleDoubleUp} class="controlIcon" />
+            <FaAngleDoubleUp class="controlIcon" />
           </div>
         </div>
       </div>
   <div on:click={showAndPlay} class="buttonBar">
     <div class="controlButton" title="Play/Pause">
       <div class="playHover">
-        <Icon icon={faPlay} class="controlIcon" />
+        <FaPlay class="controlIcon" />
       </div>
     </div>
   </div>
