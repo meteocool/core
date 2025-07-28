@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meteocool",
+  "compatibility_date": "2025-07-28",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "routes": [
+    {
+      "pattern": "meteocool.com",
+      "zone_name": "meteocool.com"
+    },
+    {
+      "pattern": "www.meteocool.com",
+      "zone_name": "meteocool.com"
+    }
+  ],
+  "env": {
+    "production": {
+      "routes": [
+        {
+          "pattern": "meteocool.com",
+          "zone_name": "meteocool.com"
+        },
+        {
+          "pattern": "www.meteocool.com",
+          "zone_name": "meteocool.com"
+        }
+      ]
+    },
+    "staging": {
+      "name": "meteocool-staging",
+      "routes": [
+        {
+          "pattern": "better.meteocool.com",
+          "zone_name": "meteocool.com"
+        }
+      ]
+    },
+    "development": {
+      "name": "meteocool-dev"
+    }
+  }
+}

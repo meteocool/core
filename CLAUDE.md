@@ -20,9 +20,6 @@ npm run build
 # Preview production build
 npm run preview
 
-# Cloudflare Pages development (with Wrangler)
-npm run cf
-
 # Linting
 npm run lint
 
@@ -31,6 +28,14 @@ npm run lint:fix
 
 # Type checking
 npm run typecheck
+
+# Deploy to Cloudflare Workers
+npm run deploy                # Development
+npm run deploy:staging        # Staging (better.meteocool.com)
+npm run deploy:production     # Production (meteocool.com)
+
+# View real-time Worker logs
+npm run tail
 ```
 
 ## Development Notes
@@ -82,7 +87,7 @@ This is the frontend for meteocool, a free & open-source storm and lightning tra
 - **Advanced Code Splitting**: Separate chunks for vendors, OpenLayers, Chart.js, Shoelace, Lucide
 - **Asset Optimization**: WebP images with PNG fallbacks, optimized SVG icons
 - **Development**: Vite Dev Server with instant HMR and native ESM support
-- **Deployment**: Automatic staging deployment from `develop` branch to better.meteocool.com
+- **Deployment**: Cloudflare Workers with static assets (wrangler.jsonc + @cloudflare/vite-plugin)
 
 ### Data Sources
 

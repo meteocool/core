@@ -1,12 +1,14 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
+import { cloudflare } from '@cloudflare/vite-plugin';
 import sveltePreprocess from 'svelte-preprocess';
 import { resolve } from 'path';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   plugins: [
+    cloudflare(),
     svelte({
       preprocess: sveltePreprocess(),
       compilerOptions: {

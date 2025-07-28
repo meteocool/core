@@ -28,12 +28,15 @@
       "Bash(curl:*)",
       "Bash(cat:*)",
       "Bash(VITE_MAP_VERSION=20250602 npm run build)",
-      "Bash(timeout 10s npm run dev:*)"
+      "Bash(timeout 10s npm run dev:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(wrangler whoami:*)"
     ],
     "deny": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "playwright"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
