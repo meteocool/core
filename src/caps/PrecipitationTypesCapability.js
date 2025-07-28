@@ -3,6 +3,7 @@ import { capDescription, capLastUpdated, showForecastPlaybutton } from '../store
 import Capability from "./Capability.ts";
 import { apiBaseUrl, v3APIBaseUrl } from '../urls';
 import { dwdPrecipTypes } from "../layers/dwd.js";
+import { logger } from "../lib/logger.js";
 
 export default class PrecipitationTypesCapability extends Capability {
   constructor(map, additionalLayers, args) {
@@ -22,7 +23,12 @@ export default class PrecipitationTypesCapability extends Capability {
     const URL = `${v3APIBaseUrl}/radar/classification`;
     this.nb.start(URL);
     fetch(URL)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then((data) => {
         if (!data) return;
         if (this.currentLayer) {
@@ -40,7 +46,7 @@ export default class PrecipitationTypesCapability extends Capability {
       .then(() => this.nb.finish(URL))
       .catch((error) => {
         this.nb.finish(URL);
-        console.log(error);
+        logger.error(error);
       });
   }
 }

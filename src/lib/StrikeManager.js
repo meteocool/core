@@ -1,5 +1,6 @@
 import Point from "ol/geom/Point";
 import { Feature } from "ol";
+import { logger } from "./logger.js";
 
 export default class StrikeManager {
   constructor(maxStrikes, vectorSource) {
@@ -56,8 +57,8 @@ export default class StrikeManager {
   }
 
   debug() {
-    console.log(this.strikes);
-    console.log(this.vs.getFeatures());
+    logger.log(this.strikes);
+    logger.log(this.vs.getFeatures());
   }
 
   enable(state) {

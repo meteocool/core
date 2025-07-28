@@ -25,7 +25,12 @@ export default class WeatherCapability extends Capability {
   reloadTilesWeather() {
     this.nanobar.start(this.url);
     fetch(this.url)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then((obj) => {
         this.iconLayers = obj;
       })

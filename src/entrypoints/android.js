@@ -6,8 +6,10 @@ Sentry.init(SENTRY_ARGS);
 import { Workbox } from "workbox-window";
 import App from "../App.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { mount } from "svelte";
+import { logger } from "../lib/logger.js";
 
-const app = new App({
+const app = mount(App, {
   target: document.body,
   props: {
     device: "android",
@@ -26,7 +28,7 @@ if ("serviceWorker" in navigator) {
   const wb = new Workbox("sw.js");
   wb.addEventListener("controlling", (evt) => {
     if (evt.isUpdate) {
-      console.log("Reloading page for latest content");
+      logger.log("Reloading page for latest content");
       window.location.reload();
     }
   });

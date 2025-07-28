@@ -1,6 +1,7 @@
 <script lang="ts">
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
+import { onDestroy } from "svelte";
 
 import { io } from "socket.io-client";
 import { fromLonLat } from "ol/proj";
@@ -15,6 +16,7 @@ import SatelliteCapability from "./caps/SatelliteCapability";
 import { LayerManager } from "./lib/LayerManager";
 import NanobarWrapper from "./lib/NanobarWrapper";
 import Settings from "./lib/Settings";
+import { logger } from "./lib/logger.js";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
@@ -44,8 +46,12 @@ import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
 
 
-export let device;
-export let postInitCb;
+interface Props {
+  device: string;
+  postInitCb?: (layerManager: any) => void;
+}
+
+let { device, postInitCb }: Props = $props();
 
 dd.set(device);
 
@@ -162,7 +168,7 @@ lightningLayerVisible.set((window as any).settings.get("layerLightning"));
 const nb = new NanobarWrapper({});
 const radarSocketIO = io(`${websocketBaseUrl}/radar`);
 radarSocketIO.on("connect", () => {
-  console.log("radar/forecast websocket connected!");
+  logger.log("radar/forecast websocket connected!");
 });
 
 const strikemgr = new StrikeManager(1000, lightningSource);
@@ -253,7 +259,12 @@ let lm = new LayerManager({
 
 function reloadLightning() {
   fetch(`${dataUrl}/lightning_cache`)
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then((data) => {
       strikemgr.clearAll();
       data.forEach((elem) => {
@@ -262,20 +273,25 @@ function reloadLightning() {
     })
     .then(() => nb.finish(URL))
     .catch((error) => {
-      console.log(error);
+      logger.error(error);
     });
 }
 
 function reloadCyclones() {
   fetch(`${dataUrl}/mesocyclones/all/`)
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then((data) => {
       mesocyclonemgr.clearAll();
       data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
     })
     .then(() => nb.finish(URL))
     .catch((error) => {
-      console.log(error);
+      logger.error(error);
     });
 }
 
@@ -292,6 +308,28 @@ reloadCyclones();
 };
 
 if (postInitCb) postInitCb(lm);
+
+// Clean up on component destroy
+onDestroy(() => {
+  // Clean up LayerManager and its event listeners
+  if (lm && lm.destroy) {
+    lm.destroy();
+  }
+  
+  // Clean up window.enterForeground function
+  if ((window as any).enterForeground) {
+    delete (window as any).enterForeground;
+  }
+  
+  // Clean up other global references
+  if ((window as any).lm) {
+    delete (window as any).lm;
+  }
+  
+  if ((window as any).settings) {
+    delete (window as any).settings;
+  }
+});
 </script>
 
 <style>
@@ -341,7 +379,7 @@ if (postInitCb) postInitCb(lm);
   <BottomToolbar layerManager={lm} />
 {/if}
 
-<div id="nanobar" />
+<div id="nanobar"></div>
 <Map layerManager={lm} />
 
 {#if $toolbarVisible}

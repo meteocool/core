@@ -3,17 +3,18 @@
   import "ol/ol.css";
   import { layerswitcherVisible, bottomToolbarMode } from "../stores";
   import { tick } from "svelte";
+  import { logger } from "../lib/logger.js";
 
-  export let layerManager;
+  let { layerManager } = $props();
   let mapID;
 
-  let visible;
+  let visible = $state();
   layerswitcherVisible.subscribe((value) => {
     visible = value;
   });
 
   function changeLayer(newLayer) {
-    layerManager.setTarget(newLayer.detail, mapID);
+    layerManager.setTarget(newLayer, mapID);
   }
 
   function updateMapSize() {
@@ -23,6 +24,12 @@
   function mapInit(node) {
     mapID = node.id;
     layerManager.setDefaultTarget(mapID);
+    
+    // Ensure main map keeps radar capability after MiniMaps initialize
+    setTimeout(() => {
+      layerManager.setTarget("radar", mapID);
+    }, 100);
+    
     bottomToolbarMode.subscribe((val) => {
       if (val === "player") {
         document.getElementById(mapID).style.height =
@@ -40,7 +47,7 @@
     setTimeout(updateMapSize, 300);
     return {
       destroy() {
-        console.log("destroy");
+        logger.log("destroy");
       },
     };
   }
@@ -75,7 +82,7 @@
   }
 </style>
 
-<div id="map" use:mapInit />
+<div id="map" use:mapInit></div>
 {#if visible === "yes"}
-  <McLayerSwitcher {layerManager} on:changeLayer={changeLayer} />
+  <McLayerSwitcher {layerManager} onchangeLayer={changeLayer} />
 {/if}

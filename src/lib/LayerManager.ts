@@ -22,6 +22,7 @@ import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
 import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { satelliteCombo } from "../layers/satellite";
+import { logger } from "./logger.js";
 import Capability from "../caps/Capability";
 
 let shouldUpdate = true;
@@ -51,6 +52,8 @@ export class LayerManager {
 
   mapCount: number;
 
+  popstateHandler: ((event: any) => void) | null = null;
+
   constructor(options: any) {
     this.options = options;
     this.settings = options.settings;
@@ -70,8 +73,9 @@ export class LayerManager {
       this.maps.push(newMap);
     });
 
-    const active = this.settings.get("capability");
-    this.capabilities[active].setTarget(document.getElementById("map"));
+    // Note: Map target will be set by Map.svelte's mapInit function after component mounts
+    // const active = this.settings.get("capability");
+    // this.capabilities[active].setTarget(document.getElementById("map"));
 
     mapBaseLayer.subscribe((newBaseLayer: any) => {
       this.switchBaseLayer(newBaseLayer);
@@ -83,12 +87,13 @@ export class LayerManager {
     let accuracyPoly = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
-      const transform = getTransformFromProjections(
-        getProjection("EPSG:4326"),
-        getProjection("EPSG:3857"),
-      );
-      if (transform) {
-        accuracyPoly.applyTransform(transform);
+      const sourceProj = getProjection("EPSG:4326");
+      const targetProj = getProjection("EPSG:3857");
+      if (sourceProj && targetProj) {
+        const transform = getTransformFromProjections(sourceProj, targetProj);
+        if (transform) {
+          accuracyPoly.applyTransform(transform);
+        }
       }
     }
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
@@ -99,7 +104,7 @@ export class LayerManager {
       latLon.set(null);
     } else {
       centerPoint = center ? new Point(center) : null;
-      latLon.set([lat, lon]);
+      latLon.set([lat, lon] as any);
     }
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
 
@@ -239,7 +244,7 @@ export class LayerManager {
     if (this.mapCount === 0) {
       // restore the view state when navigating through the history, see
       // https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onpopstate
-      window.addEventListener("popstate", (event) => {
+      this.popstateHandler = (event) => {
         if (event.state === null) {
           return;
         }
@@ -248,7 +253,8 @@ export class LayerManager {
         if (url.searchParams.has("latLonZ")) {
           this.settings.cb("latLonZ");
         }
-      });
+      };
+      window.addEventListener("popstate", this.popstateHandler);
     }
     this.mapCount += 1;
     newMap.set("baselayer", baselayer);
@@ -297,7 +303,7 @@ export class LayerManager {
   }
 
   setTarget(cap: string, target: string | HTMLElement) {
-    console.log(cap);
+    logger.log(cap);
     if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && typeof this.capabilities[this.currentCap].willLoseFocus === 'function' && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
     }
@@ -307,8 +313,23 @@ export class LayerManager {
   }
 
   setDefaultTarget(target: string | HTMLElement) {
-    console.log(`Starting with default cap ${(this as any).settings.get("capability")}`);
+    logger.log(`Starting with default cap ${(this as any).settings.get("capability")}`);
     this.setTarget((this as any).settings.get("capability"), target);
+  }
+
+  destroy() {
+    // Clean up event listeners
+    if (this.popstateHandler) {
+      window.removeEventListener("popstate", this.popstateHandler);
+      this.popstateHandler = null;
+    }
+    
+    // Destroy all capabilities
+    Object.values(this.capabilities).forEach((cap: any) => {
+      if (cap.destroy && typeof cap.destroy === 'function') {
+        cap.destroy();
+      }
+    });
   }
 }
 

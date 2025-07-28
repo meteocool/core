@@ -8,7 +8,7 @@
   import { radarColormap, unit } from "../../stores";
   import { getPalette } from "../../lib/cmap_utils";
 
-  let unique = {};
+  let unique = $state({});
 
   function restart() {
     unique = {}; // every {} is unique, {} === {} evaluates to false
@@ -55,5 +55,5 @@
 </style>
 
 {#key unique}
-        <ScaleLine valueFormat={valueFormatter} palette="{getPalette($radarColormap)}" prettyName="{$radarColormap}" title="Radarkomposit<br />(DWD 1km)"/>
+        <ScaleLine valueFormat={valueFormatter} palette={getPalette($radarColormap)} prettyName={$radarColormap} title="Radarkomposit<br />(DWD 1km)"/>
 {/key}

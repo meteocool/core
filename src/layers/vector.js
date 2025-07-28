@@ -103,7 +103,7 @@ export const bordersAndWays = () => new VectorTileLayer({
   style(feature) {
     let style;
     switch (feature.get("layer")) {
-      case "places":
+      case "places": {
         switch (feature.get("kind")) {
           case "country":
             style = countryStyle;
@@ -118,8 +118,15 @@ export const bordersAndWays = () => new VectorTileLayer({
             style = localityStyle;
             break;
         }
-        style.getText().setText(feature.get("name"));
-        return style;
+        const name = feature.get("name");
+        if (name === undefined || name === null) {
+          return null; // Don't render features without names
+        }
+        // Clone the style to avoid modifying the shared instance
+        const clonedStyle = style.clone();
+        clonedStyle.getText().setText(name);
+        return clonedStyle;
+      }
       case "boundaries":
         return getBoundaryStyle(feature);
       default:
@@ -145,7 +152,7 @@ export const labelsOnly = () => {
       let style;
       // console.log(`${feature.get("name")}:  ${feature.get("kind")}/${feature.get("kind_detail")} @ ${res} / ${feature.get("population")}`);
       switch (feature.get("layer")) {
-        case "places":
+        case "places": {
           switch (feature.get("kind")) {
             case "region":
               style = regionStyle;
@@ -177,8 +184,15 @@ export const labelsOnly = () => {
               break;
           }
           if (!style) return null;
-          style.getText().setText(feature.get("name"));
-          return style;
+          const name = feature.get("name");
+          if (name === undefined || name === null) {
+            return null; // Don't render features without names
+          }
+          // Clone the style to avoid modifying the shared instance
+          const clonedStyle = style.clone();
+          clonedStyle.getText().setText(name);
+          return clonedStyle;
+        }
         default:
           return null;
       }

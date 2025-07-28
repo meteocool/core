@@ -10,8 +10,8 @@ export default defineConfig({
     svelte({
       preprocess: sveltePreprocess(),
       compilerOptions: {
-        // Ensure compatible with Svelte 4
-        dev: process.env.NODE_ENV === 'development',
+        runes: true,
+        dev: process.env.NODE_ENV === 'development'
       },
     }),
     VitePWA({
@@ -38,11 +38,11 @@ export default defineConfig({
       output: {
         // Manual chunk splitting for better optimization
         manualChunks: {
-          vendor: ['svelte', 'svelte/internal'],
+          vendor: ['svelte'],
           openlayers: ['ol'],
           chartjs: ['chart.js', 'chartjs-chart-error-bars', 'chartjs-plugin-datalabels'],
           shoelace: ['@shoelace-style/shoelace'],
-          lucide: ['lucide-svelte'],
+          lucide: ['@lucide/svelte'],
           socketio: ['socket.io-client'],
           utils: ['date-fns', 'idb', 'javascript-state-machine', 'nanobar'],
         },

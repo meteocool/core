@@ -31,5 +31,9 @@
       "Bash(timeout 10s npm run dev:*)"
     ],
     "deny": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "playwright"
+  ],
+  "enableAllProjectMcpServers": true
 }

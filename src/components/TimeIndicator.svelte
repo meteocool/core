@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { capTimeIndicator } from "../stores";
 
-let timeString = "";
+let timeString = $state("");
 
 capTimeIndicator.subscribe((value) => {
   if (value === 0) {

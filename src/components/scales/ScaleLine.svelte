@@ -17,13 +17,7 @@
     return `url(${mapBgPng})`;
   }
 
-  export let palette;
-  export let valueFormat;
-  export let prettyName;
-  export let title = "";
-
-  let minDbz;
-  let maxDbz;
+  let { palette, valueFormat, prettyName, title = "" } = $props();
 
   function colorMap() {
     if (!palette) {
@@ -38,23 +32,22 @@
       .toUpperCase() + string.slice(1);
   }
 
-  $ : vs = colorMap()
+  let vs = $derived(colorMap()
     .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
-    .filter((e) => e !== "");
+    .filter((e) => e !== "" && e !== undefined && e !== null));
   // if (dd.isApp()) {
   //   $ : vs = vs.filter((element, index) => index % 2 === 0);
   // }
 
-  $ : [minDbz] = colorMap(palette)[0];
-  $ : [maxDbz] = colorMap(palette)
-    .pop();
-  $ : colors = colorMap()
-    .map((c) => `#${c[1]}`);
+  let minDbz = $derived(colorMap(palette)[0][0]);
+  let maxDbz = $derived(colorMap(palette).pop()[0]);
+  let colors = $derived(colorMap()
+    .map((c) => `#${c[1]}`));
 
-  $: scaleStyle = {
+  let scaleStyle = $derived({
     backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
     backgroundUrl: getBackgroundUrl(),
-  };
+  });
 </script>
 
 <style lang="less">
@@ -73,7 +66,7 @@
   .scale-line {
     width: 100%;
     border-radius: var(--sl-border-radius-pill);
-    border: 0.5px solid var(--sl-color-info-200);
+    border: none;
     background-image: var(--backgroundImage), var(--backgroundUrl);
     height: 25%;
     background-repeat: repeat;
@@ -160,7 +153,7 @@
 
 <div class="wrapper">
     <div class="legend-label">{@html title}</div>
-    <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
+    <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz || 'N/A'} - {maxDbz || 'N/A'} dBZ)">
         <div class="scale-line" style="--backgroundImage: {scaleStyle.backgroundImage}; --backgroundUrl: {scaleStyle.backgroundUrl}">
             <div class="scale-dividers">
                 {#each vs as value}

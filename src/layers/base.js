@@ -90,13 +90,43 @@ const lightStyles = {
 // Style function for dark theme
 const darkStyleFunction = (feature) => {
   const layer = feature.get("layer");
-  return darkStyles[layer] || new Style();
+  const style = darkStyles[layer];
+  if (!style) return null; // Return null instead of empty style for unmapped layers
+  
+  // For text styles, set the text content or return null if no name
+  if ((layer === "places" || layer === "pois") && style.getText()) {
+    const name = feature.get("name");
+    if (!name || name === undefined || name === null) {
+      return null; // Don't render features without names
+    }
+    // Clone the style to avoid modifying the shared instance
+    const clonedStyle = style.clone();
+    clonedStyle.getText().setText(name);
+    return clonedStyle;
+  }
+  
+  return style;
 };
 
 // Style function for light theme
 const lightStyleFunction = (feature) => {
   const layer = feature.get("layer");
-  return lightStyles[layer] || new Style();
+  const style = lightStyles[layer];
+  if (!style) return null; // Return null instead of empty style for unmapped layers
+  
+  // For text styles, set the text content or return null if no name
+  if ((layer === "places" || layer === "pois") && style.getText()) {
+    const name = feature.get("name");
+    if (!name || name === undefined || name === null) {
+      return null; // Don't render features without names
+    }
+    // Clone the style to avoid modifying the shared instance
+    const clonedStyle = style.clone();
+    clonedStyle.getText().setText(name);
+    return clonedStyle;
+  }
+  
+  return style;
 };
 
 export const cartoDark = () => new VectorTileLayer({

@@ -22,6 +22,7 @@ import SlResizeObserver from "@shoelace-style/shoelace/dist/components/resize-ob
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path";
 
 import { colorSchemeDark } from "../stores";
+import { logger } from "../lib/logger.js";
 
 export const uiConstantsDefault = {
   "toast-stack-offset": "49px",
@@ -67,7 +68,7 @@ export function initUIConstants() {
   if (window.matchMedia) {
     window.matchMedia("(prefers-color-scheme: dark)")
       .addListener((e) => {
-        console.log(`changed to ${e.matches ? "dark" : "light"} mode`);
+        logger.log(`changed to ${e.matches ? "dark" : "light"} mode`);
         colorSchemeDark.set(e.matches);
       });
   }

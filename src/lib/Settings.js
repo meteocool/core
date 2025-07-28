@@ -1,6 +1,7 @@
 // XXX this thing has a problem where the datatypes are lost when stuff is saved to localstroage.
 
 import Router from './Router';
+import { logger } from './logger.js';
 
 export default class Settings {
   constructor(settingsCbs) {
@@ -27,7 +28,7 @@ export default class Settings {
     try {
       if (localStorage) local = localStorage.getItem(key);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
     }
     switch (this.getSourceForKey(key)) {
       case "localStorage":
@@ -74,18 +75,18 @@ export default class Settings {
       return;
     }
     if (!(key in this.settings)) {
-      console.error(`Key ${key} not found in settings`);
+      logger.error(`Key ${key} not found in settings`);
       return;
     }
 
     // eslint-disable-line valid-typeof
     if (typeof value !== this.settings[key].type) {
-      console.log(`Type missmatch for key ${key}`);
+      logger.log(`Type missmatch for key ${key}`);
       return;
     }
 
     const old = this.get(key);
-    console.log(`Updating ${key} => ${value} with old ${old}, apply=${apply}`);
+    logger.log(`Updating ${key} => ${value} with old ${old}, apply=${apply}`);
     const url = new URL(window.location);
     switch (this.getSourceForKey(key)) {
       case "localStorage":
@@ -125,7 +126,7 @@ export default class Settings {
   }
 
   injectSettings(newSettings) {
-    console.log(newSettings);
+    logger.log(newSettings);
     for (const key in newSettings) {
       this.set(key, newSettings[key]);
     }

@@ -5,6 +5,7 @@ import { Fill, Style } from "ol/style";
 const snow = "/assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, dwdSource, setDwdCmap } from "../layers/dwd.js";
 import { reportError } from "../lib/Toast";
+import { logger } from "../lib/logger.js";
 import {
   capDescription,
   capLastUpdated,
@@ -120,11 +121,11 @@ export default class RadarCapability extends Capability {
 
     if (this.socket_io) {
       this.socket_io.on("poke", () => {
-        console.log("received websocket poke, refreshing tiles + forecasts");
+        logger.log("received websocket poke, refreshing tiles + forecasts");
         this.reloadAll();
       });
       this.socket_io.on("snow", () => {
-        console.log("received websocket snow overlay poke, refreshing");
+        logger.log("received websocket snow overlay poke, refreshing");
         this.downloadSnowOverlay();
       });
       this.downloadCurrentRadar();
@@ -154,7 +155,6 @@ export default class RadarCapability extends Capability {
     Object.keys(server).forEach((step) => {
       const layerAttributes = server[step];
       if (!(step in body)) {
-        console.log("step not in body");
         return;
       }
       if (!layerAttributes) {
@@ -195,7 +195,8 @@ export default class RadarCapability extends Capability {
   }
 
   regenerateGridConfig() {
-    let gridNow = new Date().getTime() / 1000;
+    // Use server time as reference if available, otherwise current time
+    let gridNow = this.serverTime || new Date().getTime() / 1000;
     gridNow -= (gridNow % (60 * 5));
     const start = gridNow - (60 * 120);
     const end = gridNow + (60 * 120);
@@ -206,9 +207,9 @@ export default class RadarCapability extends Capability {
     };
 
     [...Array(nSteps)
-      .keys()].map((i) => new Date(start + i * (5 * 60)))
+      .keys()].map((i) => start + i * (5 * 60))
       .forEach((step) => {
-        newGridconfig.grid[step.getTime()] = {
+        newGridconfig.grid[step] = {
           dbz: 0,
           url: null,
           tile_id: "",
@@ -227,7 +228,7 @@ export default class RadarCapability extends Capability {
   }
 
   reloadAll() {
-    console.log("reloadAll");
+    logger.log("reloadAll");
     this.downloadCurrentRadar();
   }
 
@@ -240,11 +241,16 @@ export default class RadarCapability extends Capability {
 
   downloadCurrentRadar() {
     const URL = `${v3APIBaseUrl}/radar/timeseries${this.getLocalPostifx()}`;
-    console.log(`Reloading ${URL}`);
+    logger.log(`Reloading ${URL}`);
     live.set(false);
     this.nanobar.start(URL);
     fetch(URL)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then((obj) => this.processRadar(obj))
       .then(() => this.nanobar.finish(URL))
       .catch((error) => {
@@ -257,10 +263,15 @@ export default class RadarCapability extends Capability {
   downloadSnowOverlay() {
     if (!get(snowLayerVisible)) return;
     const URL = `${v3APIBaseUrl}/radar/snow`;
-    console.log(`Reloading ${URL}`);
+    logger.log(`Reloading ${URL}`);
     this.nanobar.start(URL);
     fetch(URL)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then((obj) => this.processSnowOverlay(obj))
       .then(() => this.nanobar.finish(URL))
       .catch((error) => {
@@ -273,16 +284,16 @@ export default class RadarCapability extends Capability {
     const URL = `${tileBaseUrl}/meteoradar/${obj.tile_id}/{z}/{x}/{y}.pbf`;
     if (this.snowOverlay) {
       if (obj.active) {
-        console.log("Updating snow overlay URL");
+        logger.log("Updating snow overlay URL");
         this.snowOverlay.getSource()
           .setUrl(URL);
       } else {
-        console.log("No more snow :(");
+        logger.log("No more snow :(");
         this.map.removeLayer(this.snowOverlay);
         this.snowOverlay = null;
       }
     } else if (obj.active) {
-      console.log("Initializing snow overlay");
+      logger.log("Initializing snow overlay");
       const style = new Style({ fill: new Fill() });
       setPattern(style);
       this.snowOverlay = new VectorTileLayer({
@@ -305,14 +316,20 @@ export default class RadarCapability extends Capability {
   }
 
   getMostRecentObservation() {
+    if (!this.serverTime) {
+      return null;
+    }
+    if (!this.clientGrid) {
+      return this.serverTime; // Return server time if grid not available
+    }
     let mostRecent = this.serverTime;
     for (const [step, frame] of Object.entries(this.clientGrid)) {
       if (frame) {
         if (frame.source === "") {
           break;
         }
-        if (frame.source === "observation" && parseInt(step, 10) > mostRecent) {
-          mostRecent = parseInt(step, 10);
+        if (frame.source === "observation" && parseFloat(step) > mostRecent) {
+          mostRecent = parseFloat(step);
         }
       }
     }
@@ -366,7 +383,7 @@ export default class RadarCapability extends Capability {
 
   setSource(timestep) {
     if (!this.source) {
-      console.warn('RadarCapability: source not initialized yet, skipping setSource');
+      logger.warn('RadarCapability: source not initialized yet, skipping setSource');
       return;
     }
     // Clear tile cache if the method exists (not all source types support this)

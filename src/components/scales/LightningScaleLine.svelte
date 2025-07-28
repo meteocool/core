@@ -4,7 +4,7 @@
   import { LightningColors } from "../../colormaps";
   import { DeviceDetect as dd } from '../../lib/DeviceDetect';
 
-  let unique = {};
+  let unique = $state({});
 
   function restart() {
     unique = {}; // every {} is unique, {} === {} evaluates to false
@@ -39,6 +39,6 @@
       }
       return "";
     }}
-               palette="{LightningColors.map((value, index) => `${index}:${value.slice(1)}`).join(';')}"
+               palette={LightningColors.map((value, index) => `${index}:${value.slice(1)}`).join(';')}
                prettyName="" title="Blitzortung.org<br />Live"/>
 {/key}

@@ -2,7 +2,8 @@
   import { fly } from "svelte/transition";
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
-  import { Chart, LineController, LineElement } from "chart.js";
+  import { onDestroy } from "svelte";
+  import { Chart, BarController, BarElement, CategoryScale, LinearScale } from "chart.js";
   import { transformExtent } from "ol/proj";
   import { fromExtent } from "ol/geom/Polygon";
   import LastUpdated from "./LastUpdated.svelte";
@@ -22,16 +23,15 @@
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
   import { v3APIBaseUrl } from "../urls";
   import { LightningColors, precipTypeNames } from "../colormaps";
-  import DevStatus from "./DevStatus.svelte";
+  import { logger } from "../lib/logger.js";
 
   Chart.defaults.font.size = 10;
 
-  export let layerManager;
+  let { layerManager } = $props();
 
-  Chart.register(LineController);
-  Chart.register(LineElement);
+  Chart.register(BarController, BarElement, CategoryScale, LinearScale);
 
-  let s3Disabled = false;
+  let s3Disabled = $state(false);
   let e;
   zoomlevel.subscribe((z) => {
     if (z > 12) {
@@ -44,22 +44,28 @@
   });
 
   function cloudmask(elem) {
-    elem.addEventListener("sl-change", (event) => {
+    const listener = (event) => {
       satelliteLayerCloudy.set(!get(satelliteLayerCloudy));
-    });
+    };
+    elem.addEventListener("sl-change", listener);
+    domEventListeners.push({ target: elem, type: "sl-change", listener });
   }
 
   function labelsBorders(elem) {
-    elem.addEventListener("sl-change", (event) => {
+    const listener = (event) => {
       satelliteLayerLabels.set(event.target.checked);
-    });
+    };
+    elem.addEventListener("sl-change", listener);
+    domEventListeners.push({ target: elem, type: "sl-change", listener });
   }
 
   function sentinel2(elem) {
-    elem.addEventListener("sl-change", (event) => {
+    const listener = (event) => {
       const satellite = event.target.checked ? "sentinel2" : "sentinel3";
       satelliteLayer.set(satellite);
-    });
+    };
+    elem.addEventListener("sl-change", listener);
+    domEventListeners.push({ target: elem, type: "sl-change", listener });
   }
 
   let description;
@@ -67,13 +73,16 @@
     description = desc;
   });
 
-  let activeCap;
+  let activeCap = $state();
   sharedActiveCap.subscribe((val) => {
     activeCap = val;
   });
 
   let lightningCanvas;
   let chart;
+  let mapEventListeners = [];
+  let domEventListeners = [];
+
   function redrawLightningChart(data) {
     if (chart) {
       chart.data.datasets[0].data = data;
@@ -82,9 +91,9 @@
     }
   }
 
-  let loading = true;
-  let unavailable = false;
-  let noLightning = false;
+  let loading = $state(true);
+  let unavailable = $state(false);
+  let noLightning = $state(false);
   let delayedLoader;
 
   function updateLightningChart() {
@@ -113,7 +122,7 @@
       .catch((error) => {
         noLightning = true;
         unavailable = true;
-        console.log(error);
+        logger.error(error);
       });
     delayedLoader = null;
     loading = false;
@@ -232,23 +241,58 @@
       },
     });
 
-    layerManager.getCurrentMap().on("movestart", () => {
+    const moveStartListener = () => {
       if (get(sharedActiveCap) !== "lightning") return;
       if (delayedLoader) {
         clearTimeout(delayedLoader);
         delayedLoader = null;
       }
       loading = true;
-    });
+    };
 
-    layerManager.getCurrentMap().on("moveend", () => {
+    const moveEndListener = () => {
       if (get(sharedActiveCap) !== "lightning") return;
       if (delayedLoader) {
         return;
       }
       delayedLoader = setTimeout(() => updateLightningChart(), 650);
-    });
+    };
+
+    const currentMap = layerManager.getCurrentMap();
+    currentMap.on("movestart", moveStartListener);
+    currentMap.on("moveend", moveEndListener);
+    
+    mapEventListeners.push(
+      { target: currentMap, type: "movestart", listener: moveStartListener },
+      { target: currentMap, type: "moveend", listener: moveEndListener }
+    );
   }
+
+  onDestroy(() => {
+    // Clean up OpenLayers event listeners
+    mapEventListeners.forEach(({ target, type, listener }) => {
+      target.un(type, listener);
+    });
+    mapEventListeners = [];
+
+    // Clean up DOM event listeners
+    domEventListeners.forEach(({ target, type, listener }) => {
+      target.removeEventListener(type, listener);
+    });
+    domEventListeners = [];
+
+    // Clean up timeouts
+    if (delayedLoader) {
+      clearTimeout(delayedLoader);
+      delayedLoader = null;
+    }
+
+    // Destroy chart
+    if (chart) {
+      chart.destroy();
+      chart = null;
+    }
+  });
 </script>
 
 <style>
@@ -400,12 +444,12 @@
         {/if}
         {#if activeCap === "precipTypes"}
             <div class="palette">
-                <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title="Precipitation<br />Types" />
+                <StepScaleLine steps={precipTypeNames} valueFormat={$_} title="Precipitation<br />Types" />
             </div>
         {/if}
         {#if activeCap === "aerosols"}
             <div class="palette">
-                <AerosolScaleLine steps="{precipTypeNames}" valueFormat={$_}/>
+                <AerosolScaleLine/>
             </div>
         {/if}
         {#if activeCap === "lightning" && $bottomToolbarMode === "collapsed"}
@@ -424,7 +468,7 @@
                         <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
                     </div>
                     <div class="float">
-                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== 'sentinel2'}">Clouds</sl-checkbox>
+                        <sl-checkbox use:cloudmask disabled={$satelliteLayer !== 'sentinel2'}>Clouds</sl-checkbox>
                     </div>
                     <div class="float">
                         <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>

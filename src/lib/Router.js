@@ -1,8 +1,10 @@
+import { logger } from "./logger.js";
+
 export default class Router {
   static ParseURL(url) {
     const parts = new URL(window.location.href).searchParams;
     if (parts.length > 1) {
-      console.log(parts);
+      logger.log(parts);
       Router.parseFragment(parts[1]);
     }
   }

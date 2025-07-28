@@ -7,12 +7,7 @@
   "last_radar": "Radar data from",
   "loading": "Refreshing",
 
-  "drizzle": "Drizzle",
-  "rain": "Rain",
-  "heavy_rain": "Heavy Rain",
-  "hail": "Hail",
-
-  "title":"About meteocool",
+  "title": "About meteocool",
   "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
   "text2": "meteocool currently uses radar data provided by DWD, realtime lightning information from the awesome blitzortung.org project and satellite imagery from the EC/ESA Copernicus Programme.",
   "features": {
@@ -52,11 +47,12 @@
   "published": "Published",
   "acquired": "Acquired",
   "trackingMostRecent": "Tracking Most Recent",
+  "forcastPlaying": "The forecast is currently being displayed.\nTo return to the current radar image, reset the timeline ↺.",
   "now": "Now",
   "latest": "Latest",
   "rain_and_thunderstorms": "Rain & Thunderstorms",
   "nrt_satellite": "Near Real-Time Satellite",
-  "precpitation_types": "Precipitation Types",
+  "precipitation_types": "Precipitation Types",
   "layer_switcher_placeholder": "If you are thankful for meteocool, give something back to someone in need.",
   "snow": "Snow",
   "hail": "Hail",
@@ -64,7 +60,8 @@
   "sleet": "Sleet",
   "rain": "Rain",
   "drizzle": "Drizzle",
+  "heavy_rain": "Heavy Rain",
   "lightning": "Lightning Strikes",
-  "n/a": "n/a",
-  "aerosols": "Aerosol Index"
+  "aerosols": "Aerosol Index",
+  "n/a": "n/a"
 }

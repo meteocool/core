@@ -6,10 +6,10 @@ import { capLastUpdated, lastFocus } from "../stores";
 import getDfnLocale from "../locale/locale";
 
 let lastUpdated;
-let lastUpdatedStr;
-let slPercent = 75;
+let lastUpdatedStr = $state();
+let slPercent = $state(75);
 let updateTimeout = 0;
-let loading = false;
+let loading = $state(false);
 
 const updateTime = () => {
   if (!lastUpdated) return;

@@ -1,5 +1,6 @@
 import { openDB } from "idb";
 import { tileCacheDownloaded, tileCacheHit, tileCachePending } from "../stores";
+import { logger } from "./logger.js";
 
 export class MeteoTileCache {
   constructor() {
@@ -59,7 +60,7 @@ export class MeteoTileCache {
   mapObserver(event) {
     this.extent = this.map.getView().calculateExtent(this.map.getSize());
     this.setZoom();
-    console.warn(`Map moved at z=${this.map.getView().getZoom()}`);
+    logger.log(`Map moved at z=${this.map.getView().getZoom()}`);
     (async () => this.cacheViewport())();
   }
 
@@ -77,7 +78,7 @@ export class MeteoTileCache {
   }
 
   async expire() {
-    console.log("Expiring tile cache");
+    logger.log("Expiring tile cache");
     const tx = (await this.idb).transaction("ttl");
     const toDelete = [];
     for await (const cursor of tx.store) {
@@ -94,7 +95,7 @@ export class MeteoTileCache {
 
   forEachTileCoord(cb) {
     if (!this.source) {
-      console.log("source unset!");
+      logger.log("source unset!");
       return;
     }
     this.source.getTileGrid().forEachTileCoord(this.extent, this.zoom, cb);
@@ -106,7 +107,7 @@ export class MeteoTileCache {
 
   cacheTileset(tilesetUrl) {
     this.forEachTileCoord(async (tileCoord) => {
-      console.log(`Precaching ${tilesetUrl} @ ${tileCoord}`);
+      logger.log(`Precaching ${tilesetUrl} @ ${tileCoord}`);
       tileCachePending.set(new Date());
       const [z, x, y] = tileCoord;
       await MeteoTileCache.fetchAndCache(
@@ -133,15 +134,22 @@ export class MeteoTileCache {
       return;
     }
 
-    // XXX error handling
-    const response = await fetch(url);
-    const imageData = await response.blob();
-    if (successCb) successCb(imageData);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const imageData = await response.blob();
+      if (successCb) successCb(imageData);
 
-    const storeW = (await idb).transaction("tiles", "readwrite").objectStore("tiles");
-    await storeW.put(imageData, url);
+      const storeW = (await idb).transaction("tiles", "readwrite").objectStore("tiles");
+      await storeW.put(imageData, url);
 
-    await (await idb).put("ttl", Date.now() + (expiryMin * 60 * 1000), url);
+      await (await idb).put("ttl", Date.now() + (expiryMin * 60 * 1000), url);
+    } catch (error) {
+      logger.error(`Failed to fetch and cache tile ${url}:`, error);
+      // Don't rethrow - allow tile loading to fail gracefully
+    }
   }
 }
 

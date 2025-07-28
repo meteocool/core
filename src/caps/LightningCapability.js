@@ -4,6 +4,7 @@ import { capDescription, capLastUpdated, showForecastPlaybutton } from "../store
 import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
 import { v3APIBaseUrl } from "../urls";
 import { noaaBREF } from "../layers/noaa";
+import { logger } from "../lib/logger.js";
 
 export default class LightningCapability extends Capability {
   constructor(map, additionalLayers, args) {
@@ -26,7 +27,12 @@ export default class LightningCapability extends Capability {
     const URL = `${v3APIBaseUrl}/lightning/layer`;
     this.nb.start(URL);
     fetch(URL)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then((data) => {
         if (!data) return;
         if (this.currentLayer) {
@@ -48,7 +54,7 @@ export default class LightningCapability extends Capability {
       .then(() => this.nb.finish(URL))
       .catch((error) => {
         this.nb.finish(URL);
-        console.log(error);
+        logger.error(error);
       });
   }
 
@@ -67,7 +73,12 @@ export default class LightningCapability extends Capability {
     const URL = `${v3APIBaseUrl}/lightning/baseline?baseline=${baseline}`;
     this.nb.start(URL);
     fetch(URL)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then((data) => {
         if (!data) return;
         if (data.strikes) {
@@ -77,7 +88,7 @@ export default class LightningCapability extends Capability {
       .then(() => this.nb.finish(URL))
       .catch((error) => {
         this.nb.finish(URL);
-        console.log(error);
+        logger.error(error);
       });
   }
 }

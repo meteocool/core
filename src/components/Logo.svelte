@@ -4,14 +4,10 @@ import About from "./About.svelte";
 import { _ } from "svelte-i18n";
 import { logoStyle } from '../stores';
 
-let showAbout = false;
+let showAbout = $state(false);
 
 function toggleAbout() {
-  if (!showAbout) {
-    showAbout = true;
-  } else {
-    showAbout = false;
-  }
+  showAbout = !showAbout;
 }
 </script>
 
@@ -89,12 +85,12 @@ function toggleAbout() {
   https://play.google.com/store/apps/details?id=com.meteocool">Android</a>
       </div> -->
     <div class="claim">
-      <span on:click={() => toggleAbout()} class="link">{$_("about")}</span> |
+      <span onclick={() => toggleAbout()} class="link" role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && toggleAbout()}>{$_("about")}</span> |
       <a href="https://discord.gg/5y4xDVpwxc" target="_blank"
       >{$_("join_community")}</a>
     </div>
     {#if showAbout}
-      <About on:close={() => toggleAbout()} />
+      <About onclose={() => toggleAbout()} />
     {/if}
   </div>
 {/if}

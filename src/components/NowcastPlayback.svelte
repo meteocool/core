@@ -9,7 +9,7 @@ import {
 } from "../lib/IconRegistry";
 import StateMachine from "javascript-state-machine";
 import { fly, fade } from "svelte/transition";
-import { onMount } from "svelte";
+import { onMount, onDestroy } from "svelte";
 import {
   lastFocus, sharedActiveCap,
   cycloneLayerVisible,
@@ -18,7 +18,7 @@ import {
   bottomToolbarMode, radarColormap, precacheForecast,
 } from "../stores";
 
-// Lazy loading function for Chart.js
+// Chart.js setup with auto-registration
 let chartLibraryLoaded = false;
 let Chart, BarWithErrorBarsChart, ChartDataLabels;
 
@@ -26,8 +26,8 @@ async function loadChartLibrary() {
   if (chartLibraryLoaded) return;
 
   try {
-    // Dynamically import Chart.js modules
-    const chartjsModule = await import("chart.js");
+    // Import Chart.js with auto-registration
+    const chartjsModule = await import("chart.js/auto");
     const chartErrorBarsModule = await import("chartjs-chart-error-bars");
     const chartDataLabelsModule = await import("chartjs-plugin-datalabels");
 
@@ -36,21 +36,50 @@ async function loadChartLibrary() {
     BarWithErrorBarsChart = chartErrorBarsModule.BarWithErrorBarsChart;
     ChartDataLabels = chartDataLabelsModule.default;
 
-    // Register chart components
-    Chart.register(chartjsModule.CategoryScale);
-    Chart.register(chartjsModule.LinearScale);
-    Chart.register(chartjsModule.BarController);
-    Chart.register(chartjsModule.BarElement);
+    // Register additional plugin
     Chart.register(ChartDataLabels);
 
     chartLibraryLoaded = true;
   } catch (error) {
-    console.error("Failed to load Chart.js library:", error);
+    logger.error("Failed to load Chart.js library:", error);
   }
 }
 
 import { setUIConstant } from "../layers/ui";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { logger } from "../lib/logger.js";
+
+// Capability-specific caching mechanism
+const capabilityCache = new Map();
+
+// Invalidate cache for a specific capability
+function invalidateCapabilityCache(cap) {
+  if (!cap) return;
+  const cacheKey = cap.constructor.name + '_' + (cap.id || 'default');
+  capabilityCache.delete(cacheKey);
+}
+
+// Cached version that prevents redundant calls within time window  
+function getCachedMostRecent(cap, cacheTimeMs = 200) {
+  if (!cap) return null;
+  
+  const cacheKey = cap.constructor.name + '_' + (cap.id || 'default');
+  const now = Date.now();
+  const cached = capabilityCache.get(cacheKey);
+  
+  if (cached && (now - cached.timestamp < cacheTimeMs)) {
+    return cached.value;
+  }
+  
+  try {
+    const value = cap?.getMostRecentObservation?.() || null;
+    capabilityCache.set(cacheKey, { value, timestamp: now });
+    return value;
+  } catch (error) {
+    logger.warn('Failed to get most recent observation:', error);
+    return cached?.value || null; // Fallback to stale cache on error
+  }
+}
 
 import TimeIndicator from "./TimeIndicator.svelte";
 import LastUpdated from "./LastUpdated.svelte";
@@ -62,12 +91,14 @@ import { _ } from "svelte-i18n";
 import { get } from "svelte/store";
 import { dbz2color } from "../lib/cmap_utils";
 
-export let cap;
+let { cap } = $props();
 
-let gridConfig = null;
+// console.log("NowcastPlayback.svelte initialized with cap:", cap);
 
-let userLatLon;
-let showBars = true;
+let gridConfig = $state(null);
+
+let userLatLon = $state();
+let showBars = $state(true);
 latLon.subscribe((latlonUpdate) => {
   userLatLon = latlonUpdate;
   if (!userLatLon) {
@@ -75,22 +106,23 @@ latLon.subscribe((latlonUpdate) => {
   }
 });
 
-let canvasVisible = true;
-let showOpenControls = false;
+let canvasVisible = $state(true);
+let showOpenControls = $state(false);
 
-let oldTimeStep = 0;
+let oldTimeStep = $state(0);
 
-let playPauseButton = FaPlay;
+let playPauseButton = $state(FaPlay);
 let playTimeout;
+let domEventListeners = [];
 
-let slRange = null;
+let slRange = $state(null);
 
-let loop = true;
-let historicActive = true;
-let includeHistoric = false;
+let loop = $state(true);
+let historicActive = $state(true);
+let includeHistoric = $state(false);
 let canvas;
 
-let buttonSize = "small";
+let buttonSize = $state("small");
 if (dd.isApp()) {
   buttonSize = "medium";
 }
@@ -107,17 +139,17 @@ let chart = null;
 
 async function redraw(config) {
   if (!config) return;
-  console.log("Redrawing");
+  logger.log("Redrawing");
   const { grid } = config;
   if (!canvas) {
-    console.log("Grid not yet initialized, skipping redraw");
+    logger.log("Grid not yet initialized, skipping redraw");
     return;
   }
 
   // Lazy load Chart.js when needed
   await loadChartLibrary();
   if (!chartLibraryLoaded) {
-    console.error("Chart.js library failed to load");
+    logger.error("Chart.js library failed to load");
     return;
   }
   // if (Object.values(grid).map((step) => step.dbz).reduce((a, b) => a + b, 0) === 0) {
@@ -154,7 +186,11 @@ async function redraw(config) {
   const rendered = {};
   chart = new BarWithErrorBarsChart(canvas.getContext("2d"), {
     data: {
-      labels: sortedKeys.map((key) => ((key - config.now) / 60)).map((v) => `${v}`),
+      labels: sortedKeys.map((key) => {
+        if (!config.now) return "0";
+        const minutes = (key - config.now) / 60;
+        return isNaN(minutes) ? "0" : `${minutes}`;
+      }),
       datasets: [{
         data: d,
         barPercentage: 0.99,
@@ -167,8 +203,11 @@ async function redraw(config) {
             const certain = grid[sortedKeys[index]].source === "observation" ? 1 : 0.7;
             return `rgba(${r}, ${g}, ${b}, ${certain})`;
           }),
-        borderColor: d.map((value, index) => (gridKeys[index] === `${cap.getMostRecentObservation()}` ? "#ff0000" : getComputedStyle(document.body)
-          .getPropertyValue("--sl-color-info-700"))),
+        borderColor: d.map((value, index) => {
+          const mostRecent = getCachedMostRecent(cap);
+          return (mostRecent !== null && gridKeys[index] === `${mostRecent}`) ? "#ff0000" : getComputedStyle(document.body)
+            .getPropertyValue("--sl-color-info-700");
+        }),
         borderWidth: 1,
       }],
     },
@@ -205,7 +244,7 @@ async function redraw(config) {
       // },
       layout: {
         padding: {
-          left: 4,
+          left: 30,
           right: 4,
           top: 40,
           bottom: 0,
@@ -245,7 +284,8 @@ async function redraw(config) {
             return 270;
           },
           backgroundColor(context) {
-            return context.dataset.backgroundColor;
+            // Return the specific color for this data point, not the entire array
+            return context.dataset.backgroundColor[context.dataIndex];
           },
           formatter: (val, context) => {
             if (disabled) {
@@ -254,7 +294,9 @@ async function redraw(config) {
             if (((context.dataIndex - 1) in rendered) || ((context.dataIndex - 2) in rendered)) {
               return null;
             }
-            if (context.chart.data.labels[context.dataIndex] === "0") {
+            
+            const label = context.chart.data.labels[context.dataIndex];
+            if (label === "0") {
               rendered[context.dataIndex] = true;
               return $_("now");
             }
@@ -264,20 +306,20 @@ async function redraw(config) {
               try {
                 if (context.chart.data.datasets[0].data[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin !== 0) {
                   rendered[context.dataIndex] = true;
-                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                  return label !== undefined ? `${label}m` : null;
                 }
 
                 if (val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin === 0) {
                   rendered[context.dataIndex] = true;
-                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                  return label !== undefined ? `${label}m` : null;
                 }
 
                 if (maxIndexes.includes(context.dataIndex)) {
                   rendered[context.dataIndex] = true;
-                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                  return label !== undefined ? `${label}m` : null;
                 }
               } catch (e) {
-                console.error(e);
+                logger.error(e);
                 return null;
               }
             }
@@ -332,7 +374,7 @@ async function redraw(config) {
             minRotation: 0,
             maxRotation: 0,
             responsive: true,
-            padding: -4,
+            padding: 10,
             display: $bottomToolbarMode === "player",
             autoSkipPadding: 0,
           },
@@ -354,11 +396,25 @@ async function redraw(config) {
     },
   });
 }
-$: redraw(gridConfig);
+$effect(() => {
+  redraw(gridConfig);
+});
+
 function updateSliderToLatest(config) {
-  if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
+  if (!config || !slRange) return;
+  
+  // Use gridConfig.now (current time) as the default position
+  const targetValue = config.now;
+  slRange.value = `${targetValue}`;
 }
-$: updateSliderToLatest(gridConfig);
+
+$effect(() => {
+  updateSliderToLatest(gridConfig);
+  // Also ensure slider is positioned correctly when gridConfig changes
+  if (slRange && gridConfig && gridConfig.now) {
+    slRange.value = `${gridConfig.now}`;
+  }
+});
 
 function canvasInit(elem) {
   canvas = elem;
@@ -412,23 +468,35 @@ const fsm = new StateMachine({
         }, 400);
       }
       playPauseButton = FaPlay;
-      if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
-      setTimeout(() => {
-        if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
-      }, 200);
+      // Reset slider to current time position when stopping playback
+      if (slRange && gridConfig) {
+        slRange.value = `${gridConfig.now}`;
+        // Delayed update for stability
+        setTimeout(() => {
+          if (slRange && gridConfig) slRange.value = `${gridConfig.now}`;
+        }, 200);
+      }
       setUIConstant("toast-stack-offset", "124px");
 
       if (autoPlay) {
         setTimeout(() => {
-          console.log("Triggering auto-play");
-          if (cap.source && fsm.state === "manualScrolling") {
-            fsm.pressPlay();
-          } else {
-            setTimeout(() => {
-              // Workaround for #2279954594 (wtf is going on Android people) and #2217587657
-              console.log("Triggering deferred auto-play");
+          logger.log("Triggering auto-play");
+          try {
+            if (cap.source && fsm.state === "manualScrolling") {
               fsm.pressPlay();
-            }, 1000);
+            } else {
+              setTimeout(() => {
+                // Workaround for #2279954594 (wtf is going on Android people) and #2217587657
+                logger.log("Triggering deferred auto-play");
+                try {
+                  fsm.pressPlay();
+                } catch (error) {
+                  logger.warn("Failed to trigger deferred auto-play from state:", fsm.state, error);
+                }
+              }, 1000);
+            }
+          } catch (error) {
+            logger.warn("Failed to trigger auto-play from state:", fsm.state, error);
           }
         }, 500);
         autoPlay = false;
@@ -448,7 +516,7 @@ const fsm = new StateMachine({
         if (!slRange) {
           // "Workaround" for #2320876836
           if (ttl < 1) {
-            console.error("slRange element did not appear");
+            logger.error("slRange element did not appear");
             return;
           }
           setTimeout(() => playTick(ttl - 1), 200);
@@ -469,11 +537,11 @@ const fsm = new StateMachine({
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
         } else {
           playTimeout = 0;
-          console.log("Pausing due to slider usage");
+          logger.log("Pausing due to slider usage");
           try {
             fsm.pressPause();
           } catch (error) {
-            console.warn("Failed to pause from playTick, state:", fsm.state, error);
+            logger.warn("Failed to pause from playTick, state:", fsm.state, error);
           }
         }
       };
@@ -489,6 +557,7 @@ const fsm = new StateMachine({
       if (transition.from === "followLatest") return;
       oldTimeStep = 0;
       slRange = null;
+      invalidateCapabilityCache(cap);
       cap.resetToLatest();
       if (canvas) canvas.parentNode.classList.add("barChartCanvasWithoutPlayback");
       if (chart) {
@@ -511,7 +580,7 @@ function show() {
     try {
       fsm.showScrollbar();
     } catch (error) {
-      console.warn("Failed to show scrollbar from state:", fsm.state, error);
+      logger.warn("Failed to show scrollbar from state:", fsm.state, error);
     }
   }
 }
@@ -527,7 +596,7 @@ function hide() {
   try {
     fsm.hideScrollbar();
   } catch (error) {
-    console.warn("Failed to hide scrollbar from state:", fsm.state, error);
+    logger.warn("Failed to hide scrollbar from state:", fsm.state, error);
   }
 }
 
@@ -536,17 +605,19 @@ let latest;
 onMount(async () => {
   window.leaveForeground = () => {
     if (fsm.state === "playing") {
-      console.log("Pausing due to window.leaveForeground();");
+      logger.log("Pausing due to window.leaveForeground();");
       fsm.pressPause();
     }
   };
 
   cap.addObserver((subject, data) => {
-    console.log(`NowcastPlayback observed event ${subject}`);
+    // console.log(`NowcastPlayback observed event ${subject}`);
     if (subject === "grid" && data) {
       gridConfig = data;
       showOpenControls = true;
-      latest = cap.getMostRecentObservation();
+      // Invalidate cache when new grid data arrives as it may change most recent observation
+      invalidateCapabilityCache(cap);
+      latest = getCachedMostRecent(cap);
     }
     //   // const gridSteps = Object.keys(grid);
     //   let changed = false;
@@ -614,17 +685,17 @@ onMount(async () => {
 
 function sliderChangedHandler(value, userInteraction = false) {
   if (Number.isNaN(value)) {
-    console.log("sliderChangedHandler called with NaN");
+    logger.log("sliderChangedHandler called with NaN");
     return;
   }
   if (value === oldTimeStep) return;
 
   if (userInteraction && fsm.state === "playing") {
-    console.log("Pausing due to sliderChangedHandler");
+    logger.log("Pausing due to sliderChangedHandler");
     try {
       fsm.pressPause();
     } catch (error) {
-      console.warn("Failed to pause from state:", fsm.state, error);
+      logger.warn("Failed to pause from state:", fsm.state, error);
     }
   }
 
@@ -645,29 +716,33 @@ function sliderChangedHandler(value, userInteraction = false) {
 }
 
 function initSlider(elem) {
-  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
+  const listener = (value) => sliderChangedHandler(value.target.value, true);
+  elem.addEventListener("sl-change", listener);
+  domEventListeners.push({ target: elem, type: "sl-change", listener });
   slRange = elem;
   window.slr = slRange;
-  // XXX why...
-  // window.setTimeout(() => {
-  //  slRange.value = `${gridNow}`;
-  //  console.log(`${gridNow}`);
-  // }, 200);
+  
+  // Always try to initialize slider to current time after a short delay
+  setTimeout(() => {
+    if (slRange && gridConfig) {
+      slRange.value = `${gridConfig.now}`;
+    }
+  }, 100);
 }
 
 function playPause() {
   if (fsm.state === "playing") {
-    console.log("Pausing due to button");
+    logger.log("Pausing due to button");
     try {
       fsm.pressPause();
     } catch (error) {
-      console.warn("Failed to pause from button, state:", fsm.state, error);
+      logger.warn("Failed to pause from button, state:", fsm.state, error);
     }
   } else {
     try {
       fsm.pressPlay();
     } catch (error) {
-      console.warn("Failed to play from button, state:", fsm.state, error);
+      logger.warn("Failed to play from button, state:", fsm.state, error);
     }
   }
 }
@@ -694,9 +769,39 @@ let last = new Date();
 lastFocus.subscribe((focus) => {
   if (focus.getTime() > (last.getTime() + 2 * 60 * 1000) && cap.trackingMode !== "live") {
     hide();
+    invalidateCapabilityCache(cap);
     cap.resetToLatest();
   }
   last = focus;
+});
+
+onDestroy(() => {
+  // Clean up timeouts
+  if (playTimeout !== 0) {
+    clearTimeout(playTimeout);
+    playTimeout = 0;
+  }
+
+  // Clean up DOM event listeners
+  domEventListeners.forEach(({ target, type, listener }) => {
+    target.removeEventListener(type, listener);
+  });
+  domEventListeners = [];
+
+  // Clean up chart if it exists
+  if (chart) {
+    try {
+      chart.destroy();
+    } catch (error) {
+      logger.warn("Error destroying chart:", error);
+    }
+    chart = null;
+  }
+
+  // Clean up global references
+  if (window.slr === slRange) {
+    window.slr = null;
+  }
 });
 </script>
 
@@ -779,7 +884,7 @@ lastFocus.subscribe((focus) => {
     margin-top: 4px;
   }
 
-  .faIconButton {
+  .iconButton {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -788,8 +893,8 @@ lastFocus.subscribe((focus) => {
     position: relative;
   }
 
-  /* Ensure consistent FontAwesome icon sizing within buttons */
-  .faIconButton :global(svg) {
+  /* Ensure consistent Lucide icon sizing within buttons */
+  .iconButton :global(svg) {
     width: 14px !important;
     height: 14px !important;
     position: absolute;
@@ -903,7 +1008,7 @@ lastFocus.subscribe((focus) => {
 </style>
 
 <LiveIndicator />
-{#if process.env.NODE_ENV === "development"}
+{#if import.meta.env.DEV}
   <DevStatus />
 {/if}
 
@@ -918,31 +1023,31 @@ lastFocus.subscribe((focus) => {
     transition:fly={{ y: 150, duration: 400 }}>
       <div class="flexbox">
         <div class="buttonsLeft">
-          <div class="controlButton" on:click={playPause} title="Play/Pause">
-            <svelte:component this={playPauseButton} class="controlIconInline" />
+          <div class="controlButton" onclick={playPause} title="Play/Pause" role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && playPause()}>
+            {#if playPauseButton === FaPlay}<FaPlay class="controlIconInline" />{:else}<FaPause class="controlIconInline" />{/if}
           </div>
-          <div class="controlButton" on:click={hide} title="Close">
+          <div class="controlButton" onclick={hide} title="Close" role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && hide()}>
             <FaAngleDoubleDown class="controlIcon" />
           </div>
         </div>
         <div class="slider">
-          <sl-range min="{gridConfig.start}" max="{gridConfig.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 21px;"></sl-range>
+          <sl-range min={gridConfig.start} max={gridConfig.end} value={gridConfig.now} step={60 * 5} class="range" use:initSlider tooltip="none" style="--thumb-size: 21px;"></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
               <div class="button-group-toolbar" >
                 <sl-button-group label="Playback Controls">
-                  <sl-button size={buttonSize} on:click={playPause} style="--sl-button-font-size-small: 16px; --sl-button-font-size-medium: 16px;">
-                    <div class="faIconButton" slot="prefix">
-                      <svelte:component this={playPauseButton} />
+                  <sl-button size={buttonSize} onclick={playPause} style="--sl-button-font-size-small: 16px; --sl-button-font-size-medium: 16px;">
+                    <div class="iconButton" slot="prefix">
+                      {#if playPauseButton === FaPlay}<FaPlay />{:else}<FaPause />{/if}
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
-                    <div class="faIconButton">
+                  <sl-button size={buttonSize} type={loop ? 'primary' : 'default'} onclick={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
+                    <div class="iconButton">
                       <FaRetweet />
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
-                    <div class="faIconButton">
+                  <sl-button size={buttonSize} type={includeHistoric ? 'primary' : 'default'} disabled={!historicActive} onclick={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
+                    <div class="iconButton">
                       <FaHistory />
                     </div>
                   </sl-button>
@@ -952,15 +1057,15 @@ lastFocus.subscribe((focus) => {
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
-                    <sl-button size={buttonSize} type="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
-                    <sl-button size={buttonSize} type="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
+                    <sl-button size={buttonSize} type={$lightningLayerVisible ? 'primary' : 'default'} onclick={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
+                    <sl-button size={buttonSize} type={$cycloneLayerVisible ? 'primary' : 'default'} onclick={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
                   </sl-button-group>
                 </div>
               </div>
               <div class="checkbox buttonsInline">
                 <div class="button-group-toolbar">
-                   <sl-button size={buttonSize} on:click={hide}>
-                     <div class="faIconButton">
+                   <sl-button size={buttonSize} onclick={hide}>
+                     <div class="iconButton">
                        <FaAngleDoubleDown />
                      </div>
                    </sl-button>
@@ -997,14 +1102,14 @@ lastFocus.subscribe((focus) => {
 {:else}
   {#if $sharedActiveCap === "radar"}
     {#if showOpenControls}
-      <div on:click={show} class="buttonBar right">
+      <div onclick={show} class="buttonBar right" role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && show()}>
         <div class="controlButton" title="Playback Controls">
           <div class="playHover">
             <FaAngleDoubleUp class="controlIcon" />
           </div>
         </div>
       </div>
-  <div on:click={showAndPlay} class="buttonBar">
+  <div onclick={showAndPlay} class="buttonBar" role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && showAndPlay()}>
     <div class="controlButton" title="Play/Pause">
       <div class="playHover">
         <FaPlay class="controlIcon" />

@@ -1,20 +1,20 @@
 <script>
 import { _ } from "svelte-i18n";
-import { tick, createEventDispatcher } from "svelte";
+import { tick } from "svelte";
 
-const dispatch = createEventDispatcher();
+let { onclose } = $props();
 
 async function init(elem) {
   await tick(); // Workaround for Safari
   elem.show();
   elem.addEventListener("sl-overlay-dismiss", (event) => {
-    dispatch("close");
+    onclose?.();
     return event.preventDefault();
   });
 }
 
 function close() {
-  dispatch("close");
+  onclose?.();
 }
 </script>
 
@@ -118,6 +118,6 @@ function close() {
     <li>{@html $_("other_things.list1")}</li>
     <li>{@html $_("other_things.list2")}</li>
   </ul>
-  <sl-button slot="footer" type="primary" on:click={close}
+  <sl-button slot="footer" type="primary" onclick={close}>
     >{$_("close")}</sl-button>
 </sl-dialog>

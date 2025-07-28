@@ -1,16 +1,12 @@
 <script>
-  import { createEventDispatcher } from "svelte";
   import { onMount } from "svelte";
-  const dispatch = createEventDispatcher();
-  export let layerManager;
-  export let layer;
-  export let label;
+  let { layerManager, layer, label, onmount, onchangeLayer } = $props();
   let uniqueID =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
 
   onMount(async () => {
-    dispatch("mount", {
+    onmount?.({
       id: `map-${uniqueID}`,
       layer: layer,
     });
@@ -34,7 +30,7 @@
       Math.abs(evt.clientX - lastX) < 10 &&
       Math.abs(evt.clientY - lastY) < 10
     ) {
-      dispatch("changeLayer", layer);
+      onchangeLayer?.(layer);
     }
     down = false;
   }
@@ -71,6 +67,10 @@
   id="map-{uniqueID}"
   class="miniMap"
   use:mapInit
-  on:mousedown={mouseDown}
-  on:mouseup={mouseUp} />
-<div class="label" on:mousedown={mouseDown} on:mouseup={mouseUp}>{label}</div>
+  onmousedown={mouseDown}
+  onmouseup={mouseUp}
+  role="button"
+  tabindex="0"
+  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); mouseDown(e); mouseUp(e); } }}>
+</div>
+<div class="label" onmousedown={mouseDown} onmouseup={mouseUp} role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); mouseDown(e); mouseUp(e); } }}>{label}</div>

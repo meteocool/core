@@ -1,4 +1,6 @@
 
+import { logger } from './logger.js';
+
 export function reportError(
   message,
   type = "warning",
@@ -13,7 +15,7 @@ export function reportError(
   //     `,
   // });
   // document.body.append(alert);
-  console.log(message);
+  logger.log(message);
   // return alert.toast();
 }
 
@@ -22,8 +24,18 @@ export function reportToast(message, type = "primary", icon = "info-circle") {
     type,
     closable: true,
     duration: 15000,
-    innerHTML: `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`,
   });
+  
+  // Safely create icon element
+  const iconElement = document.createElement("sl-icon");
+  iconElement.setAttribute("name", icon);
+  iconElement.setAttribute("slot", "icon");
+  
+  // Safely set text content to prevent XSS
+  const textNode = document.createTextNode(message);
+  
+  alert.appendChild(iconElement);
+  alert.appendChild(textNode);
   document.body.append(alert);
   return alert.toast();
 }

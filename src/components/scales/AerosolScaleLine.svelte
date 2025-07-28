@@ -17,4 +17,4 @@
 <style>
 </style>
 
-<ScaleLine class="scale" valueFormat="{valueFormat}" palette="{palette}" prettyName="" title="Sentinel-5P<br />Aerosols 354nm"/>
+<ScaleLine class="scale" valueFormat={valueFormat} palette={palette} prettyName="" title="Sentinel-5P<br />Aerosols 354nm"/>

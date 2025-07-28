@@ -1,10 +1,10 @@
 /**
  * Centralized Lucide icon registry for meteocool
  * This centralizes all Lucide icon imports for better tree-shaking
- * and bundle optimization.
+ * and bundle optimization. Replaces FontAwesome with modern Lucide icons.
  */
 
-// Lucide icons - direct component exports with proper capitalization for Svelte
+// Lucide icons - direct component exports maintaining FontAwesome-compatible names
 export { 
   Play as FaPlay,
   Pause as FaPause,
@@ -15,7 +15,7 @@ export {
   Layers as FaLayerGroup,
   Circle as FaCircle,
   Github as FaGithub
-} from "lucide-svelte";
+} from "@lucide/svelte";
 
 // Keep old names for backward compatibility but with proper naming
 export { 
@@ -28,7 +28,7 @@ export {
   Layers as faLayerGroup,
   Circle as faCircle,
   Github as faGithub
-} from "lucide-svelte";
+} from "@lucide/svelte";
 
 // For backwards compatibility, also export individual icons with their Lucide names
 export { 
@@ -41,6 +41,6 @@ export {
   Layers,
   Circle,
   Github
-} from "lucide-svelte";
+} from "@lucide/svelte";
 
 // Note: Lucide icons are used directly as components, no wrapper Icon component needed

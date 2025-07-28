@@ -1,12 +1,12 @@
 <script>
-  import { FaLayerGroup } from "../lib/IconRegistry";
+  import { Layers } from "../lib/IconRegistry";
   import MiniMap from "./MiniMap.svelte";
-  import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import { _ } from "svelte-i18n";
+  import { logger } from "../lib/logger.js";
 
-  export let layerManager;
+  let { layerManager, onchangeLayer } = $props();
   const childCanvases = {};
 
   const allAttributionsArray = Object.entries(attributions)
@@ -20,7 +20,7 @@
     ls.style.display = "block";
     layerManager.forEachMap((map, cap) => {
       const target = childCanvases[cap];
-      console.log(`set ${cap} -> ${target}`);
+      logger.log(`set ${cap} -> ${target}`);
       map.setTarget(target);
       map.updateSize();
     });
@@ -33,7 +33,7 @@
   function close() {
     document.getElementById("ls").style.display = "none";
     layerManager.forEachMap((map, cap) => {
-      console.log(`set ${cap} -> null`);
+      logger.log(`set ${cap} -> null`);
       map.setTarget(null);
       map.updateSize();
     });
@@ -45,14 +45,12 @@
   }
 
   function childMounted(data) {
-    childCanvases[data.detail.layer] = data.detail.id;
+    childCanvases[data.layer] = data.id;
   }
 
-  const dispatch = createEventDispatcher();
-
-  function changeLayer(event) {
+  function changeLayer(layer) {
     close();
-    dispatch("changeLayer", event.detail);
+    onchangeLayer?.(layer);
   }
 </script>
 
@@ -79,13 +77,14 @@
   }
 
   div :global(.lsIcon) {
-    font-size: 40px;
+    width: 40px !important;
+    height: 40px !important;
     position: absolute;
     top: 50%;
     left: 50%;
     -ms-transform: translate(-50%, -50%);
     transform: translate(-50%, -50%);
-    stroke: white;
+    stroke: currentColor;
   }
 
   .ls {
@@ -144,8 +143,8 @@
 </style>
 
 {#if !dd.isApp()}
-  <div class="lsToggle" on:click={open}>
-    <FaLayerGroup class="lsIcon" />
+  <div class="lsToggle" onclick={open} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && open()}>
+    <Layers class="lsIcon" />
   </div>
 {/if}
 
@@ -157,24 +156,24 @@
           {layerManager}
           layer={"radar"}
           label={`🌧 ${$_("rain_and_thunderstorms")}`}
-          on:mount={childMounted}
-          on:changeLayer={changeLayer} />
+          onmount={childMounted}
+          onchangeLayer={changeLayer} />
       </div>
       <div class="satellite cell">
         <MiniMap
           {layerManager}
           layer={"satellite"}
           label={`🛰️ ${$_("nrt_satellite")}`}
-          on:mount={childMounted}
-          on:changeLayer={changeLayer} />
+          onmount={childMounted}
+          onchangeLayer={changeLayer} />
       </div>
       <div class="precip-types cell">
           <MiniMap
                   {layerManager}
                   layer={"precipTypes"}
-                  label={`💧 ${$_("precpitation_types")}`}
-                  on:mount={childMounted}
-                  on:changeLayer={changeLayer}
+                  label={`💧 ${$_("precipitation_types")}`}
+                  onmount={childMounted}
+                  onchangeLayer={changeLayer}
                   class="hidden" />
       </div>
       <div class="aerosols cell">
@@ -182,16 +181,16 @@
                 {layerManager}
                 layer={"aerosols"}
                 label={`💨 ${$_("aerosols")}`}
-                on:mount={childMounted}
-                on:changeLayer={changeLayer} />
+                onmount={childMounted}
+                onchangeLayer={changeLayer} />
       </div>
       <div class="lightning cell">
         <MiniMap
                 {layerManager}
                 layer={"lightning"}
                 label={`⚡️ ${$_("lightning")}`}
-                on:mount={childMounted}
-                on:changeLayer={changeLayer} />
+                onmount={childMounted}
+                onchangeLayer={changeLayer} />
       </div>
     </div>
   </div>

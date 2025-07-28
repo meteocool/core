@@ -1,18 +1,21 @@
 <script>
-  export let steps;
-  export let title = "";
+  let { steps, title = "", valueFormat } = $props();
 
   // CSS vars are now handled natively by Svelte
 
-  export let valueFormat;
+  let ncol = $derived(Object.values(steps).length);
+  let palette = $derived(Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100/ncol))}% ${Math.round((index+1)*(100/ncol))}%`).join(","));
+  let vs = $derived(Object.keys(steps).map((c) => {
+    if (valueFormat) {
+      const translated = valueFormat(c);
+      return translated !== undefined ? translated : c; // Fallback to original key if translation is undefined
+    }
+    return c;
+  }).filter((e) => e !== ""));
 
-  $ : ncol = Object.values(steps).length;
-  $ : palette = Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100/ncol))}% ${Math.round((index+1)*(100/ncol))}%`).join(",");
-  $ : vs = Object.keys(steps).map((c) => (valueFormat ? valueFormat(c) : c)).filter((e) => e !== "");
-
-  $: scaleStyle = {
+  let scaleStyle = $derived({
     backgroundImage: `linear-gradient(to right, ${palette})`,
-  };
+  });
 </script>
 
 <style>

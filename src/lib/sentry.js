@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/browser";
 
 export const SENTRY_ARGS = {
-  dsn: "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137",
+  dsn: import.meta.env.VITE_SENTRY_DSN || "",
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.captureConsoleIntegration({ levels: ["error"] })
