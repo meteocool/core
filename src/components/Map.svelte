@@ -1,58 +1,60 @@
 <script>
-  import McLayerSwitcher from "./McLayerSwitcher.svelte";
-  import "ol/ol.css";
-  import { layerswitcherVisible, bottomToolbarMode } from "../stores";
-  import { tick } from "svelte";
-  import { logger } from "../lib/logger.js";
+  import McLayerSwitcher from './McLayerSwitcher.svelte'
+  import 'ol/ol.css'
+  import { layerswitcherVisible, bottomToolbarMode } from '../stores'
+  import { tick } from 'svelte'
+  import { logger } from '../lib/logger.js'
 
-  let { layerManager } = $props();
-  let mapID;
+  let { layerManager } = $props()
+  let mapID
 
-  let visible = $state();
+  let visible = $state()
   layerswitcherVisible.subscribe((value) => {
-    visible = value;
-  });
+    visible = value
+  })
 
   function changeLayer(newLayer) {
-    layerManager.setTarget(newLayer, mapID);
+    layerManager.setTarget(newLayer, mapID)
   }
 
   function updateMapSize() {
-    layerManager.forEachMap((map) => map.updateSize());
+    layerManager.forEachMap((map) => map.updateSize())
   }
 
   function mapInit(node) {
-    mapID = node.id;
-    layerManager.setDefaultTarget(mapID);
-    
+    mapID = node.id
+    layerManager.setDefaultTarget(mapID)
+
     // Ensure main map keeps radar capability after MiniMaps initialize
     setTimeout(() => {
-      layerManager.setTarget("radar", mapID);
-    }, 100);
-    
+      layerManager.setTarget('radar', mapID)
+    }, 100)
+
     bottomToolbarMode.subscribe((val) => {
-      if (val === "player") {
-        document.getElementById(mapID).style.height =
-                "calc(100% - 88px)";
-      } else if (val === "collapsed") {
-        document.getElementById(mapID).style.height =
-                "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
+      if (val === 'player') {
+        document.getElementById(mapID).style.height = 'calc(100% - 88px)'
+      } else if (val === 'collapsed') {
+        document.getElementById(mapID).style.height = 'calc(100% - calc(env(safe-area-inset-bottom) + 41px))'
       } else {
-        document.getElementById(mapID).style.height = "100%";
+        document.getElementById(mapID).style.height = '100%'
       }
       layerManager.forEachMap((m) => {
-        m.updateSize();
-      });
-    });
-    setTimeout(updateMapSize, 300);
+        m.updateSize()
+      })
+    })
+    setTimeout(updateMapSize, 300)
     return {
       destroy() {
-        logger.log("destroy");
+        logger.log('destroy')
       },
-    };
+    }
   }
-
 </script>
+
+<div id="map" use:mapInit></div>
+{#if visible === 'yes'}
+  <McLayerSwitcher {layerManager} onchangeLayer={changeLayer} />
+{/if}
 
 <style>
   #map {
@@ -81,8 +83,3 @@
     font-size: 6pt;
   }
 </style>
-
-<div id="map" use:mapInit></div>
-{#if visible === "yes"}
-  <McLayerSwitcher {layerManager} onchangeLayer={changeLayer} />
-{/if}

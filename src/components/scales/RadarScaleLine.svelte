@@ -1,59 +1,62 @@
 <script>
-  import { _ } from "svelte-i18n";
-  import ScaleLine from "./ScaleLine.svelte";
-  const legendClouds = "/assets/legend_clouds.svg";
-  const legendRain = "/assets/legend_rain.svg";
-  const legendHail = "/assets/legend_hail.svg";
-  const legendThunderstorm = "/assets/legend_thunderstorm.svg";
-  import { radarColormap, unit } from "../../stores";
-  import { getPalette } from "../../lib/cmap_utils";
+  import { _ } from 'svelte-i18n'
+  import ScaleLine from './ScaleLine.svelte'
+  const legendClouds = '/assets/legend_clouds.svg'
+  const legendRain = '/assets/legend_rain.svg'
+  const legendHail = '/assets/legend_hail.svg'
+  const legendThunderstorm = '/assets/legend_thunderstorm.svg'
+  import { radarColormap, unit } from '../../stores'
+  import { getPalette } from '../../lib/cmap_utils'
 
-  let unique = $state({});
+  let unique = $state({})
 
   function restart() {
-    unique = {}; // every {} is unique, {} === {} evaluates to false
+    unique = {} // every {} is unique, {} === {} evaluates to false
   }
 
   unit.subscribe(() => {
-    restart();
-  });
+    restart()
+  })
   radarColormap.subscribe(() => {
-    restart();
-  });
+    restart()
+  })
 
   function valueFormatter(fmt) {
-    if ($unit === "dbz") {
+    if ($unit === 'dbz') {
       if (fmt % 10 === 0) {
-        return `${Math.round(fmt / 2 - 32.5)}<span class="dbz"> dBZ</span>`;
+        return `${Math.round(fmt / 2 - 32.5)}<span class="dbz"> dBZ</span>`
       }
-      return "";
+      return ''
     }
     switch (fmt) {
-      case "64":
-        return " ";
-      case "74":
-        return `<img src=${legendClouds} alt='${$_("drizzle")}' class="legend-icon" /> <span class='legendLabel'>${$_("drizzle")}</span>`;
-      case "94":
-        return `<img src=${legendRain} alt='${$_("rain")}' class="legend-icon"/> <span class='legendLabel'>${$_("rain")}</span>`;
-      case "104":
-        return `<img src=${legendThunderstorm} alt='${$_("heavy_rain")}' class="legend-icon"/> <span class='legendLabel'>${$_("heavy_rain")}</span>`;
-      case "114":
-        return `<img src=${legendHail} alt='${$_("hail")}' class="legend-icon"/> <span class='legendLabel'>${$_("hail")}</span>`;
+      case '64':
+        return ' '
+      case '74':
+        return `<img src=${legendClouds} alt='${$_('drizzle')}' class="legend-icon" /> <span class='legendLabel'>${$_('drizzle')}</span>`
+      case '94':
+        return `<img src=${legendRain} alt='${$_('rain')}' class="legend-icon"/> <span class='legendLabel'>${$_('rain')}</span>`
+      case '104':
+        return `<img src=${legendThunderstorm} alt='${$_('heavy_rain')}' class="legend-icon"/> <span class='legendLabel'>${$_('heavy_rain')}</span>`
+      case '114':
+        return `<img src=${legendHail} alt='${$_('hail')}' class="legend-icon"/> <span class='legendLabel'>${$_('hail')}</span>`
       default:
-        return "";
+        return ''
     }
   }
 </script>
 
+{#key unique}
+  <ScaleLine
+    valueFormat={valueFormatter}
+    palette={getPalette($radarColormap)}
+    prettyName={$radarColormap}
+    title="Radarkomposit<br />(DWD 1km)"
+  />
+{/key}
 
 <style>
-    :global(.dbz) {
-        font-size: 50%;
-        opacity: 0.5;
-    }
-
+  :global(.dbz) {
+    font-size: 50%;
+    opacity: 0.5;
+  }
 </style>
-
-{#key unique}
-        <ScaleLine valueFormat={valueFormatter} palette={getPalette($radarColormap)} prettyName={$radarColormap} title="Radarkomposit<br />(DWD 1km)"/>
-{/key}

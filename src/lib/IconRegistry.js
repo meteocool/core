@@ -5,7 +5,7 @@
  */
 
 // Lucide icons - direct component exports maintaining FontAwesome-compatible names
-export { 
+export {
   Play as FaPlay,
   Pause as FaPause,
   ChevronsDown as FaAngleDoubleDown,
@@ -14,11 +14,11 @@ export {
   Repeat as FaRetweet,
   Layers as FaLayerGroup,
   Circle as FaCircle,
-  Github as FaGithub
-} from "@lucide/svelte";
+  Github as FaGithub,
+} from '@lucide/svelte'
 
 // Keep old names for backward compatibility but with proper naming
-export { 
+export {
   Play as faPlay,
   Pause as faPause,
   ChevronsDown as faAngleDoubleDown,
@@ -27,20 +27,10 @@ export {
   Repeat as faRetweet,
   Layers as faLayerGroup,
   Circle as faCircle,
-  Github as faGithub
-} from "@lucide/svelte";
+  Github as faGithub,
+} from '@lucide/svelte'
 
 // For backwards compatibility, also export individual icons with their Lucide names
-export { 
-  Play,
-  Pause,
-  ChevronsDown,
-  ChevronsUp,
-  History,
-  Repeat,
-  Layers,
-  Circle,
-  Github
-} from "@lucide/svelte";
+export { Play, Pause, ChevronsDown, ChevronsUp, History, Repeat, Layers, Circle, Github } from '@lucide/svelte'
 
 // Note: Lucide icons are used directly as components, no wrapper Icon component needed

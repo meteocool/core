@@ -1,14 +1,14 @@
 export class Observable {
   constructor() {
-    this.observers = [];
+    this.observers = []
   }
 
   addObserver(cb) {
-    this.observers.push(cb);
+    this.observers.push(cb)
   }
 
   notify(subject, body) {
     // console.log(`emitting ${subject} event`);
-    this.observers.forEach((h) => h(subject, body));
+    this.observers.forEach((h) => h(subject, body))
   }
 }

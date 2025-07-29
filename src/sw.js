@@ -1,15 +1,15 @@
 /* eslint no-use-before-define: 0 */
-import { clientsClaim } from "workbox-core";
-import { registerRoute } from "workbox-routing";
-import { CacheFirst } from "workbox-strategies";
-import { ExpirationPlugin } from "workbox-expiration";
-import { CacheableResponsePlugin } from "workbox-cacheable-response";
-import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
+import { clientsClaim } from 'workbox-core'
+import { registerRoute } from 'workbox-routing'
+import { CacheFirst } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 
 registerRoute(
   /^https:\/\/map\.meteocool\.com\/.*\.(png|mvt)$/,
   new CacheFirst({
-    cacheName: "tile-cache",
+    cacheName: 'tile-cache',
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200],
@@ -21,10 +21,9 @@ registerRoute(
       }),
     ],
   }),
-);
+)
 
-/* eslint-disable no-restricted-globals, no-underscore-dangle */
-cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST);
-self.skipWaiting();
-clientsClaim();
+cleanupOutdatedCaches()
+precacheAndRoute(self.__WB_MANIFEST)
+self.skipWaiting()
+clientsClaim()

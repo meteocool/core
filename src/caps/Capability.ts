@@ -1,6 +1,6 @@
-import { Map } from "ol";
-import { Observable } from "../lib/util";
-import { sharedCmap } from "../stores";
+import { Map } from 'ol'
+import { Observable } from '../lib/util'
+import { sharedCmap } from '../stores'
 
 /**
  * A Capability implements map-related functionality (controller) on an OpenLayers map (view).
@@ -9,45 +9,45 @@ import { sharedCmap } from "../stores";
  *
  */
 export default class Capability extends Observable {
-  map: Map;
+  map: Map
 
-  name: string;
+  name: string
 
-  cmap: any;
+  cmap: any
 
-  targetCb: any;
+  targetCb: any
 
   constructor(map: Map, name: string, targetCb: any, additionalLayers: any[]) {
-    super();
-    this.map = map;
-    this.targetCb = targetCb;
-    this.cmap = null;
-    this.name = name;
+    super()
+    this.map = map
+    this.targetCb = targetCb
+    this.cmap = null
+    this.name = name
 
-    additionalLayers.forEach((l: any) => map.addLayer(l));
+    additionalLayers.forEach((l: any) => map.addLayer(l))
   }
 
   setTarget(target: any) {
-    if (!this.map) return;
-    this.map.setTarget(target);
-    if (this.targetCb && target) this.targetCb(target);
-    if (this.cmap) sharedCmap.set(this.cmap);
+    if (!this.map) return
+    this.map.setTarget(target)
+    if (this.targetCb && target) this.targetCb(target)
+    if (this.cmap) sharedCmap.set(this.cmap)
   }
 
   setCmap(cmap: any) {
-    this.cmap = cmap;
-    sharedCmap.set(cmap);
+    this.cmap = cmap
+    sharedCmap.set(cmap)
   }
 
   getMap() {
-    return this.map;
+    return this.map
   }
 
   getName() {
-    return this.name;
+    return this.name
   }
 
   willLoseFocus() {
-    super.notify("loseFocus", null);
+    super.notify('loseFocus', null)
   }
 }

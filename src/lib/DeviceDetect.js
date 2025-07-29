@@ -1,30 +1,29 @@
-let device = "web";
-
+let device = 'web'
 
 export class DeviceDetect {
   static set(nDevice) {
-    device = nDevice;
+    device = nDevice
   }
 
   static isIos() {
-    return device === "ios";
+    return device === 'ios'
   }
 
   static isAndroid() {
-    return device === "android";
+    return device === 'android'
   }
 
   static isApp() {
-    return this.isIos() || this.isAndroid();
+    return this.isIos() || this.isAndroid()
   }
 
   static breakpoint() {
     if (window.innerWidth > 1620) {
-      return "wide";
+      return 'wide'
     }
     if (window.innerWidth > 1200) {
-      return "reduced";
+      return 'reduced'
     }
-    return "small";
+    return 'small'
   }
 }

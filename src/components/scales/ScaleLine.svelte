@@ -1,54 +1,68 @@
 <script>
   // CSS vars are now handled natively by Svelte
-  const mapBgWebp = "/assets/map-bg.webp";
-  const mapBgPng = "/assets/map-bg.png";
-  import { DeviceDetect as dd } from '../../lib/DeviceDetect';
+  const mapBgWebp = '/assets/map-bg.webp'
+  const mapBgPng = '/assets/map-bg.png'
+  import { DeviceDetect as dd } from '../../lib/DeviceDetect'
 
   // Function to get optimized background image with WebP fallback
   function getBackgroundUrl() {
     // Check if WebP is supported
     if (typeof window !== 'undefined') {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
       if (ctx && canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0) {
-        return `url(${mapBgWebp})`;
+        return `url(${mapBgWebp})`
       }
     }
-    return `url(${mapBgPng})`;
+    return `url(${mapBgPng})`
   }
 
-  let { palette, valueFormat, prettyName, title = "" } = $props();
+  let { palette, valueFormat, prettyName, title = '' } = $props()
 
   function colorMap() {
     if (!palette) {
-      return "#ffffff";
+      return '#ffffff'
     }
-    return palette.split(";")
-      .map((c) => c.split(":"));
+    return palette.split(';').map((c) => c.split(':'))
   }
 
   function capitalizeFirst(string) {
-    return string.charAt(0)
-      .toUpperCase() + string.slice(1);
+    return string.charAt(0).toUpperCase() + string.slice(1)
   }
 
-  let vs = $derived(colorMap()
-    .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
-    .filter((e) => e !== "" && e !== undefined && e !== null));
+  let vs = $derived(
+    colorMap()
+      .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
+      .filter((e) => e !== '' && e !== undefined && e !== null),
+  )
   // if (dd.isApp()) {
   //   $ : vs = vs.filter((element, index) => index % 2 === 0);
   // }
 
-  let minDbz = $derived(colorMap(palette)[0][0]);
-  let maxDbz = $derived(colorMap(palette).pop()[0]);
-  let colors = $derived(colorMap()
-    .map((c) => `#${c[1]}`));
+  let minDbz = $derived(colorMap(palette)[0][0])
+  let maxDbz = $derived(colorMap(palette).pop()[0])
+  let colors = $derived(colorMap().map((c) => `#${c[1]}`))
 
   let scaleStyle = $derived({
-    backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
+    backgroundImage: `linear-gradient(to right, ${colors.join(',')})`,
     backgroundUrl: getBackgroundUrl(),
-  });
+  })
 </script>
+
+<div class="wrapper">
+  <div class="legend-label">{@html title}</div>
+  <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz || 'N/A'} - {maxDbz || 'N/A'} dBZ)">
+    <div class="scale-line" style="--backgroundImage: {scaleStyle.backgroundImage}; --backgroundUrl: {scaleStyle.backgroundUrl}">
+      <div class="scale-dividers">
+        {#each vs as value}
+          <div class="scale-divider">
+            {@html value}
+          </div>
+        {/each}
+      </div>
+    </div>
+  </div>
+</div>
 
 <style lang="less">
   .scale-dividers {
@@ -147,22 +161,6 @@
   }
 
   :root {
-    --svg-dark-to-light: "";
+    --svg-dark-to-light: '';
   }
 </style>
-
-<div class="wrapper">
-    <div class="legend-label">{@html title}</div>
-    <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz || 'N/A'} - {maxDbz || 'N/A'} dBZ)">
-        <div class="scale-line" style="--backgroundImage: {scaleStyle.backgroundImage}; --backgroundUrl: {scaleStyle.backgroundUrl}">
-            <div class="scale-dividers">
-                {#each vs as value}
-                    <div class="scale-divider">
-                        {@html value}
-                    </div>
-                {/each}
-            </div>
-        </div>
-    </div>
-</div>
-

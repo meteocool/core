@@ -1,6 +1,11 @@
 <script>
 </script>
 
+<!--sl-select pill size="small" name="cmap" id="cmap" placeholder="Viridis">
+    <sl-menu-item value="viridis">Viridis</sl-menu-item>
+    <sl-menu-item value="meteocool_classic">meteocool Classic</sl-menu-item>
+</sl-select-->
+
 <style>
   #cmap {
     position: absolute;
@@ -8,8 +13,3 @@
     z-index: 100;
   }
 </style>
-
-<!--sl-select pill size="small" name="cmap" id="cmap" placeholder="Viridis">
-    <sl-menu-item value="viridis">Viridis</sl-menu-item>
-    <sl-menu-item value="meteocool_classic">meteocool Classic</sl-menu-item>
-</sl-select-->

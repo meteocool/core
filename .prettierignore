@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.wrangler/
+*.min.js
+*.config.js
+public/assets/
+package-lock.json

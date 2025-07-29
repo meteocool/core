@@ -6,7 +6,7 @@ class ElementHandler {
     element.append(ogtag, { html: true })
   }
 }
-const rewriter = new HTMLRewriter().on("head", new ElementHandler())
+const rewriter = new HTMLRewriter().on('head', new ElementHandler())
 
 export async function onRequest(context) {
   const {
@@ -20,13 +20,13 @@ export async function onRequest(context) {
   let res = await next()
   const { searchParams, pathname } = new URL(request.url)
 
-  if (!(pathname === "/index.html" || pathname === "/")) {
+  if (!(pathname === '/index.html' || pathname === '/')) {
     return res
   }
-  name = searchParams.get("latLonZ")
+  name = searchParams.get('latLonZ')
   let shareLang = searchParams.get('share_lang')
 
-  if(shareLang === 'de') {
+  if (shareLang === 'de') {
     ogtag = `
       <meta property="og:title" content="meteocool Regenradar & Lightnig Tracking" />
       <meta property="og:description" content="Kostenfreie Open-Source Echtzeit Regenradar & Storm Tracking App für iOS, Android und das Web." />
@@ -34,7 +34,7 @@ export async function onRequest(context) {
       <meta property="og:locale:alternate" content="en_US" />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="${request.url}" />
-      <meta property="og:image" content="https://api.meteocool.com/v3/preview/og.png?aspectRatio=wide&frame=true&${name ? "latLonZ="+name : "default"}" />
+      <meta property="og:image" content="https://api.meteocool.com/v3/preview/og.png?aspectRatio=wide&frame=true&${name ? 'latLonZ=' + name : 'default'}" />
 
       <meta property="og:image:height" content="630" />
       <meta property="og:image:width" content="1200" />
@@ -53,7 +53,7 @@ export async function onRequest(context) {
       <meta property="og:locale:alternate" content="de_DE" />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="${request.url}" />
-      <meta property="og:image" content="https://api.meteocool.com/v3/preview/og.png?aspectRatio=wide&frame=true&${name ? "latLonZ="+name : "default"}" />
+      <meta property="og:image" content="https://api.meteocool.com/v3/preview/og.png?aspectRatio=wide&frame=true&${name ? 'latLonZ=' + name : 'default'}" />
 
       <meta property="og:image:height" content="630" />
       <meta property="og:image:width" content="1200" />

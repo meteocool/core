@@ -1,20 +1,24 @@
 <script>
-import { format } from "date-fns";
-import { capTimeIndicator } from "../stores";
+  import { format } from 'date-fns'
+  import { capTimeIndicator } from '../stores'
 
-let timeString = $state("");
+  let timeString = $state('')
 
-capTimeIndicator.subscribe((value) => {
-  if (value === 0) {
-    timeString = "";
-    return;
-  }
-  timeString = format(new Date(value * 1000), "HH:mm");
-});
+  capTimeIndicator.subscribe((value) => {
+    if (value === 0) {
+      timeString = ''
+      return
+    }
+    timeString = format(new Date(value * 1000), 'HH:mm')
+  })
 </script>
 
+{#if timeString}
+  <div class="tag">{timeString}</div>
+{/if}
+
 <style>
-.tag {
+  .tag {
     text-align: center;
     font-size: 13px;
     min-width: 40px;
@@ -24,9 +28,5 @@ capTimeIndicator.subscribe((value) => {
     display: flex;
     justify-content: center;
     align-items: center;
-}
+  }
 </style>
-
-{#if timeString}
-<div class="tag">{timeString}</div>
-{/if}

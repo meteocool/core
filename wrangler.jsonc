@@ -2,43 +2,40 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "meteocool",
   "compatibility_date": "2025-07-28",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
-  "routes": [
-    {
-      "pattern": "meteocool.com",
-      "zone_name": "meteocool.com"
-    },
-    {
-      "pattern": "www.meteocool.com",
-      "zone_name": "meteocool.com"
-    }
-  ],
+  "compatibility_flags": ["nodejs_compat"],
+  // "routes": [
+  //   {
+  //     "pattern": "meteocool.com",
+  //     "zone_name": "meteocool.com",
+  //   },
+  //   {
+  //     "pattern": "www.meteocool.com",
+  //     "zone_name": "meteocool.com",
+  //   },
+  // ],
   "env": {
-    "production": {
-      "routes": [
-        {
-          "pattern": "meteocool.com",
-          "zone_name": "meteocool.com"
-        },
-        {
-          "pattern": "www.meteocool.com",
-          "zone_name": "meteocool.com"
-        }
-      ]
-    },
+    // "production": {
+    //   "routes": [
+    //     {
+    //       "pattern": "meteocool.com",
+    //       "zone_name": "meteocool.com",
+    //     },
+    //     {
+    //       "pattern": "www.meteocool.com",
+    //       "zone_name": "meteocool.com",
+    //     },
+    //   ],
+    // },
     "staging": {
-      "name": "meteocool-staging",
-      "routes": [
-        {
-          "pattern": "better.meteocool.com",
-          "zone_name": "meteocool.com"
-        }
-      ]
+      "name": "meteocool-vibeocool",
+      "workers_dev": false,
+      "route": {
+        "pattern": "vibeocool.meteocool.com",
+        "custom_domain": true,
+      },
     },
     "development": {
-      "name": "meteocool-dev"
-    }
-  }
+      "name": "meteocool-dev",
+    },
+  },
 }

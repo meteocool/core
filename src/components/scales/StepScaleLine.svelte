@@ -1,22 +1,45 @@
 <script>
-  let { steps, title = "", valueFormat } = $props();
+  let { steps, title = '', valueFormat } = $props()
 
   // CSS vars are now handled natively by Svelte
 
-  let ncol = $derived(Object.values(steps).length);
-  let palette = $derived(Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100/ncol))}% ${Math.round((index+1)*(100/ncol))}%`).join(","));
-  let vs = $derived(Object.keys(steps).map((c) => {
-    if (valueFormat) {
-      const translated = valueFormat(c);
-      return translated !== undefined ? translated : c; // Fallback to original key if translation is undefined
-    }
-    return c;
-  }).filter((e) => e !== ""));
+  let ncol = $derived(Object.values(steps).length)
+  let palette = $derived(
+    Object.values(steps)
+      .map((color, index) => `#${color} ${Math.round(index * (100 / ncol))}% ${Math.round((index + 1) * (100 / ncol))}%`)
+      .join(','),
+  )
+  let vs = $derived(
+    Object.keys(steps)
+      .map((c) => {
+        if (valueFormat) {
+          const translated = valueFormat(c)
+          return translated !== undefined ? translated : c // Fallback to original key if translation is undefined
+        }
+        return c
+      })
+      .filter((e) => e !== ''),
+  )
 
   let scaleStyle = $derived({
     backgroundImage: `linear-gradient(to right, ${palette})`,
-  });
+  })
 </script>
+
+<div class="wrapper">
+  <div class="legend-label">{@html title}</div>
+  <div class="scale">
+    <div class="scale-line" style="--backgroundImage: {scaleStyle.backgroundImage}">
+      <div class="scale-dividers">
+        {#each vs as value}
+          <div class="scale-divider" style="width: {100 / ncol}%;">
+            {@html value}
+          </div>
+        {/each}
+      </div>
+    </div>
+  </div>
+</div>
 
 <style>
   .scale-divider {
@@ -48,44 +71,29 @@
   }
 
   @media only screen and (max-width: 990px) {
-      .scale-divider {
-          font-size: 74%;
-      }
-      .scale {
-          height: calc(var(--sl-input-height-medium) * 1.2);
-          padding-bottom: 0.25em;
-      }
+    .scale-divider {
+      font-size: 74%;
+    }
+    .scale {
+      height: calc(var(--sl-input-height-medium) * 1.2);
+      padding-bottom: 0.25em;
+    }
   }
 
   .legend-label {
-      height: 100%;
-      color: var(--sl-color-gray-600);
-      line-height: 1.21;
-      font-size: 80%;
-      text-align: right;
-      word-break: break-word;
+    height: 100%;
+    color: var(--sl-color-gray-600);
+    line-height: 1.21;
+    font-size: 80%;
+    text-align: right;
+    word-break: break-word;
   }
   .scale {
-      flex: 1;
+    flex: 1;
   }
   .wrapper {
-      display: flex;
-      gap: 0.75em;
-      justify-content: space-around;
+    display: flex;
+    gap: 0.75em;
+    justify-content: space-around;
   }
 </style>
-
-<div class="wrapper">
-    <div class="legend-label">{@html title}</div>
-    <div class="scale">
-        <div class="scale-line" style="--backgroundImage: {scaleStyle.backgroundImage}">
-            <div class="scale-dividers">
-                {#each vs as value}
-                    <div class="scale-divider" style="width: {100/ncol}%;">
-                        {@html value }
-                    </div>
-                {/each}
-            </div>
-        </div>
-    </div>
-</div>

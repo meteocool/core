@@ -1,8 +1,10 @@
-import js from '@eslint/js';
-import typescript from '@typescript-eslint/eslint-plugin';
-import typescriptParser from '@typescript-eslint/parser';
-import svelte from 'eslint-plugin-svelte';
-import svelteParser from 'svelte-eslint-parser';
+import js from '@eslint/js'
+import typescript from '@typescript-eslint/eslint-plugin'
+import typescriptParser from '@typescript-eslint/parser'
+import svelte from 'eslint-plugin-svelte'
+import svelteParser from 'svelte-eslint-parser'
+import prettier from 'eslint-plugin-prettier'
+import prettierConfig from 'eslint-config-prettier'
 
 export default [
   js.configs.recommended,
@@ -47,8 +49,11 @@ export default [
     },
     plugins: {
       '@typescript-eslint': typescript,
+      prettier,
     },
     rules: {
+      ...prettierConfig.rules,
+      'prettier/prettier': 'error',
       'no-console': 'warn',
       'no-unused-vars': 'warn',
       'no-inner-declarations': 'off',
@@ -87,9 +92,12 @@ export default [
     },
     plugins: {
       svelte,
+      prettier,
     },
     rules: {
       ...svelte.configs.recommended.rules,
+      ...prettierConfig.rules,
+      'prettier/prettier': 'error',
       'svelte/no-unused-svelte-ignore': 'warn',
       'no-console': 'warn',
       'no-unused-vars': 'warn',
@@ -109,12 +117,6 @@ export default [
     },
   },
   {
-    ignores: [
-      'dist/',
-      'node_modules/',
-      '*.config.js',
-      'public/',
-      '.eslintrc.js',
-    ],
+    ignores: ['dist/', 'node_modules/', '*.config.js', 'public/', '.eslintrc.js'],
   },
-];
+]

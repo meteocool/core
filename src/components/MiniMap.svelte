@@ -1,40 +1,68 @@
 <script>
-  import { onMount } from "svelte";
-  let { layerManager, layer, label, onmount, onchangeLayer } = $props();
-  let uniqueID =
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15);
+  import { onMount } from 'svelte'
+  let { layerManager, layer, label, onmount, onchangeLayer } = $props()
+  let uniqueID = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
   onMount(async () => {
     onmount?.({
       id: `map-${uniqueID}`,
       layer: layer,
-    });
-  });
+    })
+  })
 
   function mapInit(node) {
-    layerManager.setTarget(layer, node.id);
+    layerManager.setTarget(layer, node.id)
   }
 
-  let down = false;
-  let lastX = 0;
-  let lastY = 0;
+  let down = false
+  let lastX = 0
+  let lastY = 0
   function mouseDown(evt) {
-    down = true;
-    lastX = evt.clientX;
-    lastY = evt.clientY;
+    down = true
+    lastX = evt.clientX
+    lastY = evt.clientY
   }
 
   function mouseUp(evt) {
-    if (
-      Math.abs(evt.clientX - lastX) < 10 &&
-      Math.abs(evt.clientY - lastY) < 10
-    ) {
-      onchangeLayer?.(layer);
+    if (Math.abs(evt.clientX - lastX) < 10 && Math.abs(evt.clientY - lastY) < 10) {
+      onchangeLayer?.(layer)
     }
-    down = false;
+    down = false
   }
 </script>
+
+<div
+  id="map-{uniqueID}"
+  class="miniMap"
+  use:mapInit
+  onmousedown={mouseDown}
+  onmouseup={mouseUp}
+  role="button"
+  tabindex="0"
+  onkeydown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      mouseDown(e)
+      mouseUp(e)
+    }
+  }}
+></div>
+<div
+  class="label"
+  onmousedown={mouseDown}
+  onmouseup={mouseUp}
+  role="button"
+  tabindex="0"
+  onkeydown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      mouseDown(e)
+      mouseUp(e)
+    }
+  }}
+>
+  {label}
+</div>
 
 <style>
   :global(.miniMap) {
@@ -62,15 +90,3 @@
     margin-right: 5%;
   }
 </style>
-
-<div
-  id="map-{uniqueID}"
-  class="miniMap"
-  use:mapInit
-  onmousedown={mouseDown}
-  onmouseup={mouseUp}
-  role="button"
-  tabindex="0"
-  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); mouseDown(e); mouseUp(e); } }}>
-</div>
-<div class="label" onmousedown={mouseDown} onmouseup={mouseUp} role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); mouseDown(e); mouseUp(e); } }}>{label}</div>

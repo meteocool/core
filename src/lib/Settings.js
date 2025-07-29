@@ -1,7 +1,7 @@
 // XXX this thing has a problem where the datatypes are lost when stuff is saved to localstroage.
 
-import Router from './Router';
-import { logger } from './logger.js';
+import Router from './Router'
+import { logger } from './logger.js'
 
 export default class Settings {
   constructor(settingsCbs) {
@@ -10,125 +10,124 @@ export default class Settings {
     //      "settingName": {"type": "boolean", "default": true, "cb": f},
     //      ....
     // }
-    this.settings = settingsCbs;
+    this.settings = settingsCbs
     Object.keys(this.settings).forEach((key) => {
       if (this.settings[key].default !== this.get(key)) {
-        this.cb(key);
+        this.cb(key)
       }
-    });
+    })
   }
 
   get(key) {
-    if (typeof key !== "string") {
-      return null;
+    if (typeof key !== 'string') {
+      return null
     }
 
-    const url = new URL(document.location);
-    let local = null;
+    const url = new URL(document.location)
+    let local = null
     try {
-      if (localStorage) local = localStorage.getItem(key);
+      if (localStorage) local = localStorage.getItem(key)
     } catch (error) {
-      logger.error(error);
+      logger.error(error)
     }
     switch (this.getSourceForKey(key)) {
-      case "localStorage":
+      case 'localStorage':
         if (local) {
-          if (this.settings[key].type === "boolean") {
-            return local === "true";
+          if (this.settings[key].type === 'boolean') {
+            return local === 'true'
           }
-          return local;
+          return local
         }
-        break;
-      case "url":
+        break
+      case 'url':
         if (url.searchParams.has(key)) {
-          return url.searchParams.get(key);
+          return url.searchParams.get(key)
         }
-        break;
+        break
       default:
-        return null;
+        return null
     }
     if (key in this.settings) {
-      return this.settings[key].default;
+      return this.settings[key].default
     }
-    return null;
+    return null
   }
 
   setCb(key, cb, trigger = false) {
-    if (typeof key !== "string") {
-      return;
+    if (typeof key !== 'string') {
+      return
     }
-    this.settings[key].cb = cb;
-    if (trigger) cb(this.get(key));
+    this.settings[key].cb = cb
+    if (trigger) cb(this.get(key))
   }
 
   cb(key) {
-    if (typeof key !== "string") {
-      return;
+    if (typeof key !== 'string') {
+      return
     }
     if (this.settings[key].cb) {
-      this.settings[key].cb(this.get(key));
+      this.settings[key].cb(this.get(key))
     }
   }
 
   set(key, value, apply = true) {
-    if (typeof key !== "string") {
-      return;
+    if (typeof key !== 'string') {
+      return
     }
     if (!(key in this.settings)) {
-      logger.error(`Key ${key} not found in settings`);
-      return;
+      logger.error(`Key ${key} not found in settings`)
+      return
     }
 
-    // eslint-disable-line valid-typeof
     if (typeof value !== this.settings[key].type) {
-      logger.log(`Type missmatch for key ${key}`);
-      return;
+      logger.log(`Type missmatch for key ${key}`)
+      return
     }
 
-    const old = this.get(key);
-    logger.log(`Updating ${key} => ${value} with old ${old}, apply=${apply}`);
-    const url = new URL(window.location);
+    const old = this.get(key)
+    logger.log(`Updating ${key} => ${value} with old ${old}, apply=${apply}`)
+    const url = new URL(window.location)
     switch (this.getSourceForKey(key)) {
-      case "localStorage":
+      case 'localStorage':
         if (old !== value && this.settings[key].default !== value) {
-          localStorage.setItem(key, value);
+          localStorage.setItem(key, value)
         } else if (this.settings[key].default === value && localStorage.getItem(key) !== null) {
           // remove from localstorage if value is reset to default
-          localStorage.removeItem(key);
+          localStorage.removeItem(key)
         }
-        break;
-      case "url":
+        break
+      case 'url':
         if (old !== value && this.settings[key].default !== value) {
-          url.searchParams.set(key, value);
-          window.history.pushState({ location: window.location.toString() }, `meteocool 2.0 ${window.location.toString()}`, url);
+          url.searchParams.set(key, value)
+          window.history.pushState({ location: window.location.toString() }, `meteocool 2.0 ${window.location.toString()}`, url)
         } else if (this.settings[key].default === value && url.searchParams.has(key)) {
-          url.searchParams.delete(key);
-          window.history.pushState({ location: window.location.toString() }, "meteocool 2.0", url);
+          url.searchParams.delete(key)
+          window.history.pushState({ location: window.location.toString() }, 'meteocool 2.0', url)
         }
-        break;
+        break
       default:
-        break;
+        break
     }
 
     if (old !== this.get(key)) {
       if (this.settings[key].cb && apply) {
-        this.settings[key].cb(value);
+        this.settings[key].cb(value)
       }
     }
   }
 
   getSourceForKey(key) {
-    let source = "localStorage";
-    if ("source" in this.settings[key]) {
-      source = this.settings[key].source;
+    let source = 'localStorage'
+    if ('source' in this.settings[key]) {
+      source = this.settings[key].source
     }
-    return source;
+    return source
   }
 
   injectSettings(newSettings) {
-    logger.log(newSettings);
+    logger.log(newSettings)
     for (const key in newSettings) {
-      this.set(key, newSettings[key]);
+      this.set(key, newSettings[key])
     }
   }
 }

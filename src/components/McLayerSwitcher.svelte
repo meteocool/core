@@ -1,58 +1,97 @@
 <script>
-  import { Layers } from "../lib/IconRegistry";
-  import MiniMap from "./MiniMap.svelte";
-  import * as attributions from "../layers/attributions";
-  import { DeviceDetect as dd } from "../lib/DeviceDetect";
-  import { _ } from "svelte-i18n";
-  import { logger } from "../lib/logger.js";
+  import { Layers } from '../lib/IconRegistry'
+  import MiniMap from './MiniMap.svelte'
+  import * as attributions from '../layers/attributions'
+  import { DeviceDetect as dd } from '../lib/DeviceDetect'
+  import { _ } from 'svelte-i18n'
+  import { logger } from '../lib/logger.js'
 
-  let { layerManager, onchangeLayer } = $props();
-  const childCanvases = {};
+  let { layerManager, onchangeLayer } = $props()
+  const childCanvases = {}
 
   const allAttributionsArray = Object.entries(attributions)
-    .filter((k) => k[0] !== "imprintAttribution")
-    .map((k) => k[1]);
-  allAttributionsArray.sort();
-  const allAttributions = allAttributionsArray.join(" ");
+    .filter((k) => k[0] !== 'imprintAttribution')
+    .map((k) => k[1])
+  allAttributionsArray.sort()
+  const allAttributions = allAttributionsArray.join(' ')
 
   window.openLayerswitcher = () => {
-    const ls = document.getElementById("ls");
-    ls.style.display = "block";
+    const ls = document.getElementById('ls')
+    ls.style.display = 'block'
     layerManager.forEachMap((map, cap) => {
-      const target = childCanvases[cap];
-      logger.log(`set ${cap} -> ${target}`);
-      map.setTarget(target);
-      map.updateSize();
-    });
-  };
+      const target = childCanvases[cap]
+      logger.log(`set ${cap} -> ${target}`)
+      map.setTarget(target)
+      map.updateSize()
+    })
+  }
 
   function open(elem) {
-    window.openLayerswitcher();
+    window.openLayerswitcher()
   }
 
   function close() {
-    document.getElementById("ls").style.display = "none";
+    document.getElementById('ls').style.display = 'none'
     layerManager.forEachMap((map, cap) => {
-      logger.log(`set ${cap} -> null`);
-      map.setTarget(null);
-      map.updateSize();
-    });
+      logger.log(`set ${cap} -> null`)
+      map.setTarget(null)
+      map.updateSize()
+    })
     if (dd.isIos()) {
-      window.webkit.messageHandlers.scriptHandler.postMessage(
-        "layerSwitcherClosed",
-      );
+      window.webkit.messageHandlers.scriptHandler.postMessage('layerSwitcherClosed')
     }
   }
 
   function childMounted(data) {
-    childCanvases[data.layer] = data.id;
+    childCanvases[data.layer] = data.id
   }
 
   function changeLayer(layer) {
-    close();
-    onchangeLayer?.(layer);
+    close()
+    onchangeLayer?.(layer)
   }
 </script>
+
+{#if !dd.isApp()}
+  <div class="lsToggle" onclick={open} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && open()}>
+    <Layers class="lsIcon" />
+  </div>
+{/if}
+
+<div class="ls" id="ls">
+  <div class="gridContainer">
+    <div class="grid">
+      <div class="reflectivity cell">
+        <MiniMap
+          {layerManager}
+          layer={'radar'}
+          label={`🌧 ${$_('rain_and_thunderstorms')}`}
+          onmount={childMounted}
+          onchangeLayer={changeLayer}
+        />
+      </div>
+      <div class="satellite cell">
+        <MiniMap {layerManager} layer={'satellite'} label={`🛰️ ${$_('nrt_satellite')}`} onmount={childMounted} onchangeLayer={changeLayer} />
+      </div>
+      <div class="precip-types cell">
+        <MiniMap
+          {layerManager}
+          layer={'precipTypes'}
+          label={`💧 ${$_('precipitation_types')}`}
+          onmount={childMounted}
+          onchangeLayer={changeLayer}
+          class="hidden"
+        />
+      </div>
+      <div class="aerosols cell">
+        <MiniMap {layerManager} layer={'aerosols'} label={`💨 ${$_('aerosols')}`} onmount={childMounted} onchangeLayer={changeLayer} />
+      </div>
+      <div class="lightning cell">
+        <MiniMap {layerManager} layer={'lightning'} label={`⚡️ ${$_('lightning')}`} onmount={childMounted} onchangeLayer={changeLayer} />
+      </div>
+    </div>
+  </div>
+</div>
 
 <style>
   .lsToggle {
@@ -112,7 +151,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr;
     gap: 0.15em 0.15em;
-    grid-template-areas: "reflectivity satellite" "precip-types aerosols" "lightning lightning";
+    grid-template-areas: 'reflectivity satellite' 'precip-types aerosols' 'lightning lightning';
     height: 100%;
   }
 
@@ -141,57 +180,3 @@
     color: white;
   }
 </style>
-
-{#if !dd.isApp()}
-  <div class="lsToggle" onclick={open} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && open()}>
-    <Layers class="lsIcon" />
-  </div>
-{/if}
-
-<div class="ls" id="ls">
-  <div class="gridContainer">
-    <div class="grid">
-      <div class="reflectivity cell">
-        <MiniMap
-          {layerManager}
-          layer={"radar"}
-          label={`🌧 ${$_("rain_and_thunderstorms")}`}
-          onmount={childMounted}
-          onchangeLayer={changeLayer} />
-      </div>
-      <div class="satellite cell">
-        <MiniMap
-          {layerManager}
-          layer={"satellite"}
-          label={`🛰️ ${$_("nrt_satellite")}`}
-          onmount={childMounted}
-          onchangeLayer={changeLayer} />
-      </div>
-      <div class="precip-types cell">
-          <MiniMap
-                  {layerManager}
-                  layer={"precipTypes"}
-                  label={`💧 ${$_("precipitation_types")}`}
-                  onmount={childMounted}
-                  onchangeLayer={changeLayer}
-                  class="hidden" />
-      </div>
-      <div class="aerosols cell">
-        <MiniMap
-                {layerManager}
-                layer={"aerosols"}
-                label={`💨 ${$_("aerosols")}`}
-                onmount={childMounted}
-                onchangeLayer={changeLayer} />
-      </div>
-      <div class="lightning cell">
-        <MiniMap
-                {layerManager}
-                layer={"lightning"}
-                label={`⚡️ ${$_("lightning")}`}
-                onmount={childMounted}
-                onchangeLayer={changeLayer} />
-      </div>
-    </div>
-  </div>
-</div>

@@ -1,19 +1,22 @@
-import { defineConfig } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { VitePWA } from 'vite-plugin-pwa';
-import { cloudflare } from '@cloudflare/vite-plugin';
-import sveltePreprocess from 'svelte-preprocess';
-import { resolve } from 'path';
-import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { VitePWA } from 'vite-plugin-pwa'
+import { cloudflare } from '@cloudflare/vite-plugin'
+import sveltePreprocess from 'svelte-preprocess'
+import { resolve } from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
-    cloudflare(),
+    cloudflare({
+      configPath: 'wrangler.jsonc',
+      persistState: false,
+    }),
     svelte({
       preprocess: sveltePreprocess(),
       compilerOptions: {
         runes: true,
-        dev: process.env.NODE_ENV === 'development'
+        dev: process.env.NODE_ENV === 'development',
       },
     }),
     VitePWA({
@@ -78,4 +81,4 @@ export default defineConfig({
   },
   // Handle static assets
   assetsInclude: ['**/*.webp', '**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
-});
+}))
