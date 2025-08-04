@@ -148,7 +148,6 @@ export const labelsOnly = () => {
     }),
     style(feature, res) {
       let style
-      // console.log(`${feature.get("name")}:  ${feature.get("kind")}/${feature.get("kind_detail")} @ ${res} / ${feature.get("population")}`);
       switch (feature.get('layer')) {
         case 'places': {
           switch (feature.get('kind')) {

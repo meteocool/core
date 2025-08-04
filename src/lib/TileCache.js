@@ -131,7 +131,6 @@ export class MeteoTileCache {
     const store = tx.objectStore('tiles')
     const cachedBlob = await store.get(url)
     if (cachedBlob) {
-      //console.log(`Already cached ${url}`);
       if (successCb) successCb(cachedBlob, true)
       return
     }

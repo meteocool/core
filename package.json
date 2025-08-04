@@ -51,7 +51,7 @@
   "dependencies": {
     "@lucide/svelte": "^0.526.0",
     "@sentry/browser": "^9.42.0",
-    "@shoelace-style/shoelace": "git://github.com/v4lli/shoelace.git#next",
+    "@shoelace-style/shoelace": "github:v4lli/shoelace#next",
     "chart.js": "^4.5.0",
     "chartjs-chart-error-bars": "^4.4.4",
     "chartjs-plugin-datalabels": "^2.2.0",
@@ -63,6 +63,7 @@
     "ol-mapbox-style": "^13.0.1",
     "socket.io-client": "^4.8.1",
     "svelte-i18n": "^4.0.1",
-    "workbox-window": "^7.3.0"
+    "workbox-window": "^7.3.0",
+    "xstate": "^5.18.0"
   }
 }

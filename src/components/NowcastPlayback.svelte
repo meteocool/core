@@ -3,6 +3,13 @@
   import StateMachine from 'javascript-state-machine'
   import { fly, fade } from 'svelte/transition'
   import { onMount, onDestroy } from 'svelte'
+
+  // XState migration imports
+  import { createNowcastPlaybackMachine } from '../lib/nowcast-playback-machine.js'
+  import { useMachine } from '../lib/xstate-svelte.js'
+
+  // Feature flag for XState migration
+  const USE_XSTATE = false // Set to true to test XState implementation
   import {
     lastFocus,
     sharedActiveCap,
@@ -106,6 +113,7 @@
     if (!config) return
     logger.log('Redrawing')
     const { grid } = config
+    logger.log('Grid config:', { start: config.start, end: config.end, now: config.now })
     if (!canvas) {
       logger.log('Grid not yet initialized, skipping redraw')
       return
@@ -149,6 +157,15 @@
 
     const gridKeys = Object.keys(grid)
     const rendered = {}
+
+    // Log canvas dimensions for debugging
+    logger.log('Canvas dimensions:', {
+      width: canvas.width,
+      height: canvas.height,
+      clientWidth: canvas.clientWidth,
+      clientHeight: canvas.clientHeight
+    })
+
     chart = new BarWithErrorBarsChart(canvas.getContext('2d'), {
       data: {
         labels: sortedKeys.map((key) => (key - config.now) / 60).map((v) => `${v}`),
@@ -194,7 +211,6 @@
         //     );
         //     ctx.textAlign = "center";
         //     ctx.textBaseline = "bottom";
-        //     console.log(chartInstance.data.datasets);
 
         //     chartInstance.data.datasets.forEach(function(dataset, i) {
         //       const meta = chartInstance.controller.getDatasetMeta(i);
@@ -208,8 +224,8 @@
         // },
         layout: {
           padding: {
-            left: 4,
-            right: 4,
+            left: 8,
+            right: 8,
             top: 40,
             bottom: 0,
           },
@@ -218,6 +234,10 @@
         maintainAspectRatio: false,
         legend: {
           display: false,
+        },
+        // Add callback to log chart resize events
+        onResize: (chart, size) => {
+          logger.log('Chart resized:', { width: size.width, height: size.height })
         },
         tooltips: {
           enabled: false,
@@ -234,10 +254,12 @@
             align() {
               return 'top'
             },
-            anchor() {
-              // if (context.dataIndex > 25) {
-              //   return "start";
-              // }
+            anchor(context) {
+              // Prevent labels at the edges from extending beyond bounds
+              const totalLabels = context.chart.data.labels.length
+              if (context.dataIndex === 0 || context.dataIndex === totalLabels - 1) {
+                return 'center' // Use center anchor for edge labels to keep them within bounds
+              }
               return 'end'
             },
             borderRadius: 4,
@@ -256,6 +278,15 @@
               }
               if (context.dataIndex - 1 in rendered || context.dataIndex - 2 in rendered) {
                 return null
+              }
+
+              // Log data label positioning for debugging
+              if (context.dataIndex === 0 || context.dataIndex === context.chart.data.labels.length - 1) {
+                logger.log('Data label at edge:', {
+                  dataIndex: context.dataIndex,
+                  label: context.chart.data.labels[context.dataIndex],
+                  value: val.y
+                })
               }
               if (context.chart.data.labels[context.dataIndex] === '0') {
                 rendered[context.dataIndex] = true
@@ -301,6 +332,10 @@
               tickMarkLength: 6,
               drawBorder: false,
             },
+            // Log x-axis configuration for debugging
+            afterBuildTicks: (axis) => {
+              logger.log('X-axis ticks:', axis.ticks.map(t => ({ label: t.label, value: t.value })))
+            },
             afterFit: (scale) => {
               scale.height = 18
               scale.paddingBottom = 0
@@ -341,6 +376,9 @@
               padding: -4,
               display: $bottomToolbarMode === 'player',
               autoSkipPadding: 0,
+              // Ensure axis labels stay within bounds
+              maxPadding: 0.1,
+              minPadding: 0.1,
             },
           },
           y: {
@@ -514,9 +552,116 @@
     },
   })
 
+  // XState implementation - parallel to existing FSM
+  const xstateMachine = createNowcastPlaybackMachine({
+    onShowScrollbar: () => {
+      bottomToolbarMode.set('player')
+      if ($precacheForecast === true) {
+        cap.precacheAllForecasts()
+      }
+      if (chart) {
+        canvasVisible = false
+        chart.options.scales.x.ticks.display = true
+        setTimeout(() => {
+          canvasVisible = true
+          chart.update()
+        }, 400)
+      }
+      playPauseButton = Play
+      if (slRange) slRange.value = `${cap.getMostRecentObservation()}`
+      setTimeout(() => {
+        if (slRange) slRange.value = `${cap.getMostRecentObservation()}`
+      }, 200)
+      setUIConstant('toast-stack-offset', '124px')
+
+      if (autoPlay) {
+        setTimeout(() => {
+          logger.log('Triggering auto-play')
+          if (cap.source && xstateService.state.value === 'manualScrolling') {
+            xstateService.send({ type: 'PRESS_PLAY' })
+          } else {
+            setTimeout(() => {
+              logger.log('Triggering deferred auto-play')
+              xstateService.send({ type: 'PRESS_PLAY' })
+            }, 1000)
+          }
+        }, 500)
+        autoPlay = false
+      }
+    },
+
+    onPressPlay: () => {
+      const playTick = (ttl = 10) => {
+        if (!slRange) {
+          if (ttl < 1) {
+            logger.error('slRange element did not appear')
+            return
+          }
+          setTimeout(() => playTick(ttl - 1), 200)
+          return
+        }
+        let thisFrameDelayMs = 450
+        const sliderValueInt = parseInt(slRange.value, 10)
+        if (sliderValueInt >= gridConfig.end) {
+          slRange.value = (includeHistoric ? gridConfig.start : gridConfig.now).toString()
+        } else {
+          slRange.value = (sliderValueInt + 5 * 60).toString()
+        }
+        if (sliderValueInt === 0) {
+          thisFrameDelayMs = 800
+        }
+        sliderChangedHandler(slRange.value)
+        if (slRange.value !== gridConfig.now || loop) {
+          playTimeout = window.setTimeout(playTick, thisFrameDelayMs)
+        } else {
+          playTimeout = 0
+          logger.log('Pausing due to slider usage')
+          xstateService.send({ type: 'PRESS_PAUSE' })
+        }
+      }
+      playTick()
+      playPauseButton = Pause
+    },
+
+    onPressPause: () => {
+      if (playTimeout !== 0) window.clearTimeout(playTimeout)
+      playTimeout = 0
+      playPauseButton = Play
+    },
+
+    onHideScrollbar: () => {
+      oldTimeStep = 0
+      slRange = null
+      cap.resetToLatest()
+      if (canvas) canvas.parentNode.classList.add('barChartCanvasWithoutPlayback')
+      if (chart) {
+        chart.options.scales.x.ticks.display = false
+        canvasVisible = false
+        setTimeout(() => {
+          canvasVisible = true
+          chart.update()
+        }, 400)
+      }
+      setUIConstant('toast-stack-offset')
+      bottomToolbarMode.set('collapsed')
+    }
+  })
+
+  // Use XState service if feature flag is enabled
+  let xstateService = null
+  if (USE_XSTATE) {
+    xstateService = useMachine(xstateMachine)
+  }
+
   function show() {
-    if (fsm.state === 'followLatest') {
-      fsm.showScrollbar()
+    if (USE_XSTATE) {
+      if (xstateService.state.value === 'followLatest') {
+        xstateService.send({ type: 'SHOW_SCROLLBAR' })
+      }
+    } else {
+      if (fsm.state === 'followLatest') {
+        fsm.showScrollbar()
+      }
     }
   }
 
@@ -528,14 +673,21 @@
   function hide() {
     if (playTimeout !== 0) window.clearTimeout(playTimeout)
     playTimeout = 0
-    fsm.hideScrollbar()
+    if (USE_XSTATE) {
+      xstateService.send({ type: 'HIDE_SCROLLBAR' })
+    } else {
+      fsm.hideScrollbar()
+    }
   }
 
   let latest
 
   onMount(async () => {
     window.leaveForeground = () => {
-      if (fsm.state === 'playing') {
+      if (USE_XSTATE && xstateService.state.value === 'playing') {
+        logger.log('Pausing due to window.leaveForeground();')
+        xstateService.send({ type: 'PRESS_PAUSE' })
+      } else if (!USE_XSTATE && fsm.state === 'playing') {
         logger.log('Pausing due to window.leaveForeground();')
         fsm.pressPause()
       }
@@ -550,8 +702,6 @@
       }
       //   // const gridSteps = Object.keys(grid);
       //   let changed = false;
-      //   // console.log(`Frontend grid: ${gridSteps.sort()}`);
-      //   // console.log(`Backend grid: ${Object.keys(data).sort()}`);
       //   Object.keys(data)
       //           .forEach((key) => {
       //             if (key in grid) {
@@ -619,9 +769,14 @@
     }
     if (value === oldTimeStep) return
 
-    if (userInteraction && fsm.state === 'playing') {
-      logger.log('Pausing due to sliderChangedHandler')
-      fsm.pressPause()
+    if (userInteraction) {
+      if (USE_XSTATE && xstateService.state.value === 'playing') {
+        logger.log('Pausing due to sliderChangedHandler')
+        xstateService.send({ type: 'PRESS_PAUSE' })
+      } else if (!USE_XSTATE && fsm.state === 'playing') {
+        logger.log('Pausing due to sliderChangedHandler')
+        fsm.pressPause()
+      }
     }
 
     if (userInteraction && dd.isIos()) {
@@ -647,16 +802,24 @@
     // XXX why...
     // window.setTimeout(() => {
     //  slRange.value = `${gridNow}`;
-    //  console.log(`${gridNow}`);
     // }, 200);
   }
 
   function playPause() {
-    if (fsm.state === 'playing') {
-      logger.log('Pausing due to button')
-      fsm.pressPause()
+    if (USE_XSTATE) {
+      if (xstateService.state.value === 'playing') {
+        logger.log('Pausing due to button')
+        xstateService.send({ type: 'PRESS_PAUSE' })
+      } else {
+        xstateService.send({ type: 'PRESS_PLAY' })
+      }
     } else {
-      fsm.pressPlay()
+      if (fsm.state === 'playing') {
+        logger.log('Pausing due to button')
+        fsm.pressPause()
+      } else {
+        fsm.pressPlay()
+      }
     }
   }
 
@@ -986,6 +1149,9 @@
     pointer-events: none;
     margin-right: 0.5em;
     z-index: 7;
+    /* Debug: Add border to see container bounds */
+    /* border: 1px solid red; */
+    overflow: hidden; /* Prevent content from overflowing */
   }
 
   .barChartCanvasWithoutPlayback {

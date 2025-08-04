@@ -4,11 +4,13 @@ import Collection from 'ol/Collection'
 import { defaults } from 'ol/control'
 import Attribution from 'ol/control/Attribution'
 import { circular as circularPolygon } from 'ol/geom/Polygon'
+import BaseLayer from 'ol/layer/Base'
 
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
+import Geometry from 'ol/geom/Geometry'
 import Style from 'ol/style/Style'
 import CircleStyle from 'ol/style/Circle'
 import Fill from 'ol/style/Fill'
@@ -23,6 +25,34 @@ import Capability from '../caps/Capability'
 
 let shouldUpdate = true
 
+// Type definitions
+interface Settings {
+  get(key: string): any
+  set(key: string, value: any): void
+  setCb(key: string, callback: (value: any) => void): void
+  cb(key: string): void
+}
+
+interface NanobarWrapper {
+  finish(url?: string): void
+}
+
+interface CapabilityOptions {
+  capability: typeof Capability
+  additionalLayers?: BaseLayer[]
+  options: {
+    hasBaseLayer: boolean
+    nanobar?: NanobarWrapper
+    [key: string]: any
+  }
+}
+
+interface LayerManagerOptions {
+  settings: Settings
+  nanobar?: NanobarWrapper
+  capabilities: CapabilityOptions[]
+}
+
 /**
  * Manages the reflectivity + forecast layers shown on the map. should be called MapManager XXX
  */
@@ -32,17 +62,17 @@ interface CapabilityMap {
 }
 
 export class LayerManager {
-  options: object
+  options: LayerManagerOptions
 
-  settings: any
+  settings: Settings
 
   capabilities: CapabilityMap
 
-  maps: Array<any>
+  maps: Map[]
 
-  accuracyFeatures: Array<any>
+  accuracyFeatures: Feature[]
 
-  positionFeatures: Array<any>
+  positionFeatures: Feature[]
 
   currentCap: string | null
 
@@ -50,7 +80,7 @@ export class LayerManager {
 
   popstateHandler: ((event: any) => void) | null = null
 
-  constructor(options: any) {
+  constructor(options: LayerManagerOptions) {
     this.options = options
     this.settings = options.settings
     this.capabilities = {}
@@ -60,10 +90,10 @@ export class LayerManager {
     this.currentCap = null
     this.mapCount = 0
 
-    options.capabilities.forEach((capability: any) => {
+    options.capabilities.forEach((capability) => {
       const newMap = this.mapFactory(capability.options.hasBaseLayer)
 
-      const newCap = new capability.capability(newMap, capability.additionalLayers || [], capability.options)
+      const newCap = new (capability.capability as any)(newMap, capability.additionalLayers || [], capability.options) as Capability
       this.capabilities[newCap.getName()] = newCap
       newMap.set('capability', newCap.getName())
       this.maps.push(newMap)
@@ -73,7 +103,7 @@ export class LayerManager {
     // const active = this.settings.get("capability");
     // this.capabilities[active].setTarget(document.getElementById("map"));
 
-    mapBaseLayer.subscribe((newBaseLayer: any) => {
+    mapBaseLayer.subscribe((newBaseLayer: string) => {
       this.switchBaseLayer(newBaseLayer)
     })
   }
@@ -92,7 +122,7 @@ export class LayerManager {
         }
       }
     }
-    this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly))
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly || undefined))
     let centerPoint
     const center = fromLonLat([lon, lat])
     if (lat === -1 && lon === -1 && accuracy === -1) {
@@ -102,7 +132,7 @@ export class LayerManager {
       centerPoint = center ? new Point(center) : null
       latLon.set([lat, lon] as any)
     }
-    this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint))
+    this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint || undefined))
 
     if (centerPoint === null) return
 
@@ -131,8 +161,8 @@ export class LayerManager {
   }
 
   resetLocation() {
-    this.positionFeatures.forEach((feature) => feature.setGeometry(null))
-    this.accuracyFeatures.forEach((feature) => feature.setGeometry(null))
+    this.positionFeatures.forEach((feature) => feature.setGeometry(undefined))
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(undefined))
   }
 
   mapFactory(baselayer = true) {
@@ -186,7 +216,7 @@ export class LayerManager {
       ;[lat, lon, z] = parts.map(parseFloat)
     }
 
-    let layers: any[] = []
+    let layers: BaseLayer[] = []
     if (baselayer) {
       layers = [this.baseLayerFactory(this.settings.get('mapBaseLayer'))]
     }
@@ -273,18 +303,18 @@ export class LayerManager {
   }
 
   switchBaseLayer(newBaseLayer: string) {
-    this.forEachMap((map: any) => {
+    this.forEachMap((map) => {
       if (map.get('baselayer') === false) return
       map
         .getLayers()
         .getArray()
-        .filter((layer: any) => layer.get('base') === true)
-        .forEach((layer: any) => map.removeLayer(layer))
+        .filter((layer) => layer.get('base') === true)
+        .forEach((layer) => map.removeLayer(layer))
       if (newBaseLayer) map.addLayer(this.baseLayerFactory(newBaseLayer))
     })
   }
 
-  forEachMap(cb: (map: any, capability: string) => void) {
+  forEachMap(cb: (map: Map, capability: string) => void) {
     this.maps.forEach((map) => cb(map, map.get('capability')))
   }
 
@@ -308,12 +338,12 @@ export class LayerManager {
     }
     this.capabilities[cap].setTarget(target)
     sharedActiveCap.set(cap)
-    ;(this as any).currentCap = cap
+    this.currentCap = cap
   }
 
   setDefaultTarget(target: string | HTMLElement) {
-    logger.log(`Starting with default cap ${(this as any).settings.get('capability')}`)
-    this.setTarget((this as any).settings.get('capability'), target)
+    logger.log(`Starting with default cap ${this.settings.get('capability')}`)
+    this.setTarget(this.settings.get('capability'), target)
   }
 
   destroy() {
@@ -324,7 +354,7 @@ export class LayerManager {
     }
 
     // Destroy all capabilities
-    Object.values(this.capabilities).forEach((cap: any) => {
+    Object.values(this.capabilities).forEach((cap) => {
       if (cap.destroy && typeof cap.destroy === 'function') {
         cap.destroy()
       }

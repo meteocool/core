@@ -39,7 +39,7 @@
   import './html/global.css'
   import '@shoelace-style/shoelace/dist/themes/base.css'
   import { apiBaseUrl, dataUrl, websocketBaseUrl } from './urls'
-  import { initUIConstants } from './layers/ui'
+  import { initUIConstants, cleanupUIConstants } from './layers/ui'
   import makeLightningLayer from './layers/lightning'
   import StrikeManager from './lib/StrikeManager'
   import MesoCycloneManager from './lib/MesoCycloneManager'
@@ -54,7 +54,7 @@
 
   interface Props {
     device: string
-    postInitCb?: (layerManager: any) => void
+    postInitCb?: (layerManager: LayerManager) => void
   }
 
   let { device, postInitCb }: Props = $props()
@@ -321,6 +321,9 @@
     if (lm && lm.destroy) {
       lm.destroy()
     }
+
+    // Clean up UI constants and media query listeners
+    cleanupUIConstants()
 
     // Clean up window.enterForeground function
     if ((window as any).enterForeground) {

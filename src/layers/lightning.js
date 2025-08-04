@@ -26,7 +26,6 @@ const styleFactory = (age, size) => {
   if (!styleCache[age][size]) {
     // XXX oh god i'm so sorry
     const opacity = Math.max(Math.min(1 - (age / 30) * 0.8 - 0.2, 1), 0)
-    // console.log("new size + age: " + size + ", " + age + ", opacity: " + opacity);
 
     styleCache[age][size] = new Style({
       image: new Icon({

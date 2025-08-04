@@ -367,7 +367,6 @@ export default class RadarCapability extends Capability {
       case 'manual':
         // if ("server_time" in obj) {
         //  const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
-        //  console.log(`wanttimestep=${wantTimestep}`);
         //  if (wantTimestep in this.gridconfig.grid) {
         //    this.setSource(wantTimestep);
         //  }

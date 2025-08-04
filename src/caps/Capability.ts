@@ -1,6 +1,12 @@
 import { Map } from 'ol'
+import BaseLayer from 'ol/layer/Base'
 import { Observable } from '../lib/util'
 import { sharedCmap } from '../stores'
+
+// Type definitions
+export type ColorMap = string
+
+export type TargetCallback = (target: string | HTMLElement) => void
 
 /**
  * A Capability implements map-related functionality (controller) on an OpenLayers map (view).
@@ -13,28 +19,28 @@ export default class Capability extends Observable {
 
   name: string
 
-  cmap: any
+  cmap: ColorMap | null
 
-  targetCb: any
+  targetCb: TargetCallback | null
 
-  constructor(map: Map, name: string, targetCb: any, additionalLayers: any[]) {
+  constructor(map: Map, name: string, targetCb: TargetCallback | null, additionalLayers: BaseLayer[]) {
     super()
     this.map = map
     this.targetCb = targetCb
     this.cmap = null
     this.name = name
 
-    additionalLayers.forEach((l: any) => map.addLayer(l))
+    additionalLayers.forEach((layer) => map.addLayer(layer))
   }
 
-  setTarget(target: any) {
+  setTarget(target: string | HTMLElement) {
     if (!this.map) return
     this.map.setTarget(target)
     if (this.targetCb && target) this.targetCb(target)
     if (this.cmap) sharedCmap.set(this.cmap)
   }
 
-  setCmap(cmap: any) {
+  setCmap(cmap: ColorMap) {
     this.cmap = cmap
     sharedCmap.set(cmap)
   }
@@ -50,4 +56,6 @@ export default class Capability extends Observable {
   willLoseFocus() {
     super.notify('loseFocus', null)
   }
+
+  destroy?(): void
 }

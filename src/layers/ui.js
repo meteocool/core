@@ -46,6 +46,10 @@ const darkmodeConstants = {
 
 export const NOWCAST_OPACITY = 0.75
 
+// Store media query reference for cleanup
+let darkModeMediaQuery = null
+let darkModeHandler = null
+
 export function setUIConstant(name, suite = uiConstantsDefault) {
   document.documentElement.style.setProperty(`--${name}`, suite[name])
 }
@@ -64,17 +68,28 @@ export function initUIConstants() {
   Object.keys(uiConstantsDefault).forEach((key) => setUIConstant(key))
 
   if (window.matchMedia) {
-    colorSchemeDark.set(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark )').matches)
-  }
-
-  if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+    darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    colorSchemeDark.set(darkModeMediaQuery.matches)
+    
+    // Store handler reference for cleanup
+    darkModeHandler = (e) => {
       logger.log(`changed to ${e.matches ? 'dark' : 'light'} mode`)
       colorSchemeDark.set(e.matches)
-    })
+    }
+    
+    darkModeMediaQuery.addListener(darkModeHandler)
   }
 
   setBasePath('/dist/shoelace/assets/')
+}
+
+export function cleanupUIConstants() {
+  // Clean up media query listener to prevent memory leaks
+  if (darkModeMediaQuery && darkModeHandler) {
+    darkModeMediaQuery.removeListener(darkModeHandler)
+    darkModeMediaQuery = null
+    darkModeHandler = null
+  }
 }
 
 // Dark and Light mode
