@@ -16,7 +16,7 @@
     "cross-env": "^10.0.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.3",
+    "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-svelte": "^3.11.0",
     "less": "^4.4.0",
     "playwright": "^1.54.2",
@@ -64,6 +64,6 @@
     "socket.io-client": "^4.8.1",
     "svelte-i18n": "^4.0.1",
     "workbox-window": "^7.3.0",
-    "xstate": "^5.20.1"
+    "xstate": "^5.20.2"
   }
 }
