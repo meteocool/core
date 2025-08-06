@@ -4,49 +4,27 @@
  */
 
 import { createActor } from 'xstate'
-import { onDestroy } from 'svelte'
 
 /**
- * Create a reactive XState actor that works with Svelte 5 runes
+ * Create a reactive XState actor that works with Svelte 5
+ * This function should be called from within a Svelte component
  * @param {import('xstate').AnyStateMachine} machine - XState machine
  * @param {Object} options - Actor options
- * @returns {Object} - Actor with reactive state
+ * @returns {Function} - Function that returns the XState service object
  */
-export function useActor(machine, options = {}) {
-  const actor = createActor(machine, options)
-  
-  // Create reactive state using Svelte 5 runes
-  let state = $state(actor.getSnapshot())
-  
-  // Start the actor
-  actor.start()
-  
-  // Subscribe to state changes
-  const subscription = actor.subscribe((snapshot) => {
-    state = snapshot
-  })
-  
-  // Cleanup on component destroy
-  onDestroy(() => {
-    subscription.unsubscribe()
-    actor.stop()
-  })
-  
-  return {
-    get state() {
-      return state
-    },
-    send: actor.send.bind(actor),
-    actor
+export function createMachineService(machine, options = {}) {
+  return () => {
+    const actor = createActor(machine, options)
+    actor.start()
+    return actor
   }
 }
 
 /**
- * Create a reactive state machine service
- * @param {import('xstate').AnyStateMachine} machine - XState machine
- * @param {Object} options - Service options  
- * @returns {Object} - Service with reactive state and send function
+ * Helper to get current state from actor
+ * @param {import('xstate').Actor} actor - XState actor
+ * @returns {Object} - Current state snapshot
  */
-export function useMachine(machine, options = {}) {
-  return useActor(machine, options)
+export function getCurrentState(actor) {
+  return actor ? actor.getSnapshot() : null
 }

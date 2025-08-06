@@ -5,26 +5,26 @@
 
 class MetaTagHandler {
   constructor(metaTags) {
-    this.metaTags = metaTags;
+    this.metaTags = metaTags
   }
 
   element(element) {
     // Append the OpenGraph meta tags to the head element
-    element.append(this.metaTags, { html: true });
+    element.append(this.metaTags, { html: true })
   }
 }
 
 export default {
   async fetch(request, env) {
-    const { searchParams, pathname } = new URL(request.url);
-    
+    const { searchParams, pathname } = new URL(request.url)
+
     // Only process index.html and root path for meta tag injection
     if (pathname === '/index.html' || pathname === '/') {
-      const latLonZ = searchParams.get('latLonZ');
-      const shareLang = searchParams.get('share_lang');
-      
+      const latLonZ = searchParams.get('latLonZ')
+      const shareLang = searchParams.get('share_lang')
+
       // Generate OpenGraph meta tags based on language and location
-      let metaTags;
+      let metaTags
       if (shareLang === 'de') {
         metaTags = `
           <meta property="og:title" content="meteocool Regenradar & Lightning Tracking" />
@@ -40,7 +40,7 @@ export default {
           <meta name="twitter:title" content="meteocool Regenradar & Lightning Tracking" />
           <meta name="twitter:description" content="Kostenfreie Open-Source Echtzeit Regenradar & Storm Tracking App für iOS, Android und das Web." />
           <meta name="description" content="Kostenfreie Open-Source Echtzeit Regenradar & Storm Tracking App für iOS, Android und das Web." />
-        `;
+        `
       } else {
         metaTags = `
           <meta property="og:title" content="meteocool Open Radar & Lightning Tracking" />
@@ -56,26 +56,24 @@ export default {
           <meta name="twitter:title" content="meteocool Open Radar & Lightning Tracking" />
           <meta name="twitter:description" content="Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD)." />
           <meta name="description" content="Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD)." />
-        `;
+        `
       }
-      
+
       // Fetch the static asset from the ASSETS binding
-      const assetResponse = await env.ASSETS.fetch(request);
-      
+      const assetResponse = await env.ASSETS.fetch(request)
+
       // Check if the response is HTML before applying HTMLRewriter
-      const contentType = assetResponse.headers.get('Content-Type');
+      const contentType = assetResponse.headers.get('Content-Type')
       if (contentType && contentType.includes('text/html')) {
         // Use HTMLRewriter to inject meta tags into the head element
-        return new HTMLRewriter()
-          .on('head', new MetaTagHandler(metaTags))
-          .transform(assetResponse);
+        return new HTMLRewriter().on('head', new MetaTagHandler(metaTags)).transform(assetResponse)
       }
-      
+
       // Return the asset response as-is if it's not HTML
-      return assetResponse;
+      return assetResponse
     }
-    
+
     // For all other paths, serve static assets directly
-    return env.ASSETS.fetch(request);
-  }
-};
+    return env.ASSETS.fetch(request)
+  },
+}

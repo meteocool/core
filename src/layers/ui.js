@@ -70,13 +70,13 @@ export function initUIConstants() {
   if (window.matchMedia) {
     darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     colorSchemeDark.set(darkModeMediaQuery.matches)
-    
+
     // Store handler reference for cleanup
     darkModeHandler = (e) => {
       logger.log(`changed to ${e.matches ? 'dark' : 'light'} mode`)
       colorSchemeDark.set(e.matches)
     }
-    
+
     darkModeMediaQuery.addListener(darkModeHandler)
   }
 

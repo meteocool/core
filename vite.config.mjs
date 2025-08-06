@@ -6,7 +6,7 @@ import sveltePreprocess from 'svelte-preprocess'
 import { resolve } from 'path'
 import { fileURLToPath, URL } from 'node:url'
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
   plugins: [
     cloudflare({
       configPath: 'wrangler.jsonc',

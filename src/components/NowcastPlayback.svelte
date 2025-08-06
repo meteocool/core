@@ -6,10 +6,10 @@
 
   // XState migration imports
   import { createNowcastPlaybackMachine } from '../lib/nowcast-playback-machine.js'
-  import { useMachine } from '../lib/xstate-svelte.js'
+  import { createMachineService, getCurrentState } from '../lib/xstate-svelte.js'
 
   // Feature flag for XState migration
-  const USE_XSTATE = false // Set to true to test XState implementation
+  const USE_XSTATE = true // XState enabled for production reliability
   import {
     lastFocus,
     sharedActiveCap,
@@ -163,7 +163,7 @@
       width: canvas.width,
       height: canvas.height,
       clientWidth: canvas.clientWidth,
-      clientHeight: canvas.clientHeight
+      clientHeight: canvas.clientHeight,
     })
 
     chart = new BarWithErrorBarsChart(canvas.getContext('2d'), {
@@ -285,7 +285,7 @@
                 logger.log('Data label at edge:', {
                   dataIndex: context.dataIndex,
                   label: context.chart.data.labels[context.dataIndex],
-                  value: val.y
+                  value: val.y,
                 })
               }
               if (context.chart.data.labels[context.dataIndex] === '0') {
@@ -334,7 +334,10 @@
             },
             // Log x-axis configuration for debugging
             afterBuildTicks: (axis) => {
-              logger.log('X-axis ticks:', axis.ticks.map(t => ({ label: t.label, value: t.value })))
+              logger.log(
+                'X-axis ticks:',
+                axis.ticks.map((t) => ({ label: t.label, value: t.value })),
+              )
             },
             afterFit: (scale) => {
               scale.height = 18
@@ -577,7 +580,7 @@
       if (autoPlay) {
         setTimeout(() => {
           logger.log('Triggering auto-play')
-          if (cap.source && xstateService.state.value === 'manualScrolling') {
+          if (cap.source && xstateState?.value === 'manualScrolling') {
             xstateService.send({ type: 'PRESS_PLAY' })
           } else {
             setTimeout(() => {
@@ -644,18 +647,28 @@
       }
       setUIConstant('toast-stack-offset')
       bottomToolbarMode.set('collapsed')
-    }
+    },
   })
 
   // Use XState service if feature flag is enabled
   let xstateService = null
+  let xstateState = $state(null)
+
   if (USE_XSTATE) {
-    xstateService = useMachine(xstateMachine)
+    const xstateMachine = createNowcastPlaybackMachine()
+    const createService = createMachineService(xstateMachine)
+    xstateService = createService()
+    xstateState = getCurrentState(xstateService)
+
+    // Subscribe to state changes
+    xstateService.subscribe((state) => {
+      xstateState = state
+    })
   }
 
   function show() {
     if (USE_XSTATE) {
-      if (xstateService.state.value === 'followLatest') {
+      if (xstateState?.value === 'followLatest') {
         xstateService.send({ type: 'SHOW_SCROLLBAR' })
       }
     } else {
@@ -684,7 +697,7 @@
 
   onMount(async () => {
     window.leaveForeground = () => {
-      if (USE_XSTATE && xstateService.state.value === 'playing') {
+      if (USE_XSTATE && xstateState?.value === 'playing') {
         logger.log('Pausing due to window.leaveForeground();')
         xstateService.send({ type: 'PRESS_PAUSE' })
       } else if (!USE_XSTATE && fsm.state === 'playing') {
@@ -770,7 +783,7 @@
     if (value === oldTimeStep) return
 
     if (userInteraction) {
-      if (USE_XSTATE && xstateService.state.value === 'playing') {
+      if (USE_XSTATE && xstateState?.value === 'playing') {
         logger.log('Pausing due to sliderChangedHandler')
         xstateService.send({ type: 'PRESS_PAUSE' })
       } else if (!USE_XSTATE && fsm.state === 'playing') {
@@ -807,7 +820,7 @@
 
   function playPause() {
     if (USE_XSTATE) {
-      if (xstateService.state.value === 'playing') {
+      if (xstateState?.value === 'playing') {
         logger.log('Pausing due to button')
         xstateService.send({ type: 'PRESS_PAUSE' })
       } else {
@@ -855,6 +868,15 @@
     if (playTimeout !== 0) {
       clearTimeout(playTimeout)
       playTimeout = 0
+    }
+
+    // Clean up XState service
+    if (USE_XSTATE && xstateService) {
+      try {
+        xstateService.stop()
+      } catch (error) {
+        logger.warn('Error stopping XState service:', error)
+      }
     }
 
     // Clean up chart if it exists
