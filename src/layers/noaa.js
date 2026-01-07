@@ -1,5 +1,8 @@
 import TileLayer from 'ol/layer/Tile'
 import { TileWMS } from 'ol/source'
+import { createTileLoadFunction } from '../lib/tileFetch'
+
+const tileLoadFunction = createTileLoadFunction()
 
 export const noaaBREF = () =>
   new TileLayer({
@@ -9,6 +12,7 @@ export const noaaBREF = () =>
       projection: 'EPSG:3857',
       zIndex: 80,
       attributions: ['© NOAA'],
+      tileLoadFunction,
     }),
     zIndex: 80,
     opacity: 0.8,

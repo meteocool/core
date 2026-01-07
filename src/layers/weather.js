@@ -4,6 +4,9 @@ import XYZ from 'ol/source/XYZ'
 import { centralEuropeExtent } from './extents'
 import { tileBaseUrl } from '../urls'
 import { dwdAttribution, imprintAttribution } from './attributions'
+import { createTileLoadFunction } from '../lib/tileFetch'
+
+const tileLoadFunction = createTileLoadFunction()
 
 export const weatherLayer = (tileID) => {
   const source = new XYZ({
@@ -13,6 +16,7 @@ export const weatherLayer = (tileID) => {
     attributions: [dwdAttribution, imprintAttribution],
     transition: 300,
     cacheSize: 99999,
+    tileLoadFunction,
   })
   return [
     source,

@@ -21,6 +21,7 @@ import { satelliteCombo } from '../layers/satellite'
 import { logger } from './logger.js'
 import Capability from '../caps/Capability'
 import GeolocateControl from './GeolocateControl'
+import LayerGroup from 'ol/layer/Group'
 
 let shouldUpdate = true
 
@@ -363,6 +364,25 @@ export class LayerManager {
   setDefaultTarget(target: string | HTMLElement) {
     logger.log(`Starting with default cap ${this.settings.get('capability')}`)
     this.setTarget(this.settings.get('capability'), target)
+  }
+
+  refreshTiles() {
+    const refreshLayer = (layer: BaseLayer) => {
+      if (layer instanceof LayerGroup) {
+        layer.getLayers().forEach((inner) => refreshLayer(inner as BaseLayer))
+        return
+      }
+      const source = (layer as any).getSource?.()
+      if (source?.refresh) {
+        source.refresh()
+      } else if (source?.changed) {
+        source.changed()
+      }
+    }
+
+    this.forEachMap((map) => {
+      map.getLayers().forEach((layer) => refreshLayer(layer as BaseLayer))
+    })
   }
 
   destroy() {

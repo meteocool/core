@@ -13,8 +13,10 @@ import { tileBaseUrl } from '../urls'
 import { NOWCAST_OPACITY } from './ui'
 import { cmapFromString } from '../lib/cmap_utils'
 import { RVP6_CLASSIC } from '../colormaps'
+import { createTileLoadFunction } from '../lib/tileFetch'
 
 let cmap = RVP6_CLASSIC
+const tileLoadFunction = createTileLoadFunction()
 
 const commonDWDParameters = {
   attributions: [dwdAttribution, blitzortungAttribution],
@@ -25,7 +27,7 @@ const commonDWDParameters = {
   tileSize: 512,
   transition: 0,
   imageSmoothing: false,
-  //tileLoadFunction: mcTileCache.getTileLoadingFunction(),
+  tileLoadFunction,
   cacheSize: 0,
 }
 
@@ -119,6 +121,7 @@ export const dwdPrecipTypes = (tileId, bucket = 'meteoradar') => {
     transition: 300,
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     tileSize: 512,
+    tileLoadFunction,
     cacheSize: 999999,
     imageSmoothing: false,
   })

@@ -40,3 +40,20 @@ export const lastFocus = writable(new Date())
 export const tileCacheHit = writable(0)
 export const tileCacheDownloaded = writable(0)
 export const tileCachePending = writable(0)
+
+export const networkStatus = writable({
+  online: true,
+  effectiveType: null,
+  isSlow: false,
+})
+
+export const tileStatus = writable({
+  inFlight: 0,
+  lastSuccessAt: null,
+  lastErrorAt: null,
+  lastErrorMessage: '',
+  lastErrorType: '',
+  stale: false,
+})
+
+export const tileRefreshSignal = writable(0)

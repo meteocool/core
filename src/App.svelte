@@ -9,6 +9,7 @@
   import Logo from './components/Logo.svelte'
   import NowcastPlayback from './components/NowcastPlayback.svelte'
   import BottomToolbar from './components/BottomToolbar.svelte'
+  import MapStatusOverlay from './components/MapStatusOverlay.svelte'
 
   import RadarCapability from './caps/RadarCapability'
   import SatelliteCapability from './caps/SatelliteCapability'
@@ -33,6 +34,7 @@
     radarColormap,
     radarColorScheme,
     snowLayerVisible,
+    tileRefreshSignal,
     toolbarVisible,
   } from './stores'
 
@@ -313,7 +315,13 @@
     }
     reloadLightning()
     reloadCyclones()
+    if (lm?.refreshTiles) lm.refreshTiles()
   }
+
+  const refreshUnsub = tileRefreshSignal.subscribe((value) => {
+    if (!value) return
+    if (lm?.refreshTiles) lm.refreshTiles()
+  })
 
   $effect(() => {
     if (postInitCb) postInitCb(lm)
@@ -342,6 +350,8 @@
     if ((window as any).settings) {
       delete (window as any).settings
     }
+
+    refreshUnsub?.()
   })
 </script>
 
@@ -354,6 +364,7 @@
 {/if}
 
 <div id="nanobar"></div>
+<MapStatusOverlay />
 <Map layerManager={lm} />
 
 {#if $toolbarVisible}

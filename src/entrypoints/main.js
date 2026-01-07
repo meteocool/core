@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/browser'
 import SENTRY_ARGS from '../lib/sentry.js'
+import { initNetworkStatus, cleanupNetworkStatus } from '../lib/networkStatus'
 
 if (process.env.NODE_ENV !== 'development') {
   Sentry.init(SENTRY_ARGS)
@@ -9,6 +10,8 @@ import { Workbox } from 'workbox-window'
 import App from '../App.svelte'
 import { mount } from 'svelte'
 import { logger } from '../lib/logger.js'
+
+initNetworkStatus()
 
 // Register service worker
 if ('serviceWorker' in navigator && process.env.NODE_ENV !== 'development') {
@@ -25,6 +28,15 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV !== 'development') {
     logger.error(error)
   }
 }
+
+const handleVisibility = () => {
+  if (document.visibilityState === 'visible' && window.enterForeground) {
+    window.enterForeground()
+  }
+}
+document.addEventListener('visibilitychange', handleVisibility)
+window.addEventListener('pagehide', cleanupNetworkStatus)
+window.addEventListener('beforeunload', cleanupNetworkStatus)
 
 const app = mount(App, {
   target: document.body,

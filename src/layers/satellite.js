@@ -2,6 +2,9 @@ import LayerGroup from 'ol/layer/Group'
 import TileLayer from 'ol/layer/WebGLTile'
 import XYZ from 'ol/source/XYZ'
 import { copernicusAttribution, ororatechAttribution } from './attributions'
+import { createTileLoadFunction } from '../lib/tileFetch'
+
+const tileLoadFunction = createTileLoadFunction()
 
 export function sentinel2(cloudy, visible = true) {
   const s2 = new TileLayer({
@@ -11,6 +14,7 @@ export function sentinel2(cloudy, visible = true) {
       maxZoom: 13,
       attributions: [copernicusAttribution, ororatechAttribution],
       crossOrigin: null,
+      tileLoadFunction,
     }),
     zIndex: 6,
     cacheSize: 256,
@@ -27,6 +31,7 @@ export function sentinel3() {
       maxZoom: 8,
       attributions: [copernicusAttribution, ororatechAttribution],
       crossOrigin: null,
+      tileLoadFunction,
     }),
     cacheSize: 256,
     zIndex: 5,
@@ -40,6 +45,7 @@ export function s5pAerosolIndex354() {
       maxZoom: 5,
       attributions: [copernicusAttribution, ororatechAttribution],
       crossOrigin: null,
+      tileLoadFunction,
     }),
     cacheSize: 256,
     zIndex: 5,

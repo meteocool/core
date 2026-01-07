@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/browser'
 import SENTRY_ARGS from '../lib/sentry.js'
+import { initNetworkStatus, cleanupNetworkStatus } from '../lib/networkStatus'
 
 Sentry.init(SENTRY_ARGS)
 
@@ -8,6 +9,8 @@ import App from '../App.svelte'
 import { DeviceDetect as dd } from '../lib/DeviceDetect'
 import { mount } from 'svelte'
 import { logger } from '../lib/logger.js'
+
+initNetworkStatus()
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -21,13 +24,25 @@ if ('serviceWorker' in navigator) {
   wb.register()
 }
 
+const handleVisibility = () => {
+  if (document.visibilityState === 'visible' && window.enterForeground) {
+    window.enterForeground()
+  }
+}
+document.addEventListener('visibilitychange', handleVisibility)
+window.addEventListener('pagehide', cleanupNetworkStatus)
+window.addEventListener('beforeunload', cleanupNetworkStatus)
+
 const app = mount(App, {
   target: document.body,
   props: {
     device: 'ios',
     postInitCb() {
       if (dd.isIos()) {
-        window.webkit.messageHandlers.scriptHandler.postMessage('requestSettings')
+        const handler = window.webkit?.messageHandlers?.scriptHandler
+        if (handler?.postMessage) {
+          handler.postMessage('requestSettings')
+        }
       }
     },
   },

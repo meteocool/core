@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/browser'
 import SENTRY_ARGS from '../lib/sentry.js'
+import { initNetworkStatus, cleanupNetworkStatus } from '../lib/networkStatus'
 
 Sentry.init(SENTRY_ARGS)
 
@@ -9,13 +10,17 @@ import { DeviceDetect as dd } from '../lib/DeviceDetect'
 import { mount } from 'svelte'
 import { logger } from '../lib/logger.js'
 
+initNetworkStatus()
+
 const app = mount(App, {
   target: document.body,
   props: {
     device: 'android',
     postInitCb() {
       if (dd.isAndroid()) {
-        Android.requestSettings()
+        if (window.Android && typeof window.Android.requestSettings === 'function') {
+          window.Android.requestSettings()
+        }
       }
     },
   },
@@ -34,3 +39,12 @@ if ('serviceWorker' in navigator) {
   })
   wb.register()
 }
+
+const handleVisibility = () => {
+  if (document.visibilityState === 'visible' && window.enterForeground) {
+    window.enterForeground()
+  }
+}
+document.addEventListener('visibilitychange', handleVisibility)
+window.addEventListener('pagehide', cleanupNetworkStatus)
+window.addEventListener('beforeunload', cleanupNetworkStatus)

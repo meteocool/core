@@ -1,5 +1,5 @@
 import { openDB } from 'idb'
-import { tileCacheDownloaded, tileCacheHit, tileCachePending } from '../stores'
+import { tileCacheDownloaded, tileCacheHit, tileCachePending, tileStatus } from '../stores'
 import { logger } from './logger.js'
 
 export class MeteoTileCache {
@@ -130,12 +130,18 @@ export class MeteoTileCache {
     const tx = (await idb).transaction('tiles', 'readonly')
     const store = tx.objectStore('tiles')
     const cachedBlob = await store.get(url)
-    if (cachedBlob) {
+    const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine !== false
+
+    if (!isOnline && cachedBlob) {
+      tileStatus.update((prev) => ({ ...prev, stale: true }))
       if (successCb) successCb(cachedBlob, true)
       return
     }
 
     try {
+      if (!isOnline) {
+        throw new Error('Offline')
+      }
       const response = await fetch(url)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
@@ -148,6 +154,11 @@ export class MeteoTileCache {
 
       await (await idb).put('ttl', Date.now() + expiryMin * 60 * 1000, url)
     } catch (error) {
+      if (cachedBlob) {
+        tileStatus.update((prev) => ({ ...prev, stale: true }))
+        if (successCb) successCb(cachedBlob, true)
+        return
+      }
       logger.error(`Failed to fetch and cache tile ${url}:`, error)
       // Don't rethrow - allow tile loading to fail gracefully
     }
