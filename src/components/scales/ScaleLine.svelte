@@ -2,8 +2,6 @@
   // CSS vars are now handled natively by Svelte
   const mapBgWebp = '/assets/map-bg.webp'
   const mapBgPng = '/assets/map-bg.png'
-  import { DeviceDetect as dd } from '../../lib/DeviceDetect'
-
   // Function to get optimized background image with WebP fallback
   function getBackgroundUrl() {
     // Check if WebP is supported
@@ -64,7 +62,7 @@
   </div>
 </div>
 
-<style lang="less">
+<style>
   .scale-dividers {
     display: flex;
     justify-content: space-between;

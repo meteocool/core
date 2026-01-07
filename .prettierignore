@@ -1,7 +1,12 @@
 node_modules/
 dist/
 .wrangler/
+AGENTS.md
+CLAUDE.md
+docs/plans/
 *.min.js
 *.config.js
+playwright.config.ts
 public/assets/
+wrangler.jsonc
 package-lock.json

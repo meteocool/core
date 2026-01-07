@@ -6,7 +6,7 @@ import { sharedCmap } from '../stores'
 // Type definitions
 export type ColorMap = string
 
-export type TargetCallback = (target: string | HTMLElement) => void
+export type TargetCallback = (_target: string | HTMLElement) => void
 
 /**
  * A Capability implements map-related functionality (controller) on an OpenLayers map (view).

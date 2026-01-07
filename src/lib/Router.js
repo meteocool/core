@@ -1,7 +1,7 @@
 import { logger } from './logger.js'
 
 export default class Router {
-  static ParseURL(url) {
+  static ParseURL() {
     const parts = new URL(window.location.href).searchParams
     if (parts.length > 1) {
       logger.log(parts)

@@ -2,14 +2,14 @@
   import McLayerSwitcher from './McLayerSwitcher.svelte'
   import 'ol/ol.css'
   import { layerswitcherVisible, bottomToolbarMode } from '../stores'
-  import { tick } from 'svelte'
+  import { onDestroy } from 'svelte'
   import { logger } from '../lib/logger.js'
 
   let { layerManager } = $props()
   let mapID
 
   let visible = $state()
-  layerswitcherVisible.subscribe((value) => {
+  const layerswitcherUnsub = layerswitcherVisible.subscribe((value) => {
     visible = value
   })
 
@@ -30,7 +30,7 @@
       layerManager.setTarget('radar', mapID)
     }, 100)
 
-    bottomToolbarMode.subscribe((val) => {
+    const bottomToolbarUnsub = bottomToolbarMode.subscribe((val) => {
       if (val === 'player') {
         document.getElementById(mapID).style.height = 'calc(100% - 88px)'
       } else if (val === 'collapsed') {
@@ -45,10 +45,15 @@
     setTimeout(updateMapSize, 300)
     return {
       destroy() {
+        bottomToolbarUnsub?.()
         logger.log('destroy')
       },
     }
   }
+
+  onDestroy(() => {
+    layerswitcherUnsub?.()
+  })
 </script>
 
 <div id="map" use:mapInit></div>
@@ -66,12 +71,25 @@
   }
 
   :global(.ol-zoom) {
-    display: none;
-    /* XXX */
+    /* Position zoom control top-right, below layer switcher */
+    right: 0.5em;
+    left: auto;
+    top: var(--ol-controls-top, 0.5em);
   }
+
+  /* Geolocate control positioning to stack below zoom */
+  :global(.ol-geolocate) {
+    right: 0.5em;
+    left: auto;
+    top: calc(var(--ol-controls-top, 0.5em) + 4.5em);
+  }
+
+  /* Keep OL default pointer event behavior; z-index fixes handle stacking */
 
   :global(:root) {
     --attributions-bottom-padding: 0.9em;
+    /* Keep OL controls below the layer-switcher (top-right 74px + 6px borders + 12px gap) */
+    --ol-controls-top: calc(1vh + 92px);
   }
 
   :global(.ol-attribution) {

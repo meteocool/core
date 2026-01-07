@@ -14,11 +14,9 @@
     layerManager.setTarget(layer, node.id)
   }
 
-  let down = false
   let lastX = 0
   let lastY = 0
   function mouseDown(evt) {
-    down = true
     lastX = evt.clientX
     lastY = evt.clientY
   }
@@ -27,7 +25,6 @@
     if (Math.abs(evt.clientX - lastX) < 10 && Math.abs(evt.clientY - lastY) < 10) {
       onchangeLayer?.(layer)
     }
-    down = false
   }
 </script>
 

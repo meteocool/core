@@ -3,8 +3,8 @@
 This is the frontend component [for meteocool, the free & open-source
 storm and lightning tracker](https://github.com/meteocool/).
 
-The meteocool frontend ist based on Svelte, Webpack, ES6 (transpiled
-via babel). The `develop` branch is automatically deployed to the
+The meteocool frontend is based on Svelte and Vite with modern
+JavaScript (ES2022 targets). The `develop` branch is automatically deployed to the
 [staging environment](https://better.meteocool.com), which can be
 viewed after enabling the "Experimental Features" setting in the
 iOS app or by joining the Beta program on meteocool Play store page.

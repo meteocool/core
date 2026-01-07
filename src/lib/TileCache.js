@@ -55,7 +55,7 @@ export class MeteoTileCache {
     }
   }
 
-  mapObserver(event) {
+  mapObserver(_event) {
     this.extent = this.map.getView().calculateExtent(this.map.getSize())
     this.setZoom()
     logger.log(`Map moved at z=${this.map.getView().getZoom()}`)
@@ -116,7 +116,7 @@ export class MeteoTileCache {
       logger.log(`Precaching ${tilesetUrl} @ ${tileCoord}`)
       tileCachePending.set(new Date())
       const [z, x, y] = tileCoord
-      await MeteoTileCache.fetchAndCache(await this.idb, `${tilesetUrl}${z}/${x}/${2 ** z - y - 1}.png`, (_, cached) => {
+      await MeteoTileCache.fetchAndCache(await this.idb, `${tilesetUrl}${z}/${x}/${2 ** z - y - 1}.png`, (_blob, cached) => {
         if (cached) {
           tileCacheHit.set(new Date())
         } else {

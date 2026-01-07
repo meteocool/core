@@ -1,6 +1,5 @@
 <script>
   import { Play, Pause, ChevronsDown, ChevronsUp, History, Repeat } from '../lib/IconRegistry'
-  import StateMachine from 'javascript-state-machine'
   import { fly, fade } from 'svelte/transition'
   import { onMount, onDestroy } from 'svelte'
 
@@ -8,13 +7,10 @@
   import { createNowcastPlaybackMachine } from '../lib/nowcast-playback-machine.js'
   import { createMachineService, getCurrentState } from '../lib/xstate-svelte.js'
 
-  // Feature flag for XState migration
-  const USE_XSTATE = true // XState enabled for production reliability
   import {
     lastFocus,
     sharedActiveCap,
     cycloneLayerVisible,
-    latLon,
     lightningLayerVisible,
     bottomToolbarMode,
     radarColormap,
@@ -70,15 +66,6 @@
 
   let gridConfig = $state(null)
 
-  let userLatLon = $state()
-  let showBars = $state(true)
-  latLon.subscribe((latlonUpdate) => {
-    userLatLon = latlonUpdate
-    if (!userLatLon) {
-      showBars = false
-    }
-  })
-
   let canvasVisible = $state(true)
   let showOpenControls = $state(false)
 
@@ -88,6 +75,13 @@
   let playTimeout
 
   let slRange = $state(null)
+  $effect(() => {
+    if (slRange) {
+      window.slr = slRange
+    } else if (window.slr) {
+      window.slr = null
+    }
+  })
 
   let loop = $state(true)
   let historicActive = $state(true)
@@ -168,7 +162,7 @@
 
     chart = new BarWithErrorBarsChart(canvas.getContext('2d'), {
       data: {
-        labels: sortedKeys.map((key) => (key - config.now) / 60).map((v) => `${v}`),
+        labels: sortedKeys.map((key) => (key - config.now) / 60),
         datasets: [
           {
             data: d,
@@ -288,7 +282,7 @@
                   value: val.y,
                 })
               }
-              if (context.chart.data.labels[context.dataIndex] === '0') {
+              if (Number(context.chart.data.labels[context.dataIndex]) === 0) {
                 rendered[context.dataIndex] = true
                 return $_('now')
               }
@@ -368,8 +362,15 @@
                 if (label == 120) {
                   return '2h'
                 }
-                if (Math.abs(label) % skip === 0) {
-                  return label
+                const labelValue = Number(label)
+                if (!Number.isFinite(labelValue)) {
+                  return ''
+                }
+                if (labelValue === 0) {
+                  return 'now'
+                }
+                if (Math.abs(labelValue) % skip === 0) {
+                  return `${labelValue}`
                 }
                 return ''
               },
@@ -405,7 +406,7 @@
     redraw(gridConfig)
   })
 
-  function updateSliderToLatest(config) {
+  function updateSliderToLatest() {
     if (slRange) slRange.value = `${cap.getMostRecentObservation()}`
   }
 
@@ -421,141 +422,6 @@
     redraw(gridConfig)
   }
 
-  const fsm = new StateMachine({
-    init: 'followLatest',
-    transitions: [
-      {
-        name: 'showScrollbar',
-        from: 'followLatest',
-        to: 'manualScrolling',
-      },
-      {
-        name: 'pressPlay',
-        from: 'manualScrolling',
-        to: 'playing',
-      },
-      {
-        name: 'pressPause',
-        from: 'playing',
-        to: 'manualScrolling',
-      },
-      {
-        name: 'hideScrollbar',
-        from: '*',
-        to: 'followLatest',
-      },
-      {
-        name: 'hideScrollbar',
-        from: 'followLatest',
-        to: 'followLatest',
-      },
-    ],
-    methods: {
-      onShowScrollbar: () => {
-        bottomToolbarMode.set('player')
-        if ($precacheForecast === true) {
-          cap.precacheAllForecasts()
-        }
-        if (chart) {
-          canvasVisible = false
-          chart.options.scales.x.ticks.display = true
-          setTimeout(() => {
-            canvasVisible = true
-            chart.update()
-          }, 400)
-        }
-        playPauseButton = Play
-        if (slRange) slRange.value = `${cap.getMostRecentObservation()}`
-        setTimeout(() => {
-          if (slRange) slRange.value = `${cap.getMostRecentObservation()}`
-        }, 200)
-        setUIConstant('toast-stack-offset', '124px')
-
-        if (autoPlay) {
-          setTimeout(() => {
-            logger.log('Triggering auto-play')
-            if (cap.source && fsm.state === 'manualScrolling') {
-              fsm.pressPlay()
-            } else {
-              setTimeout(() => {
-                // Workaround for #2279954594 (wtf is going on Android people) and #2217587657
-                logger.log('Triggering deferred auto-play')
-                fsm.pressPlay()
-              }, 1000)
-            }
-          }, 500)
-          autoPlay = false
-        }
-      },
-      onEnterWaitingState: (t) => {
-        if (t.from === 'playing') {
-          autoPlay = true
-          // XXX deduplicate with onPressPause:
-          if (playTimeout !== 0) window.clearTimeout(playTimeout)
-          playTimeout = 0
-          playPauseButton = Play
-        }
-      },
-      onPressPlay: () => {
-        const playTick = (ttl = 10) => {
-          if (!slRange) {
-            // "Workaround" for #2320876836
-            if (ttl < 1) {
-              logger.error('slRange element did not appear')
-              return
-            }
-            setTimeout(() => playTick(ttl - 1), 200)
-            return
-          }
-          let thisFrameDelayMs = 450
-          const sliderValueInt = parseInt(slRange.value, 10)
-          if (sliderValueInt >= gridConfig.end) {
-            slRange.value = (includeHistoric ? gridConfig.start : gridConfig.now).toString()
-          } else {
-            slRange.value = (sliderValueInt + 5 * 60).toString()
-          }
-          if (sliderValueInt === 0) {
-            thisFrameDelayMs = 800
-          }
-          sliderChangedHandler(slRange.value)
-          if (slRange.value !== gridConfig.now || loop) {
-            playTimeout = window.setTimeout(playTick, thisFrameDelayMs)
-          } else {
-            playTimeout = 0
-            logger.log('Pausing due to slider usage')
-            fsm.pressPause()
-          }
-        }
-        playTick()
-        playPauseButton = Pause
-      },
-      onPressPause: () => {
-        if (playTimeout !== 0) window.clearTimeout(playTimeout)
-        playTimeout = 0
-        playPauseButton = Play
-      },
-      onHideScrollbar: (transition) => {
-        if (transition.from === 'followLatest') return
-        oldTimeStep = 0
-        slRange = null
-        cap.resetToLatest()
-        if (canvas) canvas.parentNode.classList.add('barChartCanvasWithoutPlayback')
-        if (chart) {
-          chart.options.scales.x.ticks.display = false
-          canvasVisible = false
-          setTimeout(() => {
-            canvasVisible = true
-            chart.update()
-          }, 400)
-        }
-        setUIConstant('toast-stack-offset')
-
-        bottomToolbarMode.set('collapsed')
-      },
-    },
-  })
-
-  // XState implementation - parallel to existing FSM
   const xstateMachine = createNowcastPlaybackMachine({
     onShowScrollbar: () => {
       bottomToolbarMode.set('player')
@@ -650,32 +516,21 @@
     },
   })
 
-  // Use XState service if feature flag is enabled
   let xstateService = null
   let xstateState = $state(null)
 
-  if (USE_XSTATE) {
-    const xstateMachine = createNowcastPlaybackMachine()
-    const createService = createMachineService(xstateMachine)
-    xstateService = createService()
-    xstateState = getCurrentState(xstateService)
+  const createService = createMachineService(xstateMachine)
+  xstateService = createService()
+  xstateState = getCurrentState(xstateService)
 
-    // Subscribe to state changes
-    xstateService.subscribe((state) => {
-      xstateState = state
-    })
-  }
+  // Subscribe to state changes
+  xstateService.subscribe((state) => {
+    xstateState = state
+  })
 
   function show() {
-    if (USE_XSTATE) {
-      if (xstateState?.value === 'followLatest') {
-        xstateService.send({ type: 'SHOW_SCROLLBAR' })
-      }
-    } else {
-      if (fsm.state === 'followLatest') {
-        fsm.showScrollbar()
-      }
-    }
+    if (xstateService) xstateService.send({ type: 'SHOW_SCROLLBAR' })
+    bottomToolbarMode.set('player')
   }
 
   function showAndPlay() {
@@ -686,23 +541,14 @@
   function hide() {
     if (playTimeout !== 0) window.clearTimeout(playTimeout)
     playTimeout = 0
-    if (USE_XSTATE) {
-      xstateService.send({ type: 'HIDE_SCROLLBAR' })
-    } else {
-      fsm.hideScrollbar()
-    }
+    xstateService.send({ type: 'HIDE_SCROLLBAR' })
   }
-
-  let latest
 
   onMount(async () => {
     window.leaveForeground = () => {
-      if (USE_XSTATE && xstateState?.value === 'playing') {
+      if (xstateState?.value === 'playing') {
         logger.log('Pausing due to window.leaveForeground();')
         xstateService.send({ type: 'PRESS_PAUSE' })
-      } else if (!USE_XSTATE && fsm.state === 'playing') {
-        logger.log('Pausing due to window.leaveForeground();')
-        fsm.pressPause()
       }
     }
 
@@ -711,7 +557,6 @@
       if (subject === 'grid' && data) {
         gridConfig = data
         showOpenControls = true
-        latest = cap.getMostRecentObservation()
       }
       //   // const gridSteps = Object.keys(grid);
       //   let changed = false;
@@ -776,63 +621,42 @@
   })
 
   function sliderChangedHandler(value, userInteraction = false) {
-    if (Number.isNaN(value)) {
+    const numericValue = typeof value === 'string' ? Number.parseInt(value, 10) : value
+    if (Number.isNaN(numericValue)) {
       logger.log('sliderChangedHandler called with NaN')
       return
     }
-    if (value === oldTimeStep) return
+    if (numericValue === oldTimeStep) return
 
     if (userInteraction) {
-      if (USE_XSTATE && xstateState?.value === 'playing') {
+      if (xstateState?.value === 'playing') {
         logger.log('Pausing due to sliderChangedHandler')
         xstateService.send({ type: 'PRESS_PAUSE' })
-      } else if (!USE_XSTATE && fsm.state === 'playing') {
-        logger.log('Pausing due to sliderChangedHandler')
-        fsm.pressPause()
       }
     }
 
     if (userInteraction && dd.isIos()) {
       let impact = 'Light'
-      if (value === 0) {
+      if (numericValue === 0) {
         impact = 'Medium'
       }
       window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`)
     }
 
-    cap.setSource(value)
+    cap.setSource(numericValue)
     // if (value in grid && 'url' in grid[value] && grid[value].url) {
     //   cap.setUrl(grid[value].url);
     //   capTimeIndicator.set(value);
     // }
-    oldTimeStep = value
-  }
-
-  function initSlider(elem) {
-    elem.addEventListener('sl-change', (value) => sliderChangedHandler(value.target.value, true))
-    slRange = elem
-    window.slr = slRange
-    // XXX why...
-    // window.setTimeout(() => {
-    //  slRange.value = `${gridNow}`;
-    // }, 200);
+    oldTimeStep = numericValue
   }
 
   function playPause() {
-    if (USE_XSTATE) {
-      if (xstateState?.value === 'playing') {
-        logger.log('Pausing due to button')
-        xstateService.send({ type: 'PRESS_PAUSE' })
-      } else {
-        xstateService.send({ type: 'PRESS_PLAY' })
-      }
+    if (xstateState?.value === 'playing') {
+      logger.log('Pausing due to button')
+      xstateService.send({ type: 'PRESS_PAUSE' })
     } else {
-      if (fsm.state === 'playing') {
-        logger.log('Pausing due to button')
-        fsm.pressPause()
-      } else {
-        fsm.pressPlay()
-      }
+      xstateService.send({ type: 'PRESS_PLAY' })
     }
   }
 
@@ -871,7 +695,7 @@
     }
 
     // Clean up XState service
-    if (USE_XSTATE && xstateService) {
+    if (xstateService) {
       try {
         xstateService.stop()
       } catch (error) {
@@ -930,81 +754,93 @@
         </div>
       </div>
       <div class="slider">
-        <sl-range
+        <input
+          type="range"
           min={gridConfig.start}
           max={gridConfig.end}
           step={60 * 5}
-          class="range"
-          use:initSlider
-          tooltip="none"
-          style="--thumb-size: 21px;"
-        ></sl-range>
+          class="range ui-range"
+          bind:this={slRange}
+          onchange={(event) => sliderChangedHandler(event.currentTarget.value, true)}
+        />
         <div class="flexbox gap">
           <div class="checkbox">
             <div class="button-group-toolbar">
-              <sl-button-group label="Playback Controls">
-                <sl-button
-                  size={buttonSize}
+              <div class="ui-button-group" role="group" aria-label="Playback Controls">
+                <button
+                  type="button"
+                  class="ui-button"
+                  class:ui-button--medium={buttonSize === 'medium'}
                   onclick={playPause}
-                  style="--sl-button-font-size-small: 16px; --sl-button-font-size-medium: 16px;"
+                  aria-pressed={xstateState?.value === 'playing'}
                 >
-                  <div class="faIconButton" slot="prefix">
+                  <div class="faIconButton">
                     {#if playPauseButton === Play}<Play />{:else}<Pause />{/if}
                   </div>
-                </sl-button>
-                <sl-button
-                  size={buttonSize}
-                  type={loop ? 'primary' : 'default'}
+                </button>
+                <button
+                  type="button"
+                  class="ui-button"
+                  class:ui-button--medium={buttonSize === 'medium'}
+                  class:is-primary={loop}
                   onclick={toggleLoop}
-                  style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;"
+                  aria-pressed={loop}
                 >
                   <div class="faIconButton">
                     <Repeat />
                   </div>
-                </sl-button>
-                <sl-button
-                  size={buttonSize}
-                  type={includeHistoric ? 'primary' : 'default'}
+                </button>
+                <button
+                  type="button"
+                  class="ui-button"
+                  class:ui-button--medium={buttonSize === 'medium'}
+                  class:is-primary={includeHistoric}
                   disabled={!historicActive}
                   onclick={toggleHistoric}
-                  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;"
+                  aria-pressed={includeHistoric}
                 >
                   <div class="faIconButton">
                     <History />
                   </div>
-                </sl-button>
-              </sl-button-group>
+                </button>
+              </div>
             </div>
           </div>
           <div class="checkbox">
             <div class="button-group-toolbar">
-              <sl-button-group label="Map Layers">
-                <sl-button size={buttonSize} type={$lightningLayerVisible ? 'primary' : 'default'} onclick={toggleLightning}
-                  >⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button
+              <div class="ui-button-group" role="group" aria-label="Map Layers">
+                <button
+                  type="button"
+                  class="ui-button"
+                  class:ui-button--medium={buttonSize === 'medium'}
+                  class:is-primary={$lightningLayerVisible}
+                  onclick={toggleLightning}
+                  aria-pressed={$lightningLayerVisible}
                 >
-                <sl-button size={buttonSize} type={$cycloneLayerVisible ? 'primary' : 'default'} onclick={toggleCyclones}
-                  >🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button
+                  ⚡ <span class="hide-on-small-screens">Lightning Strikes</span>
+                </button>
+                <button
+                  type="button"
+                  class="ui-button"
+                  class:ui-button--medium={buttonSize === 'medium'}
+                  class:is-primary={$cycloneLayerVisible}
+                  onclick={toggleCyclones}
+                  aria-pressed={$cycloneLayerVisible}
                 >
-              </sl-button-group>
+                  🌀 <span class="hide-on-small-screens">Mesocyclones</span>
+                </button>
+              </div>
             </div>
           </div>
           <div class="checkbox buttonsInline">
             <div class="button-group-toolbar">
-              <sl-button size={buttonSize} onclick={hide}>
+              <button type="button" class="ui-button" class:ui-button--medium={buttonSize === 'medium'} onclick={hide}>
                 <div class="faIconButton">
                   <ChevronsDown />️
                 </div>
-              </sl-button>
+              </button>
             </div>
           </div>
-          {#if false}
-            <div class="checkbox">
-              <sl-select size={buttonSize}>
-                <sl-menu-item value="option-1" checked selected>DWD</sl-menu-item>
-                <sl-menu-item value="option-2">Rainymotion</sl-menu-item>
-              </sl-select>
-            </div>
-          {/if}
           <div class="break"></div>
           <div class="checkbox">
             <TimeIndicator />
@@ -1047,7 +883,7 @@
 <style>
   .timeslider {
     height: 90px;
-    z-index: 6;
+    z-index: 100001;
     padding-top: 6px;
   }
 
@@ -1081,7 +917,7 @@
     position: absolute;
     bottom: env(safe-area-inset-bottom);
     left: 0.3em;
-    z-index: 4;
+    z-index: 100000;
   }
 
   .buttonBar.right {
@@ -1120,8 +956,63 @@
     top: 5px;
   }
 
+  .ui-range {
+    accent-color: var(--sl-color-primary-600);
+  }
+
   .checkbox {
     margin-top: 4px;
+  }
+
+  .button-group-toolbar {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .ui-button-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.1em;
+    border-radius: 6px;
+    border: 1px solid var(--sl-color-gray-200);
+    background: var(--sl-color-white);
+  }
+
+  .ui-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 0.5em;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--sl-color-black);
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+
+  .ui-button--medium {
+    min-width: 36px;
+    height: 36px;
+    font-size: 0.85rem;
+  }
+
+  .ui-button.is-primary {
+    background: var(--sl-color-primary-600);
+    color: var(--sl-color-primary-text);
+  }
+
+  .ui-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .ui-button:focus-visible {
+    outline: 2px solid var(--sl-color-primary-600);
+    outline-offset: 2px;
   }
 
   .faIconButton {
@@ -1138,7 +1029,7 @@
     height: 14px !important;
   }
 
-  .controlIcon {
+  :global(.controlIcon) {
     width: 14px !important;
     height: 14px !important;
     display: block;
@@ -1150,7 +1041,7 @@
     height: 14px !important;
   }
 
-  .controlIconInline {
+  :global(.controlIconInline) {
     width: 12px !important;
     height: 12px !important;
     display: block;

@@ -1,26 +1,3 @@
-/* Imported for side effects (registering the pseudo elements) */
-/* eslint-disable no-unused-vars */
-import SlAlert from '@shoelace-style/shoelace/dist/components/alert/alert'
-import SlButton from '@shoelace-style/shoelace/dist/components/button/button'
-import SlButtonGroup from '@shoelace-style/shoelace/dist/components/button-group/button-group'
-import SlCheckbox from '@shoelace-style/shoelace/dist/components/checkbox/checkbox'
-import SlDialog from '@shoelace-style/shoelace/dist/components/dialog/dialog'
-import SlDrodown from '@shoelace-style/shoelace/dist/components/dropdown/dropdown'
-import SlIcon from '@shoelace-style/shoelace/dist/components/icon/icon'
-import SlIconButton from '@shoelace-style/shoelace/dist/components/icon-button/icon-button'
-import SlMenu from '@shoelace-style/shoelace/dist/components/menu/menu'
-import SlMenuItem from '@shoelace-style/shoelace/dist/components/menu-item/menu-item'
-import SlMenuLabel from '@shoelace-style/shoelace/dist/components/menu-label/menu-label'
-import SlProgressRing from '@shoelace-style/shoelace/dist/components/progress-ring/progress-ring'
-import SlRange from '@shoelace-style/shoelace/dist/components/range/range'
-import SlSelect from '@shoelace-style/shoelace/dist/components/select/select'
-import SlSpinner from '@shoelace-style/shoelace/dist/components/spinner/spinner'
-import SlSwitch from '@shoelace-style/shoelace/dist/components/switch/switch'
-import SlTag from '@shoelace-style/shoelace/dist/components/tag/tag'
-import SlTooltip from '@shoelace-style/shoelace/dist/components/tooltip/tooltip'
-import SlResizeObserver from '@shoelace-style/shoelace/dist/components/resize-observer/resize-observer'
-import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path'
-
 import { colorSchemeDark } from '../stores'
 import { logger } from '../lib/logger.js'
 
@@ -51,7 +28,10 @@ let darkModeMediaQuery = null
 let darkModeHandler = null
 
 export function setUIConstant(name, suite = uiConstantsDefault) {
-  document.documentElement.style.setProperty(`--${name}`, suite[name])
+  const value = typeof suite === 'string' ? suite : suite[name]
+  if (value !== undefined) {
+    document.documentElement.style.setProperty(`--${name}`, value)
+  }
 }
 
 export function unsetUIConstant(name) {
@@ -77,16 +57,14 @@ export function initUIConstants() {
       colorSchemeDark.set(e.matches)
     }
 
-    darkModeMediaQuery.addListener(darkModeHandler)
+    darkModeMediaQuery.addEventListener('change', darkModeHandler)
   }
-
-  setBasePath('/dist/shoelace/assets/')
 }
 
 export function cleanupUIConstants() {
   // Clean up media query listener to prevent memory leaks
   if (darkModeMediaQuery && darkModeHandler) {
-    darkModeMediaQuery.removeListener(darkModeHandler)
+    darkModeMediaQuery.removeEventListener('change', darkModeHandler)
     darkModeMediaQuery = null
     darkModeHandler = null
   }

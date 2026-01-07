@@ -66,12 +66,12 @@
 </script>
 
 <div class="live-wrapper" use:init>
-  <sl-tag type="danger" class="live" size="small" pill>
+  <div class="live ui-tag" role="status" aria-live="polite">
     <div class="circle-container circle-container-light-red" use:blink>
       <FaCircle />
     </div>
     <span class="label">{$_('latest')}</span>
-  </sl-tag>
+  </div>
 </div>
 
 <style>
@@ -88,6 +88,17 @@
 
   .live {
     padding-top: 2px;
+  }
+
+  .ui-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: #fee2e2;
+    color: var(--sl-color-danger-800);
+    border: 1px solid #fecaca;
   }
 
   .circle-container {

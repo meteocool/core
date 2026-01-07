@@ -1,6 +1,5 @@
 import { Map, View } from 'ol'
 import { fromLonLat, getTransformFromProjections, get as getProjection, toLonLat } from 'ol/proj'
-import Collection from 'ol/Collection'
 import { defaults } from 'ol/control'
 import Attribution from 'ol/control/Attribution'
 import { circular as circularPolygon } from 'ol/geom/Polygon'
@@ -10,31 +9,31 @@ import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
-import Geometry from 'ol/geom/Geometry'
 import Style from 'ol/style/Style'
 import CircleStyle from 'ol/style/Circle'
 import Fill from 'ol/style/Fill'
 import Stroke from 'ol/style/Stroke'
 import { get } from 'svelte/store'
 import { cartoDark, cartoLight, osm, cyclosm } from '../layers/base'
-import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from '../stores'
+import { latLon, mapBaseLayer, sharedActiveCap, zoomlevel } from '../stores'
 import { DeviceDetect as dd } from './DeviceDetect'
 import { satelliteCombo } from '../layers/satellite'
 import { logger } from './logger.js'
 import Capability from '../caps/Capability'
+import GeolocateControl from './GeolocateControl'
 
 let shouldUpdate = true
 
 // Type definitions
 interface Settings {
-  get(key: string): any
-  set(key: string, value: any): void
-  setCb(key: string, callback: (value: any) => void): void
-  cb(key: string): void
+  get(_key: string): any
+  set(_key: string, _value: any): void
+  setCb(_key: string, _callback: (_value: any) => void): void
+  cb(_key: string): void
 }
 
 interface NanobarWrapper {
-  finish(url?: string): void
+  finish(_url?: string): void
 }
 
 interface CapabilityOptions {
@@ -78,7 +77,7 @@ export class LayerManager {
 
   mapCount: number
 
-  popstateHandler: ((event: any) => void) | null = null
+  popstateHandler: ((_event: any) => void) | null = null
 
   constructor(options: LayerManagerOptions) {
     this.options = options
@@ -237,6 +236,26 @@ export class LayerManager {
             }),
       controls,
     })
+
+    // Add native-styled geolocate control (top-left, below zoom)
+    if (!dd.isApp()) {
+      const locate = new GeolocateControl({
+        onLocate: () => {
+          if (!('geolocation' in navigator)) return
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              // zoom = true, focus = true
+              this.updateLocation(position.coords.latitude, position.coords.longitude, position.coords.accuracy ?? 1, true, true)
+            },
+            () => {
+              // silently ignore errors; control stays enabled
+            },
+          )
+        },
+        title: 'Locate me',
+      })
+      newMap.addControl(locate)
+    }
     const isApp = dd.isApp()
     newMap.on('moveend', () => {
       if (get(sharedActiveCap) !== newMap.get('capability')) {
@@ -314,7 +333,7 @@ export class LayerManager {
     })
   }
 
-  forEachMap(cb: (map: Map, capability: string) => void) {
+  forEachMap(cb: (_map: Map, _capability: string) => void) {
     this.maps.forEach((map) => cb(map, map.get('capability')))
   }
 

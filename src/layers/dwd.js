@@ -13,7 +13,6 @@ import { tileBaseUrl } from '../urls'
 import { NOWCAST_OPACITY } from './ui'
 import { cmapFromString } from '../lib/cmap_utils'
 import { RVP6_CLASSIC } from '../colormaps'
-import { mcTileCache } from '../lib/TileCache'
 
 let cmap = RVP6_CLASSIC
 
@@ -65,7 +64,7 @@ export const DWDLayerFactoryGL = (tileId, bucket = 'meteoradar') => {
   const toColorId = ['+', ['*', 255 * 256 * 256, ['band', 1]], ['+', ['*', 255 * 256, ['band', 2]], ['*', 255, ['band', 3]]]]
 
   const indexes = RVP6_CLASSIC.map((rgba) => {
-    const [r, g, b, _] = rgba
+    const [r, g, b, _a] = rgba
     return r * 256 * 256 + g * 256 + b
   })
 

@@ -1,6 +1,5 @@
 // XXX this thing has a problem where the datatypes are lost when stuff is saved to localstroage.
 
-import Router from './Router'
 import { logger } from './logger.js'
 
 export default class Settings {

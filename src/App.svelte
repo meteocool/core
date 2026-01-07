@@ -37,7 +37,7 @@
   } from './stores'
 
   import './html/global.css'
-  import '@shoelace-style/shoelace/dist/themes/base.css'
+  import './html/ui-tokens.css'
   import { apiBaseUrl, dataUrl, websocketBaseUrl } from './urls'
   import { initUIConstants, cleanupUIConstants } from './layers/ui'
   import makeLightningLayer from './layers/lightning'
@@ -54,12 +54,14 @@
 
   interface Props {
     device: string
-    postInitCb?: (layerManager: LayerManager) => void
+    postInitCb?: (_layerManager: LayerManager) => void
   }
 
   let { device, postInitCb }: Props = $props()
 
-  dd.set(device)
+  $effect(() => {
+    dd.set(device)
+  })
 
   addMessages('de', de)
   addMessages('en', en)
@@ -184,7 +186,7 @@
     mesocycloneLayer.setVisible(value)
     ;(window as any).settings.set('layerMesocyclones', value)
   })
-  lightningLayerVisible.set((window as any).settings.get('layerMesocyclones'))
+  cycloneLayerVisible.set((window as any).settings.get('layerMesocyclones'))
 
   radarSocketIO.on('lightning', (data) => {
     strikemgr.addStrike(data.lon, data.lat)
@@ -313,7 +315,9 @@
     reloadCyclones()
   }
 
-  if (postInitCb) postInitCb(lm)
+  $effect(() => {
+    if (postInitCb) postInitCb(lm)
+  })
 
   // Clean up on component destroy
   onDestroy(() => {
@@ -383,9 +387,67 @@
     box-shadow: 0 0 3px rgb(135, 202, 214);
   }
 
-  :global(.sl-toast-stack) {
+  :global(.toast-stack) {
+    position: fixed;
+    right: 12px;
     bottom: calc(env(safe-area-inset-bottom) + var(--toast-stack-offset));
     top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000000;
+    max-width: min(360px, 90vw);
+    pointer-events: none;
+  }
+
+  :global(.toast) {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.5em 0.75em;
+    border-radius: 8px;
+    border: 1px solid var(--sl-color-gray-200);
+    background: var(--sl-color-white);
+    color: var(--sl-color-black);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 150ms ease,
+      transform 150ms ease;
+    pointer-events: auto;
+    font-size: 0.85rem;
+  }
+
+  :global(.toast--show) {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  :global(.toast--hide) {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  :global(.toast__icon) {
+    font-size: 1rem;
+  }
+
+  :global(.toast__close) {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  :global(.toast--primary) {
+    border-color: var(--sl-color-primary-600);
+  }
+
+  :global(.toast--warning) {
+    border-color: var(--sl-color-danger-600);
   }
 
   :global(*) {

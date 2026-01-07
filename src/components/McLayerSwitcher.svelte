@@ -1,19 +1,12 @@
 <script>
   import { Layers } from '../lib/IconRegistry'
   import MiniMap from './MiniMap.svelte'
-  import * as attributions from '../layers/attributions'
   import { DeviceDetect as dd } from '../lib/DeviceDetect'
   import { _ } from 'svelte-i18n'
   import { logger } from '../lib/logger.js'
 
   let { layerManager, onchangeLayer } = $props()
   const childCanvases = {}
-
-  const allAttributionsArray = Object.entries(attributions)
-    .filter((k) => k[0] !== 'imprintAttribution')
-    .map((k) => k[1])
-  allAttributionsArray.sort()
-  const allAttributions = allAttributionsArray.join(' ')
 
   window.openLayerswitcher = () => {
     const ls = document.getElementById('ls')
@@ -26,7 +19,7 @@
     })
   }
 
-  function open(elem) {
+  function open(_elem) {
     window.openLayerswitcher()
   }
 

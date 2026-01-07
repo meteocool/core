@@ -39,14 +39,14 @@
 </script>
 
 <div class="wrapper">
-  <sl-tag type="danger" size="medium" pill>
+  <div class="ui-tag">
     <table class="dev">
       <tbody>
         <tr><th>Tiles<br />(Pending/Loaded/Cached)</th><td>{pending || 0} / {downloaded || 0} / {hit || 0}</td></tr>
         <tr><th>Cache Size</th><td>{usage ? (usage / 1024 / 1024).toFixed(1) : '0.0'} MiB</td></tr>
       </tbody>
     </table>
-  </sl-tag>
+  </div>
 </div>
 
 <style>
@@ -69,5 +69,14 @@
   }
   th {
     text-align: right;
+  }
+
+  .ui-tag {
+    display: inline-block;
+    padding: 4px 6px;
+    border-radius: 9999px;
+    background: #fee2e2;
+    color: var(--sl-color-danger-800);
+    border: 1px solid #fecaca;
   }
 </style>

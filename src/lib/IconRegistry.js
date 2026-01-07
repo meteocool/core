@@ -4,6 +4,8 @@
  * and bundle optimization. Replaces FontAwesome with modern Lucide icons.
  */
 
+import { Play, Pause, ChevronsDown, ChevronsUp, History, Repeat, Layers, Circle, Github } from '@lucide/svelte/icons'
+
 // Lucide icons - direct component exports maintaining FontAwesome-compatible names
 export {
   Play as FaPlay,
@@ -15,7 +17,7 @@ export {
   Layers as FaLayerGroup,
   Circle as FaCircle,
   Github as FaGithub,
-} from '@lucide/svelte'
+}
 
 // Keep old names for backward compatibility but with proper naming
 export {
@@ -28,9 +30,9 @@ export {
   Layers as faLayerGroup,
   Circle as faCircle,
   Github as faGithub,
-} from '@lucide/svelte'
+}
 
 // For backwards compatibility, also export individual icons with their Lucide names
-export { Play, Pause, ChevronsDown, ChevronsUp, History, Repeat, Layers, Circle, Github } from '@lucide/svelte'
+export { Play, Pause, ChevronsDown, ChevronsUp, History, Repeat, Layers, Circle, Github }
 
 // Note: Lucide icons are used directly as components, no wrapper Icon component needed

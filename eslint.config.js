@@ -30,8 +30,11 @@ export default [
         navigator: 'readonly',
         Image: 'readonly',
         HTMLElement: 'readonly',
+        HTMLButtonElement: 'readonly',
         getComputedStyle: 'readonly',
-        getComputedStyle: 'readonly',
+        requestAnimationFrame: 'readonly',
+        TextDecoder: 'readonly',
+        Response: 'readonly',
         // Node.js globals
         process: 'readonly',
         module: 'readonly',
@@ -44,7 +47,6 @@ export default [
         HTMLRewriter: 'readonly',
         // App-specific globals
         Android: 'readonly',
-        getComputedStyle: 'readonly',
       },
     },
     plugins: {
@@ -55,7 +57,14 @@ export default [
       ...prettierConfig.rules,
       'prettier/prettier': 'error',
       'no-console': 'warn',
-      'no-unused-vars': 'warn',
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'no-inner-declarations': 'off',
       // Disable import rules that don't exist in our config
       'import/no-mutable-exports': 'off',
@@ -86,6 +95,10 @@ export default [
         Image: 'readonly',
         HTMLElement: 'readonly',
         getComputedStyle: 'readonly',
+        HTMLButtonElement: 'readonly',
+        requestAnimationFrame: 'readonly',
+        TextDecoder: 'readonly',
+        Response: 'readonly',
         // Node.js globals
         process: 'readonly',
       },
@@ -100,7 +113,14 @@ export default [
       'prettier/prettier': 'error',
       'svelte/no-unused-svelte-ignore': 'warn',
       'no-console': 'warn',
-      'no-unused-vars': 'warn',
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'no-inner-declarations': 'off',
       // Disable import rules that don't exist in our config
       'import/no-mutable-exports': 'off',
@@ -117,6 +137,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', '*.config.js', 'public/', '.eslintrc.js'],
+    ignores: ['dist/', 'node_modules/', '*.config.js', 'public/', '.eslintrc.js', '.wrangler/', '.npm-cache/', 'playwright.config.ts'],
   },
 ]

@@ -10,6 +10,9 @@
   let slPercent = $state(75)
   let updateTimeout = 0
   let loading = $state(false)
+  const ringRadius = 9
+  const ringCircumference = 2 * Math.PI * ringRadius
+  let ringOffset = $derived(ringCircumference * (1 - slPercent / 100))
 
   const updateTime = () => {
     if (!lastUpdated) return
@@ -52,33 +55,63 @@
 <div class="info">
   {#if lastUpdatedStr}
     {#if loading}
-      <sl-spinner class="spinner"></sl-spinner>
+      <span class="spinner" aria-label={$_('loading')}></span>
     {:else}
-      <sl-progress-ring percentage={slPercent} size="20" stroke-width="1.5" class="progress-ring"></sl-progress-ring>
+      <svg class="progress-ring" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+        <circle class="progress-ring__track" cx="10" cy="10" r={ringRadius}></circle>
+        <circle
+          class="progress-ring__indicator"
+          cx="10"
+          cy="10"
+          r={ringRadius}
+          stroke-dasharray={ringCircumference}
+          stroke-dashoffset={ringOffset}
+        ></circle>
+      </svg>
     {/if}
     {lastUpdatedStr}
   {:else}
-    <sl-spinner class="spinner"></sl-spinner> {$_('loading')}...
+    <span class="spinner" aria-label={$_('loading')}></span> {$_('loading')}...
   {/if}
 </div>
 
 <style>
   .progress-ring {
-    --indicator-color: rgb(52, 120, 246);
     position: relative;
     top: 6px;
     transform: scaleX(-1);
   }
 
+  .progress-ring__track,
+  .progress-ring__indicator {
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .progress-ring__track {
+    stroke: rgba(52, 120, 246, 0.2);
+  }
+
+  .progress-ring__indicator {
+    stroke: rgb(52, 120, 246);
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 0.2s linear;
+  }
+
   .spinner {
-    --indicator-color: rgb(52, 120, 246);
-    --stroke-width: 1.66px;
     position: relative;
     top: 5px;
     margin-top: 3px;
     margin-right: 3px;
-    font-size: 15px;
     transform: scaleX(-1);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(52, 120, 246, 0.2);
+    border-top-color: rgb(52, 120, 246);
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
   }
 
   .info {
@@ -88,5 +121,14 @@
     flex-wrap: nowrap;
     min-width: 100px;
     white-space: nowrap;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg) scaleX(-1);
+    }
+    to {
+      transform: rotate(360deg) scaleX(-1);
+    }
   }
 </style>

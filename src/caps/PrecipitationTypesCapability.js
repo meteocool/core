@@ -1,6 +1,6 @@
 import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores'
 import Capability from './Capability.ts'
-import { apiBaseUrl, v3APIBaseUrl } from '../urls'
+import { v3APIBaseUrl } from '../urls'
 import { dwdPrecipTypes } from '../layers/dwd.js'
 import { logger } from '../lib/logger.js'
 

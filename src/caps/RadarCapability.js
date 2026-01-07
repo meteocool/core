@@ -3,7 +3,7 @@ import VectorTileSource from 'ol/source/VectorTile'
 import MVT from 'ol/format/MVT'
 import { Fill, Style } from 'ol/style'
 const snow = '/assets/snow.png'
-import { DWDLayerFactoryGL, dwdLayerStatic, dwdSource, setDwdCmap } from '../layers/dwd.js'
+import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from '../layers/dwd.js'
 import { reportError } from '../lib/Toast'
 import { logger } from '../lib/logger.js'
 import {
@@ -16,9 +16,6 @@ import {
   radarColorScheme,
   showForecastPlaybutton,
   snowLayerVisible,
-  tileCacheHit,
-  tileCacheDownloaded,
-  tileCachePending,
   zoomlevel,
 } from '../stores'
 import Capability from './Capability.ts'

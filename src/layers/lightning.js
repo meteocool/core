@@ -123,7 +123,7 @@ export default function makeLightningLayer() {
   ]
 }
 
-export const lightningLayerGL = (tileId, map) => {
+export const lightningLayerGL = (tileId, _map) => {
   const URL = `${tileBaseUrl}/meteoradar/${tileId}/{z}/{x}/{y}.pbf`
   return new VectorTileLayer({
     zIndex: 90,
@@ -138,7 +138,7 @@ export const lightningLayerGL = (tileId, map) => {
   })
 }
 
-export const lightningLayerDumb = (tileId, map) =>
+export const lightningLayerDumb = (_tileId, _map) =>
   new VectorLayer({
     zIndex: 91,
     source: new VectorSource({}),

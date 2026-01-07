@@ -2,11 +2,6 @@ import Point from 'ol/geom/Point'
 import { Feature } from 'ol'
 import VectorSource from 'ol/source/Vector'
 
-interface Strike {
-  lat: number
-  lon: number
-}
-
 interface LightningMap {
   [time: string]: Feature
 }

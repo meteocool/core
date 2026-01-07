@@ -5,13 +5,14 @@
 
 const isDev = import.meta.env.DEV
 
+/* eslint-disable no-console */
 export const logger = {
   log: (...args) => {
     if (isDev) console.log(...args)
   },
 
   warn: (...args) => {
-    if (isDev) console.warn(...args)
+    console.warn(...args)
   },
 
   error: (...args) => {

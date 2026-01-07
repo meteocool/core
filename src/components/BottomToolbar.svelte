@@ -8,18 +8,7 @@
   import { fromExtent } from 'ol/geom/Polygon'
   import LastUpdated from './LastUpdated.svelte'
   import { DeviceDetect as dd } from '../lib/DeviceDetect'
-  import {
-    capDescription,
-    satelliteLayer,
-    sharedActiveCap,
-    bottomToolbarMode,
-    zoomlevel,
-    satelliteLayerCloudy,
-    satelliteLayerLabels,
-    radarColormap,
-    capLastUpdated,
-    latLon,
-  } from '../stores'
+  import { satelliteLayer, sharedActiveCap, bottomToolbarMode, zoomlevel, satelliteLayerCloudy, satelliteLayerLabels } from '../stores'
   import StepScaleLine from './scales/StepScaleLine.svelte'
   import Appendix from './Appendix.svelte'
   import RadarScaleLine from './scales/RadarScaleLine.svelte'
@@ -28,7 +17,6 @@
   import { v3APIBaseUrl } from '../urls'
   import { LightningColors, precipTypeNames } from '../colormaps'
   import { logger } from '../lib/logger.js'
-
   Chart.defaults.font.size = 10
 
   let { layerManager } = $props()
@@ -36,47 +24,14 @@
   Chart.register(BarController, BarElement, CategoryScale, LinearScale)
 
   let s3Disabled = $state(false)
-  let e
   zoomlevel.subscribe((z) => {
     if (z > 12) {
       satelliteLayer.set('sentinel2')
-      if (e) e.checked = true
       s3Disabled = true
     } else {
       s3Disabled = false
     }
   })
-
-  function cloudmask(elem) {
-    const listener = (event) => {
-      satelliteLayerCloudy.set(!get(satelliteLayerCloudy))
-    }
-    elem.addEventListener('sl-change', listener)
-    domEventListeners.push({ target: elem, type: 'sl-change', listener })
-  }
-
-  function labelsBorders(elem) {
-    const listener = (event) => {
-      satelliteLayerLabels.set(event.target.checked)
-    }
-    elem.addEventListener('sl-change', listener)
-    domEventListeners.push({ target: elem, type: 'sl-change', listener })
-  }
-
-  function sentinel2(elem) {
-    const listener = (event) => {
-      const satellite = event.target.checked ? 'sentinel2' : 'sentinel3'
-      satelliteLayer.set(satellite)
-    }
-    elem.addEventListener('sl-change', listener)
-    domEventListeners.push({ target: elem, type: 'sl-change', listener })
-  }
-
-  let description
-  capDescription.subscribe((desc) => {
-    description = desc
-  })
-
   let activeCap = $state()
   sharedActiveCap.subscribe((val) => {
     activeCap = val
@@ -85,7 +40,6 @@
   let lightningCanvas
   let chart
   let mapEventListeners = []
-  let domEventListeners = []
 
   function redrawLightningChart(data) {
     if (chart) {
@@ -258,12 +212,6 @@
     })
     mapEventListeners = []
 
-    // Clean up DOM event listeners
-    domEventListeners.forEach(({ target, type, listener }) => {
-      target.removeEventListener(type, listener)
-    })
-    domEventListeners = []
-
     // Clean up timeouts
     if (delayedLoader) {
       clearTimeout(delayedLoader)
@@ -311,13 +259,43 @@
         {/if}
         {#if activeCap === 'satellite'}
           <div class="float">
-            <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
+            <label class="ui-checkbox">
+              <input
+                type="checkbox"
+                checked={$satelliteLayer === 'sentinel2'}
+                disabled={s3Disabled}
+                onchange={(event) => {
+                  const checked = event.currentTarget.checked
+                  satelliteLayer.set(checked ? 'sentinel2' : 'sentinel3')
+                }}
+              />
+              <span>Sentinel-2</span>
+            </label>
           </div>
           <div class="float">
-            <sl-checkbox use:cloudmask disabled={$satelliteLayer !== 'sentinel2'}>Clouds</sl-checkbox>
+            <label class="ui-checkbox">
+              <input
+                type="checkbox"
+                checked={$satelliteLayerCloudy}
+                disabled={$satelliteLayer !== 'sentinel2'}
+                onchange={() => {
+                  satelliteLayerCloudy.set(!get(satelliteLayerCloudy))
+                }}
+              />
+              <span>Clouds</span>
+            </label>
           </div>
           <div class="float">
-            <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>
+            <label class="ui-checkbox">
+              <input
+                type="checkbox"
+                checked={$satelliteLayerLabels}
+                onchange={(event) => {
+                  satelliteLayerLabels.set(event.currentTarget.checked)
+                }}
+              />
+              <span>Labels &amp; Borders</span>
+            </label>
           </div>
         {/if}
         {#if activeCap === 'lightning'}
@@ -449,6 +427,25 @@
     margin-right: 2em;
     margin-top: 0.5em;
     margin-bottom: 1.5em;
+  }
+
+  .ui-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.9em;
+    color: var(--sl-color-black);
+    user-select: none;
+  }
+
+  .ui-checkbox input {
+    width: 1em;
+    height: 1em;
+    accent-color: var(--sl-color-primary-600);
+  }
+
+  .ui-checkbox input:disabled + span {
+    opacity: 0.6;
   }
 
   .lightningChart {
