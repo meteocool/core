@@ -92,6 +92,12 @@
     --ol-controls-top: calc(1vh + 92px);
   }
 
+  @media only screen and (max-width: 620px) {
+    :global(:root) {
+      --ol-controls-top: calc(1vh + 66px);
+    }
+  }
+
   :global(.ol-attribution) {
     height: 1.2em;
     padding-bottom: calc(0.25em + var(--attributions-bottom-padding));

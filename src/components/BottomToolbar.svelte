@@ -226,7 +226,7 @@
   })
 </script>
 
-<div class="bottomToolbar lastUpdatedBottom" transition:fly={{ y: 100, duration: 200 }}>
+<div class="bottomToolbar lastUpdatedBottom" class:player-open={$bottomToolbarMode === 'player'} transition:fly={{ y: 100, duration: 200 }}>
   <div class="parentz">
     {#if activeCap === 'radar' && $bottomToolbarMode === 'collapsed'}
       <div class="left">
@@ -338,6 +338,10 @@
     :global(.bottomToolbar) {
       height: 84px !important;
       padding-top: 0px;
+    }
+
+    .lastUpdatedBottom.player-open {
+      display: none;
     }
 
     .break {

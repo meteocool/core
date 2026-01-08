@@ -1088,7 +1088,7 @@
     }
 
     .barChartCanvas {
-      bottom: 142px;
+      bottom: 118px;
       left: 0;
       width: 99%;
     }
@@ -1105,14 +1105,14 @@
     }
 
     .flexbox {
-      gap: 5px !important;
+      gap: 4px !important;
       padding-left: 1%;
       padding-right: 1%;
-      margin-top: -2px;
+      margin-top: -4px;
     }
 
     .timeslider {
-      height: 153px !important;
+      height: 120px !important;
     }
 
     .hide-on-small-screens {
@@ -1127,6 +1127,14 @@
     .buttonBar.right {
       left: unset;
       right: 0.3em;
+    }
+
+    .checkbox {
+      margin-top: 2px;
+    }
+
+    .gap {
+      gap: 10px;
     }
   }
 </style>

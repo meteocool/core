@@ -84,6 +84,7 @@
     display: flex;
     justify-content: center;
     touch-action: none;
+    pointer-events: none;
   }
 
   .live {
@@ -116,5 +117,25 @@
   .label {
     font-size: 110%;
     letter-spacing: 0px;
+  }
+
+  @media only screen and (max-width: 620px) {
+    .live-wrapper {
+      top: calc(env(safe-area-inset-top) + 0.2em);
+    }
+
+    .ui-tag {
+      gap: 3px;
+      padding: 1px 6px;
+    }
+
+    .circle-container {
+      padding-right: 3px;
+      font-size: 7px;
+    }
+
+    .label {
+      font-size: 95%;
+    }
   }
 </style>

@@ -172,4 +172,20 @@
     cursor: pointer;
     color: white;
   }
+
+  @media only screen and (max-width: 620px) {
+    .lsToggle {
+      width: 54px;
+      height: 54px;
+      border-width: 2px;
+      border-radius: 30px;
+      top: calc(env(safe-area-inset-top) + 6px);
+      right: 6px;
+    }
+
+    div :global(.lsIcon) {
+      width: 28px !important;
+      height: 28px !important;
+    }
+  }
 </style>
