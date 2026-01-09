@@ -4,6 +4,7 @@
   import { formatDistanceToNow } from 'date-fns'
   import getDfnLocale from '../locale/locale'
   import { networkStatus, tileRefreshSignal, tileStatus } from '../stores'
+  import { shouldShowNetworkBanner } from '../lib/networkBanner'
 
   let net = $state({ online: true, effectiveType: null, isSlow: false })
   let tile = $state({ inFlight: 0, lastSuccessAt: null, lastErrorAt: null, lastErrorMessage: '', lastErrorType: '', stale: false })
@@ -24,14 +25,11 @@
     tileUnsub?.()
   })
 
-  const showOverlay = $derived.by(() => tile.inFlight > 0 || !net.online || net.isSlow || Boolean(tile.lastErrorAt) || tile.stale)
+  const showOverlay = $derived.by(() => shouldShowNetworkBanner(net))
 
   const statusLabel = $derived.by(() => {
     if (!net.online) return $_('offline')
-    if (tile.stale) return $_('cached_data')
     if (net.isSlow) return $_('slow_connection')
-    if (tile.lastErrorAt) return $_('connection_issue')
-    if (tile.inFlight > 0) return $_('loading')
     return ''
   })
 
@@ -41,7 +39,7 @@
     return `${$_('last_success')} ${formatDistanceToNow(tile.lastSuccessAt, { locale: getDfnLocale(), addSuffix: true })}`
   })
 
-  const showRetry = $derived.by(() => !net.online || Boolean(tile.lastErrorAt) || tile.stale)
+  const showRetry = $derived.by(() => !net.online)
 
   const retry = () => {
     tileRefreshSignal.update((value) => value + 1)
