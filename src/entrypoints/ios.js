@@ -11,6 +11,7 @@ import { mount } from 'svelte'
 import { logger } from '../lib/logger.js'
 
 initNetworkStatus()
+dd.set('ios')
 
 // Register service worker
 if ('serviceWorker' in navigator) {

@@ -11,6 +11,7 @@ import { mount } from 'svelte'
 import { logger } from '../lib/logger.js'
 
 initNetworkStatus()
+dd.set('android')
 
 const app = mount(App, {
   target: document.body,

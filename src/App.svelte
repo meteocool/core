@@ -61,8 +61,6 @@
 
   let { device, postInitCb }: Props = $props()
 
-  dd.set(device)
-
   $effect(() => {
     dd.set(device)
   })

@@ -10,6 +10,7 @@ import { Workbox } from 'workbox-window'
 import App from '../App.svelte'
 import { mount } from 'svelte'
 import { logger } from '../lib/logger.js'
+import { DeviceDetect as dd } from '../lib/DeviceDetect'
 
 initNetworkStatus()
 
@@ -37,6 +38,8 @@ const handleVisibility = () => {
 document.addEventListener('visibilitychange', handleVisibility)
 window.addEventListener('pagehide', cleanupNetworkStatus)
 window.addEventListener('beforeunload', cleanupNetworkStatus)
+
+dd.set('web')
 
 const app = mount(App, {
   target: document.body,
