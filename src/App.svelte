@@ -1,7 +1,7 @@
 <script lang="ts">
   import View from 'ol/View'
   import { addMessages, init, getLocaleFromNavigator } from 'svelte-i18n'
-  import { onDestroy } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
 
   import { io } from 'socket.io-client'
   import { fromLonLat } from 'ol/proj'
@@ -61,6 +61,8 @@
 
   let { device, postInitCb }: Props = $props()
 
+  dd.set(device)
+
   $effect(() => {
     dd.set(device)
   })
@@ -74,6 +76,11 @@
   })
 
   initUIConstants()
+
+  if (dd.isApp()) {
+    logoStyle.set('none')
+    layerswitcherVisible.set('no')
+  }
   ;(window as any).settings = new Settings({
     experimentalFeatures: {
       type: 'boolean',
@@ -133,17 +140,25 @@
     },
     logo: {
       type: 'string',
-      default: 'full',
+      default: dd.isApp() ? 'none' : 'full',
       source: 'url',
       cb: (value) => {
+        if (dd.isApp()) {
+          logoStyle.set('none')
+          return
+        }
         logoStyle.set(value)
       },
     },
     layerswitcher: {
       type: 'string',
-      default: 'yes',
+      default: dd.isApp() ? 'no' : 'yes',
       source: 'url',
       cb: (value) => {
+        if (dd.isApp()) {
+          layerswitcherVisible.set('no')
+          return
+        }
         layerswitcherVisible.set(value)
       },
     },
@@ -321,6 +336,59 @@
   const refreshUnsub = tileRefreshSignal.subscribe((value) => {
     if (!value) return
     if (lm?.refreshTiles) lm.refreshTiles()
+  })
+
+  let attributionUpdateTimeout
+
+  const getVisibleBottomToolbarHeight = () => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return 0
+    const elements = Array.from(document.querySelectorAll('.bottomToolbar'))
+    let maxHeight = 0
+    elements.forEach((element) => {
+      const style = window.getComputedStyle(element)
+      if (style.display === 'none' || style.visibility === 'hidden') return
+      const rect = element.getBoundingClientRect()
+      if (rect.height > maxHeight) {
+        maxHeight = rect.height
+      }
+    })
+    return Math.round(maxHeight)
+  }
+
+  const applyAttributionPadding = () => {
+    if (!dd.isApp() || typeof document === 'undefined') return
+    const height = getVisibleBottomToolbarHeight()
+    const padding = height > 0 ? `calc(env(safe-area-inset-bottom) + ${height}px)` : '0px'
+    document.documentElement.style.setProperty('--attributions-bottom-padding', padding)
+  }
+
+  const scheduleAttributionUpdate = () => {
+    applyAttributionPadding()
+    if (typeof window === 'undefined') return
+    if (attributionUpdateTimeout) {
+      window.clearTimeout(attributionUpdateTimeout)
+    }
+    attributionUpdateTimeout = window.setTimeout(() => {
+      applyAttributionPadding()
+    }, 450)
+  }
+
+  onMount(() => {
+    if (!dd.isApp()) return undefined
+    scheduleAttributionUpdate()
+    const bottomToolbarUnsub = bottomToolbarMode.subscribe(() => {
+      scheduleAttributionUpdate()
+    })
+    const handleResize = () => scheduleAttributionUpdate()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      bottomToolbarUnsub?.()
+      window.removeEventListener('resize', handleResize)
+      if (attributionUpdateTimeout) {
+        window.clearTimeout(attributionUpdateTimeout)
+        attributionUpdateTimeout = null
+      }
+    }
   })
 
   $effect(() => {
