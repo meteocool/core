@@ -20,6 +20,9 @@
   }
 
   function open(_elem) {
+    if (dd.isIos()) {
+      window.webkit?.messageHandlers?.scriptHandler?.postMessage('layerSwitcherOpened')
+    }
     window.openLayerswitcher()
   }
 

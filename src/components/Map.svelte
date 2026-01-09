@@ -48,8 +48,12 @@
       })
       if (minTop === null) {
         mapElement.style.height = '100%'
+        document.documentElement.style.setProperty('--bottom-toolbar-height', '0px')
       } else {
-        mapElement.style.height = `${Math.max(0, Math.round(minTop))}px`
+        const mapHeight = Math.max(0, Math.round(minTop))
+        const toolbarHeight = Math.max(0, Math.round(window.innerHeight - minTop))
+        mapElement.style.height = `${mapHeight}px`
+        document.documentElement.style.setProperty('--bottom-toolbar-height', `${toolbarHeight}px`)
       }
       layerManager.forEachMap((m) => m.updateSize())
     }
@@ -108,7 +112,7 @@
 </script>
 
 <div id="map" use:mapInit></div>
-{#if visible === 'yes'}
+{#if visible === 'yes' || dd.isApp()}
   <McLayerSwitcher {layerManager} onchangeLayer={changeLayer} />
 {/if}
 
@@ -133,6 +137,11 @@
     right: 0.5em;
     left: auto;
     top: calc(var(--ol-controls-top, 0.5em) + 4.5em);
+  }
+
+  :global(.is-app .ol-zoom),
+  :global(.is-app .ol-geolocate) {
+    display: none;
   }
 
   /* Keep OL default pointer event behavior; z-index fixes handle stacking */

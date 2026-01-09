@@ -68,11 +68,38 @@
 
   let canvasVisible = $state(true)
   let showOpenControls = $state(false)
+  let buttonBarAlignTimeout
 
   let oldTimeStep = $state(0)
 
   let playPauseButton = $state(Play)
   let playTimeout
+
+  const updateButtonBarAlignment = () => {
+    if (!dd.isApp() || typeof document === 'undefined') return
+    const lastUpdated = document.querySelector('.bottomToolbar.lastUpdatedBottom .info')
+    const controlButton = document.querySelector('.buttonBar .controlButton')
+    if (!lastUpdated || !controlButton) {
+      document.documentElement.style.removeProperty('--buttonbar-bottom')
+      return
+    }
+    const lastRect = lastUpdated.getBoundingClientRect()
+    const lastCenter = lastRect.top + lastRect.height / 2
+    const buttonRect = controlButton.getBoundingClientRect()
+    const barHalf = buttonRect.height / 2
+    const buttonBarBottom = Math.max(0, Math.round(window.innerHeight - lastCenter - barHalf))
+    document.documentElement.style.setProperty('--buttonbar-bottom', `${buttonBarBottom}px`)
+  }
+
+  const scheduleButtonBarAlignment = () => {
+    if (buttonBarAlignTimeout) {
+      window.clearTimeout(buttonBarAlignTimeout)
+    }
+    buttonBarAlignTimeout = window.setTimeout(() => {
+      updateButtonBarAlignment()
+      buttonBarAlignTimeout = null
+    }, 0)
+  }
 
   let slRange = $state(null)
   $effect(() => {
@@ -80,6 +107,21 @@
       window.slr = slRange
     } else if (window.slr) {
       window.slr = null
+    }
+  })
+
+  $effect(() => {
+    if (!dd.isApp()) return
+    if (!showOpenControls) {
+      document.documentElement.style.removeProperty('--buttonbar-bottom')
+      return
+    }
+    window.requestAnimationFrame(() => updateButtonBarAlignment())
+    scheduleButtonBarAlignment()
+    const handleResize = () => updateButtonBarAlignment()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
     }
   })
 
@@ -693,6 +735,10 @@
       clearTimeout(playTimeout)
       playTimeout = 0
     }
+    if (buttonBarAlignTimeout) {
+      clearTimeout(buttonBarAlignTimeout)
+      buttonBarAlignTimeout = null
+    }
 
     // Clean up XState service
     if (xstateService) {
@@ -882,7 +928,7 @@
 
 <style>
   .timeslider {
-    height: 90px;
+    height: var(--bottom-toolbar-expanded-height, 90px);
     z-index: 100001;
     padding-top: 6px;
   }
@@ -923,6 +969,15 @@
   .buttonBar.right {
     left: 3em;
     right: unset;
+  }
+
+  :global(.is-app .buttonBar) {
+    bottom: var(--buttonbar-bottom, calc(var(--bottom-toolbar-height, 0px) - env(safe-area-inset-bottom) + 8px));
+    left: calc(0.3em + 5px);
+  }
+
+  :global(.is-app .buttonBar.right) {
+    left: calc(3em + 5px);
   }
 
   .flexbox {
@@ -1126,7 +1181,7 @@
 
     .buttonBar.right {
       left: unset;
-      right: 0.3em;
+      right: calc(0.3em + 5px);
     }
 
     .checkbox {

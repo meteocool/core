@@ -65,6 +65,13 @@
     dd.set(device)
   })
 
+  $effect(() => {
+    if (typeof document === 'undefined') return
+    const isApp = dd.isApp()
+    document.documentElement.classList.toggle('is-app', isApp)
+    document.body?.classList.toggle('is-app', isApp)
+  })
+
   addMessages('de', de)
   addMessages('en', en)
 

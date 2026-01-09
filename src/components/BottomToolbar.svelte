@@ -334,6 +334,32 @@
     margin-bottom: calc(-1 * env(safe-area-inset-bottom));
   }
 
+  :global(.is-app .bottomToolbar) {
+    margin-bottom: 0;
+  }
+
+  :global(.is-app .bottomToolbar.lastUpdatedBottom) {
+    bottom: 0;
+    height: var(--bottom-toolbar-expanded-height, 90px);
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  :global(.is-app .bottomToolbar.lastUpdatedBottom .parentz) {
+    width: 100%;
+  }
+
+  :global(:root) {
+    --bottom-toolbar-expanded-height: 90px;
+  }
+
+  @media only screen and (max-width: 620px) {
+    :global(:root) {
+      --bottom-toolbar-expanded-height: 120px;
+    }
+  }
+
   @media only screen and (max-width: 620px) {
     :global(.bottomToolbar) {
       height: 84px !important;
