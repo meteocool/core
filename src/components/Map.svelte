@@ -3,6 +3,7 @@
   import 'ol/ol.css'
   import { layerswitcherVisible, bottomToolbarMode } from '../stores'
   import { onDestroy } from 'svelte'
+  import { DeviceDetect as dd } from '../lib/DeviceDetect'
   import { logger } from '../lib/logger.js'
 
   let { layerManager } = $props()
@@ -30,22 +31,72 @@
       layerManager.setTarget('radar', mapID)
     }, 100)
 
-    const bottomToolbarUnsub = bottomToolbarMode.subscribe((val) => {
-      if (val === 'player') {
-        document.getElementById(mapID).style.height = 'calc(100% - 88px)'
-      } else if (val === 'collapsed') {
-        document.getElementById(mapID).style.height = 'calc(100% - calc(env(safe-area-inset-bottom) + 41px))'
+    let updateTimeout
+    const updateMapHeightForApp = () => {
+      const mapElement = document.getElementById(mapID)
+      if (!mapElement) return
+      const toolbars = Array.from(document.querySelectorAll('.bottomToolbar'))
+      let minTop = null
+      toolbars.forEach((element) => {
+        const style = window.getComputedStyle(element)
+        if (style.display === 'none' || style.visibility === 'hidden') return
+        const rect = element.getBoundingClientRect()
+        if (rect.height <= 0) return
+        if (minTop === null || rect.top < minTop) {
+          minTop = rect.top
+        }
+      })
+      if (minTop === null) {
+        mapElement.style.height = '100%'
       } else {
-        document.getElementById(mapID).style.height = '100%'
+        mapElement.style.height = `${Math.max(0, Math.round(minTop))}px`
+      }
+      layerManager.forEachMap((m) => m.updateSize())
+    }
+
+    const scheduleMapHeightUpdate = () => {
+      if (updateTimeout) {
+        window.clearTimeout(updateTimeout)
+      }
+      updateMapHeightForApp()
+      updateTimeout = window.setTimeout(() => {
+        updateMapHeightForApp()
+      }, 450)
+    }
+
+    const bottomToolbarUnsub = bottomToolbarMode.subscribe((val) => {
+      const mapElement = document.getElementById(mapID)
+      if (!mapElement) return
+      if (dd.isApp()) {
+        scheduleMapHeightUpdate()
+        return
+      }
+      if (val === 'player') {
+        mapElement.style.height = 'calc(100% - 88px)'
+      } else if (val === 'collapsed') {
+        mapElement.style.height = 'calc(100% - calc(env(safe-area-inset-bottom) + 41px))'
+      } else {
+        mapElement.style.height = '100%'
       }
       layerManager.forEachMap((m) => {
         m.updateSize()
       })
     })
+    const handleResize = () => {
+      if (dd.isApp()) {
+        scheduleMapHeightUpdate()
+      }
+    }
+    window.addEventListener('resize', handleResize)
     setTimeout(updateMapSize, 300)
     return {
       destroy() {
         bottomToolbarUnsub?.()
+        window.removeEventListener('resize', handleResize)
+        if (updateTimeout) {
+          window.clearTimeout(updateTimeout)
+          updateTimeout = null
+        }
         logger.log('destroy')
       },
     }

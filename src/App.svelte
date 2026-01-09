@@ -1,7 +1,7 @@
 <script lang="ts">
   import View from 'ol/View'
   import { addMessages, init, getLocaleFromNavigator } from 'svelte-i18n'
-  import { onDestroy, onMount } from 'svelte'
+  import { onDestroy } from 'svelte'
 
   import { io } from 'socket.io-client'
   import { fromLonLat } from 'ol/proj'
@@ -336,58 +336,6 @@
     if (lm?.refreshTiles) lm.refreshTiles()
   })
 
-  let attributionUpdateTimeout
-
-  const getVisibleBottomToolbarHeight = () => {
-    if (typeof document === 'undefined' || typeof window === 'undefined') return 0
-    const elements = Array.from(document.querySelectorAll('.bottomToolbar'))
-    let maxHeight = 0
-    elements.forEach((element) => {
-      const style = window.getComputedStyle(element)
-      if (style.display === 'none' || style.visibility === 'hidden') return
-      const rect = element.getBoundingClientRect()
-      if (rect.height > maxHeight) {
-        maxHeight = rect.height
-      }
-    })
-    return Math.round(maxHeight)
-  }
-
-  const applyAttributionPadding = () => {
-    if (!dd.isApp() || typeof document === 'undefined') return
-    const height = getVisibleBottomToolbarHeight()
-    const padding = height > 0 ? `calc(env(safe-area-inset-bottom) + ${height}px)` : '0px'
-    document.documentElement.style.setProperty('--attributions-bottom-padding', padding)
-  }
-
-  const scheduleAttributionUpdate = () => {
-    applyAttributionPadding()
-    if (typeof window === 'undefined') return
-    if (attributionUpdateTimeout) {
-      window.clearTimeout(attributionUpdateTimeout)
-    }
-    attributionUpdateTimeout = window.setTimeout(() => {
-      applyAttributionPadding()
-    }, 450)
-  }
-
-  onMount(() => {
-    if (!dd.isApp()) return undefined
-    scheduleAttributionUpdate()
-    const bottomToolbarUnsub = bottomToolbarMode.subscribe(() => {
-      scheduleAttributionUpdate()
-    })
-    const handleResize = () => scheduleAttributionUpdate()
-    window.addEventListener('resize', handleResize)
-    return () => {
-      bottomToolbarUnsub?.()
-      window.removeEventListener('resize', handleResize)
-      if (attributionUpdateTimeout) {
-        window.clearTimeout(attributionUpdateTimeout)
-        attributionUpdateTimeout = null
-      }
-    }
-  })
 
   $effect(() => {
     if (postInitCb) postInitCb(lm)
