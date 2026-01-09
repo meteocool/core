@@ -8,7 +8,7 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": true
+    "run_worker_first": true,
   },
   // "routes": [
   //   {
@@ -36,10 +36,16 @@
     "staging": {
       "name": "meteocool-vibeocool",
       "workers_dev": false,
-      "route": {
-        "pattern": "vibeocool.meteocool.com",
-        "custom_domain": true,
-      },
+      "routes": [
+        {
+          "pattern": "better.meteocool.com",
+          "custom_domain": true,
+        },
+        {
+          "pattern": "vibeocool.meteocool.com",
+          "custom_domain": true,
+        },
+      ],
     },
     "development": {
       "name": "meteocool-dev",

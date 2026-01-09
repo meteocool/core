@@ -8,5 +8,4 @@ docs/plans/
 *.config.js
 playwright.config.ts
 public/assets/
-wrangler.jsonc
 package-lock.json
