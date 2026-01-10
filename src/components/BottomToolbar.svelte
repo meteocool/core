@@ -340,10 +340,11 @@
 
   :global(.is-app .bottomToolbar.lastUpdatedBottom) {
     bottom: 0;
-    height: var(--bottom-toolbar-expanded-height, 90px);
+    height: var(--bottom-toolbar-expanded-height, 90px) !important;
     display: flex;
     align-items: flex-end;
     padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: border-box;
   }
 
   :global(.is-app .bottomToolbar.lastUpdatedBottom .parentz) {

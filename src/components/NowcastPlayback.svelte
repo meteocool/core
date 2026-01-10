@@ -972,7 +972,7 @@
   }
 
   :global(.is-app .buttonBar) {
-    bottom: var(--buttonbar-bottom, calc(var(--bottom-toolbar-height, 0px) - env(safe-area-inset-bottom) + 8px));
+    /* bottom: var(--buttonbar-bottom, calc(var(--bottom-toolbar-height, 0px) - env(safe-area-inset-bottom) + 8px)); */
     left: calc(0.3em + 5px);
   }
 
@@ -1140,6 +1140,7 @@
 
     .range {
       margin-bottom: 0px;
+      margin-top: 24px;
     }
 
     .barChartCanvas {
@@ -1168,6 +1169,11 @@
 
     .timeslider {
       height: 120px !important;
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-top: 0;
+      box-sizing: border-box;
     }
 
     .hide-on-small-screens {
