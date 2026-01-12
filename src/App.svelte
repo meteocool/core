@@ -68,8 +68,11 @@
   $effect(() => {
     if (typeof document === 'undefined') return
     const isApp = dd.isApp()
+    const isIos = dd.isIos()
     document.documentElement.classList.toggle('is-app', isApp)
+    document.documentElement.classList.toggle('is-ios', isIos)
     document.body?.classList.toggle('is-app', isApp)
+    document.body?.classList.toggle('is-ios', isIos)
   })
 
   addMessages('de', de)

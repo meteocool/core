@@ -347,6 +347,14 @@
     box-sizing: border-box;
   }
 
+  :global(.is-ios .bottomToolbar.lastUpdatedBottom) {
+    bottom: env(safe-area-inset-bottom);
+    height: 42px !important;
+    display: block;
+    padding-bottom: 0.2em;
+    box-sizing: content-box;
+  }
+
   :global(.is-app .bottomToolbar.lastUpdatedBottom .parentz) {
     width: 100%;
   }
