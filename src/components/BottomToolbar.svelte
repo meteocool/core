@@ -17,6 +17,23 @@
   import { v3APIBaseUrl } from '../urls'
   import { LightningColors, precipTypeNames } from '../colormaps'
   import { logger } from '../lib/logger.js'
+
+  const TOOLBAR_TRANSITION_EVENT = 'mc:toolbar-transition'
+
+  const emitToolbarTransition = (phase) => {
+    if (typeof window === 'undefined') return
+    window.dispatchEvent(
+      new window.CustomEvent(TOOLBAR_TRANSITION_EVENT, {
+        detail: { source: 'bottom-toolbar', phase },
+      }),
+    )
+  }
+
+  const onToolbarIntroStart = () => emitToolbarTransition('introstart')
+  const onToolbarIntroEnd = () => emitToolbarTransition('introend')
+  const onToolbarOutroStart = () => emitToolbarTransition('outrostart')
+  const onToolbarOutroEnd = () => emitToolbarTransition('outroend')
+
   Chart.defaults.font.size = 10
 
   let { layerManager } = $props()
@@ -226,7 +243,15 @@
   })
 </script>
 
-<div class="bottomToolbar lastUpdatedBottom" class:player-open={$bottomToolbarMode === 'player'} transition:fly={{ y: 100, duration: 200 }}>
+<div
+  class="bottomToolbar lastUpdatedBottom"
+  class:player-open={$bottomToolbarMode === 'player'}
+  transition:fly={{ y: 100, duration: 200 }}
+  onintrostart={onToolbarIntroStart}
+  onintroend={onToolbarIntroEnd}
+  onoutrostart={onToolbarOutroStart}
+  onoutroend={onToolbarOutroEnd}
+>
   <div class="parentz">
     {#if activeCap === 'radar' && $bottomToolbarMode === 'collapsed'}
       <div class="left">

@@ -39,7 +39,9 @@
 ## Assistant Guardrails (Recent Corrections)
 - Verify before claiming completion: run the relevant command (at least `npm run build`) and report any warnings/errors verbatim.
 - Svelte 5 reactivity: do not read `$props()` values outside reactive contexts if they are referenced later; avoid compiler warnings and move such initialization into entrypoints or `$effect`.
+- Svelte 5 events: do not mix old `on:` and new `on*` event syntax in the same component; follow the file's existing event syntax consistently (e.g., `onintrostart` with `onclick` style files).
 - App wrapper boot: if app-only behavior depends on device detection, set the device in the entrypoint before mounting to avoid initial flash.
+- Transition-aware layout: when geometry depends on `getBoundingClientRect` and `fly`/transform transitions, trigger recomputation on intro/outro boundaries; `ResizeObserver` alone may miss transform-only motion.
 - Tooling discipline: do not invoke `apply_patch` via shell commands; use the `apply_patch` tool directly.
 - Scope discipline: do not touch unrelated files (e.g., `CLAUDE.md`, `GEMINI.md`) unless explicitly requested.
 - No extra docs: only add new planning/design docs when explicitly asked.

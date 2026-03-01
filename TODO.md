@@ -64,10 +64,12 @@ This document outlines performance improvements and web technology best practice
   - `StrikeManager.fadeStrikes()` is defined but not called.
   - **Strategy**: Implement a periodic cleanup (e.g., every 5 minutes) to remove old lightning strikes from memory and the map.
 
-- [ ] **Fix app toolbar transition measurement staleness**:
+- [x] **Fix app toolbar transition measurement staleness**:
   - Map height can end up stale during toolbar fly transitions because transform-only motion may not trigger observers.
   - **Strategy**: Hook into transition lifecycle or add short-lived frame polling during open/close transitions to re-evaluate map height until stable.
+  - _Status_: Implemented with explicit toolbar transition events plus bounded `requestAnimationFrame` tracking in `Map.svelte`.
 
-- [ ] **Fix playback button bar alignment staleness during transitions**:
+- [x] **Fix playback button bar alignment staleness during transitions**:
   - Button-bar alignment can stay stale when transition movement occurs without element resize events.
   - **Strategy**: Trigger alignment recomputation on toolbar/player transition boundaries (enter/exit start/end), not only on resize/observer callbacks.
+  - _Status_: Implemented with intro/outro transition hooks and bounded alignment polling in `NowcastPlayback.svelte`.

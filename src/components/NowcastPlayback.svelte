@@ -62,6 +62,9 @@
   import { get } from 'svelte/store'
   import { dbz2color } from '../lib/cmap_utils'
 
+  const TOOLBAR_TRANSITION_EVENT = 'mc:toolbar-transition'
+  const ALIGNMENT_TRANSITION_POLL_FRAMES = 30
+
   let { cap } = $props()
 
   let gridConfig = $state(null)
@@ -69,6 +72,8 @@
   let canvasVisible = $state(true)
   let showOpenControls = $state(false)
   let buttonBarAlignFrame = null
+  let alignmentTransitionPollFrame = null
+  let alignmentTransitionFramesRemaining = 0
 
   let oldTimeStep = $state(0)
 
@@ -101,6 +106,59 @@
     })
   }
 
+  const stopAlignmentTransitionTracking = () => {
+    alignmentTransitionFramesRemaining = 0
+    if (alignmentTransitionPollFrame !== null) {
+      window.cancelAnimationFrame(alignmentTransitionPollFrame)
+      alignmentTransitionPollFrame = null
+    }
+  }
+
+  const runAlignmentTransitionTracking = () => {
+    alignmentTransitionPollFrame = null
+    scheduleButtonBarAlignment()
+    if (alignmentTransitionFramesRemaining <= 0) return
+    alignmentTransitionFramesRemaining -= 1
+    alignmentTransitionPollFrame = window.requestAnimationFrame(runAlignmentTransitionTracking)
+  }
+
+  const startAlignmentTransitionTracking = () => {
+    alignmentTransitionFramesRemaining = ALIGNMENT_TRANSITION_POLL_FRAMES
+    if (alignmentTransitionPollFrame === null) {
+      alignmentTransitionPollFrame = window.requestAnimationFrame(runAlignmentTransitionTracking)
+    }
+  }
+
+  const emitToolbarTransition = (phase) => {
+    window.dispatchEvent(
+      new window.CustomEvent(TOOLBAR_TRANSITION_EVENT, {
+        detail: { source: 'player-toolbar', phase },
+      }),
+    )
+  }
+
+  const handlePlayerTransitionStart = () => {
+    startAlignmentTransitionTracking()
+    emitToolbarTransition('introstart')
+  }
+
+  const handlePlayerTransitionEnd = () => {
+    stopAlignmentTransitionTracking()
+    scheduleButtonBarAlignment()
+    emitToolbarTransition('introend')
+  }
+
+  const handlePlayerTransitionOutStart = () => {
+    startAlignmentTransitionTracking()
+    emitToolbarTransition('outrostart')
+  }
+
+  const handlePlayerTransitionOutEnd = () => {
+    stopAlignmentTransitionTracking()
+    scheduleButtonBarAlignment()
+    emitToolbarTransition('outroend')
+  }
+
   let slRange = $state(null)
   $effect(() => {
     if (slRange) {
@@ -118,7 +176,19 @@
     }
     scheduleButtonBarAlignment()
     const handleResize = () => scheduleButtonBarAlignment()
+    const handleToolbarTransition = (event) => {
+      const phase = event?.detail?.phase
+      if (phase === 'introstart' || phase === 'outrostart') {
+        startAlignmentTransitionTracking()
+        return
+      }
+      if (phase === 'introend' || phase === 'outroend') {
+        stopAlignmentTransitionTracking()
+      }
+      scheduleButtonBarAlignment()
+    }
     window.addEventListener('resize', handleResize)
+    window.addEventListener(TOOLBAR_TRANSITION_EVENT, handleToolbarTransition)
     let buttonBarResizeObserver = null
     const observedNodes = new Set()
     const syncButtonBarObservers = () => {
@@ -150,6 +220,8 @@
     }
     return () => {
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener(TOOLBAR_TRANSITION_EVENT, handleToolbarTransition)
+      stopAlignmentTransitionTracking()
       if (buttonBarAlignFrame !== null) {
         window.cancelAnimationFrame(buttonBarAlignFrame)
         buttonBarAlignFrame = null
@@ -775,6 +847,7 @@
       window.cancelAnimationFrame(buttonBarAlignFrame)
       buttonBarAlignFrame = null
     }
+    stopAlignmentTransitionTracking()
 
     // Clean up XState service
     if (xstateService) {
@@ -818,7 +891,14 @@
   </div>
 {/if}
 {#if $bottomToolbarMode === 'player'}
-  <div class="bottomToolbar timeslider" transition:fly={{ y: 150, duration: 400 }}>
+  <div
+    class="bottomToolbar timeslider"
+    transition:fly={{ y: 150, duration: 400 }}
+    onintrostart={handlePlayerTransitionStart}
+    onintroend={handlePlayerTransitionEnd}
+    onoutrostart={handlePlayerTransitionOutStart}
+    onoutroend={handlePlayerTransitionOutEnd}
+  >
     <div class="flexbox">
       <div class="buttonsLeft">
         <div

@@ -6,6 +6,9 @@
   import { DeviceDetect as dd } from '../lib/DeviceDetect'
   import { logger } from '../lib/logger.js'
 
+  const TOOLBAR_TRANSITION_EVENT = 'mc:toolbar-transition'
+  const TOOLBAR_TRANSITION_POLL_FRAMES = 30
+
   let { layerManager } = $props()
   let mapID
 
@@ -45,6 +48,28 @@
     }
 
     let mapHeightFrame = null
+    let toolbarTransitionPollFrame = null
+    let toolbarTransitionFramesRemaining = 0
+    const stopToolbarTransitionTracking = () => {
+      toolbarTransitionFramesRemaining = 0
+      if (toolbarTransitionPollFrame !== null) {
+        window.cancelAnimationFrame(toolbarTransitionPollFrame)
+        toolbarTransitionPollFrame = null
+      }
+    }
+    const runToolbarTransitionTracking = () => {
+      toolbarTransitionPollFrame = null
+      scheduleMapHeightUpdate()
+      if (toolbarTransitionFramesRemaining <= 0) return
+      toolbarTransitionFramesRemaining -= 1
+      toolbarTransitionPollFrame = window.requestAnimationFrame(runToolbarTransitionTracking)
+    }
+    const startToolbarTransitionTracking = () => {
+      toolbarTransitionFramesRemaining = TOOLBAR_TRANSITION_POLL_FRAMES
+      if (toolbarTransitionPollFrame === null) {
+        toolbarTransitionPollFrame = window.requestAnimationFrame(runToolbarTransitionTracking)
+      }
+    }
     const updateMapHeightForApp = () => {
       const mapElement = document.getElementById(mapID)
       if (!mapElement) return
@@ -124,7 +149,20 @@
       }
       scheduleMapResize()
     }
+    const handleToolbarTransition = (event) => {
+      if (!dd.isApp()) return
+      const phase = event?.detail?.phase
+      if (phase === 'introstart' || phase === 'outrostart') {
+        startToolbarTransitionTracking()
+        return
+      }
+      if (phase === 'introend' || phase === 'outroend') {
+        stopToolbarTransitionTracking()
+      }
+      scheduleMapHeightUpdate()
+    }
     window.addEventListener('resize', handleResize)
+    window.addEventListener(TOOLBAR_TRANSITION_EVENT, handleToolbarTransition)
     if (dd.isApp()) {
       if (window.ResizeObserver) {
         toolbarResizeObserver = new window.ResizeObserver(() => scheduleMapHeightUpdate())
@@ -137,6 +175,8 @@
       destroy() {
         bottomToolbarUnsub?.()
         window.removeEventListener('resize', handleResize)
+        window.removeEventListener(TOOLBAR_TRANSITION_EVENT, handleToolbarTransition)
+        stopToolbarTransitionTracking()
         if (mapHeightFrame !== null) {
           window.cancelAnimationFrame(mapHeightFrame)
           mapHeightFrame = null
