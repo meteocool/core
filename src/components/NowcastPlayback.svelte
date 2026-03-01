@@ -68,7 +68,7 @@
 
   let canvasVisible = $state(true)
   let showOpenControls = $state(false)
-  let buttonBarAlignTimeout
+  let buttonBarAlignFrame = null
 
   let oldTimeStep = $state(0)
 
@@ -92,13 +92,13 @@
   }
 
   const scheduleButtonBarAlignment = () => {
-    if (buttonBarAlignTimeout) {
-      window.clearTimeout(buttonBarAlignTimeout)
+    if (buttonBarAlignFrame !== null) {
+      return
     }
-    buttonBarAlignTimeout = window.setTimeout(() => {
+    buttonBarAlignFrame = window.requestAnimationFrame(() => {
+      buttonBarAlignFrame = null
       updateButtonBarAlignment()
-      buttonBarAlignTimeout = null
-    }, 0)
+    })
   }
 
   let slRange = $state(null)
@@ -116,12 +116,48 @@
       document.documentElement.style.removeProperty('--buttonbar-bottom')
       return
     }
-    window.requestAnimationFrame(() => updateButtonBarAlignment())
     scheduleButtonBarAlignment()
-    const handleResize = () => updateButtonBarAlignment()
+    const handleResize = () => scheduleButtonBarAlignment()
     window.addEventListener('resize', handleResize)
+    let buttonBarResizeObserver = null
+    const observedNodes = new Set()
+    const syncButtonBarObservers = () => {
+      if (!buttonBarResizeObserver) return
+      const nextNodes = new Set([
+        document.querySelector('.bottomToolbar.lastUpdatedBottom .info'),
+        document.querySelector('.buttonBar .controlButton'),
+      ])
+      observedNodes.forEach((node) => {
+        if (!nextNodes.has(node)) {
+          buttonBarResizeObserver.unobserve(node)
+          observedNodes.delete(node)
+        }
+      })
+      nextNodes.forEach((node) => {
+        if (node && !observedNodes.has(node)) {
+          buttonBarResizeObserver.observe(node)
+          observedNodes.add(node)
+        }
+      })
+    }
+    if (window.ResizeObserver) {
+      buttonBarResizeObserver = new window.ResizeObserver(() => scheduleButtonBarAlignment())
+      syncButtonBarObservers()
+      window.requestAnimationFrame(() => {
+        syncButtonBarObservers()
+        scheduleButtonBarAlignment()
+      })
+    }
     return () => {
       window.removeEventListener('resize', handleResize)
+      if (buttonBarAlignFrame !== null) {
+        window.cancelAnimationFrame(buttonBarAlignFrame)
+        buttonBarAlignFrame = null
+      }
+      if (buttonBarResizeObserver) {
+        buttonBarResizeObserver.disconnect()
+        buttonBarResizeObserver = null
+      }
     }
   })
 
@@ -735,9 +771,9 @@
       clearTimeout(playTimeout)
       playTimeout = 0
     }
-    if (buttonBarAlignTimeout) {
-      clearTimeout(buttonBarAlignTimeout)
-      buttonBarAlignTimeout = null
+    if (buttonBarAlignFrame !== null) {
+      window.cancelAnimationFrame(buttonBarAlignFrame)
+      buttonBarAlignFrame = null
     }
 
     // Clean up XState service

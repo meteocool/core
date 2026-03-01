@@ -89,7 +89,7 @@
     logoStyle.set('none')
     layerswitcherVisible.set('no')
   }
-  ;(window as any).settings = new Settings({
+  const settings = new Settings({
     experimentalFeatures: {
       type: 'boolean',
       default: false,
@@ -193,9 +193,9 @@
   const [lightningSource, lightningLayer] = makeLightningLayer()
   lightningLayerVisible.subscribe((value) => {
     lightningLayer.setVisible(value)
-    ;(window as any).settings.set('layerLightning', value)
+    settings.set('layerLightning', value)
   })
-  lightningLayerVisible.set((window as any).settings.get('layerLightning'))
+  lightningLayerVisible.set(settings.get('layerLightning'))
 
   const nb = new NanobarWrapper({})
   const radarSocketIO = io(`${websocketBaseUrl}/radar`)
@@ -210,15 +210,17 @@
   const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource)
   cycloneLayerVisible.subscribe((value) => {
     mesocycloneLayer.setVisible(value)
-    ;(window as any).settings.set('layerMesocyclones', value)
+    settings.set('layerMesocyclones', value)
   })
-  cycloneLayerVisible.set((window as any).settings.get('layerMesocyclones'))
+  cycloneLayerVisible.set(settings.get('layerMesocyclones'))
 
   const onRadarLightning = (data) => {
     strikemgr.addStrike(data.lon, data.lat)
   }
   radarSocketIO.on('lightning', onRadarLightning)
-  ;(window as any).ll = lightningLayer
+  if (import.meta.env.DEV) {
+    ;(window as any).ll = lightningLayer
+  }
   const onRadarMesocyclones = (data) => {
     mesocyclonemgr.clearAll()
     data.forEach((elem) => mesocyclonemgr.addCyclone(elem))
@@ -227,7 +229,7 @@
   const strikeFadeInterval = window.setInterval(() => strikemgr.fadeStrikes(), 5 * 60 * 1000)
 
   let lm = new LayerManager({
-    settings: (window as any).settings,
+    settings,
     nanobar: nb,
     capabilities: [
       {
@@ -273,8 +275,11 @@
       },
     ],
   })
-  ;(window as any).lm = lm
-  ;(window as any).settings.setCb('mapRotation', (value) => {
+  if (import.meta.env.DEV) {
+    ;(window as any).settings = settings
+    ;(window as any).lm = lm
+  }
+  settings.setCb('mapRotation', (value) => {
     const newView = new View({
       center: lm.getCurrentMap().getView().getCenter(),
       zoom: lm.getCurrentMap().getView().getZoom(),
@@ -284,7 +289,7 @@
     })
     lm.forEachMap((map) => map.setView(newView))
   })
-  ;(window as any).settings.setCb('latLonZ', (value) => {
+  settings.setCb('latLonZ', (value) => {
     if (!value) return
     const parts = value.split(',')
     if (parts.length !== 3) return
@@ -375,12 +380,16 @@
     }
 
     // Clean up other global references
-    if ((window as any).lm) {
+    if (import.meta.env.DEV && (window as any).lm) {
       delete (window as any).lm
     }
 
-    if ((window as any).settings) {
+    if (import.meta.env.DEV && (window as any).settings) {
       delete (window as any).settings
+    }
+
+    if (import.meta.env.DEV && (window as any).ll) {
+      delete (window as any).ll
     }
 
     refreshUnsub?.()

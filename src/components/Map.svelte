@@ -27,11 +27,24 @@
     layerManager.setDefaultTarget(mapID)
 
     // Ensure main map keeps radar capability after MiniMaps initialize
-    setTimeout(() => {
-      layerManager.setTarget('radar', mapID)
-    }, 100)
+    let enforceRadarFrame = null
+    enforceRadarFrame = window.requestAnimationFrame(() => {
+      enforceRadarFrame = window.requestAnimationFrame(() => {
+        enforceRadarFrame = null
+        layerManager.setTarget('radar', mapID)
+      })
+    })
 
-    let updateTimeout
+    let mapResizeFrame = null
+    const scheduleMapResize = () => {
+      if (mapResizeFrame !== null) return
+      mapResizeFrame = window.requestAnimationFrame(() => {
+        mapResizeFrame = null
+        updateMapSize()
+      })
+    }
+
+    let mapHeightFrame = null
     const updateMapHeightForApp = () => {
       const mapElement = document.getElementById(mapID)
       if (!mapElement) return
@@ -55,17 +68,37 @@
         mapElement.style.height = `${mapHeight}px`
         document.documentElement.style.setProperty('--bottom-toolbar-height', `${toolbarHeight}px`)
       }
-      layerManager.forEachMap((m) => m.updateSize())
+      scheduleMapResize()
     }
 
     const scheduleMapHeightUpdate = () => {
-      if (updateTimeout) {
-        window.clearTimeout(updateTimeout)
+      syncToolbarObservers()
+      if (mapHeightFrame !== null) {
+        window.cancelAnimationFrame(mapHeightFrame)
       }
-      updateMapHeightForApp()
-      updateTimeout = window.setTimeout(() => {
+      mapHeightFrame = window.requestAnimationFrame(() => {
+        mapHeightFrame = null
         updateMapHeightForApp()
-      }, 450)
+      })
+    }
+
+    let toolbarResizeObserver = null
+    const observedToolbars = new Set()
+    const syncToolbarObservers = () => {
+      if (!toolbarResizeObserver) return
+      const nextToolbars = new Set(document.querySelectorAll('.bottomToolbar'))
+      observedToolbars.forEach((toolbar) => {
+        if (!nextToolbars.has(toolbar)) {
+          toolbarResizeObserver.unobserve(toolbar)
+          observedToolbars.delete(toolbar)
+        }
+      })
+      nextToolbars.forEach((toolbar) => {
+        if (!observedToolbars.has(toolbar)) {
+          toolbarResizeObserver.observe(toolbar)
+          observedToolbars.add(toolbar)
+        }
+      })
     }
 
     const bottomToolbarUnsub = bottomToolbarMode.subscribe((val) => {
@@ -82,24 +115,43 @@
       } else {
         mapElement.style.height = '100%'
       }
-      layerManager.forEachMap((m) => {
-        m.updateSize()
-      })
+      scheduleMapResize()
     })
     const handleResize = () => {
       if (dd.isApp()) {
         scheduleMapHeightUpdate()
+        return
       }
+      scheduleMapResize()
     }
     window.addEventListener('resize', handleResize)
-    setTimeout(updateMapSize, 300)
+    if (dd.isApp()) {
+      if (window.ResizeObserver) {
+        toolbarResizeObserver = new window.ResizeObserver(() => scheduleMapHeightUpdate())
+        syncToolbarObservers()
+      }
+      scheduleMapHeightUpdate()
+    }
+    scheduleMapResize()
     return {
       destroy() {
         bottomToolbarUnsub?.()
         window.removeEventListener('resize', handleResize)
-        if (updateTimeout) {
-          window.clearTimeout(updateTimeout)
-          updateTimeout = null
+        if (mapHeightFrame !== null) {
+          window.cancelAnimationFrame(mapHeightFrame)
+          mapHeightFrame = null
+        }
+        if (mapResizeFrame !== null) {
+          window.cancelAnimationFrame(mapResizeFrame)
+          mapResizeFrame = null
+        }
+        if (enforceRadarFrame !== null) {
+          window.cancelAnimationFrame(enforceRadarFrame)
+          enforceRadarFrame = null
+        }
+        if (toolbarResizeObserver) {
+          toolbarResizeObserver.disconnect()
+          toolbarResizeObserver = null
         }
         logger.log('destroy')
       },

@@ -20,6 +20,7 @@ This document outlines performance improvements and web technology best practice
 - [ ] **Eliminate Layout Thrashing**:
   - Direct style manipulation in `Map.svelte` and `NowcastPlayback.svelte` causes multiple layout recalculations.
   - **Strategy**: Use CSS variables and Svelte class bindings for layout management. Replace `getBoundingClientRect` with ResizeObserver or Svelte's `bind:clientWidth/Height`.
+  - _Status_: Scheduling/race handling was improved (moved key layout paths to `requestAnimationFrame` + targeted `ResizeObserver`), but full `getBoundingClientRect` replacement is still pending.
 
 - [x] **Optimize `StrikeManager`**:
   - Array manipulation in `removeOne` is $O(N)$.
@@ -34,6 +35,7 @@ This document outlines performance improvements and web technology best practice
 - [ ] **Remove Global Window Dependencies**:
   - Heavy use of `window.lm`, `window.settings`, etc.
   - **Strategy**: Use Svelte's `context` API or pass props/services through the component tree to avoid global state pollution.
+  - _Status_: Partial progress. `settings`/`lm`/`ll` are now dev-only debug globals in `App.svelte`; runtime `window.enterForeground` is still required by entrypoints.
 
 - [x] **Improve Accessibility**:
   - Global `user-select: none` and `touch-action: manipulation` impact user experience.
@@ -56,7 +58,16 @@ This document outlines performance improvements and web technology best practice
 - [ ] **Refactor `setTimeout` Dependencies**:
   - Many layout and initialization steps rely on `setTimeout`.
   - **Strategy**: Identify the root cause of these race conditions and use more deterministic Svelte lifecycle hooks (`onMount`, `$effect`) or event-driven updates.
+  - _Status_: Partially done. `Map.svelte` and `NowcastPlayback.svelte` layout/alignment scheduling moved off timeout-based races; remaining timeout usage should be audited case-by-case.
 
 - [x] **Periodic Strike Fading**:
   - `StrikeManager.fadeStrikes()` is defined but not called.
   - **Strategy**: Implement a periodic cleanup (e.g., every 5 minutes) to remove old lightning strikes from memory and the map.
+
+- [ ] **Fix app toolbar transition measurement staleness**:
+  - Map height can end up stale during toolbar fly transitions because transform-only motion may not trigger observers.
+  - **Strategy**: Hook into transition lifecycle or add short-lived frame polling during open/close transitions to re-evaluate map height until stable.
+
+- [ ] **Fix playback button bar alignment staleness during transitions**:
+  - Button-bar alignment can stay stale when transition movement occurs without element resize events.
+  - **Strategy**: Trigger alignment recomputation on toolbar/player transition boundaries (enter/exit start/end), not only on resize/observer callbacks.

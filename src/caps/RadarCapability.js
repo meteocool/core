@@ -65,8 +65,12 @@ export default class RadarCapability extends Capability {
     this.trackingMode = 'live'
     this.serverTime = 0
     this.snowOverlay = null
+    this.reloadInFlight = false
+    this.reloadQueued = false
 
-    window.radar = this
+    if (import.meta.env.DEV) {
+      window.radar = this
+    }
 
     //mcTileCache.setMap(map);
 
@@ -240,6 +244,10 @@ export default class RadarCapability extends Capability {
 
   reloadAll() {
     logger.log('reloadAll')
+    if (this.reloadInFlight) {
+      this.reloadQueued = true
+      return
+    }
     this.downloadCurrentRadar()
   }
 
@@ -251,6 +259,11 @@ export default class RadarCapability extends Capability {
   }
 
   downloadCurrentRadar() {
+    if (this.reloadInFlight) {
+      this.reloadQueued = true
+      return
+    }
+    this.reloadInFlight = true
     const URL = `${v3APIBaseUrl}/radar/timeseries${this.getLocalPostifx()}`
     logger.log(`Reloading ${URL}`)
     live.set(false)
@@ -268,6 +281,13 @@ export default class RadarCapability extends Capability {
         this.nanobar.finish(URL)
         live.set(false)
         reportError(error)
+      })
+      .finally(() => {
+        this.reloadInFlight = false
+        if (this.reloadQueued) {
+          this.reloadQueued = false
+          this.downloadCurrentRadar()
+        }
       })
   }
 
@@ -414,6 +434,7 @@ export default class RadarCapability extends Capability {
   }
 
   destroy() {
+    this.reloadQueued = false
     if (this.gridRefreshTimeout) {
       clearTimeout(this.gridRefreshTimeout)
       this.gridRefreshTimeout = null
@@ -428,6 +449,9 @@ export default class RadarCapability extends Capability {
         this.socket_io.off('snow', this.snowHandler)
         this.snowHandler = null
       }
+    }
+    if (import.meta.env.DEV && window.radar === this) {
+      delete window.radar
     }
   }
 
