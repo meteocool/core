@@ -54,6 +54,9 @@ export default class RadarCapability extends Capability {
     this.layers = {}
     this.nanobar = options.nanobar
     this.socket_io = options.socket_io
+    this.pokeHandler = null
+    this.snowHandler = null
+    this.gridRefreshTimeout = null
     this.latlon = null
     this.sources = {}
     this.layerFactory = dwdLayerStatic
@@ -126,14 +129,16 @@ export default class RadarCapability extends Capability {
     })
 
     if (this.socket_io) {
-      this.socket_io.on('poke', () => {
+      this.pokeHandler = () => {
         logger.log('received websocket poke, refreshing tiles + forecasts')
         this.reloadAll()
-      })
-      this.socket_io.on('snow', () => {
+      }
+      this.snowHandler = () => {
         logger.log('received websocket snow overlay poke, refreshing')
         this.downloadSnowOverlay()
-      })
+      }
+      this.socket_io.on('poke', this.pokeHandler)
+      this.socket_io.on('snow', this.snowHandler)
       this.downloadCurrentRadar()
     }
 
@@ -142,7 +147,7 @@ export default class RadarCapability extends Capability {
     // Initialize grid
     this.gridconfig = this.regenerateGridConfig()
     const restartHandler = () => {
-      setTimeout(restartHandler, 60000)
+      this.gridRefreshTimeout = setTimeout(restartHandler, 60000)
       this.gridconfig = this.regenerateGridConfig()
       if (this.serverGrid) {
         this.updateClientGridFromServerGrid(this.serverGrid)
@@ -405,6 +410,24 @@ export default class RadarCapability extends Capability {
     capTimeIndicator.set(timestep)
     if (this.source && timestep in this.clientGrid && this.clientGrid[timestep] && this.clientGrid[timestep].url != null) {
       this.source.setUrl(this.clientGrid[timestep].url)
+    }
+  }
+
+  destroy() {
+    if (this.gridRefreshTimeout) {
+      clearTimeout(this.gridRefreshTimeout)
+      this.gridRefreshTimeout = null
+    }
+
+    if (this.socket_io) {
+      if (this.pokeHandler) {
+        this.socket_io.off('poke', this.pokeHandler)
+        this.pokeHandler = null
+      }
+      if (this.snowHandler) {
+        this.socket_io.off('snow', this.snowHandler)
+        this.snowHandler = null
+      }
     }
   }
 

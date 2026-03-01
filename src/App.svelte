@@ -199,9 +199,10 @@
 
   const nb = new NanobarWrapper({})
   const radarSocketIO = io(`${websocketBaseUrl}/radar`)
-  radarSocketIO.on('connect', () => {
+  const onRadarConnect = () => {
     logger.log('radar/forecast websocket connected!')
-  })
+  }
+  radarSocketIO.on('connect', onRadarConnect)
 
   const strikemgr = new StrikeManager(1000, lightningSource)
 
@@ -213,14 +214,17 @@
   })
   cycloneLayerVisible.set((window as any).settings.get('layerMesocyclones'))
 
-  radarSocketIO.on('lightning', (data) => {
+  const onRadarLightning = (data) => {
     strikemgr.addStrike(data.lon, data.lat)
-  })
+  }
+  radarSocketIO.on('lightning', onRadarLightning)
   ;(window as any).ll = lightningLayer
-  radarSocketIO.on('mesocyclones', (data) => {
+  const onRadarMesocyclones = (data) => {
     mesocyclonemgr.clearAll()
     data.forEach((elem) => mesocyclonemgr.addCyclone(elem))
-  })
+  }
+  radarSocketIO.on('mesocyclones', onRadarMesocyclones)
+  const strikeFadeInterval = window.setInterval(() => strikemgr.fadeStrikes(), 5 * 60 * 1000)
 
   let lm = new LayerManager({
     settings: (window as any).settings,
@@ -356,6 +360,11 @@
     if (lm && lm.destroy) {
       lm.destroy()
     }
+    window.clearInterval(strikeFadeInterval)
+    radarSocketIO.off('connect', onRadarConnect)
+    radarSocketIO.off('lightning', onRadarLightning)
+    radarSocketIO.off('mesocyclones', onRadarMesocyclones)
+    radarSocketIO.disconnect()
 
     // Clean up UI constants and media query listeners
     cleanupUIConstants()
@@ -484,9 +493,14 @@
     border-color: var(--sl-color-danger-600);
   }
 
-  :global(*) {
+  :global(#map),
+  :global(#map *) {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
+  }
+
+  :global(button),
+  :global([role='button']) {
     touch-action: manipulation;
   }
 </style>

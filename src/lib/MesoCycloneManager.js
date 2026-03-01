@@ -15,7 +15,7 @@ export default class MesoCycloneManager {
       this.vs.removeFeature(remove)
     }
     if (idx !== -1) {
-      this.cyclones = this.cyclones.slice(0, idx).concat(this.cyclones.slice(idx + 1, this.cyclones.length))
+      this.cyclones.splice(idx, 1)
     }
   }
 
@@ -35,11 +35,12 @@ export default class MesoCycloneManager {
   fadeCyclones() {
     const now = new Date().getTime()
     const MINS = 60 * 1000
-    this.cyclones.forEach((id, idx) => {
+    for (let idx = this.cyclones.length - 1; idx >= 0; idx--) {
+      const id = this.cyclones[idx]
       if (id < now - 30 * MINS) {
         this.removeOne(id, idx)
       }
-    })
+    }
     this.vs.refresh()
   }
 

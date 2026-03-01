@@ -22,7 +22,7 @@ export default defineConfig(() => ({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,svg,ico}'],
-        maximumFileSizeToCacheInBytes: 50000000,
+        maximumFileSizeToCacheInBytes: 20000000,
       },
       devOptions: {
         enabled: false, // Disable in development

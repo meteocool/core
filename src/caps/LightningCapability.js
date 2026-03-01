@@ -24,6 +24,7 @@ export default class LightningCapability extends Capability {
     this.currentLayer = null
     this.nb = args.nanobar
     this.socketio = args.socket
+    this.lightningHandler = null
 
     map.addLayer(noaaBREF())
   }
@@ -68,7 +69,8 @@ export default class LightningCapability extends Capability {
       this.vectorsource = newLayer.getSource()
       this.sm = new StrikeManagerV2(this.vectorsource, baseline)
       if (this.socketio) {
-        this.socketio.on('lightning', (data) => this.sm.addStrike(data.lon, data.lat, data.time / 10e5))
+        this.lightningHandler = (data) => this.sm.addStrike(data.lon, data.lat, data.time / 10e5)
+        this.socketio.on('lightning', this.lightningHandler)
       }
     }
     this.sm.setBaseline(baseline)
@@ -93,5 +95,12 @@ export default class LightningCapability extends Capability {
         this.nb.finish(URL)
         logger.error(error)
       })
+  }
+
+  destroy() {
+    if (this.socketio && this.lightningHandler) {
+      this.socketio.off('lightning', this.lightningHandler)
+      this.lightningHandler = null
+    }
   }
 }

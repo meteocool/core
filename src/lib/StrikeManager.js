@@ -1,5 +1,6 @@
 import Point from 'ol/geom/Point'
 import { Feature } from 'ol'
+import { fromLonLat } from 'ol/proj'
 import { logger } from './logger.js'
 
 export default class StrikeManager {
@@ -20,13 +21,13 @@ export default class StrikeManager {
       this.vs.removeFeature(remove)
     }
     if (idx !== -1) {
-      this.strikes = this.strikes.slice(0, idx).concat(this.strikes.slice(idx + 1, this.strikes.length))
+      this.strikes.splice(idx, 1)
     }
   }
 
   addStrikeWithTime(lon, lat, time, addCb = null) {
     if (!this.enabled) return false
-    const lightning = new Feature(new Point([lon, lat]))
+    const lightning = new Feature(new Point(fromLonLat([lon, lat])))
     lightning.setId(time)
     this.strikes.push(lightning.getId())
     if (this.strikes.length > this.maxStrikes) {
@@ -43,11 +44,12 @@ export default class StrikeManager {
   fadeStrikes() {
     const now = new Date().getTime()
     const MINS = 60 * 1000
-    this.strikes.forEach((id, idx) => {
+    for (let idx = this.strikes.length - 1; idx >= 0; idx--) {
+      const id = this.strikes[idx]
       if (id < now - 30 * MINS) {
         this.removeOne(id, idx)
       }
-    })
+    }
     this.vs.refresh()
   }
 

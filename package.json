@@ -3,24 +3,25 @@
   "version": "3.0.0",
   "type": "module",
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.20.1",
-    "@sveltejs/vite-plugin-svelte": "^6.2.3",
-    "@types/node": "^24.10.4",
-    "@typescript-eslint/eslint-plugin": "^8.52.0",
-    "@typescript-eslint/parser": "^8.52.0",
-    "eslint": "^9.39.2",
+    "@cloudflare/vite-plugin": "^1.25.6",
+    "@eslint/js": "^10.0.1",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@types/node": "^25.3.3",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "eslint-plugin-svelte": "^3.14.0",
-    "prettier": "^3.7.4",
-    "prettier-plugin-svelte": "^3.4.1",
-    "svelte": "^5.46.1",
-    "svelte-check": "^4.3.5",
-    "svelte-eslint-parser": "^1.4.1",
+    "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-svelte": "^3.15.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.0",
+    "svelte": "^5.53.6",
+    "svelte-check": "^4.4.4",
+    "svelte-eslint-parser": "^1.5.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0",
-    "wrangler": "^4.58.0"
+    "wrangler": "^4.69.0"
   },
   "scripts": {
     "build": "NODE_ENV=production vite build",
@@ -38,18 +39,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lucide/svelte": "^0.562.0",
-    "@sentry/browser": "^10.32.1",
+    "@lucide/svelte": "^0.575.0",
+    "@sentry/browser": "^10.40.0",
     "chart.js": "^4.5.1",
     "chartjs-chart-error-bars": "^4.4.5",
     "chartjs-plugin-datalabels": "^2.2.0",
     "date-fns": "^4.1.0",
     "idb": "^8.0.3",
     "nanobar": "^0.4.2",
-    "ol": "^10.7.0",
+    "ol": "^10.8.0",
     "socket.io-client": "^4.8.3",
     "svelte-i18n": "^4.0.1",
     "workbox-window": "^7.4.0",
-    "xstate": "^5.25.0"
+    "xstate": "^5.28.0"
   }
 }

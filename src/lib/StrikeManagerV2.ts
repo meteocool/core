@@ -1,6 +1,7 @@
 import Point from 'ol/geom/Point'
 import { Feature } from 'ol'
 import VectorSource from 'ol/source/Vector'
+import { fromLonLat } from 'ol/proj'
 
 interface LightningMap {
   [time: string]: Feature
@@ -25,7 +26,7 @@ export default class StrikeManagerV2 {
   }
 
   setBaseline(baseline: number) {
-    const keys = Object.keys(this.strikes).map(parseInt)
+    const keys = Object.keys(this.strikes).map((key) => Number.parseInt(key, 10))
     keys.forEach((key) => {
       if (key < baseline) {
         this.vs.removeFeature(this.strikes[key])
@@ -36,7 +37,7 @@ export default class StrikeManagerV2 {
   }
 
   addStrike(lon: number, lat: number, timestamp: number) {
-    const strike = new Feature(new Point([lon, lat]))
+    const strike = new Feature(new Point(fromLonLat([lon, lat])))
     strike.set(TIME_KEY, timestamp)
     this.strikes[timestamp.toString()] = strike
     this.vs.addFeature(strike)
