@@ -12,8 +12,8 @@ const retina = DEVICE_PIXEL_RATIO > 1 ? "@2x" : "";
 
 export const cartoDark = () => new TileLayer({
   source: new XYZ({
-    urls: [`https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}${retina}.png`,
-      `https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}${retina}.png`],
+    urls: [`https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}${retina}.png?key=cb1_2kdp_1_1e4647af5d17c7fb502956ce`,
+      `https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/dark_nolabels/{z}/{x}/{y}${retina}.png?key=cb1_2kdp_1_1e4647af5d17c7fb502956ce`],
     crossOrigin: null,
     attributions: [osmAttribution, cartoAttribution],
     maxZoom: 20,
@@ -24,8 +24,8 @@ export const cartoDark = () => new TileLayer({
 
 export const cartoLight = () => new TileLayer({
   source: new XYZ({
-    urls: [`https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}${retina}.png`,
-      `https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}${retina}.png`],
+    urls: [`https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}${retina}.png?key=cb1_2kdp_1_1e4647af5d17c7fb502956ce`,
+      `https://cartodb-basemaps-c.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}${retina}.png?key=cb1_2kdp_1_1e4647af5d17c7fb502956ce`],
     crossOrigin: null,
     attributions: [osmAttribution, cartoAttribution],
     tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
