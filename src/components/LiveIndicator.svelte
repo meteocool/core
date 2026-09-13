@@ -1,11 +1,11 @@
-<script>
+<script lang="ts">
 import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
 import Icon from "./Icon.svelte";
 import { _ } from "svelte-i18n";
 import { lastFocus, live } from "../stores";
 
 let lightRed = true;
-let livePill = null;
+let livePill: HTMLElement | null = null;
 
 function blink(elem) {
   setTimeout(() => {
@@ -20,14 +20,14 @@ function blink(elem) {
   }, 1000);
 }
 
-let future = 0;
+let future: ReturnType<typeof setTimeout> | null = null;
 function deferredFadeOut() {
-  if (future > 0) clearTimeout(future);
+  if (future) clearTimeout(future);
   future = setTimeout(() => {
     const steps = 20;
     const fade = (n) => {
       const index = (n / steps) * 0.5;
-      if (livePill) livePill.style.opacity = 0.5 + index;
+      if (livePill) livePill.style.opacity = String(0.5 + index);
       if (n > 0) {
         future = setTimeout(() => {
           fade(n - 1);
@@ -44,8 +44,8 @@ function init(elem) {
 
 function hide() {
   if (livePill) livePill.style.display = "none";
-  if (future > 0) clearTimeout(future);
-  future = 0;
+  if (future) clearTimeout(future);
+  future = null;
 }
 
 function show() {

@@ -23,6 +23,24 @@ import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } fr
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { satelliteCombo } from "../layers/satellite";
 import Capability from "../caps/Capability";
+import type Polygon from "ol/geom/Polygon";
+import type BaseLayer from "ol/layer/Base";
+import type Settings from "./Settings";
+import type NanobarWrapper from "./NanobarWrapper";
+import type { CapabilityOptions } from "../caps/options";
+
+/** One entry of the capability list App.svelte builds. */
+export interface CapabilityDescriptor {
+  capability: new (map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) => Capability;
+  additionalLayers?: BaseLayer[];
+  options: CapabilityOptions;
+}
+
+export interface LayerManagerOptions {
+  settings: Settings;
+  nanobar?: NanobarWrapper;
+  capabilities: CapabilityDescriptor[];
+}
 
 let shouldUpdate = true;
 
@@ -40,19 +58,20 @@ interface CapabilityMap {
 export const VIEW_EXTENT = [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])];
 
 export class LayerManager {
-  options: object;
+  options: LayerManagerOptions;
 
-  settings: any;
+  settings: Settings;
 
   capabilities: CapabilityMap;
 
-  maps: Array<any>;
+  maps: Map[];
 
-  accuracyFeatures: Array<any>;
+  accuracyFeatures: Feature[];
 
-  positionFeatures: Array<any>;
+  positionFeatures: Feature[];
 
-  currentCap: string;
+  /** The capability currently attached to the main map. */
+  currentCap: string | null;
 
   mapCount: number;
 
@@ -75,8 +94,8 @@ export class LayerManager {
       this.maps.push(newMap);
     });
 
-    const active = this.settings.get("capability");
-    this.capabilities[active].setTarget(document.getElementById("map"));
+    const active = String(this.settings.get("capability"));
+    this.capabilities[active].setTarget(document.getElementById("map") ?? undefined);
 
     mapBaseLayer.subscribe((newBaseLayer) => {
       this.switchBaseLayer(newBaseLayer);
@@ -84,18 +103,18 @@ export class LayerManager {
   }
 
   // XXX move somewhere else
-  updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
-    let accuracyPoly = null;
+  updateLocation(lat: number, lon: number, accuracy: number, zoom: boolean | number = false, focus = true) {
+    let accuracyPoly: Polygon | null = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
       accuracyPoly.applyTransform(
         getTransformFromProjections(
-          getProjection("EPSG:4326"),
-          getProjection("EPSG:3857"),
+          getProjection("EPSG:4326")!,
+          getProjection("EPSG:3857")!,
         ),
       );
     }
-    this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly ?? undefined));
     let centerPoint;
     const center = fromLonLat([lon, lat]);
     if (lat === -1 && lon === -1 && accuracy === -1) {
@@ -134,11 +153,11 @@ export class LayerManager {
   }
 
   resetLocation() {
-    this.positionFeatures.forEach((feature) => feature.setGeometry(null));
-    this.accuracyFeatures.forEach((feature) => feature.setGeometry(null));
+    this.positionFeatures.forEach((feature) => feature.setGeometry(undefined));
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(undefined));
   }
 
-  mapFactory(baselayer = true) {
+  mapFactory(baselayer: boolean | undefined = true) {
     let controls;
     if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
@@ -184,12 +203,12 @@ export class LayerManager {
     let lon = 11.0;
     let z = 6;
 
-    const parts = this.settings.get("latLonZ").split(",");
+    const parts = String(this.settings.get("latLonZ") ?? "").split(",");
     if (parts.length === 3) {
       [lat, lon, z] = parts.map(parseFloat);
     }
 
-    let layers = [];
+    let layers: BaseLayer[] = [];
     if (baselayer) {
       layers = [this.baseLayerFactory(this.settings.get("mapBaseLayer"))];
     }
@@ -202,7 +221,7 @@ export class LayerManager {
         new View({
           zoom: z,
           center: fromLonLat([lon, lat]),
-          enableRotation: this.settings.get("mapRotation"),
+          enableRotation: Boolean(this.settings.get("mapRotation")),
           constrainResolution: false,
           extent: VIEW_EXTENT,
           minZoom: 3,
@@ -214,7 +233,7 @@ export class LayerManager {
       if (get(sharedActiveCap) !== newMap.get("capability")) {
         return;
       }
-      zoomlevel.set(newMap.getView().getZoom());
+      zoomlevel.set(newMap.getView().getZoom() ?? 0);
       if (isApp) return;
       if (!shouldUpdate) {
         // do not update the URL when the view was changed in the 'popstate' handler
@@ -223,11 +242,12 @@ export class LayerManager {
       }
 
       const center = newMap.getView().getCenter();
+      if (!center) return;
       const center4326 = toLonLat(center);
       const url = new URL(window.location.href);
       url.searchParams.set(
         "latLonZ",
-        `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
+        `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${(newMap.getView().getZoom() ?? 0).toFixed(2)}`,
       );
       window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
     });
@@ -268,7 +288,7 @@ export class LayerManager {
     }
   }
 
-  switchBaseLayer(newBaseLayer) {
+  switchBaseLayer(newBaseLayer: string) {
     this.forEachMap((map) => {
       if (map.get("baselayer") === false) return;
       map
@@ -280,31 +300,32 @@ export class LayerManager {
     });
   }
 
-  forEachMap(cb) {
+  forEachMap(cb: (map: Map, capability: string) => void) {
     this.maps.forEach((map) => cb(map, map.get("capability")));
   }
 
   getCurrentMap() {
-    return this.capabilities[this.currentCap].map;
+    return this.capabilities[this.currentCap!].map;
   }
 
-  getCapability(name) {
+  getCapability(name: string) {
     return this.capabilities[name];
   }
 
-  setTarget(cap, target) {
+  setTarget(cap: string, target: string | HTMLElement | undefined) {
     console.log(cap);
-    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && cap !== this.currentCap) {
+    if (this.currentCap && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
     }
     this.capabilities[cap].setTarget(target);
     sharedActiveCap.set(cap);
-    (this as any).currentCap = cap;
+    this.currentCap = cap;
   }
 
-  setDefaultTarget(target) {
-    console.log(`Starting with default cap ${(this as any).settings.get("capability")}`);
-    this.setTarget((this as any).settings.get("capability"), target);
+  setDefaultTarget(target: string | HTMLElement | undefined) {
+    const capability = String(this.settings.get("capability"));
+    console.log(`Starting with default cap ${capability}`);
+    this.setTarget(capability, target);
   }
 }
 
