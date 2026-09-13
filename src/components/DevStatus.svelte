@@ -52,7 +52,7 @@
 </style>
 
 <div class="wrapper">
-    <sl-tag type="danger" size="medium" pill>
+    <sl-tag variant="danger" size="medium" pill>
         <table class="dev">
             <tr><th>Tiles<br />(Pending/Loaded/Cached)</th><td>{pending} / {downloaded} / {hit}</td></tr>
             <tr><th>Cache Size</th><td>{(usage / 1024 / 1024).toFixed(1)} MiB</td></tr>

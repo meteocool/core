@@ -1,6 +1,6 @@
 <script>
   import cssVars from "svelte-css-vars";
-  import mapBg from "../../../public/assets/map-bg.png";
+  import mapBg from "../../assets/map-bg.png";
   import { DeviceDetect as dd } from '../../lib/DeviceDetect';
 
   export let palette;
@@ -43,7 +43,7 @@
   };
 </script>
 
-<style lang="less">
+<style>
   .scale-dividers {
     display: flex;
     justify-content: space-between;

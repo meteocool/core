@@ -1,9 +1,21 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
-    "module": "es6",
-    "target": "es6",
-    "moduleResolution": "node",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "types": ["node", "vite/client", "vite-plugin-pwa/client"],
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    // Relaxed while the tree is still mostly JavaScript. Phase 5 turns these on
+    // as each module is converted.
     "allowJs": true,
-  }
+    "checkJs": false,
+    "strict": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "vite.config.ts"]
 }

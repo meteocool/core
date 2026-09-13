@@ -1,15 +1,15 @@
 import * as Sentry from "@sentry/browser";
 import SENTRY_ARGS from "../lib/sentry.js";
 
-if (process.env.NODE_ENV !== "development") {
+if (import.meta.env.PROD) {
   Sentry.init(SENTRY_ARGS);
 }
 
 import { Workbox } from "workbox-window";
-import App, { lm } from "../App.svelte";
+import App from "../App.svelte";
 
 // Register service worker
-if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
   const wb = new Workbox("sw.js");
   wb.addEventListener("controlling", (evt) => {
     if (evt.isUpdate) {

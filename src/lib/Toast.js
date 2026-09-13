@@ -1,29 +1,25 @@
-// eslint-disable-next-line import/prefer-default-export
-export function reportError(
-  message,
-  type = "warning",
-  icon = "exclamation-triangle",
-) {
-  // const alert = Object.assign(document.createElement("sl-alert"), {
-  //   type,
-  //   closable: true,
-  //   innerHTML: `
-  //       <sl-icon name="${icon}" slot="icon"></sl-icon>
-  //       <b>Connection Lost.</b> Please reload the page or contact support@meteocool.com if the problem persists.
-  //     `,
-  // });
-  // document.body.append(alert);
-  console.log(message);
-  // return alert.toast();
-}
-
-export function reportToast(message, type = "primary", icon = "info-circle") {
+function toast(message, variant, icon, { duration } = {}) {
   const alert = Object.assign(document.createElement("sl-alert"), {
-    type,
+    variant,
     closable: true,
-    duration: 15000,
+    duration,
     innerHTML: `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`,
   });
   document.body.append(alert);
   return alert.toast();
+}
+
+export function reportError(message, variant = "warning", icon = "exclamation-triangle") {
+  // console.error, not log: the Sentry CaptureConsole integration is configured
+  // for the error level, and this is the one path errors are reported through.
+  console.error(message);
+  return toast(
+    "<b>Something went wrong.</b> Please reload the page, or contact support@meteocool.com if it keeps happening.",
+    variant,
+    icon,
+  );
+}
+
+export function reportToast(message, variant = "primary", icon = "info-circle") {
+  return toast(message, variant, icon, { duration: 15000 });
 }
