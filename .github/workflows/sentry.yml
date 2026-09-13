@@ -14,13 +14,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: '15.x'
-      - run: npm install
-      - run: GIT_COMMIT_HASH=${{github.sha}} npm run build-nocrossenv
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - name: Create a Sentry.io release
         uses: tclindner/sentry-releases-action@v1.2.0
         env:

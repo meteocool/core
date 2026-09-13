@@ -10,6 +10,12 @@ import {
 import { mapBaseLayer } from '../stores';
 import { supportsVectorLabels } from './base';
 
+// Nextzen rejects the key that was hardcoded here (400 on every tile, which
+// renders as an "API KEY REQUIRED" watermark across the map). Set
+// VITE_NEXTZEN_API_KEY to a working one; see https://developers.nextzen.org/.
+const NEXTZEN_API_KEY = import.meta.env.VITE_NEXTZEN_API_KEY ?? "";
+const nextzenTileUrl = `https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.mvt?api_key=${NEXTZEN_API_KEY}`;
+
 const boundaryStyle = new Style({
   stroke: new Stroke({
     color: "#454542",
@@ -95,7 +101,7 @@ export const bordersAndWays = () => new VectorTileLayer({
     format: new MVT({
       layers: ["boundaries", "places"],
     }),
-    url: `https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.mvt?api_key=qW-EcxRGQcanc6upJoSHSA`,
+    url: nextzenTileUrl,
     maxZoom: 17,
   }),
   style(feature) {
@@ -136,7 +142,7 @@ export const labelsOnly = () => {
       format: new MVT({
         layers: ["places"],
       }),
-      url: `https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.mvt?api_key=qW-EcxRGQcanc6upJoSHSA`,
+      url: nextzenTileUrl,
       maxZoom: 17,
     }),
     style(feature, res) {

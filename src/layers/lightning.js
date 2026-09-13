@@ -7,7 +7,7 @@ import MVT from "ol/format/MVT";
 import VectorTileSource from "ol/source/VectorTile";
 import VectorTileLayer from "ol/layer/VectorTile";
 import { Fill, RegularShape, Stroke } from "ol/style";
-import lightningstrike from "../../public/assets/lightning.png";
+import lightningstrike from "../assets/lightning.png";
 import { blitzortungAttribution, imprintAttribution } from "./attributions";
 import { tileBaseUrl } from "../urls";
 import { LightningColors } from "../colormaps";
@@ -84,6 +84,10 @@ const crossFactory = (ts, zIndexOffset = 0) => {
   return cross;
 };
 
+/**
+ * @returns {[import("ol/source/Vector").default, import("ol/layer/Vector").default]}
+ *   the feature source, and the layer that draws it
+ */
 export default function makeLightningLayer() {
   const ss = new VectorSource({
     features: [],

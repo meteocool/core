@@ -1,5 +1,5 @@
-import Capability from "./Capability.ts";
-import StrikeManagerV2 from "../lib/StrikeManagerV2.ts";
+import Capability from "./Capability";
+import StrikeManagerV2 from "../lib/StrikeManagerV2";
 import { capDescription, capLastUpdated, showForecastPlaybutton } from "../stores";
 import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
 import { v3APIBaseUrl } from "../urls";

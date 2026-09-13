@@ -27,8 +27,8 @@ import {
   radarColorScheme, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
-import "./html/global.css";
-import "@shoelace-style/shoelace/dist/themes/base.css";
+import "./global.css";
+import "@shoelace-style/shoelace/dist/themes/light.css";
 import { apiBaseUrl, dataUrl, websocketBaseUrl } from "./urls";
 import { initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
@@ -173,7 +173,10 @@ cycloneLayerVisible.subscribe((value) => {
   mesocycloneLayer.setVisible(value);
   (window as any).settings.set("layerMesocyclones", value);
 });
-lightningLayerVisible.set((window as any).settings.get("layerMesocyclones"));
+// This restored the *lightning* store from the mesocyclone setting, so the
+// mesocyclone layer never came back and the lightning visibility read three
+// lines above was immediately overwritten.
+cycloneLayerVisible.set((window as any).settings.get("layerMesocyclones"));
 
 radarSocketIO.on("lightning", (data) => {
   strikemgr.addStrike(data.lon, data.lat);

@@ -97,7 +97,7 @@ live.subscribe((value) => {
 </style>
 
 <div class="live-wrapper" use:init>
-<sl-tag type="danger" class="live" size="small" pill>
+<sl-tag variant="danger" class="live" size="small" pill>
     <div class="circle-container circle-container-light-red" use:blink>
         <Icon icon={faCircle} />
     </div>

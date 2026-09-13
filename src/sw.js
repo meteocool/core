@@ -6,8 +6,12 @@ import { ExpirationPlugin } from "workbox-expiration";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 
+// The hosts the basemap and label layers actually request -- see
+// src/layers/base.js and src/layers/vector.js. The previous pattern listed
+// maptiler and cartocdn, which nothing requests, and cartodb-basemaps-b, while
+// base.js asks for -a and -c, so basemap tiles were never cached at all.
 registerRoute(
-  new RegExp("https://(?:api.maptiler.com|basemaps.cartocdn.com|tile.nextzen.org|cartodb-basemaps-b.global.ssl.fastly.net)/.*.(png|mvt)"),
+  /^https:\/\/(?:cartodb-basemaps-[ac]\.global\.ssl\.fastly\.net|tile\.nextzen\.org|[abc]\.tile-cyclosm\.openstreetmap\.fr|tile\.openstreetmap\.org)\/.*\.(?:png|mvt)/,
   new CacheFirst({
     cacheName: "tile-cache",
     plugins: [

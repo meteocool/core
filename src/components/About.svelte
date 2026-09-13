@@ -7,7 +7,7 @@ const dispatch = createEventDispatcher();
 async function init(elem) {
   await tick(); // Workaround for Safari
   elem.show();
-  elem.addEventListener("sl-overlay-dismiss", (event) => {
+  elem.addEventListener("sl-request-close", (event) => {
     dispatch("close");
     return event.preventDefault();
   });
@@ -118,6 +118,6 @@ function close() {
     <li>{@html $_("other_things.list1")}</li>
     <li>{@html $_("other_things.list2")}</li>
   </ul>
-  <sl-button slot="footer" type="primary" on:click={close}
+  <sl-button slot="footer" variant="primary" on:click={close}
     >{$_("close")}</sl-button>
 </sl-dialog>

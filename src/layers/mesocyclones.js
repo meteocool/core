@@ -2,7 +2,7 @@ import VectorSource from "ol/source/Vector";
 import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
-import mesocycloneIcon from "../../public/assets/mesocyclone.png";
+import mesocycloneIcon from "../assets/mesocyclone.png";
 
 const mesoStyleCache = {};
 
@@ -55,6 +55,10 @@ const mesoStyleFactory = (age, intensity) => {
   return mesoStyleCache[age][intensity];
 };
 
+/**
+ * @returns {[import("ol/source/Vector").default, import("ol/layer/Vector").default]}
+ *   the feature source, and the layer that draws it
+ */
 export default function makeMesocycloneLayer() {
   const ss = new VectorSource({
     features: [],

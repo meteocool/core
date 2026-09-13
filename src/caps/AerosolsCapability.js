@@ -4,7 +4,7 @@ import {
   capDescription,
   showForecastPlaybutton,
 } from "../stores";
-import Capability from "./Capability.ts";
+import Capability from "./Capability";
 
 const AEROSOLS_DESCRIPTION_LONG = `UVAI`;
 

@@ -72,7 +72,9 @@ export function initUIConstants() {
       });
   }
 
-  setBasePath("/dist/shoelace/assets/");
+  // dist/ is the webroot, not a path within it: the assets are copied to
+  // dist/shoelace/assets and so are served from /shoelace/assets.
+  setBasePath("/shoelace/assets");
 }
 
 // Dark and Light mode

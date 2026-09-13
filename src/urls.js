@@ -1,15 +1,10 @@
-export const tileBaseUrl = "https://tiles-a.meteocool.com";
+// Under `--mode local` every base is a relative path, so the page talks to the
+// Vite dev server's own origin and the proxy in vite.config.ts forwards to the
+// local stack. Same-origin means there is no CORS to configure anywhere.
+const local = import.meta.env.MODE === "local";
 
-// eslint-disable-next-line import/no-mutable-exports
-export let apiBaseUrl = "https://api.ng.meteocool.com/api";
-// eslint-disable-next-line import/no-mutable-exports
-export let websocketBaseUrl = "https://api.ng.meteocool.com";
-export const dataUrl = "https://data.meteocool.com";
-// eslint-disable-next-line import/no-mutable-exports
-export let v3APIBaseUrl = "https://api.meteocool.com/v3";
-
-if (BACKEND === "local") {
-  apiBaseUrl = "http://localhost:5001/api";
-  websocketBaseUrl = "http://localhost:5001";
-  v3APIBaseUrl = "http://localhost:5003/v3";
-}
+export const tileBaseUrl = local ? "/tiles" : "https://tiles-a.meteocool.com";
+export const apiBaseUrl = local ? "/api" : "https://api.ng.meteocool.com/api";
+export const websocketBaseUrl = local ? "" : "https://api.ng.meteocool.com";
+export const dataUrl = local ? "" : "https://data.meteocool.com";
+export const v3APIBaseUrl = local ? "/v3" : "https://api.meteocool.com/v3";
