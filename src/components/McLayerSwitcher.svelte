@@ -6,8 +6,24 @@
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import { _ } from "svelte-i18n";
+  import ModelCompare from "./ModelCompare.svelte";
+  import { toLonLat } from "ol/proj";
 
   export let layerManager;
+
+  // The comparison panel is not a map layer, so it does not get a capability:
+  // the tile opens it over the switcher instead of switching the map.
+  let compareAt: { lat: number; lon: number } | null = null;
+
+  function openCompare() {
+    // The map centre as it stands when the panel opens, held until it is
+    // reopened -- open-meteo's free tier is rate limited, and refetching on
+    // every pan would spend that on views nobody is reading.
+    const centre = layerManager.getCurrentMap().getView().getCenter();
+    if (!centre) return;
+    const [lon, lat] = toLonLat(centre);
+    compareAt = { lat, lon };
+  }
   const childCanvases = {};
 
   const allAttributionsArray = Object.entries(attributions)
@@ -115,9 +131,9 @@
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 0.55fr;
     gap: 0.15em 0.15em;
-    grid-template-areas: "reflectivity satellite" "precip-types aerosols" "lightning lightning";
+    grid-template-areas: "reflectivity satellite" "precip-types aerosols" "lightning lightning" "compare compare";
     height: 100%;
   }
 
@@ -140,6 +156,28 @@
     grid-area: lightning;
   }
 
+  /* Not a MiniMap: there is no map behind it, so it carries its own label. */
+  .compare {
+    grid-area: compare;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #212529;
+    border-radius: 10px;
+  }
+
+  .compare-label {
+    color: #fff;
+    padding: 4px 12px;
+    font-size: 1em;
+  }
+
+  .compare-sub {
+    display: block;
+    font-size: 0.7em;
+    opacity: 0.7;
+  }
+
   .cell {
     height: 100%;
     cursor: pointer;
@@ -151,6 +189,10 @@
   <div class="lsToggle" on:click={open}>
     <Icon icon={faLayerGroup} class="lsIcon" />
   </div>
+{/if}
+
+{#if compareAt}
+  <ModelCompare lat={compareAt.lat} lon={compareAt.lon} onClose={() => (compareAt = null)} />
 {/if}
 
 <div class="ls" id="ls">
@@ -196,6 +238,12 @@
                 label={`⚡️ ${$_("lightning")}`}
                 on:mount={childMounted}
                 on:changeLayer={changeLayer} />
+      </div>
+      <div class="compare cell" on:click={openCompare}>
+        <span class="compare-label">
+          🌡 {$_("model_comparison")}
+          <span class="compare-sub">{$_("model_comparison_sub")}</span>
+        </span>
       </div>
     </div>
   </div>
