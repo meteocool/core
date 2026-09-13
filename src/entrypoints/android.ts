@@ -5,8 +5,12 @@ Sentry.init(SENTRY_ARGS);
 
 import { Workbox } from "workbox-window";
 import { mount } from "svelte";
+import { cleanupNetworkStatus, initNetworkStatus } from "../lib/networkStatus";
 import App from "../App.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+
+initNetworkStatus();
+window.addEventListener("pagehide", cleanupNetworkStatus);
 
 const app = mount(App, {
   target: document.body,

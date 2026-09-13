@@ -37,6 +37,9 @@ export default class StrikeManagerV2 {
     this.baseline = baseline;
   }
 
+  // Already projected: /v3/lightning/baseline returns LightningStrike, which
+  // the schema describes as "in projected metres, as the frontend expects".
+  // See the note in StrikeManager.
   addStrike(lon: number, lat: number, timestamp: number) {
     const strike = new Feature(new Point([lon, lat]));
     strike.set(TIME_KEY, timestamp);

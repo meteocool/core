@@ -69,7 +69,8 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+# .env is committed on purpose -- it holds build config, not secrets.
+.env.local
 .env.test
 
 # parcel-bundler cache (https://parceljs.org/)
@@ -118,3 +119,6 @@ dist
 
 .DS_Store
 *.swp
+
+# Cloudflare Wrangler state and build output
+.wrangler/

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onDestroy } from "svelte";
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
@@ -9,6 +10,7 @@ import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
+import MapStatusOverlay from "./components/MapStatusOverlay.svelte";
 
 import RadarCapability from "./caps/RadarCapability";
 import SatelliteCapability from "./caps/SatelliteCapability";
@@ -20,6 +22,7 @@ import Settings from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
+import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
@@ -34,7 +37,7 @@ import "@shoelace-style/shoelace/dist/themes/light.css";
 import { websocketBaseUrl } from "./urls";
 import { fetchLightningCache, fetchMesocyclones } from "./api";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
-import { initUIConstants } from "./layers/ui";
+import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
 import StrikeManager from "./lib/StrikeManager";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
@@ -51,6 +54,18 @@ export let device;
 export let postInitCb;
 
 dd.set(device);
+
+// The native wrappers need CSS hooks the web build must not get: the toolbar
+// has to clear the home indicator, and iOS's safe-area insets differ from
+// Android's. Set on both <html> and <body> so rules can hang off either.
+if (dd.isApp()) {
+  document.documentElement.classList.add("is-app");
+  document.body.classList.add("is-app");
+  if (dd.isIos()) {
+    document.documentElement.classList.add("is-ios");
+    document.body.classList.add("is-ios");
+  }
+}
 
 addMessages("de", de);
 addMessages("en", en);
@@ -119,19 +134,27 @@ window.settings = new Settings({
     default: "49.0,11.0,6",
     source: "url",
   },
+  // The wrappers draw their own chrome, so the logo and the layer-switcher
+  // button are off there. Enforced in the callback as well as the default,
+  // because both are URL-sourced and ?logo=full would otherwise put the web
+  // logo back inside the app.
   logo: {
     type: "string",
-    default: "full",
+    default: dd.isApp() ? "none" : "full",
     source: "url",
     cb: (value) => {
-      logoStyle.set(String(value));
+      logoStyle.set(dd.isApp() ? "none" : String(value));
     },
   },
   layerswitcher: {
     type: "string",
-    default: "yes",
+    default: dd.isApp() ? "no" : "yes",
     source: "url",
     cb: (value) => {
+      if (dd.isApp()) {
+        layerswitcherVisible.set("no");
+        return;
+      }
       layerswitcherVisible.set(value === "no" ? "no" : "yes");
     },
   },
@@ -189,6 +212,16 @@ radarSocketIO.on("mesocyclones", (data) => {
   mesocyclonemgr.clearAll();
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
+
+// Both managers cap themselves by count, but nothing ever dropped features for
+// being old: fadeStrikes/fadeCyclones existed and were never called, so a quiet
+// day left half-hour-old strikes on the map until the ring buffer wrapped.
+const FADE_INTERVAL_MS = 5 * 60 * 1000;
+const fadeInterval = window.setInterval(() => {
+  strikemgr.fadeStrikes();
+  mesocyclonemgr.fadeCyclones();
+}, FADE_INTERVAL_MS);
+onDestroy(() => window.clearInterval(fadeInterval));
 
 // Was `export let lm`, assigned from inside the component: an outward binding
 // for a named import that nothing used, and a prop you cannot write to in
@@ -294,6 +327,14 @@ window.enterForeground = () => {
   reloadCyclones();
 };
 
+// The banner's retry button: coming back online does not make OpenLayers
+// re-request the tiles that failed while it was down.
+const refreshSub = tileRefreshSignal.subscribe((n) => {
+  if (n > 0) lm.refreshTiles();
+});
+onDestroy(refreshSub);
+onDestroy(cleanupUIConstants);
+
 if (postInitCb) postInitCb(lm);
 </script>
 
@@ -346,6 +387,7 @@ if (postInitCb) postInitCb(lm);
 
 <div id="nanobar" />
 <Map layerManager={lm} />
+<MapStatusOverlay />
 
 {#if $toolbarVisible}
   <NowcastPlayback cap={lm.getCapability("radar") as RadarCapability} />

@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meteocool",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-09-01",
+
+  // `dist` is the Vite build; run `npm run build` before deploying.
+  //
+  // `run_worker_first` is what makes the OpenGraph injection possible at all:
+  // without it Cloudflare serves index.html straight from the asset store and
+  // the Worker never sees the request.
+  //
+  // No `not_found_handling`: this is a multi-page build (index, ios, android,
+  // imprint, privacy), not an SPA, so a missing asset should 404 rather than be
+  // rewritten to index.html.
+  //
+  // `html_handling: "none"`: by default Cloudflare 307s /ios.html to /ios. The
+  // iOS and Android wrappers load ios.html and android.html by name, so those
+  // URLs have to keep resolving directly.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none"
+  },
+
+  "env": {
+    "staging": {
+      "name": "meteocool-staging",
+      "workers_dev": true
+    },
+    "production": {
+      "name": "meteocool",
+      "workers_dev": false,
+      // Set these to the zone's real hostnames before the first production
+      // deploy; with no routes, `wrangler deploy --env production` publishes to
+      // workers.dev and nothing points at it.
+      "routes": [
+        { "pattern": "meteocool.com", "custom_domain": true },
+        { "pattern": "www.meteocool.com", "custom_domain": true }
+      ]
+    }
+  }
+}

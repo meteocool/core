@@ -52,7 +52,7 @@
   "latest": "Aktuell",
   "rain_and_thunderstorms": "Regen & Gewitter",
   "nrt_satellite": "Satellit",
-  "precpitation_types": "Niederschlags-\narten",
+  "precipitation_types": "Niederschlags-\narten",
   "layer_switcher_placeholder": "Wenn du dankbar für meteocool bist, gib jemand Bedürftigem etwas dafür.",
   "snow": "Schnee",
   "graupel": "Graupel",
@@ -61,5 +61,9 @@
   "lightning": "Live Blitze",
   "n/a": "Unbekannt",
   "model_comparison": "Modellvergleich",
-  "model_comparison_sub": "21 Wettermodelle im Vergleich"
+  "model_comparison_sub": "21 Wettermodelle im Vergleich",
+  "offline": "Offline",
+  "slow_connection": "Langsame Verbindung",
+  "retry": "Erneut versuchen",
+  "last_success": "Letzte Aktualisierung"
 }

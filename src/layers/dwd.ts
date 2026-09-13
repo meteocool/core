@@ -5,43 +5,47 @@ import Style from "ol/style/Style";
 import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
-import { DEVICE_PIXEL_RATIO } from "ol/has";
 import { transformExtent } from "ol/proj";
-import XYZ from "ol/source/XYZ";
+import ImageTileSource from "ol/source/ImageTile";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdExtentInv } from "./extents";
 import { tileBaseUrl } from "../urls";
+import { trackTileLoads } from "../lib/tileStatus";
 import type BaseLayer from "ol/layer/Base";
 
 /**
  * Builds the layer and source for one radar tile set, plus the URL template.
  * RadarCapability swaps between these when the colormap changes.
  */
-export type LayerFactory = (tileId: string, bucket?: string) => [BaseLayer, XYZ, string];
+export type LayerFactory = (tileId: string, bucket?: string) => [BaseLayer, ImageTileSource, string];
 import { NOWCAST_OPACITY } from "./ui";
 import { cmapFromString } from "../lib/cmap_utils";
 import { RVP6_CLASSIC }  from "../colormaps";
 
 let cmap = RVP6_CLASSIC;
 
+// OpenLayers 10 renders WebGLTile layers from DataTile sources only, so these
+// moved onto ol/source/ImageTile. Three of the old options went with that:
+// `imageSmoothing: false` is now `interpolate: false`, `cacheSize` belongs on
+// the layer rather than the source, and `tilePixelRatio` no longer exists --
+// ImageTile's `tileSize` *is* the source image size, and the server really does
+// serve 512px tiles, so the retina-doubled ratio was declaring them as 1024.
 const commonDWDParameters = {
   attributions: [dwdAttribution, blitzortungAttribution],
-  crossOrigin: "anonymous",
+  crossOrigin: "anonymous" as const,
   minZoom: 3,
   maxZoom: 8,
-  tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
   tileSize: 512,
   transition: 0,
-  imageSmoothing: false,
-  cacheSize: 0,
+  interpolate: false,
 };
 
 export const dwdSource = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
-  const reflectivitySource = new XYZ({
+  const reflectivitySource = trackTileLoads(new ImageTileSource({
     ...commonDWDParameters,
     url: sourceUrl,
-  });
+  }));
   reflectivitySource.set("tile_id", tileId);
   return reflectivitySource;
 };
@@ -62,11 +66,10 @@ export const dwdLayerStatic: LayerFactory = (tileId, bucket) => {
 
 export const DWDLayerFactoryGL: LayerFactory = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
-  const reflectivitySource = new XYZ({
+  const reflectivitySource = trackTileLoads(new ImageTileSource({
     url: sourceUrl,
     ...commonDWDParameters,
-    tilePixelRatio: 1,
-  });
+  }));
 
   const toColorId = [
     "+",
@@ -125,17 +128,15 @@ export const radolanOverlay = () => new VectorLayer({
 
 export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
   const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
-  const reflectivitySource = new XYZ({
+  const reflectivitySource = trackTileLoads(new ImageTileSource({
     url: sourceUrl,
     attributions: [dwdAttribution],
     crossOrigin: "anonymous",
     minZoom: 3,
     maxZoom: 8,
     transition: 300,
-    tilePixelRatio: DEVICE_PIXEL_RATIO > 1 ? 2 : 1, // Retina support
     tileSize: 512,
-    cacheSize: 999999,
-  });
+  }));
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
     zIndex: 3,
