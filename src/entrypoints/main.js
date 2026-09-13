@@ -6,6 +6,7 @@ if (import.meta.env.PROD) {
 }
 
 import { Workbox } from "workbox-window";
+import { mount } from "svelte";
 import App from "../App.svelte";
 
 // Register service worker
@@ -24,7 +25,7 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
   }
 }
 
-const app = new App({
+const app = mount(App, {
   target: document.body,
   props: {
     device: "web",

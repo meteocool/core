@@ -1,5 +1,4 @@
 <script>
-  import cssVars from "svelte-css-vars";
   import mapBg from "../../assets/map-bg.png";
   import { DeviceDetect as dd } from '../../lib/DeviceDetect';
 
@@ -37,10 +36,8 @@
   $ : colors = colorMap()
     .map((c) => `#${c[1]}`);
 
-  $: scaleStyle = {
-    backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
-    backgroundUrl: `url(${mapBg})`,
-  };
+  $: backgroundImage = `linear-gradient(to right, ${colors.join(",")})`;
+  $: backgroundUrl = `url(${mapBg})`;
 </script>
 
 <style>
@@ -147,7 +144,7 @@
 <div class="wrapper">
     <div class="legend-label">{@html title}</div>
     <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
-        <div class="scale-line" use:cssVars="{scaleStyle}">
+        <div class="scale-line" style:--backgroundImage={backgroundImage} style:--backgroundUrl={backgroundUrl}>
             <div class="scale-dividers">
                 {#each vs as value}
                     <div class="scale-divider">

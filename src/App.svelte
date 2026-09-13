@@ -12,7 +12,7 @@ import BottomToolbar from "./components/BottomToolbar.svelte";
 import RadarCapability from "./caps/RadarCapability";
 import SatelliteCapability from "./caps/SatelliteCapability";
 
-import { LayerManager } from "./lib/LayerManager";
+import { LayerManager, VIEW_EXTENT } from "./lib/LayerManager";
 import NanobarWrapper from "./lib/NanobarWrapper";
 import Settings from "./lib/Settings";
 
@@ -187,8 +187,10 @@ radarSocketIO.on("mesocyclones", (data) => {
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
 
-export let lm;
-lm = new LayerManager({
+// Was `export let lm`, assigned from inside the component: an outward binding
+// for a named import that nothing used, and a prop you cannot write to in
+// Svelte 5. It is reachable as window.lm, which is what the apps call.
+const lm = new LayerManager({
   settings: (window as any).settings,
   nanobar: nb,
   capabilities: [
@@ -242,7 +244,7 @@ lm = new LayerManager({
     zoom: lm.getCurrentMap().getView().getZoom(),
     minZoom: lm.getCurrentMap().getView().getMinZoom(),
     enableRotation: value,
-    extent: lm.getCurrentMap().getView().extent,
+    extent: VIEW_EXTENT,
   });
   lm.forEachMap((map) => map.setView(newView));
 });

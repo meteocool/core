@@ -54,8 +54,10 @@
 <div class="wrapper">
     <sl-tag variant="danger" size="medium" pill>
         <table class="dev">
-            <tr><th>Tiles<br />(Pending/Loaded/Cached)</th><td>{pending} / {downloaded} / {hit}</td></tr>
-            <tr><th>Cache Size</th><td>{(usage / 1024 / 1024).toFixed(1)} MiB</td></tr>
+            <tbody>
+                <tr><th>Tiles<br />(Pending/Loaded/Cached)</th><td>{pending} / {downloaded} / {hit}</td></tr>
+                <tr><th>Cache Size</th><td>{(usage / 1024 / 1024).toFixed(1)} MiB</td></tr>
+            </tbody>
         </table>
     </sl-tag>
 </div>

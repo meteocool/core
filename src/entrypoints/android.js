@@ -4,10 +4,11 @@ import SENTRY_ARGS from "../lib/sentry.js";
 Sentry.init(SENTRY_ARGS);
 
 import { Workbox } from "workbox-window";
+import { mount } from "svelte";
 import App from "../App.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
-const app = new App({
+const app = mount(App, {
   target: document.body,
   props: {
     device: "android",

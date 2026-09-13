@@ -5,6 +5,7 @@ Sentry.init(SENTRY_ARGS);
 
 // eslint-disable-next-line import/order
 import { Workbox } from "workbox-window";
+import { mount } from "svelte";
 import App from "../App.svelte";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
@@ -20,7 +21,7 @@ if ("serviceWorker" in navigator) {
   wb.register();
 }
 
-const app = new App({
+const app = mount(App, {
   target: document.body,
   props: {
     device: "ios",
