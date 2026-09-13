@@ -1,5 +1,6 @@
 <script lang="ts">
 import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
+  import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoubleDown";
 import { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDoubleUp";
@@ -753,7 +754,7 @@ lastFocus.subscribe((focus) => {
     }
 
     .barChartCanvas {
-      bottom: 142px;
+      bottom: 118px;
       left: 0;
       width: 99%;
     }
@@ -770,14 +771,22 @@ lastFocus.subscribe((focus) => {
     }
 
     .flexbox {
-      gap: 5px !important;
+      gap: 3px !important;
       padding-left: 1%;
       padding-right: 1%;
       margin-top: -2px;
     }
 
+    /* 153px is a third of a phone screen for a slider and four buttons. The
+       chart above moves up with it (.barChartCanvas), and the collapsed
+       "last updated" bar is hidden while the player is open, since the player
+       already shows the same timestamp. */
     .timeslider {
-      height: 153px !important;
+      height: 120px !important;
+    }
+
+    :global(.bottomToolbar.lastUpdatedBottom.player-open) {
+      display: none;
     }
 
     .hide-on-small-screens {
@@ -809,7 +818,11 @@ lastFocus.subscribe((focus) => {
 {#if $bottomToolbarMode === "player"}
   <div
     class="bottomToolbar timeslider"
-    transition:fly={{ y: 150, duration: 400 }}>
+    transition:fly={{ y: 150, duration: 400 }}
+    on:introstart={toolbarTransitionStart}
+    on:outrostart={toolbarTransitionStart}
+    on:introend={toolbarTransitionEnd}
+    on:outroend={toolbarTransitionEnd}>
       <div class="flexbox">
         <div class="buttonsLeft">
           <div class="controlButton" on:click={playPause} title="Play/Pause">

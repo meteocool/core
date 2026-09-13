@@ -76,24 +76,40 @@ export function resetUIConstantByPrefix(prefix: string) {
   Object.keys(uiConstantsDefault).filter((key) => key.startsWith(prefix)).forEach((key) => setUIConstant(key));
 }
 
+/** The dark-mode query and its listener, kept so cleanup can detach them. */
+let darkModeQuery: MediaQueryList | null = null;
+let darkModeHandler: ((event: MediaQueryListEvent) => void) | null = null;
+
 export function initUIConstants() {
+  cleanupUIConstants();
   Object.keys(uiConstantsDefault).forEach((key) => setUIConstant(key));
 
   if (window.matchMedia) {
-    colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
-  }
+    // One query for both the initial read and the subscription. The old code
+    // built two -- one of them with a stray space in "(prefers-color-scheme:
+    // dark )" -- and subscribed through the deprecated addListener, which
+    // nothing ever detached.
+    darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    colorSchemeDark.set(darkModeQuery.matches);
 
-  if (window.matchMedia) {
-    window.matchMedia("(prefers-color-scheme: dark)")
-      .addListener((e) => {
-        console.log(`changed to ${e.matches ? "dark" : "light"} mode`);
-        colorSchemeDark.set(e.matches);
-      });
+    darkModeHandler = (event) => {
+      console.log(`changed to ${event.matches ? "dark" : "light"} mode`);
+      colorSchemeDark.set(event.matches);
+    };
+    darkModeQuery.addEventListener("change", darkModeHandler);
   }
 
   // dist/ is the webroot, not a path within it: the assets are copied to
   // dist/shoelace/assets and so are served from /shoelace/assets.
   setBasePath("/shoelace/assets");
+}
+
+export function cleanupUIConstants() {
+  if (darkModeQuery && darkModeHandler) {
+    darkModeQuery.removeEventListener("change", darkModeHandler);
+  }
+  darkModeQuery = null;
+  darkModeHandler = null;
 }
 
 // Dark and Light mode

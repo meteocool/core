@@ -1,20 +1,19 @@
 import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/WebGLTile";
-import XYZ from "ol/source/XYZ";
+import ImageTileSource from "ol/source/ImageTile";
 import { centralEuropeExtent } from "./extents";
 import { tileBaseUrl } from "../urls";
+import { trackTileLoads } from "../lib/tileStatus";
 import { dwdAttribution, imprintAttribution } from "./attributions";
 
 export const weatherLayer = (tileID) => {
-  const source =
-      new XYZ({
-        url: `${tileBaseUrl}/meteomodels/${tileID}/{z}/{x}/{-y}.png`,
-        minZoom: 1,
-        maxZoom: 14,
-        attributions: [dwdAttribution, imprintAttribution],
-        transition: 300,
-        cacheSize: 99999,
-      });
+  const source = trackTileLoads(new ImageTileSource({
+    url: `${tileBaseUrl}/meteomodels/${tileID}/{z}/{x}/{-y}.png`,
+    minZoom: 1,
+    maxZoom: 14,
+    attributions: [dwdAttribution, imprintAttribution],
+    transition: 300,
+  }));
   const group = new LayerGroup({
     layers: [
       new TileLayer({

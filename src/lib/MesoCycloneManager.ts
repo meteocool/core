@@ -28,10 +28,12 @@ export default class MesoCycloneManager {
       this.vs.removeFeature(remove);
     }
     if (idx !== -1) {
-      this.cyclones = this.cyclones.slice(0, idx).concat(this.cyclones.slice(idx + 1, this.cyclones.length));
+      this.cyclones.splice(idx, 1);
     }
   }
 
+  // Already projected, like the strikes: the Mesocyclone schema documents
+  // lat/lon as EPSG:3857 metres. See the note in StrikeManager.
   addCyclone(struct) {
     const cyclone = new Feature(new Point([struct.lon, struct.lat]));
     cyclone.setId(struct.time);
@@ -48,11 +50,13 @@ export default class MesoCycloneManager {
   fadeCyclones() {
     const now = new Date().getTime();
     const MINS = 60 * 1000;
-    this.cyclones.forEach((id, idx) => {
+    // Backwards, for the same reason as StrikeManager.fadeStrikes.
+    for (let idx = this.cyclones.length - 1; idx >= 0; idx -= 1) {
+      const id = this.cyclones[idx];
       if (id < now - 30 * MINS) {
         this.removeOne(id, idx);
       }
-    });
+    }
     this.vs.refresh();
   }
 

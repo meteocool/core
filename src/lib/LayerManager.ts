@@ -1,11 +1,11 @@
 import { Map, View } from "ol";
 import {
   fromLonLat,
-  getTransformFromProjections,
-  get as getProjection, toLonLat,
+  toLonLat,
 } from "ol/proj";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
+import GeolocateControl from "./GeolocateControl";
 import { circular as circularPolygon } from "ol/geom/Polygon";
 
 import VectorLayer from "ol/layer/Vector";
@@ -24,6 +24,7 @@ import { satelliteCombo } from "../layers/satellite";
 import Capability from "../caps/Capability";
 import type Polygon from "ol/geom/Polygon";
 import type BaseLayer from "ol/layer/Base";
+import LayerGroup from "ol/layer/Group";
 import type Settings from "./Settings";
 import type NanobarWrapper from "./NanobarWrapper";
 import type { CapabilityOptions } from "../caps/options";
@@ -79,6 +80,9 @@ export class LayerManager {
 
   mapCount: number;
 
+  /** Kept so destroy() can take the history listener off window again. */
+  popstateHandler: ((event: PopStateEvent) => void) | null = null;
+
   constructor(options) {
     this.options = options;
     this.settings = options.settings;
@@ -110,12 +114,9 @@ export class LayerManager {
     let accuracyPoly: Polygon | null = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
-      accuracyPoly.applyTransform(
-        getTransformFromProjections(
-          getProjection("EPSG:4326")!,
-          getProjection("EPSG:3857")!,
-        ),
-      );
+      // OL 10 types getTransformFromProjections as nullable; Geometry.transform
+      // looks the pair up itself and says the same thing in one call.
+      accuracyPoly.transform("EPSG:4326", "EPSG:3857");
     }
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly ?? undefined));
     let centerPoint;
@@ -166,6 +167,13 @@ export class LayerManager {
       controls = defaults({ attribution: false }).extend([
         new Attribution({
           collapsible: false,
+        }),
+        new GeolocateControl({
+          onLocate: () => {
+            navigator.geolocation.getCurrentPosition(({ coords }) => {
+              this.updateLocation(coords.latitude, coords.longitude, coords.accuracy, true, true);
+            });
+          },
         }),
       ]);
     }
@@ -258,7 +266,7 @@ export class LayerManager {
     if (this.mapCount === 0) {
       // restore the view state when navigating through the history, see
       // https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onpopstate
-      window.addEventListener("popstate", (event) => {
+      this.popstateHandler = (event) => {
         if (event.state === null) {
           return;
         }
@@ -267,7 +275,8 @@ export class LayerManager {
         if (url.searchParams.has("latLonZ")) {
           this.settings.cb("latLonZ");
         }
-      });
+      };
+      window.addEventListener("popstate", this.popstateHandler);
     }
     this.mapCount += 1;
     newMap.set("baselayer", baselayer);
@@ -342,6 +351,45 @@ export class LayerManager {
     const fallback = Object.keys(this.capabilities)[0];
     console.warn(`Capability ${stored} is not registered; starting with ${fallback}`);
     return fallback;
+  }
+
+  /**
+   * Re-request every tile in every map.
+   *
+   * Wired to the connection banner's retry button: coming back online does not
+   * by itself make OpenLayers retry the tiles that failed while it was down.
+   */
+  refreshTiles() {
+    const refreshLayer = (layer: BaseLayer) => {
+      if (layer instanceof LayerGroup) {
+        layer.getLayers().forEach((inner: BaseLayer) => refreshLayer(inner));
+        return;
+      }
+      const source = (layer as BaseLayer & { getSource?: () => unknown }).getSource?.();
+      const refreshable = source as { refresh?: () => void; changed?: () => void } | undefined;
+      if (refreshable?.refresh) {
+        refreshable.refresh();
+      } else if (refreshable?.changed) {
+        refreshable.changed();
+      }
+    };
+
+    this.forEachMap((map) => {
+      map.getLayers().forEach((layer) => refreshLayer(layer as BaseLayer));
+    });
+  }
+
+  /**
+   * Release everything that outlives the maps. Capabilities hold socket.io
+   * handlers and timers that the map itself knows nothing about, so they have
+   * to be told; destroy() is optional on Capability and most do not define it.
+   */
+  destroy() {
+    if (this.popstateHandler) {
+      window.removeEventListener("popstate", this.popstateHandler);
+      this.popstateHandler = null;
+    }
+    Object.values(this.capabilities).forEach((cap) => cap.destroy?.());
   }
 }
 

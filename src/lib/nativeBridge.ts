@@ -23,6 +23,7 @@ import type Settings from "./Settings";
 /** The message names the web app posts to the iOS host. */
 export type IosMessage =
   | "requestSettings"
+  | "layerSwitcherOpened"
   | "layerSwitcherClosed"
   | "impactLight"
   | "impactMedium";

@@ -66,6 +66,9 @@ live.subscribe((value) => {
   .live-wrapper {
       position: absolute;
       z-index: 9999;
+      /* Purely informational, and it sits over the map: a drag that starts on
+         the pill should pan the map, not do nothing. */
+      pointer-events: none;
       top: calc(env(safe-area-inset-top) + 0.4em);
       left: 0;
       width: 100%;
@@ -93,6 +96,17 @@ live.subscribe((value) => {
   .label {
       font-size: 110%;
       letter-spacing: 0px;
+  }
+
+  @media only screen and (max-width: 620px) {
+    .circle-container {
+      font-size: 7px;
+      padding-right: 3px;
+    }
+
+    .label {
+      font-size: 95%;
+    }
   }
 </style>
 

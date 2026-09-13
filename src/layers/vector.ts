@@ -1,191 +1,119 @@
 import VectorTileLayer from "ol/layer/VectorTile";
-import VectorTileSource from "ol/source/VectorTile";
 import { Stroke, Style, Fill, Text } from "ol/style";
-import MVT from "ol/format/MVT";
+import type { FeatureLike } from "ol/Feature";
 import {
   imprintAttribution,
   osmAttribution,
-  wofAttribution,
+  protomapsAttribution,
 } from "./attributions";
 import { mapBaseLayer } from "../stores";
 import { supportsVectorLabels } from "./base";
+import { belowMinZoom, protomapsSource, zoomFromResolution } from "./protomaps";
 
-// Nextzen rejects the key that was hardcoded here (400 on every tile, which
-// renders as an "API KEY REQUIRED" watermark across the map). Set
-// VITE_NEXTZEN_API_KEY to a working one; see https://developers.nextzen.org/.
-const NEXTZEN_API_KEY = import.meta.env.VITE_NEXTZEN_API_KEY ?? "";
-const nextzenTileUrl = `https://tile.nextzen.org/tilezen/vector/v1/all/{z}/{x}/{y}.mvt?api_key=${NEXTZEN_API_KEY}`;
+/**
+ * The label and border overlays, drawn *above* the weather so place names stay
+ * readable through radar reflectivity.
+ *
+ * These used to come from Nextzen, which now answers every tile request with
+ * "An API key is required" and no longer issues keys -- so both overlays had
+ * gone blank. They read meteocool's own Protomaps tiles instead, the same
+ * tileset the basemaps come from.
+ */
+
+const overlayAttributions = [osmAttribution, protomapsAttribution, imprintAttribution];
+
+/** Labels are decluttered against each other, so one Text style per tier is enough. */
+function labelStyle(font: string, haloWidth: number, zIndex: number) {
+  return new Style({
+    text: new Text({
+      font,
+      fill: new Fill({ color: "#000" }),
+      overflow: true,
+      stroke: new Stroke({ color: "#fff", width: haloWidth }),
+    }),
+    zIndex,
+  });
+}
+
+const countryStyle = labelStyle("bold 18px Calibri,sans-serif", 4, 100);
+const regionStyle = labelStyle("16px Calibri,sans-serif", 3, 90);
+const cityStyle = labelStyle("bold 13px Calibri,sans-serif", 3, 92);
+const localityStyle = labelStyle("12px Calibri,sans-serif", 2, 90);
+const microLabelStyle = labelStyle("11px Calibri,sans-serif", 1.5, 88);
 
 const boundaryStyle = new Style({
-  stroke: new Stroke({
-    color: "#454542",
-    width: 2,
-  }),
+  stroke: new Stroke({ color: "#454542", width: 2 }),
   zIndex: 1,
 });
 
-const getBoundaryStyle = (feature) => {
-  const kind = feature.get("kind");
-  if (kind !== "country") {
-    return null;
+/**
+ * Which label tier a place gets. Protomaps carries `kind_detail`
+ * (country/city/town/village/hamlet/isolated_dwelling) and a `min_zoom` the
+ * caller has already checked, so this is only about weight, not about whether
+ * to draw at all.
+ */
+function styleForPlace(feature: FeatureLike): Style | null {
+  if (feature.get("kind") === "country") return countryStyle;
+
+  switch (feature.get("kind_detail")) {
+    case "country":
+      return countryStyle;
+    case "region":
+      return regionStyle;
+    case "city":
+      return cityStyle;
+    case "town":
+      return localityStyle;
+    case "village":
+      return microLabelStyle;
+    case "hamlet":
+    case "isolated_dwelling":
+      return microLabelStyle;
+    default:
+      return localityStyle;
   }
-  return boundaryStyle;
-};
+}
 
-const countryStyle = new Style({
-  text: new Text({
-    font: "18px Calibri,sans-serif",
-    fill: new Fill({
-      color: "#000",
-    }),
-    overflow: true,
-    stroke: new Stroke({
-      color: "#fff",
-      width: 4,
-    }),
-  }),
-  zIndex: 100,
-});
+function placeStyle(feature: FeatureLike, resolution: number): Style | undefined {
+  const zoom = zoomFromResolution(resolution);
+  if (belowMinZoom(feature, zoom)) return undefined;
 
-const regionStyle = new Style({
-  text: new Text({
-    font: "16px Calibri,sans-serif",
-    fill: new Fill({
-      color: "#000",
-    }),
-    overflow: true,
-    stroke: new Stroke({
-      color: "#fff",
-      width: 3,
-    }),
-  }),
-  zIndex: 90,
-});
+  const name = feature.get("name:de") ?? feature.get("name");
+  if (!name) return undefined;
 
-const localityStyle = new Style({
-  text: new Text({
-    font: "12px Calibri,sans-serif",
-    fill: new Fill({
-      color: "#000",
-    }),
-    overflow: true,
-    padding: [5, 5, 5, 5],
-    stroke: new Stroke({
-      color: "#fff",
-      width: 2,
-    }),
-  }),
-  zIndex: 90,
-});
+  const style = styleForPlace(feature);
+  if (!style) return undefined;
+  style.getText()!.setText(String(name));
+  return style;
+}
 
-const microLabelStyle = new Style({
-  text: new Text({
-    font: "11px Calibri,sans-serif",
-    fill: new Fill({
-      color: "#000",
-    }),
-    overflow: true,
-    stroke: new Stroke({
-      color: "#fff",
-      width: 1.5,
-    }),
-  }),
-  zIndex: 90,
-});
-
+/** Country borders plus place labels: used where there is no basemap underneath. */
 export const bordersAndWays = () => new VectorTileLayer({
   zIndex: 99,
   declutter: true,
-  source: new VectorTileSource({
-    attributions: [wofAttribution, osmAttribution, imprintAttribution],
-    format: new MVT({
-      layers: ["boundaries", "places"],
-    }),
-    url: nextzenTileUrl,
-    maxZoom: 17,
-  }),
-  style(feature) {
-    let style;
+  source: protomapsSource(["boundaries", "places"], overlayAttributions),
+  style(feature, resolution) {
     switch (feature.get("layer")) {
       case "places":
-        switch (feature.get("kind")) {
-          case "country":
-            style = countryStyle;
-            break;
-          case "region":
-            style = regionStyle;
-            break;
-          case "locality":
-            style = localityStyle;
-            break;
-          default:
-            style = localityStyle;
-            break;
-        }
-        style.getText().setText(feature.get("name"));
-        return style;
+        return placeStyle(feature, resolution);
       case "boundaries":
-        return getBoundaryStyle(feature);
+        return feature.get("kind") === "country" ? boundaryStyle : undefined;
       default:
-        return null;
+        return undefined;
     }
   },
 });
 
+/** Place labels only: the basemap already draws its own borders. */
 export const labelsOnly = () => {
   const layer = new VectorTileLayer({
     zIndex: 99,
     declutter: true,
     renderMode: "vector",
-    source: new VectorTileSource({
-      attributions: [wofAttribution, osmAttribution, imprintAttribution],
-      format: new MVT({
-        layers: ["places"],
-      }),
-      url: nextzenTileUrl,
-      maxZoom: 17,
-    }),
-    style(feature, res) {
-      let style;
-      // console.log(`${feature.get("name")}:  ${feature.get("kind")}/${feature.get("kind_detail")} @ ${res} / ${feature.get("population")}`);
-      switch (feature.get("layer")) {
-        case "places":
-          switch (feature.get("kind")) {
-            case "region":
-              style = regionStyle;
-              break;
-            case "locality":
-              if (feature.get("kind_detail") === "town") {
-                if (res < 100) {
-                  style = microLabelStyle;
-                }
-                if (feature.get("population") > 20000) {
-                  style = localityStyle;
-                }
-              } else {
-                style = localityStyle;
-              }
-              break;
-            default:
-              if (res > 80) {
-                return null;
-              }
-              switch (feature.get("kind_detail")) {
-                case "village":
-                  style = microLabelStyle;
-                  break;
-                default:
-                  style = microLabelStyle;
-                  break;
-              }
-              break;
-          }
-          if (!style) return null;
-          style.getText().setText(feature.get("name"));
-          return style;
-        default:
-          return null;
-      }
+    source: protomapsSource(["places"], overlayAttributions),
+    style(feature, resolution) {
+      if (feature.get("layer") !== "places") return undefined;
+      return placeStyle(feature, resolution);
     },
   });
   mapBaseLayer.subscribe((baselayer) => {

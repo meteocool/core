@@ -1,16 +1,18 @@
 import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/WebGLTile";
-import XYZ from "ol/source/XYZ";
+import ImageTileSource from "ol/source/ImageTile";
+// These used `crossOrigin: null` under XYZ to leave the attribute off the
+// image entirely; ImageTile takes only "anonymous"/"use-credentials", and
+// omitting the option is the same thing.
 import { copernicusAttribution, ororatechAttribution } from "./attributions";
 
 export function sentinel2(cloudy, visible = true) {
   const s2 = new TileLayer({
-    source: new XYZ({
+    source: new ImageTileSource({
       url: `https://tiles3.ororatech.com/worldgrid3/s2_msi_worldgrid_tci${cloudy ? "" : "_cloud_masked"}/{z}/{x}/{-y}.png`,
       minZoom: 1,
       maxZoom: 13,
       attributions: [copernicusAttribution, ororatechAttribution],
-      crossOrigin: null,
     }),
     zIndex: 6,
     cacheSize: 256,
@@ -21,12 +23,11 @@ export function sentinel2(cloudy, visible = true) {
 }
 export function sentinel3() {
   return new TileLayer({
-    source: new XYZ({
+    source: new ImageTileSource({
       url: "https://tiles3.ororatech.com/worldgrid3/s3_olci_worldgrid/{z}/{x}/{-y}.png",
       minZoom: 1,
       maxZoom: 8,
       attributions: [copernicusAttribution, ororatechAttribution],
-      crossOrigin: null,
     }),
     cacheSize: 256,
     zIndex: 5,
@@ -34,12 +35,11 @@ export function sentinel3() {
 }
 export function s5pAerosolIndex354() {
   return new TileLayer({
-    source: new XYZ({
+    source: new ImageTileSource({
       url: "https://tiles2.ororatech.com/worldgrid2/s5p_ai354/{z}/{x}/{-y}.png",
       minZoom: 1,
       maxZoom: 5,
       attributions: [copernicusAttribution, ororatechAttribution],
-      crossOrigin: null,
     }),
     cacheSize: 256,
     zIndex: 5,

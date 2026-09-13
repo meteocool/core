@@ -151,25 +151,48 @@ export class MeteoTileCache {
     });
   }
 
+  /**
+   * Fetch a tile, preferring the network over the cache.
+   *
+   * Radar is the one thing here that must not be stale: a cached frame from ten
+   * minutes ago looks exactly like a current one and is worse than a gap. So
+   * the cache is a fallback for being offline or for the request failing, not
+   * the first thing consulted -- which is what this used to do, returning any
+   * cached blob without ever asking the network.
+   *
+   * `successCb`'s second argument says whether the blob came from the cache, so
+   * callers can tell a hit from a download.
+   *
+   * Note this whole class is currently inert: every call site in
+   * RadarCapability is commented out.
+   */
   static async fetchAndCache(idb, url, successCb, expiryMin = 5) {
-    const tx = (await idb).transaction("tiles", "readonly");
-    const store = tx.objectStore("tiles");
+    const store = (await idb).transaction("tiles", "readonly").objectStore("tiles");
     const cachedBlob = await store.get(url);
-    if (cachedBlob) {
-      //console.log(`Already cached ${url}`);
+
+    if (!navigator.onLine && cachedBlob) {
       if (successCb) successCb(cachedBlob, true);
       return;
     }
 
-    // XXX error handling
-    const response = await fetch(url);
-    const imageData = await response.blob();
-    if (successCb) successCb(imageData);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+      const imageData = await response.blob();
+      if (successCb) successCb(imageData, false);
 
-    const storeW = (await idb).transaction("tiles", "readwrite").objectStore("tiles");
-    await storeW.put(imageData, url);
-
-    await (await idb).put("ttl", Date.now() + (expiryMin * 60 * 1000), url);
+      const storeW = (await idb).transaction("tiles", "readwrite").objectStore("tiles");
+      await storeW.put(imageData, url);
+      await (await idb).put("ttl", Date.now() + (expiryMin * 60 * 1000), url);
+    } catch (error) {
+      if (cachedBlob) {
+        if (successCb) successCb(cachedBlob, true);
+        return;
+      }
+      // Swallowed on purpose: a tile that cannot be fetched should leave a hole
+      // in the map, not take the surrounding render down with it.
+      console.error(error);
+    }
   }
 }
 

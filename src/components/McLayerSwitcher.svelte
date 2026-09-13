@@ -18,7 +18,7 @@
   $: tiles = [
     { layer: "radar", label: `🌧 ${$_("rain_and_thunderstorms")}` },
     { layer: "satellite", label: `🛰️ ${$_("nrt_satellite")}` },
-    { layer: "precipTypes", label: `💧 ${$_("precpitation_types")}` },
+    { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
     { layer: "aerosols", label: `💨 ${$_("aerosols")}` },
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
   ].filter((tile) => capabilityEnabled(tile.layer));
@@ -63,6 +63,13 @@
 
   function open() {
     window.openLayerswitcher?.();
+    // The iOS wrapper was told about close but never about open, so it could
+    // not hide its own chrome while the switcher was up.
+    if (dd.isIos()) {
+      window.webkit?.messageHandlers.scriptHandler.postMessage(
+        "layerSwitcherOpened",
+      );
+    }
   }
 
   function close() {
@@ -122,6 +129,24 @@
     -ms-transform: translate(-50%, -50%);
     transform: translate(-50%, -50%);
     stroke: white;
+  }
+
+  /* A 74px circle is most of a thumb's width on a phone, and it sits where the
+     status bar and the map controls already compete for room. The OpenLayers
+     control stack is positioned against this via --ol-controls-top in
+     Map.svelte, which shrinks to match at the same breakpoint. */
+  @media only screen and (max-width: 620px) {
+    .lsToggle {
+      width: 54px;
+      height: 54px;
+      border-width: 2px;
+      top: calc(env(safe-area-inset-top) + 6px);
+      right: 6px;
+    }
+
+    div :global(.lsIcon) {
+      font-size: 28px;
+    }
   }
 
   .ls {

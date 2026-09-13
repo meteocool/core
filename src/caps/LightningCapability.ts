@@ -30,6 +30,9 @@ export default class LightningCapability extends Capability {
 
   private socketio?: RadarSocket;
 
+  /** Kept so destroy() can take the handler back off the socket again. */
+  private lightningHandler: ((data: { lon: number; lat: number; time: number }) => void) | null = null;
+
   constructor(map: Map, additionalLayers: BaseLayer[], args: CapabilityOptions) {
     super(map, "lightning", () => {
       capDescription.set("foo");
@@ -80,12 +83,20 @@ export default class LightningCapability extends Capability {
       this.sm = sm;
       // Strikes newer than the published tile set arrive here; the tile set
       // itself covers everything older than the baseline.
-      this.socketio?.on("lightning", (data) => sm.addStrike(data.lon, data.lat, data.time / 10e5));
+      this.lightningHandler = (data) => sm.addStrike(data.lon, data.lat, data.time / 10e5);
+      this.socketio?.on("lightning", this.lightningHandler);
     }
     this.sm.setBaseline(requested);
 
     const data = await fetchLightningSince(requested, this.nb).catch(() => null);
     if (!data) return;
     data.strikes.forEach((elem) => this.sm!.addStrike(elem.lon, elem.lat, elem.time_wall));
+  }
+
+  destroy() {
+    if (this.socketio && this.lightningHandler) {
+      this.socketio.off("lightning", this.lightningHandler);
+      this.lightningHandler = null;
+    }
   }
 }

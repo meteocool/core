@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
+  import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
   import {
@@ -285,6 +286,43 @@
         padding-bottom: 0.2em;
     }
 
+    /* In the wrappers the web layout leaves the bar floating above the home
+       indicator with a strip of map showing through. The bar is anchored to the
+       very bottom instead and grows to swallow the inset, so its background
+       runs to the edge of the screen while its contents stay above the inset. */
+    :global(.is-app .bottomToolbar) {
+        margin-bottom: 0;
+    }
+
+    :global(.is-app .bottomToolbar.lastUpdatedBottom) {
+        bottom: 0;
+        height: var(--bottom-toolbar-expanded-height, 90px) !important;
+        display: flex;
+        align-items: flex-end;
+        padding-bottom: env(safe-area-inset-bottom);
+        box-sizing: border-box;
+    }
+
+    /* iOS reports a real inset and its own bar sits above it, so there the
+       toolbar keeps the web height and is simply pushed clear. */
+    :global(.is-ios .bottomToolbar.lastUpdatedBottom) {
+        bottom: env(safe-area-inset-bottom);
+        height: 42px !important;
+        display: block;
+        padding-bottom: 0.2em;
+        box-sizing: content-box;
+    }
+
+    :global(:root) {
+        --bottom-toolbar-expanded-height: 90px;
+    }
+
+    @media only screen and (max-width: 620px) {
+        :global(:root) {
+            --bottom-toolbar-expanded-height: 120px;
+        }
+    }
+
     .parentz {
         display: flex;
         flex-wrap: wrap;
@@ -381,7 +419,12 @@
 
 <div
         class="bottomToolbar lastUpdatedBottom"
-        transition:fly={{ y: 100, duration: 200 }}>
+        class:player-open={$bottomToolbarMode === "player"}
+        transition:fly={{ y: 100, duration: 200 }}
+        on:introstart={toolbarTransitionStart}
+        on:outrostart={toolbarTransitionStart}
+        on:introend={toolbarTransitionEnd}
+        on:outroend={toolbarTransitionEnd}>
     <div class="parentz">
         {#if activeCap === "radar" && $bottomToolbarMode === "collapsed"}
             <div class="left">

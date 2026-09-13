@@ -7,6 +7,7 @@ if (import.meta.env.PROD) {
 
 import { Workbox } from "workbox-window";
 import { mount } from "svelte";
+import { cleanupNetworkStatus, initNetworkStatus } from "../lib/networkStatus";
 import App from "../App.svelte";
 
 // Register service worker
@@ -24,6 +25,9 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
     console.log(error);
   }
 }
+
+initNetworkStatus();
+window.addEventListener("pagehide", cleanupNetworkStatus);
 
 const app = mount(App, {
   target: document.body,
