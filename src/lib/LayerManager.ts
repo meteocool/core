@@ -30,6 +30,12 @@ import type { CapabilityOptions } from "../caps/options";
 
 /** One entry of the capability list App.svelte builds. */
 export interface CapabilityDescriptor {
+  /**
+   * The capability's name, which each subclass also passes to super(). Named
+   * here too so registration can be gated without constructing the capability
+   * first -- see src/caps/enabled.ts.
+   */
+  name: string;
   capability: new (map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) => Capability;
   additionalLayers?: BaseLayer[];
   options: CapabilityOptions;
@@ -92,8 +98,7 @@ export class LayerManager {
       this.maps.push(newMap);
     });
 
-    const active = String(this.settings.get("capability"));
-    this.capabilities[active].setTarget(document.getElementById("map") ?? undefined);
+    this.capabilities[this.startingCapability()].setTarget(document.getElementById("map") ?? undefined);
 
     mapBaseLayer.subscribe((newBaseLayer) => {
       this.switchBaseLayer(newBaseLayer);
@@ -321,9 +326,22 @@ export class LayerManager {
   }
 
   setDefaultTarget(target: string | HTMLElement | undefined) {
-    const capability = String(this.settings.get("capability"));
+    const capability = this.startingCapability();
     console.log(`Starting with default cap ${capability}`);
     this.setTarget(capability, target);
+  }
+
+  /**
+   * The capability to open with: the stored one, unless it is not registered.
+   * A setting persisted while a capability was still offered outlives it being
+   * withdrawn, and indexing capabilities with it would throw on startup.
+   */
+  private startingCapability(): string {
+    const stored = String(this.settings.get("capability"));
+    if (stored in this.capabilities) return stored;
+    const fallback = Object.keys(this.capabilities)[0];
+    console.warn(`Capability ${stored} is not registered; starting with ${fallback}`);
+    return fallback;
   }
 }
 
