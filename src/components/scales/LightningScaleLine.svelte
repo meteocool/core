@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import ScaleLine from "./ScaleLine.svelte";
   import { radarColormap, unit } from "../../stores";
   import { LightningColors } from "../../colormaps";

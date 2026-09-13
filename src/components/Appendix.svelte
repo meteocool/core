@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
 import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
 import Icon from "./Icon.svelte";
 
-function init() {
-
+function init(_node: HTMLElement) {
+  // Placeholder: the element is not used yet.
 }
 </script>
 

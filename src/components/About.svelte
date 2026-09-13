@@ -1,12 +1,12 @@
-<script>
+<script lang="ts">
 import { _ } from "svelte-i18n";
 import { tick, createEventDispatcher } from "svelte";
 
 const dispatch = createEventDispatcher();
 
-async function init(elem) {
-  await tick(); // Workaround for Safari
-  elem.show();
+function init(elem) {
+  // Workaround for Safari: the dialog must not be shown before the flush.
+  tick().then(() => elem.show());
   elem.addEventListener("sl-request-close", (event) => {
     dispatch("close");
     return event.preventDefault();

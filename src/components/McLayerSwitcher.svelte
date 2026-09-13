@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Icon from "./Icon.svelte";
   import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
   import MiniMap from "./MiniMap.svelte";
@@ -18,6 +18,7 @@
 
   window.openLayerswitcher = () => {
     const ls = document.getElementById("ls");
+    if (!ls) return;
     ls.style.display = "block";
     layerManager.forEachMap((map, cap) => {
       const target = childCanvases[cap];
@@ -27,19 +28,20 @@
     });
   };
 
-  function open(elem) {
-    window.openLayerswitcher();
+  function open() {
+    window.openLayerswitcher?.();
   }
 
   function close() {
-    document.getElementById("ls").style.display = "none";
+    const ls = document.getElementById("ls");
+    if (ls) ls.style.display = "none";
     layerManager.forEachMap((map, cap) => {
       console.log(`set ${cap} -> null`);
       map.setTarget(null);
       map.updateSize();
     });
     if (dd.isIos()) {
-      window.webkit.messageHandlers.scriptHandler.postMessage(
+      window.webkit?.messageHandlers.scriptHandler.postMessage(
         "layerSwitcherClosed",
       );
     }
@@ -176,7 +178,7 @@
                   label={`💧 ${$_("precpitation_types")}`}
                   on:mount={childMounted}
                   on:changeLayer={changeLayer}
-                  class="hidden" />
+                  />
       </div>
       <div class="aerosols cell">
         <MiniMap

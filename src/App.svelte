@@ -62,7 +62,7 @@ init({
 
 initUIConstants();
 
-(window as any).settings = new Settings({
+window.settings = new Settings({
   experimentalFeatures: {
     type: "boolean",
     default: false,
@@ -78,22 +78,22 @@ initUIConstants();
     type: "boolean",
     default: true,
     cb: (val) => {
-      precacheForecast.set(val);
+      precacheForecast.set(Boolean(val));
     },
   },
   mapBaseLayer: {
     type: "string",
     default: "light",
     cb: (val) => {
-      mapBaseLayer.set(val);
+      mapBaseLayer.set(String(val));
     },
   },
   radarColorMapping: {
     type: "string",
     default: "classic",
     cb: (value) => {
-      radarColorScheme.set(value);
-      radarColormap.set(value);
+      radarColorScheme.set(String(value));
+      radarColormap.set(String(value));
     },
   },
   capability: {
@@ -104,14 +104,14 @@ initUIConstants();
     type: "boolean",
     default: true,
     cb: (value) => {
-      cycloneLayerVisible.set(value);
+      cycloneLayerVisible.set(Boolean(value));
     },
   },
   layerSnow: {
     type: "boolean",
     default: true,
     cb: (value) => {
-      snowLayerVisible.set(value);
+      snowLayerVisible.set(Boolean(value));
     },
   },
   latLonZ: {
@@ -124,7 +124,7 @@ initUIConstants();
     default: "full",
     source: "url",
     cb: (value) => {
-      logoStyle.set(value);
+      logoStyle.set(String(value));
     },
   },
   layerswitcher: {
@@ -132,7 +132,7 @@ initUIConstants();
     default: "yes",
     source: "url",
     cb: (value) => {
-      layerswitcherVisible.set(value);
+      layerswitcherVisible.set(value === "no" ? "no" : "yes");
     },
   },
   toolbar: {
@@ -140,7 +140,7 @@ initUIConstants();
     default: "yes",
     source: "url",
     cb: (value) => {
-      toolbarVisible.set(value);
+      toolbarVisible.set(value === "no" ? "no" : "yes");
       if (value !== "yes") {
         bottomToolbarMode.set("hidden");
         document.documentElement.style.setProperty("--attributions-bottom-padding", "0px");
@@ -151,16 +151,16 @@ initUIConstants();
     type: "boolean",
     default: true,
     cb: (value) => {
-      lightningLayerVisible.set(value);
+      lightningLayerVisible.set(Boolean(value));
     },
   },
 });
 const [lightningSource, lightningLayer] = makeLightningLayer();
 lightningLayerVisible.subscribe((value) => {
   lightningLayer.setVisible(value);
-  (window as any).settings.set("layerLightning", value);
+  window.settings.set("layerLightning", value);
 });
-lightningLayerVisible.set((window as any).settings.get("layerLightning"));
+lightningLayerVisible.set(window.settings.getBoolean("layerLightning"));
 
 const nb = new NanobarWrapper({});
 const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`);
@@ -174,17 +174,17 @@ const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
 const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
 cycloneLayerVisible.subscribe((value) => {
   mesocycloneLayer.setVisible(value);
-  (window as any).settings.set("layerMesocyclones", value);
+  window.settings.set("layerMesocyclones", value);
 });
 // This restored the *lightning* store from the mesocyclone setting, so the
 // mesocyclone layer never came back and the lightning visibility read three
 // lines above was immediately overwritten.
-cycloneLayerVisible.set((window as any).settings.get("layerMesocyclones"));
+cycloneLayerVisible.set(window.settings.getBoolean("layerMesocyclones"));
 
 radarSocketIO.on("lightning", (data) => {
   strikemgr.addStrike(data.lon, data.lat);
 });
-(window as any).ll = lightningLayer;
+window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
   mesocyclonemgr.clearAll();
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
@@ -194,7 +194,7 @@ radarSocketIO.on("mesocyclones", (data) => {
 // for a named import that nothing used, and a prop you cannot write to in
 // Svelte 5. It is reachable as window.lm, which is what the apps call.
 const lm = new LayerManager({
-  settings: (window as any).settings,
+  settings: window.settings,
   nanobar: nb,
   capabilities: [
     {
@@ -238,21 +238,21 @@ const lm = new LayerManager({
       },
     }],
 });
-(window as any).lm = lm;
+window.lm = lm;
 
-(window as any).settings.setCb("mapRotation", (value) => {
+window.settings.setCb("mapRotation", (value) => {
   const newView = new View({
     center: lm.getCurrentMap().getView().getCenter(),
     zoom: lm.getCurrentMap().getView().getZoom(),
     minZoom: lm.getCurrentMap().getView().getMinZoom(),
-    enableRotation: value,
+    enableRotation: Boolean(value),
     extent: VIEW_EXTENT,
   });
   lm.forEachMap((map) => map.setView(newView));
 });
-(window as any).settings.setCb("latLonZ", (value) => {
+window.settings.setCb("latLonZ", (value) => {
   if (!value) return;
-  const parts = value.split(",");
+  const parts = String(value).split(",");
   if (parts.length !== 3) return;
   const [lat, lon, z] = parts.map(parseFloat);
   lm.getCurrentMap().getView().setCenter(fromLonLat([lon, lat]));
@@ -280,7 +280,7 @@ async function reloadCyclones() {
 reloadLightning();
 reloadCyclones();
 
-(window as any).enterForeground = () => {
+window.enterForeground = () => {
   lastFocus.set(new Date());
   if (window.matchMedia) {
     colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
@@ -343,5 +343,5 @@ if (postInitCb) postInitCb(lm);
 <Map layerManager={lm} />
 
 {#if $toolbarVisible}
-  <NowcastPlayback cap={lm.getCapability("radar")} />
+  <NowcastPlayback cap={lm.getCapability("radar") as RadarCapability} />
 {/if}

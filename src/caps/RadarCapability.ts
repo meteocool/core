@@ -1,0 +1,424 @@
+import VectorTileLayer from "ol/layer/VectorTile";
+import VectorTileSource from "ol/source/VectorTile";
+import MVT from "ol/format/MVT";
+import { Fill, Style } from "ol/style";
+import snow from "../assets/snow.png";
+import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd";
+import type { LayerFactory } from "../layers/dwd";
+import { reportError } from "../lib/Toast";
+import {
+  capDescription,
+  capLastUpdated,
+  capTimeIndicator,
+  lastFocus,
+  latLon,
+  live,
+  radarColorScheme,
+  showForecastPlaybutton, snowLayerVisible, zoomlevel,
+} from "../stores";
+import type { Map } from "ol";
+import type BaseLayer from "ol/layer/Base";
+import type XYZ from "ol/source/XYZ";
+import type NanobarWrapper from "../lib/NanobarWrapper";
+import type { CapabilityOptions, RadarSocket } from "./options";
+import Capability from "./Capability";
+import { tileBaseUrl } from "../urls";
+import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
+import { get } from "svelte/store";
+//import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
+
+const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
+
+function setPattern(style) {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  const photo = new Image();
+  photo.onload = function () {
+    canvas.width = photo.width;
+    canvas.height = photo.height;
+    const pattern = context?.createPattern(photo, "repeat");
+    if (pattern) style.getFill().setColor(pattern);
+  };
+  photo.src = snow;
+}
+
+/** One timestep of the playback grid, as the UI consumes it. */
+export interface GridStep {
+  dbz: number;
+  url: string | null;
+  tile_id: string;
+  source: string;
+  bucket?: string;
+}
+
+/** The ±2h five-minute grid the playback slider scrubs across. */
+export interface GridConfig {
+  grid: Record<number, GridStep>;
+  start: number;
+  end: number;
+  now: number;
+  length: number;
+}
+
+export default class RadarCapability extends Capability {
+  layer: BaseLayer | null;
+
+  /** The tile source behind `layer`; its URL is swapped as playback moves. */
+  source: XYZ | null = null;
+
+  layers: Record<string, BaseLayer>;
+
+  sources: Record<string, XYZ>;
+
+  /** Builds a layer for a tile set; swapped when the colormap changes. */
+  layerFactory: LayerFactory;
+
+  /** The full grid, and the subset handed to the UI. */
+  gridconfig!: GridConfig;
+
+  clientGridConfig?: GridConfig;
+
+  serverGrid: Record<number, GridStep> | null;
+
+  clientGrid: Record<number, GridStep> | null;
+
+  /** Where the forecast is sampled, if the client has shared a position. */
+  latlon: [number, number] | null;
+
+  trackingMode: string;
+
+  serverTime: number;
+
+  snowOverlay: VectorTileLayer | null;
+
+  private nanobar: NanobarWrapper;
+
+  private socket_io?: RadarSocket;
+
+  constructor(map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) {
+    super(map, "radar", () => {
+      capDescription.set("Radar Reflectivity");
+      showForecastPlaybutton.set(true);
+    }, additionalLayers);
+
+    this.layer = null;
+    this.layers = {};
+    this.nanobar = options.nanobar!;
+    this.socket_io = options.socket_io;
+    this.latlon = null;
+    this.sources = {};
+    this.layerFactory = dwdLayerStatic;
+    this.serverGrid = null;
+    this.clientGrid = null;
+    this.trackingMode = "live";
+    this.serverTime = 0;
+    this.snowOverlay = null;
+
+    window.radar = this;
+
+    //mcTileCache.setMap(map);
+
+    const self = this;
+    radarColorScheme.subscribe((colorScheme) => {
+      setDwdCmap(colorScheme);
+
+      const oldLayer = self.layer;
+      if (oldLayer && super.getMap()) {
+        super.getMap().removeLayer(oldLayer);
+      }
+      self.layer = null;
+      self.source = null;
+      // These compared this.layer -- a layer -- against a layer *factory*, so
+      // both tests were vacuously true.
+      if (colorScheme === "classic" && this.layerFactory !== dwdLayerStatic) {
+        self.layerFactory = dwdLayerStatic;
+      } else if (colorScheme !== "classic" && this.layerFactory !== DWDLayerFactoryGL) {
+        self.layerFactory = DWDLayerFactoryGL;
+      }
+      this.reloadAll();
+    });
+
+    latLon.subscribe((latlonUpdate) => {
+      if (!latlonUpdate) return true;
+      const [lat, lon] = latlonUpdate;
+      if (self.latlon) {
+        const [oldLat, oldLon] = self.latlon;
+        if (Math.abs(oldLat - lat) > 0.001 || Math.abs(oldLon - lon) > 0.001) {
+          self.latlon = latlonUpdate;
+          this.reloadAll();
+        }
+      } else {
+        self.latlon = latlonUpdate;
+        this.reloadAll();
+      }
+    });
+
+    lastFocus.subscribe(() => {
+      if (this.layer) this.reloadAll();
+      this.downloadSnowOverlay();
+    });
+
+    live.subscribe((value) => {
+      if (this.snowOverlay) {
+        this.snowOverlay.setVisible(value);
+      }
+    });
+
+    snowLayerVisible.subscribe((value) => {
+      if (value) {
+        this.downloadSnowOverlay();
+      } else {
+        this.processSnowOverlay({ active: false });
+      }
+    });
+
+    zoomlevel.subscribe((z) => {
+      if (this.snowOverlay) {
+        this.snowOverlay.setOpacity(z > DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL ? 0.5 : 1);
+      }
+    });
+
+    if (this.socket_io) {
+      this.socket_io.on("poke", () => {
+        console.log("received websocket poke, refreshing tiles + forecasts");
+        this.reloadAll();
+      });
+      this.socket_io.on("snow", () => {
+        console.log("received websocket snow overlay poke, refreshing");
+        this.downloadSnowOverlay();
+      });
+      this.downloadCurrentRadar();
+    }
+
+    // Initialize grid
+    this.gridconfig = this.regenerateGridConfig();
+    const restartHandler = () => {
+      setTimeout(restartHandler, 60000);
+      this.gridconfig = this.regenerateGridConfig();
+      if (this.serverGrid) {
+        this.updateClientGridFromServerGrid(this.serverGrid);
+        this.notify("grid", this.clientGridConfig);
+      }
+    };
+    restartHandler();
+  }
+
+  updateClientGridFromServerGrid(server) {
+    let latestRadar = new Date(0);
+    const body = { ...this.gridconfig.grid };
+
+    latestRadar = new Date(this.serverTime * 1000);
+
+    Object.keys(server).forEach((step) => {
+      const layerAttributes = server[step];
+      if (!(step in body)) {
+        console.log("step not in body");
+        return;
+      }
+      if (!layerAttributes) {
+        body[step] = null;
+        return;
+      }
+
+      const bucket = layerAttributes.source === "observation" ? "meteoradar" : "meteonowcast";
+      const sourceUrl = `${tileBaseUrl}/${bucket}/${layerAttributes.tile_id}/{z}/{x}/{-y}.png`;
+
+      body[step] = layerAttributes;
+      body[step].bucket = bucket;
+      body[step].url = sourceUrl;
+
+      if (layerAttributes.source === "observation") {
+        const processedDt = new Date(layerAttributes.processed_time * 1000);
+        if (processedDt > latestRadar) latestRadar = processedDt;
+      }
+    });
+    this.clientGrid = body;
+    this.clientGridConfig = { ...this.gridconfig, grid: body };
+    return latestRadar;
+  }
+
+  tilesetToURL(tileset) {
+    return `${tileBaseUrl}/${tileset.bucket}/${tileset.tile_id}/`;
+  }
+
+  precacheAllForecasts() {
+    // Object.values(this.clientGridConfig.grid)
+    //   .filter((e) => e.source === "nowcast_phys")
+    //   .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
+    //   .map((tileset) => this.tilesetToURL(tileset))
+    //   .forEach((tileset) => {
+    //     mcTileCache.cacheTileset(tileset);
+    //     mcTileCache.trackTileset(tileset, 5);
+    //   });
+  }
+
+  regenerateGridConfig() {
+    let gridNow = new Date().getTime() / 1000;
+    gridNow -= (gridNow % (60 * 5));
+    const start = gridNow - (60 * 120);
+    const end = gridNow + (60 * 120);
+    const nSteps = ((end - start) / (60 * 5)) + 1;
+
+    const grid: Record<number, GridStep> = {};
+    [...Array(nSteps).keys()]
+      .map((i) => new Date(start + i * (5 * 60)))
+      .forEach((step) => {
+        grid[step.getTime()] = {
+          dbz: 0,
+          url: null,
+          tile_id: "",
+          source: "",
+        };
+      });
+
+    return {
+      grid, start, end, now: gridNow, length: nSteps,
+    };
+  }
+
+  setUrl(url: string) {
+    this.source?.setUrl(url);
+  }
+
+  reloadAll() {
+    console.log("reloadAll");
+    this.downloadCurrentRadar();
+  }
+
+  /** The location the forecast is sampled at, if the client has shared one. */
+  getPosition() {
+    return this.latlon ? { lat: this.latlon[0], lon: this.latlon[1] } : undefined;
+  }
+
+  async downloadCurrentRadar() {
+    live.set(false);
+    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition()).catch(() => null);
+    if (!data) {
+      live.set(false);
+      return;
+    }
+    this.processRadar(data);
+  }
+
+  async downloadSnowOverlay() {
+    if (!get(snowLayerVisible)) return;
+    const data = await fetchSnowOverlay(this.nanobar).catch(() => null);
+    if (!data) return;
+    this.processSnowOverlay(data);
+  }
+
+  processSnowOverlay(obj) {
+    const URL = `${tileBaseUrl}/meteoradar/${obj.tile_id}/{z}/{x}/{y}.pbf`;
+    if (this.snowOverlay) {
+      if (obj.active) {
+        console.log("Updating snow overlay URL");
+        this.snowOverlay.getSource()?.setUrl(URL);
+      } else {
+        console.log("No more snow :(");
+        this.map.removeLayer(this.snowOverlay);
+        this.snowOverlay = null;
+      }
+    } else if (obj.active) {
+      console.log("Initializing snow overlay");
+      const style = new Style({ fill: new Fill() });
+      setPattern(style);
+      this.snowOverlay = new VectorTileLayer({
+        zIndex: 90,
+        source: new VectorTileSource({
+          format: new MVT(),
+          url: URL,
+          maxZoom: 5,
+          minZoom: 0,
+        }),
+        style,
+        opacity: get(zoomlevel) > DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL ? 0.5 : 1,
+      });
+      this.map.addLayer(this.snowOverlay);
+    }
+  }
+
+  notifyObservers() {
+    this.notify("grid", this.clientGridConfig);
+  }
+
+  getMostRecentObservation() {
+    let mostRecent = this.serverTime;
+    for (const [step, frame] of Object.entries(this.clientGrid ?? {})) {
+      if (frame) {
+        if (frame.source === "") {
+          break;
+        }
+        if (frame.source === "observation" && parseInt(step, 10) > mostRecent) {
+          mostRecent = parseInt(step, 10);
+        }
+      }
+    }
+    return mostRecent;
+  }
+
+  processRadar(obj) {
+    if (!obj) return;
+
+    this.serverGrid = obj.frames;
+    this.serverTime = obj.server_time;
+    this.gridconfig = this.regenerateGridConfig();
+    const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
+
+    if (!this.layer) {
+      const last = this.clientGrid?.[this.getMostRecentObservation()];
+      if (last) {
+        [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
+        // mcTileCache.setSource(this.source);
+        super.getMap().addLayer(this.layer);
+      }
+    }
+    switch (this.trackingMode) {
+      case "live":
+        this.resetToLatest();
+        break;
+      case "manual":
+        // if ("server_time" in obj) {
+        //  const wantTimestep = this.gridconfig.now + Math.abs(obj.server_time - this.gridconfig.now);
+        //  console.log(`wanttimestep=${wantTimestep}`);
+        //  if (wantTimestep in this.gridconfig.grid) {
+        //    this.setSource(wantTimestep);
+        //  }
+        // }
+        break;
+      default:
+        break;
+    }
+    capLastUpdated.set(latestRadar);
+    this.notify("grid", this.clientGridConfig);
+  }
+
+  resetToLatest() {
+    const mostRecent = this.getMostRecentObservation();
+    if (this.clientGrid && mostRecent in this.clientGrid) {
+      const url = this.clientGrid[mostRecent].url;
+      if (this.source && url) this.source.setUrl(url);
+      capTimeIndicator.set(mostRecent);
+      live.set(true);
+    }
+  }
+
+  setSource(timestep: number) {
+    if (!this.source) return;
+    this.source.refresh();
+    if (this.trackingMode !== "manual") {
+      this.trackingMode = "manual";
+      live.set(false);
+    }
+    if (timestep === this.gridconfig.now) {
+      this.trackingMode = "live";
+      live.set(true);
+    }
+    capTimeIndicator.set(timestep);
+    const step = this.clientGrid?.[timestep];
+    if (this.source && step && step.url != null) {
+      this.source.setUrl(step.url);
+    }
+  }
+
+  //    caches.delete("radar-tile-cache");
+}

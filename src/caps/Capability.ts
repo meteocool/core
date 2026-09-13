@@ -1,6 +1,10 @@
 import { Map } from "ol";
 import { Observable } from "../lib/util";
+import type BaseLayer from "ol/layer/Base";
 import { sharedCmap } from "../stores";
+
+/** Invoked when a capability's map is attached to a DOM node. */
+export type TargetCallback = (target: string | HTMLElement) => void;
 
 /**
  * A Capability implements map-related functionality (controller) on an OpenLayers map (view).
@@ -13,11 +17,18 @@ export default class Capability extends Observable {
 
   name: string;
 
-  cmap: any;
+  /** The colormap this capability's scale line renders, if it has one. */
+  cmap: string | null;
 
-  targetCb: any;
+  /** Called when this capability's map is given a DOM target. */
+  targetCb: TargetCallback | null;
 
-  constructor(map, name, targetCb, additionalLayers) {
+  constructor(
+    map: Map,
+    name: string,
+    targetCb: TargetCallback | null,
+    additionalLayers: BaseLayer[] = [],
+  ) {
     super();
     this.map = map;
     this.targetCb = targetCb;
@@ -27,14 +38,14 @@ export default class Capability extends Observable {
     additionalLayers.forEach((l) => map.addLayer(l));
   }
 
-  setTarget(target) {
+  setTarget(target: string | HTMLElement | undefined) {
     if (!this.map) return;
     this.map.setTarget(target);
     if (this.targetCb && target) this.targetCb(target);
     if (this.cmap) sharedCmap.set(this.cmap);
   }
 
-  setCmap(cmap) {
+  setCmap(cmap: string) {
     this.cmap = cmap;
     sharedCmap.set(cmap);
   }

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoubleDown";
@@ -28,6 +28,8 @@ Chart.register(ChartDataLabels);
 
 import { setUIConstant } from "../layers/ui";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import type RadarCapability from "../caps/RadarCapability";
+import type { GridConfig } from "../caps/RadarCapability";
 
 import TimeIndicator from "./TimeIndicator.svelte";
 import LastUpdated from "./LastUpdated.svelte";
@@ -39,9 +41,9 @@ import { _ } from "svelte-i18n";
 import { get } from "svelte/store";
 import { dbz2color } from "../lib/cmap_utils";
 
-export let cap;
+export let cap: RadarCapability;
 
-let gridConfig = null;
+let gridConfig: GridConfig | null = null;
 
 let userLatLon;
 let showBars = true;
@@ -60,12 +62,13 @@ let oldTimeStep = 0;
 let playPauseButton = faPlay;
 let playTimeout;
 
-let slRange = null;
+/** The Shoelace <sl-range> scrubber. */
+let slRange: (HTMLElement & { value: number }) | null = null;
 
 let loop = true;
 let historicActive = true;
 let includeHistoric = false;
-let canvas;
+let canvas: HTMLCanvasElement;
 
 let buttonSize = "small";
 if (dd.isApp()) {
@@ -80,7 +83,8 @@ if (dd.isApp()) {
 // };
 
 let autoPlay = false;
-let chart = null;
+/** A bar chart; the error-bar dataset shape is not used (see redraw). */
+let chart: BarWithErrorBarsChart<{ y: number }[], string> | null = null;
 
 function redraw(config) {
   if (!config) return;
@@ -116,13 +120,13 @@ function redraw(config) {
   const dataMin = Math.min(...values);
   // XXX replace by local maxima/sliding window
   const max = Math.max(...values);
-  const maxIndexes = [];
+  const maxIndexes: number[] = [];
   values.forEach((item, index) => (item === max ? maxIndexes.push(index) : null));
   const disabled = values.every((e) => e === 0);
 
   const gridKeys = Object.keys(grid);
-  const rendered = {};
-  chart = new BarWithErrorBarsChart(canvas.getContext("2d"), {
+  const rendered: Record<string, boolean> = {};
+  chart = new BarWithErrorBarsChart(canvas.getContext("2d")!, {
     data: {
       labels: sortedKeys.map((key) => ((key - config.now) / 60)).map((v) => `${v}`),
       datasets: [{
@@ -145,9 +149,6 @@ function redraw(config) {
     options: {
       animation: {
         duration: 0,
-      },
-      hover: {
-        animationDuration: 0,
       },
       // animation: {
       //   onComplete: (chart) => {
@@ -183,12 +184,6 @@ function redraw(config) {
       },
       responsive: true,
       maintainAspectRatio: false,
-      legend: {
-        display: false,
-      },
-      tooltips: {
-        enabled: false,
-      },
       plugins: {
         datalabels: {
           clamp: true,
@@ -215,16 +210,18 @@ function redraw(config) {
             return 270;
           },
           backgroundColor(context) {
-            return context.dataset.backgroundColor;
+            return context.dataset.backgroundColor as string;
           },
-          formatter: (val, context) => {
+          formatter: (val: { y: number }, context) => {
+            const labels = (context.chart.data.labels ?? []) as string[];
+            const points = context.chart.data.datasets[0].data as { y: number }[];
             if (disabled) {
               return null;
             }
             if (((context.dataIndex - 1) in rendered) || ((context.dataIndex - 2) in rendered)) {
               return null;
             }
-            if (context.chart.data.labels[context.dataIndex] === "0") {
+            if (labels[context.dataIndex] === "0") {
               rendered[context.dataIndex] = true;
               return $_("now");
             }
@@ -232,19 +229,19 @@ function redraw(config) {
             // XXX calculate slope instead
             if (context.dataIndex > 0) {
               try {
-                if (context.chart.data.datasets[0].data[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin !== 0) {
+                if (points[context.dataIndex - 1].y - dataMin === 0 && val.y - dataMin > 0 && points[context.dataIndex + 1].y - dataMin !== 0) {
                   rendered[context.dataIndex] = true;
-                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                  return `${labels[context.dataIndex]}m`;
                 }
 
-                if (val.y - dataMin > 0 && context.chart.data.datasets[0].data[context.dataIndex + 1].y - dataMin === 0) {
+                if (val.y - dataMin > 0 && points[context.dataIndex + 1].y - dataMin === 0) {
                   rendered[context.dataIndex] = true;
-                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                  return `${labels[context.dataIndex]}m`;
                 }
 
                 if (maxIndexes.includes(context.dataIndex)) {
                   rendered[context.dataIndex] = true;
-                  return `${context.chart.data.labels[context.dataIndex]}m`;
+                  return `${labels[context.dataIndex]}m`;
                 }
               } catch (e) {
                 console.error(e);
@@ -261,8 +258,7 @@ function redraw(config) {
         x: {
           grid: {
             display: false,
-            tickMarkLength: 6,
-            drawBorder: false,
+            tickLength: 6,
           },
           afterFit: (scale) => {
             scale.height = 18;
@@ -275,23 +271,23 @@ function redraw(config) {
           ticks: {
             color: getComputedStyle(document.body)
               .getPropertyValue("--sl-color-info-700"),
-            fontSize: 5,
+            font: { size: 5 },
             autoSkip: false,
             callback(value) {
-              const label = this.getLabelForValue(value);
+              const label = Number(this.getLabelForValue(Number(value)));
               if (label === 0) {
                 return "now";
               }
-              if (label == -120) {
+              if (label === -120) {
                 return "-2h";
               }
-              if (label == -60) {
+              if (label === -60) {
                 return "-1h";
               }
-              if (label == 60) {
+              if (label === 60) {
                 return "1h";
               }
-              if (label == 120) {
+              if (label === 120) {
                 return "2h";
               }
               if (Math.abs(label) % skip === 0) {
@@ -301,7 +297,6 @@ function redraw(config) {
             },
             minRotation: 0,
             maxRotation: 0,
-            responsive: true,
             padding: -4,
             display: $bottomToolbarMode === "player",
             autoSkipPadding: 0,
@@ -311,11 +306,10 @@ function redraw(config) {
           type: "linear",
           grid: {
             display: false,
-            drawBorder: false,
           },
+          beginAtZero: true,
           ticks: {
             display: false,
-            beginAtZero: true,
           },
           max: 95,
           min: 0,
@@ -326,14 +320,14 @@ function redraw(config) {
 }
 $: redraw(gridConfig);
 function updateSliderToLatest(config) {
-  if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
+  if (slRange) slRange.value = cap.getMostRecentObservation();
 }
 $: updateSliderToLatest(gridConfig);
 
-function canvasInit(elem) {
+function canvasInit(elem: HTMLCanvasElement) {
   canvas = elem;
   if ($bottomToolbarMode === "player") {
-    canvas.parentNode.classList.remove("barChartCanvasWithoutPlayback");
+    (canvas.parentNode as HTMLElement | null)?.classList.remove("barChartCanvasWithoutPlayback");
   }
   redraw(gridConfig);
 }
@@ -374,19 +368,21 @@ const fsm = new StateMachine({
         cap.precacheAllForecasts();
       }
       if (chart) {
+        const active = chart;
         canvasVisible = false;
-        chart.options.scales.x.ticks.display = true;
+        const xTicks = active.options.scales?.x?.ticks;
+        if (xTicks) xTicks.display = true;
         setTimeout(() => {
           canvasVisible = true;
-          chart.update();
+          active.update();
         }, 400);
       }
       playPauseButton = faPlay;
-      if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
+      if (slRange) slRange.value = cap.getMostRecentObservation();
       setTimeout(() => {
-        if (slRange) slRange.value = `${cap.getMostRecentObservation()}`;
+        if (slRange) slRange.value = cap.getMostRecentObservation();
       }, 200);
-      setUIConstant("toast-stack-offset", "124px");
+      setUIConstant("toast-stack-offset", { "toast-stack-offset": "124px" });
 
       if (autoPlay) {
         setTimeout(() => {
@@ -425,11 +421,12 @@ const fsm = new StateMachine({
           return;
         }
         let thisFrameDelayMs = 450;
-        const sliderValueInt = parseInt(slRange.value, 10);
+        if (!slRange || !gridConfig) return;
+        const sliderValueInt = Number(slRange.value);
         if (sliderValueInt >= gridConfig.end) {
-          slRange.value = (includeHistoric ? gridConfig.start : gridConfig.now).toString();
+          slRange.value = includeHistoric ? gridConfig.start : gridConfig.now;
         } else {
-          slRange.value = (sliderValueInt + 5 * 60).toString();
+          slRange.value = sliderValueInt + 5 * 60;
         }
         if (sliderValueInt === 0) {
           thisFrameDelayMs = 800;
@@ -456,13 +453,15 @@ const fsm = new StateMachine({
       oldTimeStep = 0;
       slRange = null;
       cap.resetToLatest();
-      if (canvas) canvas.parentNode.classList.add("barChartCanvasWithoutPlayback");
+      if (canvas) (canvas.parentNode as HTMLElement | null)?.classList.add("barChartCanvasWithoutPlayback");
       if (chart) {
-        chart.options.scales.x.ticks.display = false;
+        const active = chart;
+        const xTicks = active.options.scales?.x?.ticks;
+        if (xTicks) xTicks.display = false;
         canvasVisible = false;
         setTimeout(() => {
           canvasVisible = true;
-          chart.update();
+          active.update();
         }, 400);
       }
       setUIConstant("toast-stack-offset");
@@ -502,7 +501,7 @@ onMount(async () => {
   cap.addObserver((subject, data) => {
     console.log(`NowcastPlayback observed event ${subject}`);
     if (subject === "grid" && data) {
-      gridConfig = data;
+      gridConfig = data as GridConfig;
       showOpenControls = true;
       latest = cap.getMostRecentObservation();
     }
@@ -583,11 +582,8 @@ function sliderChangedHandler(value, userInteraction = false) {
   }
 
   if (userInteraction && dd.isIos()) {
-    let impact = "Light";
-    if (value === 0) {
-      impact = "Medium";
-    }
-    window.webkit.messageHandlers.scriptHandler.postMessage(`impact${impact}`);
+    const impact = value === 0 ? "impactMedium" : "impactLight";
+    window.webkit?.messageHandlers.scriptHandler.postMessage(impact);
   }
 
   cap.setSource(value);
@@ -821,7 +817,7 @@ lastFocus.subscribe((focus) => {
           </div>
         </div>
         <div class="slider">
-          <sl-range min="{gridConfig.start}" max="{gridConfig.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 21px;"></sl-range>
+          <sl-range min="{gridConfig?.start}" max="{gridConfig?.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 21px;"></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
               <div class="button-group-toolbar" >

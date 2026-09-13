@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { tileCacheDownloaded, tileCachePending, tileCacheHit } from "../stores";
 
   let hit = 0;
@@ -22,7 +22,7 @@
   let usage = 0;
   function updateStorageEstimate() {
     navigator.storage.estimate().then((estimate) => {
-      usage = estimate.usage;
+      usage = estimate.usage ?? 0;
     });
     setTimeout(updateStorageEstimate, 1000);
   }

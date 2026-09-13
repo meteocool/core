@@ -1,39 +1,36 @@
-<script>
+<script lang="ts">
   import mapBg from "../../assets/map-bg.png";
   import { DeviceDetect as dd } from '../../lib/DeviceDetect';
 
-  export let palette;
-  export let valueFormat;
-  export let prettyName;
+  export let palette: string;
+  export let valueFormat: ((value: string, index: number) => string) | null = null;
+  export let prettyName: string;
   export let title = "";
 
-  let minDbz;
-  let maxDbz;
+  let className = "";
+  export { className as class };
 
-  function colorMap() {
-    if (!palette) {
-      return "#ffffff";
-    }
-    return palette.split(";")
-      .map((c) => c.split(":"));
+  /** The palette as [value, hexColour] pairs. */
+  function colorMap(): string[][] {
+    if (!palette) return [];
+    return palette.split(";").map((c) => c.split(":"));
   }
 
-  function capitalizeFirst(string) {
+  function capitalizeFirst(string: string) {
     return string.charAt(0)
       .toUpperCase() + string.slice(1);
   }
 
-  $ : vs = colorMap()
+  $: vs = colorMap()
     .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
     .filter((e) => e !== "");
   // if (dd.isApp()) {
   //   $ : vs = vs.filter((element, index) => index % 2 === 0);
   // }
 
-  $ : [minDbz] = colorMap(palette)[0];
-  $ : [maxDbz] = colorMap(palette)
-    .pop();
-  $ : colors = colorMap()
+  $: [minDbz] = colorMap()[0] ?? [""];
+  $: [maxDbz] = colorMap().pop() ?? [""];
+  $: colors = colorMap()
     .map((c) => `#${c[1]}`);
 
   $: backgroundImage = `linear-gradient(to right, ${colors.join(",")})`;

@@ -30,7 +30,9 @@ export default class StrikeManagerV2 {
   }
 
   setBaseline(baseline: number) {
-    const keys = Object.keys(this.strikes).map(parseInt);
+    // Not .map(parseInt): map passes the index as the radix, so every key past
+    // the first parsed to NaN and nothing was ever evicted.
+    const keys = Object.keys(this.strikes).map((key) => Number.parseInt(key, 10));
     keys.forEach((key) => {
       if (key < baseline) {
         this.vs.removeFeature(this.strikes[key]);

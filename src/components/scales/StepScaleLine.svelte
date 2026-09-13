@@ -1,13 +1,12 @@
-<script>
-  export let steps;
+<script lang="ts">
+  /** Label to hex-colour, in the order they are drawn. */
+  export let steps: Record<string, string>;
   export let title = "";
+  export let valueFormat: ((value: string) => string) | null = null;
 
-
-  export let valueFormat;
-
-  $ : ncol = Object.values(steps).length;
-  $ : palette = Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100/ncol))}% ${Math.round((index+1)*(100/ncol))}%`).join(",");
-  $ : vs = Object.keys(steps).map((c) => (valueFormat ? valueFormat(c) : c)).filter((e) => e !== "");
+  $: ncol = Object.values(steps).length;
+  $: palette = Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100 / ncol))}% ${Math.round((index + 1) * (100 / ncol))}%`).join(",");
+  $: vs = Object.keys(steps).map((c) => (valueFormat ? valueFormat(c) : c)).filter((e) => e !== "");
 
   $: backgroundImage = `linear-gradient(to right, ${palette})`;
 </script>

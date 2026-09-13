@@ -1,10 +1,13 @@
-<script>
+<script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { onMount } from "svelte";
   const dispatch = createEventDispatcher();
   export let layerManager;
   export let layer;
   export let label;
+
+  let className = "";
+  export { className as class };
   let uniqueID =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
