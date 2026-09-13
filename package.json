@@ -8,7 +8,12 @@
     "dev-local": "vite --mode localstack",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json && eslint .",
+    "deploy:staging": "npm run build && wrangler deploy --env staging",
+    "deploy:production": "npm run build && wrangler deploy --env production",
+    "worker:dev": "wrangler dev",
+    "worker:tail": "wrangler tail",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json && eslint .",
+    "test": "node --test \"scripts/tests/**/*.test.ts\"",
     "generate:api": "openapi-typescript spec/api.openapi.json -o src/api/generated/api.ts && openapi-typescript spec/data.openapi.json -o src/api/generated/data.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
@@ -26,13 +31,14 @@
     "idb": "^8.0.3",
     "javascript-state-machine": "^3.1.0",
     "nanobar": "^0.4.2",
-    "ol": "^7.5.2",
+    "ol": "^10.10.0",
     "openapi-fetch": "^0.17.0",
     "socket.io-client": "^4.8.1",
     "svelte-i18n": "^4.0.1",
     "workbox-window": "^7.3.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260911.1",
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "@types/node": "^26.5.1",
     "eslint": "^9.39.5",
@@ -53,6 +59,7 @@
     "workbox-expiration": "^7.3.0",
     "workbox-precaching": "^7.3.0",
     "workbox-routing": "^7.3.0",
-    "workbox-strategies": "^7.3.0"
+    "workbox-strategies": "^7.3.0",
+    "wrangler": "^4.131.1"
   }
 }

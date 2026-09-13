@@ -7,26 +7,45 @@ declare const self: ServiceWorkerGlobalScope & {
 };
 import { clientsClaim } from "workbox-core";
 import { registerRoute } from "workbox-routing";
-import { CacheFirst } from "workbox-strategies";
+import { CacheFirst, NetworkFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 
-// The hosts the basemap and label layers actually request -- see
-// src/layers/base.js and src/layers/vector.js. The previous pattern listed
-// maptiler and cartocdn, which nothing requests, and cartodb-basemaps-b, while
-// base.js asks for -a and -c, so basemap tiles were never cached at all.
+// Two caches, because the two tilesets have opposite needs.
+//
+// The basemap is versioned into its own path (map.meteocool.com/<version>/),
+// so a given URL never changes content and can be served from cache
+// indefinitely. The previous pattern here listed cartodb, nextzen, cyclosm and
+// openstreetmap.org -- none of which the app requests any more.
 registerRoute(
-  /^https:\/\/(?:cartodb-basemaps-[ac]\.global\.ssl\.fastly\.net|tile\.nextzen\.org|[abc]\.tile-cyclosm\.openstreetmap\.fr|tile\.openstreetmap\.org)\/.*\.(?:png|mvt)/,
+  /^https:\/\/map\.meteocool\.com\/.*\.mvt$/,
   new CacheFirst({
-    cacheName: "tile-cache",
+    cacheName: "basemap-cache",
     plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 20000,
-        maxAgeSeconds: 7 * 24 * 60 * 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// Weather tiles are the opposite: a cached radar frame is worse than no frame,
+// so the network wins unless it is too slow to be useful, and what lands in the
+// cache is only there to cover an offline reload.
+registerRoute(
+  /^https:\/\/tiles-a\.meteocool\.com\/.*\.png$/,
+  new NetworkFirst({
+    cacheName: "weather-tile-cache",
+    networkTimeoutSeconds: 4,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 4000,
+        maxAgeSeconds: 2 * 60 * 60,
         purgeOnQuotaError: true,
       }),
     ],

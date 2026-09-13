@@ -17,7 +17,7 @@ import {
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
-import type XYZ from "ol/source/XYZ";
+import type ImageTileSource from "ol/source/ImageTile";
 import type NanobarWrapper from "../lib/NanobarWrapper";
 import type { CapabilityOptions, RadarSocket } from "./options";
 import Capability from "./Capability";
@@ -63,11 +63,11 @@ export default class RadarCapability extends Capability {
   layer: BaseLayer | null;
 
   /** The tile source behind `layer`; its URL is swapped as playback moves. */
-  source: XYZ | null = null;
+  source: ImageTileSource | null = null;
 
   layers: Record<string, BaseLayer>;
 
-  sources: Record<string, XYZ>;
+  sources: Record<string, ImageTileSource>;
 
   /** Builds a layer for a tile set; swapped when the colormap changes. */
   layerFactory: LayerFactory;
@@ -93,6 +93,14 @@ export default class RadarCapability extends Capability {
   private nanobar: NanobarWrapper;
 
   private socket_io?: RadarSocket;
+
+  /** Kept so destroy() can take these back off the socket again. */
+  private pokeHandler: (() => void) | null = null;
+
+  private snowHandler: (() => void) | null = null;
+
+  /** The self-rescheduling grid refresh, so destroy() can stop it. */
+  private gridRefreshTimeout: number | null = null;
 
   constructor(map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "radar", () => {
@@ -176,21 +184,23 @@ export default class RadarCapability extends Capability {
     });
 
     if (this.socket_io) {
-      this.socket_io.on("poke", () => {
+      this.pokeHandler = () => {
         console.log("received websocket poke, refreshing tiles + forecasts");
         this.reloadAll();
-      });
-      this.socket_io.on("snow", () => {
+      };
+      this.snowHandler = () => {
         console.log("received websocket snow overlay poke, refreshing");
         this.downloadSnowOverlay();
-      });
+      };
+      this.socket_io.on("poke", this.pokeHandler);
+      this.socket_io.on("snow", this.snowHandler);
       this.downloadCurrentRadar();
     }
 
     // Initialize grid
     this.gridconfig = this.regenerateGridConfig();
     const restartHandler = () => {
-      setTimeout(restartHandler, 60000);
+      this.gridRefreshTimeout = window.setTimeout(restartHandler, 60000);
       this.gridconfig = this.regenerateGridConfig();
       if (this.serverGrid) {
         this.updateClientGridFromServerGrid(this.serverGrid);
@@ -414,6 +424,23 @@ export default class RadarCapability extends Capability {
     const step = this.clientGrid?.[timestep];
     if (this.source && step && step.url != null) {
       this.source.setUrl(step.url);
+    }
+  }
+
+  destroy() {
+    if (this.gridRefreshTimeout !== null) {
+      window.clearTimeout(this.gridRefreshTimeout);
+      this.gridRefreshTimeout = null;
+    }
+    if (this.socket_io) {
+      if (this.pokeHandler) {
+        this.socket_io.off("poke", this.pokeHandler);
+        this.pokeHandler = null;
+      }
+      if (this.snowHandler) {
+        this.socket_io.off("snow", this.snowHandler);
+        this.snowHandler = null;
+      }
     }
   }
 

@@ -61,4 +61,11 @@ export default class Capability extends Observable {
   willLoseFocus() {
     super.notify("loseFocus", null);
   }
+
+  /**
+   * Release anything that outlives the map: socket.io handlers, timers.
+   * Optional -- most capabilities hold nothing that needs it. LayerManager
+   * calls it on every registered capability when it tears down.
+   */
+  destroy?(): void;
 }

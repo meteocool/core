@@ -53,7 +53,7 @@
   "latest": "Latest",
   "rain_and_thunderstorms": "Rain & Thunderstorms",
   "nrt_satellite": "Near Real-Time Satellite",
-  "precpitation_types": "Precipitation Types",
+  "precipitation_types": "Precipitation Types",
   "layer_switcher_placeholder": "If you are thankful for meteocool, give something back to someone in need.",
   "snow": "Snow",
   "graupel": "Graupel",
@@ -62,5 +62,9 @@
   "n/a": "n/a",
   "aerosols": "Aerosol Index",
   "model_comparison": "Model Comparison",
-  "model_comparison_sub": "21 forecast models, side by side"
+  "model_comparison_sub": "21 forecast models, side by side",
+  "offline": "Offline",
+  "slow_connection": "Slow connection",
+  "retry": "Retry",
+  "last_success": "Last update"
 }
