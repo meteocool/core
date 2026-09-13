@@ -3,7 +3,7 @@
   Svelte 5. It rendered exactly this: the path data a Font Awesome icon object
   already carries, in an inline SVG.
 -->
-<script>
+<script lang="ts">
   export let icon;
 
   let className = "";

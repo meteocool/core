@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { _ } from "svelte-i18n";
   import ScaleLine from "./ScaleLine.svelte";
   import legendClouds from "../../assets/legend_clouds.svg";

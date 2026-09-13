@@ -33,7 +33,7 @@ export default defineConfig({
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
-      filename: "sw.js",
+      filename: "sw.ts",
       // The entrypoints register the worker themselves, via workbox-window.
       injectRegister: false,
       // The app ships its own manifest at public/assets/manifest.json, which is

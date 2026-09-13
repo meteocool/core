@@ -11,11 +11,10 @@
     "skipLibCheck": true,
     "noEmit": true,
 
-    // Relaxed while the tree is still mostly JavaScript. Phase 5 turns these on
-    // as each module is converted.
-    "allowJs": true,
-    "checkJs": false,
-    "strict": false
+    // OpenLayers' own types are partial enough that noImplicitAny across the
+    // layer code costs more than it catches; the rest of strict is on.
+    "strict": true,
+    "noImplicitAny": false
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts"]
 }

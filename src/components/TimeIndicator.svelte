@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import { format } from "date-fns";
 import { capTimeIndicator } from "../stores";
 

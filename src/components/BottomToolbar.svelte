@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { fly } from "svelte/transition";
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
@@ -79,10 +79,10 @@
 
   let lightningCanvas;
   let chart;
-  function redrawLightningChart(data) {
-    if (chart) {
+  function redrawLightningChart(data: number[]) {
+    if (chart?.options.scales?.y) {
       chart.data.datasets[0].data = data;
-      chart.options.scales.y.max = Math.max.apply(this, data);
+      chart.options.scales.y.max = Math.max(...data);
       chart.update();
     }
   }
@@ -95,7 +95,9 @@
   async function updateLightningChart() {
     const map = layerManager.getCurrentMap();
     const extent = transformExtent(map.getView().calculateExtent(map.getSize()), "EPSG:3857", "EPSG:4326");
-    const polygon = fromExtent(extent).getLinearRing(0).getCoordinates();
+    const ring = fromExtent(extent).getLinearRing(0);
+    if (!ring) return;
+    const polygon = ring.getCoordinates();
 
     try {
       const data = await fetchLightningStats(polygon);
@@ -161,12 +163,9 @@
       },
       options: {
         plugins: {
-          legend: {
-            display: false,
-          },
-        },
-        hover: {
-          animationDuration: 0,
+          legend: { display: false },
+          // Chart.js 3 moved tooltip here; at the options root it was ignored.
+          tooltip: { enabled: true },
         },
         layout: {
           padding: {
@@ -178,19 +177,11 @@
         },
         responsive: true,
         maintainAspectRatio: false,
-        tooltips: {
-          enabled: true,
-        },
-        legend: {
-          display: false,
-        },
         scales: {
           x: {
             grid: {
               display: false,
-              drawBorder: false,
-              tickMarkLength: 1,
-              autoSkip: true,
+              tickLength: 1,
             },
             ticks: {
               padding: -5,
@@ -210,14 +201,18 @@
             type: "linear",
             grid: {
               display: false,
-              drawBorder: false,
             },
             min: 0,
             max: 300,
-            callback(value, index, values) {
-              if (index === values.length - 1) return Math.min.apply(this, chart.data.datasets[0].data);
-              if (index === 0) return Math.max.apply(this, chart.data.datasets[0].data);
-              return "";
+            // In Chart.js 4 the tick formatter lives under `ticks`, not on the
+            // scale, so this never ran where it used to sit.
+            ticks: {
+              callback(value, index, values) {
+                const data = chart.data.datasets[0].data as number[];
+                if (index === values.length - 1) return Math.min(...data);
+                if (index === 0) return Math.max(...data);
+                return "";
+              },
             },
           },
         },
@@ -397,7 +392,7 @@
         {/if}
         {#if activeCap === "aerosols"}
             <div class="palette">
-                <AerosolScaleLine steps="{precipTypeNames}" valueFormat={$_}/>
+                <AerosolScaleLine />
             </div>
         {/if}
         {#if activeCap === "lightning" && $bottomToolbarMode === "collapsed"}

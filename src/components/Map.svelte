@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import McLayerSwitcher from "./McLayerSwitcher.svelte";
   import "ol/ol.css";
   import { layerswitcherVisible, bottomToolbarMode } from "../stores";
@@ -20,7 +20,7 @@
     layerManager.forEachMap((map) => map.updateSize());
   }
 
-  async function mapInit(node) {
+  function mapInit(node: HTMLElement) {
     mapID = node.id;
     // Every MiniMap's action claims its capability's map as a preview, and an
     // OpenLayers Map has exactly one target -- so the default has to be applied
@@ -28,17 +28,16 @@
     // MiniMap initialised last becomes the active capability. Svelte 3 ran
     // child actions first and this happened to hold; Svelte 5 runs the parent's
     // first, so wait for the mount flush rather than relying on the order.
-    await tick();
-    layerManager.setDefaultTarget(mapID);
+    tick().then(() => layerManager.setDefaultTarget(mapID));
     bottomToolbarMode.subscribe((val) => {
+      const mapElement = document.getElementById(mapID);
+      if (!mapElement) return;
       if (val === "player") {
-        document.getElementById(mapID).style.height =
-                "calc(100% - 88px)";
+        mapElement.style.height = "calc(100% - 88px)";
       } else if (val === "collapsed") {
-        document.getElementById(mapID).style.height =
-                "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
+        mapElement.style.height = "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
       } else {
-        document.getElementById(mapID).style.height = "100%";
+        mapElement.style.height = "100%";
       }
       layerManager.forEachMap((m) => {
         m.updateSize();
