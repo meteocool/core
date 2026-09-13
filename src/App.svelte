@@ -14,6 +14,7 @@ import RadarCapability from "./caps/RadarCapability";
 import SatelliteCapability from "./caps/SatelliteCapability";
 
 import { LayerManager, VIEW_EXTENT } from "./lib/LayerManager";
+import { capabilityEnabled } from "./caps/enabled";
 import NanobarWrapper from "./lib/NanobarWrapper";
 import Settings from "./lib/Settings";
 
@@ -197,6 +198,7 @@ const lm = new LayerManager({
   nanobar: nb,
   capabilities: [
     {
+      name: "radar",
       capability: RadarCapability,
       additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay()],
       options: {
@@ -205,6 +207,7 @@ const lm = new LayerManager({
       },
     },
     {
+      name: "satellite",
       capability: SatelliteCapability,
       additionalLayers: [bordersAndWays()],
       options: {
@@ -213,6 +216,7 @@ const lm = new LayerManager({
       },
     },
     {
+      name: "aerosols",
       capability: AerosolsCapability,
       additionalLayers: [bordersAndWays()],
       options: {
@@ -221,6 +225,7 @@ const lm = new LayerManager({
       },
     },
     {
+      name: "lightning",
       capability: LightningCapability,
       additionalLayers: [labelsOnly()],
       options: {
@@ -230,12 +235,13 @@ const lm = new LayerManager({
       },
     },
     {
+      name: "precipTypes",
       capability: PrecipitationTypesCapability,
       additionalLayers: [labelsOnly(), radolanOverlay()],
       options: {
         nanobar: nb,
       },
-    }],
+    }].filter((descriptor) => capabilityEnabled(descriptor.name)),
 });
 window.lm = lm;
 

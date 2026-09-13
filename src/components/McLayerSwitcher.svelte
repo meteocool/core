@@ -8,8 +8,20 @@
   import { _ } from "svelte-i18n";
   import ModelCompare from "./ModelCompare.svelte";
   import { toLonLat } from "ol/proj";
+  import { capabilityEnabled } from "../caps/enabled";
 
   export let layerManager;
+
+  // Driven by the capability registry rather than fixed markup, so a
+  // capability withdrawn in src/caps/enabled.ts takes its tile with it and the
+  // rest close the gap.
+  $: tiles = [
+    { layer: "radar", label: `🌧 ${$_("rain_and_thunderstorms")}` },
+    { layer: "satellite", label: `🛰️ ${$_("nrt_satellite")}` },
+    { layer: "precipTypes", label: `💧 ${$_("precpitation_types")}` },
+    { layer: "aerosols", label: `💨 ${$_("aerosols")}` },
+    { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
+  ].filter((tile) => capabilityEnabled(tile.layer));
 
   // The comparison panel is not a map layer, so it does not get a capability:
   // the tile opens it over the switcher instead of switching the map.
@@ -129,36 +141,16 @@
   }
 
   .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr 0.55fr;
-    gap: 0.15em 0.15em;
-    grid-template-areas: "reflectivity satellite" "precip-types aerosols" "lightning lightning" "compare compare";
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
     height: 100%;
-  }
-
-  .reflectivity {
-    grid-area: reflectivity;
-  }
-  .satellite {
-    grid-area: satellite;
-  }
-  .precip-types {
-    grid-area: precip-types;
-    position: relative;
-  }
-  .aerosols {
-    grid-area: aerosols;
-    position: relative;
-  }
-
-  .lightning {
-    grid-area: lightning;
   }
 
   /* Not a MiniMap: there is no map behind it, so it carries its own label. */
   .compare {
-    grid-area: compare;
+    flex: 0 0 3.6em;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -179,7 +171,9 @@
   }
 
   .cell {
-    height: 100%;
+    flex: 1 1 0;
+    min-height: 0;
+    position: relative;
     cursor: pointer;
     color: white;
   }
@@ -198,48 +192,17 @@
 <div class="ls" id="ls">
   <div class="gridContainer">
     <div class="grid">
-      <div class="reflectivity cell">
-        <MiniMap
-          {layerManager}
-          layer="radar"
-          label={`🌧 ${$_("rain_and_thunderstorms")}`}
-          on:mount={childMounted}
-          on:changeLayer={changeLayer} />
-      </div>
-      <div class="satellite cell">
-        <MiniMap
-          {layerManager}
-          layer="satellite"
-          label={`🛰️ ${$_("nrt_satellite")}`}
-          on:mount={childMounted}
-          on:changeLayer={changeLayer} />
-      </div>
-      <div class="precip-types cell">
+      {#each tiles as tile (tile.layer)}
+        <div class="cell">
           <MiniMap
-                  {layerManager}
-                  layer="precipTypes"
-                  label={`💧 ${$_("precpitation_types")}`}
-                  on:mount={childMounted}
-                  on:changeLayer={changeLayer}
-                  />
-      </div>
-      <div class="aerosols cell">
-        <MiniMap
-                {layerManager}
-                layer="aerosols"
-                label={`💨 ${$_("aerosols")}`}
-                on:mount={childMounted}
-                on:changeLayer={changeLayer} />
-      </div>
-      <div class="lightning cell">
-        <MiniMap
-                {layerManager}
-                layer="lightning"
-                label={`⚡️ ${$_("lightning")}`}
-                on:mount={childMounted}
-                on:changeLayer={changeLayer} />
-      </div>
-      <div class="compare cell" on:click={openCompare}>
+            {layerManager}
+            layer={tile.layer}
+            label={tile.label}
+            on:mount={childMounted}
+            on:changeLayer={changeLayer} />
+        </div>
+      {/each}
+      <div class="compare" on:click={openCompare}>
         <span class="compare-label">
           🌡 {$_("model_comparison")}
           <span class="compare-sub">{$_("model_comparison_sub")}</span>
