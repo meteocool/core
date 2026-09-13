@@ -1,7 +1,10 @@
-// Under `--mode local` every base is a relative path, so the page talks to the
-// Vite dev server's own origin and the proxy in vite.config.ts forwards to the
-// local stack. Same-origin means there is no CORS to configure anywhere.
-const local = import.meta.env.MODE === "local";
+// Under `--mode localstack` every base is a relative path, so the page talks to
+// the Vite dev server's own origin and the proxy in vite.config.ts forwards to
+// the local stack. Same-origin means there is no CORS to configure anywhere.
+//
+// Not "local": Vite rejects that as a mode name, because it collides with the
+// `.env.local` file convention.
+const local = import.meta.env.MODE === "localstack";
 
 export const tileBaseUrl = local ? "/tiles" : "https://tiles-a.meteocool.com";
 export const apiBaseUrl = local ? "/api" : "https://api.ng.meteocool.com/api";
