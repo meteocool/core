@@ -1,6 +1,6 @@
 <script>
 import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
-import Icon from "fa-svelte";
+import Icon from "./Icon.svelte";
 import { _ } from "svelte-i18n";
 import { lastFocus, live } from "../stores";
 

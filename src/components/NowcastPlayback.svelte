@@ -5,7 +5,7 @@ import { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoub
 import { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDoubleUp";
 import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
 import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
-import Icon from "fa-svelte";
+import Icon from "./Icon.svelte";
 import StateMachine from "javascript-state-machine";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { fly, fade } from "svelte/transition";

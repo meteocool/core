@@ -2,7 +2,6 @@
   export let steps;
   export let title = "";
 
-  import cssVars from 'svelte-css-vars';
 
   export let valueFormat;
 
@@ -10,9 +9,7 @@
   $ : palette = Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100/ncol))}% ${Math.round((index+1)*(100/ncol))}%`).join(",");
   $ : vs = Object.keys(steps).map((c) => (valueFormat ? valueFormat(c) : c)).filter((e) => e !== "");
 
-  $: scaleStyle = {
-    backgroundImage: `linear-gradient(to right, ${palette})`,
-  };
+  $: backgroundImage = `linear-gradient(to right, ${palette})`;
 </script>
 
 <style>
@@ -75,7 +72,7 @@
 <div class="wrapper">
     <div class="legend-label">{@html title}</div>
     <div class="scale">
-        <div class="scale-line" use:cssVars="{scaleStyle}">
+        <div class="scale-line" style:--backgroundImage={backgroundImage}>
             <div class="scale-dividers">
                 {#each vs as value}
                     <div class="scale-divider" style="width: {100/ncol}%;">

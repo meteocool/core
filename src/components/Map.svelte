@@ -20,8 +20,15 @@
     layerManager.forEachMap((map) => map.updateSize());
   }
 
-  function mapInit(node) {
+  async function mapInit(node) {
     mapID = node.id;
+    // Every MiniMap's action claims its capability's map as a preview, and an
+    // OpenLayers Map has exactly one target -- so the default has to be applied
+    // once they have all run, or the main map is left empty and whichever
+    // MiniMap initialised last becomes the active capability. Svelte 3 ran
+    // child actions first and this happened to hold; Svelte 5 runs the parent's
+    // first, so wait for the mount flush rather than relying on the order.
+    await tick();
     layerManager.setDefaultTarget(mapID);
     bottomToolbarMode.subscribe((val) => {
       if (val === "player") {
