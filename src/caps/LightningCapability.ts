@@ -10,8 +10,12 @@ import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
 import { fetchLightningLayer, fetchLightningSince } from "../api";
 import { noaaBREF } from "../layers/noaa";
 
-/** Matches the API's lightning_baseline_max_hours, which defaults to one hour. */
-const BASELINE_MAX_SECONDS = 60 * 60;
+/**
+ * The API's lightning_baseline_max_hours, which defaults to one hour, less a
+ * margin: the server compares against its own clock, so a baseline sitting
+ * exactly on the limit is already past it by the time the request lands.
+ */
+const BASELINE_MAX_SECONDS = 60 * 60 - 120;
 
 export default class LightningCapability extends Capability {
   /** The current vector tile layer, replaced whenever a new tile set lands. */
