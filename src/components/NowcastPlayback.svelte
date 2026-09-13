@@ -45,12 +45,14 @@ export let cap: RadarCapability;
 
 let gridConfig: GridConfig | null = null;
 
+// Assigned when the client has no position; not rendered today.
+let _showBars = true;
+
 let userLatLon;
-let showBars = true;
 latLon.subscribe((latlonUpdate) => {
   userLatLon = latlonUpdate;
   if (!userLatLon) {
-    showBars = false;
+    _showBars = false;
   }
 });
 
@@ -319,7 +321,7 @@ function redraw(config) {
   });
 }
 $: redraw(gridConfig);
-function updateSliderToLatest(config) {
+function updateSliderToLatest(_config) {
   if (slRange) slRange.value = cap.getMostRecentObservation();
 }
 $: updateSliderToLatest(gridConfig);
@@ -488,7 +490,8 @@ function hide() {
   fsm.hideScrollbar();
 }
 
-let latest;
+// Recorded when the grid updates; not currently rendered.
+let _latest: number;
 
 onMount(async () => {
   window.leaveForeground = () => {
@@ -503,7 +506,7 @@ onMount(async () => {
     if (subject === "grid" && data) {
       gridConfig = data as GridConfig;
       showOpenControls = true;
-      latest = cap.getMostRecentObservation();
+      _latest = cap.getMostRecentObservation();
     }
     //   // const gridSteps = Object.keys(grid);
     //   let changed = false;
@@ -827,12 +830,12 @@ lastFocus.subscribe((focus) => {
                       &nbsp;<Icon icon={playPauseButton} />&nbsp;
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} variant="{loop ? 'primary' : 'default'}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
+                  <sl-button size={buttonSize} variant="{loop ? "primary" : "default"}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
                     <div class="faIconButton" style="margin-top: 3px !important;">
                       <Icon icon={faRetweet} />
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} variant="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
+                  <sl-button size={buttonSize} variant="{includeHistoric ? "primary" : "default"}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
                     <div class="faIconButton" style="margin-top: 2px !important;">
                       <Icon icon={faHistory} />
                     </div>
@@ -843,8 +846,8 @@ lastFocus.subscribe((focus) => {
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
-                    <sl-button size={buttonSize} variant="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
-                    <sl-button size={buttonSize} variant="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
+                    <sl-button size={buttonSize} variant="{ $lightningLayerVisible ? "primary" : "default"}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
+                    <sl-button size={buttonSize} variant="{ $cycloneLayerVisible ? "primary" : "default"}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
                   </sl-button-group>
                 </div>
               </div>

@@ -1,6 +1,5 @@
 // XXX this thing has a problem where the datatypes are lost when stuff is saved to localstroage.
 
-import Router from './Router';
 
 /** One setting's declaration, as App.svelte writes it. */
 export interface SettingDefinition {
@@ -113,7 +112,7 @@ export default class Settings {
       return;
     }
 
-    // eslint-disable-line valid-typeof
+     
     if (typeof value !== this.settings[key].type) {
       console.log(`Type missmatch for key ${key}`);
       return;

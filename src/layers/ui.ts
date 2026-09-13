@@ -1,5 +1,5 @@
 /* Imported for side effects (registering the pseudo elements) */
-/* eslint-disable no-unused-vars */
+ 
 import SlAlert from "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import SlButtonGroup from "@shoelace-style/shoelace/dist/components/button-group/button-group.js";

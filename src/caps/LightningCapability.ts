@@ -10,6 +10,9 @@ import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
 import { fetchLightningLayer, fetchLightningSince } from "../api";
 import { noaaBREF } from "../layers/noaa";
 
+/** Matches the API's lightning_baseline_max_hours, which defaults to one hour. */
+const BASELINE_MAX_SECONDS = 60 * 60;
+
 export default class LightningCapability extends Capability {
   /** The current vector tile layer, replaced whenever a new tile set lands. */
   currentLayer: BaseLayer | null;
@@ -57,20 +60,27 @@ export default class LightningCapability extends Capability {
   }
 
   async fetchRemaining(baseline: number) {
+    // The server rejects a baseline further back than its own window
+    // (lightning_baseline_max_hours, one hour by default) with a 400. The tile
+    // set's most recent strike is easily older than that when lightning is
+    // quiet, so clamp rather than ask for something that cannot be served.
+    const oldest = Math.floor(Date.now() / 1000) - BASELINE_MAX_SECONDS;
+    const requested = Math.max(baseline, oldest);
+
     if (!this.sm) {
       const newLayer = lightningLayerDumb();
       super.getMap().addLayer(newLayer);
       const source = newLayer.getSource()!;
       this.vectorsource = source;
-      const sm = new StrikeManagerV2(source, baseline);
+      const sm = new StrikeManagerV2(source, requested);
       this.sm = sm;
       // Strikes newer than the published tile set arrive here; the tile set
       // itself covers everything older than the baseline.
       this.socketio?.on("lightning", (data) => sm.addStrike(data.lon, data.lat, data.time / 10e5));
     }
-    this.sm.setBaseline(baseline);
+    this.sm.setBaseline(requested);
 
-    const data = await fetchLightningSince(baseline, this.nb).catch(() => null);
+    const data = await fetchLightningSince(requested, this.nb).catch(() => null);
     if (!data) return;
     data.strikes.forEach((elem) => this.sm!.addStrike(elem.lon, elem.lat, elem.time_wall));
   }

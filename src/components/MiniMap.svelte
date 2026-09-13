@@ -23,11 +23,11 @@
     layerManager.setTarget(layer, node.id);
   }
 
-  let down = false;
+  let _down = false;
   let lastX = 0;
   let lastY = 0;
   function mouseDown(evt) {
-    down = true;
+    _down = true;
     lastX = evt.clientX;
     lastY = evt.clientY;
   }
@@ -39,7 +39,7 @@
     ) {
       dispatch("changeLayer", layer);
     }
-    down = false;
+    _down = false;
   }
 </script>
 

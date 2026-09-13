@@ -12,7 +12,7 @@ import lightningstrike from "../assets/lightning.png";
 import { blitzortungAttribution, imprintAttribution } from "./attributions";
 import { tileBaseUrl } from "../urls";
 import { LightningColors } from "../colormaps";
-import { TIME_KEY } from '../lib/StrikeManagerV2';
+import { TIME_KEY } from "../lib/StrikeManagerV2";
 
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;

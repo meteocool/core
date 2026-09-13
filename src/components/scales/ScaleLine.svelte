@@ -1,6 +1,5 @@
 <script lang="ts">
   import mapBg from "../../assets/map-bg.png";
-  import { DeviceDetect as dd } from '../../lib/DeviceDetect';
 
   export let palette: string;
   export let valueFormat: ((value: string, index: number) => string) | null = null;
@@ -10,10 +9,16 @@
   let className = "";
   export { className as class };
 
-  /** The palette as [value, hexColour] pairs. */
-  function colorMap(): string[][] {
-    if (!palette) return [];
-    return palette.split(";").map((c) => c.split(":"));
+  /**
+   * The palette as [value, hexColour] pairs.
+   *
+   * Takes the palette as an argument rather than closing over the prop, so the
+   * reactive statements below actually depend on it -- otherwise a palette
+   * change leaves the scale line showing the previous colours.
+   */
+  function colorMap(source: string): string[][] {
+    if (!source) return [];
+    return source.split(";").map((c) => c.split(":"));
   }
 
   function capitalizeFirst(string: string) {
@@ -21,20 +26,20 @@
       .toUpperCase() + string.slice(1);
   }
 
-  $: vs = colorMap()
+  $: vs = colorMap(palette)
     .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
     .filter((e) => e !== "");
   // if (dd.isApp()) {
   //   $ : vs = vs.filter((element, index) => index % 2 === 0);
   // }
 
-  $: [minDbz] = colorMap()[0] ?? [""];
-  $: [maxDbz] = colorMap().pop() ?? [""];
-  $: colors = colorMap()
+  $: [minDbz] = colorMap(palette)[0] ?? [""];
+  $: [maxDbz] = colorMap(palette).pop() ?? [""];
+  $: colors = colorMap(palette)
     .map((c) => `#${c[1]}`);
 
   $: backgroundImage = `linear-gradient(to right, ${colors.join(",")})`;
-  $: backgroundUrl = `url(${mapBg})`;
+  const backgroundUrl = `url(${mapBg})`;
 </script>
 
 <style>
@@ -143,7 +148,7 @@
     <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
         <div class="scale-line" style:--backgroundImage={backgroundImage} style:--backgroundUrl={backgroundUrl}>
             <div class="scale-dividers">
-                {#each vs as value}
+                {#each vs as value, i (i)}
                     <div class="scale-divider">
                         {@html value}
                     </div>

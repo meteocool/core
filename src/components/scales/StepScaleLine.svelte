@@ -73,7 +73,7 @@
     <div class="scale">
         <div class="scale-line" style:--backgroundImage={backgroundImage}>
             <div class="scale-dividers">
-                {#each vs as value}
+                {#each vs as value, i (i)}
                     <div class="scale-divider" style="width: {100/ncol}%;">
                         {@html value }
                     </div>

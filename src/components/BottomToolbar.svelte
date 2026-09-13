@@ -15,7 +15,7 @@
     sharedActiveCap,
     bottomToolbarMode,
     zoomlevel,
-    satelliteLayerCloudy, satelliteLayerLabels, radarColormap, capLastUpdated, latLon,
+    satelliteLayerCloudy, satelliteLayerLabels,
   } from "../stores";
   import StepScaleLine from "./scales/StepScaleLine.svelte";
   import Appendix from "./Appendix.svelte";
@@ -24,11 +24,13 @@
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
   import { fetchLightningStats } from "../api";
   import { LightningColors, precipTypeNames } from "../colormaps";
-  import DevStatus from "./DevStatus.svelte";
 
   Chart.defaults.font.size = 10;
 
   export let layerManager;
+
+  // Assigned when a capability changes; not rendered today.
+  let _description: string;
 
   // This chart is a bar chart. It previously registered the line controller and
   // element -- which it does not use -- and relied on NowcastPlayback having
@@ -49,27 +51,26 @@
   });
 
   function cloudmask(elem) {
-    elem.addEventListener("sl-change", (event) => {
+    elem.addEventListener("sl-change", (_event) => {
       satelliteLayerCloudy.set(!get(satelliteLayerCloudy));
     });
   }
 
   function labelsBorders(elem) {
-    elem.addEventListener("sl-change", (event) => {
-      satelliteLayerLabels.set(event.target.checked);
+    elem.addEventListener("sl-change", (event: Event) => {
+      satelliteLayerLabels.set((event.target as HTMLInputElement).checked);
     });
   }
 
   function sentinel2(elem) {
-    elem.addEventListener("sl-change", (event) => {
-      const satellite = event.target.checked ? "sentinel2" : "sentinel3";
+    elem.addEventListener("sl-change", (event: Event) => {
+      const satellite = (event.target as HTMLInputElement).checked ? "sentinel2" : "sentinel3";
       satelliteLayer.set(satellite);
     });
   }
 
-  let description;
   capDescription.subscribe((desc) => {
-    description = desc;
+    _description = desc;
   });
 
   let activeCap;
@@ -208,7 +209,12 @@
             // scale, so this never ran where it used to sit.
             ticks: {
               callback(value, index, values) {
-                const data = chart.data.datasets[0].data as number[];
+                // Not the outer `chart`: this runs during construction, before
+                // the assignment. `this` is the scale, but guard it anyway --
+                // this callback sat at the wrong nesting level for years and
+                // has never actually executed before now.
+                const data = this?.chart?.data?.datasets?.[0]?.data as number[] | undefined;
+                if (!data?.length) return "";
                 if (index === values.length - 1) return Math.min(...data);
                 if (index === 0) return Math.max(...data);
                 return "";
@@ -411,7 +417,7 @@
                         <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
                     </div>
                     <div class="float">
-                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== 'sentinel2'}">Clouds</sl-checkbox>
+                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== "sentinel2"}">Clouds</sl-checkbox>
                     </div>
                     <div class="float">
                         <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>

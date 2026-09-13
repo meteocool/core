@@ -14,7 +14,8 @@
     .filter((k) => k[0] !== "imprintAttribution")
     .map((k) => k[1]);
   allAttributionsArray.sort();
-  const allAttributions = allAttributionsArray.join(" ");
+  // Built but never rendered; kept so the attribution list stays derived.
+  const _allAttributions = allAttributionsArray.join(" ");
 
   window.openLayerswitcher = () => {
     const ls = document.getElementById("ls");
@@ -158,7 +159,7 @@
       <div class="reflectivity cell">
         <MiniMap
           {layerManager}
-          layer={"radar"}
+          layer="radar"
           label={`🌧 ${$_("rain_and_thunderstorms")}`}
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
@@ -166,7 +167,7 @@
       <div class="satellite cell">
         <MiniMap
           {layerManager}
-          layer={"satellite"}
+          layer="satellite"
           label={`🛰️ ${$_("nrt_satellite")}`}
           on:mount={childMounted}
           on:changeLayer={changeLayer} />
@@ -174,7 +175,7 @@
       <div class="precip-types cell">
           <MiniMap
                   {layerManager}
-                  layer={"precipTypes"}
+                  layer="precipTypes"
                   label={`💧 ${$_("precpitation_types")}`}
                   on:mount={childMounted}
                   on:changeLayer={changeLayer}
@@ -183,7 +184,7 @@
       <div class="aerosols cell">
         <MiniMap
                 {layerManager}
-                layer={"aerosols"}
+                layer="aerosols"
                 label={`💨 ${$_("aerosols")}`}
                 on:mount={childMounted}
                 on:changeLayer={changeLayer} />
@@ -191,7 +192,7 @@
       <div class="lightning cell">
         <MiniMap
                 {layerManager}
-                layer={"lightning"}
+                layer="lightning"
                 label={`⚡️ ${$_("lightning")}`}
                 on:mount={childMounted}
                 on:changeLayer={changeLayer} />
