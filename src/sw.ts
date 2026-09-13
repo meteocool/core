@@ -33,7 +33,7 @@ registerRoute(
   }),
 );
 
-/* eslint-disable no-restricted-globals, no-underscore-dangle */
+ 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 self.skipWaiting();

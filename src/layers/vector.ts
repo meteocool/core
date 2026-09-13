@@ -7,8 +7,8 @@ import {
   osmAttribution,
   wofAttribution,
 } from "./attributions";
-import { mapBaseLayer } from '../stores';
-import { supportsVectorLabels } from './base';
+import { mapBaseLayer } from "../stores";
+import { supportsVectorLabels } from "./base";
 
 // Nextzen rejects the key that was hardcoded here (400 on every tile, which
 // renders as an "API KEY REQUIRED" watermark across the map). Set

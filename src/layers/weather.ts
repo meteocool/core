@@ -1,11 +1,10 @@
 import LayerGroup from "ol/layer/Group";
-import TileLayer from 'ol/layer/WebGLTile';
+import TileLayer from "ol/layer/WebGLTile";
 import XYZ from "ol/source/XYZ";
 import { centralEuropeExtent } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { dwdAttribution, imprintAttribution } from "./attributions";
 
-// eslint-disable-next-line import/prefer-default-export
 export const weatherLayer = (tileID) => {
   const source =
       new XYZ({

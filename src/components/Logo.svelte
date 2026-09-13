@@ -2,7 +2,7 @@
 import logo from "../assets/logo.svg";
 import About from "./About.svelte";
 import { _ } from "svelte-i18n";
-import { logoStyle } from '../stores';
+import { logoStyle } from "../stores";
 
 let showAbout = false;
 

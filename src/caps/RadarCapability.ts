@@ -5,7 +5,6 @@ import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd";
 import type { LayerFactory } from "../layers/dwd";
-import { reportError } from "../lib/Toast";
 import {
   capDescription,
   capLastUpdated,
@@ -117,23 +116,21 @@ export default class RadarCapability extends Capability {
     window.radar = this;
 
     //mcTileCache.setMap(map);
-
-    const self = this;
     radarColorScheme.subscribe((colorScheme) => {
       setDwdCmap(colorScheme);
 
-      const oldLayer = self.layer;
+      const oldLayer = this.layer;
       if (oldLayer && super.getMap()) {
         super.getMap().removeLayer(oldLayer);
       }
-      self.layer = null;
-      self.source = null;
+      this.layer = null;
+      this.source = null;
       // These compared this.layer -- a layer -- against a layer *factory*, so
       // both tests were vacuously true.
       if (colorScheme === "classic" && this.layerFactory !== dwdLayerStatic) {
-        self.layerFactory = dwdLayerStatic;
+        this.layerFactory = dwdLayerStatic;
       } else if (colorScheme !== "classic" && this.layerFactory !== DWDLayerFactoryGL) {
-        self.layerFactory = DWDLayerFactoryGL;
+        this.layerFactory = DWDLayerFactoryGL;
       }
       this.reloadAll();
     });
@@ -141,14 +138,14 @@ export default class RadarCapability extends Capability {
     latLon.subscribe((latlonUpdate) => {
       if (!latlonUpdate) return true;
       const [lat, lon] = latlonUpdate;
-      if (self.latlon) {
-        const [oldLat, oldLon] = self.latlon;
+      if (this.latlon) {
+        const [oldLat, oldLon] = this.latlon;
         if (Math.abs(oldLat - lat) > 0.001 || Math.abs(oldLon - lon) > 0.001) {
-          self.latlon = latlonUpdate;
+          this.latlon = latlonUpdate;
           this.reloadAll();
         }
       } else {
-        self.latlon = latlonUpdate;
+        this.latlon = latlonUpdate;
         this.reloadAll();
       }
     });

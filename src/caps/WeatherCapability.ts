@@ -1,5 +1,4 @@
-// eslint-disable-next-line import/prefer-default-export
-import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
+import { capDescription, capLastUpdated, showForecastPlaybutton } from "../stores";
 import { reportError } from "../lib/Toast";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
