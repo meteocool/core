@@ -23,8 +23,26 @@ import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.j
 
 import { colorSchemeDark } from "../stores";
 
+/**
+ * Shoelace dropped these token names between 2.0-beta and 2.0 stable, but
+ * meteocool's own CSS is written against them -- and the dark-mode set below
+ * defines them, so only *light* mode lost them. Restoring them here as the
+ * light-mode defaults keeps every existing `var(--sl-color-white)` working
+ * rather than rewriting them across a dozen components.
+ */
+const shoelaceBetaAliases = {
+  "sl-color-white": "var(--sl-color-neutral-0)",
+  "sl-color-black": "var(--sl-color-neutral-1000)",
+  "sl-color-info-100": "var(--sl-color-sky-100)",
+  "sl-color-info-200": "var(--sl-color-sky-200)",
+  "sl-color-info-700": "var(--sl-color-sky-700)",
+  "sl-color-primary-text": "var(--sl-color-neutral-0)",
+  "svg-dark-to-light": "none",
+};
+
 export const uiConstantsDefault = {
   "toast-stack-offset": "49px",
+  ...shoelaceBetaAliases,
 };
 
 const darkmodeConstants = {
@@ -80,6 +98,16 @@ export function initUIConstants() {
 
 // Dark and Light mode
 colorSchemeDark.subscribe((isDark) => {
-  if (isDark) Object.keys(darkmodeConstants).forEach((key) => setUIConstant(key, darkmodeConstants));
-  else Object.keys(darkmodeConstants).forEach((key) => unsetUIConstant(key));
+  Object.keys(darkmodeConstants).forEach((key) => {
+    if (isDark) {
+      setUIConstant(key, darkmodeConstants);
+    } else if (key in uiConstantsDefault) {
+      // Leaving dark mode restores the light default rather than unsetting:
+      // several of these names are Shoelace beta tokens that no longer exist
+      // in 2.x, so unsetting them leaves the variable undefined.
+      setUIConstant(key);
+    } else {
+      unsetUIConstant(key);
+    }
+  });
 });
