@@ -798,7 +798,7 @@ lastFocus.subscribe((focus) => {
 </style>
 
 <LiveIndicator />
-{#if process.env.NODE_ENV === "development"}
+{#if import.meta.env.DEV}
   <DevStatus />
 {/if}
 
@@ -831,12 +831,12 @@ lastFocus.subscribe((focus) => {
                       &nbsp;<Icon icon={playPauseButton} />&nbsp;
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} type="{loop ? 'primary' : 'default'}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
+                  <sl-button size={buttonSize} variant="{loop ? 'primary' : 'default'}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
                     <div class="faIconButton" style="margin-top: 3px !important;">
                       <Icon icon={faRetweet} />
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} type="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
+                  <sl-button size={buttonSize} variant="{includeHistoric ? 'primary' : 'default'}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
                     <div class="faIconButton" style="margin-top: 2px !important;">
                       <Icon icon={faHistory} />
                     </div>
@@ -847,8 +847,8 @@ lastFocus.subscribe((focus) => {
               <div class="checkbox">
                 <div class="button-group-toolbar">
                   <sl-button-group label="Map Layers">
-                    <sl-button size={buttonSize} type="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
-                    <sl-button size={buttonSize} type="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
+                    <sl-button size={buttonSize} variant="{ $lightningLayerVisible ? 'primary' : 'default'}" on:click={toggleLightning}>⚡ <span class="hide-on-small-screens">Lightning Strikes</span></sl-button>
+                    <sl-button size={buttonSize} variant="{ $cycloneLayerVisible ? 'primary' : 'default'}" on:click={toggleCyclones}>🌀 <span class="hide-on-small-screens">Mesocyclones</span></sl-button>
                   </sl-button-group>
                 </div>
               </div>

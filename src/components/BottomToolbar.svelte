@@ -2,7 +2,9 @@
   import { fly } from "svelte/transition";
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
-  import { Chart, LineController, Line, LineElement } from "chart.js";
+  import {
+    BarController, BarElement, CategoryScale, Chart, LinearScale,
+  } from "chart.js";
   import { transformExtent } from "ol/proj";
   import { fromExtent } from "ol/geom/Polygon";
   import LastUpdated from "./LastUpdated.svelte";
@@ -28,8 +30,11 @@
 
   export let layerManager;
 
-  Chart.register(LineController);
-  Chart.register(LineElement);
+  // This chart is a bar chart. It previously registered the line controller and
+  // element -- which it does not use -- and relied on NowcastPlayback having
+  // registered the bar ones first, so it only rendered if that component had
+  // been constructed already.
+  Chart.register(BarController, BarElement, CategoryScale, LinearScale);
 
   let s3Disabled = false;
   let e;

@@ -85,7 +85,7 @@ updateTime();
             <sl-spinner class="spinner"></sl-spinner>
         {:else}
             <sl-progress-ring
-                    percentage={slPercent}
+                    value={slPercent}
                     size="20"
                     stroke-width="1.5"
                     class="progress-ring"></sl-progress-ring>
