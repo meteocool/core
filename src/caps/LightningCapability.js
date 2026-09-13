@@ -2,7 +2,7 @@ import Capability from "./Capability";
 import StrikeManagerV2 from "../lib/StrikeManagerV2";
 import { capDescription, capLastUpdated, showForecastPlaybutton } from "../stores";
 import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
-import { v3APIBaseUrl } from "../urls";
+import { fetchLightningLayer, fetchLightningSince } from "../api";
 import { noaaBREF } from "../layers/noaa";
 
 export default class LightningCapability extends Capability {
@@ -22,37 +22,24 @@ export default class LightningCapability extends Capability {
     map.addLayer(noaaBREF());
   }
 
-  fetchLightning() {
-    const URL = `${v3APIBaseUrl}/lightning/layer`;
-    this.nb.start(URL);
-    fetch(URL)
-      .then((response) => response.json())
-      .then((data) => {
-        if (!data) return;
-        if (this.currentLayer) {
-          if (this.currentLayer.get("tile_id") === data.tile_id) return;
-        }
-        const newLayer = lightningLayerGL(data.tile_id, super.getMap());
-        newLayer.set("tile_id", data.tile_id);
-        super.getMap()
-          .addLayer(newLayer);
-        if (this.currentLayer) {
-          super.getMap()
-            .removeLayer(this.currentLayer);
-        }
-        this.currentLayer = newLayer;
-        capLastUpdated.set(new Date(data.processed_time * 1000));
+  async fetchLightning() {
+    const data = await fetchLightningLayer(this.nb).catch(() => null);
+    if (!data) return;
+    if (this.currentLayer && this.currentLayer.get("tile_id") === data.tile_id) return;
 
-        this.fetchRemaining(data.most_recent_strike);
-      })
-      .then(() => this.nb.finish(URL))
-      .catch((error) => {
-        this.nb.finish(URL);
-        console.log(error);
-      });
+    const newLayer = lightningLayerGL(data.tile_id, super.getMap());
+    newLayer.set("tile_id", data.tile_id);
+    super.getMap().addLayer(newLayer);
+    if (this.currentLayer) {
+      super.getMap().removeLayer(this.currentLayer);
+    }
+    this.currentLayer = newLayer;
+    capLastUpdated.set(new Date(data.processed_time * 1000));
+
+    this.fetchRemaining(data.most_recent_strike);
   }
 
-  fetchRemaining(baseline) {
+  async fetchRemaining(baseline) {
     if (!this.vectorsource) {
       const newLayer = lightningLayerDumb();
       super.getMap().addLayer(newLayer);
@@ -64,20 +51,8 @@ export default class LightningCapability extends Capability {
     }
     this.sm.setBaseline(baseline);
 
-    const URL = `${v3APIBaseUrl}/lightning/baseline?baseline=${baseline}`;
-    this.nb.start(URL);
-    fetch(URL)
-      .then((response) => response.json())
-      .then((data) => {
-        if (!data) return;
-        if (data.strikes) {
-          data.strikes.forEach((elem) => this.sm.addStrike(elem.lon, elem.lat, elem.time_wall));
-        }
-      })
-      .then(() => this.nb.finish(URL))
-      .catch((error) => {
-        this.nb.finish(URL);
-        console.log(error);
-      });
+    const data = await fetchLightningSince(baseline, this.nb).catch(() => null);
+    if (!data) return;
+    data.strikes.forEach((elem) => this.sm.addStrike(elem.lon, elem.lat, elem.time_wall));
   }
 }

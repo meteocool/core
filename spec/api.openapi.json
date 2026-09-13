@@ -1,0 +1,1140 @@
+{
+  "components": {
+    "schemas": {
+      "ClearNotification": {
+        "description": "An acknowledgement that a delivered notification was seen.",
+        "properties": {
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "token": {
+            "maxLength": 192,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "ClearNotification",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Language": {
+        "description": "Languages notifications are written in.",
+        "enum": [
+          "de",
+          "en"
+        ],
+        "title": "Language",
+        "type": "string"
+      },
+      "LightningCollection": {
+        "description": "Strikes since a baseline.",
+        "properties": {
+          "baseline": {
+            "title": "Baseline",
+            "type": "integer"
+          },
+          "strikes": {
+            "items": {
+              "$ref": "#/components/schemas/LightningStrike"
+            },
+            "title": "Strikes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "strikes",
+          "baseline"
+        ],
+        "title": "LightningCollection",
+        "type": "object"
+      },
+      "LightningLayerMetadata": {
+        "description": "Metadata for the lightning vector tile layer.",
+        "properties": {
+          "most_recent_strike": {
+            "title": "Most Recent Strike",
+            "type": "integer"
+          },
+          "num_strikes": {
+            "title": "Num Strikes",
+            "type": "integer"
+          },
+          "processed_time": {
+            "title": "Processed Time",
+            "type": "integer"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "processed_time",
+          "tile_id",
+          "most_recent_strike",
+          "num_strikes"
+        ],
+        "title": "LightningLayerMetadata",
+        "type": "object"
+      },
+      "LightningStats": {
+        "description": "Strike counts per time bin for an area.",
+        "properties": {
+          "bin_size_min": {
+            "title": "Bin Size Min",
+            "type": "integer"
+          },
+          "bins": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Bins",
+            "type": "array"
+          },
+          "time": {
+            "title": "Time",
+            "type": "number"
+          }
+        },
+        "required": [
+          "time",
+          "bins",
+          "bin_size_min"
+        ],
+        "title": "LightningStats",
+        "type": "object"
+      },
+      "LightningStrike": {
+        "description": "One strike, in projected metres, as the frontend expects.",
+        "properties": {
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "time_wall": {
+            "title": "Time Wall",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "time_wall"
+        ],
+        "title": "LightningStrike",
+        "type": "object"
+      },
+      "LocationUpdate": {
+        "description": "A push client's location and notification preferences.",
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "ahead": {
+            "description": "Notify this many minutes ahead",
+            "exclusiveMinimum": 0.0,
+            "maximum": 60.0,
+            "title": "Ahead",
+            "type": "integer"
+          },
+          "intensity": {
+            "description": "Threshold in dbZ",
+            "maximum": 130.0,
+            "minimum": 0.0,
+            "title": "Intensity",
+            "type": "integer"
+          },
+          "lang": {
+            "$ref": "#/components/schemas/Language",
+            "default": "en"
+          },
+          "lat": {
+            "description": "EPSG:4326 latitude",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:4326 longitude",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Platform"
+          },
+          "speed": {
+            "default": 0.0,
+            "title": "Speed",
+            "type": "number"
+          },
+          "token": {
+            "maxLength": 192,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          },
+          "withDBZ": {
+            "default": false,
+            "title": "Withdbz",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "source",
+          "token",
+          "ahead",
+          "intensity",
+          "accuracy"
+        ],
+        "title": "LocationUpdate",
+        "type": "object"
+      },
+      "Mesocyclone": {
+        "description": "One DWD mesocyclone detection. The `mesocyclones` event carries a list.",
+        "properties": {
+          "diameter": {
+            "description": "Major axis of the detection ellipse, in metres",
+            "title": "Diameter",
+            "type": "number"
+          },
+          "intensity": {
+            "description": "DWD mesocyclone intensity class",
+            "title": "Intensity",
+            "type": "integer"
+          },
+          "lat": {
+            "description": "EPSG:3857 northing, in metres",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:3857 easting, in metres",
+            "title": "Lon",
+            "type": "number"
+          },
+          "time": {
+            "description": "Detection id: milliseconds since the epoch, plus an index",
+            "title": "Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "diameter",
+          "time",
+          "intensity"
+        ],
+        "title": "Mesocyclone",
+        "type": "object"
+      },
+      "Platform": {
+        "description": "Which push provider a client is registered with.",
+        "enum": [
+          "ios",
+          "android"
+        ],
+        "title": "Platform",
+        "type": "string"
+      },
+      "Poke": {
+        "description": "A nudge that a tile product has been re-rendered, and should be refetched.",
+        "properties": {
+          "refresh": {
+            "enum": [
+              "radar",
+              "nowcast",
+              "precipitation_types",
+              "lightning_mvt"
+            ],
+            "title": "Refresh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh"
+        ],
+        "title": "Poke",
+        "type": "object"
+      },
+      "PrecipitationTypes": {
+        "description": "Metadata for the precipitation-type raster overlay.",
+        "properties": {
+          "processed_time": {
+            "title": "Processed Time",
+            "type": "integer"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          },
+          "upstream_time": {
+            "title": "Upstream Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tile_id",
+          "upstream_time",
+          "processed_time"
+        ],
+        "title": "PrecipitationTypes",
+        "type": "object"
+      },
+      "RadarFrame": {
+        "description": "One timestep of the radar/nowcast series.",
+        "properties": {
+          "dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dbz"
+          },
+          "dbzMax": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dbzmax"
+          },
+          "dbzMin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dbzmin"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "processed_time": {
+            "title": "Processed Time",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "processed_time",
+          "tile_id",
+          "source",
+          "filename"
+        ],
+        "title": "RadarFrame",
+        "type": "object"
+      },
+      "RadarFrames": {
+        "description": "A series of radar timesteps, keyed by unix time.",
+        "properties": {
+          "frames": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RadarFrame"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Frames",
+            "type": "object"
+          },
+          "server_time": {
+            "title": "Server Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "frames",
+          "server_time"
+        ],
+        "title": "RadarFrames",
+        "type": "object"
+      },
+      "SnowRefresh": {
+        "description": "A nudge that the snowfield overlay has been re-rendered.",
+        "properties": {
+          "refresh": {
+            "const": "overlay",
+            "title": "Refresh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh"
+        ],
+        "title": "SnowRefresh",
+        "type": "object"
+      },
+      "StatusResponse": {
+        "description": "A plain success acknowledgement.",
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "StatusResponse",
+        "type": "object"
+      },
+      "Strike": {
+        "description": "One lightning strike, broadcast as the `lightning` event.",
+        "properties": {
+          "lat": {
+            "description": "EPSG:3857 northing, in metres",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:3857 easting, in metres",
+            "title": "Lon",
+            "type": "number"
+          },
+          "time": {
+            "description": "Strike time, milliseconds since the epoch",
+            "title": "Time",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "time"
+        ],
+        "title": "Strike",
+        "type": "object"
+      },
+      "TelemetryReading": {
+        "description": "A barometric reading submitted alongside a location.",
+        "properties": {
+          "accuracy": {
+            "default": 0.0,
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "altitude": {
+            "title": "Altitude",
+            "type": "number"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          },
+          "pressure": {
+            "title": "Pressure",
+            "type": "number"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "number"
+          },
+          "verticalAccuracy": {
+            "title": "Verticalaccuracy",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "altitude",
+          "verticalAccuracy",
+          "pressure",
+          "timestamp"
+        ],
+        "title": "TelemetryReading",
+        "type": "object"
+      },
+      "Unregister": {
+        "description": "A request to forget a push client.",
+        "properties": {
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "token": {
+            "maxLength": 192,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "Unregister",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VectorOverlay": {
+        "description": "Metadata for a vector tile overlay.",
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          },
+          "upstream_time": {
+            "title": "Upstream Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "tile_id",
+          "upstream_time"
+        ],
+        "title": "VectorOverlay",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "email": "valentin@meteocool.com"
+    },
+    "description": "\nWelcome to the meteocool backend. You are free to use our raw and aggregated\ndata for your private and server applications. If you are planning on releasing\na publicly available application, please cache these endpoints on your side\nrather than having your users hit them directly.\n\n## Compatibility\n\nWe cannot guarantee consistency or availability of these endpoints, but `/v3/`\nendpoints will not introduce breaking changes soon. Most are rate limited,\nespecially on error responses.\n\n## Attributions\n\nAlways attribute the original data sources. You, not us, are responsible to the\ncopyright holders if you fail to.\n\n* Radar, precipitation types and nowcast data: **DWD**\n* Lightning data: **blitzortung.org**\n\nWe would appreciate an attribution to meteocool too.\n\n## Mobile endpoints\n\nEndpoints tagged `mobile` are documented for completeness; they need a valid\nAPNS or Firebase push token and are write-only, because the read channel is the\nnotification delivered to the device.\n",
+    "title": "meteocool Severe Weather API",
+    "version": "4.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/dl": {
+      "get": {
+        "operationId": "download_dl_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "user-agent",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "User-Agent",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Redirect to the app store for the visitor's platform."
+      }
+    },
+    "/v3/lightning/baseline": {
+      "get": {
+        "description": "Every strike recorded since `baseline`, as a unix timestamp.",
+        "operationId": "since_baseline_v3_lightning_baseline_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "baseline",
+            "required": true,
+            "schema": {
+              "title": "Baseline",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LightningCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Strikes since a baseline.",
+        "tags": [
+          "lightning"
+        ]
+      }
+    },
+    "/v3/lightning/layer": {
+      "get": {
+        "description": "The most recent lightning vector tile set.",
+        "operationId": "layer_v3_lightning_layer_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LightningLayerMetadata"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Vector tile layer metadata.",
+        "tags": [
+          "lightning"
+        ]
+      }
+    },
+    "/v3/lightning/stats": {
+      "get": {
+        "description": "Per-minute strike counts inside a polygon, for the last half hour.",
+        "operationId": "stats_v3_lightning_stats_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "bbox",
+            "required": true,
+            "schema": {
+              "title": "Bbox",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LightningStats"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Strike counts for an area.",
+        "tags": [
+          "lightning"
+        ]
+      }
+    },
+    "/v3/mobile/clear": {
+      "post": {
+        "description": "Mark a client's notification as seen, so the next one can be sent.",
+        "operationId": "clear_notification_v3_mobile_clear_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClearNotification"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge a delivered notification.",
+        "tags": [
+          "mobile"
+        ]
+      }
+    },
+    "/v3/mobile/location": {
+      "delete": {
+        "description": "Remove a push client's registration.",
+        "operationId": "unregister_v3_mobile_location_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Unregister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forget a push client.",
+        "tags": [
+          "mobile"
+        ]
+      },
+      "post": {
+        "description": "Upsert a push client's location and notification preferences.",
+        "operationId": "post_location_v3_mobile_location_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register or refresh a push client.",
+        "tags": [
+          "mobile"
+        ]
+      }
+    },
+    "/v3/preview/og.png": {
+      "get": {
+        "description": "Render, or fetch an already-rendered, preview image.",
+        "operationId": "open_graph_preview_v3_preview_og_png_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "latLonZ",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Latlonz",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aspectRatio",
+            "required": false,
+            "schema": {
+              "default": "square",
+              "title": "Aspectratio",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "logo",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Logo",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "frame",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Frame",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {}
+            },
+            "description": "The rendered preview."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Open Graph preview image for a location.",
+        "tags": [
+          "preview"
+        ]
+      }
+    },
+    "/v3/radar/classification": {
+      "get": {
+        "description": "The most recent precipitation-type tile set.\n\nServed at /api/precip_types/ by the old Flask service, which this replaces.",
+        "operationId": "classification_v3_radar_classification_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrecipitationTypes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Precipitation-type overlay metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/snow": {
+      "get": {
+        "description": "The most recent snowfield vector tile set.",
+        "operationId": "snow_v3_radar_snow_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VectorOverlay"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Snowfield overlay metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/timeseries": {
+      "get": {
+        "description": "Tile metadata for each timestep in a window, past and forecast.",
+        "operationId": "timeseries_v3_radar_timeseries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Start",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "End",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "default": 0.0,
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": false,
+            "schema": {
+              "default": 0.0,
+              "title": "Lon",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrames"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Radar and nowcast tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/telemetry/pressure": {
+      "post": {
+        "description": "Record a barometric pressure observation.",
+        "operationId": "post_pressure_v3_telemetry_pressure_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelemetryReading"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit a barometric reading.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    }
+  }
+}
