@@ -8,7 +8,8 @@
     "dev-local": "vite --mode local",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "generate:api": "openapi-typescript spec/api.openapi.json -o src/api/generated/api.ts && openapi-typescript spec/data.openapi.json -o src/api/generated/data.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
@@ -24,6 +25,7 @@
     "javascript-state-machine": "^3.1.0",
     "nanobar": "^0.4.2",
     "ol": "^7.5.2",
+    "openapi-fetch": "^0.17.0",
     "socket.io-client": "^4.8.1",
     "svelte-i18n": "^4.0.1",
     "workbox-window": "^7.3.0"
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "@types/node": "^26.5.1",
+    "openapi-typescript": "^7.13.0",
     "svelte": "^5.39.0",
     "svelte-check": "^4.1.5",
     "typescript": "^5.8.3",

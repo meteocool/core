@@ -1,0 +1,258 @@
+{
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Mesocyclone": {
+        "description": "One DWD mesocyclone detection. The `mesocyclones` event carries a list.",
+        "properties": {
+          "diameter": {
+            "description": "Major axis of the detection ellipse, in metres",
+            "title": "Diameter",
+            "type": "number"
+          },
+          "intensity": {
+            "description": "DWD mesocyclone intensity class",
+            "title": "Intensity",
+            "type": "integer"
+          },
+          "lat": {
+            "description": "EPSG:3857 northing, in metres",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:3857 easting, in metres",
+            "title": "Lon",
+            "type": "number"
+          },
+          "time": {
+            "description": "Detection id: milliseconds since the epoch, plus an index",
+            "title": "Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "diameter",
+          "time",
+          "intensity"
+        ],
+        "title": "Mesocyclone",
+        "type": "object"
+      },
+      "Poke": {
+        "description": "A nudge that a tile product has been re-rendered, and should be refetched.",
+        "properties": {
+          "refresh": {
+            "enum": [
+              "radar",
+              "nowcast",
+              "precipitation_types",
+              "lightning_mvt"
+            ],
+            "title": "Refresh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh"
+        ],
+        "title": "Poke",
+        "type": "object"
+      },
+      "SnowRefresh": {
+        "description": "A nudge that the snowfield overlay has been re-rendered.",
+        "properties": {
+          "refresh": {
+            "const": "overlay",
+            "title": "Refresh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh"
+        ],
+        "title": "SnowRefresh",
+        "type": "object"
+      },
+      "Strike": {
+        "description": "One lightning strike, broadcast as the `lightning` event.",
+        "properties": {
+          "lat": {
+            "description": "EPSG:3857 northing, in metres",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:3857 easting, in metres",
+            "title": "Lon",
+            "type": "number"
+          },
+          "time": {
+            "description": "Strike time, milliseconds since the epoch",
+            "title": "Time",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "time"
+        ],
+        "title": "Strike",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "email": "valentin@meteocool.com"
+    },
+    "description": "\nLive lightning strikes and DWD mesocyclone detections.\n\nCoordinates are projected **EPSG:3857 metres**, not degrees, despite the\n`lat`/`lon` field names \u2014 kept as-is for compatibility with existing clients.\n",
+    "title": "meteocool data",
+    "version": "4.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/lightning_cache": {
+      "get": {
+        "operationId": "lightning_cache_lightning_cache_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Strike"
+                  },
+                  "title": "Response Lightning Cache Lightning Cache Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Recent lightning strikes, so a new client can backfill its map."
+      }
+    },
+    "/mesocyclones/all/": {
+      "get": {
+        "operationId": "mesocyclone_cache_mesocyclones_all__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Mesocyclone"
+                  },
+                  "title": "Response Mesocyclone Cache Mesocyclones All  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "All currently active mesocyclone detections."
+      }
+    },
+    "/mesocyclones/{detection_id}": {
+      "get": {
+        "operationId": "mesocyclone_attributes_mesocyclones__detection_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "detection_id",
+            "required": true,
+            "schema": {
+              "title": "Detection Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Mesocyclone Attributes Mesocyclones  Detection Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Extra nowcast parameters for one mesocyclone detection."
+      }
+    }
+  }
+}

@@ -3,6 +3,7 @@ import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
 import { io } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { fromLonLat } from "ol/proj";
 import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
@@ -29,7 +30,9 @@ import {
 
 import "./global.css";
 import "@shoelace-style/shoelace/dist/themes/light.css";
-import { apiBaseUrl, dataUrl, websocketBaseUrl } from "./urls";
+import { websocketBaseUrl } from "./urls";
+import { fetchLightningCache, fetchMesocyclones } from "./api";
+import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
 import StrikeManager from "./lib/StrikeManager";
@@ -160,7 +163,7 @@ lightningLayerVisible.subscribe((value) => {
 lightningLayerVisible.set((window as any).settings.get("layerLightning"));
 
 const nb = new NanobarWrapper({});
-const radarSocketIO = io(`${websocketBaseUrl}/radar`);
+const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`);
 radarSocketIO.on("connect", () => {
   console.log("radar/forecast websocket connected!");
 });
@@ -232,7 +235,6 @@ const lm = new LayerManager({
       additionalLayers: [labelsOnly(), radolanOverlay()],
       options: {
         nanobar: nb,
-        tileURL: `${apiBaseUrl}/radar/classification`,
       },
     }],
 });
@@ -257,32 +259,22 @@ const lm = new LayerManager({
   lm.getCurrentMap().getView().setZoom(z);
 });
 
-function reloadLightning() {
-  fetch(`${dataUrl}/lightning_cache`)
-    .then((response) => response.json())
-    .then((data) => {
-      strikemgr.clearAll();
-      data.forEach((elem) => {
-        strikemgr.addStrikeWithTime(elem.lon, elem.lat, Math.round(elem.time));
-      });
-    })
-    .then(() => nb.finish(URL))
-    .catch((error) => {
-      console.log(error);
-    });
+// Both of these used to finish a nanobar task keyed on the global `URL`
+// constructor rather than on a URL string, and neither had a matching start.
+async function reloadLightning() {
+  const strikes = await fetchLightningCache(nb).catch(() => null);
+  if (!strikes) return;
+  strikemgr.clearAll();
+  strikes.forEach((strike) => {
+    strikemgr.addStrikeWithTime(strike.lon, strike.lat, Math.round(strike.time));
+  });
 }
 
-function reloadCyclones() {
-  fetch(`${dataUrl}/mesocyclones/all/`)
-    .then((response) => response.json())
-    .then((data) => {
-      mesocyclonemgr.clearAll();
-      data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
-    })
-    .then(() => nb.finish(URL))
-    .catch((error) => {
-      console.log(error);
-    });
+async function reloadCyclones() {
+  const detections = await fetchMesocyclones(nb).catch(() => null);
+  if (!detections) return;
+  mesocyclonemgr.clearAll();
+  detections.forEach((detection) => mesocyclonemgr.addCyclone(detection));
 }
 
 reloadLightning();

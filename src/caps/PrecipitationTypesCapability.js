@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/prefer-default-export
 import { capDescription, capLastUpdated, showForecastPlaybutton } from '../stores';
 import Capability from "./Capability";
-import { apiBaseUrl, v3APIBaseUrl } from '../urls';
+import { fetchPrecipitationTypes } from "../api";
 import { dwdPrecipTypes } from "../layers/dwd.js";
 
 export default class PrecipitationTypesCapability extends Capability {
@@ -18,29 +18,18 @@ export default class PrecipitationTypesCapability extends Capability {
     this.nb = args.nanobar;
   }
 
-  fetchPrecipTypes() {
-    const URL = `${v3APIBaseUrl}/radar/classification`;
-    this.nb.start(URL);
-    fetch(URL)
-      .then((response) => response.json())
-      .then((data) => {
-        if (!data) return;
-        if (this.currentLayer) {
-          if (this.currentLayer.get("tile_id") === data.tile_id) return;
-        }
-        const newLayer = dwdPrecipTypes(data.tile_id);
-        newLayer.set("tile_id", data.tile_id);
-        super.getMap().addLayer(newLayer);
-        if (this.currentLayer) {
-          super.getMap().removeLayer(this.currentLayer);
-        }
-        this.currentLayer = newLayer;
-        capLastUpdated.set(new Date(data.processed_time * 1000));
-      })
-      .then(() => this.nb.finish(URL))
-      .catch((error) => {
-        this.nb.finish(URL);
-        console.log(error);
-      });
+  async fetchPrecipTypes() {
+    const data = await fetchPrecipitationTypes(this.nb).catch(() => null);
+    if (!data) return;
+    if (this.currentLayer && this.currentLayer.get("tile_id") === data.tile_id) return;
+
+    const newLayer = dwdPrecipTypes(data.tile_id);
+    newLayer.set("tile_id", data.tile_id);
+    super.getMap().addLayer(newLayer);
+    if (this.currentLayer) {
+      super.getMap().removeLayer(this.currentLayer);
+    }
+    this.currentLayer = newLayer;
+    capLastUpdated.set(new Date(data.processed_time * 1000));
   }
 }

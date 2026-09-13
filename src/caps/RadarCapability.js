@@ -16,7 +16,8 @@ import {
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
 } from "../stores";
 import Capability from "./Capability";
-import { tileBaseUrl, v3APIBaseUrl } from "../urls";
+import { tileBaseUrl } from "../urls";
+import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
 import { get } from "svelte/store";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
@@ -231,42 +232,26 @@ export default class RadarCapability extends Capability {
     this.downloadCurrentRadar();
   }
 
-  getLocalPostifx() {
-    if (this.latlon) {
-      return `?lat=${this.latlon[0]}&lon=${this.latlon[1]}`;
-    }
-    return "";
+  /** The location the forecast is sampled at, if the client has shared one. */
+  getPosition() {
+    return this.latlon ? { lat: this.latlon[0], lon: this.latlon[1] } : undefined;
   }
 
-  downloadCurrentRadar() {
-    const URL = `${v3APIBaseUrl}/radar/timeseries${this.getLocalPostifx()}`;
-    console.log(`Reloading ${URL}`);
+  async downloadCurrentRadar() {
     live.set(false);
-    this.nanobar.start(URL);
-    fetch(URL)
-      .then((response) => response.json())
-      .then((obj) => this.processRadar(obj))
-      .then(() => this.nanobar.finish(URL))
-      .catch((error) => {
-        this.nanobar.finish(URL);
-        live.set(false);
-        reportError(error);
-      });
+    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition()).catch(() => null);
+    if (!data) {
+      live.set(false);
+      return;
+    }
+    this.processRadar(data);
   }
 
-  downloadSnowOverlay() {
+  async downloadSnowOverlay() {
     if (!get(snowLayerVisible)) return;
-    const URL = `${v3APIBaseUrl}/radar/snow`;
-    console.log(`Reloading ${URL}`);
-    this.nanobar.start(URL);
-    fetch(URL)
-      .then((response) => response.json())
-      .then((obj) => this.processSnowOverlay(obj))
-      .then(() => this.nanobar.finish(URL))
-      .catch((error) => {
-        this.nanobar.finish(URL);
-        reportError(error);
-      });
+    const data = await fetchSnowOverlay(this.nanobar).catch(() => null);
+    if (!data) return;
+    this.processSnowOverlay(data);
   }
 
   processSnowOverlay(obj) {
