@@ -141,7 +141,7 @@
 
   .day {
     display: grid;
-    grid-template-columns: 3.4em 2.2em 1fr 4.6em 4.2em;
+    grid-template-columns: 5.2em 2.2em 1fr 4.6em 4.6em;
     align-items: center;
     gap: 0.5em;
     padding: 0.55em 0.4em;
@@ -197,7 +197,7 @@
   .tier.low { background: #a62b2b; color: #fff; }
 
   .breakdown {
-    padding: 0.3em 0.4em 0.7em 3.9em;
+    padding: 0.3em 0.4em 0.7em 5.7em;
     font-size: 0.78em;
   }
 
