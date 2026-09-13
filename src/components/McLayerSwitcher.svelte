@@ -23,6 +23,10 @@
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
   ].filter((tile) => capabilityEnabled(tile.layer));
 
+  // Two across. An odd tile out spans the row rather than leaving a hole --
+  // which is how lightning sat when there were five of these.
+  $: lastSpans = tiles.length % 2 === 1;
+
   // The comparison panel is not a map layer, so it does not get a capability:
   // the tile opens it over the switcher instead of switching the map.
   let compareAt: { lat: number; lon: number } | null = null;
@@ -147,6 +151,19 @@
     height: 100%;
   }
 
+  .maps {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 1fr;
+    gap: 0.15em;
+  }
+
+  .cell.wide {
+    grid-column: span 2;
+  }
+
   /* Not a MiniMap: there is no map behind it, so it carries its own label. */
   .compare {
     flex: 0 0 3.6em;
@@ -171,7 +188,6 @@
   }
 
   .cell {
-    flex: 1 1 0;
     min-height: 0;
     position: relative;
     cursor: pointer;
@@ -192,16 +208,18 @@
 <div class="ls" id="ls">
   <div class="gridContainer">
     <div class="grid">
-      {#each tiles as tile (tile.layer)}
-        <div class="cell">
-          <MiniMap
-            {layerManager}
-            layer={tile.layer}
-            label={tile.label}
-            on:mount={childMounted}
-            on:changeLayer={changeLayer} />
-        </div>
-      {/each}
+      <div class="maps">
+        {#each tiles as tile, index (tile.layer)}
+          <div class="cell" class:wide={lastSpans && index === tiles.length - 1}>
+            <MiniMap
+              {layerManager}
+              layer={tile.layer}
+              label={tile.label}
+              on:mount={childMounted}
+              on:changeLayer={changeLayer} />
+          </div>
+        {/each}
+      </div>
       <div class="compare" on:click={openCompare}>
         <span class="compare-label">
           🌡 {$_("model_comparison")}
