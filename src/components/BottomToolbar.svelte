@@ -22,7 +22,7 @@
   import RadarScaleLine from "./scales/RadarScaleLine.svelte";
   import LightningScaleLine from "./scales/LightningScaleLine.svelte";
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
-  import { v3APIBaseUrl } from "../urls";
+  import { fetchLightningStats } from "../api";
   import { LightningColors, precipTypeNames } from "../colormaps";
   import DevStatus from "./DevStatus.svelte";
 
@@ -92,36 +92,23 @@
   let noLightning = false;
   let delayedLoader;
 
-  function updateLightningChart() {
+  async function updateLightningChart() {
     const map = layerManager.getCurrentMap();
     const extent = transformExtent(map.getView().calculateExtent(map.getSize()), "EPSG:3857", "EPSG:4326");
-    const p = fromExtent(extent);
+    const polygon = fromExtent(extent).getLinearRing(0).getCoordinates();
 
-    const URL = `${v3APIBaseUrl}/lightning/stats?`;
-    fetch(URL + new URLSearchParams({
-      bbox: JSON.stringify({ coordinates: p.getLinearRing(0).getCoordinates() }),
-    }))
-      .then((response) => {
-        if (response.ok) return response.json();
-        throw new Error("Server error");
-      })
-      .then((data) => {
-        if (!data) return;
-        unavailable = false;
-        if (data.bins.reduce((partialSum, a) => partialSum + a, 0) === 0) {
-          noLightning = true;
-          return;
-        }
-        noLightning = false;
-        redrawLightningChart(data.bins);
-      })
-      .catch((error) => {
-        noLightning = true;
-        unavailable = true;
-        console.log(error);
-      });
-    delayedLoader = null;
-    loading = false;
+    try {
+      const data = await fetchLightningStats(polygon);
+      unavailable = false;
+      noLightning = data.bins.reduce((total, bin) => total + bin, 0) === 0;
+      if (!noLightning) redrawLightningChart(data.bins);
+    } catch {
+      noLightning = true;
+      unavailable = true;
+    } finally {
+      delayedLoader = null;
+      loading = false;
+    }
   }
 
   function lightningChartCanvas(elem) {
