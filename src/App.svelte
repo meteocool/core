@@ -46,7 +46,6 @@ import { radolanOverlay } from "./layers/dwd";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
 
-// eslint-disable-next-line import/no-mutable-exports
 export let device;
 export let postInitCb;
 

@@ -3,7 +3,6 @@ import SENTRY_ARGS from "../lib/sentry";
 
 Sentry.init(SENTRY_ARGS);
 
-// eslint-disable-next-line import/order
 import { Workbox } from "workbox-window";
 import { mount } from "svelte";
 import App from "../App.svelte";

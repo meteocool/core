@@ -81,7 +81,7 @@ export class MeteoTileCache {
     };
   }
 
-  mapObserver(event: MapEvent) {
+  mapObserver(_event: MapEvent) {
     if (!this.map) return;
     this.extent = this.map.getView().calculateExtent(this.map.getSize());
     this.setZoom();

@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/prefer-default-export
 import { get } from "svelte/store";
 import { sentinel2, sentinel3 } from "../layers/satellite";
 import {
@@ -6,7 +5,7 @@ import {
   satelliteLayer,
   satelliteLayerCloudy, satelliteLayerLabels,
   showForecastPlaybutton,
-} from '../stores';
+} from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
 import type TileLayer from "ol/layer/WebGLTile";
@@ -37,11 +36,9 @@ export default class SatelliteCapability extends Capability {
     map.addLayer(this.sentinel3);
     this.sentinel2 = sentinel2(false, get(satelliteLayer) === "sentinel2");
     map.addLayer(this.sentinel2);
-
-    const self = this;
     satelliteLayerCloudy.subscribe((cloudy) => {
-      if (self.sentinel2.get("cloudy") !== cloudy) {
-        self.recreateS2(cloudy);
+      if (this.sentinel2.get("cloudy") !== cloudy) {
+        this.recreateS2(cloudy);
       }
     });
     satelliteLayerLabels.subscribe((vis) => {
@@ -50,11 +47,11 @@ export default class SatelliteCapability extends Capability {
     satelliteLayer.subscribe((layer) => {
       switch (layer) {
         case "sentinel2":
-          self.sentinel2.setVisible(true);
+          this.sentinel2.setVisible(true);
           break;
         case "sentinel3":
         default:
-          self.sentinel2.setVisible(false);
+          this.sentinel2.setVisible(false);
           break;
       }
     });

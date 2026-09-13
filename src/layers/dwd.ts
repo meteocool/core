@@ -1,4 +1,4 @@
-/* eslint-disable no-param-reassign */
+ 
 import Feature from "ol/Feature";
 import Fill from "ol/style/Fill";
 import Style from "ol/style/Style";

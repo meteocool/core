@@ -4,7 +4,6 @@ import {
   getTransformFromProjections,
   get as getProjection, toLonLat,
 } from "ol/proj";
-import Collection from "ol/Collection";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
 import { circular as circularPolygon } from "ol/geom/Polygon";
@@ -19,7 +18,7 @@ import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
 import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
-import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from "../stores";
+import { latLon, mapBaseLayer, sharedActiveCap, zoomlevel } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { satelliteCombo } from "../layers/satellite";
 import Capability from "../caps/Capability";
@@ -47,7 +46,6 @@ let shouldUpdate = true;
 /**
  * Manages the reflectivity + forecast layers shown on the map. should be called MapManager XXX
  */
-// eslint-disable-next-line import/prefer-default-export
 interface CapabilityMap {
     [name: string]: Capability;
 }
@@ -87,7 +85,7 @@ export class LayerManager {
 
     options.capabilities.forEach((capability) => {
       const newMap = this.mapFactory(capability.options.hasBaseLayer);
-      // eslint-disable-next-line new-cap
+       
       const newCap = new capability.capability(newMap, capability.additionalLayers || [], capability.options);
       this.capabilities[newCap.getName()] = newCap;
       newMap.set("capability", newCap.getName());

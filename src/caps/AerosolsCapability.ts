@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/prefer-default-export
 import { s5pAerosolIndex354 } from "../layers/satellite";
 import {
   capDescription,
