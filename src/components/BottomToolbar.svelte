@@ -27,6 +27,8 @@
   import { LightningColors, precipTypeNames } from "../colormaps";
 
   Chart.defaults.font.size = 10;
+  // Chart.js's own grey is unreadable on the dark tray; the token flips with the theme.
+  Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue("--mc-text-2").trim() || "#666";
 
   export let layerManager;
 
@@ -246,110 +248,109 @@
 </script>
 
 <style>
+    /* The tray material, shared with NowcastPlayback's .timeslider: a floating
+       glass tray 8px off the edges, 8px above the safe-area inset. The blur
+       must sit on this element -- it is the one carrying transition:fly, and a
+       blurred child of a fading parent samples a blank backdrop. */
     :global(.bottomToolbar) {
         position: absolute;
-        bottom: 0;
-        left: 0;
-        border-top-left-radius: 11px;
-        border-top-right-radius: 11px;
-        border-top: 1px solid var(--sl-color-gray-50);
-        width: 100%;
-        background-color: var(--sl-color-white);
+        left: var(--mc-gutter);
+        right: var(--mc-gutter);
+        width: auto;
+        bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
+        box-sizing: border-box;
+        border: 1px solid var(--mc-glass-edge);
+        border-radius: var(--mc-radius-tray);
+        background: var(--mc-glass-fill-strong);
+        -webkit-backdrop-filter: var(--mc-glass-backdrop);
+        backdrop-filter: var(--mc-glass-backdrop);
+        box-shadow: var(--mc-glass-ring-lg);
+        color: var(--mc-text);
+        font-family: var(--mc-font);
+    }
+
+    .lastUpdatedBottom {
+        height: 42px;
+        z-index: var(--mc-z-tray);
+        padding: 0 12px;
+    }
+
+    /* Desktop: fully covered by the open player, so release its blur once the
+       player has flown in. Map.svelte measures .timeslider in player mode. */
+    :global(.bottomToolbar.lastUpdatedBottom.player-open) {
+        visibility: hidden;
+        transition: visibility 0s linear 250ms;
     }
 
     @media only screen and (max-width: 620px) {
-        :global(.bottomToolbar) {
-            height: 84px !important;
-            padding-top: 0px;
+        .lastUpdatedBottom {
+            height: 84px;
+            padding: 6px 10px;
         }
-
+        .parentz {
+            flex-wrap: wrap;
+            align-content: space-between;
+        }
+        .palette {
+            flex: 1 1 100%;
+            height: auto;
+            padding: 0 4px;
+        }
+        .center {
+            flex: 1 1 100%;
+            display: flex;
+            justify-content: center;
+            /* clear the play and expand discs in the tray's bottom corners */
+            padding: 0 52px;
+        }
         .break {
             flex-basis: 100%;
             height: 0;
         }
-
         .left {
             display: none;
         }
-
         .palette {
             margin-left: 0 !important;
             margin-right: 0 !important;
         }
     }
 
-    .lastUpdatedBottom {
-        height: 42px;
-        bottom: env(safe-area-inset-bottom);
-        z-index: 4;
-        padding-top: 0.2em;
-        padding-bottom: 0.2em;
-    }
-
-    /* In the wrappers the web layout leaves the bar floating above the home
-       indicator with a strip of map showing through. The bar is anchored to the
-       very bottom instead and grows to swallow the inset, so its background
-       runs to the edge of the screen while its contents stay above the inset. */
+    /* The wrappers get the identical floating tray: the map showing under the
+       bar is now the intent, not a strip to swallow. */
     :global(.is-app .bottomToolbar) {
         margin-bottom: 0;
     }
 
-    :global(.is-app .bottomToolbar.lastUpdatedBottom) {
-        bottom: 0;
-        height: var(--bottom-toolbar-expanded-height, 90px) !important;
-        display: flex;
-        align-items: flex-end;
-        padding-bottom: env(safe-area-inset-bottom);
-        box-sizing: border-box;
-    }
-
-    /* iOS reports a real inset and its own bar sits above it, so there the
-       toolbar keeps the web height and is simply pushed clear. */
-    :global(.is-ios .bottomToolbar.lastUpdatedBottom) {
-        bottom: env(safe-area-inset-bottom);
-        height: 42px !important;
-        display: block;
-        padding-bottom: 0.2em;
-        box-sizing: content-box;
-    }
-
-    :global(:root) {
-        --bottom-toolbar-expanded-height: 90px;
-    }
-
-    @media only screen and (max-width: 620px) {
-        :global(:root) {
-            --bottom-toolbar-expanded-height: 120px;
-        }
-    }
-
     .parentz {
         display: flex;
-        flex-wrap: wrap;
-        padding-top: 0.4em;
-        gap: 1px;
+        flex-wrap: nowrap;
+        align-items: center;
+        height: 100%;
+        gap: 2px 4px;
+        padding: 0;
+        box-sizing: border-box;
+        overflow: hidden;   /* the tray has a fixed height; nothing may spill under its rounded edge */
     }
 
+    /* spacer for NowcastPlayback's two floating discs (desktop only) */
     .left {
-        height: 28px;
-        text-align: center;
-        float: left;
-        cursor: pointer;
-        text-decoration: underline;
-        flex-grow: 0; /* do not grow   - initial value: 0 */
-        flex-shrink: 0; /* do not shrink - initial value: 1 */
-        flex-basis: 6%;
-        min-width: 84px;
+        flex: 0 0 auto;
+        width: 100px;
+        height: 1px;
+        float: none;
+        cursor: default;
+        text-decoration: none;
     }
 
     .right {
-        height: 100%;
-        text-align: right;
+        flex: 0 0 auto;
+        height: auto;
+        display: flex;
+        align-items: center;
         white-space: nowrap;
-        padding: 0;
-        flex-grow: 0; /* do not grow   - initial value: 0 */
-        flex-shrink: 0; /* do not shrink - initial value: 1 */
-        flex-basis: 3%;
+        padding: 0 0 0 8px;
+        text-align: right;
     }
 
     @media only screen and (max-width: 650px) {
@@ -359,34 +360,27 @@
     }
 
     .center {
-        flex: auto;
-        padding: 0.5em;
-        font-size: 9pt;
+        flex: 0 1 auto;
+        min-width: 0;
         position: relative;
-        flex-grow: 1; /* do not grow   - initial value: 0 */
-        flex-shrink: 1; /* do not shrink - initial value: 1 */
-        flex-basis: 2%;
+        padding: 0 8px;
+        font: 500 12px/1.2 var(--mc-font);
         text-align: center;
-        padding-top: 0;
     }
 
     .palette {
-        flex: auto;
-        padding: 0.5em;
-        padding-top: 0;
+        flex: 1 1 50%;
+        min-width: 0;
         position: relative;
-        flex-grow: 1; /* do not grow   - initial value: 0 */
-        flex-shrink: 1; /* do not shrink - initial value: 1 */
-        flex-basis: 50%;
-        text-align: center;
         height: 32px;
+        padding: 0 8px;
+        text-align: center;
     }
 
     .float {
-        display: inline-block;
-        margin-right: 2em;
-        margin-top: 0.5em;
-        margin-bottom: 1.5em;
+        display: inline-flex;
+        align-items: center;
+        margin: 0 16px 0 0;
     }
 
     .lightningChart {
@@ -407,12 +401,12 @@
     .lightning-chart-overlay {
         position: absolute;
         top: 10px;
-        text-align: center;
+        left: 0;
         width: 100%;
-        color: var(--sl-color-black);
-        font-weight: bold;
-        text-shadow: var(--sl-color-white);
-        font-size: 110%;
+        text-align: center;
+        color: var(--mc-text);
+        font: 600 12px/1.3 var(--mc-font);
+        text-shadow: none;
         z-index: 100;
     }
 </style>

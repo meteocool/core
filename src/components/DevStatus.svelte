@@ -31,23 +31,45 @@
 </script>
 
 <style>
+  /* Dev only. Bottom-right, just above the tray: the top-right belongs to the
+     control cluster now. */
   .wrapper {
-      position: absolute;
-      z-index: 9999;
-      top: calc(env(safe-area-inset-top) + 0.4em);
-      right: 1em;
+    position: absolute;
+    z-index: var(--mc-z-pill);
+    top: auto;
+    right: var(--mc-gutter);
+    bottom: calc(var(--bottom-toolbar-height, 0px) + var(--mc-gutter) + 26px);
+    pointer-events: none;
   }
+
+  /* sl-tag parts: base content remove-button */
+  .wrapper sl-tag::part(base) {
+    height: auto;
+    padding: 6px 10px;
+    border-radius: 14px;
+    background: var(--mc-glass-fill);
+    -webkit-backdrop-filter: var(--mc-glass-backdrop);
+    backdrop-filter: var(--mc-glass-backdrop);
+    border: 1px solid var(--mc-glass-edge);
+    box-shadow: var(--mc-glass-ring);
+    color: var(--mc-text);
+  }
+
   .dev {
-      line-height: 1;
-      border: 0;
-      font-size: 8px;
+    line-height: 1.2;
+    border: 0;
+    font: 500 9px/1.2 var(--mc-font);
+    font-variant-numeric: tabular-nums;
   }
   tr, td, th {
-      padding: 0;
-      margin: 0;
+    padding: 0;
+    margin: 0;
   }
   th {
-      text-align: right;
+    text-align: right;
+    padding-right: 6px;
+    color: var(--mc-text-2);
+    font-weight: 500;
   }
 </style>
 

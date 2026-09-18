@@ -9,6 +9,7 @@
   import ModelCompare from "./ModelCompare.svelte";
   import { toLonLat } from "ol/proj";
   import { capabilityEnabled } from "../caps/enabled";
+  import { toolbarTransitionEnd } from "../lib/toolbarTransition";
 
   export let layerManager;
 
@@ -53,6 +54,9 @@
     const ls = document.getElementById("ls");
     if (!ls) return;
     ls.style.display = "block";
+    // The View is shared with the main map, which carries bottom padding for
+    // the glass tray; the tiles are not under it.
+    layerManager.maps[0]?.getView().setProperties({ padding: [0, 0, 0, 0] });
     layerManager.forEachMap((map, cap) => {
       const target = childCanvases[cap];
       console.log(`set ${cap} -> ${target}`);
@@ -85,6 +89,8 @@
         "layerSwitcherClosed",
       );
     }
+    // Map.svelte re-measures the tray and restores the view padding.
+    toolbarTransitionEnd();
   }
 
   function childMounted(data) {
@@ -100,79 +106,75 @@
 </script>
 
 <style>
+  /* A 44px glass disc on the top line at right. Web only. */
   .lsToggle {
-    width: 74px;
-    height: 74px;
-    background-color: var(--sl-color-white);
-    border: 3px solid var(--sl-color-gray-700);
-    border-radius: 40px;
     position: absolute;
-    top: 1vh;
-    right: 1vh;
+    top: var(--mc-top-stack);
+    right: var(--mc-gutter);
+    z-index: var(--mc-z-chrome);
+    width: var(--mc-control-lg);
+    height: var(--mc-control-lg);
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--mc-glass-fill);
+    -webkit-backdrop-filter: var(--mc-glass-backdrop);
+    backdrop-filter: var(--mc-glass-backdrop);
+    border: 1px solid var(--mc-glass-edge);
+    box-shadow: var(--mc-glass-ring);
+    color: var(--mc-text);
     text-align: center;
-    vertical-align: center;
-    color: var(--sl-color-gray-700);
-  }
-
-  .lsToggle:hover {
-    background-color: var(--sl-color-gray-700);
-    color: var(--sl-color-white);
-    border: 3px solid var(--sl-color-white);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
+  }
+  .lsToggle:hover {
+    background: var(--mc-glass-fill-strong);
+    color: var(--mc-accent);
+  }
+  .lsToggle:active {
+    transform: scale(var(--mc-press));
   }
 
   div :global(.lsIcon) {
-    font-size: 40px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    -ms-transform: translate(-50%, -50%);
-    transform: translate(-50%, -50%);
-    stroke: white;
+    position: static;
+    transform: none;
+    font-size: 20px;
+    stroke: none;
   }
 
-  /* A 74px circle is most of a thumb's width on a phone, and it sits where the
-     status bar and the map controls already compete for room. The OpenLayers
-     control stack is positioned against this via --ol-controls-top in
-     Map.svelte, which shrinks to match at the same breakpoint. */
-  @media only screen and (max-width: 620px) {
-    .lsToggle {
-      width: 54px;
-      height: 54px;
-      border-width: 2px;
-      top: calc(env(safe-area-inset-top) + 6px);
-      right: 6px;
-    }
-
-    div :global(.lsIcon) {
-      font-size: 28px;
-    }
-  }
-
+  /* Full-screen sheet: solid material, no blur -- three live canvases sit on
+     it and blurring the whole viewport is blurring the whole map. display is
+     toggled inline by JS. */
   .ls {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    position: absolute;
-    top: 0px;
-    left: 0px;
     display: none;
-    background-color: var(--sl-color-white);
+    box-sizing: border-box;
+    padding: calc(var(--mc-safe-top) + var(--mc-gutter)) var(--mc-gutter) calc(var(--mc-safe-bottom) + var(--mc-gutter));
+    background: var(--mc-sheet);
+    color: var(--mc-text);
+    font-family: var(--mc-font);
     overflow-y: hidden;
-    z-index: 10000000;
+    z-index: var(--mc-z-sheet);
   }
 
   .gridContainer {
-    height: 99.5%;
-    width: 99.5%;
-    text-align: center;
+    height: 100%;
+    width: 100%;
+    margin: 0;
     display: block;
-    margin: 0.1em auto 0;
+    text-align: center;
   }
 
   .grid {
     display: flex;
     flex-direction: column;
-    gap: 0.15em;
+    gap: var(--mc-gutter);
     height: 100%;
   }
 
@@ -182,41 +184,69 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-auto-rows: 1fr;
-    gap: 0.15em;
+    gap: var(--mc-gutter);
   }
 
+  .cell {
+    position: relative;
+    min-height: 0;
+    cursor: pointer;
+    color: #fff;
+    border-radius: var(--mc-radius-card);
+    overflow: hidden;                    /* clips the canvas to the card; the label is absolute inside */
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease);
+  }
+  .cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px var(--mc-separator), var(--mc-glass-highlight);
+    pointer-events: none;
+    z-index: 101;                        /* over the OL viewport and the .label (100) */
+  }
+  .cell:active {
+    transform: scale(0.985);
+  }
   .cell.wide {
     grid-column: span 2;
   }
 
-  /* Not a MiniMap: there is no map behind it, so it carries its own label. */
+  /* Not a MiniMap: there is no map behind it, so it is a card rather than glass. */
   .compare {
-    flex: 0 0 3.6em;
-    cursor: pointer;
+    flex: 0 0 64px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #212529;
-    border-radius: 10px;
+    cursor: pointer;
+    background: var(--mc-sheet-card);
+    border: 1px solid var(--mc-separator);
+    border-radius: var(--mc-radius-card);
+    box-shadow: var(--mc-glass-highlight);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
+  }
+  .compare:hover {
+    background: var(--mc-sheet-card-hover);
+  }
+  .compare:active {
+    transform: scale(0.985);
   }
 
   .compare-label {
-    color: #fff;
-    padding: 4px 12px;
-    font-size: 1em;
+    color: var(--mc-text);
+    padding: 0 12px;
+    font: 600 15px/1.2 var(--mc-font);
+    text-align: center;
   }
 
   .compare-sub {
     display: block;
-    font-size: 0.7em;
-    opacity: 0.7;
-  }
-
-  .cell {
-    min-height: 0;
-    position: relative;
-    cursor: pointer;
-    color: white;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--mc-text-2);
   }
 </style>
 

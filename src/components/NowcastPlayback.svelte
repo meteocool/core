@@ -647,160 +647,228 @@ lastFocus.subscribe((focus) => {
 </script>
 
 <style>
+  /* The player inherits the tray material from :global(.bottomToolbar) in
+     BottomToolbar.svelte. Heights are what Map.svelte measures. */
+  /* Slider, controls row and the legend row need 104px; Map.svelte measures
+     the tray rather than assuming a height, so the map's padding follows. */
   .timeslider {
-    height: 90px;
-    z-index: 6;
-    padding-top: 6px;
+    height: 104px;
+    z-index: var(--mc-z-tray-player);
+    padding: 8px 12px 6px;
+    overflow: hidden;
   }
 
-  /* timeline controls */
-
+  /* collapsed-state floating discs, and the desktop in-tray play/close */
   .controlButton {
-    width: 1em;
-    height: 1em;
-    padding: 0.50em;
-    border: 1px solid grey;
-    border-radius: 5px;
-    flex: 1 1 auto;
+    width: var(--mc-control);
+    height: var(--mc-control);
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: var(--mc-tint);
+    color: var(--mc-text);
+    font-size: 15px;
     text-align: center;
-    margin: 0.3em 0.25em 0.4em 0.25em;
     cursor: pointer;
-    color: var(--sl-color-black);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
   }
-
   .controlButton:hover {
     cursor: pointer;
-    background-color: var(--sl-color-black);
-    border: 1px solid var(--sl-color-black);
-    color: var(--sl-color-white);
+    background: var(--mc-tint-hover);
+    color: var(--mc-text);
+  }
+  .controlButton:active {
+    transform: scale(var(--mc-press));
+    background: var(--mc-tint-active);
   }
 
+  /* Inside the floating collapsed tray: its bottom edge plus the 1px border. */
   .buttonBar {
     position: absolute;
-    bottom: env(safe-area-inset-bottom);
-    left: 0.3em;
-    z-index: 4;
+    bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap) + 1px);
+    left: calc(var(--mc-gutter) + 12px);
+    z-index: var(--mc-z-tray-buttons);
   }
-
   .buttonBar.right {
-    left: 3em;
+    left: calc(var(--mc-gutter) + 12px + var(--mc-control) + 8px);
     right: unset;
   }
 
   .flexbox {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: space-evenly;
   }
-
   .flexbox > .slider {
-    flex-grow: 1; /* do not grow   - initial value: 0 */
-    flex-shrink: 1; /* do not shrink - initial value: 1 */
-    flex-basis: 85%;
-    padding-right: 1em;
+    flex: 1 1 85%;
+    padding-right: 8px;
   }
-
   .flexbox > .buttonsInline {
     display: none;
   }
-
   .flexbox > .buttonsLeft {
-    flex-grow: 0; /* do not grow   - initial value: 0 */
-    flex-shrink: 0; /* do not shrink - initial value: 1 */
-    flex-basis: 3%;
-    min-width: 30px;
-    margin-right: 0.5%;
-    margin-left: 0.5%;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 8px 0 0;
+    min-width: 0;
   }
 
+  /* sl-range is themed through its custom properties in glass.css. */
   .range {
     width: 100%;
-    top: 5px;
+    top: 0;
+    margin: 4px 0 2px;
   }
 
   .checkbox {
-    margin-top: 4px;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+  }
+  .gap {
+    gap: 6px 12px;
   }
 
+  /* Segmented tint capsules. sl-button-group part: base. sl-button parts: base prefix label suffix */
+  .button-group-toolbar sl-button-group::part(base) {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+  }
+  .button-group-toolbar sl-button {
+    margin-inline-start: 0;   /* the group's shadow :host pulls non-first buttons left by 1px */
+  }
+  .button-group-toolbar sl-button::part(base) {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 2px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);   /* outer ::part wins over the group's first/inner/last radius zeroing */
+    background: transparent;
+    color: var(--mc-text);
+    font: 600 13px/32px var(--mc-font);
+    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
+  }
+  .button-group-toolbar sl-button::part(base)::after {
+    display: none;   /* the group separator */
+  }
+  .button-group-toolbar sl-button:not([disabled])::part(base):hover {
+    background: var(--mc-tint-hover);
+  }
+  .button-group-toolbar sl-button::part(base):active {
+    transform: scale(var(--mc-press));
+  }
+  .button-group-toolbar sl-button[variant="primary"]::part(base) {
+    background: var(--mc-accent);
+    color: #fff;
+  }
+  .button-group-toolbar sl-button[variant="primary"]:not([disabled])::part(base):hover {
+    background: var(--mc-accent-strong);
+  }
+  .button-group-toolbar sl-button[disabled]::part(base) {
+    opacity: 0.4;
+  }
+  .button-group-toolbar sl-button::part(label) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+  }
+  .button-group-toolbar sl-button::part(prefix) {
+    padding-inline-start: 6px;
+  }
+
+  .faIconButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    font-size: 16px;
+  }
+
+  /* Forecast bar chart: a transparent overlay, no material. Follows the tray up
+     by the gap it now floats above the edge. */
   .barChartCanvas {
     position: absolute;
-    bottom: calc(env(safe-area-inset-bottom) + 79px);
-    width: 97%;
+    bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap) + 93px);
     left: 2.9%;
+    width: 97%;
     height: 150px;
     pointer-events: none;
     margin-right: 0.5em;
-    z-index: 7;
+    z-index: var(--mc-z-chart);
   }
-
   .barChartCanvasWithoutPlayback {
-    bottom: calc(env(safe-area-inset-bottom) + 31px);
+    bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap) + 31px);
     width: 100% !important;
     left: 0;
   }
 
-  .gap {
-    gap: 18px;
-  }
-
   @media only screen and (max-width: 620px) {
     .flexbox > .slider {
-      margin-bottom: 0px;
-      padding-right: 0.1em;
+      margin-bottom: 0;
+      padding-right: 0;
     }
-
     .range {
-      margin-bottom: 0px;
+      margin-bottom: 0;
     }
-
     .barChartCanvas {
-      bottom: 118px;
+      bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap) + 118px);
       left: 0;
       width: 99%;
     }
     .barChartCanvasWithoutPlayback {
-      bottom: calc(env(safe-area-inset-bottom) + 73px);
+      bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap) + 73px);
     }
-
     .flexbox > .buttonsInline {
-      display: unset;
+      display: flex;
     }
-
     .flexbox > .buttonsLeft {
       display: none;
     }
-
     .flexbox {
-      gap: 3px !important;
-      padding-left: 1%;
-      padding-right: 1%;
-      margin-top: -2px;
+      gap: 6px;
+      padding: 0;
+      margin-top: 0;
     }
 
-    /* 153px is a third of a phone screen for a slider and four buttons. The
-       chart above moves up with it (.barChartCanvas), and the collapsed
-       "last updated" bar is hidden while the player is open, since the player
-       already shows the same timestamp. */
+    /* A third of a phone screen for a slider and four buttons. The chart above
+       moves up with it, and the collapsed "last updated" bar is hidden while
+       the player is open, since the player shows the same timestamp. */
     .timeslider {
-      height: 120px !important;
+      height: 120px;
+      padding: 6px 8px 4px;
     }
-
     :global(.bottomToolbar.lastUpdatedBottom.player-open) {
       display: none;
     }
-
     .hide-on-small-screens {
       display: none;
     }
-
     .break {
       flex-basis: 100%;
       height: 0;
     }
-
+    .buttonBar {
+      bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap) + 6px);
+      left: calc(var(--mc-gutter) + 10px);
+    }
     .buttonBar.right {
       left: unset;
-      right: 0.3em;
+      right: calc(var(--mc-gutter) + 10px);
     }
   }
 </style>
@@ -833,23 +901,23 @@ lastFocus.subscribe((focus) => {
           </div>
         </div>
         <div class="slider">
-          <sl-range min="{gridConfig?.start}" max="{gridConfig?.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none" style="--thumb-size: 21px;"></sl-range>
+          <sl-range min="{gridConfig?.start}" max="{gridConfig?.end}" step="{60 * 5}" class="range" use:initSlider tooltip="none"></sl-range>
           <div class="flexbox gap">
             <div class="checkbox">
               <div class="button-group-toolbar" >
                 <sl-button-group label="Playback Controls">
-                  <sl-button size={buttonSize} on:click={playPause} style="--sl-button-font-size-small: 16px; --sl-button-font-size-medium: 16px;">
-                    <div class="faIconButton" slot="prefix" style="margin-top: 4px !important; margin-left: 10%; margin-right: 10%;">
+                  <sl-button size={buttonSize} on:click={playPause}>
+                    <div class="faIconButton" slot="prefix">
                       &nbsp;<Icon icon={playPauseButton} />&nbsp;
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} variant="{loop ? "primary" : "default"}" on:click={toggleLoop} style="--sl-button-font-size-small: 22px; --sl-button-font-size-medium: 22px;">
-                    <div class="faIconButton" style="margin-top: 3px !important;">
+                  <sl-button size={buttonSize} variant="{loop ? "primary" : "default"}" on:click={toggleLoop}>
+                    <div class="faIconButton">
                       <Icon icon={faRetweet} />
                     </div>
                   </sl-button>
-                  <sl-button size={buttonSize} variant="{includeHistoric ? "primary" : "default"}" disabled="{!historicActive}" on:click={toggleHistoric}  style="--sl-button-font-size-small: 15px; --sl-button-font-size-medium: 15px;">
-                    <div class="faIconButton" style="margin-top: 2px !important;">
+                  <sl-button size={buttonSize} variant="{includeHistoric ? "primary" : "default"}" disabled="{!historicActive}" on:click={toggleHistoric}>
+                    <div class="faIconButton">
                       <Icon icon={faHistory} />
                     </div>
                   </sl-button>

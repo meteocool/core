@@ -27,64 +27,74 @@ function toggleAbout() {
 </script>
 
 <style>
+  /* Top-left glass capsule on the same top line as the Latest pill and the
+     switcher disc. Web only, so the blur is ~230x40px at most. */
   .logo-wrapper {
-    z-index: 10;
+    z-index: var(--mc-z-chrome);
     position: absolute;
-    top: max(env(safe-area-inset-top), 1vh);
-    left: 0;
-    margin-left: 0;
-    padding: 0;
-
-    border-top-right-radius: 15px;
-    border-bottom-right-radius: 15px;
-    background-color: var(--sl-color-white);
-
-    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-      Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji,
-      Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-
-    color: var(--sl-color-black);
+    top: var(--mc-top-stack);
+    left: var(--mc-gutter);
+    margin: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    min-height: 0;
+    padding: 0 12px 0 4px;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-glass-fill);
+    -webkit-backdrop-filter: var(--mc-glass-backdrop);
+    backdrop-filter: var(--mc-glass-backdrop);
+    border: 1px solid var(--mc-glass-edge);
+    box-shadow: var(--mc-glass-ring);
+    color: var(--mc-text);
+    font-family: var(--mc-font);
     text-align: left;
-    height: 6vh;
-    vertical-align: top;
-    border: 1px solid var(--sl-color-gray-50);
-    background-color: var(--sl-color-white);
-    min-height: 32px;
+  }
+
+  .logo {
+    height: 30px;
+    width: 30px;
+    float: none;
+    padding: 0;
+    margin: 0;
+    /* the white raindrop in logo.svg needs an edge on light glass over a bright map */
+    filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.28));
+  }
+
+  .menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.15;
   }
 
   .name {
-    display: inline-block;
-    vertical-align: top;
-    margin-right: 10px;
-    padding-top: 0px;
-    padding-right: 6px;
-    font-size: max(2.9vh, 15px);
+    display: block;
+    margin: 0;
+    padding: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .claim {
-    font-size: max(1.5vh, 8px);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--mc-text-2);
   }
-  .link {
-    color: var(--sl-color-primary-600);
+
+  .link,
+  a,
+  a:visited {
+    color: var(--mc-accent);
     cursor: pointer;
+    font-weight: 500;
   }
-  .link:hover {
+  .link:hover,
+  a:hover {
     text-decoration: underline;
-  }
-
-  a:visited{
-    color: var(--sl-color-primary-600);
-    cursor: pointer;
-  }
-
-  a {
-    color: var(--sl-color-primary-600);
-  }
-
-  .logo{
-    height: 90%;
-    float: left;
-    padding: 0.5vh 1vh 1vh;
   }
 
   .logo-button {
@@ -95,46 +105,34 @@ function toggleAbout() {
     cursor: default;
   }
 
+  /* Phone: a 40px disc holding the drop; tap slides the wordmark out. */
   @media only screen and (max-width: 620px) {
     .logo-wrapper {
-      height: auto;
-      min-height: 0;
-      padding: 2px 0;
-      max-width: 42px;
+      max-width: 40px;
+      padding: 0 4px;
       overflow: hidden;
-      transition: max-width 180ms ease;
+      transition: max-width 180ms var(--mc-ease), padding 180ms var(--mc-ease);
     }
-
     .logo-wrapper.menu-open {
       max-width: 88vw;
+      padding: 0 12px 0 4px;
     }
-
     .logo-button {
       cursor: pointer;
     }
-
-    .logo {
-      height: 30px;
-      padding: 2px 6px;
-    }
-
     .menu {
-      display: inline-block;
       opacity: 0;
       max-width: 0;
       overflow: hidden;
       white-space: nowrap;
-      transition: opacity 180ms ease, max-width 180ms ease;
+      transition: opacity 180ms var(--mc-ease), max-width 180ms var(--mc-ease);
     }
-
     .logo-wrapper.menu-open .menu {
       opacity: 1;
       max-width: 80vw;
     }
-
     .name {
       font-size: 13px;
-      padding-right: 4px;
     }
   }
 </style>
@@ -159,8 +157,8 @@ function toggleAbout() {
       >{$_("join_community")}</a>
     </div>
     </div>
-    {#if showAbout}
-      <About on:close={() => toggleAbout()} />
-    {/if}
   </div>
+  {#if showAbout}
+    <About on:close={() => toggleAbout()} />
+  {/if}
 {/if}

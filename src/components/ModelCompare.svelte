@@ -105,12 +105,16 @@
 </script>
 
 <style>
+  /* Solid sheet, no blur: it covers the whole viewport. */
   .panel {
     position: absolute;
     inset: 0;
-    background-color: var(--sl-color-white);
-    color: var(--sl-color-gray-700);
-    z-index: 10000001;
+    z-index: var(--mc-z-sheet-2);
+    box-sizing: border-box;
+    padding: var(--mc-safe-top) 0 calc(var(--mc-safe-bottom) + 16px);
+    background: var(--mc-sheet);
+    color: var(--mc-text);
+    font-family: var(--mc-font);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -119,24 +123,58 @@
     display: flex;
     align-items: baseline;
     gap: 0.6em;
-    padding: 0.8em 1em 0.4em;
+    padding: 14px 56px 8px 16px;
   }
 
   h1 {
-    font-size: 1.1em;
     margin: 0;
-    font-weight: 600;
+    font: 600 17px/1.2 var(--mc-font);
+    letter-spacing: -0.01em;
   }
 
   .where {
-    font-size: 0.8em;
-    opacity: 0.65;
     margin-left: auto;
     text-align: right;
+    font: 500 12px/1.3 var(--mc-font);
+    font-variant-numeric: tabular-nums;
+    color: var(--mc-text-2);
   }
 
+  .close {
+    position: absolute;
+    top: calc(var(--mc-safe-top) + 10px);
+    right: 12px;
+    z-index: 1;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--mc-tint);
+    color: var(--mc-text-2);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
+  }
+  .close:hover {
+    background: var(--mc-tint-hover);
+    color: var(--mc-text);
+  }
+  .close:active {
+    transform: scale(var(--mc-press));
+  }
+
+  /* The seven days as one inset grouped card. */
   .days {
-    padding: 0 0.6em 1em;
+    margin: 0 12px 12px;
+    padding: 0;
+    background: var(--mc-sheet-card);
+    border: 1px solid var(--mc-separator);
+    border-radius: var(--mc-radius-card);
+    box-shadow: var(--mc-glass-highlight);
+    overflow: hidden;
   }
 
   .day {
@@ -144,73 +182,89 @@
     grid-template-columns: 5.2em 2.2em 1fr 4.6em 4.6em;
     align-items: center;
     gap: 0.5em;
-    padding: 0.55em 0.4em;
-    border-top: 1px solid var(--sl-color-gray-200);
+    padding: 10px 12px;
+    border-top: 1px solid var(--mc-separator);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--mc-motion-fast);
   }
-
+  .day:first-child {
+    border-top: 0;
+  }
   .day:hover {
-    background-color: var(--sl-color-gray-50);
+    background-color: var(--mc-tint);
+  }
+  .day:active {
+    background-color: var(--mc-tint-hover);
   }
 
   .name {
     font-weight: 600;
-    font-size: 0.9em;
+    font-size: 14px;
   }
 
   .icon {
-    font-size: 1.3em;
+    font-size: 20px;
     text-align: center;
   }
 
   .temps {
     font-variant-numeric: tabular-nums;
-    font-size: 0.95em;
+    font-size: 15px;
+    font-weight: 500;
   }
 
-  .low {
-    opacity: 0.55;
+  /* Scoped to the figures, so it no longer dims the "uncertain" badge too. */
+  .temps .low,
+  .precip .low {
+    color: var(--mc-text-2);
   }
 
   .spread {
-    font-size: 0.75em;
-    opacity: 0.5;
     margin-left: 0.4em;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--mc-text-3);
   }
 
   .precip {
     font-variant-numeric: tabular-nums;
-    font-size: 0.85em;
+    font-size: 13px;
     text-align: right;
   }
 
-  /* The agreement signal: how much the models back this forecast. */
+  /* The agreement signal: tinted capsules with ink text, not saturated fills. */
   .tier {
-    font-size: 0.7em;
+    display: inline-block;
+    padding: 5px 8px;
+    border-radius: var(--mc-radius-pill);
+    font: 600 11px/1 var(--mc-font);
+    letter-spacing: 0.01em;
     text-align: center;
-    border-radius: 10px;
-    padding: 2px 6px;
     white-space: nowrap;
   }
-  .tier.high { background: #1a7f37; color: #fff; }
-  .tier.mid { background: #b7791f; color: #fff; }
-  .tier.low { background: #a62b2b; color: #fff; }
+  .tier.high { background: var(--mc-green-tint); color: var(--mc-green-ink); }
+  .tier.mid { background: var(--mc-orange-tint); color: var(--mc-orange-ink); }
+  .tier.low { background: var(--mc-red-tint); color: var(--mc-red-ink); }
 
   .breakdown {
-    padding: 0.3em 0.4em 0.7em 5.7em;
-    font-size: 0.78em;
+    margin: 0;
+    padding: 6px 12px 10px 12px;
+    font-size: 12px;
+    background: var(--mc-tint);
+    border-top: 1px solid var(--mc-separator);
   }
 
   .model {
     display: grid;
     grid-template-columns: 1fr 3.4em 3.4em 4em;
     gap: 0.4em;
-    padding: 1px 0;
+    padding: 2px 0;
     font-variant-numeric: tabular-nums;
   }
 
   .model .id {
-    opacity: 0.7;
+    color: var(--mc-text-2);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -223,32 +277,20 @@
   .status {
     padding: 2em 1em;
     text-align: center;
-    opacity: 0.7;
-    font-size: 0.9em;
+    font-size: 14px;
+    color: var(--mc-text-2);
   }
 
   footer {
-    padding: 0 1em 1.4em;
-    font-size: 0.7em;
-    opacity: 0.6;
+    padding: 0 16px;
+    font-size: 11px;
     line-height: 1.5;
+    color: var(--mc-text-2);
   }
 
   footer a {
-    color: inherit;
+    color: var(--mc-accent);
   }
-
-  .close {
-    position: absolute;
-    top: 0.6em;
-    right: 0.8em;
-    font-size: 1.6em;
-    line-height: 1;
-    cursor: pointer;
-    opacity: 0.6;
-    z-index: 1;
-  }
-  .close:hover { opacity: 1; }
 </style>
 
 <div class="panel">

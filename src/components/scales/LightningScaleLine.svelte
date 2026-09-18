@@ -22,9 +22,12 @@
 </script>
 
 <style>
+    /* Muted rather than half-transparent, so it stays legible on glass. */
     :global(.minutes) {
-        font-size: 50%;
-        opacity: 0.5;
+        font-size: 70%;
+        font-weight: 500;
+        color: var(--mc-text-2);
+        margin-left: 1px;
     }
 </style>
 

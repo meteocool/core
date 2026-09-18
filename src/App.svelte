@@ -34,6 +34,10 @@ import {
 
 import "./global.css";
 import "@shoelace-style/shoelace/dist/themes/light.css";
+// Scoped to .sl-theme-dark, which ui.ts toggles from the colorSchemeDark store.
+import "@shoelace-style/shoelace/dist/themes/dark.css";
+// Last on purpose: it re-points Shoelace's panel, overlay and primary tokens.
+import "./glass.css";
 import { websocketBaseUrl } from "./urls";
 import { fetchLightningCache, fetchMesocyclones } from "./api";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
@@ -343,32 +347,34 @@ if (postInitCb) postInitCb(lm);
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: var(--sl-color-white);
+    /* The basemap earth colour, so nothing flashes under the tiles. */
+    background-color: var(--mc-map-bg);
+    color: var(--mc-text);
+    font-family: var(--mc-font);
   }
 
   :global(:root) {
+    /* Still written by NowcastPlayback via setUIConstant; glass.css reads it as
+       the fallback when Map.svelte has not measured --bottom-toolbar-height. */
     --toast-stack-offset: 0px;
   }
 
   :global(.nanobar) {
     width: 100%;
-    height: 4px;
-    z-index: 999999;
-    top: calc(env(safe-area-inset-top) + 0px);
+    height: 3px;
+    z-index: var(--mc-z-nanobar);
+    top: var(--mc-safe-top);
+    pointer-events: none;
   }
   :global(.bar) {
     width: 0;
-    height: 100%;
-    background: rgb(135, 202, 214);
     height: 2px;
+    background: var(--mc-brand);
     border-radius: 0 2px 2px 0;
-    box-shadow: 0 0 3px rgb(135, 202, 214);
+    box-shadow: 0 0 3px var(--mc-brand);
   }
 
-  :global(.sl-toast-stack) {
-    bottom: calc(env(safe-area-inset-bottom) + var(--toast-stack-offset));
-    top: auto;
-  }
+  /* .sl-toast-stack and the sl-alert parts live in src/glass.css. */
 
   :global(*) {
     -webkit-touch-callout: none;
