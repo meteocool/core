@@ -43,103 +43,88 @@
 </script>
 
 <style>
-  .scale-dividers {
+  /* A legend inside the glass tray: the colour strip is the one place
+     saturated colour is allowed in the chrome. No material of its own. */
+  .wrapper {
     display: flex;
-    justify-content: space-between;
-    padding-top: 0.3em;
-    padding-left: 5%;
-    padding-right: 5%;
-    font-size: 92%;
-    position: relative;
-    top: 0.5em;
-    color: var(--sl-color-black);
+    gap: 10px;
+    align-items: center;
+    justify-content: space-around;
+  }
+
+  .legend-label {
+    height: auto;
+    color: var(--mc-text-2);
+    font: 600 10px/1.2 var(--mc-font);
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .scale {
+    width: 100%;
+    flex: 1;
+    float: none;
+    margin-bottom: 0;
+    height: var(--sl-input-height-medium);
   }
 
   .scale-line {
     width: 100%;
-    border-radius: var(--sl-border-radius-pill);
-    border: 0.5px solid var(--sl-color-info-200);
+    height: 10px;
+    margin-top: 2px;
+    border-radius: var(--mc-radius-pill);
+    border: 1px solid var(--mc-hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
     background-image: var(--backgroundImage), var(--backgroundUrl);
-    height: 25%;
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
-    margin-top: 1px;
   }
 
-  @media only screen and (max-width: 990px) {
-    .scale-dividers {
-      font-size: 60%;
-      top: 1.1em;
-    }
-
-    .scale-line {
-      height: 20%;
-    }
-  }
-
-  .scale {
-    width: 100%;
-    float: left;
-    /*margin-right: 2em;*/
-    margin-bottom: 2px;
-    height: var(--sl-input-height-medium);
-    flex: 1;
-  }
-
-  .legend-label {
-    height: 100%;
-    color: var(--sl-color-gray-600);
-    line-height: 1.21;
-    font-size: 80%;
-    text-align: right;
-    word-break: break-word;
-  }
-  .scale {
-    flex: 1;
-  }
-  .wrapper {
+  .scale-dividers {
     display: flex;
-    gap: 0.75em;
-    justify-content: space-around;
+    justify-content: space-between;
+    position: relative;
+    top: 12px;
+    padding: 0 5%;
+    color: var(--mc-text);
+    font: 600 11px/1 var(--mc-font);
+    font-variant-numeric: tabular-nums;
   }
 
   :global(.legendLabel) {
-    font-size: 80%;
     padding-left: 0.15em;
-    color: var(--sl-color-black);
-    /*text-shadow: 0 0 1px rgba(0,0,0,0.6),
-            -1px -1px 1px rgba(0,0,0,0.6),
-            -1px 1px 1px  rgba(0,0,0,0.6),
-            1px 1px 1px   rgba(0,0,0,0.6),
-            1px -1px 1px  rgba(0,0,0,0.6);*/
-  }
-
-  @media only screen and (max-width: 620px) {
-    .legend-label {
-      display: none;
-    }
-  }
-
-  @media only screen and (max-width: 990px) {
-    :global(.legendLabel) {
-      display: none;
-    }
-
-    :global(.legend-icon) {
-      height: 1.4em !important;
-    }
+    color: var(--mc-text);
+    font-size: 10px;
+    font-weight: 600;
   }
 
   :global(.legend-icon) {
     filter: var(--svg-dark-to-light);
     height: 1em;
     vertical-align: bottom;
-    /*filter: drop-shadow(0px 0px 1px #000000) drop-shadow(0px 0px 1px #000000);*/
   }
 
-  :root {
-    --svg-dark-to-light: "";
+  @media only screen and (max-width: 990px) {
+    .scale-dividers {
+      font-size: 10px;
+      top: 11px;
+    }
+    .scale-line {
+      height: 8px;
+    }
+    :global(.legendLabel) {
+      display: none;
+    }
+    :global(.legend-icon) {
+      height: 1.4em !important;
+    }
+  }
+
+  @media only screen and (max-width: 620px) {
+    .legend-label {
+      display: none;
+    }
   }
 </style>
 

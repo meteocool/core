@@ -55,18 +55,33 @@
   :global(.miniMap > div:nth-child(1) > div:nth-child(3) > div:nth-child(3)) {
     display: none;
   }
+  :global(.miniMap .ol-control) {
+    display: none;
+  }
 
+  /* A dark caption capsule inset in the card. Deliberately no backdrop-filter:
+     three of these sit over three live map canvases. */
   .label {
-    background: #212529;
-    border-radius: 10px;
-    position: relative;
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    top: auto;
     z-index: 100;
     display: block;
-    top: -50%;
-    padding: 4px 12px;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: var(--mc-radius-inner);      /* concentric with the 22px card at a 10px inset */
+    background: var(--mc-label-fill);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.25);
+    color: #fff;
+    font: 600 14px/1.2 var(--mc-font);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     opacity: 1;
-    margin-left: 5%;
-    margin-right: 5%;
   }
 </style>
 
