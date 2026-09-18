@@ -52,33 +52,45 @@ updateTime();
 </script>
 
 <style>
+/* Inline status inside the tray: no material of its own.
+   sl-progress-ring props: --size --track-width --track-color --indicator-width --indicator-color */
 .progress-ring {
-    --indicator-color: rgb(52, 120, 246);
+    --size: 18px;
+    --track-width: 2px;
+    --indicator-width: 2px;
+    --track-color: var(--mc-separator);
+    --indicator-color: var(--mc-accent);
+    --indicator-transition-duration: 0.35s;
     position: relative;
-    top: 6px;
-    transform: scaleX(-1);
+    top: 0;
+    transform: scaleX(-1);   /* keeps the ring depleting clockwise */
+    flex: none;
 }
 
+/* sl-spinner props: --track-width --track-color --indicator-color --speed */
 .spinner {
-    --indicator-color: rgb(52, 120, 246);
-    --stroke-width: 1.66px;
+    --track-width: 2px;
+    --track-color: var(--mc-separator);
+    --indicator-color: var(--mc-accent);
     position: relative;
-    top: 5px;
-    margin-top: 3px;
-    margin-right: 3px;
-    font-size: 15px;
-    transform: scaleX(-1);
+    top: 0;
+    margin: 0;
+    font-size: 16px;
+    transform: none;
+    flex: none;
 }
 
 .info {
-    color: var(--sl-color-gray-600);
-    font-size: 13px;
-    flex-shrink: 0;
-    flex-wrap: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     min-width: 100px;
+    color: var(--mc-text-2);
+    font: 500 12px/1 var(--mc-font);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    flex-shrink: 0;
 }
-
 </style>
 
 <div class="info">

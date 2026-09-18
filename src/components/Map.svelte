@@ -80,7 +80,15 @@
     }
 
     document.documentElement.style.setProperty("--bottom-toolbar-height", `${occluded}px`);
-    mapElement.style.height = occluded > 0 ? `calc(100% - ${occluded}px)` : "100%";
+
+    // Full-bleed map: the tray is glass and needs the map beneath it. The strip
+    // it covers becomes view padding, so centring, fit() and the geolocation
+    // marker land in the visible part rather than under the bar. The View is
+    // shared by every map, hence maps[0] rather than the current capability,
+    // which is not set yet on the first measurement.
+    mapElement.style.height = "100%";
+    const view = layerManager.maps[0]?.getView();
+    if (view) view.padding = [0, 0, occluded, 0];
 
     layerManager.forEachMap((m) => m.updateSize());
     return occluded;
@@ -189,50 +197,47 @@
 </script>
 
 <style>
+  /* Full-bleed: the tray floats over live map pixels. The strip it covers is
+     handed to OpenLayers as View.padding in applyMapHeight(). */
   #map {
     width: 100%;
     height: 100%;
     padding: 0;
     margin: 0;
-    z-index: 0;
+    z-index: var(--mc-z-map);
   }
 
   :global(:root) {
+    /* still written by App.svelte for ?toolbar=no; no longer read */
     --attributions-bottom-padding: 0.9em;
-    /* Below the layer switcher, which is anchored to the same corner. */
-    --ol-controls-top: calc(1vh + 92px);
+    /* under the 44px switcher disc, on the same top line */
+    --ol-controls-top: calc(var(--mc-top-stack) + var(--mc-control-lg) + var(--mc-gutter));
   }
 
-  /* The zoom buttons were hidden outright. They are back on the web, stacked
-     under the layer switcher with the locate button, and stay hidden in the
-     native wrappers, which provide their own. */
+  /* Material for the controls lives in src/glass.css; only positions here. */
   :global(.ol-zoom) {
     top: var(--ol-controls-top);
-    right: 8px;
+    right: var(--mc-gutter);
     left: auto;
     bottom: auto;
   }
 
   :global(.ol-geolocate) {
-    top: calc(var(--ol-controls-top) + 60px);
-    right: 8px;
+    /* 2 x 40 + 1 separator + 2 border = 83 */
+    top: calc(var(--ol-controls-top) + 83px + var(--mc-gutter));
+    right: var(--mc-gutter);
     left: auto;
     bottom: auto;
+    border-radius: 50%;
+  }
+  :global(.ol-geolocate button) {
+    font-size: 22px;
   }
 
-  @media only screen and (max-width: 620px) {
-    :global(:root) {
-      --ol-controls-top: calc(1vh + 66px);
-    }
-  }
-
-  :global(.ol-attribution) {
-    height: 1.2em;
-    padding-bottom: calc(0.25em + var(--attributions-bottom-padding));
-    font-size: 6pt;
-  }
-  :global(.ol-attribution ul) {
-    font-size: 6pt;
+  /* The wrappers ship their own zoom and locate controls. */
+  :global(.is-app .ol-zoom),
+  :global(.is-app .ol-rotate) {
+    display: none;
   }
 </style>
 

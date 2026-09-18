@@ -19,23 +19,42 @@ function close() {
 </script>
 
 <style>
+  /* The dialog's material (panel, overlay, close button) is themed once in
+     src/glass.css; this is layout and the content inside it. */
+  :global(.dialog-overview) {
+    --width: min(31rem, calc(100vw - 24px));
+    --header-spacing: 16px 20px 8px;
+    --body-spacing: 8px 20px 16px;
+    --footer-spacing: 12px 20px 20px;
+    line-height: 1.5;
+    font-family: var(--mc-font);
+  }
+
   :global(.dialog-overview::part(base)) {
-    bottom: 7%;
-    color: var(--sl-color-gray-700);
+    color: var(--mc-text);
+    padding-bottom: var(--mc-safe-bottom);
+  }
+
+  :global(.dialog-overview::part(body)) {
+    color: var(--mc-text);
+    font-size: 14px;
+  }
+
+  h2 {
+    font: 600 15px/1.3 var(--mc-font);
+    margin: 18px 0 6px;
+  }
+
+  a,
+  a:visited {
+    color: var(--mc-accent);
   }
 
   .volunteers {
     float: right;
     width: 35%;
     padding: 1em;
-  }
-
-  a {
-    color: var(--sl-color-primary-600);
-  }
-
-  a:visited {
-    color: var(--sl-color-primary-600);
+    border-radius: var(--mc-radius-inner);
   }
 
   .appstore-logo {
@@ -47,14 +66,11 @@ function close() {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
   }
 
   .appstore-logo.about {
     flex: 50%;
-  }
-
-  .dialog-overview {
-    line-height: 1.5em;
   }
 </style>
 

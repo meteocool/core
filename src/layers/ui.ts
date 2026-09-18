@@ -22,6 +22,7 @@ import SlResizeObserver from "@shoelace-style/shoelace/dist/components/resize-ob
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.js";
 
 import { colorSchemeDark } from "../stores";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
 /**
  * Shoelace dropped these token names between 2.0-beta and 2.0 stable, but
@@ -45,21 +46,46 @@ export const uiConstantsDefault = {
   ...shoelaceBetaAliases,
 };
 
+/**
+ * The legacy --sl-color-* names components still read, tuned so they land on
+ * the same dark material as the --mc-* tokens in src/glass.css: sheets equal
+ * the dark basemap earth, so the switcher feels like the map went to sleep
+ * rather than like a different app. Keys are unchanged so nothing that reads
+ * them breaks.
+ */
 const darkmodeConstants = {
-  "sl-color-white": "#3F3F3F",
-  "sl-color-black": "#FFFFFF",
-  "sl-color-gray-50": "#3F3F3F",
-  "sl-color-gray-700": "#FFFFFF",
-  "sl-color-gray-300": "#717171",
-  "sl-color-gray-200": "#8b8b8b",
-  "sl-color-info-100": "#3F3F3F",
+  "sl-color-white": "#1c1f24",
+  "sl-color-black": "#f2f2f7",
+  "sl-color-gray-50": "#262a30",
+  "sl-color-gray-700": "#f2f2f7",
+  "sl-color-gray-300": "#4a505a",
+  "sl-color-gray-200": "#343941",
+  "sl-color-gray-600": "#aeb3bb",
+  "sl-color-info-100": "#262a30",
+  // Was never remapped, so the legend strip's border stayed sky-blue in dark.
+  "sl-color-info-200": "rgba(255, 255, 255, 0.16)",
+  // Read by NowcastPlayback through getComputedStyle for Chart.js: must stay a plain colour.
+  "sl-color-info-700": "#c2c7cf",
   "sl-color-primary-text": "#ffffff",
-  "sl-color-gray-600": "#d6d6d6",
-  "sl-color-info-700": "#c2c2c2",
-  "sl-color-primary-600": "#38BDF8",
+  // System blue, the same hue as --mc-accent in dark.
+  "sl-color-primary-600": "#0a84ff",
   // CSS people be like https://codepen.io/sosuke/pen/Pjoqqp
   "svg-dark-to-light": "invert(99%) sepia(0%) saturate(469%) hue-rotate(31deg) brightness(119%) contrast(100%)",
 };
+
+/** Shoelace's dark theme (themes/dark.css) is scoped to this class and inert otherwise. */
+const SHOELACE_DARK_CLASS = "sl-theme-dark";
+
+export type GlassMode = "auto" | "off";
+
+/**
+ * Turn the blurred glass material off. src/glass.css then falls back to solid
+ * fills everywhere at once. Every blurred region over the WebGL map is a
+ * per-frame readback, which a weak WebView cannot afford.
+ */
+export function setGlassMode(mode: GlassMode) {
+  document.documentElement.dataset.glass = mode;
+}
 
 export const NOWCAST_OPACITY = 0.75;
 
@@ -102,6 +128,12 @@ export function initUIConstants() {
   // dist/ is the webroot, not a path within it: the assets are copied to
   // dist/shoelace/assets and so are served from /shoelace/assets.
   setBasePath("/shoelace/assets");
+
+  // A four-core Android WebView is better served by the opaque fallback than by
+  // blurring the map behind every pill.
+  if (dd.isAndroid() && (navigator.hardwareConcurrency ?? 8) <= 4) {
+    setGlassMode("off");
+  }
 }
 
 export function cleanupUIConstants() {
@@ -114,6 +146,13 @@ export function cleanupUIConstants() {
 
 // Dark and Light mode
 colorSchemeDark.subscribe((isDark) => {
+  const root = document.documentElement;
+  // src/glass.css keys every --mc-* token on this attribute rather than on a
+  // media query, so the wrappers' writes to the store flip the whole system.
+  root.dataset.theme = isDark ? "dark" : "light";
+  // Shoelace's own internals -- neutral-0, panel, overlay, danger-* -- follow
+  // themes/dark.css, which no --sl-color-gray-* remap could ever reach.
+  root.classList.toggle(SHOELACE_DARK_CLASS, isDark);
   Object.keys(darkmodeConstants).forEach((key) => {
     if (isDark) {
       setUIConstant(key, darkmodeConstants);

@@ -9,25 +9,29 @@ function init(_node: HTMLElement) {
 
 <style>
     .appstoreLogo {
-        padding-left: 0px;
-        display: inline;
+        display: inline-flex;
+        align-items: center;
+        padding: 0;
     }
 
-    .appstore-logo{
-        margin-left: 3px;
-        height: 32px;
+    .appstore-logo {
+        margin-left: 4px;
+        height: 28px;
+        border-radius: 6px;
     }
-
 
     :global(.githubIcon) {
-        font-size: 30px;
-        text-shadow: 3px 3px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff,
-        -1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
-        color: var(--sl-color-info-700) !important;
+        font-size: 24px;
+        text-shadow: none;
+        color: var(--mc-text-2) !important;
         padding: 0;
         border-radius: 0;
-        margin: 0.03em 0.2em 0 0.1em;
-        vertical-align: top;
+        margin: 0 4px 0 6px;
+        vertical-align: middle;
+        transition: color var(--mc-motion-fast);
+    }
+    :global(a:hover > .githubIcon) {
+        color: var(--mc-text) !important;
     }
 </style>
 

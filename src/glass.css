@@ -1,0 +1,426 @@
+/* ============================================================================
+   src/glass.css -- meteocool's Liquid Glass token layer.
+
+   Import order in App.svelte is load-bearing:
+     ./global.css -> shoelace themes/light.css -> themes/dark.css -> ./glass.css
+   This file re-points Shoelace's panel/overlay/primary tokens, so it goes last.
+
+   Colour scheme is keyed on html[data-theme="dark"] -- plus html.sl-theme-dark
+   for Shoelace's own internals -- both set by src/layers/ui.ts from the
+   colorSchemeDark store. There is deliberately no prefers-color-scheme block
+   here: the iOS/Android wrappers drive dark mode through that store, and a
+   media query would disagree with them.
+
+   Two materials, and only two:
+     glass  -- translucent, blurred, floats over the map (pills, discs, trays)
+     sheet  -- solid, for anything that covers most of the viewport (#ls, the
+               forecast panel). Blurring the whole viewport is blurring the
+               whole map, on a phone, every frame.
+   Anything sitting ON glass is a flat tint, never a second blur.
+   ============================================================================ */
+
+:root {
+  /* glass material */
+  --mc-glass-blur: 16px;                              /* phone; desktop below */
+  --mc-glass-saturate: 160%;
+  --mc-glass-backdrop: blur(var(--mc-glass-blur)) saturate(var(--mc-glass-saturate));
+  --mc-glass-fill: rgba(255, 255, 255, 0.62);         /* pills, discs */
+  --mc-glass-fill-strong: rgba(255, 255, 255, 0.76);  /* text-heavy trays, toasts */
+  --mc-glass-fill-solid: rgba(255, 255, 255, 0.94);   /* every no-blur fallback */
+  --mc-glass-edge: rgba(255, 255, 255, 0.55);         /* the luminous 1px border */
+  --mc-glass-edge-outer: rgba(0, 0, 0, 0.07);         /* so white glass still reads on a pale map */
+  --mc-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --mc-glass-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.10), 0 0.5px 1px rgba(0, 0, 0, 0.06);
+  --mc-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --mc-glass-ring: var(--mc-glass-highlight), 0 0 0 0.5px var(--mc-glass-edge-outer), var(--mc-glass-shadow-sm);
+  --mc-glass-ring-lg: var(--mc-glass-highlight), 0 0 0 0.5px var(--mc-glass-edge-outer), var(--mc-glass-shadow);
+
+  /* flat tints for controls that sit on glass */
+  --mc-tint: rgba(60, 60, 67, 0.08);
+  --mc-tint-hover: rgba(60, 60, 67, 0.14);
+  --mc-tint-active: rgba(60, 60, 67, 0.20);
+  --mc-label-fill: rgba(28, 28, 30, 0.74);            /* caption over a live minimap, both schemes */
+
+  /* solid sheets */
+  --mc-sheet: #f2f2f7;
+  --mc-sheet-card: #ffffff;
+  --mc-sheet-card-hover: #f5f5f7;
+  --mc-map-bg: #f6f4f0;                               /* light basemap earth: no flash under tiles */
+  --mc-scrim: rgba(0, 0, 0, 0.28);
+
+  /* lines and text */
+  --mc-hairline: rgba(60, 60, 67, 0.22);
+  --mc-separator: rgba(60, 60, 67, 0.12);
+  --mc-text: #1c1c1e;
+  --mc-text-2: rgba(60, 60, 67, 0.64);
+  --mc-text-3: rgba(60, 60, 67, 0.36);
+
+  /* accents, sparingly: system blue and red on neutral glass */
+  --mc-accent: #007aff;
+  --mc-accent-strong: #0062cc;
+  --mc-accent-tint: rgba(0, 122, 255, 0.14);
+  --mc-red: #ff3b30;
+  --mc-red-dim: rgba(255, 59, 48, 0.45);
+  --mc-red-tint: rgba(255, 59, 48, 0.16);
+  --mc-red-ink: #b3261e;
+  --mc-green-tint: rgba(52, 199, 89, 0.18);
+  --mc-green-ink: #1b7f3b;
+  --mc-orange: #ff9500;
+  --mc-orange-tint: rgba(255, 149, 0, 0.20);
+  --mc-orange-ink: #9a5a00;
+  --mc-brand: #8bcdd8;                                /* the logo cyan; nanobar only */
+
+  /* shape and spacing */
+  --mc-radius-pill: 9999px;
+  --mc-radius-tray: 26px;
+  --mc-radius-card: 22px;
+  --mc-radius-inner: 12px;                            /* concentric: 22px card at a 10px inset */
+  --mc-control: 40px;                                 /* discs inside trays, OL buttons */
+  --mc-control-lg: 44px;                              /* the layer-switcher disc */
+  --mc-gutter: 8px;
+  --mc-tray-gap: 8px;
+  --mc-pill-h: 28px;
+  --mc-safe-top: env(safe-area-inset-top, 0px);
+  --mc-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mc-top-stack: calc(var(--mc-safe-top) + var(--mc-gutter));   /* one top line: logo, Latest, switcher */
+
+  /* type */
+  --mc-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* motion */
+  --mc-motion-fast: 120ms;
+  --mc-motion: 200ms;
+  --mc-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --mc-press: 0.96;
+
+  /* z ladder, one place */
+  --mc-z-map: 0;
+  --mc-z-chrome: 10;
+  --mc-z-tray: 30;
+  --mc-z-tray-player: 32;
+  --mc-z-chart: 34;
+  --mc-z-tray-buttons: 36;
+  --mc-z-pill: 40;
+  --mc-z-status: 50;
+  --mc-z-toast: 60;
+  --mc-z-dialog: 70;
+  --mc-z-nanobar: 80;
+  --mc-z-sheet: 90;
+  --mc-z-sheet-2: 91;
+
+  /* Shoelace tokens re-pointed at the system */
+  --sl-font-sans: var(--mc-font);
+  --sl-input-font-family: var(--mc-font);
+  --sl-z-index-dialog: var(--mc-z-dialog);
+  --sl-z-index-toast: var(--mc-z-toast);
+  --sl-overlay-background-color: var(--mc-scrim);
+  --sl-panel-background-color: var(--mc-sheet-card);
+  --sl-panel-border-color: var(--mc-separator);
+  --sl-input-border-color: var(--mc-hairline);
+  --sl-focus-ring-color: var(--mc-accent);
+  --sl-shadow-large: var(--mc-glass-shadow-sm);
+  --sl-shadow-x-large: var(--mc-glass-shadow);
+  --sl-color-primary-50: var(--mc-accent-tint);
+  --sl-color-primary-100: var(--mc-accent-tint);
+  --sl-color-primary-500: var(--mc-accent-strong);
+  --sl-color-primary-600: var(--mc-accent);
+  --sl-color-primary-700: var(--mc-accent-strong);
+
+  /* OpenLayers' own theme hooks, so any control we do not restyle still follows */
+  --ol-background-color: transparent;
+  --ol-accent-background-color: transparent;
+  --ol-subtle-background-color: transparent;
+  --ol-partial-background-color: transparent;
+  --ol-foreground-color: var(--mc-text);
+  --ol-subtle-foreground-color: var(--mc-text-2);
+  --ol-brand-color: var(--mc-accent);
+}
+
+/* Dark. Same specificity as the fallback rungs below, on purpose. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --mc-glass-fill: rgba(28, 28, 30, 0.58);
+  --mc-glass-fill-strong: rgba(28, 28, 30, 0.72);
+  --mc-glass-fill-solid: rgba(28, 28, 30, 0.94);
+  --mc-glass-edge: rgba(255, 255, 255, 0.12);
+  --mc-glass-edge-outer: rgba(0, 0, 0, 0.35);
+  --mc-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  --mc-glass-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.40), 0 0.5px 1px rgba(0, 0, 0, 0.30);
+  --mc-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --mc-tint: rgba(235, 235, 245, 0.10);
+  --mc-tint-hover: rgba(235, 235, 245, 0.16);
+  --mc-tint-active: rgba(235, 235, 245, 0.24);
+  --mc-sheet: #1c1f24;                                /* dark basemap earth */
+  --mc-sheet-card: #262a30;
+  --mc-sheet-card-hover: #2c3137;
+  --mc-map-bg: #1c1f24;
+  --mc-scrim: rgba(0, 0, 0, 0.55);
+  --mc-hairline: rgba(84, 84, 88, 0.65);
+  --mc-separator: rgba(84, 84, 88, 0.45);
+  --mc-text: #f2f2f7;
+  --mc-text-2: rgba(235, 235, 245, 0.62);
+  --mc-text-3: rgba(235, 235, 245, 0.34);
+  --mc-accent: #0a84ff;
+  --mc-accent-strong: #409cff;
+  --mc-accent-tint: rgba(10, 132, 255, 0.24);
+  --mc-red: #ff453a;
+  --mc-red-dim: rgba(255, 69, 58, 0.45);
+  --mc-red-tint: rgba(255, 69, 58, 0.22);
+  --mc-red-ink: #ff6961;
+  --mc-green-tint: rgba(48, 209, 88, 0.22);
+  --mc-green-ink: #30d158;
+  --mc-orange: #ff9f0a;
+  --mc-orange-tint: rgba(255, 159, 10, 0.24);
+  --mc-orange-ink: #ffb340;
+}
+
+/* Desktop can afford a wider kernel. */
+@media (min-width: 621px) {
+  :root { --mc-glass-blur: 22px; }
+}
+
+/* Fallback ladder. Each rung flips the same three tokens, so every surface
+   degrades identically without needing a class. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root, :root[data-theme="dark"] {
+    --mc-glass-backdrop: none;
+    --mc-glass-fill: var(--mc-glass-fill-solid);
+    --mc-glass-fill-strong: var(--mc-glass-fill-solid);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root, :root[data-theme="dark"] {
+    --mc-glass-backdrop: none;
+    --mc-glass-fill: var(--mc-glass-fill-solid);
+    --mc-glass-fill-strong: var(--mc-glass-fill-solid);
+  }
+}
+/* Kill switch, set by ui.ts on weak WebViews: solid fills, no blur. */
+:root[data-glass="off"], :root[data-glass="off"][data-theme="dark"] {
+  --mc-glass-backdrop: none;
+  --mc-glass-fill: var(--mc-glass-fill-solid);
+  --mc-glass-fill-strong: var(--mc-glass-fill-solid);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --mc-motion-fast: 0ms; --mc-motion: 0ms; --mc-press: 1; }
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities for elements whose class list we own.
+   --------------------------------------------------------------------------- */
+.glass {
+  background: var(--mc-glass-fill);
+  -webkit-backdrop-filter: var(--mc-glass-backdrop);
+  backdrop-filter: var(--mc-glass-backdrop);
+  border: 1px solid var(--mc-glass-edge);
+  box-shadow: var(--mc-glass-ring);
+  color: var(--mc-text);
+  font-family: var(--mc-font);
+}
+.glass-strong { background: var(--mc-glass-fill-strong); }
+.glass-pill { border-radius: var(--mc-radius-pill); }
+.glass-tray { border-radius: var(--mc-radius-tray); box-shadow: var(--mc-glass-ring-lg); }
+.mc-num { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------------
+   Shoelace, themed once. Part names as in the 2.20 render templates.
+   --------------------------------------------------------------------------- */
+
+/* sl-range: the thumb is a native-input pseudo-element and cannot be reached
+   through ::part, so the slider is themed through its custom properties. */
+sl-range {
+  --track-color-active: var(--mc-accent);
+  --track-color-inactive: var(--mc-hairline);
+  --track-height: 4px;
+  --thumb-size: 22px;
+}
+
+/* sl-progress-ring / sl-spinner: custom properties only. */
+sl-progress-ring {
+  --indicator-color: var(--mc-accent);
+  --track-color: var(--mc-separator);
+}
+sl-spinner {
+  --indicator-color: var(--mc-accent);
+  --track-color: var(--mc-separator);
+}
+
+/* sl-checkbox parts: base control control--checked control--indeterminate checked-icon indeterminate-icon label */
+sl-checkbox::part(control) {
+  border-radius: 6px;
+  border: 1px solid var(--mc-hairline);
+  background: var(--mc-tint);
+}
+sl-checkbox::part(control--checked) {
+  background: var(--mc-accent);
+  border-color: var(--mc-accent);
+  color: #fff;
+}
+sl-checkbox::part(label) {
+  color: var(--mc-text);
+  font: 500 13px/1 var(--mc-font);
+}
+
+/* sl-dialog parts: base overlay panel header header-actions title close-button body footer (+ close-button__base) */
+sl-dialog::part(overlay) {
+  background: var(--mc-scrim);
+  -webkit-backdrop-filter: none;   /* a scrim, never a full-screen blur */
+  backdrop-filter: none;
+}
+sl-dialog::part(panel) {
+  background: var(--mc-sheet-card);
+  border: 1px solid var(--mc-glass-edge);
+  border-radius: var(--mc-radius-tray);
+  box-shadow: var(--mc-glass-ring-lg);
+  color: var(--mc-text);
+  overflow: hidden;
+}
+/* Desktop web only: the panel is small relative to the viewport there. */
+@media (min-width: 621px) {
+  sl-dialog::part(panel) {
+    background: var(--mc-glass-fill-strong);
+    -webkit-backdrop-filter: var(--mc-glass-backdrop);
+    backdrop-filter: var(--mc-glass-backdrop);
+  }
+}
+sl-dialog::part(title) {
+  font: 600 17px/1.3 var(--mc-font);
+  letter-spacing: -0.01em;
+}
+sl-dialog::part(close-button__base) {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mc-tint);
+  color: var(--mc-text-2);
+}
+sl-dialog::part(close-button__base):hover {
+  background: var(--mc-tint-hover);
+  color: var(--mc-text);
+}
+sl-dialog::part(footer) { border-top: 1px solid var(--mc-separator); }
+
+/* sl-button, outside the playback bar's segmented groups: default is a tint, primary the accent.
+   parts: base prefix label suffix caret spinner */
+sl-button::part(base) {
+  border: 0;
+  border-radius: var(--mc-radius-pill);
+  background: var(--mc-tint);
+  color: var(--mc-text);
+  font: 600 15px/1 var(--mc-font);
+  transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
+}
+sl-button:not([disabled])::part(base):hover { background: var(--mc-tint-hover); color: var(--mc-text); }
+sl-button::part(base):active { transform: scale(var(--mc-press)); }
+sl-button[variant="primary"]::part(base) { background: var(--mc-accent); color: #fff; }
+sl-button[variant="primary"]:not([disabled])::part(base):hover { background: var(--mc-accent-strong); color: #fff; }
+sl-button[disabled]::part(base) { opacity: 0.4; }
+
+/* Toasts. sl-alert.toast() moves the element into body > .sl-toast-stack, outside
+   every component root, so this is global by necessity.
+   parts: base icon message close-button (+ close-button__base). Transient blur: one or two cards. */
+.sl-toast-stack {
+  width: min(28rem, 100vw);
+  top: auto;
+  /* Above whichever bar is showing: Map.svelte writes --bottom-toolbar-height. */
+  bottom: calc(var(--bottom-toolbar-height, var(--toast-stack-offset, 0px)) + var(--mc-gutter));
+  padding: 0 var(--mc-gutter);
+  box-sizing: border-box;
+}
+.sl-toast-stack sl-alert { margin: var(--mc-gutter) 0; }
+.sl-toast-stack sl-alert::part(base) {
+  background: var(--mc-glass-fill-strong);
+  -webkit-backdrop-filter: var(--mc-glass-backdrop);
+  backdrop-filter: var(--mc-glass-backdrop);
+  border: 1px solid var(--mc-glass-edge);          /* also resets the 3px variant-coloured top rule */
+  border-radius: 18px;
+  box-shadow: var(--mc-glass-ring);
+  color: var(--mc-text);
+  font: 400 13px/1.45 var(--mc-font);
+}
+.sl-toast-stack sl-alert::part(icon) { padding-inline-start: 14px; font-size: 18px; }
+.sl-toast-stack sl-alert::part(message) { padding: 12px 12px 12px 10px; }
+.sl-toast-stack sl-alert::part(close-button__base) { color: var(--mc-text-2); }
+.sl-toast-stack sl-alert[variant="primary"]::part(icon) { color: var(--mc-accent); }
+.sl-toast-stack sl-alert[variant="warning"]::part(icon) { color: var(--mc-orange); }
+.sl-toast-stack sl-alert[variant="danger"]::part(icon) { color: var(--mc-red); }
+
+/* ---------------------------------------------------------------------------
+   OpenLayers controls: generated markup, so styled by class. ol.css gives
+   .ol-control a 4px radius and a grey fill; this makes the zoom stack a glass
+   capsule and the locate button a glass disc. Positions live in Map.svelte.
+   --------------------------------------------------------------------------- */
+.ol-control {
+  background: var(--mc-glass-fill);
+  -webkit-backdrop-filter: var(--mc-glass-backdrop);
+  backdrop-filter: var(--mc-glass-backdrop);
+  border: 1px solid var(--mc-glass-edge);
+  border-radius: var(--mc-radius-pill);
+  box-shadow: var(--mc-glass-ring);
+  padding: 0;
+  overflow: hidden;                                   /* clips button hover fills to the capsule */
+}
+.ol-control:hover { background: var(--mc-glass-fill); }
+.ol-control button,
+.ol-touch .ol-control button {                         /* second selector out-specifies ol.css's .ol-touch rule */
+  display: block;
+  width: var(--mc-control);
+  height: var(--mc-control);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mc-text);
+  font: 600 20px/var(--mc-control) var(--mc-font);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--mc-motion-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.ol-control button:hover,
+.ol-control button:focus {
+  outline: none;
+  background: var(--mc-tint);
+  color: var(--mc-text);
+}
+.ol-control button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -3px; }
+.ol-control button:active { background: var(--mc-tint-active); }
+.ol-control button:disabled { opacity: 0.4; cursor: default; background: transparent; }
+.ol-zoom .ol-zoom-in { border-radius: 0; border-bottom: 1px solid var(--mc-separator); }
+.ol-zoom .ol-zoom-out { border-radius: 0; }
+
+/* Attribution: tinted, not blurred -- it is a strip of text at the map's edge. */
+.ol-attribution,
+.ol-attribution.ol-uncollapsible {
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+  height: auto;
+  padding: 0;
+  right: var(--mc-gutter);
+  bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 4px);
+  max-width: calc(100% - 2 * var(--mc-gutter));
+  font-size: 9px;
+}
+.ol-attribution:not(.ol-collapsed) { background: none; }
+.ol-attribution ul {
+  margin: 0;
+  padding: 3px 9px;
+  border-radius: var(--mc-radius-pill);
+  background: var(--mc-glass-fill-strong);
+  box-shadow: 0 0 0 0.5px var(--mc-glass-edge-outer);
+  color: var(--mc-text);
+  font: 500 9px/1.3 var(--mc-font);
+  text-shadow: none;
+}
+.ol-attribution a { color: var(--mc-text-2); }
+.ol-attribution button { display: none; }

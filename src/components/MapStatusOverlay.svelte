@@ -49,66 +49,95 @@
 <style>
   .mapStatus {
     position: absolute;
-    /* Below the "Latest" pill, which owns the top centre. Both are absolute,
-       so without the offset this lands straight on top of it. */
-    top: calc(env(safe-area-inset-top) + 2.6em);
+    /* Second row of the top-centre stack, under the Latest pill. */
+    top: calc(var(--mc-top-stack) + var(--mc-pill-h) + 6px);
     left: 0;
     right: 0;
     display: flex;
     justify-content: center;
+    padding: 0 var(--mc-gutter);
     /* The banner floats over the map; only the button should swallow clicks. */
     pointer-events: none;
-    z-index: 900000;
+    z-index: var(--mc-z-status);
   }
 
   .pill {
     display: flex;
     align-items: center;
-    gap: 0.6em;
+    gap: 8px;
     max-width: min(92vw, 30em);
-    padding: 0.45em 0.9em;
-    border-radius: var(--sl-border-radius-pill, 9999px);
-    font-size: 0.85rem;
-    line-height: 1.25;
-    color: var(--sl-color-black, #000);
-    background: var(--sl-color-white, #fff);
-    border: 1px solid var(--sl-color-gray-300, #d4d4d8);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    min-height: 32px;
+    padding: 4px 6px 4px 14px;
+    border-radius: var(--mc-radius-pill);
+    font: 500 13px/1.25 var(--mc-font);
+    color: var(--mc-text);
+    background: var(--mc-glass-fill-strong);
+    -webkit-backdrop-filter: var(--mc-glass-backdrop);
+    backdrop-filter: var(--mc-glass-backdrop);
+    border: 1px solid var(--mc-glass-edge);
+    box-shadow: var(--mc-glass-ring);
   }
 
   .label {
     font-weight: 600;
     white-space: nowrap;
   }
+  .label::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 7px;
+    border-radius: 50%;
+    background: var(--mc-orange);
+    vertical-align: 1px;
+  }
+  .pill.offline .label::before {
+    background: var(--mc-red);
+  }
 
   .detail {
-    color: var(--sl-color-gray-600, #52525b);
+    color: var(--mc-text-2);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 
   button {
     pointer-events: auto;
     flex: none;
-    padding: 0.2em 0.7em;
-    border: 1px solid var(--sl-color-gray-300, #d4d4d8);
-    border-radius: var(--sl-border-radius-pill, 9999px);
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    font-size: 0.8rem;
+    height: 24px;
+    padding: 0 10px;
+    margin: 0;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-accent-tint);
+    color: var(--mc-accent);
+    font: 600 12px/1 var(--mc-font);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
+  }
+  button:hover {
+    background: var(--mc-accent);
+    color: #fff;
+  }
+  button:active {
+    transform: scale(var(--mc-press));
   }
 
-  button:hover {
-    background: var(--sl-color-gray-200, #e4e4e7);
+  @media only screen and (max-width: 620px) {
+    .pill {
+      /* between the 40px logo disc and the 44px switcher disc, each 8px off its edge */
+      max-width: calc(100vw - 2 * (var(--mc-gutter) + var(--mc-control-lg) + var(--mc-gutter)));
+    }
   }
 </style>
 
 {#if visible}
   <div class="mapStatus" role="status" aria-live="polite">
-    <div class="pill">
+    <div class="pill" class:offline={!$networkStatus.online}>
       <span class="label">{label}</span>
       {#if lastSuccess}
         <span class="detail">{$_("last_success")} {lastSuccess}</span>
