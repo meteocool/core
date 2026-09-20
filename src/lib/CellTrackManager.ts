@@ -8,9 +8,10 @@ import { fetchCellTracks } from "../api";
 import type { CellTrack, CellTrackProperties, Progress } from "../api";
 import type { CellFeatureKind } from "../layers/cells";
 import {
-  ageMinutes, covers, ellipseRing4326, padExtent,
+  ageMinutes, covers, ellipseRing4326, leadingTip, padExtent,
 } from "./cellGeometry";
 import { trimToLastRun } from "./cellTrack";
+import { selectedCell } from "../stores";
 import type { Extent } from "./cellGeometry";
 
 /**
@@ -42,12 +43,35 @@ export default class CellTrackManager {
   /** The most recent request, so a slower earlier answer cannot overwrite it. */
   private pending: symbol | null;
 
+  /**
+   * The open cell's last full track, kept so a refetch cannot take it away.
+   *
+   * Tracks are fetched for the viewport, and a cell's forecast reaches an hour
+   * ahead -- tens of kilometres past its centroid. Zoom in on the cone to read
+   * the lead times on it and the centroid leaves the viewport, the next fetch
+   * comes back without that cell, and the marks vanish while the panel
+   * describing them stays open. The one cell the reader has asked about is
+   * therefore redrawn from this whether or not the answer mentions it.
+   *
+   * The raw track rather than the drawn features, so it goes through
+   * `trimToLastRun` and the age fading exactly as a fetched one does: a pinned
+   * cell that has stopped being detected fades and drops its outline on the
+   * same schedule as any other. Cleared as soon as the selection changes, so
+   * this holds at most one stale track and only while it is being looked at.
+   */
+  private pinned: CellTrack | null;
+
   constructor(vectorSource: VectorSource) {
     this.vs = vectorSource;
     this.fetched = null;
     this.enabled = true;
     this.tracks = new Map();
     this.pending = null;
+    this.pinned = null;
+
+    selectedCell.subscribe((track) => {
+      if (track?.code !== this.pinned?.properties.code) this.pinned = null;
+    });
   }
 
   /**
@@ -95,7 +119,13 @@ export default class CellTrackManager {
     const features: Feature[] = [];
     this.tracks = new Map();
 
-    tracks.forEach((raw) => {
+    const open = this.openCode();
+    const answered = tracks.some((raw) => raw.properties.code === open);
+    // Order matters only in that the pinned copy goes last: if the answer does
+    // carry the open cell, the fresh one is what gets kept and pinned below.
+    const drawing = !answered && this.pinned ? [...tracks, this.pinned] : tracks;
+
+    drawing.forEach((raw) => {
       const track = trimToLastRun(raw);
       const p = track.properties;
       this.tracks.set(p.code, p);
@@ -150,14 +180,39 @@ export default class CellTrackManager {
             point.major_km,
             point.minor_km ?? point.major_km,
             point.angle_deg ?? 0,
-          ).map((coordinate) => fromLonLat(coordinate));
-          add("ellipse", `${p.code}:el:${index}`, new Polygon([ring]));
+          );
+          const feature = new Feature({
+            ...shared,
+            kind: "ellipse" as CellFeatureKind,
+            geometry: new Polygon([ring.map((coordinate) => fromLonLat(coordinate))]),
+            // How far ahead this ring is, and where to say so. Both are worked
+            // out here because both need the track: the lead is measured from
+            // the last detection rather than from the clock, so it says how
+            // far past the evidence the ring is rather than how long ago the
+            // page loaded, and the tip needs the cell's position to know which
+            // end of the ring is the leading one.
+            lead_minutes: Math.round(
+              (new Date(point.t).getTime() - new Date(p.last_seen).getTime()) / 60_000,
+            ),
+            tip: fromLonLat(leadingTip(ring, [last?.lon ?? point.lon, last?.lat ?? point.lat])),
+          });
+          feature.setId(`${p.code}:el:${index}`);
+          features.push(feature);
         }
       });
     });
 
     this.vs.clear(true);
     this.vs.addFeatures(features);
+
+    if (answered) this.pinned = tracks.find((raw) => raw.properties.code === open) ?? null;
+  }
+
+  /** The cell whose panel or marks are up, which `apply` will not drop. */
+  private openCode(): string | null {
+    let code: string | null = null;
+    selectedCell.subscribe((track) => { code = track?.code ?? null; })();
+    return code;
   }
 
   /** The track behind a drawn feature, for the detail popup. */
