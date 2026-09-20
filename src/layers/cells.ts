@@ -6,7 +6,7 @@ import Fill from "ol/style/Fill";
 import Circle from "ol/style/Circle";
 import Text from "ol/style/Text";
 import type { FeatureLike } from "ol/Feature";
-import { selectedCell } from "../stores";
+import { mapBaseLayer, selectedCell } from "../stores";
 import { outlineIsCurrent } from "../lib/cellGeometry";
 
 /**
@@ -69,7 +69,7 @@ const badge = (feature: FeatureLike): string => {
   return "";
 };
 
-const styleCache = new Map<string, Style>();
+const styleCache = new Map<string, Style | Style[]>();
 
 /**
  * The cell whose popup is open, or null.
@@ -82,14 +82,18 @@ const styleCache = new Map<string, Style>();
  */
 let selectedCode: string | null = null;
 
-/** Styles are shared by every feature that looks the same, as the other layers do. */
-function cached(key: string, build: () => Style): Style {
+/**
+ * Styles are shared by every feature that looks the same, as the other layers
+ * do. A mark drawn as a casing plus a line caches as the pair, so the two
+ * halves cannot drift apart or be built separately per feature.
+ */
+function cached<T extends Style | Style[]>(key: string, build: () => T): T {
   let style = styleCache.get(key);
   if (!style) {
     style = build();
     styleCache.set(key, style);
   }
-  return style;
+  return style as T;
 }
 
 /** Opacity is bucketed so the cache has a handful of entries rather than one per cell. */
@@ -143,31 +147,95 @@ const isSelected = (feature: FeatureLike): boolean => (
   selectedCode !== null && feature.get("code") === selectedCode
 );
 
+/**
+ * The casing every forecast mark is drawn over.
+ *
+ * A one-pixel line in a mid-tone colour has nothing to hold on to here. The
+ * basemap runs from near-white farmland to grey-green forest to pale blue sea
+ * and back within the span of a single ellipse, and the radar's own greens and
+ * yellows sit on top of that; a thin orange dash crosses all of it and is
+ * legible against roughly none of it. A casing underneath gives it one
+ * background instead of a dozen, which is what makes the line readable
+ * wherever it happens to fall rather than only over the pale parts.
+ *
+ * Neither is fully opaque, because the casing is laid over the radar these
+ * marks exist to be compared against, and there is a lot of it: a dozen nested
+ * ellipses bunch up near the cell, and at full strength their casings merge
+ * into a smear exactly where the storm is.
+ *
+ * The colour follows the basemap, which is the one piece of theming in this
+ * layer and earns it. White casing on the dark map was tried and inverts the
+ * mark: twelve bright rings become the loudest thing on the map and the
+ * severity colour is reduced to a thin core inside them, so the one piece of
+ * information the ring carries besides its shape stops being readable. A halo
+ * is supposed to be the background, not a second mark.
+ */
+const LIGHT_CASING = "rgba(255, 255, 255, 0.75)";
+const DARK_CASING = "rgba(12, 16, 22, 0.75)";
+
+/** The basemaps a light casing would be the loudest thing on. */
+const DARK_BASEMAPS = new Set(["dark", "satellite"]);
+
+/**
+ * The casing colour in force, kept beside `selectedCode` and for the same
+ * reason: a style function is called per feature per frame with nowhere to
+ * thread state through it.
+ */
+let casing = LIGHT_CASING;
+
+/**
+ * The dash the cone is drawn with.
+ *
+ * Shared by the casing so the two line up exactly -- a casing drawn solid
+ * would put a continuous white ring on the map and lose the dashes entirely,
+ * which is the opposite of the point. Longer than the 4/4 it replaces, too:
+ * at that length and one pixel wide the ring read as a row of dots, and dots
+ * are what the forecast centroids are.
+ */
+const ELLIPSE_DASH = [7, 5];
+
 function forecastStyle(feature: FeatureLike): Style | undefined {
   if (!isSelected(feature)) return undefined;
   const severity = feature.get("max_severity") ?? 0;
-  return cached(`forecast:${severity}`, () => new Style({
-    image: new Circle({ radius: 2.5, fill: new Fill({ color: rgba(severityColour(severity), 0.75) }) }),
+  return cached(`forecast:${severity}:${casing}`, () => new Style({
+    image: new Circle({
+      radius: 3,
+      fill: new Fill({ color: rgba(severityColour(severity), 0.95) }),
+      // The same casing as the ellipses, as a ring rather than a halo: these
+      // dots sit inside the cone and land on the same varied background.
+      stroke: new Stroke({ color: casing, width: 1.5 }),
+    }),
   }));
 }
 
 /**
- * The cone of uncertainty, as an outline only.
+ * The cone of uncertainty, as a cased outline.
  *
  * Filled, several overlapping cones turn a region of the map into a flat wash
  * and hide the radar under them, which is the one thing a chaser is comparing
- * the track against.
+ * the track against. So it stays an outline, and what makes it legible is the
+ * casing under each dash rather than any weight added to the ring itself.
+ *
+ * Two styles, drawn in order: the wider light line first, the severity colour
+ * over it. The colour is also close to opaque now. At 0.45 it was being asked
+ * to carry the mark on its own and could not -- a translucent thin line takes
+ * whatever is beneath it, which is the problem rather than the solution.
  */
-function ellipseStyle(feature: FeatureLike): Style | undefined {
+function ellipseStyle(feature: FeatureLike): Style[] | undefined {
   if (!isSelected(feature)) return undefined;
   const severity = feature.get("max_severity") ?? 0;
-  return cached(`ellipse:${severity}`, () => new Style({
-    stroke: new Stroke({
-      color: rgba(severityColour(severity), 0.45),
-      width: 1,
-      lineDash: [4, 4],
+  return cached(`ellipse:${severity}:${casing}`, () => [
+    new Style({
+      stroke: new Stroke({ color: casing, width: 4, lineDash: ELLIPSE_DASH }),
     }),
-  }));
+    new Style({
+      stroke: new Stroke({
+        color: rgba(severityColour(severity), 0.95),
+        width: 2,
+        lineDash: ELLIPSE_DASH,
+      }),
+    }),
+  ]);
 }
 
 /**
@@ -196,7 +264,7 @@ function outlineStyle(feature: FeatureLike): Style | undefined {
   }));
 }
 
-const STYLES: Record<CellFeatureKind, (feature: FeatureLike) => Style | undefined> = {
+const STYLES: Record<CellFeatureKind, (feature: FeatureLike) => Style | Style[] | undefined> = {
   path: pathStyle,
   cell: cellStyle,
   outline: outlineStyle,
@@ -222,6 +290,16 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
     const code = track?.code ?? null;
     if (code === selectedCode) return;
     selectedCode = code;
+    layer.changed();
+  });
+
+  /* Same shape as the selection above, and needed for the same reason: the
+     cache is keyed on the casing, so switching basemaps builds the other set
+     of styles rather than reusing the ones the old map wanted. */
+  mapBaseLayer.subscribe((name) => {
+    const next = DARK_BASEMAPS.has(name) ? DARK_CASING : LIGHT_CASING;
+    if (next === casing) return;
+    casing = next;
     layer.changed();
   });
 
