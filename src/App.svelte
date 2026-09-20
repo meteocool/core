@@ -55,6 +55,7 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import CellDetails from "./components/CellDetails.svelte";
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
+import CellSheet from "./components/CellSheet.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
@@ -641,18 +642,6 @@ if (postInitCb) postInitCb(lm);
     display: none;
   }
 
-  /* On a phone the panel is the screen rather than a card in the corner of
-     one, so it takes the width and drops the margin that implied otherwise. */
-  @media only screen and (max-width: 620px) {
-    .cell-details-panel {
-      top: 8px;
-      right: 8px;
-      left: 8px;
-      max-width: none;
-      max-height: calc(100vh - 16px - var(--mc-safe-bottom));
-    }
-  }
-
   /* MapLibre is appended into the map element rather than replacing it, so it
      has to be told to fill it; OpenLayers sizes its own viewport. */
   :global(.maplibre-host) {
@@ -683,9 +672,13 @@ if (postInitCb) postInitCb(lm);
 <Map layerManager={lm} />
 
 {#if $selectedCell && $cellDetails}
-  <div class="cell-details-panel">
-    <CellDetails track={$selectedCell} />
-  </div>
+  {#if $smallScreen}
+    <CellSheet track={$selectedCell} />
+  {:else}
+    <div class="cell-details-panel">
+      <CellDetails track={$selectedCell} />
+    </div>
+  {/if}
 {:else if $selectedCell && $smallScreen}
   <CellSelectionHint track={$selectedCell} />
 {/if}

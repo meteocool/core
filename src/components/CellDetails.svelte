@@ -11,11 +11,13 @@
  * current reading.
  */
 import { _ } from "svelte-i18n";
-import { cellDetails, selectedCell, smallScreen } from "../stores";
+import { onDestroy } from "svelte";
+import { capLatestObservation, cellDetails, selectedCell, smallScreen } from "../stores";
 import { afterClose } from "../lib/cellSelection";
+import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
-import { BAND_NAMES, cellReadings } from "../lib/cellMetrics";
+import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
 import type { CellTrackProperties } from "../api";
 import type { VolumeInput } from "../lib/cellVolume";
 
@@ -261,15 +263,31 @@ $: shape = latest && (track.structure ?? []).length
   } satisfies VolumeInput)
   : null;
 
-/** Minutes up to an hour, then hours: "127 min" is not a duration anyone reads. */
-function duration(minutes: number): string {
-  if (minutes < 60) return `${Math.round(minutes)} min`;
-  const hours = Math.floor(minutes / 60);
-  const rest = Math.round(minutes % 60);
-  return rest ? `${hours} h ${rest} min` : `${hours} h`;
-}
 
 $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
+
+/* ---- how current any of this is ---------------------------------------- */
+
+/**
+ * A clock of our own, because everything below is relative to now and nothing
+ * else on the page ticks.
+ *
+ * Every quarter minute: the readings are five-minutely, so a slower tick would
+ * let "4 min ago" sit there while it became six, and a faster one would redraw
+ * the panel to change nothing. Cleared on destroy -- this component is created
+ * and thrown away on every tap.
+ */
+let tick = Date.now();
+const clockTimer = setInterval(() => { tick = Date.now(); }, 15_000);
+onDestroy(() => clearInterval(clockTimer));
+
+$: recency = cellRecency(
+  new Date(track.last_seen).getTime(),
+  tick,
+  $capLatestObservation > 0 ? $capLatestObservation * 1000 : null,
+);
+$: radarOffset = radarOffsetLabel(recency.behindMinutes);
+$: observedAt = clock(track.last_seen);
 
 /**
  * Closing leaves the cell's forecast on the map on a phone, and clears it
@@ -320,7 +338,7 @@ function close() {
   {#if shape}
     <figure class="model">
       <CellModel3D cell={shape} width={CHART.width} height={200} />
-      <figcaption>structure now &middot; drag to turn</figcaption>
+      <figcaption>structure at {observedAt} &middot; drag to turn</figcaption>
     </figure>
   {/if}
 
@@ -396,6 +414,13 @@ function close() {
     </div>
   {/if}
 
+  <footer class="recency" class:offset={radarOffset !== null}>
+    <span>
+      observed {observedAt} &middot; {duration(recency.ageMinutes)} ago
+    </span>
+    {#if radarOffset}<span class="behind">{radarOffset}</span>{/if}
+  </footer>
+
   {#if track.active && forecast.length}
     <footer>
       forecast to {clock(forecast[forecast.length - 1].t)},
@@ -427,6 +452,24 @@ function close() {
     font-size: 11px;
     opacity: 0.65;
   }
+  /* Everything above is one detection, and the panel used to imply it was
+     current. The second half is the one that decides whether the numbers can
+     be read against the radar drawn behind them at all, so it is marked when
+     it appears and absent when the two are in step. */
+  .recency {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    /* Colour rather than the footer's opacity, so the clause below can be
+       louder than the line it sits in; opacity on a parent cannot be undone. */
+    opacity: 1;
+    color: var(--sl-color-neutral-500, #78716c);
+  }
+  .recency .behind {
+    color: var(--mc-orange, #d97706);
+    font-weight: 600;
+  }
+
   .close {
     margin-left: auto;
     border: 0;
@@ -436,6 +479,25 @@ function close() {
     cursor: pointer;
     color: inherit;
     opacity: 0.5;
+  }
+
+  /* A thumb needs 44px; a mouse does not, and at desktop size a target that
+     big beside a 13px heading is the loudest thing in the panel. */
+  @media only screen and (max-width: 620px) {
+    .close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      margin: -8px -8px -8px auto;
+      border-radius: 50%;
+      font-size: 26px;
+      opacity: 0.55;
+    }
+    header {
+      align-items: center;
+    }
   }
   .signals {
     display: flex;
