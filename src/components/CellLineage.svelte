@@ -34,7 +34,7 @@
 import dagre from "@dagrejs/dagre";
 import { selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
-import { buildLineage, nodeRole } from "../lib/cellLineage";
+import { buildLineage, nodeRole, rowOffsets } from "../lib/cellLineage";
 import type { CellTrackProperties } from "../api";
 
 export let track: CellTrackProperties;
@@ -45,6 +45,29 @@ export let loading = false;
 
 const NODE_W = 62;
 const NODE_H = 30;
+
+/** The gutter the time axis and its labels live in. */
+const AXIS_W = 40;
+
+/** Closest two rows may be drawn, so nodes never overlap; see `rowOffsets`. */
+const ROW_MIN = NODE_H + 14;
+
+/**
+ * How much height a minute of elapsed time buys.
+ *
+ * Set against the floor rather than in the abstract. `ROW_MIN` cannot go below
+ * a node's own height, so any gap shorter than `ROW_MIN / PX_PER_MINUTE` is
+ * drawn at the floor and reads as "the next step" -- at three pixels a minute
+ * that is anything under about fifteen, which at DWD's five-minute cadence is
+ * two or three runs, and "the next step" is what those are.
+ *
+ * Above that it is proportional and the distinction worth having survives: a
+ * cell that split off a quarter of an hour ago sits close, one that split off
+ * an hour ago sits four times further away. The first version used 1.1 and
+ * every gap in a real family landed on the floor, which made the axis correct
+ * and the spacing meaningless.
+ */
+const PX_PER_MINUTE = 3;
 
 $: lineage = buildLineage(known, track.code);
 
@@ -65,11 +88,18 @@ interface Placed {
   label: string;
 }
 
+interface Row {
+  y: number;
+  label: string;
+}
+
 interface Laid {
   width: number;
   height: number;
   nodes: Placed[];
   edges: string[];
+  /** One per distinct detection time, which is what the axis labels. */
+  rows: Row[];
 }
 
 /**
@@ -90,12 +120,26 @@ function layout(graph: ReturnType<typeof buildLineage>): Laid | null {
   graph.edges.forEach((edge) => g.setEdge(edge.from, edge.to));
   dagre.layout(g);
 
+  /*
+   * dagre decides which node goes beside which; the clock decides how far down.
+   *
+   * Its ranks are graph depth, not time -- a rank can hold a cell from 16:10
+   * beside one from 15:35 -- so only the horizontal half of its answer is
+   * kept. The vertical half comes from `rowOffsets`, which is what lets the
+   * axis be a real time axis rather than a list of rank numbers with clocks
+   * written against them.
+   */
+  const stamps = [...new Set(graph.nodes.map((node) => new Date(node.firstSeen).getTime()))]
+    .sort((a, b) => a - b);
+  const offsets = rowOffsets(stamps, ROW_MIN, PX_PER_MINUTE / 60_000);
+  const rowOf = new Map(stamps.map((stamp, index) => [stamp, offsets[index] + NODE_H / 2 + 4]));
+
   const nodes: Placed[] = graph.nodes.map((node) => {
     const placed = g.node(node.code);
     return {
       code: node.code,
-      x: placed.x,
-      y: placed.y,
+      x: placed.x + AXIS_W,
+      y: rowOf.get(new Date(node.firstSeen).getTime()) as number,
       severity: node.severity,
       self: node.self,
       badge: node.meso ? "↻" : (node.hail ? "✦" : ""),
@@ -110,17 +154,31 @@ function layout(graph: ReturnType<typeof buildLineage>): Laid | null {
     };
   });
 
-  // dagre hands back the points it routed each edge through; a curve through
-  // them keeps a merge from arriving as three lines on top of each other.
-  const edges = graph.edges.map((edge) => {
-    const points = g.edge(edge.from, edge.to)?.points ?? [];
-    if (points.length < 2) return "";
-    const [head, ...rest] = points;
-    return `M ${head.x} ${head.y} ` + rest.map((p) => `L ${p.x} ${p.y}`).join(" ");
-  }).filter(Boolean);
+  /*
+   * Drawn between the nodes rather than along dagre's routes, which were
+   * computed for its own vertical positions and no longer land anywhere near
+   * the ones above. A cubic with vertical handles keeps a merge arriving as
+   * three separable curves rather than three lines crossing at a point.
+   */
+  const at = new Map(nodes.map((node) => [node.code, node]));
+  const edges = graph.edges.flatMap((edge) => {
+    const from = at.get(edge.from);
+    const to = at.get(edge.to);
+    if (!from || !to) return [];
+    const y0 = from.y + NODE_H / 2;
+    const y1 = to.y - NODE_H / 2;
+    const bend = Math.max(8, (y1 - y0) / 2);
+    return [`M ${from.x} ${y0} C ${from.x} ${y0 + bend}, ${to.x} ${y1 - bend}, ${to.x} ${y1}`];
+  });
 
-  const { width, height } = g.graph();
-  return { width: width ?? 0, height: height ?? 0, nodes, edges };
+  const rows: Row[] = stamps.map((stamp) => ({
+    y: rowOf.get(stamp) as number,
+    label: clock(new Date(stamp).toISOString()),
+  }));
+
+  const width = (g.graph().width ?? 0) + AXIS_W;
+  const height = offsets[offsets.length - 1] + NODE_H + 10;
+  return { width, height, nodes, edges, rows };
 }
 
 $: laid = layout(lineage);
@@ -144,6 +202,24 @@ function activate(event: KeyboardEvent, code: string) {
     font-size: 11px;
     opacity: 0.6;
     margin-bottom: 2px;
+  }
+  /* Behind everything: a rule is a reading aid, not a mark, and a node that
+     lands on one has to stay the thing being read. */
+  .rule {
+    stroke: currentColor;
+    stroke-opacity: 0.1;
+    stroke-width: 1;
+  }
+  .axis {
+    stroke: currentColor;
+    stroke-opacity: 0.25;
+    stroke-width: 1;
+  }
+  .rowtime {
+    font: 500 9px/1 var(--mc-font, sans-serif);
+    fill: currentColor;
+    fill-opacity: 0.55;
+    text-anchor: end;
   }
   /* No sideways scrollbar, ever: the graph is laid out downwards, and where a
      rank is wider than the panel the SVG scales to fit. Only downwards --
@@ -198,11 +274,6 @@ function activate(event: KeyboardEvent, code: string) {
     fill: var(--sl-color-neutral-900, #111);
     text-anchor: middle;
   }
-  .peak {
-    font: 500 9px/1 var(--mc-font, sans-serif);
-    fill: var(--sl-color-neutral-500, #78716c);
-    text-anchor: middle;
-  }
   .badge {
     font: 700 10px/1 sans-serif;
     text-anchor: middle;
@@ -222,6 +293,16 @@ function activate(event: KeyboardEvent, code: string) {
       <svg viewBox="0 0 {laid.width} {laid.height}" preserveAspectRatio="xMidYMin meet"
         style="max-width: {laid.width}px"
         role="group" aria-label="Storm lineage">
+        <!-- The clock, and a rule across the chart at every moment a cell in
+             this family was first detected. Before this the rows were dagre's
+             ranks, which are depth in the graph rather than time: one of them
+             held cells from 16:05, 16:20 and 16:45 side by side. -->
+        {#each laid.rows as row (row.y)}
+          <line class="rule" x1={AXIS_W - 4} x2={laid.width} y1={row.y} y2={row.y} />
+          <text class="rowtime" x={AXIS_W - 8} y={row.y + 3}>{row.label}</text>
+        {/each}
+        <line class="axis" x1={AXIS_W - 4} x2={AXIS_W - 4} y1={laid.rows[0].y} y2={laid.rows[laid.rows.length - 1].y} />
+
         {#each laid.edges as d, i (i)}
           <path class="edge" {d} />
         {/each}
@@ -236,10 +317,10 @@ function activate(event: KeyboardEvent, code: string) {
               x={node.x - NODE_W / 2} y={node.y - NODE_H / 2}
               width={NODE_W} height={NODE_H} rx="7"
               style="stroke: {severityColour(node.severity)}" />
-            <text class="at" x={node.x} y={node.y - (node.peak ? 1 : -3)}>{node.at}</text>
-            {#if node.peak}
-              <text class="peak" x={node.x} y={node.y + 10}>{node.peak}</text>
-            {/if}
+            <!-- No clock on the node any more: the row it sits on says when,
+                 and repeating it in every box was the only thing the chart had
+                 before there was an axis to put it on. -->
+            <text class="at" x={node.x} y={node.y + 4}>{node.peak || node.at}</text>
             {#if node.badge}
               <text class="badge" x={node.x + NODE_W / 2 - 7} y={node.y - NODE_H / 2 + 10}
                 style="fill: {severityColour(node.severity)}">{node.badge}</text>
