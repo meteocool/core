@@ -10,6 +10,7 @@
   import { toLonLat } from "ol/proj";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
+  import { selectedCell } from "../stores";
 
   export let layerManager;
 
@@ -69,6 +70,9 @@
   };
 
   function open() {
+    // The detail popup is anchored above everything, including this panel.
+    // Opening the switcher means the reader is done with that cell.
+    selectedCell.set(null);
     window.openLayerswitcher?.();
     // The iOS wrapper was told about close but never about open, so it could
     // not hide its own chrome while the switcher was up.

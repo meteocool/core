@@ -468,13 +468,28 @@ export class LayerManager {
   }
 
   setTarget(cap: string, target: string | HTMLElement | undefined) {
-    console.log(cap);
     if (this.currentCap && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
     }
     this.capabilities[cap].setTarget(target);
     sharedActiveCap.set(cap);
     this.currentCap = cap;
+  }
+
+  /**
+   * Draw a capability into a thumbnail, without handing it the map.
+   *
+   * The layer switcher's tiles are live previews, so each one has to point its
+   * capability's map at a small element. They used to do that through
+   * `setTarget`, which also moves focus -- so simply mounting the switcher
+   * told every capability in turn that it now owned the main map, and told the
+   * one that actually did that it had lost it. Nothing depended on the
+   * difference while every capability was an OpenLayers map drawing into
+   * whatever element it was given; the 3D map, which has to take its canvas
+   * down when it loses focus, made it matter.
+   */
+  setPreviewTarget(cap: string, target: string | HTMLElement | undefined) {
+    this.capabilities[cap]?.setPreviewTarget(target);
   }
 
   setDefaultTarget(target: string | HTMLElement | undefined) {
