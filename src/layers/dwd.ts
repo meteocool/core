@@ -5,10 +5,9 @@ import Style from "ol/style/Style";
 import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
-import { transformExtent } from "ol/proj";
 import ImageTileSource from "ol/source/ImageTile";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
-import { dwdExtentInv } from "./extents";
+import { dwdExtentInv, dwdRadarExtent } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
 import type BaseLayer from "ol/layer/Base";
@@ -57,7 +56,7 @@ export const dwdLayerStatic: LayerFactory = (tileId, bucket) => {
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
     cacheSize: 512,
-    extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
+    extent: dwdRadarExtent,
   });
 
   reflectivityLayer.set("tile_id", tileId);
@@ -90,7 +89,7 @@ export const DWDLayerFactoryGL: LayerFactory = (tileId, bucket = "meteoradar") =
     cacheSize: 512,
     opacity: NOWCAST_OPACITY,
     source: reflectivitySource,
-    extent: transformExtent([2.8125, 45, 19.6875, 56.25], "EPSG:4326", "EPSG:3857"),
+    extent: dwdRadarExtent,
     style: {
       color: [
         "match",

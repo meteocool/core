@@ -1,6 +1,7 @@
 <script lang="ts">
 import { formatDistanceToNow } from "date-fns";
 import { _ } from "svelte-i18n";
+import { onDestroy } from "svelte";
 import { capLastUpdated, lastFocus } from "../stores";
 
 import getDfnLocale from "../locale/locale";
@@ -11,7 +12,15 @@ let slPercent = 75;
 let updateTimeout: ReturnType<typeof setTimeout> | null = null;
 let loading = false;
 
+/* Self-rescheduling, so it first cancels whatever it scheduled last time.
+   Without that, the subscription below (which fires synchronously on subscribe
+   and calls this) and the trailing call that used to sit at the bottom of this
+   script each started a chain, and only the last id written to updateTimeout
+   could ever be cleared -- the other one ticked for the life of the page, once
+   per mounted-and-discarded toolbar. */
 const updateTime = () => {
+  if (updateTimeout) clearTimeout(updateTimeout);
+  updateTimeout = null;
   if (!lastUpdated) return;
   const ageSeconds = Math.abs((lastUpdated.getTime() - Date.now()) / 1000);
   slPercent = 100 - Math.min((ageSeconds / 300) * 100, 100);
@@ -26,16 +35,22 @@ const updateTime = () => {
   loading = false;
 };
 
+/* This component is created and destroyed with the toolbar mode, so both
+   subscriptions and the self-rescheduling timer have to be handed back --
+   otherwise every open/close leaves another live 10s tick behind, formatting
+   a timestamp for a component that is no longer on the page. */
+const subscriptions: (() => void)[] = [];
+
 let lastFocusDt = new Date();
-lastFocus.subscribe((updated) => {
+subscriptions.push(lastFocus.subscribe((updated) => {
   if (updated.getTime() - (60 * 1000) > lastFocusDt.getTime()) {
     lastUpdatedStr = "";
   }
   lastFocusDt = updated;
   loading = true;
-});
+}));
 
-capLastUpdated.subscribe((value) => {
+subscriptions.push(capLastUpdated.subscribe((value) => {
   lastUpdated = value;
   if (updateTimeout || !value) {
     if (updateTimeout) clearTimeout(updateTimeout);
@@ -46,9 +61,12 @@ capLastUpdated.subscribe((value) => {
   } else {
     lastUpdatedStr = "";
   }
-});
+}));
 
-updateTime();
+onDestroy(() => {
+  subscriptions.forEach((unsubscribe) => unsubscribe());
+  if (updateTimeout) clearTimeout(updateTimeout);
+});
 </script>
 
 <style>

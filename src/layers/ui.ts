@@ -21,7 +21,7 @@ import SlTooltip from "@shoelace-style/shoelace/dist/components/tooltip/tooltip.
 import SlResizeObserver from "@shoelace-style/shoelace/dist/components/resize-observer/resize-observer.js";
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.js";
 
-import { colorSchemeDark } from "../stores";
+import { colorSchemeDark, mapBaseLayer } from "../stores";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
 /**
@@ -143,6 +143,18 @@ export function cleanupUIConstants() {
   darkModeQuery = null;
   darkModeHandler = null;
 }
+
+/**
+ * Basemaps the floating chrome has to read against.
+ *
+ * The glass follows the map, not the colour scheme: see the header of
+ * src/glass.css. Everything not listed here is a light basemap.
+ */
+const DARK_BASEMAPS = new Set(["dark", "satellite"]);
+
+mapBaseLayer.subscribe((layer) => {
+  document.documentElement.dataset.chrome = DARK_BASEMAPS.has(layer) ? "dark" : "light";
+});
 
 // Dark and Light mode
 colorSchemeDark.subscribe((isDark) => {

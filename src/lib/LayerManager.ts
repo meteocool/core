@@ -2,6 +2,7 @@ import { Map, View } from "ol";
 import {
   fromLonLat,
   toLonLat,
+  transformExtent,
 } from "ol/proj";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
@@ -18,7 +19,10 @@ import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
 import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
-import { latLon, mapBaseLayer, sharedActiveCap, zoomlevel } from "../stores";
+import {
+  inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, sharedActiveCap,
+  zoomlevel,
+} from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { satelliteCombo } from "../layers/satellite";
 import Capability from "../caps/Capability";
@@ -51,6 +55,17 @@ export interface LayerManagerOptions {
 let shouldUpdate = true;
 
 /**
+ * How long a press has to be held before it counts as asking about a point,
+ * and how far it may wander while being held.
+ *
+ * 450ms is the platform's own long-press dwell, give or take; the slop is
+ * deliberately generous, because a finger resting on glass drifts a few pixels
+ * without anyone meaning to move it.
+ */
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP = 10;
+
+/**
  * Manages the reflectivity + forecast layers shown on the map. should be called MapManager XXX
  */
 interface CapabilityMap {
@@ -75,6 +90,9 @@ export class LayerManager {
 
   positionFeatures: Feature[];
 
+  /** One per map: the ring marking the point the forecast strip is sampling. */
+  inspectFeatures: Feature[];
+
   /** The capability currently attached to the main map. */
   currentCap: string | null;
 
@@ -90,6 +108,7 @@ export class LayerManager {
     this.maps = [];
     this.accuracyFeatures = [];
     this.positionFeatures = [];
+    this.inspectFeatures = [];
     this.currentCap = null;
     this.mapCount = 0;
 
@@ -106,6 +125,12 @@ export class LayerManager {
 
     mapBaseLayer.subscribe((newBaseLayer) => {
       this.switchBaseLayer(newBaseLayer);
+    });
+
+    inspectLatLon.subscribe((point) => {
+      const geometry = point ? new Point(fromLonLat([point[1], point[0]])) : undefined;
+      this.inspectFeatures.forEach((feature) => feature.setGeometry(geometry));
+      this.forEachMap((map) => map.render());
     });
   }
 
@@ -170,6 +195,8 @@ export class LayerManager {
         }),
         new GeolocateControl({
           onLocate: () => {
+            // Asking to be located is asking about yourself again.
+            inspectLatLon.set(null);
             navigator.geolocation.getCurrentPosition(({ coords }) => {
               this.updateLocation(coords.latitude, coords.longitude, coords.accuracy, true, true);
             });
@@ -210,6 +237,41 @@ export class LayerManager {
     });
     geolocationAccuracyLayer.set("kind", "geolocationPositionLayer");
 
+    /* The point the forecast strip is sampling, when that is not the client's
+       own. A ring rather than a pin: the reading belongs to the point at its
+       centre, not to a tip somewhere below it, and it stays legible with the
+       radar's own colours underneath. Deliberately nothing like the solid blue
+       dot -- the two mean different things and can be on screen together. */
+    const inspectFeature = new Feature();
+    this.inspectFeatures.push(inspectFeature);
+    const inspectLayer = new VectorLayer({
+      source: new VectorSource({ features: [inspectFeature] }),
+      style: [
+        // A dark halo first, so the white ring holds up over a light basemap.
+        new Style({
+          image: new CircleStyle({
+            radius: 11,
+            stroke: new Stroke({ color: "rgba(0, 0, 0, 0.35)", width: 5 }),
+          }),
+        }),
+        new Style({
+          image: new CircleStyle({
+            radius: 11,
+            stroke: new Stroke({ color: "#fff", width: 2.5 }),
+          }),
+        }),
+        new Style({
+          image: new CircleStyle({
+            radius: 2.5,
+            fill: new Fill({ color: "#fff" }),
+            stroke: new Stroke({ color: "rgba(0, 0, 0, 0.35)", width: 1 }),
+          }),
+        }),
+      ],
+      zIndex: 99997,
+    });
+    inspectLayer.set("kind", "geolocationPositionLayer");
+
     let lat = 51.0;
     let lon = 11.0;
     let z = 6;
@@ -223,7 +285,7 @@ export class LayerManager {
     if (baselayer) {
       layers = [this.baseLayerFactory(this.settings.get("mapBaseLayer"))];
     }
-    layers = [...layers, geolocationAccuracyLayer, geolocationPositionLayer];
+    layers = [...layers, inspectLayer, geolocationAccuracyLayer, geolocationPositionLayer];
 
     const newMap = new Map({
       layers,
@@ -239,12 +301,86 @@ export class LayerManager {
         }),
       controls,
     });
+    /* Pressing and holding the map asks what the weather is doing there.
+       Deliberately not a tap: a tap is how you dismiss things, re-centre and
+       generally poke at a map, and every one of those threw the forecast strip
+       up over the view. A hold is a decision, and it is the gesture the
+       platform already uses everywhere else to mean "tell me about this".
+
+       On the viewport's own pointer events rather than OpenLayers' map events,
+       because OL only types a subset of them; the map coordinate still comes
+       from the map, through getEventCoordinate(). */
+    const viewport = newMap.getViewport();
+    let pressTimer: number | null = null;
+    let pressOrigin: [number, number] | null = null;
+
+    const cancelPress = () => {
+      if (pressTimer !== null) window.clearTimeout(pressTimer);
+      pressTimer = null;
+      pressOrigin = null;
+    };
+
+    viewport.addEventListener("pointerdown", (event: PointerEvent) => {
+      cancelPress();
+      // Secondary buttons open the browser's own menu; leave them to it. A
+      // second finger means a pinch, which is a zoom and never a question.
+      if (event.button > 0 || !event.isPrimary) return;
+      if (get(sharedActiveCap) !== newMap.get("capability")) return;
+      pressOrigin = [event.clientX, event.clientY];
+      const coordinate = newMap.getEventCoordinate(event);
+      pressTimer = window.setTimeout(() => {
+        pressTimer = null;
+        pressOrigin = null;
+        const capability = newMap.get("capability");
+        // A held finger is still a tap as far as the strips are concerned:
+        // every layer hears it, only radar samples a point from it, because
+        // only radar has a reading that belongs to one.
+        mapTapped.update((n) => n + 1);
+        // Confirmation that the hold took, before the strip animates in.
+        navigator.vibrate?.(12);
+        if (capability !== "radar") return;
+        const [clickedLon, clickedLat] = toLonLat(coordinate);
+        inspectLatLon.set([clickedLat, clickedLon]);
+      }, LONG_PRESS_MS);
+    });
+
+    /* A hold that wanders is a pan the finger started slowly. The threshold is
+       in screen pixels rather than map units, so it does not change meaning
+       with the zoom level. */
+    viewport.addEventListener("pointermove", (event: PointerEvent) => {
+      if (!pressOrigin) return;
+      const dx = event.clientX - pressOrigin[0];
+      const dy = event.clientY - pressOrigin[1];
+      if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) cancelPress();
+    });
+    viewport.addEventListener("pointerup", cancelPress);
+    viewport.addEventListener("pointercancel", cancelPress);
+    /* The map can also be moved without the pointer moving -- a wheel, a
+       keyboard pan, a double-tap zoom -- and a coordinate sampled before that
+       is no longer under the finger. */
+    newMap.on("movestart", cancelPress);
+    /* Otherwise a hold on a touch device races the platform's own selection
+       callout, which pops up over the map just as the strip arrives. There is
+       no selectable content under it to lose. */
+    viewport.addEventListener("contextmenu", (event) => {
+      if (get(sharedActiveCap) !== newMap.get("capability")) return;
+      event.preventDefault();
+    });
+
     const isApp = dd.isApp();
     newMap.on("moveend", () => {
       if (get(sharedActiveCap) !== newMap.get("capability")) {
         return;
       }
       zoomlevel.set(newMap.getView().getZoom() ?? 0);
+      const size = newMap.getSize();
+      if (size) {
+        mapExtent4326.set(transformExtent(
+          newMap.getView().calculateExtent(size),
+          "EPSG:3857",
+          "EPSG:4326",
+        ) as [number, number, number, number]);
+      }
       if (isApp) return;
       if (!shouldUpdate) {
         // do not update the URL when the view was changed in the 'popstate' handler
@@ -316,8 +452,15 @@ export class LayerManager {
     this.maps.forEach((map) => cb(map, map.get("capability")));
   }
 
-  getCurrentMap() {
-    return this.capabilities[this.currentCap!].map;
+  /**
+   * The map of whichever capability is showing, or undefined before one is.
+   *
+   * It used to index `capabilities` with a `currentCap` asserted non-null and
+   * read `.map` off the result, so anything asking during startup got a
+   * TypeError out of a getter rather than a falsy answer.
+   */
+  getCurrentMap(): Map | undefined {
+    return this.currentCap ? this.capabilities[this.currentCap]?.map : undefined;
   }
 
   getCapability(name: string) {

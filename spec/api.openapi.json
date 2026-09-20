@@ -1,6 +1,35 @@
 {
   "components": {
     "schemas": {
+      "CellsRefresh": {
+        "description": "A nudge that a new KONRAD3D reference time is available.\n\nDeliberately not a `Poke`: the frontend's only `poke` handler reloads every\nradar tile, and deliberately not the cells themselves, which run to hundreds\nof kilobytes on a severe day. Clients refetch `/cells/*` from the data\nservice, scoped to their viewport.",
+        "properties": {
+          "count": {
+            "description": "Convective cells detected in that run",
+            "title": "Count",
+            "type": "integer"
+          },
+          "max_severity": {
+            "description": "Highest DWD severity class in the run",
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Max Severity",
+            "type": "integer"
+          },
+          "reference_time": {
+            "description": "Reference time of the run, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time",
+          "count",
+          "max_severity"
+        ],
+        "title": "CellsRefresh",
+        "type": "object"
+      },
       "ClearNotification": {
         "description": "An acknowledgement that a delivered notification was seen.",
         "properties": {
@@ -27,6 +56,15 @@
         ],
         "title": "ClearNotification",
         "type": "object"
+      },
+      "FrameSource": {
+        "description": "Where a timestep's values came from.\n\nDeclared as an enum so it reaches the exported OpenAPI schema as one, and\nthe frontend's generated client types `source` as a union rather than a bare\nstring. It was a plain `str`, which is how the two deployments came to emit\ndifferent words for a forecast -- `nowcast_phys` in production, `forecast`\nhere -- without the contract, the generated client or any test noticing.\n\nThe values are production's, because shipped clients already read them:\n`precacheAllForecasts()` matches `nowcast_phys` literally.",
+        "enum": [
+          "observation",
+          "nowcast_phys"
+        ],
+        "title": "FrameSource",
+        "type": "string"
       },
       "HTTPValidationError": {
         "properties": {
@@ -360,8 +398,7 @@
             "type": "integer"
           },
           "source": {
-            "title": "Source",
-            "type": "string"
+            "$ref": "#/components/schemas/FrameSource"
           },
           "tile_id": {
             "title": "Tile Id",

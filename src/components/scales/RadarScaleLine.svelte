@@ -5,6 +5,7 @@
   import legendRain from "../../assets/legend_rain.svg";
   import legendHail from "../../assets/legend_hail.svg";
   import legendThunderstorm from "../../assets/legend_thunderstorm.svg";
+  import { onDestroy } from "svelte";
   import { radarColormap, unit } from "../../stores";
   import { getPalette } from "../../lib/cmap_utils";
 
@@ -14,12 +15,12 @@
     unique = {}; // every {} is unique, {} === {} evaluates to false
   }
 
-  unit.subscribe(() => {
-    restart();
-  });
-  radarColormap.subscribe(() => {
-    restart();
-  });
+  // Rebuilt whenever the toolbar swaps capability or mode, so both go back.
+  const subscriptions = [
+    unit.subscribe(() => restart()),
+    radarColormap.subscribe(() => restart()),
+  ];
+  onDestroy(() => subscriptions.forEach((unsubscribe) => unsubscribe()));
 
   function valueFormatter(fmt) {
     if ($unit === "dbz") {

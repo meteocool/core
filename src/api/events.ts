@@ -17,8 +17,11 @@ export type LightningEvent = Schemas["Strike"];
 export type MesocycloneEvent = Schemas["Mesocyclone"];
 export type PokeEvent = Schemas["Poke"];
 export type SnowEvent = Schemas["SnowRefresh"];
+/** A new KONRAD3D run landed; the payload is a nudge, not the cells. */
+export type CellsEvent = Schemas["CellsRefresh"];
 
 export interface ServerToClientEvents {
+  cells: (cells: CellsEvent) => void;
   lightning: (strike: LightningEvent) => void;
   mesocyclones: (detections: MesocycloneEvent[]) => void;
   poke: (poke: PokeEvent) => void;

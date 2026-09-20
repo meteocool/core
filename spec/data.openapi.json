@@ -1,6 +1,649 @@
 {
   "components": {
     "schemas": {
+      "CellCurrent": {
+        "description": "A cell in the latest run, with its identity and forecast attached.",
+        "properties": {
+          "area_km2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Km2"
+          },
+          "code": {
+            "description": "Track identity, stable while the cell is followed",
+            "title": "Code",
+            "type": "string"
+          },
+          "deviation_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How far this heading departs from nearby cells; large values suggest a deviant mover",
+            "title": "Deviation Deg"
+          },
+          "echo_top_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Echo top above sea level",
+            "title": "Echo Top M"
+          },
+          "ellipse_angle_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ellipse Angle Deg"
+          },
+          "ellipse_major_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ellipse Major Km"
+          },
+          "ellipse_minor_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ellipse Minor Km"
+          },
+          "forecast": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastPoint"
+            },
+            "title": "Forecast",
+            "type": "array"
+          },
+          "gust_flag": {
+            "default": 0,
+            "title": "Gust Flag",
+            "type": "integer"
+          },
+          "gust_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gust Kmh"
+          },
+          "hail_flag": {
+            "default": 0,
+            "description": "0 none, 1 moderate, 2 severe",
+            "title": "Hail Flag",
+            "type": "integer"
+          },
+          "heading_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Direction of travel, clockwise from north",
+            "title": "Heading Deg"
+          },
+          "heavy_rain_flag": {
+            "default": 0,
+            "title": "Heavy Rain Flag",
+            "type": "integer"
+          },
+          "identifier": {
+            "description": "DWD's short cell number, reused across unrelated cells",
+            "title": "Identifier",
+            "type": "integer"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lightning_jumps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lightning jumps detected so far",
+            "title": "Lightning Jumps"
+          },
+          "lightning_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Strokes in the last five minutes",
+            "title": "Lightning Rate"
+          },
+          "lineage_first_detection": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "DWD's first detection of this lineage, which survives a split",
+            "title": "Lineage First Detection"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "max_dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Peak reflectivity in the cell",
+            "title": "Max Dbz"
+          },
+          "merge": {
+            "default": false,
+            "title": "Merge",
+            "type": "boolean"
+          },
+          "meso_rot_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Peak rotational velocity",
+            "title": "Meso Rot Ms"
+          },
+          "meso_severity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mesocyclone severity index, if one is assigned",
+            "title": "Meso Severity"
+          },
+          "n_detections": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "N Detections"
+          },
+          "parent_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parent Codes",
+            "type": "array"
+          },
+          "polygon": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cell outline, [lon, lat] pairs",
+            "title": "Polygon"
+          },
+          "severity": {
+            "description": "DWD severity class: 0 weak, 1 moderate, 2 strong, 3 extreme",
+            "title": "Severity",
+            "type": "integer"
+          },
+          "severity_decimal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity Decimal"
+          },
+          "speed_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Kmh"
+          },
+          "split": {
+            "default": false,
+            "title": "Split",
+            "type": "boolean"
+          },
+          "t": {
+            "format": "date-time",
+            "title": "T",
+            "type": "string"
+          },
+          "vil": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cell-based vertically integrated liquid, kg/m^2",
+            "title": "Vil"
+          }
+        },
+        "required": [
+          "t",
+          "lon",
+          "lat",
+          "identifier",
+          "severity",
+          "code"
+        ],
+        "title": "CellCurrent",
+        "type": "object"
+      },
+      "CellStep": {
+        "description": "One cell at one five-minute timestep.",
+        "properties": {
+          "area_km2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Km2"
+          },
+          "deviation_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How far this heading departs from nearby cells; large values suggest a deviant mover",
+            "title": "Deviation Deg"
+          },
+          "echo_top_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Echo top above sea level",
+            "title": "Echo Top M"
+          },
+          "gust_flag": {
+            "default": 0,
+            "title": "Gust Flag",
+            "type": "integer"
+          },
+          "gust_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gust Kmh"
+          },
+          "hail_flag": {
+            "default": 0,
+            "description": "0 none, 1 moderate, 2 severe",
+            "title": "Hail Flag",
+            "type": "integer"
+          },
+          "heading_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Direction of travel, clockwise from north",
+            "title": "Heading Deg"
+          },
+          "heavy_rain_flag": {
+            "default": 0,
+            "title": "Heavy Rain Flag",
+            "type": "integer"
+          },
+          "identifier": {
+            "description": "DWD's short cell number, reused across unrelated cells",
+            "title": "Identifier",
+            "type": "integer"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lightning_jumps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lightning jumps detected so far",
+            "title": "Lightning Jumps"
+          },
+          "lightning_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Strokes in the last five minutes",
+            "title": "Lightning Rate"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "max_dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Peak reflectivity in the cell",
+            "title": "Max Dbz"
+          },
+          "merge": {
+            "default": false,
+            "title": "Merge",
+            "type": "boolean"
+          },
+          "meso_rot_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Peak rotational velocity",
+            "title": "Meso Rot Ms"
+          },
+          "meso_severity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mesocyclone severity index, if one is assigned",
+            "title": "Meso Severity"
+          },
+          "severity": {
+            "description": "DWD severity class: 0 weak, 1 moderate, 2 strong, 3 extreme",
+            "title": "Severity",
+            "type": "integer"
+          },
+          "severity_decimal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity Decimal"
+          },
+          "speed_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Kmh"
+          },
+          "split": {
+            "default": false,
+            "title": "Split",
+            "type": "boolean"
+          },
+          "t": {
+            "format": "date-time",
+            "title": "T",
+            "type": "string"
+          },
+          "vil": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cell-based vertically integrated liquid, kg/m^2",
+            "title": "Vil"
+          }
+        },
+        "required": [
+          "t",
+          "lon",
+          "lat",
+          "identifier",
+          "severity"
+        ],
+        "title": "CellStep",
+        "type": "object"
+      },
+      "CellsRefresh": {
+        "description": "A nudge that a new KONRAD3D reference time is available.\n\nDeliberately not a `Poke`: the frontend's only `poke` handler reloads every\nradar tile, and deliberately not the cells themselves, which run to hundreds\nof kilobytes on a severe day. Clients refetch `/cells/*` from the data\nservice, scoped to their viewport.",
+        "properties": {
+          "count": {
+            "description": "Convective cells detected in that run",
+            "title": "Count",
+            "type": "integer"
+          },
+          "max_severity": {
+            "description": "Highest DWD severity class in the run",
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Max Severity",
+            "type": "integer"
+          },
+          "reference_time": {
+            "description": "Reference time of the run, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time",
+          "count",
+          "max_severity"
+        ],
+        "title": "CellsRefresh",
+        "type": "object"
+      },
+      "CurrentCells": {
+        "description": "Every cell in the most recent run.",
+        "properties": {
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/CellCurrent"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "reference_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The run these cells come from; null before the first file has been ingested",
+            "title": "Reference Time"
+          }
+        },
+        "title": "CurrentCells",
+        "type": "object"
+      },
+      "ForecastPoint": {
+        "description": "A predicted centroid and how uncertain it is.\n\nThe ellipse is DWD's 1-sigma Kalman uncertainty, growing with lead time.\n`angle_deg` is measured clockwise from north.",
+        "properties": {
+          "angle_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Major axis bearing, degrees clockwise from north",
+            "title": "Angle Deg"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "major_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Semi-major axis of the 1-sigma ellipse",
+            "title": "Major Km"
+          },
+          "minor_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Semi-minor axis of the 1-sigma ellipse",
+            "title": "Minor Km"
+          },
+          "t": {
+            "description": "The time this position is predicted for",
+            "format": "date-time",
+            "title": "T",
+            "type": "string"
+          }
+        },
+        "required": [
+          "t",
+          "lon",
+          "lat"
+        ],
+        "title": "ForecastPoint",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -12,6 +655,32 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LineStringGeometry": {
+        "description": "The path a cell has taken.",
+        "properties": {
+          "coordinates": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "LineString",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "LineStringGeometry",
         "type": "object"
       },
       "Mesocyclone": {
@@ -51,6 +720,29 @@
           "intensity"
         ],
         "title": "Mesocyclone",
+        "type": "object"
+      },
+      "PointGeometry": {
+        "description": "Where a cell seen only once is. GeoJSON needs two positions for a line.",
+        "properties": {
+          "coordinates": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "Point",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "PointGeometry",
         "type": "object"
       },
       "Poke": {
@@ -115,6 +807,263 @@
         "title": "Strike",
         "type": "object"
       },
+      "TrackCollection": {
+        "description": "A GeoJSON feature collection of cell tracks.",
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/TrackFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "reference_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Time"
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "TrackCollection",
+        "type": "object"
+      },
+      "TrackFeature": {
+        "description": "One cell's history as a GeoJSON feature.",
+        "properties": {
+          "geometry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineStringGeometry"
+              },
+              {
+                "$ref": "#/components/schemas/PointGeometry"
+              }
+            ],
+            "title": "Geometry"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/TrackProperties"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "properties"
+        ],
+        "title": "TrackFeature",
+        "type": "object"
+      },
+      "TrackProperties": {
+        "description": "Everything about a track except where it went.",
+        "properties": {
+          "active": {
+            "description": "Whether the cell was still being detected recently",
+            "title": "Active",
+            "type": "boolean"
+          },
+          "child_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Child Codes",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "deviation_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deviation Deg"
+          },
+          "echo_top_max_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Echo Top Max M"
+          },
+          "first_seen": {
+            "description": "When meteocool first stored this code",
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "forecast": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastPoint"
+            },
+            "title": "Forecast",
+            "type": "array"
+          },
+          "hail_ever": {
+            "default": false,
+            "title": "Hail Ever",
+            "type": "boolean"
+          },
+          "hail_minutes": {
+            "default": 0,
+            "description": "Minutes spent with a hail flag set",
+            "title": "Hail Minutes",
+            "type": "integer"
+          },
+          "intensifying": {
+            "default": false,
+            "description": "DWD's trends say the cell is currently strengthening",
+            "title": "Intensifying",
+            "type": "boolean"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "lightning_jump_recent": {
+            "default": false,
+            "description": "A lightning jump in the last half hour, which often leads severe weather at the ground",
+            "title": "Lightning Jump Recent",
+            "type": "boolean"
+          },
+          "lineage_first_detection": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lineage First Detection"
+          },
+          "max_dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Dbz"
+          },
+          "max_severity": {
+            "title": "Max Severity",
+            "type": "integer"
+          },
+          "merge_ever": {
+            "default": false,
+            "title": "Merge Ever",
+            "type": "boolean"
+          },
+          "meso_ever": {
+            "default": false,
+            "title": "Meso Ever",
+            "type": "boolean"
+          },
+          "meso_minutes": {
+            "default": 0,
+            "description": "Minutes spent with a mesocyclone assigned",
+            "title": "Meso Minutes",
+            "type": "integer"
+          },
+          "n_steps": {
+            "title": "N Steps",
+            "type": "integer"
+          },
+          "parent_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parent Codes",
+            "type": "array"
+          },
+          "polygon": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Polygon"
+          },
+          "series": {
+            "description": "The cell's attributes at each timestep",
+            "items": {
+              "$ref": "#/components/schemas/CellStep"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "split_ever": {
+            "default": false,
+            "title": "Split Ever",
+            "type": "boolean"
+          },
+          "vil_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vil Max"
+          }
+        },
+        "required": [
+          "code",
+          "first_seen",
+          "last_seen",
+          "n_steps",
+          "active",
+          "max_severity"
+        ],
+        "title": "TrackProperties",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -161,12 +1110,175 @@
     "contact": {
       "email": "valentin@meteocool.com"
     },
-    "description": "\nLive lightning strikes and DWD mesocyclone detections.\n\nCoordinates are projected **EPSG:3857 metres**, not degrees, despite the\n`lat`/`lon` field names \u2014 kept as-is for compatibility with existing clients.\n",
+    "description": "\nLive lightning strikes, DWD mesocyclone detections, and tracked thunderstorm\ncells from DWD's KONRAD3D.\n\nTwo coordinate conventions, for historical reasons. `/lightning_cache` and\n`/mesocyclones` serve projected **EPSG:3857 metres** in fields named `lat` and\n`lon`, kept as-is for existing clients. `/cells` is RFC 7946 GeoJSON:\n**WGS84 degrees**, `[lon, lat]`.\n",
     "title": "meteocool data",
     "version": "4.0.0"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/cells/current": {
+      "get": {
+        "operationId": "current_cells_cells_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentCells"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Convective cells in the most recent KONRAD3D run.",
+        "tags": [
+          "cells"
+        ]
+      }
+    },
+    "/cells/tracks": {
+      "get": {
+        "operationId": "cell_tracks_cells_tracks_get",
+        "parameters": [
+          {
+            "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+              "examples": [
+                "5,47,16,56"
+              ],
+              "title": "Bbox"
+            }
+          },
+          {
+            "description": "Only tracks seen since this time; defaults to the last few hours",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only tracks seen since this time; defaults to the last few hours",
+              "title": "Since"
+            }
+          },
+          {
+            "description": "Lowest DWD severity class to return",
+            "in": "query",
+            "name": "min_severity",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Lowest DWD severity class to return",
+              "maximum": 3,
+              "minimum": 0,
+              "title": "Min Severity",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum tracks to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Maximum tracks to return",
+              "minimum": 0,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cell tracks as GeoJSON, filtered by viewport and time.",
+        "tags": [
+          "cells"
+        ]
+      }
+    },
+    "/cells/tracks/{code}": {
+      "get": {
+        "operationId": "cell_track_cells_tracks__code__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackFeature"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One cell's complete history.",
+        "tags": [
+          "cells"
+        ]
+      }
+    },
     "/lightning_cache": {
       "get": {
         "operationId": "lightning_cache_lightning_cache_get",

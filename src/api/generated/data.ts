@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/cells/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Convective cells in the most recent KONRAD3D run. */
+        get: operations["current_cells_cells_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cells/tracks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cell tracks as GeoJSON, filtered by viewport and time. */
+        get: operations["cell_tracks_cells_tracks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cells/tracks/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One cell's complete history. */
+        get: operations["cell_track_cells_tracks__code__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/lightning_cache": {
         parameters: {
             query?: never;
@@ -59,10 +110,331 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * CellCurrent
+         * @description A cell in the latest run, with its identity and forecast attached.
+         */
+        CellCurrent: {
+            /** Area Km2 */
+            area_km2?: number | null;
+            /**
+             * Code
+             * @description Track identity, stable while the cell is followed
+             */
+            code: string;
+            /**
+             * Deviation Deg
+             * @description How far this heading departs from nearby cells; large values suggest a deviant mover
+             */
+            deviation_deg?: number | null;
+            /**
+             * Echo Top M
+             * @description Echo top above sea level
+             */
+            echo_top_m?: number | null;
+            /** Ellipse Angle Deg */
+            ellipse_angle_deg?: number | null;
+            /** Ellipse Major Km */
+            ellipse_major_km?: number | null;
+            /** Ellipse Minor Km */
+            ellipse_minor_km?: number | null;
+            /** Forecast */
+            forecast?: components["schemas"]["ForecastPoint"][];
+            /**
+             * Gust Flag
+             * @default 0
+             */
+            gust_flag: number;
+            /** Gust Kmh */
+            gust_kmh?: number | null;
+            /**
+             * Hail Flag
+             * @description 0 none, 1 moderate, 2 severe
+             * @default 0
+             */
+            hail_flag: number;
+            /**
+             * Heading Deg
+             * @description Direction of travel, clockwise from north
+             */
+            heading_deg?: number | null;
+            /**
+             * Heavy Rain Flag
+             * @default 0
+             */
+            heavy_rain_flag: number;
+            /**
+             * Identifier
+             * @description DWD's short cell number, reused across unrelated cells
+             */
+            identifier: number;
+            /** Lat */
+            lat: number;
+            /**
+             * Lightning Jumps
+             * @description Lightning jumps detected so far
+             */
+            lightning_jumps?: number | null;
+            /**
+             * Lightning Rate
+             * @description Strokes in the last five minutes
+             */
+            lightning_rate?: number | null;
+            /**
+             * Lineage First Detection
+             * @description DWD's first detection of this lineage, which survives a split
+             */
+            lineage_first_detection?: string | null;
+            /** Lon */
+            lon: number;
+            /**
+             * Max Dbz
+             * @description Peak reflectivity in the cell
+             */
+            max_dbz?: number | null;
+            /**
+             * Merge
+             * @default false
+             */
+            merge: boolean;
+            /**
+             * Meso Rot Ms
+             * @description Peak rotational velocity
+             */
+            meso_rot_ms?: number | null;
+            /**
+             * Meso Severity
+             * @description Mesocyclone severity index, if one is assigned
+             */
+            meso_severity?: number | null;
+            /** N Detections */
+            n_detections?: number | null;
+            /** Parent Codes */
+            parent_codes?: string[];
+            /**
+             * Polygon
+             * @description Cell outline, [lon, lat] pairs
+             */
+            polygon?: number[][] | null;
+            /**
+             * Severity
+             * @description DWD severity class: 0 weak, 1 moderate, 2 strong, 3 extreme
+             */
+            severity: number;
+            /** Severity Decimal */
+            severity_decimal?: number | null;
+            /** Speed Kmh */
+            speed_kmh?: number | null;
+            /**
+             * Split
+             * @default false
+             */
+            split: boolean;
+            /**
+             * T
+             * Format: date-time
+             */
+            t: string;
+            /**
+             * Vil
+             * @description Cell-based vertically integrated liquid, kg/m^2
+             */
+            vil?: number | null;
+        };
+        /**
+         * CellStep
+         * @description One cell at one five-minute timestep.
+         */
+        CellStep: {
+            /** Area Km2 */
+            area_km2?: number | null;
+            /**
+             * Deviation Deg
+             * @description How far this heading departs from nearby cells; large values suggest a deviant mover
+             */
+            deviation_deg?: number | null;
+            /**
+             * Echo Top M
+             * @description Echo top above sea level
+             */
+            echo_top_m?: number | null;
+            /**
+             * Gust Flag
+             * @default 0
+             */
+            gust_flag: number;
+            /** Gust Kmh */
+            gust_kmh?: number | null;
+            /**
+             * Hail Flag
+             * @description 0 none, 1 moderate, 2 severe
+             * @default 0
+             */
+            hail_flag: number;
+            /**
+             * Heading Deg
+             * @description Direction of travel, clockwise from north
+             */
+            heading_deg?: number | null;
+            /**
+             * Heavy Rain Flag
+             * @default 0
+             */
+            heavy_rain_flag: number;
+            /**
+             * Identifier
+             * @description DWD's short cell number, reused across unrelated cells
+             */
+            identifier: number;
+            /** Lat */
+            lat: number;
+            /**
+             * Lightning Jumps
+             * @description Lightning jumps detected so far
+             */
+            lightning_jumps?: number | null;
+            /**
+             * Lightning Rate
+             * @description Strokes in the last five minutes
+             */
+            lightning_rate?: number | null;
+            /** Lon */
+            lon: number;
+            /**
+             * Max Dbz
+             * @description Peak reflectivity in the cell
+             */
+            max_dbz?: number | null;
+            /**
+             * Merge
+             * @default false
+             */
+            merge: boolean;
+            /**
+             * Meso Rot Ms
+             * @description Peak rotational velocity
+             */
+            meso_rot_ms?: number | null;
+            /**
+             * Meso Severity
+             * @description Mesocyclone severity index, if one is assigned
+             */
+            meso_severity?: number | null;
+            /**
+             * Severity
+             * @description DWD severity class: 0 weak, 1 moderate, 2 strong, 3 extreme
+             */
+            severity: number;
+            /** Severity Decimal */
+            severity_decimal?: number | null;
+            /** Speed Kmh */
+            speed_kmh?: number | null;
+            /**
+             * Split
+             * @default false
+             */
+            split: boolean;
+            /**
+             * T
+             * Format: date-time
+             */
+            t: string;
+            /**
+             * Vil
+             * @description Cell-based vertically integrated liquid, kg/m^2
+             */
+            vil?: number | null;
+        };
+        /**
+         * CellsRefresh
+         * @description A nudge that a new KONRAD3D reference time is available.
+         *
+         *     Deliberately not a `Poke`: the frontend's only `poke` handler reloads every
+         *     radar tile, and deliberately not the cells themselves, which run to hundreds
+         *     of kilobytes on a severe day. Clients refetch `/cells/*` from the data
+         *     service, scoped to their viewport.
+         */
+        CellsRefresh: {
+            /**
+             * Count
+             * @description Convective cells detected in that run
+             */
+            count: number;
+            /**
+             * Max Severity
+             * @description Highest DWD severity class in the run
+             */
+            max_severity: number;
+            /**
+             * Reference Time
+             * @description Reference time of the run, milliseconds since the epoch
+             */
+            reference_time: number;
+        };
+        /**
+         * CurrentCells
+         * @description Every cell in the most recent run.
+         */
+        CurrentCells: {
+            /** Cells */
+            cells?: components["schemas"]["CellCurrent"][];
+            /**
+             * Reference Time
+             * @description The run these cells come from; null before the first file has been ingested
+             */
+            reference_time?: string | null;
+        };
+        /**
+         * ForecastPoint
+         * @description A predicted centroid and how uncertain it is.
+         *
+         *     The ellipse is DWD's 1-sigma Kalman uncertainty, growing with lead time.
+         *     `angle_deg` is measured clockwise from north.
+         */
+        ForecastPoint: {
+            /**
+             * Angle Deg
+             * @description Major axis bearing, degrees clockwise from north
+             */
+            angle_deg?: number | null;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /**
+             * Major Km
+             * @description Semi-major axis of the 1-sigma ellipse
+             */
+            major_km?: number | null;
+            /**
+             * Minor Km
+             * @description Semi-minor axis of the 1-sigma ellipse
+             */
+            minor_km?: number | null;
+            /**
+             * T
+             * Format: date-time
+             * @description The time this position is predicted for
+             */
+            t: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * LineStringGeometry
+         * @description The path a cell has taken.
+         */
+        LineStringGeometry: {
+            /** Coordinates */
+            coordinates: number[][];
+            /**
+             * Type
+             * @constant
+             */
+            type: "LineString";
         };
         /**
          * Mesocyclone
@@ -94,6 +466,19 @@ export interface components {
              * @description Detection id: milliseconds since the epoch, plus an index
              */
             time: number;
+        };
+        /**
+         * PointGeometry
+         * @description Where a cell seen only once is. GeoJSON needs two positions for a line.
+         */
+        PointGeometry: {
+            /** Coordinates */
+            coordinates: number[];
+            /**
+             * Type
+             * @constant
+             */
+            type: "Point";
         };
         /**
          * Poke
@@ -138,6 +523,134 @@ export interface components {
              */
             time: number;
         };
+        /**
+         * TrackCollection
+         * @description A GeoJSON feature collection of cell tracks.
+         */
+        TrackCollection: {
+            /** Features */
+            features?: components["schemas"]["TrackFeature"][];
+            /** Reference Time */
+            reference_time?: string | null;
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+        };
+        /**
+         * TrackFeature
+         * @description One cell's history as a GeoJSON feature.
+         */
+        TrackFeature: {
+            /** Geometry */
+            geometry: components["schemas"]["LineStringGeometry"] | components["schemas"]["PointGeometry"];
+            /** Id */
+            id: string;
+            properties: components["schemas"]["TrackProperties"];
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+        };
+        /**
+         * TrackProperties
+         * @description Everything about a track except where it went.
+         */
+        TrackProperties: {
+            /**
+             * Active
+             * @description Whether the cell was still being detected recently
+             */
+            active: boolean;
+            /** Child Codes */
+            child_codes?: string[];
+            /** Code */
+            code: string;
+            /** Deviation Deg */
+            deviation_deg?: number | null;
+            /** Echo Top Max M */
+            echo_top_max_m?: number | null;
+            /**
+             * First Seen
+             * Format: date-time
+             * @description When meteocool first stored this code
+             */
+            first_seen: string;
+            /** Forecast */
+            forecast?: components["schemas"]["ForecastPoint"][];
+            /**
+             * Hail Ever
+             * @default false
+             */
+            hail_ever: boolean;
+            /**
+             * Hail Minutes
+             * @description Minutes spent with a hail flag set
+             * @default 0
+             */
+            hail_minutes: number;
+            /**
+             * Intensifying
+             * @description DWD's trends say the cell is currently strengthening
+             * @default false
+             */
+            intensifying: boolean;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /**
+             * Lightning Jump Recent
+             * @description A lightning jump in the last half hour, which often leads severe weather at the ground
+             * @default false
+             */
+            lightning_jump_recent: boolean;
+            /** Lineage First Detection */
+            lineage_first_detection?: string | null;
+            /** Max Dbz */
+            max_dbz?: number | null;
+            /** Max Severity */
+            max_severity: number;
+            /**
+             * Merge Ever
+             * @default false
+             */
+            merge_ever: boolean;
+            /**
+             * Meso Ever
+             * @default false
+             */
+            meso_ever: boolean;
+            /**
+             * Meso Minutes
+             * @description Minutes spent with a mesocyclone assigned
+             * @default 0
+             */
+            meso_minutes: number;
+            /** N Steps */
+            n_steps: number;
+            /** Parent Codes */
+            parent_codes?: string[];
+            /** Polygon */
+            polygon?: number[][] | null;
+            /**
+             * Series
+             * @description The cell's attributes at each timestep
+             */
+            series?: components["schemas"]["CellStep"][];
+            /**
+             * Split Ever
+             * @default false
+             */
+            split_ever: boolean;
+            /** Vil Max */
+            vil_max?: number | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -160,6 +673,95 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    current_cells_cells_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentCells"];
+                };
+            };
+        };
+    };
+    cell_tracks_cells_tracks_get: {
+        parameters: {
+            query?: {
+                /** @description Viewport as `west,south,east,north` in WGS84 degrees */
+                bbox?: string | null;
+                /** @description Only tracks seen since this time; defaults to the last few hours */
+                since?: string | null;
+                /** @description Lowest DWD severity class to return */
+                min_severity?: number;
+                /** @description Maximum tracks to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackCollection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cell_track_cells_tracks__code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackFeature"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     lightning_cache_lightning_cache_get: {
         parameters: {
             query?: never;

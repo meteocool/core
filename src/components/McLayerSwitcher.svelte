@@ -24,9 +24,11 @@
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
   ].filter((tile) => capabilityEnabled(tile.layer));
 
-  // Two across. An odd tile out spans the row rather than leaving a hole --
-  // which is how lightning sat when there were five of these.
-  $: lastSpans = tiles.length % 2 === 1;
+  // Rain & thunderstorms is what this app is for, so it leads: a wide hero
+  // across the top, the rest paired two across beneath it. An odd tile out in
+  // that remainder spans its row rather than leaving a hole -- which is how
+  // lightning sat when there were five of these.
+  $: tailSpans = tiles.length > 1 && (tiles.length - 1) % 2 === 1;
 
   // The comparison panel is not a map layer, so it does not get a capability:
   // the tile opens it over the switcher instead of switching the map.
@@ -36,7 +38,7 @@
     // The map centre as it stands when the panel opens, held until it is
     // reopened -- open-meteo's free tier is rate limited, and refetching on
     // every pan would spend that on views nobody is reading.
-    const centre = layerManager.getCurrentMap().getView().getCenter();
+    const centre = layerManager.getCurrentMap()?.getView().getCenter();
     if (!centre) return;
     const [lon, lat] = toLonLat(centre);
     compareAt = { lat, lon };
@@ -183,6 +185,7 @@
     min-height: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.4fr;         /* the hero row; the pairs below are 1fr */
     grid-auto-rows: 1fr;
     gap: var(--mc-gutter);
   }
@@ -211,6 +214,17 @@
   }
   .cell.wide {
     grid-column: span 2;
+  }
+
+  /* The hero is the primary layer, so its caption is scaled with the card
+     rather than left at the secondary tiles' size. */
+  .cell.hero :global(.label) {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    font-size: 16px;
   }
 
   /* Not a MiniMap: there is no map behind it, so it is a card rather than glass. */
@@ -265,7 +279,10 @@
     <div class="grid">
       <div class="maps">
         {#each tiles as tile, index (tile.layer)}
-          <div class="cell" class:wide={lastSpans && index === tiles.length - 1}>
+          <div
+            class="cell"
+            class:hero={index === 0}
+            class:wide={index === 0 || (tailSpans && index === tiles.length - 1)}>
             <MiniMap
               {layerManager}
               layer={tile.layer}

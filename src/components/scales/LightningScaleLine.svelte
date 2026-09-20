@@ -1,5 +1,6 @@
 <script lang="ts">
   import ScaleLine from "./ScaleLine.svelte";
+  import { onDestroy } from "svelte";
   import { radarColormap, unit } from "../../stores";
   import { LightningColors } from "../../colormaps";
   import { DeviceDetect as dd } from "../../lib/DeviceDetect";
@@ -10,12 +11,12 @@
     unique = {}; // every {} is unique, {} === {} evaluates to false
   }
 
-  unit.subscribe(() => {
-    restart();
-  });
-  radarColormap.subscribe(() => {
-    restart();
-  });
+  // Rebuilt whenever the toolbar swaps capability or mode, so both go back.
+  const subscriptions = [
+    unit.subscribe(() => restart()),
+    radarColormap.subscribe(() => restart()),
+  ];
+  onDestroy(() => subscriptions.forEach((unsubscribe) => unsubscribe()));
 
   const legendItems = [1, 2, 3, 5, 20, 30, 60, 90, 120];
   const isApp = dd.isApp();

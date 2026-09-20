@@ -1,4 +1,8 @@
+import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
+import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
+import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { writable } from "svelte/store";
+import type { CellTrackProperties } from "./api";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
 // abstraction.
@@ -11,12 +15,72 @@ export const colorSchemeDark = writable<boolean>(false);
 export const radarColormap = writable<string>("classic");
 
 export const latLon = writable<[number, number] | null>(null);
+/**
+ * A point on the map the user tapped to ask about, as [lat, lon], or null for
+ * "wherever I am". Separate from latLon: that one means the client's own
+ * position and owns the blue dot, and a question about somewhere else must not
+ * move it. Whatever is set here is what the forecast strip samples.
+ */
+export const inspectLatLon = writable<[number, number] | null>(null);
+/**
+ * Bumped on every tap on the map, whichever layer is showing. Separate from
+ * inspectLatLon because a tap means "I am asking about the map" to strips that
+ * have nothing to do with a point -- the lightning histogram covers the whole
+ * viewport -- while only the radar strip wants the coordinate and the marker.
+ */
+export const mapTapped = writable<number>(0);
+/**
+ * What the map is currently showing, as [minLon, minLat, maxLon, maxLat], or
+ * null before the first render. Published so components can reason about the
+ * view without holding a map: whether the radar covers any of it, which area a
+ * viewport-wide reading is about.
+ */
+export const mapExtent4326 = writable<[number, number, number, number] | null>(null);
+
+/* The shape and the transition rules live in lib/apiHealth.ts, so they can be
+   tested without pulling a store or the generated client into the test. */
+export const apiHealth = writable<ApiHealth>(EMPTY_HEALTH);
+
+/**
+ * Whether the map is in its degraded state, and which criteria put it there.
+ *
+ * Failed calls are only one of those criteria; what the whole set is lives in
+ * lib/degraded.ts, and this store is written from there by lib/degradedStatus.ts
+ * on a timer. The timer is the point: every criterion is self-clearing, but
+ * only if something keeps asking, and before this the pill re-evaluated when
+ * apiHealth happened to change -- so a state nothing was touching any more
+ * could sit on the map indefinitely.
+ */
+export const degradedStatus = writable<DegradedState>(NOT_DEGRADED);
+
+/**
+ * The backend's publish rhythm as observed this session, written by
+ * RadarCapability from the grid it already has. Read by the diagnostics panel
+ * for "next update expected", and by the degraded criteria to tell a late
+ * frame from a missing one.
+ */
+export const radarCadence = writable<Cadence>(EMPTY_CADENCE);
+
+/**
+ * Whether the radar frames on screen have been overtaken by the clock.
+ *
+ * Set the instant the page notices it has come back from not running, before
+ * the refetch that fixes it has been answered, and cleared by the grid that
+ * lands. Distinct from degradedStatus: that is a claim about the backend, this
+ * is one about us. What counts as overtaken is lib/freshness.ts, and the wiring
+ * is RadarCapability.
+ */
+export const radarStale = writable<boolean>(false);
 export const zoomlevel = writable<number>(3);
 
 export const lightningLayerVisible = writable<boolean>(true);
 export const layerswitcherVisible = writable<"yes" | "no">("yes");
 export const toolbarVisible = writable<"yes" | "no">("yes");
 export const cycloneLayerVisible = writable<boolean>(true);
+/** Whether tracked thunderstorm cells are drawn. */
+export const cellLayerVisible = writable<boolean>(true);
+/** The cell the detail popup is showing, or null when it is closed. */
+export const selectedCell = writable<CellTrackProperties | null>(null);
 export const snowLayerVisible = writable<boolean>(true);
 export const logoStyle = writable<string>("full");
 
