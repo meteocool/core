@@ -117,3 +117,52 @@ test("nodes come out oldest first", () => {
   const map = known(cell("first", [], ["second"]), cell("second", ["first"]));
   assert.deepEqual(buildLineage(map, "second").nodes.map((n) => n.code), ["first", "second"]);
 });
+
+/**
+ * The chart is something you click around in, so the graph has to be a
+ * property of the family rather than of the node you happen to be standing on.
+ * Walk to a relative and the nodes must come back in the same order, so the
+ * layout puts them in the same places and the next one you wanted is still
+ * under the cursor.
+ */
+test("the same family comes out identical from whichever node you enter it", () => {
+  const map = known(
+    cell("gp", [], ["a"]),
+    cell("a", ["gp"], ["m"]),
+    cell("b", [], ["m"]),
+    cell("m", ["a", "b"], ["x", "y"]),
+    cell("x", ["m"]),
+    cell("y", ["m"]),
+  );
+  const fromRoot = buildLineage(map, "gp");
+  ["a", "b", "m", "x", "y"].forEach((code) => {
+    const other = buildLineage(map, code);
+    assert.deepEqual(other.nodes.map((n) => n.code), fromRoot.nodes.map((n) => n.code));
+    assert.deepEqual(other.edges, fromRoot.edges);
+  });
+});
+
+test("cells that start in the same minute keep a stable order", () => {
+  // Two nodes both reading 16:45 turned up in the run this was built against.
+  // On the timestamp alone they came back in traversal order, so walking the
+  // family swapped them under a cursor that had not moved.
+  const same = (code: string, parents: string[], children: string[] = []) => [code, {
+    code,
+    parent_codes: parents,
+    child_codes: children,
+    max_severity: 1,
+    first_seen: "2026-09-20T16:45:00Z",
+    last_seen: "2026-09-20T17:00:00Z",
+    max_dbz: 60,
+    hail_ever: false,
+    meso_ever: false,
+  }] as never;
+  const map = new Map([
+    same("p", [], ["twinB", "twinA"]),
+    same("twinA", ["p"]),
+    same("twinB", ["p"]),
+  ]) as never;
+  const order = (root: string) => buildLineage(map, root).nodes.map((n) => n.code);
+  assert.deepEqual(order("twinA"), order("twinB"));
+  assert.deepEqual(order("twinA"), order("p"));
+});

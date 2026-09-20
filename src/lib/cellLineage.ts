@@ -137,9 +137,24 @@ export function buildLineage(
       self: code === rootCode,
     };
   });
-  // Oldest first, so a layout that breaks ties by insertion order breaks them
-  // the way the storm actually went.
-  nodes.sort((a, b) => a.firstSeen.localeCompare(b.firstSeen));
+  /*
+   * Oldest first, and the code settles a tie.
+   *
+   * The tie-break is not cosmetic. `reachable` walks outwards from whichever
+   * cell is open, so it returns the same family in a different order depending
+   * on which node you are standing on -- and a family really does contain
+   * cells that start in the same minute, two of them reading 16:45 in the run
+   * this was built against. Sorting on the timestamp alone leaves those two in
+   * traversal order, which the layout then reflects: walk to a relative and
+   * the graph comes back with a pair of nodes swapped, under a cursor that has
+   * not moved. A total order makes the layout a property of the family rather
+   * than of the route taken into it.
+   *
+   * One case is still root-dependent, and is left so: a family past
+   * `MAX_FAMILY` is truncated at whatever the walk reached first. The largest
+   * seen is seven against a cap of twenty-four.
+   */
+  nodes.sort((a, b) => a.firstSeen.localeCompare(b.firstSeen) || a.code.localeCompare(b.code));
 
   const edges: LineageEdge[] = [];
   const drawn = new Set<string>();
