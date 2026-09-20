@@ -13,7 +13,14 @@ export default ts.config(
   ...svelte.configs.recommended,
   {
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        // Substituted by Vite's `define`; declared for TS in src/vite-env.d.ts.
+        // no-undef is off for .ts through typescript-eslint but still on in
+        // .svelte, so it has to be named here too.
+        __GIT_COMMIT_HASH__: "readonly",
+      },
     },
     rules: {
       "max-len": ["error", 170, 2, {

@@ -13,6 +13,22 @@ export const centralEuropeExtent = transformExtent(
   "EPSG:3857",
 ); // XXX change/sync to backend
 
+/**
+ * Where live radar exists at all.
+ *
+ * The bounds of the DWD composite's tile pyramid -- the radar layer already
+ * clips itself to exactly this, so it is the honest answer to "is there radar
+ * here", and it lives here now rather than being written out twice in dwd.ts.
+ *
+ * Rectangular on purpose. The real coverage is the shape dwdExtentInv masks,
+ * which is smaller; a viewport inside this box but outside that shape shows an
+ * empty radar rather than a wrong claim, and erring that way is much better
+ * than telling someone over Munich that their country is unsupported.
+ */
+export const dwdRadarExtent4326: [number, number, number, number] = [2.8125, 45, 19.6875, 56.25];
+
+export const dwdRadarExtent = transformExtent(dwdRadarExtent4326, "EPSG:4326", "EPSG:3857");
+
 export const dwdExtentInv = fromExtent(
   transformExtent([-180, -90, 180, 90], "EPSG:4326", "EPSG:3857"),
 );

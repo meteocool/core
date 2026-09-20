@@ -11,6 +11,9 @@ import { CacheFirst, NetworkFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
+import {
+  BASEMAP_CACHE, BASEMAP_ROUTE, WEATHER_TILE_CACHE, WEATHER_TILE_ROUTE,
+} from "./lib/tileCacheRoutes";
 
 // Two caches, because the two tilesets have opposite needs.
 //
@@ -19,9 +22,9 @@ import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 // indefinitely. The previous pattern here listed cartodb, nextzen, cyclosm and
 // openstreetmap.org -- none of which the app requests any more.
 registerRoute(
-  /^https:\/\/map\.meteocool\.com\/.*\.mvt$/,
+  BASEMAP_ROUTE,
   new CacheFirst({
-    cacheName: "basemap-cache",
+    cacheName: BASEMAP_CACHE,
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
@@ -37,9 +40,9 @@ registerRoute(
 // so the network wins unless it is too slow to be useful, and what lands in the
 // cache is only there to cover an offline reload.
 registerRoute(
-  /^https:\/\/tiles-a\.meteocool\.com\/.*\.png$/,
+  WEATHER_TILE_ROUTE,
   new NetworkFirst({
-    cacheName: "weather-tile-cache",
+    cacheName: WEATHER_TILE_CACHE,
     networkTimeoutSeconds: 4,
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),

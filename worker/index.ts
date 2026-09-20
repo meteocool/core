@@ -1,4 +1,3 @@
-
 /**
  * The Worker in front of the static build.
  *
@@ -18,9 +17,19 @@
 
 interface Env {
   ASSETS: Fetcher;
+  /**
+   * Origin serving `/v3/preview/og.png`, set per environment in
+   * wrangler.jsonc. The Worker is bundled by wrangler rather than Vite, so
+   * `--mode staging` does not reach it and a hardcoded default would have the
+   * staging deployment advertising production's preview image in its OpenGraph
+   * tags -- the one thing about a shared staging link that would still point at
+   * prod. Falls back to production so a deploy that forgets the var behaves as
+   * it always did.
+   */
+  PREVIEW_ORIGIN?: string;
 }
 
-const PREVIEW_IMAGE = "https://api.meteocool.com/v3/preview/og.png";
+const DEFAULT_PREVIEW_ORIGIN = "https://api.meteocool.com";
 
 const COPY = {
   de: {
@@ -47,7 +56,12 @@ function escapeAttribute(value: string): string {
     .replaceAll("\"", "&quot;");
 }
 
-function metaTags(url: string, latLonZ: string | null, lang: string | null): string {
+function metaTags(
+  url: string,
+  latLonZ: string | null,
+  lang: string | null,
+  previewOrigin: string,
+): string {
   const copy = lang === "de" ? COPY.de : COPY.en;
   // latLonZ lands in a URL the crawler fetches and in an attribute in our own
   // markup, so it is encoded for both rather than interpolated raw.
@@ -55,7 +69,7 @@ function metaTags(url: string, latLonZ: string | null, lang: string | null): str
   // shape the preview endpoint has always been sent. encodeURIComponent would
   // turn them into %2C, which is a change to a URL nothing here can test.
   const encoded = latLonZ ? encodeURIComponent(latLonZ).replaceAll("%2C", ",") : null;
-  const preview = `${PREVIEW_IMAGE}?aspectRatio=wide&frame=true&${
+  const preview = `${previewOrigin}/v3/preview/og.png?aspectRatio=wide&frame=true&${
     encoded ? `latLonZ=${encoded}` : "default"
   }`;
 
@@ -110,6 +124,7 @@ export default {
       request.url,
       searchParams.get("latLonZ"),
       searchParams.get("share_lang"),
+      env.PREVIEW_ORIGIN ?? DEFAULT_PREVIEW_ORIGIN,
     );
     return new HTMLRewriter().on("head", new MetaTagHandler(tags)).transform(response);
   },

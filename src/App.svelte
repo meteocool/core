@@ -1,16 +1,16 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
+import { get } from "svelte/store";
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { fromLonLat } from "ol/proj";
+import { fromLonLat, transformExtent } from "ol/proj";
 import Map from "./components/Map.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
-import MapStatusOverlay from "./components/MapStatusOverlay.svelte";
 
 import RadarCapability from "./caps/RadarCapability";
 import SatelliteCapability from "./caps/SatelliteCapability";
@@ -26,10 +26,10 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cycloneLayerVisible, lastFocus, layerswitcherVisible,
+  cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, precacheForecast, radarColormap,
-  radarColorScheme, snowLayerVisible, toolbarVisible,
+  mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
+  radarColorScheme, selectedCell, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
 import "./global.css";
@@ -39,14 +39,18 @@ import "@shoelace-style/shoelace/dist/themes/dark.css";
 // Last on purpose: it re-points Shoelace's panel, overlay and primary tokens.
 import "./glass.css";
 import { websocketBaseUrl } from "./urls";
+import { onWake, wake } from "./lib/wakeup";
 import { fetchLightningCache, fetchMesocyclones } from "./api";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
 import StrikeManager from "./lib/StrikeManager";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
+import CellTrackManager from "./lib/CellTrackManager";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
+import makeCellLayer from "./layers/cells";
+import CellDetails from "./components/CellDetails.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
@@ -79,7 +83,28 @@ init({
   initialLocale: getLocaleFromNavigator(),
 });
 
-initUIConstants();
+/**
+ * The basemap the system colour scheme asks for.
+ *
+ * Dark chrome over the light basemap is the one combination the glass cannot
+ * look right in -- see the header of src/glass.css -- and it is exactly where a
+ * dark-mode browser used to land, because the scheme and the basemap were
+ * independent settings with independent defaults.
+ *
+ * This is a default, not an override: a basemap the user picked is stored, and
+ * Settings.get() prefers a stored value.
+ */
+function systemBaseLayer() {
+  return get(colorSchemeDark) ? "dark" : "light";
+}
+
+initUIConstants();   // reads prefers-color-scheme into colorSchemeDark
+
+/* Set before Settings is constructed: its constructor only fires a callback
+   when the effective value DIFFERS from the declared default, so a dynamic
+   default with nothing stored would otherwise leave the store on the initial
+   value it was declared with in stores.ts. */
+mapBaseLayer.set(systemBaseLayer());
 
 window.settings = new Settings({
   experimentalFeatures: {
@@ -102,7 +127,7 @@ window.settings = new Settings({
   },
   mapBaseLayer: {
     type: "string",
-    default: "light",
+    default: systemBaseLayer(),
     cb: (val) => {
       mapBaseLayer.set(String(val));
     },
@@ -124,6 +149,13 @@ window.settings = new Settings({
     default: true,
     cb: (value) => {
       cycloneLayerVisible.set(Boolean(value));
+    },
+  },
+  layerCells: {
+    type: "boolean",
+    default: true,
+    cb: (value) => {
+      cellLayerVisible.set(Boolean(value));
     },
   },
   layerSnow: {
@@ -208,6 +240,29 @@ cycloneLayerVisible.subscribe((value) => {
 // lines above was immediately overwritten.
 cycloneLayerVisible.set(window.settings.getBoolean("layerMesocyclones"));
 
+const [cellSource, cellLayer] = makeCellLayer();
+const cellmgr = new CellTrackManager(cellSource);
+cellLayerVisible.subscribe((value) => {
+  cellLayer.setVisible(value);
+  cellmgr.enable(Boolean(value));
+  window.settings.set("layerCells", value);
+  if (value) cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+});
+cellLayerVisible.set(window.settings.getBoolean("layerCells"));
+
+// Cell tracks are fetched for what is on screen, so they follow the map rather
+// than a timer. The manager ignores a move that stays inside what it already
+// holds, which is most of them.
+mapExtent4326.subscribe((extent) => {
+  cellmgr.reload(extent, { nanobar: nb });
+});
+
+// The event is a nudge rather than the cells: a severe afternoon is hundreds of
+// kilobytes of tracks, and only the ones in view are worth asking for.
+radarSocketIO.on("cells", () => {
+  cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+});
+
 radarSocketIO.on("lightning", (data) => {
   strikemgr.addStrike(data.lon, data.lat);
 });
@@ -237,7 +292,7 @@ const lm = new LayerManager({
     {
       name: "radar",
       capability: RadarCapability,
-      additionalLayers: [mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay()],
+      additionalLayers: [cellLayer, mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay()],
       options: {
         nanobar: nb,
         socket_io: radarSocketIO,
@@ -282,11 +337,50 @@ const lm = new LayerManager({
 });
 window.lm = lm;
 
+/*
+ * Tapping a storm opens its history.
+ *
+ * The long press is already the radar's "what is falling here" gesture, and it
+ * asks about a point rather than about an object, so cells take the plain tap
+ * instead. `forEachFeatureAtPixel` stops at the first cell feature under the
+ * finger, which may be the path or the forecast dots as easily as the centroid
+ * -- they all carry their track's code.
+ */
+lm.forEachMap((map) => {
+  /* `mapExtent4326` is published on moveend, so on a cold load -- where the
+     view comes from the URL before the map has a target -- it stays null until
+     the user pans, and the layer would sit empty behind a map full of storms.
+     The first completed render is when there is a viewport to ask about. */
+  map.once("rendercomplete", () => {
+    const size = map.getSize();
+    if (!size) return;
+    cellmgr.reload(transformExtent(
+      map.getView().calculateExtent(size),
+      "EPSG:3857",
+      "EPSG:4326",
+    ) as [number, number, number, number], { nanobar: nb });
+  });
+
+  map.on("singleclick", (event) => {
+    if (!get(cellLayerVisible)) return;
+    const code = map.forEachFeatureAtPixel(
+      event.pixel,
+      (feature) => feature.get("code") as string | undefined,
+      { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
+    );
+    selectedCell.set(code ? cellmgr.trackFor(code) ?? null : null);
+  });
+});
+
 window.settings.setCb("mapRotation", (value) => {
+  // Settings callbacks can fire before a capability is on screen, and there is
+  // no view to carry over then.
+  const current = lm.getCurrentMap();
+  if (!current) return;
   const newView = new View({
-    center: lm.getCurrentMap().getView().getCenter(),
-    zoom: lm.getCurrentMap().getView().getZoom(),
-    minZoom: lm.getCurrentMap().getView().getMinZoom(),
+    center: current.getView().getCenter(),
+    zoom: current.getView().getZoom(),
+    minZoom: current.getView().getMinZoom(),
     enableRotation: Boolean(value),
     extent: VIEW_EXTENT,
   });
@@ -297,8 +391,10 @@ window.settings.setCb("latLonZ", (value) => {
   const parts = String(value).split(",");
   if (parts.length !== 3) return;
   const [lat, lon, z] = parts.map(parseFloat);
-  lm.getCurrentMap().getView().setCenter(fromLonLat([lon, lat]));
-  lm.getCurrentMap().getView().setZoom(z);
+  const view = lm.getCurrentMap()?.getView();
+  if (!view) return;
+  view.setCenter(fromLonLat([lon, lat]));
+  view.setZoom(z);
 });
 
 // Both of these used to finish a nanobar task keyed on the global `URL`
@@ -322,21 +418,57 @@ async function reloadCyclones() {
 reloadLightning();
 reloadCyclones();
 
-window.enterForeground = () => {
+/* Everything that has to happen when the page starts running again. The web
+   never reached this: the hook existed for the two native apps to call, and
+   nothing in the browser called it, so a tab that had been asleep sat on its
+   expired frames until the next poke happened to arrive. lib/wakeup.ts is the
+   browser's side of it. */
+const unsubscribeWake = onWake(() => {
   lastFocus.set(new Date());
   if (window.matchMedia) {
     colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);
   }
+  /* socket.io's reconnect backoff is a timer, and it was suspended along with
+     everything else, so the socket can sit disconnected for minutes after we
+     are back. The poke that refreshes the map comes over it. */
+  if (radarSocketIO.disconnected) radarSocketIO.connect();
   reloadLightning();
   reloadCyclones();
-};
+});
+onDestroy(unsubscribeWake);
 
-// The banner's retry button: coming back online does not make OpenLayers
-// re-request the tiles that failed while it was down.
+/* The apps call this directly. Routed through wake() so a native foreground
+   and the browser signals that accompany it still only resync once. */
+window.enterForeground = () => wake("native bridge");
+
+/* The scheme can flip while the app is open, and the chrome follows it live,
+   so the map has to as well or they end up disagreeing. Only while the user has
+   not chosen a basemap of their own: writable.set() with an unchanged value
+   notifies nobody, so the immediate first call here is a no-op. */
+const baseLayerSub = colorSchemeDark.subscribe(() => {
+  const preferred = systemBaseLayer();
+  window.settings.setDefault("mapBaseLayer", preferred);
+  if (!window.settings.hasStoredValue("mapBaseLayer")) {
+    mapBaseLayer.set(preferred);
+  }
+});
+onDestroy(baseLayerSub);
+
 const refreshSub = tileRefreshSignal.subscribe((n) => {
   if (n > 0) lm.refreshTiles();
 });
 onDestroy(refreshSub);
+
+/* Coming back online does not make OpenLayers re-request the tiles that failed
+   while it was down, so nothing recovers on its own. That is what the banner's
+   retry button was for; with the banner folded into the Latest pill there is no
+   button, so the reconnection does it. */
+let wasOnline = true;
+const reconnectSub = networkStatus.subscribe(({ online }) => {
+  if (online && !wasOnline) tileRefreshSignal.update((n) => n + 1);
+  wasOnline = online;
+});
+onDestroy(reconnectSub);
 onDestroy(cleanupUIConstants);
 
 if (postInitCb) postInitCb(lm);
@@ -376,10 +508,35 @@ if (postInitCb) postInitCb(lm);
 
   /* .sl-toast-stack and the sl-alert parts live in src/glass.css. */
 
+  /* The page itself is never zoomable.
+     `manipulation` was not enough: it only turns off double-tap-to-zoom and
+     still permits pinch, and the platforms treat a double-tap that turns into a
+     drag as a pinch -- which is how a double tap on the loop button in the
+     player ended up zooming the whole page. `pan-x pan-y` allows scrolling and
+     nothing else, so the diagnostics panel still scrolls, the map still pans,
+     and the only zoom left anywhere is the map's own.
+     Not `none`: that would take scrolling with it. Elements that want the whole
+     gesture -- the strip's swipe, the pill -- still set `none` for themselves. */
+  /* Anchored rather than floating over the tap: the map animates under a
+     popup, and a panel that chases the storm is harder to read than one that
+     stays put. Above the toolbar, clear of the bottom tray. */
+  .cell-details-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1200;
+    max-width: min(300px, calc(100vw - 24px));
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--sl-panel-background-color, #fff);
+    color: var(--sl-color-neutral-900, #111);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.28);
+  }
+
   :global(*) {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
   }
 </style>
 
@@ -387,14 +544,21 @@ if (postInitCb) postInitCb(lm);
   <Logo />
 {/if}
 
-{#if $toolbarVisible}
+<!-- toolbarVisible holds "yes"/"no", and "no" is a truthy string: testing the
+     store itself left ?toolbar=no showing the whole toolbar. -->
+{#if $toolbarVisible === "yes"}
   <BottomToolbar layerManager={lm} />
 {/if}
 
 <div id="nanobar" />
 <Map layerManager={lm} />
-<MapStatusOverlay />
 
-{#if $toolbarVisible}
+{#if $selectedCell}
+  <div class="cell-details-panel">
+    <CellDetails track={$selectedCell} />
+  </div>
+{/if}
+
+{#if $toolbarVisible === "yes"}
   <NowcastPlayback cap={lm.getCapability("radar") as RadarCapability} />
 {/if}

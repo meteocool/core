@@ -232,6 +232,32 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * CellsRefresh
+         * @description A nudge that a new KONRAD3D reference time is available.
+         *
+         *     Deliberately not a `Poke`: the frontend's only `poke` handler reloads every
+         *     radar tile, and deliberately not the cells themselves, which run to hundreds
+         *     of kilobytes on a severe day. Clients refetch `/cells/*` from the data
+         *     service, scoped to their viewport.
+         */
+        CellsRefresh: {
+            /**
+             * Count
+             * @description Convective cells detected in that run
+             */
+            count: number;
+            /**
+             * Max Severity
+             * @description Highest DWD severity class in the run
+             */
+            max_severity: number;
+            /**
+             * Reference Time
+             * @description Reference time of the run, milliseconds since the epoch
+             */
+            reference_time: number;
+        };
+        /**
          * ClearNotification
          * @description An acknowledgement that a delivered notification was seen.
          */
@@ -241,6 +267,21 @@ export interface components {
             /** Token */
             token: string;
         };
+        /**
+         * FrameSource
+         * @description Where a timestep's values came from.
+         *
+         *     Declared as an enum so it reaches the exported OpenAPI schema as one, and
+         *     the frontend's generated client types `source` as a union rather than a bare
+         *     string. It was a plain `str`, which is how the two deployments came to emit
+         *     different words for a forecast -- `nowcast_phys` in production, `forecast`
+         *     here -- without the contract, the generated client or any test noticing.
+         *
+         *     The values are production's, because shipped clients already read them:
+         *     `precacheAllForecasts()` matches `nowcast_phys` literally.
+         * @enum {string}
+         */
+        FrameSource: "observation" | "nowcast_phys";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -418,8 +459,7 @@ export interface components {
             filename: string;
             /** Processed Time */
             processed_time: number;
-            /** Source */
-            source: string;
+            source: components["schemas"]["FrameSource"];
             /** Tile Id */
             tile_id: string;
         };

@@ -60,12 +60,19 @@
     word-break: break-word;
   }
 
+  /* As tall as the ink, not a form control.
+     .scale-dividers is shifted out of flow inside the 10px .scale-line, so this
+     box has to state the height the two of them actually occupy: 2px of margin
+     above the strip, the strip, and the dividers' 12px offset plus their line.
+     At the Shoelace input height it was 40px with the ink in the top 26, so
+     align-items:center in .wrapper centred the title on 14px of empty space
+     below the strip -- and the row overflowed the tray it sits in. */
   .scale {
     width: 100%;
     flex: 1;
     float: none;
     margin-bottom: 0;
-    height: var(--sl-input-height-medium);
+    height: 28px;
   }
 
   .scale-line {

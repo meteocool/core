@@ -8,7 +8,7 @@
     "dev-local": "vite --mode localstack",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy:staging": "npm run build && wrangler deploy --env staging",
+    "deploy:staging": "vite build --mode staging && wrangler deploy --env staging",
     "deploy:production": "npm run build && wrangler deploy --env production",
     "worker:dev": "wrangler dev",
     "worker:tail": "wrangler tail",

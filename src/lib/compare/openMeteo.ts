@@ -122,3 +122,61 @@ function shape(raw: ForecastResponse, models: string[]): Forecast {
     respondingModels: models.filter((id) => responding.has(id)),
   };
 }
+
+/** One hourly variable, per model, over the forecast horizon. */
+export interface HourlySeries {
+  /** Epoch milliseconds, one per step. */
+  times: number[];
+  /** Model id -> its value at each step; null where that model has nothing. */
+  series: Record<string, Array<number | null>>;
+  units: string;
+}
+
+/**
+ * Hourly values for every model at once, for plotting them against each other.
+ *
+ * The daily fetch above answers "what will the day be like"; this answers "how
+ * far apart are the models, and when", which only reads as a curve over time.
+ * Same endpoint, `hourly` instead of `daily`.
+ */
+export async function fetchHourlySeries(
+  req: ForecastRequest & { variable?: string },
+): Promise<HourlySeries> {
+  const models = req.models ?? MODEL_IDS;
+  const variable = req.variable ?? "temperature_2m";
+  const params = new URLSearchParams({
+    latitude: String(req.lat),
+    longitude: String(req.lon),
+    hourly: variable,
+    models: models.join(","),
+    forecast_days: String(req.forecastDays ?? 7),
+    timezone: "auto",
+    temperature_unit: "celsius",
+  });
+
+  const response = await fetch(`${FORECAST_URL}?${params}`, { signal: req.signal });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`open-meteo ${response.status}: ${body || response.statusText}`);
+  }
+  const raw = (await response.json()) as {
+    hourly: { time: string[] } & Partial<Record<string, Array<number | null>>>;
+    hourly_units: Record<string, string>;
+  };
+
+  const series: Record<string, Array<number | null>> = {};
+  for (const id of models) {
+    const column = raw.hourly[`${variable}_${id}`];
+    // A model with no values here does not cover this point; leaving it out
+    // keeps it out of the spread rather than flattening the band to zero.
+    if (column?.some((v) => typeof v === "number" && Number.isFinite(v))) {
+      series[id] = column;
+    }
+  }
+
+  return {
+    times: raw.hourly.time.map((t) => new Date(t).getTime()),
+    series,
+    units: raw.hourly_units[`${variable}_${models[0]}`] ?? "°C",
+  };
+}

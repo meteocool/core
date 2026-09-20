@@ -1,5 +1,26 @@
 import Control from "ol/control/Control";
 
+/**
+ * The system's location glyph: an arrow, not a crosshair.
+ *
+ * A reticle reads as "aim at something"; this button does not aim, it answers
+ * "where am I". Every maps app on the platform uses the same north-east arrow
+ * for it, so it is the one shape people already know here, and a control that
+ * looks like everything else on the map while behaving differently is worse
+ * than one that borrows a familiar shape.
+ *
+ * Outlined rather than filled because this is a one-shot recentre, not a
+ * tracking toggle -- filled is what the system uses for "following you".
+ *
+ * Drawn inline rather than pulled from the icon set: this control builds plain
+ * DOM for OpenLayers, outside Svelte, so it has no component to render one in.
+ */
+const LOCATION_ARROW = `<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"
+  fill="none" stroke="currentColor" stroke-width="1.8"
+  stroke-linejoin="round" stroke-linecap="round">
+  <path d="M21 3 L3 10.1 L11.3 12.7 L13.9 21 Z" />
+</svg>`;
+
 type LocateHandler = () => void;
 
 export interface GeolocateControlOptions {
@@ -29,7 +50,7 @@ export default class GeolocateControl extends Control {
     button.type = "button";
     button.title = title;
     button.setAttribute("aria-label", title);
-    button.textContent = "⌖";
+    button.innerHTML = LOCATION_ARROW;
     // A browser with geolocation switched off would otherwise offer a button
     // whose only outcome is a permission error.
     button.disabled = !("geolocation" in navigator);

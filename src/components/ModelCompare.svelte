@@ -13,11 +13,20 @@
   import { modelById } from "../lib/compare/models";
   import { weatherCode } from "../lib/compare/weatherCodes";
   import { reportError } from "../lib/Toast";
+  import ModelSpread from "./ModelSpread.svelte";
+  import { reverseGeocode } from "../lib/reverseGeocode";
+  import { locale } from "svelte-i18n";
+  import { get } from "svelte/store";
 
   /** Where to forecast for: meteocool's map centre when the panel was opened. */
   export let lat: number;
   export let lon: number;
   export let onClose: () => void = () => {};
+
+  /* The report is about a place, so the place is the heading. Coordinates are
+     the fallback and the detail line, not the title: nobody recognises their
+     own town from six decimals. */
+  let placeName: string | null = null;
 
   let forecast: Forecast | null = null;
   let error: string | null = null;
@@ -26,6 +35,11 @@
   let expanded: string | null = null;
 
   onMount(async () => {
+    /* Resolved once: the panel is built with the map centre it was opened on,
+       so the point never moves underneath it. Not a reactive statement -- the
+       assignment happens in an async callback, which as a `$:` is the shape of
+       an infinite loop even when it is not one. */
+    reverseGeocode(lat, lon, get(locale) ?? "en").then((name) => { placeName = name; });
     try {
       forecast = await fetchForecast({ lat, lon, forecastDays: 7 });
     } catch (e) {
@@ -119,24 +133,32 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* A large title, the way a system app opens a screen: the place is the
+     subject, so it is the title, and there is no room above it for a label
+     saying what kind of screen this is. The tile that opens this already said
+     that, and by the time you are reading a forecast you know. */
   header {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6em;
-    padding: 14px 56px 8px 16px;
+    padding: 10px 56px 14px 16px;
   }
 
   h1 {
     margin: 0;
-    font: 600 17px/1.2 var(--mc-font);
-    letter-spacing: -0.01em;
+    /* Shrinks before it wraps: a long German place name at 34px is wider than
+       a phone, and two lines of large title pushes the chart off the screen. */
+    font-size: clamp(25px, 7.4vw, 34px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
   }
 
+  /* The subtitle a large title takes: secondary ink, body size, one line. The
+     coordinates moved into the panel's own footnote -- six decimals under a
+     place name is the kind of detail that reads as clutter until you need it,
+     and the diagnostics panel is where the numbers live. */
   .where {
-    margin-left: auto;
-    text-align: right;
-    font: 500 12px/1.3 var(--mc-font);
-    font-variant-numeric: tabular-nums;
+    margin: 3px 0 0;
+    font: 400 15px/1.3 var(--mc-font);
+    letter-spacing: -0.01em;
     color: var(--mc-text-2);
   }
 
@@ -297,11 +319,10 @@
   <div class="close" on:click={onClose} title="Close">×</div>
 
   <header>
-    <h1>🌡 Model Comparison</h1>
-    <div class="where">
-      {lat.toFixed(3)}, {lon.toFixed(3)}
-      {#if forecast}<br />{forecast.respondingModels.length} of 21 models{/if}
-    </div>
+    <h1>{placeName ?? `${lat.toFixed(3)}, ${lon.toFixed(3)}`}</h1>
+    <p class="where">
+      {#if forecast}{forecast.respondingModels.length} of 21 models{:else}Comparing models…{/if}
+    </p>
   </header>
 
   {#if loading}
@@ -309,6 +330,10 @@
   {:else if error}
     <div class="status">Could not reach open-meteo.<br />{error}</div>
   {:else}
+    <!-- The spread first: the point of comparing models is the disagreement,
+         which is a curve over time, not a column of daily numbers. -->
+    <ModelSpread {lat} {lon} />
+
     <div class="days">
       {#each days as day (day.date)}
         <div class="day" on:click={() => toggle(day.date)}>
@@ -355,6 +380,7 @@
     </div>
 
     <footer>
+      Forecast for {lat.toFixed(4)}, {lon.toFixed(4)}.
       Weighted across {forecast?.respondingModels.length} models that cover this point, discounting
       shared lineage so a family of related models does not read as independent
       agreement. The badge scores temperature agreement against the spread
