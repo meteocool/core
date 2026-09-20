@@ -7,6 +7,7 @@ import Circle from "ol/style/Circle";
 import Text from "ol/style/Text";
 import type { FeatureLike } from "ol/Feature";
 import { selectedCell } from "../stores";
+import { outlineIsCurrent } from "../lib/cellGeometry";
 
 /**
  * Tracked thunderstorm cells: where each one has been, and where it is going.
@@ -169,10 +170,29 @@ function ellipseStyle(feature: FeatureLike): Style | undefined {
   }));
 }
 
-function outlineStyle(feature: FeatureLike): Style {
+/**
+ * The core, and only while it still describes something.
+ *
+ * Two things made this the most misread mark on the map. It fades now, like
+ * the path and the centroid do -- it was the one feature drawn at full
+ * strength however old it was, so a cell that dissipated an hour ago kept a
+ * confident ring over empty radar while everything else about it had gone
+ * pale. And past `OUTLINE_MAX_MINUTES` it is dropped outright.
+ *
+ * What remains is still not the edge of what the radar layer paints, and
+ * cannot be: DWD contours the cell at its own detection threshold -- the
+ * structure that comes with it bottoms out at 30 dBZ, and in practice the
+ * footprint there is the same one as at 40 -- while the reflectivity layer
+ * colours everything from -32.5 dBZ up. So a correct outline is a small ring
+ * around the core, well inside the visible blob, never around it.
+ */
+function outlineStyle(feature: FeatureLike): Style | undefined {
+  const minutes = feature.get("age_minutes") ?? 0;
+  if (!outlineIsCurrent(minutes)) return undefined;
   const severity = feature.get("max_severity") ?? 0;
-  return cached(`outline:${severity}`, () => new Style({
-    stroke: new Stroke({ color: rgba(severityColour(severity), 0.6), width: 1.5 }),
+  const opacity = bucket(ageOpacity(minutes));
+  return cached(`outline:${severity}:${opacity}`, () => new Style({
+    stroke: new Stroke({ color: rgba(severityColour(severity), 0.6 * opacity), width: 1.5 }),
   }));
 }
 

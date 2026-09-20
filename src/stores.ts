@@ -11,6 +11,17 @@ export const bottomToolbarMode = writable<"collapsed" | "player" | "hidden">("co
 export const capDescription = writable<string>("Meteorology for everyone");
 export const capLastUpdated = writable<Date | null>(null);
 export const capTimeIndicator = writable<number>(0);
+/**
+ * The newest observation the radar grid holds, as the same unix-second step
+ * `capTimeIndicator` is in -- or 0 before any grid has arrived.
+ *
+ * The pair answers "is the map showing now?", which `live` cannot: that one is
+ * cleared at the start of every grid refetch and set again when the grid lands,
+ * so anything keyed to it blinks once every few minutes. These two only move
+ * when a frame actually changes, and both being 0 means there is no player to
+ * be off the live edge of rather than that we are.
+ */
+export const capLatestObservation = writable<number>(0);
 export const colorSchemeDark = writable<boolean>(false);
 export const radarColormap = writable<string>("classic");
 
