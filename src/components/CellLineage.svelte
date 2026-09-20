@@ -158,6 +158,17 @@ function activate(event: KeyboardEvent, code: string) {
   .node {
     cursor: pointer;
   }
+
+  /* The clicked node keeps the browser's focus ring, which on a chart where
+     one node is already outlined to say "you are here" reads as a second,
+     contradictory highlight -- and lands on every hop. Dropped for the
+     pointer, kept for the keyboard, which is the one case it is for. */
+  .node:focus {
+    outline: none;
+  }
+  .node:focus-visible .box {
+    stroke-dasharray: 3 2;
+  }
   .node.self {
     cursor: default;
   }

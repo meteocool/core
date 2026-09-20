@@ -290,7 +290,21 @@ let family: Map<string, CellTrackProperties> = new SvelteMap();
 let loadingFamily = false;
 
 async function loadFamily(root: CellTrackProperties) {
-  const known = new SvelteMap<string, CellTrackProperties>([[root.code, root]]);
+  /*
+   * Kept when the new cell is one this family already holds.
+   *
+   * Walking the chart re-roots the panel on a relative, and rebuilding from
+   * that relative meant starting again from a map of one: the chart fell below
+   * the two nodes it needs to draw anything, vanished, and grew back a round
+   * at a time as the fetches landed. Every hop was a graph that disappeared and
+   * relaid itself under a cursor that had not moved, which is the opposite of
+   * what a thing you navigate by should do. Within one lineage the family is
+   * the same family, so it survives the hop and only the highlight moves.
+   */
+  const known = family.has(root.code)
+    ? family
+    : new SvelteMap<string, CellTrackProperties>([[root.code, root]]);
+  known.set(root.code, root);
   family = known;
   // Nothing to walk, and no request worth making for the two thirds of cells
   // that have no relatives at all.
