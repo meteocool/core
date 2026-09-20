@@ -15,6 +15,7 @@
  * been going for half an hour, which for a lot of taps is the whole question.
  */
 import { cellDetails, selectedCell } from "../stores";
+import { swipeAway } from "../lib/swipeAway";
 import { severityColour } from "../layers/cells";
 import { BAND_NAMES, duration } from "../lib/cellMetrics";
 
@@ -35,6 +36,38 @@ const dismiss = (event: Event) => {
   event.stopPropagation();
   selectedCell.set(null);
 };
+
+/* ---- swipe left to clear ------------------------------------------------ */
+
+/**
+ * The same gesture the map's strips have, from the same action.
+ *
+ * Consistency here is a matter of feel rather than looks, and the feel is
+ * almost all in when a drag stops being a tap -- six pixels -- and how far it
+ * has to go to count -- 45% of the width. Both live in lib/swipeAway.ts and
+ * both things that swipe read them from there, so the two cannot drift.
+ *
+ * The bar carries two controls, and neither is harmed: below the slop nothing
+ * is captured, so a tap on "details" or on the close button reaches it.
+ */
+let pulled = 0;
+let released = true;
+
+const onSwipe = (dx: number) => {
+  released = false;
+  pulled = dx;
+};
+
+const onSwipeEnd = (cleared: boolean) => {
+  released = true;
+  if (cleared) {
+    // Off the edge first, so the bar is seen to leave rather than blinking out.
+    pulled = -window.innerWidth;
+    setTimeout(() => selectedCell.set(null), 160);
+    return;
+  }
+  pulled = 0;
+};
 </script>
 
 <style>
@@ -42,6 +75,9 @@ const dismiss = (event: Event) => {
      width with the name of the storm reads as mangled next to the trays above
      and below it, which are full-width and squared off to the same gutters. */
   .hint {
+    /* The swipe owns the horizontal drag; without this the browser's own pan
+       takes it and the bar never moves. */
+    touch-action: pan-y;
     position: absolute;
     left: 0;
     right: 0;
@@ -151,12 +187,21 @@ const dismiss = (event: Event) => {
     transform: scale(var(--mc-press));
   }
 
+  /* Follows the finger while it is down, springs back or leaves when it lifts. */
+  .hint.settling {
+    transition: transform 180ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+                opacity 180ms linear;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .go:active { transform: none; }
+    .hint.settling { transition: none; }
   }
 </style>
 
-<div class="hint" style="--colour: {colour}">
+<div class="hint" class:settling={released}
+  style="--colour: {colour}; transform: translateX({pulled}px); opacity: {1 - Math.min(1, -pulled / 220)}"
+  use:swipeAway={{ onMove: onSwipe, onEnd: onSwipeEnd }}>
   <span class="swatch" style="background: {colour}"></span>
   <span class="what">
     <span class="title"><b>{BAND_NAMES[severity]}</b> cell</span>
