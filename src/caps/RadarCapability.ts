@@ -23,6 +23,7 @@ import type BaseLayer from "ol/layer/Base";
 import type ImageTileSource from "ol/source/ImageTile";
 import type NanobarWrapper from "../lib/NanobarWrapper";
 import type { CapabilityOptions, RadarSocket } from "./options";
+import { reportReplay } from "../lib/Toast";
 import Capability from "./Capability";
 import { tileBaseUrl } from "../urls";
 import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
@@ -475,6 +476,10 @@ export default class RadarCapability extends Capability {
 
     this.serverGrid = obj.frames;
     this.serverTime = obj.server_time;
+    // The backend is the only thing that knows: a replay is built to be
+    // indistinguishable from here, so there is nothing in the frames to infer
+    // it from.
+    if (obj.replay) reportReplay();
     this.gridconfig = this.regenerateGridConfig();
     const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
 

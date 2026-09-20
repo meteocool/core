@@ -44,3 +44,37 @@ export function reportError(message: unknown, variant = "warning", icon = "excla
 export function reportToast(message: string, variant = "primary", icon = "info-circle") {
   return toast(message, variant, icon, { duration: 15000 });
 }
+
+/**
+ * Whether the replay notice has been shown this session.
+ *
+ * The flag arrives on every radar refresh, which is every five minutes and
+ * again on every poke, pan and foreground. The reader needs telling once.
+ */
+let replayAnnounced = false;
+
+/** For tests and for a deliberate re-arm. */
+export function resetReplayNotice() {
+  replayAnnounced = false;
+}
+
+/**
+ * Say that the map is showing a recording.
+ *
+ * Replay rewrites every timestamp in a recorded storm to the present, so the
+ * radar, the cells, the lightning and the "last updated" pill are all
+ * indistinguishable from live -- deliberately, because that is what makes it a
+ * useful test of the real thing. Nobody can tell by looking, so they have to be
+ * told. No duration: this is a standing condition, not an event, and it stays
+ * until it is dismissed.
+ */
+export function reportReplay(announced = replayAnnounced) {
+  if (announced) return undefined;
+  replayAnnounced = true;
+  return toast(
+    "<b>This is not live weather.</b> The stack is replaying a recorded storm, with every "
+      + "timestamp rewritten to now.",
+    "warning",
+    "clock-history",
+  );
+}

@@ -472,6 +472,12 @@ export interface components {
             frames: {
                 [key: string]: components["schemas"]["RadarFrame"] | null;
             };
+            /**
+             * Replay
+             * @description Whether this stack is replaying a recorded window rather than ingesting live weather. Every timestamp is rewritten to the present, so nothing else in this response distinguishes the two -- which is the point, and the reason a client has to be told rather than left to work it out.
+             * @default false
+             */
+            replay: boolean;
             /** Server Time */
             server_time: number;
         };

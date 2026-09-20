@@ -431,6 +431,12 @@
             "title": "Frames",
             "type": "object"
           },
+          "replay": {
+            "default": false,
+            "description": "Whether this stack is replaying a recorded window rather than ingesting live weather. Every timestamp is rewritten to the present, so nothing else in this response distinguishes the two -- which is the point, and the reason a client has to be told rather than left to work it out.",
+            "title": "Replay",
+            "type": "boolean"
+          },
           "server_time": {
             "title": "Server Time",
             "type": "integer"
