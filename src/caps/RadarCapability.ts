@@ -8,6 +8,7 @@ import type { LayerFactory } from "../layers/dwd";
 import {
   capDescription,
   capLastUpdated,
+  capLatestObservation,
   capTimeIndicator,
   lastFocus,
   inspectLatLon,
@@ -16,6 +17,7 @@ import {
   radarCadence,
   radarColorScheme,
   radarStale,
+  selectedCell,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
 } from "../stores";
 import type { Map } from "ol";
@@ -43,6 +45,22 @@ const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
  * answer available until the new one lands a moment later.
  */
 const STALE_OPACITY = NOWCAST_OPACITY * 0.45;
+
+/**
+ * How far the radar steps back while a cell's popup is open.
+ *
+ * Opening a cell puts its whole forecast on the map -- a dozen centroids and a
+ * nest of dashed uncertainty ellipses, all of it thin one-pixel work in the
+ * cell's own severity colour. Over a mature storm that lands on the loudest
+ * pixels the radar has, reds and oranges at full strength, and the dashes
+ * simply disappear into them.
+ *
+ * So the reflectivity drops back for as long as the popup is up. Not far: the
+ * echo is the thing the track is being read *against*, and a comparison needs
+ * both halves. A little over half strength is enough to let a one-pixel dash
+ * win without the storm underneath it going away.
+ */
+const INSPECT_OPACITY = 0.55;
 
 function setPattern(style) {
   const canvas = document.createElement("canvas");
@@ -113,6 +131,9 @@ export default class RadarCapability extends Capability {
 
   /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
   stale: boolean;
+
+  /** Whether a cell's popup is open, which is the other reason to dim it. */
+  private inspecting = false;
 
   private nanobar: NanobarWrapper;
 
@@ -206,7 +227,16 @@ export default class RadarCapability extends Capability {
 
     radarStale.subscribe((value) => {
       this.stale = value;
-      this.applyStaleOpacity();
+      this.applyRadarOpacity();
+    });
+
+    /* The popup carries the cell's forecast onto the map with it, which is
+       what needs the room; there is nothing to make room for once it closes. */
+    selectedCell.subscribe((track) => {
+      const open = track !== null;
+      if (open === this.inspecting) return;
+      this.inspecting = open;
+      this.applyRadarOpacity();
     });
 
     live.subscribe((value) => {
@@ -349,8 +379,19 @@ export default class RadarCapability extends Capability {
     live.set(false);
   }
 
-  private applyStaleOpacity() {
-    this.layer?.setOpacity(this.stale ? STALE_OPACITY : NOWCAST_OPACITY);
+  /**
+   * The radar layer's opacity, as one sum rather than two writers.
+   *
+   * Staleness and the open popup both want to dim it and neither knows about
+   * the other, so each one setting it directly would mean whichever fired last
+   * won: closing a popup over stale radar would quietly restore it to full
+   * strength and drop the outdated warning with it. Both are flags here and
+   * the opacity is computed from them, so they compose -- stale radar being
+   * inspected is dimmer still, and each one is undone only by its own cause.
+   */
+  private applyRadarOpacity() {
+    const base = this.stale ? STALE_OPACITY : NOWCAST_OPACITY;
+    this.layer?.setOpacity(this.inspecting ? base * INSPECT_OPACITY : base);
   }
 
   reloadAll() {
@@ -491,6 +532,13 @@ export default class RadarCapability extends Capability {
         super.getMap().addLayer(this.layer);
       }
     }
+    // Published before the switch below, so that whichever branch runs has the
+    // newest step on record to be compared against: `resetToLatest` moves the
+    // indicator onto it, and a manual scrubber is left where it is and is now
+    // measurably behind. Layers that only make sense on the live frame read
+    // the pair -- see the cell layer's gate in App.svelte.
+    capLatestObservation.set(this.getMostRecentObservation());
+
     switch (this.trackingMode) {
       case "live":
         this.resetToLatest();
@@ -510,7 +558,7 @@ export default class RadarCapability extends Capability {
     capLastUpdated.set(latestRadar);
     this.publishCadenceFromGrid();
     radarStale.set(false);
-    this.applyStaleOpacity();
+    this.applyRadarOpacity();
     this.notify("grid", this.clientGridConfig);
   }
 

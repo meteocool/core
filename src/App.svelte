@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
-import { get } from "svelte/store";
+import { derived, get } from "svelte/store";
 import View from "ol/View";
 import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
 
@@ -27,6 +27,7 @@ import {
   bottomToolbarMode,
   colorSchemeDark,
   cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
+  capLatestObservation, capTimeIndicator,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, snowLayerVisible, toolbarVisible,
@@ -41,6 +42,7 @@ import "./glass.css";
 import { websocketBaseUrl } from "./urls";
 import { onWake, wake } from "./lib/wakeup";
 import { fetchLightningCache, fetchMesocyclones } from "./api";
+import { showsLatestFrame } from "./lib/freshness";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
@@ -244,12 +246,47 @@ cycloneLayerVisible.set(window.settings.getBoolean("layerMesocyclones"));
 const [cellSource, cellLayer] = makeCellLayer();
 const cellmgr = new CellTrackManager(cellSource);
 cellLayerVisible.subscribe((value) => {
-  cellLayer.setVisible(value);
   cellmgr.enable(Boolean(value));
   window.settings.set("layerCells", value);
   if (value) cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
 });
 cellLayerVisible.set(window.settings.getBoolean("layerCells"));
+
+/**
+ * Cells are drawn on the newest observation and nowhere else.
+ *
+ * The tracks endpoint answers with one state -- where every storm is now, the
+ * outline of its latest detection, and where it is going -- and nothing here
+ * rewinds it. Scrub the radar back an hour, or out into the nowcast, and the
+ * map underneath moves while every dot, path and outline stays parked at the
+ * present: the marks then sit beside echoes they have nothing to do with, and
+ * read as a tracker that has lost its storms rather than as a layer showing a
+ * different moment than the frame.
+ *
+ * The test is the frame on screen against the newest one the grid holds, not
+ * the `live` store the pill uses: that is cleared at the top of every grid
+ * refetch and set again when the grid lands, so a layer keyed to it would
+ * blink off and back every few minutes. It is also a deliberate one-way test
+ * -- both stores at 0 means no grid has arrived, which is a page that has not
+ * loaded its radar or is not showing radar at all, and there is no frame there
+ * for the cells to disagree with. Hiding is for the case we can positively
+ * see, where the player is parked somewhere the storms are not.
+ *
+ * The manager keeps running throughout: this hides the drawing, it does not
+ * drop the data, so coming back to the live edge costs no refetch.
+ */
+derived(
+  [cellLayerVisible, capTimeIndicator, capLatestObservation],
+  ([wanted, shown, newest]) => Boolean(wanted) && showsLatestFrame(shown, newest),
+).subscribe((value) => {
+  cellLayer.setVisible(value);
+  // The popup is anchored to a mark that is no longer on the map, and it dims
+  // the radar underneath for as long as it is up. Leaving it open over a frame
+  // its cell is not drawn on would be a panel of present-tense numbers about a
+  // storm the map has stopped showing, over a picture darkened to make room
+  // for marks that are not there.
+  if (!value) selectedCell.set(null);
+});
 
 // Cell tracks are fetched for what is on screen, so they follow the map rather
 // than a timer. The manager ignores a move that stays inside what it already

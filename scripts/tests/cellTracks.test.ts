@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { distanceKm, lastRunStart, MAX_STORM_KMH } from "../../src/lib/cellGeometry.ts";
+import {
+  distanceKm, lastRunStart, MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent,
+} from "../../src/lib/cellGeometry.ts";
 
 /**
  * Where a track stops being one storm.
@@ -97,4 +99,38 @@ test("a repeated timestamp does not read as infinite speed", () => {
 test("a track of one step has nothing to cut", () => {
   assert.equal(lastRunStart([at(0, 11, 48)]), 0);
   assert.equal(lastRunStart([]), 0);
+});
+
+/**
+ * When an outline stops meaning anything.
+ *
+ * The tracks endpoint answers with a three-hour window, so most of what comes
+ * back has stopped being detected. The path and the centroid fade over that;
+ * the outline did not, and it does not move either -- it is the shape DWD
+ * contoured at one detection, pinned where that detection was. A cell that
+ * dissipated an hour ago therefore kept a full-strength ring over radar with
+ * nothing in it, which reads as the tracker having lost its storm.
+ */
+test("a freshly detected outline is drawn", () => {
+  assert.equal(outlineIsCurrent(0), true);
+  assert.equal(outlineIsCurrent(5), true);
+});
+
+test("an outline survives the first fade but not the second", () => {
+  // ageOpacity's first step is 20 minutes: faded, still describing the storm.
+  assert.equal(outlineIsCurrent(25), true);
+  assert.equal(outlineIsCurrent(OUTLINE_MAX_MINUTES), true);
+});
+
+test("a half-hour-old outline is dropped rather than faded further", () => {
+  assert.equal(outlineIsCurrent(OUTLINE_MAX_MINUTES + 0.1), false);
+  // The window the endpoint answers with; the whole tail of it used to draw.
+  assert.equal(outlineIsCurrent(180), false);
+});
+
+test("a storm at 60 km/h has left a half-hour-old outline well behind it", () => {
+  // Which is the reason for the cutoff: the outline does not travel with the
+  // track, so at the limit it is already this far from anything on the radar.
+  const kmh = 60;
+  assert.ok(kmh * (OUTLINE_MAX_MINUTES / 60) >= 15);
 });

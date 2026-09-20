@@ -59,3 +59,24 @@ export function isOutdated(
   if (!newestFrameS || newestFrameS <= 0) return false;
   return nowS - newestFrameS > expectedPeriodS(cadence) + OUTDATED_GRACE_S;
 }
+
+/**
+ * Whether the frame on screen is the newest observation the grid holds.
+ *
+ * The sibling of `isOutdated`, and the same shape of question from the other
+ * side: that one asks whether the newest frame we hold is behind the clock,
+ * this one whether the frame we are *showing* is behind the newest we hold.
+ * The cause is the scrubber rather than a sleeping tab, and what it decides is
+ * whether a layer with only a present tense -- the storm cells, which arrive
+ * as one current state and are not rewound -- has any business being drawn.
+ *
+ * Both are epoch seconds, as the grid keys them. A zero on either side means
+ * no grid has arrived: a page still loading, or one not showing radar at all.
+ * That reports true, because there is no frame there to disagree with, and the
+ * alternative is a cold load that hides its own storm layer until the first
+ * grid lands.
+ */
+export function showsLatestFrame(shownS: number, newestS: number): boolean {
+  if (shownS <= 0 || newestS <= 0) return true;
+  return shownS === newestS;
+}
