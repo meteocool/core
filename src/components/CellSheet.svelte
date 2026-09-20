@@ -37,7 +37,29 @@ const close = () => {
   cellDetails.set(afterClose({ code: track.code, details: true }, true).details);
 };
 
-/* ---- pull down to dismiss ---------------------------------------------- */
+/* ---- how much of the screen the sheet takes ----------------------------- */
+
+/**
+ * Two heights, not one.
+ *
+ * At one height the sheet had to pick between being readable and leaving the
+ * map visible, and it picked readable: 82% of the screen, with the family
+ * graph below the fold. That is the wrong trade for the graph in particular,
+ * because the graph is a thing you navigate *with* -- tapping a node moves the
+ * selection on the map, and if the map is a strip at the top there is nothing
+ * to see it move on.
+ *
+ * So the sheet opens half height, which leaves the map the other half, and
+ * goes full when there is reading to do. Dragging the grabber moves between
+ * them; dragging down from half dismisses, which keeps one gesture meaning one
+ * thing all the way down.
+ */
+const HALF = 0.52;
+const FULL = 0.88;
+
+let detent = HALF;
+
+/* ---- drag the grabber --------------------------------------------------- */
 
 /**
  * The grabber is draggable, not decorative.
@@ -45,14 +67,15 @@ const close = () => {
  * A sheet with a handle that does not move is a worse lie than no handle: the
  * shape promises the gesture, and a reader who tries it and gets nothing
  * learns the UI is fake rather than that they were wrong. So the drag is real,
- * and it follows the finger.
+ * and it follows the finger -- upward as well now, because there is somewhere
+ * above to go.
  */
 let dragY = 0;
 let dragging = false;
 let startY = 0;
 
-/** Far enough that the pull was meant, short enough to be one easy motion. */
-const DISMISS_PX = 90;
+/** Far enough that the drag was meant, short enough to be one easy motion. */
+const SNAP_PX = 60;
 
 function grab(event: PointerEvent) {
   dragging = true;
@@ -62,17 +85,27 @@ function grab(event: PointerEvent) {
 
 function move(event: PointerEvent) {
   if (!dragging) return;
-  // Downward only: dragging a docked sheet upward would lift it off the edge
-  // it is docked to, and there is nothing under it to reveal.
-  dragY = Math.max(0, event.clientY - startY);
+  const delta = event.clientY - startY;
+  // Upward only as far as the full detent is from here, so the sheet cannot be
+  // dragged off the top of the screen and left there.
+  const headroom = detent === HALF ? -(FULL - HALF) * window.innerHeight : 0;
+  dragY = Math.max(headroom, delta);
 }
 
 function release() {
   if (!dragging) return;
   dragging = false;
-  if (dragY > DISMISS_PX) close();
+  const moved = dragY;
   dragY = 0;
+  if (moved < -SNAP_PX) {
+    detent = FULL;
+  } else if (moved > SNAP_PX) {
+    // Down from full lands on half; down from half lets go of the cell.
+    if (detent === FULL) detent = HALF;
+    else close();
+  }
 }
+
 </script>
 
 <style>
@@ -84,9 +117,9 @@ function release() {
     z-index: 1200;
     display: flex;
     flex-direction: column;
-    /* Short enough that the storm the sheet describes is still on the map
-       above it, which is the whole reason it is docked rather than full. */
-    max-height: 82vh;
+    /* Set from the detent, so the map above always has the rest. */
+    height: var(--sheet-h);
+    max-height: 88vh;
     padding: 0 12px calc(12px + var(--mc-safe-bottom));
     border-radius: 22px 22px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
@@ -152,7 +185,9 @@ function release() {
     transition: none;
   }
   .settling {
-    transition: transform 200ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1));
+    transition:
+      transform 200ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+      height 260ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -164,13 +199,13 @@ function release() {
   class="sheet"
   class:dragging
   class:settling={!dragging}
-  style="transform: translateY({dragY}px)"
+  style="--sheet-h: {Math.round(detent * 100)}vh; transform: translateY({dragY}px)"
   transition:fly={slide}>
   <div
     class="grip"
     role="button"
     tabindex="0"
-    aria-label="Close details"
+    aria-label="Resize or close details"
     on:pointerdown={grab}
     on:pointermove={move}
     on:pointerup={release}
