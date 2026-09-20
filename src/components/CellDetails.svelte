@@ -285,6 +285,28 @@ $: panels = [
  */
 $: ticks = span ? timeTicks(span.from, span.to, 4) : [];
 
+/**
+ * The ticks with their positions already worked out.
+ *
+ * Not `x={atX(t)}` in the markup, which is what this was. The block is keyed
+ * on the tick's timestamp so that a tick surviving a change of cell is not
+ * torn down and rebuilt -- and Svelte has no way to know `atX` reads `span`,
+ * so a surviving tick kept the x it had been given under the old window.
+ * Walking the family put 16:00 and 16:30 at the same pixel.
+ *
+ * Computed in a reactive statement that names `span` outright, so it is redone
+ * whenever the window moves and every tick in it is a new object.
+ */
+$: tickMarks = span
+  ? ticks.map((t) => ({ t, x: atX(t), label: clock(new Date(t).toISOString()) }))
+  : [];
+
+/** The value gridlines, for the same reason: `panel.scale.at` is a function too. */
+$: gridlines = panels.map((panel) => panel.scale.ticks.map((value) => ({
+  value,
+  y: panel.scale.at(value),
+})));
+
 $: readings = cellReadings(track, compass);
 
 /** The current detection, in the shape the volumetric model reads. */
@@ -461,23 +483,29 @@ function close() {
 
   {#if span && panels.length}
     <div class="history">
-      {#each panels as panel (panel.key)}
+      {#each panels as panel, panelIndex (panel.key)}
         <figure>
           <figcaption>{panel.title}, {panel.unit}</figcaption>
           <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
                aria-label="{panel.title} over the tracked period, in {panel.unit}">
-            {#each panel.scale.ticks as value (value)}
-              <line class="grid" x1={plot.x0} x2={plot.x1}
-                    y1={panel.scale.at(value)} y2={panel.scale.at(value)} />
-              <text class="tick left" x={plot.x0 - 5} y={panel.scale.at(value)}>{value}</text>
+            {#each gridlines[panelIndex] ?? [] as line (line.value)}
+              <line class="grid" x1={plot.x0} x2={plot.x1} y1={line.y} y2={line.y} />
+              <text class="tick left" x={plot.x0 - 5} y={line.y}>{line.value}</text>
             {/each}
 
-            {#each ticks as t (t)}
-              <line class="tickmark" x1={atX(t)} x2={atX(t)}
+            {#each tickMarks as mark, i (mark.t)}
+              <line class="tickmark" x1={mark.x} x2={mark.x}
                     y1={panel.y0} y2={panel.y0 + (panel.axis ? 3 : 0)} />
               {#if panel.axis}
-                <text class="tick time" x={atX(t)} y={panel.y0 + 13}>
-                  {clock(new Date(t).toISOString())}
+                <!-- Centred, except at the ends. A label centred on the first
+                     tick hangs off the left of the plot and lands under the
+                     value axis; the last one runs out past the direct label on
+                     the right. Anchoring them inwards keeps both inside the
+                     chart without moving the tick they belong to. -->
+                <text class="tick" x={mark.x} y={panel.y0 + 13}
+                      text-anchor={i === 0 ? "start"
+                        : (i === tickMarks.length - 1 ? "end" : "middle")}>
+                  {mark.label}
                 </text>
               {/if}
             {/each}
@@ -743,7 +771,6 @@ function close() {
     font-variant-numeric: tabular-nums;
   }
   .left { text-anchor: end; dominant-baseline: middle; }
-  .time { text-anchor: middle; }
   footer {
     font-size: 11px;
     opacity: 0.6;
