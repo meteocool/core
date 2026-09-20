@@ -11,7 +11,8 @@
  * current reading.
  */
 import { _ } from "svelte-i18n";
-import { selectedCell } from "../stores";
+import { cellDetails, selectedCell, smallScreen } from "../stores";
+import { afterClose } from "../lib/cellSelection";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
 import { BAND_NAMES, cellReadings } from "../lib/cellMetrics";
@@ -269,6 +270,22 @@ function duration(minutes: number): string {
 }
 
 $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
+
+/**
+ * Closing leaves the cell's forecast on the map on a phone, and clears it
+ * everywhere else.
+ *
+ * There, closing the panel is how a reader asks to look at the map again --
+ * the panel was covering it -- so taking the forecast away with it would mean
+ * tapping the storm twice over to get back what they were already looking at.
+ * The map background still clears everything, which is where "done with this
+ * storm" belongs. `afterClose` in lib/cellSelection.ts states both.
+ */
+function close() {
+  const next = afterClose({ code: track.code, details: true }, $smallScreen);
+  if (!next.code) selectedCell.set(null);
+  cellDetails.set(next.details);
+}
 </script>
 
 <div class="cell-details">
@@ -276,7 +293,7 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
     <span class="severity">{BAND_NAMES[severity]}</span>
     <span class="age">{age}</span>
     {#if !track.active}<span class="age">dissipated</span>{/if}
-    <button class="close" on:click={() => selectedCell.set(null)} aria-label="Close">&times;</button>
+    <button class="close" on:click={close} aria-label="Close">&times;</button>
   </header>
 
   <div class="signals">

@@ -43,11 +43,20 @@ function drain(colour: string, into: [number, number, number], amount: number): 
   }));
 }
 
-/** How much of each colour's own hue is given up before it is mixed away. */
-const DESATURATE = 0.72;
+/**
+ * How much of each colour's own hue is given up before it is mixed away.
+ *
+ * Lowered along with the mix below, for the reason spelled out on `muteTheme`.
+ * At 0.72 this flattened the theme to near-greyscale before the mix even ran,
+ * which is why raising the mix alone changed almost nothing: forest came out
+ * #eeefeb against an earth of #f6f4f0, a difference of four values, so the
+ * only thing left distinguishing a map from a blank sheet was the dashed
+ * borders. Enough hue survives now to tell water from farmland from forest.
+ */
+const DESATURATE = 0.35;
 
 /**
- * The same theme with the life drained out of it.
+ * The same theme with some of the life drained out of it.
  *
  * The 3D map is the one view where the basemap is not the subject. Its storms
  * are coloured by reflectivity -- a ramp that runs green, yellow, orange, red
@@ -59,8 +68,17 @@ const DESATURATE = 0.72;
  * fills overlap: landcover over earth over background, all semi-transparent,
  * comes out blotchy where they stack and lets the sky through where they do
  * not. Mixing the colours leaves every surface opaque and evenly quiet.
+ *
+ * The first version of this drained 0.55 of every surface into the earth
+ * colour and went too far in the wrong place. What actually competes with the
+ * storms there is the flat reflectivity raster under them, which covers the
+ * same ground in the same ramp; the basemap was being quietened to make room
+ * for a layer that was itself the problem. With the raster down to
+ * RADAR_OPACITY in Cells3DCapability the extrusions are the only saturated
+ * thing left, and the map can be a map again -- towns, water and roads legible
+ * enough to say where a storm actually is, which is what the view is for.
  */
-export function muteTheme(theme: BasemapTheme, amount = 0.55): BasemapTheme {
+export function muteTheme(theme: BasemapTheme, amount = 0.2): BasemapTheme {
   const into = channels(theme.earth);
   const one = (colour: string) => drain(colour, into, amount);
   const each = (kinds: Record<string, string>) => Object.fromEntries(
