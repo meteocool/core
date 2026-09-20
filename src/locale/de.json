@@ -81,5 +81,6 @@
   "precipitation_at_point": "Niederschlag hier",
   "precipitation_none": "Kein Niederschlag in den letzten zwei Stunden — und keiner für die nächsten zwei vorhergesagt.",
   "hide": "Ausblenden",
-  "last_success": "Letzte Aktualisierung"
+  "last_success": "Letzte Aktualisierung",
+  "preview": "Vorschau"
 }

@@ -82,5 +82,6 @@
   "precipitation_at_point": "Precipitation Here",
   "precipitation_none": "No precipitation in the past two hours — and none forecast for the next two.",
   "hide": "Hide",
-  "last_success": "Last update"
+  "last_success": "Last update",
+  "preview": "Preview"
 }
