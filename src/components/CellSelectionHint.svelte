@@ -11,17 +11,18 @@
  * already got what they wanted.
  *
  * It names the storm rather than saying "tap again", so the tap that produced
- * it is also acknowledged: the reader learns they hit a strong cell with hail,
- * which for a lot of taps is the whole question.
+ * it is also acknowledged: the reader learns they hit a strong cell that has
+ * been going for half an hour, which for a lot of taps is the whole question.
  */
 import { cellDetails, selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
-import { BAND_NAMES } from "../lib/cellMetrics";
+import { BAND_NAMES, duration } from "../lib/cellMetrics";
 
 export let track: import("../api").CellTrackProperties;
 
 $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
+$: alive = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
 
 /** The one signature worth the width here, in the order the map badges them. */
 $: badge = track.meso_ever ? "↻" : (track.hail_ever ? "✦" : "");
@@ -29,7 +30,7 @@ $: badge = track.meso_ever ? "↻" : (track.hail_ever ? "✦" : "");
 const open = () => cellDetails.set(true);
 
 /* The map clears the selection when the background is tapped; this is the same
-   thing for a thumb that has the pill under it rather than the map. */
+   thing for a thumb that has the bar under it rather than the map. */
 const dismiss = (event: Event) => {
   event.stopPropagation();
   selectedCell.set(null);
@@ -37,90 +38,133 @@ const dismiss = (event: Event) => {
 </script>
 
 <style>
+  /* Full width rather than a pill that shrinks to its text. A bar that changes
+     width with the name of the storm reads as mangled next to the trays above
+     and below it, which are full-width and squared off to the same gutters. */
   .hint {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    /* Above whatever the bottom tray currently is, the same way the
-       attributions line clears it. */
-    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 12px);
+    left: 0;
+    right: 0;
+    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 8px);
     z-index: var(--mc-z-pill);
+    margin: 0 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    max-width: calc(100vw - 32px);
-    height: 36px;
-    padding: 0 6px 0 12px;
-    border-radius: var(--mc-radius-pill);
+    gap: 10px;
+    min-height: 48px;
+    padding: 6px 6px 6px 14px;
+    border-radius: var(--mc-radius-tray);
     background: var(--mc-glass-fill-strong);
     -webkit-backdrop-filter: var(--mc-glass-backdrop);
     backdrop-filter: var(--mc-glass-backdrop);
     border: 1px solid var(--mc-glass-edge);
     box-shadow: var(--mc-glass-ring-lg);
     color: var(--mc-text);
-    font: 600 13px/1 var(--mc-font);
-    cursor: pointer;
+    font: 500 13px/1.3 var(--mc-font);
   }
 
   .swatch {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex: 0 0 auto;
   }
 
-  .name {
+  /* Two lines rather than one that wraps. "Strong cell (alive for 49 min)" is
+     about thirty characters and there are two controls and a swatch beside it;
+     at 375px that reflows mid-parenthesis and the bar grows a ragged second
+     line. Stacked, it is the same sentence and always fits. */
+  .what {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .what .title {
+    font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .badge {
-    font-size: 13px;
-    line-height: 1;
+  /* Only the band name, or "cell" is capitalised with it. */
+  .what .title b {
+    font-weight: inherit;
+    text-transform: capitalize;
   }
 
+  .what .alive {
+    color: var(--mc-text-2);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .badge {
+    font-size: 14px;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+
+  /* An actual button, filled in the cell's own colour: the previous version
+     was a grey chip beside a close button, and the two read as the same kind
+     of thing when only one of them was the point. */
   .go {
     flex: 0 0 auto;
-    height: 26px;
-    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 36px;
+    padding: 0 14px;
     border: 0;
     border-radius: var(--mc-radius-pill);
-    background: var(--mc-glass-fill);
-    color: var(--mc-text);
-    font: 600 12px/1 var(--mc-font);
+    background: var(--colour);
+    color: #fff;
+    font: 700 13px/1 var(--mc-font);
+    letter-spacing: 0.01em;
     cursor: pointer;
+  }
+
+  .go .chevron {
+    font-size: 15px;
+    line-height: 1;
   }
 
   .close {
     flex: 0 0 auto;
-    width: 26px;
-    height: 26px;
+    /* 44px is Apple's minimum for a thumb, and this one sits next to the
+       control it must not be hit instead of. */
+    width: 44px;
+    height: 44px;
     padding: 0;
     border: 0;
     border-radius: 50%;
     background: transparent;
     color: var(--mc-text-2);
-    font-size: 16px;
+    font-size: 22px;
     line-height: 1;
     cursor: pointer;
   }
 
-  .hint:active {
-    transform: translateX(-50%) scale(var(--mc-press));
+  .go:active {
+    transform: scale(var(--mc-press));
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hint:active { transform: translateX(-50%); }
+    .go:active { transform: none; }
   }
 </style>
 
-<div class="hint" role="button" tabindex="0"
-  on:click={open}
-  on:keydown={(e) => { if (e.key === "Enter" || e.key === " ") open(); }}>
+<div class="hint" style="--colour: {colour}">
   <span class="swatch" style="background: {colour}"></span>
-  <span class="name">{BAND_NAMES[severity]}</span>
+  <span class="what">
+    <span class="title"><b>{BAND_NAMES[severity]}</b> cell</span>
+    <span class="alive">alive for {alive}</span>
+  </span>
   {#if badge}<span class="badge" style="color: {colour}">{badge}</span>{/if}
-  <span class="go">details</span>
-  <button type="button" class="close" on:click={dismiss} aria-label="Close">&times;</button>
+  <button type="button" class="go" on:click={open}>
+    details <span class="chevron" aria-hidden="true">›</span>
+  </button>
+  <button type="button" class="close" on:click={dismiss} aria-label="Clear selection">&times;</button>
 </div>
