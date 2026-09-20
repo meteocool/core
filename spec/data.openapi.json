@@ -32,6 +32,18 @@
             "description": "How far this heading departs from nearby cells; large values suggest a deviant mover",
             "title": "Deviation Deg"
           },
+          "echo_bottom_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest echo; the structure's floor",
+            "title": "Echo Bottom M"
+          },
           "echo_top_m": {
             "anyOf": [
               {
@@ -282,6 +294,14 @@
             "title": "Split",
             "type": "boolean"
           },
+          "structure": {
+            "description": "Vertical structure, weakest threshold first",
+            "items": {
+              "$ref": "#/components/schemas/CellLayer"
+            },
+            "title": "Structure",
+            "type": "array"
+          },
           "t": {
             "format": "date-time",
             "title": "T",
@@ -309,6 +329,44 @@
           "code"
         ],
         "title": "CellCurrent",
+        "type": "object"
+      },
+      "CellLayer": {
+        "description": "One reflectivity threshold, and how far the storm exceeds it.\n\nThe pair of numbers is what carries the shape: `area_km2` is the footprint\nat that intensity and `top_m` is how high it reaches, so a stack of these\ndescribes the storm's anatomy rather than just its peak.",
+        "properties": {
+          "area_km2": {
+            "description": "Ground area exceeding the threshold",
+            "title": "Area Km2",
+            "type": "number"
+          },
+          "dbz": {
+            "description": "The threshold this layer is at or above",
+            "title": "Dbz",
+            "type": "integer"
+          },
+          "top_m": {
+            "description": "Highest echo exceeding it, above sea level",
+            "title": "Top M",
+            "type": "number"
+          },
+          "volume_km3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Km3"
+          }
+        },
+        "required": [
+          "dbz",
+          "area_km2",
+          "top_m"
+        ],
+        "title": "CellLayer",
         "type": "object"
       },
       "CellStep": {
@@ -905,6 +963,18 @@
             ],
             "title": "Deviation Deg"
           },
+          "echo_bottom_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest echo of the latest detection; the structure's floor",
+            "title": "Echo Bottom M"
+          },
           "echo_top_max_m": {
             "anyOf": [
               {
@@ -1026,6 +1096,7 @@
                 "type": "null"
               }
             ],
+            "description": "Cell outline, [lon, lat] pairs",
             "title": "Polygon"
           },
           "series": {
@@ -1040,6 +1111,14 @@
             "default": false,
             "title": "Split Ever",
             "type": "boolean"
+          },
+          "structure": {
+            "description": "The latest detection's vertical structure, weakest threshold first",
+            "items": {
+              "$ref": "#/components/schemas/CellLayer"
+            },
+            "title": "Structure",
+            "type": "array"
           },
           "vil_max": {
             "anyOf": [

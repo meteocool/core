@@ -6,13 +6,16 @@
  * has been weakening for twenty minutes and one that has doubled its VIL in ten
  * are the same number and completely different storms. So this leads with the
  * signatures that separate a severe storm from a heavy shower -- rotation,
- * hail, a lightning jump, motion that departs from everything nearby -- and
- * shows the history behind the current reading.
+ * hail, a lightning jump, motion that departs from everything nearby -- shows
+ * the storm's own shape as a turning 3D model, and plots the history behind the
+ * current reading.
  */
 import { _ } from "svelte-i18n";
 import { selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
+import CellModel3D from "./CellModel3D.svelte";
 import type { CellTrackProperties } from "../api";
+import type { VolumeInput } from "../lib/cellVolume";
 
 export let track: CellTrackProperties;
 
@@ -34,25 +37,91 @@ const compass = (deg: number | null | undefined): string => (
   deg === null || deg === undefined ? "–" : COMPASS[Math.round(deg / 22.5) % 16]
 );
 
+/* ---- the history chart ------------------------------------------------- */
+
 /**
- * A sparkline as an SVG path.
+ * A chart, not a sparkline.
  *
- * A dozen points do not justify a chart library, and this one has to sit inside
- * a popup that appears and disappears with a tap.
+ * The earlier version drew a bare path with no scale on it, which can say
+ * "went up a bit" and nothing more -- a rise from 48 to 52 dBZ and one from 30
+ * to 62 drew the identical line, because both were normalised to the box. With
+ * labelled axes the same forty pixels carry the actual numbers, and the second
+ * series makes the pair readable together: reflectivity climbing while the echo
+ * top collapses is a storm raining itself out, and the two lines cross.
+ *
+ * Still hand-drawn rather than handed to a chart library. This is one popup
+ * with two dozen points in it, and the app already pays for one map renderer.
  */
-function sparkline(values: (number | null | undefined)[], width = 200, height = 32): string {
-  const points = values.filter((v): v is number => v !== null && v !== undefined);
-  if (points.length < 2) return "";
-  const min = Math.min(...points);
-  const max = Math.max(...points);
+const CHART = {
+  width: 336, height: 122, left: 30, right: 34, top: 10, bottom: 22,
+};
+
+const plot = {
+  x0: CHART.left,
+  x1: CHART.width - CHART.right,
+  y0: CHART.height - CHART.bottom,
+  y1: CHART.top,
+};
+
+/** Tick values at 1, 2, 2.5 or 5 times a power of ten, whichever fits. */
+function niceTicks(min: number, max: number, target = 4): number[] {
   const span = max - min || 1;
-  return points
-    .map((value, index) => {
-      const x = (index / (points.length - 1)) * width;
-      const y = height - ((value - min) / span) * height;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+  const rough = span / target;
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= rough)
+    ?? 10 * magnitude;
+  const ticks: number[] = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + step / 1000; v += step) {
+    ticks.push(Math.round(v * 1000) / 1000);
+  }
+  return ticks;
+}
+
+interface Scale {
+  min: number;
+  max: number;
+  ticks: number[];
+  at: (value: number) => number;
+}
+
+/** A vertical scale over `values`, padded out to whole ticks. */
+function verticalScale(values: number[], y0: number, y1: number, target = 4): Scale | null {
+  const real = values.filter((v) => Number.isFinite(v));
+  if (real.length < 2) return null;
+  const low = Math.min(...real);
+  const high = Math.max(...real);
+  // A flat series still needs a box to sit in, or every point lands on one row.
+  const pad = (high - low || Math.max(Math.abs(high) * 0.1, 1)) * 0.15;
+  const ticks = niceTicks(low - pad, high + pad, target);
+  const min = Math.min(low - pad, ticks[0]);
+  const max = Math.max(high + pad, ticks[ticks.length - 1]);
+  return {
+    min,
+    max,
+    ticks,
+    at: (value: number) => y0 + ((value - min) / (max - min)) * (y1 - y0),
+  };
+}
+
+/** Points along a series, skipping steps where that series is missing. */
+function path(
+  steps: Array<{ t: number; v: number | null | undefined }>,
+  atX: (t: number) => number,
+  scale: Scale | null,
+): string {
+  if (!scale) return "";
+  let open = false;
+  return steps
+    .map(({ t, v }) => {
+      if (v === null || v === undefined || !Number.isFinite(v)) {
+        open = false;
+        return "";
+      }
+      const command = open ? "L" : "M";
+      open = true;
+      return `${command}${atX(t).toFixed(1)},${scale.at(v).toFixed(1)}`;
     })
-    .join(" ");
+    .join("");
 }
 
 $: severity = Math.min(Math.max(track.max_severity, 0), 3);
@@ -60,6 +129,57 @@ $: colour = severityColour(severity);
 $: series = track.series ?? [];
 $: latest = series[series.length - 1];
 $: forecast = track.forecast ?? [];
+
+$: times = series.map((step) => new Date(step.t).getTime());
+$: span = times.length > 1
+  ? { from: times[0], to: times[times.length - 1] }
+  : null;
+/**
+ * Time to an x position, over the window the series covers.
+ *
+ * Plotted against the clock rather than against the index, so a gap in the
+ * radar record shows as a gap rather than being closed up into a steady line.
+ */
+function atX(t: number): number {
+  if (!span || span.to <= span.from) return plot.x0;
+  return plot.x0 + ((t - span.from) / (span.to - span.from)) * (plot.x1 - plot.x0);
+}
+
+$: dbzScale = verticalScale(
+  series.map((step) => step.max_dbz).filter((v): v is number => v != null),
+  plot.y0,
+  plot.y1,
+  4,
+);
+$: topScale = verticalScale(
+  series.map((step) => (step.echo_top_m ?? NaN) / 1000).filter((v) => Number.isFinite(v)),
+  plot.y0,
+  plot.y1,
+  3,
+);
+$: dbzPath = path(series.map((s, i) => ({ t: times[i], v: s.max_dbz })), atX, dbzScale);
+$: topPath = path(
+  series.map((s, i) => ({ t: times[i], v: s.echo_top_m == null ? null : s.echo_top_m / 1000 })),
+  atX,
+  topScale,
+);
+/** Start, middle and end: enough to read the window without crowding the axis. */
+$: timeTicks = span
+  ? [span.from, (span.from + span.to) / 2, span.to]
+  : [];
+
+/** The current detection, in the shape the volumetric model reads. */
+$: shape = latest && (track.structure ?? []).length
+  ? ({
+    code: track.code,
+    lon: latest.lon,
+    lat: latest.lat,
+    echo_bottom_m: track.echo_bottom_m,
+    polygon: track.polygon,
+    structure: track.structure,
+  } satisfies VolumeInput)
+  : null;
+
 /** Minutes up to an hour, then hours: "127 min" is not a duration anyone reads. */
 function duration(minutes: number): string {
   if (minutes < 60) return `${Math.round(minutes)} min`;
@@ -69,7 +189,6 @@ function duration(minutes: number): string {
 }
 
 $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
-$: trace = sparkline(series.map((step) => step.max_dbz));
 </script>
 
 <div class="cell-details">
@@ -101,6 +220,13 @@ $: trace = sparkline(series.map((step) => step.max_dbz));
     {/if}
   </div>
 
+  {#if shape}
+    <figure class="model">
+      <CellModel3D cell={shape} width={CHART.width} height={200} />
+      <figcaption>structure now &middot; drag to turn</figcaption>
+    </figure>
+  {/if}
+
   <dl>
     <div><dt>peak</dt><dd>{round(track.max_dbz, 1)} dBZ</dd></div>
     <div><dt>echo top</dt><dd>{round((track.echo_top_max_m ?? 0) / 1000, 1)} km</dd></div>
@@ -114,11 +240,49 @@ $: trace = sparkline(series.map((step) => step.max_dbz));
     {/if}
   </dl>
 
-  {#if trace && latest}
-    <figure>
-      <figcaption>reflectivity, {clock(series[0].t)}&ndash;{clock(latest.t)}</figcaption>
-      <svg viewBox="0 0 200 32" preserveAspectRatio="none" aria-hidden="true">
-        <path d={trace} fill="none" stroke={colour} stroke-width="1.5" />
+  {#if span && dbzScale}
+    <figure class="history">
+      <figcaption>
+        <span class="key"><span class="swatch" style="background: {colour}"></span>reflectivity</span>
+        {#if topScale}
+          <span class="key"><span class="swatch dashed"></span>echo top</span>
+        {/if}
+      </figcaption>
+      <svg viewBox="0 0 {CHART.width} {CHART.height}" role="img"
+           aria-label="Reflectivity and echo top over the tracked period">
+        {#each dbzScale.ticks as value (value)}
+          <line class="grid" x1={plot.x0} x2={plot.x1}
+                y1={dbzScale.at(value)} y2={dbzScale.at(value)} />
+          <text class="tick left" x={plot.x0 - 5} y={dbzScale.at(value)}>{value}</text>
+        {/each}
+
+        {#if topScale}
+          {#each topScale.ticks as value (value)}
+            <line class="tickmark" x1={plot.x1} x2={plot.x1 + 3}
+                  y1={topScale.at(value)} y2={topScale.at(value)} />
+            <text class="tick right" x={plot.x1 + 6} y={topScale.at(value)}>{value}</text>
+          {/each}
+        {/if}
+
+        {#each timeTicks as t (t)}
+          <line class="tickmark" x1={atX(t)} x2={atX(t)} y1={plot.y0} y2={plot.y0 + 3} />
+          <text class="tick time" x={atX(t)} y={plot.y0 + 13}>{clock(new Date(t).toISOString())}</text>
+        {/each}
+
+        <line class="axis" x1={plot.x0} x2={plot.x0} y1={plot.y0} y2={plot.y1} />
+        <line class="axis" x1={plot.x0} x2={plot.x1} y1={plot.y0} y2={plot.y0} />
+        {#if topScale}
+          <line class="axis" x1={plot.x1} x2={plot.x1} y1={plot.y0} y2={plot.y1} />
+        {/if}
+
+        <text class="unit" x={plot.x0 - 5} y={plot.y1 - 2}>dBZ</text>
+        {#if topScale}<text class="unit end" x={plot.x1 + 6} y={plot.y1 - 2}>km</text>{/if}
+
+        {#if topPath}
+          <path class="top" d={topPath} fill="none" />
+        {/if}
+        <path d={dbzPath} fill="none" stroke={colour} stroke-width="1.6"
+              stroke-linejoin="round" stroke-linecap="round" />
       </svg>
     </figure>
   {/if}
@@ -135,8 +299,8 @@ $: trace = sparkline(series.map((step) => step.max_dbz));
   .cell-details {
     font-size: 13px;
     line-height: 1.45;
-    min-width: 230px;
-    max-width: 280px;
+    min-width: 300px;
+    max-width: 360px;
   }
   header {
     display: flex;
@@ -197,16 +361,82 @@ $: trace = sparkline(series.map((step) => step.max_dbz));
     margin: 0;
     font-variant-numeric: tabular-nums;
   }
-  figure { margin: 0 0 4px; }
+  figure { margin: 0 0 6px; }
+  .model {
+    border-radius: 8px;
+    background: rgba(128, 128, 128, 0.08);
+    overflow: hidden;
+  }
   figcaption {
     font-size: 10px;
     opacity: 0.55;
     margin-bottom: 2px;
   }
+  .model figcaption {
+    margin: 0 0 4px 8px;
+  }
+  .history figcaption {
+    display: flex;
+    gap: 10px;
+  }
+  .key {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .swatch {
+    width: 10px;
+    height: 2px;
+    border-radius: 1px;
+    display: inline-block;
+  }
+  .swatch.dashed {
+    background: repeating-linear-gradient(
+      90deg, currentColor 0 3px, transparent 3px 5px
+    );
+  }
   svg {
     width: 100%;
-    height: 32px;
+    height: auto;
     display: block;
+    overflow: visible;
+  }
+  .grid {
+    stroke: currentColor;
+    stroke-opacity: 0.12;
+    stroke-width: 1;
+  }
+  .axis {
+    stroke: currentColor;
+    stroke-opacity: 0.35;
+    stroke-width: 1;
+  }
+  .tickmark {
+    stroke: currentColor;
+    stroke-opacity: 0.35;
+    stroke-width: 1;
+  }
+  .tick {
+    font-size: 9px;
+    fill: currentColor;
+    fill-opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+  }
+  .left { text-anchor: end; dominant-baseline: middle; }
+  .right { text-anchor: start; dominant-baseline: middle; }
+  .time { text-anchor: middle; }
+  .unit {
+    font-size: 9px;
+    fill: currentColor;
+    fill-opacity: 0.45;
+    text-anchor: end;
+  }
+  .unit.end { text-anchor: start; }
+  .top {
+    stroke: currentColor;
+    stroke-opacity: 0.55;
+    stroke-width: 1.2;
+    stroke-dasharray: 3 3;
   }
   footer {
     font-size: 11px;

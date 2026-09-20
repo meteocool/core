@@ -9,7 +9,7 @@
  */
 
 const ELLIPSE_POINTS = 36;
-const KM_PER_DEGREE_LAT = 111.32;
+export const KM_PER_DEGREE_LAT = 111.32;
 
 /** A viewport as [minLon, minLat, maxLon, maxLat], matching `mapExtent4326`. */
 export type Extent = [number, number, number, number];
@@ -61,6 +61,33 @@ export function padExtent(extent: Extent, fraction: number): Extent {
   const padX = (east - west) * fraction;
   const padY = (north - south) * fraction;
   return [west - padX, south - padY, east + padX, north + padY];
+}
+
+/**
+ * Scale a ring about a point so it encloses `ratio` times the area.
+ *
+ * Area grows with the square of a linear factor, so the factor is its root.
+ * Getting that wrong does not throw and does not look obviously broken -- every
+ * storm core just comes out far too small, which reads as a weak storm.
+ */
+export function scaleRing(
+  ring: number[][],
+  centre: [number, number],
+  ratio: number,
+): [number, number][] {
+  const k = Math.sqrt(Math.max(ratio, 0));
+  return ring.map(([lon, lat]) => [
+    centre[0] + (lon - centre[0]) * k,
+    centre[1] + (lat - centre[1]) * k,
+  ]);
+}
+
+/** Close a ring if the source did not; GeoJSON requires first === last. */
+export function closeRing(ring: [number, number][]): [number, number][] {
+  if (ring.length < 3) return ring;
+  const [first] = ring;
+  const last = ring[ring.length - 1];
+  return first[0] === last[0] && first[1] === last[1] ? ring : [...ring, first];
 }
 
 /** Whether `inner` is entirely inside `outer`: nothing new has come into view. */

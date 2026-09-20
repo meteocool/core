@@ -97,6 +97,11 @@ export default defineConfig(({ mode }) => {
     define: {
       __GIT_COMMIT_HASH__: JSON.stringify(commit),
     },
+    // MapLibre loads its worker with `{ type: "module" }`, so the bundle Vite
+    // emits for it has to be an ES module too.
+    worker: {
+      format: "es",
+    },
     server: {
       host: "127.0.0.1",
       port: 8080,

@@ -21,7 +21,7 @@ import { basemapLayer } from "./protomaps";
 /** Shared road colours so a theme only has to say which classes it draws. */
 const ROAD_CLASSES = ["highway", "major_road", "minor_road", "path", "rail", "ferry"];
 
-const light: BasemapTheme = {
+export const lightTheme: BasemapTheme = {
   earth: "#f6f4f0",
   water: "#cfe0ec",
   waterway: "#bcd4e4",
@@ -44,7 +44,7 @@ const light: BasemapTheme = {
   boundaryRegion: null,
 };
 
-const dark: BasemapTheme = {
+export const darkTheme: BasemapTheme = {
   earth: "#1c1f24",
   water: "#16232e",
   waterway: "#1d2f3d",
@@ -67,7 +67,7 @@ const dark: BasemapTheme = {
   boundaryRegion: null,
 };
 
-const osmStyle: BasemapTheme = {
+export const osmTheme: BasemapTheme = {
   earth: "#f2efe9",
   water: "#aad3df",
   waterway: "#aad3df",
@@ -110,7 +110,7 @@ const osmStyle: BasemapTheme = {
   boundaryRegion: "#b89ec2",
 };
 
-const cyclosmStyle: BasemapTheme = {
+export const cyclosmTheme: BasemapTheme = {
   earth: "#f5f4ee",
   water: "#b9dced",
   waterway: "#9fcbe0",
@@ -149,10 +149,10 @@ const cyclosmStyle: BasemapTheme = {
   boundaryRegion: "#b0aaa0",
 };
 
-export const cartoLight = () => basemapLayer(light);
-export const cartoDark = () => basemapLayer(dark);
-export const osm = () => basemapLayer(osmStyle);
-export const cyclosm = () => basemapLayer(cyclosmStyle);
+export const cartoLight = () => basemapLayer(lightTheme);
+export const cartoDark = () => basemapLayer(darkTheme);
+export const osm = () => basemapLayer(osmTheme);
+export const cyclosm = () => basemapLayer(cyclosmTheme);
 
 /**
  * Whether the separate label overlay should be drawn over this basemap.
