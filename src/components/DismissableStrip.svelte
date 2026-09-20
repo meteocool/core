@@ -15,6 +15,7 @@
  * own outro, so the exit still plays.
  */
 import { createEventDispatcher } from "svelte";
+import { decideAxis, SWIPE_COMMIT } from "../lib/swipeAway";
 import { fly, fade } from "svelte/transition";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import type { IconDefinition } from "@fortawesome/fontawesome-common-types";
@@ -42,10 +43,11 @@ export let collapsed = true;
 
 const dispatch = createEventDispatcher();
 
+/* The travel that separates a tap from a swipe, and the share of the width
+   that commits it, shared with the cell hint bar: see lib/swipeAway.ts. */
+
 /** What the Hide button settles to once the swipe has opened it. */
 const ACTION_REST = 96;
-/** Reveal past this share of the width and letting go clears the strip. */
-const ACTION_COMMIT = 0.45;
 /** How much of the finger's travel past the detent the strip actually takes. */
 const ACTION_GIVE = 0.7;
 
@@ -110,8 +112,9 @@ function swipeToDismiss(node: HTMLElement) {
     const mx = e.clientX - startX;
     const my = e.clientY - startY;
     if (axis === "undecided") {
-      if (Math.abs(mx) < 6 && Math.abs(my) < 6) return;
-      axis = Math.abs(mx) > Math.abs(my) ? "x" : "y";
+      // "undecided" is not enough travel yet and "y" is somebody else's
+      // gesture; either way this one keeps off.
+      axis = decideAxis(mx, my);
       if (axis !== "x") return;
       /* Capture can be refused if the pointer is already gone; the gesture
          still works without it, it just stops tracking outside the dock. */
@@ -132,7 +135,7 @@ function swipeToDismiss(node: HTMLElement) {
     // Crossing the commit point throws the button open the rest of the way in
     // one spring rather than waiting for the finger to drag it there.
     const wasCommitted = committed;
-    committed = reveal >= dockWidth * ACTION_COMMIT;
+    committed = reveal >= dockWidth * SWIPE_COMMIT;
     if (committed !== wasCommitted) settling = true;
     if (committed) reveal = dockWidth;
   }
