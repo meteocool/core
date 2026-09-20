@@ -36,7 +36,6 @@ import type RadarCapability from "../caps/RadarCapability";
 import type { GridConfig } from "../caps/RadarCapability";
 
 import LastUpdated from "./LastUpdated.svelte";
-import Appendix from "./Appendix.svelte";
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import { _, locale } from "svelte-i18n";
@@ -827,9 +826,8 @@ onDestroy(() => {
 <style>
   /* The player inherits the tray material from :global(.bottomToolbar) in
      BottomToolbar.svelte. Heights are what Map.svelte measures. */
-  /* One height at every width (--mc-player-h in glass.css), so the map's
-     bottom padding -- which Map.svelte derives by measuring the tray -- does
-     not jump when the viewport crosses a breakpoint. */
+  /* Share the responsive height with the forecast strip above the tray.
+     Map.svelte measures the tray to keep map padding in sync. */
   .timeslider {
     height: var(--mc-player-h);
     z-index: var(--mc-z-tray-player);
@@ -837,9 +835,7 @@ onDestroy(() => {
     overflow: hidden;
   }
 
-  /* A flat tint on glass: the play/close pair in the open player's rail, which
-     sits ON the glass tray. The two bottom-corner discs below override this --
-     those are over the map. */
+  /* A tint on the open tray; collapsed controls add their own glass below. */
   .controlButton {
     width: var(--mc-control);
     height: var(--mc-control);
@@ -909,7 +905,7 @@ onDestroy(() => {
 
          track     the scrubber, always full width
          controls  transport, layers, and the freshness line
-         legend    the colour scale, and the store + repo links
+         legend    the colour scale
 
      Only the columns and the set of visible items change per tier, so the
      tray keeps a single height and nothing reflows into a ragged wrap. An
@@ -923,58 +919,47 @@ onDestroy(() => {
     align-items: center;
     column-gap: var(--mc-rail-gap);
     row-gap: 4px;
-    /* Phone: no rail (the two discs are a close button in the row instead),
-       no legend, no links. */
-    grid-template-columns: auto auto 1fr auto;
+    /* Phone: transport, layers, and collapse share a row. */
+    grid-template-columns: auto auto 1fr var(--mc-control);
     grid-template-areas:
       "track     track  track  track"
       "transport layers .      close"
-      "status    status status status";
+      "status    status status close";
   }
 
-  .rail         { grid-area: rail; display: none; }
   .track        { grid-area: track; min-width: 0; }
   .transport    { grid-area: transport; }
   .layers       { grid-area: layers; min-width: 0; }
-  .close-inline { grid-area: close; justify-self: end; }
-  .status       { grid-area: status; min-width: 0; }
+  /* Inset the disc so its curve follows the tray's rounded corner. */
+  .close-inline {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+  }
+  .status       { grid-area: status; min-width: 0; justify-self: end; }
   .legend       { grid-area: legend; display: none; min-width: 0; }
-  .links        { grid-area: links; display: none; justify-self: end; }
 
-  /* Tablet and small desktop: the rail returns as a left column spanning all
-     three rows, and the legend takes the whole right column beside them. The
-     layer buttons stay emoji-only -- their labels are ~230px the tray has not
-     got yet. */
+  /* Keep collapse at the trailing edge at every width. */
   @media only screen and (min-width: 621px) {
     .player-grid {
-      grid-template-columns: auto auto auto 1fr;
+      grid-template-columns: auto auto 1fr var(--mc-control);
       grid-template-areas:
-        "rail track     track  track"
-        "rail transport layers legend"
-        "rail status    status legend";
+        "track     track  track  track"
+        "transport layers .      close"
+        "legend    legend status close";
     }
-    .rail {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .close-inline { display: none; }
     .legend { display: block; }
   }
 
-  /* Wide: everything on its own column, labels on the layer buttons, and the
-     legend gets the full width of the bottom row. The threshold is the sum of
-     that row -- rail, transport, labelled layers, freshness, links --
-     so the tier never switches on before its own contents fit. */
+  /* Wide: labels on the layer buttons and the legend below. */
   @media only screen and (min-width: 1120px) {
     .player-grid {
-      grid-template-columns: auto auto auto auto 1fr auto;
+      grid-template-columns: auto auto 1fr var(--mc-control);
       grid-template-areas:
-        "rail track     track  track  track  track"
-        "rail transport layers status .      links"
-        "rail legend    legend legend legend legend";
+        "track     track  track  track"
+        "transport layers status close"
+        "legend    legend legend close";
     }
-    .links { display: block; }
   }
 
   /* Labels inside the layer buttons: wide tier only. */
@@ -1044,14 +1029,6 @@ onDestroy(() => {
     padding: 0 4px;
   }
 
-  /* The close button stands alone, so it carries the group's tint itself. */
-  .close-inline sl-button::part(base) {
-    background: var(--mc-tint);
-  }
-  .close-inline sl-button:not([disabled])::part(base):hover {
-    background: var(--mc-tint-hover);
-  }
-
   .faIconButton {
     display: inline-flex;
     align-items: center;
@@ -1062,19 +1039,11 @@ onDestroy(() => {
     font-size: 16px;
   }
 
-  /* The plot has to span the scrubber's track, so it carries the rail column
-     and the grid gap the track starts after. The strip itself is full width;
-     this is the one part of it that is layer-specific, which is why it lives
-     here and not in DismissableStrip. Reaches the slotted element because slot
-     content is compiled in this component's scope. */
+  /* The plot and scrubber share the same inset. */
   .barChart-plot {
     position: relative;
     height: 100%;
-    margin-right: var(--mc-tray-pad);
-    margin-left: calc(var(--mc-tray-pad) + var(--mc-control) + var(--mc-rail-gap));
-  }
-  .barChart-plot.collapsed {
-    margin-left: var(--mc-tray-pad);
+    margin: 0 var(--mc-tray-pad);
   }
 
   /* Prose in the strip, set like the body text of a system alert: secondary
@@ -1150,27 +1119,11 @@ onDestroy(() => {
   }
 
   @media only screen and (max-width: 620px) {
-    /* The bar is two rows tall here, so the discs stack in one column at the
-       leading edge rather than flanking it. Two single-height buttons at
-       opposite ends would cost the row two disc-widths to hold one disc-height
-       of controls; stacked, they cost one and line up with the bar's two rows.
-       Unfold on top, since that is the direction it opens. */
-    .buttonBar,
-    .buttonBar.right {
-      left: var(--mc-gutter);
-      right: unset;
-      bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
+    .player-grid {
+      column-gap: 4px;
     }
-    .buttonBar.right {
-      bottom: calc(
-        var(--mc-safe-bottom) + var(--mc-tray-gap)
-        + var(--mc-bar-h) - var(--mc-control)
-      );
-    }
-
-    /* No rail at this width -- the track starts straight after the padding. */
-    .barChart-plot {
-      margin-left: var(--mc-tray-pad);
+    .layers sl-button::part(label) {
+      padding: 0 4px;
     }
     .timeslider {
       padding: 6px 8px 4px;
@@ -1203,7 +1156,7 @@ onDestroy(() => {
     collapsed={$bottomToolbarMode !== "player"}
     on:dismiss={dismissChart}
     on:link={returnToCurrentPosition}>
-    <div class="barChart-plot" class:collapsed={$bottomToolbarMode !== "player"}>
+    <div class="barChart-plot">
       {#if gridLoading}
         <ChartSkeleton bars={25} />
       {:else if !hasPrecipitation}
@@ -1237,15 +1190,6 @@ onDestroy(() => {
     on:introend={toolbarTransitionEnd}
     on:outroend={toolbarTransitionEnd}>
       <div class="player-grid">
-        <div class="rail">
-          <div class="controlButton" on:click={playPause} title="Play/Pause">
-            <Icon icon={playPauseButton} class="controlIconInline" />
-          </div>
-          <div class="controlButton" on:click={hide} title="Close">
-            <Icon icon={faAngleDoubleDown} class="controlIcon" />
-          </div>
-        </div>
-
         <div class="track">
           <sl-range min="{gridConfig?.start}" max="{lastPlayableStep}" step="{60 * 5}" class="range" use:initSlider tooltip="none"></sl-range>
         </div>
@@ -1278,13 +1222,10 @@ onDestroy(() => {
           </sl-button-group>
         </div>
 
-        <div class="close-inline button-group-toolbar">
-          <sl-button size={buttonSize} class="icon-btn" on:click={hide}>
-            <div class="faIconButton">
-              <Icon icon={faAngleDoubleDown} />️
-            </div>
-          </sl-button>
-        </div>
+        <button type="button" class="close-inline controlButton" on:click={hide}
+          title="Collapse playback controls" aria-label="Collapse playback controls">
+          <Icon icon={faAngleDoubleDown} />
+        </button>
 
         <div class="status">
           <LastUpdated />
@@ -1294,29 +1235,24 @@ onDestroy(() => {
           <div class="legend">
             <RadarScaleLine />
           </div>
-          <div class="links">
-            <Appendix />
-          </div>
         {/if}
       </div>
   </div>
 {:else}
   {#if $sharedActiveCap === "radar"}
     {#if showOpenControls}
-      <div on:click={show} class="buttonBar right">
-        <div class="controlButton" title="Playback Controls">
-          <div class="playHover">
-            <Icon icon={faAngleDoubleUp} class="controlIcon" />
-          </div>
-        </div>
+      <div class="buttonBar right">
+        <button type="button" class="controlButton" on:click={show}
+          title="Playback Controls" aria-label="Playback Controls">
+          <Icon icon={faAngleDoubleUp} class="controlIcon" />
+        </button>
       </div>
-  <div on:click={showAndPlay} class="buttonBar">
-    <div class="controlButton" title="Play/Pause">
-      <div class="playHover">
-        <Icon icon={faPlay} class="controlIcon" />
+      <div class="buttonBar">
+        <button type="button" class="controlButton" on:click={showAndPlay}
+          title="Play" aria-label="Play">
+          <Icon icon={faPlay} class="controlIcon" />
+        </button>
       </div>
-    </div>
-  </div>
     {/if}
   {/if}
 {/if}

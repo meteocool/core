@@ -202,11 +202,6 @@
         .lastUpdatedBottom {
             padding: 6px 10px;
         }
-        /* Both discs stack at the leading edge here, so only that side gives
-           way -- see the .buttonBar rules in NowcastPlayback. */
-        .lastUpdatedBottom.has-discs {
-            right: var(--mc-gutter);
-        }
         .parentz {
             flex-wrap: wrap;
             align-content: space-between;
