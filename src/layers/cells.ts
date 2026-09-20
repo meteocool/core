@@ -5,9 +5,10 @@ import Stroke from "ol/style/Stroke";
 import Fill from "ol/style/Fill";
 import Circle from "ol/style/Circle";
 import Text from "ol/style/Text";
+import Point from "ol/geom/Point";
 import type { FeatureLike } from "ol/Feature";
 import { mapBaseLayer, selectedCell } from "../stores";
-import { outlineIsCurrent } from "../lib/cellGeometry";
+import { labelStepMinutes, outlineIsCurrent } from "../lib/cellGeometry";
 
 /**
  * Tracked thunderstorm cells: where each one has been, and where it is going.
@@ -221,10 +222,46 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * to carry the mark on its own and could not -- a translucent thin line takes
  * whatever is beneath it, which is the problem rather than the solution.
  */
-function ellipseStyle(feature: FeatureLike): Style[] | undefined {
+/**
+ * A ring's lead time, written on its leading edge.
+ *
+ * Without it the cone is a dozen rings that plainly mean something about time
+ * and do not say what: whether the outermost is ten minutes out or three hours
+ * is the difference between watching a storm and having somewhere to be. The
+ * label is the ring's own answer, placed where `leadingTip` put it -- the far
+ * end of the major axis, where consecutive rings are furthest apart.
+ *
+ * Only the lead time, not the uncertainty. These are DWD's 1-sigma Kalman
+ * ellipses, so the honest reading of the outer ring is "about two chances in
+ * three the centroid is inside this", and that is a sentence rather than a map
+ * label. The popup's own "forecast to 17:15, +/-63.7 km" line is where the
+ * width belongs.
+ */
+function leadLabelStyle(feature: FeatureLike, resolution: number): Style | undefined {
+  const lead = feature.get("lead_minutes");
+  const tip = feature.get("tip") as number[] | undefined;
+  if (!tip || typeof lead !== "number" || lead <= 0) return undefined;
+  if (lead % labelStepMinutes(resolution) !== 0) return undefined;
+  const severity = feature.get("max_severity") ?? 0;
+  return cached(`lead:${severity}:${casing}:${lead}`, () => new Style({
+    text: new Text({
+      text: `+${lead} min`,
+      font: "600 11px sans-serif",
+      fill: new Fill({ color: rgba(severityColour(severity), 1) }),
+      // The casing the rings get, for the same reason and against the same
+      // varied background.
+      stroke: new Stroke({ color: casing, width: 3 }),
+      offsetY: -9,
+    }),
+  })).clone();
+}
+
+function ellipseStyle(feature: FeatureLike, resolution: number): Style[] | undefined {
   if (!isSelected(feature)) return undefined;
   const severity = feature.get("max_severity") ?? 0;
-  return cached(`ellipse:${severity}:${casing}`, () => [
+  const label = leadLabelStyle(feature, resolution);
+  if (label) label.setGeometry(new Point(feature.get("tip") as number[]));
+  const rings = cached(`ellipse:${severity}:${casing}`, () => [
     new Style({
       stroke: new Stroke({ color: casing, width: 4, lineDash: ELLIPSE_DASH }),
     }),
@@ -236,6 +273,7 @@ function ellipseStyle(feature: FeatureLike): Style[] | undefined {
       }),
     }),
   ]);
+  return label ? [...rings, label] : rings;
 }
 
 /**
@@ -264,7 +302,10 @@ function outlineStyle(feature: FeatureLike): Style | undefined {
   }));
 }
 
-const STYLES: Record<CellFeatureKind, (feature: FeatureLike) => Style | Style[] | undefined> = {
+const STYLES: Record<
+  CellFeatureKind,
+  (feature: FeatureLike, resolution: number) => Style | Style[] | undefined
+> = {
   path: pathStyle,
   cell: cellStyle,
   outline: outlineStyle,
@@ -280,9 +321,9 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
     // Above the mesocyclone markers at 201: a tracked cell carries the same
     // rotation information with the storm's history attached.
     zIndex: 202,
-    style: (feature: FeatureLike) => {
+    style: (feature: FeatureLike, resolution: number) => {
       const style = STYLES[feature.get("kind") as CellFeatureKind];
-      return style ? style(feature) : undefined;
+      return style ? style(feature, resolution) : undefined;
     },
   });
 

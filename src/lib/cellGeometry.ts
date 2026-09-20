@@ -45,6 +45,29 @@ export function ellipseRing4326(
   return ring;
 }
 
+/**
+ * The end of a ring's major axis that points away from `from`.
+ *
+ * `ellipseRing4326` starts at one end of the major axis and reaches the other
+ * half a turn later, so the two ends are the ring's first and middle points.
+ * Which of them is the far one depends on the bearing DWD reports, and that is
+ * a compass bearing rather than a direction of travel -- an ellipse pointing
+ * 294 degrees and one pointing 114 are the same ellipse, and the ring is built
+ * from whichever the feed happened to send.
+ *
+ * That matters because this is where a lead-time label goes. The near end is
+ * the side the storm has come from, where every ring is bunched on top of the
+ * cell and its own history; the far end is the leading edge, where successive
+ * rings are furthest apart and a row of labels reads as a sequence.
+ */
+export function leadingTip(
+  ring: [number, number][],
+  from: [number, number],
+): [number, number] {
+  const opposite = ring[Math.floor((ring.length - 1) / 2)];
+  return distanceKm(from, ring[0]) >= distanceKm(from, opposite) ? ring[0] : opposite;
+}
+
 /** Great-circle-enough distance between two [lon, lat] points, in kilometres. */
 export function distanceKm(a: [number, number], b: [number, number]): number {
   const lat = ((a[1] + b[1]) / 2) * (Math.PI / 180);
@@ -101,6 +124,31 @@ export function lastRunStart(
     if (step / hours > MAX_STORM_KMH) start = i;
   }
   return start;
+}
+
+/**
+ * How far apart lead-time labels have to be, in minutes, at a given scale.
+ *
+ * The rings come every five minutes for an hour, and labelling all twelve is
+ * only readable when the map is zoomed in far enough that the storm's own
+ * motion has spread them out. Zoomed out they converge on the cell and a
+ * complete set is a stack of overlapping text.
+ *
+ * Deciding it from the resolution -- metres per pixel -- rather than leaving
+ * it to OpenLayers' declutter: declutter is a layer-wide setting, and this
+ * layer also draws the rotation and hail badges, which are the marks least
+ * worth dropping to make room for a number. Thinning by a fixed step also
+ * keeps the labels a sequence -- +15, +30, +45, +60 -- rather than whichever
+ * ones happened to survive a collision pass, which changes as the map moves.
+ *
+ * Every step divides the full hour, so the outermost ring is labelled at every
+ * scale and the horizon of the forecast is always stated.
+ */
+export function labelStepMinutes(resolution: number): number {
+  if (resolution > 600) return 20;
+  if (resolution > 300) return 15;
+  if (resolution > 150) return 10;
+  return 5;
 }
 
 /** Minutes since a track was last detected, which is what drives its fading. */

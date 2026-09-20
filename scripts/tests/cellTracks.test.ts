@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  distanceKm, lastRunStart, MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent,
+  distanceKm, ellipseRing4326, labelStepMinutes, lastRunStart, leadingTip,
+  MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent,
 } from "../../src/lib/cellGeometry.ts";
 
 /**
@@ -133,4 +134,62 @@ test("a storm at 60 km/h has left a half-hour-old outline well behind it", () =>
   // track, so at the limit it is already this far from anything on the radar.
   const kmh = 60;
   assert.ok(kmh * (OUTLINE_MAX_MINUTES / 60) >= 15);
+});
+
+/**
+ * Labelling the cone's rings with how far ahead they are.
+ *
+ * Twelve rings arrive, one every five minutes for an hour. All twelve are only
+ * readable zoomed in far enough that the storm's motion has spread them out;
+ * zoomed out they converge on the cell and a full set is a stack of text.
+ */
+test("every ring is labelled when the map is close enough to hold them", () => {
+  assert.equal(labelStepMinutes(50), 5);
+  assert.equal(labelStepMinutes(150), 5);
+});
+
+test("labels thin out as the map zooms away", () => {
+  assert.equal(labelStepMinutes(151), 10);
+  assert.equal(labelStepMinutes(301), 15);
+  assert.equal(labelStepMinutes(601), 20);
+});
+
+test("every step divides the hour, so the outermost ring is always labelled", () => {
+  // The horizon of the forecast is the one lead time that must never be the
+  // one dropped: it is what says how far ahead any of this goes.
+  for (const resolution of [50, 200, 400, 900, 5000]) {
+    assert.equal(60 % labelStepMinutes(resolution), 0);
+  }
+});
+
+/**
+ * Which end of a ring the label goes on.
+ *
+ * DWD reports the major axis as a compass bearing, not a direction of travel,
+ * so the ring is built from whichever of the two ends the feed happened to
+ * send. The label belongs on the far one: the near end is where every ring
+ * bunches up over the cell.
+ */
+test("the label goes on the end of the ring furthest from the cell", () => {
+  const cell: [number, number] = [11, 48];
+  const ring = ellipseRing4326(11.2, 48, 20, 20, 90);
+  const tip = leadingTip(ring, cell);
+  assert.ok(distanceKm(cell, tip) > distanceKm(cell, ring[0])
+    || tip === ring[0]);
+  // Whichever end it picked, it is the further of the two candidates.
+  const opposite = ring[Math.floor((ring.length - 1) / 2)];
+  assert.ok(distanceKm(cell, tip) >= distanceKm(cell, opposite));
+  assert.ok(distanceKm(cell, tip) >= distanceKm(cell, ring[0]));
+});
+
+test("a bearing pointing back at the cell still labels the far end", () => {
+  // Same ellipse, the bearing reported the other way round: 90 and 270 draw
+  // the identical ring, and the answer must not depend on which arrived.
+  const cell: [number, number] = [11, 48];
+  const east = leadingTip(ellipseRing4326(11.2, 48, 20, 20, 90), cell);
+  const west = leadingTip(ellipseRing4326(11.2, 48, 20, 20, 270), cell);
+  assert.ok(Math.abs(east[0] - west[0]) < 1e-9);
+  assert.ok(Math.abs(east[1] - west[1]) < 1e-9);
+  // And it is downstream of the cell, not between the cell and the centroid.
+  assert.ok(east[0] > 11.2);
 });
