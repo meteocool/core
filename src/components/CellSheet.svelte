@@ -54,7 +54,17 @@ const close = () => {
  * them; dragging down from half dismisses, which keeps one gesture meaning one
  * thing all the way down.
  */
-const HALF = 0.52;
+/*
+ * The short one is sized to the family chart, which is what the reader is
+ * usually here for when they want the map too.
+ *
+ * It was 52%, from when the chart was laid out downwards and ran to 500px.
+ * Sideways it is about 170 tall, and the section around it -- heading, chart,
+ * the recency line under it -- comes to roughly 300 including the grabber and
+ * the sheet's own padding. 40% of a 812pt phone is 325, which holds that with
+ * a little over, and hands the other 60% back to the map.
+ */
+const HALF = 0.4;
 const FULL = 0.88;
 
 let detent = HALF;
