@@ -5,11 +5,12 @@ import Polygon from "ol/geom/Polygon";
 import { fromLonLat } from "ol/proj";
 import type VectorSource from "ol/source/Vector";
 import { fetchCellTracks } from "../api";
-import type { CellStep, CellTrack, CellTrackProperties, Progress } from "../api";
+import type { CellTrack, CellTrackProperties, Progress } from "../api";
 import type { CellFeatureKind } from "../layers/cells";
 import {
-  ageMinutes, covers, ellipseRing4326, lastRunStart, padExtent,
+  ageMinutes, covers, ellipseRing4326, padExtent,
 } from "./cellGeometry";
+import { trimToLastRun } from "./cellTrack";
 import type { Extent } from "./cellGeometry";
 
 /**
@@ -25,59 +26,6 @@ export const WINDOW_MINUTES = 180;
 
 /** How much larger than the view to fetch, so small pans cost nothing. */
 export const BBOX_PADDING = 0.25;
-
-/**
- * A track cut back to the last storm in it.
- *
- * `lastRunStart` explains why a track can contain two: the identity upstream
- * is DWD's cell number, which is reused, so a stale detection occasionally
- * ends up glued to an unrelated new cell. Everything the UI reads off a track
- * is derived from its series, so the cut has to be applied to all of it at
- * once -- the drawn path, the history plot, the age in the popup -- or the
- * line stops lying while the numbers beside it carry on.
- *
- * The maxima are recomputed rather than trusted: the backend took them over
- * the glued history, so a storm can inherit the peak reflectivity of one it
- * never had anything to do with. `first_seen` likewise -- one of these in a
- * real run claimed forty minutes of age that belonged to another cell.
- *
- * The lineage flags are left as they came. A `hail_ever` inherited across a
- * bad join is a false positive and this could clear it, but the flags carry
- * minute counters and merge/split history that cannot be recomputed from the
- * series, and half-correcting them would be worse than leaving them whole and
- * saying so. That part belongs upstream, where the join is made.
- */
-function trimToLastRun(track: CellTrack): CellTrack {
-  const p = track.properties;
-  const series = p.series ?? [];
-  const from = lastRunStart(series);
-  if (from === 0) return track;
-
-  const kept = series.slice(from);
-  const max = (pick: (step: CellStep) => number | null | undefined): number | null => {
-    const values = kept.map(pick).filter((v): v is number => v !== null && v !== undefined);
-    return values.length ? Math.max(...values) : null;
-  };
-
-  const geometry = track.geometry.type === "LineString"
-    // The coordinates run one per step, so the same cut applies to both.
-    ? { ...track.geometry, coordinates: (track.geometry.coordinates as number[][]).slice(from) }
-    : track.geometry;
-
-  return {
-    ...track,
-    geometry,
-    properties: {
-      ...p,
-      series: kept,
-      n_steps: kept.length,
-      first_seen: kept[0].t,
-      max_dbz: max((step) => step.max_dbz),
-      echo_top_max_m: max((step) => step.echo_top_m),
-      vil_max: max((step) => step.vil),
-    },
-  } as CellTrack;
-}
 
 export default class CellTrackManager {
   /** The source the features are drawn from. */
@@ -188,12 +136,14 @@ export default class CellTrackManager {
       const forecast = p.forecast ?? [];
       forecast.forEach((point, index) => {
         add("forecast", `${p.code}:fc:${index}`, new Point(fromLonLat([point.lon, point.lat])));
-        // Only the last ellipse is drawn. Every step has one and they nest, so
-        // drawing all twelve stacks twelve translucent polygons per cell -- with
-        // a handful of storms on screen that is an opaque wash over the map
-        // rather than a sense of how uncertain the forecast is. The outermost
-        // one says the same thing and leaves the map readable.
-        if (point.major_km && index === forecast.length - 1) {
+        // Every step's ellipse is built, where once only the outermost was.
+        // They nest, so a dozen of them per cell over a screen full of storms
+        // is a wash that hides the radar underneath -- which is why only one
+        // used to be drawn. What decides it now is selection rather than
+        // index: `cells.ts` draws none of this for an unselected cell and all
+        // of it for the one whose popup is open, so the sequence is there to
+        // read when it is being asked for and gone when it is not.
+        if (point.major_km) {
           const ring = ellipseRing4326(
             point.lon,
             point.lat,

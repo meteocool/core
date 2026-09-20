@@ -205,6 +205,10 @@
     padding: 0;
     margin: 0;
     z-index: var(--mc-z-map);
+    /* The containing block for the 3D map's canvas, which lays itself over
+       this element rather than replacing it. Without a positioned ancestor it
+       resolves against the viewport and covers the bottom tray as well. */
+    position: relative;
   }
 
   :global(:root) {

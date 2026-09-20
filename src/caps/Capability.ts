@@ -45,6 +45,18 @@ export default class Capability extends Observable {
     if (this.cmap) sharedCmap.set(this.cmap);
   }
 
+  /**
+   * Draw into a thumbnail rather than take the map.
+   *
+   * The same thing for an ordinary capability -- an OpenLayers map draws
+   * wherever it is pointed -- which is why this is not abstract. A capability
+   * that does something special when it owns the main map overrides it to say
+   * so; see Cells3DCapability.
+   */
+  setPreviewTarget(target: string | HTMLElement | undefined) {
+    this.setTarget(target);
+  }
+
   setCmap(cmap: string) {
     this.cmap = cmap;
     sharedCmap.set(cmap);

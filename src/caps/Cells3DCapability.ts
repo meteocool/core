@@ -1,19 +1,22 @@
 import { Map as OlMap } from "ol";
 import { toLonLat, fromLonLat } from "ol/proj";
+import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
   DataDrivenPropertyValueSpecification, Map as GlMap, StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
 import type { CapabilityOptions } from "./options";
-import { basemapStyle } from "../layers/maplibreStyle";
+import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
-import { fetchCurrentCells } from "../api";
-import { capDescription, colorSchemeDark, showForecastPlaybutton } from "../stores";
+import { fetchCellTrack, fetchCurrentCells } from "../api";
+import { capDescription, colorSchemeDark, selectedCell, showForecastPlaybutton } from "../stores";
 import { NOWCAST_OPACITY } from "../layers/ui";
-import type { CellCurrent } from "../api";
+import { trimToLastRun } from "../lib/cellTrack";
+import type { CellCurrent, CellTrack } from "../api";
+import type VectorSource from "ol/source/Vector";
 
 /**
  * The storms in three dimensions.
@@ -68,6 +71,20 @@ async function loadMapLibre() {
 const CELL_SOURCE = "cells";
 const FOOTPRINT_SOURCE = "cell-footprints";
 const RADAR_SOURCE = "radar";
+const STRIKE_SOURCE = "strikes";
+
+/** The layers a tap can land on to mean "that storm". */
+const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint"];
+
+/**
+ * How long a strike stays on this map.
+ *
+ * The flat map's own buffer fades them over thirty minutes. Here they are
+ * shown only as a recent-activity halo around the cells that are producing
+ * them, and half an hour of accumulation over a squall line is a solid smear
+ * -- ten minutes keeps it to what is happening now.
+ */
+const STRIKE_MINUTES = 10;
 
 /** The id of the one full-size map element; minimaps carry generated ids. */
 const MAIN_MAP_ID = "map";
@@ -123,6 +140,20 @@ export default class Cells3DCapability extends Capability {
   /** The radar frame to drape, as a tile URL template. Set by the caller. */
   private radarUrl: string | null = null;
 
+  /**
+   * The flat map's strike buffer, read rather than duplicated.
+   *
+   * The strikes arrive over one socket and one ring buffer already holds them,
+   * evicts them and fades them; a second copy here would be a second thing to
+   * keep in step for no gain. The coordinates in it are EPSG:3857 metres --
+   * the `lightning` event documents them that way and `StrikeManager` stores
+   * them untouched -- so they are projected back on the way out.
+   */
+  private strikes: VectorSource | null = null;
+
+  /** The newest select in flight, so a slower earlier answer cannot win. */
+  private picking: symbol | null = null;
+
 
   private dark = false;
 
@@ -165,7 +196,7 @@ export default class Cells3DCapability extends Capability {
   }
 
   private style(): StyleSpecification {
-    return basemapStyle(this.dark ? darkTheme : lightTheme);
+    return basemapStyle(muteTheme(this.dark ? darkTheme : lightTheme));
   }
 
   /**
@@ -194,12 +225,52 @@ export default class Cells3DCapability extends Capability {
     void this.attach(element as HTMLElement);
   }
 
+  /**
+   * Preview in a thumbnail without giving up the main map.
+   *
+   * The switcher's tile draws the ordinary OpenLayers map, which is both
+   * cheaper than a second WebGL context and a truthful picture of where the
+   * storms are. What it must not do is take the MapLibre canvas down: the
+   * tiles are live while the switcher is open, and if this capability is the
+   * one currently showing, its map is still underneath and has to be there
+   * when the switcher closes again. Only `willLoseFocus` detaches.
+   */
+  setPreviewTarget(target: string | HTMLElement | undefined): void {
+    super.setTarget(target);
+  }
+
   private async attach(host: HTMLElement): Promise<void> {
     if (!this.container) {
       this.container = document.createElement("div");
       this.container.className = "maplibre-host";
+      /*
+       * Positioned inline, not from the stylesheet.
+       *
+       * MapLibre puts `maplibregl-map` on whatever element it is given, and
+       * its own CSS declares that class `position: relative` -- same
+       * specificity as the app's `.maplibre-host` rule and loaded after it,
+       * so it wins. In flow rather than layered, the canvas took its own
+       * 100%-height box *below* the OpenLayers viewport already sitting in
+       * `#map`, which reads as the 3D map simply not being there: the flat
+       * map is on screen and the storms are a screen further down the page.
+       * An inline style outranks both stylesheets and settles it.
+       */
+      Object.assign(this.container.style, {
+        position: "absolute", inset: "0", width: "100%", height: "100%",
+      });
     }
-    if (this.container.parentElement !== host) host.appendChild(this.container);
+    /*
+     * Appended every time, not only when it is somewhere else.
+     *
+     * Capabilities do not take `#map` from each other -- OpenLayers appends
+     * its viewport to the target and leaves any earlier one in place -- so
+     * which map is visible comes down to which element is last in the DOM.
+     * Coming back to this capability, the flat map's viewport had been
+     * appended after this container, so the 3D map was being drawn correctly
+     * underneath an opaque OpenLayers canvas. `appendChild` on a node that is
+     * already a child moves it to the end, which is exactly what is wanted.
+     */
+    host.appendChild(this.container);
 
     if (!this.gl) {
       const maplibre = await loadMapLibre();
@@ -229,6 +300,20 @@ export default class Cells3DCapability extends Capability {
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
       gl.on("moveend", () => this.pushCameraToView());
+      // Tapping a storm opens the same popup the flat map opens, and tapping
+      // past one closes it -- the panel is rendered above whichever map is
+      // showing, so it needs no separate plumbing here.
+      gl.on("click", (event) => {
+        const hit = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) })
+          .find((feature) => feature.properties?.code);
+        const code = hit?.properties?.code;
+        if (code) void this.select(String(code));
+        else selectedCell.set(null);
+      });
+      gl.on("mousemove", (event) => {
+        const over = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) }).length > 0;
+        gl.getCanvas().style.cursor = over ? "pointer" : "";
+      });
       this.gl = gl;
     } else {
       this.pullCameraFromView();
@@ -238,8 +323,61 @@ export default class Cells3DCapability extends Capability {
     void this.refresh();
   }
 
+  /**
+   * The cell layers that are actually on the style right now.
+   *
+   * `queryRenderedFeatures` throws on a layer id it does not know, and these
+   * are added after the style loads and thrown away again by every light/dark
+   * switch -- so a tap landing in the gap would take the map down with it.
+   */
+  private pickable(gl: GlMap): string[] {
+    return PICKABLE.filter((id) => gl.getLayer(id));
+  }
+
+  /**
+   * Hand the map back.
+   *
+   * MapLibre's canvas lives in a div appended to `#map`, not in the element
+   * itself, so nothing about pointing the next capability at `#map` removes
+   * it: OpenLayers drew underneath while the 3D map stayed on top, absolutely
+   * positioned over the lot. Picking any other tile in the switcher looked
+   * exactly like being bounced straight back to this one.
+   *
+   * The camera goes back to the shared View on the way out, so the flat map
+   * opens where this one was left.
+   */
+  willLoseFocus(): void {
+    this.pushCameraToView();
+    this.detach();
+    super.willLoseFocus();
+  }
+
   private detach(): void {
     if (this.container?.parentElement) this.container.parentElement.removeChild(this.container);
+  }
+
+  /**
+   * Open the detail popup for a tapped storm.
+   *
+   * This map is drawn from `/cells/current`, which is one timestep: it knows
+   * a cell's structure but not its history, and the popup is mostly history.
+   * So the tap fetches the track the flat map would already have had, and
+   * trims it the same way -- otherwise the same mis-stitched track that the
+   * flat map now refuses to draw a line for would still report its borrowed
+   * age and peak here.
+   */
+  private async select(code: string): Promise<void> {
+    const token = Symbol("pick");
+    this.picking = token;
+    try {
+      const answer = await fetchCellTrack(code, this.nanobar);
+      if (this.picking !== token) return;
+      const track = answer as unknown as CellTrack | undefined;
+      if (track?.properties) selectedCell.set(trimToLastRun(track).properties);
+    } catch {
+      // Already reported by the API wrapper; a popup that does not open is
+      // not worth a second message on top of it.
+    }
   }
 
   private pushCameraToView(): void {
@@ -262,6 +400,19 @@ export default class Cells3DCapability extends Capability {
       this.gl.jumpTo({ center: [lon, lat], zoom: (view.getZoom() ?? 6) - 1 });
     }
     this.syncing = false;
+  }
+
+  /**
+   * Read strikes from the flat map's own buffer.
+   *
+   * Given the source rather than the strikes themselves so this map picks up
+   * every arrival without App.svelte having to forward each one; the source
+   * fires `change` as the buffer adds and evicts.
+   */
+  setStrikeSource(source: VectorSource): void {
+    this.strikes = source;
+    source.on("change", () => this.ensureStrikes());
+    this.ensureStrikes();
   }
 
   /** Point the draped radar at a frame. Called with the same URL the 2D map uses. */
@@ -313,6 +464,7 @@ export default class Cells3DCapability extends Capability {
 
     this.ensureRadar(gl);
     this.ensureCells(gl);
+    this.ensureStrikes();
   }
 
   private ensureRadar(gl: GlMap): void {
@@ -353,6 +505,77 @@ export default class Cells3DCapability extends Capability {
    * and blends over it correctly. Swap them and every storm becomes a hollow
    * bag with nothing inside.
    */
+  /**
+   * Recent strikes, on the deck under the storms.
+   *
+   * Flat circles at ground level rather than anything raised: a strike is a
+   * channel from cloud to ground and drawing it as a mark on the ground is
+   * both true and the one place it cannot be confused with the volume above
+   * it. Two circles per strike -- a soft wide one and a small bright core --
+   * so a cluster reads as a glow rather than as gravel.
+   *
+   * Newer strikes are brighter. `fill-extrusion` writes depth, so anything
+   * drawn flat has to come after the storms to survive them, which is where
+   * the layers go in.
+   */
+  private ensureStrikes(): void {
+    const gl = this.gl;
+    if (!gl || !this.styleReady || !this.strikes) return;
+
+    const cutoff = Date.now() - STRIKE_MINUTES * 60_000;
+    const features = this.strikes.getFeatures().flatMap((strike) => {
+      // The feature id is the strike time, which is also how the flat map's
+      // ring buffer evicts them.
+      const at = Number(strike.getId());
+      if (!Number.isFinite(at) || at < cutoff) return [];
+      const point = strike.getGeometry() as Point | undefined;
+      const coordinates = point?.getCoordinates();
+      if (!coordinates) return [];
+      const [lon, lat] = toLonLat(coordinates);
+      return [{
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [lon, lat] },
+        properties: { age: (Date.now() - at) / (STRIKE_MINUTES * 60_000) },
+      }];
+    });
+    const data = { type: "FeatureCollection" as const, features };
+
+    const existing = gl.getSource(STRIKE_SOURCE);
+    if (existing) {
+      (existing as unknown as { setData(value: unknown): void }).setData(data);
+      return;
+    }
+
+    gl.addSource(STRIKE_SOURCE, { type: "geojson", data });
+    const fade: DataDrivenPropertyValueSpecification<number> = [
+      "interpolate", ["linear"], ["get", "age"], 0, 1, 1, 0,
+    ] as unknown as DataDrivenPropertyValueSpecification<number>;
+    gl.addLayer({
+      id: "strike-glow",
+      type: "circle",
+      source: STRIKE_SOURCE,
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 12, 14],
+        "circle-color": "#ffd166",
+        "circle-blur": 1,
+        "circle-opacity": ["*", 0.5, fade] as never,
+      },
+    });
+    gl.addLayer({
+      id: "strike-core",
+      type: "circle",
+      source: STRIKE_SOURCE,
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 1.4, 12, 3.4],
+        "circle-color": "#fff8e1",
+        "circle-stroke-color": "#f7b500",
+        "circle-stroke-width": 1,
+        "circle-opacity": fade,
+        "circle-stroke-opacity": fade,
+      },
+    });
+  }
+
   private ensureCells(gl: GlMap): void {
     const volume = volumeCollection(this.cells);
     const footprints = footprintCollection(this.cells);
