@@ -26,6 +26,14 @@ export type Band = 0 | 1 | 2 | 3;
 
 export const BAND_NAMES = ["weak", "moderate", "strong", "extreme"] as const;
 
+/** Minutes up to an hour, then hours: "127 min" is not a duration anyone reads. */
+export function duration(minutes: number): string {
+  if (minutes < 60) return `${Math.round(minutes)} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = Math.round(minutes % 60);
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
 interface Metric {
   key: string;
   label: string;
