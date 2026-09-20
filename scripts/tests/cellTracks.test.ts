@@ -1,95 +1,100 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  ageMinutes, covers, ellipseRing4326, padExtent,
-} from "../../src/lib/cellGeometry.ts";
+import { distanceKm, lastRunStart, MAX_STORM_KMH } from "../../src/lib/cellGeometry.ts";
 
 /**
- * The geometry behind the storm cell layer.
+ * Where a track stops being one storm.
  *
- * Two things here are easy to get wrong and impossible to see wrong: DWD gives
- * an uncertainty ellipse as a bearing rather than a maths angle, so a mixed-up
- * rotation still draws a plausible ellipse pointing the wrong way; and the
- * viewport padding decides how often a pan costs a request, which only shows up
- * as a slow map on a phone.
+ * The upstream identity is DWD's cell number, which is reused across unrelated
+ * cells, so a stale detection is sometimes glued onto a new cell that inherits
+ * it. Nothing about the result looks broken in the data -- every field is
+ * populated and plausible on its own -- and on the map it is a straight line a
+ * few hundred kilometres long joining two storms with nothing to do with each
+ * other. These are the four real cases from one run, with their own numbers.
  */
 
-const KM_PER_DEGREE_LAT = 111.32;
-
-/** Rough distance in km from a ring point back to the centre it was built around. */
-const kmFromCentre = ([plon, plat]: number[], lon: number, lat: number): number => {
-  const lonScale = KM_PER_DEGREE_LAT * Math.cos((lat * Math.PI) / 180);
-  return Math.hypot((plon - lon) * lonScale, (plat - lat) * KM_PER_DEGREE_LAT);
-};
-
-const farthest = (ring: number[][], lon: number, lat: number) => (
-  ring.reduce((a, b) => (kmFromCentre(b, lon, lat) > kmFromCentre(a, lon, lat) ? b : a))
-);
-
-test("an ellipse angle is a bearing, so zero points north", () => {
-  const [lon, lat] = farthest(ellipseRing4326(10, 50, 10, 2, 0), 10, 50);
-
-  assert.ok(lat > 50, `expected the long axis north of the centre, got ${lat}`);
-  assert.ok(Math.abs(lon - 10) < 0.01, `expected no eastward offset, got ${lon}`);
+const at = (minutes: number, lon: number, lat: number) => ({
+  t: new Date(Date.UTC(2026, 8, 20, 8, minutes)).toISOString(),
+  lon,
+  lat,
 });
 
-test("ninety degrees points east, not west", () => {
-  const [lon, lat] = farthest(ellipseRing4326(10, 50, 10, 2, 90), 10, 50);
-
-  assert.ok(lon > 10, `expected the long axis east of the centre, got ${lon}`);
-  assert.ok(Math.abs(lat - 50) < 0.01, `expected no northward offset, got ${lat}`);
+test("kilometres between two points shrink with latitude, as longitude does", () => {
+  // A degree of longitude is about 111 km at the equator and 69 at 52N.
+  assert.ok(Math.abs(distanceKm([10, 0], [11, 0]) - 111.32) < 0.5);
+  assert.ok(Math.abs(distanceKm([10, 52], [11, 52]) - 68.5) < 1);
+  // A degree of latitude does not.
+  assert.ok(Math.abs(distanceKm([10, 52], [10, 53]) - 111.32) < 0.5);
 });
 
-test("the axes come back the length they were given", () => {
-  const ring = ellipseRing4326(10, 50, 10, 4, 45);
-  const distances = ring.map((point) => kmFromCentre(point, 10, 50));
+test("an ordinary track is not cut anywhere", () => {
+  const steps = Array.from({ length: 12 }, (_, i) => at(i * 5, 11 + i * 0.05, 48 + i * 0.03));
 
-  assert.ok(Math.abs(Math.max(...distances) - 10) < 0.1);
-  assert.ok(Math.abs(Math.min(...distances) - 4) < 0.1);
+  assert.equal(lastRunStart(steps), 0);
 });
 
-test("a circle is a circle at any bearing", () => {
-  const distances = ellipseRing4326(10, 50, 5, 5, 123).map((p) => kmFromCentre(p, 10, 50));
+/**
+ * The fastest genuine step in a real run implied 144 km/h -- a single cell
+ * covering 12 km in five minutes. The ceiling has to sit above that or the
+ * quickest real storms lose their history.
+ */
+test("a fast but real storm keeps its whole track", () => {
+  const steps = [at(0, 11, 48), at(5, 11.16, 48.06), at(10, 11.32, 48.12)];
 
-  assert.ok(Math.max(...distances) - Math.min(...distances) < 0.01);
+  steps.slice(1).forEach((step, i) => {
+    const kmh = distanceKm([steps[i].lon, steps[i].lat], [step.lon, step.lat]) * 12;
+    assert.ok(kmh > 130 && kmh < MAX_STORM_KMH, `${kmh} km/h is the case being tested`);
+  });
+  assert.equal(lastRunStart(steps), 0);
 });
 
-test("the ring closes, so it draws as a polygon rather than an arc", () => {
-  const ring = ellipseRing4326(10, 50, 5, 3, 30);
+/** 12:10 near Stuttgart, 13:10 near Dresden: 434 km, and a different cell. */
+test("a track that teleports is cut at the jump", () => {
+  const steps = [at(130, 11.5, 48.18), at(190, 15.25, 51.23)];
 
-  assert.deepEqual(ring[0], ring[ring.length - 1]);
+  assert.equal(lastRunStart(steps), 1);
 });
 
-test("an ellipse stays the right shape far from the equator", () => {
-  // A degree of longitude is about half a degree of latitude at 60N; an ellipse
-  // built without that correction comes out visibly squashed.
-  const distances = ellipseRing4326(10, 60, 8, 8, 0).map((p) => kmFromCentre(p, 10, 60));
+test("only the run after the last jump survives", () => {
+  const steps = [
+    at(0, 12.71, 48.78),
+    at(40, 14.83, 51.07), // the glued join
+    at(45, 14.89, 51.09),
+    at(50, 14.95, 51.11),
+  ];
 
-  assert.ok(Math.max(...distances) - Math.min(...distances) < 0.05);
+  assert.equal(lastRunStart(steps), 1);
 });
 
-test("padding grows the viewport by a fraction of its own size", () => {
-  assert.deepEqual(padExtent([0, 0, 10, 20], 0.25), [-2.5, -5, 12.5, 25]);
+test("a later jump wins over an earlier one", () => {
+  const steps = [at(0, 9, 48), at(5, 9.05, 48.02), at(10, 15, 52), at(15, 15.05, 52.02)];
+
+  assert.equal(lastRunStart(steps), 2);
 });
 
-test("a move inside what was already fetched needs no request", () => {
-  const fetched: [number, number, number, number] = [0, 0, 10, 10];
+/**
+ * A long gap is not by itself a jump. A cell can go undetected for a few scans
+ * -- hidden behind a stronger echo, or below the threshold -- and come back
+ * where it should be, and that history is real.
+ */
+test("a gap in detection is not a jump if the cell is where it should be", () => {
+  const steps = [at(0, 11, 48), at(40, 11.6, 48.3)];
 
-  assert.equal(covers(fetched, [2, 2, 8, 8]), true);
-  assert.equal(covers(fetched, [0, 0, 10, 10]), true);
+  assert.equal(lastRunStart(steps), 0);
 });
 
-test("a move that reveals anything new does need one", () => {
-  const fetched: [number, number, number, number] = [0, 0, 10, 10];
+/**
+ * Timestamps are not guaranteed to be ordered or distinct, and dividing by the
+ * gap between two of them is how this decides. A duplicate timestamp would
+ * make every pair infinitely fast and cut every track down to its last step.
+ */
+test("a repeated timestamp does not read as infinite speed", () => {
+  const steps = [at(0, 11, 48), at(0, 11.4, 48.2), at(5, 11.5, 48.25)];
 
-  assert.equal(covers(fetched, [-1, 2, 8, 8]), false);
-  assert.equal(covers(fetched, [2, 2, 11, 8]), false);
-  assert.equal(covers(null, [2, 2, 8, 8]), false, "nothing fetched yet");
+  assert.equal(lastRunStart(steps), 0);
 });
 
-test("age is measured from the last detection", () => {
-  const now = Date.UTC(2026, 6, 1, 12, 0, 0);
-  const lastSeen = new Date(Date.UTC(2026, 6, 1, 11, 30, 0)).toISOString();
-
-  assert.equal(ageMinutes(lastSeen, now), 30);
+test("a track of one step has nothing to cut", () => {
+  assert.equal(lastRunStart([at(0, 11, 48)]), 0);
+  assert.equal(lastRunStart([]), 0);
 });
