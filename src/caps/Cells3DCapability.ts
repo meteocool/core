@@ -13,7 +13,7 @@ import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells } from "../api";
 import { capDescription, colorSchemeDark, selectedCell, showForecastPlaybutton } from "../stores";
-import { NOWCAST_OPACITY } from "../layers/ui";
+
 import { trimToLastRun } from "../lib/cellTrack";
 import type { CellCurrent, CellTrack } from "../api";
 import type VectorSource from "ol/source/Vector";
@@ -71,6 +71,22 @@ async function loadMapLibre() {
 const CELL_SOURCE = "cells";
 const FOOTPRINT_SOURCE = "cell-footprints";
 const RADAR_SOURCE = "radar";
+
+/**
+ * How strongly the flat reflectivity composite is drawn under the storms.
+ *
+ * Lower than the 2D map's, and for a reason that only applies here: this view
+ * already draws the same storms a second time, as extrusions coloured by the
+ * same reflectivity ramp. At the 2D map's opacity the raster reads as a
+ * competing copy of them -- same colours, same footprint, no height -- and the
+ * volumes it is meant to sit under get lost in it.
+ *
+ * Kept rather than removed, because it is the only thing on this map showing
+ * the rain that is not a detected cell: the broad stratiform shield around a
+ * line of storms has no volume drawn for it, and without the raster the map
+ * says nothing is there.
+ */
+const RADAR_OPACITY = 0.35;
 const STRIKE_SOURCE = "strikes";
 
 /** The layers a tap can land on to mean "that storm". */
@@ -490,7 +506,7 @@ export default class Cells3DCapability extends Capability {
       id: RADAR_SOURCE,
       type: "raster",
       source: RADAR_SOURCE,
-      paint: { "raster-opacity": NOWCAST_OPACITY, "raster-resampling": "nearest" },
+      paint: { "raster-opacity": RADAR_OPACITY, "raster-resampling": "nearest" },
     });
   }
 

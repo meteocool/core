@@ -27,10 +27,10 @@ import {
   bottomToolbarMode,
   colorSchemeDark,
   cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
-  capLatestObservation, capTimeIndicator,
+  capLatestObservation, capTimeIndicator, cellDetails,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
-  radarColorScheme, selectedCell, snowLayerVisible, toolbarVisible,
+  radarColorScheme, selectedCell, smallScreen, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
 import "./global.css";
@@ -43,6 +43,7 @@ import { websocketBaseUrl } from "./urls";
 import { onWake, wake } from "./lib/wakeup";
 import { fetchLightningCache, fetchMesocyclones } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
+import { nextSelection } from "./lib/cellSelection";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
@@ -53,6 +54,7 @@ import CellTrackManager from "./lib/CellTrackManager";
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import CellDetails from "./components/CellDetails.svelte";
+import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
@@ -288,6 +290,29 @@ derived(
   if (!value) selectedCell.set(null);
 });
 
+/* The panel is a property of a selection and cannot outlive one. Anything that
+   drops the selection -- the map background, the layer switcher, the scrubber
+   leaving the live edge -- therefore closes it without having to remember to. */
+selectedCell.subscribe((track) => {
+  if (!track) cellDetails.set(false);
+});
+
+/**
+ * The bottom trays step aside for the panel on a phone.
+ *
+ * The panel is nearly the whole screen there, and what is left of the map is
+ * the strip below it -- which is exactly where the scale, the clock and the
+ * playback controls sit. Hidden through a class on <body> rather than by not
+ * rendering them: the player owns subscriptions to the radar grid and its own
+ * playback state, and tearing that down and rebuilding it every time a popup
+ * opens would be a lot of machinery moved for a visual answer.
+ */
+derived([selectedCell, cellDetails, smallScreen], ([track, open, small]) => (
+  Boolean(track) && open && small
+)).subscribe((hide) => {
+  document.body.classList.toggle("cell-details-open", hide);
+});
+
 // Cell tracks are fetched for what is on screen, so they follow the map rather
 // than a timer. The manager ignores a move that stays inside what it already
 // holds, which is most of them.
@@ -435,7 +460,13 @@ lm.forEachMap((map) => {
       (feature) => feature.get("code") as string | undefined,
       { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
     );
-    selectedCell.set(code ? cellmgr.trackFor(code) ?? null : null);
+    const next = nextSelection(
+      { code: get(selectedCell)?.code ?? null, details: get(cellDetails) },
+      code ?? null,
+      get(smallScreen),
+    );
+    selectedCell.set(next.code ? cellmgr.trackFor(next.code) ?? null : null);
+    cellDetails.set(next.details);
   });
 });
 
@@ -602,6 +633,26 @@ if (postInitCb) postInitCb(lm);
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.28);
   }
 
+  /* Set on <body> while the panel is up on a phone; see the subscription above.
+     Both trays carry .bottomToolbar, and .buttonBar is the pair of discs the
+     collapsed player puts in the bottom corners. */
+  :global(body.cell-details-open .bottomToolbar),
+  :global(body.cell-details-open .buttonBar) {
+    display: none;
+  }
+
+  /* On a phone the panel is the screen rather than a card in the corner of
+     one, so it takes the width and drops the margin that implied otherwise. */
+  @media only screen and (max-width: 620px) {
+    .cell-details-panel {
+      top: 8px;
+      right: 8px;
+      left: 8px;
+      max-width: none;
+      max-height: calc(100vh - 16px - var(--mc-safe-bottom));
+    }
+  }
+
   /* MapLibre is appended into the map element rather than replacing it, so it
      has to be told to fill it; OpenLayers sizes its own viewport. */
   :global(.maplibre-host) {
@@ -631,10 +682,12 @@ if (postInitCb) postInitCb(lm);
 <div id="nanobar" />
 <Map layerManager={lm} />
 
-{#if $selectedCell}
+{#if $selectedCell && $cellDetails}
   <div class="cell-details-panel">
     <CellDetails track={$selectedCell} />
   </div>
+{:else if $selectedCell && $smallScreen}
+  <CellSelectionHint track={$selectedCell} />
 {/if}
 
 {#if $toolbarVisible === "yes"}
