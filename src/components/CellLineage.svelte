@@ -190,6 +190,7 @@ function layout(graph: ReturnType<typeof buildLineage>): Laid | null {
 $: laid = layout(lineage);
 
 let figure: HTMLElement;
+let scroller: HTMLElement;
 
 /**
  * Walking the family: the tapped relative becomes the open cell.
@@ -207,8 +208,43 @@ function go(code: string) {
   selectedCell.set(next);
   // After the panel above has been rebuilt, or this scrolls to where the chart
   // was rather than where it has ended up.
-  tick().then(() => figure?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  tick().then(() => {
+    figure?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    showNode(code);
+  });
 }
+
+/**
+ * Bring a node into the chart's own sideways scroll.
+ *
+ * The chart is wider than the panel, and the node just tapped is usually the
+ * reason to scroll: walking towards the end of a family means each tap lands
+ * further right, so without this the newly selected cell is off the edge and
+ * the highlight moves somewhere the reader cannot see -- which was measurable,
+ * a selected node at x 852 in a 351-wide window still scrolled to 0.
+ *
+ * Centred, because that also brings its parents and children into view, and
+ * they are what the next tap needs. Nothing happens when the chart already
+ * fits, which is most families.
+ */
+function showNode(code: string) {
+  const at = laid?.nodes.find((placed) => placed.code === code);
+  if (!at || !scroller || scroller.scrollWidth <= scroller.clientWidth) return;
+  // The SVG is drawn at its own width, so a node's x is already in scroll
+  // pixels and there is no scale factor to apply.
+  const target = at.x - scroller.clientWidth / 2;
+  scroller.scrollTo({
+    left: Math.max(0, Math.min(target, scroller.scrollWidth - scroller.clientWidth)),
+    behavior: "smooth",
+  });
+}
+
+/*
+ * Also when the cell was opened from the map or the hint bar rather than from
+ * the chart: the chart is drawn scrolled to its start, and the open cell can
+ * be anywhere along it.
+ */
+$: if (laid && track) tick().then(() => showNode(track.code));
 
 function activate(event: KeyboardEvent, code: string) {
   if (event.key === "Enter" || event.key === " ") go(code);
@@ -218,11 +254,6 @@ function activate(event: KeyboardEvent, code: string) {
 <style>
   figure {
     margin: 10px 0 0;
-  }
-  figcaption {
-    font-size: 11px;
-    opacity: 0.6;
-    margin-bottom: 2px;
   }
   /* Behind everything: a rule is a reading aid, not a mark, and a node that
      lands on one has to stay the thing being read. */
@@ -301,18 +332,14 @@ function activate(event: KeyboardEvent, code: string) {
     font: 700 10px/1 sans-serif;
     text-anchor: middle;
   }
-  .loading {
-    font-size: 11px;
-    opacity: 0.6;
-  }
 </style>
 
 {#if laid}
   <figure bind:this={figure}>
-    <figcaption>
-      family &middot; tap to follow{#if loading} &middot; <span class="loading">loading…</span>{/if}
+    <figcaption class="section">
+      Family<span class="aside">tap to follow{#if loading} &middot; loading…{/if}</span>
     </figcaption>
-    <div class="scroll">
+    <div class="scroll" bind:this={scroller}>
       <svg width={laid.width} height={laid.height} viewBox="0 0 {laid.width} {laid.height}"
         role="group" aria-label="Storm lineage">
         <!-- The clock, and a rule down the chart at every moment a cell in

@@ -149,6 +149,19 @@ $: series = track.series ?? [];
 $: latest = series[series.length - 1];
 $: forecast = track.forecast ?? [];
 
+/**
+ * A clock of our own, because everything below is relative to now and nothing
+ * else on the page ticks.
+ *
+ * Every quarter minute: the readings are five-minutely, so a slower tick would
+ * let "4 min ago" sit there while it became six, and a faster one would redraw
+ * the panel to change nothing. Cleared on destroy -- this component is created
+ * and thrown away on every tap.
+ */
+let tick = Date.now();
+const clockTimer = setInterval(() => { tick = Date.now(); }, 15_000);
+onDestroy(() => clearInterval(clockTimer));
+
 $: times = series.map((step) => new Date(step.t).getTime());
 
 /**
@@ -177,12 +190,29 @@ $: relatives = [...family.values()]
  */
 $: familyTimes = relatives.flatMap((other) => (other.series ?? [])
   .map((step) => new Date(step.t).getTime()));
-$: span = times.length > 1
-  ? {
-    from: Math.min(times[0], ...familyTimes),
-    to: Math.max(times[times.length - 1], ...familyTimes),
-  }
-  : null;
+/**
+ * The window runs to now, not to the last reading.
+ *
+ * Which is the whole point of marking it. A cell's readings stop when DWD
+ * stopped detecting it, and a chart that ends there quietly implies the record
+ * is current -- the trace runs to the right-hand edge whether it was measured
+ * a minute ago or an hour. Carrying the axis to the present puts the gap on
+ * the page, where the `now` line then says what it is.
+ *
+ * `tick` rather than `Date.now()` so the line moves: it is the same
+ * quarter-minute clock the "6 min ago" reading runs on, so the two cannot
+ * disagree about what time it is.
+ */
+$: span = (() => {
+  if (times.length < 2) return null;
+  const from = Math.min(times[0], ...familyTimes);
+  const end = Math.max(times[times.length - 1], ...familyTimes, tick);
+  // A little past the end, so `now` lands inside the plot with a gap after it
+  // rather than on the axis line. Without this the marker is always exactly on
+  // the right-hand edge -- carrying the window to now makes now the edge by
+  // construction -- and an invisible line is not a mark.
+  return { from, to: end + (end - from) * 0.05 };
+})();
 
 /**
  * Time to an x position, over the window the charts cover.
@@ -301,6 +331,27 @@ $: tickMarks = span
   ? ticks.map((t) => ({ t, x: atX(t), label: clock(new Date(t).toISOString()) }))
   : [];
 
+/**
+ * Where the present is on the charts, and whether it is worth drawing.
+ *
+ * Not when it lands on the right-hand edge with the last reading, which is the
+ * ordinary case for a cell being detected right now: a line on the axis says
+ * nothing there, and the label would sit on top of the last tick.
+ */
+$: nowAt = span && tick > span.from ? atX(tick) : null;
+/**
+ * Which side of the line the label sits on.
+ *
+ * To the right where there is room, which reads better -- the label follows
+ * the line the way a caption follows what it names. Where there is not, it
+ * goes to the left rather than the axis being padded out to make room: a
+ * tenth of the chart left empty to seat one eight-pixel word is a bad trade
+ * on a chart this size.
+ */
+$: nowLabel = nowAt === null ? null : (plot.x1 - nowAt > 24
+  ? { x: nowAt + 3, anchor: "start" }
+  : { x: nowAt - 3, anchor: "end" });
+
 /** The value gridlines, for the same reason: `panel.scale.at` is a function too. */
 $: gridlines = panels.map((panel) => panel.scale.ticks.map((value) => ({
   value,
@@ -392,19 +443,6 @@ $: void loadFamily(track);
 
 /* ---- how current any of this is ---------------------------------------- */
 
-/**
- * A clock of our own, because everything below is relative to now and nothing
- * else on the page ticks.
- *
- * Every quarter minute: the readings are five-minutely, so a slower tick would
- * let "4 min ago" sit there while it became six, and a faster one would redraw
- * the panel to change nothing. Cleared on destroy -- this component is created
- * and thrown away on every tap.
- */
-let tick = Date.now();
-const clockTimer = setInterval(() => { tick = Date.now(); }, 15_000);
-onDestroy(() => clearInterval(clockTimer));
-
 $: recency = cellRecency(
   new Date(track.last_seen).getTime(),
   tick,
@@ -492,6 +530,19 @@ function close() {
               <line class="grid" x1={plot.x0} x2={plot.x1} y1={line.y} y2={line.y} />
               <text class="tick left" x={plot.x0 - 5} y={line.y}>{line.value}</text>
             {/each}
+
+            <!-- The present, dashed, with the gap between it and the last
+                 reading left visible to its right. Behind the traces: it is a
+                 reference line rather than a measurement. -->
+            {#if nowAt !== null}
+              <line class="nowline" x1={nowAt} x2={nowAt} y1={CHART.top} y2={panel.y0} />
+              <!-- Named once, on the upper panel: it has the headroom, and the
+                   lower one's top gridline label sits where this would go. -->
+              {#if panelIndex === 0 && nowLabel}
+                <text class="nowlabel" x={nowLabel.x} y={CHART.top + 7}
+                      text-anchor={nowLabel.anchor}>now</text>
+              {/if}
+            {/if}
 
             {#each tickMarks as mark, i (mark.t)}
               <line class="tickmark" x1={mark.x} x2={mark.x}
@@ -741,6 +792,23 @@ function close() {
     display: flex;
     gap: 10px;
   }
+  /* The present. Dashed and light, because it is a reference the readings are
+     placed against rather than one of them -- the same reason a gridline is
+     lighter than a trace. */
+  .nowline {
+    stroke: currentColor;
+    stroke-opacity: 0.45;
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+  .nowlabel {
+    font-size: 8px;
+    fill: currentColor;
+    fill-opacity: 0.55;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
   /* The rest of the family: context rather than a reading, so no head, no
      label and no colour of its own. Dashed, because a faint solid line at this
      size is just a thin line and reads as another measurement. */
@@ -774,6 +842,29 @@ function close() {
     font-variant-numeric: tabular-nums;
   }
   .left { text-anchor: end; dominant-baseline: middle; }
+  /**
+   * A section heading, in the shape a phone draws one.
+   *
+   * The panel had no headings at all: a stack of figures whose captions are
+   * axis labels -- "reflectivity, dBZ" -- doing double duty as titles, in the
+   * same 11px grey as everything else. That reads as one long block rather
+   * than as parts, which matters most on the sheet, where a reader scrolls
+   * past the charts looking for the family and has nothing to aim at. A
+   * heading is set in the panel's own text colour at a size above the body,
+   * semibold, with the space above it that separates it from what came before.
+   */
+  :global(.cell-details .section) {
+    margin: 16px 0 6px;
+    font: 600 15px/1.2 var(--mc-font, system-ui);
+    letter-spacing: -0.01em;
+    color: var(--sl-color-neutral-900, #111);
+  }
+  :global(.cell-details .section .aside) {
+    margin-left: 6px;
+    font: 400 12px/1 var(--mc-font, system-ui);
+    color: var(--sl-color-neutral-500, #78716c);
+  }
+
   footer {
     font-size: 11px;
     opacity: 0.6;

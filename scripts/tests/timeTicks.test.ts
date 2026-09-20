@@ -21,6 +21,19 @@ test("some tick is always shown, however short the window", () => {
   assert.ok(timeTicks(at(16, 0), at(16, 0) + 30_000).length >= 2);
 });
 
+test("an end close to a step tick is dropped rather than printed over it", () => {
+  // The charts showed this: 14:35 landed hard against 15:00 on an hourly axis.
+  const ticks = timeTicks(at(14, 35), at(18, 28)).map(hhmm);
+  assert.ok(!ticks.includes("14:35"), ticks.join(" "));
+  assert.ok(!ticks.includes("18:28"), ticks.join(" "));
+  assert.ok(ticks.includes("15:00") && ticks.includes("18:00"));
+});
+
+test("an end far from any tick is still labelled", () => {
+  const ticks = timeTicks(at(16, 5), at(17, 55), 4).map(hhmm);
+  assert.ok(ticks.includes("16:05"), ticks.join(" "));
+});
+
 test("the ends are labelled unless a tick is already there", () => {
   const exact = timeTicks(at(16, 0), at(17, 0)).map(hhmm);
   // On the hour at both ends, so no extra end labels crowd in beside them.
