@@ -45,6 +45,64 @@ export function ellipseRing4326(
   return ring;
 }
 
+/** Great-circle-enough distance between two [lon, lat] points, in kilometres. */
+export function distanceKm(a: [number, number], b: [number, number]): number {
+  const lat = ((a[1] + b[1]) / 2) * (Math.PI / 180);
+  return Math.hypot(
+    (b[0] - a[0]) * KM_PER_DEGREE_LAT * Math.cos(lat),
+    (b[1] - a[1]) * KM_PER_DEGREE_LAT,
+  );
+}
+
+/**
+ * Faster than any storm travels, by a wide margin.
+ *
+ * The quickest convective systems on record move at something like
+ * 110-130 km/h; in a real run the 99th percentile step is around 90 and the
+ * fastest genuine one seen is 144. The errors this separates out are not near
+ * that line -- they imply 430 to 2300 km/h -- so the ceiling is set high enough
+ * that no real storm can reach it and a mis-stitched track cannot miss it.
+ */
+export const MAX_STORM_KMH = 200;
+
+/**
+ * Where the track stops being one storm.
+ *
+ * DWD's cell number is reused across unrelated cells -- the schema says so --
+ * and the stitcher upstream sometimes glues a stale detection onto a new cell
+ * that happens to inherit its number. The result is a track whose first step
+ * teleports: 12:10 near Stuttgart, 13:10 near Dresden, with the identifier
+ * changing across the jump. Drawn as a path it is a line hundreds of
+ * kilometres long joining two storms that have nothing to do with each other,
+ * and everything derived from the glued history -- how old the cell is, what
+ * its reflectivity has been doing -- is wrong with it.
+ *
+ * So the track is cut at any step a storm could not physically have made, and
+ * only the run of steps after the last such cut is treated as this cell. An
+ * earlier run belonged to a different storm; if that storm is still being
+ * detected it arrives under its own code and is drawn in its own right.
+ *
+ * Returns the index the surviving run starts at, which is 0 for the ordinary
+ * case of a track that never jumps.
+ */
+export function lastRunStart(
+  steps: Array<{ t: string; lon: number; lat: number }>,
+): number {
+  let start = 0;
+  for (let i = 1; i < steps.length; i += 1) {
+    const hours = (new Date(steps[i].t).getTime() - new Date(steps[i - 1].t).getTime()) / 3_600_000;
+    // Out-of-order or duplicate timestamps say nothing about speed; a jump
+    // with no time between the ends of it cannot be judged this way.
+    if (hours <= 0) continue;
+    const step = distanceKm(
+      [steps[i - 1].lon, steps[i - 1].lat],
+      [steps[i].lon, steps[i].lat],
+    );
+    if (step / hours > MAX_STORM_KMH) start = i;
+  }
+  return start;
+}
+
 /** Minutes since a track was last detected, which is what drives its fading. */
 export function ageMinutes(lastSeen: string, now = Date.now()): number {
   return (now - new Date(lastSeen).getTime()) / 60_000;
