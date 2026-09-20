@@ -25,9 +25,6 @@ $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
 $: alive = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
 
-/** The one signature worth the width here, in the order the map badges them. */
-$: badge = track.meso_ever ? "↻" : (track.hail_ever ? "✦" : "");
-
 const open = () => cellDetails.set(true);
 
 /* The map clears the selection when the background is tapped; this is the same
@@ -137,34 +134,41 @@ const onSwipeEnd = (cleared: boolean) => {
     white-space: nowrap;
   }
 
-  .badge {
-    font-size: 14px;
-    line-height: 1;
-    flex: 0 0 auto;
-  }
-
-  /* An actual button, filled in the cell's own colour: the previous version
-     was a grey chip beside a close button, and the two read as the same kind
-     of thing when only one of them was the point. */
+  /* Tinted rather than filled.
+     Solid in the cell's own severity colour was the loudest thing in the bar
+     and competed with the map behind it -- on a red cell it read as a warning
+     rather than as a way in. A wash of the same hue behind coloured text keeps
+     it obviously a control, which was the point of making it a button at all,
+     without it shouting. The chevron does most of the work. */
   .go {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    height: 36px;
-    padding: 0 14px;
+    gap: 4px;
+    height: 32px;
+    padding: 0 10px 0 12px;
     border: 0;
     border-radius: var(--mc-radius-pill);
-    background: var(--colour);
-    color: #fff;
-    font: 700 13px/1 var(--mc-font);
-    letter-spacing: 0.01em;
+    background: color-mix(in srgb, var(--colour) 14%, transparent);
+    color: var(--colour);
+    font: 600 13px/1 var(--mc-font);
+    letter-spacing: 0;
     cursor: pointer;
   }
 
+  /* Where color-mix is missing the tint would fall back to nothing, leaving
+     bare coloured text; a neutral wash keeps the shape. */
+  @supports not (background: color-mix(in srgb, red 50%, transparent)) {
+    .go { background: var(--mc-glass-fill); }
+  }
+
+  /* Thin and a little smaller than the label, the way a disclosure chevron is
+     drawn rather than the way a text angle bracket lands. */
   .go .chevron {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1;
+    opacity: 0.75;
+    margin-top: -1px;
   }
 
   .close {
@@ -207,7 +211,6 @@ const onSwipeEnd = (cleared: boolean) => {
     <span class="title"><b>{BAND_NAMES[severity]}</b> cell</span>
     <span class="alive">alive for {alive}</span>
   </span>
-  {#if badge}<span class="badge" style="color: {colour}">{badge}</span>{/if}
   <button type="button" class="go" on:click={open}>
     details <span class="chevron" aria-hidden="true">›</span>
   </button>
