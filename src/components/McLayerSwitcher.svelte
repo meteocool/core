@@ -22,6 +22,7 @@
     { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
     { layer: "aerosols", label: `💨 ${$_("aerosols")}` },
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
+    { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}` },
   ].filter((tile) => capabilityEnabled(tile.layer));
 
   // Rain & thunderstorms is what this app is for, so it leads: a wide hero

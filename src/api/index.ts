@@ -28,6 +28,8 @@ export type CellTrack = DataSchemas["schemas"]["TrackFeature"];
 export type CellTrackProperties = DataSchemas["schemas"]["TrackProperties"];
 export type CellStep = DataSchemas["schemas"]["CellStep"];
 export type CellForecastPoint = DataSchemas["schemas"]["ForecastPoint"];
+export type CellCurrent = DataSchemas["schemas"]["CellCurrent"];
+export type CellLayer = DataSchemas["schemas"]["CellLayer"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
