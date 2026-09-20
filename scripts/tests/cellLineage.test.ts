@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  buildLineage, MAX_FAMILY, missingRelatives, nodeRole, reachable, rowOffsets,
+  buildLineage, MAX_FAMILY, missingRelatives, nodeRole, reachable, axisOffsets,
 } from "../../src/lib/cellLineage.ts";
 
 /**
@@ -171,35 +171,35 @@ test("cells that start in the same minute keep a stable order", () => {
  * The family chart's time axis.
  *
  * dagre ranks by depth in the graph, not by time -- in one real family the
- * first rank held a cell from 16:10 and one from 15:35 -- so the vertical
- * positions have to come from the timestamps or the axis labels a reading the
- * layout cannot support.
+ * first rank held a cell from 16:10 and one from 15:35 -- so the positions
+ * along the clock have to come from the timestamps, or the axis labels a
+ * reading the layout cannot support.
  */
 const MINUTE = 60_000;
 
-test("a single moment sits at the top", () => {
-  assert.deepEqual(rowOffsets([0], 40, 1), [0]);
-  assert.deepEqual(rowOffsets([], 40, 1), []);
+test("a single moment sits at the start", () => {
+  assert.deepEqual(axisOffsets([0], 40, 1), [0]);
+  assert.deepEqual(axisOffsets([], 40, 1), []);
 });
 
-test("rows are spaced by how much time passed", () => {
-  const rows = rowOffsets([0, 10 * MINUTE, 20 * MINUTE], 10, 2 / MINUTE);
-  assert.deepEqual(rows, [0, 20, 40]);
+test("positions are spaced by how much time passed", () => {
+  const at = axisOffsets([0, 10 * MINUTE, 20 * MINUTE], 10, 2 / MINUTE);
+  assert.deepEqual(at, [0, 20, 40]);
 });
 
 test("a longer gap is drawn as a longer gap", () => {
-  const rows = rowOffsets([0, 10 * MINUTE, 40 * MINUTE], 10, 1 / MINUTE);
-  assert.ok(rows[2] - rows[1] > rows[1] - rows[0]);
+  const at = axisOffsets([0, 10 * MINUTE, 40 * MINUTE], 10, 1 / MINUTE);
+  assert.ok(at[2] - at[1] > at[1] - at[0]);
 });
 
 test("nodes never land on top of each other, however close in time", () => {
   // The two 16:45 cells in one real family were parent and child of each
-  // other; five minutes apart at any sane scale is less than a node is tall.
-  const rows = rowOffsets([0, MINUTE, 2 * MINUTE], 40, 1 / MINUTE);
-  assert.deepEqual(rows, [0, 40, 80]);
+  // other; five minutes apart at any sane scale is less than a node is wide.
+  const at = axisOffsets([0, MINUTE, 2 * MINUTE], 40, 1 / MINUTE);
+  assert.deepEqual(at, [0, 40, 80]);
 });
 
-test("rows only ever run downwards", () => {
-  const rows = rowOffsets([0, MINUTE, 90 * MINUTE, 91 * MINUTE], 36, 1.5 / MINUTE);
-  for (let i = 1; i < rows.length; i += 1) assert.ok(rows[i] > rows[i - 1]);
+test("positions only ever run forwards", () => {
+  const at = axisOffsets([0, MINUTE, 90 * MINUTE, 91 * MINUTE], 36, 1.5 / MINUTE);
+  for (let i = 1; i < at.length; i += 1) assert.ok(at[i] > at[i - 1]);
 });
