@@ -15,10 +15,26 @@ import Control from "ol/control/Control";
  * Drawn inline rather than pulled from the icon set: this control builds plain
  * DOM for OpenLayers, outside Svelte, so it has no component to render one in.
  */
+/**
+ * Nudged down and left, which is what makes it look centred.
+ *
+ * The path is already centred as a box -- it runs 3 to 21 on both axes inside
+ * a 24 viewBox, and the button centres that box exactly. It still read as
+ * sitting high and to one side, because a dart is not its bounding box: most
+ * of its area is in the head, and the tail that reaches the opposite corner
+ * has almost none. Its area centroid is at (13.58, 10.42) rather than at
+ * (12, 12), so the eye puts the shape up and to the right of where the box
+ * says it is.
+ *
+ * The translate is exactly that difference, which puts the centroid on the
+ * button's centre. Applied to the path rather than to the glyph's coordinates
+ * so the shape stays the round numbers it was drawn as, and the correction
+ * stays legible as a correction.
+ */
 const LOCATION_ARROW = `<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"
   fill="none" stroke="currentColor" stroke-width="1.8"
   stroke-linejoin="round" stroke-linecap="round">
-  <path d="M21 3 L3 10.1 L11.3 12.7 L13.9 21 Z" />
+  <path transform="translate(-1.58 1.58)" d="M21 3 L3 10.1 L11.3 12.7 L13.9 21 Z" />
 </svg>`;
 
 type LocateHandler = () => void;

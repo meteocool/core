@@ -186,26 +186,27 @@ export function nodeRole(lineage: Lineage, code: string): "split" | "merge" | ""
  *
  * The chart is laid out by `dagre`, which ranks nodes by depth in the graph
  * and knows nothing about when anything happened. That is fine for deciding
- * which node goes beside which -- and wrong for the vertical axis, because a
- * rank is not a time: in one real family the first rank held a cell from 16:10
- * and one from 15:35, so labelling ranks with clock times would have been
+ * which node goes beside which -- and wrong for the time axis, because a rank
+ * is not a time: in one real family the first rank held a cell from 16:10 and
+ * one from 15:35, so labelling ranks with clock times would have been
  * inventing a reading the layout could not support.
  *
- * So the rows are computed here from the timestamps and handed back to the
- * layout, and the axis labels the rows. Proportional to elapsed time, with a
- * floor: cells five minutes apart would otherwise be drawn closer together
- * than a node is tall, and the two 16:45 cells in that same family -- one the
- * parent of the other -- would land exactly on top of each other.
+ * So the positions along the clock are computed here from the timestamps and
+ * handed back to the layout, which keeps only dagre's answer for the other
+ * axis. Proportional to elapsed time, with a floor: cells five minutes apart
+ * would otherwise be drawn closer together than a node is wide, and the two
+ * 16:45 cells in that same family -- one the parent of the other -- would land
+ * exactly on top of each other.
  *
  * Where the floor bites, the spacing understates the gap. That is visible
- * rather than hidden: every row carries its own clock label on the axis, so a
- * reader who cares about the exact interval reads it off rather than measuring
- * it, and the one thing the position always gets right is the order.
+ * rather than hidden: every position carries its own clock label on the axis,
+ * so a reader who cares about the exact interval reads it off rather than
+ * measuring it, and the one thing the position always gets right is the order.
  *
  * `times` must be sorted ascending and distinct. Returns one offset per time,
  * in the same order, starting at zero.
  */
-export function rowOffsets(times: number[], minGap: number, pxPerMs: number): number[] {
+export function axisOffsets(times: number[], minGap: number, pxPerMs: number): number[] {
   const offsets: number[] = [];
   times.forEach((time, index) => {
     if (index === 0) {
