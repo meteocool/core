@@ -128,6 +128,11 @@ export interface components {
              */
             deviation_deg?: number | null;
             /**
+             * Echo Bottom M
+             * @description Lowest echo; the structure's floor
+             */
+            echo_bottom_m?: number | null;
+            /**
              * Echo Top M
              * @description Echo top above sea level
              */
@@ -231,6 +236,11 @@ export interface components {
              */
             split: boolean;
             /**
+             * Structure
+             * @description Vertical structure, weakest threshold first
+             */
+            structure?: components["schemas"]["CellLayer"][];
+            /**
              * T
              * Format: date-time
              */
@@ -240,6 +250,33 @@ export interface components {
              * @description Cell-based vertically integrated liquid, kg/m^2
              */
             vil?: number | null;
+        };
+        /**
+         * CellLayer
+         * @description One reflectivity threshold, and how far the storm exceeds it.
+         *
+         *     The pair of numbers is what carries the shape: `area_km2` is the footprint
+         *     at that intensity and `top_m` is how high it reaches, so a stack of these
+         *     describes the storm's anatomy rather than just its peak.
+         */
+        CellLayer: {
+            /**
+             * Area Km2
+             * @description Ground area exceeding the threshold
+             */
+            area_km2: number;
+            /**
+             * Dbz
+             * @description The threshold this layer is at or above
+             */
+            dbz: number;
+            /**
+             * Top M
+             * @description Highest echo exceeding it, above sea level
+             */
+            top_m: number;
+            /** Volume Km3 */
+            volume_km3?: number | null;
         };
         /**
          * CellStep
@@ -572,6 +609,11 @@ export interface components {
             code: string;
             /** Deviation Deg */
             deviation_deg?: number | null;
+            /**
+             * Echo Bottom M
+             * @description Lowest echo of the latest detection; the structure's floor
+             */
+            echo_bottom_m?: number | null;
             /** Echo Top Max M */
             echo_top_max_m?: number | null;
             /**
@@ -636,7 +678,10 @@ export interface components {
             n_steps: number;
             /** Parent Codes */
             parent_codes?: string[];
-            /** Polygon */
+            /**
+             * Polygon
+             * @description Cell outline, [lon, lat] pairs
+             */
             polygon?: number[][] | null;
             /**
              * Series
@@ -648,6 +693,11 @@ export interface components {
              * @default false
              */
             split_ever: boolean;
+            /**
+             * Structure
+             * @description The latest detection's vertical structure, weakest threshold first
+             */
+            structure?: components["schemas"]["CellLayer"][];
             /** Vil Max */
             vil_max?: number | null;
         };

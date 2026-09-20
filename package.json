@@ -13,7 +13,7 @@
     "worker:dev": "wrangler dev",
     "worker:tail": "wrangler tail",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json && eslint .",
-    "test": "node --test \"scripts/tests/**/*.test.ts\"",
+    "test": "node --test --import ./scripts/tests/register.mjs \"scripts/tests/**/*.test.ts\"",
     "generate:api": "openapi-typescript spec/api.openapi.json -o src/api/generated/api.ts && openapi-typescript spec/data.openapi.json -o src/api/generated/data.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
@@ -30,6 +30,7 @@
     "date-fns": "^4.1.0",
     "idb": "^8.0.3",
     "javascript-state-machine": "^3.1.0",
+    "maplibre-gl": "^6.10.0",
     "nanobar": "^0.4.2",
     "ol": "^10.10.0",
     "openapi-fetch": "^0.17.0",

@@ -54,6 +54,7 @@ import CellDetails from "./components/CellDetails.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
+import Cells3DCapability from "./caps/Cells3DCapability";
 import { radolanOverlay } from "./layers/dwd";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
@@ -327,6 +328,14 @@ const lm = new LayerManager({
       },
     },
     {
+      name: "cells3d",
+      capability: Cells3DCapability,
+      // No OpenLayers layers: MapLibre draws this one. The bare ol/Map it still
+      // receives is the camera the layer switcher previews and the shared View
+      // rides on.
+      options: { nanobar: nb, hasBaseLayer: true },
+    },
+    {
       name: "precipTypes",
       capability: PrecipitationTypesCapability,
       additionalLayers: [labelsOnly(), radolanOverlay()],
@@ -336,6 +345,24 @@ const lm = new LayerManager({
     }].filter((descriptor) => capabilityEnabled(descriptor.name)),
 });
 window.lm = lm;
+
+/* The 3D map drapes the same radar frame the flat map is showing, so the two
+   never disagree about what the weather is. RadarCapability already resolves
+   which frame is current and what its tiles are; this just forwards it rather
+   than working it out a second time. */
+const cells3d = lm.getCapability("cells3d") as Cells3DCapability | undefined;
+const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
+if (cells3d && radarCap) {
+  const forwardRadarFrame = () => {
+    const step = radarCap.getMostRecentObservation();
+    cells3d.setRadarUrl(radarCap.clientGrid?.[step]?.url ?? null);
+  };
+  radarCap.addObserver((subject) => {
+    if (subject === "grid") forwardRadarFrame();
+  });
+  // A new run means new cells as well as a new frame.
+  radarSocketIO.on("cells", () => { void cells3d.refresh(); });
+}
 
 /*
  * Tapping a storm opens its history.
@@ -525,12 +552,23 @@ if (postInitCb) postInitCb(lm);
     top: 12px;
     right: 12px;
     z-index: 1200;
-    max-width: min(300px, calc(100vw - 24px));
+    max-width: min(392px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
     padding: 10px 12px;
     border-radius: 10px;
     background: var(--sl-panel-background-color, #fff);
     color: var(--sl-color-neutral-900, #111);
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.28);
+  }
+
+  /* MapLibre is appended into the map element rather than replacing it, so it
+     has to be told to fill it; OpenLayers sizes its own viewport. */
+  :global(.maplibre-host) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
   }
 
   :global(*) {
