@@ -12,6 +12,7 @@ import {
 } from "./cellGeometry";
 import { trimToLastRun } from "./cellTrack";
 import { selectedCell } from "../stores";
+import { isLive } from "./cellPulse";
 import type { Extent } from "./cellGeometry";
 
 /**
@@ -31,6 +32,15 @@ export const BBOX_PADDING = 0.25;
 export default class CellTrackManager {
   /** The source the features are drawn from. */
   vs: VectorSource;
+
+  /**
+   * One point per cell still being detected, for the ping in layers/cellPulse.
+   *
+   * Kept apart from `vs` rather than filtered out of it at draw time: the ping
+   * restyles every frame, and this way the couple of thousand features of a
+   * busy viewport are not what gets recomputed twenty times a second.
+   */
+  private pulse: VectorSource | null;
 
   /** The viewport the drawn features were fetched for, padded. */
   fetched: Extent | null;
@@ -61,8 +71,9 @@ export default class CellTrackManager {
    */
   private pinned: CellTrack | null;
 
-  constructor(vectorSource: VectorSource) {
+  constructor(vectorSource: VectorSource, pulseSource: VectorSource | null = null) {
     this.vs = vectorSource;
+    this.pulse = pulseSource;
     this.fetched = null;
     this.enabled = true;
     this.tracks = new Map();
@@ -104,7 +115,11 @@ export default class CellTrackManager {
     if (this.pending !== token) return;
 
     this.fetched = padded;
-    this.apply((collection.features ?? []) as CellTrack[]);
+    this.apply(
+      (collection.features ?? []) as CellTrack[],
+      Date.now(),
+      collection.reference_time ?? null,
+    );
   }
 
   /**
@@ -113,11 +128,17 @@ export default class CellTrackManager {
    * Replaced rather than merged: a track missing from the answer has either
    * dissipated or left the viewport, and either way it should stop being drawn.
    */
-  apply(tracks: CellTrack[], now = Date.now()): void {
+  apply(tracks: CellTrack[], now = Date.now(), referenceTime: string | null = null): void {
     if (!this.enabled) return;
 
     const features: Feature[] = [];
+    const live: Feature[] = [];
     this.tracks = new Map();
+
+    // The feed's own newest run, so "how recently was this detected" is asked
+    // of the data rather than of the clock; see `LIVE_MINUTES`. Falling back to
+    // the clock only matters on a backend that sends no reference time.
+    const reference = referenceTime ? new Date(referenceTime).getTime() : now;
 
     const open = this.openCode();
     const answered = tracks.some((raw) => raw.properties.code === open);
@@ -154,7 +175,17 @@ export default class CellTrackManager {
       // schema marks them optional even though a real response always has them.
       const series = p.series ?? [];
       const last = series[series.length - 1];
-      if (last) add("cell", p.code, new Point(fromLonLat([last.lon, last.lat])));
+      if (last) {
+        add("cell", p.code, new Point(fromLonLat([last.lon, last.lat])));
+        // Only what the ping needs: where, and what colour. It never hit-tests
+        // and never opens a popup, so it carries no code.
+        if (p.active && isLive(ageMinutes(p.last_seen, reference))) {
+          live.push(new Feature({
+            max_severity: p.max_severity,
+            geometry: new Point(fromLonLat([last.lon, last.lat])),
+          }));
+        }
+      }
 
       if (p.polygon) {
         add("outline", `${p.code}:outline`, new Polygon([p.polygon.map((c) => fromLonLat(c))]));
@@ -204,6 +235,14 @@ export default class CellTrackManager {
 
     this.vs.clear(true);
     this.vs.addFeatures(features);
+    if (this.pulse) {
+      this.pulse.clear(true);
+      // Not silent: the ping's timer starts and stops on this source changing,
+      // so a quiet swap would leave it animating an empty layer or not
+      // animating a full one.
+      if (live.length) this.pulse.addFeatures(live);
+      else this.pulse.changed();
+    }
 
     if (answered) this.pinned = tracks.find((raw) => raw.properties.code === open) ?? null;
   }
@@ -224,6 +263,7 @@ export default class CellTrackManager {
     this.fetched = null;
     this.tracks = new Map();
     this.vs.clear();
+    this.pulse?.clear();
   }
 
   enable(state: boolean): void {
