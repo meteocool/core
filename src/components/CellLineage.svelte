@@ -31,6 +31,7 @@
  * rank instead, which is the number of cells that merged at once: three in the
  * largest case seen, well inside the panel.
  */
+import { tick } from "svelte";
 import dagre from "@dagrejs/dagre";
 import { selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
@@ -183,10 +184,25 @@ function layout(graph: ReturnType<typeof buildLineage>): Laid | null {
 
 $: laid = layout(lineage);
 
-/** Walking the family: the tapped relative becomes the open cell. */
+let figure: HTMLElement;
+
+/**
+ * Walking the family: the tapped relative becomes the open cell.
+ *
+ * The chart is scrolled back into view afterwards. Everything above it in the
+ * panel is rebuilt for the new cell -- a different 3D model, different charts,
+ * a different number of signal tags -- and the panel's own height changes with
+ * it, so a reader who had scrolled down to the family found it had moved out
+ * from under the finger that just tapped it. The graph stays put now, which
+ * for a thing you navigate by is the whole point.
+ */
 function go(code: string) {
   const next = known.get(code);
-  if (next && code !== track.code) selectedCell.set(next);
+  if (!next || code === track.code) return;
+  selectedCell.set(next);
+  // After the panel above has been rebuilt, or this scrolls to where the chart
+  // was rather than where it has ended up.
+  tick().then(() => figure?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
 }
 
 function activate(event: KeyboardEvent, code: string) {
@@ -285,7 +301,7 @@ function activate(event: KeyboardEvent, code: string) {
 </style>
 
 {#if laid}
-  <figure>
+  <figure bind:this={figure}>
     <figcaption>
       family &middot; tap to follow{#if loading} &middot; <span class="loading">loading…</span>{/if}
     </figcaption>
