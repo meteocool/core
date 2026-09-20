@@ -17,12 +17,13 @@ import { capLatestObservation, cellDetails, selectedCell, smallScreen } from "..
 import { afterClose } from "../lib/cellSelection";
 import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
 import { MAX_FAMILY, missingRelatives } from "../lib/cellLineage";
+import { timeTicks } from "../lib/timeTicks";
 import { fetchCellTrack } from "../api";
 import CellLineage from "./CellLineage.svelte";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
-import type { CellTrackProperties } from "../api";
+import type { CellStep, CellTrackProperties } from "../api";
 import type { VolumeInput } from "../lib/cellVolume";
 
 export let track: CellTrackProperties;
@@ -149,25 +150,38 @@ $: latest = series[series.length - 1];
 $: forecast = track.forecast ?? [];
 
 $: times = series.map((step) => new Date(step.t).getTime());
-/** The last detection: everything left of it happened, everything right of it has not. */
-$: now = times.length ? times[times.length - 1] : null;
-$: horizon = track.active && forecast.length
-  ? new Date(forecast[forecast.length - 1].t).getTime()
-  : null;
 
 /**
- * The window the charts cover: what was observed, plus where the cell is
- * predicted to be.
+ * Every cell of the family, so the charts can show what this one came out of.
  *
- * Running the axis past the last detection rather than stopping at it is what
- * lets the two be told apart at all. Radar reports no intensity forecast --
- * only where the centroid is going and how uncertain that is -- so the traces
- * genuinely stop at `now`, and a chart that ended there too would leave a
- * reader to guess whether the last value is current or predicted. With the
- * lead time drawn and shaded, the answer is on the page.
+ * Ordered so the drawing is stable as the panel is walked, for the reason
+ * spelled out on `buildLineage`: the traversal order depends on which cell is
+ * open, and a chart whose faint lines reshuffle on every hop is worse than one
+ * without them.
  */
+$: relatives = [...family.values()]
+  .filter((other) => other.code !== track.code && (other.series ?? []).length > 1)
+  .sort((a, b) => a.first_seen.localeCompare(b.first_seen) || a.code.localeCompare(b.code));
+
+/**
+ * The window the charts cover: the family's, not just this cell's.
+ *
+ * It used to run past the last detection to a shaded lead time. That band is
+ * gone -- radar forecasts a cell's position and not its intensity, so there
+ * was never a trace to mark the start of, and an empty third of the chart was
+ * paying for a distinction the axis labels can make on their own.
+ *
+ * What the window covers instead is every cell drawn on it. A merge is two
+ * traces ending where a third takes over, and it only reads that way if all of
+ * them are on one clock.
+ */
+$: familyTimes = relatives.flatMap((other) => (other.series ?? [])
+  .map((step) => new Date(step.t).getTime()));
 $: span = times.length > 1
-  ? { from: times[0], to: Math.max(times[times.length - 1], horizon ?? 0) }
+  ? {
+    from: Math.min(times[0], ...familyTimes),
+    to: Math.max(times[times.length - 1], ...familyTimes),
+  }
   : null;
 
 /**
@@ -180,9 +194,6 @@ function atX(t: number): number {
   if (!span || span.to <= span.from) return plot.x0;
   return plot.x0 + ((t - span.from) / (span.to - span.from)) * (plot.x1 - plot.x0);
 }
-
-/** Where the shaded band starts, or null when there is nothing to predict. */
-$: forecastFrom = now !== null && horizon !== null && horizon > now ? now : null;
 
 /**
  * The two panels.
@@ -201,12 +212,8 @@ $: panels = [
     height: 62,
     axis: false,
     digits: 0,
-    values: series.map((step) => step.max_dbz ?? null),
+    pick: (step: CellStep) => step.max_dbz ?? null,
     accent: true,
-    // The two regions are named once, on the upper panel: it has the clear
-    // headroom, and the lower one's top gridline label sits where the first
-    // caption would go.
-    legend: true,
   },
   {
     key: "top",
@@ -215,15 +222,35 @@ $: panels = [
     height: 58,
     axis: true,
     digits: 1,
-    values: series.map((step) => (step.echo_top_m == null ? null : step.echo_top_m / 1000)),
+    pick: (step: CellStep) => (step.echo_top_m == null ? null : step.echo_top_m / 1000),
     accent: false,
-    legend: false,
   },
-].map((panel) => {
+].map((spec) => ({ ...spec, values: series.map(spec.pick) })).map((panel) => {
   const bottom = panel.axis ? AXIS_ROOM : 5;
   const y0 = panel.height - bottom;
+  /*
+   * The family's readings, faint and dashed behind this cell's.
+   *
+   * A merge is the thing this makes visible: two traces running until they
+   * stop, and a third carrying on from where their values were. The panel can
+   * say "merged" in a tag and the family chart can say which cells, but only
+   * this says what the merge did to the storm -- whether the survivor took the
+   * strongest of them or came out above all three.
+   *
+   * Dashed and unlabelled, because they are context: the reader asked about
+   * one cell and the others are here to give its line something to be measured
+   * against. They are folded into the scale rather than clipped, or a relative
+   * stronger than the open cell would leave the chart through the top.
+   */
+  const relativeSeries = relatives.map((other) => (other.series ?? []).map((step) => ({
+    t: new Date(step.t).getTime(),
+    v: panel.pick(step),
+  })));
   const scale = verticalScale(
-    panel.values.filter((v): v is number => v !== null),
+    [
+      ...panel.values,
+      ...relativeSeries.flatMap((points) => points.map((point) => point.v)),
+    ].filter((v): v is number => v !== null),
     y0,
     CHART.top,
     3,
@@ -237,6 +264,9 @@ $: panels = [
     ...panel,
     y0,
     scale,
+    family: scale
+      ? relativeSeries.map((points) => path(points, atX, scale)).filter(Boolean)
+      : [],
     path: path(points, atX, scale),
     last: lastAt >= 0 ? { t: times[lastAt], v: panel.values[lastAt] as number } : null,
   };
@@ -245,13 +275,15 @@ $: panels = [
 }).flatMap((panel) => (panel.scale ? [{ ...panel, scale: panel.scale }] : []));
 
 /**
- * The three moments worth labelling: where the record starts, now, and how far
- * the forecast runs. A midpoint tick says less than the boundary between what
- * happened and what has not.
+ * Whole minutes at a step that fits, from lib/timeTicks.ts.
+ *
+ * The old axis labelled three moments taken from the data -- first reading,
+ * last reading, end of the forecast -- which moved with the cell and left a
+ * track running 16:07 to 16:52 with nothing between its two ends. Ticks on the
+ * clock read the same way as every other time in this panel, and two charts
+ * stacked over one window line up with each other.
  */
-$: timeTicks = span
-  ? [...new Set([span.from, now ?? span.to, span.to])].filter((t): t is number => t !== null)
-  : [];
+$: ticks = span ? timeTicks(span.from, span.to, 4) : [];
 
 $: readings = cellReadings(track, compass);
 
@@ -434,23 +466,13 @@ function close() {
           <figcaption>{panel.title}, {panel.unit}</figcaption>
           <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
                aria-label="{panel.title} over the tracked period, in {panel.unit}">
-            <!-- The lead time, shaded. Radar forecasts a cell's position, not
-                 its intensity, so no trace crosses into this band: it marks
-                 where the record stops rather than hiding a prediction. -->
-            {#if forecastFrom !== null}
-              <rect class="ahead" x={atX(forecastFrom)} y={CHART.top}
-                    width={plot.x1 - atX(forecastFrom)} height={panel.y0 - CHART.top} />
-              <line class="nowline" x1={atX(forecastFrom)} x2={atX(forecastFrom)}
-                    y1={CHART.top} y2={panel.y0} />
-            {/if}
-
             {#each panel.scale.ticks as value (value)}
               <line class="grid" x1={plot.x0} x2={plot.x1}
                     y1={panel.scale.at(value)} y2={panel.scale.at(value)} />
               <text class="tick left" x={plot.x0 - 5} y={panel.scale.at(value)}>{value}</text>
             {/each}
 
-            {#each timeTicks as t (t)}
+            {#each ticks as t (t)}
               <line class="tickmark" x1={atX(t)} x2={atX(t)}
                     y1={panel.y0} y2={panel.y0 + (panel.axis ? 3 : 0)} />
               {#if panel.axis}
@@ -463,10 +485,11 @@ function close() {
             <line class="axis" x1={plot.x0} x2={plot.x0} y1={panel.y0} y2={CHART.top} />
             <line class="axis" x1={plot.x0} x2={plot.x1} y1={panel.y0} y2={panel.y0} />
 
-            {#if panel.legend && forecastFrom !== null}
-              <text class="region" x={plot.x0 + 2} y={CHART.top + 6}>observed</text>
-              <text class="region" x={atX(forecastFrom) + 3} y={CHART.top + 6}>forecast</text>
-            {/if}
+            <!-- The family first, so this cell's line is never crossed by
+                 one of theirs. -->
+            {#each panel.family as d, i (i)}
+              <path class="kin" {d} fill="none" />
+            {/each}
 
             <path class="trace" class:context={!panel.accent} d={panel.path} fill="none"
                   stroke={panel.accent ? colour : undefined} />
@@ -687,24 +710,16 @@ function close() {
     display: flex;
     gap: 10px;
   }
-  /* The lead time. Kept very light: it is a region, not a mark, and it sits
-     behind the gridlines rather than competing with them. */
-  .ahead {
-    fill: currentColor;
-    fill-opacity: 0.09;
-  }
-  .nowline {
+  /* The rest of the family: context rather than a reading, so no head, no
+     label and no colour of its own. Dashed, because a faint solid line at this
+     size is just a thin line and reads as another measurement. */
+  .kin {
     stroke: currentColor;
-    stroke-opacity: 0.4;
+    stroke-opacity: 0.3;
     stroke-width: 1;
-    stroke-dasharray: 2 2;
-  }
-  .region {
-    font-size: 8px;
-    fill: currentColor;
-    fill-opacity: 0.45;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    stroke-dasharray: 3 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .grid {
     stroke: currentColor;

@@ -23,7 +23,8 @@
     { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
     { layer: "aerosols", label: `💨 ${$_("aerosols")}` },
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
-    { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}` },
+    // The only tile whose map is not the layer it stands for: see MiniMap.
+    { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}`, preview: true },
   ].filter((tile) => capabilityEnabled(tile.layer));
 
   // Rain & thunderstorms is what this app is for, so it leads: a wide hero
@@ -292,6 +293,7 @@
               {layerManager}
               layer={tile.layer}
               label={tile.label}
+              preview={tile.preview ?? false}
               on:mount={childMounted}
               on:changeLayer={changeLayer} />
           </div>

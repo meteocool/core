@@ -1,10 +1,22 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import { _ } from "svelte-i18n";
   import { onMount } from "svelte";
   const dispatch = createEventDispatcher();
   export let layerManager;
   export let layer;
   export let label;
+  /**
+   * Whether this tile's map is a stand-in rather than the thing it advertises.
+   *
+   * The 3D cell view is a MapLibre map; every tile here is an OpenLayers one,
+   * built by the same factory. So the tile for it shows the flat basemap and no
+   * storms at all -- a black rectangle with a border on it -- and the reader has
+   * no way to know that is the preview being approximate rather than the layer
+   * being empty. Frosted and labelled, it stops making a claim it cannot keep:
+   * the real map is built when the tile is tapped.
+   */
+  export let preview = false;
 
   let className = "";
   export { className as class };
@@ -61,6 +73,43 @@
     display: none;
   }
 
+  /* The frosting over a tile whose map is not the layer it stands for. Enough
+     blur that the basemap reads as a texture rather than as content, which is
+     the honest amount: there is nothing under it worth looking at. */
+  .frost {
+    position: absolute;
+    inset: 0;
+    z-index: 90;
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    backdrop-filter: blur(10px) saturate(1.2);
+    background: var(--mc-glass-fill);
+    pointer-events: none;
+  }
+
+  /* Where no blur is available the frosting would be a clear pane over a black
+     map, so it becomes an opaque one instead. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .frost {
+      background: var(--mc-glass-fill-solid);
+    }
+  }
+
+  .previewTag {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 100;
+    padding: 3px 8px;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-label-fill);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font: 700 10px/1 var(--mc-font);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
   /* A dark caption capsule inset in the card. Deliberately no backdrop-filter:
      three of these sit over three live map canvases. */
   .label {
@@ -93,4 +142,8 @@
   use:mapInit
   on:mousedown={mouseDown}
   on:mouseup={mouseUp} />
+{#if preview}
+  <div class="frost"></div>
+  <div class="previewTag">{$_("preview")}</div>
+{/if}
 <div class="label" on:mousedown={mouseDown} on:mouseup={mouseUp}>{label}</div>
