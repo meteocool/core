@@ -47,9 +47,11 @@ export function timeTicks(from: number, to: number, target = 4): number[] {
   for (let t = Math.ceil(from / step) * step; t <= to; t += step) ticks.push(t);
 
   // The ends, unless a step already put a tick close enough that two labels
-  // would collide. A third of a step is about where they stop overlapping at
-  // the sizes these charts are drawn.
-  const gap = step / 3;
+  // would collide. Half a step: a third was not enough and the charts showed
+  // it -- an axis running 14:35 to 18:28 in hourly steps printed "14:35" hard
+  // against "15:00" and "18:00" against "18:28", because a label is about as
+  // wide as twenty minutes is at these scales.
+  const gap = step / 2;
   if (!ticks.length || ticks[0] - from > gap) ticks.unshift(from);
   if (to - ticks[ticks.length - 1] > gap) ticks.push(to);
   // A window shorter than one step can come out with a single label sitting
