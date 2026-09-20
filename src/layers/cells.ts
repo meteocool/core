@@ -7,7 +7,8 @@ import Circle from "ol/style/Circle";
 import Text from "ol/style/Text";
 import Point from "ol/geom/Point";
 import type { FeatureLike } from "ol/Feature";
-import { mapBaseLayer, selectedCell } from "../stores";
+import { selectedCell } from "../stores";
+import { LIGHT_CASING, watchCasing } from "./casing";
 import { labelStepMinutes, outlineIsCurrent } from "../lib/cellGeometry";
 
 /**
@@ -159,28 +160,8 @@ const isSelected = (feature: FeatureLike): boolean => (
  * background instead of a dozen, which is what makes the line readable
  * wherever it happens to fall rather than only over the pale parts.
  *
- * Neither is fully opaque, because the casing is laid over the radar these
- * marks exist to be compared against, and there is a lot of it: a dozen nested
- * ellipses bunch up near the cell, and at full strength their casings merge
- * into a smear exactly where the storm is.
- *
- * The colour follows the basemap, which is the one piece of theming in this
- * layer and earns it. White casing on the dark map was tried and inverts the
- * mark: twelve bright rings become the loudest thing on the map and the
- * severity colour is reduced to a thin core inside them, so the one piece of
- * information the ring carries besides its shape stops being readable. A halo
- * is supposed to be the background, not a second mark.
- */
-const LIGHT_CASING = "rgba(255, 255, 255, 0.75)";
-const DARK_CASING = "rgba(12, 16, 22, 0.75)";
-
-/** The basemaps a light casing would be the loudest thing on. */
-const DARK_BASEMAPS = new Set(["dark", "satellite"]);
-
-/**
- * The casing colour in force, kept beside `selectedCode` and for the same
- * reason: a style function is called per feature per frame with nowhere to
- * thread state through it.
+ * The colour follows the basemap; the rule, and why it has to, is in
+ * layers/casing.ts, which the live-cell ring shares.
  */
 let casing = LIGHT_CASING;
 
@@ -337,9 +318,7 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
   /* Same shape as the selection above, and needed for the same reason: the
      cache is keyed on the casing, so switching basemaps builds the other set
      of styles rather than reusing the ones the old map wanted. */
-  mapBaseLayer.subscribe((name) => {
-    const next = DARK_BASEMAPS.has(name) ? DARK_CASING : LIGHT_CASING;
-    if (next === casing) return;
+  watchCasing((next) => {
     casing = next;
     layer.changed();
   });

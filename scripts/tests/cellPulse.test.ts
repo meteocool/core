@@ -1,47 +1,47 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  isLive, LIVE_MINUTES, pulseRing, pulseStep,
+  DASH, DASH_PERIOD, isLive, LIVE_MINUTES, TICK_MS, dashOffset,
 } from "../../src/lib/cellPulse.ts";
 
 /**
- * The ping on a live cell: a ring that grows out of the centroid and fades.
+ * The ring that marks a live cell, stepping round it a notch at a time.
  *
- * The shape of the fade is the part worth pinning down. Linear, the ring is
- * still clearly visible when it is far enough from its marker to be ambiguous
- * about which cell it came from -- on a map with a dozen live cells in a line
- * that reads as a mess rather than as a dozen pings.
+ * It replaced an expanding-and-fading ping that rebuilt every live cell's
+ * style twenty times a second and visibly failed to keep up with a hundred of
+ * them on screen. Here the ring never changes shape: only the dash pattern's
+ * offset moves, so the animation is a handful of prebuilt styles cycled in
+ * order.
  */
-test("the ring starts on the marker and grows away from it", () => {
-  assert.ok(pulseRing(1).radius > pulseRing(0).radius);
-  // Starting outside the marker, not inside it: the dot is up to 12px across.
-  assert.ok(pulseRing(0).radius >= 7);
+test("a full turn is one dash and one gap, which is what the styles cost", () => {
+  assert.equal(DASH_PERIOD, DASH[0] + DASH[1]);
+  // The whole animation, cached: nine styles per colour rather than a new one
+  // every frame.
+  const offsets = new Set();
+  for (let ms = 0; ms < TICK_MS * DASH_PERIOD * 3; ms += 10) offsets.add(dashOffset(ms));
+  assert.equal(offsets.size, DASH_PERIOD);
 });
 
-test("the ring is at its strongest as it leaves the marker", () => {
-  assert.ok(pulseRing(0).alpha > pulseRing(0.5).alpha);
-  assert.ok(pulseRing(0.5).alpha > pulseRing(0.99).alpha);
+test("it holds still between ticks rather than sweeping", () => {
+  // The step is the point: smooth rotation at this size reads as a shimmer,
+  // a notch reads as a mechanism running.
+  assert.equal(dashOffset(0), dashOffset(TICK_MS - 1));
+  assert.notEqual(dashOffset(0), dashOffset(TICK_MS));
 });
 
-test("it is gone by the time it is far from the cell it came from", () => {
-  assert.equal(pulseRing(1).alpha, 0);
-  // Most of the fading is late, so the ring stays readable while it is close:
-  // halfway out it still has a quarter of its strength, not none.
-  assert.ok(pulseRing(0.5).alpha / pulseRing(0).alpha > 0.2);
+test("the dashes travel the way the pattern is read", () => {
+  // Positive offsets slide the pattern the other way, which looks like the
+  // ring rotating backwards.
+  for (let tick = 0; tick < DASH_PERIOD; tick += 1) {
+    assert.ok(dashOffset(tick * TICK_MS) <= 0);
+  }
 });
 
-test("the cycle is driven by the clock, so every cell pings together", () => {
-  // In phase on purpose: a map where each cell runs its own cycle shimmers,
-  // where one shared beat reads as the map itself being live.
-  assert.equal(pulseStep(1_000_000), pulseStep(1_000_000));
-  assert.notEqual(pulseStep(0), pulseStep(1100));
-});
-
-test("the step wraps rather than running away", () => {
-  const steps = new Set<number>();
-  for (let ms = 0; ms < 20_000; ms += 37) steps.add(pulseStep(ms));
-  assert.ok(Math.min(...steps) >= 0);
-  assert.ok(Math.max(...steps) < 20);
+test("every live cell steps together, off one clock", () => {
+  // A map where each cell runs its own cycle shimmers; one shared beat reads
+  // as the map itself being live.
+  assert.equal(dashOffset(1_000_000), dashOffset(1_000_000));
+  assert.equal(dashOffset(0), dashOffset(TICK_MS * DASH_PERIOD));
 });
 
 /**
