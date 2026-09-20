@@ -17,10 +17,19 @@
  * `dagre` places the nodes. It lays out by graph structure rather than by
  * time, so unlike the two charts above this one it does not share their clock
  * -- a node's position says where it sits in the family, not when it was.
- * Ranks still run in chronological order left to right, because every edge
- * goes from a parent to a child and so always points forwards in time; what is
- * lost is the spacing, where two ranks a minute apart and two an hour apart
- * look the same. Each node carries its own clock underneath to cover that.
+ * Ranks still run in chronological order, because every edge goes from a
+ * parent to a child and so always points forwards in time; what is lost is the
+ * spacing, where two ranks a minute apart and two an hour apart look the same.
+ * Each node carries its own clock underneath to cover that.
+ *
+ * Top to bottom, which is the direction the panel already scrolls. Left to
+ * right, a family grows along the one axis a phone has none of: five
+ * generations is 450px of graph in a 350px sheet, so it either scrolls
+ * sideways -- a gesture that fights the sheet's own vertical scroll and the
+ * map pan behind it -- or it is squeezed. Downwards it grows into the
+ * direction the reader is already moving, and the width is set by the widest
+ * rank instead, which is the number of cells that merged at once: three in the
+ * largest case seen, well inside the panel.
  */
 import dagre from "@dagrejs/dagre";
 import { selectedCell } from "../stores";
@@ -74,7 +83,7 @@ function layout(graph: ReturnType<typeof buildLineage>): Laid | null {
   if (graph.nodes.length < 2) return null;
   const g = new dagre.graphlib.Graph();
   g.setGraph({
-    rankdir: "LR", nodesep: 12, ranksep: 30, marginx: 4, marginy: 4,
+    rankdir: "TB", nodesep: 10, ranksep: 26, marginx: 4, marginy: 4,
   });
   g.setDefaultEdgeLabel(() => ({}));
   graph.nodes.forEach((node) => g.setNode(node.code, { width: NODE_W, height: NODE_H }));
@@ -136,13 +145,15 @@ function activate(event: KeyboardEvent, code: string) {
     opacity: 0.6;
     margin-bottom: 2px;
   }
-  .scroll {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-  }
+  /* No sideways scrollbar, ever: the graph is laid out downwards, and where a
+     rank is wider than the panel the SVG scales to fit. Only downwards --
+     capped at its own width by the inline style, because a graph two nodes
+     wide stretched across the panel renders 60px boxes at 180px and reads as
+     a different component. */
   svg {
     display: block;
+    width: 100%;
+    height: auto;
   }
   /* The lines are the chart. A merge is three of them arriving at one node
      and a split is two leaving, which is the only place that reads -- so they
@@ -207,8 +218,9 @@ function activate(event: KeyboardEvent, code: string) {
     <figcaption>
       family &middot; tap to follow{#if loading} &middot; <span class="loading">loading…</span>{/if}
     </figcaption>
-    <div class="scroll">
-      <svg width={laid.width} height={laid.height} viewBox="0 0 {laid.width} {laid.height}"
+    <div>
+      <svg viewBox="0 0 {laid.width} {laid.height}" preserveAspectRatio="xMidYMin meet"
+        style="max-width: {laid.width}px"
         role="group" aria-label="Storm lineage">
         {#each laid.edges as d, i (i)}
           <path class="edge" {d} />
