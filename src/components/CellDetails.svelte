@@ -613,7 +613,10 @@ function close() {
       justify-content: center;
       width: 44px;
       height: 44px;
-      margin: -8px -8px -8px auto;
+      /* Pulled up and left into its own padding, but not out past the right
+         edge: eight pixels of overhang there was enough to give the sheet a
+         horizontal scrollbar, on a panel that has nothing to scroll sideways. */
+      margin: -8px 0 -8px auto;
       border-radius: 50%;
       font-size: 26px;
       opacity: 0.55;
