@@ -12,9 +12,13 @@
  */
 import { _ } from "svelte-i18n";
 import { onDestroy } from "svelte";
+import { SvelteMap } from "svelte/reactivity";
 import { capLatestObservation, cellDetails, selectedCell, smallScreen } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
+import { MAX_FAMILY, missingRelatives } from "../lib/cellLineage";
+import { fetchCellTrack } from "../api";
+import CellLineage from "./CellLineage.svelte";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
@@ -266,6 +270,58 @@ $: shape = latest && (track.structure ?? []).length
 
 $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
 
+/* ---- the family ---------------------------------------------------------- */
+
+/**
+ * The relatives of the open cell, fetched one at a time until the family closes.
+ *
+ * They cannot come from the map's own data. Tracks are fetched for the
+ * viewport, and a storm's parent may have been detected well outside it -- or
+ * before the window the map asked for -- so a family assembled from what is on
+ * screen is arbitrarily truncated. `/cells/tracks/{code}` answers for any code,
+ * which is what closes it.
+ *
+ * Breadth-first through `missingRelatives`, which names the codes the reached
+ * tracks point at and we do not hold yet. It re-runs after each round, so a
+ * grandparent is asked for only once its parent has arrived and confirmed it
+ * exists, and nothing is asked for twice. `MAX_FAMILY` bounds it.
+ */
+let family: Map<string, CellTrackProperties> = new SvelteMap();
+let loadingFamily = false;
+
+async function loadFamily(root: CellTrackProperties) {
+  const known = new SvelteMap<string, CellTrackProperties>([[root.code, root]]);
+  family = known;
+  // Nothing to walk, and no request worth making for the two thirds of cells
+  // that have no relatives at all.
+  if (!missingRelatives(known, root.code).length) return;
+
+  loadingFamily = true;
+  try {
+    for (let round = 0; round < 4; round += 1) {
+      const wanted = missingRelatives(known, root.code)
+        .slice(0, MAX_FAMILY - known.size);
+      if (!wanted.length) break;
+      const answers = await Promise.all(wanted.map((code) => fetchCellTrack(code).catch(() => null)));
+      answers.forEach((answer) => {
+        const relative = answer?.properties as CellTrackProperties | undefined;
+        if (relative) known.set(relative.code, relative);
+      });
+      // A code that answers with nothing would be asked for every round; the
+      // walk stops when a round adds nobody rather than spinning on it.
+      if (!answers.some(Boolean)) break;
+      // Reassigned as well as filled, so the chart re-renders on each round.
+      family = new SvelteMap(known);
+    }
+  } finally {
+    loadingFamily = false;
+  }
+}
+
+/* Keyed on the code: the panel is reused when a relative is tapped in the
+   chart, and the family has to be rebuilt around whichever cell is open. */
+$: void loadFamily(track);
+
 /* ---- how current any of this is ---------------------------------------- */
 
 /**
@@ -413,6 +469,8 @@ function close() {
       {/each}
     </div>
   {/if}
+
+  <CellLineage {track} known={family} loading={loadingFamily} />
 
   <footer class="recency" class:offset={radarOffset !== null}>
     <span>
