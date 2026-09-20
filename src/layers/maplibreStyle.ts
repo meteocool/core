@@ -15,6 +15,80 @@ import type { StyleSpecification, LayerSpecification, ExpressionSpecification } 
 
 const SOURCE = "basemap";
 
+/** #rrggbb to its three channels. */
+function channels(hex: string): [number, number, number] {
+  const value = parseInt(hex.slice(1), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+const hex = (rgb: number[]): string => (
+  `#${rgb.map((c) => Math.round(Math.min(Math.max(c, 0), 255)).toString(16).padStart(2, "0")).join("")}`
+);
+
+/**
+ * One colour, drained towards a backdrop.
+ *
+ * Desaturated first, then mixed towards `into`. Doing both matters: mixing
+ * alone leaves a pale version of the same hue, and the hues are the problem --
+ * the 3D map's storms are green through magenta and so is a basemap with
+ * forests, farmland and motorways on it.
+ */
+function drain(colour: string, into: [number, number, number], amount: number): string {
+  if (!colour.startsWith("#") || colour.length !== 7) return colour;
+  const rgb = channels(colour);
+  const grey = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  return hex(rgb.map((c, i) => {
+    const flat = c + (grey - c) * DESATURATE;
+    return flat + (into[i] - flat) * amount;
+  }));
+}
+
+/** How much of each colour's own hue is given up before it is mixed away. */
+const DESATURATE = 0.72;
+
+/**
+ * The same theme with the life drained out of it.
+ *
+ * The 3D map is the one view where the basemap is not the subject. Its storms
+ * are coloured by reflectivity -- a ramp that runs green, yellow, orange, red
+ * -- and they stand on a map whose forests are green, whose farmland is
+ * yellow, and whose motorways are orange. At a tilt, with a translucent
+ * envelope over it, the two are genuinely hard to tell apart.
+ *
+ * Draining the theme rather than dropping the basemap's opacity, because the
+ * fills overlap: landcover over earth over background, all semi-transparent,
+ * comes out blotchy where they stack and lets the sky through where they do
+ * not. Mixing the colours leaves every surface opaque and evenly quiet.
+ */
+export function muteTheme(theme: BasemapTheme, amount = 0.55): BasemapTheme {
+  const into = channels(theme.earth);
+  const one = (colour: string) => drain(colour, into, amount);
+  const each = (kinds: Record<string, string>) => Object.fromEntries(
+    Object.entries(kinds).map(([kind, colour]) => [kind, one(colour)]),
+  );
+  return {
+    ...theme,
+    earth: theme.earth,
+    water: one(theme.water),
+    landcover: each(theme.landcover),
+    landuse: each(theme.landuse),
+    buildingFill: one(theme.buildingFill),
+    buildingStroke: theme.buildingStroke ? one(theme.buildingStroke) : undefined,
+    roads: Object.fromEntries(Object.entries(theme.roads).map(([kind, road]) => [kind, {
+      ...road,
+      color: one(road.color),
+      casing: road.casing ? one(road.casing) : undefined,
+    }])),
+    // Borders stay as they are. They are thin dashed lines in a colour nothing
+    // else on this map uses, and they are the only thing left telling you
+    // which country a storm is over.
+    boundaryCountry: theme.boundaryCountry,
+    boundaryRegion: theme.boundaryRegion,
+    waterway: one(theme.waterway),
+  };
+}
+
+
 /** Matches `roadWidth` in protomaps.ts: half weight at z6, 2.2x at z14. */
 function widthByZoom(base: number): ExpressionSpecification {
   return ["interpolate", ["linear"], ["zoom"], 6, base * 0.5, 14, base * 2.2];

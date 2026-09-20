@@ -20,7 +20,9 @@
   });
 
   function mapInit(node) {
-    layerManager.setTarget(layer, node.id);
+    // A preview, not a handover: see LayerManager.setPreviewTarget. Mounting
+    // these tiles used to move focus between capabilities as a side effect.
+    layerManager.setPreviewTarget(layer, node.id);
   }
 
   let _down = false;
