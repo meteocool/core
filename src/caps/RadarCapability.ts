@@ -10,9 +10,12 @@ import {
   capLastUpdated,
   capTimeIndicator,
   lastFocus,
+  inspectLatLon,
   latLon,
   live,
+  radarCadence,
   radarColorScheme,
+  radarStale,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
 } from "../stores";
 import type { Map } from "ol";
@@ -23,10 +26,22 @@ import type { CapabilityOptions, RadarSocket } from "./options";
 import Capability from "./Capability";
 import { tileBaseUrl } from "../urls";
 import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
+import { publishCadence } from "../lib/updateCadence";
+import { isOutdated } from "../lib/freshness";
+import { NOWCAST_OPACITY } from "../layers/ui";
 import { get } from "svelte/store";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
+
+/**
+ * What the radar layer fades to while it is known to be out of date.
+ *
+ * Enough that the map reads as "not the current picture" at a glance, not so
+ * little that the frames stop being legible -- old radar is still the best
+ * answer available until the new one lands a moment later.
+ */
+const STALE_OPACITY = NOWCAST_OPACITY * 0.45;
 
 function setPattern(style) {
   const canvas = document.createElement("canvas");
@@ -48,6 +63,8 @@ export interface GridStep {
   tile_id: string;
   source: string;
   bucket?: string;
+  /** When the backend produced this frame. Absent on the seeded placeholders. */
+  processed_time?: number;
 }
 
 /** The ±2h five-minute grid the playback slider scrubs across. */
@@ -84,11 +101,17 @@ export default class RadarCapability extends Capability {
   /** Where the forecast is sampled, if the client has shared a position. */
   latlon: [number, number] | null;
 
+  /** A point the user tapped, which the forecast is sampled at instead. */
+  inspectLatlon: [number, number] | null;
+
   trackingMode: string;
 
   serverTime: number;
 
   snowOverlay: VectorTileLayer | null;
+
+  /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
+  stale: boolean;
 
   private nanobar: NanobarWrapper;
 
@@ -113,6 +136,7 @@ export default class RadarCapability extends Capability {
     this.nanobar = options.nanobar!;
     this.socket_io = options.socket_io;
     this.latlon = null;
+    this.inspectLatlon = null;
     this.sources = {};
     this.layerFactory = dwdLayerStatic;
     this.serverGrid = null;
@@ -120,6 +144,7 @@ export default class RadarCapability extends Capability {
     this.trackingMode = "live";
     this.serverTime = 0;
     this.snowOverlay = null;
+    this.stale = false;
 
     window.radar = this;
 
@@ -158,9 +183,29 @@ export default class RadarCapability extends Capability {
       }
     });
 
+    /* A tapped point wins over the client's own: the strip is answering the
+       question that was just asked, not the standing one. */
+    inspectLatLon.subscribe((point) => {
+      const before = this.inspectLatlon;
+      this.inspectLatlon = point;
+      // The store publishes its initial null to every new subscriber; only an
+      // actual change is worth a round trip to the backend.
+      if (before === point) return;
+      if (before && point && before[0] === point[0] && before[1] === point[1]) return;
+      this.reloadAll();
+    });
+
+    /* Order matters: the verdict is published before the refetch goes out, so
+       the map says it is out of date for the round trip rather than after it. */
     lastFocus.subscribe(() => {
+      this.refreshStaleness();
       if (this.layer) this.reloadAll();
       this.downloadSnowOverlay();
+    });
+
+    radarStale.subscribe((value) => {
+      this.stale = value;
+      this.applyStaleOpacity();
     });
 
     live.subscribe((value) => {
@@ -287,14 +332,35 @@ export default class RadarCapability extends Capability {
     this.source?.setUrl(url);
   }
 
+  /**
+   * Re-judge whether the frames we hold have been overtaken, and say so.
+   *
+   * Called when the page wakes, which is the moment it can be true without
+   * anything having happened: no frame changed, the clock did. Only ever turns
+   * it *on* -- the grid that answers the refetch turns it off, so a slow
+   * response cannot clear the warning before the data it is warning about has
+   * actually been replaced.
+   */
+  refreshStaleness() {
+    if (!this.clientGrid) return;
+    if (!isOutdated(this.getMostRecentObservation(), Date.now() / 1000, get(radarCadence))) return;
+    radarStale.set(true);
+    live.set(false);
+  }
+
+  private applyStaleOpacity() {
+    this.layer?.setOpacity(this.stale ? STALE_OPACITY : NOWCAST_OPACITY);
+  }
+
   reloadAll() {
     console.log("reloadAll");
     this.downloadCurrentRadar();
   }
 
-  /** The location the forecast is sampled at, if the client has shared one. */
+  /** Where the forecast is sampled: a tapped point, else the client's own. */
   getPosition() {
-    return this.latlon ? { lat: this.latlon[0], lon: this.latlon[1] } : undefined;
+    const at = this.inspectLatlon ?? this.latlon;
+    return at ? { lat: at[0], lon: at[1] } : undefined;
   }
 
   async downloadCurrentRadar() {
@@ -344,23 +410,64 @@ export default class RadarCapability extends Capability {
     }
   }
 
+  /** Whether the poke channel is up, for the diagnostics panel. */
+  get socketConnected(): boolean | null {
+    return this.socket_io ? this.socket_io.connected === true : null;
+  }
+
   notifyObservers() {
     this.notify("grid", this.clientGridConfig);
   }
 
-  getMostRecentObservation() {
-    let mostRecent = this.serverTime;
-    for (const [step, frame] of Object.entries(this.clientGrid ?? {})) {
-      if (frame) {
-        if (frame.source === "") {
-          break;
-        }
-        if (frame.source === "observation" && parseInt(step, 10) > mostRecent) {
-          mostRecent = parseInt(step, 10);
-        }
-      }
+  /**
+   * The newest step the map can show as "now".
+   *
+   * This used to seed with serverTime and only ever raise it to an observation
+   * newer than that -- which no observation ever is, so the loop was dead and
+   * the function returned the server's clock under an observation's name. That
+   * held together only because on production the step at server_time happens to
+   * BE the newest observation. On a backend that publishes no observations at
+   * all it silently returned a forecast step instead, and any caller that looks
+   * the result up in the grid (resetToLatest, processRadar's first layer,
+   * the scrubber's initial value) depends on it being a real step.
+   *
+   * Preference order: the newest observation; failing that the newest step at
+   * or before the server's clock that has a frame; failing that the clock
+   * itself, which is all there is left when the grid is empty.
+   */
+  getMostRecentObservation(): number {
+    let newestObservation = 0;
+    let newestBeforeNow = 0;
+    for (const [key, frame] of Object.entries(this.clientGrid ?? {})) {
+      // No url means the step is not published yet, and the rest of the grid
+      // behind it is not either -- same prefix rule as getLastPlayableStep().
+      if (!frame || !frame.url) break;
+      const step = parseInt(key, 10);
+      if (frame.source === "observation") newestObservation = step;
+      if (step <= this.serverTime) newestBeforeNow = step;
     }
-    return mostRecent;
+    return newestObservation || newestBeforeNow || this.serverTime;
+  }
+
+  /**
+   * The newest step that actually has a frame behind it.
+   *
+   * The grid always runs to gridconfig.end, but the tail of the nowcast is
+   * published a few steps behind that: those entries come back null, or stay
+   * the empty placeholder regenerateGridConfig() seeded. setSource() then has
+   * no url to hand the layer and leaves the previous tile on the map, so the
+   * clock advances while the radar does not -- which reads as a freeze.
+   *
+   * Stops at the first hole rather than skipping it, like
+   * getMostRecentObservation(): the published steps are a prefix of the grid.
+   */
+  getLastPlayableStep(): number {
+    let last = 0;
+    for (const [step, frame] of Object.entries(this.clientGrid ?? {})) {
+      if (!frame || !frame.url) break;
+      last = parseInt(step, 10);
+    }
+    return last || this.gridconfig.end;
   }
 
   processRadar(obj) {
@@ -396,7 +503,30 @@ export default class RadarCapability extends Capability {
         break;
     }
     capLastUpdated.set(latestRadar);
+    this.publishCadenceFromGrid();
+    radarStale.set(false);
+    this.applyStaleOpacity();
     this.notify("grid", this.clientGridConfig);
+  }
+
+  /**
+   * Work out when the next frame is due, from when the last ones arrived.
+   *
+   * Observations only. Every forecast frame in a grid is rebuilt on the same
+   * pass and stamped with the same processed_time, so including them would
+   * report a cadence of nothing at all; the observations are the ones that
+   * appear one at a time, on the backend's actual rhythm.
+   *
+   * Cheap enough to do on every grid -- a couple of dozen numbers -- and doing
+   * it here rather than in the panel means the prediction exists whether or not
+   * anyone has the diagnostics open, which is what the degraded criteria need.
+   */
+  private publishCadenceFromGrid() {
+    const published = Object.values(this.clientGrid ?? {})
+      .filter((frame) => frame && frame.source === "observation")
+      .map((frame) => frame!.processed_time)
+      .filter((t): t is number => typeof t === "number" && t > 0);
+    radarCadence.set(publishCadence(published));
   }
 
   resetToLatest() {

@@ -8,6 +8,8 @@
  */
 import { apiClient, dataClient } from "./client";
 import { reportError } from "../lib/Toast";
+import { apiHealth } from "../stores";
+import { nextHealth } from "../lib/apiHealth";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
 
@@ -22,11 +24,20 @@ export type LightningCollection = Schemas["LightningCollection"];
 export type LightningStats = Schemas["LightningStats"];
 export type Strike = DataSchemas["schemas"]["Strike"];
 export type Mesocyclone = DataSchemas["schemas"]["Mesocyclone"];
+export type CellTrack = DataSchemas["schemas"]["TrackFeature"];
+export type CellTrackProperties = DataSchemas["schemas"]["TrackProperties"];
+export type CellStep = DataSchemas["schemas"]["CellStep"];
+export type CellForecastPoint = DataSchemas["schemas"]["ForecastPoint"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
   start(id: string): void;
   finish(id: string): void;
+}
+
+/** Record what an endpoint just did; the rules are in lib/apiHealth.ts. */
+function recordOutcome(id: string, error?: unknown) {
+  apiHealth.update((health) => nextHealth(health, id, error));
 }
 
 async function request<T>(nanobar: Progress | undefined, id: string, send: () => Promise<{ data?: T; error?: unknown }>): Promise<T> {
@@ -36,8 +47,10 @@ async function request<T>(nanobar: Progress | undefined, id: string, send: () =>
     if (error !== undefined || data === undefined) {
       throw new Error(`${id} failed: ${JSON.stringify(error)}`);
     }
+    recordOutcome(id);
     return data;
   } catch (error) {
+    recordOutcome(id, error);
     reportError(error);
     throw error;
   } finally {
@@ -93,4 +106,35 @@ export function fetchLightningCache(nanobar?: Progress) {
 /** Every currently active mesocyclone detection. */
 export function fetchMesocyclones(nanobar?: Progress) {
   return request(nanobar, "/mesocyclones/all/", () => dataClient.GET("/mesocyclones/all/", {}));
+}
+
+/**
+ * Cell tracks inside a viewport.
+ *
+ * Both bounds are sent every time. The window keeps a severe afternoon from
+ * returning every storm of the day, and the viewport keeps it from returning
+ * every storm in the country -- either alone leaves a response that a phone on
+ * a mobile connection would rather not have.
+ */
+export function fetchCellTracks(
+  bbox: [number, number, number, number],
+  sinceMinutes: number,
+  nanobar?: Progress,
+) {
+  const since = new Date(Date.now() - sinceMinutes * 60_000).toISOString();
+  return request(nanobar, "/cells/tracks", () =>
+    dataClient.GET("/cells/tracks", {
+      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), since } },
+    }));
+}
+
+/** Every cell in the most recent KONRAD3D run, with its forecast centroids. */
+export function fetchCurrentCells(nanobar?: Progress) {
+  return request(nanobar, "/cells/current", () => dataClient.GET("/cells/current", {}));
+}
+
+/** One cell's complete history, for a detail view. */
+export function fetchCellTrack(code: string, nanobar?: Progress) {
+  return request(nanobar, "/cells/tracks/{code}", () =>
+    dataClient.GET("/cells/tracks/{code}", { params: { path: { code } } }));
 }

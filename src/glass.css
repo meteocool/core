@@ -5,11 +5,25 @@
      ./global.css -> shoelace themes/light.css -> themes/dark.css -> ./glass.css
    This file re-points Shoelace's panel/overlay/primary tokens, so it goes last.
 
-   Colour scheme is keyed on html[data-theme="dark"] -- plus html.sl-theme-dark
-   for Shoelace's own internals -- both set by src/layers/ui.ts from the
-   colorSchemeDark store. There is deliberately no prefers-color-scheme block
-   here: the iOS/Android wrappers drive dark mode through that store, and a
-   media query would disagree with them.
+   TWO schemes, and they are not the same one:
+
+     html[data-theme]   the OS/app colour scheme, from the colorSchemeDark
+                        store. Drives the sheets -- #ls, dialogs -- plus
+                        html.sl-theme-dark for Shoelace's own internals.
+     html[data-chrome]  the BASEMAP's brightness, from the mapBaseLayer store.
+                        Drives the glass material and the ink on it.
+
+   Both are set by src/layers/ui.ts. The split exists because the basemap is a
+   setting of its own: "dark mode" in this app does not darken the map, so dark
+   chrome over the light basemap is an ordinary combination. Glass whose fill
+   fights the map under it stops looking like glass and starts looking like a
+   grey slab, so the floating chrome follows the map and only the sheets follow
+   the OS. That is also what Apple's chrome does -- theirs gets it for free,
+   because their basemap follows the OS too.
+
+   There is deliberately no prefers-color-scheme block here: the iOS/Android
+   wrappers drive dark mode through the store, and a media query would disagree
+   with them.
 
    Two materials, and only two:
      glass  -- translucent, blurred, floats over the map (pills, discs, trays)
@@ -20,20 +34,61 @@
    ============================================================================ */
 
 :root {
-  /* glass material */
-  --mc-glass-blur: 16px;                              /* phone; desktop below */
-  --mc-glass-saturate: 160%;
-  --mc-glass-backdrop: blur(var(--mc-glass-blur)) saturate(var(--mc-glass-saturate));
-  --mc-glass-fill: rgba(255, 255, 255, 0.62);         /* pills, discs */
-  --mc-glass-fill-strong: rgba(255, 255, 255, 0.76);  /* text-heavy trays, toasts */
+  /* glass material
+
+     The legibility budget is split between the backdrop filter and the fill,
+     and the filter carries most of it. A scrim opaque enough to hold text on
+     its own is what makes glass read as a flat grey slab: the map's shapes and
+     colours never come through it. Tone-mapping the backdrop instead --
+     dimming it in dark mode, lifting it in light mode -- buys the same
+     contrast while the map stays visible underneath, which is the whole point
+     of the material.
+
+     The basemap is a separate user setting from the colour scheme, so every
+     combination happens: dark chrome over the light basemap, light chrome over
+     the dark one. The brightness step is what keeps both legible. */
+  --mc-glass-blur: 20px;                              /* phone; desktop below */
+  --mc-glass-saturate: 190%;
+  --mc-glass-brightness: 1.06;                        /* light scheme lifts the backdrop */
+  --mc-glass-backdrop:
+    blur(var(--mc-glass-blur))
+    saturate(var(--mc-glass-saturate))
+    brightness(var(--mc-glass-brightness));
+  --mc-glass-fill: rgba(255, 255, 255, 0.52);         /* pills, discs */
+  --mc-glass-fill-strong: rgba(255, 255, 255, 0.64);  /* text-heavy trays, toasts */
   --mc-glass-fill-solid: rgba(255, 255, 255, 0.94);   /* every no-blur fallback */
-  --mc-glass-edge: rgba(255, 255, 255, 0.55);         /* the luminous 1px border */
-  --mc-glass-edge-outer: rgba(0, 0, 0, 0.07);         /* so white glass still reads on a pale map */
-  --mc-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  --mc-glass-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.10), 0 0.5px 1px rgba(0, 0, 0, 0.06);
-  --mc-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --mc-glass-edge: rgba(255, 255, 255, 0.70);         /* the luminous 1px border */
+  --mc-glass-edge-outer: rgba(0, 0, 0, 0.14);         /* so white glass still reads on a pale map */
+
+  /* The bevel, which is what reads as refraction. A lens is brightest where it
+     turns away from the viewer, so: a specular top rim, a fainter rim all the
+     way round, and a shaded bottom lip. Three inset shadows rather than a
+     pseudo-element, so every existing glass surface inherits it through
+     --mc-glass-ring without any new markup. */
+  --mc-glass-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.30),
+    inset 0 -6px 12px -8px rgba(0, 0, 0, 0.35),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22);
+  --mc-glass-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.14), 0 0.5px 1px rgba(0, 0, 0, 0.08);
+  --mc-glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.08);
   --mc-glass-ring: var(--mc-glass-highlight), 0 0 0 0.5px var(--mc-glass-edge-outer), var(--mc-glass-shadow-sm);
   --mc-glass-ring-lg: var(--mc-glass-highlight), 0 0 0 0.5px var(--mc-glass-edge-outer), var(--mc-glass-shadow);
+
+  /* Ink and tints for anything floating on glass. Kept as their own names so
+     [data-chrome] can move them without touching the sheet colours; the chrome
+     roots at the bottom of this file alias --mc-text and friends onto these,
+     so component CSS goes on reading the names it already uses. */
+  --mc-chrome-text: #1c1c1e;
+  --mc-chrome-text-2: rgba(60, 60, 67, 0.66);
+  --mc-chrome-text-3: rgba(60, 60, 67, 0.38);
+  --mc-chrome-tint: rgba(60, 60, 67, 0.10);
+  --mc-chrome-tint-hover: rgba(60, 60, 67, 0.16);
+  --mc-chrome-tint-active: rgba(60, 60, 67, 0.22);
+  --mc-chrome-separator: rgba(60, 60, 67, 0.14);
+  --mc-chrome-hairline: rgba(60, 60, 67, 0.26);
+  --mc-chrome-accent: #007aff;
+  --mc-chrome-accent-strong: #0062cc;
 
   /* flat tints for controls that sit on glass */
   --mc-tint: rgba(60, 60, 67, 0.08);
@@ -61,7 +116,16 @@
   --mc-accent-tint: rgba(0, 122, 255, 0.14);
   --mc-red: #ff3b30;
   --mc-red-dim: rgba(255, 59, 48, 0.45);
+  /* One strand of a spread plot. Low enough that fifteen of them overlaid
+     read as a cloud with visible density rather than a black mass -- the
+     ordinary secondary-ink alpha saturates after about four. */
+  --mc-plot-thicket: rgba(60, 60, 67, 0.16);
   --mc-red-tint: rgba(255, 59, 48, 0.16);
+  /* A destructive surface at rest: a wash over the glass rather than a slab of
+     colour, so it sits in the chrome with everything else. The solid red is
+     kept for the instant before the thing is actually destroyed. */
+  --mc-red-veil: rgba(255, 59, 48, 0.28);
+  --mc-red-veil-strong: rgba(255, 59, 48, 0.62);
   --mc-red-ink: #b3261e;
   --mc-green-tint: rgba(52, 199, 89, 0.18);
   --mc-green-ink: #1b7f3b;
@@ -80,6 +144,10 @@
   --mc-gutter: 8px;
   --mc-tray-gap: 8px;
   --mc-pill-h: 28px;
+  --mc-tray-pad: 8px;                                 /* a tray's horizontal padding */
+  --mc-rail-gap: 10px;                                /* player grid column gap; the forecast bars key off both */
+  --mc-bar-h: 84px;                                   /* collapsed toolbar; the flanking discs centre on it */
+  --mc-player-h: 112px;                               /* expanded player tray: track row + controls row + meta/legend row */
   --mc-safe-top: env(safe-area-inset-top, 0px);
   --mc-safe-bottom: env(safe-area-inset-bottom, 0px);
   --mc-top-stack: calc(var(--mc-safe-top) + var(--mc-gutter));   /* one top line: logo, Latest, switcher */
@@ -91,6 +159,12 @@
   --mc-motion-fast: 120ms;
   --mc-motion: 200ms;
   --mc-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* For anything that settles rather than simply arrives: a gesture letting go,
+     a control snapping to a detent. Overshoots slightly and comes back, which
+     is what reads as weight. --mc-ease never does, so the two are not
+     interchangeable. */
+  --mc-motion-spring: 340ms;
+  --mc-ease-spring: cubic-bezier(0.22, 1.2, 0.36, 1);
   --mc-press: 0.96;
 
   /* z ladder, one place */
@@ -136,17 +210,42 @@
   --ol-brand-color: var(--mc-accent);
 }
 
-/* Dark. Same specificity as the fallback rungs below, on purpose. */
+/* The glass, keyed on the BASEMAP. Over a dark map the material lightens --
+   a low-alpha white scrim on a blurred, saturated backdrop -- which is what
+   makes it read as a lens rather than a panel, and it is why Apple's chrome
+   looks lighter than the map beneath it. */
+:root[data-chrome="dark"] {
+  --mc-glass-saturate: 200%;
+  --mc-glass-brightness: 1.35;
+  --mc-glass-fill: rgba(255, 255, 255, 0.10);
+  --mc-glass-fill-strong: rgba(255, 255, 255, 0.15);
+  --mc-glass-fill-solid: rgba(28, 28, 30, 0.94);
+  --mc-glass-edge: rgba(255, 255, 255, 0.22);
+  --mc-glass-edge-outer: rgba(0, 0, 0, 0.45);
+  --mc-glass-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.40),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
+    inset 0 -10px 16px -12px rgba(0, 0, 0, 0.50),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.10);
+  --mc-glass-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0.5px 1px rgba(0, 0, 0, 0.35);
+  --mc-glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  --mc-chrome-text: #ffffff;
+  --mc-chrome-text-2: rgba(235, 235, 245, 0.72);
+  --mc-chrome-text-3: rgba(235, 235, 245, 0.42);
+  --mc-chrome-tint: rgba(255, 255, 255, 0.14);
+  --mc-chrome-tint-hover: rgba(255, 255, 255, 0.22);
+  --mc-chrome-tint-active: rgba(255, 255, 255, 0.30);
+  --mc-chrome-separator: rgba(255, 255, 255, 0.16);
+  --mc-chrome-hairline: rgba(255, 255, 255, 0.26);
+  --mc-chrome-accent: #0a84ff;
+  --mc-chrome-accent-strong: #409cff;
+}
+
+/* Dark. The sheets and everything that is not floating over the map. Same
+   specificity as the fallback rungs below, on purpose. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --mc-glass-fill: rgba(28, 28, 30, 0.58);
-  --mc-glass-fill-strong: rgba(28, 28, 30, 0.72);
-  --mc-glass-fill-solid: rgba(28, 28, 30, 0.94);
-  --mc-glass-edge: rgba(255, 255, 255, 0.12);
-  --mc-glass-edge-outer: rgba(0, 0, 0, 0.35);
-  --mc-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.10);
-  --mc-glass-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.40), 0 0.5px 1px rgba(0, 0, 0, 0.30);
-  --mc-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
   --mc-tint: rgba(235, 235, 245, 0.10);
   --mc-tint-hover: rgba(235, 235, 245, 0.16);
   --mc-tint-active: rgba(235, 235, 245, 0.24);
@@ -165,7 +264,10 @@
   --mc-accent-tint: rgba(10, 132, 255, 0.24);
   --mc-red: #ff453a;
   --mc-red-dim: rgba(255, 69, 58, 0.45);
+  --mc-plot-thicket: rgba(235, 235, 245, 0.18);
   --mc-red-tint: rgba(255, 69, 58, 0.22);
+  --mc-red-veil: rgba(255, 69, 58, 0.32);
+  --mc-red-veil-strong: rgba(255, 69, 58, 0.66);
   --mc-red-ink: #ff6961;
   --mc-green-tint: rgba(48, 209, 88, 0.22);
   --mc-green-ink: #30d158;
@@ -174,9 +276,14 @@
   --mc-orange-ink: #ffb340;
 }
 
-/* Desktop can afford a wider kernel. */
+/* Desktop can afford a wider kernel -- and the player grows a legend row. */
 @media (min-width: 621px) {
-  :root { --mc-glass-blur: 22px; }
+  :root {
+    --mc-glass-blur: 28px;
+    --mc-tray-pad: 12px;
+    --mc-bar-h: 42px;
+    --mc-player-h: 128px;
+  }
 }
 
 /* Fallback ladder. Each rung flips the same three tokens, so every surface
@@ -202,7 +309,40 @@
   --mc-glass-fill-strong: var(--mc-glass-fill-solid);
 }
 @media (prefers-reduced-motion: reduce) {
-  :root { --mc-motion-fast: 0ms; --mc-motion: 0ms; --mc-press: 1; }
+  :root {
+    --mc-motion-fast: 0ms; --mc-motion: 0ms; --mc-press: 1;
+    /* No overshoot either: the spring is the part that reads as motion. */
+    --mc-motion-spring: 0ms; --mc-ease-spring: linear;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The chrome roots: everything that floats over the map.
+
+   Each one re-points --mc-text and friends at the [data-chrome] values, and
+   custom properties cascade -- through shadow boundaries too, which is how the
+   Shoelace ::part rules and every component's own scoped CSS follow along
+   without a single edit. Anything NOT in this list (the #ls sheet, dialogs)
+   keeps the [data-theme] values it already had.
+   --------------------------------------------------------------------------- */
+.glass,
+.bottomToolbar,
+.buttonBar,
+.ol-control,
+.ol-attribution,
+.live-wrapper,
+.lsToggle,
+.sl-toast-stack sl-alert {
+  --mc-text: var(--mc-chrome-text);
+  --mc-text-2: var(--mc-chrome-text-2);
+  --mc-text-3: var(--mc-chrome-text-3);
+  --mc-tint: var(--mc-chrome-tint);
+  --mc-tint-hover: var(--mc-chrome-tint-hover);
+  --mc-tint-active: var(--mc-chrome-tint-active);
+  --mc-separator: var(--mc-chrome-separator);
+  --mc-hairline: var(--mc-chrome-hairline);
+  --mc-accent: var(--mc-chrome-accent);
+  --mc-accent-strong: var(--mc-chrome-accent-strong);
 }
 
 /* ---------------------------------------------------------------------------
@@ -225,6 +365,22 @@
 /* ---------------------------------------------------------------------------
    Shoelace, themed once. Part names as in the 2.20 render templates.
    --------------------------------------------------------------------------- */
+
+/* The page is not zoomable, and the rule that says so (App.svelte's `:global(*)`)
+   stops at a shadow boundary: what a finger actually lands on inside an
+   <sl-button> is shadow content, and it comes back as `touch-action: auto`.
+   The host's restriction is meant to carry across the flat tree, but this is
+   the exact element that was under the double tap that zoomed the page, so it
+   says so for itself rather than inheriting the claim. Every part named here is
+   the component's outermost one, so nothing inside it is left out. */
+sl-button::part(base),
+sl-button-group::part(base),
+sl-checkbox::part(base),
+sl-menu-item::part(base),
+sl-range::part(base),
+sl-tag::part(base) {
+  touch-action: pan-x pan-y;
+}
 
 /* sl-range: the thumb is a native-input pseudo-element and cannot be reached
    through ::part, so the slider is themed through its custom properties. */
@@ -274,14 +430,6 @@ sl-dialog::part(panel) {
   box-shadow: var(--mc-glass-ring-lg);
   color: var(--mc-text);
   overflow: hidden;
-}
-/* Desktop web only: the panel is small relative to the viewport there. */
-@media (min-width: 621px) {
-  sl-dialog::part(panel) {
-    background: var(--mc-glass-fill-strong);
-    -webkit-backdrop-filter: var(--mc-glass-backdrop);
-    backdrop-filter: var(--mc-glass-backdrop);
-  }
 }
 sl-dialog::part(title) {
   font: 600 17px/1.3 var(--mc-font);
@@ -352,8 +500,17 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    OpenLayers controls: generated markup, so styled by class. ol.css gives
    .ol-control a 4px radius and a grey fill; this makes the zoom stack a glass
    capsule and the locate button a glass disc. Positions live in Map.svelte.
+
+   The module is --mc-control-lg, the same 44px as the layer-switcher disc, so
+   the whole top-right column is one size: border-box on the control, and the
+   button inside it sized to fill. They used to be built from --mc-control plus
+   a 1px border, which made them 42px -- close enough to look like a mistake
+   rather than a decision. Hover behaviour matches that disc too: the glyph
+   goes accent, and the fill strengthens.
    --------------------------------------------------------------------------- */
 .ol-control {
+  box-sizing: border-box;
+  width: var(--mc-control-lg);
   background: var(--mc-glass-fill);
   -webkit-backdrop-filter: var(--mc-glass-backdrop);
   backdrop-filter: var(--mc-glass-backdrop);
@@ -362,31 +519,33 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   box-shadow: var(--mc-glass-ring);
   padding: 0;
   overflow: hidden;                                   /* clips button hover fills to the capsule */
+  transition: background-color var(--mc-motion-fast);
 }
-.ol-control:hover { background: var(--mc-glass-fill); }
+.ol-control:hover { background: var(--mc-glass-fill-strong); }
 .ol-control button,
 .ol-touch .ol-control button {                         /* second selector out-specifies ol.css's .ol-touch rule */
   display: block;
-  width: var(--mc-control);
-  height: var(--mc-control);
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(var(--mc-control-lg) - 2px);
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   color: var(--mc-text);
-  font: 600 20px/var(--mc-control) var(--mc-font);
+  font: 600 20px/calc(var(--mc-control-lg) - 2px) var(--mc-font);
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color var(--mc-motion-fast);
+  transition: background-color var(--mc-motion-fast), color var(--mc-motion-fast);
   -webkit-tap-highlight-color: transparent;
 }
 .ol-control button:hover,
 .ol-control button:focus {
   outline: none;
   background: var(--mc-tint);
-  color: var(--mc-text);
+  color: var(--mc-accent);
 }
 .ol-control button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -3px; }
 .ol-control button:active { background: var(--mc-tint-active); }
@@ -394,9 +553,26 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 .ol-zoom .ol-zoom-in { border-radius: 0; border-bottom: 1px solid var(--mc-separator); }
 .ol-zoom .ol-zoom-out { border-radius: 0; }
 
+/* The locate button's glyph is an inline SVG, not a text character: centre it
+   as a box rather than leaving it on the text baseline the +/- sit on, and let
+   it take the button's colour through currentColor on hover and focus. */
+.ol-geolocate button {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+/* Tipped very slightly the way the system draws it, so the arrow reads as
+   pointing rather than as a flat triangle sitting on its side. */
+.ol-geolocate svg {
+  transform: rotate(-2deg);
+}
+
 /* Attribution: tinted, not blurred -- it is a strip of text at the map's edge. */
+/* Also an .ol-control, so it has to opt out of the 44px module above along
+   with the material. */
 .ol-attribution,
 .ol-attribution.ol-uncollapsible {
+  width: auto;
   background: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -423,4 +599,9 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   text-shadow: none;
 }
 .ol-attribution a { color: var(--mc-text-2); }
-.ol-attribution button { display: none; }
+/* The collapse toggle. Two selectors, because this file's own
+   `.ol-touch .ol-control button { display: block }` out-specifies a plain
+   `.ol-attribution button` -- so on a touch device the OpenLayers (i) came
+   back and sat on top of the corner control. */
+.ol-attribution button,
+.ol-touch .ol-attribution button { display: none; }

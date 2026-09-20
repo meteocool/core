@@ -21,13 +21,17 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "run_worker_first": true,
-    "html_handling": "none"
+    "html_handling": "none",
   },
 
   "env": {
     "staging": {
       "name": "meteocool-staging",
-      "workers_dev": true
+      "workers_dev": true,
+      // Without this the staging Worker advertises production's preview image
+      // in its OpenGraph tags: the Worker is bundled by wrangler, so Vite's
+      // `--mode staging` never reaches it.
+      "vars": { "PREVIEW_ORIGIN": "https://staging.meteocool.com" },
     },
     "production": {
       "name": "meteocool",
@@ -35,10 +39,11 @@
       // Set these to the zone's real hostnames before the first production
       // deploy; with no routes, `wrangler deploy --env production` publishes to
       // workers.dev and nothing points at it.
+      "vars": { "PREVIEW_ORIGIN": "https://api.meteocool.com" },
       "routes": [
         { "pattern": "meteocool.com", "custom_domain": true },
-        { "pattern": "www.meteocool.com", "custom_domain": true }
-      ]
-    }
-  }
+        { "pattern": "www.meteocool.com", "custom_domain": true },
+      ],
+    },
+  },
 }

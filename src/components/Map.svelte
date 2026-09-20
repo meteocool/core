@@ -223,8 +223,10 @@
   }
 
   :global(.ol-geolocate) {
-    /* 2 x 40 + 1 separator + 2 border = 83 */
-    top: calc(var(--ol-controls-top) + 83px + var(--mc-gutter));
+    /* The zoom capsule's height: two buttons of (module - 2px), the 1px
+       separator between them and the control's own 2px of border, which comes
+       to exactly two modules less one. */
+    top: calc(var(--ol-controls-top) + 2 * var(--mc-control-lg) - 1px + var(--mc-gutter));
     right: var(--mc-gutter);
     left: auto;
     bottom: auto;
