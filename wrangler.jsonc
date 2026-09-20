@@ -27,7 +27,16 @@
   "env": {
     "staging": {
       "name": "meteocool-staging",
+      "compatibility_date": "2026-09-20",
       "workers_dev": true,
+      "routes": [
+        { "pattern": "web.staging.meteocool.com", "custom_domain": true },
+      ],
+      "observability": {
+        "enabled": true,
+        "logs": { "enabled": true },
+        "traces": { "enabled": true },
+      },
       // Without this the staging Worker advertises production's preview image
       // in its OpenGraph tags: the Worker is bundled by wrangler, so Vite's
       // `--mode staging` never reaches it.
