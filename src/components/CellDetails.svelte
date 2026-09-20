@@ -14,12 +14,12 @@ import { _ } from "svelte-i18n";
 import { selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
+import { BAND_NAMES, cellReadings } from "../lib/cellMetrics";
 import type { CellTrackProperties } from "../api";
 import type { VolumeInput } from "../lib/cellVolume";
 
 export let track: CellTrackProperties;
 
-const SEVERITY_NAMES = ["weak", "moderate", "strong", "extreme"];
 /** Below this, a heading differs from its neighbours by less than the noise. */
 const DEVIANT_DEGREES = 30;
 
@@ -40,28 +40,32 @@ const compass = (deg: number | null | undefined): string => (
 /* ---- the history chart ------------------------------------------------- */
 
 /**
- * A chart, not a sparkline.
+ * Two charts, not one with two scales.
  *
- * The earlier version drew a bare path with no scale on it, which can say
- * "went up a bit" and nothing more -- a rise from 48 to 52 dBZ and one from 30
- * to 62 drew the identical line, because both were normalised to the box. With
- * labelled axes the same forty pixels carry the actual numbers, and the second
- * series makes the pair readable together: reflectivity climbing while the echo
- * top collapses is a storm raining itself out, and the two lines cross.
+ * The first version of this drew reflectivity against a left axis and echo top
+ * against a right one. That is the oldest bad habit in charting: where the two
+ * scales line up is a choice, so the crossing point where the lines meet is
+ * something the chart invents rather than something the storm did. Stacked as
+ * small multiples over one shared clock they answer the same question -- is the
+ * core strengthening while the cloud collapses? -- without either line being
+ * able to lie about the other.
+ *
+ * The earlier version before that was a bare sparkline with no scale at all,
+ * which can say "went up a bit" and nothing more: a rise from 48 to 52 dBZ and
+ * one from 30 to 62 drew the identical line, because both were normalised to
+ * the box.
  *
  * Still hand-drawn rather than handed to a chart library. This is one popup
  * with two dozen points in it, and the app already pays for one map renderer.
  */
 const CHART = {
-  width: 336, height: 122, left: 30, right: 34, top: 10, bottom: 22,
+  width: 336, left: 28, right: 38, top: 9,
 };
 
-const plot = {
-  x0: CHART.left,
-  x1: CHART.width - CHART.right,
-  y0: CHART.height - CHART.bottom,
-  y1: CHART.top,
-};
+/** Room for the time labels, on the lower chart only. */
+const AXIS_ROOM = 16;
+
+const plot = { x0: CHART.left, x1: CHART.width - CHART.right };
 
 /** Tick values at 1, 2, 2.5 or 5 times a power of ten, whichever fits. */
 function niceTicks(min: number, max: number, target = 4): number[] {
@@ -145,28 +149,65 @@ function atX(t: number): number {
   return plot.x0 + ((t - span.from) / (span.to - span.from)) * (plot.x1 - plot.x0);
 }
 
-$: dbzScale = verticalScale(
-  series.map((step) => step.max_dbz).filter((v): v is number => v != null),
-  plot.y0,
-  plot.y1,
-  4,
-);
-$: topScale = verticalScale(
-  series.map((step) => (step.echo_top_m ?? NaN) / 1000).filter((v) => Number.isFinite(v)),
-  plot.y0,
-  plot.y1,
-  3,
-);
-$: dbzPath = path(series.map((s, i) => ({ t: times[i], v: s.max_dbz })), atX, dbzScale);
-$: topPath = path(
-  series.map((s, i) => ({ t: times[i], v: s.echo_top_m == null ? null : s.echo_top_m / 1000 })),
-  atX,
-  topScale,
-);
+/**
+ * The two panels.
+ *
+ * Reflectivity leads in the cell's own severity colour, echo top follows in
+ * plain ink: one series is the point and the other is context, which is
+ * emphasis rather than two colours competing. Each panel is a single series,
+ * so it needs no legend -- its caption names it -- and the latest value is
+ * labelled on the line instead of every point carrying a number.
+ */
+$: panels = [
+  {
+    key: "dbz",
+    title: "reflectivity",
+    unit: "dBZ",
+    height: 62,
+    axis: false,
+    digits: 0,
+    values: series.map((step) => step.max_dbz ?? null),
+    accent: true,
+  },
+  {
+    key: "top",
+    title: "echo top",
+    unit: "km",
+    height: 58,
+    axis: true,
+    digits: 1,
+    values: series.map((step) => (step.echo_top_m == null ? null : step.echo_top_m / 1000)),
+    accent: false,
+  },
+].map((panel) => {
+  const bottom = panel.axis ? AXIS_ROOM : 5;
+  const y0 = panel.height - bottom;
+  const scale = verticalScale(
+    panel.values.filter((v): v is number => v !== null),
+    y0,
+    CHART.top,
+    3,
+  );
+  const points = panel.values.map((v, i) => ({ t: times[i], v }));
+  const lastAt = [...panel.values].reduce<number>(
+    (found, v, i) => (v === null ? found : i),
+    -1,
+  );
+  return {
+    ...panel,
+    y0,
+    scale,
+    path: path(points, atX, scale),
+    last: lastAt >= 0 ? { t: times[lastAt], v: panel.values[lastAt] as number } : null,
+  };
+  // `flatMap` rather than `filter`, so a panel whose series is missing drops
+  // out with its `scale` narrowed to non-null for everything downstream.
+}).flatMap((panel) => (panel.scale ? [{ ...panel, scale: panel.scale }] : []));
+
 /** Start, middle and end: enough to read the window without crowding the axis. */
-$: timeTicks = span
-  ? [span.from, (span.from + span.to) / 2, span.to]
-  : [];
+$: timeTicks = span ? [span.from, (span.from + span.to) / 2, span.to] : [];
+
+$: readings = cellReadings(track, compass);
 
 /** The current detection, in the shape the volumetric model reads. */
 $: shape = latest && (track.structure ?? []).length
@@ -193,7 +234,7 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
 
 <div class="cell-details">
   <header style="border-color: {colour}">
-    <span class="severity">{SEVERITY_NAMES[severity]}</span>
+    <span class="severity">{BAND_NAMES[severity]}</span>
     <span class="age">{age}</span>
     {#if !track.active}<span class="age">dissipated</span>{/if}
     <button class="close" on:click={() => selectedCell.set(null)} aria-label="Close">&times;</button>
@@ -227,64 +268,61 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
     </figure>
   {/if}
 
-  <dl>
-    <div><dt>peak</dt><dd>{round(track.max_dbz, 1)} dBZ</dd></div>
-    <div><dt>echo top</dt><dd>{round((track.echo_top_max_m ?? 0) / 1000, 1)} km</dd></div>
-    <div><dt>VIL</dt><dd>{round(track.vil_max, 1)} kg/m&sup2;</dd></div>
-    {#if latest}
-      <div><dt>motion</dt><dd>{round(latest.speed_kmh)} km/h {compass(latest.heading_deg)}</dd></div>
-      {#if latest.gust_kmh}<div><dt>gusts</dt><dd>{round(latest.gust_kmh)} km/h</dd></div>{/if}
-      {#if latest.lightning_rate}
-        <div><dt>lightning</dt><dd>{latest.lightning_rate}/5 min</dd></div>
-      {/if}
-    {/if}
-  </dl>
+  <ul class="metrics">
+    {#each readings as item (item.key)}
+      <li class="metric" data-band={item.band ?? "none"} title={item.bandName ?? ""}>
+        <span class="name">{item.label}</span>
+        <span class="value">{item.text}</span>
+        <!-- The meter is the reading again as a length. Colour alone would
+             leave the bands unreadable to anyone who cannot separate the
+             hues, and this popup has no room to spell the class out six
+             times over. -->
+        <span class="meter"><span class="fill" style="width: {item.fill * 100}%"></span></span>
+        {#if item.bandName}<span class="sr-only">{item.bandName}</span>{/if}
+      </li>
+    {/each}
+  </ul>
 
-  {#if span && dbzScale}
-    <figure class="history">
-      <figcaption>
-        <span class="key"><span class="swatch" style="background: {colour}"></span>reflectivity</span>
-        {#if topScale}
-          <span class="key"><span class="swatch dashed"></span>echo top</span>
-        {/if}
-      </figcaption>
-      <svg viewBox="0 0 {CHART.width} {CHART.height}" role="img"
-           aria-label="Reflectivity and echo top over the tracked period">
-        {#each dbzScale.ticks as value (value)}
-          <line class="grid" x1={plot.x0} x2={plot.x1}
-                y1={dbzScale.at(value)} y2={dbzScale.at(value)} />
-          <text class="tick left" x={plot.x0 - 5} y={dbzScale.at(value)}>{value}</text>
-        {/each}
+  {#if span && panels.length}
+    <div class="history">
+      {#each panels as panel (panel.key)}
+        <figure>
+          <figcaption>{panel.title}, {panel.unit}</figcaption>
+          <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
+               aria-label="{panel.title} over the tracked period, in {panel.unit}">
+            {#each panel.scale.ticks as value (value)}
+              <line class="grid" x1={plot.x0} x2={plot.x1}
+                    y1={panel.scale.at(value)} y2={panel.scale.at(value)} />
+              <text class="tick left" x={plot.x0 - 5} y={panel.scale.at(value)}>{value}</text>
+            {/each}
 
-        {#if topScale}
-          {#each topScale.ticks as value (value)}
-            <line class="tickmark" x1={plot.x1} x2={plot.x1 + 3}
-                  y1={topScale.at(value)} y2={topScale.at(value)} />
-            <text class="tick right" x={plot.x1 + 6} y={topScale.at(value)}>{value}</text>
-          {/each}
-        {/if}
+            {#each timeTicks as t (t)}
+              <line class="tickmark" x1={atX(t)} x2={atX(t)}
+                    y1={panel.y0} y2={panel.y0 + (panel.axis ? 3 : 0)} />
+              {#if panel.axis}
+                <text class="tick time" x={atX(t)} y={panel.y0 + 13}>
+                  {clock(new Date(t).toISOString())}
+                </text>
+              {/if}
+            {/each}
 
-        {#each timeTicks as t (t)}
-          <line class="tickmark" x1={atX(t)} x2={atX(t)} y1={plot.y0} y2={plot.y0 + 3} />
-          <text class="tick time" x={atX(t)} y={plot.y0 + 13}>{clock(new Date(t).toISOString())}</text>
-        {/each}
+            <line class="axis" x1={plot.x0} x2={plot.x0} y1={panel.y0} y2={CHART.top} />
+            <line class="axis" x1={plot.x0} x2={plot.x1} y1={panel.y0} y2={panel.y0} />
 
-        <line class="axis" x1={plot.x0} x2={plot.x0} y1={plot.y0} y2={plot.y1} />
-        <line class="axis" x1={plot.x0} x2={plot.x1} y1={plot.y0} y2={plot.y0} />
-        {#if topScale}
-          <line class="axis" x1={plot.x1} x2={plot.x1} y1={plot.y0} y2={plot.y1} />
-        {/if}
-
-        <text class="unit" x={plot.x0 - 5} y={plot.y1 - 2}>dBZ</text>
-        {#if topScale}<text class="unit end" x={plot.x1 + 6} y={plot.y1 - 2}>km</text>{/if}
-
-        {#if topPath}
-          <path class="top" d={topPath} fill="none" />
-        {/if}
-        <path d={dbzPath} fill="none" stroke={colour} stroke-width="1.6"
-              stroke-linejoin="round" stroke-linecap="round" />
-      </svg>
-    </figure>
+            <path class="trace" class:context={!panel.accent} d={panel.path} fill="none"
+                  stroke={panel.accent ? colour : undefined} />
+            {#if panel.last}
+              <circle class="head" class:context={!panel.accent}
+                      cx={atX(panel.last.t)} cy={panel.scale.at(panel.last.v)} r="2.6"
+                      fill={panel.accent ? colour : undefined} />
+              <text class="direct" x={plot.x1 + 5} y={panel.scale.at(panel.last.v)}>
+                {panel.last.v.toFixed(panel.digits)}
+              </text>
+            {/if}
+          </svg>
+        </figure>
+      {/each}
+    </div>
   {/if}
 
   {#if track.active && forecast.length}
@@ -345,22 +383,87 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
   .hail { background: rgba(224, 49, 49, 0.22); }
   .jump { background: rgba(240, 180, 41, 0.26); }
   .deviant { background: rgba(31, 110, 200, 0.2); }
-  dl {
+  /*
+   * The four DWD severity classes, as a fill for the meter and a darker step
+   * of the same hue for the figure beside it.
+   *
+   * Two steps per band rather than one because the fill and the figure are
+   * held to different bars: a bar of colour needs to be seen, a numeral needs
+   * to be read. Amber at the weight that reads correctly as a fill sits near
+   * 1.9:1 against white -- fine behind a bar, illegible as a digit -- so the
+   * figures wear steps measured to clear 4.5:1 against each of the two
+   * surfaces this panel actually uses, rather than one compromise step that is
+   * wrong on both.
+   */
+  .metric[data-band="0"] { --band: #2f9e44; --band-ink: #1b7a31; }
+  .metric[data-band="1"] { --band: #f0b429; --band-ink: #8a5e05; }
+  .metric[data-band="2"] { --band: #e03131; --band-ink: #b02020; }
+  .metric[data-band="3"] { --band: #9c36b5; --band-ink: #7a219a; }
+  .metric[data-band="none"] { --band: currentColor; --band-ink: currentColor; }
+
+  /* Keyed to the class ui.ts toggles rather than to prefers-color-scheme: the
+     app's own theme switch has to win over the system on iOS and Android. */
+  :global(html.sl-theme-dark) .metric[data-band="0"] { --band-ink: #57c96a; }
+  :global(html.sl-theme-dark) .metric[data-band="1"] { --band-ink: #f5c95c; }
+  :global(html.sl-theme-dark) .metric[data-band="2"] { --band-ink: #ff8585; }
+  :global(html.sl-theme-dark) .metric[data-band="3"] { --band-ink: #d68bea; }
+
+  .metrics {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2px 12px;
-    margin: 0 0 6px;
+    gap: 7px 14px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
   }
-  dl div {
-    display: flex;
-    justify-content: space-between;
-    gap: 6px;
+  .metric {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 0 6px;
   }
-  dt { opacity: 0.6; }
-  dd {
-    margin: 0;
+  .name {
+    opacity: 0.6;
+    font-size: 11px;
+  }
+  .value {
+    text-align: right;
     font-variant-numeric: tabular-nums;
+    color: var(--band-ink);
+    font-weight: 600;
+    white-space: nowrap;
   }
+  .meter {
+    grid-column: 1 / -1;
+    height: 3px;
+    margin-top: 3px;
+    border-radius: 2px;
+    /* A light step of the same hue, so the band reads across the whole track
+       and not only across the filled part of it. The neutral underneath is
+       for engines without `color-mix`: the track still shows how long the
+       bar could be, which is the part that has to survive. */
+    background: rgba(128, 128, 128, 0.16);
+    background: color-mix(in srgb, var(--band) 20%, transparent);
+    overflow: hidden;
+  }
+  .metric[data-band="none"] .meter { background: rgba(128, 128, 128, 0.16); }
+  .fill {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--band);
+  }
+  /* The class name in words. Colour is the glance and the meter is the
+     fallback for anyone it does not reach, but a screen reader gets neither. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   figure { margin: 0 0 6px; }
   .model {
     border-radius: 8px;
@@ -378,28 +481,6 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
   .history figcaption {
     display: flex;
     gap: 10px;
-  }
-  .key {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .swatch {
-    width: 10px;
-    height: 2px;
-    border-radius: 1px;
-    display: inline-block;
-  }
-  .swatch.dashed {
-    background: repeating-linear-gradient(
-      90deg, currentColor 0 3px, transparent 3px 5px
-    );
-  }
-  svg {
-    width: 100%;
-    height: auto;
-    display: block;
-    overflow: visible;
   }
   .grid {
     stroke: currentColor;
@@ -423,21 +504,7 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
     font-variant-numeric: tabular-nums;
   }
   .left { text-anchor: end; dominant-baseline: middle; }
-  .right { text-anchor: start; dominant-baseline: middle; }
   .time { text-anchor: middle; }
-  .unit {
-    font-size: 9px;
-    fill: currentColor;
-    fill-opacity: 0.45;
-    text-anchor: end;
-  }
-  .unit.end { text-anchor: start; }
-  .top {
-    stroke: currentColor;
-    stroke-opacity: 0.55;
-    stroke-width: 1.2;
-    stroke-dasharray: 3 3;
-  }
   footer {
     font-size: 11px;
     opacity: 0.6;
