@@ -109,6 +109,30 @@ export function ageMinutes(lastSeen: string, now = Date.now()): number {
 }
 
 /**
+ * How long an outline keeps describing the storm it was drawn around.
+ *
+ * Unlike the path and the centroid, the outline does not travel: it is the
+ * shape DWD contoured at one detection, pinned where that detection was. A
+ * storm doing 60 km/h has left a half-hour-old outline fifteen kilometres
+ * behind it, over radar with nothing in it.
+ */
+export const OUTLINE_MAX_MINUTES = 30;
+
+/**
+ * Whether a cell's outline still says something true about where it is.
+ *
+ * The tracks endpoint answers with a three-hour window, so most of what comes
+ * back has stopped being detected; the outlines among it used to be drawn at
+ * full strength anyway, which put confident rings over empty map beside storms
+ * that had moved on. Fading covers the first half hour of that. Past it the
+ * shape is an outline of where the cell used to be, which no amount of
+ * transparency reads as, so it is dropped.
+ */
+export function outlineIsCurrent(minutes: number): boolean {
+  return minutes <= OUTLINE_MAX_MINUTES;
+}
+
+/**
  * Grow an extent by a fraction of its own size.
  *
  * Panning within the padding then costs no request, and a storm just off the

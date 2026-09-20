@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  ASSUMED_PERIOD_S, OUTDATED_GRACE_S, expectedPeriodS, isOutdated,
+  ASSUMED_PERIOD_S, OUTDATED_GRACE_S, expectedPeriodS, isOutdated, showsLatestFrame,
 } from "../../src/lib/freshness.ts";
 import { EMPTY_CADENCE, publishCadence } from "../../src/lib/updateCadence.ts";
 
@@ -62,4 +62,33 @@ test("a clock behind the newest frame is not outdated", () => {
   // Forecast frames are stamped in the future; nothing here should read that
   // as negative age meaning anything.
   assert.equal(isOutdated(100_600, 100_000, EMPTY_CADENCE), false);
+});
+
+/**
+ * Which frame the scrubber is parked on, which is a different question from
+ * whether the grid itself is behind. It decides whether the storm cells are
+ * drawn: they arrive as one present-tense state and nothing rewinds them, so
+ * on any other frame they sit beside echoes they have nothing to do with.
+ */
+test("the newest observation is the live edge", () => {
+  assert.equal(showsLatestFrame(100_000, 100_000), true);
+});
+
+test("a scrubber dragged into the past is not", () => {
+  assert.equal(showsLatestFrame(100_000 - 1800, 100_000), false);
+});
+
+test("a scrubber out in the nowcast is not either", () => {
+  // Forecast steps are stamped ahead of the newest observation, and the cells
+  // have no more to say about them than about an hour ago.
+  assert.equal(showsLatestFrame(100_000 + 1800, 100_000), false);
+});
+
+test("no grid yet is not the same as being off the live edge", () => {
+  // A cold load, or a capability that shows no radar at all: there is no frame
+  // for the cells to disagree with, and hiding them would be hiding them for
+  // no reason.
+  assert.equal(showsLatestFrame(0, 0), true);
+  assert.equal(showsLatestFrame(0, 100_000), true);
+  assert.equal(showsLatestFrame(100_000, 0), true);
 });
