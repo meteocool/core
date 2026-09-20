@@ -27,8 +27,15 @@ const round = (value: number | null | undefined, digits = 0): string => (
   value === null || value === undefined ? "–" : Number(value).toFixed(digits)
 );
 
+/**
+ * 24-hour, always.
+ *
+ * Radar timestamps, model runs and DWD's own products are all written that
+ * way, and a popup that says 03:10 PM beside a strip labelled 15:10 makes the
+ * reader do the conversion to check they are the same moment.
+ */
 const clock = (iso: string): string => new Date(iso)
-  .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 
 const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
   "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -135,11 +142,29 @@ $: latest = series[series.length - 1];
 $: forecast = track.forecast ?? [];
 
 $: times = series.map((step) => new Date(step.t).getTime());
-$: span = times.length > 1
-  ? { from: times[0], to: times[times.length - 1] }
+/** The last detection: everything left of it happened, everything right of it has not. */
+$: now = times.length ? times[times.length - 1] : null;
+$: horizon = track.active && forecast.length
+  ? new Date(forecast[forecast.length - 1].t).getTime()
   : null;
+
 /**
- * Time to an x position, over the window the series covers.
+ * The window the charts cover: what was observed, plus where the cell is
+ * predicted to be.
+ *
+ * Running the axis past the last detection rather than stopping at it is what
+ * lets the two be told apart at all. Radar reports no intensity forecast --
+ * only where the centroid is going and how uncertain that is -- so the traces
+ * genuinely stop at `now`, and a chart that ended there too would leave a
+ * reader to guess whether the last value is current or predicted. With the
+ * lead time drawn and shaded, the answer is on the page.
+ */
+$: span = times.length > 1
+  ? { from: times[0], to: Math.max(times[times.length - 1], horizon ?? 0) }
+  : null;
+
+/**
+ * Time to an x position, over the window the charts cover.
  *
  * Plotted against the clock rather than against the index, so a gap in the
  * radar record shows as a gap rather than being closed up into a steady line.
@@ -148,6 +173,9 @@ function atX(t: number): number {
   if (!span || span.to <= span.from) return plot.x0;
   return plot.x0 + ((t - span.from) / (span.to - span.from)) * (plot.x1 - plot.x0);
 }
+
+/** Where the shaded band starts, or null when there is nothing to predict. */
+$: forecastFrom = now !== null && horizon !== null && horizon > now ? now : null;
 
 /**
  * The two panels.
@@ -168,6 +196,10 @@ $: panels = [
     digits: 0,
     values: series.map((step) => step.max_dbz ?? null),
     accent: true,
+    // The two regions are named once, on the upper panel: it has the clear
+    // headroom, and the lower one's top gridline label sits where the first
+    // caption would go.
+    legend: true,
   },
   {
     key: "top",
@@ -178,6 +210,7 @@ $: panels = [
     digits: 1,
     values: series.map((step) => (step.echo_top_m == null ? null : step.echo_top_m / 1000)),
     accent: false,
+    legend: false,
   },
 ].map((panel) => {
   const bottom = panel.axis ? AXIS_ROOM : 5;
@@ -204,8 +237,14 @@ $: panels = [
   // out with its `scale` narrowed to non-null for everything downstream.
 }).flatMap((panel) => (panel.scale ? [{ ...panel, scale: panel.scale }] : []));
 
-/** Start, middle and end: enough to read the window without crowding the axis. */
-$: timeTicks = span ? [span.from, (span.from + span.to) / 2, span.to] : [];
+/**
+ * The three moments worth labelling: where the record starts, now, and how far
+ * the forecast runs. A midpoint tick says less than the boundary between what
+ * happened and what has not.
+ */
+$: timeTicks = span
+  ? [...new Set([span.from, now ?? span.to, span.to])].filter((t): t is number => t !== null)
+  : [];
 
 $: readings = cellReadings(track, compass);
 
@@ -290,6 +329,16 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
           <figcaption>{panel.title}, {panel.unit}</figcaption>
           <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
                aria-label="{panel.title} over the tracked period, in {panel.unit}">
+            <!-- The lead time, shaded. Radar forecasts a cell's position, not
+                 its intensity, so no trace crosses into this band: it marks
+                 where the record stops rather than hiding a prediction. -->
+            {#if forecastFrom !== null}
+              <rect class="ahead" x={atX(forecastFrom)} y={CHART.top}
+                    width={plot.x1 - atX(forecastFrom)} height={panel.y0 - CHART.top} />
+              <line class="nowline" x1={atX(forecastFrom)} x2={atX(forecastFrom)}
+                    y1={CHART.top} y2={panel.y0} />
+            {/if}
+
             {#each panel.scale.ticks as value (value)}
               <line class="grid" x1={plot.x0} x2={plot.x1}
                     y1={panel.scale.at(value)} y2={panel.scale.at(value)} />
@@ -308,6 +357,11 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
 
             <line class="axis" x1={plot.x0} x2={plot.x0} y1={panel.y0} y2={CHART.top} />
             <line class="axis" x1={plot.x0} x2={plot.x1} y1={panel.y0} y2={panel.y0} />
+
+            {#if panel.legend && forecastFrom !== null}
+              <text class="region" x={plot.x0 + 2} y={CHART.top + 6}>observed</text>
+              <text class="region" x={atX(forecastFrom) + 3} y={CHART.top + 6}>forecast</text>
+            {/if}
 
             <path class="trace" class:context={!panel.accent} d={panel.path} fill="none"
                   stroke={panel.accent ? colour : undefined} />
@@ -481,6 +535,25 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
   .history figcaption {
     display: flex;
     gap: 10px;
+  }
+  /* The lead time. Kept very light: it is a region, not a mark, and it sits
+     behind the gridlines rather than competing with them. */
+  .ahead {
+    fill: currentColor;
+    fill-opacity: 0.09;
+  }
+  .nowline {
+    stroke: currentColor;
+    stroke-opacity: 0.4;
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+  }
+  .region {
+    font-size: 8px;
+    fill: currentColor;
+    fill-opacity: 0.45;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   .grid {
     stroke: currentColor;

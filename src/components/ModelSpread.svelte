@@ -124,7 +124,9 @@ function labels(times: number[], span: number): string[] {
         : "";
     }
     return d.getHours() % 6 === 0
-      ? d.toLocaleTimeString(undefined, { hour: "numeric" })
+      // 24-hour throughout the app: these are meteorological times, read
+      // against model runs and radar timestamps that are all written that way.
+      ? d.toLocaleTimeString(undefined, { hour: "numeric", hour12: false })
       : "";
   });
 }
@@ -231,7 +233,7 @@ function draw() {
             title: (items) => {
               const index = items[0]?.dataIndex ?? 0;
               return new Date(times[index]).toLocaleString(undefined, {
-                weekday: "short", hour: "2-digit", minute: "2-digit",
+                weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
               });
             },
             label: (item) => {
