@@ -1,7 +1,7 @@
 import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
 import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
-import { writable } from "svelte/store";
+import { readable, writable } from "svelte/store";
 import type { CellTrackProperties } from "./api";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
@@ -92,6 +92,37 @@ export const cycloneLayerVisible = writable<boolean>(true);
 export const cellLayerVisible = writable<boolean>(true);
 /** The cell the detail popup is showing, or null when it is closed. */
 export const selectedCell = writable<CellTrackProperties | null>(null);
+
+/**
+ * Whether the selected cell's detail panel is open, as opposed to only its
+ * marks being drawn on the map.
+ *
+ * The two are one step on a desktop and two on a phone, where the panel covers
+ * the storm it describes; lib/cellSelection.ts holds the rules and App.svelte
+ * wires them to the map's click handler.
+ */
+export const cellDetails = writable<boolean>(false);
+
+/**
+ * Whether the viewport is phone-sized, at the 620px the stylesheets already
+ * use for it.
+ *
+ * A store rather than a call, because this decides what is rendered and not
+ * just how it is painted: a component that read `window.innerWidth` once would
+ * keep whatever the page loaded at through a rotation or a resized window.
+ * Readable rather than writable so the media query stays the only writer.
+ */
+export const smallScreen = readable(
+  typeof window !== "undefined" && window.matchMedia("(max-width: 620px)").matches,
+  (set) => {
+    if (typeof window === "undefined") return undefined;
+    const query = window.matchMedia("(max-width: 620px)");
+    const update = () => set(query.matches);
+    query.addEventListener("change", update);
+    update();
+    return () => query.removeEventListener("change", update);
+  },
+);
 export const snowLayerVisible = writable<boolean>(true);
 export const logoStyle = writable<string>("full");
 
