@@ -53,6 +53,7 @@ import CellTrackManager from "./lib/CellTrackManager";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
+import makeCellPulseLayer from "./layers/cellPulse";
 import CellDetails from "./components/CellDetails.svelte";
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import CellSheet from "./components/CellSheet.svelte";
@@ -247,7 +248,9 @@ cycloneLayerVisible.subscribe((value) => {
 cycloneLayerVisible.set(window.settings.getBoolean("layerMesocyclones"));
 
 const [cellSource, cellLayer] = makeCellLayer();
-const cellmgr = new CellTrackManager(cellSource);
+const [pulseSource, pulseLayer, stopPulse] = makeCellPulseLayer();
+const cellmgr = new CellTrackManager(cellSource, pulseSource);
+onDestroy(stopPulse);
 cellLayerVisible.subscribe((value) => {
   cellmgr.enable(Boolean(value));
   window.settings.set("layerCells", value);
@@ -283,6 +286,9 @@ derived(
   ([wanted, shown, newest]) => Boolean(wanted) && showsLatestFrame(shown, newest),
 ).subscribe((value) => {
   cellLayer.setVisible(value);
+  // The ping only ever marks cells the tracks layer is already drawing, so it
+  // appears and disappears with it rather than carrying a rule of its own.
+  pulseLayer.setVisible(value);
   // The popup is anchored to a mark that is no longer on the map, and it dims
   // the radar underneath for as long as it is up. Leaving it open over a frame
   // its cell is not drawn on would be a panel of present-tense numbers about a
@@ -356,7 +362,9 @@ const lm = new LayerManager({
     {
       name: "radar",
       capability: RadarCapability,
-      additionalLayers: [cellLayer, mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay()],
+      additionalLayers: [
+        pulseLayer, cellLayer, mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay(),
+      ],
       options: {
         nanobar: nb,
         socket_io: radarSocketIO,
