@@ -2,6 +2,11 @@
   import { createEventDispatcher } from "svelte";
   import { _ } from "svelte-i18n";
   import { onMount } from "svelte";
+  import Map from "ol/Map";
+  import View from "ol/View";
+  import type BaseLayer from "ol/layer/Base";
+  import { dwdLayerStatic } from "../layers/dwd";
+  import { capTimeIndicator } from "../stores";
   const dispatch = createEventDispatcher();
   export let layerManager;
   export let layer;
@@ -32,9 +37,75 @@
   });
 
   function mapInit(node) {
+    if (preview) return decorativeMap(node);
     // A preview, not a handover: see LayerManager.setPreviewTarget. Mounting
     // these tiles used to move focus between capabilities as a side effect.
     layerManager.setPreviewTarget(layer, node.id);
+    return undefined;
+  }
+
+  /**
+   * A throwaway map for a tile whose capability cannot draw one.
+   *
+   * `setPreviewTarget` hands a capability's single map to a single element, so
+   * two tiles cannot both show the radar -- and the 3D one has no OpenLayers
+   * map of its own to hand over at all. Rather than leave it blank behind the
+   * frosting, it gets its own map built here: the basemap the app is on, and
+   * the newest radar frame over it.
+   *
+   * Decoration, and treated as such. No interactions, no controls, no
+   * subscriptions, and nothing keeps it up to date -- it is behind a 10px blur
+   * under a label saying Preview, and it exists so the tile reads as a map
+   * rather than as a hole. If the radar has not loaded yet it simply shows the
+   * basemap, which is what the other tiles do too.
+   */
+  function decorativeMap(node) {
+    // Wherever the reader is looking, so the tile shows their weather rather
+    // than a fixed corner of the country.
+    const views: View[] = [];
+    layerManager.forEachMap((map: Map) => views.push(map.getView()));
+    const view: View | undefined = views[0];
+
+    const preview_ = new Map({
+      target: node,
+      layers: [layerManager.baseLayerFactory(window.settings.get("mapBaseLayer"))],
+      controls: [],
+      interactions: [],
+      view: new View({
+        center: view?.getCenter() ?? [0, 0],
+        zoom: (view?.getZoom() ?? 7) - 1,
+      }),
+    });
+
+    /*
+     * The radar goes on when there is radar, which is not now.
+     *
+     * These tiles mount with the app rather than when the switcher opens -- the
+     * panel is built hidden -- so at this point the grid has not been fetched
+     * and there is no frame to draw. Built once and left alone, the tile would
+     * be a basemap for the rest of the session. Following the clock instead
+     * puts the radar on as soon as it lands, and keeps it roughly current
+     * after that for nothing: the check is a string compare.
+     */
+    let shown: string | null = null;
+    let tiles: BaseLayer | null = null;
+    const unsubscribe = capTimeIndicator.subscribe(() => {
+      const radar = layerManager.getCapability("radar");
+      const step = radar?.getMostRecentObservation?.();
+      const frame = step === undefined ? null : radar?.clientGrid?.[step];
+      if (!frame?.tile_id || frame.tile_id === shown) return;
+      shown = frame.tile_id;
+      if (tiles) preview_.removeLayer(tiles);
+      [tiles] = dwdLayerStatic(frame.tile_id, frame.bucket);
+      preview_.addLayer(tiles);
+    });
+
+    return {
+      destroy() {
+        unsubscribe();
+        preview_.setTarget(undefined);
+      },
+    };
   }
 
   let _down = false;

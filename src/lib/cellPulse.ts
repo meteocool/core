@@ -1,10 +1,25 @@
 /**
- * The shape of the ping that marks a cell as still being detected.
+ * The mark that says a cell is still being detected.
  *
- * Kept free of OpenLayers, like cellGeometry.ts and for the same reason: the
- * fade curve is the part that decides whether a map with a dozen live cells
- * reads as a dozen pings or as a mess, and it is worth being able to state
- * that in a test rather than by looking at it.
+ * A ring of dashes around the centroid, stepping round it a notch at a time.
+ * It replaced an expanding-and-fading ping, which read well but cost too much
+ * to draw: that one changed the ring's radius and opacity every frame, so
+ * every live cell's style had to be rebuilt twenty times a second, and on a
+ * viewport with a hundred of them the animation was visibly not keeping up --
+ * an animation that stutters says "this page is struggling", which is the
+ * opposite of "this storm is live".
+ *
+ * Stepping costs a fraction of that. The ring never changes shape; only the
+ * dash pattern's offset moves, one dash-width per tick, so the whole thing is
+ * a handful of prebuilt styles cycled in order. Five ticks a second against
+ * twenty, and nine distinct styles per colour against a new one every frame.
+ *
+ * The step is also the point rather than a compromise. Smooth rotation at this
+ * size reads as a shimmer; a notch reads as a mechanism running -- a second
+ * hand rather than a sweep -- which is the claim being made.
+ *
+ * Kept free of OpenLayers, like cellGeometry.ts, so the cycle can be stated in
+ * a test rather than watched.
  */
 
 /**
@@ -27,53 +42,37 @@
  */
 export const LIVE_MINUTES = 10;
 
-/** Whether a cell's last detection is recent enough to ping. */
+/** Whether a cell's last detection is recent enough to mark as live. */
 export function isLive(minutesSinceDetection: number): boolean {
   return minutesSinceDetection <= LIVE_MINUTES;
 }
 
-/** One full expand-and-fade, slow enough to read as a heartbeat. */
-export const PERIOD_MS = 2200;
-
-/** Where the ring starts and ends, in pixels around the centroid. */
-export const RADIUS_FROM = 7;
-export const RADIUS_TO = 24;
-
-/** The ring at its strongest, which is the moment it leaves the marker. */
-export const PEAK_ALPHA = 0.55;
+/** The ring, in pixels: clear of the largest centroid marker, which is 12 across. */
+export const RING_RADIUS = 11;
+export const RING_WIDTH = 2;
 
 /**
- * How many distinct frames a period is quantised to.
+ * Dash and gap.
  *
- * The styles are cached per step, so this is also the size of the cache -- a
- * couple of dozen entries per severity rather than a new style object every
- * frame for every cell. Twenty is past the point where the steps are visible.
+ * Their sum is the distance the pattern has to travel to look the same again,
+ * so it is also the number of notches in a full turn -- nine, at five a
+ * second, is a turn every 1.8 seconds.
  */
-export const STEPS = 20;
+export const DASH: [number, number] = [5, 4];
+export const DASH_PERIOD = DASH[0] + DASH[1];
+
+/** One notch per tick. Slow enough to see the step, quick enough to look alive. */
+export const TICK_MS = 200;
 
 /**
- * The ring at one point in its cycle, with 0 the start and 1 the end.
+ * Where the dash pattern starts, for a given moment.
  *
- * It grows linearly and fades on a square, so most of the fading happens late.
- * That is the whole design: the ring stays legible while it is still close to
- * the marker it belongs to, and is gone by the time it is far enough away to
- * be ambiguous about which cell it came from. Linear, a line of live cells
- * ends up inside each other's rings at full strength.
+ * Negative, so the dashes travel the way the pattern is read rather than
+ * appearing to slide backwards. Driven off the wall clock rather than a
+ * per-cell counter, so every live cell steps together: a map where each one
+ * runs its own cycle shimmers, where one shared beat reads as the map itself
+ * being live.
  */
-export function pulseRing(phase: number): { radius: number; alpha: number } {
-  return {
-    radius: RADIUS_FROM + (RADIUS_TO - RADIUS_FROM) * phase,
-    alpha: PEAK_ALPHA * (1 - phase) ** 2,
-  };
-}
-
-/**
- * The step of the cycle a clock reading falls in, which is what gets cached.
- *
- * Off the wall clock rather than a per-cell timer, so every live cell pings
- * together. A map where each one runs its own cycle shimmers; one shared beat
- * reads as the map itself being live, which is the claim being made.
- */
-export function pulseStep(nowMs: number): number {
-  return Math.floor(((nowMs % PERIOD_MS) / PERIOD_MS) * STEPS);
+export function dashOffset(nowMs: number): number {
+  return -(Math.floor(nowMs / TICK_MS) % DASH_PERIOD);
 }
