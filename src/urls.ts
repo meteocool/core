@@ -32,6 +32,18 @@ export const websocketBaseUrl = pick(
   "https://api.ng.meteocool.com",
 );
 export const dataUrl = pick("", "https://data-staging.meteocool.com", "https://data.meteocool.com");
+// Self-hosted Nominatim, for the reverse lookups in lib/reverseGeocode.ts.
+//
+// Empty in production on purpose: the instance lives on the staging cluster
+// only for now, and an empty base is how reverseGeocode.ts is told to go
+// straight to BigDataCloud. Point this at a production hostname on the day one
+// exists, and nothing else has to change.
+export const geocodingUrl = pick(
+  "/geocoding",
+  "https://geocoding-staging.meteocool.com",
+  "",
+);
+
 export const v3APIBaseUrl = pick(
   "/v3",
   "https://staging.meteocool.com/v3",

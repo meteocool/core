@@ -244,7 +244,19 @@ export default class CellTrackManager {
       else this.pulse.changed();
     }
 
-    if (answered) this.pinned = tracks.find((raw) => raw.properties.code === open) ?? null;
+    if (answered && open) {
+      this.pinned = tracks.find((raw) => raw.properties.code === open) ?? null;
+      // The open panel is written in the present tense -- how long ago the cell
+      // was last seen, whether it is still growing, where it is going next --
+      // and the selection is the snapshot taken when it was tapped. Handed the
+      // answer's copy, so a panel left open across a few refreshes describes
+      // the storm as it is rather than as it was when it was opened.
+      //
+      // After `pinned`, so the selection subscription above compares the new
+      // properties against the track just pinned and finds the same cell.
+      const fresh = this.tracks.get(open);
+      if (fresh) selectedCell.set(fresh);
+    }
   }
 
   /** The cell whose panel or marks are up, which `apply` will not drop. */

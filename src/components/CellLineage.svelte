@@ -38,7 +38,7 @@
  * this one and in every other chart in the panel; running it downwards here
  * made this the only one that did not.
  */
-import { tick } from "svelte";
+import { onDestroy, tick } from "svelte";
 import dagre from "@dagrejs/dagre";
 import { selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
@@ -50,6 +50,12 @@ export let track: CellTrackProperties;
 export let known: Map<string, CellTrackProperties>;
 /** True while relatives are still arriving, so a partial graph says so. */
 export let loading = false;
+/**
+ * The present, for the `now` rule. Passed in rather than read here so it
+ * follows the panel's own quarter-minute clock instead of starting a second
+ * timer for a line that moves five pixels a minute.
+ */
+export let now: number = Date.now();
 
 const NODE_W = 62;
 const NODE_H = 30;
@@ -74,6 +80,22 @@ const COL_MIN = NODE_W + 12;
  * an hour ago sits four times further away.
  */
 const PX_PER_MINUTE = 5;
+
+/**
+ * How far past the last detection the `now` rule may sit.
+ *
+ * The two charts above carry their axis to the present for a good reason -- a
+ * trace that stops at the right-hand edge quietly implies the record is
+ * current -- and this one should say the same thing. But those have a fixed
+ * width and this one is as long as it needs to be, so an un-capped gap would
+ * mean a family last seen two hours ago dragging six hundred pixels of empty
+ * chart behind it. Past the cap the rule stops moving and the gap is
+ * understated; the axis clocks underneath still say when the last one was.
+ */
+const NOW_MAX_PX = 110;
+
+/** Width of the hint that there is more chart off either edge. */
+const FADE_PX = 22;
 
 $: lineage = buildLineage(known, track.code);
 
@@ -106,6 +128,8 @@ interface Laid {
   edges: string[];
   /** One per distinct detection time, which is what the axis labels. */
   marks: Mark[];
+  /** Where the present falls, or null when it is not past the last node. */
+  nowX: number | null;
 }
 
 /**
@@ -115,7 +139,7 @@ interface Laid {
  * rather than kept and updated -- these are a handful of nodes and the cost of
  * a rebuild is nothing next to the cost of a stale one.
  */
-function layout(graph: ReturnType<typeof buildLineage>): Laid | null {
+function layout(graph: ReturnType<typeof buildLineage>, nowMs: number): Laid | null {
   if (graph.nodes.length < 2) return null;
   const g = new dagre.graphlib.Graph();
   g.setGraph({
@@ -183,14 +207,69 @@ function layout(graph: ReturnType<typeof buildLineage>): Laid | null {
     label: clock(new Date(stamp).toISOString()),
   }));
 
-  const width = offsets[offsets.length - 1] + NODE_W + 8;
-  return { width, height, nodes, edges, marks };
+  /*
+   * The present, on the same axis the nodes sit on. Measured from the last
+   * detection rather than laid out as another stamp, because it is not a
+   * column: nothing is drawn in it and nothing needs clearing.
+   */
+  const lastStamp = stamps[stamps.length - 1];
+  const lastX = colOf.get(lastStamp) as number;
+  const elapsed = Math.max(0, nowMs - lastStamp) * (PX_PER_MINUTE / 60_000);
+  const nowX = elapsed > 1 ? lastX + Math.min(elapsed, NOW_MAX_PX) : null;
+
+  const width = Math.max(
+    offsets[offsets.length - 1] + NODE_W + 8,
+    nowX === null ? 0 : nowX + 12,
+  );
+  return {
+    width, height, nodes, edges, marks, nowX,
+  };
 }
 
-$: laid = layout(lineage);
+$: laid = layout(lineage, now);
 
 let figure: HTMLElement;
 let scroller: HTMLElement;
+
+/**
+ * How much of the fade at each edge is showing.
+ *
+ * The chart scrolls sideways inside a panel that is otherwise a vertical
+ * stack, and a horizontal scrollbar is a poor way to say so: on a trackpad and
+ * on a phone it is not drawn at all until the moment it is already being used,
+ * which is after the reader has had to guess. Fading the content out towards
+ * whichever side has more says it without a control -- the graph visibly runs
+ * under the edge -- and it says it continuously, shrinking to nothing as the
+ * end is reached. The bar itself is hidden, so the fade is the only signal
+ * rather than a second one.
+ */
+let fadeStart = 0;
+let fadeEnd = 0;
+
+function updateFade() {
+  if (!scroller) return;
+  const slack = scroller.scrollWidth - scroller.clientWidth;
+  if (slack <= 1) {
+    fadeStart = 0;
+    fadeEnd = 0;
+    return;
+  }
+  // Clamped to the slack on each side, so the fade eases away over the last
+  // few pixels instead of vanishing the instant the end is hit.
+  fadeStart = Math.max(0, Math.min(scroller.scrollLeft, FADE_PX));
+  fadeEnd = Math.max(0, Math.min(slack - scroller.scrollLeft, FADE_PX));
+}
+
+/*
+ * The panel is resizable (a desktop window, a phone rotating, the sheet being
+ * dragged), and whether the chart overflows at all can change with it.
+ */
+let observer: ResizeObserver | null = null;
+$: if (scroller && !observer && typeof ResizeObserver !== "undefined") {
+  observer = new ResizeObserver(() => updateFade());
+  observer.observe(scroller);
+}
+onDestroy(() => observer?.disconnect());
 
 /**
  * Walking the family: the tapped relative becomes the open cell.
@@ -243,8 +322,23 @@ function showNode(code: string) {
  * Also when the cell was opened from the map or the hint bar rather than from
  * the chart: the chart is drawn scrolled to its start, and the open cell can
  * be anywhere along it.
+ *
+ * The scroll is keyed on the code, not on `laid`. The layout is rebuilt every
+ * time the clock ticks, because the "now" mark moves with it, and re-centring
+ * on each of those took the chart back from wherever the reader had scrolled
+ * it every fifteen seconds -- a graph you navigate by that will not stay where
+ * it is put. The fade still follows every relayout, because the widths do.
  */
-$: if (laid && track) tick().then(() => showNode(track.code));
+let centred: string | null = null;
+$: if (laid && track) {
+  const code = track.code;
+  const moved = code !== centred;
+  centred = code;
+  tick().then(() => {
+    if (moved) showNode(code);
+    updateFade();
+  });
+}
 
 function activate(event: KeyboardEvent, code: string) {
   if (event.key === "Enter" || event.key === " ") go(code);
@@ -267,6 +361,23 @@ function activate(event: KeyboardEvent, code: string) {
     stroke-opacity: 0.25;
     stroke-width: 1;
   }
+  /* The present, dashed and light, exactly as the two charts above draw it --
+     it is the same claim about the same clock, and drawing it differently here
+     would make a reader work out twice that it is not a measurement. */
+  .nowline {
+    stroke: currentColor;
+    stroke-opacity: 0.45;
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+  .nowlabel {
+    font-size: 8px;
+    fill: currentColor;
+    fill-opacity: 0.55;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-anchor: end;
+  }
   .axistime {
     font: 500 9px/1 var(--mc-font, sans-serif);
     fill: currentColor;
@@ -281,6 +392,21 @@ function activate(event: KeyboardEvent, code: string) {
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+    /* The bar is hidden so the fade is the only thing saying "there is more",
+       rather than a second, uglier one. Firefox and WebKit spell it
+       differently and neither understands the other. */
+    scrollbar-width: none;
+    /* Masked rather than overlaid with a gradient: the panel behind this is a
+       different colour in each scheme and on the sheet it is translucent over
+       the map, so anything painted on top would have to guess what it is
+       covering. A mask fades the chart into whatever is actually there. */
+    -webkit-mask-image: var(--lineage-fade);
+    mask-image: var(--lineage-fade);
+    transition: -webkit-mask-image var(--mc-motion-fast, 120ms) linear,
+                mask-image var(--mc-motion-fast, 120ms) linear;
+  }
+  .scroll::-webkit-scrollbar {
+    display: none;
   }
   svg {
     display: block;
@@ -339,7 +465,14 @@ function activate(event: KeyboardEvent, code: string) {
     <figcaption class="section">
       Family<span class="aside">tap to follow{#if loading} &middot; loading…{/if}</span>
     </figcaption>
-    <div class="scroll" bind:this={scroller}>
+    <div
+      class="scroll"
+      bind:this={scroller}
+      on:scroll={updateFade}
+      style="--lineage-fade: linear-gradient(to right,
+        transparent 0, #000 {fadeStart}px,
+        #000 calc(100% - {fadeEnd}px), transparent 100%)"
+    >
       <svg width={laid.width} height={laid.height} viewBox="0 0 {laid.width} {laid.height}"
         role="group" aria-label="Storm lineage">
         <!-- The clock, and a rule down the chart at every moment a cell in
@@ -352,6 +485,14 @@ function activate(event: KeyboardEvent, code: string) {
         {/each}
         <line class="axis" y1={laid.height - AXIS_H} y2={laid.height - AXIS_H}
               x1={laid.marks[0].x} x2={laid.marks[laid.marks.length - 1].x} />
+
+        <!-- Behind the edges and nodes, with the rules: a reference, not a
+             mark. Labelled to its left because it sits at the right-hand end
+             of the chart, where a label to its right would be off the edge. -->
+        {#if laid.nowX !== null}
+          <line class="nowline" x1={laid.nowX} x2={laid.nowX} y1="0" y2={laid.height - AXIS_H} />
+          <text class="nowlabel" x={laid.nowX - 3} y="8">now</text>
+        {/if}
 
         {#each laid.edges as d, i (i)}
           <path class="edge" {d} />

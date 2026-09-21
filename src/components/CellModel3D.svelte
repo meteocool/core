@@ -19,13 +19,49 @@
  */
 import { onMount, onDestroy } from "svelte";
 import { colorSchemeDark } from "../stores";
-import { cellVolume, dbzColour } from "../lib/cellVolume";
-import type { CellVolumeModel } from "../lib/cellVolume";
+import { cellVolume, dbzColour, frameOf } from "../lib/cellVolume";
+import type { CellVolumeModel, ModelFrame } from "../lib/cellVolume";
 import type { VolumeInput } from "../lib/cellVolume";
 
 export let cell: VolumeInput;
 export let width = 320;
 export let height = 210;
+
+/**
+ * The extent the picture is scaled to fit, when something outside knows a
+ * better one than this cell.
+ *
+ * Without it every cell is normalised to fill the canvas, so a 4 km shower and
+ * a 40 km supercell come out the same size and the only thing that says
+ * otherwise is the ruler -- which makes walking a family actively misleading,
+ * because the one quantity the eye reads first is the one that carries no
+ * information. Passing the family's envelope in means a cell that is half the
+ * size of its parent is drawn half the size of its parent.
+ *
+ * Null falls back to this cell's own extent, i.e. the old behaviour, which is
+ * what a cell with no known relatives gets.
+ */
+export let frame: ModelFrame | null = null;
+
+/**
+ * How fast the frame catches up when it changes, per second of easing.
+ *
+ * The frame moves for two reasons -- a hop to another cell, and the family
+ * arriving in rounds behind the first paint -- and both used to be an
+ * instantaneous jump in a picture that is otherwise always moving smoothly.
+ * Easing it reads as the camera pulling back rather than as the model being
+ * replaced. Snapped below a thousandth so it settles rather than creeping.
+ */
+const FRAME_EASE = 6;
+
+/** The frame actually drawn this instant, chasing the target one. */
+let shown: ModelFrame | null = null;
+let shownAt = 0;
+
+/** Asked once: a reader who wants less movement gets the frame outright. */
+const stillness = typeof window === "undefined" || !window.matchMedia
+  ? null
+  : window.matchMedia("(prefers-reduced-motion: reduce)");
 
 /** Camera height above the horizon. Low, because the vertical is the point. */
 const ELEVATION = (19 * Math.PI) / 180;
@@ -35,6 +71,12 @@ const SPIN = 0.32;
 
 /** Sun over the viewer's left shoulder, in the model's own turning frame. */
 const LIGHT: [number, number, number] = [-0.46, -0.58, 0.67];
+
+/** Height-ruler steps, in km: the first that clears `MIN_TICK_PX` is used. */
+const RULER_STEPS_KM = [1, 2, 5, 10, 20];
+
+/** Closest two ruler labels may sit before they stop being two labels. */
+const MIN_TICK_PX = 13;
 
 /** Outlines are decimated again here: this picture is a few hundred pixels wide. */
 const FACE_POINTS = 14;
@@ -55,7 +97,8 @@ interface Mesh {
 }
 
 let canvas: HTMLCanvasElement | null = null;
-let frame = 0;
+/** The pending animation-frame handle; `frame` is the prop above. */
+let rafId = 0;
 let angle = 0.6;
 let dragging = false;
 let dragFrom = 0;
@@ -167,10 +210,20 @@ function draw(): void {
    * tens of kilometres across seen from far enough away that perspective would
    * only make the near side look bigger than it measures.
    */
-  const radius = model.radiusKm;
-  const lowKm = Math.min(model.base / 1000, 0);
-  const highKm = model.top / 1000;
   const up = (y: number, z: number): number => y * sinE + z * cosE;
+
+  /*
+   * What the picture is scaled to fit: the family's envelope when the panel
+   * knows one, this cell's own extent otherwise. Everything below reads the
+   * frame rather than the model, so the ground line and the ruler stay put
+   * across a hop too -- a shared scale with a baseline that still moves would
+   * only trade one misreading for another.
+   */
+  const fit = approach(frame ?? frameOf(model));
+
+  const radius = fit.radiusKm;
+  const lowKm = fit.lowKm;
+  const highKm = fit.highKm;
   const upLow = Math.min(up(-radius, lowKm), up(radius, lowKm));
   const upHigh = Math.max(up(-radius, highKm), up(radius, highKm));
 
@@ -232,6 +285,35 @@ function draw(): void {
   });
 
   drawRuler(context, { lowKm, highKm, scale, cy, ink });
+}
+
+/**
+ * The frame to draw this instant, eased toward `target`.
+ *
+ * Exponential, on wall-clock time rather than on frames, so it lands in the
+ * same fifth of a second whether the tab is running at 120Hz or has been
+ * throttled to 10. The first call of a component's life snaps: there is
+ * nothing to ease from, and starting at some arbitrary box would mean every
+ * cell opened with a lurch.
+ */
+function approach(target: ModelFrame): ModelFrame {
+  const now = typeof performance === "undefined" ? Date.now() : performance.now();
+  const dt = shown ? Math.min((now - shownAt) / 1000, 0.25) : 0;
+  shownAt = now;
+  if (!shown || stillness?.matches) {
+    shown = { ...target };
+    return shown;
+  }
+  const k = 1 - Math.exp(-FRAME_EASE * dt);
+  const step = (from: number, to: number): number => (
+    Math.abs(to - from) < 1e-3 ? to : from + (to - from) * k
+  );
+  shown = {
+    radiusKm: step(shown.radiusKm, target.radiusKm),
+    lowKm: step(shown.lowKm, target.lowKm),
+    highKm: step(shown.highKm, target.highKm),
+  };
+  return shown;
 }
 
 function signedArea(idx: number[], sx: Float64Array, sy: Float64Array): number {
@@ -306,7 +388,21 @@ function drawRuler(
   } = view;
   const cosE = Math.cos(ELEVATION);
   const y = (km: number): number => cy - km * cosE * scale;
-  const step = highKm > 12 ? 4 : 2;
+
+  /*
+   * The step comes from the room there is, not from how tall the storm is.
+   *
+   * It used to be `highKm > 12 ? 4 : 2`, which was safe only while every cell
+   * was normalised to fill the canvas -- the scale was then roughly the same
+   * every time, so a height alone predicted the spacing. Now that a cell is
+   * drawn on its family's scale a small one can be at a quarter of that, and a
+   * 2 km step that used to be 25px apart lands at six: the labels collide into
+   * an unreadable column. Picking the first step on the ladder that clears a
+   * legible gap holds at any scale, and keeps the familiar 2 km ticks wherever
+   * they still fit.
+   */
+  const step = RULER_STEPS_KM.find((km) => km * cosE * scale >= MIN_TICK_PX)
+    ?? RULER_STEPS_KM[RULER_STEPS_KM.length - 1];
   const x = 26;
 
   context.strokeStyle = `${ink}0.3)`;
@@ -340,7 +436,7 @@ function tick(now: number): void {
     last = now;
   }
   draw();
-  frame = requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
 }
 
 let last = 0;
@@ -366,10 +462,10 @@ onMount(() => {
   // for as long as the popup is open; honour the system preference for stillness
   // by showing a fixed three-quarter view instead.
   auto = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  frame = requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
 });
 
-onDestroy(() => cancelAnimationFrame(frame));
+onDestroy(() => cancelAnimationFrame(rafId));
 
 // Redraw on anything the render depends on that the loop does not own.
 $: if (canvas && mesh && dark !== undefined) draw();
