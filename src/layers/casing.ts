@@ -16,8 +16,18 @@ export const DARK_CASING = "rgba(12, 16, 22, 0.75)";
 /** The basemaps a light casing would be the loudest thing on. */
 const DARK_BASEMAPS = new Set(["dark", "satellite"]);
 
+/**
+ * Whether what is drawn underneath is dark, so anything laid over it inverts.
+ *
+ * Exported because three places need the same answer and each used to carry
+ * its own copy of the set: the casings and inks here, the place labels in
+ * layers/vector.ts, and the floating chrome's data-chrome attribute in
+ * layers/ui.ts. Three copies is two that can drift.
+ */
+export const isDarkBasemap = (basemap: string): boolean => DARK_BASEMAPS.has(basemap);
+
 export const casingFor = (basemap: string): string => (
-  DARK_BASEMAPS.has(basemap) ? DARK_CASING : LIGHT_CASING
+  isDarkBasemap(basemap) ? DARK_CASING : LIGHT_CASING
 );
 
 /**
@@ -33,25 +43,34 @@ export const LIGHT_INK = "rgba(255, 255, 255, 0.95)";
 export const DARK_INK = "rgba(17, 20, 26, 0.9)";
 
 export const inkFor = (basemap: string): string => (
-  DARK_BASEMAPS.has(basemap) ? LIGHT_INK : DARK_INK
+  isDarkBasemap(basemap) ? LIGHT_INK : DARK_INK
 );
 
 /**
- * Follow the basemap, calling `onChange` when the colour actually changes.
+ * Follow the basemap, calling `onChange` when the picked value actually
+ * changes.
  *
  * A layer cannot read this per feature -- OpenLayers calls a style function
  * with nowhere to thread state through -- so each one holds the current value
- * and redraws itself when told. Returns the unsubscriber.
+ * and redraws itself when told. Generic over what is picked so the label
+ * palettes in layers/vector.ts can ride it too; values are compared by
+ * identity, so a `pick` returning objects has to return shared ones. Returns
+ * the unsubscriber.
  */
-function watch(pick: (basemap: string) => string, onChange: (colour: string) => void): () => void {
-  let current: string | null = null;
+export function watchBasemap<T>(
+  pick: (basemap: string) => T,
+  onChange: (value: T) => void,
+): () => void {
+  let current: T | undefined;
+  let seen = false;
   return mapBaseLayer.subscribe((name) => {
     const next = pick(String(name));
-    if (next === current) return;
+    if (seen && next === current) return;
+    seen = true;
     current = next;
     onChange(next);
   });
 }
 
-export const watchCasing = (onChange: (colour: string) => void) => watch(casingFor, onChange);
-export const watchInk = (onChange: (colour: string) => void) => watch(inkFor, onChange);
+export const watchCasing = (onChange: (colour: string) => void) => watchBasemap(casingFor, onChange);
+export const watchInk = (onChange: (colour: string) => void) => watchBasemap(inkFor, onChange);
