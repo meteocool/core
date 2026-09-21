@@ -470,12 +470,29 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 /* Toasts. sl-alert.toast() moves the element into body > .sl-toast-stack, outside
    every component root, so this is global by necessity.
    parts: base icon message close-button (+ close-button__base). Transient blur: one or two cards. */
+/*
+ * Top centre, under the logo/pill/switcher line.
+ *
+ * These used to sit at the bottom, above whichever tray was showing. That put
+ * them at z 60 directly over the busiest part of the map chrome -- the colour
+ * scale, the forecast strip, the player discs and the attribution all live in
+ * that band and all sit below 60 -- and the replay notice has no duration, so
+ * on staging it covered them indefinitely. The top band holds three things,
+ * all on one 44px line and all hugging an edge, so the line below it is the
+ * one place a card can stand without burying a control.
+ *
+ * Width stops short of both side columns rather than running to the viewport:
+ * the logo is on the left and the switcher, zoom capsule and locate button
+ * stack down the right, and a full-width card would cross them on a phone.
+ */
 .sl-toast-stack {
-  width: min(28rem, 100vw);
-  top: auto;
-  /* Above whichever bar is showing: Map.svelte writes --bottom-toolbar-height. */
-  bottom: calc(var(--bottom-toolbar-height, var(--toast-stack-offset, 0px)) + var(--mc-gutter));
-  padding: 0 var(--mc-gutter);
+  top: calc(var(--mc-top-stack) + var(--mc-control-lg) + var(--mc-gutter));
+  bottom: auto;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(28rem, calc(100vw - 2 * (var(--mc-control-lg) + 2 * var(--mc-gutter))));
+  padding: 0;
   box-sizing: border-box;
 }
 .sl-toast-stack sl-alert { margin: var(--mc-gutter) 0; }

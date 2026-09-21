@@ -239,6 +239,15 @@ function swipeToDismiss(node: HTMLElement) {
     display: grid;
     place-items: center;
     overflow: hidden;
+    /* The dock clips to the tray radius, but a backdrop-filter escapes an
+       ancestor's *rounded* clip in both WebKit and Chromium -- only the square
+       border box survives, which is what left a hard corner beside the panel.
+       So the button carries the trailing corners itself. The leading pair stay
+       square while the panel is still over them: rounding an edge that another
+       rounded edge is sitting against opens a lens of bare map between the
+       two. They are only the dock's own corners once the red has the full
+       width, which is what .filled says. */
+    border-radius: 0 var(--mc-radius-tray) var(--mc-radius-tray) 0;
     background: var(--mc-red-veil);
     -webkit-backdrop-filter: var(--mc-glass-backdrop);
     backdrop-filter: var(--mc-glass-backdrop);
@@ -255,19 +264,29 @@ function swipeToDismiss(node: HTMLElement) {
     background: var(--mc-red-veil-strong);
     color: #fff;
   }
+  /* Full width -- on the commit, or on the way out after the button was tapped.
+     Keyed off the width rather than off `committed`, because the tap takes the
+     same path to full width without ever committing. */
+  .strip-action.filled {
+    border-radius: var(--mc-radius-tray);
+  }
   /* The colour shift runs in both states: a commit happens mid-drag, where the
      width is deliberately not transitioned. Both rules therefore have to spell
-     out the whole shorthand -- the specific one replaces it, not adds to it. */
+     out the whole shorthand -- the specific one replaces it, not adds to it.
+     The corners ride along with it, so the leading pair open as the red takes
+     the dock rather than snapping square-to-round on one frame. */
   .strip-action {
     transition: background var(--mc-motion-fast) var(--mc-ease),
-                color var(--mc-motion-fast) var(--mc-ease);
+                color var(--mc-motion-fast) var(--mc-ease),
+                border-radius var(--mc-motion-fast) var(--mc-ease);
   }
   /* Springy on the way to a resting width, immediate while the finger has it:
      the overshoot is what makes the commit read as the button giving way. */
   .strip-dock:not(.swiping) .strip-action {
     transition: width var(--mc-motion-spring) var(--mc-ease-spring),
                 background var(--mc-motion-fast) var(--mc-ease),
-                color var(--mc-motion-fast) var(--mc-ease);
+                color var(--mc-motion-fast) var(--mc-ease),
+                border-radius var(--mc-motion-fast) var(--mc-ease);
   }
   .strip-action-label {
     /* Held at the button's resting width rather than centred in it, so the word
@@ -433,6 +452,7 @@ function swipeToDismiss(node: HTMLElement) {
     type="button"
     class="strip-action"
     class:committed
+    class:filled={dockWidth > 0 && reveal >= dockWidth}
     style:width="{reveal}px"
     tabindex={reveal >= ACTION_REST ? 0 : -1}
     aria-hidden={reveal < ACTION_REST}

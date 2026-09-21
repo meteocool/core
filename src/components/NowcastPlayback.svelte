@@ -30,7 +30,6 @@ Chart.register(BarController);
 Chart.register(BarElement);
 Chart.register(ChartDataLabels);
 
-import { setUIConstant } from "../layers/ui";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import type RadarCapability from "../caps/RadarCapability";
 import type { GridConfig } from "../caps/RadarCapability";
@@ -532,8 +531,6 @@ const fsm = new StateMachine({
         liveEdge = cap.getMostRecentObservation();
         if (slRange) slRange.value = liveEdge;
       }, 200);
-      setUIConstant("toast-stack-offset", { "toast-stack-offset": "124px" });
-
       if (autoPlay) {
         setTimeout(() => {
           console.log("Triggering auto-play");
@@ -630,7 +627,6 @@ const fsm = new StateMachine({
           active.update();
         }, 400);
       }
-      setUIConstant("toast-stack-offset");
     },
   },
 });

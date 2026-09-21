@@ -369,6 +369,57 @@
         "title": "CellLayer",
         "type": "object"
       },
+      "CellPlacement": {
+        "description": "Where a cell is, in the terms someone would use out loud.\n\nParts rather than a sentence: a graph node has room for \"N of Freising\"\nand a panel header for \"18 km N of Freising\", the app is bilingual, and\nonly the client knows which of those it is rendering.",
+        "properties": {
+          "bearing_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The same bearing in degrees clockwise from north",
+            "title": "Bearing Deg"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Eight-point compass bearing from the place to the cell, or null when the cell is over it",
+            "title": "Direction"
+          },
+          "distance_km": {
+            "description": "From the place to the cell's latest centroid",
+            "title": "Distance Km",
+            "type": "number"
+          },
+          "kind": {
+            "default": "",
+            "description": "What Nominatim called it: city, town, village, county, ...",
+            "title": "Kind",
+            "type": "string"
+          },
+          "place": {
+            "description": "The place the cell is described against",
+            "title": "Place",
+            "type": "string"
+          }
+        },
+        "required": [
+          "place",
+          "distance_km"
+        ],
+        "title": "CellPlacement",
+        "type": "object"
+      },
       "CellStep": {
         "description": "One cell at one five-minute timestep.",
         "properties": {
@@ -811,7 +862,8 @@
               "radar",
               "nowcast",
               "precipitation_types",
-              "lightning_mvt"
+              "lightning_mvt",
+              "cells_geojson"
             ],
             "title": "Refresh",
             "type": "string"
@@ -1080,6 +1132,17 @@
             },
             "title": "Parent Codes",
             "type": "array"
+          },
+          "placement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellPlacement"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A human name for the cell, anchored to a nearby place and kept stable as it moves. Null when geocoding is disabled or no place could be found."
           },
           "polygon": {
             "anyOf": [

@@ -35,6 +35,11 @@ function proxyTargets(mode: string) {
       ?? (localStack ? "http://127.0.0.1:5002" : "https://data-staging.meteocool.com"),
     TILES: process.env.MC_TILES
       ?? (localStack ? "http://127.0.0.1:9000" : "https://assets-staging.meteocool.com"),
+    // `docker compose --profile geocoding up nominatim` in meteocool/ng is what
+    // listens on 8080 locally; it holds Monaco and nothing else, so the staging
+    // instance is usually the more useful target even for a local stack.
+    GEOCODING: process.env.MC_GEOCODING
+      ?? (localStack ? "http://127.0.0.1:8080" : "https://geocoding-staging.meteocool.com"),
   };
 }
 
@@ -43,7 +48,7 @@ function proxyTargets(mode: string) {
 const commit = process.env.COMMIT_REF ?? process.env.GITHUB_SHA ?? process.env.GIT_COMMIT_HASH ?? "";
 
 export default defineConfig(({ mode }) => {
-  const { API, SOCKET, DATA, TILES } = proxyTargets(mode);
+  const { API, SOCKET, DATA, TILES, GEOCODING } = proxyTargets(mode);
 
   return {
     plugins: [
@@ -113,6 +118,11 @@ export default defineConfig(({ mode }) => {
       "/mesocyclones": { target: DATA, changeOrigin: true },
         // The tile CDN, or minio standing in for it locally.
         "/tiles": { target: TILES, changeOrigin: true, rewrite: (path) => path.replace(/^\/tiles/, "") },
+        "/geocoding": {
+          target: GEOCODING,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/geocoding/, ""),
+        },
       },
     },
   };
