@@ -151,6 +151,11 @@
     position: absolute;
     inset: 0;
     z-index: 90;
+    /* The tile clips to its card radius, but a backdrop-filter escapes an
+       ancestor's *rounded* clip in both WebKit and Chromium -- only the square
+       border box survives, so the frost poked out at the corners. It carries
+       the radius itself; `inherit` keeps it tied to the card's. */
+    border-radius: inherit;
     -webkit-backdrop-filter: blur(10px) saturate(1.2);
     backdrop-filter: blur(10px) saturate(1.2);
     background: var(--mc-glass-fill);

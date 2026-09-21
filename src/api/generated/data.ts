@@ -279,6 +279,42 @@ export interface components {
             volume_km3?: number | null;
         };
         /**
+         * CellPlacement
+         * @description Where a cell is, in the terms someone would use out loud.
+         *
+         *     Parts rather than a sentence: a graph node has room for "N of Freising"
+         *     and a panel header for "18 km N of Freising", the app is bilingual, and
+         *     only the client knows which of those it is rendering.
+         */
+        CellPlacement: {
+            /**
+             * Bearing Deg
+             * @description The same bearing in degrees clockwise from north
+             */
+            bearing_deg?: number | null;
+            /**
+             * Direction
+             * @description Eight-point compass bearing from the place to the cell, or null when the cell is over it
+             */
+            direction?: string | null;
+            /**
+             * Distance Km
+             * @description From the place to the cell's latest centroid
+             */
+            distance_km: number;
+            /**
+             * Kind
+             * @description What Nominatim called it: city, town, village, county, ...
+             * @default
+             */
+            kind: string;
+            /**
+             * Place
+             * @description The place the cell is described against
+             */
+            place: string;
+        };
+        /**
          * CellStep
          * @description One cell at one five-minute timestep.
          */
@@ -526,7 +562,7 @@ export interface components {
              * Refresh
              * @enum {string}
              */
-            refresh: "radar" | "nowcast" | "precipitation_types" | "lightning_mvt";
+            refresh: "radar" | "nowcast" | "precipitation_types" | "lightning_mvt" | "cells_geojson";
         };
         /**
          * SnowRefresh
@@ -678,6 +714,8 @@ export interface components {
             n_steps: number;
             /** Parent Codes */
             parent_codes?: string[];
+            /** @description A human name for the cell, anchored to a nearby place and kept stable as it moves. Null when geocoding is disabled or no place could be found. */
+            placement?: components["schemas"]["CellPlacement"] | null;
             /**
              * Polygon
              * @description Cell outline, [lon, lat] pairs

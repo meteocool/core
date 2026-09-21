@@ -1,10 +1,66 @@
-function toast(message: string, variant: string, icon: string, { duration }: { duration?: number } = {}) {
+import { isDismissed, withDismissal } from "./noticeLedger";
+
+/**
+ * Where the notices a reader has closed for good are kept.
+ *
+ * Declared in App.svelte alongside the rest; `Settings` drops a key whose
+ * value is the default, so an empty ledger stores nothing. The keying rule and
+ * the string handling live in lib/noticeLedger.ts, which is where they are
+ * tested.
+ */
+const LEDGER = "dismissedNotices";
+
+/*
+ * Both of these are wrapped: Toast.ts is imported by the API client, which can
+ * report a failure before App.svelte has built `window.settings` at all, and
+ * Settings' own localStorage access can throw in a private window. A notice
+ * that cannot read the ledger is simply shown.
+ */
+function dismissedBefore(message: string): boolean {
+  try {
+    return isDismissed(window.settings.getString<string>(LEDGER, ""), message);
+  } catch {
+    return false;
+  }
+}
+
+function rememberDismissal(message: string): void {
+  try {
+    const stored = window.settings.getString<string>(LEDGER, "");
+    const next = withDismissal(stored, message);
+    if (next !== stored) window.settings.set(LEDGER, next);
+  } catch {
+    // Nothing to do: the notice comes back next session, which is the safe way
+    // round for something the reader was told once.
+  }
+}
+
+/**
+ * `remember` outlives the session: the reader closing this notice means they
+ * do not want to see it again, not that they do not want to see it now.
+ *
+ * Offered only to notices with no duration. `sl-after-hide` cannot say why an
+ * alert closed, so on one that dismisses itself a timeout would be recorded as
+ * a decision -- and a reader who simply looked away would never be told again.
+ */
+function toast(
+  message: string,
+  variant: string,
+  icon: string,
+  { duration, remember = false }: { duration?: number; remember?: boolean } = {},
+) {
+  const durable = remember && duration === undefined;
+  if (durable && dismissedBefore(message)) return undefined;
+
   const alert = Object.assign(document.createElement("sl-alert"), {
     variant,
     closable: true,
     duration,
     innerHTML: `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`,
   });
+  if (durable) {
+    alert.addEventListener("sl-after-hide", () => rememberDismissal(message), { once: true });
+  }
   document.body.append(alert);
   return alert.toast();
 }
@@ -67,6 +123,11 @@ export function resetReplayNotice() {
  * useful test of the real thing. Nobody can tell by looking, so they have to be
  * told. No duration: this is a standing condition, not an event, and it stays
  * until it is dismissed.
+ *
+ * Remembered once dismissed, because the condition outlives the page: staging
+ * replays for days at a time, and a reader who has been told is told again on
+ * every reload otherwise. The error toast deliberately does not do this --
+ * "something went wrong" hidden for good is a failure nobody ever sees again.
  */
 export function reportReplay(announced = replayAnnounced) {
   if (announced) return undefined;
@@ -76,5 +137,6 @@ export function reportReplay(announced = replayAnnounced) {
       + "timestamp rewritten to now.",
     "warning",
     "clock-history",
+    { remember: true },
   );
 }

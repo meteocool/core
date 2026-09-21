@@ -1,7 +1,7 @@
 import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
 import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
-import { readable, writable } from "svelte/store";
+import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties } from "./api";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
@@ -10,18 +10,46 @@ import type { CellTrackProperties } from "./api";
 export const bottomToolbarMode = writable<"collapsed" | "player" | "hidden">("collapsed");
 export const capDescription = writable<string>("Meteorology for everyone");
 export const capLastUpdated = writable<Date | null>(null);
-export const capTimeIndicator = writable<number>(0);
 /**
- * The newest observation the radar grid holds, as the same unix-second step
- * `capTimeIndicator` is in -- or 0 before any grid has arrived.
+ * The frame on screen, and the newest observation the radar grid holds, as the
+ * same unix-second steps the grid keys them by -- or 0 before any grid has
+ * arrived.
  *
  * The pair answers "is the map showing now?", which `live` cannot: that one is
  * cleared at the start of every grid refetch and set again when the grid lands,
  * so anything keyed to it blinks once every few minutes. These two only move
  * when a frame actually changes, and both being 0 means there is no player to
  * be off the live edge of rather than that we are.
+ *
+ * Held in one store and published through `setFrames` rather than written
+ * separately, because a live grid refresh moves both halves at once and a
+ * reader of the pair must never see half the move. As two stores it did: the
+ * new observation landed while the indicator was still on the previous frame,
+ * and for that one tick the map read as parked behind the live edge. That is
+ * all the cell layer's gate in App.svelte needs to hide itself and drop the
+ * selection with it -- so the storm detail panel closed itself every few
+ * minutes, under a reader who was in the middle of using it.
  */
-export const capLatestObservation = writable<number>(0);
+const capFrames = writable<{ shown: number; newest: number }>({ shown: 0, newest: 0 });
+
+/**
+ * Publish either half of the frame pair, or both in one update.
+ *
+ * A write that changes nothing wakes nobody: `processRadar` republishes the
+ * newest step after every grid, and on the live path `resetToLatest` has
+ * already said the same thing on its way past.
+ */
+export function setFrames(next: { shown?: number; newest?: number }): void {
+  capFrames.update((frames) => {
+    const merged = { ...frames, ...next };
+    return merged.shown === frames.shown && merged.newest === frames.newest ? frames : merged;
+  });
+}
+
+/** The frame the player is showing. */
+export const capTimeIndicator = derived(capFrames, (frames) => frames.shown);
+/** The newest observation the grid holds. */
+export const capLatestObservation = derived(capFrames, (frames) => frames.newest);
 export const colorSchemeDark = writable<boolean>(false);
 export const radarColormap = writable<string>("classic");
 

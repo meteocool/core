@@ -103,6 +103,40 @@ export interface CellVolumeModel {
 }
 
 /**
+ * A box to draw a storm inside: half-width and the height band, both in km.
+ *
+ * Separated from the model because a picture is not always framed on the cell
+ * in it -- the detail view frames every member of a family on the same box, so
+ * that a cell half the size of its parent is drawn half the size of its
+ * parent. Lives here rather than in the component that draws it because the
+ * component that *computes* it is a different one again.
+ */
+export interface ModelFrame {
+  radiusKm: number;
+  /** Ground, or the echo base when that hangs below sea level. */
+  lowKm: number;
+  highKm: number;
+}
+
+/** The box a single cell needs, which is the frame when nothing wider applies. */
+export function frameOf(volume: CellVolumeModel): ModelFrame {
+  return {
+    radiusKm: volume.radiusKm,
+    lowKm: Math.min(volume.base / 1000, 0),
+    highKm: volume.top / 1000,
+  };
+}
+
+/** The smallest box that holds both. */
+export function unionFrame(a: ModelFrame, b: ModelFrame): ModelFrame {
+  return {
+    radiusKm: Math.max(a.radiusKm, b.radiusKm),
+    lowKm: Math.min(a.lowKm, b.lowKm),
+    highKm: Math.max(a.highKm, b.highKm),
+  };
+}
+
+/**
  * Reflectivity ramp, matching the radar overlay's own reading of intensity so
  * a core that looks severe on the flat map looks severe here too.
  */

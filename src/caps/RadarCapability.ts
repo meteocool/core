@@ -8,8 +8,6 @@ import type { LayerFactory } from "../layers/dwd";
 import {
   capDescription,
   capLastUpdated,
-  capLatestObservation,
-  capTimeIndicator,
   lastFocus,
   inspectLatLon,
   latLon,
@@ -18,6 +16,7 @@ import {
   radarColorScheme,
   radarStale,
   selectedCell,
+  setFrames,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
 } from "../stores";
 import type { Map } from "ol";
@@ -532,15 +531,11 @@ export default class RadarCapability extends Capability {
         super.getMap().addLayer(this.layer);
       }
     }
-    // Published before the switch below, so that whichever branch runs has the
-    // newest step on record to be compared against: `resetToLatest` moves the
-    // indicator onto it, and a manual scrubber is left where it is and is now
-    // measurably behind. Layers that only make sense on the live frame read
-    // the pair -- see the cell layer's gate in App.svelte.
-    capLatestObservation.set(this.getMostRecentObservation());
-
     switch (this.trackingMode) {
       case "live":
+        // Publishes the pair itself: following the grid means the indicator
+        // moves onto the new observation, and both halves have to reach
+        // anything reading them as one update. See `setFrames`.
         this.resetToLatest();
         break;
       case "manual":
@@ -555,6 +550,13 @@ export default class RadarCapability extends Capability {
       default:
         break;
     }
+    // Whatever the mode, the grid's newest step is on record: layers that only
+    // make sense on the live frame read it against the indicator -- see the
+    // cell layer's gate in App.svelte. On the live path `resetToLatest` has
+    // already said this and the write is a no-op; on a manual scrubber it is
+    // the one that matters, and it leaves the indicator where the reader put
+    // it, now measurably behind.
+    setFrames({ newest: this.getMostRecentObservation() });
     capLastUpdated.set(latestRadar);
     this.publishCadenceFromGrid();
     radarStale.set(false);
@@ -587,7 +589,9 @@ export default class RadarCapability extends Capability {
     if (this.clientGrid && mostRecent in this.clientGrid) {
       const url = this.clientGrid[mostRecent].url;
       if (this.source && url) this.source.setUrl(url);
-      capTimeIndicator.set(mostRecent);
+      // Both halves: the newest observation is what is being reset onto, so
+      // there is no tick in which the two disagree.
+      setFrames({ shown: mostRecent, newest: mostRecent });
       live.set(true);
     }
   }
@@ -603,7 +607,7 @@ export default class RadarCapability extends Capability {
       this.trackingMode = "live";
       live.set(true);
     }
-    capTimeIndicator.set(timestep);
+    setFrames({ shown: timestep });
     const step = this.clientGrid?.[timestep];
     if (this.source && step && step.url != null) {
       this.source.setUrl(step.url);

@@ -133,7 +133,7 @@ const SERVICES: Array<{ name: string; match: RegExp }> = [
   { name: "basemap", match: /map\.meteocool\.com|\.mvt(\?|$)/ },
   { name: "lightning", match: /lightning_cache|\/lightning/ },
   { name: "mesocyclones", match: /mesocyclone/ },
-  { name: "geocoder", match: /bigdatacloud/ },
+  { name: "geocoder", match: /bigdatacloud|\/geocoding\/|geocoding-staging\.meteocool|geocoding\.meteocool/ },
   { name: "websocket poll", match: /socket\.io/ },
 ];
 
