@@ -70,10 +70,12 @@ const HALF = 0.4;
 // Short of the full screen on purpose: a strip of map stays visible above the
 // sheet so it reads as a drawer sitting over the map rather than a second
 // screen, and there is something to see the grip is still draggable toward.
-// Kept thin -- a third of the gap a 0.8 detent left -- so it reads as a hint
-// rather than wasted space above a sheet that is mostly what the reader came
-// for.
-const FULL = 0.93;
+// A bare vh fraction cannot know how tall the status bar or a dynamic island
+// is, and that varies by device -- so this is deliberately higher than the
+// sheet is ever meant to render at; the .sheet CSS clamps the real height
+// against --mc-safe-top instead, which is what actually keeps the grip clear
+// of that chrome on every phone rather than on the one this was tuned on.
+const FULL = 0.95;
 
 let detent = HALF;
 
@@ -158,9 +160,12 @@ function release() {
     z-index: 1200;
     display: flex;
     flex-direction: column;
-    /* Set from the detent, so the map above always has the rest. */
-    height: var(--sheet-h);
-    max-height: 93vh;
+    /* Set from the detent, so the map above always has the rest -- except at
+       FULL, where the detent alone is not trusted: env(safe-area-inset-top)
+       is the one number that actually knows the status bar / dynamic island
+       height on this device, so the real cap is measured from that rather
+       than a vh guess that put the grip behind it on some phones. */
+    height: min(var(--sheet-h), calc(100vh - var(--mc-safe-top) - 28px));
     padding: 0 12px calc(12px + var(--mc-safe-bottom));
     border-radius: 22px 22px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
