@@ -259,3 +259,96 @@ test("every drawn ring has somewhere to stand", () => {
     assert.ok(base >= 0);
   });
 });
+
+/* ---- measured outlines, when the API sends them ------------------------- */
+
+/**
+ * Two 45 dBZ cores well apart, which is the case a scaled outline cannot
+ * express at all: shrinking the cell's one polygon puts a single lozenge
+ * between them, where the radar saw two.
+ *
+ * 45 rather than 55 because that is the threshold this cell's model actually
+ * makes a core of -- 55 covers 4 km2 of a 95 km2 storm, under the share a band
+ * needs before it is worth drawing as a column rather than left inside the
+ * glass.
+ */
+const WEST: [number, number][] = [[9.2, 51.2], [9.6, 51.2], [9.6, 51.6], [9.2, 51.6]];
+const EAST: [number, number][] = [[10.4, 52.4], [10.8, 52.4], [10.8, 52.8], [10.4, 52.8]];
+const CORE_DBZ = 45;
+
+const MEASURED = {
+  ...CELL,
+  structure: [
+    { dbz: 30, area_km2: 95, top_m: 9200, volume_km3: 400 },
+    { dbz: 45, area_km2: 30, top_m: 7600, volume_km3: 100, rings: [WEST, EAST] },
+    { dbz: 55, area_km2: 4, top_m: 6100, volume_km3: 12 },
+  ],
+} as unknown as CellCurrent;
+
+const cores = (cell: CellCurrent) =>
+  volumeCollection([cell]).features
+    .filter((f) => f.properties.tier === 0 && f.properties.dbz === CORE_DBZ);
+
+test("a measured threshold is drawn as the separate cores it is", () => {
+  const before = cores(CELL);
+  const after = cores(MEASURED);
+
+  // Same bands, but each one now carries two solids instead of one.
+  assert.ok(before.length > 0);
+  assert.equal(after.length, before.length * 2);
+});
+
+test("the measured cores stay where they were measured", () => {
+  const centres = cores(MEASURED).map((f) => {
+    const ring = f.geometry.coordinates[0];
+    return ring.reduce((sum, [lon]) => sum + lon, 0) / ring.length;
+  });
+
+  // One around 9.4, one around 10.6 -- not one in the middle at 10.
+  assert.ok(Math.min(...centres) < 9.8);
+  assert.ok(Math.max(...centres) > 10.2);
+});
+
+test("a measured core is still sized by the volume profile", () => {
+  // The shape is measured at the ground; the area at each height is not.
+  const byBand = new Map<number, number>();
+  for (const f of cores(MEASURED)) {
+    const base = f.properties.base;
+    byBand.set(base, (byBand.get(base) ?? 0) + area(f.geometry.coordinates[0]));
+  }
+  const areas = [...byBand.entries()].sort((a, b) => a[0] - b[0]).map(([, value]) => value);
+
+  assert.ok(areas.length > 1);
+  assert.ok(areas.every((value, i) => i === 0 || value <= areas[i - 1] + 1e-12));
+});
+
+test("the glass around a measured core is cut to that core's shape", () => {
+  const holed = volumeCollection([MEASURED]).features
+    .filter((f) => f.properties.tier === 1 && f.geometry.coordinates.length > 1);
+
+  assert.ok(holed.length > 0);
+  // Two holes, one per core, rather than the single concentric one.
+  assert.ok(holed.some((f) => f.geometry.coordinates.length === 3));
+});
+
+test("a null ring list is the same as none at all", () => {
+  const explicit = {
+    ...CELL,
+    structure: (CELL.structure ?? []).map((layer) => ({ ...layer, rings: null })),
+  } as unknown as CellCurrent;
+
+  assert.deepEqual(volumeCollection([explicit]), volumeCollection([CELL]));
+});
+
+test("rings too short to be polygons are ignored rather than drawn", () => {
+  const broken = {
+    ...CELL,
+    structure: [
+      { dbz: 30, area_km2: 95, top_m: 9200, volume_km3: 400 },
+      { dbz: 45, area_km2: 30, top_m: 7600, volume_km3: 100, rings: [[[9, 51], [10, 52]]] },
+    ],
+  } as unknown as CellCurrent;
+
+  assert.doesNotThrow(() => volumeCollection([broken]));
+  assert.deepEqual(cores(broken as CellCurrent).length > 0, true);
+});

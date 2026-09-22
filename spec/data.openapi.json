@@ -332,7 +332,7 @@
         "type": "object"
       },
       "CellLayer": {
-        "description": "One reflectivity threshold, and how far the storm exceeds it.\n\nThe pair of numbers is what carries the shape: `area_km2` is the footprint\nat that intensity and `top_m` is how high it reaches, so a stack of these\ndescribes the storm's anatomy rather than just its peak.",
+        "description": "One reflectivity threshold, and how far the storm exceeds it.\n\nThe numbers carry the anatomy: `area_km2` is the footprint at that\nintensity, `top_m` is how high it reaches and `volume_km3` is what sits\nbetween them, so a stack of these says whether a core is deep or shallow\nrather than only how strong it is.\n\n`rings` is the shape of that footprint, which DWD does not publish. It is\nmeasured against the column-maximum composite -- the 250 m grid KONRAD3D\nprojects its own polygon onto -- so a client can draw the threshold where it\nactually is instead of shrinking the cell's outline about its centroid until\nthe area comes out right. Absent when no composite could be paired with the\nrun, which is not the same as a threshold that measured nothing: the caller\nshould fall back to the scaled outline, as it did before this existed.",
         "properties": {
           "area_km2": {
             "description": "Ground area exceeding the threshold",
@@ -343,6 +343,27 @@
             "description": "The threshold this layer is at or above",
             "title": "Dbz",
             "type": "integer"
+          },
+          "rings": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Measured outlines of this threshold, [lon, lat] pairs per ring. Several rings mean several separate cores. Null when unmeasured.",
+            "title": "Rings"
           },
           "top_m": {
             "description": "Highest echo exceeding it, above sea level",

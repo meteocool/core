@@ -74,6 +74,22 @@ export interface VolumeRing {
   tier: number;
   /** What that tier is drawn at. */
   alpha: number;
+  /**
+   * This threshold's *measured* outlines, when the API sent any.
+   *
+   * Everything else in this interface is a factor on the cell's one published
+   * outline, because for most of this model's life that outline was the only
+   * shape there was. It is a poor stand-in for a strong threshold: a squall
+   * line's 50 dBZ is a row of separate cores, and a shrunken copy of the whole
+   * cell is one blob in the middle of them.
+   *
+   * `/cells/*` now carries the real thing, cut out of the 250 m column-maximum
+   * grid, so where these are present they replace the scaled outline. Several
+   * entries mean several separate cores. Still sized by `outer`: the shape is
+   * measured at the ground, the area at *this height* comes from the volume
+   * profile, and only the two together describe the solid.
+   */
+  shape?: Array<[number, number][]>;
 }
 
 /** One horizontal slice of a cell, split into rings by reflectivity. */
@@ -218,6 +234,9 @@ const WALL_GAP = 0.004;
 /** Below this a threshold contributes nothing at a height but a stray pixel. */
 const MIN_RING_AREA_KM2 = 0.05;
 
+/** Below this a measured ring is not a polygon, whatever the API called it. */
+const MIN_RING_POINTS = 4;
+
 /** An outline this detailed is already more than a scaled silhouette deserves. */
 const MAX_OUTLINE_POINTS = 22;
 
@@ -324,6 +343,18 @@ interface Body {
   base: number;
   top: number;
   exponent: number;
+  /** This threshold's measured outlines, when `/cells/*` sent any. */
+  shape?: Array<[number, number][]>;
+}
+
+/** The API's rings for one layer, if they are there and are rings. */
+function measuredShape(layer: CellLayer): Array<[number, number][]> | undefined {
+  const rings = layer.rings;
+  if (!rings?.length) return undefined;
+  const usable = rings
+    .filter((ring) => ring.length >= MIN_RING_POINTS)
+    .map((ring) => ring.map(([lon, lat]) => [lon, lat] as [number, number]));
+  return usable.length ? usable : undefined;
 }
 
 function bodies(cell: VolumeInput): Body[] {
@@ -342,7 +373,13 @@ function bodies(cell: VolumeInput): Body[] {
   const nested = raw.map((layer) => {
     area = Math.min(area, layer.area_km2);
     ceiling = Math.min(ceiling, layer.top_m);
-    return { dbz: layer.dbz, areaKm2: area, top: ceiling, volumeKm3: layer.volume_km3 ?? null };
+    return {
+      dbz: layer.dbz,
+      areaKm2: area,
+      top: ceiling,
+      volumeKm3: layer.volume_km3 ?? null,
+      shape: measuredShape(layer),
+    };
   });
 
   const floor = Math.min(cell.echo_bottom_m ?? 0, nested[0].top - MIN_BODY_M);
@@ -383,7 +420,7 @@ function bodies(cell: VolumeInput): Body[] {
     const height = Math.max(layer.top - base, MIN_BODY_M);
     const exponent = depthM === null ? 1 : exponentForMean(depthM / height);
     out.push({
-      dbz: layer.dbz, areaKm2: layer.areaKm2, base, top: layer.top, exponent,
+      dbz: layer.dbz, areaKm2: layer.areaKm2, base, top: layer.top, exponent, shape: layer.shape,
     });
   });
   return out;
@@ -431,7 +468,7 @@ export function shoelace(ring: [number, number][]): number {
 }
 
 /** Degrees to east/north kilometres about a point, which is where areas live. */
-function toLocalKm(
+export function toLocalKm(
   ring: [number, number][],
   centre: [number, number],
 ): [number, number][] {
@@ -490,7 +527,7 @@ export function cellVolume(cell: VolumeInput): CellVolumeModel | null {
     // What each threshold measures across, here. Clamped to the one outside it
     // so a sharper taper on a strong threshold cannot poke through a weak one.
     let widest = Infinity;
-    const stops: Array<{ dbz: number; scale: number }> = [];
+    const stops: Array<{ dbz: number; scale: number; shape?: Array<[number, number][]> }> = [];
     solids.forEach((body) => {
       if (middle <= body.base || middle >= body.top) return;
       const area = Math.min(
@@ -499,7 +536,7 @@ export function cellVolume(cell: VolumeInput): CellVolumeModel | null {
       );
       widest = area;
       if (area < MIN_RING_AREA_KM2) return;
-      stops.push({ dbz: body.dbz, scale: Math.sqrt(area / outlineAreaKm2) });
+      stops.push({ dbz: body.dbz, scale: Math.sqrt(area / outlineAreaKm2), shape: body.shape });
     });
     if (!stops.length) continue;
 
@@ -524,6 +561,11 @@ export function cellVolume(cell: VolumeInput): CellVolumeModel | null {
         inner: core.scale * (1 + WALL_GAP),
         tier: 1,
         alpha: RING_ALPHAS[1],
+        // The envelope keeps the cell's own outline even when the core has a
+        // measured shape: it is the weakest threshold present, whose footprint
+        // *is* the cell, and a hole cut to the core's real shape is what makes
+        // the difference visible anyway.
+        shape: envelope.shape,
       });
     }
     rings.push({
@@ -532,6 +574,7 @@ export function cellVolume(cell: VolumeInput): CellVolumeModel | null {
       inner: 0,
       tier: 0,
       alpha: RING_ALPHAS[0],
+      shape: core.shape,
     });
 
     bands.push({ base: bandBase, top: bandTop, rings });
