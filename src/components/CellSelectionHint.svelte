@@ -120,12 +120,13 @@ const onSwipeEnd = (cleared: boolean) => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* Heading style: both the band name and "Cell" capitalise, not just the
+       first word -- capitalize on the <b> alone left "cell" lowercase. */
+    text-transform: capitalize;
   }
 
-  /* Only the band name, or "cell" is capitalised with it. */
   .what .title b {
     font-weight: inherit;
-    text-transform: capitalize;
   }
 
   .what .alive {
@@ -212,7 +213,7 @@ const onSwipeEnd = (cleared: boolean) => {
     <span class="alive">alive for {alive}</span>
   </span>
   <button type="button" class="go" on:click={open}>
-    details <span class="chevron" aria-hidden="true">›</span>
+    Details <span class="chevron" aria-hidden="true">›</span>
   </button>
   <button type="button" class="close" on:click={dismiss} aria-label="Clear selection">&times;</button>
 </div>
