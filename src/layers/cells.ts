@@ -9,7 +9,7 @@ import Point from "ol/geom/Point";
 import type { FeatureLike } from "ol/Feature";
 import { selectedCell } from "../stores";
 import { LIGHT_CASING, watchCasing } from "./casing";
-import { labelStepMinutes, outlineIsCurrent } from "../lib/cellGeometry";
+import { leadLabel, outlineIsCurrent } from "../lib/cellGeometry";
 
 /**
  * Tracked thunderstorm cells: where each one has been, and where it is going.
@@ -210,6 +210,15 @@ let casing = LIGHT_CASING;
  */
 const ELLIPSE_DASH = [7, 5];
 
+/**
+ * How often the lead labels are recomputed while a cell is selected.
+ *
+ * They are rounded to the minute, so this is how wrong one is allowed to be:
+ * fifteen seconds, which is under the rounding and far under the minute the
+ * reader is being told about.
+ */
+const LABEL_TICK_MS = 15_000;
+
 function forecastStyle(feature: FeatureLike): Style | undefined {
   if (!isSelected(feature)) return undefined;
   const severity = feature.get("max_severity") ?? 0;
@@ -238,13 +247,29 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * whatever is beneath it, which is the problem rather than the solution.
  */
 /**
- * A ring's lead time, written on its leading edge.
+ * How long until the storm gets here, written on the ring's leading edge.
  *
  * Without it the cone is a dozen rings that plainly mean something about time
  * and do not say what: whether the outermost is ten minutes out or three hours
  * is the difference between watching a storm and having somewhere to be. The
  * label is the ring's own answer, placed where `leadingTip` put it -- the far
  * end of the major axis, where consecutive rings are furthest apart.
+ *
+ * ## Counted from now, not from the scan
+ *
+ * The number used to be the ring's lead over the last detection, which is the
+ * forecast's own frame and the wrong one to put in front of a reader. Nothing
+ * reaches the map the instant it happens: the radar scan, DWD's KONRAD3D run
+ * behind it, the ingest behind that, and then however long the popup has been
+ * open. By the time "+15 min" is read it routinely means eight, and a reader
+ * deciding whether to bring the washing in acts on the number, not on the
+ * pipeline.
+ *
+ * So the label counts down from the viewer's own clock. The cost is that the
+ * sequence is no longer round -- +8, +23, +38 rather than +15, +30, +45 --
+ * which looks like a bug and is the correction. Rings whose moment has already
+ * passed lose their label and keep their outline: the cone is one shape and
+ * punching holes in it would say the forecast had gaps.
  *
  * Only the lead time, not the uncertainty. These are DWD's 1-sigma Kalman
  * ellipses, so the honest reading of the outer ring is "about two chances in
@@ -253,14 +278,14 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * width belongs.
  */
 function leadLabelStyle(feature: FeatureLike, resolution: number): Style | undefined {
-  const lead = feature.get("lead_minutes");
   const tip = feature.get("tip") as number[] | undefined;
-  if (!tip || typeof lead !== "number" || lead <= 0) return undefined;
-  if (lead % labelStepMinutes(resolution) !== 0) return undefined;
+  if (!tip) return undefined;
+  const text = leadLabel(feature.get("forecast_at"), feature.get("lead_minutes"), resolution);
+  if (text === null) return undefined;
   const severity = feature.get("max_severity") ?? 0;
-  return cached(`lead:${severity}:${casing}:${lead}`, () => new Style({
+  return cached(`lead:${severity}:${casing}:${text}`, () => new Style({
     text: new Text({
-      text: `+${lead} min`,
+      text,
       font: "600 11px sans-serif",
       fill: new Fill({ color: rgba(severityColour(severity), 1) }),
       // The casing the rings get, for the same reason and against the same
@@ -343,10 +368,32 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
     },
   });
 
+  /*
+   * The lead labels count down from the viewer's clock, so they go stale on
+   * their own -- OpenLayers keeps a layer's rendered output until something
+   * invalidates it, and panning the map is not something a reader does while
+   * reading a number off it.
+   *
+   * Only while a cell is selected, because that is the only time a ring is
+   * drawn at all (see `ellipseStyle`), and redrawing this layer is not free:
+   * it holds every feature of every track in the viewport. Once a selection is
+   * open that is one relayout every fifteen seconds, against the twenty a
+   * second the pulse was moved into its own layer to avoid.
+   */
+  let ticking: ReturnType<typeof setInterval> | null = null;
+
   selectedCell.subscribe((track) => {
     const code = track?.code ?? null;
     if (code === selectedCode) return;
     selectedCode = code;
+
+    if (code && ticking === null) {
+      ticking = setInterval(() => layer.changed(), LABEL_TICK_MS);
+    } else if (!code && ticking !== null) {
+      clearInterval(ticking);
+      ticking = null;
+    }
+
     layer.changed();
   });
 

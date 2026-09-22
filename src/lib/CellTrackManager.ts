@@ -238,12 +238,23 @@ export default class CellTrackManager {
             ...shared,
             kind: "ellipse" as CellFeatureKind,
             geometry: new Polygon([ring.map((coordinate) => fromLonLat(coordinate))]),
-            // How far ahead this ring is, and where to say so. Both are worked
-            // out here because both need the track: the lead is measured from
-            // the last detection rather than from the clock, so it says how
-            // far past the evidence the ring is rather than how long ago the
-            // page loaded, and the tip needs the cell's position to know which
-            // end of the ring is the leading one.
+            // When this ring is for, and where to say so.
+            //
+            // `forecast_at` is the absolute moment, and it is what the label
+            // is written from: a reader looking at a ring wants to know how
+            // long they have, and the answer has to count down as they watch.
+            // Measured from the last detection it would not -- DWD publishes
+            // KONRAD3D a few minutes behind the scan and the scan is a few
+            // minutes behind the sky, so a ring labelled "+15 min" is already
+            // eight or nine minutes away by the time anybody reads it.
+            //
+            // `lead_minutes` stays, and stays measured from the evidence,
+            // because it is what decides *which* rings are labelled. The steps
+            // divide the hour evenly (see `labelStepMinutes`), and selecting
+            // on a clock-relative value instead would leave the set changing
+            // every minute and mostly empty -- the rings are five minutes
+            // apart in forecast time, not in time-from-now.
+            forecast_at: new Date(point.t).getTime(),
             lead_minutes: Math.round(
               (new Date(point.t).getTime() - new Date(p.last_seen).getTime()) / 60_000,
             ),
