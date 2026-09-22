@@ -792,9 +792,9 @@ async function copy() {
           {/each}
         </div>
         <div class="legend">
-          <span><i class="swatch" style="background: var(--mc-accent)"></i>observation</span>
-          <span><i class="swatch" style="background: var(--mc-accent-tint)"></i>forecast</span>
-          <span><i class="swatch" style="background: var(--mc-red-tint)"></i>missing</span>
+          <span><i class="swatch" style="background: var(--mc-accent)"></i>Observation</span>
+          <span><i class="swatch" style="background: var(--mc-accent-tint)"></i>Forecast</span>
+          <span><i class="swatch" style="background: var(--mc-red-tint)"></i>Missing</span>
         </div>
       </div>
 
@@ -804,14 +804,14 @@ async function copy() {
           <table>
             <thead>
               <tr>
-                <th class="name">service</th>
+                <th class="name">Service</th>
                 <th>n</th>
-                <th>median</th>
+                <th>Median</th>
                 <th>p95</th>
-                <th>slowest</th>
-                <th>last</th>
-                <th>bytes</th>
-                <th>cached</th>
+                <th>Slowest</th>
+                <th>Last</th>
+                <th>Bytes</th>
+                <th>Cached</th>
               </tr>
             </thead>
             <tbody>

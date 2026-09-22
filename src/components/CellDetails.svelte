@@ -605,21 +605,21 @@ function onKeydown(event: KeyboardEvent) {
   <div class="signals">
     {#if track.meso_ever}
       <span class="signal rotating">
-        rotating{track.meso_minutes ? ` ${duration(track.meso_minutes)}` : ""}
+        Rotating{track.meso_minutes ? ` ${duration(track.meso_minutes)}` : ""}
       </span>
     {/if}
     {#if track.hail_ever}
       <span class="signal hail">
-        hail{track.hail_minutes ? ` ${duration(track.hail_minutes)}` : ""}
+        Hail{track.hail_minutes ? ` ${duration(track.hail_minutes)}` : ""}
       </span>
     {/if}
-    {#if track.lightning_jump_recent}<span class="signal jump">lightning jump</span>{/if}
-    {#if track.intensifying}<span class="signal up">intensifying</span>{/if}
-    {#if track.split_ever}<span class="signal lineage">split</span>{/if}
-    {#if track.merge_ever}<span class="signal lineage">merged</span>{/if}
+    {#if track.lightning_jump_recent}<span class="signal jump">Lightning Jump</span>{/if}
+    {#if track.intensifying}<span class="signal up">Intensifying</span>{/if}
+    {#if track.split_ever}<span class="signal lineage">Split</span>{/if}
+    {#if track.merge_ever}<span class="signal lineage">Merged</span>{/if}
     {#if track.deviation_deg !== null && track.deviation_deg !== undefined
       && track.deviation_deg > DEVIANT_DEGREES}
-      <span class="signal deviant">deviant {round(track.deviation_deg)}&deg;</span>
+      <span class="signal deviant">Deviant {round(track.deviation_deg)}&deg;</span>
     {/if}
   </div>
 
