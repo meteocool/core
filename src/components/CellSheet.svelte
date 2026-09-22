@@ -20,6 +20,7 @@ import { onDestroy } from "svelte";
 import { cellDetails } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import CellDetails from "./CellDetails.svelte";
 
 export let track: import("../api").CellTrackProperties;
@@ -149,6 +150,63 @@ function release() {
   }
 }
 
+/* ---- drag the body, when it has nothing of its own to scroll ------------ */
+
+/**
+ * A grip 44px tall is still a small target on a panel most of which is this.
+ * When the content fits without scrolling there is nothing for a vertical
+ * drag here to do *but* move the sheet, so it gets to -- the same detent
+ * snapping as the grip, from wherever the thumb actually lands.
+ *
+ * Two things stay out of that: a drag that turns out to be a tap on a control
+ * in here (the close button, a link), and the 3D model, which already owns
+ * its own vertical drag to turn the shape and would never get it back once a
+ * few pixels of "is this a resize" slop ran out first.
+ *
+ * The axis decision is the same slop-then-commit rule swipeAway.ts uses for
+ * the strips' swipe-to-clear -- proven here at working out "tap or gesture"
+ * without it, a plain tap on anything in the body would start a drag before
+ * the tap underneath it ever got the event.
+ */
+let bodyPointer: number | null = null;
+let bodyStartX = 0;
+let bodyStartY = 0;
+let bodyAxis: SwipeAxis = "undecided";
+let bodyEligible = false;
+
+function bodyDown(event: PointerEvent) {
+  if (event.button > 0) return;
+  if ((event.target as HTMLElement).closest(".model")) return;
+  const el = event.currentTarget as HTMLElement;
+  bodyEligible = el.scrollHeight <= el.clientHeight + 1;
+  if (!bodyEligible) return;
+  bodyPointer = event.pointerId;
+  bodyStartX = event.clientX;
+  bodyStartY = event.clientY;
+  bodyAxis = "undecided";
+}
+
+function bodyMove(event: PointerEvent) {
+  if (!bodyEligible || event.pointerId !== bodyPointer) return;
+  if (bodyAxis === "undecided") {
+    bodyAxis = decideAxis(event.clientX - bodyStartX, event.clientY - bodyStartY);
+    if (bodyAxis !== "y") return;
+    dragging = true;
+    startY = bodyStartY;
+    try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* already gone */ }
+  }
+  if (bodyAxis !== "y") return;
+  move(event);
+}
+
+function bodyUp(event: PointerEvent) {
+  if (event.pointerId !== bodyPointer) return;
+  bodyPointer = null;
+  const wasDragging = bodyAxis === "y";
+  bodyAxis = "undecided";
+  bodyEligible = false;
+  if (wasDragging) release();
+}
 </script>
 
 <style>
@@ -271,7 +329,12 @@ function release() {
     on:keydown={(e) => { if (e.key === "Enter" || e.key === " " || e.key === "Escape") close(); }}>
     <span></span>
   </div>
-  <div class="body">
+  <div
+    class="body"
+    on:pointerdown={bodyDown}
+    on:pointermove={bodyMove}
+    on:pointerup={bodyUp}
+    on:pointercancel={bodyUp}>
     <CellDetails {track} />
   </div>
 </div>
