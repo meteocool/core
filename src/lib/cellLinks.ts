@@ -102,26 +102,30 @@ export function buildCellLinks(drawn: Map<string, CellTrackProperties>): CellLin
  * something else sits at its last position with its dot, badge and outline,
  * beside the cell that carries on. Both look like storms, and only one is.
  *
- * `cellStatus` already names this state in the panel -- "superseded", a storm
- * that became other storms rather than one that stopped -- and this is the
- * same judgement made about the map. What it takes away is the present tense:
- * the dot, the badge and the outline, which claim a cell is there now. The
- * path stays, joined to the continuation by `buildCellLinks`, because where
- * the storm has been is still true.
+ * The test is that a child has been detected more recently than it has --
+ * evidence, from the two tracks themselves, that the detector has moved on
+ * from this code onto that one. Not the `active` flag, which is what the panel
+ * leans on and what this was first written against: upstream sets it from a
+ * window rather than from the latest run, so in a real merge -- three cells
+ * last seen at 00:30 absorbed into one that ran on to 00:35 -- all four were
+ * still flagged active, and the map drew four storms where there was one.
  *
- * A continuation has to be on the map for this to fire. A child named but not
- * drawn is no reason to remove the only mark the storm has; and the child must
- * not have ended before the parent did, which is a lineage edge pointing the
- * wrong way through time rather than a hand-over.
+ * Strictly newer, so a split whose cells are both still being detected hides
+ * neither: two cells in the same run are two storms, which is what a split is.
+ *
+ * What this takes away is the present tense: the dot, the badge and the
+ * outline, which claim a cell is there now. The path stays, joined to the
+ * continuation by `buildCellLinks`, because where the storm has been is still
+ * true. A continuation has to be on the map for any of it to fire -- a child
+ * named but not drawn is no reason to remove the only mark a storm has.
  */
 export function supersededCodes(drawn: Map<string, CellTrackProperties>): Set<string> {
   const superseded = new Set<string>();
   drawn.forEach((track, code) => {
-    if (track.active) return;
-    const ended = new Date(track.last_seen).getTime();
+    const seen = new Date(track.last_seen).getTime();
     const continues = (track.child_codes ?? []).some((childCode) => {
       const child = drawn.get(childCode);
-      return child !== undefined && new Date(child.last_seen).getTime() >= ended;
+      return child !== undefined && new Date(child.last_seen).getTime() > seen;
     });
     if (continues) superseded.add(code);
   });
