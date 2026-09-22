@@ -623,6 +623,25 @@ function onKeydown(event: KeyboardEvent) {
     {/if}
   </div>
 
+  <h3 class="section">Readings</h3>
+  <ul class="metrics">
+    {#each readings as item (item.key)}
+      <li class="metric" data-band={item.band ?? "none"} title={item.bandName ?? ""}>
+        <span class="name">{item.label}</span>
+        <span class="value">{item.text}</span>
+        <!-- The meter is the reading again as a length. Colour alone would
+             leave the bands unreadable to anyone who cannot separate the
+             hues, and this popup has no room to spell the class out six
+             times over. -->
+        <span class="meter"><span class="fill" style="width: {item.fill * 100}%"></span></span>
+        {#if item.bandName}<span class="sr-only">{item.bandName}</span>{/if}
+      </li>
+    {/each}
+  </ul>
+
+  <!-- Numbers before models: the readings are the answer to "how bad is it",
+       which is what a reader wants first, and the 3D shapes are the slower,
+       more exploratory read that can wait until they have scrolled to it. -->
   {#if shape}
     <h3 class="section">Structure<span class="aside">drag to turn</span></h3>
     <figure class="model">
@@ -648,22 +667,6 @@ function onKeydown(event: KeyboardEvent) {
       />
     </figure>
   {/if}
-
-  <h3 class="section">Readings</h3>
-  <ul class="metrics">
-    {#each readings as item (item.key)}
-      <li class="metric" data-band={item.band ?? "none"} title={item.bandName ?? ""}>
-        <span class="name">{item.label}</span>
-        <span class="value">{item.text}</span>
-        <!-- The meter is the reading again as a length. Colour alone would
-             leave the bands unreadable to anyone who cannot separate the
-             hues, and this popup has no room to spell the class out six
-             times over. -->
-        <span class="meter"><span class="fill" style="width: {item.fill * 100}%"></span></span>
-        {#if item.bandName}<span class="sr-only">{item.bandName}</span>{/if}
-      </li>
-    {/each}
-  </ul>
 
   {#if span && panels.length}
     <h3 class="section">History</h3>
@@ -905,10 +908,12 @@ function onKeydown(event: KeyboardEvent) {
     .close {
       width: 44px;
       height: 44px;
-      /* Pulled up into its own padding, but not out past the right edge: eight
-         pixels of overhang there was enough to give the sheet a horizontal
-         scrollbar, on a panel with nothing to scroll sideways. */
-      margin: -6px 0 -6px auto;
+      /* Pulled up and right, into the sheet's own corner. The sheet now
+         reserves matching padding on .body for this overhang (see
+         CellSheet.svelte) -- previously any right overhang here gave the
+         sheet a horizontal scrollbar, on a panel with nothing to scroll
+         sideways. */
+      margin: -10px -8px -10px auto;
       font-size: 26px;
     }
     header {
