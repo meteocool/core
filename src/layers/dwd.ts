@@ -7,7 +7,7 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ImageTileSource from "ol/source/ImageTile";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
-import { dwdExtentInv, dwdRadarExtent } from "./extents";
+import { dwdRadarExtent, radarCoverageInv } from "./extents";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
 import type BaseLayer from "ol/layer/Base";
@@ -116,13 +116,14 @@ export function setDwdCmap(colorMapString: string) {
   [cmap] = cmapFromString(colorMapString);
 }
 
+/** The dark wash over everywhere neither radar network reaches. */
 export const radolanOverlay = () => new VectorLayer({
   zIndex: 1000,
   renderBuffer: 500,
   source: new VectorSource({
     features: [
       new Feature({
-        geometry: dwdExtentInv,
+        geometry: radarCoverageInv,
         name: "DarkOverlay",
       }),
     ],
