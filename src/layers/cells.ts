@@ -37,7 +37,7 @@ import { labelStepMinutes, outlineIsCurrent } from "../lib/cellGeometry";
 /** DWD's severity classes, in the colours their own charts use. */
 const SEVERITY_COLOURS = ["#2f9e44", "#f0b429", "#e03131", "#9c36b5"];
 
-export type CellFeatureKind = "path" | "cell" | "outline" | "forecast" | "ellipse";
+export type CellFeatureKind = "path" | "link" | "cell" | "outline" | "forecast" | "ellipse";
 
 const severityColour = (severity: number): string => SEVERITY_COLOURS[Math.min(Math.max(severity, 0), 3)];
 
@@ -111,6 +111,40 @@ function pathStyle(feature: FeatureLike): Style {
       width: (picked ? 3 : 2) + Math.min(severity, 3),
       lineCap: "round",
       lineJoin: "round",
+    }),
+  }));
+}
+
+/**
+ * A split or a merge, drawn as the gap it is.
+ *
+ * The join is a real continuation and has to read as one, or the map is back
+ * to two unrelated lines; it is also the one segment of a track that was never
+ * observed. DWD ends a code and starts another, and nothing was detected in
+ * between -- the line only says which detections belong to the same storm.
+ *
+ * So: the colour and the fade of the track it leads into, which is what makes
+ * it read as the same storm carrying on, and dotted rather than drawn, which
+ * is what keeps it from being read as a fifth of an hour of positions nobody
+ * ever measured. Thinner than a path for the same reason.
+ *
+ * Lit from either end. The joins belong as much to the cell that ended as to
+ * the one that carries on, and a reader who opens the parent is asking
+ * exactly what became of it.
+ */
+function linkStyle(feature: FeatureLike): Style {
+  const severity = feature.get("max_severity") ?? 0;
+  const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
+  const picked = isSelected(feature) || feature.get("from_code") === selectedCode;
+  return cached(`link:${severity}:${opacity}:${picked}`, () => new Style({
+    stroke: new Stroke({
+      color: rgba(severityColour(severity), picked ? 0.95 : 0.7 * opacity),
+      width: (picked ? 2.5 : 1.5) + Math.min(severity, 3) * 0.5,
+      lineCap: "round",
+      lineJoin: "round",
+      // A dotted line rather than a dashed one: the gaps are most of it, so
+      // the join reads as the steps nobody measured rather than as a path.
+      lineDash: [1, 6],
     }),
   }));
 }
@@ -288,6 +322,7 @@ const STYLES: Record<
   (feature: FeatureLike, resolution: number) => Style | Style[] | undefined
 > = {
   path: pathStyle,
+  link: linkStyle,
   cell: cellStyle,
   outline: outlineStyle,
   forecast: forecastStyle,
