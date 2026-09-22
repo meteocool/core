@@ -14,7 +14,7 @@
  * it is also acknowledged: the reader learns they hit a strong cell that has
  * been going for half an hour, which for a lot of taps is the whole question.
  */
-import { cellDetails, selectedCell } from "../stores";
+import { cellDetails, openStripCount, selectedCell } from "../stores";
 import { swipeAway } from "../lib/swipeAway";
 import { severityColour } from "../layers/cells";
 import { BAND_NAMES, duration } from "../lib/cellMetrics";
@@ -24,6 +24,13 @@ export let track: import("../api").CellTrackProperties;
 $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
 $: alive = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
+
+/* DismissableStrip's own dock is a fixed 104px plus the 8px tray gap it docks
+   above the toolbar with; stacking above it (rather than over it, which is
+   what both floating at "toolbar + 8px" on their own produces) means lifting
+   by exactly that much per strip currently on screen. */
+const STRIP_LIFT_PX = 112;
+$: stackLift = $openStripCount * STRIP_LIFT_PX;
 
 const open = () => cellDetails.set(true);
 
@@ -78,7 +85,11 @@ const onSwipeEnd = (cleared: boolean) => {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 8px);
+    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 8px + var(--stack-lift, 0px));
+    /* Animated so clearing a strip below reads as this bar settling down into
+       its place, the way a cleared notification lets the ones above it drop --
+       rather than an abrupt jump once the strip's own exit finishes. */
+    transition: bottom var(--mc-motion-spring, 280ms) var(--mc-ease-spring, ease);
     z-index: var(--mc-z-pill);
     margin: 0 8px;
     display: flex;
@@ -200,12 +211,13 @@ const onSwipeEnd = (cleared: boolean) => {
 
   @media (prefers-reduced-motion: reduce) {
     .go:active { transform: none; }
+    .hint { transition: none; }
     .hint.settling { transition: none; }
   }
 </style>
 
 <div class="hint" class:settling={released}
-  style="--colour: {colour}; transform: translateX({pulled}px); opacity: {1 - Math.min(1, -pulled / 220)}"
+  style="--colour: {colour}; --stack-lift: {stackLift}px; transform: translateX({pulled}px); opacity: {1 - Math.min(1, -pulled / 220)}"
   use:swipeAway={{ onMove: onSwipe, onEnd: onSwipeEnd }}>
   <span class="swatch" style="background: {colour}"></span>
   <span class="what">
