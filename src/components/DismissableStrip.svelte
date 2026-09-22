@@ -14,13 +14,20 @@
  * handle `dismiss` by taking it back down. Svelte waits for this component's
  * own outro, so the exit still plays.
  */
-import { createEventDispatcher } from "svelte";
+import { createEventDispatcher, onDestroy } from "svelte";
 import { decideAxis, SWIPE_COMMIT } from "../lib/swipeAway";
 import { fly, fade } from "svelte/transition";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import type { IconDefinition } from "@fortawesome/fontawesome-common-types";
 import Icon from "./Icon.svelte";
 import { _ } from "svelte-i18n";
+import { openStripCount } from "../stores";
+
+/* Counted while mounted, not while merely visible: the outro plays with this
+   still in the DOM, so CellSelectionHint keeps clearing it for the strip's
+   full exit rather than snapping down before the animation finishes. */
+openStripCount.update((n) => n + 1);
+onDestroy(() => openStripCount.update((n) => n - 1));
 
 /** The heading. A place name where there is one, else what the strip is. */
 export let title: string;
