@@ -39,11 +39,20 @@ const commonDWDParameters = {
   interpolate: false,
 };
 
+/**
+ * The tile URL for a `RadarFrame`-shaped `{tile_id}` in one bucket.
+ *
+ * Shared by every network's reflectivity layer -- DWD's and MeteoSwiss's alike
+ * hand the client the same `RadarFrame` shape, so this is the one place that
+ * turns it into a tile source URL rather than each layer hand-rolling its own.
+ */
+export const tileSourceUrl = (bucket: string, tileId: string) =>
+  `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
+
 export const dwdSource = (tileId, bucket = "meteoradar") => {
-  const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
   const reflectivitySource = trackTileLoads(new ImageTileSource({
     ...commonDWDParameters,
-    url: sourceUrl,
+    url: tileSourceUrl(bucket, tileId),
   }));
   reflectivitySource.set("tile_id", tileId);
   return reflectivitySource;

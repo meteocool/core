@@ -5,6 +5,7 @@ import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd";
 import type { LayerFactory } from "../layers/dwd";
+import SwissRadarLayer from "../layers/ch";
 import {
   capDescription,
   capLastUpdated,
@@ -128,6 +129,13 @@ export default class RadarCapability extends Capability {
 
   snowOverlay: VectorTileLayer | null;
 
+  /**
+   * MeteoSwiss's reflectivity composite -- a second, independent tile layer,
+   * not part of the DWD grid/GridStep this class otherwise manages. See
+   * `layers/ch.ts` for why the two stay separate.
+   */
+  private swissRadar: SwissRadarLayer;
+
   /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
   stale: boolean;
 
@@ -166,6 +174,7 @@ export default class RadarCapability extends Capability {
     this.serverTime = 0;
     this.snowOverlay = null;
     this.stale = false;
+    this.swissRadar = new SwissRadarLayer(map);
 
     window.radar = this;
 
@@ -270,6 +279,7 @@ export default class RadarCapability extends Capability {
       this.socket_io.on("poke", this.pokeHandler);
       this.socket_io.on("snow", this.snowHandler);
       this.downloadCurrentRadar();
+      this.swissRadar.refresh(this.nanobar);
     }
 
     // Initialize grid
@@ -396,6 +406,7 @@ export default class RadarCapability extends Capability {
   reloadAll() {
     console.log("reloadAll");
     this.downloadCurrentRadar();
+    this.swissRadar.refresh(this.nanobar);
   }
 
   /** Where the forecast is sampled: a tapped point, else the client's own. */
@@ -615,6 +626,7 @@ export default class RadarCapability extends Capability {
   }
 
   destroy() {
+    this.swissRadar.destroy();
     if (this.gridRefreshTimeout !== null) {
       window.clearTimeout(this.gridRefreshTimeout);
       this.gridRefreshTimeout = null;

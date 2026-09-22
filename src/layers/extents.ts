@@ -29,6 +29,18 @@ export const dwdRadarExtent4326: [number, number, number, number] = [2.8125, 45,
 
 export const dwdRadarExtent = transformExtent(dwdRadarExtent4326, "EPSG:4326", "EPSG:3857");
 
+/**
+ * Where the Swiss reflectivity composite exists at all.
+ *
+ * Matches `swiss_composite.py`'s `BBOX` on the backend exactly -- the grid
+ * that composite builds and this extent clips to are the same rectangle, so
+ * moving one without the other would either clip real tiles or claim
+ * coverage the composite never renders.
+ */
+export const chRadarExtent4326: [number, number, number, number] = [5.9, 45.7, 10.6, 47.9];
+
+export const chRadarExtent = transformExtent(chRadarExtent4326, "EPSG:4326", "EPSG:3857");
+
 export const dwdExtentInv = fromExtent(
   transformExtent([-180, -90, 180, 90], "EPSG:4326", "EPSG:3857"),
 );
