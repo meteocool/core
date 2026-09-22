@@ -318,6 +318,17 @@
             ],
             "description": "Cell-based vertically integrated liquid, kg/m^2",
             "title": "Vil"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellVolume"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Radar volume for the cutaway view, where one was built; null for most cells"
           }
         },
         "required": [
@@ -656,6 +667,47 @@
         "title": "CellStep",
         "type": "object"
       },
+      "CellVolume": {
+        "description": "Where to find this cell's radar volume, and how much to trust it.\n\nThe volume is the cutaway view's data: a 40 by 40 by 16 km box of\nreflectivity and confidence around the cell, built from the polar sweeps\nthe flat products are made from. It is a separate object rather than part\nof this payload because it is about 140 kB and almost nobody opens it, and\nit carries no URL because it lives in the same public bucket as the\nrendered tiles -- the client joins `key` to the tile base it already has.\n\n`coverage` is the mean confidence through the 3 to 8 km layer, which is\nwhere an overhang would be. A volume is only built above a floor, so this\nis never poor; it is here so a client can say how well the storm was seen\nrather than implying every cutaway is equally well founded.",
+        "properties": {
+          "bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compressed size, so a client can decide on mobile",
+            "title": "Bytes"
+          },
+          "coverage": {
+            "description": "Mean beam coverage through 3-8 km, 0 to 1",
+            "title": "Coverage",
+            "type": "number"
+          },
+          "key": {
+            "description": "Object key under the tile base, e.g. volumes/20260922T011500/1234.mcvx",
+            "title": "Key",
+            "type": "string"
+          },
+          "sites": {
+            "description": "Radars that contributed, by DWD short name",
+            "items": {
+              "type": "string"
+            },
+            "title": "Sites",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "coverage"
+        ],
+        "title": "CellVolume",
+        "type": "object"
+      },
       "CellsRefresh": {
         "description": "A nudge that a new KONRAD3D reference time is available.\n\nDeliberately not a `Poke`: the frontend's only `poke` handler reloads every\nradar tile, and deliberately not the cells themselves, which run to hundreds\nof kilobytes on a severe day. Clients refetch `/cells/*` from the data\nservice, scoped to their viewport.",
         "properties": {
@@ -883,8 +935,7 @@
               "radar",
               "nowcast",
               "precipitation_types",
-              "lightning_mvt",
-              "cells_geojson"
+              "lightning_mvt"
             ],
             "title": "Refresh",
             "type": "string"
@@ -1214,6 +1265,17 @@
               }
             ],
             "title": "Vil Max"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellVolume"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Radar volume for the cutaway view, from the newest run in which one was built. Null for most cells, which is the ordinary answer rather than a failure."
           }
         },
         "required": [
