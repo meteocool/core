@@ -11,6 +11,7 @@ import {
   ageMinutes, covers, ellipseRing4326, leadingTip, padExtent,
 } from "./cellGeometry";
 import { trimToLastRun } from "./cellTrack";
+import { buildCellLinks, supersededCodes } from "./cellLinks";
 import { selectedCell } from "../stores";
 import { isLive } from "./cellPulse";
 import type { Extent } from "./cellGeometry";
@@ -132,6 +133,8 @@ export default class CellTrackManager {
     if (!this.enabled) return;
 
     const features: Feature[] = [];
+    /** The lineage joins, kept apart only so they can be drawn underneath. */
+    const joins: Feature[] = [];
     const live: Feature[] = [];
     this.tracks = new Map();
 
@@ -146,10 +149,24 @@ export default class CellTrackManager {
     // carry the open cell, the fresh one is what gets kept and pinned below.
     const drawing = !answered && this.pinned ? [...tracks, this.pinned] : tracks;
 
-    drawing.forEach((raw) => {
-      const track = trimToLastRun(raw);
+    // Trimmed and indexed before anything is drawn. Both the joins and the
+    // superseded rule are about one cell's relationship to another, so neither
+    // can be decided while walking the answer a cell at a time.
+    const trimmed = drawing.map((raw) => trimToLastRun(raw));
+    trimmed.forEach((track) => this.tracks.set(track.properties.code, track.properties));
+
+    const superseded = supersededCodes(this.tracks);
+    // Never the open cell. The panel describes it in the present tense and is
+    // anchored to its mark; taking the mark away would leave the reader a
+    // description of a storm with nothing on the map under it. It is also how
+    // a walk up the family chart into a cell that has already been taken over
+    // still shows you where you have got to.
+    if (open) superseded.delete(open);
+
+    trimmed.forEach((track) => {
       const p = track.properties;
-      this.tracks.set(p.code, p);
+      /** Replaced by something else that is on the map; see `supersededCodes`. */
+      const taken = superseded.has(p.code);
 
       const shared = {
         code: p.code,
@@ -176,7 +193,11 @@ export default class CellTrackManager {
       const series = p.series ?? [];
       const last = series[series.length - 1];
       if (last) {
-        add("cell", p.code, new Point(fromLonLat([last.lon, last.lat])));
+        // The dot and its badge are the claim that a storm is here now, which
+        // is the one thing a superseded cell should stop making: its
+        // continuation is drawn a few kilometres along, and two dots for one
+        // storm is what this reads as on the map.
+        if (!taken) add("cell", p.code, new Point(fromLonLat([last.lon, last.lat])));
         // Only what the ping needs: where, and what colour. It never hit-tests
         // and never opens a popup, so it carries no code.
         if (p.active && isLive(ageMinutes(p.last_seen, reference))) {
@@ -187,7 +208,8 @@ export default class CellTrackManager {
         }
       }
 
-      if (p.polygon) {
+      // The outline is the same claim about the present as the dot is.
+      if (p.polygon && !taken) {
         add("outline", `${p.code}:outline`, new Polygon([p.polygon.map((c) => fromLonLat(c))]));
       }
 
@@ -233,8 +255,33 @@ export default class CellTrackManager {
       });
     });
 
+    /*
+     * The splits and the merges, as a segment per (parent, child) pair.
+     *
+     * Carried by the child: it is the cell the join leads into, so it decides
+     * the colour and how far the pair has faded, and a tap on the join opens
+     * the continuation rather than the cell that has ended. The parent's code
+     * rides along so the layer can light the join up from either end.
+     */
+    buildCellLinks(this.tracks).forEach((link) => {
+      const child = this.tracks.get(link.to);
+      if (!child) return;
+      const feature = new Feature({
+        kind: "link" as CellFeatureKind,
+        code: link.to,
+        from_code: link.from,
+        max_severity: child.max_severity,
+        age_minutes: ageMinutes(child.last_seen, now),
+        geometry: new LineString([fromLonLat(link.start), fromLonLat(link.end)]),
+      });
+      feature.setId(`${link.from}>${link.to}`);
+      joins.push(feature);
+    });
+
     this.vs.clear(true);
-    this.vs.addFeatures(features);
+    // Joins first, so the tracks and their marks draw over them rather than a
+    // dotted line crossing a cell's dot.
+    this.vs.addFeatures([...joins, ...features]);
     if (this.pulse) {
       this.pulse.clear(true);
       // Not silent: the ping's timer starts and stops on this source changing,
