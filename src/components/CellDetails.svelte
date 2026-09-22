@@ -23,6 +23,7 @@ import { fetchCellTrack } from "../api";
 import CellLineage from "./CellLineage.svelte";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
+import CellCutaway from "./CellCutaway.svelte";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
 import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
 import type { CellStep, CellTrackProperties } from "../api";
@@ -627,6 +628,24 @@ function onKeydown(event: KeyboardEvent) {
     <figure class="model">
       <CellModel3D cell={shape} frame={modelFrame} width={CHART.width} height={200} />
       <figcaption>at {observedAt}</figcaption>
+    </figure>
+  {/if}
+
+  <!-- The measured model above cannot lean: its shells are stacked outlines.
+       This one is built from the radar's own 3D field and cut open, so an
+       overhang -- the core hanging downshear out over the inflow -- is visible
+       where there is one. Offered only for the storms a volume was built for,
+       which is the strongest few and only where the radars sampled the 3 to
+       8 km layer properly. -->
+  {#if track.volume}
+    <h3 class="section">Inside<span class="aside">cut along the track</span></h3>
+    <figure class="model">
+      <CellCutaway
+        volume={track.volume}
+        headingDeg={latest?.heading_deg ?? null}
+        width={CHART.width}
+        height={200}
+      />
     </figure>
   {/if}
 
