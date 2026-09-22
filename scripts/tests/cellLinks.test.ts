@@ -135,21 +135,42 @@ test("a relative that is not on the map is not joined to", () => {
 
 /* ---- the cell that was taken over ---------------------------------------- */
 
-test("an ended cell whose continuation is drawn is superseded", () => {
-  const parent = cell("P", [step(0, 10, 48), step(5, 11, 48)], {
-    active: false,
-    child_codes: ["C"],
-  });
-  const child = cell("C", [step(10, 11.5, 48)], { parent_codes: ["P"] });
+test("a cell whose continuation has been seen more recently is superseded", () => {
+  const parent = cell("P", [step(0, 10, 48), step(5, 11, 48)], { child_codes: ["C"] });
+  const child = cell("C", [step(5, 11.1, 48), step(10, 11.5, 48)], { parent_codes: ["P"] });
 
   assert.deepEqual([...supersededCodes(drawn(parent, child))], ["P"]);
 });
 
-test("a cell still being detected is never superseded", () => {
-  // A split leaves the parent running often enough that this is the common
-  // case, and hiding a live storm is the one mistake worth never making.
+test("a merge hides the cells that went into it, flags or no flags", () => {
+  /*
+   * The case this rule exists for, from a real run: three cells last detected
+   * at 00:30 absorbed into one that ran on to 00:35, with every one of the
+   * four still carrying active=true because upstream sets that from a window
+   * rather than from the latest run. Testing the flag drew four storms where
+   * there was one.
+   */
+  const parents = ["P1", "P2", "P3"].map((code, i) => cell(
+    code,
+    [step(25, 10 + i * 0.1, 48), step(30, 10.5 + i * 0.1, 48)],
+    { active: true, child_codes: ["C"] },
+  ));
+  const child = cell("C", [step(30, 10.6, 48), step(35, 11, 48)], {
+    active: true,
+    parent_codes: ["P1", "P2", "P3"],
+    merge_ever: true,
+  });
+
+  assert.deepEqual(
+    [...supersededCodes(drawn(...parents, child))].sort(),
+    ["P1", "P2", "P3"],
+  );
+});
+
+test("a split whose cells are both still being detected hides neither", () => {
+  // Two cells in the same run are two storms, which is what a split is.
   const parent = cell("P", [step(0, 10, 48), step(10, 12, 48)], { child_codes: ["C"] });
-  const child = cell("C", [step(10, 12.1, 48.1)], { parent_codes: ["P"] });
+  const child = cell("C", [step(5, 11.1, 48.1), step(10, 12.1, 48.1)], { parent_codes: ["P"] });
 
   assert.deepEqual([...supersededCodes(drawn(parent, child))], []);
 });
@@ -160,7 +181,7 @@ test("a continuation that is not on the map does not hide anything", () => {
   assert.deepEqual([...supersededCodes(drawn(parent))], []);
 });
 
-test("a child that ended before its parent did is not a hand-over", () => {
+test("a child last seen before its parent is not a hand-over", () => {
   const parent = cell("P", [step(0, 10, 48), step(30, 13, 48)], {
     active: false,
     child_codes: ["C"],
