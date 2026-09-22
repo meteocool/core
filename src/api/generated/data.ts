@@ -443,7 +443,13 @@ export interface components {
          *     the flat products are made from. It is a separate object rather than part
          *     of this payload because it is about 140 kB and almost nobody opens it, and
          *     it carries no URL because it lives in the same public bucket as the
-         *     rendered tiles -- the client joins `key` to the tile base it already has.
+         *     rendered tiles -- the client joins `path` to the tile base it already has.
+         *
+         *     `path` includes the bucket, and has to. The tile base is the object
+         *     store's own root, not a bucket inside it, so the first segment of every
+         *     path under it names the bucket -- which is why the rendered tiles are
+         *     fetched from `<base>/meteoradar/...`. A path without it asks for a bucket
+         *     named after the first directory, and the store answers 403.
          *
          *     `coverage` is the mean confidence through the 3 to 8 km layer, which is
          *     where an overhang would be. A volume is only built above a floor, so this
@@ -462,10 +468,10 @@ export interface components {
              */
             coverage: number;
             /**
-             * Key
-             * @description Object key under the tile base, e.g. volumes/20260922T011500/1234.mcvx
+             * Path
+             * @description Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx
              */
-            key: string;
+            path: string;
             /**
              * Sites
              * @description Radars that contributed, by DWD short name
