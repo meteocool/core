@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  distanceKm, ellipseRing4326, labelStepMinutes, lastRunStart, leadingTip,
+  distanceKm, ellipseRing4326, labelStepMinutes, lastRunStart, leadingTip, leadLabel,
   MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent,
 } from "../../src/lib/cellGeometry.ts";
 
@@ -160,6 +160,45 @@ test("every step divides the hour, so the outermost ring is always labelled", ()
   for (const resolution of [50, 200, 400, 900, 5000]) {
     assert.equal(60 % labelStepMinutes(resolution), 0);
   }
+});
+
+/**
+ * What the label actually says, which is a different clock from the one that
+ * decides which rings carry one.
+ */
+const AT = Date.UTC(2026, 8, 22, 12, 0, 0);
+const MIN = 60_000;
+
+test("the label counts down from now, not from the scan", () => {
+  // The ring is 15 minutes past the detection it was forecast from, but the
+  // scan reached the map seven minutes ago, so the reader has eight.
+  assert.equal(leadLabel(AT + 8 * MIN, 15, 50, AT), "+8 min");
+});
+
+test("the ingestion delay is whatever it is, not a round number", () => {
+  // The point of the change: a sequence that reads +15/+30/+45 is stating the
+  // pipeline's frame, and a reader acts on the number in front of them.
+  const rings = [15, 30, 45, 60].map((lead) => leadLabel(AT + (lead - 7) * MIN, lead, 50, AT));
+  assert.deepEqual(rings, ["+8 min", "+23 min", "+38 min", "+53 min"]);
+});
+
+test("a ring whose moment has passed loses its label", () => {
+  assert.equal(leadLabel(AT - MIN, 15, 50, AT), null);
+  assert.equal(leadLabel(AT, 15, 50, AT), null);
+});
+
+test("which rings are labelled is still decided on the forecast's own grid", () => {
+  // Thinning on the countdown would pick a different, mostly empty set every
+  // minute: the rings are five minutes apart in forecast time, not in
+  // time-from-now.
+  assert.equal(leadLabel(AT + 8 * MIN, 15, 400, AT), "+8 min");
+  assert.equal(leadLabel(AT + 13 * MIN, 20, 400, AT), null);
+  assert.equal(leadLabel(AT + 53 * MIN, 60, 400, AT), "+53 min");
+});
+
+test("a ring with no forecast time is not guessed at", () => {
+  assert.equal(leadLabel(Number.NaN, 15, 50, AT), null);
+  assert.equal(leadLabel(AT + MIN, Number.NaN, 50, AT), null);
 });
 
 /**
