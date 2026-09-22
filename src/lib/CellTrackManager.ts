@@ -199,8 +199,12 @@ export default class CellTrackManager {
         // storm is what this reads as on the map.
         if (!taken) add("cell", p.code, new Point(fromLonLat([last.lon, last.lat])));
         // Only what the ping needs: where, and what colour. It never hit-tests
-        // and never opens a popup, so it carries no code.
-        if (p.active && isLive(ageMinutes(p.last_seen, reference))) {
+        // and never opens a popup, so it carries no code. Superseded the same
+        // way the dot above is -- without `!taken` a storm that DWD had
+        // renamed kept its ping alive on the old code's last position, which
+        // reads as a dashed ring with nothing in it once the dot it used to
+        // sit under is gone.
+        if (!taken && p.active && isLive(ageMinutes(p.last_seen, reference))) {
           live.push(new Feature({
             max_severity: p.max_severity,
             geometry: new Point(fromLonLat([last.lon, last.lat])),
