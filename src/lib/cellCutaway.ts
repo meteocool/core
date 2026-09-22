@@ -179,12 +179,12 @@ export function decodeCutaway(buffer: ArrayBuffer): Cutaway {
 /**
  * Pull one cell's volume down.
  *
- * The key comes from the API and the base is the one the rendered tiles already
- * use, so nothing here guesses a URL: a cell whose volume was never built
- * carries no key, and the caller never gets as far as this.
+ * The path comes from the API, bucket included, and the base is the one the
+ * rendered tiles already use -- so nothing here guesses a URL. A cell whose
+ * volume was never built carries no path, and the caller never gets this far.
  */
 export async function loadCutaway(volume: CellVolume, signal?: AbortSignal): Promise<Cutaway> {
-  const response = await fetch(`${tileBaseUrl}/${volume.key}`, { signal });
-  if (!response.ok) throw new Error(`volume ${volume.key}: ${response.status}`);
+  const response = await fetch(`${tileBaseUrl}/${volume.path}`, { signal });
+  if (!response.ok) throw new Error(`volume ${volume.path}: ${response.status}`);
   return decodeCutaway(await response.arrayBuffer());
 }
