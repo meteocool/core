@@ -4,7 +4,7 @@ import {
   DEGRADED_CRITERIA, DEGRADED_TTL_MS, EMPTY_SIGNALS, PUBLISH_OVERDUE_S,
   SLOW_MIN_SAMPLES, SLOW_P95_MS, evaluateDegraded, type DegradedSignals,
 } from "../../src/lib/degraded.ts";
-import { EMPTY_HEALTH, nextHealth } from "../../src/lib/apiHealth.ts";
+import { EMPTY_HEALTH, markAbsent, nextHealth } from "../../src/lib/apiHealth.ts";
 
 /**
  * What puts the map in its degraded state, and -- the half that actually goes
@@ -34,6 +34,22 @@ test("every criterion carries the id the panel prints it under", () => {
   }
   const unique = new Set(DEGRADED_CRITERIA.map((c) => c.id));
   assert.equal(unique.size, DEGRADED_CRITERIA.length, "ids must be unique");
+});
+
+test("an endpoint with nothing published does not degrade the map", () => {
+  /*
+   * The Swiss composite is captured by an ingest on its own fifteen-minute
+   * timer and answers 404 until the first one lands, which on a backend that
+   * has none is every call of the session. Counted as a failure it kept the
+   * pill lit and "Something went wrong" coming up over a layer that was
+   * working exactly as designed.
+   */
+  const empty = markAbsent(EMPTY_HEALTH, "/v3/radar/switzerland");
+  assert.deepEqual(ids(signals({ health: empty }), 1000), []);
+
+  // And a real fault on the same endpoint still does.
+  const broken = nextHealth(empty, "/v3/radar/switzerland", new Error("500"), 1000);
+  assert.deepEqual(ids(signals({ health: broken }), 1000), ["api-errors"]);
 });
 
 test("a failing endpoint degrades, and the next success clears it", () => {

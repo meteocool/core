@@ -196,6 +196,11 @@ function errorRows(): Row[] {
       broken ? "bad" : undefined,
     ],
   ];
+  /* Unflagged, and above the failures rather than among them: an endpoint that
+     has nothing published is not a fault and does not put the map in its
+     degraded state, but "why is there no Swiss radar" still deserves an answer
+     somewhere, and this is the panel that answers it. */
+  if (health.absent.length) out.push(["nothing published", health.absent.join(", ")]);
   for (const [endpoint, count] of Object.entries(health.byEndpoint)) {
     out.push([endpoint, `${count} failed`, health.failing.includes(endpoint) ? "bad" : "warn"]);
   }
