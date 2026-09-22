@@ -164,8 +164,10 @@ function release() {
        FULL, where the detent alone is not trusted: env(safe-area-inset-top)
        is the one number that actually knows the status bar / dynamic island
        height on this device, so the real cap is measured from that rather
-       than a vh guess that put the grip behind it on some phones. */
-    height: min(var(--sheet-h), calc(100vh - var(--mc-safe-top) - 28px));
+       than a vh guess that put the grip behind it on some phones. The 60px
+       past that clears the status bar with real room to spare -- 28px read as
+       "no map visible" since it barely cleared the chrome at all. */
+    height: min(var(--sheet-h), calc(100vh - var(--mc-safe-top) - 60px));
     padding: 0 12px calc(12px + var(--mc-safe-bottom));
     border-radius: 22px 22px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
