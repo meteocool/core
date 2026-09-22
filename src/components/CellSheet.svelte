@@ -67,7 +67,10 @@ const close = () => {
  * a little over, and hands the other 60% back to the map.
  */
 const HALF = 0.4;
-const FULL = 0.88;
+// Short of the full screen on purpose: a strip of map stays visible above the
+// sheet so it reads as a drawer sitting over the map rather than a second
+// screen, and there is something to see the grip is still draggable toward.
+const FULL = 0.8;
 
 let detent = HALF;
 
@@ -214,6 +217,11 @@ function release() {
     /* Momentum scrolling, and a scroll that does not drag the map behind. */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* CellDetails' close button is a 44px glass disc pulled up by a negative
+       margin to fit a header row half its height. With no room above it, that
+       overhang sat outside the scroll container's own top edge and was
+       clipped there at rest. */
+    padding-top: 6px;
   }
 
   .dragging {
