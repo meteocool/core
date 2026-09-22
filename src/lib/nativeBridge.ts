@@ -25,6 +25,8 @@ export type IosMessage =
   | "requestSettings"
   | "layerSwitcherOpened"
   | "layerSwitcherClosed"
+  | "detailSheetExpanded"
+  | "detailSheetCollapsed"
   | "impactLight"
   | "impactMedium";
 

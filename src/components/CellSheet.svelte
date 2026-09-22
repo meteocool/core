@@ -16,8 +16,10 @@
  */
 import { fly } from "svelte/transition";
 import { cubicOut } from "svelte/easing";
+import { onDestroy } from "svelte";
 import { cellDetails } from "../stores";
 import { afterClose } from "../lib/cellSelection";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import CellDetails from "./CellDetails.svelte";
 
 export let track: import("../api").CellTrackProperties;
@@ -68,6 +70,29 @@ const HALF = 0.4;
 const FULL = 0.88;
 
 let detent = HALF;
+
+/**
+ * At FULL the sheet covers the native buttons floating on top of the
+ * webview (layer switcher, settings, location, logo) -- CSS can hide the
+ * web toolbar underneath but has no reach into that native layer, so the
+ * host app is told directly. Tapping a different cell can drop straight
+ * from FULL to unmounted (nextSelection closes the panel instead of
+ * stepping it down to HALF first), so `onDestroy` re-shows the buttons
+ * unconditionally rather than trusting the last detent seen.
+ */
+let sheetExpandedNative = false;
+
+function syncNativeChrome(expanded: boolean) {
+  if (!dd.isIos() || expanded === sheetExpandedNative) return;
+  sheetExpandedNative = expanded;
+  window.webkit?.messageHandlers.scriptHandler.postMessage(
+    expanded ? "detailSheetExpanded" : "detailSheetCollapsed",
+  );
+}
+
+$: syncNativeChrome(detent === FULL);
+
+onDestroy(() => syncNativeChrome(false));
 
 /* ---- drag the grabber --------------------------------------------------- */
 
