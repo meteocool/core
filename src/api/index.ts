@@ -72,6 +72,17 @@ export function fetchSnowOverlay(nanobar?: Progress) {
   return request(nanobar, "/v3/radar/snow", () => apiClient.GET("/v3/radar/snow", {}));
 }
 
+/**
+ * The most recent Swiss reflectivity composite -- one frame, not a timeseries.
+ *
+ * 404s until the first capture lands (MeteoGate's own ingest runs on a
+ * 15-minute timer independent of this app), same as `fetchPrecipitationTypes`
+ * before anything has rendered; callers catch that the same way.
+ */
+export function fetchSwissRadar(nanobar?: Progress) {
+  return request(nanobar, "/v3/radar/switzerland", () => apiClient.GET("/v3/radar/switzerland", {}));
+}
+
 /** The most recent precipitation-type tile set. */
 export function fetchPrecipitationTypes(nanobar?: Progress) {
   return request(nanobar, "/v3/radar/classification", () => apiClient.GET("/v3/radar/classification", {}));

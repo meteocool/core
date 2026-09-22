@@ -1063,6 +1063,28 @@
         ]
       }
     },
+    "/v3/radar/switzerland": {
+      "get": {
+        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA separate route and collection (`reflectivity_ch`) rather than folding\ninto `/timeseries`: that endpoint models a forecast keyed by time, which\nMeteoGate's network has none of -- one composite, replaced every capture,\nno history. Same `RadarFrame` shape as every other frame here, so the\nclient needs one type and one tile-URL builder for both networks.",
+        "operationId": "switzerland_v3_radar_switzerland_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Swiss reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v3/radar/timeseries": {
       "get": {
         "description": "Tile metadata for each timestep in a window, past and forecast.",
