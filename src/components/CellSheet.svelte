@@ -70,7 +70,10 @@ const HALF = 0.4;
 // Short of the full screen on purpose: a strip of map stays visible above the
 // sheet so it reads as a drawer sitting over the map rather than a second
 // screen, and there is something to see the grip is still draggable toward.
-const FULL = 0.8;
+// Kept thin -- a third of the gap a 0.8 detent left -- so it reads as a hint
+// rather than wasted space above a sheet that is mostly what the reader came
+// for.
+const FULL = 0.93;
 
 let detent = HALF;
 
@@ -157,7 +160,7 @@ function release() {
     flex-direction: column;
     /* Set from the detent, so the map above always has the rest. */
     height: var(--sheet-h);
-    max-height: 88vh;
+    max-height: 93vh;
     padding: 0 12px calc(12px + var(--mc-safe-bottom));
     border-radius: 22px 22px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
@@ -189,13 +192,16 @@ function release() {
   }
 
   /* The grab area, not just the bar: a 6px line is not a thumb target, so the
-     row around it takes the gesture and the bar only shows where. */
+     row around it takes the gesture and the bar only shows where. 44px is
+     Apple's own minimum tap target -- at the previous 28px a drag started a
+     few pixels low landed on .body instead and scrolled the content rather
+     than resizing the sheet. */
   .grip {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 28px;
+    height: 44px;
     margin: 0 -12px;
     cursor: grab;
     touch-action: none;
@@ -217,11 +223,13 @@ function release() {
     /* Momentum scrolling, and a scroll that does not drag the map behind. */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    /* CellDetails' close button is a 44px glass disc pulled up by a negative
-       margin to fit a header row half its height. With no room above it, that
-       overhang sat outside the scroll container's own top edge and was
-       clipped there at rest. */
-    padding-top: 6px;
+    /* CellDetails' close button is a 44px glass disc pulled toward the top
+       right corner by negative margins, to sit further into the corner than
+       a header row half its height would otherwise place it. Without room to
+       give, that overhang sat outside the scroll container's own edges and
+       was clipped there at rest -- overflow-y:auto implicitly makes
+       overflow-x auto too, so the same applies on the right. */
+    padding: 10px 8px 0 0;
   }
 
   .dragging {
