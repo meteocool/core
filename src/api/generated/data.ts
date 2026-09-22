@@ -255,9 +255,18 @@ export interface components {
          * CellLayer
          * @description One reflectivity threshold, and how far the storm exceeds it.
          *
-         *     The pair of numbers is what carries the shape: `area_km2` is the footprint
-         *     at that intensity and `top_m` is how high it reaches, so a stack of these
-         *     describes the storm's anatomy rather than just its peak.
+         *     The numbers carry the anatomy: `area_km2` is the footprint at that
+         *     intensity, `top_m` is how high it reaches and `volume_km3` is what sits
+         *     between them, so a stack of these says whether a core is deep or shallow
+         *     rather than only how strong it is.
+         *
+         *     `rings` is the shape of that footprint, which DWD does not publish. It is
+         *     measured against the column-maximum composite -- the 250 m grid KONRAD3D
+         *     projects its own polygon onto -- so a client can draw the threshold where it
+         *     actually is instead of shrinking the cell's outline about its centroid until
+         *     the area comes out right. Absent when no composite could be paired with the
+         *     run, which is not the same as a threshold that measured nothing: the caller
+         *     should fall back to the scaled outline, as it did before this existed.
          */
         CellLayer: {
             /**
@@ -270,6 +279,11 @@ export interface components {
              * @description The threshold this layer is at or above
              */
             dbz: number;
+            /**
+             * Rings
+             * @description Measured outlines of this threshold, [lon, lat] pairs per ring. Several rings mean several separate cores. Null when unmeasured.
+             */
+            rings?: number[][][] | null;
             /**
              * Top M
              * @description Highest echo exceeding it, above sea level
