@@ -8,6 +8,14 @@ import type { CellTrackProperties } from "./api";
 // abstraction.
 
 export const bottomToolbarMode = writable<"collapsed" | "player" | "hidden">("collapsed");
+/**
+ * How many DismissableStrips (the radar/lightning strip above the toolbar)
+ * are currently mounted -- each is a fixed 104px tall. CellSelectionHint reads
+ * this to stack itself above them instead of on top of them: both float at
+ * roughly the same height above the toolbar on their own, so without this they
+ * land on each other rather than in a notification-style stack.
+ */
+export const openStripCount = writable(0);
 export const capDescription = writable<string>("Meteorology for everyone");
 export const capLastUpdated = writable<Date | null>(null);
 /**
