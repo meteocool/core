@@ -250,6 +250,8 @@ export interface components {
              * @description Cell-based vertically integrated liquid, kg/m^2
              */
             vil?: number | null;
+            /** @description Radar volume for the cutaway view, where one was built; null for most cells */
+            volume?: components["schemas"]["CellVolume"] | null;
         };
         /**
          * CellLayer
@@ -433,6 +435,44 @@ export interface components {
             vil?: number | null;
         };
         /**
+         * CellVolume
+         * @description Where to find this cell's radar volume, and how much to trust it.
+         *
+         *     The volume is the cutaway view's data: a 40 by 40 by 16 km box of
+         *     reflectivity and confidence around the cell, built from the polar sweeps
+         *     the flat products are made from. It is a separate object rather than part
+         *     of this payload because it is about 140 kB and almost nobody opens it, and
+         *     it carries no URL because it lives in the same public bucket as the
+         *     rendered tiles -- the client joins `key` to the tile base it already has.
+         *
+         *     `coverage` is the mean confidence through the 3 to 8 km layer, which is
+         *     where an overhang would be. A volume is only built above a floor, so this
+         *     is never poor; it is here so a client can say how well the storm was seen
+         *     rather than implying every cutaway is equally well founded.
+         */
+        CellVolume: {
+            /**
+             * Bytes
+             * @description Compressed size, so a client can decide on mobile
+             */
+            bytes?: number | null;
+            /**
+             * Coverage
+             * @description Mean beam coverage through 3-8 km, 0 to 1
+             */
+            coverage: number;
+            /**
+             * Key
+             * @description Object key under the tile base, e.g. volumes/20260922T011500/1234.mcvx
+             */
+            key: string;
+            /**
+             * Sites
+             * @description Radars that contributed, by DWD short name
+             */
+            sites?: string[];
+        };
+        /**
          * CellsRefresh
          * @description A nudge that a new KONRAD3D reference time is available.
          *
@@ -576,7 +616,7 @@ export interface components {
              * Refresh
              * @enum {string}
              */
-            refresh: "radar" | "nowcast" | "precipitation_types" | "lightning_mvt" | "cells_geojson";
+            refresh: "radar" | "nowcast" | "precipitation_types" | "lightning_mvt";
         };
         /**
          * SnowRefresh
@@ -752,6 +792,8 @@ export interface components {
             structure?: components["schemas"]["CellLayer"][];
             /** Vil Max */
             vil_max?: number | null;
+            /** @description Radar volume for the cutaway view, from the newest run in which one was built. Null for most cells, which is the ordinary answer rather than a failure. */
+            volume?: components["schemas"]["CellVolume"] | null;
         };
         /** ValidationError */
         ValidationError: {
