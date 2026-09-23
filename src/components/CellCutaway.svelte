@@ -45,7 +45,7 @@ import { FRAMING_DBZ, loadCutaway } from "../lib/cellCutaway";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
 import { cutRotationDeg } from "../stores";
-import { cutLabel, normaliseCut } from "../lib/cutAngle";
+import { cutLabel, cutSnapLabels, normaliseCut } from "../lib/cutAngle";
 import type { CellVolume } from "../api";
 
 export let volume: CellVolume;
@@ -449,6 +449,11 @@ onDestroy(() => {
   gl?.getExtension("WEBGL_lose_context")?.loseContext();
 });
 
+// No track, no direction of travel: the slice is measured from north, and the
+// caption and buttons say so rather than naming a track that was never measured.
+$: reference = headingDeg == null ? ("north" as const) : ("track" as const);
+$: [snapA, snapB] = cutSnapLabels(reference);
+
 // Capped at two: the marching cost is per pixel, and a phone at three times
 // density would triple it for a difference nobody can see on a postcard.
 const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 2) : 1;
@@ -469,7 +474,7 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
       aria-valuemin={-180}
       aria-valuemax={180}
       aria-valuenow={Math.round($cutRotationDeg)}
-      aria-valuetext={cutLabel($cutRotationDeg)}
+      aria-valuetext={cutLabel($cutRotationDeg, reference)}
       on:pointerdown={onPointerDown}
       on:pointermove={onPointerMove}
       on:pointerup={onPointerUp}
@@ -478,13 +483,13 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
     ></canvas>
     <div class="cuts">
       <button type="button" class:on={Math.abs($cutRotationDeg) < 1 || Math.abs($cutRotationDeg) > 179}
-        on:click={() => cutRotationDeg.set(0)}>along</button>
+        on:click={() => cutRotationDeg.set(0)}>{snapA}</button>
       <button type="button" class:on={Math.abs(Math.abs($cutRotationDeg) - 90) < 1}
-        on:click={() => cutRotationDeg.set(90)}>across</button>
+        on:click={() => cutRotationDeg.set(90)}>{snapB}</button>
     </div>
     <figcaption>
       Stylised. Radar volume from {cutaway.header.sites.join(", ")},
-      {cutLabel($cutRotationDeg)}.
+      {cutLabel($cutRotationDeg, reference)}.
     </figcaption>
   </figure>
 {/if}
