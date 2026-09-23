@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy:staging": "vite build --mode staging && wrangler deploy --env staging",
+    "deploy:demo": "vite build --mode demo && wrangler deploy --env demo",
     "deploy:production": "npm run build && wrangler deploy --env production",
     "worker:dev": "wrangler dev",
     "worker:tail": "wrangler tail",

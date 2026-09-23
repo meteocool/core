@@ -16,22 +16,32 @@ const proxied = import.meta.env.DEV;
 //
 // The v4 backend merged the old Flask and FastAPI services, so `api`, `v3` and
 // the websocket are all one origin here, where production still has three.
-const staging = import.meta.env.MODE === "staging";
+//
+// `--mode demo` is the same cluster's second environment, which replays a
+// recorded storm while staging ingests the live feeds (meteocool/ng,
+// doc/staging-and-demo.md). Its data and tile hostnames are staging's with
+// `demo` in place of `staging`, and it shares staging's geocoder. The API is the
+// exception: demo.meteocool.com itself is this Worker, so the API behind it is
+// api-demo.meteocool.com where staging's is staging.meteocool.com.
+const demo = import.meta.env.MODE === "demo";
+const cluster = demo || import.meta.env.MODE === "staging";
+const environment = demo ? "demo" : "staging";
+const apiOrigin = demo ? "https://api-demo.meteocool.com" : "https://staging.meteocool.com";
 
-const pick = <T>(proxiedValue: T, stagingValue: T, productionValue: T): T =>
-  (proxied ? proxiedValue : staging ? stagingValue : productionValue);
+const pick = <T>(proxiedValue: T, clusterValue: T, productionValue: T): T =>
+  (proxied ? proxiedValue : cluster ? clusterValue : productionValue);
 
 export const tileBaseUrl = pick(
   "/tiles",
-  "https://assets-staging.meteocool.com",
+  `https://assets-${environment}.meteocool.com`,
   "https://tiles-a.meteocool.com",
 );
 export const websocketBaseUrl = pick(
   "",
-  "https://staging.meteocool.com",
+  apiOrigin,
   "https://api.ng.meteocool.com",
 );
-export const dataUrl = pick("", "https://data-staging.meteocool.com", "https://data.meteocool.com");
+export const dataUrl = pick("", `https://data-${environment}.meteocool.com`, "https://data.meteocool.com");
 // Self-hosted Nominatim, for the reverse lookups in lib/reverseGeocode.ts.
 //
 // Empty in production on purpose: the instance lives on the staging cluster
@@ -46,6 +56,6 @@ export const geocodingUrl = pick(
 
 export const v3APIBaseUrl = pick(
   "/v3",
-  "https://staging.meteocool.com/v3",
+  `${apiOrigin}/v3`,
   "https://api.meteocool.com/v3",
 );
