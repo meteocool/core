@@ -1,6 +1,8 @@
 import VectorTileLayer from "ol/layer/VectorTile";
 import { Stroke, Style, Fill, Text } from "ol/style";
 import type { FeatureLike } from "ol/Feature";
+import { getLocaleFromNavigator } from "svelte-i18n";
+import { placeNameForLocale } from "./placeName";
 import {
   imprintAttribution,
   osmAttribution,
@@ -21,6 +23,7 @@ import { belowMinZoom, protomapsSource, zoomFromResolution } from "./protomaps";
  */
 
 const overlayAttributions = [osmAttribution, protomapsAttribution, imprintAttribution];
+const placeName = placeNameForLocale(getLocaleFromNavigator());
 
 /** Labels are decluttered against each other, so one Text style per tier is enough. */
 function labelStyle(font: string, haloWidth: number, zIndex: number) {
@@ -78,7 +81,7 @@ function placeStyle(feature: FeatureLike, resolution: number): Style | undefined
   const zoom = zoomFromResolution(resolution);
   if (belowMinZoom(feature, zoom)) return undefined;
 
-  const name = feature.get("name:de") ?? feature.get("name");
+  const name = placeName(feature);
   if (!name) return undefined;
 
   const style = styleForPlace(feature);

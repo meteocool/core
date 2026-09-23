@@ -876,7 +876,7 @@ onDestroy(() => {
   .buttonBar {
     position: absolute;
     bottom: calc(
-      var(--mc-safe-bottom) + var(--mc-tray-gap)
+      var(--mc-collapsed-bottom)
       + (var(--mc-bar-h) - var(--mc-control)) / 2
     );
     left: var(--mc-gutter);
