@@ -150,6 +150,7 @@
   --mc-player-h: 132px;                               /* expanded player tray: track row + controls row + meta/legend row */
   --mc-safe-top: env(safe-area-inset-top, 0px);
   --mc-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mc-collapsed-bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
   --mc-top-stack: calc(var(--mc-safe-top) + var(--mc-gutter));   /* one top line: logo, Latest, switcher */
 
   /* type */
@@ -276,7 +277,9 @@
   --mc-orange-ink: #ffb340;
 }
 
+/* Keep the collapsed iOS tray near the edge, above the home indicator. */
 :root.is-ios {
+  --mc-collapsed-bottom: max(12px, calc(var(--mc-safe-bottom) - 12px));
   --mc-player-h: 132px;
 }
 
