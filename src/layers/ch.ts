@@ -68,12 +68,14 @@ export default class SwissRadarLayer {
   }
 
   /**
-   * Draw this layer only where DWD does not reach.
+   * Draw this layer over Switzerland, and elsewhere only where DWD cannot reach.
    *
    * A canvas clip rather than opacity or a z-order: both networks colour dBZ
-   * on their own scale, so wherever two of them are drawn over each other the
-   * result is a blend that reads as a third intensity that neither measured.
-   * Clipping keeps exactly one network's colours on any given pixel.
+   * on their own scale, and this palette is part transparent, so wherever two
+   * of them are drawn over each other the result is a blend that reads as a
+   * third intensity that neither measured. Clipping keeps exactly one
+   * network's colours on any given pixel -- with the other half of that
+   * bargain in `swissHole.ts`, which takes Switzerland out of DWD's tiles.
    *
    * This is why the layer is an `ol/layer/Tile` and not the `WebGLTile` its
    * DWD counterpart uses: the clip is a `CanvasRenderingContext2D` path, and

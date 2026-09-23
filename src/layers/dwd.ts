@@ -6,6 +6,7 @@ import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ImageTileSource from "ol/source/ImageTile";
+import SwissHoleTileSource from "./swissHole";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdRadarExtent, radarCoverageInv } from "./extents";
 import { tileBaseUrl } from "../urls";
@@ -49,8 +50,21 @@ const commonDWDParameters = {
 export const tileSourceUrl = (bucket: string, tileId: string) =>
   `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
 
+/**
+ * The tile source for one DWD tile set.
+ *
+ * Observation tiles come back with Switzerland erased, so that the Swiss layer
+ * is the only radar drawn over Swiss ground -- see `swissHole.ts` for why the
+ * hole is cut into the images rather than clipped at render time.
+ *
+ * Forecast tiles are left whole. MeteoSwiss publishes no nowcast, so cutting
+ * the same hole there would leave Switzerland with no forecast at all rather
+ * than someone else's.
+ */
 export const dwdSource = (tileId, bucket = "meteoradar") => {
-  const reflectivitySource = trackTileLoads(new ImageTileSource({
+  // Always this source, whichever bucket it starts on: playback re-points one
+  // source across both, so which tiles get the hole is decided per URL there.
+  const reflectivitySource = trackTileLoads(new SwissHoleTileSource({
     ...commonDWDParameters,
     url: tileSourceUrl(bucket, tileId),
   }));
@@ -73,11 +87,10 @@ export const dwdLayerStatic: LayerFactory = (tileId, bucket) => {
 };
 
 export const DWDLayerFactoryGL: LayerFactory = (tileId, bucket = "meteoradar") => {
-  const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
-  const reflectivitySource = trackTileLoads(new ImageTileSource({
-    url: sourceUrl,
-    ...commonDWDParameters,
-  }));
+  const sourceUrl = tileSourceUrl(bucket, tileId);
+  // Through `dwdSource` rather than its own source, so this colour scheme gets
+  // Switzerland cut out of it exactly as the classic one does.
+  const reflectivitySource = dwdSource(tileId, bucket);
 
   const toColorId = [
     "+",
