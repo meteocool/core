@@ -250,14 +250,25 @@ export interface components {
              * @description Cell-based vertically integrated liquid, kg/m^2
              */
             vil?: number | null;
+            /** @description Radar volume for the cutaway view, where one was built; null for most cells */
+            volume?: components["schemas"]["CellVolume"] | null;
         };
         /**
          * CellLayer
          * @description One reflectivity threshold, and how far the storm exceeds it.
          *
-         *     The pair of numbers is what carries the shape: `area_km2` is the footprint
-         *     at that intensity and `top_m` is how high it reaches, so a stack of these
-         *     describes the storm's anatomy rather than just its peak.
+         *     The numbers carry the anatomy: `area_km2` is the footprint at that
+         *     intensity, `top_m` is how high it reaches and `volume_km3` is what sits
+         *     between them, so a stack of these says whether a core is deep or shallow
+         *     rather than only how strong it is.
+         *
+         *     `rings` is the shape of that footprint, which DWD does not publish. It is
+         *     measured against the column-maximum composite -- the 250 m grid KONRAD3D
+         *     projects its own polygon onto -- so a client can draw the threshold where it
+         *     actually is instead of shrinking the cell's outline about its centroid until
+         *     the area comes out right. Absent when no composite could be paired with the
+         *     run, which is not the same as a threshold that measured nothing: the caller
+         *     should fall back to the scaled outline, as it did before this existed.
          */
         CellLayer: {
             /**
@@ -271,12 +282,53 @@ export interface components {
              */
             dbz: number;
             /**
+             * Rings
+             * @description Measured outlines of this threshold, [lon, lat] pairs per ring. Several rings mean several separate cores. Null when unmeasured.
+             */
+            rings?: number[][][] | null;
+            /**
              * Top M
              * @description Highest echo exceeding it, above sea level
              */
             top_m: number;
             /** Volume Km3 */
             volume_km3?: number | null;
+        };
+        /**
+         * CellPlacement
+         * @description Where a cell is, in the terms someone would use out loud.
+         *
+         *     Parts rather than a sentence: a graph node has room for "N of Freising"
+         *     and a panel header for "18 km N of Freising", the app is bilingual, and
+         *     only the client knows which of those it is rendering.
+         */
+        CellPlacement: {
+            /**
+             * Bearing Deg
+             * @description The same bearing in degrees clockwise from north
+             */
+            bearing_deg?: number | null;
+            /**
+             * Direction
+             * @description Eight-point compass bearing from the place to the cell, or null when the cell is over it
+             */
+            direction?: string | null;
+            /**
+             * Distance Km
+             * @description From the place to the cell's latest centroid
+             */
+            distance_km: number;
+            /**
+             * Kind
+             * @description What Nominatim called it: city, town, village, county, ...
+             * @default
+             */
+            kind: string;
+            /**
+             * Place
+             * @description The place the cell is described against
+             */
+            place: string;
         };
         /**
          * CellStep
@@ -381,6 +433,50 @@ export interface components {
              * @description Cell-based vertically integrated liquid, kg/m^2
              */
             vil?: number | null;
+        };
+        /**
+         * CellVolume
+         * @description Where to find this cell's radar volume, and how much to trust it.
+         *
+         *     The volume is the cutaway view's data: a 40 by 40 by 16 km box of
+         *     reflectivity and confidence around the cell, built from the polar sweeps
+         *     the flat products are made from. It is a separate object rather than part
+         *     of this payload because it is about 140 kB and almost nobody opens it, and
+         *     it carries no URL because it lives in the same public bucket as the
+         *     rendered tiles -- the client joins `path` to the tile base it already has.
+         *
+         *     `path` includes the bucket, and has to. The tile base is the object
+         *     store's own root, not a bucket inside it, so the first segment of every
+         *     path under it names the bucket -- which is why the rendered tiles are
+         *     fetched from `<base>/meteoradar/...`. A path without it asks for a bucket
+         *     named after the first directory, and the store answers 403.
+         *
+         *     `coverage` is the mean confidence through the 3 to 8 km layer, which is
+         *     where an overhang would be. A volume is only built above a floor, so this
+         *     is never poor; it is here so a client can say how well the storm was seen
+         *     rather than implying every cutaway is equally well founded.
+         */
+        CellVolume: {
+            /**
+             * Bytes
+             * @description Compressed size, so a client can decide on mobile
+             */
+            bytes?: number | null;
+            /**
+             * Coverage
+             * @description Mean beam coverage through 3-8 km, 0 to 1
+             */
+            coverage: number;
+            /**
+             * Path
+             * @description Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx
+             */
+            path: string;
+            /**
+             * Sites
+             * @description Radars that contributed, by DWD short name
+             */
+            sites?: string[];
         };
         /**
          * CellsRefresh
@@ -678,6 +774,8 @@ export interface components {
             n_steps: number;
             /** Parent Codes */
             parent_codes?: string[];
+            /** @description A human name for the cell, anchored to a nearby place and kept stable as it moves. Null when geocoding is disabled or no place could be found. */
+            placement?: components["schemas"]["CellPlacement"] | null;
             /**
              * Polygon
              * @description Cell outline, [lon, lat] pairs
@@ -700,6 +798,8 @@ export interface components {
             structure?: components["schemas"]["CellLayer"][];
             /** Vil Max */
             vil_max?: number | null;
+            /** @description Radar volume for the cutaway view, from the newest run in which one was built. Null for most cells, which is the ordinary answer rather than a failure. */
+            volume?: components["schemas"]["CellVolume"] | null;
         };
         /** ValidationError */
         ValidationError: {

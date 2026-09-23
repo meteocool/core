@@ -1,5 +1,5 @@
 import { closeRing, scaleRing } from "./cellGeometry";
-import { cellVolume, shoelace } from "./cellVolume";
+import { cellVolume, shoelace, toLocalKm } from "./cellVolume";
 import type { CellVolumeModel, VolumeRing } from "./cellVolume";
 import type { Feature, FeatureCollection, Polygon } from "geojson";
 import type { CellCurrent } from "../api";
@@ -40,18 +40,74 @@ function wind(ring: [number, number][], counterClockwise: boolean): [number, num
   return positive === counterClockwise ? ring : [...ring].reverse();
 }
 
-function ringFeature(
+/**
+ * A measured ring, resized to the area this band actually has.
+ *
+ * The shape is measured at the ground; the area at this height comes from the
+ * volume profile. Each ring is scaled about *its own* centroid rather than the
+ * cell's, because a threshold can be several separate cores and shrinking those
+ * towards a point some kilometres away slides them out of the storm instead of
+ * narrowing them. Sized as a set, so the cores keep their relative sizes and
+ * their total area is the one the profile asked for.
+ */
+function resized(
+  shapes: Array<[number, number][]>,
+  targetAreaRatio: number,
+  outlineAreaKm2: number,
+  centre: [number, number],
+): Array<[number, number][]> {
+  const measured = shapes.reduce((sum, ring) => sum + Math.abs(shoelace(toLocalKm(ring, centre))), 0);
+  if (!(measured > 0)) return shapes;
+  const ratio = (targetAreaRatio * outlineAreaKm2) / measured;
+  return shapes.map((ring) => scaleRing(ring, ringCentre(ring), ratio));
+}
+
+/** A ring's own middle, so several cores each shrink where they stand. */
+function ringCentre(ring: [number, number][]): [number, number] {
+  const lon = ring.reduce((sum, [x]) => sum + x, 0) / ring.length;
+  const lat = ring.reduce((sum, [, y]) => sum + y, 0) / ring.length;
+  return [lon, lat];
+}
+
+function ringFeatures(
   model: CellVolumeModel,
   base: number,
   top: number,
   ring: VolumeRing,
-): CellVolumeFeature | null {
-  if (ring.outer < MIN_SCALE) return null;
+  coreShapes: Array<[number, number][]> | null,
+): CellVolumeFeature[] {
+  if (ring.outer < MIN_SCALE) return [];
+
+  // The core wears its measured shape where there is one, and every piece of it
+  // becomes its own feature: two cores five kilometres apart are two solids,
+  // not one polygon pretending to be between them.
+  if (ring.tier === 0 && ring.shape) {
+    return resized(ring.shape, ring.outer ** 2, model.outlineAreaKm2, model.centre)
+      .map((shape) => feature(model, base, top, ring, [closeRing(wind(shape, true))]))
+      .filter((one): one is CellVolumeFeature => one !== null);
+  }
+
   const outer = wind(scaleRing(model.outline, model.centre, ring.outer ** 2), true);
   const coordinates = [closeRing(outer)];
-  if (ring.inner >= MIN_SCALE && ring.inner < ring.outer) {
+  if (coreShapes?.length) {
+    // The glass is cut to the core's real shape, which is the whole point: the
+    // hole is where the reader sees that the core is not a lozenge in the
+    // middle. Several holes are fine; GeoJSON allows any number of them.
+    coreShapes.forEach((shape) => coordinates.push(closeRing(wind(shape, false))));
+  } else if (ring.inner >= MIN_SCALE && ring.inner < ring.outer) {
     coordinates.push(closeRing(wind(scaleRing(model.outline, model.centre, ring.inner ** 2), false)));
   }
+  const one = feature(model, base, top, ring, coordinates);
+  return one ? [one] : [];
+}
+
+function feature(
+  model: CellVolumeModel,
+  base: number,
+  top: number,
+  ring: VolumeRing,
+  coordinates: Array<[number, number][]>,
+): CellVolumeFeature | null {
   return {
     type: "Feature",
     // No `id`. MapLibre 6 encodes a GeoJSON source's tiles as MVT in its
@@ -77,9 +133,15 @@ function ringFeature(
 export function cellVolumeFeatures(cell: CellCurrent): CellVolumeFeature[] {
   const model = cellVolume(cell);
   if (!model) return [];
-  return model.bands.flatMap((band) => band.rings
-    .map((ring) => ringFeature(model, band.base, band.top, ring))
-    .filter((feature): feature is CellVolumeFeature => feature !== null));
+  return model.bands.flatMap((band) => {
+    // The glass needs the core's shape to cut its hole, and the core is the
+    // last ring in the band, so it is resolved once per band and handed down.
+    const core = band.rings.find((ring) => ring.tier === 0);
+    const coreShapes = core?.shape
+      ? resized(core.shape, core.outer ** 2, model.outlineAreaKm2, model.centre)
+      : null;
+    return band.rings.flatMap((ring) => ringFeatures(model, band.base, band.top, ring, coreShapes));
+  });
 }
 
 /** Every cell in a run, as one collection ready for a MapLibre GeoJSON source. */

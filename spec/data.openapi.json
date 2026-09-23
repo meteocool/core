@@ -318,6 +318,17 @@
             ],
             "description": "Cell-based vertically integrated liquid, kg/m^2",
             "title": "Vil"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellVolume"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Radar volume for the cutaway view, where one was built; null for most cells"
           }
         },
         "required": [
@@ -332,7 +343,7 @@
         "type": "object"
       },
       "CellLayer": {
-        "description": "One reflectivity threshold, and how far the storm exceeds it.\n\nThe pair of numbers is what carries the shape: `area_km2` is the footprint\nat that intensity and `top_m` is how high it reaches, so a stack of these\ndescribes the storm's anatomy rather than just its peak.",
+        "description": "One reflectivity threshold, and how far the storm exceeds it.\n\nThe numbers carry the anatomy: `area_km2` is the footprint at that\nintensity, `top_m` is how high it reaches and `volume_km3` is what sits\nbetween them, so a stack of these says whether a core is deep or shallow\nrather than only how strong it is.\n\n`rings` is the shape of that footprint, which DWD does not publish. It is\nmeasured against the column-maximum composite -- the 250 m grid KONRAD3D\nprojects its own polygon onto -- so a client can draw the threshold where it\nactually is instead of shrinking the cell's outline about its centroid until\nthe area comes out right. Absent when no composite could be paired with the\nrun, which is not the same as a threshold that measured nothing: the caller\nshould fall back to the scaled outline, as it did before this existed.",
         "properties": {
           "area_km2": {
             "description": "Ground area exceeding the threshold",
@@ -343,6 +354,27 @@
             "description": "The threshold this layer is at or above",
             "title": "Dbz",
             "type": "integer"
+          },
+          "rings": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Measured outlines of this threshold, [lon, lat] pairs per ring. Several rings mean several separate cores. Null when unmeasured.",
+            "title": "Rings"
           },
           "top_m": {
             "description": "Highest echo exceeding it, above sea level",
@@ -367,6 +399,57 @@
           "top_m"
         ],
         "title": "CellLayer",
+        "type": "object"
+      },
+      "CellPlacement": {
+        "description": "Where a cell is, in the terms someone would use out loud.\n\nParts rather than a sentence: a graph node has room for \"N of Freising\"\nand a panel header for \"18 km N of Freising\", the app is bilingual, and\nonly the client knows which of those it is rendering.",
+        "properties": {
+          "bearing_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The same bearing in degrees clockwise from north",
+            "title": "Bearing Deg"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Eight-point compass bearing from the place to the cell, or null when the cell is over it",
+            "title": "Direction"
+          },
+          "distance_km": {
+            "description": "From the place to the cell's latest centroid",
+            "title": "Distance Km",
+            "type": "number"
+          },
+          "kind": {
+            "default": "",
+            "description": "What Nominatim called it: city, town, village, county, ...",
+            "title": "Kind",
+            "type": "string"
+          },
+          "place": {
+            "description": "The place the cell is described against",
+            "title": "Place",
+            "type": "string"
+          }
+        },
+        "required": [
+          "place",
+          "distance_km"
+        ],
+        "title": "CellPlacement",
         "type": "object"
       },
       "CellStep": {
@@ -582,6 +665,47 @@
           "severity"
         ],
         "title": "CellStep",
+        "type": "object"
+      },
+      "CellVolume": {
+        "description": "Where to find this cell's radar volume, and how much to trust it.\n\nThe volume is the cutaway view's data: a 40 by 40 by 16 km box of\nreflectivity and confidence around the cell, built from the polar sweeps\nthe flat products are made from. It is a separate object rather than part\nof this payload because it is about 140 kB and almost nobody opens it, and\nit carries no URL because it lives in the same public bucket as the\nrendered tiles -- the client joins `path` to the tile base it already has.\n\n`path` includes the bucket, and has to. The tile base is the object\nstore's own root, not a bucket inside it, so the first segment of every\npath under it names the bucket -- which is why the rendered tiles are\nfetched from `<base>/meteoradar/...`. A path without it asks for a bucket\nnamed after the first directory, and the store answers 403.\n\n`coverage` is the mean confidence through the 3 to 8 km layer, which is\nwhere an overhang would be. A volume is only built above a floor, so this\nis never poor; it is here so a client can say how well the storm was seen\nrather than implying every cutaway is equally well founded.",
+        "properties": {
+          "bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compressed size, so a client can decide on mobile",
+            "title": "Bytes"
+          },
+          "coverage": {
+            "description": "Mean beam coverage through 3-8 km, 0 to 1",
+            "title": "Coverage",
+            "type": "number"
+          },
+          "path": {
+            "description": "Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx",
+            "title": "Path",
+            "type": "string"
+          },
+          "sites": {
+            "description": "Radars that contributed, by DWD short name",
+            "items": {
+              "type": "string"
+            },
+            "title": "Sites",
+            "type": "array"
+          }
+        },
+        "required": [
+          "path",
+          "coverage"
+        ],
+        "title": "CellVolume",
         "type": "object"
       },
       "CellsRefresh": {
@@ -1081,6 +1205,17 @@
             "title": "Parent Codes",
             "type": "array"
           },
+          "placement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellPlacement"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A human name for the cell, anchored to a nearby place and kept stable as it moves. Null when geocoding is disabled or no place could be found."
+          },
           "polygon": {
             "anyOf": [
               {
@@ -1130,6 +1265,17 @@
               }
             ],
             "title": "Vil Max"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellVolume"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Radar volume for the cutaway view, from the newest run in which one was built. Null for most cells, which is the ordinary answer rather than a failure."
           }
         },
         "required": [

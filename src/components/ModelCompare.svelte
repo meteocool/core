@@ -357,10 +357,10 @@
             class="tier {tierFor(day.high.predictability)}"
             title="Temperature spread ±{round(day.high.stdDev, 1)}° across {day.high.contributors.length} models">
             {tierFor(day.high.predictability) === "high"
-              ? "agreed"
+              ? "Agreed"
               : tierFor(day.high.predictability) === "mid"
-                ? "mixed"
-                : "uncertain"}
+                ? "Mixed"
+                : "Uncertain"}
           </span>
         </div>
 

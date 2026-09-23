@@ -16,8 +16,11 @@
  */
 import { fly } from "svelte/transition";
 import { cubicOut } from "svelte/easing";
+import { onDestroy } from "svelte";
 import { cellDetails } from "../stores";
 import { afterClose } from "../lib/cellSelection";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import CellDetails from "./CellDetails.svelte";
 
 export let track: import("../api").CellTrackProperties;
@@ -65,9 +68,40 @@ const close = () => {
  * a little over, and hands the other 60% back to the map.
  */
 const HALF = 0.4;
-const FULL = 0.88;
+// Short of the full screen on purpose: a strip of map stays visible above the
+// sheet so it reads as a drawer sitting over the map rather than a second
+// screen, and there is something to see the grip is still draggable toward.
+// A bare vh fraction cannot know how tall the status bar or a dynamic island
+// is, and that varies by device -- so this is deliberately higher than the
+// sheet is ever meant to render at; the .sheet CSS clamps the real height
+// against --mc-safe-top instead, which is what actually keeps the grip clear
+// of that chrome on every phone rather than on the one this was tuned on.
+const FULL = 0.95;
 
 let detent = HALF;
+
+/**
+ * At FULL the sheet covers the native buttons floating on top of the
+ * webview (layer switcher, settings, location, logo) -- CSS can hide the
+ * web toolbar underneath but has no reach into that native layer, so the
+ * host app is told directly. Tapping a different cell can drop straight
+ * from FULL to unmounted (nextSelection closes the panel instead of
+ * stepping it down to HALF first), so `onDestroy` re-shows the buttons
+ * unconditionally rather than trusting the last detent seen.
+ */
+let sheetExpandedNative = false;
+
+function syncNativeChrome(expanded: boolean) {
+  if (!dd.isIos() || expanded === sheetExpandedNative) return;
+  sheetExpandedNative = expanded;
+  window.webkit?.messageHandlers.scriptHandler.postMessage(
+    expanded ? "detailSheetExpanded" : "detailSheetCollapsed",
+  );
+}
+
+$: syncNativeChrome(detent === FULL);
+
+onDestroy(() => syncNativeChrome(false));
 
 /* ---- drag the grabber --------------------------------------------------- */
 
@@ -116,6 +150,63 @@ function release() {
   }
 }
 
+/* ---- drag the body, when it has nothing of its own to scroll ------------ */
+
+/**
+ * A grip 44px tall is still a small target on a panel most of which is this.
+ * When the content fits without scrolling there is nothing for a vertical
+ * drag here to do *but* move the sheet, so it gets to -- the same detent
+ * snapping as the grip, from wherever the thumb actually lands.
+ *
+ * Two things stay out of that: a drag that turns out to be a tap on a control
+ * in here (the close button, a link), and the 3D model, which already owns
+ * its own vertical drag to turn the shape and would never get it back once a
+ * few pixels of "is this a resize" slop ran out first.
+ *
+ * The axis decision is the same slop-then-commit rule swipeAway.ts uses for
+ * the strips' swipe-to-clear -- proven here at working out "tap or gesture"
+ * without it, a plain tap on anything in the body would start a drag before
+ * the tap underneath it ever got the event.
+ */
+let bodyPointer: number | null = null;
+let bodyStartX = 0;
+let bodyStartY = 0;
+let bodyAxis: SwipeAxis = "undecided";
+let bodyEligible = false;
+
+function bodyDown(event: PointerEvent) {
+  if (event.button > 0) return;
+  if ((event.target as HTMLElement).closest(".model")) return;
+  const el = event.currentTarget as HTMLElement;
+  bodyEligible = el.scrollHeight <= el.clientHeight + 1;
+  if (!bodyEligible) return;
+  bodyPointer = event.pointerId;
+  bodyStartX = event.clientX;
+  bodyStartY = event.clientY;
+  bodyAxis = "undecided";
+}
+
+function bodyMove(event: PointerEvent) {
+  if (!bodyEligible || event.pointerId !== bodyPointer) return;
+  if (bodyAxis === "undecided") {
+    bodyAxis = decideAxis(event.clientX - bodyStartX, event.clientY - bodyStartY);
+    if (bodyAxis !== "y") return;
+    dragging = true;
+    startY = bodyStartY;
+    try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* already gone */ }
+  }
+  if (bodyAxis !== "y") return;
+  move(event);
+}
+
+function bodyUp(event: PointerEvent) {
+  if (event.pointerId !== bodyPointer) return;
+  bodyPointer = null;
+  const wasDragging = bodyAxis === "y";
+  bodyAxis = "undecided";
+  bodyEligible = false;
+  if (wasDragging) release();
+}
 </script>
 
 <style>
@@ -127,9 +218,14 @@ function release() {
     z-index: 1200;
     display: flex;
     flex-direction: column;
-    /* Set from the detent, so the map above always has the rest. */
-    height: var(--sheet-h);
-    max-height: 88vh;
+    /* Set from the detent, so the map above always has the rest -- except at
+       FULL, where the detent alone is not trusted: env(safe-area-inset-top)
+       is the one number that actually knows the status bar / dynamic island
+       height on this device, so the real cap is measured from that rather
+       than a vh guess that put the grip behind it on some phones. The 60px
+       past that clears the status bar with real room to spare -- 28px read as
+       "no map visible" since it barely cleared the chrome at all. */
+    height: min(var(--sheet-h), calc(100vh - var(--mc-safe-top) - 60px));
     padding: 0 12px calc(12px + var(--mc-safe-bottom));
     border-radius: 22px 22px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
@@ -161,13 +257,16 @@ function release() {
   }
 
   /* The grab area, not just the bar: a 6px line is not a thumb target, so the
-     row around it takes the gesture and the bar only shows where. */
+     row around it takes the gesture and the bar only shows where. 44px is
+     Apple's own minimum tap target -- at the previous 28px a drag started a
+     few pixels low landed on .body instead and scrolled the content rather
+     than resizing the sheet. */
   .grip {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 28px;
+    height: 44px;
     margin: 0 -12px;
     cursor: grab;
     touch-action: none;
@@ -189,6 +288,13 @@ function release() {
     /* Momentum scrolling, and a scroll that does not drag the map behind. */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* CellDetails' close button is a 44px glass disc pulled toward the top
+       right corner by negative margins, to sit further into the corner than
+       a header row half its height would otherwise place it. Without room to
+       give, that overhang sat outside the scroll container's own edges and
+       was clipped there at rest -- overflow-y:auto implicitly makes
+       overflow-x auto too, so the same applies on the right. */
+    padding: 10px 8px 0 0;
   }
 
   .dragging {
@@ -223,7 +329,12 @@ function release() {
     on:keydown={(e) => { if (e.key === "Enter" || e.key === " " || e.key === "Escape") close(); }}>
     <span></span>
   </div>
-  <div class="body">
+  <div
+    class="body"
+    on:pointerdown={bodyDown}
+    on:pointermove={bodyMove}
+    on:pointerup={bodyUp}
+    on:pointercancel={bodyUp}>
     <CellDetails {track} />
   </div>
 </div>
