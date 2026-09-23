@@ -42,6 +42,25 @@
       // `--mode staging` never reaches it.
       "vars": { "PREVIEW_ORIGIN": "https://staging.meteocool.com" },
     },
+    // The demo environment beside staging on the same cluster, replaying a
+    // recorded storm. Built with `--mode demo`, which points it at demo's
+    // hostnames (src/urls.ts); the preview origin is demo's API,
+    // api-demo.meteocool.com, for the same reason staging's is staging's. The
+    // Worker has demo.meteocool.com itself.
+    "demo": {
+      "name": "meteocool-demo",
+      "compatibility_date": "2026-09-20",
+      "workers_dev": true,
+      "routes": [
+        { "pattern": "demo.meteocool.com", "custom_domain": true },
+      ],
+      "observability": {
+        "enabled": true,
+        "logs": { "enabled": true },
+        "traces": { "enabled": true },
+      },
+      "vars": { "PREVIEW_ORIGIN": "https://api-demo.meteocool.com" },
+    },
     "production": {
       "name": "meteocool",
       "workers_dev": false,
