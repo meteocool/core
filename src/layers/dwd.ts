@@ -6,7 +6,7 @@ import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ImageTileSource from "ol/source/ImageTile";
-import SwissHoleTileSource from "./swissHole";
+import NetworkHoleTileSource from "./networkHoles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdRadarExtent, radarCoverageInv } from "./extents";
 import { tileBaseUrl } from "../urls";
@@ -17,7 +17,7 @@ import type BaseLayer from "ol/layer/Base";
  * Builds the layer and source for one radar tile set, plus the URL template.
  * RadarCapability swaps between these when the colormap changes.
  */
-export type LayerFactory = (tileId: string, bucket?: string) => [BaseLayer, ImageTileSource, string];
+export type LayerFactory = (tileId: string, bucket?: string) => [BaseLayer, NetworkHoleTileSource, string];
 import { NOWCAST_OPACITY } from "./ui";
 import { cmapFromString } from "../lib/cmap_utils";
 import { RVP6_CLASSIC }  from "../colormaps";
@@ -43,7 +43,7 @@ const commonDWDParameters = {
 /**
  * The tile URL for a `RadarFrame`-shaped `{tile_id}` in one bucket.
  *
- * Shared by every network's reflectivity layer -- DWD's and MeteoSwiss's alike
+ * Shared by every network's reflectivity layer -- DWD's and the EUMETNET ones alike
  * hand the client the same `RadarFrame` shape, so this is the one place that
  * turns it into a tile source URL rather than each layer hand-rolling its own.
  */
@@ -53,18 +53,16 @@ export const tileSourceUrl = (bucket: string, tileId: string) =>
 /**
  * The tile source for one DWD tile set.
  *
- * Observation tiles come back with Switzerland erased, so that the Swiss layer
- * is the only radar drawn over Swiss ground -- see `swissHole.ts` for why the
- * hole is cut into the images rather than clipped at render time.
- *
- * Forecast tiles are left whole. MeteoSwiss publishes no nowcast, so cutting
- * the same hole there would leave Switzerland with no forecast at all rather
- * than someone else's.
+ * The live observation's tiles come back with Switzerland and France erased,
+ * so that those networks' own layers are the only radar drawn over their
+ * ground -- see `networkHoles.ts` for why the holes are cut into the images
+ * rather than clipped at render time. Every other step is left whole: those
+ * layers show only the live frame, so DWD is all there is for the rest.
  */
-export const dwdSource = (tileId, bucket = "meteoradar") => {
-  // Always this source, whichever bucket it starts on: playback re-points one
-  // source across both, so which tiles get the hole is decided per URL there.
-  const reflectivitySource = trackTileLoads(new SwissHoleTileSource({
+export const dwdSource = (tileId: string, bucket = "meteoradar") => {
+  // Always this source: playback re-points one source across every step, so
+  // which tiles get holes is decided per URL there.
+  const reflectivitySource = trackTileLoads(new NetworkHoleTileSource({
     ...commonDWDParameters,
     url: tileSourceUrl(bucket, tileId),
   }));
