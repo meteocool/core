@@ -15,7 +15,10 @@ import { makeCellVolumeLayer } from "../layers/cellVolumeLayer";
 import type { CellVolumeLayer } from "../layers/cellVolumeLayer";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells } from "../api";
-import { capDescription, colorSchemeDark, selectedCell, showForecastPlaybutton } from "../stores";
+import {
+  capDescription, colorSchemeDark, cutRotationDeg, selectedCell, showForecastPlaybutton,
+} from "../stores";
+import { get } from "svelte/store";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import type { CellCurrent, CellTrack, CellTrackProperties } from "../api";
@@ -200,6 +203,11 @@ export default class Cells3DCapability extends Capability {
   /** Whose volume that is, so the extruded tiers know to stand down. */
   private volumeCode: string | null = null;
 
+  /** The storm the volume belongs to, whose track the slice is measured from. */
+  private volumeTrack: CellTrackProperties | null = null;
+
+  private unsubscribeCut: (() => void) | null = null;
+
   /** Guards against a slow fetch landing after the selection has moved on. */
   private volumeToken: symbol | null = null;
 
@@ -212,6 +220,13 @@ export default class Cells3DCapability extends Capability {
     this.nanobar = options.nanobar;
     this.unsubscribeSelection = selectedCell.subscribe((track) => {
       void this.showVolume(track);
+    });
+    // Turning the slice in the popup turns it here. Only a uniform changes, so
+    // this is a repaint and nothing is rebuilt.
+    this.unsubscribeCut = cutRotationDeg.subscribe(() => {
+      if (!this.volumeLayer || !this.volumeTrack) return;
+      this.volumeLayer.setHeading(this.headingOf(this.volumeTrack));
+      this.gl?.triggerRepaint();
     });
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
@@ -334,7 +349,20 @@ export default class Cells3DCapability extends Capability {
       // top of it, so this is also how the storms get put back.
       gl.on("style.load", () => {
         this.styleReady = true;
+        // `setStyle` throws the volume away with every other layer, and the
+        // bookkeeping does not know. Left as it was, the tiers below would be
+        // rebuilt still filtering out the selected storm, and with the volume
+        // gone too it would vanish from the map entirely -- on every light and
+        // dark switch. Forgetting it first means the tiers come back whole and
+        // the volume replaces them again once it has reloaded.
+        //
+        // The same call covers a storm selected before the style first
+        // finished loading, which `showVolume` had to give up on at the time.
+        this.volumeLayer = null;
+        this.volumeCode = null;
+        this.volumeTrack = null;
         this.applyData();
+        void this.showVolume(get(selectedCell));
       });
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
@@ -467,19 +495,26 @@ export default class Cells3DCapability extends Capability {
     this.gl.addLayer(layer);
     this.volumeLayer = layer;
     this.volumeCode = track.code;
+    this.volumeTrack = track;
     this.applyTierFilters();
   }
 
-  /** Where the storm is going, which is the direction the cut runs along. */
-  private headingOf(track: CellTrackProperties): number | null {
+  /**
+   * The direction the slice runs: the storm's track, turned by the reader.
+   *
+   * Turned by the same amount as the panel's, from the same store, so the
+   * map and the popup always cut the storm the same way.
+   */
+  private headingOf(track: CellTrackProperties): number {
     const series = track.series ?? [];
-    return series[series.length - 1]?.heading_deg ?? null;
+    return (series[series.length - 1]?.heading_deg ?? 0) + get(cutRotationDeg);
   }
 
   private clearVolume(): void {
     if (this.gl?.getLayer(VOLUME_LAYER)) this.gl.removeLayer(VOLUME_LAYER);
     this.volumeLayer = null;
     this.volumeCode = null;
+    this.volumeTrack = null;
     this.applyTierFilters();
   }
 
@@ -746,6 +781,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeTheme = null;
     this.unsubscribeSelection?.();
     this.unsubscribeSelection = null;
+    this.unsubscribeCut?.();
+    this.unsubscribeCut = null;
     this.gl?.remove();
     this.gl = null;
     this.detach();

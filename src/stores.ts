@@ -128,6 +128,18 @@ export const cycloneLayerVisible = writable<boolean>(true);
 export const cellLayerVisible = writable<boolean>(true);
 /** The cell the detail popup is showing, or null when it is closed. */
 export const selectedCell = writable<CellTrackProperties | null>(null);
+/**
+ * How far the cutaway's slice is turned away from the storm's own track, in
+ * degrees clockwise.
+ *
+ * Relative to the track rather than to north, because the track is what makes
+ * a cut meaningful: along it is where an overhang shows, across it is where
+ * the storm's width does. Zero is the along-track cut every storm opens with.
+ * One value shared by the panel and the 3D map, so turning the slice in one
+ * turns it in both -- two views of one storm cut two different ways would be
+ * two different claims about it.
+ */
+export const cutRotationDeg = writable<number>(0);
 
 /**
  * Whether the selected cell's detail panel is open, as opposed to only its
