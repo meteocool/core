@@ -3,19 +3,22 @@ import { toLonLat, fromLonLat } from "ol/proj";
 import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
-  DataDrivenPropertyValueSpecification, Map as GlMap, StyleSpecification,
+  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
 import type { CapabilityOptions } from "./options";
 import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
+import { loadCutaway } from "../lib/cellCutaway";
+import { makeCellVolumeLayer } from "../layers/cellVolumeLayer";
+import type { CellVolumeLayer } from "../layers/cellVolumeLayer";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells } from "../api";
 import { capDescription, colorSchemeDark, selectedCell, showForecastPlaybutton } from "../stores";
 
 import { trimToLastRun } from "../lib/cellTrack";
-import type { CellCurrent, CellTrack } from "../api";
+import type { CellCurrent, CellTrack, CellTrackProperties } from "../api";
 import type VectorSource from "ol/source/Vector";
 
 /**
@@ -69,6 +72,8 @@ async function loadMapLibre() {
 }
 
 const CELL_SOURCE = "cells";
+/** The raymarched volume, which replaces the selected storm's extruded tiers. */
+const VOLUME_LAYER = "cell-volume-raymarched";
 const FOOTPRINT_SOURCE = "cell-footprints";
 const RADAR_SOURCE = "radar";
 
@@ -187,10 +192,27 @@ export default class Cells3DCapability extends Capability {
 
   private unsubscribeTheme: (() => void) | null = null;
 
+  private unsubscribeSelection: (() => void) | null = null;
+
+  /** The raymarched volume for the selected storm, while one is showing. */
+  private volumeLayer: CellVolumeLayer | null = null;
+
+  /** Whose volume that is, so the extruded tiers know to stand down. */
+  private volumeCode: string | null = null;
+
+  /** Guards against a slow fetch landing after the selection has moved on. */
+  private volumeToken: symbol | null = null;
+
+  /** MapLibre, once it has loaded; the volume layer needs its Mercator maths. */
+  private maplibre: Awaited<ReturnType<typeof loadMapLibre>> | null = null;
+
   constructor(map: OlMap, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "cells3d", () => Cells3DCapability.announce(), additionalLayers);
 
     this.nanobar = options.nanobar;
+    this.unsubscribeSelection = selectedCell.subscribe((track) => {
+      void this.showVolume(track);
+    });
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
       if (!this.gl) return;
@@ -292,6 +314,7 @@ export default class Cells3DCapability extends Capability {
       const maplibre = await loadMapLibre();
       // Another attach may have won the race while the library was loading.
       if (this.gl) return;
+      this.maplibre = maplibre;
       const view = this.map.getView();
       const centre = view.getCenter();
       const [lon, lat] = centre ? toLonLat(centre) : [10, 51];
@@ -382,6 +405,84 @@ export default class Cells3DCapability extends Capability {
    * flat map now refuses to draw a line for would still report its borrowed
    * age and peak here.
    */
+  /**
+   * Which tiers a storm still draws as extrusions.
+   *
+   * Every cell but one. The storm whose volume is being raymarched is drawn
+   * by the volume and nothing else: the shells are the same storm a second
+   * time, measured a different way, and `fill-extrusion` writes depth even
+   * when it is translucent -- so left in place they punch the tier boundaries
+   * straight through the volume they are supposed to be describing.
+   */
+  private tierFilter(tier: number): ExpressionSpecification {
+    const mine: ExpressionSpecification = ["==", ["get", "tier"], tier];
+    if (!this.volumeCode) return mine;
+    return ["all", mine, ["!=", ["get", "code"], this.volumeCode]];
+  }
+
+  private applyTierFilters(): void {
+    const gl = this.gl;
+    if (!gl || !this.styleReady) return;
+    RING_ALPHAS.forEach((_opacity, tier) => {
+      if (gl.getLayer(`cell-volume-${tier}`)) gl.setFilter(`cell-volume-${tier}`, this.tierFilter(tier));
+    });
+  }
+
+  /**
+   * Put the selected storm's volume on the map, or take the last one off.
+   *
+   * Most cells have no volume -- it is built for the strongest few, and only
+   * where the radars sampled them well enough -- so the ordinary answer here
+   * is to remove whatever was showing and stop.
+   */
+  private async showVolume(track: CellTrackProperties | null): Promise<void> {
+    const volume = track?.volume ?? null;
+    const token = Symbol("volume");
+    this.volumeToken = token;
+
+    if (!volume || !track) { this.clearVolume(); return; }
+    if (this.volumeCode === track.code) {
+      // Same storm, new run: the cut may have turned with it.
+      this.volumeLayer?.setHeading(this.headingOf(track));
+      this.gl?.triggerRepaint();
+      return;
+    }
+
+    let cutaway;
+    try {
+      cutaway = await loadCutaway(volume);
+    } catch {
+      // A volume that will not load is a volume the reader never sees; the
+      // extruded tiers are still there and still say what they always did.
+      if (this.volumeToken === token) this.clearVolume();
+      return;
+    }
+    // The selection may have moved on, or this map may have been put away.
+    if (this.volumeToken !== token || !this.gl || !this.maplibre || !this.styleReady) return;
+
+    this.clearVolume();
+    const layer = makeCellVolumeLayer(
+      VOLUME_LAYER, cutaway, this.headingOf(track), this.maplibre.MercatorCoordinate,
+    );
+    this.gl.addLayer(layer);
+    this.volumeLayer = layer;
+    this.volumeCode = track.code;
+    this.applyTierFilters();
+  }
+
+  /** Where the storm is going, which is the direction the cut runs along. */
+  private headingOf(track: CellTrackProperties): number | null {
+    const series = track.series ?? [];
+    return series[series.length - 1]?.heading_deg ?? null;
+  }
+
+  private clearVolume(): void {
+    if (this.gl?.getLayer(VOLUME_LAYER)) this.gl.removeLayer(VOLUME_LAYER);
+    this.volumeLayer = null;
+    this.volumeCode = null;
+    this.applyTierFilters();
+  }
+
   private async select(code: string): Promise<void> {
     const token = Symbol("pick");
     this.picking = token;
@@ -629,7 +730,7 @@ export default class Cells3DCapability extends Capability {
         id: `cell-volume-${tier}`,
         type: "fill-extrusion",
         source: CELL_SOURCE,
-        filter: ["==", ["get", "tier"], tier],
+        filter: this.tierFilter(tier),
         paint: {
           "fill-extrusion-color": dbzRamp(),
           "fill-extrusion-base": ["get", "base"],
@@ -643,6 +744,8 @@ export default class Cells3DCapability extends Capability {
   destroy(): void {
     this.unsubscribeTheme?.();
     this.unsubscribeTheme = null;
+    this.unsubscribeSelection?.();
+    this.unsubscribeSelection = null;
     this.gl?.remove();
     this.gl = null;
     this.detach();
