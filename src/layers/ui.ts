@@ -22,6 +22,7 @@ import SlResizeObserver from "@shoelace-style/shoelace/dist/components/resize-ob
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.js";
 
 import { colorSchemeDark, mapBaseLayer } from "../stores";
+import { isDarkBasemap } from "./casing";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
 /**
@@ -42,7 +43,6 @@ const shoelaceBetaAliases = {
 };
 
 export const uiConstantsDefault = {
-  "toast-stack-offset": "49px",
   ...shoelaceBetaAliases,
 };
 
@@ -145,15 +145,13 @@ export function cleanupUIConstants() {
 }
 
 /**
- * Basemaps the floating chrome has to read against.
- *
- * The glass follows the map, not the colour scheme: see the header of
- * src/glass.css. Everything not listed here is a light basemap.
+ * The floating chrome reads against the map, not against the colour scheme:
+ * see the header of src/glass.css. Which basemaps count as dark lives in
+ * layers/casing.ts, alongside the casings and the place labels that make the
+ * same call.
  */
-const DARK_BASEMAPS = new Set(["dark", "satellite"]);
-
 mapBaseLayer.subscribe((layer) => {
-  document.documentElement.dataset.chrome = DARK_BASEMAPS.has(layer) ? "dark" : "light";
+  document.documentElement.dataset.chrome = isDarkBasemap(layer) ? "dark" : "light";
 });
 
 // Dark and Light mode

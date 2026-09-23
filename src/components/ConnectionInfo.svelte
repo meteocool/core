@@ -133,7 +133,7 @@ const SERVICES: Array<{ name: string; match: RegExp }> = [
   { name: "basemap", match: /map\.meteocool\.com|\.mvt(\?|$)/ },
   { name: "lightning", match: /lightning_cache|\/lightning/ },
   { name: "mesocyclones", match: /mesocyclone/ },
-  { name: "geocoder", match: /bigdatacloud/ },
+  { name: "geocoder", match: /bigdatacloud|\/geocoding\/|geocoding-staging\.meteocool|geocoding\.meteocool/ },
   { name: "websocket poll", match: /socket\.io/ },
 ];
 
@@ -196,6 +196,11 @@ function errorRows(): Row[] {
       broken ? "bad" : undefined,
     ],
   ];
+  /* Unflagged, and above the failures rather than among them: an endpoint that
+     has nothing published is not a fault and does not put the map in its
+     degraded state, but "why is there no Swiss radar" still deserves an answer
+     somewhere, and this is the panel that answers it. */
+  if (health.absent.length) out.push(["nothing published", health.absent.join(", ")]);
   for (const [endpoint, count] of Object.entries(health.byEndpoint)) {
     out.push([endpoint, `${count} failed`, health.failing.includes(endpoint) ? "bad" : "warn"]);
   }
@@ -474,6 +479,22 @@ async function readTileCache(): Promise<Row[]> {
   return out;
 }
 
+/**
+ * A cache name with the page's own origin taken back off it.
+ *
+ * Workbox names its precache after the page it belongs to and writes the whole
+ * origin into it: `workbox-precache-v2-https://web.staging.meteocool.com/` is
+ * fifty-two characters, of which the useful part is the first twenty and the
+ * rest says where we already are. Only our own origin is stripped -- a cache
+ * belonging to somewhere else keeps its suffix, because there the origin is
+ * the whole point.
+ */
+function cacheLabel(name: string): string {
+  const own = `-${window.location.origin}`;
+  const trimmed = name.endsWith("/") ? name.slice(0, -1) : name;
+  return trimmed.endsWith(own) ? trimmed.slice(0, -own.length) : name;
+}
+
 /** Storage is async, so it lands separately from the synchronous rows. */
 async function readStorage(): Promise<Row[]> {
   const out: Row[] = [];
@@ -492,7 +513,7 @@ async function readStorage(): Promise<Row[]> {
       const names = await caches.keys();
       for (const name of names) {
         const keys = await (await caches.open(name)).keys();
-        out.push([name, `${keys.length} entries`]);
+        out.push([cacheLabel(name), `${keys.length} entries`]);
       }
       if (!names.length) out.push(["cache storage", "empty"]);
     }
@@ -676,12 +697,36 @@ async function copy() {
 
   dl {
     display: grid;
-    grid-template-columns: minmax(6.5em, auto) 1fr;
+    /*
+     * The label column is sized to its content, and the cap is on the label
+     * rather than on the track.
+     *
+     * `auto` is max-content, and a track sized to max-content does not care
+     * that the label in it is set to ellipsize: it grows to whatever the
+     * longest one wants and the `1fr` beside it takes what is left. One
+     * fifty-two character cache name -- `workbox-precache-v2-` with the page's
+     * own origin glued onto it -- was enough to leave the values four
+     * characters wide, where `overflow-wrap: anywhere` then chopped them
+     * mid-number: a quota of 10.00 GiB read as three lines saying "10.0", "0"
+     * and "GiB".
+     *
+     * `fit-content(12em)` is the obvious way to cap a track and does nothing
+     * here -- measured in the panel itself, the limit is ignored and the track
+     * still comes out at the full width of the longest label. A `max-width` on
+     * the label does work, because what an `auto` track measures is the item's
+     * max-content contribution and that honours the item's own maximum. Every
+     * section is still only as wide as it needs to be: the longest label in
+     * Connection lands at 11.6em and is left alone.
+     */
+    grid-template-columns: minmax(6.5em, auto) minmax(0, 1fr);
     gap: 0 10px;
     margin: 0;
     font: 500 11px/1.4 var(--mc-font);
   }
   dt {
+    /* Where the label column stops growing; see the note on `dl` above. Past
+       this the label ellipsizes and its `title` carries the rest. */
+    max-width: 12em;
     color: var(--mc-text-2);
     white-space: nowrap;
     overflow: hidden;
@@ -792,9 +837,9 @@ async function copy() {
           {/each}
         </div>
         <div class="legend">
-          <span><i class="swatch" style="background: var(--mc-accent)"></i>observation</span>
-          <span><i class="swatch" style="background: var(--mc-accent-tint)"></i>forecast</span>
-          <span><i class="swatch" style="background: var(--mc-red-tint)"></i>missing</span>
+          <span><i class="swatch" style="background: var(--mc-accent)"></i>Observation</span>
+          <span><i class="swatch" style="background: var(--mc-accent-tint)"></i>Forecast</span>
+          <span><i class="swatch" style="background: var(--mc-red-tint)"></i>Missing</span>
         </div>
       </div>
 
@@ -804,14 +849,14 @@ async function copy() {
           <table>
             <thead>
               <tr>
-                <th class="name">service</th>
+                <th class="name">Service</th>
                 <th>n</th>
-                <th>median</th>
+                <th>Median</th>
                 <th>p95</th>
-                <th>slowest</th>
-                <th>last</th>
-                <th>bytes</th>
-                <th>cached</th>
+                <th>Slowest</th>
+                <th>Last</th>
+                <th>Bytes</th>
+                <th>Cached</th>
               </tr>
             </thead>
             <tbody>

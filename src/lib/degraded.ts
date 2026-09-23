@@ -18,7 +18,7 @@
  * Pure, with no store and no clock of its own. The wiring that samples the
  * signals and publishes the verdict is lib/degradedStatus.ts.
  */
-import type { ApiHealth } from "./apiHealth";
+import { EMPTY_HEALTH, type ApiHealth } from "./apiHealth";
 
 /**
  * Everything the criteria are allowed to look at, sampled at one instant.
@@ -42,7 +42,10 @@ export interface DegradedSignals {
 }
 
 export const EMPTY_SIGNALS: DegradedSignals = {
-  health: { failures: 0, byEndpoint: {}, failing: [], lastFailureAt: null, lastMessage: null },
+  // The same empty health the module that defines it publishes, rather than a
+  // copy of its shape: a second field on `ApiHealth` should not mean two places
+  // to remember.
+  health: EMPTY_HEALTH,
   recentP95Ms: null,
   recentSamples: 0,
   publishOverdueS: null,

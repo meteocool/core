@@ -9,7 +9,7 @@
 import { apiClient, dataClient } from "./client";
 import { reportError } from "../lib/Toast";
 import { apiHealth } from "../stores";
-import { nextHealth } from "../lib/apiHealth";
+import { markAbsent, nextHealth } from "../lib/apiHealth";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
 
@@ -30,6 +30,7 @@ export type CellStep = DataSchemas["schemas"]["CellStep"];
 export type CellForecastPoint = DataSchemas["schemas"]["ForecastPoint"];
 export type CellCurrent = DataSchemas["schemas"]["CellCurrent"];
 export type CellLayer = DataSchemas["schemas"]["CellLayer"];
+export type CellVolume = DataSchemas["schemas"]["CellVolume"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
@@ -42,16 +43,77 @@ function recordOutcome(id: string, error?: unknown) {
   apiHealth.update((health) => nextHealth(health, id, error));
 }
 
-async function request<T>(nanobar: Progress | undefined, id: string, send: () => Promise<{ data?: T; error?: unknown }>): Promise<T> {
+/** What `openapi-fetch` hands back, including the response the status is on. */
+interface Answer<T> {
+  data?: T;
+  error?: unknown;
+  response?: Response;
+}
+
+/**
+ * Whether a call may find nothing there without that being a fault.
+ *
+ * Some of what the map draws is published on a timer that has nothing to do
+ * with this app, and answers 404 until its first capture lands. That is the
+ * layer working as designed with nothing yet to show, and it was being counted
+ * as a failed API call: the map went degraded, "Something went wrong" came up
+ * over it, and both stayed for as long as the upstream had nothing -- which
+ * for the Swiss composite is every restart of its ingest, and on a backend
+ * without it at all, forever.
+ *
+ * `optional` only licenses the one answer that means absence. Anything else
+ * from the same endpoint -- a 500, a timeout, a body that will not parse -- is
+ * a failure and is reported as one, so switching this on cannot quietly hide a
+ * route that is genuinely broken.
+ */
+interface RequestOptions {
+  optional?: boolean;
+}
+
+/** The answer that means "there is nothing here", as opposed to "this broke". */
+const isAbsence = (response: Response | undefined): boolean => response?.status === 404;
+
+/**
+ * An `optional` endpoint with nothing published yet.
+ *
+ * Still thrown, because the caller asked for something that is not there and
+ * has nothing to draw either way -- every one of these call sites already
+ * catches. A class rather than a message, so the wrapper's own handler can
+ * tell it apart from a failure without reading strings, and so a caller that
+ * wants to say "not captured yet" in its own words can too.
+ */
+export class NothingPublished extends Error {
+  readonly endpoint: string;
+
+  constructor(endpoint: string) {
+    super(`${endpoint} has nothing published yet`);
+    this.name = "NothingPublished";
+    this.endpoint = endpoint;
+  }
+}
+
+async function request<T>(
+  nanobar: Progress | undefined,
+  id: string,
+  send: () => Promise<Answer<T>>,
+  { optional = false }: RequestOptions = {},
+): Promise<T> {
   nanobar?.start(id);
   try {
-    const { data, error } = await send();
-    if (error !== undefined || data === undefined) {
-      throw new Error(`${id} failed: ${JSON.stringify(error)}`);
+    const { data, error, response } = await send();
+    if (error === undefined && data !== undefined) {
+      recordOutcome(id);
+      return data;
     }
-    recordOutcome(id);
-    return data;
+    if (optional && isAbsence(response)) {
+      apiHealth.update((health) => markAbsent(health, id));
+      throw new NothingPublished(id);
+    }
+    throw new Error(`${id} failed: ${JSON.stringify(error)}`);
   } catch (error) {
+    // An absence has already been recorded, and nobody is told the backend is
+    // broken over it.
+    if (error instanceof NothingPublished) throw error;
     recordOutcome(id, error);
     reportError(error);
     throw error;
@@ -71,9 +133,33 @@ export function fetchSnowOverlay(nanobar?: Progress) {
   return request(nanobar, "/v3/radar/snow", () => apiClient.GET("/v3/radar/snow", {}));
 }
 
-/** The most recent precipitation-type tile set. */
+/**
+ * The most recent Swiss reflectivity composite -- one frame, not a timeseries.
+ *
+ * 404s until the first capture lands (MeteoGate's own ingest runs on a
+ * 15-minute timer independent of this app), same as `fetchPrecipitationTypes`
+ * before anything has rendered; callers catch that the same way. `optional`,
+ * because that 404 is the ingest's schedule rather than a broken backend and
+ * has no business putting the map in its degraded state -- a backend with no
+ * Swiss capture at all was otherwise reporting a permanent fault.
+ */
+export function fetchSwissRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/switzerland",
+    () => apiClient.GET("/v3/radar/switzerland", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent precipitation-type tile set, absent until one has rendered. */
 export function fetchPrecipitationTypes(nanobar?: Progress) {
-  return request(nanobar, "/v3/radar/classification", () => apiClient.GET("/v3/radar/classification", {}));
+  return request(
+    nanobar,
+    "/v3/radar/classification",
+    () => apiClient.GET("/v3/radar/classification", {}),
+    { optional: true },
+  );
 }
 
 /** The most recent lightning vector tile set. */

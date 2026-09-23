@@ -125,6 +125,15 @@ window.settings = new Settings({
     type: "boolean",
     default: false,
   },
+  /**
+   * Standing notices the reader has closed, as a comma-separated list of
+   * message hashes. Written by lib/Toast.ts, which explains the keying; no
+   * `cb`, because nothing reacts to it -- it is read when a notice is raised.
+   */
+  dismissedNotices: {
+    type: "string",
+    default: "",
+  },
   precacheForecast: {
     type: "boolean",
     default: true,
@@ -438,6 +447,16 @@ if (cells3d && radarCap) {
   cells3d.setStrikeSource(lightningSource);
 }
 
+/**
+ * Whether this is a device with a real pointer that can hover.
+ *
+ * Asked once. A touch screen reports neither, and a hover cursor there is a
+ * style nobody can see bought with a hit test on every frame of every drag.
+ */
+const finePointer = typeof window === "undefined" || !window.matchMedia
+  ? null
+  : window.matchMedia("(hover: hover) and (pointer: fine)");
+
 /*
  * Tapping a storm opens its history.
  *
@@ -476,6 +495,39 @@ lm.forEachMap((map) => {
     );
     selectedCell.set(next.code ? cellmgr.trackFor(next.code) ?? null : null);
     cellDetails.set(next.details);
+  });
+
+  /*
+   * The cursor says what is clickable, which on a map is otherwise invisible.
+   *
+   * A storm centroid is a 6px dot among a screenful of radar; nothing about it
+   * says it answers a click, and on a desktop the pointer is the one channel
+   * that can say so without drawing anything.
+   *
+   * It runs the same hit test as the tap above, hit tolerance included, so the
+   * pointer can never promise a cell that a click would then miss. Written on
+   * the map's own viewport rather than on the shared `#map` target, so a
+   * capability switch cannot leave another one wearing this one's cursor.
+   */
+  let hovering = false;
+  const viewport = map.getViewport();
+  map.on("pointermove", (event) => {
+    // Nothing to say mid-drag: the cursor belongs to the pan for its duration,
+    // and hit-testing every frame of one buys a style nobody is looking at.
+    if (!finePointer?.matches || event.dragging) return;
+    const over = get(cellLayerVisible) && map.hasFeatureAtPixel(event.pixel, {
+      layerFilter: (layer) => layer === cellLayer,
+      hitTolerance: 6,
+    });
+    if (over === hovering) return;
+    hovering = over;
+    viewport.style.cursor = over ? "pointer" : "";
+  });
+  /* A pointer that leaves over a cell never reports leaving it. */
+  viewport.addEventListener("pointerleave", () => {
+    if (!hovering) return;
+    hovering = false;
+    viewport.style.cursor = "";
   });
 });
 
@@ -590,12 +642,6 @@ if (postInitCb) postInitCb(lm);
     background-color: var(--mc-map-bg);
     color: var(--mc-text);
     font-family: var(--mc-font);
-  }
-
-  :global(:root) {
-    /* Still written by NowcastPlayback via setUIConstant; glass.css reads it as
-       the fallback when Map.svelte has not measured --bottom-toolbar-height. */
-    --toast-stack-offset: 0px;
   }
 
   :global(.nanobar) {

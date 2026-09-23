@@ -151,6 +151,42 @@ export function labelStepMinutes(resolution: number): number {
   return 5;
 }
 
+/**
+ * What a forecast ring's label says, or null when it should not carry one.
+ *
+ * Two clocks meet here, and keeping them apart is the whole of it.
+ *
+ * `leadMinutes` is the ring's lead over the detection it was forecast from.
+ * That is the forecast's own frame: the rings are five minutes apart in it,
+ * always, so it is what `labelStepMinutes` can thin evenly and what keeps the
+ * labelled set stable as the map moves.
+ *
+ * `forecastAt` is the moment the ring is for. That is what the label says,
+ * because a reader is asking how long they have and the answer has to count
+ * down while they watch. Nothing reaches the map when it happens -- the scan,
+ * DWD's run behind it, the ingest behind that, then however long the popup has
+ * been open -- so a ring forecast fifteen minutes past the scan is routinely
+ * eight minutes from the reader.
+ *
+ * The consequence is that the sequence stops being round: +8, +23, +38 rather
+ * than +15, +30, +45. That looks like a bug and is the correction.
+ *
+ * Null once the moment has passed. The ring keeps its outline -- the cone is
+ * one shape, and punching holes in it would say the forecast had gaps.
+ */
+export function leadLabel(
+  forecastAt: number,
+  leadMinutes: number,
+  resolution: number,
+  now = Date.now(),
+): string | null {
+  if (!Number.isFinite(forecastAt) || !Number.isFinite(leadMinutes)) return null;
+  if (leadMinutes <= 0) return null;
+  if (leadMinutes % labelStepMinutes(resolution) !== 0) return null;
+  const remaining = Math.round((forecastAt - now) / 60_000);
+  return remaining > 0 ? `+${remaining} min` : null;
+}
+
 /** Minutes since a track was last detected, which is what drives its fading. */
 export function ageMinutes(lastSeen: string, now = Date.now()): number {
   return (now - new Date(lastSeen).getTime()) / 60_000;
