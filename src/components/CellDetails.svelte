@@ -657,7 +657,7 @@ function onKeydown(event: KeyboardEvent) {
        which is the strongest few and only where the radars sampled the 3 to
        8 km layer properly. -->
   {#if track.volume}
-    <h3 class="section">Inside<span class="aside">cut along the track</span></h3>
+    <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
     <figure class="model">
       <CellCutaway
         volume={track.volume}

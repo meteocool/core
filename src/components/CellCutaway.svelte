@@ -44,6 +44,8 @@ import { onDestroy, onMount, tick } from "svelte";
 import { FRAMING_DBZ, loadCutaway } from "../lib/cellCutaway";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
+import { cutRotationDeg } from "../stores";
+import { cutLabel, normaliseCut } from "../lib/cutAngle";
 import type { CellVolume } from "../api";
 
 export let volume: CellVolume;
@@ -69,6 +71,23 @@ let gl: WebGL2RenderingContext | null = null;
 
 /** How far round the storm has turned, radians. */
 let spin = 0;
+
+/*
+ * The drag turns the slice, not the camera.
+ *
+ * The camera already turns on its own, which is what gives the parallax; the
+ * slice is the one thing a reader wants to put somewhere, and the obvious
+ * gesture for it is to take hold of it. The spin pauses while the finger is
+ * down, so the plane stays under it instead of sliding off as the view turns.
+ */
+let dragging = false;
+let dragFrom = 0;
+let dragCut = 0;
+/** Degrees of slice per pixel dragged: a full half-turn across a phone screen. */
+const DRAG_DEG_PER_PX = 0.6;
+
+/** Honoured as in `CellModel3D`: no spin, a fixed three-quarter view. */
+let still = false;
 /** Seconds for a full turn. Slow: the parallax is the point, not the motion. */
 const TURN_SECONDS = 24;
 /** Samples along each ray. Enough that the banding is gone on a postcard. */
@@ -323,19 +342,23 @@ function start(loaded: Cutaway): void {
   context.uniform1f(at("uDbzScale"), loaded.header.dbz_scale);
   context.uniform1f(at("uSteps"), STEPS);
 
-  // The cut runs along the storm's track, so the plane's normal is across it,
-  // and it passes through the storm rather than through the middle of the box.
-  const along = ((headingDeg ?? 0) * Math.PI) / 180;
-  context.uniform3fv(at("uPlaneNormal"), [Math.cos(along), -Math.sin(along), 0]);
+  // Through the storm, not the middle of the box. The plane's direction is set
+  // every frame below, because the reader can turn it.
   context.uniform3fv(at("uPlanePoint"), loaded.centreKm);
+  const planeNormal = at("uPlaneNormal");
 
   context.enable(context.BLEND);
   context.blendFunc(context.ONE, context.ONE_MINUS_SRC_ALPHA);
 
   let last = performance.now();
   const draw = (now: number) => {
-    spin += ((now - last) / 1000) * ((Math.PI * 2) / TURN_SECONDS);
+    if (!dragging && !still) spin += ((now - last) / 1000) * ((Math.PI * 2) / TURN_SECONDS);
     last = now;
+
+    // Along the track by default, turned by however far the reader has dragged
+    // it; the normal is the cut's direction rotated a quarter turn.
+    const along = (((headingDeg ?? 0) + $cutRotationDeg) * Math.PI) / 180;
+    context.uniform3fv(planeNormal, [Math.cos(along), -Math.sin(along), 0]);
 
     // Framed on the storm rather than on the box. A cell rarely fills 40 km,
     // and a camera set to the box draws most of them as a speck in empty air.
@@ -374,7 +397,37 @@ function start(loaded: Cutaway): void {
   frame = requestAnimationFrame(draw);
 }
 
+function onPointerDown(event: PointerEvent): void {
+  dragging = true;
+  dragFrom = event.clientX;
+  dragCut = $cutRotationDeg;
+  (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+}
+
+function onPointerMove(event: PointerEvent): void {
+  if (!dragging) return;
+  cutRotationDeg.set(normaliseCut(dragCut + (event.clientX - dragFrom) * DRAG_DEG_PER_PX));
+}
+
+function onPointerUp(): void {
+  dragging = false;
+}
+
+/** Arrow keys turn the slice too, a few degrees at a time, for anyone not dragging. */
+function onKey(event: KeyboardEvent): void {
+  const step = event.shiftKey ? 15 : 5;
+  if (event.key === "ArrowLeft") cutRotationDeg.set(normaliseCut($cutRotationDeg - step));
+  else if (event.key === "ArrowRight") cutRotationDeg.set(normaliseCut($cutRotationDeg + step));
+  else return;
+  event.preventDefault();
+}
+
 onMount(() => {
+  still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (still) spin = Math.PI * 0.25;
+  // Every storm opens cut along its own track. A slice turned for the last
+  // storm means nothing for this one, whose track points somewhere else.
+  cutRotationDeg.set(0);
   controller = new AbortController();
   loadCutaway(volume, controller.signal)
     .then(async (loaded) => {
@@ -410,17 +463,54 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
       width={Math.round(width * ratio)}
       height={Math.round(height * ratio)}
       style="width: {width}px; height: {height}px;"
+      tabindex="0"
+      role="slider"
+      aria-label="Turn the slice through the storm"
+      aria-valuemin={-180}
+      aria-valuemax={180}
+      aria-valuenow={Math.round($cutRotationDeg)}
+      aria-valuetext={cutLabel($cutRotationDeg)}
+      on:pointerdown={onPointerDown}
+      on:pointermove={onPointerMove}
+      on:pointerup={onPointerUp}
+      on:pointercancel={onPointerUp}
+      on:keydown={onKey}
     ></canvas>
+    <div class="cuts">
+      <button type="button" class:on={Math.abs($cutRotationDeg) < 1 || Math.abs($cutRotationDeg) > 179}
+        on:click={() => cutRotationDeg.set(0)}>along</button>
+      <button type="button" class:on={Math.abs(Math.abs($cutRotationDeg) - 90) < 1}
+        on:click={() => cutRotationDeg.set(90)}>across</button>
+    </div>
     <figcaption>
       Stylised. Radar volume from {cutaway.header.sites.join(", ")},
-      cut along the storm's track.
+      {cutLabel($cutRotationDeg)}.
     </figcaption>
   </figure>
 {/if}
 
 <style>
 figure { margin: 0; }
-canvas { display: block; }
+canvas {
+  display: block;
+  /* The drag turns the slice, so the page must not read it as a pan. */
+  touch-action: none;
+  cursor: ew-resize;
+}
+canvas:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.cuts { display: flex; gap: 0.35rem; margin-top: 0.35rem; }
+.cuts button {
+  font: inherit;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+}
+.cuts button.on { opacity: 1; }
 figcaption {
   font-size: 0.7rem;
   opacity: 0.6;
