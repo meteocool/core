@@ -30,7 +30,7 @@ import {
   capLatestObservation, capTimeIndicator, cellDetails,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
-  radarColorScheme, selectedCell, smallScreen, snowLayerVisible, toolbarVisible,
+  radarColorScheme, selectedCell, selectedVolume, smallScreen, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
 import "./global.css";
@@ -57,6 +57,7 @@ import makeCellPulseLayer from "./layers/cellPulse";
 import CellDetails from "./components/CellDetails.svelte";
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import CellSheet from "./components/CellSheet.svelte";
+import CloudDetails from "./components/CloudDetails.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
@@ -673,6 +674,16 @@ if (postInitCb) postInitCb(lm);
   /* Anchored rather than floating over the tap: the map animates under a
      popup, and a panel that chases the storm is harder to read than one that
      stays put. Above the toolbar, clear of the bottom tray. */
+  /* On a phone the storm-core popup sits along the bottom, where a thumb is,
+     rather than in the desktop corner over the map it came from. */
+  .cell-details-panel.cloud-bottom {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + var(--mc-safe-bottom, 0px));
+    max-width: none;
+  }
+
   .cell-details-panel {
     position: absolute;
     top: 12px;
@@ -735,6 +746,12 @@ if (postInitCb) postInitCb(lm);
   {/if}
 {:else if $selectedCell && $smallScreen}
   <CellSelectionHint track={$selectedCell} />
+{:else if $selectedVolume}
+  <!-- A storm core with no KONRAD3D track: one short popup, the same place on
+       every screen size, because there is no history to need the sheet. -->
+  <div class="cell-details-panel" class:cloud-bottom={$smallScreen}>
+    <CloudDetails cloud={$selectedVolume} width={$smallScreen ? 300 : 340} />
+  </div>
 {/if}
 
 {#if $toolbarVisible === "yes"}

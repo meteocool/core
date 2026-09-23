@@ -764,6 +764,33 @@
         "title": "CurrentCells",
         "type": "object"
       },
+      "CurrentVolumes": {
+        "description": "Every storm with a radar volume, from the newest scan that has any.",
+        "properties": {
+          "reference_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The scan these come from; null when nothing has been built",
+            "title": "Reference Time"
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/RadarVolume"
+            },
+            "title": "Volumes",
+            "type": "array"
+          }
+        },
+        "title": "CurrentVolumes",
+        "type": "object"
+      },
       "ForecastPoint": {
         "description": "A predicted centroid and how uncertain it is.\n\nThe ellipse is DWD's 1-sigma Kalman uncertainty, growing with lead time.\n`angle_deg` is measured clockwise from north.",
         "properties": {
@@ -904,6 +931,25 @@
         "title": "Mesocyclone",
         "type": "object"
       },
+      "NetworkRefresh": {
+        "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
+        "properties": {
+          "network": {
+            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France",
+            "enum": [
+              "ch",
+              "fr"
+            ],
+            "title": "Network",
+            "type": "string"
+          }
+        },
+        "required": [
+          "network"
+        ],
+        "title": "NetworkRefresh",
+        "type": "object"
+      },
       "PointGeometry": {
         "description": "Where a cell seen only once is. GeoJSON needs two positions for a line.",
         "properties": {
@@ -945,6 +991,96 @@
           "refresh"
         ],
         "title": "Poke",
+        "type": "object"
+      },
+      "RadarVolume": {
+        "description": "A storm that can be cut open, found in the radar composite.\n\nNot necessarily a KONRAD3D cell. These are storm cores in the\ncolumn-maximum composite, so most of them are showers KONRAD3D never\nreports -- it is a warning product and lists only what might do harm. The\nposition is the core's peak, which is where the box is centred.",
+        "properties": {
+          "area_km2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Area of the core above the seed threshold",
+            "title": "Area Km2"
+          },
+          "bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compressed size, so a client can decide on mobile",
+            "title": "Bytes"
+          },
+          "code": {
+            "description": "Stable within one scan: the core's grid position, prefixed R",
+            "title": "Code",
+            "type": "string"
+          },
+          "coverage": {
+            "description": "Mean beam coverage through 3-8 km, 0 to 1",
+            "title": "Coverage",
+            "type": "number"
+          },
+          "lat": {
+            "description": "Latitude of the core's peak, and of the box's centre",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "Longitude of the core's peak, and of the box's centre",
+            "title": "Lon",
+            "type": "number"
+          },
+          "path": {
+            "description": "Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx",
+            "title": "Path",
+            "type": "string"
+          },
+          "peak_dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Strongest reflectivity in the core, column maximum",
+            "title": "Peak Dbz"
+          },
+          "reference_time": {
+            "description": "The composite scan the core was found in",
+            "format": "date-time",
+            "title": "Reference Time",
+            "type": "string"
+          },
+          "sites": {
+            "description": "Radars that contributed, by DWD short name",
+            "items": {
+              "type": "string"
+            },
+            "title": "Sites",
+            "type": "array"
+          }
+        },
+        "required": [
+          "path",
+          "coverage",
+          "code",
+          "lon",
+          "lat",
+          "reference_time"
+        ],
+        "title": "RadarVolume",
         "type": "object"
       },
       "SnowRefresh": {
@@ -1499,6 +1635,28 @@
           }
         },
         "summary": "One cell's complete history.",
+        "tags": [
+          "cells"
+        ]
+      }
+    },
+    "/cells/volumes": {
+      "get": {
+        "description": "Every cloud a reader can cut open, whether KONRAD3D warned about it or not.\n\nThese come from the column-maximum composite, not from KONRAD3D, so on\nmost afternoons there are storms here that `/current` never mentions:\nKONRAD3D reports the cells that might hurt someone, and a rain shower\nwith a respectable core inside it is not one of them.",
+        "operationId": "current_volumes_cells_volumes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentVolumes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Storms with a radar volume built for them, from the newest composite scan.",
         "tags": [
           "cells"
         ]

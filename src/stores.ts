@@ -2,7 +2,7 @@ import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
 import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { derived, readable, writable } from "svelte/store";
-import type { CellTrackProperties } from "./api";
+import type { CellTrackProperties, RadarVolume } from "./api";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
 // abstraction.
@@ -140,6 +140,15 @@ export const selectedCell = writable<CellTrackProperties | null>(null);
  * two different claims about it.
  */
 export const cutRotationDeg = writable<number>(0);
+/**
+ * A storm opened for its volume alone, with no KONRAD3D track behind it.
+ *
+ * Most clouds with a volume are showers KONRAD3D never reports, so there is no
+ * history to show and no track for `selectedCell` to hold; this is what they
+ * are selected as instead. The two are exclusive -- opening one closes the
+ * other -- because there is one cutaway on screen at a time.
+ */
+export const selectedVolume = writable<RadarVolume | null>(null);
 
 /**
  * Whether the selected cell's detail panel is open, as opposed to only its
