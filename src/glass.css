@@ -147,7 +147,7 @@
   --mc-tray-pad: 8px;                                 /* a tray's horizontal padding */
   --mc-rail-gap: 10px;                                /* player grid column gap; the forecast bars key off both */
   --mc-bar-h: 84px;                                   /* collapsed toolbar; the flanking discs centre on it */
-  --mc-player-h: 112px;                               /* expanded player tray: track row + controls row + meta/legend row */
+  --mc-player-h: 132px;                               /* expanded player tray: track row + controls row + meta/legend row */
   --mc-safe-top: env(safe-area-inset-top, 0px);
   --mc-safe-bottom: env(safe-area-inset-bottom, 0px);
   --mc-top-stack: calc(var(--mc-safe-top) + var(--mc-gutter));   /* one top line: logo, Latest, switcher */
@@ -274,6 +274,10 @@
   --mc-orange: #ff9f0a;
   --mc-orange-tint: rgba(255, 159, 10, 0.24);
   --mc-orange-ink: #ffb340;
+}
+
+:root.is-ios {
+  --mc-player-h: 132px;
 }
 
 /* Desktop can afford a wider kernel -- and the player grows a legend row. */
