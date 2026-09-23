@@ -110,6 +110,7 @@
     }
 
     .lastUpdatedBottom {
+        bottom: var(--mc-collapsed-bottom);
         height: var(--mc-bar-h);
         z-index: var(--mc-z-tray);
         padding: 0 12px;
