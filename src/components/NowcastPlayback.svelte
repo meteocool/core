@@ -916,40 +916,47 @@ onDestroy(() => {
     column-gap: var(--mc-rail-gap);
     row-gap: 4px;
     /* Phone: transport, layers, and collapse share a row. */
-    grid-template-columns: auto auto 1fr var(--mc-control);
+    grid-template-columns: auto minmax(0, 1fr) var(--mc-control);
     grid-template-areas:
-      "track     track  track  track"
-      "transport layers .      close"
-      "status    status status close";
+      "track     track  track"
+      "transport layers close"
+      "status    status status";
   }
 
   .track        { grid-area: track; min-width: 0; }
   .transport    { grid-area: transport; }
   .layers       { grid-area: layers; min-width: 0; }
-  /* Inset the disc so its curve follows the tray's rounded corner. */
-  .close-inline {
-    position: absolute;
-    right: 6px;
-    bottom: 6px;
-  }
-  .status       { grid-area: status; min-width: 0; justify-self: end; }
+  .close-inline { grid-area: close; }
+  .status       { grid-area: status; min-width: 0; justify-self: center; }
+  .layers sl-button-group { width: 100%; }
+  .button-group-toolbar.layers sl-button-group::part(base) { display: flex; }
+  .layers sl-button { flex: 1 1 0; min-width: 0; }
   .legend       { grid-area: legend; display: none; min-width: 0; }
 
   /* Keep collapse at the trailing edge at every width. */
   @media only screen and (min-width: 621px) {
-    .player-grid {
+    :global(html:not(.is-ios)) .player-grid {
       grid-template-columns: auto auto 1fr var(--mc-control);
       grid-template-areas:
         "track     track  track  track"
         "transport layers .      close"
         "legend    legend status close";
     }
-    .legend { display: block; }
+    :global(html:not(.is-ios)) .legend { display: block; }
+    :global(html:not(.is-ios)) .status { justify-self: end; }
+    :global(html:not(.is-ios)) .close-inline {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+    }
+    :global(html:not(.is-ios)) .layers sl-button-group { width: auto; }
+    :global(html:not(.is-ios)) .layers sl-button { flex: initial; }
+    :global(html:not(.is-ios)) .range::part(input) { height: var(--track-height); }
   }
 
   /* Wide: labels on the layer buttons and the legend below. */
   @media only screen and (min-width: 1120px) {
-    .player-grid {
+    :global(html:not(.is-ios)) .player-grid {
       grid-template-columns: auto auto 1fr var(--mc-control);
       grid-template-areas:
         "track     track  track  track"
@@ -961,7 +968,7 @@ onDestroy(() => {
   /* Labels inside the layer buttons: wide tier only. */
   .wide-only { display: none; }
   @media only screen and (min-width: 1120px) {
-    .wide-only { display: inline; }
+    :global(html:not(.is-ios)) .wide-only { display: inline; }
   }
 
   /* sl-range is themed through its custom properties in glass.css. */
@@ -969,6 +976,14 @@ onDestroy(() => {
     width: 100%;
     top: 0;
     margin: 4px 0 2px;
+  }
+
+  /* Grow the native input hit area while keeping the painted track thin. */
+  .range::part(input) {
+    height: 44px;
+    background-size: 100% var(--track-height);
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   /* Segmented tint capsules. sl-button-group part: base. sl-button parts: base prefix label suffix */
