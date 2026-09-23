@@ -5,10 +5,13 @@ import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd";
 import type { LayerFactory } from "../layers/dwd";
-import SwissRadarLayer from "../layers/ch";
+import NetworkRadarLayer, { NETWORKS } from "../layers/network";
+import type NetworkHoleTileSource from "../layers/networkHoles";
 import {
   capDescription,
+  capLatestObservation,
   capLastUpdated,
+  capTimeIndicator,
   lastFocus,
   inspectLatLon,
   latLon,
@@ -22,7 +25,6 @@ import {
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
-import type ImageTileSource from "ol/source/ImageTile";
 import type NanobarWrapper from "../lib/NanobarWrapper";
 import type { CapabilityOptions, RadarSocket } from "./options";
 import { reportReplay } from "../lib/Toast";
@@ -30,9 +32,9 @@ import Capability from "./Capability";
 import { tileBaseUrl } from "../urls";
 import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
 import { publishCadence } from "../lib/updateCadence";
-import { isOutdated } from "../lib/freshness";
+import { isOutdated, showsLatestFrame } from "../lib/freshness";
 import { NOWCAST_OPACITY } from "../layers/ui";
-import { get } from "svelte/store";
+import { derived, get } from "svelte/store";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
@@ -99,11 +101,11 @@ export default class RadarCapability extends Capability {
   layer: BaseLayer | null;
 
   /** The tile source behind `layer`; its URL is swapped as playback moves. */
-  source: ImageTileSource | null = null;
+  source: NetworkHoleTileSource | null = null;
 
   layers: Record<string, BaseLayer>;
 
-  sources: Record<string, ImageTileSource>;
+  sources: Record<string, NetworkHoleTileSource>;
 
   /** Builds a layer for a tile set; swapped when the colormap changes. */
   layerFactory: LayerFactory;
@@ -130,11 +132,11 @@ export default class RadarCapability extends Capability {
   snowOverlay: VectorTileLayer | null;
 
   /**
-   * MeteoSwiss's reflectivity composite -- a second, independent tile layer,
-   * not part of the DWD grid/GridStep this class otherwise manages. See
-   * `layers/ch.ts` for why the two stay separate.
+   * The EUMETNET networks' composites -- independent tile layers, not part of
+   * the DWD grid/GridStep this class otherwise manages. See `layers/network.ts`
+   * for why they stay separate.
    */
-  private swissRadar: SwissRadarLayer;
+  private networks: NetworkRadarLayer[];
 
   /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
   stale: boolean;
@@ -150,6 +152,10 @@ export default class RadarCapability extends Capability {
   private pokeHandler: (() => void) | null = null;
 
   private snowHandler: (() => void) | null = null;
+
+  private networkHandler: ((event: { network: string }) => void) | null = null;
+
+  private unsubscribeLiveFrame: (() => void) | null = null;
 
   /** The self-rescheduling grid refresh, so destroy() can stop it. */
   private gridRefreshTimeout: number | null = null;
@@ -174,7 +180,18 @@ export default class RadarCapability extends Capability {
     this.serverTime = 0;
     this.snowOverlay = null;
     this.stale = false;
-    this.swissRadar = new SwissRadarLayer(map);
+    this.networks = NETWORKS.map((network) => new NetworkRadarLayer(map, network));
+
+    /* The networks show only the live frame, and DWD is holed only there: on
+       any other step DWD is the whole picture. The same predicate as the cell
+       layer's gate in App.svelte, so the two never disagree about which frame
+       is live. */
+    this.unsubscribeLiveFrame = derived(
+      [capTimeIndicator, capLatestObservation],
+      ([shown, newest]) => showsLatestFrame(shown, newest),
+    ).subscribe((onLiveFrame) => {
+      for (const network of this.networks) network.setLive(onLiveFrame);
+    });
 
     window.radar = this;
 
@@ -276,10 +293,17 @@ export default class RadarCapability extends Capability {
         console.log("received websocket snow overlay poke, refreshing");
         this.downloadSnowOverlay();
       };
+      // One network's composite, re-rendered: refetch that one frame only.
+      // Not `poke`, which reloads DWD's whole timeseries, and these land
+      // every minute or two.
+      this.networkHandler = ({ network }) => {
+        this.networks.find((layer) => layer.network.code === network)?.refresh(this.nanobar);
+      };
       this.socket_io.on("poke", this.pokeHandler);
       this.socket_io.on("snow", this.snowHandler);
+      this.socket_io.on("network", this.networkHandler);
       this.downloadCurrentRadar();
-      this.swissRadar.refresh(this.nanobar);
+      for (const network of this.networks) network.refresh(this.nanobar);
     }
 
     // Initialize grid
@@ -406,7 +430,7 @@ export default class RadarCapability extends Capability {
   reloadAll() {
     console.log("reloadAll");
     this.downloadCurrentRadar();
-    this.swissRadar.refresh(this.nanobar);
+    for (const network of this.networks) network.refresh(this.nanobar);
   }
 
   /** Where the forecast is sampled: a tapped point, else the client's own. */
@@ -542,6 +566,9 @@ export default class RadarCapability extends Capability {
         super.getMap().addLayer(this.layer);
       }
     }
+    // Before any setUrl below: the step being moved onto is the one to hole.
+    const newestUrl = this.clientGrid?.[this.getMostRecentObservation()]?.url;
+    if (newestUrl) this.source?.setLiveUrl(newestUrl);
     switch (this.trackingMode) {
       case "live":
         // Publishes the pair itself: following the grid means the indicator
@@ -626,7 +653,9 @@ export default class RadarCapability extends Capability {
   }
 
   destroy() {
-    this.swissRadar.destroy();
+    for (const network of this.networks) network.destroy();
+    this.unsubscribeLiveFrame?.();
+    this.unsubscribeLiveFrame = null;
     if (this.gridRefreshTimeout !== null) {
       window.clearTimeout(this.gridRefreshTimeout);
       this.gridRefreshTimeout = null;
@@ -639,6 +668,10 @@ export default class RadarCapability extends Capability {
       if (this.snowHandler) {
         this.socket_io.off("snow", this.snowHandler);
         this.snowHandler = null;
+      }
+      if (this.networkHandler) {
+        this.socket_io.off("network", this.networkHandler);
+        this.networkHandler = null;
       }
     }
   }

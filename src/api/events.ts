@@ -19,11 +19,14 @@ export type PokeEvent = Schemas["Poke"];
 export type SnowEvent = Schemas["SnowRefresh"];
 /** A new KONRAD3D run landed; the payload is a nudge, not the cells. */
 export type CellsEvent = Schemas["CellsRefresh"];
+/** One EUMETNET network's composite was re-rendered; refetch only that network's frame. */
+export type NetworkEvent = Schemas["NetworkRefresh"];
 
 export interface ServerToClientEvents {
   cells: (cells: CellsEvent) => void;
   lightning: (strike: LightningEvent) => void;
   mesocyclones: (detections: MesocycloneEvent[]) => void;
+  network: (network: NetworkEvent) => void;
   poke: (poke: PokeEvent) => void;
   snow: (snow: SnowEvent) => void;
 }
