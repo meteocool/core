@@ -55,6 +55,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cells/volumes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Storms with a radar volume built for them, from the newest composite scan.
+         * @description Every cloud a reader can cut open, whether KONRAD3D warned about it or not.
+         *
+         *     These come from the column-maximum composite, not from KONRAD3D, so on
+         *     most afternoons there are storms here that `/current` never mentions:
+         *     KONRAD3D reports the cells that might hurt someone, and a rain shower
+         *     with a respectable core inside it is not one of them.
+         */
+        get: operations["current_volumes_cells_volumes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/lightning_cache": {
         parameters: {
             query?: never;
@@ -518,6 +543,19 @@ export interface components {
             reference_time?: string | null;
         };
         /**
+         * CurrentVolumes
+         * @description Every storm with a radar volume, from the newest scan that has any.
+         */
+        CurrentVolumes: {
+            /**
+             * Reference Time
+             * @description The scan these come from; null when nothing has been built
+             */
+            reference_time?: string | null;
+            /** Volumes */
+            volumes?: components["schemas"]["RadarVolume"][];
+        };
+        /**
          * ForecastPoint
          * @description A predicted centroid and how uncertain it is.
          *
@@ -601,6 +639,23 @@ export interface components {
             time: number;
         };
         /**
+         * NetworkRefresh
+         * @description A nudge that one EUMETNET network's composite has been re-rendered.
+         *
+         *     Deliberately not a `Poke`, for the reason `CellsRefresh` is not one: the
+         *     frontend's `poke` handler reloads DWD's whole radar timeseries, and a
+         *     network composite lands every minute or two. Clients refetch only that
+         *     network's frame.
+         */
+        NetworkRefresh: {
+            /**
+             * Network
+             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France
+             * @enum {string}
+             */
+            network: "ch" | "fr";
+        };
+        /**
          * PointGeometry
          * @description Where a cell seen only once is. GeoJSON needs two positions for a line.
          */
@@ -623,6 +678,68 @@ export interface components {
              * @enum {string}
              */
             refresh: "radar" | "nowcast" | "precipitation_types" | "lightning_mvt";
+        };
+        /**
+         * RadarVolume
+         * @description A storm that can be cut open, found in the radar composite.
+         *
+         *     Not necessarily a KONRAD3D cell. These are storm cores in the
+         *     column-maximum composite, so most of them are showers KONRAD3D never
+         *     reports -- it is a warning product and lists only what might do harm. The
+         *     position is the core's peak, which is where the box is centred.
+         */
+        RadarVolume: {
+            /**
+             * Area Km2
+             * @description Area of the core above the seed threshold
+             */
+            area_km2?: number | null;
+            /**
+             * Bytes
+             * @description Compressed size, so a client can decide on mobile
+             */
+            bytes?: number | null;
+            /**
+             * Code
+             * @description Stable within one scan: the core's grid position, prefixed R
+             */
+            code: string;
+            /**
+             * Coverage
+             * @description Mean beam coverage through 3-8 km, 0 to 1
+             */
+            coverage: number;
+            /**
+             * Lat
+             * @description Latitude of the core's peak, and of the box's centre
+             */
+            lat: number;
+            /**
+             * Lon
+             * @description Longitude of the core's peak, and of the box's centre
+             */
+            lon: number;
+            /**
+             * Path
+             * @description Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx
+             */
+            path: string;
+            /**
+             * Peak Dbz
+             * @description Strongest reflectivity in the core, column maximum
+             */
+            peak_dbz?: number | null;
+            /**
+             * Reference Time
+             * Format: date-time
+             * @description The composite scan the core was found in
+             */
+            reference_time: string;
+            /**
+             * Sites
+             * @description Radars that contributed, by DWD short name
+             */
+            sites?: string[];
         };
         /**
          * SnowRefresh
@@ -908,6 +1025,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_volumes_cells_volumes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentVolumes"];
                 };
             };
         };

@@ -31,6 +31,7 @@ export type CellForecastPoint = DataSchemas["schemas"]["ForecastPoint"];
 export type CellCurrent = DataSchemas["schemas"]["CellCurrent"];
 export type CellLayer = DataSchemas["schemas"]["CellLayer"];
 export type CellVolume = DataSchemas["schemas"]["CellVolume"];
+export type RadarVolume = DataSchemas["schemas"]["RadarVolume"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
@@ -228,6 +229,17 @@ export function fetchCellTracks(
 /** Every cell in the most recent KONRAD3D run, with its forecast centroids. */
 export function fetchCurrentCells(nanobar?: Progress) {
   return request(nanobar, "/cells/current", () => dataClient.GET("/cells/current", {}));
+}
+
+/**
+ * Every storm with a radar volume, from the newest composite scan.
+ *
+ * Found in the radar composite rather than in KONRAD3D, so most of these are
+ * showers `/cells/current` never mentions -- which is the point of them: they
+ * are the clouds a reader can cut open that no warning product would list.
+ */
+export function fetchCurrentVolumes(nanobar?: Progress) {
+  return request(nanobar, "/cells/volumes", () => dataClient.GET("/cells/volumes", {}));
 }
 
 /** One cell's complete history, for a detail view. */

@@ -20,17 +20,36 @@ export function normaliseCut(degrees: number): number {
 }
 
 /**
+ * What the slice is measured from.
+ *
+ * A KONRAD3D cell has a track, and the track is what makes an angle mean
+ * something: along it is where an overhang shows. A storm core found only in
+ * the radar composite has no track at all, so its slice is measured from north
+ * instead -- and saying "along the track" about it would be claiming a
+ * direction of travel nobody measured.
+ */
+export type CutReference = "track" | "north";
+
+/**
  * What the caption says about the slice.
  *
- * Named by its angle to the track, because the track is what the angle means
- * anything against: along it is where an overhang shows, across it is where
- * the width does. Which half is kept does not change what the cut is, so 0 and
- * 180 both read "along".
+ * Named by its angle to whatever it is measured from. Which half is kept does
+ * not change what the cut is, so 0 and 180 read the same.
  */
-export function cutLabel(degrees: number): string {
+export function cutLabel(degrees: number, reference: CutReference = "track"): string {
   const off = Math.abs(normaliseCut(degrees));
-  const toTrack = Math.min(off, 180 - off);
-  if (toTrack < 1) return "cut along the storm's track";
-  if (Math.abs(toTrack - 90) < 1) return "cut across the storm's track";
-  return `cut ${Math.round(toTrack)}° off the storm's track`;
+  const toAxis = Math.min(off, 180 - off);
+  if (reference === "north") {
+    if (toAxis < 1) return "cut north to south";
+    if (Math.abs(toAxis - 90) < 1) return "cut east to west";
+    return `cut ${Math.round(toAxis)}\u00b0 off north\u2013south`;
+  }
+  if (toAxis < 1) return "cut along the storm's track";
+  if (Math.abs(toAxis - 90) < 1) return "cut across the storm's track";
+  return `cut ${Math.round(toAxis)}\u00b0 off the storm's track`;
+}
+
+/** The two snap buttons' labels, for whichever the slice is measured from. */
+export function cutSnapLabels(reference: CutReference): [string, string] {
+  return reference === "north" ? ["N\u2013S", "E\u2013W"] : ["along", "across"];
 }

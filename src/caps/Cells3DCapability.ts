@@ -14,14 +14,14 @@ import { loadCutaway } from "../lib/cellCutaway";
 import { makeCellVolumeLayer } from "../layers/cellVolumeLayer";
 import type { CellVolumeLayer } from "../layers/cellVolumeLayer";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
-import { fetchCellTrack, fetchCurrentCells } from "../api";
+import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, colorSchemeDark, cutRotationDeg, selectedCell, showForecastPlaybutton,
+  capDescription, colorSchemeDark, cutRotationDeg, selectedCell, selectedVolume, showForecastPlaybutton,
 } from "../stores";
 import { get } from "svelte/store";
 
 import { trimToLastRun } from "../lib/cellTrack";
-import type { CellCurrent, CellTrack, CellTrackProperties } from "../api";
+import type { CellCurrent, CellTrack, CellTrackProperties, CellVolume, RadarVolume } from "../api";
 import type VectorSource from "ol/source/Vector";
 
 /**
@@ -98,7 +98,29 @@ const RADAR_OPACITY = 0.35;
 const STRIKE_SOURCE = "strikes";
 
 /** The layers a tap can land on to mean "that storm". */
-const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint"];
+const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint", "cloud-marker"];
+
+/** Every storm core with a volume, as a point per core. */
+const CLOUD_SOURCE = "clouds";
+
+/** Whatever is being raymarched, reduced to what drawing it needs. */
+interface VolumeTarget {
+  code: string;
+  volume: CellVolume;
+  lon: number;
+  lat: number;
+  /** Degrees clockwise from north; null for a storm with no track. */
+  heading: number | null;
+}
+
+/**
+ * The box a volume fills, in kilometres either side of its centre.
+ *
+ * Mirrors `voxels.HALF_WIDTH_M` on the worker. Used only to decide which
+ * extruded cells stand inside the storm being drawn, so a mismatch hides a
+ * tier too many or too few rather than breaking anything.
+ */
+const BOX_HALF_KM = 20;
 
 /**
  * How long a strike stays on this map.
@@ -161,6 +183,9 @@ export default class Cells3DCapability extends Capability {
 
   private cells: CellCurrent[] = [];
 
+  /** Every storm core with a volume in the newest scan, KONRAD3D cell or not. */
+  private clouds: RadarVolume[] = [];
+
   /** The radar frame to drape, as a tile URL template. Set by the caller. */
   private radarUrl: string | null = null;
 
@@ -203,8 +228,16 @@ export default class Cells3DCapability extends Capability {
   /** Whose volume that is, so the extruded tiers know to stand down. */
   private volumeCode: string | null = null;
 
-  /** The storm the volume belongs to, whose track the slice is measured from. */
-  private volumeTrack: CellTrackProperties | null = null;
+  /**
+   * What the volume on screen is centred on, and which way its track points.
+   *
+   * A KONRAD3D cell has a track and so a heading; a storm core found only in
+   * the composite has neither, and its slice starts north to south until the
+   * reader turns it. Either way this is what the slice is measured from.
+   */
+  private volumeTarget: { lon: number; lat: number; heading: number | null } | null = null;
+
+  private unsubscribeVolume: (() => void) | null = null;
 
   private unsubscribeCut: (() => void) | null = null;
 
@@ -219,13 +252,18 @@ export default class Cells3DCapability extends Capability {
 
     this.nanobar = options.nanobar;
     this.unsubscribeSelection = selectedCell.subscribe((track) => {
-      void this.showVolume(track);
+      if (track) void this.showVolume(this.targetOfTrack(track));
+      else if (!get(selectedVolume)) void this.showVolume(null);
+    });
+    this.unsubscribeVolume = selectedVolume.subscribe((cloud) => {
+      if (cloud) void this.showVolume(this.targetOfCloud(cloud));
+      else if (!get(selectedCell)) void this.showVolume(null);
     });
     // Turning the slice in the popup turns it here. Only a uniform changes, so
     // this is a repaint and nothing is rebuilt.
-    this.unsubscribeCut = cutRotationDeg.subscribe(() => {
-      if (!this.volumeLayer || !this.volumeTrack) return;
-      this.volumeLayer.setHeading(this.headingOf(this.volumeTrack));
+    this.unsubscribeCut = cutRotationDeg.subscribe((turn) => {
+      if (!this.volumeLayer || !this.volumeTarget) return;
+      this.volumeLayer.setHeading((this.volumeTarget.heading ?? 0) + turn);
       this.gl?.triggerRepaint();
     });
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
@@ -360,9 +398,11 @@ export default class Cells3DCapability extends Capability {
         // finished loading, which `showVolume` had to give up on at the time.
         this.volumeLayer = null;
         this.volumeCode = null;
-        this.volumeTrack = null;
+        this.volumeTarget = null;
         this.applyData();
-        void this.showVolume(get(selectedCell));
+        const cloud = get(selectedVolume);
+        const track = get(selectedCell);
+        void this.showVolume(cloud ? this.targetOfCloud(cloud) : track ? this.targetOfTrack(track) : null);
       });
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
@@ -371,11 +411,22 @@ export default class Cells3DCapability extends Capability {
       // past one closes it -- the panel is rendered above whichever map is
       // showing, so it needs no separate plumbing here.
       gl.on("click", (event) => {
-        const hit = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) })
-          .find((feature) => feature.properties?.code);
-        const code = hit?.properties?.code;
-        if (code) void this.select(String(code));
-        else selectedCell.set(null);
+        const hits = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) });
+        // A KONRAD3D cell first, when both are under the finger: it has a
+        // history and a heading, and the popup it opens carries the cutaway
+        // anyway if the cell stands inside a volume.
+        const cell = hits.find((feature) => feature.layer.id !== "cloud-marker" && feature.properties?.code);
+        const cloud = hits.find((feature) => feature.layer.id === "cloud-marker");
+        if (cell?.properties?.code) {
+          selectedVolume.set(null);
+          void this.select(String(cell.properties.code));
+        } else if (cloud?.properties?.code) {
+          selectedCell.set(null);
+          selectedVolume.set(this.clouds.find((c) => c.code === cloud.properties.code) ?? null);
+        } else {
+          selectedCell.set(null);
+          selectedVolume.set(null);
+        }
       });
       gl.on("mousemove", (event) => {
         const over = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) }).length > 0;
@@ -436,16 +487,31 @@ export default class Cells3DCapability extends Capability {
   /**
    * Which tiers a storm still draws as extrusions.
    *
-   * Every cell but one. The storm whose volume is being raymarched is drawn
-   * by the volume and nothing else: the shells are the same storm a second
-   * time, measured a different way, and `fill-extrusion` writes depth even
-   * when it is translucent -- so left in place they punch the tier boundaries
-   * straight through the volume they are supposed to be describing.
+   * Every cell but those standing inside the volume being drawn. The volume
+   * is the same weather measured another way, and `fill-extrusion` writes
+   * depth even when it is translucent -- so a cell left extruded inside it
+   * punches its tier boundaries straight through the picture. That is true of
+   * the selected cell and of any neighbour sharing its box, and of every cell
+   * inside a storm core opened from the composite, which may well contain
+   * KONRAD3D cells of its own.
    */
   private tierFilter(tier: number): ExpressionSpecification {
     const mine: ExpressionSpecification = ["==", ["get", "tier"], tier];
-    if (!this.volumeCode) return mine;
-    return ["all", mine, ["!=", ["get", "code"], this.volumeCode]];
+    const hidden = this.hiddenCodes();
+    if (!hidden.length) return mine;
+    return ["all", mine, ["!", ["in", ["get", "code"], ["literal", hidden]]]];
+  }
+
+  /** The cells whose centroid falls inside the box currently being raymarched. */
+  private hiddenCodes(): string[] {
+    const target = this.volumeTarget;
+    if (!target) return [];
+    const kmPerLon = 111.32 * Math.cos((target.lat * Math.PI) / 180);
+    const inside = this.cells
+      .filter((cell) => Math.abs((cell.lon - target.lon) * kmPerLon) <= BOX_HALF_KM
+        && Math.abs((cell.lat - target.lat) * 110.57) <= BOX_HALF_KM)
+      .map((cell) => cell.code);
+    return this.volumeCode && !inside.includes(this.volumeCode) ? [...inside, this.volumeCode] : inside;
   }
 
   private applyTierFilters(): void {
@@ -456,32 +522,50 @@ export default class Cells3DCapability extends Capability {
     });
   }
 
+  /** A KONRAD3D cell, as something to raymarch: it has a track, so a heading. */
+  private targetOfTrack(track: CellTrackProperties): VolumeTarget | null {
+    const volume = track.volume ?? null;
+    const series = track.series ?? [];
+    const last = series[series.length - 1];
+    if (!volume || !last) return null;
+    return { code: track.code, volume, lon: last.lon, lat: last.lat, heading: last.heading_deg ?? null };
+  }
+
   /**
-   * Put the selected storm's volume on the map, or take the last one off.
-   *
-   * Most cells have no volume -- it is built for the strongest few, and only
-   * where the radars sampled them well enough -- so the ordinary answer here
-   * is to remove whatever was showing and stop.
+   * A storm core found in the composite. It has no track and so no heading:
+   * its slice starts north to south, and the reader turns it from there.
    */
-  private async showVolume(track: CellTrackProperties | null): Promise<void> {
-    const volume = track?.volume ?? null;
+  private targetOfCloud(cloud: RadarVolume): VolumeTarget {
+    return { code: cloud.code, volume: cloud, lon: cloud.lon, lat: cloud.lat, heading: null };
+  }
+
+  /**
+   * Put a storm's volume on the map, or take the last one off.
+   *
+   * Driven by either kind of selection: a KONRAD3D cell whose centroid stands
+   * inside a built box, or a storm core opened from the composite directly.
+   * Most cells have no volume, so the ordinary answer for one is to remove
+   * whatever was showing and stop.
+   */
+  private async showVolume(target: VolumeTarget | null): Promise<void> {
     const token = Symbol("volume");
     this.volumeToken = token;
 
-    if (!volume || !track) { this.clearVolume(); return; }
-    if (this.volumeCode === track.code) {
+    if (!target) { this.clearVolume(); return; }
+    const turn = get(cutRotationDeg);
+    if (this.volumeCode === target.code) {
       // Same storm, new run: the cut may have turned with it.
-      this.volumeLayer?.setHeading(this.headingOf(track));
+      this.volumeLayer?.setHeading((target.heading ?? 0) + turn);
       this.gl?.triggerRepaint();
       return;
     }
 
     let cutaway;
     try {
-      cutaway = await loadCutaway(volume);
+      cutaway = await loadCutaway(target.volume);
     } catch {
-      // A volume that will not load is a volume the reader never sees; the
-      // extruded tiers are still there and still say what they always did.
+      // A volume that will not load is one the reader never sees; the extruded
+      // tiers are still there and still say what they always did.
       if (this.volumeToken === token) this.clearVolume();
       return;
     }
@@ -490,32 +574,61 @@ export default class Cells3DCapability extends Capability {
 
     this.clearVolume();
     const layer = makeCellVolumeLayer(
-      VOLUME_LAYER, cutaway, this.headingOf(track), this.maplibre.MercatorCoordinate,
+      VOLUME_LAYER, cutaway, (target.heading ?? 0) + turn, this.maplibre.MercatorCoordinate,
     );
     this.gl.addLayer(layer);
     this.volumeLayer = layer;
-    this.volumeCode = track.code;
-    this.volumeTrack = track;
+    this.volumeCode = target.code;
+    this.volumeTarget = { lon: target.lon, lat: target.lat, heading: target.heading };
     this.applyTierFilters();
-  }
-
-  /**
-   * The direction the slice runs: the storm's track, turned by the reader.
-   *
-   * Turned by the same amount as the panel's, from the same store, so the
-   * map and the popup always cut the storm the same way.
-   */
-  private headingOf(track: CellTrackProperties): number {
-    const series = track.series ?? [];
-    return (series[series.length - 1]?.heading_deg ?? 0) + get(cutRotationDeg);
   }
 
   private clearVolume(): void {
     if (this.gl?.getLayer(VOLUME_LAYER)) this.gl.removeLayer(VOLUME_LAYER);
     this.volumeLayer = null;
     this.volumeCode = null;
-    this.volumeTrack = null;
+    this.volumeTarget = null;
     this.applyTierFilters();
+  }
+
+  /**
+   * Every storm core with a volume, as a ring lying on the ground under it.
+   *
+   * This is what makes a cloud tappable when KONRAD3D never reported it. Flat
+   * on the map rather than standing up, so it marks where a volume is without
+   * competing with the extruded cells for the same space, and coloured by the
+   * core's peak on the same ramp so a strong core reads as strong before it is
+   * opened. Sized in pixels, so it stays a target a finger can hit at any
+   * zoom.
+   */
+  private ensureClouds(gl: GlMap): void {
+    const data = {
+      type: "FeatureCollection" as const,
+      features: this.clouds.map((cloud) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [cloud.lon, cloud.lat] },
+        properties: { code: cloud.code, dbz: cloud.peak_dbz ?? 40 },
+      })),
+    };
+    const source = gl.getSource(CLOUD_SOURCE);
+    if (source) {
+      (source as unknown as { setData(data: unknown): void }).setData(data);
+      return;
+    }
+    gl.addSource(CLOUD_SOURCE, { type: "geojson", data });
+    gl.addLayer({
+      id: "cloud-marker",
+      type: "circle",
+      source: CLOUD_SOURCE,
+      paint: {
+        "circle-pitch-alignment": "map",
+        "circle-radius": 11,
+        "circle-color": "rgba(0, 0, 0, 0)",
+        "circle-stroke-width": 2.5,
+        "circle-stroke-color": dbzRamp(),
+        "circle-stroke-opacity": 0.9,
+      },
+    });
   }
 
   private async select(code: string): Promise<void> {
@@ -589,8 +702,14 @@ export default class Cells3DCapability extends Capability {
   /** Re-read the latest run. One timestep only: this map does not scrub. */
   async refresh(): Promise<void> {
     try {
-      const current = await fetchCurrentCells(this.nanobar);
+      const [current, clouds] = await Promise.all([
+        fetchCurrentCells(this.nanobar),
+        // Its own failure is not the cells' failure: a map with storms and no
+        // cutaways is worth drawing, so an error here is an empty list.
+        fetchCurrentVolumes().catch(() => ({ volumes: [] })),
+      ]);
       this.cells = (current.cells ?? []) as CellCurrent[];
+      this.clouds = (clouds.volumes ?? []) as RadarVolume[];
     } catch {
       // Already reported by the API wrapper; an empty 3D map is not worth a
       // second message on top of it.
@@ -616,6 +735,7 @@ export default class Cells3DCapability extends Capability {
 
     this.ensureRadar(gl);
     this.ensureCells(gl);
+    this.ensureClouds(gl);
     this.ensureStrikes();
   }
 
@@ -783,6 +903,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeSelection = null;
     this.unsubscribeCut?.();
     this.unsubscribeCut = null;
+    this.unsubscribeVolume?.();
+    this.unsubscribeVolume = null;
     this.gl?.remove();
     this.gl = null;
     this.detach();
