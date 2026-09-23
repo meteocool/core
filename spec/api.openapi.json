@@ -300,6 +300,25 @@
         "title": "Mesocyclone",
         "type": "object"
       },
+      "NetworkRefresh": {
+        "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
+        "properties": {
+          "network": {
+            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France",
+            "enum": [
+              "ch",
+              "fr"
+            ],
+            "title": "Network",
+            "type": "string"
+          }
+        },
+        "required": [
+          "network"
+        ],
+        "title": "NetworkRefresh",
+        "type": "object"
+      },
       "Platform": {
         "description": "Which push provider a client is registered with.",
         "enum": [
@@ -1041,6 +1060,28 @@
         ]
       }
     },
+    "/v3/radar/france": {
+      "get": {
+        "description": "The newest French reflectivity composite -- one frame, not a timeseries.\n\nMeteo-France's twenty-three radars, composited by meteocool from their\nlowest tilts; see `/switzerland` for why this is a route of its own.",
+        "operationId": "france_v3_radar_france_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "French reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v3/radar/snow": {
       "get": {
         "description": "The most recent snowfield vector tile set.",
@@ -1065,7 +1106,7 @@
     },
     "/v3/radar/switzerland": {
       "get": {
-        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA separate route and collection (`reflectivity_ch`) rather than folding\ninto `/timeseries`: that endpoint models a forecast keyed by time, which\nMeteoGate's network has none of -- one composite, replaced every capture,\nno history. Same `RadarFrame` shape as every other frame here, so the\nclient needs one type and one tile-URL builder for both networks.",
+        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA separate route and collection (`reflectivity_ch`) rather than folding\ninto `/timeseries`: that endpoint models a forecast keyed by time, which\nthis network has none of -- one composite, replaced whenever a radar\nreports, no history. Same `RadarFrame` shape as every other frame here, so\nthe client needs one type and one tile-URL builder for every network.",
         "operationId": "switzerland_v3_radar_switzerland_get",
         "responses": {
           "200": {

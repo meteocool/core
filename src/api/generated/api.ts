@@ -167,6 +167,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/radar/france": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * French reflectivity tile metadata.
+         * @description The newest French reflectivity composite -- one frame, not a timeseries.
+         *
+         *     Meteo-France's twenty-three radars, composited by meteocool from their
+         *     lowest tilts; see `/switzerland` for why this is a route of its own.
+         */
+        get: operations["france_v3_radar_france_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/radar/snow": {
         parameters: {
             query?: never;
@@ -200,9 +223,9 @@ export interface paths {
          *
          *     A separate route and collection (`reflectivity_ch`) rather than folding
          *     into `/timeseries`: that endpoint models a forecast keyed by time, which
-         *     MeteoGate's network has none of -- one composite, replaced every capture,
-         *     no history. Same `RadarFrame` shape as every other frame here, so the
-         *     client needs one type and one tile-URL builder for both networks.
+         *     this network has none of -- one composite, replaced whenever a radar
+         *     reports, no history. Same `RadarFrame` shape as every other frame here, so
+         *     the client needs one type and one tile-URL builder for every network.
          */
         get: operations["switzerland_v3_radar_switzerland_get"];
         put?: never;
@@ -440,6 +463,23 @@ export interface components {
              * @description Detection id: milliseconds since the epoch, plus an index
              */
             time: number;
+        };
+        /**
+         * NetworkRefresh
+         * @description A nudge that one EUMETNET network's composite has been re-rendered.
+         *
+         *     Deliberately not a `Poke`, for the reason `CellsRefresh` is not one: the
+         *     frontend's `poke` handler reloads DWD's whole radar timeseries, and a
+         *     network composite lands every minute or two. Clients refetch only that
+         *     network's frame.
+         */
+        NetworkRefresh: {
+            /**
+             * Network
+             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France
+             * @enum {string}
+             */
+            network: "ch" | "fr";
         };
         /**
          * Platform
@@ -880,6 +920,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrecipitationTypes"];
+                };
+            };
+        };
+    };
+    france_v3_radar_france_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
                 };
             };
         };

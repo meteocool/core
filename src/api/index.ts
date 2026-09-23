@@ -136,8 +136,7 @@ export function fetchSnowOverlay(nanobar?: Progress) {
 /**
  * The most recent Swiss reflectivity composite -- one frame, not a timeseries.
  *
- * 404s until the first capture lands (MeteoGate's own ingest runs on a
- * 15-minute timer independent of this app), same as `fetchPrecipitationTypes`
+ * 404s until the first composite lands, same as `fetchPrecipitationTypes`
  * before anything has rendered; callers catch that the same way. `optional`,
  * because that 404 is the ingest's schedule rather than a broken backend and
  * has no business putting the map in its degraded state -- a backend with no
@@ -148,6 +147,16 @@ export function fetchSwissRadar(nanobar?: Progress) {
     nanobar,
     "/v3/radar/switzerland",
     () => apiClient.GET("/v3/radar/switzerland", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent French reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchFrenchRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/france",
+    () => apiClient.GET("/v3/radar/france", {}),
     { optional: true },
   );
 }

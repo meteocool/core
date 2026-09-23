@@ -40,7 +40,7 @@ import LiveIndicator from "./LiveIndicator.svelte";
 import { _, locale } from "svelte-i18n";
 import { get } from "svelte/store";
 import { dbz2color } from "../lib/cmap_utils";
-import { dwdRadarExtent4326 } from "../layers/extents";
+import { chRadarExtent4326, dwdRadarExtent4326, frRadarExtent4326 } from "../layers/extents";
 import { reverseGeocode } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
 import ChartSkeleton from "./ChartSkeleton.svelte";
@@ -343,10 +343,11 @@ let chartDismissed = false;
 /**
  * Whether any of what is on screen has radar behind it.
  *
- * meteocool's live radar is the DWD composite, which stops at Germany and its
- * neighbours; every other layer is global. Someone opening the app on holiday
+ * meteocool's live radar is DWD's composite plus MeteoSwiss's and
+ * Meteo-France's, which stop at Germany, Switzerland, France and the reach
+ * around them; every other layer is global. Someone opening the app on holiday
  * sees an empty map and no reason for it, which reads as the app being broken
- * rather than as a coverage boundary. Answered from the layer's own extent, so
+ * rather than as a coverage boundary. Answered from the layers' own extents, so
  * it cannot drift from what actually gets drawn.
  *
  * Only when the viewport misses the box entirely -- half a screen of coverage
@@ -359,9 +360,13 @@ function overlaps(
   return a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
 }
 
+/* Every network's grid, not just DWD's: a viewport over Brittany or Corsica
+   misses DWD's box entirely and is covered all the same, by Meteo-France. */
+const radarExtents4326 = [dwdRadarExtent4326, chRadarExtent4326, frRadarExtent4326];
+
 $: outOfCoverage = $sharedActiveCap === "radar"
   && $mapExtent4326 !== null
-  && !overlaps(dwdRadarExtent4326, $mapExtent4326);
+  && !radarExtents4326.some((extent) => overlaps(extent, $mapExtent4326));
 
 let coverageDismissed = false;
 /* Re-armed on the way back in, so panning out again says so again. */
