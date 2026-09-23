@@ -736,6 +736,11 @@ export interface components {
              */
             reference_time: string;
             /**
+             * Seed Dbz
+             * @description The threshold `area_km2` was measured above. Carried per volume because an area means nothing without it, and the setting can change between building and showing.
+             */
+            seed_dbz?: number | null;
+            /**
              * Sites
              * @description Radars that contributed, by DWD short name
              */
