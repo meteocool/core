@@ -26,7 +26,11 @@ const close = () => selectedVolume.set(null);
 $: seen = new Date(cloud.reference_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 $: facts = [
   cloud.peak_dbz != null ? `peak ${Math.round(cloud.peak_dbz)} dBZ` : null,
-  cloud.area_km2 != null ? `${Math.round(cloud.area_km2)} km² above 40 dBZ` : null,
+  // The threshold comes with the volume: the area is only meaningful beside it,
+  // and it is set on the worker, where it has already changed once.
+  cloud.area_km2 != null
+    ? `${Math.round(cloud.area_km2)} km²${cloud.seed_dbz != null ? ` above ${Math.round(cloud.seed_dbz)} dBZ` : ""}`
+    : null,
   `at ${seen}`,
 ].filter(Boolean).join(" · ");
 </script>
