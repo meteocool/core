@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EMPTY_HEALTH, nextHealth } from "../../src/lib/apiHealth.ts";
+import { EMPTY_HEALTH, markAbsent, nextHealth } from "../../src/lib/apiHealth.ts";
 
 /**
  * The bookkeeping behind the "Degraded" pill: which endpoints are currently
@@ -78,5 +78,60 @@ test("the previous state is never mutated", () => {
   const snapshot = JSON.parse(JSON.stringify(before));
   nextHealth(before, "/a", new Error("again"), 2);
   nextHealth(before, "/a");
+  assert.deepEqual(JSON.parse(JSON.stringify(before)), snapshot);
+});
+
+/*
+ * Absence, which is a different claim from failure.
+ *
+ * Some of what the map draws is published on a timer of its own and answers
+ * 404 until its first capture lands. Counted as a failed call it put the map
+ * in its degraded state and raised "Something went wrong" over a layer working
+ * exactly as designed -- on a backend with no Swiss capture at all, for the
+ * whole session. So it is recorded, and recorded where the degraded criteria
+ * do not look.
+ */
+
+test("an absence is not a failure", () => {
+  const after = markAbsent(EMPTY_HEALTH, "/v3/radar/switzerland");
+  assert.deepEqual(after.absent, ["/v3/radar/switzerland"]);
+  assert.deepEqual(after.failing, []);
+  assert.equal(after.failures, 0);
+  assert.equal(after.lastFailureAt, null);
+});
+
+test("an endpoint that keeps finding nothing is recorded once", () => {
+  let health = markAbsent(EMPTY_HEALTH, "/a");
+  health = markAbsent(health, "/a");
+  assert.deepEqual(health.absent, ["/a"]);
+  assert.equal(health, markAbsent(health, "/a"));
+});
+
+test("a published answer clears the absence", () => {
+  const absent = markAbsent(EMPTY_HEALTH, "/a");
+  assert.deepEqual(nextHealth(absent, "/a").absent, []);
+});
+
+test("an endpoint that starts erroring is no longer merely empty", () => {
+  const absent = markAbsent(EMPTY_HEALTH, "/a");
+  const broken = nextHealth(absent, "/a", new Error("boom"), 1);
+  assert.deepEqual(broken.absent, []);
+  assert.deepEqual(broken.failing, ["/a"]);
+});
+
+test("an endpoint that stops erroring and starts answering nothing swaps sides", () => {
+  const broken = nextHealth(EMPTY_HEALTH, "/a", new Error("boom"), 1);
+  const empty = markAbsent(broken, "/a");
+  assert.deepEqual(empty.failing, []);
+  assert.deepEqual(empty.absent, ["/a"]);
+  // The history of the outage is kept; it is the live fault that has cleared.
+  assert.equal(empty.failures, 1);
+});
+
+test("an absence does not mutate what it was given", () => {
+  const before = nextHealth(EMPTY_HEALTH, "/a", new Error("boom"), 1);
+  const snapshot = JSON.parse(JSON.stringify(before));
+  markAbsent(before, "/a");
+  markAbsent(before, "/b");
   assert.deepEqual(JSON.parse(JSON.stringify(before)), snapshot);
 });

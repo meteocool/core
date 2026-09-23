@@ -16,15 +16,18 @@ import { SvelteMap } from "svelte/reactivity";
 import { capLatestObservation, cellDetails, selectedCell, smallScreen } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
+import { cellStatus } from "../lib/cellStatus";
 import { MAX_FAMILY, missingRelatives } from "../lib/cellLineage";
 import { timeTicks } from "../lib/timeTicks";
 import { fetchCellTrack } from "../api";
 import CellLineage from "./CellLineage.svelte";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
+import CellCutaway from "./CellCutaway.svelte";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
+import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
 import type { CellStep, CellTrackProperties } from "../api";
-import type { VolumeInput } from "../lib/cellVolume";
+import type { ModelFrame, VolumeInput } from "../lib/cellVolume";
 
 export let track: CellTrackProperties;
 
@@ -373,6 +376,91 @@ $: shape = latest && (track.structure ?? []).length
   : null;
 
 
+/* ---- the model's frame --------------------------------------------------- */
+
+/**
+ * The widest a family's frame may grow beyond the open cell's own.
+ *
+ * A common scale is the whole point, but taken literally it has a floor
+ * problem: a 2 km cell that has just split off a 30 km supercell would be
+ * drawn at a fifteenth of the canvas, which is a dot rather than a shape, and
+ * a shape is what the picture is for. Past this ratio the shared scale is
+ * abandoned for that one cell rather than rendering something unreadable --
+ * the ruler beside it still says what it is.
+ */
+const MAX_FRAME_RATIO = 4;
+
+/**
+ * Each cell's own extent, worked out once.
+ *
+ * `cellVolume` rebuilds a solid from the threshold stack, and the family runs
+ * to MAX_FAMILY members -- doing that on every frame of a turning model, or on
+ * every clock tick, would be absurd for a number that cannot change while the
+ * panel is open.
+ */
+// Deliberately not a SvelteMap. This is a memo, not state: it is written
+// during the reactive statement that reads it, so a reactive Map would
+// invalidate that statement from inside itself. What drives the frame is
+// `family`, which is reactive already.
+// eslint-disable-next-line svelte/prefer-svelte-reactivity
+const extents = new Map<string, ModelFrame | null>();
+
+function extentOf(cell: CellTrackProperties): ModelFrame | null {
+  const cached = extents.get(cell.code);
+  if (cached !== undefined) return cached;
+
+  const steps = cell.series ?? [];
+  const at = steps[steps.length - 1];
+  const volume = at && (cell.structure ?? []).length
+    ? cellVolume({
+      code: cell.code,
+      lon: at.lon,
+      lat: at.lat,
+      echo_bottom_m: cell.echo_bottom_m,
+      polygon: cell.polygon,
+      structure: cell.structure,
+    })
+    : null;
+  const extent = volume ? frameOf(volume) : null;
+  extents.set(cell.code, extent);
+  return extent;
+}
+
+/**
+ * One frame for the whole family, so size means something across a hop.
+ *
+ * Every model used to be normalised to fill its canvas, which made the most
+ * legible quantity in the picture -- how big the storm looks -- carry no
+ * information at all: walking from a cell to the parent it split from showed
+ * two storms the same size. Framing them all on the family's envelope is what
+ * makes the comparison the panel invites an honest one.
+ *
+ * It only ever grows: the family arrives in rounds behind the first paint, so
+ * a frame that tracked the set exactly would shrink the model a step at a time
+ * as relatives landed. Growing is a single settle, and `CellModel3D` eases it.
+ */
+$: modelFrame = shape ? frameFor(track, family) : null;
+
+function frameFor(
+  root: CellTrackProperties,
+  known: Map<string, CellTrackProperties>,
+): ModelFrame | null {
+  const own = extentOf(root);
+  if (!own) return null;
+
+  let frame = own;
+  known.forEach((other) => {
+    const extent = extentOf(other);
+    if (extent) frame = unionFrame(frame, extent);
+  });
+
+  return {
+    radiusKm: Math.min(frame.radiusKm, own.radiusKm * MAX_FRAME_RATIO),
+    lowKm: Math.max(frame.lowKm, own.lowKm * MAX_FRAME_RATIO),
+    highKm: Math.min(frame.highKm, Math.max(own.highKm, 1) * MAX_FRAME_RATIO),
+  };
+}
+
 $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
 
 /* ---- the family ---------------------------------------------------------- */
@@ -449,6 +537,13 @@ $: recency = cellRecency(
   $capLatestObservation > 0 ? $capLatestObservation * 1000 : null,
 );
 $: radarOffset = radarOffsetLabel(recency.behindMinutes);
+
+/** Alive, quiet, superseded or gone. See lib/cellStatus.ts for why it is four. */
+$: status = cellStatus({
+  active: track.active,
+  child_codes: track.child_codes,
+  ageMinutes: recency.ageMinutes,
+});
 $: observedAt = clock(track.last_seen);
 
 /**
@@ -466,44 +561,69 @@ function close() {
   if (!next.code) selectedCell.set(null);
   cellDetails.set(next.details);
 }
+
+/**
+ * Escape closes the panel, which is what every other dismissable surface on a
+ * desktop does.
+ *
+ * Routed through `close()` rather than clearing the stores directly, so the
+ * key does exactly what the button does -- including leaving the forecast
+ * drawn on a phone, where `afterClose` keeps the selection. That also makes it
+ * safe to bind unconditionally: a tablet with a keyboard gets the same
+ * behaviour its grabber already offers, and a phone with none never fires it.
+ *
+ * Three things are deliberately left alone. A dialog above the panel owns the
+ * key first -- Shoelace closes `sl-dialog` on Escape itself, and About is
+ * mounted over this -- so an open one means the key was not aimed here. A
+ * handler that already called `preventDefault` means the same. And Escape in a
+ * field means "cancel what I am typing", never "close the panel behind it".
+ */
+function onKeydown(event: KeyboardEvent) {
+  if (event.key !== "Escape" || event.defaultPrevented) return;
+  if (document.querySelector("sl-dialog[open]")) return;
+  const target = event.target as HTMLElement | null;
+  if (target?.isContentEditable) return;
+  if (target && /^(?:INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+  close();
+}
 </script>
+
+<svelte:window on:keydown={onKeydown} />
 
 <div class="cell-details">
   <header style="border-color: {colour}">
     <span class="severity">{BAND_NAMES[severity]}</span>
     <span class="age">{age}</span>
-    {#if !track.active}<span class="age">dissipated</span>{/if}
+    <!-- The dot is the same signal the "Latest" pill uses for the feed, and it
+         means the same thing here: something is still arriving. -->
+    <span class="status {status.kind}">
+      <span class="dot"></span>{status.label}
+    </span>
     <button class="close" on:click={close} aria-label="Close">&times;</button>
   </header>
 
   <div class="signals">
     {#if track.meso_ever}
       <span class="signal rotating">
-        rotating{track.meso_minutes ? ` ${duration(track.meso_minutes)}` : ""}
+        Rotating{track.meso_minutes ? ` ${duration(track.meso_minutes)}` : ""}
       </span>
     {/if}
     {#if track.hail_ever}
       <span class="signal hail">
-        hail{track.hail_minutes ? ` ${duration(track.hail_minutes)}` : ""}
+        Hail{track.hail_minutes ? ` ${duration(track.hail_minutes)}` : ""}
       </span>
     {/if}
-    {#if track.lightning_jump_recent}<span class="signal jump">lightning jump</span>{/if}
-    {#if track.intensifying}<span class="signal up">intensifying</span>{/if}
-    {#if track.split_ever}<span class="signal lineage">split</span>{/if}
-    {#if track.merge_ever}<span class="signal lineage">merged</span>{/if}
+    {#if track.lightning_jump_recent}<span class="signal jump">Lightning Jump</span>{/if}
+    {#if track.intensifying}<span class="signal up">Intensifying</span>{/if}
+    {#if track.split_ever}<span class="signal lineage">Split</span>{/if}
+    {#if track.merge_ever}<span class="signal lineage">Merged</span>{/if}
     {#if track.deviation_deg !== null && track.deviation_deg !== undefined
       && track.deviation_deg > DEVIANT_DEGREES}
-      <span class="signal deviant">deviant {round(track.deviation_deg)}&deg;</span>
+      <span class="signal deviant">Deviant {round(track.deviation_deg)}&deg;</span>
     {/if}
   </div>
 
-  {#if shape}
-    <figure class="model">
-      <CellModel3D cell={shape} width={CHART.width} height={200} />
-      <figcaption>structure at {observedAt} &middot; drag to turn</figcaption>
-    </figure>
-  {/if}
-
+  <h3 class="section">Readings</h3>
   <ul class="metrics">
     {#each readings as item (item.key)}
       <li class="metric" data-band={item.band ?? "none"} title={item.bandName ?? ""}>
@@ -519,7 +639,37 @@ function close() {
     {/each}
   </ul>
 
+  <!-- Numbers before models: the readings are the answer to "how bad is it",
+       which is what a reader wants first, and the 3D shapes are the slower,
+       more exploratory read that can wait until they have scrolled to it. -->
+  {#if shape}
+    <h3 class="section">Structure<span class="aside">drag to turn</span></h3>
+    <figure class="model">
+      <CellModel3D cell={shape} frame={modelFrame} width={CHART.width} height={200} />
+      <figcaption>at {observedAt}</figcaption>
+    </figure>
+  {/if}
+
+  <!-- The measured model above cannot lean: its shells are stacked outlines.
+       This one is built from the radar's own 3D field and cut open, so an
+       overhang -- the core hanging downshear out over the inflow -- is visible
+       where there is one. Offered only for the storms a volume was built for,
+       which is the strongest few and only where the radars sampled the 3 to
+       8 km layer properly. -->
+  {#if track.volume}
+    <h3 class="section">Inside<span class="aside">cut along the track</span></h3>
+    <figure class="model">
+      <CellCutaway
+        volume={track.volume}
+        headingDeg={latest?.heading_deg ?? null}
+        width={CHART.width}
+        height={200}
+      />
+    </figure>
+  {/if}
+
   {#if span && panels.length}
+    <h3 class="section">History</h3>
     <div class="history">
       {#each panels as panel, panelIndex (panel.key)}
         <figure>
@@ -586,7 +736,7 @@ function close() {
     </div>
   {/if}
 
-  <CellLineage {track} known={family} loading={loadingFamily} />
+  <CellLineage {track} known={family} loading={loadingFamily} now={tick} />
 
   <footer class="recency" class:offset={radarOffset !== null}>
     <span>
@@ -621,6 +771,57 @@ function close() {
   .severity {
     font-weight: 600;
     text-transform: capitalize;
+  }
+
+  /**
+   * Whether the storm is still there, at the top where the question is asked.
+   *
+   * This used to be one grey word -- "dissipated" -- in the same style as the
+   * age beside it, which made the single most important fact about a cell the
+   * quietest thing in its header, and said nothing at all when a cell was
+   * still flagged active but had stopped being detected. Four states now, and
+   * the live one carries the pulsing dot from the "Latest" pill, because it is
+   * the same claim about the same thing: something is still arriving.
+   */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .status .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    /* The baseline-aligned header would hang a 6px round dot off the bottom of
+       the text box; this pins it to the middle of the word beside it. */
+    flex: 0 0 auto;
+  }
+  .status.live {
+    color: var(--mc-red, #e5484d);
+  }
+  .status.live .dot {
+    animation: cell-alive 2s ease-in-out infinite;
+  }
+  /* Not an error, and not nothing: the numbers above are older than they look. */
+  .status.stale {
+    color: var(--mc-orange, #f5a524);
+  }
+  /* Ended is a fact, not a warning, so it recedes to the weight of the age. */
+  .status.superseded,
+  .status.ended {
+    color: var(--sl-color-neutral-500, #78716c);
+    font-weight: 500;
+  }
+  @keyframes cell-alive {
+    50% { opacity: 0.25; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status.live .dot { animation: none; }
   }
   .age {
     font-size: 11px;
@@ -707,10 +908,12 @@ function close() {
     .close {
       width: 44px;
       height: 44px;
-      /* Pulled up into its own padding, but not out past the right edge: eight
-         pixels of overhang there was enough to give the sheet a horizontal
-         scrollbar, on a panel with nothing to scroll sideways. */
-      margin: -6px 0 -6px auto;
+      /* Pulled up and right, into the sheet's own corner. The sheet now
+         reserves matching padding on .body for this overhang (see
+         CellSheet.svelte) -- previously any right overhang here gave the
+         sheet a horizontal scrollbar, on a panel with nothing to scroll
+         sideways. */
+      margin: -10px -8px -10px auto;
       font-size: 26px;
     }
     header {
@@ -889,26 +1092,52 @@ function close() {
   }
   .left { text-anchor: end; dominant-baseline: middle; }
   /**
-   * A section heading, in the shape a phone draws one.
+   * A section heading, on the footing iOS gives one in a grouped list.
    *
-   * The panel had no headings at all: a stack of figures whose captions are
-   * axis labels -- "reflectivity, dBZ" -- doing double duty as titles, in the
-   * same 11px grey as everything else. That reads as one long block rather
-   * than as parts, which matters most on the sheet, where a reader scrolls
-   * past the charts looking for the family and has nothing to aim at. A
-   * heading is set in the panel's own text colour at a size above the body,
-   * semibold, with the space above it that separates it from what came before.
+   * The panel had no headings at all bar the family's: a stack of figures
+   * whose captions are axis labels -- "reflectivity, dBZ" -- doing double duty
+   * as titles, in the same 10px grey as everything else. That reads as one
+   * long block rather than as parts, which matters most on the sheet, where a
+   * reader scrolls past the charts looking for the family and has nothing to
+   * aim at.
+   *
+   * Apple sets these at Footnote (13px) semibold in the secondary label
+   * colour, not at a size above the body in the primary one -- a section
+   * header names the group, it is not the loudest thing in it. The first pass
+   * here went the other way, 15px in neutral-900, and in a 13px panel that put
+   * the labels above the readings they were labelling. Tracking goes slightly
+   * positive rather than negative: at this size the default fit is too tight,
+   * which is the opposite of the problem a display size has.
+   *
+   * `h3` because these are real headings -- the panel is a section of the page
+   * and each block is a section of the panel, so a screen reader can jump
+   * between them.
    */
   :global(.cell-details .section) {
-    margin: 16px 0 6px;
-    font: 600 15px/1.2 var(--mc-font, system-ui);
-    letter-spacing: -0.01em;
-    color: var(--sl-color-neutral-900, #111);
+    margin: 18px 0 7px;
+    font: 600 13px/1.25 var(--mc-font, system-ui);
+    letter-spacing: 0.006em;
+    color: var(--sl-color-neutral-600, #57534e);
   }
+  /* The first heading follows the signals row, which already carries the gap. */
+  :global(.cell-details .section:first-of-type) {
+    margin-top: 10px;
+  }
+  /**
+   * The aside is the hint that used to live in the caption ("drag to turn",
+   * "tap to follow"). Set a step quieter again, and separated by a middot:
+   * a margin alone left two phrases touching with nothing to say they were
+   * different things.
+   */
   :global(.cell-details .section .aside) {
-    margin-left: 6px;
     font: 400 12px/1 var(--mc-font, system-ui);
     color: var(--sl-color-neutral-500, #78716c);
+    letter-spacing: 0;
+  }
+  :global(.cell-details .section .aside)::before {
+    content: "·";
+    margin: 0 5px;
+    color: var(--sl-color-neutral-400, #a8a29e);
   }
 
   footer {

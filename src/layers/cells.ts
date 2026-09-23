@@ -9,7 +9,7 @@ import Point from "ol/geom/Point";
 import type { FeatureLike } from "ol/Feature";
 import { selectedCell } from "../stores";
 import { LIGHT_CASING, watchCasing } from "./casing";
-import { labelStepMinutes, outlineIsCurrent } from "../lib/cellGeometry";
+import { leadLabel, outlineIsCurrent } from "../lib/cellGeometry";
 
 /**
  * Tracked thunderstorm cells: where each one has been, and where it is going.
@@ -37,7 +37,7 @@ import { labelStepMinutes, outlineIsCurrent } from "../lib/cellGeometry";
 /** DWD's severity classes, in the colours their own charts use. */
 const SEVERITY_COLOURS = ["#2f9e44", "#f0b429", "#e03131", "#9c36b5"];
 
-export type CellFeatureKind = "path" | "cell" | "outline" | "forecast" | "ellipse";
+export type CellFeatureKind = "path" | "link" | "cell" | "outline" | "forecast" | "ellipse";
 
 const severityColour = (severity: number): string => SEVERITY_COLOURS[Math.min(Math.max(severity, 0), 3)];
 
@@ -115,6 +115,40 @@ function pathStyle(feature: FeatureLike): Style {
   }));
 }
 
+/**
+ * A split or a merge, drawn as the gap it is.
+ *
+ * The join is a real continuation and has to read as one, or the map is back
+ * to two unrelated lines; it is also the one segment of a track that was never
+ * observed. DWD ends a code and starts another, and nothing was detected in
+ * between -- the line only says which detections belong to the same storm.
+ *
+ * So: the colour and the fade of the track it leads into, which is what makes
+ * it read as the same storm carrying on, and dotted rather than drawn, which
+ * is what keeps it from being read as a fifth of an hour of positions nobody
+ * ever measured. Thinner than a path for the same reason.
+ *
+ * Lit from either end. The joins belong as much to the cell that ended as to
+ * the one that carries on, and a reader who opens the parent is asking
+ * exactly what became of it.
+ */
+function linkStyle(feature: FeatureLike): Style {
+  const severity = feature.get("max_severity") ?? 0;
+  const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
+  const picked = isSelected(feature) || feature.get("from_code") === selectedCode;
+  return cached(`link:${severity}:${opacity}:${picked}`, () => new Style({
+    stroke: new Stroke({
+      color: rgba(severityColour(severity), picked ? 0.95 : 0.7 * opacity),
+      width: (picked ? 2.5 : 1.5) + Math.min(severity, 3) * 0.5,
+      lineCap: "round",
+      lineJoin: "round",
+      // A dotted line rather than a dashed one: the gaps are most of it, so
+      // the join reads as the steps nobody measured rather than as a path.
+      lineDash: [1, 6],
+    }),
+  }));
+}
+
 function cellStyle(feature: FeatureLike): Style {
   const severity = feature.get("max_severity") ?? 0;
   const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
@@ -176,6 +210,15 @@ let casing = LIGHT_CASING;
  */
 const ELLIPSE_DASH = [7, 5];
 
+/**
+ * How often the lead labels are recomputed while a cell is selected.
+ *
+ * They are rounded to the minute, so this is how wrong one is allowed to be:
+ * fifteen seconds, which is under the rounding and far under the minute the
+ * reader is being told about.
+ */
+const LABEL_TICK_MS = 15_000;
+
 function forecastStyle(feature: FeatureLike): Style | undefined {
   if (!isSelected(feature)) return undefined;
   const severity = feature.get("max_severity") ?? 0;
@@ -204,13 +247,29 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * whatever is beneath it, which is the problem rather than the solution.
  */
 /**
- * A ring's lead time, written on its leading edge.
+ * How long until the storm gets here, written on the ring's leading edge.
  *
  * Without it the cone is a dozen rings that plainly mean something about time
  * and do not say what: whether the outermost is ten minutes out or three hours
  * is the difference between watching a storm and having somewhere to be. The
  * label is the ring's own answer, placed where `leadingTip` put it -- the far
  * end of the major axis, where consecutive rings are furthest apart.
+ *
+ * ## Counted from now, not from the scan
+ *
+ * The number used to be the ring's lead over the last detection, which is the
+ * forecast's own frame and the wrong one to put in front of a reader. Nothing
+ * reaches the map the instant it happens: the radar scan, DWD's KONRAD3D run
+ * behind it, the ingest behind that, and then however long the popup has been
+ * open. By the time "+15 min" is read it routinely means eight, and a reader
+ * deciding whether to bring the washing in acts on the number, not on the
+ * pipeline.
+ *
+ * So the label counts down from the viewer's own clock. The cost is that the
+ * sequence is no longer round -- +8, +23, +38 rather than +15, +30, +45 --
+ * which looks like a bug and is the correction. Rings whose moment has already
+ * passed lose their label and keep their outline: the cone is one shape and
+ * punching holes in it would say the forecast had gaps.
  *
  * Only the lead time, not the uncertainty. These are DWD's 1-sigma Kalman
  * ellipses, so the honest reading of the outer ring is "about two chances in
@@ -219,14 +278,14 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * width belongs.
  */
 function leadLabelStyle(feature: FeatureLike, resolution: number): Style | undefined {
-  const lead = feature.get("lead_minutes");
   const tip = feature.get("tip") as number[] | undefined;
-  if (!tip || typeof lead !== "number" || lead <= 0) return undefined;
-  if (lead % labelStepMinutes(resolution) !== 0) return undefined;
+  if (!tip) return undefined;
+  const text = leadLabel(feature.get("forecast_at"), feature.get("lead_minutes"), resolution);
+  if (text === null) return undefined;
   const severity = feature.get("max_severity") ?? 0;
-  return cached(`lead:${severity}:${casing}:${lead}`, () => new Style({
+  return cached(`lead:${severity}:${casing}:${text}`, () => new Style({
     text: new Text({
-      text: `+${lead} min`,
+      text,
       font: "600 11px sans-serif",
       fill: new Fill({ color: rgba(severityColour(severity), 1) }),
       // The casing the rings get, for the same reason and against the same
@@ -288,6 +347,7 @@ const STYLES: Record<
   (feature: FeatureLike, resolution: number) => Style | Style[] | undefined
 > = {
   path: pathStyle,
+  link: linkStyle,
   cell: cellStyle,
   outline: outlineStyle,
   forecast: forecastStyle,
@@ -308,10 +368,32 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
     },
   });
 
+  /*
+   * The lead labels count down from the viewer's clock, so they go stale on
+   * their own -- OpenLayers keeps a layer's rendered output until something
+   * invalidates it, and panning the map is not something a reader does while
+   * reading a number off it.
+   *
+   * Only while a cell is selected, because that is the only time a ring is
+   * drawn at all (see `ellipseStyle`), and redrawing this layer is not free:
+   * it holds every feature of every track in the viewport. Once a selection is
+   * open that is one relayout every fifteen seconds, against the twenty a
+   * second the pulse was moved into its own layer to avoid.
+   */
+  let ticking: ReturnType<typeof setInterval> | null = null;
+
   selectedCell.subscribe((track) => {
     const code = track?.code ?? null;
     if (code === selectedCode) return;
     selectedCode = code;
+
+    if (code && ticking === null) {
+      ticking = setInterval(() => layer.changed(), LABEL_TICK_MS);
+    } else if (!code && ticking !== null) {
+      clearInterval(ticking);
+      ticking = null;
+    }
+
     layer.changed();
   });
 

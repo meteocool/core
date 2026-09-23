@@ -205,7 +205,12 @@
         }
         .parentz {
             flex-wrap: wrap;
-            align-content: space-between;
+            /* The scale and the "last updated" line are two short rows in a
+               bar with a fixed height (shared with NowcastPlayback's flanking
+               discs, which centre on it) -- space-between was pinning them to
+               the top of that height rather than centring the pair, leaving
+               dead air below. */
+            align-content: center;
         }
         .palette {
             flex: 1 1 100%;

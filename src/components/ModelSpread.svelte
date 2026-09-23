@@ -39,7 +39,7 @@ Chart.register(LineController, LineElement, PointElement, Filler, Tooltip);
 type Variable = "precipitation_probability" | "temperature_2m";
 
 const VARIABLES: Array<{ id: Variable; label: string; unit: string; max?: number }> = [
-  { id: "precipitation_probability", label: "Rain chance", unit: "%", max: 100 },
+  { id: "precipitation_probability", label: "Rain Chance", unit: "%", max: 100 },
   { id: "temperature_2m", label: "Temperature", unit: "°" },
 ];
 
@@ -48,7 +48,7 @@ const VARIABLES: Array<{ id: Variable; label: string; unit: string; max?: number
    lines compresses each day into ~90px, where the daily cycle is a blur. */
 const RANGES: Array<{ hours: number; label: string }> = [
   { hours: 24, label: "24 h" },
-  { hours: 168, label: "7 days" },
+  { hours: 168, label: "7 Days" },
 ];
 
 let variable: Variable = "precipitation_probability";
@@ -459,8 +459,8 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
       <canvas use:build></canvas>
     </div>
     <div class="legend">
-      <span><i class="key"></i>median</span>
-      <span><i class="key band"></i>range across models</span>
+      <span><i class="key"></i>Median</span>
+      <span><i class="key band"></i>Range Across Models</span>
       <span><i class="key thin"></i>{modelCount || 21} models</span>
     </div>
   {/if}
