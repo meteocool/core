@@ -25,6 +25,7 @@ import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
 import CellCutaway from "./CellCutaway.svelte";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
+import { placementLabel } from "../lib/cellPlacement";
 import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
 import type { CellStep, CellTrackProperties } from "../api";
 import type { ModelFrame, VolumeInput } from "../lib/cellVolume";
@@ -148,6 +149,9 @@ function path(
 
 $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
+// What to call it. Null when the environment has no geocoder or the cell is out
+// at sea, and then the header is just the severity it always was.
+$: place = placementLabel(track.placement, $_, "long");
 $: series = track.series ?? [];
 $: latest = series[series.length - 1];
 $: forecast = track.forecast ?? [];
@@ -601,6 +605,9 @@ function onKeydown(event: KeyboardEvent) {
     </span>
     <button class="close" on:click={close} aria-label="Close">&times;</button>
   </header>
+  {#if place}
+    <p class="place">{place}</p>
+  {/if}
 
   <div class="signals">
     {#if track.meso_ever}
@@ -771,6 +778,12 @@ function onKeydown(event: KeyboardEvent) {
   .severity {
     font-weight: 600;
     text-transform: capitalize;
+  }
+  .place {
+    margin: -2px 0 6px;
+    padding-left: 12px;
+    font-size: 0.9em;
+    opacity: 0.8;
   }
 
   /**

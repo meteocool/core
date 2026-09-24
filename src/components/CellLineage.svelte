@@ -39,10 +39,12 @@
  * made this the only one that did not.
  */
 import { onDestroy, tick } from "svelte";
+import { _ } from "svelte-i18n";
 import dagre from "@dagrejs/dagre";
 import { selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
 import { axisOffsets, buildLineage, nodeRole } from "../lib/cellLineage";
+import { placementLabel } from "../lib/cellPlacement";
 import type { CellTrackProperties } from "../api";
 
 export let track: CellTrackProperties;
@@ -112,6 +114,13 @@ interface Placed {
   badge: string;
   at: string;
   peak: string;
+  /**
+   * "N of Freising", or "" when the cell has no name. The short form because
+   * a 62px box has no room for the distance, and not drawn in it at all: the
+   * peak already fills it, and the peak is what a reader is scanning the family
+   * for. It rides on the node as a tooltip and in its accessible name instead.
+   */
+  place: string;
   /** Built here rather than in the markup, where the quoting gets away. */
   label: string;
 }
@@ -179,6 +188,7 @@ function layout(graph: ReturnType<typeof buildLineage>, nowMs: number): Laid | n
       // reading "16:45" with nothing to tell them apart. This is also what a
       // reader is scanning the family for: which of these was the big one.
       peak: node.peakDbz === null ? "" : `${Math.round(node.peakDbz)} dBZ`,
+      place: placementLabel(known.get(node.code)?.placement, $_, "short") ?? "",
       label: `${nodeRole(graph, node.code) || "cell"}, first seen ${clock(node.firstSeen)}`
         + (node.peakDbz === null ? "" : `, peak ${Math.round(node.peakDbz)} dBZ`),
     };
@@ -500,10 +510,11 @@ function activate(event: KeyboardEvent, code: string) {
         {#each laid.nodes as node (node.code)}
           <g class="node" class:self={node.self}
             role="button" tabindex={node.self ? -1 : 0}
-            aria-label={node.label}
+            aria-label={node.place ? `${node.place}, ${node.label}` : node.label}
             aria-current={node.self ? "true" : undefined}
             on:click={() => go(node.code)}
             on:keydown={(event) => activate(event, node.code)}>
+            {#if node.place}<title>{node.place}</title>{/if}
             <rect class="box"
               x={node.x - NODE_W / 2} y={node.y - NODE_H / 2}
               width={NODE_W} height={NODE_H} rx="7"
