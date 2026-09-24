@@ -11,8 +11,9 @@ import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway } from "../lib/cellCutaway";
-import { makeCellVolumeLayer } from "../layers/cellVolumeLayer";
-import type { CellVolumeLayer } from "../layers/cellVolumeLayer";
+import { makeCloudsLayer } from "../layers/cellVolumeLayer";
+import type { CloudsLayer } from "../layers/cellVolumeLayer";
+import type { Cutaway } from "../lib/cellCutaway";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
@@ -76,7 +77,17 @@ async function loadMapLibre() {
 
 const CELL_SOURCE = "cells";
 /** The raymarched volume, which replaces the selected storm's extruded tiers. */
+/** Every storm's raymarched volume, in the one layer that draws them all. */
 const VOLUME_LAYER = "cell-volume-raymarched";
+
+/**
+ * How many volumes load at once.
+ *
+ * A dozen of them is several megabytes, and fetched all together they queue
+ * behind each other and behind the map's own tiles; a few at a time, each
+ * storm appears as its volume arrives instead of all of them at the end.
+ */
+const VOLUME_FETCHES = 4;
 const FOOTPRINT_SOURCE = "cell-footprints";
 const RADAR_SOURCE = "radar";
 
@@ -222,27 +233,27 @@ export default class Cells3DCapability extends Capability {
 
   private unsubscribeSelection: (() => void) | null = null;
 
-  /** The raymarched volume for the selected storm, while one is showing. */
-  private volumeLayer: CellVolumeLayer | null = null;
-
-  /** Whose volume that is, so the extruded tiers know to stand down. */
-  private volumeCode: string | null = null;
+  /** Every storm's volume, drawn at once; see `cellVolumeLayer.ts`. */
+  private cloudsLayer: CloudsLayer | null = null;
 
   /**
-   * What the volume on screen is centred on, and which way its track points.
+   * The volumes that have loaded, by object path, and where each one stands.
    *
-   * A KONRAD3D cell has a track and so a heading; a storm core found only in
-   * the composite has neither, and its slice starts north to south until the
-   * reader turns it. Either way this is what the slice is measured from.
+   * Kept across refreshes: a volume is immutable once built, so a storm still
+   * in the next scan's list is the same object, and fetching it again would
+   * be several hundred kilobytes for nothing.
    */
-  private volumeTarget: { lon: number; lat: number; heading: number | null } | null = null;
+  private cutaways = new Map<string, { code: string; cutaway: Cutaway; lon: number; lat: number }>();
+
+  /** Which storm is open, and which way its slice runs before the reader turns it. */
+  private opened: { code: string; heading: number | null } | null = null;
+
+  /** The newest load, so a slow one finishing late cannot undo a newer list. */
+  private loadToken: symbol | null = null;
 
   private unsubscribeVolume: (() => void) | null = null;
 
   private unsubscribeCut: (() => void) | null = null;
-
-  /** Guards against a slow fetch landing after the selection has moved on. */
-  private volumeToken: symbol | null = null;
 
   /** MapLibre, once it has loaded; the volume layer needs its Mercator maths. */
   private maplibre: Awaited<ReturnType<typeof loadMapLibre>> | null = null;
@@ -252,20 +263,18 @@ export default class Cells3DCapability extends Capability {
 
     this.nanobar = options.nanobar;
     this.unsubscribeSelection = selectedCell.subscribe((track) => {
-      if (track) void this.showVolume(this.targetOfTrack(track));
-      else if (!get(selectedVolume)) void this.showVolume(null);
+      if (track) void this.open(this.targetOfTrack(track));
+      else if (!get(selectedVolume)) void this.open(null);
     });
     this.unsubscribeVolume = selectedVolume.subscribe((cloud) => {
-      if (cloud) void this.showVolume(this.targetOfCloud(cloud));
-      else if (!get(selectedCell)) void this.showVolume(null);
+      if (cloud) void this.open(this.targetOfCloud(cloud));
+      else if (!get(selectedCell)) void this.open(null);
     });
     // Turning the slice in the popup turns it here. Only a uniform changes, so
     // this is a repaint and nothing is rebuilt.
-    this.unsubscribeCut = cutRotationDeg.subscribe((turn) => {
-      if (!this.volumeLayer || !this.volumeTarget) return;
-      this.volumeLayer.setHeading((this.volumeTarget.heading ?? 0) + turn);
-      this.gl?.triggerRepaint();
-    });
+    // Turning the slice in the popup turns it here. Only a uniform changes, so
+    // this is a repaint and nothing is rebuilt.
+    this.unsubscribeCut = cutRotationDeg.subscribe(() => this.applyCut());
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
       if (!this.gl) return;
@@ -387,22 +396,12 @@ export default class Cells3DCapability extends Capability {
       // top of it, so this is also how the storms get put back.
       gl.on("style.load", () => {
         this.styleReady = true;
-        // `setStyle` throws the volume away with every other layer, and the
-        // bookkeeping does not know. Left as it was, the tiers below would be
-        // rebuilt still filtering out the selected storm, and with the volume
-        // gone too it would vanish from the map entirely -- on every light and
-        // dark switch. Forgetting it first means the tiers come back whole and
-        // the volume replaces them again once it has reloaded.
-        //
-        // The same call covers a storm selected before the style first
-        // finished loading, which `showVolume` had to give up on at the time.
-        this.volumeLayer = null;
-        this.volumeCode = null;
-        this.volumeTarget = null;
+        // `setStyle` throws the volumes away with every other layer. The
+        // loaded fields are kept, so `applyData` puts the same storms back
+        // without fetching them again, and the open one is cut again.
+        this.cloudsLayer = null;
         this.applyData();
-        const cloud = get(selectedVolume);
-        const track = get(selectedCell);
-        void this.showVolume(cloud ? this.targetOfCloud(cloud) : track ? this.targetOfTrack(track) : null);
+        this.applyCut();
       });
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
@@ -487,13 +486,10 @@ export default class Cells3DCapability extends Capability {
   /**
    * Which tiers a storm still draws as extrusions.
    *
-   * Every cell but those standing inside the volume being drawn. The volume
-   * is the same weather measured another way, and `fill-extrusion` writes
-   * depth even when it is translucent -- so a cell left extruded inside it
-   * punches its tier boundaries straight through the picture. That is true of
-   * the selected cell and of any neighbour sharing its box, and of every cell
-   * inside a storm core opened from the composite, which may well contain
-   * KONRAD3D cells of its own.
+   * Every cell but those standing inside a drawn volume. The volume is the
+   * same weather measured another way, and `fill-extrusion` writes depth even
+   * when it is translucent -- so a cell left extruded inside one punches its
+   * tier boundaries straight through the cloud around it.
    */
   private tierFilter(tier: number): ExpressionSpecification {
     const mine: ExpressionSpecification = ["==", ["get", "tier"], tier];
@@ -502,16 +498,17 @@ export default class Cells3DCapability extends Capability {
     return ["all", mine, ["!", ["in", ["get", "code"], ["literal", hidden]]]];
   }
 
-  /** The cells whose centroid falls inside the box currently being raymarched. */
+  /** Every cell whose centroid falls inside any volume currently loaded. */
   private hiddenCodes(): string[] {
-    const target = this.volumeTarget;
-    if (!target) return [];
-    const kmPerLon = 111.32 * Math.cos((target.lat * Math.PI) / 180);
-    const inside = this.cells
-      .filter((cell) => Math.abs((cell.lon - target.lon) * kmPerLon) <= BOX_HALF_KM
-        && Math.abs((cell.lat - target.lat) * 110.57) <= BOX_HALF_KM)
+    const boxes = [...this.cutaways.values()];
+    if (!boxes.length) return [];
+    return this.cells
+      .filter((cell) => boxes.some((box) => {
+        const kmPerLon = 111.32 * Math.cos((box.lat * Math.PI) / 180);
+        return Math.abs((cell.lon - box.lon) * kmPerLon) <= BOX_HALF_KM
+          && Math.abs((cell.lat - box.lat) * 110.57) <= BOX_HALF_KM;
+      }))
       .map((cell) => cell.code);
-    return this.volumeCode && !inside.includes(this.volumeCode) ? [...inside, this.volumeCode] : inside;
   }
 
   private applyTierFilters(): void {
@@ -522,7 +519,7 @@ export default class Cells3DCapability extends Capability {
     });
   }
 
-  /** A KONRAD3D cell, as something to raymarch: it has a track, so a heading. */
+  /** A KONRAD3D cell, as something to open: it has a track, so a heading. */
   private targetOfTrack(track: CellTrackProperties): VolumeTarget | null {
     const volume = track.volume ?? null;
     const series = track.series ?? [];
@@ -540,55 +537,95 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Put a storm's volume on the map, or take the last one off.
+   * Cut one storm open, or close whichever was open.
    *
-   * Driven by either kind of selection: a KONRAD3D cell whose centroid stands
-   * inside a built box, or a storm core opened from the composite directly.
-   * Most cells have no volume, so the ordinary answer for one is to remove
-   * whatever was showing and stop.
+   * Every storm is already on the map, whole; opening one only slices it. A
+   * KONRAD3D cell's volume is one of the storms already drawn, found by its
+   * path -- and if it somehow is not (the list failed to load, say), it is
+   * fetched and added so that tapping a cell never opens nothing.
    */
-  private async showVolume(target: VolumeTarget | null): Promise<void> {
-    const token = Symbol("volume");
-    this.volumeToken = token;
-
-    if (!target) { this.clearVolume(); return; }
-    const turn = get(cutRotationDeg);
-    if (this.volumeCode === target.code) {
-      // Same storm, new run: the cut may have turned with it.
-      this.volumeLayer?.setHeading((target.heading ?? 0) + turn);
-      this.gl?.triggerRepaint();
+  private async open(target: VolumeTarget | null): Promise<void> {
+    if (!target) {
+      this.opened = null;
+      this.applyCut();
       return;
     }
-
-    let cutaway;
-    try {
-      cutaway = await loadCutaway(target.volume);
-    } catch {
-      // A volume that will not load is one the reader never sees; the extruded
-      // tiers are still there and still say what they always did.
-      if (this.volumeToken === token) this.clearVolume();
-      return;
+    let entry = this.cutaways.get(target.volume.path);
+    if (!entry) {
+      try {
+        const cutaway = await loadCutaway(target.volume);
+        entry = { code: target.code, cutaway, lon: target.lon, lat: target.lat };
+        this.cutaways.set(target.volume.path, entry);
+        this.pushClouds();
+      } catch {
+        // A volume that will not load is one the reader never sees; the
+        // extruded tiers are still there and still say what they always did.
+        return;
+      }
     }
-    // The selection may have moved on, or this map may have been put away.
-    if (this.volumeToken !== token || !this.gl || !this.maplibre || !this.styleReady) return;
-
-    this.clearVolume();
-    const layer = makeCellVolumeLayer(
-      VOLUME_LAYER, cutaway, (target.heading ?? 0) + turn, this.maplibre.MercatorCoordinate,
-    );
-    this.gl.addLayer(layer);
-    this.volumeLayer = layer;
-    this.volumeCode = target.code;
-    this.volumeTarget = { lon: target.lon, lat: target.lat, heading: target.heading };
-    this.applyTierFilters();
+    this.opened = { code: entry.code, heading: target.heading };
+    this.applyCut();
   }
 
-  private clearVolume(): void {
-    if (this.gl?.getLayer(VOLUME_LAYER)) this.gl.removeLayer(VOLUME_LAYER);
-    this.volumeLayer = null;
-    this.volumeCode = null;
-    this.volumeTarget = null;
+  /** Tell the layer which storm is open, and which way its slice now runs. */
+  private applyCut(): void {
+    const turn = get(cutRotationDeg);
+    this.cloudsLayer?.setCut(this.opened?.code ?? null, (this.opened?.heading ?? 0) + turn);
+    this.gl?.triggerRepaint();
+  }
+
+  /**
+   * Load every listed storm's volume, a few at a time, keeping the ones held.
+   *
+   * Each storm appears as its volume arrives rather than all of them at the
+   * end. Volumes no longer listed are dropped, except the one that is open:
+   * taking the storm a reader is looking at away between two refreshes would
+   * look like the popup had broken.
+   */
+  private async loadClouds(): Promise<void> {
+    const token = Symbol("clouds");
+    this.loadToken = token;
+    const listed = new Set(this.clouds.map((cloud) => cloud.path));
+    for (const [path, entry] of this.cutaways) {
+      if (!listed.has(path) && entry.code !== this.opened?.code) this.cutaways.delete(path);
+    }
+    this.pushClouds();
+
+    const missing = this.clouds.filter((cloud) => !this.cutaways.has(cloud.path));
+    for (let i = 0; i < missing.length; i += VOLUME_FETCHES) {
+      const batch = missing.slice(i, i + VOLUME_FETCHES);
+      const loaded = await Promise.all(batch.map(async (cloud) => {
+        try {
+          return { cloud, cutaway: await loadCutaway(cloud) };
+        } catch {
+          return null;
+        }
+      }));
+      if (this.loadToken !== token) return;
+      for (const found of loaded) {
+        if (!found) continue;
+        const { cloud, cutaway } = found;
+        this.cutaways.set(cloud.path, { code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat });
+      }
+      this.pushClouds();
+    }
+  }
+
+  /** Hand the layer every loaded storm, and let the tiers inside them stand down. */
+  private pushClouds(): void {
+    this.cloudsLayer?.setClouds([...this.cutaways.values()].map(({ code, cutaway }) => ({ code, cutaway })));
     this.applyTierFilters();
+    this.gl?.triggerRepaint();
+  }
+
+  /** The one layer that draws every storm's volume, added once per style. */
+  private ensureVolumes(gl: GlMap): void {
+    if (this.cloudsLayer || !this.maplibre) return;
+    const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate);
+    gl.addLayer(layer);
+    this.cloudsLayer = layer;
+    this.pushClouds();
+    this.applyCut();
   }
 
   /**
@@ -710,6 +747,7 @@ export default class Cells3DCapability extends Capability {
       ]);
       this.cells = (current.cells ?? []) as CellCurrent[];
       this.clouds = (clouds.volumes ?? []) as RadarVolume[];
+      void this.loadClouds();
     } catch {
       // Already reported by the API wrapper; an empty 3D map is not worth a
       // second message on top of it.
@@ -736,6 +774,7 @@ export default class Cells3DCapability extends Capability {
     this.ensureRadar(gl);
     this.ensureCells(gl);
     this.ensureClouds(gl);
+    this.ensureVolumes(gl);
     this.ensureStrikes();
   }
 

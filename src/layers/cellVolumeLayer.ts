@@ -1,11 +1,12 @@
 /**
- * The cut-open storm, drawn into the 3D map instead of beside it.
+ * Every storm's volume, drawn into the 3D map, with the one a reader opened cut.
  *
- * `CellCutaway` renders the same volume in a panel with a camera of its own,
- * which is the right place to study one storm and the wrong place to see where
- * it is. This puts it on the map: same field, same shader, same cut, but
- * standing on the ground it is actually over, at the scale of the terrain,
- * with the other storms around it.
+ * `CellCutaway` renders one volume in a panel with a camera of its own, which
+ * is the right place to study a storm and the wrong place to see where it is.
+ * This puts them all on the map at once: the same field and the same shader,
+ * standing on the ground each storm is over, at the scale of the terrain, as
+ * a sky of clouds -- whole, except the one being inspected, which is sliced
+ * so its core shows.
  *
  * ## How a raymarcher gets onto a MapLibre map
  *
@@ -68,6 +69,7 @@ uniform vec3 uPlanePoint;
 uniform float uDbzFloor;
 uniform float uDbzScale;
 uniform float uSteps;
+uniform float uCut;        // 1 for the storm being inspected, 0 for every other
 
 out vec4 fragColour;
 
@@ -119,17 +121,21 @@ void main() {
 
   // The cut, trimmed off the ray rather than tested per sample, so the exposed
   // face lands exactly on the plane instead of on whichever step came first.
-  float facing = dot(direction, uPlaneNormal);
-  float atPlane = dot(uPlanePoint - origin, uPlaneNormal);
+  // Only the storm a reader has opened is cut; every other one is drawn whole,
+  // because a sky of clouds all sliced the same way reads as a rendering fault.
   bool cutFace = false;
-  if (abs(facing) < 1e-6) {
-    if (atPlane < 0.0) discard;
-  } else {
-    float t = atPlane / facing;
-    if (facing > 0.0) far = min(far, t);
-    else if (t > near) { near = t; cutFace = true; }
+  if (uCut > 0.5) {
+    float facing = dot(direction, uPlaneNormal);
+    float atPlane = dot(uPlanePoint - origin, uPlaneNormal);
+    if (abs(facing) < 1e-6) {
+      if (atPlane < 0.0) discard;
+    } else {
+      float t = atPlane / facing;
+      if (facing > 0.0) far = min(far, t);
+      else if (t > near) { near = t; cutFace = true; }
+    }
+    if (far <= near) discard;
   }
-  if (far <= near) discard;
 
   float dt = (far - near) / uSteps;
   vec3 light = normalize(vec3(-0.45, -0.7, 0.75));
@@ -234,137 +240,253 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string): WebG
   return shader;
 }
 
-export interface CellVolumeLayer extends CustomLayerInterface {
-  /** Turn the cut, without rebuilding anything. */
-  setHeading(headingDeg: number | null): void;
+/** A column-major 4x4 applied to a point, returning clip-space x, y, z, w. */
+function apply(m: Mat4, x: number, y: number, z: number): [number, number, number, number] {
+  return [
+    m[0] * x + m[4] * y + m[8] * z + m[12],
+    m[1] * x + m[5] * y + m[9] * z + m[13],
+    m[2] * x + m[6] * y + m[10] * z + m[14],
+    m[3] * x + m[7] * y + m[11] * z + m[15],
+  ];
 }
 
-export function makeCellVolumeLayer(
+const CORNERS: Array<[number, number, number]> = [
+  [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1],
+];
+
+/**
+ * The part of the screen a box can cover, in pixels, or null if none of it.
+ *
+ * Every cloud is a fullscreen triangle whose fragments march only where the
+ * ray meets the box -- and with one cloud that was fine, but a dozen is a
+ * dozen fullscreen raymarches a frame. Scissoring each to the rectangle its
+ * eight corners project to keeps the cost to the pixels the storm is actually
+ * on, which at the zoom a whole region is looked at is a small fraction of
+ * the screen. A corner behind the camera makes the projection meaningless,
+ * so that case falls back to the whole viewport rather than guessing.
+ */
+function screenRect(
+  forward: Mat4, width: number, height: number,
+): [number, number, number, number] | "all" | null {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y, z] of CORNERS) {
+    const [cx, cy, , cw] = apply(forward, x, y, z);
+    if (cw <= 0) return "all";
+    const px = (cx / cw * 0.5 + 0.5) * width;
+    const py = (cy / cw * 0.5 + 0.5) * height;
+    x0 = Math.min(x0, px); x1 = Math.max(x1, px);
+    y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+  }
+  const left = Math.max(0, Math.floor(x0) - 2), bottom = Math.max(0, Math.floor(y0) - 2);
+  const right = Math.min(width, Math.ceil(x1) + 2), top = Math.min(height, Math.ceil(y1) + 2);
+  return right > left && top > bottom ? [left, bottom, right - left, top - bottom] : null;
+}
+
+/** One storm on the map: its field, where its box stands, and its texture once uploaded. */
+interface Cloud {
+  cutaway: Cutaway;
+  model: Float64Array;
+  texture: WebGLTexture | null;
+}
+
+export interface CloudsLayer extends CustomLayerInterface {
+  /** Replace the set of storms drawn; ones already uploaded are kept, not reloaded. */
+  setClouds(clouds: ReadonlyArray<{ code: string; cutaway: Cutaway }>): void;
+  /** Open one storm with a cut at this heading, or close whichever was open. */
+  setCut(code: string | null, headingDeg: number): void;
+}
+
+/**
+ * Every storm with a volume, drawn at once, with the one a reader opened cut.
+ *
+ * One layer rather than one per storm, so they share a program and are drawn
+ * in a single pass sorted far to near: they are translucent, and translucent
+ * things composite correctly only drawn back to front. Boxes of neighbouring
+ * cores can overlap, where the order is only approximately right; the clouds
+ * are soft enough there that it does not show.
+ */
+export function makeCloudsLayer(
   id: string,
-  cutaway: Cutaway,
-  headingDeg: number | null,
   MercatorCoordinate: typeof import("maplibre-gl").MercatorCoordinate,
-): CellVolumeLayer {
-  const { header, extentM } = cutaway;
+): CloudsLayer {
+  let gl: WebGL2RenderingContext | null = null;
   let program: WebGLProgram | null = null;
-  let volumeTexture: WebGLTexture | null = null;
   let rampTexture: WebGLTexture | null = null;
-  let model = new Float64Array(16);
-  let heading = headingDeg;
+  const clouds = new Map<string, Cloud>();
+  let cutCode: string | null = null;
+  let cutHeading = 0;
+
+  /**
+   * The unit cube, onto the ground the storm is actually over.
+   *
+   * The scale is negative on y because Mercator's y runs south and the box's
+   * does not; the box sits on the ground, so z starts at zero.
+   */
+  function modelFor(cutaway: Cutaway): Float64Array {
+    const { header, extentM } = cutaway;
+    const centre = MercatorCoordinate.fromLngLat({ lng: header.lon, lat: header.lat }, 0);
+    const metre = centre.meterInMercatorCoordinateUnits();
+    const [sx, sy, sz] = [extentM[0] * metre, extentM[1] * metre, extentM[2] * metre];
+    return new Float64Array([
+      sx, 0, 0, 0,
+      0, -sy, 0, 0,
+      0, 0, sz, 0,
+      centre.x - sx / 2, centre.y + sy / 2, 0, 1,
+    ]);
+  }
+
+  function upload(context: WebGL2RenderingContext, cutaway: Cutaway): WebGLTexture {
+    const { header } = cutaway;
+    const texture = context.createTexture()!;
+    context.bindTexture(context.TEXTURE_3D, texture);
+    context.pixelStorei(context.UNPACK_ALIGNMENT, 1);
+    context.texImage3D(context.TEXTURE_3D, 0, context.RG8, header.nx, header.ny, header.nz, 0,
+      context.RG, context.UNSIGNED_BYTE, cutaway.voxels);
+    for (const axis of [context.TEXTURE_WRAP_S, context.TEXTURE_WRAP_T, context.TEXTURE_WRAP_R]) {
+      context.texParameteri(context.TEXTURE_3D, axis, context.CLAMP_TO_EDGE);
+    }
+    context.texParameteri(context.TEXTURE_3D, context.TEXTURE_MIN_FILTER, context.LINEAR);
+    context.texParameteri(context.TEXTURE_3D, context.TEXTURE_MAG_FILTER, context.LINEAR);
+    return texture;
+  }
 
   return {
     id,
     type: "custom",
     renderingMode: "3d",
 
-    setHeading(next: number | null) { heading = next; },
-
-    onAdd(_map: GlMap, gl: WebGL2RenderingContext) {
-      program = gl.createProgram()!;
-      gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX));
-      gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAGMENT));
-      gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error(gl.getProgramInfoLog(program) ?? "volume shader would not link");
+    setClouds(next) {
+      const wanted = new Set(next.map((cloud) => cloud.code));
+      for (const [code, cloud] of clouds) {
+        if (wanted.has(code)) continue;
+        if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
+        clouds.delete(code);
       }
-
-      volumeTexture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_3D, volumeTexture);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-      gl.texImage3D(gl.TEXTURE_3D, 0, gl.RG8, header.nx, header.ny, header.nz, 0,
-        gl.RG, gl.UNSIGNED_BYTE, cutaway.voxels);
-      for (const axis of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) {
-        gl.texParameteri(gl.TEXTURE_3D, axis, gl.CLAMP_TO_EDGE);
+      for (const { code, cutaway } of next) {
+        if (clouds.has(code)) continue;
+        clouds.set(code, { cutaway, model: modelFor(cutaway), texture: gl ? upload(gl, cutaway) : null });
       }
-      gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    },
+
+    setCut(code, headingDeg) {
+      cutCode = code;
+      cutHeading = headingDeg;
+    },
+
+    onAdd(_map: GlMap, context: WebGL2RenderingContext) {
+      gl = context;
+      program = context.createProgram()!;
+      context.attachShader(program, compile(context, context.VERTEX_SHADER, VERTEX));
+      context.attachShader(program, compile(context, context.FRAGMENT_SHADER, FRAGMENT));
+      context.linkProgram(program);
+      if (!context.getProgramParameter(program, context.LINK_STATUS)) {
+        throw new Error(context.getProgramInfoLog(program) ?? "volume shader would not link");
+      }
 
       const ramp = new Uint8Array(256 * 4);
       for (let i = 0; i < 256; i += 1) {
         const [r, g, b] = dbzColour(-32 + (i / 255) * 96);
         ramp.set([r, g, b, 255], i * 4);
       }
-      rampTexture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, rampTexture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, ramp);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      rampTexture = context.createTexture();
+      context.bindTexture(context.TEXTURE_2D, rampTexture);
+      context.texImage2D(context.TEXTURE_2D, 0, context.RGBA, 256, 1, 0, context.RGBA, context.UNSIGNED_BYTE, ramp);
+      context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.LINEAR);
+      context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.LINEAR);
+      context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
 
-      // The unit cube, onto the ground the storm is actually over. The scale
-      // is negative on y because Mercator's y runs south and the box's does
-      // not; the box sits on the ground, so z starts at zero.
-      const centre = MercatorCoordinate.fromLngLat({ lng: header.lon, lat: header.lat }, 0);
-      const metre = centre.meterInMercatorCoordinateUnits();
-      const [sx, sy, sz] = [extentM[0] * metre, extentM[1] * metre, extentM[2] * metre];
-      model = new Float64Array([
-        sx, 0, 0, 0,
-        0, -sy, 0, 0,
-        0, 0, sz, 0,
-        centre.x - sx / 2, centre.y + sy / 2, 0, 1,
-      ]);
+      // Storms handed over before the layer existed get their textures now.
+      for (const cloud of clouds.values()) cloud.texture ??= upload(context, cloud.cutaway);
     },
 
-    render(gl: WebGL2RenderingContext, options: CustomRenderMethodInput) {
-      if (!program) return;
-      // `defaultProjectionData.mainMatrix`, not `modelViewProjectionMatrix`.
-      // Only the first is documented to take spherical mercator -- [0,0] at
-      // the top left of the world, [1,1] at the bottom right, and a conformal
-      // z under `renderingMode: "3d"` -- which is the space the model matrix
-      // below builds the box in. The other is a different space entirely, and
-      // using it puts the box somewhere no ray ever reaches, which looks
-      // exactly like a layer that is not running at all.
-      const forward = multiply(options.defaultProjectionData.mainMatrix, model);
-      const inverse = invert(forward);
-      if (!inverse) return;
+    render(context: WebGL2RenderingContext, options: CustomRenderMethodInput) {
+      if (!program || !clouds.size) return;
+      // `mainMatrix`, the one documented to take spherical mercator; see the
+      // model matrix above for the space the boxes are built in.
+      const main = options.defaultProjectionData.mainMatrix;
+      const width = context.drawingBufferWidth;
+      const height = context.drawingBufferHeight;
 
-      gl.useProgram(program);
-      const at = (name: string) => gl.getUniformLocation(program!, name);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_3D, volumeTexture);
-      gl.uniform1i(at("uVolume"), 0);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, rampTexture);
-      gl.uniform1i(at("uRamp"), 1);
+      // Far to near, by where each box's middle lands in clip space.
+      const ordered = [...clouds.entries()]
+        .filter(([, cloud]) => cloud.texture)
+        .map(([code, cloud]) => {
+          const forward = multiply(main, cloud.model);
+          const [, , z, w] = apply(forward, 0.5, 0.5, 0.25);
+          return { code, cloud, forward, depth: w > 0 ? z / w : Infinity };
+        })
+        .sort((a, b) => b.depth - a.depth);
 
-      gl.uniformMatrix4fv(at("uForward"), false, new Float32Array(forward));
-      gl.uniformMatrix4fv(at("uInverse"), false, new Float32Array(inverse));
-      gl.uniform2f(at("uViewport"), gl.drawingBufferWidth, gl.drawingBufferHeight);
-      gl.uniform3f(at("uExtentKm"), extentM[0] / 1000, extentM[1] / 1000, extentM[2] / 1000);
-      gl.uniform1f(at("uDbzFloor"), header.dbz_floor);
-      gl.uniform1f(at("uDbzScale"), header.dbz_scale);
-      gl.uniform1f(at("uSteps"), STEPS);
+      context.useProgram(program);
+      const at = (name: string) => context.getUniformLocation(program!, name);
+      context.activeTexture(context.TEXTURE1);
+      context.bindTexture(context.TEXTURE_2D, rampTexture);
+      context.uniform1i(at("uRamp"), 1);
+      context.uniform1i(at("uVolume"), 0);
+      context.uniform2f(at("uViewport"), width, height);
+      context.uniform1f(at("uSteps"), STEPS);
 
-      // The cut runs along the track, so its normal lies across it. In cube
-      // space the two horizontal axes share a scale, so the heading needs no
-      // correction; the plane passes through the storm, not the box's middle.
-      const along = ((heading ?? 0) * Math.PI) / 180;
-      gl.uniform3f(at("uPlaneNormal"), Math.cos(along), -Math.sin(along), 0);
-      gl.uniform3f(at("uPlanePoint"),
-        0.5 + cutaway.centreKm[0] / (extentM[0] / 1000),
-        0.5 + cutaway.centreKm[1] / (extentM[1] / 1000),
-        cutaway.centreKm[2] / (extentM[2] / 1000));
+      context.enable(context.BLEND);
+      context.blendFunc(context.ONE, context.ONE_MINUS_SRC_ALPHA);
+      context.enable(context.DEPTH_TEST);
+      context.depthFunc(context.LESS);
+      // Tested but not written: translucent storms that wrote depth would erase
+      // whatever is drawn behind them, including each other.
+      context.depthMask(false);
+      context.disable(context.CULL_FACE);
 
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthFunc(gl.LESS);
-      // Tested but not written: the storm is translucent, and a translucent
-      // surface that writes depth erases whatever is drawn behind it -- which
-      // is the trap the extruded tiers already have to be ordered around.
-      gl.depthMask(false);
-      gl.disable(gl.CULL_FACE);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-      gl.depthMask(true);
+      for (const { code, cloud, forward } of ordered) {
+        const rect = screenRect(forward, width, height);
+        if (rect === null) continue;
+        const inverse = invert(forward);
+        if (!inverse) continue;
+        const { header, extentM, centreKm } = cloud.cutaway;
+
+        if (rect === "all") {
+          context.disable(context.SCISSOR_TEST);
+        } else {
+          context.enable(context.SCISSOR_TEST);
+          context.scissor(rect[0], rect[1], rect[2], rect[3]);
+        }
+
+        context.activeTexture(context.TEXTURE0);
+        context.bindTexture(context.TEXTURE_3D, cloud.texture);
+        context.uniformMatrix4fv(at("uForward"), false, new Float32Array(forward));
+        context.uniformMatrix4fv(at("uInverse"), false, new Float32Array(inverse));
+        context.uniform3f(at("uExtentKm"), extentM[0] / 1000, extentM[1] / 1000, extentM[2] / 1000);
+        context.uniform1f(at("uDbzFloor"), header.dbz_floor);
+        context.uniform1f(at("uDbzScale"), header.dbz_scale);
+
+        const cut = code === cutCode;
+        context.uniform1f(at("uCut"), cut ? 1 : 0);
+        if (cut) {
+          // Along the heading, so the normal lies across it; through the storm,
+          // not the middle of the box. The two horizontal axes share a scale in
+          // cube space, so the heading needs no correction.
+          const along = (cutHeading * Math.PI) / 180;
+          context.uniform3f(at("uPlaneNormal"), Math.cos(along), -Math.sin(along), 0);
+          context.uniform3f(at("uPlanePoint"),
+            0.5 + centreKm[0] / (extentM[0] / 1000),
+            0.5 + centreKm[1] / (extentM[1] / 1000),
+            centreKm[2] / (extentM[2] / 1000));
+        }
+        context.drawArrays(context.TRIANGLES, 0, 3);
+      }
+
+      context.disable(context.SCISSOR_TEST);
+      context.depthMask(true);
     },
 
-    onRemove(_map: GlMap, gl: WebGL2RenderingContext) {
-      if (volumeTexture) gl.deleteTexture(volumeTexture);
-      if (rampTexture) gl.deleteTexture(rampTexture);
-      if (program) gl.deleteProgram(program);
+    onRemove(_map: GlMap, context: WebGL2RenderingContext) {
+      for (const cloud of clouds.values()) {
+        if (cloud.texture) context.deleteTexture(cloud.texture);
+        cloud.texture = null;
+      }
+      if (rampTexture) context.deleteTexture(rampTexture);
+      if (program) context.deleteProgram(program);
       program = null;
-      volumeTexture = null;
       rampTexture = null;
+      gl = null;
     },
   };
 }
