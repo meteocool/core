@@ -84,6 +84,27 @@ export const mapTapped = writable<number>(0);
  */
 export const mapExtent4326 = writable<[number, number, number, number] | null>(null);
 
+/** Where the map on screen is looking; see `mapView`. */
+export interface MapView {
+  lat: number;
+  lon: number;
+  /** In the flat map's zoom levels, which the 3D map's run one below. */
+  zoom: number;
+  /** The 3D map's tilt and heading, in degrees; absent on the flat maps. */
+  pitch?: number;
+  bearing?: number;
+}
+
+/**
+ * The camera of whichever map is showing, published when it comes to rest.
+ *
+ * Both kinds of map write it -- LayerManager for the OpenLayers ones, the 3D
+ * capability for MapLibre -- so the one reader, the URL (lib/urlState.ts),
+ * does not have to know which is on screen or reach into either. Null until
+ * the first map has settled.
+ */
+export const mapView = writable<MapView | null>(null);
+
 /* The shape and the transition rules live in lib/apiHealth.ts, so they can be
    tested without pulling a store or the generated client into the test. */
 export const apiHealth = writable<ApiHealth>(EMPTY_HEALTH);
@@ -192,6 +213,20 @@ export const satelliteLayerCloudy = writable<boolean>(false);
 export const satelliteLayerLabels = writable<boolean>(true);
 
 export const live = writable<boolean>(false);
+
+/**
+ * A frame the player is asked to open on, from outside it: a link naming one,
+ * or Back returning to one. "live" asks it to close and follow the newest
+ * frame again. NowcastPlayback takes the request once the grid can answer it,
+ * and clears it either way; a frame the grid no longer holds is dropped.
+ */
+export const frameRequest = writable<number | "live" | null>(null);
+
+/**
+ * Whether the player is animating. The URL leaves the frame out while it is,
+ * rather than rewriting the address bar twice a second.
+ */
+export const playbackRunning = writable<boolean>(false);
 export const unit = writable<string>("pictogram");
 export const precacheForecast = writable<boolean>(true);
 

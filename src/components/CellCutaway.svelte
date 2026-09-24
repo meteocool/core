@@ -425,9 +425,10 @@ function onKey(event: KeyboardEvent): void {
 onMount(() => {
   still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (still) spin = Math.PI * 0.25;
-  // Every storm opens cut along its own track. A slice turned for the last
-  // storm means nothing for this one, whose track points somewhere else.
-  cutRotationDeg.set(0);
+  // Not reset to zero here any more: the slice follows the selection rather
+  // than this component's lifetime -- see the rule beside the other selection
+  // rules in App.svelte -- so a link that opens a storm cut at 40 degrees is
+  // not undone by the panel mounting a moment later.
   controller = new AbortController();
   loadCutaway(volume, controller.signal)
     .then(async (loaded) => {

@@ -328,6 +328,20 @@ export default class CellTrackManager {
     }
   }
 
+  /**
+   * Hold a track that was fetched on its own, before it is selected.
+   *
+   * What a link to a cell does: the track comes from `/cells/tracks/{code}`
+   * rather than from a viewport answer, and the next answer need not mention
+   * it -- the cell may be out of view, or have dissipated past the window --
+   * so without this the panel would open over a map that never draws it.
+   * Pinned first and selected second, so the selection subscription above
+   * finds the same code and keeps it.
+   */
+  pin(track: CellTrack): void {
+    this.pinned = track;
+  }
+
   /** The cell whose panel or marks are up, which `apply` will not drop. */
   private openCode(): string | null {
     let code: string | null = null;

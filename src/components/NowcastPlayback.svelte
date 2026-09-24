@@ -22,6 +22,7 @@ import {
   lightningLayerVisible,
   bottomToolbarMode, radarColormap, precacheForecast,
   inspectLatLon, mapExtent4326, mapTapped, radarStale,
+  frameRequest, playbackRunning,
 } from "../stores";
 
 Chart.register(CategoryScale);
@@ -88,6 +89,17 @@ let liveEdge: number | null = null;
 
 let playPauseButton = faPlay;
 let playTimeout;
+
+/**
+ * A frame the player was opened to show, rather than the live edge.
+ *
+ * Set from `frameRequest` -- a link naming a frame, or Back returning to one --
+ * and read by the parking in onShowScrollbar, which otherwise puts the
+ * scrubber on the newest observation, twice, the second time 200ms later.
+ * Held until that second park has run, or it would drag the scrubber back to
+ * live under a map already showing the frame asked for.
+ */
+let seekTo: number | null = null;
 
 /** The Shoelace <sl-range> scrubber. */
 let slRange: (HTMLElement & { value: number }) | null = null;
@@ -541,12 +553,20 @@ const fsm = new StateMachine({
       }
       playPauseButton = faPlay;
       // Opening parks the scrubber on the live edge, so it tracks refreshes
-      // until the user drags it somewhere else.
-      liveEdge = cap.getMostRecentObservation();
-      if (slRange) slRange.value = liveEdge;
-      setTimeout(() => {
+      // until the user drags it somewhere else -- unless it was opened to show
+      // one frame in particular, which is then where it parks.
+      const park = () => {
+        if (seekTo !== null) {
+          if (slRange) slRange.value = seekTo;
+          return;
+        }
         liveEdge = cap.getMostRecentObservation();
         if (slRange) slRange.value = liveEdge;
+      };
+      park();
+      setTimeout(() => {
+        park();
+        seekTo = null;
       }, 200);
       if (autoPlay) {
         setTimeout(() => {
@@ -621,6 +641,10 @@ const fsm = new StateMachine({
       playTimeout = 0;
       playPauseButton = faPlay;
     },
+    // Entering and leaving the state rather than the transitions into it:
+    // playback ends by pause and by close alike, and this cannot miss either.
+    onEnterPlaying: () => playbackRunning.set(true),
+    onLeavePlaying: () => playbackRunning.set(false),
     onHideScrollbar: (transition) => {
       // Set unconditionally, before the early return. A hide() that arrives
       // while the machine is already in followLatest -- the idle-refocus
@@ -654,6 +678,36 @@ function show() {
   }
 }
 
+/**
+ * Open on the frame something outside the player asked for.
+ *
+ * Waits for a grid, because only the grid can say whether the frame exists: a
+ * link names an absolute time, and one opened hours later names a frame the
+ * window has moved past. That, the live frame itself, and anything with no
+ * tiles behind it all leave the player where it is -- following live -- which
+ * is the honest answer to "show me a moment we no longer have".
+ */
+function takeFrameRequest() {
+  const wanted = get(frameRequest);
+  if (wanted === null || !gridConfig) return;
+  frameRequest.set(null);
+  if (wanted === "live") {
+    hide();
+    return;
+  }
+  if (!gridConfig.grid[wanted]?.url || wanted === cap.getMostRecentObservation()) return;
+  if (fsm.state === "playing") fsm.pressPause();
+  if (fsm.state === "followLatest") {
+    seekTo = wanted;
+    fsm.showScrollbar();
+  } else if (slRange) {
+    slRange.value = wanted;
+  }
+  sliderChangedHandler(wanted);
+}
+
+subscriptions.push(frameRequest.subscribe(() => takeFrameRequest()));
+
 function showAndPlay() {
   autoPlay = true;
   show();
@@ -683,6 +737,7 @@ onMount(async () => {
       gridLoading = false;
       showOpenControls = true;
       _latest = cap.getMostRecentObservation();
+      takeFrameRequest();
     }
     //   // const gridSteps = Object.keys(grid);
     //   let changed = false;
@@ -832,6 +887,7 @@ subscriptions.push(lastFocus.subscribe((focus) => {
 onDestroy(() => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
+  playbackRunning.set(false);
   chart?.destroy();
 });
 </script>
