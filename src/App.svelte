@@ -45,6 +45,7 @@ import { fetchLightningCache, fetchMesocyclones } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
+import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
@@ -572,8 +573,9 @@ window.settings.setCb("latLonZ", (value) => {
   const [lat, lon, z] = parts.map(parseFloat);
   const view = lm.getCurrentMap()?.getView();
   if (!view) return;
-  view.setCenter(fromLonLat([lon, lat]));
+  // The middle of the map element, which is what a URL's latLonZ records.
   view.setZoom(z);
+  setElementCentre(view, fromLonLat([lon, lat]));
 });
 
 // Both of these used to finish a nanobar task keyed on the global `URL`

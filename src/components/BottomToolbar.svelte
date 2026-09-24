@@ -83,6 +83,18 @@
     activeCap = val;
   }));
 
+  /*
+   * No tray on the 3D map. It shows one timestep, so there is no player to
+   * collapse into this bar, no scale it draws, and no "last updated" line of
+   * its own -- which left a full-width strip of glass with a GitHub icon in
+   * it, over the part of the map the storms stand on.
+   *
+   * Before the first capability is attached the store is still empty, so the
+   * one that is about to be is asked instead; otherwise a link that opens on
+   * the 3D map would show the bar for a frame and then fly it out.
+   */
+  $: showsBar = (activeCap || layerManager.startingCapability()) !== "cells3d";
+
   onDestroy(() => subscriptions.forEach((unsubscribe) => unsubscribe()));
 
 </script>
@@ -239,6 +251,7 @@
      one, and nesting it would put it inside the bar's transition and clip. -->
 <LightningChart {layerManager} />
 
+{#if showsBar}
 <div
         class="bottomToolbar lastUpdatedBottom"
         class:has-discs={activeCap === "radar" && $bottomToolbarMode === "collapsed"}
@@ -295,3 +308,4 @@
         {/if}
     </div>
 </div>
+{/if}
