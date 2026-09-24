@@ -321,10 +321,30 @@ function swipeToDismiss(node: HTMLElement) {
     color: var(--mc-text-2);              /* the axis ink, read off the canvas */
     pointer-events: none;
   }
-  /* Only while settling: during the drag the transform has to land on the frame
-     the finger is on, or the panel trails behind it. */
+  /* Only the transform is held back during the drag -- it has to land on the
+     frame the finger is on, or the panel trails behind it. The corners are free
+     to ease in both states, so both rules spell out the whole shorthand. */
+  .strip {
+    transition: border-radius var(--mc-motion-spring) var(--mc-ease-spring);
+  }
   .strip.settling {
-    transition: transform var(--mc-motion-spring) var(--mc-ease-spring);
+    transition: transform var(--mc-motion-spring) var(--mc-ease-spring),
+                border-radius var(--mc-motion-spring) var(--mc-ease-spring);
+  }
+  /* Squared off against the Hide button for as long as one is open, the way a
+     grouped row's trailing corners square up on iOS.
+
+     This is the seam the corner artefact actually came from: the panel's curve
+     cuts a wedge out of its own trailing corners, and the button starts at the
+     panel's edge, so the wedge is bare map with the button's straight edge
+     beside it -- a hard corner against a curve. Neither piece can fill it
+     (the panel is 10%-white glass, so a button reaching under it would tint
+     the whole edge red), so the curve is the thing to drop. What is left is
+     two straight edges meeting, with the dock's own corners carried by the
+     button. */
+  .strip-dock.open .strip {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   /* Its own dismissal affordance for anyone who cannot swipe. Sized as a
