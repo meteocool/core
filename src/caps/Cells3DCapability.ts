@@ -8,6 +8,7 @@ import type {
 import Capability from "./Capability";
 import type { CapabilityOptions } from "./options";
 import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
+import { blitzortungAttribution, dwdAttribution } from "../layers/attributions";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway } from "../lib/cellCutaway";
@@ -652,7 +653,7 @@ export default class Cells3DCapability extends Capability {
       (source as unknown as { setData(data: unknown): void }).setData(data);
       return;
     }
-    gl.addSource(CLOUD_SOURCE, { type: "geojson", data });
+    gl.addSource(CLOUD_SOURCE, { type: "geojson", data, attribution: dwdAttribution });
     gl.addLayer({
       id: "cloud-marker",
       type: "circle",
@@ -793,6 +794,7 @@ export default class Cells3DCapability extends Capability {
       tileSize: 512,
       minzoom: 3,
       maxzoom: 8,
+      attribution: dwdAttribution,
       // The backend writes these with TMS row numbering, which OpenLayers
       // spells `{-y}` in the template and MapLibre spells with this flag.
       scheme: "tms",
@@ -857,7 +859,7 @@ export default class Cells3DCapability extends Capability {
       return;
     }
 
-    gl.addSource(STRIKE_SOURCE, { type: "geojson", data });
+    gl.addSource(STRIKE_SOURCE, { type: "geojson", data, attribution: blitzortungAttribution });
     const fade: DataDrivenPropertyValueSpecification<number> = [
       "interpolate", ["linear"], ["get", "age"], 0, 1, 1, 0,
     ] as unknown as DataDrivenPropertyValueSpecification<number>;
@@ -914,7 +916,7 @@ export default class Cells3DCapability extends Capability {
       },
     });
 
-    gl.addSource(CELL_SOURCE, { type: "geojson", data: volume });
+    gl.addSource(CELL_SOURCE, { type: "geojson", data: volume, attribution: dwdAttribution });
     // Innermost tier first. Each is one `fill-extrusion` layer because
     // `fill-extrusion-opacity` takes no expression, and the order is what
     // makes the glass work: a tier drawn later blends over the tiers already

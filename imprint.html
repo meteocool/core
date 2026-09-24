@@ -11,6 +11,7 @@
       body {
         overflow: auto !important;
         width: 50vw;
+        min-width: min(40em, calc(100vw - 32px));
       }
     </style>
   </head>
@@ -31,5 +32,63 @@
       Germany<br />
       support@meteocool.com<br />
     </p>
+    <hr />
+    <h2 id="data">Data sources and licences</h2>
+    <p>
+      meteocool processes everything it shows. Radar scans are composited from
+      each radar's lowest elevation, reprojected, filtered for clutter and
+      coloured; forecasts are extrapolated by meteocool. None of the providers
+      below endorses meteocool, and all of them provide their data without
+      warranty.
+    </p>
+    <h3>Radar</h3>
+    <ul>
+      <li>
+        Germany: &copy; Deutscher Wetterdienst (DWD),
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>,
+        modified. Also the source of the storm cells, the 3D volumes and the
+        weather model maps.
+      </li>
+      <li>
+        Switzerland: &copy; MeteoSwiss,
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>,
+        modified.
+      </li>
+      <li>
+        France: &copy; M&eacute;t&eacute;o-France,
+        <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte 2.0 (Etalab)</a>,
+        modified. The map shows each frame's time.
+      </li>
+      <li>
+        Czechia: &copy; &Ccaron;esk&yacute; hydrometeorologick&yacute; &uacute;stav (&Ccaron;HM&Uacute;),
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>,
+        modified.
+      </li>
+      <li>
+        Poland: The source of data is the Institute of Meteorology and Water
+        Management &ndash; National Research Institute (IMGW-PIB). Data from
+        IMGW-PIB has been processed by meteocool.
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+      </li>
+    </ul>
+    <p>
+      Switzerland, France, Czechia and Poland arrive through EUMETNET's
+      <a href="https://eumetnet.github.io/openradardata-documentation/">Open Radar Data</a>.
+    </p>
+    <h3>Other data</h3>
+    <ul>
+      <li>Lightning: &copy; <a href="https://www.blitzortung.org/">Blitzortung.org</a> and its contributors.</li>
+      <li>
+        Model comparison: <a href="https://open-meteo.com/">Open-Meteo.com</a>,
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>,
+        from the national weather services it names.
+      </li>
+      <li>Satellite imagery: contains modified Copernicus Sentinel data, processed by &copy; OroraTech.</li>
+      <li>
+        Base map: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>,
+        <a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>;
+        tiles by <a href="https://protomaps.com">Protomaps</a>.
+      </li>
+    </ul>
   </body>
 </html>
