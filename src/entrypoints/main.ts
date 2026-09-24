@@ -13,6 +13,7 @@ import { cleanupDegradedStatus, initDegradedStatus } from "../lib/degradedStatus
 import { cleanupPageZoomGuard, initPageZoomGuard } from "../lib/pageZoom";
 import { cleanupWakeup, initWakeup } from "../lib/wakeup";
 import App from "../App.svelte";
+import { linkPlacesView } from "../lib/urlState";
 
 // Register service worker
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
@@ -51,7 +52,10 @@ const app = mount(App, {
     postInitCb(layermanager) {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition((position) => {
-          layermanager.updateLocation(position.coords.latitude, position.coords.longitude, 1, 0);
+          // Marked either way; flown to only when the link did not say where
+          // to look -- otherwise a shared storm is on screen for the second
+          // geolocation takes to answer, and then the map leaves it.
+          layermanager.updateLocation(position.coords.latitude, position.coords.longitude, 1, 0, !linkPlacesView());
         });
       }
     },

@@ -18,7 +18,7 @@ import type { Cutaway } from "../lib/cellCutaway";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, colorSchemeDark, cutRotationDeg, selectedCell, selectedVolume,
+  capDescription, cellDetails, colorSchemeDark, cutRotationDeg, mapView, selectedCell, selectedVolume, sharedActiveCap,
   showForecastPlaybutton, smallScreen,
 } from "../stores";
 import { get } from "svelte/store";
@@ -152,6 +152,15 @@ const MAIN_MAP_ID = "map";
 /** Opening tilted is the whole point; flat, this is just a slower 2D map. */
 const INITIAL_PITCH = 55;
 
+/** Where a link asks the camera to be, in the flat map's zoom levels like `mapView`. */
+export interface CameraRequest {
+  lat?: number;
+  lon?: number;
+  zoom?: number;
+  pitch?: number;
+  bearing?: number;
+}
+
 /** DWD severity classes, in the colours their own charts use. */
 const SEVERITY_COLOURS = ["#2f9e44", "#f0b429", "#e03131", "#9c36b5"];
 
@@ -263,6 +272,16 @@ export default class Cells3DCapability extends Capability {
 
   /** MapLibre, once it has loaded; the volume layer needs its Mercator maths. */
   private maplibre: Awaited<ReturnType<typeof loadMapLibre>> | null = null;
+
+  /**
+   * A camera asked for before there was a map to point: a link that opens on
+   * this capability arrives before MapLibre has even been fetched. The map is
+   * built with it and it is forgotten.
+   */
+  private requestedCamera: CameraRequest | null = null;
+
+  /** The first answer for the list of storms, which a linked cloud waits on. */
+  private firstRefresh: Promise<void> | null = null;
 
   constructor(map: OlMap, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "cells3d", () => Cells3DCapability.announce(), additionalLayers);
@@ -386,13 +405,16 @@ export default class Cells3DCapability extends Capability {
       const view = this.map.getView();
       const centre = view.getCenter();
       const [lon, lat] = centre ? toLonLat(centre) : [10, 51];
+      const asked = this.requestedCamera ?? {};
+      this.requestedCamera = null;
 
       const gl = new maplibre.Map({
         container: this.container,
         style: this.style(),
-        center: [lon, lat],
-        zoom: (view.getZoom() ?? 6) - 1,
-        pitch: INITIAL_PITCH,
+        center: [asked.lon ?? lon, asked.lat ?? lat],
+        zoom: (asked.zoom ?? view.getZoom() ?? 6) - 1,
+        pitch: asked.pitch ?? INITIAL_PITCH,
+        bearing: asked.bearing ?? 0,
         maxZoom: 13,
         attributionControl: { compact: true },
       });
@@ -411,7 +433,15 @@ export default class Cells3DCapability extends Capability {
       });
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
-      gl.on("moveend", () => this.pushCameraToView());
+      // The tilt and heading only this map has go out with it, for the URL.
+      gl.on("moveend", () => {
+        this.pushCameraToView();
+        if (get(sharedActiveCap) !== this.getName()) return;
+        const centre = gl.getCenter();
+        mapView.set({
+          lat: centre.lat, lon: centre.lng, zoom: gl.getZoom() + 1, pitch: gl.getPitch(), bearing: gl.getBearing(),
+        });
+      });
       // Tapping a storm opens the same popup the flat map opens, and tapping
       // past one closes it -- the panel is rendered above whichever map is
       // showing, so it needs no separate plumbing here.
@@ -709,6 +739,63 @@ export default class Cells3DCapability extends Capability {
     }
   }
 
+  /**
+   * Point the camera where a link or a history entry says.
+   *
+   * Before the map exists the request is kept for it; after, it is a jump.
+   * Only what is given moves, so a link with a tilt and no heading keeps
+   * whichever heading the map already has.
+   */
+  setCamera(camera: CameraRequest): void {
+    if (!this.gl) {
+      this.requestedCamera = { ...this.requestedCamera, ...camera };
+      return;
+    }
+    const { lat, lon, zoom, pitch, bearing } = camera;
+    this.gl.jumpTo({
+      ...(lat !== undefined && lon !== undefined ? { center: [lon, lat] as [number, number] } : {}),
+      ...(zoom !== undefined ? { zoom: zoom - 1 } : {}),
+      ...(pitch !== undefined ? { pitch } : {}),
+      ...(bearing !== undefined ? { bearing } : {}),
+    });
+  }
+
+  /**
+   * The storm core a link names, by its volume's path, as something to open.
+   *
+   * Usually one of the newest scan's, and then it is the listed one, with the
+   * peak and the area the popup shows. A link opened later names a scan that
+   * has since been replaced -- a core's code is its grid position, so there is
+   * no following it into the next scan -- but its volume is immutable and
+   * still there, and the file's own header says where it stands and when it
+   * was measured. That is enough to open it where it was, as it was.
+   *
+   * Null when the volume has gone as well, which is the end of its retention.
+   */
+  async restoreCloud(path: string): Promise<RadarVolume | null> {
+    await (this.firstRefresh ?? this.refresh());
+    const listed = this.clouds.find((cloud) => cloud.path === path);
+    if (listed) return listed;
+    try {
+      const cutaway = await loadCutaway({ path, coverage: 0 });
+      const { header } = cutaway;
+      // Held like a listed one, so opening it does not fetch it a second time.
+      this.cutaways.set(path, { code: header.code, cutaway, lon: header.lon, lat: header.lat });
+      this.pushClouds();
+      return {
+        path,
+        code: header.code,
+        lon: header.lon,
+        lat: header.lat,
+        reference_time: header.reference_time,
+        coverage: header.coverage,
+        sites: header.sites,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   private pushCameraToView(): void {
     if (this.syncing || !this.gl) return;
     this.syncing = true;
@@ -764,7 +851,13 @@ export default class Cells3DCapability extends Capability {
   }
 
   /** Re-read the latest run. One timestep only: this map does not scrub. */
-  async refresh(): Promise<void> {
+  refresh(): Promise<void> {
+    const run = this.load();
+    this.firstRefresh ??= run;
+    return run;
+  }
+
+  private async load(): Promise<void> {
     try {
       const [current, clouds] = await Promise.all([
         fetchCurrentCells(this.nanobar),
