@@ -6,6 +6,11 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+# Read-only, whatever the repository default is: this is a public repository
+# and nothing here needs to write to it.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

@@ -10,6 +10,11 @@ on:
       - main
       - develop
 
+# Read-only, whatever the repository default is: this is a public repository
+# and nothing here needs to write to it.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

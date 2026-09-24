@@ -1,0 +1,117 @@
+# Deploys the frontend to staging and demo on every push to the working branch,
+# the frontend's counterpart of meteocool/ng's `v4`. Both are Cloudflare Workers
+# (wrangler.jsonc, envs `staging` and `demo`) in front of the staging cluster.
+#
+# This repository is public, and this is the only workflow here that holds a
+# secret -- a Cloudflare API token that can publish Workers. It is written so
+# that the token is reachable from as little as possible:
+#
+# - Push only. No `pull_request`, and never `pull_request_target`: a fork's
+#   pull request must not be able to run anything next to the token. Adding
+#   either trigger here would undo the rest of this list.
+# - The token lives in the `staging` and `demo` GitHub Environments, not in the
+#   repository's secrets, and both Environments only admit this one branch. A
+#   workflow on any other ref cannot read it even if it names the Environment.
+# - The job that holds it installs nothing from package-lock.json. The app's
+#   dependency tree -- a thousand packages, some with install scripts -- is
+#   installed and built in `build`, which has no secrets, and the Worker imports
+#   nothing, so `deploy` needs only the built `dist/` and a pinned wrangler.
+# - GitHub-hosted runners only. The self-hosted meteocloud runner sits inside a
+#   private network and is registered to meteocool/ng alone; a public
+#   repository must never be given a runner label that reaches it.
+# - Actions are pinned by commit, not by tag, and GITHUB_TOKEN is read-only.
+name: deploy
+
+on:
+  push:
+    branches: [rework/vite-svelte5-ts]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A deploy in progress always finishes: cancelling one leaves a Worker half
+# uploaded. A newer push queues behind it, and GitHub drops any still-queued
+# older run, so the branch head is always what ends up deployed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # The same gate check.yml applies to main and develop: a build that does not
+  # type-check or pass its tests does not ship.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: types
+        run: npm run check
+      - name: test
+        run: npm test
+
+  # One build per environment: `--mode` decides which backend a build talks to
+  # (src/urls.ts), so the two cannot share one.
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [staging, demo]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: build
+        run: npx vite build --mode "${{ matrix.environment }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist-${{ matrix.environment }}
+          path: dist
+          retention-days: 3
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      # Staging failing to publish is no reason to leave demo on an old build.
+      fail-fast: false
+      matrix:
+        include:
+          - environment: staging
+            url: https://web.staging.meteocool.com
+          - environment: demo
+            url: https://demo.meteocool.com
+    environment:
+      name: ${{ matrix.environment }}
+      url: ${{ matrix.url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-${{ matrix.environment }}
+          path: dist
+      # The same wrangler package.json pins, fetched on its own rather than with
+      # the app's dependencies. Keep the two versions in step.
+      - name: publish
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.131.1 deploy --env "${{ matrix.environment }}"
