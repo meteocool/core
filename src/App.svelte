@@ -27,7 +27,7 @@ import {
   bottomToolbarMode,
   colorSchemeDark,
   cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
-  capLatestObservation, capTimeIndicator, cellDetails,
+  capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, smallScreen, snowLayerVisible, toolbarVisible,
@@ -44,6 +44,7 @@ import { onWake, wake } from "./lib/wakeup";
 import { fetchLightningCache, fetchMesocyclones } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { nextSelection } from "./lib/cellSelection";
+import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
@@ -231,6 +232,11 @@ window.settings = new Settings({
     },
   },
 });
+/* A link says which overlays the sender had on. Held for this page load only,
+   and before the stores below first read their settings, so the layers come up
+   the way the link says without the link rewriting the reader's own choices. */
+applyLinkedOverlays(window.settings);
+
 const [lightningSource, lightningLayer] = makeLightningLayer();
 lightningLayerVisible.subscribe((value) => {
   lightningLayer.setVisible(value);
@@ -314,6 +320,18 @@ selectedCell.subscribe((track) => {
   if (!track) cellDetails.set(false);
 });
 
+/* So is the slice. Every storm opens cut along its own track: an angle turned
+   for the last one means nothing for this one, whose track points somewhere
+   else. On the selection rather than on the cutaway mounting, which is where
+   it was -- so walking the family re-cuts each cell it lands on, and a link
+   restoring a storm cut at some angle can set the angle after the storm
+   without the panel's mount undoing it. Keyed on the storm, not on the
+   object: a refresh hands the same cell over as a fresh copy every few
+   minutes, and that is not a new storm. */
+derived([selectedCell, selectedVolume], ([cell, cloud]) => (
+  cell ? `cell:${cell.code}` : cloud ? `cloud:${cloud.path}` : ""
+)).subscribe(() => cutRotationDeg.set(0));
+
 /**
  * The bottom trays step aside for the panel on a phone.
  *
@@ -368,6 +386,7 @@ onDestroy(() => window.clearInterval(fadeInterval));
 const lm = new LayerManager({
   settings: window.settings,
   nanobar: nb,
+  initialCapability: openingLink.layer,
   capabilities: [
     {
       name: "radar",
@@ -630,6 +649,12 @@ const reconnectSub = networkStatus.subscribe(({ online }) => {
 });
 onDestroy(reconnectSub);
 onDestroy(cleanupUIConstants);
+
+/* The URL from here on: the rest of the opening link, once there is data for
+   it, then the address bar kept in step with the page, and Back and Forward. */
+onDestroy(startUrlState({
+  lm, settings: window.settings, cellmgr, cells3d, nanobar: nb,
+}));
 
 if (postInitCb) postInitCb(lm);
 </script>

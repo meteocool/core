@@ -263,8 +263,14 @@ export function fetchCurrentVolumes(nanobar?: Progress) {
   return request(nanobar, "/cells/volumes", () => dataClient.GET("/cells/volumes", {}));
 }
 
-/** One cell's complete history, for a detail view. */
-export function fetchCellTrack(code: string, nanobar?: Progress) {
+/**
+ * One cell's complete history, for a detail view.
+ *
+ * `optional` for a code that came from a link rather than from the map: the
+ * backend forgets tracks after a while and answers 404, and a link outliving
+ * its storm is not the backend failing.
+ */
+export function fetchCellTrack(code: string, nanobar?: Progress, options: RequestOptions = {}) {
   return request(nanobar, "/cells/tracks/{code}", () =>
-    dataClient.GET("/cells/tracks/{code}", { params: { path: { code } } }));
+    dataClient.GET("/cells/tracks/{code}", { params: { path: { code } } }), options);
 }

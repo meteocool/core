@@ -20,7 +20,7 @@ import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
 import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
 import {
-  inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, sharedActiveCap,
+  inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, mapView, sharedActiveCap,
   zoomlevel,
 } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
@@ -50,9 +50,12 @@ export interface LayerManagerOptions {
   settings: Settings;
   nanobar?: NanobarWrapper;
   capabilities: CapabilityDescriptor[];
+  /**
+   * The capability a link asked for, which beats the stored one for this page
+   * load -- and only this one: nothing writes it back. See lib/urlState.ts.
+   */
+  initialCapability?: string;
 }
-
-let shouldUpdate = true;
 
 /**
  * How long a press has to be held before it counts as asking about a point,
@@ -96,12 +99,7 @@ export class LayerManager {
   /** The capability currently attached to the main map. */
   currentCap: string | null;
 
-  mapCount: number;
-
-  /** Kept so destroy() can take the history listener off window again. */
-  popstateHandler: ((event: PopStateEvent) => void) | null = null;
-
-  constructor(options) {
+  constructor(options: LayerManagerOptions) {
     this.options = options;
     this.settings = options.settings;
     this.capabilities = {};
@@ -110,7 +108,6 @@ export class LayerManager {
     this.positionFeatures = [];
     this.inspectFeatures = [];
     this.currentCap = null;
-    this.mapCount = 0;
 
     options.capabilities.forEach((capability) => {
       const newMap = this.mapFactory(capability.options.hasBaseLayer);
@@ -367,7 +364,6 @@ export class LayerManager {
       event.preventDefault();
     });
 
-    const isApp = dd.isApp();
     newMap.on("moveend", () => {
       if (get(sharedActiveCap) !== newMap.get("capability")) {
         return;
@@ -381,40 +377,22 @@ export class LayerManager {
           "EPSG:4326",
         ) as [number, number, number, number]);
       }
-      if (isApp) return;
-      if (!shouldUpdate) {
-        // do not update the URL when the view was changed in the 'popstate' handler
-        shouldUpdate = true;
-        return;
-      }
-
+      // Published rather than written into the URL from here: the address bar
+      // records the whole state, not only the view, and the 3D map publishes
+      // its camera to the same store. lib/urlState.ts does the writing -- and
+      // the restoring on Back, which used to live here too.
+      //
+      // Only from the full-size map. The layer switcher points every map at a
+      // thumbnail of its own, the active one included, and a thumbnail coming
+      // to rest is not the reader moving the map: it recorded the tile's
+      // unpadded centre, and for the 3D map -- whose OpenLayers half only ever
+      // draws in a tile -- a view with no tilt, which dropped it from the link.
+      if (newMap.getTargetElement()?.id !== "map") return;
       const center = newMap.getView().getCenter();
       if (!center) return;
-      const center4326 = toLonLat(center);
-      const url = new URL(window.location.href);
-      url.searchParams.set(
-        "latLonZ",
-        `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${(newMap.getView().getZoom() ?? 0).toFixed(2)}`,
-      );
-      window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
+      const [lon, lat] = toLonLat(center);
+      mapView.set({ lat, lon, zoom: newMap.getView().getZoom() ?? 0 });
     });
-
-    if (this.mapCount === 0) {
-      // restore the view state when navigating through the history, see
-      // https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onpopstate
-      this.popstateHandler = (event) => {
-        if (event.state === null) {
-          return;
-        }
-        shouldUpdate = false;
-        const url = new URL(event.state.location);
-        if (url.searchParams.has("latLonZ")) {
-          this.settings.cb("latLonZ");
-        }
-      };
-      window.addEventListener("popstate", this.popstateHandler);
-    }
-    this.mapCount += 1;
     newMap.set("baselayer", baselayer);
     return newMap;
   }
@@ -470,6 +448,12 @@ export class LayerManager {
   setTarget(cap: string, target: string | HTMLElement | undefined) {
     if (this.currentCap && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
+      // Off the element as well as out of focus. OpenLayers appends its
+      // viewport to a target and leaves the ones already there, so which map
+      // shows comes down to DOM order -- and a map pointed at the element it
+      // already has appends nothing. The layer switcher clears every map
+      // before switching; Back and Forward switch without it.
+      this.capabilities[this.currentCap].getMap().setTarget(undefined);
     }
     this.capabilities[cap].setTarget(target);
     sharedActiveCap.set(cap);
@@ -499,11 +483,14 @@ export class LayerManager {
   }
 
   /**
-   * The capability to open with: the stored one, unless it is not registered.
-   * A setting persisted while a capability was still offered outlives it being
-   * withdrawn, and indexing capabilities with it would throw on startup.
+   * The capability to open with: the one the link names, else the stored
+   * one, unless it is not registered. A setting persisted while a capability
+   * was still offered outlives it being withdrawn, and a link can name
+   * anything; indexing capabilities with either would throw on startup.
    */
-  private startingCapability(): string {
+  startingCapability(): string {
+    const linked = this.options.initialCapability;
+    if (linked && linked in this.capabilities) return linked;
     const stored = String(this.settings.get("capability"));
     if (stored in this.capabilities) return stored;
     const fallback = Object.keys(this.capabilities)[0];
@@ -543,10 +530,6 @@ export class LayerManager {
    * to be told; destroy() is optional on Capability and most do not define it.
    */
   destroy() {
-    if (this.popstateHandler) {
-      window.removeEventListener("popstate", this.popstateHandler);
-      this.popstateHandler = null;
-    }
     Object.values(this.capabilities).forEach((cap) => cap.destroy?.());
   }
 }

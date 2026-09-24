@@ -20,6 +20,16 @@ export type SettingValue = boolean | string | number | null;
 export default class Settings {
   private settings: Record<string, SettingDefinition>;
 
+  /**
+   * Values held for this page load only, ahead of whatever is stored.
+   *
+   * What a link does: it says which overlays the sender had on, and the reader
+   * should see those -- without the link quietly rewriting the preferences
+   * they had before they clicked it. So these win in get() and are never
+   * written anywhere; see override().
+   */
+  private overrides = new Map<string, SettingValue>();
+
   constructor(settingsCbs: Record<string, SettingDefinition>) {
     // expects a structure like this:
     // {
@@ -38,6 +48,7 @@ export default class Settings {
     if (typeof key !== "string") {
       return null;
     }
+    if (this.overrides.has(key)) return this.overrides.get(key) ?? null;
 
     const url = new URL(document.location.href);
     let local: string | null = null;
@@ -118,6 +129,17 @@ export default class Settings {
       return;
     }
 
+    if (this.overrides.has(key)) {
+      // The overridden value coming back, which is what every store that
+      // mirrors a setting does the moment it is set: nobody chose anything,
+      // and writing it would store the link's choice as the reader's own.
+      if (this.overrides.get(key) === value) return;
+      // A different value is a choice the reader made, and from here on the
+      // setting is theirs again: persisted as usual, measured against what
+      // they had stored rather than against the link's value.
+      this.overrides.delete(key);
+    }
+
     const old = this.get(key);
     console.log(`Updating ${key} => ${value} with old ${old}, apply=${apply}`);
     const url = new URL(window.location.href);
@@ -170,6 +192,21 @@ export default class Settings {
       console.error(error);
       return false;
     }
+  }
+
+  /**
+   * Hold a value for this page load without storing it.
+   *
+   * Fires the setting's callback when the effective value changes, like set(),
+   * so the store it drives follows. Anything set() is then handed -- including
+   * the same value echoed back by that store's own subscription -- is judged
+   * against the override first; see there.
+   */
+  override(key: string, value: SettingValue) {
+    if (!(key in this.settings) || typeof value !== this.settings[key].type) return;
+    const old = this.get(key);
+    this.overrides.set(key, value);
+    if (old !== value) this.settings[key].cb?.(value);
   }
 
   /**
