@@ -32,6 +32,7 @@ import LayerGroup from "ol/layer/Group";
 import type Settings from "./Settings";
 import type NanobarWrapper from "./NanobarWrapper";
 import type { CapabilityOptions } from "../caps/options";
+import { elementCentre } from "./viewCentre";
 
 /** One entry of the capability list App.svelte builds. */
 export interface CapabilityDescriptor {
@@ -388,7 +389,10 @@ export class LayerManager {
       // unpadded centre, and for the 3D map -- whose OpenLayers half only ever
       // draws in a tile -- a view with no tilt, which dropped it from the link.
       if (newMap.getTargetElement()?.id !== "map") return;
-      const center = newMap.getView().getCenter();
+      // The element's middle rather than the View's centre, which moves with
+      // the tray; see lib/viewCentre.ts. Recorded as the centre, a link came
+      // back half a tray further on every reload.
+      const center = elementCentre(newMap.getView());
       if (!center) return;
       const [lon, lat] = toLonLat(center);
       mapView.set({ lat, lon, zoom: newMap.getView().getZoom() ?? 0 });
@@ -458,6 +462,11 @@ export class LayerManager {
     this.capabilities[cap].setTarget(target);
     sharedActiveCap.set(cap);
     this.currentCap = cap;
+    // A switch moves no map, so no moveend says where the new one is looking,
+    // and the URL went on describing the last one's camera until a pan: the
+    // 3D map's centre as the flat map's, which is half a tray off.
+    const view = this.capabilities[cap].currentView();
+    if (view) mapView.set(view);
   }
 
   /**
