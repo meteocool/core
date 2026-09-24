@@ -172,6 +172,16 @@ export function fetchCzechRadar(nanobar?: Progress) {
   );
 }
 
+/** The most recent Polish reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchPolishRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/poland",
+    () => apiClient.GET("/v3/radar/poland", {}),
+    { optional: true },
+  );
+}
+
 /** The most recent precipitation-type tile set, absent until one has rendered. */
 export function fetchPrecipitationTypes(nanobar?: Progress) {
   return request(

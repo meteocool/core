@@ -40,7 +40,13 @@ import LiveIndicator from "./LiveIndicator.svelte";
 import { _, locale } from "svelte-i18n";
 import { get } from "svelte/store";
 import { dbz2color } from "../lib/cmap_utils";
-import { chRadarExtent4326, czRadarExtent4326, dwdRadarExtent4326, frRadarExtent4326 } from "../layers/extents";
+import {
+  chRadarExtent4326,
+  czRadarExtent4326,
+  dwdRadarExtent4326,
+  frRadarExtent4326,
+  plRadarExtent4326,
+} from "../layers/extents";
 import { reverseGeocode } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
 import ChartSkeleton from "./ChartSkeleton.svelte";
@@ -362,7 +368,13 @@ function overlaps(
 
 /* Every network's grid, not just DWD's: a viewport over Brittany or Corsica
    misses DWD's box entirely and is covered all the same, by Meteo-France. */
-const radarExtents4326 = [dwdRadarExtent4326, chRadarExtent4326, frRadarExtent4326, czRadarExtent4326];
+const radarExtents4326 = [
+  dwdRadarExtent4326,
+  chRadarExtent4326,
+  frRadarExtent4326,
+  czRadarExtent4326,
+  plRadarExtent4326,
+];
 
 $: outOfCoverage = $sharedActiveCap === "radar"
   && $mapExtent4326 !== null

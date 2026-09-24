@@ -304,11 +304,12 @@
         "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
         "properties": {
           "network": {
-            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI",
+            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW",
             "enum": [
               "ch",
               "fr",
-              "cz"
+              "cz",
+              "pl"
             ],
             "title": "Network",
             "type": "string"
@@ -1100,6 +1101,28 @@
           }
         },
         "summary": "French reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/poland": {
+      "get": {
+        "description": "The newest Polish reflectivity composite -- one frame, not a timeseries.\n\nIMGW's ten radars, composited by meteocool from the lowest tilt of each\nvolume; see `/switzerland` for why this is a route of its own.",
+        "operationId": "poland_v3_radar_poland_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Polish reflectivity tile metadata.",
         "tags": [
           "radar"
         ]

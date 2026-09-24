@@ -386,7 +386,8 @@
       agreement. The badge scores temperature agreement against the spread
       normal for that lead time. Method and model registry from
       <a href="https://github.com/Flowm/meteocompare" target="_blank" rel="noreferrer">meteocompare</a>;
-      data from <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">open-meteo</a>.
+      data from <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo.com</a>
+      (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>).
       Tap a day for the per-model figures.
     </footer>
   {/if}

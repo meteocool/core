@@ -650,10 +650,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI
+             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz";
+            network: "ch" | "fr" | "cz" | "pl";
         };
         /**
          * PointGeometry
