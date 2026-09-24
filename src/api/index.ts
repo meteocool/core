@@ -2,9 +2,10 @@
  * The backend, as typed calls generated from ng's OpenAPI schemas.
  *
  * Each wrapper keeps the two things every hand-written fetch here used to do
- * around the request -- drive the nanobar, and report a failure through Toast --
- * so a caller cannot forget either, and throws on a non-2xx rather than handing
- * back an error body that reads as a successful response.
+ * around the request -- drive the nanobar, and report a failure: to Sentry, and
+ * to apiHealth, which is what the status pill reads -- so a caller cannot forget
+ * either, and throws on a non-2xx rather than handing back an error body that
+ * reads as a successful response.
  */
 import { apiClient, dataClient } from "./client";
 import { reportError } from "../lib/Toast";
