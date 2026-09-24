@@ -18,9 +18,11 @@ import type { Cutaway } from "../lib/cellCutaway";
 import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, colorSchemeDark, cutRotationDeg, selectedCell, selectedVolume, showForecastPlaybutton,
+  capDescription, cellDetails, colorSchemeDark, cutRotationDeg, selectedCell, selectedVolume,
+  showForecastPlaybutton, smallScreen,
 } from "../stores";
 import { get } from "svelte/store";
+import { nextSelection } from "../lib/cellSelection";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import type { CellCurrent, CellTrack, CellTrackProperties, CellVolume, RadarVolume } from "../api";
@@ -252,6 +254,9 @@ export default class Cells3DCapability extends Capability {
   /** The newest load, so a slow one finishing late cannot undo a newer list. */
   private loadToken: symbol | null = null;
 
+  /** The newest open, so a volume still loading cannot reopen over a newer choice. */
+  private openToken: symbol | null = null;
+
   private unsubscribeVolume: (() => void) | null = null;
 
   private unsubscribeCut: (() => void) | null = null;
@@ -419,13 +424,26 @@ export default class Cells3DCapability extends Capability {
         const cloud = hits.find((feature) => feature.layer.id === "cloud-marker");
         if (cell?.properties?.code) {
           selectedVolume.set(null);
-          void this.select(String(cell.properties.code));
-        } else if (cloud?.properties?.code) {
-          selectedCell.set(null);
-          selectedVolume.set(this.clouds.find((c) => c.code === cloud.properties.code) ?? null);
+          // The same two steps the flat map takes -- panel at once on a
+          // desktop, forecast first on a phone. Setting the cell alone left a
+          // desktop with nothing on screen but the cut: the panel is drawn only
+          // for a selection whose details are open.
+          const code = String(cell.properties.code);
+          const next = nextSelection(
+            { code: get(selectedCell)?.code ?? null, details: get(cellDetails) },
+            code,
+            get(smallScreen),
+          );
+          void this.select(code, next.details);
         } else {
+          // A cell's track still in flight must not land over this: it would
+          // open that cell on top of the storm core, or of nothing, after the
+          // reader had moved on from it.
+          this.picking = null;
           selectedCell.set(null);
-          selectedVolume.set(null);
+          selectedVolume.set(cloud?.properties?.code
+            ? this.clouds.find((c) => c.code === cloud.properties.code) ?? null
+            : null);
         }
       });
       gl.on("mousemove", (event) => {
@@ -546,6 +564,8 @@ export default class Cells3DCapability extends Capability {
    * fetched and added so that tapping a cell never opens nothing.
    */
   private async open(target: VolumeTarget | null): Promise<void> {
+    const token = Symbol("open");
+    this.openToken = token;
     if (!target) {
       this.opened = null;
       this.applyCut();
@@ -564,6 +584,9 @@ export default class Cells3DCapability extends Capability {
         return;
       }
     }
+    // Tapped past while it loaded: the volume is kept and drawn like any
+    // other, but cutting it now would open the storm the reader has left.
+    if (this.openToken !== token) return;
     this.opened = { code: entry.code, heading: target.heading };
     this.applyCut();
   }
@@ -669,14 +692,17 @@ export default class Cells3DCapability extends Capability {
     });
   }
 
-  private async select(code: string): Promise<void> {
+  private async select(code: string, details: boolean): Promise<void> {
     const token = Symbol("pick");
     this.picking = token;
     try {
       const answer = await fetchCellTrack(code, this.nanobar);
       if (this.picking !== token) return;
       const track = answer as unknown as CellTrack | undefined;
-      if (track?.properties) selectedCell.set(trimToLastRun(track).properties);
+      if (track?.properties) {
+        selectedCell.set(trimToLastRun(track).properties);
+        cellDetails.set(details);
+      }
     } catch {
       // Already reported by the API wrapper; a popup that does not open is
       // not worth a second message on top of it.
