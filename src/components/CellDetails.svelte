@@ -666,12 +666,18 @@ function onKeydown(event: KeyboardEvent) {
   {#if track.volume}
     <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
     <figure class="model">
-      <CellCutaway
-        volume={track.volume}
-        headingDeg={latest?.heading_deg ?? null}
-        width={CHART.width}
-        height={200}
-      />
+      <!-- Keyed on the volume, as CloudDetails keys its own: the cutaway
+           fetches once, on mount, so walking the family from one cell with a
+           volume to another kept drawing the first storm's insides under the
+           second one's name. -->
+      {#key track.volume.path}
+        <CellCutaway
+          volume={track.volume}
+          headingDeg={latest?.heading_deg ?? null}
+          width={CHART.width}
+          height={200}
+        />
+      {/key}
     </figure>
   {/if}
 
