@@ -213,6 +213,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/radar/poland": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Polish reflectivity tile metadata.
+         * @description The newest Polish reflectivity composite -- one frame, not a timeseries.
+         *
+         *     IMGW's ten radars, composited by meteocool from the lowest tilt of each
+         *     volume; see `/switzerland` for why this is a route of its own.
+         */
+        get: operations["poland_v3_radar_poland_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/radar/snow": {
         parameters: {
             query?: never;
@@ -499,10 +522,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI
+             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz";
+            network: "ch" | "fr" | "cz" | "pl";
         };
         /**
          * Platform
@@ -968,6 +991,26 @@ export interface operations {
         };
     };
     france_v3_radar_france_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    poland_v3_radar_poland_get: {
         parameters: {
             query?: never;
             header?: never;

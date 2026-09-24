@@ -4,7 +4,7 @@ import { getRenderPixel } from "ol/render";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
 import type RenderEvent from "ol/render/Event";
-import { chmiAttribution, meteoFranceAttribution, meteoSwissAttribution } from "./attributions";
+import { chmiAttribution, imgwAttribution, meteoFranceAttribution, meteoSwissAttribution } from "./attributions";
 import {
   chExclusiveCoverage,
   chRadarExtent,
@@ -12,11 +12,13 @@ import {
   czRadarExtent,
   frExclusiveCoverage,
   frRadarExtent,
+  plExclusiveCoverage,
+  plRadarExtent,
 } from "./extents";
 import { tileSourceUrl } from "./dwd";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
-import { fetchCzechRadar, fetchFrenchRadar, fetchSwissRadar } from "../api";
+import { fetchCzechRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar } from "../api";
 import type { Progress, RadarFrame } from "../api";
 import type { NetworkEvent } from "../api/events";
 
@@ -56,7 +58,15 @@ export const CZECHIA: Network = {
   coverage: czExclusiveCoverage,
 };
 
-export const NETWORKS: Network[] = [SWITZERLAND, FRANCE, CZECHIA];
+export const POLAND: Network = {
+  code: "pl",
+  fetch: fetchPolishRadar,
+  attribution: imgwAttribution,
+  extent: plRadarExtent,
+  coverage: plExclusiveCoverage,
+};
+
+export const NETWORKS: Network[] = [SWITZERLAND, FRANCE, CZECHIA, POLAND];
 
 /**
  * A frame older than this is not shown. The backend publishes whenever a radar

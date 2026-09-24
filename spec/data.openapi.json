@@ -935,11 +935,12 @@
         "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
         "properties": {
           "network": {
-            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI",
+            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW",
             "enum": [
               "ch",
               "fr",
-              "cz"
+              "cz",
+              "pl"
             ],
             "title": "Network",
             "type": "string"
