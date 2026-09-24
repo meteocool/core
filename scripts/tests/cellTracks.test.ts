@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   distanceKm, ellipseRing4326, labelStepMinutes, lastRunStart, leadingTip, leadLabel,
-  MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent,
+  MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent, TRACK_MAX_MINUTES, trackIsCurrent,
 } from "../../src/lib/cellGeometry.ts";
 
 /**
@@ -100,6 +100,27 @@ test("a repeated timestamp does not read as infinite speed", () => {
 test("a track of one step has nothing to cut", () => {
   assert.equal(lastRunStart([at(0, 11, 48)]), 0);
   assert.equal(lastRunStart([]), 0);
+});
+
+/**
+ * When a cell leaves the map.
+ *
+ * The endpoint answers with three hours of tracks, and fading alone left a map
+ * open for an afternoon covered in storms that had long since gone out.
+ */
+test("a cell that is still being detected is drawn", () => {
+  assert.equal(trackIsCurrent(0), true);
+  assert.equal(trackIsCurrent(10), true);
+});
+
+test("a cell missed for a few scans is still drawn", () => {
+  assert.equal(trackIsCurrent(TRACK_MAX_MINUTES), true);
+});
+
+test("a cell that went out more than half an hour ago is gone", () => {
+  assert.equal(TRACK_MAX_MINUTES, 30);
+  assert.equal(trackIsCurrent(TRACK_MAX_MINUTES + 0.1), false);
+  assert.equal(trackIsCurrent(180), false);
 });
 
 /**

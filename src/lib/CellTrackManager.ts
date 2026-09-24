@@ -8,7 +8,7 @@ import { fetchCellTracks } from "../api";
 import type { CellTrack, CellTrackProperties, Progress } from "../api";
 import type { CellFeatureKind } from "../layers/cells";
 import {
-  ageMinutes, covers, ellipseRing4326, leadingTip, padExtent,
+  ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, trackIsCurrent,
 } from "./cellGeometry";
 import { trimToLastRun } from "./cellTrack";
 import { buildCellLinks, supersededCodes } from "./cellLinks";
@@ -152,7 +152,14 @@ export default class CellTrackManager {
     // Trimmed and indexed before anything is drawn. Both the joins and the
     // superseded rule are about one cell's relationship to another, so neither
     // can be decided while walking the answer a cell at a time.
-    const trimmed = drawing.map((raw) => trimToLastRun(raw));
+    //
+    // Cells that went out more than `TRACK_MAX_MINUTES` ago are dropped here,
+    // before the index, so nothing about them is drawn: not the path, the dot,
+    // or a lineage join into whatever carried on. The open cell is the one
+    // exception, for the reason `superseded` makes one of it below.
+    const trimmed = drawing
+      .filter((raw) => raw.properties.code === open || trackIsCurrent(ageMinutes(raw.properties.last_seen, now)))
+      .map((raw) => trimToLastRun(raw));
     trimmed.forEach((track) => this.tracks.set(track.properties.code, track.properties));
 
     const superseded = supersededCodes(this.tracks);
