@@ -4,18 +4,26 @@ import { getRenderPixel } from "ol/render";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
 import type RenderEvent from "ol/render/Event";
-import { meteoFranceAttribution, meteoSwissAttribution } from "./attributions";
-import { chExclusiveCoverage, chRadarExtent, frExclusiveCoverage, frRadarExtent } from "./extents";
+import { chmiAttribution, meteoFranceAttribution, meteoSwissAttribution } from "./attributions";
+import {
+  chExclusiveCoverage,
+  chRadarExtent,
+  czExclusiveCoverage,
+  czRadarExtent,
+  frExclusiveCoverage,
+  frRadarExtent,
+} from "./extents";
 import { tileSourceUrl } from "./dwd";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
-import { fetchFrenchRadar, fetchSwissRadar } from "../api";
+import { fetchCzechRadar, fetchFrenchRadar, fetchSwissRadar } from "../api";
 import type { Progress, RadarFrame } from "../api";
+import type { NetworkEvent } from "../api/events";
 
 /** One EUMETNET network, as the map draws it. */
 export interface Network {
   /** What the backend files it under: the socket event's `network`, the `reflectivity_{code}` collection. */
-  code: "ch" | "fr";
+  code: NetworkEvent["network"];
   fetch: (nanobar?: Progress) => Promise<RadarFrame | null | undefined>;
   attribution: string;
   /** The composite grid's rectangle: a cheap first cut, not the coverage claim. */
@@ -40,7 +48,15 @@ export const FRANCE: Network = {
   coverage: frExclusiveCoverage,
 };
 
-export const NETWORKS: Network[] = [SWITZERLAND, FRANCE];
+export const CZECHIA: Network = {
+  code: "cz",
+  fetch: fetchCzechRadar,
+  attribution: chmiAttribution,
+  extent: czRadarExtent,
+  coverage: czExclusiveCoverage,
+};
+
+export const NETWORKS: Network[] = [SWITZERLAND, FRANCE, CZECHIA];
 
 /**
  * A frame older than this is not shown. The backend publishes whenever a radar

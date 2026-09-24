@@ -304,10 +304,11 @@
         "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
         "properties": {
           "network": {
-            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France",
+            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI",
             "enum": [
               "ch",
-              "fr"
+              "fr",
+              "cz"
             ],
             "title": "Network",
             "type": "string"
@@ -1055,6 +1056,28 @@
           }
         },
         "summary": "Precipitation-type overlay metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/czechia": {
+      "get": {
+        "description": "The newest Czech reflectivity composite -- one frame, not a timeseries.\n\nCHMI's two radars, composited by meteocool from the lowest tilt of each\nvolume; see `/switzerland` for why this is a route of its own.",
+        "operationId": "czechia_v3_radar_czechia_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Czech reflectivity tile metadata.",
         "tags": [
           "radar"
         ]

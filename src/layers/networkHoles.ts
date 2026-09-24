@@ -1,5 +1,5 @@
 import ImageTileSource from "ol/source/ImageTile";
-import { chBorders, frBordersNearDwd } from "./extents";
+import { chBorders, czBordersNearDwd, frBordersNearDwd } from "./extents";
 
 /**
  * DWD tiles with the EUMETNET networks' countries cut out of them.
@@ -31,7 +31,7 @@ const bboxOf = (rings: number[][][]): Extent => {
 };
 
 /** Every network's hole, with its bounding box for a cheap first test. */
-const HOLES = [chBorders, frBordersNearDwd].map((rings) => ({ rings, bbox: bboxOf(rings) }));
+const HOLES = [chBorders, frBordersNearDwd, czBordersNearDwd].map((rings) => ({ rings, bbox: bboxOf(rings) }));
 
 const overlaps = (a: Extent, b: Extent) =>
   a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
