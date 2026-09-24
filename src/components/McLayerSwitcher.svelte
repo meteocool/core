@@ -10,7 +10,7 @@
   import { toLonLat } from "ol/proj";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
-  import { selectedCell } from "../stores";
+  import { selectedCell, selectedVolume } from "../stores";
 
   export let layerManager;
 
@@ -58,6 +58,14 @@
   window.openLayerswitcher = () => {
     const ls = document.getElementById("ls");
     if (!ls) return;
+    // The detail popup is anchored above everything, including this panel.
+    // Opening the switcher means the reader is done with that cell -- or with
+    // that storm core, whose popup otherwise stayed up over the switcher and
+    // then over whichever flat map was picked, where nothing draws it. Here
+    // rather than in open(), because the apps' own switcher buttons call this
+    // directly and never pass through open().
+    selectedCell.set(null);
+    selectedVolume.set(null);
     ls.style.display = "block";
     // The View is shared with the main map, which carries bottom padding for
     // the glass tray; the tiles are not under it.
@@ -71,9 +79,6 @@
   };
 
   function open() {
-    // The detail popup is anchored above everything, including this panel.
-    // Opening the switcher means the reader is done with that cell.
-    selectedCell.set(null);
     window.openLayerswitcher?.();
     // The iOS wrapper was told about close but never about open, so it could
     // not hide its own chrome while the switcher was up.
