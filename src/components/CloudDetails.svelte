@@ -46,8 +46,10 @@ $: facts = [
     or forecast for it &mdash; only what the radars saw inside it.
   </p>
   <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
-  <!-- Keyed, so each storm gets a fresh cutaway: its own slice, its own fetch. -->
-  {#key cloud.code}
+  <!-- Keyed, so each storm gets a fresh cutaway: its own slice, its own fetch.
+       On the volume rather than the code, which is a grid position and comes
+       round again when a core sits still into the next scan. -->
+  {#key cloud.path}
     <CellCutaway volume={cloud} headingDeg={null} {width} height={210} />
   {/key}
 </section>
