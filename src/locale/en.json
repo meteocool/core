@@ -83,5 +83,16 @@
   "precipitation_none": "No precipitation in the past two hours — and none forecast for the next two.",
   "hide": "Hide",
   "last_success": "Last update",
-  "preview": "Preview"
+  "preview": "Preview",
+  "cell_place_over": "Over {place}",
+  "cell_place_near": "{distance} km {direction} of {place}",
+  "cell_place_short": "{direction} of {place}",
+  "compass_N": "N",
+  "compass_NE": "NE",
+  "compass_E": "E",
+  "compass_SE": "SE",
+  "compass_S": "S",
+  "compass_SW": "SW",
+  "compass_W": "W",
+  "compass_NW": "NW"
 }

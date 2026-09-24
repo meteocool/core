@@ -82,5 +82,16 @@
   "precipitation_none": "Kein Niederschlag in den letzten zwei Stunden — und keiner für die nächsten zwei vorhergesagt.",
   "hide": "Ausblenden",
   "last_success": "Letzte Aktualisierung",
-  "preview": "Vorschau"
+  "preview": "Vorschau",
+  "cell_place_over": "Über {place}",
+  "cell_place_near": "{distance} km {direction} von {place}",
+  "cell_place_short": "{direction} von {place}",
+  "compass_N": "N",
+  "compass_NE": "NO",
+  "compass_E": "O",
+  "compass_SE": "SO",
+  "compass_S": "S",
+  "compass_SW": "SW",
+  "compass_W": "W",
+  "compass_NW": "NW"
 }
