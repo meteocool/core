@@ -4,8 +4,22 @@
     {
       "name": "meteocool",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 8080
+    },
+    {
+      "name": "meteocool-staging-alt",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "8091",
+        "--strictPort"
+      ],
+      "port": 8091
     }
   ]
 }
