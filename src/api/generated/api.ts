@@ -167,6 +167,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/radar/czechia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Czech reflectivity tile metadata.
+         * @description The newest Czech reflectivity composite -- one frame, not a timeseries.
+         *
+         *     CHMI's two radars, composited by meteocool from the lowest tilt of each
+         *     volume; see `/switzerland` for why this is a route of its own.
+         */
+        get: operations["czechia_v3_radar_czechia_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/radar/france": {
         parameters: {
             query?: never;
@@ -476,10 +499,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France
+             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI
              * @enum {string}
              */
-            network: "ch" | "fr";
+            network: "ch" | "fr" | "cz";
         };
         /**
          * Platform
@@ -920,6 +943,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrecipitationTypes"];
+                };
+            };
+        };
+    };
+    czechia_v3_radar_czechia_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
                 };
             };
         };
