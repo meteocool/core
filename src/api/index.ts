@@ -26,6 +26,7 @@ export type Strike = DataSchemas["schemas"]["Strike"];
 export type Mesocyclone = DataSchemas["schemas"]["Mesocyclone"];
 export type CellTrack = DataSchemas["schemas"]["TrackFeature"];
 export type CellTrackProperties = DataSchemas["schemas"]["TrackProperties"];
+export type CellPlacement = DataSchemas["schemas"]["CellPlacement"];
 export type CellStep = DataSchemas["schemas"]["CellStep"];
 export type CellForecastPoint = DataSchemas["schemas"]["ForecastPoint"];
 export type CellCurrent = DataSchemas["schemas"]["CellCurrent"];
