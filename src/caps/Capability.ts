@@ -1,7 +1,10 @@
 import { Map } from "ol";
+import { toLonLat } from "ol/proj";
 import { Observable } from "../lib/util";
 import type BaseLayer from "ol/layer/Base";
 import { sharedCmap } from "../stores";
+import type { MapView } from "../stores";
+import { elementCentre } from "../lib/viewCentre";
 
 /** Invoked when a capability's map is attached to a DOM node. */
 export type TargetCallback = (target: string | HTMLElement) => void;
@@ -72,6 +75,19 @@ export default class Capability extends Observable {
 
   willLoseFocus() {
     super.notify("loseFocus", null);
+  }
+
+  /**
+   * Where this capability's map is looking, as `mapView` records it, or null
+   * while it cannot say: the middle of the map element (lib/viewCentre.ts) and
+   * the zoom. The 3D map answers with its own camera.
+   */
+  currentView(): MapView | null {
+    const view = this.map.getView();
+    const centre = elementCentre(view);
+    if (!centre) return null;
+    const [lon, lat] = toLonLat(centre);
+    return { lat, lon, zoom: view.getZoom() ?? 0 };
   }
 
   /**

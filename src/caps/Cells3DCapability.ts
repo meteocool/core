@@ -23,9 +23,12 @@ import {
 } from "../stores";
 import { get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
+import { elementCentre, setElementCentre } from "../lib/viewCentre";
+import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import type { CellCurrent, CellTrack, CellTrackProperties, CellVolume, RadarVolume } from "../api";
+import type { MapView } from "../stores";
 import type VectorSource from "ol/source/Vector";
 
 /**
@@ -403,7 +406,7 @@ export default class Cells3DCapability extends Capability {
       if (this.gl) return;
       this.maplibre = maplibre;
       const view = this.map.getView();
-      const centre = view.getCenter();
+      const centre = elementCentre(view);
       const [lon, lat] = centre ? toLonLat(centre) : [10, 51];
       const asked = this.requestedCamera ?? {};
       this.requestedCamera = null;
@@ -416,9 +419,24 @@ export default class Cells3DCapability extends Capability {
         pitch: asked.pitch ?? INITIAL_PITCH,
         bearing: asked.bearing ?? 0,
         maxZoom: 13,
-        attributionControl: { compact: true },
+        // Spelled out rather than behind an (i), like the flat map's; see the
+        // attribution rules in glass.css.
+        attributionControl: { compact: false },
       });
-      gl.addControl(new maplibre.NavigationControl({ visualizePitch: true }), "top-right");
+      /*
+       * Two controls where one would do, so they can be drawn as the flat
+       * map's are: a zoom capsule, and below it a disc -- there the locate
+       * button, here the compass, which also shows the tilt and resets both.
+       * Under the layer-switcher disc, in glass; see glass.css and Map.svelte.
+       *
+       * Not in the apps, which draw their own controls over the webview. The
+       * flat map leaves its zoom and locate out there for the same reason, and
+       * a column of web buttons would land under the native ones.
+       */
+      if (!dd.isApp()) {
+        gl.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
+        gl.addControl(new maplibre.NavigationControl({ showZoom: false, visualizePitch: true }), "top-right");
+      }
       // Fires on the first style and again after every `setStyle`, which is
       // what a light/dark switch does -- and that discards everything added on
       // top of it, so this is also how the storms get put back.
@@ -436,11 +454,7 @@ export default class Cells3DCapability extends Capability {
       // The tilt and heading only this map has go out with it, for the URL.
       gl.on("moveend", () => {
         this.pushCameraToView();
-        if (get(sharedActiveCap) !== this.getName()) return;
-        const centre = gl.getCenter();
-        mapView.set({
-          lat: centre.lat, lon: centre.lng, zoom: gl.getZoom() + 1, pitch: gl.getPitch(), bearing: gl.getBearing(),
-        });
+        if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
       });
       // Tapping a storm opens the same popup the flat map opens, and tapping
       // past one closes it -- the panel is rendered above whichever map is
@@ -481,6 +495,9 @@ export default class Cells3DCapability extends Capability {
         gl.getCanvas().style.cursor = over ? "pointer" : "";
       });
       this.gl = gl;
+      // Built after the switch that asked for it, so LayerManager had no
+      // camera to publish then; and MapLibre does not report its first one.
+      if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
     } else {
       this.pullCameraFromView();
       this.gl.resize();
@@ -739,6 +756,16 @@ export default class Cells3DCapability extends Capability {
     }
   }
 
+  /** The 3D camera, in the flat map's zoom levels; null before MapLibre has loaded. */
+  currentView(): MapView | null {
+    const gl = this.gl;
+    if (!gl) return null;
+    const centre = gl.getCenter();
+    return {
+      lat: centre.lat, lon: centre.lng, zoom: gl.getZoom() + 1, pitch: gl.getPitch(), bearing: gl.getBearing(),
+    };
+  }
+
   /**
    * Point the camera where a link or a history entry says.
    *
@@ -801,8 +828,11 @@ export default class Cells3DCapability extends Capability {
     this.syncing = true;
     const centre = this.gl.getCenter();
     const view = this.map.getView();
-    view.setCenter(fromLonLat([centre.lng, centre.lat]));
+    // MapLibre's centre is the middle of its element, which is not the View's
+    // centre while the View carries the tray; see lib/viewCentre.ts. Zoom
+    // first, because the two differ by an amount measured at the resolution.
     view.setZoom(this.gl.getZoom() + 1);
+    setElementCentre(view, fromLonLat([centre.lng, centre.lat]));
     this.syncing = false;
   }
 
@@ -810,7 +840,7 @@ export default class Cells3DCapability extends Capability {
     if (this.syncing || !this.gl) return;
     this.syncing = true;
     const view = this.map.getView();
-    const centre = view.getCenter();
+    const centre = elementCentre(view);
     if (centre) {
       const [lon, lat] = toLonLat(centre);
       this.gl.jumpTo({ center: [lon, lat], zoom: (view.getZoom() ?? 6) - 1 });

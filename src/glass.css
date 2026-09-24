@@ -337,6 +337,7 @@
 .buttonBar,
 .ol-control,
 .ol-attribution,
+.maplibregl-ctrl,
 .live-wrapper,
 .lsToggle,
 .sl-toast-stack sl-alert {
@@ -631,3 +632,75 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    back and sat on top of the corner control. */
 .ol-attribution button,
 .ol-touch .ol-attribution button { display: none; }
+
+/* ---------------------------------------------------------------------------
+   MapLibre's controls, on the 3D map: the same capsule and disc as the
+   OpenLayers ones above, so the right-hand column is one set whichever map is
+   showing. Every rule is qualified with .maplibre-host -- the element MapLibre
+   is handed -- because maplibre-gl.css arrives with MapLibre, after this file,
+   and would win every tie. Positions live in Map.svelte, beside the others.
+   --------------------------------------------------------------------------- */
+.maplibre-host .maplibregl-ctrl-group {
+  box-sizing: border-box;
+  width: var(--mc-control-lg);
+  background: var(--mc-glass-fill);
+  -webkit-backdrop-filter: var(--mc-glass-backdrop);
+  backdrop-filter: var(--mc-glass-backdrop);
+  border: 1px solid var(--mc-glass-edge);
+  border-radius: var(--mc-radius-pill);
+  overflow: hidden;                                   /* clips button hover fills to the capsule */
+  transition: background-color var(--mc-motion-fast);
+}
+.maplibre-host .maplibregl-ctrl-group:not(:empty) { box-shadow: var(--mc-glass-ring); }
+.maplibre-host .maplibregl-ctrl-group:hover { background: var(--mc-glass-fill-strong); }
+.maplibre-host .maplibregl-ctrl-group button {
+  width: 100%;
+  height: calc(var(--mc-control-lg) - 2px);
+  color: var(--mc-text);
+  transition: background-color var(--mc-motion-fast), color var(--mc-motion-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.maplibre-host .maplibregl-ctrl-group button + button { border-top: 1px solid var(--mc-separator); }
+.maplibre-host .maplibregl-ctrl-group button:not(:disabled):hover,
+.maplibre-host .maplibregl-ctrl-group button:focus {
+  background: var(--mc-tint);
+  color: var(--mc-accent);
+}
+.maplibre-host .maplibregl-ctrl-group button:not(:disabled):active { background: var(--mc-tint-active); }
+/* MapLibre's own focus ring is a blue glow outside the button, which the
+   capsule's clipping cuts in half; the flat map's inset outline instead. */
+.maplibre-host .maplibregl-ctrl-group button:focus,
+.maplibre-host .maplibregl-ctrl-group button:focus:focus-visible { box-shadow: none; }
+.maplibre-host .maplibregl-ctrl-group button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -3px; }
+
+/* The + and - as the flat map draws them: text in the system face, so they
+   take the button's colour and its accent on hover, where MapLibre's are
+   pictures of a dark glyph. */
+.maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon,
+.maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon {
+  background-image: none;
+  font: 600 20px/calc(var(--mc-control-lg) - 2px) var(--mc-font);
+  text-align: center;
+}
+.maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon::before { content: "+"; }
+.maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon::before { content: "\2013"; }
+
+/* The compass keeps its needle, which is a picture that has to stay one --
+   MapLibre turns it with the bearing and tips it with the pitch -- but in
+   colours that read on either glass: the system red for north, the system
+   grey for south, where MapLibre's charcoal disappears on the dark one. */
+.maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 29 29'%3E%3Cpath fill='%23ff453a' d='m10.5 14 4-8 4 8z'/%3E%3Cpath fill='%238e8e93' d='m10.5 16 4 8 4-8z'/%3E%3C/svg%3E");
+  background-size: 32px 32px;
+}
+
+/* The attribution as the flat map's is: bare small print, with the same halo. */
+.maplibre-host .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  margin: 0;
+  padding: 0 2px;
+  background: none;
+  color: var(--mc-text-2);
+  font: 500 9px/1.3 var(--mc-font);
+  text-shadow: 0 0 2px var(--mc-glass-fill-strong), 0 0 1px var(--mc-glass-fill-strong);
+}
+.maplibre-host .maplibregl-ctrl-attrib a { color: var(--mc-text-2); }

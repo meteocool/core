@@ -1,7 +1,7 @@
 <script lang="ts">
   import McLayerSwitcher from "./McLayerSwitcher.svelte";
   import "ol/ol.css";
-  import { layerswitcherVisible, bottomToolbarMode } from "../stores";
+  import { layerswitcherVisible, bottomToolbarMode, sharedActiveCap } from "../stores";
   import { tick } from "svelte";
   import { get } from "svelte/store";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -145,6 +145,13 @@
     tick().then(() => layerManager.setDefaultTarget(mapID));
 
     const unsubscribeMode = bottomToolbarMode.subscribe(() => startTransitionPoll());
+    // The tray comes and goes with the capability as well -- the 3D map has
+    // none -- so the same re-measure, and the observer moved onto whichever
+    // bar now exists.
+    const unsubscribeCap = sharedActiveCap.subscribe(() => tick().then(() => {
+      syncToolbarObserver();
+      startTransitionPoll();
+    }));
 
     // Catches the toolbar's own content changing height (a scale line swapping,
     // the lightning chart appearing). Transform-only motion is handled by the
@@ -161,6 +168,7 @@
     return {
       destroy() {
         unsubscribeMode();
+        unsubscribeCap();
         unsubscribeVisible();
         window.removeEventListener("mc:toolbar-transition", onToolbarTransition);
         window.removeEventListener("resize", scheduleMapResize);
@@ -227,10 +235,13 @@
   }
 
   :global(.ol-geolocate) {
-    /* The zoom capsule's height: two buttons of (module - 2px), the 1px
-       separator between them and the control's own 2px of border, which comes
-       to exactly two modules less one. */
-    top: calc(var(--ol-controls-top) + 2 * var(--mc-control-lg) - 1px + var(--mc-gutter));
+    /* The zoom capsule's height: two buttons of (module - 2px) and the
+       control's own 2px of border -- two modules less two. The separator
+       between the buttons is one of their borders, inside their box-sizing,
+       and this used to count it a second time, which left the locate disc a
+       gutter and a pixel below the capsule; the 3D map's compass, stacked by
+       the browser rather than by arithmetic, came out a pixel higher. */
+    top: calc(var(--ol-controls-top) + 2 * var(--mc-control-lg) - 2px + var(--mc-gutter));
     right: var(--mc-gutter);
     left: auto;
     bottom: auto;
@@ -238,6 +249,25 @@
   }
   :global(.ol-geolocate button) {
     font-size: 22px;
+  }
+
+  /* The 3D map's controls in the same column: under the switcher disc, a
+     gutter apart, the zoom capsule first and the compass disc below it where
+     the locate disc is on the flat map. MapLibre floats its controls in a
+     corner box of its own, so the box is moved rather than each control. The
+     material is in src/glass.css. */
+  :global(.maplibre-host .maplibregl-ctrl-top-right) {
+    top: var(--ol-controls-top);
+    right: var(--mc-gutter);
+  }
+  :global(.maplibre-host .maplibregl-ctrl-top-right .maplibregl-ctrl) {
+    margin: 0 0 var(--mc-gutter);
+  }
+  /* And the attribution where the flat map keeps its own. */
+  :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
+    right: 2px;
+    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 1px);
+    max-width: calc(100% - 4px);
   }
 
   /* The wrappers ship their own zoom and locate controls. */

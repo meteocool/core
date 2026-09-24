@@ -40,6 +40,7 @@ import { DeviceDetect as dd } from "./DeviceDetect";
 import type { LayerManager } from "./LayerManager";
 import type Settings from "./Settings";
 import { reportToast } from "./Toast";
+import { setElementCentre } from "./viewCentre";
 
 /** The setting each overlay is stored under, whose callback drives its store. */
 const OVERLAY_SETTINGS: Record<Overlay, string> = {
@@ -231,8 +232,8 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
   function centreOn(lat: number, lon: number) {
     const view = sharedView();
     const zoom = Math.max(view?.getZoom() ?? 0, STORM_ZOOM);
-    view?.setCenter(fromLonLat([lon, lat]));
     view?.setZoom(zoom);
+    if (view) setElementCentre(view, fromLonLat([lon, lat]));
     // The 3D map reads the View when it is built, but not after.
     if (get(sharedActiveCap) === "cells3d") cells3d?.setCamera({ lat, lon, zoom });
   }
@@ -303,9 +304,11 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
     settling = true;
 
     if (!opening) {
-      if (link.view) {
-        sharedView()?.setCenter(fromLonLat([link.view.lon, link.view.lat]));
-        sharedView()?.setZoom(link.view.zoom);
+      const view = sharedView();
+      if (link.view && view) {
+        // A link's centre is the middle of the map element, as it was written.
+        view.setZoom(link.view.zoom);
+        setElementCentre(view, fromLonLat([link.view.lon, link.view.lat]));
       }
       if (link.layer && link.layer !== lm.currentCap && lm.getCapability(link.layer)) {
         lm.setTarget(link.layer, MAP_TARGET);
