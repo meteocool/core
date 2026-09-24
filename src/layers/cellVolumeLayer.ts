@@ -363,7 +363,13 @@ export function makeCloudsLayer(
         clouds.delete(code);
       }
       for (const { code, cutaway } of next) {
-        if (clouds.has(code)) continue;
+        const held = clouds.get(code);
+        if (held?.cutaway === cutaway) continue;
+        // The same code for a different volume: a core whose peak stayed on
+        // one pixel into the next scan. A code is a grid position, unique only
+        // within a scan, so keeping whichever arrived first for it drew the
+        // storm as it had been at the first scan for as long as it sat still.
+        if (held?.texture && gl) gl.deleteTexture(held.texture);
         clouds.set(code, { cutaway, model: modelFor(cutaway), texture: gl ? upload(gl, cutaway) : null });
       }
     },
