@@ -591,9 +591,12 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   transform: rotate(-2deg);
 }
 
-/* Attribution: tinted, not blurred -- it is a strip of text at the map's edge. */
-/* Also an .ol-control, so it has to opt out of the 44px module above along
-   with the material. */
+/* Attribution: bare text in the corner, no material behind it. It is legal
+   small print, not a control, so it takes the least room the map can give:
+   hard against the right edge and just clear of the bottom tray. A faint halo
+   in the glass fill keeps it readable over bright radar without reading
+   as a pill. Also an .ol-control, so it has to opt out of the 44px module
+   above along with the material. */
 .ol-attribution,
 .ol-attribution.ol-uncollapsible {
   width: auto;
@@ -606,21 +609,20 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   overflow: visible;
   height: auto;
   padding: 0;
-  right: var(--mc-gutter);
-  bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 4px);
-  max-width: calc(100% - 2 * var(--mc-gutter));
+  right: 2px;
+  bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 1px);
+  max-width: calc(100% - 4px);
   font-size: 9px;
 }
 .ol-attribution:not(.ol-collapsed) { background: none; }
 .ol-attribution ul {
   margin: 0;
-  padding: 3px 9px;
-  border-radius: var(--mc-radius-pill);
-  background: var(--mc-glass-fill-strong);
-  box-shadow: 0 0 0 0.5px var(--mc-glass-edge-outer);
-  color: var(--mc-text);
+  padding: 0 2px;
+  background: none;
+  box-shadow: none;
+  color: var(--mc-text-2);
   font: 500 9px/1.3 var(--mc-font);
-  text-shadow: none;
+  text-shadow: 0 0 2px var(--mc-glass-fill-strong), 0 0 1px var(--mc-glass-fill-strong);
 }
 .ol-attribution a { color: var(--mc-text-2); }
 /* The collapse toggle. Two selectors, because this file's own
