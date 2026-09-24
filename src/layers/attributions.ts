@@ -21,6 +21,7 @@ export const meteoSwissAttribution = `© ${link("https://www.meteoswiss.admin.ch
 export const meteoFranceAttribution = `© ${link("https://meteofrance.com/", "Météo-France")} (${licenceOuverte})`;
 export const chmiAttribution = `© ${link("https://www.chmi.cz/", "ČHMÚ")} (${ccBy})`;
 export const imgwAttribution = `© ${link("https://www.imgw.pl/", "IMGW-PIB")} (${ccBy})`;
+export const noaaAttribution = `${link("https://www.weather.gov/disclaimer", "NOAA/NWS")} (public domain)`;
 export const blitzortungAttribution = `© ${link("https://www.blitzortung.org/", "Blitzortung.org")}`;
 export const protomapsAttribution = `© ${link("https://protomaps.com", "Protomaps")}`;
 export const imprintAttribution = "| <a href=\"/imprint.html\">Imprint</a> · <a href=\"/imprint.html#data\">Data licences</a>";
