@@ -66,35 +66,21 @@ function toast(
 }
 
 /**
- * Whether the generic failure toast has already been shown this session.
+ * Record a failure, without putting anything over the map.
  *
- * One backend outage is one piece of news, but it arrives once per call, and
- * the calls repeat: a poke, a pan, a refresh timer. Stacking five identical
- * "something went wrong" alerts over the map tells the reader nothing the first
- * one did not, and buries the map while it does it. After the first, the status
- * pill carries the state instead -- it is always visible, it says which kind of
- * trouble it is, and it goes away on its own when the backend recovers.
+ * This used to raise a "Something went wrong" toast, once a session. The status
+ * pill says the same thing better: it is always on screen, it says which kind
+ * of trouble it is, the diagnostics behind it name the failing endpoint, and it
+ * clears itself when the backend recovers -- where the toast said nothing the
+ * pill did not, sat over the map until it was closed, and told the reader to
+ * reload a page that would recover without it. The model comparison, which
+ * reports open-meteo failing through here, shows its own error in its panel.
+ *
+ * console.error, not log: the Sentry CaptureConsole integration is configured
+ * for the error level, and this is the one path errors are reported through.
  */
-let announced = false;
-
-/** For tests and for a deliberate re-arm; nothing in the app calls this yet. */
-export function resetErrorReporting() {
-  announced = false;
-}
-
-export function reportError(message: unknown, variant = "warning", icon = "exclamation-triangle") {
-  // console.error, not log: the Sentry CaptureConsole integration is configured
-  // for the error level, and this is the one path errors are reported through.
-  // Every failure goes here, toast or no toast, so nothing is lost to the
-  // deduplication -- only the second alert on screen is.
+export function reportError(message: unknown) {
   console.error(message);
-  if (announced) return undefined;
-  announced = true;
-  return toast(
-    "<b>Something went wrong.</b> Please reload the page, or contact support@meteocool.com if it keeps happening.",
-    variant,
-    icon,
-  );
 }
 
 export function reportToast(message: string, variant = "primary", icon = "info-circle") {
@@ -126,8 +112,7 @@ export function resetReplayNotice() {
  *
  * Remembered once dismissed, because the condition outlives the page: staging
  * replays for days at a time, and a reader who has been told is told again on
- * every reload otherwise. The error toast deliberately does not do this --
- * "something went wrong" hidden for good is a failure nobody ever sees again.
+ * every reload otherwise.
  */
 export function reportReplay(announced = replayAnnounced) {
   if (announced) return undefined;
