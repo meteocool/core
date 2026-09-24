@@ -193,6 +193,23 @@ export function ageMinutes(lastSeen: string, now = Date.now()): number {
 }
 
 /**
+ * How long a cell stays on the map once it stops being detected.
+ *
+ * The tracks endpoint answers with a three-hour window, so most of what comes
+ * back is storms that have already gone. Fading them was not enough: a map
+ * left open through an afternoon still filled up with pale paths and dots for
+ * cells that dissipated hours ago, and read as weather that was not there.
+ * Half an hour keeps a storm that has just been missed for a scan or two, and
+ * lets one that has really gone out disappear.
+ */
+export const TRACK_MAX_MINUTES = 30;
+
+/** Whether a cell last detected this many minutes ago is still drawn at all. */
+export function trackIsCurrent(minutes: number): boolean {
+  return minutes <= TRACK_MAX_MINUTES;
+}
+
+/**
  * How long an outline keeps describing the storm it was drawn around.
  *
  * Unlike the path and the centroid, the outline does not travel: it is the
