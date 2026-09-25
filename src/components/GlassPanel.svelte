@@ -57,7 +57,7 @@ onMount(() => {
   .scrim {
     position: fixed;
     inset: 0;
-    z-index: var(--mc-z-status);
+    z-index: var(--mc-z-panel);
     display: flex;
     justify-content: center;
     align-items: flex-start;

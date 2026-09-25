@@ -722,7 +722,7 @@ if (postInitCb) postInitCb(lm);
     position: absolute;
     top: 12px;
     right: 12px;
-    z-index: 1200;
+    z-index: var(--mc-z-details);
     max-width: min(392px, calc(100vw - 24px));
     max-height: calc(100vh - 24px);
     overflow-y: auto;
