@@ -38,6 +38,16 @@ export let onClose: (() => void) | null = null;
  * facts and a dial are neither clipped nor floating in a half-empty panel.
  */
 export let expandable = true;
+/**
+ * As tall as what it holds at rest, and pulled up to full height for more.
+ *
+ * For content whose resting form is short and whose long form is reading
+ * nobody needs every time -- a storm on the 3D map is a few facts and the
+ * dial, and how its volume was built comes only when asked for. The slot is
+ * told which it is showing, and is handed a way to pull the sheet up itself,
+ * because a grabber alone does not say there is anything above it.
+ */
+export let fitAtRest = false;
 
 /**
  * The sheet slides, unless the reader has asked things not to move.
@@ -342,7 +352,7 @@ function bodyUp(event: PointerEvent) {
 
 <div
   class="sheet"
-  class:fit={!expandable}
+  class:fit={!expandable || (fitAtRest && detent === HALF)}
   class:dragging
   class:settling={!dragging}
   style="--sheet-h: {Math.round(detent * 100)}vh; transform: translateY({dragY}px)"
@@ -365,7 +375,7 @@ function bodyUp(event: PointerEvent) {
     on:pointermove={bodyMove}
     on:pointerup={bodyUp}
     on:pointercancel={bodyUp}>
-    <slot>
+    <slot expanded={detent === FULL} expand={() => { if (expandable) detent = FULL; }}>
       {#if track}<CellDetails {track} />{/if}
     </slot>
   </div>

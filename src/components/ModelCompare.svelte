@@ -39,7 +39,7 @@
        so the point never moves underneath it. Not a reactive statement -- the
        assignment happens in an async callback, which as a `$:` is the shape of
        an infinite loop even when it is not one. */
-    reverseGeocode(lat, lon, get(locale) ?? "en").then((name) => { placeName = name; });
+    reverseGeocode(lat, lon, get(locale) ?? "en", "local", "compare").then((name) => { placeName = name; });
     try {
       forecast = await fetchForecast({ lat, lon, forecastDays: 7 });
     } catch (e) {
