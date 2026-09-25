@@ -280,6 +280,22 @@
     bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 1px);
     max-width: calc(100% - 4px);
   }
+  /* Up the right edge on a phone, as the flat map's (src/glass.css). The
+     corner box already lets touches through; its float would put the text at
+     the top of the strip once the box is turned. */
+  @media only screen and (max-width: 620px) {
+    :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
+      top: calc(var(--ol-controls-top) + 4 * var(--mc-control-lg) + 3 * var(--mc-gutter));
+      max-width: none;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      text-align: start;
+    }
+    :global(.maplibre-host .maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
+      float: none;
+      padding: 2px 0;
+    }
+  }
 
   /* The wrappers ship their own zoom and locate controls. */
   :global(.is-app .ol-zoom),
