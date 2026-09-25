@@ -72,7 +72,10 @@ export default class StrikeManager {
         this.removeOne(id, idx);
       }
     }
-    this.vs.refresh();
+    // Not `refresh()`: on an OpenLayers 10 vector source that is `clear()`,
+    // and it emptied the whole map of strikes every five minutes rather than
+    // the ones that had aged out.
+    this.vs.changed();
   }
 
   clearAll() {

@@ -56,6 +56,9 @@ export let cap: RadarCapability;
 
 let gridConfig: GridConfig | null = null;
 
+/** How many frames ahead of playback to ask for tiles: about a second and a half of the loop. */
+const PREFETCH_FRAMES = 3;
+
 // Assigned when the client has no position; not rendered today.
 let _showBars = true;
 
@@ -538,9 +541,6 @@ const fsm = new StateMachine({
   methods: {
     onShowScrollbar: () => {
       bottomToolbarMode.set("player");
-      if ($precacheForecast === true) {
-        cap.precacheAllForecasts();
-      }
       if (chart) {
         const active = chart;
         canvasVisible = false;
@@ -625,6 +625,10 @@ const fsm = new StateMachine({
           thisFrameDelayMs = 800;
         }
         sliderChangedHandler(slRange.value);
+        // The next frames' tiles, asked for before the player reaches them,
+        // so each frame is whole when it is shown. The setting is the
+        // "preload forecast" switch, which used to be wired to nothing.
+        if ($precacheForecast) cap.prefetchFrames(Number(slRange.value), PREFETCH_FRAMES);
         if (slRange.value !== gridConfig.now || loop) {
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
         } else {

@@ -65,3 +65,33 @@ button:disabled {
 input[type="range"] {
   height: 0;
 }
+
+/* The live-cell rings: DOM placed by src/layers/cellPulse.ts, stepped by the
+   compositor. The duration, step count and phase are set inline from the
+   constants in src/lib/cellPulse.ts, so the cycle is stated once. */
+.mc-cell-pulse {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mc-cell-pulse svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+.mc-cell-pulse circle {
+  fill: none;
+  stroke: var(--mc-pulse-ink);
+  stroke-width: var(--mc-pulse-width);
+  animation-name: mc-cell-pulse;
+  animation-iteration-count: infinite;
+}
+@keyframes mc-cell-pulse {
+  /* Negative, so the dashes travel the way the pattern is read. */
+  to { stroke-dashoffset: calc(-1 * var(--mc-pulse-period)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-cell-pulse circle { animation: none; }
+}
