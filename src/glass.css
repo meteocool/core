@@ -60,6 +60,28 @@
   --mc-glass-edge: rgba(255, 255, 255, 0.70);         /* the luminous 1px border */
   --mc-glass-edge-outer: rgba(0, 0, 0, 0.14);         /* so white glass still reads on a pale map */
 
+  /* The reading material: glass under text. About, Settings, Connection
+     Details -- paragraphs and tables, not a label on a pill.
+
+     The chrome's recipe cannot carry that. It saturates the backdrop to 190%
+     and lifts it, so over a squall line a paragraph sits on radar brighter and
+     louder than the map itself. This one turns each of those around: a kernel
+     wide enough that no cell edge survives it, colour pulled down rather than
+     up, and the backdrop tone-mapped away from the ink -- lifted and
+     whitened under dark text, dimmed under light text -- and the secondary
+     inks are a step firmer than the chrome's, which are tuned for a two-word
+     label, not a column of them.
+
+     Worked through over every backdrop colour (the filters, then the fill,
+     then the ink, in sRGB): the primary ink holds at least 9.7:1, the
+     secondary 4.9:1 and the tertiary 3:1, whatever the radar is doing. The
+     chrome's own glass, for comparison, goes to 1:1 in dark chrome over a
+     bright cell. The map is still there; it is just out of focus and quiet. */
+  --mc-reading-backdrop: blur(40px) saturate(70%) brightness(1.25);
+  --mc-reading-fill: rgba(255, 255, 255, 0.82);
+  --mc-reading-text-2: rgba(60, 60, 67, 0.84);
+  --mc-reading-text-3: rgba(60, 60, 67, 0.62);
+
   /* The bevel, which is what reads as refraction. A lens is brightest where it
      turns away from the viewer, so: a specular top rim, a fainter rim all the
      way round, and a shaded bottom lip. Three inset shadows rather than a
@@ -223,6 +245,10 @@
   --mc-glass-fill-solid: rgba(28, 28, 30, 0.94);
   --mc-glass-edge: rgba(255, 255, 255, 0.22);
   --mc-glass-edge-outer: rgba(0, 0, 0, 0.45);
+  --mc-reading-backdrop: blur(40px) saturate(70%) brightness(0.5);
+  --mc-reading-fill: rgba(30, 32, 36, 0.62);
+  --mc-reading-text-2: rgba(235, 235, 245, 0.78);
+  --mc-reading-text-3: rgba(235, 235, 245, 0.55);
   --mc-glass-highlight:
     inset 0 1px 0 rgba(255, 255, 255, 0.40),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
@@ -293,27 +319,36 @@
   }
 }
 
-/* Fallback ladder. Each rung flips the same three tokens, so every surface
-   degrades identically without needing a class. */
+/* Fallback ladder. Each rung flips the same tokens, so every surface degrades
+   identically without needing a class. The chrome-dark root is listed with the
+   others because it sets the fill too, and at the same specificity as the
+   rung: left out, a dark basemap under a light OS theme kept its 10% fill
+   with nothing blurred behind it, which is barely there at all. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root, :root[data-theme="dark"] {
+  :root, :root[data-theme="dark"], :root[data-chrome="dark"] {
     --mc-glass-backdrop: none;
     --mc-glass-fill: var(--mc-glass-fill-solid);
     --mc-glass-fill-strong: var(--mc-glass-fill-solid);
+    --mc-reading-backdrop: none;
+    --mc-reading-fill: var(--mc-glass-fill-solid);
   }
 }
 @media (prefers-reduced-transparency: reduce) {
-  :root, :root[data-theme="dark"] {
+  :root, :root[data-theme="dark"], :root[data-chrome="dark"] {
     --mc-glass-backdrop: none;
     --mc-glass-fill: var(--mc-glass-fill-solid);
     --mc-glass-fill-strong: var(--mc-glass-fill-solid);
+    --mc-reading-backdrop: none;
+    --mc-reading-fill: var(--mc-glass-fill-solid);
   }
 }
 /* Kill switch, set by ui.ts on weak WebViews: solid fills, no blur. */
-:root[data-glass="off"], :root[data-glass="off"][data-theme="dark"] {
+:root[data-glass="off"], :root[data-glass="off"][data-theme="dark"], :root[data-glass="off"][data-chrome="dark"] {
   --mc-glass-backdrop: none;
   --mc-glass-fill: var(--mc-glass-fill-solid);
   --mc-glass-fill-strong: var(--mc-glass-fill-solid);
+  --mc-reading-backdrop: none;
+  --mc-reading-fill: var(--mc-glass-fill-solid);
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
@@ -368,6 +403,14 @@
 .glass-strong { background: var(--mc-glass-fill-strong); }
 .glass-pill { border-radius: var(--mc-radius-pill); }
 .glass-tray { border-radius: var(--mc-radius-tray); box-shadow: var(--mc-glass-ring-lg); }
+/* Glass under text; see --mc-reading-backdrop. After .glass, which it overrides. */
+.glass-reading {
+  --mc-text-2: var(--mc-reading-text-2);
+  --mc-text-3: var(--mc-reading-text-3);
+  background: var(--mc-reading-fill);
+  -webkit-backdrop-filter: var(--mc-reading-backdrop);
+  backdrop-filter: var(--mc-reading-backdrop);
+}
 .mc-num { font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------------------
@@ -467,6 +510,10 @@ sl-button::part(base) {
   background: var(--mc-tint);
   color: var(--mc-text);
   font: 600 15px/1 var(--mc-font);
+  /* The shorthand above resets Shoelace's line-height, which is what centres
+     the label in the button's min-height: without this the text sat at the
+     top of a 40px pill, the dialogs' Close most visibly. */
+  align-items: center;
   transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
 }
 sl-button:not([disabled])::part(base):hover { background: var(--mc-tint-hover); color: var(--mc-text); }

@@ -175,26 +175,6 @@ export default class Settings {
   }
 
   /**
-   * Whether this key carries a value of its own, rather than falling through
-   * to its default.
-   *
-   * set() deletes a value that equals the default, so "nothing stored" and
-   * "still on the default" are the same state -- which is what makes this a
-   * usable test for "the user has not chosen".
-   */
-  hasStoredValue(key: string): boolean {
-    if (this.getSourceForKey(key) === "url") {
-      return new URL(document.location.href).searchParams.has(key);
-    }
-    try {
-      return localStorage ? localStorage.getItem(key) !== null : false;
-    } catch (error) {
-      console.error(error);
-      return false;
-    }
-  }
-
-  /**
    * Hold a value for this page load without storing it.
    *
    * Fires the setting's callback when the effective value changes, like set(),
@@ -207,19 +187,6 @@ export default class Settings {
     const old = this.get(key);
     this.overrides.set(key, value);
     if (old !== value) this.settings[key].cb?.(value);
-  }
-
-  /**
-   * Re-point a setting's default.
-   *
-   * A default that can change while the app runs has to be written back here,
-   * or set() and hasStoredValue() go on comparing against the stale one and
-   * disagree about what counts as an explicit choice.
-   */
-  setDefault(key: string, value: SettingValue) {
-    if (key in this.settings && value !== null) {
-      this.settings[key].default = value;
-    }
   }
 
   getSourceForKey(key: string): NonNullable<SettingDefinition["source"]> {
