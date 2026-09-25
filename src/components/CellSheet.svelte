@@ -150,13 +150,39 @@ onDestroy(() => syncNativeChrome(false));
 let dragY = 0;
 let dragging = false;
 let startY = 0;
+let sheetEl: HTMLElement;
+/** How far below the screen's edge the sheet's lower part sits, at rest. */
+let restPx = 0;
+/**
+ * A sheet fitted to its content has no lower part parked below the edge to
+ * slide in -- it is only as tall as what it holds -- so pulling one up grows
+ * it from its resting height instead, and this is that height.
+ */
+let fitPx = 0;
 
 /** Far enough that the drag was meant, short enough to be one easy motion. */
 const SNAP_PX = 60;
 
-function grab(event: PointerEvent) {
+/**
+ * The sheet is always laid out at full height and parked with its lower part
+ * below the screen's edge, so dragging it up slides in what is already there.
+ * That parked distance is CSS (vh against the safe area), so it is measured
+ * rather than recomputed: how far the sheet's bottom hangs past its parent's.
+ */
+function startDrag(y: number) {
   dragging = true;
-  startY = event.clientY;
+  startY = y;
+  const parent = sheetEl.offsetParent ?? document.documentElement;
+  restPx = Math.max(0, sheetEl.getBoundingClientRect().bottom - parent.getBoundingClientRect().bottom);
+  fitPx = sheetEl.getBoundingClientRect().height;
+}
+
+/** Whether this drag is growing a fitted sheet toward full height, rather than sliding it. */
+$: growing = fitAtRest && expandable && detent === HALF && dragY < 0;
+$: growStyle = growing ? `; height: ${Math.round(fitPx - dragY)}px; max-height: none` : "";
+
+function grab(event: PointerEvent) {
+  startDrag(event.clientY);
   (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
 }
 
@@ -165,7 +191,11 @@ function move(event: PointerEvent) {
   const delta = event.clientY - startY;
   // Upward only as far as the full detent is from here, so the sheet cannot be
   // dragged off the top of the screen and left there.
-  const headroom = detent === HALF && expandable ? -(FULL - HALF) * window.innerHeight : 0;
+  // A fitted sheet grows up to the full detent's height -- the CSS clamp on
+  // `--full-h`, near enough, which only bounds the drag.
+  const fullPx = Math.min(FULL * window.innerHeight, window.innerHeight - 60);
+  const reach = fitAtRest ? Math.max(0, fullPx - fitPx) : restPx;
+  const headroom = detent === HALF && expandable ? -reach : 0;
   dragY = Math.max(headroom, delta);
 }
 
@@ -194,7 +224,9 @@ function release() {
  * Two things stay out of that: a drag that turns out to be a tap on a control
  * in here (the close button, a link), and the 3D model, which already owns
  * its own vertical drag to turn the shape and would never get it back once a
- * few pixels of "is this a resize" slop ran out first.
+ * few pixels of "is this a resize" slop ran out first. The cut's dial is not
+ * one of them: it turns sideways only and lets a vertical drag go uncaptured,
+ * deciding with the same rule as below, so the sheet takes it from there.
  *
  * The axis decision is the same slop-then-commit rule swipeAway.ts uses for
  * the strips' swipe-to-clear -- proven here at working out "tap or gesture"
@@ -209,8 +241,8 @@ let bodyEligible = false;
 
 function bodyDown(event: PointerEvent) {
   if (event.button > 0) return;
-  // The models and the cut's dial own their drags; see above.
-  if ((event.target as HTMLElement).closest(".model, .slice")) return;
+  // The models own their drags, the CAPPI's height included; see above.
+  if ((event.target as HTMLElement).closest(".model, .cappi")) return;
   const el = event.currentTarget as HTMLElement;
   bodyEligible = el.scrollHeight <= el.clientHeight + 1;
   if (!bodyEligible) return;
@@ -225,8 +257,7 @@ function bodyMove(event: PointerEvent) {
   if (bodyAxis === "undecided") {
     bodyAxis = decideAxis(event.clientX - bodyStartX, event.clientY - bodyStartY);
     if (bodyAxis !== "y") return;
-    dragging = true;
-    startY = bodyStartY;
+    startDrag(bodyStartY);
     try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* already gone */ }
   }
   if (bodyAxis !== "y") return;
@@ -249,7 +280,7 @@ function bodyUp(event: PointerEvent) {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1200;
+    z-index: var(--mc-z-details);
     display: flex;
     flex-direction: column;
     /* Set from the detent, so the map above always has the rest -- except at
@@ -259,7 +290,14 @@ function bodyUp(event: PointerEvent) {
        than a vh guess that put the grip behind it on some phones. The 60px
        past that clears the status bar with real room to spare -- 28px read as
        "no map visible" since it barely cleared the chrome at all. */
-    height: min(var(--sheet-h), calc(100vh - var(--mc-safe-top) - 60px));
+    --full-h: min(95vh, calc(100vh - var(--mc-safe-top) - 60px));
+    height: var(--full-h);
+    /* Always that tall, and slid down by however much the detent leaves off,
+       so the part below the fold is laid out and waiting under the screen's
+       edge. Sized to the detent instead, pulling it up dragged a half-height
+       panel into the air with bare map underneath until the finger let go. */
+    --rest: max(0px, calc(var(--full-h) - var(--sheet-h)));
+    transform: translateY(calc(var(--rest) + var(--drag, 0px)));
     padding: 0 12px calc(12px + var(--mc-safe-bottom));
     border-radius: 22px 22px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
@@ -278,6 +316,7 @@ function bodyUp(event: PointerEvent) {
   }
 
   .sheet.fit {
+    --rest: 0px;
     height: auto;
     max-height: calc(70vh - var(--mc-safe-top));
   }
@@ -321,6 +360,48 @@ function bodyUp(event: PointerEvent) {
     opacity: 0.4;
   }
 
+  /* A sheet that only closes needs its grip as a sign, not as the target: the
+     whole of it takes the pull (see bodyDown), so the row shrinks to the bar
+     and hands the rest to the map. */
+  .fit .grip {
+    height: 18px;
+  }
+  .fit .grip span {
+    width: 32px;
+    height: 4px;
+  }
+
+  /*
+   * The sheet that expands keeps its 44px of grip, but laid over the top of
+   * the body rather than stacked above it, so the header -- and the close disc
+   * in it -- can come up to where the 3D sheet has them: the disc 12px from the
+   * top and 12px from the right, the title level with it, the bar in the strip
+   * above. Stacked, the disc hung 45px down under a 12px right margin.
+   *
+   * Held clear of the disc's column on both sides (12 + 44 + 12), so the disc
+   * stays the thing a tap in the corner reaches and the bar stays centred.
+   */
+  .sheet:not(.fit) .grip {
+    position: absolute;
+    top: 0;
+    left: 68px;
+    right: 68px;
+    z-index: 1;
+    margin: 0;
+    align-items: flex-start;
+    padding-top: 6px;
+    box-sizing: border-box;
+  }
+  /* 21px, so the disc's 10px pull lands it 12px below the sheet's outer edge
+     past the 1px top border, and the header on the line the 3D sheet's is.
+     What scrolls up past that fades out in the strip the bar stands in, rather
+     than running under it. */
+  .sheet:not(.fit) .body {
+    padding-top: 21px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 11px);
+    mask-image: linear-gradient(to bottom, transparent, #000 11px);
+  }
+
   .body {
     flex: 1 1 auto;
     overflow-y: auto;
@@ -334,15 +415,30 @@ function bodyUp(event: PointerEvent) {
        was clipped there at rest -- overflow-y:auto implicitly makes
        overflow-x auto too, so the same applies on the right. */
     padding: 10px 8px 0 0;
+    /* The scroll range ends at the screen's edge, not at the parked part
+       below it, so the last line can still be scrolled into view. */
+    padding-bottom: var(--rest);
+  }
+  /* Nothing in here to scroll -- it is as tall as what it holds -- so a drag
+     is the sheet's from the first pixel, rather than the browser's to claim as
+     a pan and cancel before the axis is decided. */
+  /* And nothing to clip, which lets the close disc overhang into the grip's
+     row and sit square in the corner: the sheet's 12px side padding less the
+     body's 8px right padding the disc's margin cancels leaves 12px to the
+     right; the 1px top border, the 18px grip and this 3px, less the disc's
+     10px pull, leave 12px above. Clipped by the body's own top edge, it lost a
+     slice off the top at the previous 4px. */
+  .fit .body {
+    touch-action: none;
+    overflow: visible;
+    padding-top: 3px;
   }
 
   .dragging {
     transition: none;
   }
   .settling {
-    transition:
-      transform 200ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1)),
-      height 260ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1));
+    transition: transform 280ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -355,7 +451,8 @@ function bodyUp(event: PointerEvent) {
   class:fit={!expandable || (fitAtRest && detent === HALF)}
   class:dragging
   class:settling={!dragging}
-  style="--sheet-h: {Math.round(detent * 100)}vh; transform: translateY({dragY}px)"
+  bind:this={sheetEl}
+  style="--sheet-h: {Math.round(detent * 100)}vh; --drag: {growing ? 0 : dragY}px{growStyle}"
   transition:fly={slide}>
   <div
     class="grip"

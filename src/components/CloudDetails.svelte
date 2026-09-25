@@ -38,7 +38,9 @@ export let width = 340;
  * only what the map cannot say, and the dial that turns the cut -- see
  * `SliceDial` for why that is all a phone needs. Laid out as a cell's details
  * are, because it sits in the same sheet: a header ruled in the storm's own
- * colour and the same glass close disc in the corner.
+ * colour and the same glass close disc in the corner. Without the line on why
+ * there is no track: on a phone every row of this sheet is map the storm
+ * standing behind it does not get.
  */
 export let compact = false;
 /** In the sheet: whether it has been pulled up, which is when the provenance shows. */
