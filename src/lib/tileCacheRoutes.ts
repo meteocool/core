@@ -13,8 +13,16 @@
 /** Versioned basemap vectors: immutable per URL, so cache-first. */
 export const BASEMAP_ROUTE = /^https:\/\/map\.meteocool\.com\/.*\.mvt$/;
 
-/** Radar frames: network-first, cached only to survive an offline reload. */
-export const WEATHER_TILE_ROUTE = /^https:\/\/tiles-a\.meteocool\.com\/.*\.png$/;
+/**
+ * Radar frames: cache-first.
+ *
+ * Every frame's tiles live under a `tile_id` that names that one rendering,
+ * so a URL never changes content -- which frame is current is decided by the
+ * timeseries, not by re-asking for the tile. Matched on production's tile
+ * host and the cluster's `assets-<environment>` ones alike, so a staging or
+ * demo build is cached the same way.
+ */
+export const WEATHER_TILE_ROUTE = /^https:\/\/(?:tiles-a|assets-[a-z]+)\.meteocool\.com\/.+\.png$/;
 
 export const BASEMAP_CACHE = "basemap-cache";
 export const WEATHER_TILE_CACHE = "weather-tile-cache";

@@ -43,9 +43,55 @@ export const WATCHDOG_INTERVAL_MS = 5000;
  */
 export const CLOCK_JUMP_MS = 20_000;
 
+/**
+ * How long the page has to have been hidden before coming back counts as a
+ * wake worth resyncing for.
+ *
+ * Below this nothing has expired: the radar publishes every five minutes and
+ * the socket is still up, so a resync would refetch every endpoint to learn
+ * nothing. Alt-tabbing between windows used to do exactly that, eight
+ * requests a time, and so did the page's own first paint -- the browser fires
+ * visibilitychange as it comes up, and that was read as a return from
+ * somewhere.
+ */
+export const MIN_HIDDEN_MS = 60_000;
+
 const listeners = new Set<WakeListener>();
 let lastWakeAt = 0;
 let teardown: Array<() => void> = [];
+/** When the page was last hidden, or null while it is showing. */
+let hiddenAt: number | null = null;
+/** Work put off while the page was hidden, by key so a repeat replaces rather than stacks. */
+const deferred = new Map<string, () => void>();
+
+/**
+ * Run `work` now if the page is showing, otherwise once it shows again.
+ *
+ * For the socket's nudges. Each one is a fetch -- the radar grid, the cells
+ * in view, a network's frame -- that a hidden tab has no use for until it is
+ * looked at, by which time several have usually arrived and only the newest
+ * matters: keyed, so the last poke of a kind is the one that runs. This is
+ * separate from `wake`, which is gated on how long the page was away; a poke
+ * deferred for ten seconds still has to land when the page comes back.
+ */
+export function whenVisible(key: string, work: () => void): void {
+  if (typeof document === "undefined" || document.visibilityState !== "hidden") {
+    work();
+    return;
+  }
+  deferred.set(key, work);
+}
+
+function runDeferred() {
+  const pending = [...deferred.values()];
+  deferred.clear();
+  pending.forEach((work) => work());
+}
+
+/** How long the page was hidden, in ms, or 0 while it has not been. */
+function hiddenFor(): number {
+  return hiddenAt === null ? 0 : Date.now() - hiddenAt;
+}
 
 /** Register interest in waking. Returns the unsubscribe, like a store does. */
 export function onWake(listener: WakeListener): () => void {
@@ -61,6 +107,13 @@ export function onWake(listener: WakeListener): () => void {
  * visibilitychange arriving together still only resync once.
  */
 export function wake(reason: string) {
+  // A wake nobody is looking at -- the watchdog noticing a throttled tab's
+  // clock jump, the network coming back to a hidden page -- is put off like a
+  // poke. It runs, once, when the page shows again.
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+    deferred.set("wake", () => wake(reason));
+    return;
+  }
   const now = Date.now();
   if (now - lastWakeAt < WAKE_DEBOUNCE_MS) return;
   lastWakeAt = now;
@@ -76,22 +129,37 @@ export function initWakeup() {
   cleanupWakeup();
   if (typeof window === "undefined") return;
 
+  /* Only a return from a real absence is a wake; see MIN_HIDDEN_MS. The
+     deferred pokes run on any return, however short -- they were put off, not
+     judged unnecessary. */
+  const back = (reason: string) => {
+    const away = hiddenFor();
+    hiddenAt = null;
+    runDeferred();
+    if (away >= MIN_HIDDEN_MS) wake(`${reason} after ${Math.round(away / 1000)}s`);
+  };
   const onVisibility = () => {
-    if (document.visibilityState === "visible") wake("visibilitychange");
+    if (document.visibilityState === "visible") {
+      back("visibilitychange");
+      return;
+    }
+    hiddenAt ??= Date.now();
     // Pausing playback on the way out is the app's business, not ours; it is on
     // window because that is where the iOS host calls it from.
-    else window.leaveForeground?.();
+    window.leaveForeground?.();
   };
   document.addEventListener("visibilitychange", onVisibility);
   teardown.push(() => document.removeEventListener("visibilitychange", onVisibility));
 
+  // A bfcache restore is a page that was put away whole; its timers and socket
+  // have been frozen for however long, and the page itself cannot tell.
   const onPageShow = (event: PageTransitionEvent) => {
     if (event.persisted) wake("bfcache restore");
   };
   window.addEventListener("pageshow", onPageShow);
   teardown.push(() => window.removeEventListener("pageshow", onPageShow));
 
-  const onFocus = () => wake("focus");
+  const onFocus = () => back("focus");
   window.addEventListener("focus", onFocus);
   teardown.push(() => window.removeEventListener("focus", onFocus));
 
@@ -112,4 +180,6 @@ export function initWakeup() {
 export function cleanupWakeup() {
   teardown.forEach((off) => off());
   teardown = [];
+  hiddenAt = null;
+  deferred.clear();
 }
