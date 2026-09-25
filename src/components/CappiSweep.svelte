@@ -176,7 +176,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
 {#if failed}
   <p class="unavailable">Volume unavailable</p>
 {:else if cutaway}
-  <figure>
+  <figure class="cappi">
     <div class="stage" style="height: {height}px">
       <canvas
         bind:this={canvas}
