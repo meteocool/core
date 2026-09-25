@@ -576,15 +576,16 @@ function close() {
  * safe to bind unconditionally: a tablet with a keyboard gets the same
  * behaviour its grabber already offers, and a phone with none never fires it.
  *
- * Three things are deliberately left alone. A dialog above the panel owns the
- * key first -- Shoelace closes `sl-dialog` on Escape itself, and About is
- * mounted over this -- so an open one means the key was not aimed here. A
- * handler that already called `preventDefault` means the same. And Escape in a
+ * Three things are deliberately left alone. A panel above this one owns the
+ * key first -- About, Settings and Connection Details close on Escape
+ * themselves, and can be open over this -- so an open one means the key was
+ * not aimed here. A handler that already called `preventDefault` means the
+ * same; GlassPanel does, from the capture phase, so it always runs first. And Escape in a
  * field means "cancel what I am typing", never "close the panel behind it".
  */
 function onKeydown(event: KeyboardEvent) {
   if (event.key !== "Escape" || event.defaultPrevented) return;
-  if (document.querySelector("sl-dialog[open]")) return;
+  if (document.querySelector("sl-dialog[open], [role='dialog'][aria-modal='true']")) return;
   const target = event.target as HTMLElement | null;
   if (target?.isContentEditable) return;
   if (target && /^(?:INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;

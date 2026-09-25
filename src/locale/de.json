@@ -11,8 +11,6 @@
   "hail": "Hagel",
   "precipitation_here": "Niederschlag an deinem Standort",
   "connection_details": "Verbindungsdetails",
-  "copy": "Kopieren",
-  "copied": "Kopiert",
   "title": "Über meteocool",
   "text1": "meteocool is a free GIS visualisation &amp; aggregation platform with focus on severe weather. Optimized for\n        mobile devices, you can use it to both chase or avoid upcoming weather - that’s up to you.",
   "text2": "meteocool nutzt Daten vom DWD, Echtzeit Blitzinformationen von blitzortung.org und Satellitenbilder vom EC/ESA Copernicus Erdbeobachtungsprogramm.",
@@ -93,5 +91,32 @@
   "compass_S": "S",
   "compass_SW": "SW",
   "compass_W": "W",
-  "compass_NW": "NW"
+  "compass_NW": "NW",
+  "settings": {
+    "title": "Einstellungen",
+    "base_layer": "Basiskarte",
+    "base_layers": {
+      "system": "Wie System",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "osm": "OpenStreetMap",
+      "cyclosm": "CyclOSM (Fahrrad)"
+    },
+    "color_map": "Radar-Farbschema",
+    "color_maps": {
+      "classic": "Klassisch",
+      "nws": "NWS Reflectivity",
+      "pyart_stepseq": "PyArt StepSeq",
+      "homeyer": "Homeyer (Achromasie)",
+      "lang": "Lang (Achromasie)"
+    },
+    "color_map_hint": "Ändert die Farben, in denen der Niederschlag gezeichnet wird. 'Klassisch' ist am schnellsten.",
+    "map": "Karte",
+    "rotation": "Rotation der Karte",
+    "environment": "Vorschau",
+    "staging": "Staging öffnen",
+    "staging_hint": "Auf Staging läuft die nächste Version von meteocool, bevor sie veröffentlicht wird. Neue Funktionen, gelegentlich auch Fehler; deine Einstellungen hier werden nicht übernommen.",
+    "production": "meteocool.com öffnen",
+    "production_hint": "Du bist auf Staging. Das öffnet die veröffentlichte Version."
+  }
 }
