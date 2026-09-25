@@ -198,12 +198,15 @@
   --mc-z-chart: 34;
   --mc-z-tray-buttons: 36;
   --mc-z-pill: 40;
-  --mc-z-status: 50;
   --mc-z-toast: 60;
   --mc-z-dialog: 70;
   --mc-z-nanobar: 80;
   --mc-z-sheet: 90;
   --mc-z-sheet-2: 91;
+  --mc-z-details: 1200;   /* the storm's sheet on a phone, its panel on desktop */
+  /* About, Settings, Connection Details: over whatever they were opened from,
+     the storm sheet included. At 50 they came up underneath it. */
+  --mc-z-panel: 1300;
 
   /* Shoelace tokens re-pointed at the system */
   --sl-font-sans: var(--mc-font);
@@ -685,6 +688,30 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    back and sat on top of the corner control. */
 .ol-attribution button,
 .ol-touch .ol-attribution button { display: none; }
+
+/* On a phone the small print ran three lines deep across the whole width,
+   right above the tray, over the part of the map people actually look at. It
+   stands up the right edge instead, reading bottom to top, in the strip
+   between the control column (switcher, zoom, locate, and the north-up disc
+   when it shows) and the tray. The box spans that whole strip so a long list
+   wraps into a second column rather than climbing under the controls; it lets
+   touches through, and only its links take them (see above). Rotating a vertical-rl
+   box half a turn flips its inline direction, so `start` is the bottom. */
+@media only screen and (max-width: 620px) {
+  .ol-attribution,
+  .ol-attribution.ol-uncollapsible {
+    top: calc(var(--ol-controls-top) + 4 * var(--mc-control-lg) + 3 * var(--mc-gutter));
+    max-width: none;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    flex-flow: row;
+    text-align: start;
+    pointer-events: none;
+  }
+  .ol-attribution ul {
+    padding: 2px 0;
+  }
+}
 
 /* ---------------------------------------------------------------------------
    MapLibre's controls, on the 3D map: the same capsule and disc as the

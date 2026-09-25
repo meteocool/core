@@ -21,6 +21,7 @@ import { onDestroy } from "svelte";
 import { cutRotationDeg, cutSweepDeg } from "../stores";
 import { stopSweep } from "../lib/cutSweep";
 import { cutLabel, cutSnapLabels, normaliseCut } from "../lib/cutAngle";
+import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import type { CutReference } from "../lib/cutAngle";
 
 export let reference: CutReference = "track";
@@ -40,6 +41,15 @@ let dragging = false;
 let pointerId: number | null = null;
 let lastX = 0;
 let lastT = 0;
+let downX = 0;
+let downY = 0;
+/**
+ * The ruler turns sideways only. A drag that sets off vertically is let go,
+ * uncaptured, for the sheet around it to take -- so pulling the sheet down to
+ * close works from anywhere on it, the dial included, and the slop-then-commit
+ * rule is the one the sheet decides with, so the two never both move.
+ */
+let axis: SwipeAxis = "undecided";
 /** Degrees per millisecond, smoothed over the last few moves of the drag. */
 let velocity = 0;
 let frame = 0;
@@ -139,14 +149,26 @@ function onPointerDown(event: PointerEvent): void {
   stop();
   dragging = true;
   pointerId = event.pointerId;
-  lastX = event.clientX;
+  downX = lastX = event.clientX;
+  downY = event.clientY;
   lastT = event.timeStamp;
   velocity = 0;
-  (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  axis = "undecided";
 }
 
 function onPointerMove(event: PointerEvent): void {
   if (!dragging || event.pointerId !== pointerId) return;
+  if (axis === "undecided") {
+    axis = decideAxis(event.clientX - downX, event.clientY - downY);
+    if (axis === "undecided") return;
+    if (axis === "y") {
+      dragging = false;
+      pointerId = null;
+      settle();
+      return;
+    }
+    try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* already gone */ }
+  }
   // Dragging the ruler left brings the larger angles under the needle, as
   // scrolling content does.
   const delta = -(event.clientX - lastX) / PX_PER_DEG;
