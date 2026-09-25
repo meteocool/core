@@ -437,7 +437,7 @@ async function resolvePlace(
   placeName = null;
   if (!point) return;
   const token = ++placeToken;
-  const name = await reverseGeocode(point[0], point[1], language ?? "en");
+  const name = await reverseGeocode(point[0], point[1], language ?? "en", "local", "forecast");
   if (token === placeToken) placeName = name;
 }
 

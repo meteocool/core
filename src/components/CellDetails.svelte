@@ -26,6 +26,7 @@ import CellModel3D from "./CellModel3D.svelte";
 import CellCutaway from "./CellCutaway.svelte";
 import SliceDial from "./SliceDial.svelte";
 import CloseDisc from "./CloseDisc.svelte";
+import { open3DAvailable, openCellIn3D } from "../lib/open3d";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
 import { placementLabel } from "../lib/cellPlacement";
 import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
@@ -695,6 +696,14 @@ function onKeydown(event: KeyboardEvent) {
         />
       {/key}
     </figure>
+    <!-- The same storm on the 3D map, cut open where it stands among its
+         neighbours rather than alone in a box. Not from the 3D map itself,
+         where it already is. -->
+    {#if $open3DAvailable && $sharedActiveCap !== "cells3d"}
+      <button type="button" class="open-3d" on:click={() => openCellIn3D(track)}>
+        Open on the 3D map
+      </button>
+    {/if}
   {/if}
 
   {#if span && panels.length}
@@ -999,6 +1008,20 @@ function onKeydown(event: KeyboardEvent) {
   .model figcaption {
     margin: 0 0 4px 8px;
   }
+  /* A link in the accent, not a second button beside the close disc: it is
+     one more way to look at the model directly above it. */
+  .open-3d {
+    display: block;
+    margin: 2px 0 0 auto;
+    padding: 6px 2px;
+    font: 600 12px/1.2 var(--mc-font, system-ui);
+    color: var(--mc-accent, #0a84ff);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .open-3d::after { content: " \2192"; }
+  .open-3d:hover { text-decoration: underline; }
   .history figcaption {
     display: flex;
     gap: 10px;
