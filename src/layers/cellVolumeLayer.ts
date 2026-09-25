@@ -63,6 +63,25 @@ const PEEL_CORE_VOXELS = 300;
 const PEEL_BAND = DBZ_HIGH - DBZ_LOW;
 /** Samples along each ray. Fewer than the panel uses: this shares a frame. */
 const STEPS = 128;
+/**
+ * How often the peel asks for a frame.
+ *
+ * The peel is ten seconds of slow easing; it does not need the display's
+ * refresh rate, and asking for one repaint per frame kept MapLibre drawing
+ * the whole map -- basemap, extrusions, radar drape and a raymarch per storm
+ * -- at 60 to 120 Hz for as long as the 3D view was open. A dozen frames a
+ * second is enough that it still reads as a motion rather than a flicker.
+ */
+const PEEL_FPS = 12;
+/**
+ * How long the peel keeps running after the reader last did anything.
+ *
+ * Long enough for a few whole peels after a pan lands, so what the reader was
+ * looking at finishes; short enough that a map left open on a desk stops
+ * animating. It picks up again on the next touch of the map, and the peel
+ * resumes from where it stopped rather than jumping.
+ */
+const PEEL_IDLE_SECONDS = 3 * PEEL_SECONDS;
 
 const VERTEX = `#version 300 es
 void main() {
@@ -378,6 +397,38 @@ export function makeCloudsLayer(
   let cutCode: string | null = null;
   let cutHeading = 0;
   let colormap = initialColormap;
+  /** Uniform locations, looked up once per program rather than a dozen times a frame. */
+  let uniforms = new Map<string, WebGLUniformLocation | null>();
+  /** The pending peel frame, if one has been asked for. */
+  let peelTimer: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * The peel's own clock, in seconds. It advances only while the peel is
+   * being drawn, so a peel that stopped for idleness resumes from the same
+   * shell rather than jumping to wherever the wall clock has got to.
+   */
+  let peelTime = 0;
+  let lastFrameAt: number | null = null;
+  /** When the reader last touched the map, or the storms changed. */
+  let activeSince = performance.now();
+  const wake = () => { activeSince = performance.now(); schedulePeel(); };
+  const mapEvents = ["movestart", "move", "mousedown", "touchstart", "wheel"] as const;
+
+  const peelActive = (): boolean => (
+    !still && performance.now() - activeSince < PEEL_IDLE_SECONDS * 1000
+  );
+
+  /** Ask for the next peel frame, once, a twelfth of a second from now. */
+  function schedulePeel(): void {
+    if (peelTimer !== null || !peelActive()) return;
+    peelTimer = setTimeout(() => {
+      peelTimer = null;
+      // Only while the map is on the page: switched away from, its element
+      // is taken out and the map is meant to sleep, and a repaint asked for
+      // would keep it raymarching into a canvas nobody can see. Coming back
+      // repaints it, and `render` picks the loop up again.
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    }, 1000 / PEEL_FPS);
+  }
 
   /** The palette as a texture the shader looks reflectivity up in, -32 to +64 dBZ. */
   function paintRamp(context: WebGL2RenderingContext): void {
@@ -452,11 +503,14 @@ export function makeCloudsLayer(
           cutaway, model: modelFor(cutaway), coreDbz: coreDbz(cutaway), texture: gl ? upload(gl, cutaway) : null,
         });
       }
+      // New storms are worth peeling for a while, whatever the reader was doing.
+      wake();
     },
 
     setCut(code, headingDeg) {
       cutCode = code;
       cutHeading = headingDeg;
+      wake();
     },
 
     setColormap(name) {
@@ -476,9 +530,14 @@ export function makeCloudsLayer(
       }
 
       paintRamp(context);
+      uniforms = new Map();
 
       // Storms handed over before the layer existed get their textures now.
       for (const cloud of clouds.values()) cloud.texture ??= upload(context, cloud.cutaway);
+
+      // Touching the map restarts the peel where it left off.
+      for (const event of mapEvents) added.on(event, wake);
+      wake();
     },
 
     render(context: WebGL2RenderingContext, options: CustomRenderMethodInput) {
@@ -486,12 +545,19 @@ export function makeCloudsLayer(
       // `mainMatrix`, the one documented to take spherical mercator; see the
       // model matrix above for the space the boxes are built in.
       const main = options.defaultProjectionData.mainMatrix;
-      // One phase for every unopened storm, from the clock rather than a frame
-      // count, so the peel keeps its pace however fast the map draws. Held
-      // whole for anyone who has asked for less motion.
-      const peel = still ? 0 : peelAt(performance.now() / 1000);
+      // One phase for every unopened storm, off a clock of the peel's own that
+      // runs only while it is drawing, so the peel keeps its pace however fast
+      // the map draws and resumes where it paused. Held whole for anyone who
+      // has asked for less motion.
+      const now = performance.now() / 1000;
+      const active = peelActive();
+      if (active && lastFrameAt !== null) peelTime += Math.min(now - lastFrameAt, 1 / PEEL_FPS);
+      lastFrameAt = now;
+      const peel = still ? 0 : peelAt(peelTime);
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
+      /** Whether any storm but the open one is on screen, which is what a peel frame is for. */
+      let peeling = false;
 
       // Far to near, by where each box's middle lands in clip space.
       const ordered = [...clouds.entries()]
@@ -504,7 +570,14 @@ export function makeCloudsLayer(
         .sort((a, b) => b.depth - a.depth);
 
       context.useProgram(program);
-      const at = (name: string) => context.getUniformLocation(program!, name);
+      const at = (name: string) => {
+        let location = uniforms.get(name);
+        if (location === undefined) {
+          location = context.getUniformLocation(program!, name);
+          uniforms.set(name, location);
+        }
+        return location;
+      };
       context.activeTexture(context.TEXTURE1);
       context.bindTexture(context.TEXTURE_2D, rampTexture);
       context.uniform1i(at("uRamp"), 1);
@@ -544,6 +617,7 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
         const cut = code === cutCode;
+        if (!cut) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
         context.uniform1f(at("uLow"), cut ? DBZ_LOW : DBZ_LOW + (cloud.coreDbz - DBZ_LOW) * peel);
         if (cut) {
@@ -563,17 +637,16 @@ export function makeCloudsLayer(
       context.disable(context.SCISSOR_TEST);
       context.depthMask(true);
       // The peel moves on its own, so the map has to keep drawing while any
-      // storm but the open one is on it -- and only while the map is on the
-      // page: switched away from, its element is taken out and the map is
-      // meant to sleep, and a repaint asked for every frame would keep it
-      // raymarching into a canvas nobody can see. Coming back repaints it,
-      // and this picks the loop up again.
-      if (!still && map?.getContainer().isConnected && [...clouds.keys()].some((code) => code !== cutCode)) {
-        map.triggerRepaint();
-      }
+      // storm but the open one is on screen and the reader is still about --
+      // at the peel's own pace, not the display's. See `schedulePeel`.
+      if (active && peeling) schedulePeel();
     },
 
-    onRemove(_map: GlMap, context: WebGL2RenderingContext) {
+    onRemove(removed: GlMap, context: WebGL2RenderingContext) {
+      for (const event of mapEvents) removed.off(event, wake);
+      if (peelTimer !== null) clearTimeout(peelTimer);
+      peelTimer = null;
+      lastFrameAt = null;
       for (const cloud of clouds.values()) {
         if (cloud.texture) context.deleteTexture(cloud.texture);
         cloud.texture = null;

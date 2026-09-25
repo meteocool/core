@@ -57,7 +57,8 @@ export default class MesoCycloneManager {
         this.removeOne(id, idx);
       }
     }
-    this.vs.refresh();
+    // Not `refresh()`, which clears the source; see StrikeManager.fadeStrikes.
+    this.vs.changed();
   }
 
   clearAll() {

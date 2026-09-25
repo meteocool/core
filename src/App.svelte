@@ -41,7 +41,7 @@ import "@shoelace-style/shoelace/dist/themes/dark.css";
 // Last on purpose: it re-points Shoelace's panel, overlay and primary tokens.
 import "./glass.css";
 import { websocketBaseUrl } from "./urls";
-import { onWake, wake } from "./lib/wakeup";
+import { onWake, wake, whenVisible } from "./lib/wakeup";
 import { fetchLightningCache, fetchMesocyclones } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { nextSelection } from "./lib/cellSelection";
@@ -368,9 +368,11 @@ mapExtent4326.subscribe((extent) => {
 });
 
 // The event is a nudge rather than the cells: a severe afternoon is hundreds of
-// kilobytes of tracks, and only the ones in view are worth asking for.
+// kilobytes of tracks, and only the ones in view are worth asking for -- and
+// only once someone is looking; a hidden tab takes the newest run when it
+// comes back.
 radarSocketIO.on("cells", () => {
-  cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+  whenVisible("cells", () => cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb }));
 });
 
 radarSocketIO.on("lightning", (data) => {
