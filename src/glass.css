@@ -673,6 +673,12 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   text-shadow: 0 0 2px var(--mc-glass-fill-strong), 0 0 1px var(--mc-glass-fill-strong);
 }
 .ol-attribution a { color: var(--mc-text-2); }
+/* Dragged through, as the 3D map's is (see the MapLibre rules below): the
+   attribution sits in OpenLayers' stop-event layer, so a pan started on the
+   text was swallowed there. The links keep their taps. Important, because
+   OpenLayers writes `pointer-events: auto` inline on every control it adds. */
+.ol-attribution { pointer-events: none !important; }
+.ol-attribution a { pointer-events: auto; }
 /* The collapse toggle. Two selectors, because this file's own
    `.ol-touch .ol-control button { display: block }` out-specifies a plain
    `.ol-attribution button` -- so on a touch device the OpenLayers (i) came
@@ -751,3 +757,9 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   text-shadow: 0 0 2px var(--mc-glass-fill-strong), 0 0 1px var(--mc-glass-fill-strong);
 }
 .maplibre-host .maplibregl-ctrl-attrib a { color: var(--mc-text-2); }
+/* Small print the map can be dragged through. MapLibre makes every control
+   take the pointer, and on a phone the uncompacted attribution wraps into a
+   strip the width of the screen: a pan started anywhere on it went to the
+   text and the map did not move. Only the links still want a tap. */
+.maplibre-host .maplibregl-ctrl.maplibregl-ctrl-attrib { pointer-events: none; }
+.maplibre-host .maplibregl-ctrl-attrib a { pointer-events: auto; }
