@@ -14,7 +14,10 @@
  *
  * It stops, keeping the angle it had reached, the moment the reader takes
  * hold of the slice themselves: a sweep that fought the dial, or jumped back
- * to where it would have been, would make the dial feel broken.
+ * to where it would have been, would make the dial feel broken. It also stops
+ * on its own after a couple of swings: every step of it is a repaint of the
+ * whole 3D map, and a storm left open on a desk had the map redrawing for as
+ * long as the popup stayed up.
  */
 import { get } from "svelte/store";
 import { cutRotationDeg, cutSweepDeg } from "../stores";
@@ -24,20 +27,33 @@ import { normaliseCut } from "./cutAngle";
 const AMPLITUDE_DEG = 70;
 /** Seconds for one swing there and back. */
 const PERIOD_SECONDS = 24;
+/** How many swings before the slice comes to rest on its own. */
+export const SWINGS = 2;
+/**
+ * Steps a second. The swing is slow and every step repaints the map, so the
+ * display's own rate would be several times the frames anyone can see.
+ */
+export const SWEEP_FPS = 20;
 
-let frame = 0;
+let timer: ReturnType<typeof setTimeout> | null = null;
 
 /** Start swinging from the current angle, from the start of a swing. Honours reduced motion. */
 export function startSweep(): void {
   stopSweep(false);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const start = performance.now();
-  const step = (now: number) => {
-    const phase = ((now - start) / 1000 / PERIOD_SECONDS) * Math.PI * 2;
+  const step = () => {
+    const seconds = (performance.now() - start) / 1000;
+    if (seconds >= SWINGS * PERIOD_SECONDS) {
+      // Back where it started after whole swings, so nothing is kept.
+      stopSweep(true);
+      return;
+    }
+    const phase = (seconds / PERIOD_SECONDS) * Math.PI * 2;
     cutSweepDeg.set(AMPLITUDE_DEG * Math.sin(phase));
-    frame = requestAnimationFrame(step);
+    timer = setTimeout(step, 1000 / SWEEP_FPS);
   };
-  frame = requestAnimationFrame(step);
+  timer = setTimeout(step, 1000 / SWEEP_FPS);
 }
 
 /**
@@ -45,8 +61,8 @@ export function startSweep(): void {
  * folding the swing into the reader's own angle; otherwise it falls back.
  */
 export function stopSweep(keep: boolean): void {
-  cancelAnimationFrame(frame);
-  frame = 0;
+  if (timer !== null) clearTimeout(timer);
+  timer = null;
   const swung = get(cutSweepDeg);
   if (swung === 0) return;
   if (keep) cutRotationDeg.set(normaliseCut(Math.round(get(cutRotationDeg) + swung)));

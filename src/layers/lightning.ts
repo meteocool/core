@@ -108,7 +108,12 @@ export default function makeLightningLayer(): [VectorSource, VectorLayer<VectorS
           .forEach((f) => {
             age += (now - f.getId()) / STRIKE_MINS;
           });
-        // age max = 60, divide by 3 to reduce to 20 age levels max        age = Math.min(Math.round(age / size / 2.5) + 1, 20);
+        // The mean age in minutes, in 2.5-minute levels capped at 20, so the
+        // style cache stays a few dozen entries. This line had been swallowed
+        // into the comment before it: the summed age went into the cache key
+        // raw, a new Style and Icon per cluster per redraw, and any cluster
+        // whose ages summed past thirty minutes drew at opacity zero.
+        age = Math.min(Math.round(age / size / 2.5) + 1, 20);
         if (size > 13) {
           textsize = 40;
         } else if (size > 9) {

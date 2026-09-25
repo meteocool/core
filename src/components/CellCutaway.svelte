@@ -91,6 +91,23 @@ const DRAG_DEG_PER_PX = 0.6;
 let still = false;
 /** Seconds for a full turn. Slow: the parallax is the point, not the motion. */
 const TURN_SECONDS = 24;
+/**
+ * How far the camera circles on its own before it rests. One turn shows every
+ * side; after that the picture is drawn only when something changes -- the
+ * slice turning, a drag -- rather than raymarching at the display's rate for
+ * as long as the popup is open. See `CellModel3D` for the same rule.
+ */
+const TURNS = 1;
+/** Frames a second while the camera is moving. */
+const CUT_FPS = 30;
+/** How far the camera has circled on its own, radians. */
+let spun = 0;
+/** Draws one frame at `spin` and the current slice; set once the shader is up. */
+let render: ((now: number) => void) | null = null;
+let lastDrawAt = 0;
+let lastTickAt = 0;
+/** Whether the canvas is on screen; a picture scrolled out of view is not drawn. */
+let visible = true;
 /** Samples along each ray. Enough that the banding is gone on a postcard. */
 const STEPS = 160;
 /**
@@ -325,7 +342,13 @@ function start(loaded: Cutaway): void {
   }
   context.useProgram(program);
 
-  const at = (name: string) => context.getUniformLocation(program, name);
+  // Looked up once each: the locations do not change, and the camera block
+  // below asks for half a dozen every frame.
+  const locations: Record<string, WebGLUniformLocation | null> = {};
+  const at = (name: string) => {
+    if (!(name in locations)) locations[name] = context.getUniformLocation(program, name);
+    return locations[name];
+  };
   context.activeTexture(context.TEXTURE0);
   volumeTexture(context, loaded);
   context.uniform1i(at("uVolume"), 0);
@@ -351,11 +374,7 @@ function start(loaded: Cutaway): void {
   context.enable(context.BLEND);
   context.blendFunc(context.ONE, context.ONE_MINUS_SRC_ALPHA);
 
-  let last = performance.now();
-  const draw = (now: number) => {
-    if (!dragging && !still) spin += ((now - last) / 1000) * ((Math.PI * 2) / TURN_SECONDS);
-    last = now;
-
+  render = () => {
     // Along the track by default, turned by however far the reader has dragged
     // it; the normal is the cut's direction rotated a quarter turn.
     const along = (((headingDeg ?? 0) + $cutRotationDeg + $cutSweepDeg) * Math.PI) / 180;
@@ -393,9 +412,56 @@ function start(loaded: Cutaway): void {
     context.clearColor(0, 0, 0, 0);
     context.clear(context.COLOR_BUFFER_BIT);
     context.drawArrays(context.TRIANGLES, 0, 3);
-    frame = requestAnimationFrame(draw);
   };
-  frame = requestAnimationFrame(draw);
+  requestDraw();
+}
+
+/** Whether the camera is still circling on its own. */
+function turning(): boolean {
+  return !still && !dragging && spun < TURNS * Math.PI * 2;
+}
+
+function step(now: number): void {
+  frame = 0;
+  if (!render || !visible) return;
+  if (turning() && lastTickAt) {
+    const turned = (Math.min(now - lastTickAt, 250) / 1000) * ((Math.PI * 2) / TURN_SECONDS);
+    spin += turned;
+    spun += turned;
+  }
+  lastTickAt = now;
+  if (now - lastDrawAt >= 1000 / CUT_FPS - 1) {
+    render(now);
+    lastDrawAt = now;
+  }
+  // Keep going only while the camera moves; a turn of the slice asks for its
+  // own frame through `requestDraw`.
+  if (turning() || dragging) frame = requestAnimationFrame(step);
+}
+
+/** Draw a frame, and go on drawing for as long as something is moving. */
+function requestDraw(): void {
+  if (frame || !render || !visible) return;
+  lastTickAt = 0;
+  frame = requestAnimationFrame(step);
+}
+
+/** Pause while the canvas is scrolled out of view, and draw again when it is back. */
+function watchVisibility(node: HTMLElement) {
+  if (typeof IntersectionObserver === "undefined") return undefined;
+  const observer = new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting;
+    if (visible) requestDraw();
+  });
+  observer.observe(node);
+  return { destroy: () => observer.disconnect() };
+}
+
+// The slice turned, by the dial, the sweep or a drag: one more frame.
+$: if (render) {
+  void $cutRotationDeg;
+  void $cutSweepDeg;
+  requestDraw();
 }
 
 function onPointerDown(event: PointerEvent): void {
@@ -404,6 +470,7 @@ function onPointerDown(event: PointerEvent): void {
   stopSweep(true);
   dragCut = $cutRotationDeg;
   (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  requestDraw();
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -472,6 +539,7 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
       width={Math.round(width * ratio)}
       height={Math.round(height * ratio)}
       style="width: {width}px; height: {height}px;"
+      use:watchVisibility
       tabindex="0"
       role="slider"
       aria-label="Turn the slice through the storm"

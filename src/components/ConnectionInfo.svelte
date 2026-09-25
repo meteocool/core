@@ -14,7 +14,9 @@ import { _ } from "svelte-i18n";
 import {
   apiHealth, capLastUpdated, degradedStatus, latLon, mapBaseLayer, networkStatus,
   radarCadence, sharedActiveCap, tileStatus, zoomlevel,
+  precacheForecast,
 } from "../stores";
+import { get } from "svelte/store";
 import { dataUrl, tileBaseUrl, v3APIBaseUrl, websocketBaseUrl } from "../urls";
 import { summariseRequests } from "../lib/requestTiming";
 import { DEGRADED_CRITERIA, isApiDegraded } from "../lib/degraded";
@@ -464,11 +466,13 @@ async function readTileCache(): Promise<Row[]> {
     }
   } catch { /* cross-origin, disabled, or private mode */ }
 
-  /* The other cache: MeteoTileCache precaches forecast tilesets into IndexedDB,
-     except every call site is commented out, so precacheAllForecasts() does
-     nothing. Reported because "why is nothing precached" is exactly the sort of
-     question this panel exists to answer. */
-  out.push(["forecast preload", "off — precacheAllForecasts() is inert"]);
+  /* The "preload forecast" setting drives RadarCapability.prefetchFrames,
+     which asks for the next frames' tiles ahead of playback through the HTTP
+     cache. MeteoTileCache, the IndexedDB precache it used to name, is still
+     inert -- every call site is commented out -- and reported as such
+     because "why is nothing precached" is exactly the sort of question this
+     panel exists to answer. */
+  out.push(["forecast preload", get(precacheForecast) ? "on — next frames fetched ahead of playback" : "off"]);
   try {
     const dbs = await indexedDB.databases?.();
     const present = dbs?.some((db) => db.name === "tiles2");
