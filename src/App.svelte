@@ -17,7 +17,7 @@ import SatelliteCapability from "./caps/SatelliteCapability";
 
 import { LayerManager, VIEW_EXTENT } from "./lib/LayerManager";
 import { capabilityEnabled } from "./caps/enabled";
-import NanobarWrapper from "./lib/NanobarWrapper";
+import { progress } from "./lib/progress";
 import Settings from "./lib/Settings";
 import type { SettingValue } from "./lib/Settings";
 
@@ -256,7 +256,7 @@ lightningLayerVisible.subscribe((value) => {
 });
 lightningLayerVisible.set(window.settings.getBoolean("layerLightning"));
 
-const nb = new NanobarWrapper({});
+const nb = progress();
 const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`);
 radarSocketIO.on("connect", () => {
   console.log("radar/forecast websocket connected!");
