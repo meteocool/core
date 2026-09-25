@@ -346,6 +346,37 @@ function bodyUp(event: PointerEvent) {
     height: 4px;
   }
 
+  /*
+   * The sheet that expands keeps its 44px of grip, but laid over the top of
+   * the body rather than stacked above it, so the header -- and the close disc
+   * in it -- can come up to where the 3D sheet has them: the disc 12px from the
+   * top and 12px from the right, the title level with it, the bar in the strip
+   * above. Stacked, the disc hung 45px down under a 12px right margin.
+   *
+   * Held clear of the disc's column on both sides (12 + 44 + 12), so the disc
+   * stays the thing a tap in the corner reaches and the bar stays centred.
+   */
+  .sheet:not(.fit) .grip {
+    position: absolute;
+    top: 0;
+    left: 68px;
+    right: 68px;
+    z-index: 1;
+    margin: 0;
+    align-items: flex-start;
+    padding-top: 6px;
+    box-sizing: border-box;
+  }
+  /* 21px, so the disc's 10px pull lands it 12px below the sheet's outer edge
+     past the 1px top border, and the header on the line the 3D sheet's is.
+     What scrolls up past that fades out in the strip the bar stands in, rather
+     than running under it. */
+  .sheet:not(.fit) .body {
+    padding-top: 21px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 11px);
+    mask-image: linear-gradient(to bottom, transparent, #000 11px);
+  }
+
   .body {
     flex: 1 1 auto;
     overflow-y: auto;
