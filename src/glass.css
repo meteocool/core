@@ -198,12 +198,15 @@
   --mc-z-chart: 34;
   --mc-z-tray-buttons: 36;
   --mc-z-pill: 40;
-  --mc-z-status: 50;
   --mc-z-toast: 60;
   --mc-z-dialog: 70;
   --mc-z-nanobar: 80;
   --mc-z-sheet: 90;
   --mc-z-sheet-2: 91;
+  --mc-z-details: 1200;   /* the storm's sheet on a phone, its panel on desktop */
+  /* About, Settings, Connection Details: over whatever they were opened from,
+     the storm sheet included. At 50 they came up underneath it. */
+  --mc-z-panel: 1300;
 
   /* Shoelace tokens re-pointed at the system */
   --sl-font-sans: var(--mc-font);
