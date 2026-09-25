@@ -34,10 +34,18 @@ import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
 import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
 import { NOWCAST_OPACITY } from "../layers/ui";
+import { whenVisible } from "../lib/wakeup";
 import { derived, get } from "svelte/store";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
+
+/** The grid's step, in seconds. */
+const STEP_SECONDS = 5 * 60;
+/** The most tiles one prefetch asks for: a few frames of a phone or a desktop viewport. */
+const PREFETCH_MAX_TILES = 48;
+/** How many prefetched URLs are remembered before the set is started afresh. */
+const PREFETCH_REMEMBERED = 3000;
 
 /**
  * What the radar layer fades to while it is known to be out of date.
@@ -202,6 +210,7 @@ export default class RadarCapability extends Capability {
       const oldLayer = this.layer;
       if (oldLayer && super.getMap()) {
         super.getMap().removeLayer(oldLayer);
+        oldLayer.dispose();
       }
       this.layer = null;
       this.source = null;
@@ -212,7 +221,13 @@ export default class RadarCapability extends Capability {
       } else if (colorScheme !== "classic" && this.layerFactory !== DWDLayerFactoryGL) {
         this.layerFactory = DWDLayerFactoryGL;
       }
-      this.reloadAll();
+      // The frames are the same in any palette: the layer is rebuilt from the
+      // grid already held, and the grid is fetched only once there is none --
+      // which is the subscription's immediate first call, where the fetch
+      // below in this constructor is about to go out anyway. This used to
+      // refetch the timeseries and every network on every call, including
+      // that first one.
+      this.rebuildLayer();
     });
 
     latLon.subscribe((latlonUpdate) => {
@@ -222,11 +237,11 @@ export default class RadarCapability extends Capability {
         const [oldLat, oldLon] = this.latlon;
         if (Math.abs(oldLat - lat) > 0.001 || Math.abs(oldLon - lon) > 0.001) {
           this.latlon = latlonUpdate;
-          this.reloadAll();
+          this.reloadRadar();
         }
       } else {
         this.latlon = latlonUpdate;
-        this.reloadAll();
+        this.reloadRadar();
       }
     });
 
@@ -239,14 +254,21 @@ export default class RadarCapability extends Capability {
       // actual change is worth a round trip to the backend.
       if (before === point) return;
       if (before && point && before[0] === point[0] && before[1] === point[1]) return;
-      this.reloadAll();
+      this.reloadRadar();
     });
 
     /* Order matters: the verdict is published before the refetch goes out, so
-       the map says it is out of date for the round trip rather than after it. */
+       the map says it is out of date for the round trip rather than after it.
+       Not on the subscription's own first call, which is construction rather
+       than a wake: the constructor fetches everything once below. */
+    let firstFocus = true;
     lastFocus.subscribe(() => {
+      if (firstFocus) {
+        firstFocus = false;
+        return;
+      }
       this.refreshStaleness();
-      if (this.layer) this.reloadAll();
+      this.reloadAll();
       this.downloadSnowOverlay();
     });
 
@@ -284,20 +306,32 @@ export default class RadarCapability extends Capability {
       }
     });
 
+    /* Each nudge is one fetch, and none of them is for a hidden tab: put off
+       until the page is looked at, and collapsed to the newest of its kind
+       while it waits (lib/wakeup.ts). */
     if (this.socket_io) {
+      // DWD's grid only. The networks have their own event below, and reloading
+      // all four with every poke was four requests every five minutes to
+      // learn nothing.
       this.pokeHandler = () => {
-        console.log("received websocket poke, refreshing tiles + forecasts");
-        this.reloadAll();
+        whenVisible("radar:poke", () => {
+          console.log("received websocket poke, refreshing tiles + forecasts");
+          this.reloadRadar();
+        });
       };
       this.snowHandler = () => {
-        console.log("received websocket snow overlay poke, refreshing");
-        this.downloadSnowOverlay();
+        whenVisible("radar:snow", () => {
+          console.log("received websocket snow overlay poke, refreshing");
+          this.downloadSnowOverlay();
+        });
       };
       // One network's composite, re-rendered: refetch that one frame only.
       // Not `poke`, which reloads DWD's whole timeseries, and these land
       // every minute or two.
       this.networkHandler = ({ network }) => {
-        this.networks.find((layer) => layer.network.code === network)?.refresh(this.nanobar);
+        whenVisible(`radar:network:${network}`, () => {
+          this.networks.find((layer) => layer.network.code === network)?.refresh(this.nanobar);
+        });
       };
       this.socket_io.on("poke", this.pokeHandler);
       this.socket_io.on("snow", this.snowHandler);
@@ -353,19 +387,59 @@ export default class RadarCapability extends Capability {
     return latestRadar;
   }
 
-  tilesetToURL(tileset) {
-    return `${tileBaseUrl}/${tileset.bucket}/${tileset.tile_id}/`;
-  }
+  /** Tile URLs already asked for ahead of playback, so a loop asks once. */
+  private prefetched = new Set<string>();
 
-  precacheAllForecasts() {
-    // Object.values(this.clientGridConfig.grid)
-    //   .filter((e) => e.source === "nowcast_phys")
-    //   .map((e) => ({ tile_id: e.tile_id, bucket: e.bucket }))
-    //   .map((tileset) => this.tilesetToURL(tileset))
-    //   .forEach((tileset) => {
-    //     mcTileCache.cacheTileset(tileset);
-    //     mcTileCache.trackTileset(tileset, 5);
-    //   });
+  /**
+   * Fetch the tiles the next few frames will need where the map is looking.
+   *
+   * Playback re-points one source at a frame every 450ms, and the tiles for
+   * the frame arrive after the switch: the first loop through a viewport
+   * shows each frame half-loaded for the first few hundred milliseconds. This
+   * asks for the next `count` frames' tiles for the current viewport and
+   * zoom before the player gets there, through `fetch`, so they are in the
+   * HTTP cache -- and the service worker's -- when OpenLayers asks.
+   *
+   * Only worth it when the tiles are cacheable at all, which they are by URL
+   * (a tile_id names one rendering). The bytes are the same either way; what
+   * moves is when they are asked for.
+   */
+  prefetchFrames(fromStep: number, count: number) {
+    if (!this.source || !this.clientGrid) return;
+    const view = this.map.getView();
+    const size = this.map.getSize();
+    const resolution = view.getResolution();
+    if (!size || resolution === undefined) return;
+    const tileGrid = this.source.getTileGridForProjection(view.getProjection());
+    const z = tileGrid.getZForResolution(resolution);
+    const extent = view.calculateExtent(size);
+    const last = this.getLastPlayableStep();
+
+    const urls: string[] = [];
+    for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
+      const template = this.clientGrid[step]?.url;
+      if (!template) break;
+      tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
+        if (urls.length >= PREFETCH_MAX_TILES) return;
+        urls.push(template
+          .replace("{z}", String(tz))
+          .replace("{x}", String(x))
+          .replace("{-y}", String(2 ** tz - 1 - y))
+          .replace("{y}", String(y)));
+      });
+    }
+
+    if (this.prefetched.size > PREFETCH_REMEMBERED) this.prefetched.clear();
+    for (const url of urls) {
+      if (this.prefetched.has(url)) continue;
+      this.prefetched.add(url);
+      // Same request the tile loader makes -- a CORS one, no credentials --
+      // so the cache entry is the one it will look for. The body is read to
+      // the end: a response left unread is not stored.
+      fetch(url, { mode: "cors", credentials: "same-origin", priority: "low" } as RequestInit)
+        .then((response) => (response.ok ? response.arrayBuffer() : undefined))
+        .catch(() => { this.prefetched.delete(url); });
+    }
   }
 
   regenerateGridConfig() {
@@ -427,10 +501,41 @@ export default class RadarCapability extends Capability {
     this.layer?.setOpacity(this.inspecting ? base * INSPECT_OPACITY : base);
   }
 
+  /** Everything: DWD's grid and every network's frame. For a wake, where any of it may have moved on. */
   reloadAll() {
     console.log("reloadAll");
-    this.downloadCurrentRadar();
+    this.reloadRadar();
     for (const network of this.networks) network.refresh(this.nanobar);
+  }
+
+  /**
+   * DWD's grid alone. The networks are on their own cadence with their own
+   * socket event, and nothing that changes the grid -- a poke, a new sample
+   * position, a palette -- changes them.
+   */
+  reloadRadar() {
+    this.downloadCurrentRadar();
+  }
+
+  /**
+   * Put the layer back after the palette changed, from the grid in hand.
+   *
+   * Nothing to do before the first grid lands: `processRadar` builds the
+   * layer then. After that the layer is rebuilt on the frame being shown,
+   * with the live frame holed as before, and the grid is neither refetched
+   * nor re-announced -- no observer's picture of it has changed.
+   */
+  private rebuildLayer() {
+    if (this.layer || !this.clientGrid) return;
+    const newestStep = this.getMostRecentObservation();
+    const newest = this.clientGrid[newestStep];
+    if (!newest?.url) return;
+    [this.layer, this.source] = this.layerFactory(newest.tile_id, newest.bucket);
+    super.getMap().addLayer(this.layer);
+    const shownStep = get(capTimeIndicator);
+    const shown = this.clientGrid[shownStep]?.url ?? newest.url;
+    this.source.setLiveUrl(newest.url, shown);
+    this.applyRadarOpacity();
   }
 
   /** Where the forecast is sampled: a tapped point, else the client's own. */
@@ -567,8 +672,12 @@ export default class RadarCapability extends Capability {
       }
     }
     // Before any setUrl below: the step being moved onto is the one to hole.
+    // Following live, that step is the newest, so it is named here and the
+    // frame being left is not re-keyed on the way out.
     const newestUrl = this.clientGrid?.[this.getMostRecentObservation()]?.url;
-    if (newestUrl) this.source?.setLiveUrl(newestUrl);
+    if (newestUrl) {
+      this.source?.setLiveUrl(newestUrl, this.trackingMode === "live" ? newestUrl : undefined);
+    }
     switch (this.trackingMode) {
       case "live":
         // Publishes the pair itself: following the grid means the indicator

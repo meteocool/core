@@ -126,13 +126,21 @@ export default class NetworkHoleTileSource extends ImageTileSource {
     this.setUrl(url);
   }
 
-  /** Which URL is the live frame's, and so the one to cut holes into. */
-  setLiveUrl(url: string) {
-    if (url === this.live) return;
+  /**
+   * Which URL is the live frame's, and so the one to cut holes into.
+   *
+   * `showing` is the URL the caller is about to put on screen, when it is not
+   * the one there now. Re-deciding for the frame being left -- which is what
+   * happened on every new observation while following live -- gave that frame
+   * a fresh, un-holed key for the instant before the newest replaced it, and
+   * a viewport of its tiles was requested to be thrown away.
+   */
+  setLiveUrl(url: string, showing: string = this.url) {
+    if (url === this.live && showing === this.url) return;
     this.live = url;
-    // Re-decide for the URL already on screen: it may just have become, or
-    // stopped being, the live one.
-    if (this.url) this.setUrl(this.url);
+    // Re-decide for the URL on screen: it may just have become, or stopped
+    // being, the live one.
+    if (showing) this.setUrl(showing);
   }
 
   setUrl(url: string) {

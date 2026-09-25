@@ -7,7 +7,7 @@ declare const self: ServiceWorkerGlobalScope & {
 };
 import { clientsClaim } from "workbox-core";
 import { registerRoute } from "workbox-routing";
-import { CacheFirst, NetworkFirst } from "workbox-strategies";
+import { CacheFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
@@ -36,14 +36,17 @@ registerRoute(
   }),
 );
 
-// Weather tiles are the opposite: a cached radar frame is worse than no frame,
-// so the network wins unless it is too slow to be useful, and what lands in the
-// cache is only there to cover an offline reload.
+// Weather tiles are immutable too, per URL: each frame is rendered once under
+// its own tile_id, and the timeseries says which id is current. This used to
+// be network-first on the theory that a cached radar frame is worse than
+// none, but a frame's URL never serves a different frame -- so every loop of
+// the player after OpenLayers had evicted a tile, and every reload, went to
+// the network for bytes already on disk. The expiry bounds the storage; the
+// grid moves on from an id within hours anyway.
 registerRoute(
   WEATHER_TILE_ROUTE,
-  new NetworkFirst({
+  new CacheFirst({
     cacheName: WEATHER_TILE_CACHE,
-    networkTimeoutSeconds: 4,
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({

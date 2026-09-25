@@ -51,13 +51,15 @@ export default class Capability extends Observable {
   /**
    * Draw into a thumbnail rather than take the map.
    *
-   * The same thing for an ordinary capability -- an OpenLayers map draws
-   * wherever it is pointed -- which is why this is not abstract. A capability
-   * that does something special when it owns the main map overrides it to say
-   * so; see Cells3DCapability.
+   * Only the OpenLayers map is pointed at the element. Not `setTarget`: that
+   * runs `targetCb`, which is what a capability does on being *shown* --
+   * announce itself as the current layer, fetch what it draws -- and the
+   * switcher's thumbnails mount hidden with the app, so every capability was
+   * doing all of that on every page load. The lightning view fetched an
+   * hour of strikes for a tile nobody had opened.
    */
   setPreviewTarget(target: string | HTMLElement | undefined) {
-    this.setTarget(target);
+    this.map?.setTarget(target);
   }
 
   setCmap(cmap: string) {
