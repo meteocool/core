@@ -28,7 +28,9 @@ export let width = 340;
  * only what the map cannot say, and the dial that turns the cut -- see
  * `SliceDial` for why that is all a phone needs. Laid out as a cell's details
  * are, because it sits in the same sheet: a header ruled in the storm's own
- * colour and the same glass close disc in the corner.
+ * colour and the same glass close disc in the corner. Without the line on why
+ * there is no track: on a phone every row of this sheet is map the storm
+ * standing behind it does not get.
  */
 export let compact = false;
 
@@ -55,7 +57,6 @@ $: facts = [
       <CloseDisc on:click={close} />
     </header>
     <p class="facts">{facts}</p>
-    <p class="why">Found in the radar composite, not tracked by DWD: no path or forecast.</p>
     <div class="dial"><SliceDial reference="north" /></div>
   {:else}
     <header>
@@ -89,7 +90,7 @@ h2 { margin: 0; font-size: 1rem; font-weight: 600; }
 .close:hover { opacity: 1; }
 /* The cell details' header: a rule in the storm's colour, the title beside it. */
 .ruled { border-left: 4px solid; padding-left: 8px; margin-bottom: 2px; }
-.compact .facts, .compact .why { padding-left: 12px; }
+.compact .facts { padding-left: 12px; }
 .compact .dial { margin-top: 6px; padding-bottom: 4px; }
 .facts { margin: 0; font-size: 0.82rem; }
 .why { margin: 0; font-size: 0.72rem; opacity: 0.6; line-height: 1.4; }
