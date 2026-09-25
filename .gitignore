@@ -122,3 +122,6 @@ dist
 
 # Cloudflare Wrangler state and build output
 .wrangler/
+# wrangler's local secrets for `wrangler dev`.
+.dev.vars
+.dev.vars.*
