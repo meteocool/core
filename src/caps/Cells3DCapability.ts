@@ -873,7 +873,8 @@ export default class Cells3DCapability extends Capability {
       const id = `cell-volume-${tier}`;
       if (gl.getLayer(id)) gl.setPaintProperty(id, "fill-extrusion-color", dbzRamp(name));
     });
-    gl.triggerRepaint();
+    // Hidden, the paint is set and waits for the map to be shown again.
+    if (this.shown) gl.triggerRepaint();
   }
 
   /** Tell the layer which storm is open, and which way its slice now runs. */
