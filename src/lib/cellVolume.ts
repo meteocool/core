@@ -1,4 +1,5 @@
 import { ellipseRing4326, KM_PER_DEGREE_LAT } from "./cellGeometry";
+import { dbz2color } from "./cmap_utils";
 import type { CellLayer } from "../api";
 
 /**
@@ -153,31 +154,33 @@ export function unionFrame(a: ModelFrame, b: ModelFrame): ModelFrame {
 }
 
 /**
- * Reflectivity ramp, matching the radar overlay's own reading of intensity so
- * a core that looks severe on the flat map looks severe here too.
+ * The colour of a reflectivity, in whichever palette the radar map is drawn in.
+ *
+ * The flat map's own colours rather than a ramp of the storm views' own, so a
+ * 45 dBZ core is the same yellow in a cloud as on the radar beneath it, and
+ * the palette a reader picked in the settings is the one every view uses.
+ * Opaque: the palettes fade their weakest echo out, and what is visible in a
+ * volume is decided by its density, not by the colour it is painted.
  */
-export const DBZ_RAMP: Array<[number, string]> = [
-  [30, "#2f8f5b"], [35, "#6fb52e"], [40, "#d9c22b"], [45, "#e8901f"],
-  [50, "#d8402f"], [55, "#a01f3c"], [60, "#d13ec4"], [65, "#ece4ff"],
-];
+export function dbzColour(dbz: number, colormap: string): [number, number, number] {
+  const [r, g, b] = dbz2color(dbz, colormap);
+  return [r, g, b];
+}
 
-/** The ramp, interpolated, for renderers that cannot take a MapLibre expression. */
-export function dbzColour(dbz: number): [number, number, number] {
-  const rgb = (hex: string): [number, number, number] => {
-    const v = parseInt(hex.slice(1), 16);
-    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
-  };
-  if (dbz <= DBZ_RAMP[0][0]) return rgb(DBZ_RAMP[0][1]);
-  for (let i = 1; i < DBZ_RAMP.length; i += 1) {
-    const [stop, hex] = DBZ_RAMP[i];
-    if (dbz > stop) continue;
-    const [prevStop, prevHex] = DBZ_RAMP[i - 1];
-    const t = (dbz - prevStop) / (stop - prevStop);
-    const a = rgb(prevHex);
-    const b = rgb(hex);
-    return [0, 1, 2].map((c) => Math.round(a[c] + (b[c] - a[c]) * t)) as [number, number, number];
+/**
+ * Reflectivities the MapLibre expressions sample the palette at.
+ *
+ * Every 2.5 dBZ, which is finer than any of the palettes changes hue: they
+ * are stepped every half decibel, but a linear expression between these stops
+ * is indistinguishable from them at the size of a ring or a tier.
+ */
+export function dbzStops(colormap: string): Array<[number, string]> {
+  const stops: Array<[number, string]> = [];
+  for (let dbz = 10; dbz <= 70; dbz += 2.5) {
+    const [r, g, b] = dbzColour(dbz, colormap);
+    stops.push([dbz, `rgb(${r}, ${g}, ${b})`]);
   }
-  return rgb(DBZ_RAMP[DBZ_RAMP.length - 1][1]);
+  return stops;
 }
 
 /** Whatever a cell needs to carry to be turned into a volume. */

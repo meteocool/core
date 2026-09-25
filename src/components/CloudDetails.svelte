@@ -14,12 +14,25 @@
  * finding neither, with no reason given, reads as the popup having broken.
  */
 import CellCutaway from "./CellCutaway.svelte";
-import { selectedVolume } from "../stores";
+import SliceDial from "./SliceDial.svelte";
+import CloseDisc from "./CloseDisc.svelte";
+import { dbzColour } from "../lib/cellVolume";
+import { radarColormap, selectedVolume } from "../stores";
 import type { RadarVolume } from "../api";
 
 export let cloud: RadarVolume;
 /** Matches the charts' width in `CellDetails`, so the two popups line up. */
 export let width = 340;
+/**
+ * The storm is already drawn cut on the map behind this, so the popup carries
+ * only what the map cannot say, and the dial that turns the cut -- see
+ * `SliceDial` for why that is all a phone needs. Laid out as a cell's details
+ * are, because it sits in the same sheet: a header ruled in the storm's own
+ * colour and the same glass close disc in the corner.
+ */
+export let compact = false;
+
+$: rule = cloud.peak_dbz != null ? `rgb(${dbzColour(cloud.peak_dbz, $radarColormap).join(", ")})` : "currentColor";
 
 const close = () => selectedVolume.set(null);
 
@@ -35,23 +48,33 @@ $: facts = [
 ].filter(Boolean).join(" · ");
 </script>
 
-<section class="cloud" aria-label="Storm core">
-  <header>
-    <h2>Storm core</h2>
-    <button type="button" class="close" aria-label="Close" on:click={close}>&times;</button>
-  </header>
-  <p class="facts">{facts}</p>
-  <p class="why">
-    Found in the radar composite rather than tracked by DWD, so there is no path
-    or forecast for it &mdash; only what the radars saw inside it.
-  </p>
-  <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
-  <!-- Keyed, so each storm gets a fresh cutaway: its own slice, its own fetch.
-       On the volume rather than the code, which is a grid position and comes
-       round again when a core sits still into the next scan. -->
-  {#key cloud.path}
-    <CellCutaway volume={cloud} headingDeg={null} {width} height={210} />
-  {/key}
+<section class="cloud" class:compact aria-label="Storm core">
+  {#if compact}
+    <header class="ruled" style="border-color: {rule}">
+      <h2>Storm core</h2>
+      <CloseDisc on:click={close} />
+    </header>
+    <p class="facts">{facts}</p>
+    <p class="why">Found in the radar composite, not tracked by DWD: no path or forecast.</p>
+    <div class="dial"><SliceDial reference="north" /></div>
+  {:else}
+    <header>
+      <h2>Storm core</h2>
+      <button type="button" class="close" aria-label="Close" on:click={close}>&times;</button>
+    </header>
+    <p class="facts">{facts}</p>
+    <p class="why">
+      Found in the radar composite rather than tracked by DWD, so there is no path
+      or forecast for it &mdash; only what the radars saw inside it.
+    </p>
+    <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
+    <!-- Keyed, so each storm gets a fresh cutaway: its own slice, its own fetch.
+         On the volume rather than the code, which is a grid position and comes
+         round again when a core sits still into the next scan. -->
+    {#key cloud.path}
+      <CellCutaway volume={cloud} headingDeg={null} {width} height={210} />
+    {/key}
+  {/if}
 </section>
 
 <style>
@@ -64,6 +87,10 @@ h2 { margin: 0; font-size: 1rem; font-weight: 600; }
   padding: 0.1rem 0.35rem;
 }
 .close:hover { opacity: 1; }
+/* The cell details' header: a rule in the storm's colour, the title beside it. */
+.ruled { border-left: 4px solid; padding-left: 8px; margin-bottom: 2px; }
+.compact .facts, .compact .why { padding-left: 12px; }
+.compact .dial { margin-top: 6px; padding-bottom: 4px; }
 .facts { margin: 0; font-size: 0.82rem; }
 .why { margin: 0; font-size: 0.72rem; opacity: 0.6; line-height: 1.4; }
 .section {

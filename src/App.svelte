@@ -30,7 +30,7 @@ import {
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
-  radarColorScheme, selectedCell, selectedVolume, smallScreen, snowLayerVisible, toolbarVisible,
+  radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
 import "./global.css";
@@ -773,6 +773,14 @@ if (postInitCb) postInitCb(lm);
   {/if}
 {:else if $selectedCell && $smallScreen}
   <CellSelectionHint track={$selectedCell} />
+{:else if $selectedVolume && $smallScreen && $sharedActiveCap === "cells3d"}
+  <!-- On the 3D map a phone's storm core is cut open on the map itself, and
+       takes the cell's glass sheet: the same surface for whichever kind of
+       storm was tapped, only as tall as what it holds: a few facts and the
+       dial that turns the cut. -->
+  <CellSheet expandable={false} onClose={() => selectedVolume.set(null)}>
+    <CloudDetails cloud={$selectedVolume} compact />
+  </CellSheet>
 {:else if $selectedVolume}
   <!-- A storm core with no KONRAD3D track: one short popup, the same place on
        every screen size, because there is no history to need the sheet. -->
