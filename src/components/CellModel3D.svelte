@@ -18,7 +18,7 @@
  * so a storm that looks tall and narrow is tall and narrow.
  */
 import { onMount, onDestroy } from "svelte";
-import { colorSchemeDark } from "../stores";
+import { colorSchemeDark, radarColormap } from "../stores";
 import { cellVolume, dbzColour, frameOf } from "../lib/cellVolume";
 import type { CellVolumeModel, ModelFrame } from "../lib/cellVolume";
 import type { VolumeInput } from "../lib/cellVolume";
@@ -125,7 +125,7 @@ function build(volume: CellVolumeModel): Mesh {
     const low = band.base / 1000;
     const high = band.top / 1000;
     band.rings.forEach((piece) => {
-      const rgb = dbzColour(piece.dbz);
+      const rgb = dbzColour(piece.dbz, $radarColormap);
       const { alpha } = piece;
       const cullable = alpha >= 1;
 
