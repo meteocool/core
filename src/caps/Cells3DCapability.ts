@@ -442,19 +442,15 @@ export default class Cells3DCapability extends Capability {
     void this.attach(element as HTMLElement);
   }
 
-  /**
-   * Preview in a thumbnail without giving up the main map.
-   *
-   * The switcher's tile draws the ordinary OpenLayers map, which is both
-   * cheaper than a second WebGL context and a truthful picture of where the
-   * storms are. What it must not do is take the MapLibre canvas down: the
-   * tiles are live while the switcher is open, and if this capability is the
-   * one currently showing, its map is still underneath and has to be there
-   * when the switcher closes again. Only `willLoseFocus` detaches.
+  /*
+   * No `setPreviewTarget` override: the base class points only the OpenLayers
+   * map at the switcher's tile, which is what this one wants too -- cheaper
+   * than a second WebGL context, a truthful picture of where the storms are,
+   * and it leaves the MapLibre canvas alone. The tiles are live while the
+   * switcher is open, and if this capability is the one currently showing,
+   * its map is still underneath and has to be there when the switcher closes
+   * again. Only `willLoseFocus` detaches.
    */
-  setPreviewTarget(target: string | HTMLElement | undefined): void {
-    super.setTarget(target);
-  }
 
   private async attach(host: HTMLElement): Promise<void> {
     if (!this.container) {

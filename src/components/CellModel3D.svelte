@@ -69,6 +69,21 @@ const ELEVATION = (19 * Math.PI) / 180;
 /** Radians per second. A full turn in about twenty seconds. */
 const SPIN = 0.32;
 
+/**
+ * How far the model turns on its own before it comes to rest.
+ *
+ * One turn shows every side, which is what the turning is for. Turning for as
+ * long as the popup was open kept a phone's GPU awake for the whole of a
+ * reading -- and, with the cutaway beside it, two canvases redrawing at the
+ * display's rate under a panel of numbers. After the turn the model rests
+ * and is drawn again only when something changes: a drag, a hop to another
+ * cell, the frame easing, the theme.
+ */
+const SPIN_TURNS = 1;
+
+/** Frames a second while it is moving. Half the display's rate is plenty for a slow turn. */
+const MODEL_FPS = 30;
+
 /** Sun over the viewer's left shoulder, in the model's own turning frame. */
 const LIGHT: [number, number, number] = [-0.46, -0.58, 0.67];
 
@@ -100,10 +115,15 @@ let canvas: HTMLCanvasElement | null = null;
 /** The pending animation-frame handle; `frame` is the prop above. */
 let rafId = 0;
 let angle = 0.6;
+/** How far the model has turned on its own, radians. */
+let spun = 0;
 let dragging = false;
 let dragFrom = 0;
 let dragAngle = 0;
 let auto = true;
+/** Whether the canvas is on screen; a picture scrolled out of view is not drawn. */
+let visible = true;
+let lastDrawAt = 0;
 
 $: model = cellVolume(cell);
 $: mesh = model ? build(model) : null;
@@ -428,24 +448,64 @@ function drawRuler(
   context.fillText("km", 2, y(highKm) - 10);
 }
 
+/** Whether the frame has caught up with its target; see `approach`. */
+function settled(): boolean {
+  if (!shown || !model) return true;
+  const target = frame ?? frameOf(model);
+  return Math.abs(shown.radiusKm - target.radiusKm) < 1e-3
+    && Math.abs(shown.lowKm - target.lowKm) < 1e-3
+    && Math.abs(shown.highKm - target.highKm) < 1e-3;
+}
+
+/** Whether anything is moving, which is the only reason to keep drawing. */
+function moving(): boolean {
+  return dragging || (auto && spun < SPIN_TURNS * Math.PI * 2) || !settled();
+}
+
 function tick(now: number): void {
-  if (auto && !dragging) {
-    if (last) angle += ((now - last) / 1000) * SPIN;
-    last = now;
-  } else {
-    last = now;
+  rafId = 0;
+  if (!canvas || !visible) return;
+  if (auto && !dragging && spun < SPIN_TURNS * Math.PI * 2) {
+    if (last) {
+      const turned = (Math.min(now - last, 250) / 1000) * SPIN;
+      angle += turned;
+      spun += turned;
+    }
   }
-  draw();
-  rafId = requestAnimationFrame(tick);
+  last = now;
+  if (now - lastDrawAt >= 1000 / MODEL_FPS - 1) {
+    draw();
+    lastDrawAt = now;
+  }
+  if (moving()) rafId = requestAnimationFrame(tick);
 }
 
 let last = 0;
+
+/** Start the loop if something is moving and it is not already running. */
+function ensureLoop(): void {
+  if (rafId || !canvas || !visible || !moving()) return;
+  last = 0;
+  rafId = requestAnimationFrame(tick);
+}
+
+/** Pause the loop while the canvas is scrolled out of view, and resume it when it is back. */
+function watchVisibility(node: HTMLElement) {
+  if (typeof IntersectionObserver === "undefined") return undefined;
+  const observer = new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting;
+    if (visible) ensureLoop();
+  });
+  observer.observe(node);
+  return { destroy: () => observer.disconnect() };
+}
 
 function onPointerDown(event: PointerEvent): void {
   dragging = true;
   dragFrom = event.clientX;
   dragAngle = angle;
   (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  ensureLoop();
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -458,22 +518,23 @@ function onPointerUp(): void {
 }
 
 onMount(() => {
-  // A model that never stops turning is a model that keeps a phone's GPU awake
-  // for as long as the popup is open; honour the system preference for stillness
-  // by showing a fixed three-quarter view instead.
+  // Honour the system preference for stillness by showing a fixed
+  // three-quarter view instead of the turn.
   auto = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  rafId = requestAnimationFrame(tick);
 });
 
 onDestroy(() => cancelAnimationFrame(rafId));
 
-// Redraw on anything the render depends on that the loop does not own.
+// Redraw on anything the render depends on that the loop does not own, and
+// run the loop while the frame is easing towards a new target.
 $: if (canvas && mesh && dark !== undefined) draw();
+$: if (canvas && (mesh || frame)) ensureLoop();
 </script>
 
 {#if model}
   <canvas
     bind:this={canvas}
+    use:watchVisibility
     style="width: {width}px; height: {height}px"
     on:pointerdown={onPointerDown}
     on:pointermove={onPointerMove}
