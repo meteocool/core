@@ -15,14 +15,16 @@ import { loadCutaway } from "../lib/cellCutaway";
 import { makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
-import { DBZ_RAMP, RING_ALPHAS } from "../lib/cellVolume";
+import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, colorSchemeDark, cutRotationDeg, mapView, selectedCell, selectedVolume, sharedActiveCap,
-  showForecastPlaybutton, smallScreen,
+  capDescription, cellDetails, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap, selectedCell, selectedVolume,
+  sharedActiveCap, showForecastPlaybutton, smallScreen,
 } from "../stores";
 import { get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
+import { normaliseCut } from "../lib/cutAngle";
+import { startSweep, stopSweep } from "../lib/cutSweep";
 import { elementCentre, setElementCentre } from "../lib/viewCentre";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
@@ -155,6 +157,36 @@ const MAIN_MAP_ID = "map";
 /** Opening tilted is the whole point; flat, this is just a slower 2D map. */
 const INITIAL_PITCH = 55;
 
+/**
+ * The tilt an opened storm is looked at from, on a phone: low, so the cut
+ * stands up in front of the reader, short of the horizon filling the screen.
+ */
+const OPEN_PITCH = 76;
+
+/** How far from the opening tilt the map can be at closing and still count as not re-tilted. */
+const PITCH_KEPT_DEG = 4;
+
+/** How much of the room the storm is given, leaving it a margin. */
+const OPEN_FILL = 0.9;
+
+/** The map controls and the logo along the top, which the storm stays below. */
+const OPEN_TOP_PX = 64;
+
+/** The share of the screen the phone's detail sheet covers at rest. */
+const OPEN_SHEET_FRACTION = 0.32;
+
+/** How long a camera set by a link or a history step is kept over a storm opened after it. */
+const CAMERA_KEPT_MS = 3000;
+
+/** MapLibre's vertical field of view, radians: its default, which this map keeps. */
+const MAPLIBRE_FOV = (36.8699 * Math.PI) / 180;
+
+/** Metres per pixel at zoom 0 on the equator, for MapLibre's 512px tiles. */
+const WORLD_METRES_AT_ZOOM_0 = 40_075_016.686 / 512;
+
+/** Kilometres in a degree of latitude, and of longitude at the equator; close enough to frame with. */
+const KM_PER_DEGREE = 111.32;
+
 /** Where a link asks the camera to be, in the flat map's zoom levels like `mapView`. */
 export interface CameraRequest {
   lat?: number;
@@ -187,17 +219,17 @@ function severityColour(): DataDrivenPropertyValueSpecification<string> {
 }
 
 /**
- * The reflectivity ramp as a MapLibre expression.
+ * The radar map's palette as a MapLibre expression.
  *
- * Built at runtime from the shared ramp, so the 3D map, the popup's model and
- * anything else reading intensity agree on what 55 dBZ looks like. The
- * assertion is the same story as `severityColour`: a run-length shape cannot be
- * checked against the spec's fixed-arity tuple.
+ * Built at runtime from the palette the flat map is drawn in, so the 3D map,
+ * the popup's model and the radar underneath agree on what 55 dBZ looks like.
+ * The assertion is the same story as `severityColour`: a run-length shape
+ * cannot be checked against the spec's fixed-arity tuple.
  */
-function dbzRamp(): DataDrivenPropertyValueSpecification<string> {
+function dbzRamp(colormap: string): DataDrivenPropertyValueSpecification<string> {
   return [
     "interpolate", ["linear"], ["get", "dbz"],
-    ...DBZ_RAMP.flatMap(([dbz, colour]) => [dbz, colour]),
+    ...dbzStops(colormap).flatMap(([dbz, colour]) => [dbz, colour]),
   ] as unknown as DataDrivenPropertyValueSpecification<string>;
 }
 
@@ -266,12 +298,29 @@ export default class Cells3DCapability extends Capability {
   /** The newest load, so a slow one finishing late cannot undo a newer list. */
   private loadToken: symbol | null = null;
 
+  /** When a link or a history step last pointed the camera; see `frameOpened`. */
+  private cameraSetAt = -Infinity;
+
+  /**
+   * The tilt the map had before an opened storm lowered it, to go back to on
+   * closing; null when no storm has lowered it. The first one's, across a walk
+   * from storm to storm: the reader's own view is the one before any of them.
+   */
+  private pitchBeforeOpen: number | null = null;
+
   /** The newest open, so a volume still loading cannot reopen over a newer choice. */
   private openToken: symbol | null = null;
 
   private unsubscribeVolume: (() => void) | null = null;
 
   private unsubscribeCut: (() => void) | null = null;
+
+  private unsubscribeColormap: (() => void) | null = null;
+
+  private unsubscribeSweep: (() => void) | null = null;
+
+  /** The radar palette the settings name, which every storm here is painted in. */
+  private colormap = get(radarColormap);
 
   /** MapLibre, once it has loaded; the volume layer needs its Mercator maths. */
   private maplibre: Awaited<ReturnType<typeof loadMapLibre>> | null = null;
@@ -303,6 +352,8 @@ export default class Cells3DCapability extends Capability {
     // Turning the slice in the popup turns it here. Only a uniform changes, so
     // this is a repaint and nothing is rebuilt.
     this.unsubscribeCut = cutRotationDeg.subscribe(() => this.applyCut());
+    this.unsubscribeSweep = cutSweepDeg.subscribe(() => this.applyCut());
+    this.unsubscribeColormap = radarColormap.subscribe((name) => this.applyColormap(name));
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
       if (!this.gl) return;
@@ -419,6 +470,9 @@ export default class Cells3DCapability extends Capability {
         pitch: asked.pitch ?? INITIAL_PITCH,
         bearing: asked.bearing ?? 0,
         maxZoom: 13,
+        // MapLibre stops at 60 unless told otherwise, which is a view from a
+        // hilltop; an opened storm is looked at from lower -- see frameOpened.
+        maxPitch: 85,
         // Spelled out rather than behind an (i), like the flat map's; see the
         // attribution rules in glass.css.
         attributionControl: { compact: false },
@@ -535,7 +589,26 @@ export default class Cells3DCapability extends Capability {
     super.willLoseFocus();
   }
 
+  /**
+   * Back up to the tilt the reader had, once the storm that lowered it closes.
+   *
+   * Looking at a cut from low down is right while it is open and wrong for a
+   * map: the far half of the screen is horizon. Only the tilt goes back -- the
+   * reader may well want to stay where the storm was -- and only if it is
+   * still the one the opening set: a reader who tilted the map themselves
+   * since has chosen a view, and it is kept.
+   */
+  private restorePitch(): void {
+    const gl = this.gl;
+    const before = this.pitchBeforeOpen;
+    this.pitchBeforeOpen = null;
+    if (!gl || before === null) return;
+    if (Math.abs(gl.getPitch() - OPEN_PITCH) > PITCH_KEPT_DEG) return;
+    gl.easeTo({ pitch: before, duration: 700 });
+  }
+
   private detach(): void {
+    stopSweep(true);
     if (this.container?.parentElement) this.container.parentElement.removeChild(this.container);
   }
 
@@ -615,7 +688,9 @@ export default class Cells3DCapability extends Capability {
     this.openToken = token;
     if (!target) {
       this.opened = null;
+      stopSweep(false);
       this.applyCut();
+      this.restorePitch();
       return;
     }
     let entry = this.cutaways.get(target.volume.path);
@@ -636,11 +711,122 @@ export default class Cells3DCapability extends Capability {
     if (this.openToken !== token) return;
     this.opened = { code: entry.code, heading: target.heading };
     this.applyCut();
+    // A frame later, so the slice has already been reset for the new
+    // selection -- App.svelte does that from its own subscription to the same
+    // stores, which can run after this one -- or set by the link that opened it.
+    const { cutaway } = entry;
+    requestAnimationFrame(() => {
+      if (this.openToken !== token) return;
+      this.frameOpened(cutaway);
+      // Swung only where the cut is drawn: on the flat map the panel's own
+      // camera already circles the storm, and a plane turning under a turning
+      // camera is two motions where one reads.
+      if (get(sharedActiveCap) === this.getName()) startSweep();
+    });
+  }
+
+  /**
+   * Stand the camera in front of an opened storm's cut, on a phone.
+   *
+   * On a phone the panel's own rendering of the storm is gone -- the map is
+   * the picture -- so opening a storm frames it the way that rendering did:
+   * close enough that the cross-section spans the screen, from low down, so
+   * the cut stands up as a wall of weather rather than lying flat as a map,
+   * and square on to it, so what is shown is the face and not its edge. It is
+   * placed in the part of the screen the sheet leaves, with room for its top.
+   *
+   * The half kept is whichever faces the camera: a vertical plane turned half
+   * way round is the same cut, and the caption reads the same. That keeps the
+   * turn to face it within a quarter.
+   *
+   * Not after a link or a history step has just set the camera: that is a
+   * view somebody chose, and it is kept.
+   */
+  private frameOpened(cutaway: Cutaway): void {
+    const gl = this.gl;
+    if (!gl || !this.opened || !get(smallScreen) || get(sharedActiveCap) !== this.getName()) return;
+    if (performance.now() - this.cameraSetAt < CAMERA_KEPT_MS) return;
+
+    // Facing the cut is looking along the kept half's side of the plane: for
+    // a cut running along `direction`, a bearing a quarter turn short of it.
+    const turn = get(cutRotationDeg);
+    let direction = (this.opened.heading ?? 0) + turn;
+    const bearing = gl.getBearing();
+    const offFacing = normaliseCut(direction - 90 - bearing);
+    const offFlipped = normaliseCut(direction + 90 - bearing);
+    let off = offFacing;
+    if (Math.abs(offFlipped) < Math.abs(offFacing)) {
+      off = offFlipped;
+      direction += 180;
+      cutRotationDeg.set(normaliseCut(turn + 180));
+    }
+
+    // The storm itself rather than its box: the box is a fixed 40 km, the
+    // storm rarely is. Its width is what the cut shows of it -- its extent
+    // along the plane -- and its height is from the ground to its top; the
+    // storm's centre is measured from the middle of the box, which stands on
+    // the ground.
+    const { header, centreKm, halfKm, extentM } = cutaway;
+    const latRad = (header.lat * Math.PI) / 180;
+    const lon = header.lon + centreKm[0] / (KM_PER_DEGREE * Math.cos(latRad));
+    const lat = header.lat + centreKm[1] / KM_PER_DEGREE;
+    const along = (direction * Math.PI) / 180;
+    const widthM = 2000 * (halfKm[0] * Math.abs(Math.sin(along)) + halfKm[1] * Math.abs(Math.cos(along)));
+    const heightM = extentM[2] / 2 + 1000 * (centreKm[2] + halfKm[2]);
+
+    // Metres per pixel that fit both where the storm will stand. Across, a
+    // plane square to the camera is drawn at the scale of the ground under
+    // it; upwards it is foreshortened by the tilt.
+    const { clientWidth: width, clientHeight: height } = gl.getContainer();
+    const top = OPEN_TOP_PX;
+    const bottom = height * (1 - OPEN_SHEET_FRACTION);
+    const tilt = (OPEN_PITCH * Math.PI) / 180;
+    const atFoot = Math.max(
+      widthM / (width * OPEN_FILL),
+      (heightM * Math.sin(tilt)) / ((bottom - top) * OPEN_FILL),
+    );
+    // The storm's foot, so that the whole of it sits between the controls
+    // and the sheet: halfway down that gap, plus half its own height.
+    const foot = (top + bottom) / 2 + (heightM * Math.sin(tilt)) / atFoot / 2;
+    // A zoom is a scale at the middle of the screen, and at this tilt the
+    // scale changes fast up the screen: the ground under a point above the
+    // middle is further off, by the ratio of the two rays' cosines to the
+    // vertical. Asked for at the middle, a storm standing a hundred pixels
+    // higher came out a third smaller than it was meant to.
+    const focal = height / 2 / Math.tan(MAPLIBRE_FOV / 2);
+    const above = Math.atan((height / 2 - foot) / focal);
+    const atMiddle = (atFoot * Math.cos(tilt + above)) / Math.cos(tilt);
+    const zoom = Math.min(Math.log2((WORLD_METRES_AT_ZOOM_0 * Math.cos(latRad)) / atMiddle), gl.getMaxZoom());
+
+    this.pitchBeforeOpen ??= gl.getPitch();
+    gl.easeTo({
+      center: [lon, lat],
+      zoom,
+      pitch: OPEN_PITCH,
+      bearing: bearing + off,
+      offset: [0, foot - height / 2],
+      duration: 900,
+    });
+  }
+
+  /** Repaint every storm, ring and tier in the radar palette the settings now name. */
+  private applyColormap(name: string): void {
+    if (name === this.colormap) return;
+    this.colormap = name;
+    this.cloudsLayer?.setColormap(name);
+    const gl = this.gl;
+    if (!gl || !this.styleReady) return;
+    if (gl.getLayer("cloud-marker")) gl.setPaintProperty("cloud-marker", "circle-stroke-color", dbzRamp(name));
+    RING_ALPHAS.forEach((_opacity, tier) => {
+      const id = `cell-volume-${tier}`;
+      if (gl.getLayer(id)) gl.setPaintProperty(id, "fill-extrusion-color", dbzRamp(name));
+    });
+    gl.triggerRepaint();
   }
 
   /** Tell the layer which storm is open, and which way its slice now runs. */
   private applyCut(): void {
-    const turn = get(cutRotationDeg);
+    const turn = get(cutRotationDeg) + get(cutSweepDeg);
     this.cloudsLayer?.setCut(this.opened?.code ?? null, (this.opened?.heading ?? 0) + turn);
     this.gl?.triggerRepaint();
   }
@@ -692,7 +878,7 @@ export default class Cells3DCapability extends Capability {
   /** The one layer that draws every storm's volume, added once per style. */
   private ensureVolumes(gl: GlMap): void {
     if (this.cloudsLayer || !this.maplibre) return;
-    const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate);
+    const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap);
     gl.addLayer(layer);
     this.cloudsLayer = layer;
     this.pushClouds();
@@ -733,7 +919,7 @@ export default class Cells3DCapability extends Capability {
         "circle-radius": 11,
         "circle-color": "rgba(0, 0, 0, 0)",
         "circle-stroke-width": 2.5,
-        "circle-stroke-color": dbzRamp(),
+        "circle-stroke-color": dbzRamp(this.colormap),
         "circle-stroke-opacity": 0.9,
       },
     });
@@ -774,6 +960,7 @@ export default class Cells3DCapability extends Capability {
    * whichever heading the map already has.
    */
   setCamera(camera: CameraRequest): void {
+    this.cameraSetAt = performance.now();
     if (!this.gl) {
       this.requestedCamera = { ...this.requestedCamera, ...camera };
       return;
@@ -1077,7 +1264,7 @@ export default class Cells3DCapability extends Capability {
         source: CELL_SOURCE,
         filter: this.tierFilter(tier),
         paint: {
-          "fill-extrusion-color": dbzRamp(),
+          "fill-extrusion-color": dbzRamp(this.colormap),
           "fill-extrusion-base": ["get", "base"],
           "fill-extrusion-height": ["get", "top"],
           "fill-extrusion-opacity": opacity,
@@ -1093,6 +1280,11 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeSelection = null;
     this.unsubscribeCut?.();
     this.unsubscribeCut = null;
+    this.unsubscribeColormap?.();
+    this.unsubscribeColormap = null;
+    this.unsubscribeSweep?.();
+    this.unsubscribeSweep = null;
+    stopSweep(false);
     this.unsubscribeVolume?.();
     this.unsubscribeVolume = null;
     this.gl?.remove();

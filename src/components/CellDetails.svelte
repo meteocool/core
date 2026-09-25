@@ -13,7 +13,7 @@
 import { _ } from "svelte-i18n";
 import { onDestroy } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
-import { capLatestObservation, cellDetails, selectedCell, smallScreen } from "../stores";
+import { capLatestObservation, cellDetails, selectedCell, sharedActiveCap, smallScreen } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
 import { cellStatus } from "../lib/cellStatus";
@@ -24,6 +24,8 @@ import CellLineage from "./CellLineage.svelte";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
 import CellCutaway from "./CellCutaway.svelte";
+import SliceDial from "./SliceDial.svelte";
+import CloseDisc from "./CloseDisc.svelte";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
 import { placementLabel } from "../lib/cellPlacement";
 import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
@@ -154,6 +156,13 @@ $: colour = severityColour(severity);
 $: place = placementLabel(track.placement, $_, "long");
 $: series = track.series ?? [];
 $: latest = series[series.length - 1];
+/**
+ * On a phone on the 3D map, the storm stands behind the sheet at full size --
+ * and cut open, when it has a volume -- so both of the models below would be
+ * second, smaller copies of it that cost the map half the screen. The sheet
+ * keeps the readings and history, and turns the cut on the map with a dial.
+ */
+$: onMap3d = $smallScreen && $sharedActiveCap === "cells3d";
 $: forecast = track.forecast ?? [];
 
 /**
@@ -603,7 +612,7 @@ function onKeydown(event: KeyboardEvent) {
     <span class="status {status.kind}">
       <span class="dot"></span>{status.label}
     </span>
-    <button class="close" on:click={close} aria-label="Close">&times;</button>
+    <CloseDisc on:click={close} />
   </header>
   {#if place}
     <p class="place">{place}</p>
@@ -630,6 +639,12 @@ function onKeydown(event: KeyboardEvent) {
     {/if}
   </div>
 
+  {#if onMap3d && track.volume}
+    <div class="dial">
+      <SliceDial reference={latest?.heading_deg != null ? "track" : "north"} />
+    </div>
+  {/if}
+
   <h3 class="section">Readings</h3>
   <ul class="metrics">
     {#each readings as item (item.key)}
@@ -649,7 +664,7 @@ function onKeydown(event: KeyboardEvent) {
   <!-- Numbers before models: the readings are the answer to "how bad is it",
        which is what a reader wants first, and the 3D shapes are the slower,
        more exploratory read that can wait until they have scrolled to it. -->
-  {#if shape}
+  {#if shape && !onMap3d}
     <h3 class="section">Structure<span class="aside">drag to turn</span></h3>
     <figure class="model">
       <CellModel3D cell={shape} frame={modelFrame} width={CHART.width} height={200} />
@@ -663,7 +678,7 @@ function onKeydown(event: KeyboardEvent) {
        where there is one. Offered only for the storms a volume was built for,
        which is the strongest few and only where the radars sampled the 3 to
        8 km layer properly. -->
-  {#if track.volume}
+  {#if track.volume && !onMap3d}
     <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
     <figure class="model">
       <!-- Keyed on the volume, as CloudDetails keys its own: the cutaway
@@ -864,86 +879,13 @@ function onKeydown(event: KeyboardEvent) {
     font-weight: 600;
   }
 
-  /**
-   * The close button, as a glass disc.
-   *
-   * It was a bare glyph at half opacity, which is the weakest thing the panel
-   * could have made of the one control that gets you out of it -- and on the
-   * sheet, where the panel is most of the screen, the way out is the control a
-   * reader looks for first. A disc in the same material the map's own controls
-   * are made of gives it an edge to aim at and says, in the app's own visual
-   * language, that it is a button.
-   *
-   * Built from the panel's own palette rather than from the map's glass
-   * tokens, although those were tried first and looked right. They flip with
-   * the app's light and dark scheme, and this disc does not sit on the app --
-   * it sits on the panel, which is light whichever scheme is on. Over a light
-   * sheet the dark-scheme tokens come out as a white fill and a white edge and
-   * the whole disc is carried by its drop shadow, which is luck rather than
-   * design. Shoelace's neutrals flip with the surface the button is actually
-   * on, so the disc keeps its edge either way.
-   *
-   * The blur stays: it is what makes it a glass drop rather than a grey circle,
-   * and there is something behind it -- the 3D model and the charts scroll
-   * under the header.
-   */
-  .close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    margin-left: auto;
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    border: 1px solid var(--sl-color-neutral-300, #d6d3d1);
-    border-radius: 50%;
-    background: var(--sl-color-neutral-100, #f5f5f4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
-    backdrop-filter: blur(12px) saturate(1.4);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    color: var(--sl-color-neutral-700, #57534e);
-    font-size: 19px;
-    line-height: 0;
-    cursor: pointer;
-    transition: transform var(--mc-motion-fast, 120ms) var(--mc-ease, ease);
-  }
-
-  /* Translucent where the browser can blur what is behind it, opaque where it
-     cannot -- a clear pane over a scrolling chart is worse than a grey one. */
-  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .close {
-      background: color-mix(in srgb, var(--sl-color-neutral-100, #f5f5f4) 72%, transparent);
-    }
-  }
-
-  .close:active {
-    transform: scale(var(--mc-press, 0.94));
-  }
-
-  /* A thumb needs 44px; a mouse does not, and at desktop size a target that
-     big beside a 13px heading is the loudest thing in the panel. */
   @media only screen and (max-width: 620px) {
-    .close {
-      width: 44px;
-      height: 44px;
-      /* Pulled up and right, into the sheet's own corner. The sheet now
-         reserves matching padding on .body for this overhang (see
-         CellSheet.svelte) -- previously any right overhang here gave the
-         sheet a horizontal scrollbar, on a panel with nothing to scroll
-         sideways. */
-      margin: -10px -8px -10px auto;
-      font-size: 26px;
-    }
     header {
       align-items: center;
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .close { transition: none; }
-    .close:active { transform: none; }
-  }
+  .dial { margin: 2px 0 8px; }
   .signals {
     display: flex;
     flex-wrap: wrap;

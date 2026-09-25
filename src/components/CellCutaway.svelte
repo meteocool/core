@@ -44,7 +44,8 @@ import { onDestroy, onMount, tick } from "svelte";
 import { FRAMING_DBZ, loadCutaway } from "../lib/cellCutaway";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
-import { cutRotationDeg } from "../stores";
+import { cutRotationDeg, cutSweepDeg, radarColormap } from "../stores";
+import { stopSweep } from "../lib/cutSweep";
 import { cutLabel, cutSnapLabels, normaliseCut } from "../lib/cutAngle";
 import type { CellVolume } from "../api";
 
@@ -270,14 +271,14 @@ function compile(context: WebGL2RenderingContext, type: number, source: string):
 /**
  * The reflectivity ramp as a texture the shader can look up.
  *
- * Built from the same stops the flat map and the measured model use, so a core
- * that reads as severe there reads as severe here. Spanning -32 to +64 dBZ,
- * which is the range the stored byte covers.
+ * In the radar map's own palette, so a core that reads as severe there reads
+ * as severe here. Spanning -32 to +64 dBZ, which is the range the stored byte
+ * covers.
  */
 function rampTexture(context: WebGL2RenderingContext): WebGLTexture {
   const pixels = new Uint8Array(256 * 4);
   for (let i = 0; i < 256; i += 1) {
-    const [r, g, b] = dbzColour(-32 + (i / 255) * 96);
+    const [r, g, b] = dbzColour(-32 + (i / 255) * 96, $radarColormap);
     pixels.set([r, g, b, 255], i * 4);
   }
   const texture = context.createTexture()!;
@@ -357,7 +358,7 @@ function start(loaded: Cutaway): void {
 
     // Along the track by default, turned by however far the reader has dragged
     // it; the normal is the cut's direction rotated a quarter turn.
-    const along = (((headingDeg ?? 0) + $cutRotationDeg) * Math.PI) / 180;
+    const along = (((headingDeg ?? 0) + $cutRotationDeg + $cutSweepDeg) * Math.PI) / 180;
     context.uniform3fv(planeNormal, [Math.cos(along), -Math.sin(along), 0]);
 
     // Framed on the storm rather than on the box. A cell rarely fills 40 km,
@@ -400,6 +401,7 @@ function start(loaded: Cutaway): void {
 function onPointerDown(event: PointerEvent): void {
   dragging = true;
   dragFrom = event.clientX;
+  stopSweep(true);
   dragCut = $cutRotationDeg;
   (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
 }
@@ -416,6 +418,7 @@ function onPointerUp(): void {
 /** Arrow keys turn the slice too, a few degrees at a time, for anyone not dragging. */
 function onKey(event: KeyboardEvent): void {
   const step = event.shiftKey ? 15 : 5;
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") stopSweep(true);
   if (event.key === "ArrowLeft") cutRotationDeg.set(normaliseCut($cutRotationDeg - step));
   else if (event.key === "ArrowRight") cutRotationDeg.set(normaliseCut($cutRotationDeg + step));
   else return;
@@ -475,7 +478,7 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
       aria-valuemin={-180}
       aria-valuemax={180}
       aria-valuenow={Math.round($cutRotationDeg)}
-      aria-valuetext={cutLabel($cutRotationDeg, reference)}
+      aria-valuetext={cutLabel($cutRotationDeg + $cutSweepDeg, reference)}
       on:pointerdown={onPointerDown}
       on:pointermove={onPointerMove}
       on:pointerup={onPointerUp}
@@ -484,13 +487,13 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
     ></canvas>
     <div class="cuts">
       <button type="button" class:on={Math.abs($cutRotationDeg) < 1 || Math.abs($cutRotationDeg) > 179}
-        on:click={() => cutRotationDeg.set(0)}>{snapA}</button>
+        on:click={() => { stopSweep(false); cutRotationDeg.set(0); }}>{snapA}</button>
       <button type="button" class:on={Math.abs(Math.abs($cutRotationDeg) - 90) < 1}
-        on:click={() => cutRotationDeg.set(90)}>{snapB}</button>
+        on:click={() => { stopSweep(false); cutRotationDeg.set(90); }}>{snapB}</button>
     </div>
     <figcaption>
       Stylised. Radar volume from {cutaway.header.sites.join(", ")},
-      {cutLabel($cutRotationDeg, reference)}.
+      {cutLabel($cutRotationDeg + $cutSweepDeg, reference)}.
     </figcaption>
   </figure>
 {/if}

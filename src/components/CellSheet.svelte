@@ -17,13 +17,27 @@
 import { fly } from "svelte/transition";
 import { cubicOut } from "svelte/easing";
 import { onDestroy } from "svelte";
-import { cellDetails } from "../stores";
+import { get } from "svelte/store";
+import { cellDetails, sharedActiveCap } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import CellDetails from "./CellDetails.svelte";
 
-export let track: import("../api").CellTrackProperties;
+/**
+ * The cell whose details fill the sheet -- or none, when something else is
+ * given as its content: a storm core on the 3D map takes the same sheet, so a
+ * phone has one surface for "the storm you tapped", whatever kind it is.
+ */
+export let track: import("../api").CellTrackProperties | null = null;
+/** What dismissing the sheet does, when it is not a cell's details closing. */
+export let onClose: (() => void) | null = null;
+/**
+ * Whether it pulls up to full height. Not for content that already fits at
+ * rest -- and a sheet that does not is as tall as what it holds, so a few
+ * facts and a dial are neither clipped nor floating in a half-empty panel.
+ */
+export let expandable = true;
 
 /**
  * The sheet slides, unless the reader has asked things not to move.
@@ -37,7 +51,8 @@ const reducedMotion = typeof window !== "undefined"
 const slide = { y: 400, duration: reducedMotion ? 0 : 320, easing: cubicOut };
 
 const close = () => {
-  cellDetails.set(afterClose({ code: track.code, details: true }, true).details);
+  if (onClose) onClose();
+  else if (track) cellDetails.set(afterClose({ code: track.code, details: true }, true).details);
 };
 
 /* ---- how much of the screen the sheet takes ----------------------------- */
@@ -67,7 +82,15 @@ const close = () => {
  * the sheet's own padding. 40% of a 812pt phone is 325, which holds that with
  * a little over, and hands the other 60% back to the map.
  */
-const HALF = 0.4;
+/*
+ * Shorter on the 3D map, where the storm the reader opened stands on the map
+ * itself, cut open, and the sheet's job is the readings and the dial that
+ * turns the cut -- neither of which needs the family chart's room. A third of
+ * the screen holds the header, the dial and the first readings, and leaves
+ * the storm the rest. Read once: a sheet lives for one selection, and the map
+ * does not change under an open one.
+ */
+const HALF = get(sharedActiveCap) === "cells3d" ? 0.32 : 0.4;
 // Short of the full screen on purpose: a strip of map stays visible above the
 // sheet so it reads as a drawer sitting over the map rather than a second
 // screen, and there is something to see the grip is still draggable toward.
@@ -132,7 +155,7 @@ function move(event: PointerEvent) {
   const delta = event.clientY - startY;
   // Upward only as far as the full detent is from here, so the sheet cannot be
   // dragged off the top of the screen and left there.
-  const headroom = detent === HALF ? -(FULL - HALF) * window.innerHeight : 0;
+  const headroom = detent === HALF && expandable ? -(FULL - HALF) * window.innerHeight : 0;
   dragY = Math.max(headroom, delta);
 }
 
@@ -142,7 +165,7 @@ function release() {
   const moved = dragY;
   dragY = 0;
   if (moved < -SNAP_PX) {
-    detent = FULL;
+    if (expandable) detent = FULL;
   } else if (moved > SNAP_PX) {
     // Down from full lands on half; down from half lets go of the cell.
     if (detent === FULL) detent = HALF;
@@ -176,7 +199,8 @@ let bodyEligible = false;
 
 function bodyDown(event: PointerEvent) {
   if (event.button > 0) return;
-  if ((event.target as HTMLElement).closest(".model")) return;
+  // The models and the cut's dial own their drags; see above.
+  if ((event.target as HTMLElement).closest(".model, .slice")) return;
   const el = event.currentTarget as HTMLElement;
   bodyEligible = el.scrollHeight <= el.clientHeight + 1;
   if (!bodyEligible) return;
@@ -241,6 +265,11 @@ function bodyUp(event: PointerEvent) {
     border-top: 1px solid var(--mc-glass-edge);
     box-shadow: var(--mc-glass-ring-lg);
     color: var(--sl-color-neutral-900, #111);
+  }
+
+  .sheet.fit {
+    height: auto;
+    max-height: calc(70vh - var(--mc-safe-top));
   }
 
   @supports (background: color-mix(in srgb, red 50%, transparent)) {
@@ -313,6 +342,7 @@ function bodyUp(event: PointerEvent) {
 
 <div
   class="sheet"
+  class:fit={!expandable}
   class:dragging
   class:settling={!dragging}
   style="--sheet-h: {Math.round(detent * 100)}vh; transform: translateY({dragY}px)"
@@ -335,6 +365,8 @@ function bodyUp(event: PointerEvent) {
     on:pointermove={bodyMove}
     on:pointerup={bodyUp}
     on:pointercancel={bodyUp}>
-    <CellDetails {track} />
+    <slot>
+      {#if track}<CellDetails {track} />{/if}
+    </slot>
   </div>
 </div>

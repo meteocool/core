@@ -162,6 +162,15 @@ export const selectedCell = writable<CellTrackProperties | null>(null);
  */
 export const cutRotationDeg = writable<number>(0);
 /**
+ * How far the slice has swung on its own, on top of `cutRotationDeg`.
+ *
+ * Apart from it because it changes every frame and is nobody's choice: the
+ * angle a reader set belongs in a link, a moment of an idle sweep does not,
+ * and the URL is written from `cutRotationDeg` at most four times a second --
+ * a rate Safari starts refusing if it goes on. See `lib/cutSweep.ts`.
+ */
+export const cutSweepDeg = writable<number>(0);
+/**
  * A storm opened for its volume alone, with no KONRAD3D track behind it.
  *
  * Most clouds with a volume are showers KONRAD3D never reports, so there is no
