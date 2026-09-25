@@ -9,8 +9,19 @@
  * Docs: https://open-meteo.com/en/docs
  */
 import { MODEL_IDS } from "./models";
+import { tracked } from "../progress";
 
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+
+/** One call to the forecast endpoint, read to the end. */
+async function ask<T>(params: URLSearchParams, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${FORECAST_URL}?${params}`, { signal });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`open-meteo ${response.status}: ${body || response.statusText}`);
+  }
+  return (await response.json()) as T;
+}
 
 /** open-meteo suffixes every per-model column with the model id. */
 const DAILY_VARS = [
@@ -79,12 +90,7 @@ export async function fetchForecast(req: ForecastRequest): Promise<Forecast> {
     temperature_unit: "celsius",
   });
 
-  const response = await fetch(`${FORECAST_URL}?${params}`, { signal: req.signal });
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`open-meteo ${response.status}: ${body || response.statusText}`);
-  }
-  const raw = (await response.json()) as ForecastResponse;
+  const raw = await tracked("open-meteo", () => ask<ForecastResponse>(params, req.signal));
   return shape(raw, models);
 }
 
@@ -154,15 +160,10 @@ export async function fetchHourlySeries(
     temperature_unit: "celsius",
   });
 
-  const response = await fetch(`${FORECAST_URL}?${params}`, { signal: req.signal });
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`open-meteo ${response.status}: ${body || response.statusText}`);
-  }
-  const raw = (await response.json()) as {
+  const raw = await tracked("open-meteo", () => ask<{
     hourly: { time: string[] } & Partial<Record<string, Array<number | null>>>;
     hourly_units: Record<string, string>;
-  };
+  }>(params, req.signal));
 
   const series: Record<string, Array<number | null>> = {};
   for (const id of models) {

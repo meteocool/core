@@ -27,6 +27,7 @@
  */
 
 import { geocodingUrl } from "../urls";
+import { tracked } from "./progress";
 
 const BIGDATACLOUD_ENDPOINT = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 
@@ -182,28 +183,30 @@ export async function reverseGeocode(
   const controller = new AbortController();
   inFlight = controller;
 
-  try {
-    let label: string | null = null;
+  return tracked("geocode", async () => {
     try {
-      label = await fromNominatim(lat, lon, lang, scale, controller.signal);
-    } catch {
-      // Ours being down is a reason to ask someone else, not to give up. An
-      // abort is not: a newer tap is already in flight and owns the answer.
-      if (controller.signal.aborted) return null;
-    }
-    label ??= await fromBigDataCloud(lat, lon, lang, scale, controller.signal);
+      let label: string | null = null;
+      try {
+        label = await fromNominatim(lat, lon, lang, scale, controller.signal);
+      } catch {
+        // Ours being down is a reason to ask someone else, not to give up. An
+        // abort is not: a newer tap is already in flight and owns the answer.
+        if (controller.signal.aborted) return null;
+      }
+      label ??= await fromBigDataCloud(lat, lon, lang, scale, controller.signal);
 
-    // Oldest out first. A session that taps 200 distinct places has long since
-    // stopped caring about the first one.
-    if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
-    cache.set(key, label);
-    return label;
-  } catch {
-    // Aborted, offline, rate-limited, malformed -- all the same to the caller.
-    return null;
-  } finally {
-    if (inFlight === controller) inFlight = null;
-  }
+      // Oldest out first. A session that taps 200 distinct places has long since
+      // stopped caring about the first one.
+      if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
+      cache.set(key, label);
+      return label;
+    } catch {
+      // Aborted, offline, rate-limited, malformed -- all the same to the caller.
+      return null;
+    } finally {
+      if (inFlight === controller) inFlight = null;
+    }
+  });
 }
 
 /** The scale a map at this zoom is really showing. */

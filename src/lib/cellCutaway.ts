@@ -33,6 +33,7 @@
  */
 import type { CellVolume } from "../api";
 import { tileBaseUrl } from "../urls";
+import { tracked } from "./progress";
 
 const MAGIC = 0x5856434d; // "MCVX", little-endian
 
@@ -183,8 +184,10 @@ export function decodeCutaway(buffer: ArrayBuffer): Cutaway {
  * rendered tiles already use -- so nothing here guesses a URL. A cell whose
  * volume was never built carries no path, and the caller never gets this far.
  */
-export async function loadCutaway(volume: CellVolume, signal?: AbortSignal): Promise<Cutaway> {
-  const response = await fetch(`${tileBaseUrl}/${volume.path}`, { signal });
-  if (!response.ok) throw new Error(`volume ${volume.path}: ${response.status}`);
-  return decodeCutaway(await response.arrayBuffer());
+export function loadCutaway(volume: CellVolume, signal?: AbortSignal): Promise<Cutaway> {
+  return tracked(volume.path, async () => {
+    const response = await fetch(`${tileBaseUrl}/${volume.path}`, { signal });
+    if (!response.ok) throw new Error(`volume ${volume.path}: ${response.status}`);
+    return decodeCutaway(await response.arrayBuffer());
+  });
 }

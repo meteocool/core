@@ -2,7 +2,7 @@
  * The backend, as typed calls generated from ng's OpenAPI schemas.
  *
  * Each wrapper keeps the two things every hand-written fetch here used to do
- * around the request -- drive the nanobar, and report a failure: to Sentry, and
+ * around the request -- drive the loading bar, and report a failure: to Sentry, and
  * to apiHealth, which is what the status pill reads -- so a caller cannot forget
  * either, and throws on a non-2xx rather than handing back an error body that
  * reads as a successful response.
@@ -11,6 +11,7 @@ import { apiClient, dataClient } from "./client";
 import { reportError } from "../lib/Toast";
 import { apiHealth } from "../stores";
 import { markAbsent, nextHealth } from "../lib/apiHealth";
+import { progress } from "../lib/progress";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
 
@@ -101,7 +102,9 @@ async function request<T>(
   send: () => Promise<Answer<T>>,
   { optional = false }: RequestOptions = {},
 ): Promise<T> {
-  nanobar?.start(id);
+  // The shared bar unless a caller brings its own: every request shows.
+  const bar = nanobar ?? progress();
+  bar.start(id);
   try {
     const { data, error, response } = await send();
     if (error === undefined && data !== undefined) {
@@ -121,7 +124,7 @@ async function request<T>(
     reportError(error);
     throw error;
   } finally {
-    nanobar?.finish(id);
+    bar.finish(id);
   }
 }
 
