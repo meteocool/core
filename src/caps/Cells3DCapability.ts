@@ -149,6 +149,9 @@ const BOX_HALF_KM = 20;
  */
 const STRIKE_MINUTES = 10;
 
+/** How often a burst of strikes is redrawn at most; see `scheduleStrikes`. */
+const STRIKE_REDRAW_MS = 1000;
+
 /** The id of the one full-size map element; minimaps carry generated ids. */
 const MAIN_MAP_ID = "map";
 
@@ -286,30 +289,53 @@ export default class Cells3DCapability extends Capability {
   /** The first answer for the list of storms, which a linked cloud waits on. */
   private firstRefresh: Promise<void> | null = null;
 
+  /**
+   * Whether this map owns the main map element right now.
+   *
+   * The MapLibre map is kept when another capability takes over, so coming
+   * back is instant -- but kept alive, it went on doing everything a shown map
+   * does: every new radar frame reloaded its tiles, every new run re-fetched
+   * the cells and several megabytes of volumes, and every strike rebuilt the
+   * strike source and raymarched every storm again, all into a canvas nobody
+   * could see. On a stormy day that is a browser pegged on a map that is not
+   * on screen. While hidden, all of it waits, and `attach` catches up.
+   */
+  private shown = false;
+
+  /** A light/dark switch that arrived while hidden, applied on the way back. */
+  private styleStale = false;
+
+  /** The pending strike update, if one is waiting; see `scheduleStrikes`. */
+  private strikeTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(map: OlMap, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "cells3d", () => Cells3DCapability.announce(), additionalLayers);
 
     this.nanobar = options.nanobar;
+    // A cell tapped on the flat map is not opened here until this map is
+    // shown: opening fetches its volume, and `attach` opens whatever is
+    // selected by then.
     this.unsubscribeSelection = selectedCell.subscribe((track) => {
+      if (!this.shown) return;
       if (track) void this.open(this.targetOfTrack(track));
       else if (!get(selectedVolume)) void this.open(null);
     });
     this.unsubscribeVolume = selectedVolume.subscribe((cloud) => {
+      if (!this.shown) return;
       if (cloud) void this.open(this.targetOfCloud(cloud));
       else if (!get(selectedCell)) void this.open(null);
     });
-    // Turning the slice in the popup turns it here. Only a uniform changes, so
-    // this is a repaint and nothing is rebuilt.
     // Turning the slice in the popup turns it here. Only a uniform changes, so
     // this is a repaint and nothing is rebuilt.
     this.unsubscribeCut = cutRotationDeg.subscribe(() => this.applyCut());
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
       if (!this.gl) return;
-      // setStyle discards every source and layer added on top of it; the
-      // `style.load` handler above puts them back.
-      this.styleReady = false;
-      this.gl.setStyle(this.style());
+      if (!this.shown) {
+        this.styleStale = true;
+        return;
+      }
+      this.restyle();
     });
   }
 
@@ -327,6 +353,15 @@ export default class Cells3DCapability extends Capability {
     return basemapStyle(muteTheme(this.dark ? darkTheme : lightTheme));
   }
 
+  private restyle(): void {
+    if (!this.gl) return;
+    this.styleStale = false;
+    // setStyle discards every source and layer added on top of it; the
+    // `style.load` handler in `attach` puts them back.
+    this.styleReady = false;
+    this.gl.setStyle(this.style());
+  }
+
   /**
    * Attach or detach.
    *
@@ -339,6 +374,7 @@ export default class Cells3DCapability extends Capability {
     const isMain = Boolean(element && element.id === MAIN_MAP_ID);
 
     if (!isMain) {
+      this.shown = false;
       this.detach();
       super.setTarget(target);
       return;
@@ -350,6 +386,7 @@ export default class Cells3DCapability extends Capability {
     // side of it is wanted here.
     this.map.setTarget(undefined);
     Cells3DCapability.announce();
+    this.shown = true;
     void this.attach(element as HTMLElement);
   }
 
@@ -501,8 +538,20 @@ export default class Cells3DCapability extends Capability {
     } else {
       this.pullCameraFromView();
       this.gl.resize();
+      // Catch up on what was held back while hidden: the theme, then the
+      // newest radar frame and strikes, which need no fetch of their own.
+      if (this.styleStale) this.restyle();
+      else this.applyData();
+      this.applyCut();
     }
 
+    // Switched away again while MapLibre was loading.
+    if (!this.shown) return;
+
+    // Whatever the reader picked on the flat map meanwhile.
+    const track = get(selectedCell);
+    const cloud = get(selectedVolume);
+    void this.open(track ? this.targetOfTrack(track) : cloud ? this.targetOfCloud(cloud) : null);
     void this.refresh();
   }
 
@@ -531,6 +580,9 @@ export default class Cells3DCapability extends Capability {
    */
   willLoseFocus(): void {
     this.pushCameraToView();
+    this.shown = false;
+    if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
+    this.strikeTimer = null;
     this.detach();
     super.willLoseFocus();
   }
@@ -642,7 +694,7 @@ export default class Cells3DCapability extends Capability {
   private applyCut(): void {
     const turn = get(cutRotationDeg);
     this.cloudsLayer?.setCut(this.opened?.code ?? null, (this.opened?.heading ?? 0) + turn);
-    this.gl?.triggerRepaint();
+    if (this.shown) this.gl?.triggerRepaint();
   }
 
   /**
@@ -679,6 +731,9 @@ export default class Cells3DCapability extends Capability {
         this.cutaways.set(cloud.path, { code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat });
       }
       this.pushClouds();
+      // Switched away: the rest waits for `attach`, whose refresh fetches
+      // whatever is still missing.
+      if (!this.shown) return;
     }
   }
 
@@ -686,7 +741,7 @@ export default class Cells3DCapability extends Capability {
   private pushClouds(): void {
     this.cloudsLayer?.setClouds([...this.cutaways.values()].map(({ code, cutaway }) => ({ code, cutaway })));
     this.applyTierFilters();
-    this.gl?.triggerRepaint();
+    if (this.shown) this.gl?.triggerRepaint();
   }
 
   /** The one layer that draws every storm's volume, added once per style. */
@@ -857,13 +912,31 @@ export default class Cells3DCapability extends Capability {
    */
   setStrikeSource(source: VectorSource): void {
     this.strikes = source;
-    source.on("change", () => this.ensureStrikes());
+    source.on("change", () => this.scheduleStrikes());
     this.ensureStrikes();
+  }
+
+  /**
+   * Redraw the strikes soon, once, however many arrive meanwhile.
+   *
+   * The buffer fires `change` for every strike, and each redraw re-serialises
+   * the whole buffer for MapLibre's worker and raymarches every storm again.
+   * A squall line sends several a second; once a second is plenty for a
+   * recent-activity glow. Nothing at all while hidden -- `attach` redraws.
+   */
+  private scheduleStrikes(): void {
+    if (!this.shown || this.strikeTimer !== null) return;
+    this.strikeTimer = setTimeout(() => {
+      this.strikeTimer = null;
+      this.ensureStrikes();
+    }, STRIKE_REDRAW_MS);
   }
 
   /** Point the draped radar at a frame. Called with the same URL the 2D map uses. */
   setRadarUrl(url: string | null): void {
     this.radarUrl = url;
+    // Held for `attach`: a hidden map would load the whole frame's tiles.
+    if (!this.shown) return;
     const source = this.gl?.getSource(RADAR_SOURCE);
     if (source && "setTiles" in source && url) {
       (source as unknown as { setTiles(tiles: string[]): void }).setTiles([this.tiles(url)]);
@@ -878,6 +951,16 @@ export default class Cells3DCapability extends Capability {
    */
   private tiles(url: string): string {
     return url.replace("{-y}", "{y}");
+  }
+
+  /**
+   * Re-read the latest run, when a new one lands.
+   *
+   * Nothing while hidden: that is a fetch of the cells and of every new
+   * volume for a map nobody is looking at, and `attach` refreshes anyway.
+   */
+  newRun(): void {
+    if (this.shown) void this.refresh();
   }
 
   /** Re-read the latest run. One timestep only: this map does not scrub. */
@@ -933,7 +1016,11 @@ export default class Cells3DCapability extends Capability {
 
     const existing = gl.getSource(RADAR_SOURCE);
     if (existing) {
-      (existing as unknown as { setTiles(tiles: string[]): void }).setTiles([this.tiles(this.radarUrl)]);
+      // Unchanged is left alone: `setTiles` reloads every tile on screen, and
+      // this runs on every refresh and every return to this map.
+      const source = existing as unknown as { tiles?: string[]; setTiles(tiles: string[]): void };
+      const tiles = this.tiles(this.radarUrl);
+      if (source.tiles?.[0] !== tiles) source.setTiles([tiles]);
       return;
     }
 
@@ -1087,6 +1174,8 @@ export default class Cells3DCapability extends Capability {
   }
 
   destroy(): void {
+    if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
+    this.strikeTimer = null;
     this.unsubscribeTheme?.();
     this.unsubscribeTheme = null;
     this.unsubscribeSelection?.();

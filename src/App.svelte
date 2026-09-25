@@ -462,7 +462,7 @@ if (cells3d && radarCap) {
     if (subject === "grid") forwardRadarFrame();
   });
   // A new run means new cells as well as a new frame.
-  radarSocketIO.on("cells", () => { void cells3d.refresh(); });
+  radarSocketIO.on("cells", () => cells3d.newRun());
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
   cells3d.setStrikeSource(lightningSource);
