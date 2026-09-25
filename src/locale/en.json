@@ -11,8 +11,6 @@
   "hail": "Hail",
   "precipitation_here": "Precipitation at Your Location",
   "connection_details": "Connection Details",
-  "copy": "Copy",
-  "copied": "Copied",
   "title": "About meteocool",
   "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
   "text2": "meteocool currently uses radar data provided by DWD, realtime lightning information from the awesome blitzortung.org project and satellite imagery from the EC/ESA Copernicus Programme.",
@@ -94,5 +92,32 @@
   "compass_S": "S",
   "compass_SW": "SW",
   "compass_W": "W",
-  "compass_NW": "NW"
+  "compass_NW": "NW",
+  "settings": {
+    "title": "Settings",
+    "base_layer": "Base Map Layer",
+    "base_layers": {
+      "system": "Match System",
+      "light": "Light",
+      "dark": "Dark",
+      "osm": "OpenStreetMap",
+      "cyclosm": "CyclOSM (Biking)"
+    },
+    "color_map": "Radar Color Map",
+    "color_maps": {
+      "classic": "Classic",
+      "nws": "NWS Reflectivity",
+      "pyart_stepseq": "PyArt StepSeq",
+      "homeyer": "Homeyer (Color Vision Deficiency)",
+      "lang": "Lang"
+    },
+    "color_map_hint": "Changes the colors the precipitation is drawn in. 'Classic' renders fastest.",
+    "map": "Map",
+    "rotation": "Two-Finger Map Rotation",
+    "environment": "Preview",
+    "staging": "Open Staging",
+    "staging_hint": "Staging runs the next version of meteocool before it is released. Expect new features and the occasional breakage; your settings here do not carry over.",
+    "production": "Open meteocool.com",
+    "production_hint": "You are on staging. This opens the released version."
+  }
 }

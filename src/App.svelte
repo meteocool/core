@@ -19,6 +19,7 @@ import { LayerManager, VIEW_EXTENT } from "./lib/LayerManager";
 import { capabilityEnabled } from "./caps/enabled";
 import NanobarWrapper from "./lib/NanobarWrapper";
 import Settings from "./lib/Settings";
+import type { SettingValue } from "./lib/Settings";
 
 import de from "./locale/de.json";
 import en from "./locale/en.json";
@@ -100,20 +101,30 @@ init({
  * look right in -- see the header of src/glass.css -- and it is exactly where a
  * dark-mode browser used to land, because the scheme and the basemap were
  * independent settings with independent defaults.
- *
- * This is a default, not an override: a basemap the user picked is stored, and
- * Settings.get() prefers a stored value.
  */
 function systemBaseLayer() {
   return get(colorSchemeDark) ? "dark" : "light";
 }
 
+/**
+ * The basemap a `mapBaseLayer` setting means.
+ *
+ * "system", the default, follows the colour scheme; anything else is a basemap
+ * the reader picked. A value of its own rather than "nothing stored", because
+ * Settings.set() stores nothing for a value equal to the default -- so with a
+ * default that changed with the scheme, picking Dark in dark mode stored
+ * nothing, and the map quietly went light again with the system.
+ */
+function resolveBaseLayer(value: SettingValue): string {
+  return value === "system" || !value ? systemBaseLayer() : String(value);
+}
+
 initUIConstants();   // reads prefers-color-scheme into colorSchemeDark
 
 /* Set before Settings is constructed: its constructor only fires a callback
-   when the effective value DIFFERS from the declared default, so a dynamic
-   default with nothing stored would otherwise leave the store on the initial
-   value it was declared with in stores.ts. */
+   when the effective value DIFFERS from the declared default, so with nothing
+   stored the store would otherwise stay on the initial value it was declared
+   with in stores.ts. */
 mapBaseLayer.set(systemBaseLayer());
 
 window.settings = new Settings({
@@ -146,9 +157,9 @@ window.settings = new Settings({
   },
   mapBaseLayer: {
     type: "string",
-    default: systemBaseLayer(),
+    default: "system",
     cb: (val) => {
-      mapBaseLayer.set(String(val));
+      mapBaseLayer.set(resolveBaseLayer(val));
     },
   },
   radarColorMapping: {
@@ -462,7 +473,7 @@ if (cells3d && radarCap) {
     if (subject === "grid") forwardRadarFrame();
   });
   // A new run means new cells as well as a new frame.
-  radarSocketIO.on("cells", () => { void cells3d.refresh(); });
+  radarSocketIO.on("cells", () => cells3d.newRun());
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
   cells3d.setStrikeSource(lightningSource);
@@ -623,15 +634,11 @@ onDestroy(unsubscribeWake);
 window.enterForeground = () => wake("native bridge");
 
 /* The scheme can flip while the app is open, and the chrome follows it live,
-   so the map has to as well or they end up disagreeing. Only while the user has
-   not chosen a basemap of their own: writable.set() with an unchanged value
-   notifies nobody, so the immediate first call here is a no-op. */
+   so the map has to as well or they end up disagreeing. Only while the basemap
+   follows the system: writable.set() with an unchanged value notifies nobody,
+   so the immediate first call here is a no-op. */
 const baseLayerSub = colorSchemeDark.subscribe(() => {
-  const preferred = systemBaseLayer();
-  window.settings.setDefault("mapBaseLayer", preferred);
-  if (!window.settings.hasStoredValue("mapBaseLayer")) {
-    mapBaseLayer.set(preferred);
-  }
+  mapBaseLayer.set(resolveBaseLayer(window.settings.get("mapBaseLayer")));
 });
 onDestroy(baseLayerSub);
 

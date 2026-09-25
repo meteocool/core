@@ -251,6 +251,17 @@
     font-size: 22px;
   }
 
+  /* North-up reset, shown only once the map is turned (the Map Rotation
+     setting). One more disc down the column; OpenLayers' own position is the
+     top-right corner, underneath the switcher disc. */
+  :global(.ol-rotate) {
+    top: calc(var(--ol-controls-top) + 3 * var(--mc-control-lg) - 2px + 2 * var(--mc-gutter));
+    right: var(--mc-gutter);
+    left: auto;
+    bottom: auto;
+    border-radius: 50%;
+  }
+
   /* The 3D map's controls in the same column: under the switcher disc, a
      gutter apart, the zoom capsule first and the compass disc below it where
      the locate disc is on the flat map. MapLibre floats its controls in a

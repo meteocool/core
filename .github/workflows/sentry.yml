@@ -1,14 +1,12 @@
 name: SentryRelease
 
+# A production release, so only for what production runs: `main`. `develop`
+# goes to staging and demo (deploy.yml), and a release cut from each push there
+# would claim to be production.
 on:
   push:
     branches:
       - main
-      - develop
-  pull_request:
-    branches:
-      - main
-      - develop
 
 # Read-only, whatever the repository default is: this is a public repository
 # and nothing here needs to write to it.
