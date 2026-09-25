@@ -140,13 +140,28 @@ onDestroy(() => syncNativeChrome(false));
 let dragY = 0;
 let dragging = false;
 let startY = 0;
+let sheetEl: HTMLElement;
+/** How far below the screen's edge the sheet's lower part sits, at rest. */
+let restPx = 0;
 
 /** Far enough that the drag was meant, short enough to be one easy motion. */
 const SNAP_PX = 60;
 
-function grab(event: PointerEvent) {
+/**
+ * The sheet is always laid out at full height and parked with its lower part
+ * below the screen's edge, so dragging it up slides in what is already there.
+ * That parked distance is CSS (vh against the safe area), so it is measured
+ * rather than recomputed: how far the sheet's bottom hangs past its parent's.
+ */
+function startDrag(y: number) {
   dragging = true;
-  startY = event.clientY;
+  startY = y;
+  const parent = sheetEl.offsetParent ?? document.documentElement;
+  restPx = Math.max(0, sheetEl.getBoundingClientRect().bottom - parent.getBoundingClientRect().bottom);
+}
+
+function grab(event: PointerEvent) {
+  startDrag(event.clientY);
   (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
 }
 
@@ -155,7 +170,7 @@ function move(event: PointerEvent) {
   const delta = event.clientY - startY;
   // Upward only as far as the full detent is from here, so the sheet cannot be
   // dragged off the top of the screen and left there.
-  const headroom = detent === HALF && expandable ? -(FULL - HALF) * window.innerHeight : 0;
+  const headroom = detent === HALF && expandable ? -restPx : 0;
   dragY = Math.max(headroom, delta);
 }
 
@@ -215,8 +230,7 @@ function bodyMove(event: PointerEvent) {
   if (bodyAxis === "undecided") {
     bodyAxis = decideAxis(event.clientX - bodyStartX, event.clientY - bodyStartY);
     if (bodyAxis !== "y") return;
-    dragging = true;
-    startY = bodyStartY;
+    startDrag(bodyStartY);
     try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* already gone */ }
   }
   if (bodyAxis !== "y") return;
@@ -249,7 +263,14 @@ function bodyUp(event: PointerEvent) {
        than a vh guess that put the grip behind it on some phones. The 60px
        past that clears the status bar with real room to spare -- 28px read as
        "no map visible" since it barely cleared the chrome at all. */
-    height: min(var(--sheet-h), calc(100vh - var(--mc-safe-top) - 60px));
+    --full-h: min(95vh, calc(100vh - var(--mc-safe-top) - 60px));
+    height: var(--full-h);
+    /* Always that tall, and slid down by however much the detent leaves off,
+       so the part below the fold is laid out and waiting under the screen's
+       edge. Sized to the detent instead, pulling it up dragged a half-height
+       panel into the air with bare map underneath until the finger let go. */
+    --rest: max(0px, calc(var(--full-h) - var(--sheet-h)));
+    transform: translateY(calc(var(--rest) + var(--drag, 0px)));
     padding: 0 12px calc(12px + var(--mc-safe-bottom));
     border-radius: 22px 22px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
@@ -268,6 +289,7 @@ function bodyUp(event: PointerEvent) {
   }
 
   .sheet.fit {
+    --rest: 0px;
     height: auto;
     max-height: calc(70vh - var(--mc-safe-top));
   }
@@ -324,15 +346,16 @@ function bodyUp(event: PointerEvent) {
        was clipped there at rest -- overflow-y:auto implicitly makes
        overflow-x auto too, so the same applies on the right. */
     padding: 10px 8px 0 0;
+    /* The scroll range ends at the screen's edge, not at the parked part
+       below it, so the last line can still be scrolled into view. */
+    padding-bottom: var(--rest);
   }
 
   .dragging {
     transition: none;
   }
   .settling {
-    transition:
-      transform 200ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1)),
-      height 260ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1));
+    transition: transform 280ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -345,7 +368,8 @@ function bodyUp(event: PointerEvent) {
   class:fit={!expandable}
   class:dragging
   class:settling={!dragging}
-  style="--sheet-h: {Math.round(detent * 100)}vh; transform: translateY({dragY}px)"
+  bind:this={sheetEl}
+  style="--sheet-h: {Math.round(detent * 100)}vh; --drag: {dragY}px"
   transition:fly={slide}>
   <div
     class="grip"

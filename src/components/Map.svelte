@@ -73,7 +73,11 @@
       const toolbar = document.querySelector<HTMLElement>(".bottomToolbar.lastUpdatedBottom");
       const player = document.querySelector<HTMLElement>(".timeslider");
       const bar = mode === "player" ? (player ?? toolbar) : toolbar;
-      if (bar) {
+      // A tray with no box occludes nothing. The cell sheet hides both trays
+      // with display:none, and a hidden one measures top 0 -- which read as
+      // the whole screen covered: the View padded by its full height, and the
+      // credits parked above the top edge or squeezed into nothing.
+      if (bar && bar.getClientRects().length > 0) {
         const rect = bar.getBoundingClientRect();
         occluded = Math.max(0, Math.round(window.innerHeight - rect.top));
       }
