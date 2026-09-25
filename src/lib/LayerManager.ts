@@ -281,7 +281,7 @@ export class LayerManager {
 
     let layers: BaseLayer[] = [];
     if (baselayer) {
-      layers = [this.baseLayerFactory(this.settings.get("mapBaseLayer"))];
+      layers = [this.baseLayerFactory(get(mapBaseLayer))];
     }
     layers = [...layers, inspectLayer, geolocationAccuracyLayer, geolocationPositionLayer];
 
