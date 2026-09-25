@@ -8,7 +8,8 @@
  * Written for someone trying to work out why the map looks wrong: the point is
  * to make "slow connection" or "stale tiles" answerable without a debugger.
  */
-import { createEventDispatcher, onDestroy, onMount } from "svelte";
+import { onDestroy, onMount } from "svelte";
+import GlassPanel from "./GlassPanel.svelte";
 import { _ } from "svelte-i18n";
 import {
   apiHealth, capLastUpdated, degradedStatus, latLon, mapBaseLayer, networkStatus,
@@ -25,8 +26,6 @@ import {
 import type RadarCapability from "../caps/RadarCapability";
 
 export let cap: RadarCapability;
-
-const dispatch = createEventDispatcher();
 
 /** Re-read while open: most of this goes stale within seconds. */
 const REFRESH_MS = 2000;
@@ -78,7 +77,6 @@ let steps: Array<{ minutes: number; kind: string; title: string }> = [];
 let storage: Row[] = [];
 let tileCache: Row[] = [];
 let services: ServiceRow[] = [];
-let copied = false;
 
 const num = (v: unknown, digits = 0) => (typeof v === "number" && Number.isFinite(v)
   ? v.toFixed(digits) : "—");
@@ -567,110 +565,12 @@ onMount(() => {
 onDestroy(() => {
   if (timer) clearInterval(timer);
 });
-
-async function copy() {
-  const payload = {
-    at: new Date().toISOString(),
-    ...Object.fromEntries(sections.map((s) => [s.title, Object.fromEntries(s.rows)])),
-    Services: Object.fromEntries(services.map((r) => [r.name, r])),
-    "Tile cache": Object.fromEntries(tileCache),
-    Storage: Object.fromEntries(storage),
-    steps: steps.map((s) => s.title),
-    userAgent: navigator.userAgent,
-  };
-  try {
-    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-    copied = true;
-    setTimeout(() => { copied = false; }, 1500);
-  } catch { /* clipboard blocked; the panel is still readable */ }
-}
 </script>
 
 <style>
-  .scrim {
-    position: absolute;
-    inset: 0;
-    z-index: var(--mc-z-status);
-    display: flex;
-    justify-content: center;
-    /* Clears the pill it was opened from, so the thing you tapped stays in
-       view. The side insets are the notch's, which in landscape is on a side
-       rather than the top. */
-    padding:
-      calc(var(--mc-top-stack) + var(--mc-pill-h) + 8px)
-      calc(var(--mc-gutter) + env(safe-area-inset-right, 0px))
-      calc(var(--mc-safe-bottom) + var(--mc-gutter))
-      calc(var(--mc-gutter) + env(safe-area-inset-left, 0px));
-  }
-
-  /* A phone on its side has about 375px of height for all of this, and half of
-     it should not go to a gap above the panel. The pill goes behind it here;
-     the panel is modal anyway, and the reading beats the affordance. */
-  @media (max-height: 480px) {
-    .scrim {
-      padding-top: calc(var(--mc-safe-top) + var(--mc-gutter));
-      padding-bottom: calc(var(--mc-safe-bottom) + var(--mc-gutter) / 2);
-    }
-    header {
-      padding: 8px 14px 4px;
-    }
-    h3 {
-      margin-top: 7px;
-    }
-  }
-
-  /* Fills what the map leaves it: this is a wall of readings, and paging
-     through a narrow column of them is worse than reading a wide one. */
-  .panel {
-    width: min(72rem, 100%);
-    height: 100%;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    border-radius: var(--mc-radius-tray);
-    color: var(--mc-text);
-    font-family: var(--mc-font);
-  }
-
-  header {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 12px 16px 6px;
-  }
-  h2 {
-    flex: 1 1 auto;
-    margin: 0;
-    font: 700 13px/1.3 var(--mc-font);
-    letter-spacing: -0.01em;
-  }
-
-  button {
-    flex: none;
-    height: 22px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: var(--mc-radius-pill);
-    background: var(--mc-tint);
-    color: var(--mc-text);
-    font: 600 11px/1 var(--mc-font);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
-  }
-  button:hover { background: var(--mc-tint-hover); }
-  button:active { transform: scale(var(--mc-press)); }
-
-  /* The only scroller: the panel itself is a fixed height, so a long list of
-     sections scrolls inside it rather than growing off the bottom of the map. */
-  .body {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 16px 14px;
+  /* The panel -- material, header, scrolling -- is GlassPanel's, shared with
+     About and Settings. The readings inside are laid out as a grid: */
+  .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
     gap: 4px 20px;
@@ -818,17 +718,17 @@ async function copy() {
     border-radius: 2px;
     vertical-align: 0;
   }
+
+  /* A phone on its side: less air above each section. */
+  @media (max-height: 480px) {
+    h3 {
+      margin-top: 7px;
+    }
+  }
 </style>
 
-<div class="scrim" on:click|self={() => dispatch("close")} role="presentation">
-  <div class="panel glass glass-tray">
-    <header>
-      <h2>{$_("connection_details")}</h2>
-      <button type="button" on:click={copy}>{copied ? $_("copied") : $_("copy")}</button>
-      <button type="button" on:click={() => dispatch("close")}>{$_("close")}</button>
-    </header>
-
-    <div class="body">
+<GlassPanel title={$_("connection_details")} wide on:close>
+    <div class="grid">
       <div class="section wide">
         <h3>Timesteps</h3>
         <div class="steps">
@@ -909,5 +809,4 @@ async function copy() {
         </dl>
       </div>
     </div>
-  </div>
-</div>
+</GlassPanel>
