@@ -563,8 +563,14 @@ export function makeCloudsLayer(
       context.disable(context.SCISSOR_TEST);
       context.depthMask(true);
       // The peel moves on its own, so the map has to keep drawing while any
-      // storm but the open one is on it.
-      if (!still && [...clouds.keys()].some((code) => code !== cutCode)) map?.triggerRepaint();
+      // storm but the open one is on it -- and only while the map is on the
+      // page: switched away from, its element is taken out and the map is
+      // meant to sleep, and a repaint asked for every frame would keep it
+      // raymarching into a canvas nobody can see. Coming back repaints it,
+      // and this picks the loop up again.
+      if (!still && map?.getContainer().isConnected && [...clouds.keys()].some((code) => code !== cutCode)) {
+        map.triggerRepaint();
+      }
     },
 
     onRemove(_map: GlMap, context: WebGL2RenderingContext) {
