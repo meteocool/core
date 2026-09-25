@@ -6,7 +6,8 @@
   import View from "ol/View";
   import type BaseLayer from "ol/layer/Base";
   import { dwdLayerStatic } from "../layers/dwd";
-  import { capTimeIndicator } from "../stores";
+  import { get } from "svelte/store";
+  import { capTimeIndicator, mapBaseLayer } from "../stores";
   const dispatch = createEventDispatcher();
   export let layerManager;
   export let layer;
@@ -68,7 +69,7 @@
 
     const preview_ = new Map({
       target: node,
-      layers: [layerManager.baseLayerFactory(window.settings.get("mapBaseLayer"))],
+      layers: [layerManager.baseLayerFactory(get(mapBaseLayer))],
       controls: [],
       interactions: [],
       view: new View({

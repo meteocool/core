@@ -1,16 +1,19 @@
-# Deploys the frontend to staging and demo on every push to the working branch,
-# the frontend's counterpart of meteocool/ng's `v4`. Both are Cloudflare Workers
-# (wrangler.jsonc, envs `staging` and `demo`) in front of the staging cluster.
+# Deploys the frontend to staging and demo on every push to `develop`, the
+# default branch that feature branches merge into -- the frontend's counterpart
+# of meteocool/ng's `v4`. Both are Cloudflare Workers (wrangler.jsonc, envs
+# `staging` and `demo`) in front of the staging cluster. `main` is production
+# and is not deployed from here.
 #
-# This repository is public, and this is the only workflow here that holds a
-# secret -- a Cloudflare API token that can publish Workers. It is written so
-# that the token is reachable from as little as possible:
+# This repository is public, and this is the only workflow that runs on
+# `develop` holding a secret -- a Cloudflare API token that can publish
+# Workers. It is written so that the token is reachable from as little as
+# possible:
 #
 # - Push only. No `pull_request`, and never `pull_request_target`: a fork's
 #   pull request must not be able to run anything next to the token. Adding
 #   either trigger here would undo the rest of this list.
 # - The token lives in the `staging` and `demo` GitHub Environments, not in the
-#   repository's secrets, and both Environments only admit this one branch. A
+#   repository's secrets, and both Environments only admit `develop`. A
 #   workflow on any other ref cannot read it even if it names the Environment.
 # - The job that holds it installs nothing from package-lock.json. The app's
 #   dependency tree -- a thousand packages, some with install scripts -- is
@@ -24,7 +27,7 @@ name: deploy
 
 on:
   push:
-    branches: [rework/vite-svelte5-ts]
+    branches: [develop]
   workflow_dispatch:
 
 permissions:
