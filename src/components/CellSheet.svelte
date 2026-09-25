@@ -366,9 +366,16 @@ function bodyUp(event: PointerEvent) {
   /* Nothing in here to scroll -- it is as tall as what it holds -- so a drag
      is the sheet's from the first pixel, rather than the browser's to claim as
      a pan and cancel before the axis is decided. */
+  /* And nothing to clip, which lets the close disc overhang into the grip's
+     row and sit square in the corner: the sheet's 12px side padding less the
+     body's 8px right padding the disc's margin cancels leaves 12px to the
+     right; the 1px top border, the 18px grip and this 3px, less the disc's
+     10px pull, leave 12px above. Clipped by the body's own top edge, it lost a
+     slice off the top at the previous 4px. */
   .fit .body {
     touch-action: none;
-    padding-top: 4px;
+    overflow: visible;
+    padding-top: 3px;
   }
 
   .dragging {
