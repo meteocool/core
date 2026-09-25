@@ -27,6 +27,7 @@ import { normaliseCut } from "../lib/cutAngle";
 import { startSweep, stopSweep } from "../lib/cutSweep";
 import { elementCentre, setElementCentre } from "../lib/viewCentre";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { tracked } from "../lib/progress";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import type { CellCurrent, CellTrack, CellTrackProperties, CellVolume, RadarVolume } from "../api";
@@ -58,11 +59,11 @@ import type VectorSource from "ol/source/Vector";
  * service worker, so a static import would put it in every install.
  */
 async function loadMapLibre() {
-  const [lib, worker] = await Promise.all([
+  const [lib, worker] = await tracked("maplibre-gl", () => Promise.all([
     import("maplibre-gl"),
     import("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url"),
     import("maplibre-gl/dist/maplibre-gl.css"),
-  ]);
+  ]));
 
   /*
    * Tell MapLibre where its worker is.
