@@ -199,7 +199,9 @@ function release() {
  * Two things stay out of that: a drag that turns out to be a tap on a control
  * in here (the close button, a link), and the 3D model, which already owns
  * its own vertical drag to turn the shape and would never get it back once a
- * few pixels of "is this a resize" slop ran out first.
+ * few pixels of "is this a resize" slop ran out first. The cut's dial is not
+ * one of them: it turns sideways only and lets a vertical drag go uncaptured,
+ * deciding with the same rule as below, so the sheet takes it from there.
  *
  * The axis decision is the same slop-then-commit rule swipeAway.ts uses for
  * the strips' swipe-to-clear -- proven here at working out "tap or gesture"
@@ -214,8 +216,8 @@ let bodyEligible = false;
 
 function bodyDown(event: PointerEvent) {
   if (event.button > 0) return;
-  // The models and the cut's dial own their drags; see above.
-  if ((event.target as HTMLElement).closest(".model, .slice")) return;
+  // The model owns its drags; see above.
+  if ((event.target as HTMLElement).closest(".model")) return;
   const el = event.currentTarget as HTMLElement;
   bodyEligible = el.scrollHeight <= el.clientHeight + 1;
   if (!bodyEligible) return;
@@ -253,7 +255,7 @@ function bodyUp(event: PointerEvent) {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1200;
+    z-index: var(--mc-z-details);
     display: flex;
     flex-direction: column;
     /* Set from the detent, so the map above always has the rest -- except at
@@ -333,6 +335,17 @@ function bodyUp(event: PointerEvent) {
     opacity: 0.4;
   }
 
+  /* A sheet that only closes needs its grip as a sign, not as the target: the
+     whole of it takes the pull (see bodyDown), so the row shrinks to the bar
+     and hands the rest to the map. */
+  .fit .grip {
+    height: 18px;
+  }
+  .fit .grip span {
+    width: 32px;
+    height: 4px;
+  }
+
   .body {
     flex: 1 1 auto;
     overflow-y: auto;
@@ -349,6 +362,13 @@ function bodyUp(event: PointerEvent) {
     /* The scroll range ends at the screen's edge, not at the parked part
        below it, so the last line can still be scrolled into view. */
     padding-bottom: var(--rest);
+  }
+  /* Nothing in here to scroll -- it is as tall as what it holds -- so a drag
+     is the sheet's from the first pixel, rather than the browser's to claim as
+     a pan and cancel before the axis is decided. */
+  .fit .body {
+    touch-action: none;
+    padding-top: 4px;
   }
 
   .dragging {
