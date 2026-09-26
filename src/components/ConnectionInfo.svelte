@@ -485,7 +485,7 @@ async function readTileCache(): Promise<Row[]> {
  * A cache name with the page's own origin taken back off it.
  *
  * Workbox names its precache after the page it belongs to and writes the whole
- * origin into it: `workbox-precache-v2-https://web.staging.meteocool.com/` is
+ * origin into it: `workbox-precache-v2-https://next.meteocool.com/` is
  * fifty-two characters, of which the useful part is the first twenty and the
  * rest says where we already are. Only our own origin is stripped -- a cache
  * belonging to somewhere else keeps its suffix, because there the origin is

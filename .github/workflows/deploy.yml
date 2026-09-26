@@ -94,7 +94,7 @@ jobs:
       matrix:
         include:
           - environment: staging
-            url: https://web.staging.meteocool.com
+            url: https://next.meteocool.com
           - environment: demo
             url: https://demo.meteocool.com
     environment:
