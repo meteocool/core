@@ -38,6 +38,16 @@ export let onClose: (() => void) | null = null;
  * facts and a dial are neither clipped nor floating in a half-empty panel.
  */
 export let expandable = true;
+/**
+ * As tall as what it holds at rest, and pulled up to full height for more.
+ *
+ * For content whose resting form is short and whose long form is reading
+ * nobody needs every time -- a storm on the 3D map is a few facts and the
+ * dial, and how its volume was built comes only when asked for. The slot is
+ * told which it is showing, and is handed a way to pull the sheet up itself,
+ * because a grabber alone does not say there is anything above it.
+ */
+export let fitAtRest = false;
 
 /**
  * The sheet slides, unless the reader has asked things not to move.
@@ -143,6 +153,12 @@ let startY = 0;
 let sheetEl: HTMLElement;
 /** How far below the screen's edge the sheet's lower part sits, at rest. */
 let restPx = 0;
+/**
+ * A sheet fitted to its content has no lower part parked below the edge to
+ * slide in -- it is only as tall as what it holds -- so pulling one up grows
+ * it from its resting height instead, and this is that height.
+ */
+let fitPx = 0;
 
 /** Far enough that the drag was meant, short enough to be one easy motion. */
 const SNAP_PX = 60;
@@ -158,7 +174,12 @@ function startDrag(y: number) {
   startY = y;
   const parent = sheetEl.offsetParent ?? document.documentElement;
   restPx = Math.max(0, sheetEl.getBoundingClientRect().bottom - parent.getBoundingClientRect().bottom);
+  fitPx = sheetEl.getBoundingClientRect().height;
 }
+
+/** Whether this drag is growing a fitted sheet toward full height, rather than sliding it. */
+$: growing = fitAtRest && expandable && detent === HALF && dragY < 0;
+$: growStyle = growing ? `; height: ${Math.round(fitPx - dragY)}px; max-height: none` : "";
 
 function grab(event: PointerEvent) {
   startDrag(event.clientY);
@@ -170,7 +191,11 @@ function move(event: PointerEvent) {
   const delta = event.clientY - startY;
   // Upward only as far as the full detent is from here, so the sheet cannot be
   // dragged off the top of the screen and left there.
-  const headroom = detent === HALF && expandable ? -restPx : 0;
+  // A fitted sheet grows up to the full detent's height -- the CSS clamp on
+  // `--full-h`, near enough, which only bounds the drag.
+  const fullPx = Math.min(FULL * window.innerHeight, window.innerHeight - 60);
+  const reach = fitAtRest ? Math.max(0, fullPx - fitPx) : restPx;
+  const headroom = detent === HALF && expandable ? -reach : 0;
   dragY = Math.max(headroom, delta);
 }
 
@@ -216,8 +241,8 @@ let bodyEligible = false;
 
 function bodyDown(event: PointerEvent) {
   if (event.button > 0) return;
-  // The model owns its drags; see above.
-  if ((event.target as HTMLElement).closest(".model")) return;
+  // The models own their drags, the CAPPI's height included; see above.
+  if ((event.target as HTMLElement).closest(".model, .cappi")) return;
   const el = event.currentTarget as HTMLElement;
   bodyEligible = el.scrollHeight <= el.clientHeight + 1;
   if (!bodyEligible) return;
@@ -423,11 +448,11 @@ function bodyUp(event: PointerEvent) {
 
 <div
   class="sheet"
-  class:fit={!expandable}
+  class:fit={!expandable || (fitAtRest && detent === HALF)}
   class:dragging
   class:settling={!dragging}
   bind:this={sheetEl}
-  style="--sheet-h: {Math.round(detent * 100)}vh; --drag: {dragY}px"
+  style="--sheet-h: {Math.round(detent * 100)}vh; --drag: {growing ? 0 : dragY}px{growStyle}"
   transition:fly={slide}>
   <div
     class="grip"
@@ -447,7 +472,7 @@ function bodyUp(event: PointerEvent) {
     on:pointermove={bodyMove}
     on:pointerup={bodyUp}
     on:pointercancel={bodyUp}>
-    <slot>
+    <slot expanded={detent === FULL} expand={() => { if (expandable) detent = FULL; }}>
       {#if track}<CellDetails {track} />{/if}
     </slot>
   </div>
