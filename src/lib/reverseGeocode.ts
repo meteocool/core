@@ -40,6 +40,10 @@ interface Place {
   locality?: string;
   principalSubdivision?: string;
   countryName?: string;
+  /** The Landkreis or its equivalent: what a storm tens of kilometres across is over. */
+  county?: string;
+  /** The sea, when the point is at sea and there is no settlement to name. */
+  sea?: string;
 }
 
 /**
@@ -51,11 +55,19 @@ const cacheKey = (lat: number, lon: number, language: string, scale: string) => 
   `${lat.toFixed(3)},${lon.toFixed(3)},${language},${scale}`
 );
 
-const cache = new Map<string, string | null>();
+const cache = new Map<string, unknown>();
 const CACHE_MAX = 200;
 
-/** The one request that matters is the latest one; the rest are stale taps. */
-let inFlight: AbortController | null = null;
+/**
+ * The one request that matters is the latest one; the rest are stale taps.
+ *
+ * Per caller, not one for the whole app: the forecast strip, the lightning
+ * chart and a storm's panel all look places up, often in the same second --
+ * opening a storm moves the camera, which re-titles the lightning chart -- and
+ * with a single slot each new lookup aborted whichever other panel's was still
+ * on its way, and that panel was left without its name.
+ */
+const inFlight = new Map<string, AbortController>();
 
 /**
  * How much ground the label has to cover.
@@ -69,10 +81,11 @@ let inFlight: AbortController | null = null;
  */
 export type GeocodeScale = "local" | "regional" | "country";
 
+// The sea last everywhere: it is only ever set where nothing else is.
 const ORDER: Record<GeocodeScale, Array<keyof Place>> = {
-  local: ["city", "locality", "principalSubdivision", "countryName"],
-  regional: ["principalSubdivision", "city", "countryName"],
-  country: ["countryName", "principalSubdivision"],
+  local: ["city", "locality", "principalSubdivision", "countryName", "sea"],
+  regional: ["principalSubdivision", "city", "countryName", "sea"],
+  country: ["countryName", "principalSubdivision", "sea"],
 };
 
 /**
@@ -92,6 +105,37 @@ function pickLabel(place: Place, scale: GeocodeScale): string | null {
     if (value) return value;
   }
   return null;
+}
+
+/** What BigDataCloud returns beyond the flat fields: the named areas the point is in. */
+interface BigDataCloudResponse extends Place {
+  localityInfo?: {
+    administrative?: Array<{ name?: string; adminLevel?: number }>;
+    informative?: Array<{ name?: string; description?: string }>;
+  };
+}
+
+/**
+ * The flat fields, plus the county and the sea from the lists behind them.
+ *
+ * At sea every flat field is empty but `locality`, which is then the name of
+ * an exclusive economic zone -- a true answer, and no name for where a shower
+ * is. The sea itself is the first informative entry that describes something:
+ * the ones without a description are zones of the same kind, and a name with
+ * a slash in it is a time zone.
+ */
+function fromBigDataCloudBody(body: BigDataCloudResponse): Place {
+  const { administrative = [], informative = [] } = body.localityInfo ?? {};
+  const atSea = !body.city && !body.principalSubdivision && !body.countryName;
+  return {
+    city: body.city,
+    locality: atSea ? undefined : body.locality,
+    principalSubdivision: body.principalSubdivision,
+    countryName: body.countryName,
+    // Level 6 is the Kreis in Germany and the matching tier in its neighbours.
+    county: administrative.find((area) => area.adminLevel === 6)?.name,
+    sea: atSea ? informative.find((area) => area.description && !area.name?.includes("/"))?.name : undefined,
+  };
 }
 
 /** What Nominatim's jsonv2 format returns, of which this reads the address. */
@@ -123,6 +167,7 @@ function asPlace(body: NominatimResponse): Place | null {
     locality: address.suburb ?? address.hamlet,
     principalSubdivision: address.state ?? address.county,
     countryName: address.country,
+    county: address.county,
   };
 }
 
@@ -130,82 +175,136 @@ async function fromNominatim(
   lat: number,
   lon: number,
   language: string,
-  scale: GeocodeScale,
+  zoom: number,
   signal: AbortSignal,
-): Promise<string | null> {
+): Promise<Place | null> {
   if (!geocodingUrl) return null;
   const query = new URLSearchParams({
     lat: String(lat),
     lon: String(lon),
     format: "jsonv2",
-    zoom: String(NOMINATIM_ZOOM[scale]),
+    zoom: String(zoom),
     "accept-language": language,
   });
   const response = await fetch(`${geocodingUrl}/reverse?${query}`, { signal });
   if (!response.ok) return null;
   // A point with nothing around it is a 200 carrying `{"error": "Unable to
   // geocode"}`, not a 404, so the body has to be read to know there was a miss.
-  const place = asPlace(await response.json() as NominatimResponse);
-  return place ? pickLabel(place, scale) : null;
+  return asPlace(await response.json() as NominatimResponse);
 }
 
 async function fromBigDataCloud(
   lat: number,
   lon: number,
   language: string,
-  scale: GeocodeScale,
   signal: AbortSignal,
-): Promise<string | null> {
+): Promise<Place | null> {
   const url = `${BIGDATACLOUD_ENDPOINT}?latitude=${lat}&longitude=${lon}&localityLanguage=${language}`;
   const response = await fetch(url, { signal });
   if (!response.ok) return null;
-  return pickLabel(await response.json() as Place, scale);
+  return fromBigDataCloudBody(await response.json() as BigDataCloudResponse);
+}
+
+/**
+ * One lookup, cached, on its caller's own slot, never rejecting.
+ *
+ * `read` turns a provider's place into the answer, or null when that place
+ * does not hold what the caller wants -- which sends the lookup on to the
+ * next provider rather than settling for it.
+ */
+async function lookUp<T>(
+  lat: number,
+  lon: number,
+  language: string,
+  kind: string,
+  zoom: number,
+  channel: string,
+  read: (place: Place) => T | null,
+): Promise<T | null> {
+  // Some locales arrive as "de-DE"; the API takes the bare language.
+  const lang = language.slice(0, 2).toLowerCase();
+  const key = cacheKey(lat, lon, lang, kind);
+  const cached = cache.get(key);
+  if (cached !== undefined) return cached as T | null;
+
+  inFlight.get(channel)?.abort();
+  const controller = new AbortController();
+  inFlight.set(channel, controller);
+
+  return tracked("geocode", async () => {
+    try {
+      let answer: T | null = null;
+      try {
+        const place = await fromNominatim(lat, lon, lang, zoom, controller.signal);
+        answer = place ? read(place) : null;
+      } catch {
+        // Ours being down is a reason to ask someone else, not to give up. An
+        // abort is not: a newer tap is already in flight and owns the answer.
+        if (controller.signal.aborted) return null;
+      }
+      if (answer === null) {
+        const place = await fromBigDataCloud(lat, lon, lang, controller.signal);
+        answer = place ? read(place) : null;
+      }
+
+      // Oldest out first. A session that taps 200 distinct places has long since
+      // stopped caring about the first one.
+      if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
+      cache.set(key, answer);
+      return answer;
+    } catch {
+      // Aborted, offline, rate-limited, malformed -- all the same to the caller.
+      return null;
+    } finally {
+      if (inFlight.get(channel) === controller) inFlight.delete(channel);
+    }
+  });
 }
 
 /**
  * The place at these coordinates, or null when there is no answer worth
  * showing. Never throws and never rejects: a missing label is a cosmetic loss,
  * and the strip has a perfectly good title without one.
+ *
+ * `channel` names the caller: a newer lookup cancels an older one on the same
+ * channel only.
  */
-export async function reverseGeocode(
+export function reverseGeocode(
   lat: number,
   lon: number,
   language = "en",
   scale: GeocodeScale = "local",
+  channel = "place",
 ): Promise<string | null> {
-  // Some locales arrive as "de-DE"; the API takes the bare language.
-  const lang = language.slice(0, 2).toLowerCase();
-  const key = cacheKey(lat, lon, lang, scale);
-  const cached = cache.get(key);
-  if (cached !== undefined) return cached;
+  return lookUp(lat, lon, language, scale, NOMINATIM_ZOOM[scale], channel, (place) => pickLabel(place, scale));
+}
 
-  inFlight?.abort();
-  const controller = new AbortController();
-  inFlight = controller;
+/** Where a storm is: the settlement under its peak, and the county and state it is in. */
+export interface StormPlace {
+  name: string;
+  /** The Landkreis and state, or whichever of them there is; null at sea. */
+  area: string | null;
+}
 
-  return tracked("geocode", async () => {
-    try {
-      let label: string | null = null;
-      try {
-        label = await fromNominatim(lat, lon, lang, scale, controller.signal);
-      } catch {
-        // Ours being down is a reason to ask someone else, not to give up. An
-        // abort is not: a newer tap is already in flight and owns the answer.
-        if (controller.signal.aborted) return null;
-      }
-      label ??= await fromBigDataCloud(lat, lon, lang, scale, controller.signal);
-
-      // Oldest out first. A session that taps 200 distinct places has long since
-      // stopped caring about the first one.
-      if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
-      cache.set(key, label);
-      return label;
-    } catch {
-      // Aborted, offline, rate-limited, malformed -- all the same to the caller.
-      return null;
-    } finally {
-      if (inFlight === controller) inFlight = null;
-    }
+/**
+ * The name for a storm, which is not the name for a tapped point.
+ *
+ * A storm is tens of kilometres across, so the town under its peak alone
+ * undersells it and the state alone says nothing -- the Landkreis is the
+ * scale a reader places a storm by, and it goes under the town. Offshore,
+ * where most of a coastal radar's storms are, it is the sea's name.
+ */
+export function stormPlace(lat: number, lon: number, language = "en"): Promise<StormPlace | null> {
+  return lookUp(lat, lon, language, "storm", NOMINATIM_ZOOM.local, "storm", (place) => {
+    const name = pickLabel(place, "local");
+    if (!name) return null;
+    if (name === place.sea) return { name, area: null };
+    // A county named after its town ("Region Hannover" under "Hannover") and a
+    // city that is its own county both repeat the name; the state still helps.
+    const area = [place.county, place.principalSubdivision]
+      .map((part) => part?.trim())
+      .filter((part): part is string => Boolean(part) && part !== name && !(part as string).endsWith(` ${name}`));
+    return { name, area: [...new Set(area)].join(", ") || null };
   });
 }
 
