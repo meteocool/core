@@ -99,6 +99,7 @@ async function resolvePlace() {
     lon,
     get(locale) ?? "en",
     scaleForZoom(view.getZoom() ?? 0),
+    "lightning",
   );
   if (token === placeToken) placeName = name;
 }
