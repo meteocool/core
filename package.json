@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "deploy:staging": "vite build --mode staging && wrangler deploy --env staging",
     "deploy:demo": "vite build --mode demo && wrangler deploy --env demo",
-    "deploy:production": "npm run build && wrangler deploy --env production",
+    "deploy:production": "echo 'meteocool.com is the old frontend, served by the Cloudflare Pages project core; production does not deploy from here. See wrangler.jsonc.' && exit 1",
     "worker:dev": "wrangler dev",
     "worker:tail": "wrangler tail",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json && eslint .",

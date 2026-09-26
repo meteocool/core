@@ -1,6 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "meteocool",
+  // Not `meteocool`: that is the account's existing production Worker, and a
+  // bare `wrangler deploy` with this name would overwrite it. Every env below
+  // names itself.
+  "name": "meteocool-web",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-09-01",
 
@@ -61,17 +64,19 @@
       },
       "vars": { "PREVIEW_ORIGIN": "https://api-demo.meteocool.com" },
     },
+    // Not production. meteocool.com is the old frontend on the old backend,
+    // served by the Cloudflare Pages project `core`, and the apps in the
+    // stores still depend on it (see the guard in vite.config.ts). This env
+    // used to be named `meteocool` -- the account's existing production Worker
+    // -- with custom-domain routes for meteocool.com and www, so one
+    // `npm run deploy:production` would have overwritten that Worker and taken
+    // the hostnames. It is a build against the production API that publishes
+    // nowhere: no routes, no workers.dev, its own name. The cutover, when it
+    // comes, is a deliberate change here and in the Pages project together.
     "production": {
-      "name": "meteocool",
+      "name": "meteocool-web-production",
       "workers_dev": false,
-      // Set these to the zone's real hostnames before the first production
-      // deploy; with no routes, `wrangler deploy --env production` publishes to
-      // workers.dev and nothing points at it.
       "vars": { "PREVIEW_ORIGIN": "https://api.meteocool.com" },
-      "routes": [
-        { "pattern": "meteocool.com", "custom_domain": true },
-        { "pattern": "www.meteocool.com", "custom_domain": true },
-      ],
     },
   },
 }
