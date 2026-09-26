@@ -32,7 +32,10 @@
       "name": "meteocool-staging",
       "compatibility_date": "2026-09-20",
       "workers_dev": true,
+      // next.meteocool.com is the staging web address; web.staging stays as
+      // an alias so nothing that learned the old name breaks.
       "routes": [
+        { "pattern": "next.meteocool.com", "custom_domain": true },
         { "pattern": "web.staging.meteocool.com", "custom_domain": true },
       ],
       "observability": {

@@ -6,7 +6,7 @@ storm and lightning tracker](https://github.com/meteocool/).
 
 The meteocool frontend is Svelte 5 and TypeScript, built with Vite. The
 `develop` branch is automatically deployed to the
-[staging environment](https://better.meteocool.com), which can be
+[staging environment](https://next.meteocool.com), which can be
 viewed after enabling the "Experimental Features" setting in the
 iOS app or by joining the Beta program on meteocool Play store page.
 
