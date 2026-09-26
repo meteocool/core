@@ -42,7 +42,8 @@ import "@shoelace-style/shoelace/dist/themes/dark.css";
 import "./glass.css";
 import { websocketBaseUrl } from "./urls";
 import { onWake, wake, whenVisible } from "./lib/wakeup";
-import { fetchLightningCache, fetchMesocyclones } from "./api";
+import { fetchCurrentVolumes, fetchLightningCache, fetchMesocyclones } from "./api";
+import type { RadarVolume } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
@@ -57,6 +58,8 @@ import CellTrackManager from "./lib/CellTrackManager";
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import makeCellPulseLayer from "./layers/cellPulse";
+import makeCloudHintLayer, { setCloudHints } from "./layers/cloudHints";
+import { openCloudIn3D, registerOpen3D } from "./lib/open3d";
 import CellDetails from "./components/CellDetails.svelte";
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import CellSheet from "./components/CellSheet.svelte";
@@ -325,6 +328,24 @@ derived(
   if (!value) selectedCell.set(null);
 });
 
+/* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the
+   way there -- see layers/cloudHints.ts. Only where that map is offered, and,
+   like the cells, only on the newest observation, which is the scan the cores
+   were found in. */
+const hintsWanted = capabilityEnabled("cells3d");
+const [cloudHintSource, cloudHintLayer] = makeCloudHintLayer();
+derived(
+  [capTimeIndicator, capLatestObservation],
+  ([shown, newest]) => hintsWanted && showsLatestFrame(shown, newest),
+).subscribe((value) => cloudHintLayer.setVisible(value));
+
+async function reloadCloudHints() {
+  if (!hintsWanted) return;
+  const answer = await fetchCurrentVolumes(nb).catch(() => null);
+  if (!answer) return;
+  setCloudHints(cloudHintSource, (answer.volumes ?? []) as RadarVolume[]);
+}
+
 /* The panel is a property of a selection and cannot outlive one. Anything that
    drops the selection -- the map background, the layer switcher, the scrubber
    leaving the live edge -- therefore closes it without having to remember to. */
@@ -406,7 +427,7 @@ const lm = new LayerManager({
       name: "radar",
       capability: RadarCapability,
       additionalLayers: [
-        pulseLayer, cellLayer, mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay(),
+        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay(),
       ],
       options: {
         nanobar: nb,
@@ -481,6 +502,13 @@ if (cells3d && radarCap) {
   cells3d.setStrikeSource(lightningSource);
 }
 
+// The cores are rebuilt with each run, so the tags follow the same nudge.
+radarSocketIO.on("cells", () => void reloadCloudHints());
+void reloadCloudHints();
+
+// The panels' "open in 3D" links and the tags above all switch through this.
+if (cells3d) registerOpen3D(() => lm.setTarget("cells3d", "map"));
+
 /**
  * Whether this is a device with a real pointer that can hover.
  *
@@ -516,6 +544,17 @@ lm.forEachMap((map) => {
   });
 
   map.on("singleclick", (event) => {
+    if (cloudHintLayer.getVisible()) {
+      const cloud = map.forEachFeatureAtPixel(
+        event.pixel,
+        (feature) => feature.get("cloud") as RadarVolume | undefined,
+        { layerFilter: (layer) => layer === cloudHintLayer, hitTolerance: 4 },
+      );
+      if (cloud) {
+        openCloudIn3D(cloud);
+        return;
+      }
+    }
     if (!get(cellLayerVisible)) return;
     const code = map.forEachFeatureAtPixel(
       event.pixel,
@@ -549,8 +588,9 @@ lm.forEachMap((map) => {
     // Nothing to say mid-drag: the cursor belongs to the pan for its duration,
     // and hit-testing every frame of one buys a style nobody is looking at.
     if (!finePointer?.matches || event.dragging) return;
-    const over = get(cellLayerVisible) && map.hasFeatureAtPixel(event.pixel, {
-      layerFilter: (layer) => layer === cellLayer,
+    const over = map.hasFeatureAtPixel(event.pixel, {
+      layerFilter: (layer) => (layer === cellLayer && get(cellLayerVisible))
+        || (layer === cloudHintLayer && layer.getVisible()),
       hitTolerance: 6,
     });
     if (over === hovering) return;
@@ -628,6 +668,7 @@ const unsubscribeWake = onWake(() => {
   if (radarSocketIO.disconnected) radarSocketIO.connect();
   reloadLightning();
   reloadCyclones();
+  void reloadCloudHints();
 });
 onDestroy(unsubscribeWake);
 
@@ -785,10 +826,11 @@ if (postInitCb) postInitCb(lm);
 {:else if $selectedVolume && $smallScreen && $sharedActiveCap === "cells3d"}
   <!-- On the 3D map a phone's storm core is cut open on the map itself, and
        takes the cell's glass sheet: the same surface for whichever kind of
-       storm was tapped, only as tall as what it holds: a few facts and the
-       dial that turns the cut. -->
-  <CellSheet expandable={false} onClose={() => selectedVolume.set(null)}>
-    <CloudDetails cloud={$selectedVolume} compact />
+       storm was tapped, only as tall as what it holds -- a few facts and the
+       dial that turns the cut -- until it is pulled up for how the volume
+       was built. -->
+  <CellSheet fitAtRest onClose={() => selectedVolume.set(null)} let:expanded let:expand>
+    <CloudDetails cloud={$selectedVolume} compact {expanded} {expand} />
   </CellSheet>
 {:else if $selectedVolume}
   <!-- A storm core with no KONRAD3D track: one short popup, the same place on
