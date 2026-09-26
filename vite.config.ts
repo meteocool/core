@@ -47,6 +47,26 @@ function proxyTargets(mode: string) {
 // only the first, so every CI build shipped an undefined Sentry release.
 const commit = process.env.COMMIT_REF ?? process.env.GITHUB_SHA ?? process.env.GIT_COMMIT_HASH ?? "";
 
+/*
+ * Production is not built from here.
+ *
+ * meteocool.com is the old frontend on the old backend, served by the
+ * Cloudflare Pages project `core`, and the apps in the stores still depend on
+ * it. That project is wired to this GitHub repository with `develop` as its
+ * production branch, so on 2026-09-25 every push to develop built this Vite
+ * app and put it on meteocool.com, in front of an API it was not written for.
+ * Pages builds run with CF_PAGES=1, and a build that fails leaves the live
+ * deployment alone -- so this refuses. Staging and demo deploy as Workers from
+ * .github/workflows/deploy.yml, which never sets this. Production's cutover,
+ * when it comes, is a deliberate change to the Pages project, not a push.
+ */
+if (process.env.CF_PAGES && !process.env.MC_ALLOW_PAGES_BUILD) {
+  throw new Error(
+    "Refusing to build under Cloudflare Pages: meteocool.com is the old frontend "
+    + "and the store apps depend on it. See vite.config.ts.",
+  );
+}
+
 export default defineConfig(({ mode }) => {
   const { API, SOCKET, DATA, TILES, GEOCODING } = proxyTargets(mode);
 
