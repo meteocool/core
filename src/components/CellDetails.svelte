@@ -9,6 +9,9 @@
  * hail, a lightning jump, motion that departs from everything nearby -- shows
  * the storm's own shape as a turning 3D model, and plots the history behind the
  * current reading.
+ *
+ * Framed by `StormPanel`, as a storm core's `CloudDetails` is, so the two read
+ * as one kind of panel wherever they open.
  */
 import { _ } from "svelte-i18n";
 import { onDestroy } from "svelte";
@@ -25,7 +28,9 @@ import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
 import CellCutaway from "./CellCutaway.svelte";
 import SliceDial from "./SliceDial.svelte";
-import CloseDisc from "./CloseDisc.svelte";
+import StormPanel from "./StormPanel.svelte";
+import Readings from "./Readings.svelte";
+import VolumeProvenance from "./VolumeProvenance.svelte";
 import { open3DAvailable, openCellIn3D } from "../lib/open3d";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
 import { placementLabel } from "../lib/cellPlacement";
@@ -158,12 +163,17 @@ $: place = placementLabel(track.placement, $_, "long");
 $: series = track.series ?? [];
 $: latest = series[series.length - 1];
 /**
- * On a phone on the 3D map, the storm stands behind the sheet at full size --
- * and cut open, when it has a volume -- so both of the models below would be
- * second, smaller copies of it that cost the map half the screen. The sheet
- * keeps the readings and history, and turns the cut on the map with a dial.
+ * On the 3D map the storm stands behind the panel, cut open when it has a
+ * volume, so the panel's own raymarched cutaway would be a second, smaller
+ * copy of it -- one more GPU raymarch every frame for a picture already on
+ * screen. It turns the cut on the map with the dial instead, and shows the
+ * CAPPI, which is the one view of the volume the map does not give.
+ *
+ * On a phone the measured structure model goes too: there it costs the map
+ * half the screen.
  */
-$: onMap3d = $smallScreen && $sharedActiveCap === "cells3d";
+$: on3d = $sharedActiveCap === "cells3d";
+$: phone3d = on3d && $smallScreen;
 $: forecast = track.forecast ?? [];
 
 /**
@@ -575,50 +585,18 @@ function close() {
   if (!next.code) selectedCell.set(null);
   cellDetails.set(next.details);
 }
-
-/**
- * Escape closes the panel, which is what every other dismissable surface on a
- * desktop does.
- *
- * Routed through `close()` rather than clearing the stores directly, so the
- * key does exactly what the button does -- including leaving the forecast
- * drawn on a phone, where `afterClose` keeps the selection. That also makes it
- * safe to bind unconditionally: a tablet with a keyboard gets the same
- * behaviour its grabber already offers, and a phone with none never fires it.
- *
- * Three things are deliberately left alone. A panel above this one owns the
- * key first -- About, Settings and Connection Details close on Escape
- * themselves, and can be open over this -- so an open one means the key was
- * not aimed here. A handler that already called `preventDefault` means the
- * same; GlassPanel does, from the capture phase, so it always runs first. And Escape in a
- * field means "cancel what I am typing", never "close the panel behind it".
- */
-function onKeydown(event: KeyboardEvent) {
-  if (event.key !== "Escape" || event.defaultPrevented) return;
-  if (document.querySelector("sl-dialog[open], [role='dialog'][aria-modal='true']")) return;
-  const target = event.target as HTMLElement | null;
-  if (target?.isContentEditable) return;
-  if (target && /^(?:INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
-  close();
-}
 </script>
 
-<svelte:window on:keydown={onKeydown} />
-
-<div class="cell-details">
-  <header style="border-color: {colour}">
-    <span class="severity">{BAND_NAMES[severity]}</span>
-    <span class="age">{age}</span>
+<StormPanel rule={colour} label="{BAND_NAMES[severity]} storm" {place} onClose={close}>
+  <svelte:fragment slot="header">
+    <span class="headline severity">{BAND_NAMES[severity]}</span>
+    <span class="meta">{age}</span>
     <!-- The dot is the same signal the "Latest" pill uses for the feed, and it
          means the same thing here: something is still arriving. -->
     <span class="status {status.kind}">
       <span class="dot"></span>{status.label}
     </span>
-    <CloseDisc on:click={close} />
-  </header>
-  {#if place}
-    <p class="place">{place}</p>
-  {/if}
+  </svelte:fragment>
 
   <div class="signals">
     {#if track.meso_ever}
@@ -641,32 +619,19 @@ function onKeydown(event: KeyboardEvent) {
     {/if}
   </div>
 
-  {#if onMap3d && track.volume}
+  {#if on3d && track.volume}
     <div class="dial">
       <SliceDial reference={latest?.heading_deg != null ? "track" : "north"} />
     </div>
   {/if}
 
   <h3 class="section">Readings</h3>
-  <ul class="metrics">
-    {#each readings as item (item.key)}
-      <li class="metric" data-band={item.band ?? "none"} title={item.bandName ?? ""}>
-        <span class="name">{item.label}</span>
-        <span class="value">{item.text}</span>
-        <!-- The meter is the reading again as a length. Colour alone would
-             leave the bands unreadable to anyone who cannot separate the
-             hues, and this popup has no room to spell the class out six
-             times over. -->
-        <span class="meter"><span class="fill" style="width: {item.fill * 100}%"></span></span>
-        {#if item.bandName}<span class="sr-only">{item.bandName}</span>{/if}
-      </li>
-    {/each}
-  </ul>
+  <Readings items={readings} />
 
   <!-- Numbers before models: the readings are the answer to "how bad is it",
        which is what a reader wants first, and the 3D shapes are the slower,
        more exploratory read that can wait until they have scrolled to it. -->
-  {#if shape && !onMap3d}
+  {#if shape && !phone3d}
     <h3 class="section">Structure<span class="aside">drag to turn</span></h3>
     <figure class="model">
       <CellModel3D cell={shape} frame={modelFrame} width={CHART.width} height={200} />
@@ -675,18 +640,23 @@ function onKeydown(event: KeyboardEvent) {
   {/if}
 
   <!-- The measured model above cannot lean: its shells are stacked outlines.
-       This one is built from the radar's own 3D field and cut open, so an
-       overhang -- the core hanging downshear out over the inflow -- is visible
-       where there is one. Offered only for the storms a volume was built for,
-       which is the strongest few and only where the radars sampled the 3 to
-       8 km layer properly. -->
-  {#if track.volume && !onMap3d}
+       The volume is built from the radar's own 3D field, so an overhang -- the
+       core hanging downshear out over the inflow -- is visible where there is
+       one. Offered only for the storms a volume was built for, which is the
+       strongest few and only where the radars sampled the 3 to 8 km layer
+       properly. On the 3D map the map is the vertical cut, and the panel
+       slices the volume by height instead; see `on3d`. -->
+  {#if track.volume && on3d}
+    <!-- Keyed on the volume, as the cutaway is: each storm is its own fetch. -->
+    {#key track.volume.path}
+      <VolumeProvenance volume={track.volume} at={latest ?? null} />
+    {/key}
+  {:else if track.volume}
     <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
     <figure class="model">
-      <!-- Keyed on the volume, as CloudDetails keys its own: the cutaway
-           fetches once, on mount, so walking the family from one cell with a
-           volume to another kept drawing the first storm's insides under the
-           second one's name. -->
+      <!-- Keyed on the volume: the cutaway fetches once, on mount, so walking
+           the family from one cell with a volume to another kept drawing the
+           first storm's insides under the second one's name. -->
       {#key track.volume.path}
         <CellCutaway
           volume={track.volume}
@@ -697,9 +667,8 @@ function onKeydown(event: KeyboardEvent) {
       {/key}
     </figure>
     <!-- The same storm on the 3D map, cut open where it stands among its
-         neighbours rather than alone in a box. Not from the 3D map itself,
-         where it already is. -->
-    {#if $open3DAvailable && $sharedActiveCap !== "cells3d"}
+         neighbours rather than alone in a box. -->
+    {#if $open3DAvailable}
       <button type="button" class="open-3d" on:click={() => openCellIn3D(track)}>
         Open on the 3D map
       </button>
@@ -789,32 +758,11 @@ function onKeydown(event: KeyboardEvent) {
       &plusmn;{round(forecast[forecast.length - 1].major_km, 1)} km
     </footer>
   {/if}
-</div>
+</StormPanel>
 
 <style>
-  .cell-details {
-    font-size: 13px;
-    line-height: 1.45;
-    min-width: 300px;
-    max-width: 360px;
-  }
-  header {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    border-left: 4px solid;
-    padding-left: 8px;
-    margin-bottom: 6px;
-  }
   .severity {
-    font-weight: 600;
     text-transform: capitalize;
-  }
-  .place {
-    margin: -2px 0 6px;
-    padding-left: 12px;
-    font-size: 0.9em;
-    opacity: 0.8;
   }
 
   /**
@@ -867,10 +815,6 @@ function onKeydown(event: KeyboardEvent) {
   @media (prefers-reduced-motion: reduce) {
     .status.live .dot { animation: none; }
   }
-  .age {
-    font-size: 11px;
-    opacity: 0.65;
-  }
   /* Everything above is one detection, and the panel used to imply it was
      current. The second half is the one that decides whether the numbers can
      be read against the radar drawn behind them at all, so it is marked when
@@ -887,12 +831,6 @@ function onKeydown(event: KeyboardEvent) {
   .recency .behind {
     color: var(--mc-orange, #d97706);
     font-weight: 600;
-  }
-
-  @media only screen and (max-width: 620px) {
-    header {
-      align-items: center;
-    }
   }
 
   .dial { margin: 2px 0 8px; }
@@ -913,87 +851,6 @@ function onKeydown(event: KeyboardEvent) {
   .hail { background: rgba(224, 49, 49, 0.22); }
   .jump { background: rgba(240, 180, 41, 0.26); }
   .deviant { background: rgba(31, 110, 200, 0.2); }
-  /*
-   * The four DWD severity classes, as a fill for the meter and a darker step
-   * of the same hue for the figure beside it.
-   *
-   * Two steps per band rather than one because the fill and the figure are
-   * held to different bars: a bar of colour needs to be seen, a numeral needs
-   * to be read. Amber at the weight that reads correctly as a fill sits near
-   * 1.9:1 against white -- fine behind a bar, illegible as a digit -- so the
-   * figures wear steps measured to clear 4.5:1 against each of the two
-   * surfaces this panel actually uses, rather than one compromise step that is
-   * wrong on both.
-   */
-  .metric[data-band="0"] { --band: #2f9e44; --band-ink: #1b7a31; }
-  .metric[data-band="1"] { --band: #f0b429; --band-ink: #8a5e05; }
-  .metric[data-band="2"] { --band: #e03131; --band-ink: #b02020; }
-  .metric[data-band="3"] { --band: #9c36b5; --band-ink: #7a219a; }
-  .metric[data-band="none"] { --band: currentColor; --band-ink: currentColor; }
-
-  /* Keyed to the class ui.ts toggles rather than to prefers-color-scheme: the
-     app's own theme switch has to win over the system on iOS and Android. */
-  :global(html.sl-theme-dark) .metric[data-band="0"] { --band-ink: #57c96a; }
-  :global(html.sl-theme-dark) .metric[data-band="1"] { --band-ink: #f5c95c; }
-  :global(html.sl-theme-dark) .metric[data-band="2"] { --band-ink: #ff8585; }
-  :global(html.sl-theme-dark) .metric[data-band="3"] { --band-ink: #d68bea; }
-
-  .metrics {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 7px 14px;
-    margin: 0 0 8px;
-    padding: 0;
-    list-style: none;
-  }
-  .metric {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: baseline;
-    gap: 0 6px;
-  }
-  .name {
-    opacity: 0.6;
-    font-size: 11px;
-  }
-  .value {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    color: var(--band-ink);
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .meter {
-    grid-column: 1 / -1;
-    height: 3px;
-    margin-top: 3px;
-    border-radius: 2px;
-    /* A light step of the same hue, so the band reads across the whole track
-       and not only across the filled part of it. The neutral underneath is
-       for engines without `color-mix`: the track still shows how long the
-       bar could be, which is the part that has to survive. */
-    background: rgba(128, 128, 128, 0.16);
-    background: color-mix(in srgb, var(--band) 20%, transparent);
-    overflow: hidden;
-  }
-  .metric[data-band="none"] .meter { background: rgba(128, 128, 128, 0.16); }
-  .fill {
-    display: block;
-    height: 100%;
-    border-radius: 2px;
-    background: var(--band);
-  }
-  /* The class name in words. Colour is the glance and the meter is the
-     fallback for anyone it does not reach, but a screen reader gets neither. */
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
   figure { margin: 0 0 6px; }
   .model {
     border-radius: 8px;
@@ -1076,57 +933,4 @@ function onKeydown(event: KeyboardEvent) {
     font-variant-numeric: tabular-nums;
   }
   .left { text-anchor: end; dominant-baseline: middle; }
-  /**
-   * A section heading, on the footing iOS gives one in a grouped list.
-   *
-   * The panel had no headings at all bar the family's: a stack of figures
-   * whose captions are axis labels -- "reflectivity, dBZ" -- doing double duty
-   * as titles, in the same 10px grey as everything else. That reads as one
-   * long block rather than as parts, which matters most on the sheet, where a
-   * reader scrolls past the charts looking for the family and has nothing to
-   * aim at.
-   *
-   * Apple sets these at Footnote (13px) semibold in the secondary label
-   * colour, not at a size above the body in the primary one -- a section
-   * header names the group, it is not the loudest thing in it. The first pass
-   * here went the other way, 15px in neutral-900, and in a 13px panel that put
-   * the labels above the readings they were labelling. Tracking goes slightly
-   * positive rather than negative: at this size the default fit is too tight,
-   * which is the opposite of the problem a display size has.
-   *
-   * `h3` because these are real headings -- the panel is a section of the page
-   * and each block is a section of the panel, so a screen reader can jump
-   * between them.
-   */
-  :global(.cell-details .section) {
-    margin: 18px 0 7px;
-    font: 600 13px/1.25 var(--mc-font, system-ui);
-    letter-spacing: 0.006em;
-    color: var(--sl-color-neutral-600, #57534e);
-  }
-  /* The first heading follows the signals row, which already carries the gap. */
-  :global(.cell-details .section:first-of-type) {
-    margin-top: 10px;
-  }
-  /**
-   * The aside is the hint that used to live in the caption ("drag to turn",
-   * "tap to follow"). Set a step quieter again, and separated by a middot:
-   * a margin alone left two phrases touching with nothing to say they were
-   * different things.
-   */
-  :global(.cell-details .section .aside) {
-    font: 400 12px/1 var(--mc-font, system-ui);
-    color: var(--sl-color-neutral-500, #78716c);
-    letter-spacing: 0;
-  }
-  :global(.cell-details .section .aside)::before {
-    content: "·";
-    margin: 0 5px;
-    color: var(--sl-color-neutral-400, #a8a29e);
-  }
-
-  footer {
-    font-size: 11px;
-    opacity: 0.6;
-  }
 </style>
