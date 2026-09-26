@@ -170,6 +170,12 @@ const OPEN_PITCH = 76;
 
 /** How far from the opening tilt the map can be at closing and still count as not re-tilted. */
 const PITCH_KEPT_DEG = 4;
+/**
+ * How long the camera takes to right itself on the way back to a flat map;
+ * see `leave`. Longer than the tilt's own 700ms: this one also pulls back
+ * and re-centres, and it is the whole handover, not a nudge.
+ */
+const LEAVE_MS = 1100;
 
 /** How much of the room the storm is given, leaving it a margin. */
 const OPEN_FILL = 0.9;
@@ -655,6 +661,50 @@ export default class Cells3DCapability extends Capability {
     if (!gl || before === null) return;
     if (Math.abs(gl.getPitch() - OPEN_PITCH) > PITCH_KEPT_DEG) return;
     gl.easeTo({ pitch: before, duration: 700 });
+  }
+
+  /**
+   * Settle the camera onto a flat map's view, and say when it has.
+   *
+   * The way out of a detour (lib/open3d.ts): the storm the reader came to see
+   * has closed, and the flat map they left is about to take the element. Cut
+   * straight to it and the picture snaps from a low, tilted look at one storm
+   * to a map of the whole sky. So the camera first eases up and back -- nadir,
+   * north up, the centre and zoom the flat map was left at -- and the switch
+   * happens once it has landed, on a view the flat map draws identically.
+   * The sweep stops on the way, or the slice would go on turning under a
+   * camera that is leaving it.
+   *
+   * With no view to go back to it still rights itself and pulls back a level,
+   * which is the same motion without the destination. Resolves at once when
+   * the map is not showing.
+   */
+  leave(view: MapView | null): Promise<void> {
+    const gl = this.gl;
+    if (!gl || !this.shown) return Promise.resolve();
+    stopSweep(false);
+    this.pitchBeforeOpen = null;
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        gl.off("moveend", done);
+        resolve();
+      };
+      gl.once("moveend", done);
+      // A ceiling rather than the way it usually ends: the ease's own moveend
+      // is the signal, and this only stands in if it never comes.
+      setTimeout(done, LEAVE_MS + 500);
+      gl.easeTo({
+        pitch: 0,
+        bearing: 0,
+        ...(view
+          ? { center: [view.lon, view.lat] as [number, number], zoom: view.zoom - 1 }
+          : { zoom: gl.getZoom() - 1 }),
+        duration: LEAVE_MS,
+      });
+    });
   }
 
   private detach(): void {
