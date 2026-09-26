@@ -13,6 +13,11 @@
  * The same raymarcher as the vertical cross-section, with the plane lying
  * flat -- see `volumeRaymarch.ts`. The ruler beside it is the height, because
  * a slice with no height on it is a colour field and nothing more.
+ *
+ * It draws at a capped rate, only while on screen, and rests after a couple
+ * of sweeps: it opens beside the 3D map, which is raymarching the same storm
+ * every frame already, and it used to go on marching at the display's rate
+ * for as long as the panel stayed open -- scrolled out of view included.
  */
 import { onDestroy, onMount, tick } from "svelte";
 import { loadCutaway } from "../lib/cellCutaway";
@@ -35,13 +40,18 @@ const TILT = 0.72;
 const DRAG_KM_PER_PX = 0.04;
 /** The ruler's width, taken out of the canvas's. */
 const RULER_PX = 44;
+/** Frames a second while it moves: the slice climbs a few pixels a second. */
+const FPS = 24;
+/** Sweeps from base to top and back before it rests, at the storm's upper middle. */
+const CYCLES = 2;
+/** Where it rests, from base to top. */
+const REST_AT = 0.6;
 
 let canvas: HTMLCanvasElement;
 let cutaway: Cutaway | null = null;
 let failed: string | null = null;
 let raymarcher: Raymarcher | null = null;
 let controller: AbortController | null = null;
-let frame = 0;
 let still = false;
 
 /** The slice's height above the box floor, in km. */
@@ -51,20 +61,25 @@ let lowKm = 0;
 let highKm = 8;
 /** The whole box, for the ruler's scale. */
 let ceilingKm = 16;
-/** 0 to 1 through a cycle, kept so a drag hands back to the sweep where it left off. */
+/** Cycles swept so far, fractional. */
 let phase = 0;
+/**
+ * Where the sweep ends: after `CYCLES` whole cycles, part way up the next one
+ * to the resting height, so it comes to rest rather than jumping there.
+ */
+const END_PHASE = CYCLES + Math.acos(1 - 2 * REST_AT) / (2 * Math.PI);
+/** Done sweeping: it has come to rest, or a reader has put it somewhere. */
+let resting = false;
+/** Draws one frame at the current height; set once the shader is up. */
+let render: (() => void) | null = null;
+/** Whether the canvas is on screen; a slice scrolled out of view is not drawn. */
+let visible = true;
 
 let dragging = false;
 let dragFrom = 0;
 let dragHeight = 0;
 
 const clamp = (value: number) => Math.min(highKm, Math.max(lowKm, value));
-
-/** The phase whose height is this one, on the rising half, so the sweep resumes from it. */
-function phaseAt(km: number): number {
-  const span = highKm - lowKm || 1;
-  return Math.acos(1 - (2 * (km - lowKm)) / span) / (2 * Math.PI);
-}
 
 function start(loaded: Cutaway): void {
   const made = createRaymarcher(canvas, loaded, $radarColormap);
@@ -77,23 +92,12 @@ function start(loaded: Cutaway): void {
   // shows the storm whole at one end and all but gone at the other.
   lowKm = Math.max(0.25, halfBox + loaded.centreKm[2] - loaded.halfKm[2]);
   highKm = Math.min(ceilingKm, halfBox + loaded.centreKm[2] + loaded.halfKm[2] + 0.5);
-  heightKm = still ? lowKm + (highKm - lowKm) * 0.6 : lowKm;
+  heightKm = still ? lowKm + (highKm - lowKm) * REST_AT : lowKm;
 
   const reach = Math.max(loaded.halfKm[0], loaded.halfKm[1], 4);
   const distance = reach * 2.6;
-  let spin = Math.PI * 0.25;
 
-  let last = performance.now();
-  const draw = (now: number) => {
-    const dt = (now - last) / 1000;
-    last = now;
-    if (!still && !dragging) {
-      spin += dt * ((Math.PI * 2) / TURN_SECONDS);
-      phase = (phase + dt / CYCLE_SECONDS) % 1;
-      // Eased at both ends, so it lingers at the base and the top rather
-      // than bouncing off them.
-      heightKm = lowKm + (highKm - lowKm) * (1 - Math.cos(phase * 2 * Math.PI)) / 2;
-    }
+  render = () => {
     // Looking at what is left of the storm, not at its middle: cut low, all
     // that remains is a slab near the ground, and a camera aimed at the
     // storm's centre put it at the bottom of the picture.
@@ -110,9 +114,66 @@ function start(loaded: Cutaway): void {
       planeNormal: [0, 0, 1],
       planePoint: [0, 0, heightKm - halfBox],
     });
-    frame = requestAnimationFrame(draw);
   };
-  frame = requestAnimationFrame(draw);
+  requestDraw();
+}
+
+/** The camera's angle round the storm, radians. */
+let spin = Math.PI * 0.25;
+let frame = 0;
+let lastTickAt = 0;
+let lastDrawAt = 0;
+
+/** Whether it is still sweeping on its own. */
+function sweeping(): boolean {
+  return !still && !dragging && !resting;
+}
+
+function step(now: number): void {
+  frame = 0;
+  if (!render || !visible) return;
+  if (sweeping() && lastTickAt) {
+    const dt = Math.min(now - lastTickAt, 250) / 1000;
+    spin += dt * ((Math.PI * 2) / TURN_SECONDS);
+    phase = Math.min(phase + dt / CYCLE_SECONDS, END_PHASE);
+    if (phase >= END_PHASE) resting = true;
+    // Eased at both ends, so it lingers at the base and the top rather than
+    // bouncing off them.
+    heightKm = lowKm + (highKm - lowKm) * (1 - Math.cos(phase * 2 * Math.PI)) / 2;
+  }
+  lastTickAt = now;
+  const moving = sweeping() || dragging;
+  // Capped while it moves; the last frame is always drawn, or a key press
+  // landing just after a frame would never show.
+  if (!moving || now - lastDrawAt >= 1000 / FPS - 1) {
+    render();
+    lastDrawAt = now;
+  }
+  if (moving) frame = requestAnimationFrame(step);
+}
+
+/** Draw a frame, and go on drawing for as long as the slice is moving. */
+function requestDraw(): void {
+  if (frame || !render || !visible) return;
+  lastTickAt = 0;
+  frame = requestAnimationFrame(step);
+}
+
+/** Pause while the canvas is scrolled out of view, and draw again when it is back. */
+function watchVisibility(node: HTMLElement) {
+  if (typeof IntersectionObserver === "undefined") return undefined;
+  const observer = new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting;
+    if (visible) requestDraw();
+  });
+  observer.observe(node);
+  return { destroy: () => observer.disconnect() };
+}
+
+// A drag or a key moved the slice: one more frame.
+$: if (render) {
+  void heightKm;
+  requestDraw();
 }
 
 function onPointerDown(event: PointerEvent): void {
@@ -120,6 +181,7 @@ function onPointerDown(event: PointerEvent): void {
   dragFrom = event.clientY;
   dragHeight = heightKm;
   (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  requestDraw();
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -127,10 +189,11 @@ function onPointerMove(event: PointerEvent): void {
   heightKm = clamp(dragHeight - (event.clientY - dragFrom) * DRAG_KM_PER_PX);
 }
 
+/** Let go, the slice stays where it was put: that is what the drag was for. */
 function onPointerUp(): void {
   if (!dragging) return;
   dragging = false;
-  phase = phaseAt(heightKm);
+  resting = true;
 }
 
 function onKey(event: KeyboardEvent): void {
@@ -183,6 +246,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
         width={Math.round(canvasWidth * ratio)}
         height={Math.round(height * ratio)}
         style="width: {canvasWidth}px; height: {height}px;"
+        use:watchVisibility
         tabindex="0"
         role="slider"
         aria-label="Height of the slice"
@@ -210,7 +274,14 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
 
 <style>
 figure { margin: 0; }
-.stage { display: flex; align-items: stretch; }
+/* On the same tinted ground as the panel's structure model, so the two
+   pictures read as a pair. */
+.stage {
+  display: flex; align-items: stretch;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.08);
+  overflow: hidden;
+}
 canvas {
   display: block;
   /* The drag moves the slice, so the page must not read it as a scroll. */
@@ -248,6 +319,6 @@ canvas:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
   border-radius: 0 4px 4px 0;
   clip-path: polygon(0 50%, 5px 0, 100% 0, 100% 100%, 5px 100%);
 }
-figcaption { font-size: 0.7rem; opacity: 0.6; margin-top: 0.25rem; }
+figcaption { font-size: 10px; opacity: 0.55; margin-top: 4px; }
 .unavailable { font-size: 0.75rem; opacity: 0.6; }
 </style>
