@@ -33,7 +33,9 @@ function swatch(cmap: string): string {
   return `linear-gradient(90deg, ${stops.join(", ")})`;
 }
 
-const STAGING = "https://web.staging.meteocool.com";
+const STAGING = "https://next.meteocool.com";
+/** The older staging name, still served; a page opened on it is on staging too. */
+const STAGING_ALIAS = "https://web.staging.meteocool.com";
 const PRODUCTION = "https://meteocool.com";
 
 /**
@@ -41,7 +43,7 @@ const PRODUCTION = "https://meteocool.com";
  * layer, the camera and whatever is selected (lib/urlState.ts). From staging
  * itself the link leads back to production.
  */
-const onStaging = window.location.origin === STAGING;
+const onStaging = window.location.origin === STAGING || window.location.origin === STAGING_ALIAS;
 const otherEnvironment = `${onStaging ? PRODUCTION : STAGING}/${window.location.search}${window.location.hash}`;
 
 // Neither has a store: read once, and kept in step by whatever this sets. The
