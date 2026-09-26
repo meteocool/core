@@ -59,7 +59,7 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import makeCellPulseLayer from "./layers/cellPulse";
 import makeCloudHintLayer, { setCloudHints } from "./layers/cloudHints";
-import { openCloudIn3D, registerOpen3D } from "./lib/open3d";
+import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
 import CellDetails from "./components/CellDetails.svelte";
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import CellSheet from "./components/CellSheet.svelte";
@@ -506,8 +506,45 @@ if (cells3d && radarCap) {
 radarSocketIO.on("cells", () => void reloadCloudHints());
 void reloadCloudHints();
 
-// The panels' "open in 3D" links and the tags above all switch through this.
-if (cells3d) registerOpen3D(() => lm.setTarget("cells3d", "map"));
+// The panels' "open in 3D" links and the tags above all switch through this,
+// and the way back -- see below -- through the same manager.
+if (cells3d) registerOpen3D(() => lm.setTarget("cells3d", "map"), (cap) => lm.setTarget(cap, "map"));
+
+/*
+ * A storm opened on the 3D map from the flat one goes back when it closes.
+ *
+ * Opening a tag or a panel's "open on the 3D map" is a detour to look at one
+ * storm; closing that storm is the end of it, and the reader is put back on
+ * the map they left rather than on a tilted map they did not pick, one
+ * switcher away from the radar. The camera settles to nadir and north-up over
+ * the view they left first, so the flat map appears where the 3D one landed
+ * and nothing jumps. Closing means the popup or sheet going: on a phone the
+ * sheet can close with the cell still selected, and that counts.
+ *
+ * Only for a detour. A 3D map picked from the switcher or opened by a link
+ * has nothing to go back to, and lib/open3d.ts forgets the origin as soon as
+ * the reader is on any other map by their own doing.
+ */
+let leaving3D = false;
+derived(
+  [selectedCell, selectedVolume, cellDetails, sharedActiveCap],
+  ([cell, cloud, details, cap]) => ({ open: Boolean(cloud || (cell && details)), cap }),
+).subscribe(({ open, cap }) => {
+  if (cap !== "cells3d") {
+    forget3DOrigin();
+    return;
+  }
+  const origin = origin3D();
+  if (open || !origin || leaving3D || !cells3d) return;
+  leaving3D = true;
+  cells3d.leave(origin.view).finally(() => {
+    leaving3D = false;
+    // Something was opened while the camera was on its way: the reader is
+    // looking at it, and stays.
+    if (get(selectedVolume) || (get(selectedCell) && get(cellDetails))) return;
+    returnFrom3D();
+  });
+});
 
 /**
  * Whether this is a device with a real pointer that can hover.
