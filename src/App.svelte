@@ -870,10 +870,10 @@ if (postInitCb) postInitCb(lm);
     <CloudDetails cloud={$selectedVolume} compact {expanded} {expand} />
   </CellSheet>
 {:else if $selectedVolume}
-  <!-- A storm core with no KONRAD3D track: one short popup, the same place on
-       every screen size, because there is no history to need the sheet. -->
+  <!-- A storm core with no KONRAD3D track, in the same popup as a cell's
+       details: the same panel, only with less to say. -->
   <div class="cell-details-panel" class:cloud-bottom={$smallScreen}>
-    <CloudDetails cloud={$selectedVolume} width={$smallScreen ? 300 : 340} />
+    <CloudDetails cloud={$selectedVolume} />
   </div>
 {/if}
 
