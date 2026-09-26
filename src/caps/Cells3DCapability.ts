@@ -15,6 +15,7 @@ import { loadCutaway } from "../lib/cellCutaway";
 import { makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
+import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
@@ -169,6 +170,12 @@ const OPEN_PITCH = 76;
 
 /** How far from the opening tilt the map can be at closing and still count as not re-tilted. */
 const PITCH_KEPT_DEG = 4;
+/**
+ * How long the camera takes to right itself on the way back to a flat map;
+ * see `leave`. Longer than the tilt's own 700ms: this one also pulls back
+ * and re-centres, and it is the whole handover, not a nudge.
+ */
+const LEAVE_MS = 1100;
 
 /** How much of the room the storm is given, leaving it a margin. */
 const OPEN_FILL = 0.9;
@@ -296,8 +303,8 @@ export default class Cells3DCapability extends Capability {
    */
   private cutaways = new Map<string, { code: string; cutaway: Cutaway; lon: number; lat: number }>();
 
-  /** Which storm is open, and which way its slice runs before the reader turns it. */
-  private opened: { code: string; heading: number | null } | null = null;
+  /** Which storm is open, by its volume's path, and which way its slice runs before the reader turns it. */
+  private opened: { path: string; heading: number | null } | null = null;
 
   /** The newest load, so a slow one finishing late cannot undo a newer list. */
   private loadToken: symbol | null = null;
@@ -656,6 +663,50 @@ export default class Cells3DCapability extends Capability {
     gl.easeTo({ pitch: before, duration: 700 });
   }
 
+  /**
+   * Settle the camera onto a flat map's view, and say when it has.
+   *
+   * The way out of a detour (lib/open3d.ts): the storm the reader came to see
+   * has closed, and the flat map they left is about to take the element. Cut
+   * straight to it and the picture snaps from a low, tilted look at one storm
+   * to a map of the whole sky. So the camera first eases up and back -- nadir,
+   * north up, the centre and zoom the flat map was left at -- and the switch
+   * happens once it has landed, on a view the flat map draws identically.
+   * The sweep stops on the way, or the slice would go on turning under a
+   * camera that is leaving it.
+   *
+   * With no view to go back to it still rights itself and pulls back a level,
+   * which is the same motion without the destination. Resolves at once when
+   * the map is not showing.
+   */
+  leave(view: MapView | null): Promise<void> {
+    const gl = this.gl;
+    if (!gl || !this.shown) return Promise.resolve();
+    stopSweep(false);
+    this.pitchBeforeOpen = null;
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        gl.off("moveend", done);
+        resolve();
+      };
+      gl.once("moveend", done);
+      // A ceiling rather than the way it usually ends: the ease's own moveend
+      // is the signal, and this only stands in if it never comes.
+      setTimeout(done, LEAVE_MS + 500);
+      gl.easeTo({
+        pitch: 0,
+        bearing: 0,
+        ...(view
+          ? { center: [view.lon, view.lat] as [number, number], zoom: view.zoom - 1 }
+          : { zoom: gl.getZoom() - 1 }),
+        duration: LEAVE_MS,
+      });
+    });
+  }
+
   private detach(): void {
     stopSweep(true);
     if (this.container?.parentElement) this.container.parentElement.removeChild(this.container);
@@ -740,6 +791,10 @@ export default class Cells3DCapability extends Capability {
       stopSweep(false);
       this.applyCut();
       this.restorePitch();
+      // A storm kept past its scan only because it was open goes with it, and
+      // the newer scan of it that was held back in its place comes out.
+      this.dropUnlisted();
+      this.pushClouds();
       return;
     }
     let entry = this.cutaways.get(target.volume.path);
@@ -758,7 +813,10 @@ export default class Cells3DCapability extends Capability {
     // Tapped past while it loaded: the volume is kept and drawn like any
     // other, but cutting it now would open the storm the reader has left.
     if (this.openToken !== token) return;
-    this.opened = { code: entry.code, heading: target.heading };
+    this.opened = { path: target.volume.path, heading: target.heading };
+    // The storm open before this one may have been kept past its scan.
+    this.dropUnlisted();
+    this.pushClouds();
     this.applyCut();
     // A frame later, so the slice has already been reset for the new
     // selection -- App.svelte does that from its own subscription to the same
@@ -877,7 +935,7 @@ export default class Cells3DCapability extends Capability {
   /** Tell the layer which storm is open, and which way its slice now runs. */
   private applyCut(): void {
     const turn = get(cutRotationDeg) + get(cutSweepDeg);
-    this.cloudsLayer?.setCut(this.opened?.code ?? null, (this.opened?.heading ?? 0) + turn);
+    this.cloudsLayer?.setCut(this.opened?.path ?? null, (this.opened?.heading ?? 0) + turn);
     if (this.shown) this.gl?.triggerRepaint();
   }
 
@@ -887,15 +945,13 @@ export default class Cells3DCapability extends Capability {
    * Each storm appears as its volume arrives rather than all of them at the
    * end. Volumes no longer listed are dropped, except the one that is open:
    * taking the storm a reader is looking at away between two refreshes would
-   * look like the popup had broken.
+   * look like the popup had broken. `pushClouds` keeps the newer scan of it
+   * off the map meanwhile.
    */
   private async loadClouds(): Promise<void> {
     const token = Symbol("clouds");
     this.loadToken = token;
-    const listed = new Set(this.clouds.map((cloud) => cloud.path));
-    for (const [path, entry] of this.cutaways) {
-      if (!listed.has(path) && entry.code !== this.opened?.code) this.cutaways.delete(path);
-    }
+    this.dropUnlisted();
     this.pushClouds();
 
     const missing = this.clouds.filter((cloud) => !this.cutaways.has(cloud.path));
@@ -921,9 +977,31 @@ export default class Cells3DCapability extends Capability {
     }
   }
 
-  /** Hand the layer every loaded storm, and let the tiers inside them stand down. */
+  /** Forget every volume the newest scan no longer lists, bar the open one. */
+  private dropUnlisted(): void {
+    const listed = new Set(this.clouds.map((cloud) => cloud.path));
+    for (const path of this.cutaways.keys()) {
+      if (!listed.has(path) && path !== this.opened?.path) this.cutaways.delete(path);
+    }
+  }
+
+  /**
+   * Hand the layer every loaded storm, and let the tiers inside them stand down.
+   *
+   * Bar the newer scans of an open storm that is older than the list. A
+   * storm open when a new scan lands is kept as it was, and the new scan
+   * brings the same storm again under a new path -- and usually a new code,
+   * its peak having moved a pixel -- so both were drawn, one volume over the
+   * other a few kilometres apart. The same happens opening a link to an old
+   * scan. Its successor comes back when the storm is closed.
+   */
   private pushClouds(): void {
-    this.cloudsLayer?.setClouds([...this.cutaways.values()].map(({ code, cutaway }) => ({ code, cutaway })));
+    const open = this.opened ? this.cutaways.get(this.opened.path) : undefined;
+    const stale = open && !this.clouds.some((cloud) => cloud.path === this.opened?.path);
+    const drawn = [...this.cutaways].filter(([path, { cutaway }]) => (
+      !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
+    ));
+    this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway }]) => ({ key, cutaway })));
     this.applyTierFilters();
     if (this.shown) this.gl?.triggerRepaint();
   }

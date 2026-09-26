@@ -366,10 +366,16 @@ interface Cloud {
 }
 
 export interface CloudsLayer extends CustomLayerInterface {
-  /** Replace the set of storms drawn; ones already uploaded are kept, not reloaded. */
-  setClouds(clouds: ReadonlyArray<{ code: string; cutaway: Cutaway }>): void;
-  /** Open one storm with a cut at this heading, or close whichever was open. */
-  setCut(code: string | null, headingDeg: number): void;
+  /**
+   * Replace the set of storms drawn; ones already uploaded are kept, not reloaded.
+   *
+   * Keyed by the volume's path, not the core's code: a code is a grid
+   * position, unique only within one scan, so the same code can name two
+   * different storms -- or two scans of one -- at the same time.
+   */
+  setClouds(clouds: ReadonlyArray<{ key: string; cutaway: Cutaway }>): void;
+  /** Open one storm, by the key it was handed over under, with a cut at this heading. */
+  setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
 }
@@ -394,7 +400,7 @@ export function makeCloudsLayer(
   let program: WebGLProgram | null = null;
   let rampTexture: WebGLTexture | null = null;
   const clouds = new Map<string, Cloud>();
-  let cutCode: string | null = null;
+  let cutKey: string | null = null;
   let cutHeading = 0;
   let colormap = initialColormap;
   /** Uniform locations, looked up once per program rather than a dozen times a frame. */
@@ -485,21 +491,17 @@ export function makeCloudsLayer(
     renderingMode: "3d",
 
     setClouds(next) {
-      const wanted = new Set(next.map((cloud) => cloud.code));
-      for (const [code, cloud] of clouds) {
-        if (wanted.has(code)) continue;
+      const wanted = new Set(next.map((cloud) => cloud.key));
+      for (const [key, cloud] of clouds) {
+        if (wanted.has(key)) continue;
         if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
-        clouds.delete(code);
+        clouds.delete(key);
       }
-      for (const { code, cutaway } of next) {
-        const held = clouds.get(code);
+      for (const { key, cutaway } of next) {
+        const held = clouds.get(key);
         if (held?.cutaway === cutaway) continue;
-        // The same code for a different volume: a core whose peak stayed on
-        // one pixel into the next scan. A code is a grid position, unique only
-        // within a scan, so keeping whichever arrived first for it drew the
-        // storm as it had been at the first scan for as long as it sat still.
         if (held?.texture && gl) gl.deleteTexture(held.texture);
-        clouds.set(code, {
+        clouds.set(key, {
           cutaway, model: modelFor(cutaway), coreDbz: coreDbz(cutaway), texture: gl ? upload(gl, cutaway) : null,
         });
       }
@@ -507,8 +509,8 @@ export function makeCloudsLayer(
       wake();
     },
 
-    setCut(code, headingDeg) {
-      cutCode = code;
+    setCut(key, headingDeg) {
+      cutKey = key;
       cutHeading = headingDeg;
       wake();
     },
@@ -562,10 +564,10 @@ export function makeCloudsLayer(
       // Far to near, by where each box's middle lands in clip space.
       const ordered = [...clouds.entries()]
         .filter(([, cloud]) => cloud.texture)
-        .map(([code, cloud]) => {
+        .map(([key, cloud]) => {
           const forward = multiply(main, cloud.model);
           const [, , z, w] = apply(forward, 0.5, 0.5, 0.25);
-          return { code, cloud, forward, depth: w > 0 ? z / w : Infinity };
+          return { key, cloud, forward, depth: w > 0 ? z / w : Infinity };
         })
         .sort((a, b) => b.depth - a.depth);
 
@@ -594,7 +596,7 @@ export function makeCloudsLayer(
       context.depthMask(false);
       context.disable(context.CULL_FACE);
 
-      for (const { code, cloud, forward } of ordered) {
+      for (const { key, cloud, forward } of ordered) {
         const rect = screenRect(forward, width, height);
         if (rect === null) continue;
         const inverse = invert(forward);
@@ -616,7 +618,7 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
-        const cut = code === cutCode;
+        const cut = key === cutKey;
         if (!cut) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
         context.uniform1f(at("uLow"), cut ? DBZ_LOW : DBZ_LOW + (cloud.coreDbz - DBZ_LOW) * peel);
