@@ -267,12 +267,11 @@ export interface paths {
          * Swiss reflectivity tile metadata.
          * @description The newest Swiss reflectivity composite -- one frame, not a timeseries.
          *
-         *     A route of its own beside `/timeseries`, which carries this network's
-         *     past too (`networks.ch`): a client refetches this whenever a radar reports
-         *     -- every minute or two, on the `network` socket event -- and the whole
-         *     timeseries only when DWD publishes. Same `RadarFrame` shape as every other
-         *     frame here, so the client needs one type and one tile-URL builder for
-         *     every network.
+         *     A separate route and collection (`reflectivity_ch`) rather than folding
+         *     into `/timeseries`: that endpoint models a forecast keyed by time, which
+         *     this network has none of -- one composite, replaced whenever a radar
+         *     reports, no history. Same `RadarFrame` shape as every other frame here, so
+         *     the client needs one type and one tile-URL builder for every network.
          */
         get: operations["switzerland_v3_radar_switzerland_get"];
         put?: never;
@@ -293,14 +292,6 @@ export interface paths {
         /**
          * Radar and nowcast tile metadata.
          * @description Tile metadata for each timestep in a window, past and forecast.
-         *
-         *     With `lat` and `lon`, each frame also carries the dBZ at that point. With
-         *     `network` as well, it is that network's reading wherever it has a composite
-         *     for the step -- which is every observed step, while its ingest is running
-         *     -- and DWD's everywhere else, the forecast included. The client names the
-         *     network because it is the one that knows which draws where: the borders are
-         *     `extents.ts`'s, and a point sampled from a network the map is not showing
-         *     there would put bars under the chart that nothing on the map agrees with.
          */
         get: operations["timeseries_v3_radar_timeseries_get"];
         put?: never;
@@ -583,6 +574,13 @@ export interface components {
             source: components["schemas"]["FrameSource"];
             /** Tile Id */
             tile_id: string;
+            /**
+             * Tiles
+             * @description Which tiles exist, by zoom level. Tiles that would be fully transparent are not rendered, so a client asking for every tile in the grid is refused most of them on a dry day; with this it need not ask. Absent on frames rendered before the index existed, which means every tile may exist.
+             */
+            tiles?: {
+                [key: string]: components["schemas"]["TileRows"];
+            } | null;
         };
         /**
          * RadarFrames
@@ -592,15 +590,6 @@ export interface components {
             /** Frames */
             frames: {
                 [key: string]: components["schemas"]["RadarFrame"] | null;
-            };
-            /**
-             * Networks
-             * @description meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.
-             */
-            networks?: {
-                [key: string]: {
-                    [key: string]: components["schemas"]["RadarFrame"];
-                };
             };
             /**
              * Replay
@@ -677,6 +666,26 @@ export interface components {
             timestamp: number;
             /** Verticalaccuracy */
             verticalAccuracy: number;
+        };
+        /**
+         * TileRows
+         * @description Which tiles of one zoom level exist, as a bitmap over a rectangle.
+         *
+         *     `x` and `y` are the rectangle's corner in the numbering the tile URL uses
+         *     (XYZ x, TMS y), `w` and `h` its size in tiles, and `bits` one bit per tile
+         *     of it, row major from that corner, most significant bit first, base64.
+         */
+        TileRows: {
+            /** Bits */
+            bits: string;
+            /** H */
+            h: number;
+            /** W */
+            w: number;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
         };
         /**
          * Unregister
@@ -1095,7 +1104,6 @@ export interface operations {
                 end?: number;
                 lat?: number;
                 lon?: number;
-                network?: ("ch" | "fr" | "cz" | "pl") | null;
             };
             header?: never;
             path?: never;
