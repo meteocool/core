@@ -157,7 +157,6 @@ function canvasInit(elem: HTMLCanvasElement) {
           backgroundColor: Array(BINS).fill(null).map((_unused, i) => LightningColors[
             Math.min((BINS - i) - Math.max(-20 * (BINS - i), -30), LightningColors.length - 1)
           ]),
-          datalabels: { display: false },
         },
       ],
     },

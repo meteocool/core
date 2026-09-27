@@ -59,6 +59,21 @@ registerRoute(
 );
 
  
+// Everything Vite emits under /assets/ carries a content hash in its name, so
+// a URL never changes meaning: cache-first, for as long as the browser keeps
+// it. This is what serves the on-demand chunks -- MapLibre, the storm panels,
+// Sentry -- on their second use, in place of precaching them for everyone.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.startsWith("/assets/"),
+  new CacheFirst({
+    cacheName: "assets-cache",
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true }),
+    ],
+  }),
+);
+
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 self.skipWaiting();
