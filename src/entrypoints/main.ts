@@ -1,9 +1,6 @@
-import * as Sentry from "@sentry/browser";
-import SENTRY_ARGS from "../lib/sentry";
+import { startSentry } from "../lib/sentry";
 
-if (import.meta.env.PROD) {
-  Sentry.init(SENTRY_ARGS);
-}
+if (import.meta.env.PROD) startSentry();
 
 import { Workbox } from "workbox-window";
 import { mount } from "svelte";
