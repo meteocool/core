@@ -1,5 +1,9 @@
 import ImageTileSource from "ol/source/ImageTile";
 import { chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd } from "./extents";
+import type { NetworkEvent } from "../api/events";
+
+/** A network, by the code the backend files it under. */
+export type NetworkCode = NetworkEvent["network"];
 
 /**
  * DWD tiles with the EUMETNET networks' countries cut out of them.
@@ -31,7 +35,15 @@ const bboxOf = (rings: number[][][]): Extent => {
 };
 
 /** Every network's hole, with its bounding box for a cheap first test. */
-const HOLES = [chBorders, frBordersNearDwd, czBordersNearDwd, plBordersNearDwd].map((rings) => ({ rings, bbox: bboxOf(rings) }));
+const HOLES = ([
+  ["ch", chBorders],
+  ["fr", frBordersNearDwd],
+  ["cz", czBordersNearDwd],
+  ["pl", plBordersNearDwd],
+] as [NetworkCode, number[][][]][]).map(([code, rings]) => ({ code, rings, bbox: bboxOf(rings) }));
+
+/** Every network: what the live frame is holed for. */
+export const ALL_NETWORKS: NetworkCode[] = HOLES.map((hole) => hole.code);
 
 const overlaps = (a: Extent, b: Extent) =>
   a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
@@ -95,69 +107,84 @@ function withHoles(image: HTMLImageElement, extent: Extent, holes: typeof HOLES)
 }
 
 /**
- * An `ImageTileSource` whose tiles have the networks' countries erased -- but
- * only while it shows the live observation.
+ * An `ImageTileSource` whose tiles have the networks' countries erased -- on
+ * the steps where those networks have a frame of their own to draw instead.
  *
- * The EUMETNET layers are one frame each, the newest: they have no history
- * and no forecast. So they are shown only while the map is on the live frame
- * (see `RadarCapability`), and for every other step DWD has to be whole again,
- * or scrubbing back an hour would leave Switzerland and France blank, and
- * scrubbing forward would leave them without the only forecast there is.
+ * The EUMETNET networks have history but no forecast. So a network is cut out
+ * of an observed step when the grid has its composite for that step (see
+ * `RadarCapability`), and on every other step DWD is left whole: scrubbing
+ * forward would otherwise leave Switzerland and France without the only
+ * forecast there is, and scrubbing back past a network's history would leave
+ * them blank. The live frame is holed for every network, whatever the grid
+ * says: those layers keep their own newest frame (`layers/network.ts`).
  *
  * `setUrl` is where the radar capability re-points this at every playback step,
- * so the decision is made there, per URL, against `liveUrl` -- which the
- * capability keeps on the newest observation. Deciding once per source would
- * be wrong in both directions: playback walks a single source across every
- * step, observations and forecasts alike.
+ * so the decision is made there, per URL, against `holes` -- which the
+ * capability keeps in step with the grid. Deciding once per source would be
+ * wrong in both directions: playback walks a single source across every step,
+ * observations and forecasts alike.
  */
 export default class NetworkHoleTileSource extends ImageTileSource {
   private readonly crossOriginValue: string | null;
 
   private url = "";
 
-  private live = "";
+  /** Which networks to erase from which frame, by the frame's URL. */
+  private holes = new Map<string, NetworkCode[]>();
+
+  /** `holes` as one string, so an unchanged grid is noticed as unchanged. */
+  private holesSignature = "";
 
   constructor(options: ConstructorParameters<typeof ImageTileSource>[0] & { url: string }) {
     const { url, ...rest } = options;
     super(rest);
     this.crossOriginValue = options.crossOrigin ?? null;
     // Built for the newest observation, which is what every caller hands it.
-    this.live = url;
+    this.holes = new Map([[url, ALL_NETWORKS]]);
+    this.holesSignature = signature(this.holes);
     this.setUrl(url);
   }
 
   /**
-   * Which URL is the live frame's, and so the one to cut holes into.
+   * Which frames to cut which networks out of.
    *
    * `showing` is the URL the caller is about to put on screen, when it is not
    * the one there now. Re-deciding for the frame being left -- which is what
    * happened on every new observation while following live -- gave that frame
-   * a fresh, un-holed key for the instant before the newest replaced it, and
-   * a viewport of its tiles was requested to be thrown away.
+   * a fresh key for the instant before the newest replaced it, and a
+   * viewport of its tiles was requested to be thrown away.
    */
-  setLiveUrl(url: string, showing: string = this.url) {
-    if (url === this.live && showing === this.url) return;
-    this.live = url;
-    // Re-decide for the URL on screen: it may just have become, or stopped
-    // being, the live one.
+  setHoles(holes: Map<string, NetworkCode[]>, showing: string = this.url) {
+    const next = signature(holes);
+    if (next === this.holesSignature && showing === this.url) return;
+    this.holes = holes;
+    this.holesSignature = next;
+    // Re-decide for the URL on screen: its holes may just have changed.
     if (showing) this.setUrl(showing);
   }
 
   setUrl(url: string) {
     this.url = url;
     super.setUrl(url);
-    if (url !== this.live) return; // any other step: DWD is the only radar drawn
+    const codes = this.holes.get(url);
+    if (!codes?.length) return; // DWD is the only radar drawn on this step
+    const holes = HOLES.filter((hole) => codes.includes(hole.code));
     const crossOrigin = this.crossOriginValue;
     this.setLoader(async (z: number, x: number, y: number) => {
       const extent = tileExtent(z, x, y);
       const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin);
-      const met = HOLES.filter((hole) => overlaps(extent, hole.bbox));
+      const met = holes.filter((hole) => overlaps(extent, hole.bbox));
       return met.length ? withHoles(image, extent, met) : image;
     });
-    // A key of their own for holed tiles. OpenLayers caches tiles by key, and
-    // the key `super.setUrl` gave is the bare URL -- so without this, the frame
-    // that was live a minute ago would go on serving its holes from the cache
-    // after it had become history, and vice versa.
-    this.setKey(`${url}#holes`);
+    // A key of their own for holed tiles, naming the holes. OpenLayers caches
+    // tiles by key, and the key `super.setUrl` gave is the bare URL -- so
+    // without this, a frame whose holes changed (the live frame becoming
+    // history, a network's composite arriving for a step) would go on serving
+    // the old tiles from the cache.
+    this.setKey(`${url}#holes:${codes.join(",")}`);
   }
+}
+
+function signature(holes: Map<string, NetworkCode[]>): string {
+  return [...holes].map(([url, codes]) => `${url}=${codes.join(",")}`).join("|");
 }
