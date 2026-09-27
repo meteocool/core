@@ -54,11 +54,12 @@ export const tileSourceUrl = (bucket: string, tileId: string) =>
 /**
  * The tile source for one DWD tile set.
  *
- * The live observation's tiles come back with Switzerland and France erased,
- * so that those networks' own layers are the only radar drawn over their
- * ground -- see `networkHoles.ts` for why the holes are cut into the images
- * rather than clipped at render time. Every other step is left whole: those
- * layers show only the live frame, so DWD is all there is for the rest.
+ * An observed step's tiles come back with the EUMETNET networks' countries
+ * erased wherever those networks have a frame for the step, so that their own
+ * layers are the only radar drawn over their ground -- see `networkHoles.ts`
+ * for why the holes are cut into the images rather than clipped at render
+ * time. Forecast steps are left whole: the networks have no forecast, so DWD
+ * is all there is for them.
  */
 export const dwdSource = (tileId: string, bucket = "meteoradar") => {
   // Always this source: playback re-points one source across every step, so
