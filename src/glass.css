@@ -620,7 +620,7 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
  * These used to sit at the bottom, above whichever tray was showing. That put
  * them at z 60 directly over the busiest part of the map chrome -- the colour
  * scale, the forecast strip, the player discs and the attribution all live in
- * that band and all sit below 60 -- and the replay notice has no duration, so
+ * that band and all sit below 60 -- and the replay notice had no duration, so
  * on staging it covered them indefinitely. The top band holds three things,
  * all on one 44px line and all hugging an edge, so the line below it is the
  * one place a card can stand without burying a control.

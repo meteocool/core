@@ -6,7 +6,7 @@ import { onDestroy } from "svelte";
 import { format } from "date-fns";
 import {
   bottomToolbarMode, capTimeIndicator, degradedStatus, lastFocus, live, networkStatus,
-  radarStale,
+  radarStale, replay,
 } from "../stores";
 import { shouldShowNetworkBanner } from "../lib/networkBanner";
 import ConnectionInfo from "./ConnectionInfo.svelte";
@@ -52,6 +52,11 @@ $: state = (() => {
   if ($radarStale) return "stale";
   if (shouldShowNetworkBanner($networkStatus)) return "slow";
   if ($bottomToolbarMode === "player" && frameTime) return "time";
+  // A replay is as current as live data -- every timestamp is rewritten to
+  // now -- but it is not the weather, so it takes the live pill's place
+  // rather than a warning's: the connectivity states above still outrank it.
+  // It used to be a toast that sat over the map until dismissed.
+  if ($live && $replay) return "demo";
   return $live ? "live" : "none";
 })();
 
@@ -61,6 +66,7 @@ $: label = {
   stale: $_("outdated"),
   slow: $_("slow_connection"),
   live: $_("latest"),
+  demo: $_("demo"),
   time: frameTime,
   none: "",
 }[state];
@@ -195,6 +201,9 @@ onDestroy(() => {
   .circle-container.offline {
     color: var(--mc-red);
   }
+  .circle-container.demo {
+    color: var(--mc-accent);
+  }
 
   .label {
     font-size: 12px;
@@ -243,6 +252,8 @@ onDestroy(() => {
       title={$_("connection_details")}
       on:click={() => { showInfo = true; }}
       on:keydown={(e) => { if (e.key === "Enter" || e.key === " ") showInfo = true; }}>
+      <!-- Demo holds a steady dot in the accent rather than the live pulse:
+           the pulse says "arriving now", and a recording is not. -->
       {#if state === "live"}
         <div class="circle-container circle-container-light-red" use:blink>
           <Icon icon={faCircle} />

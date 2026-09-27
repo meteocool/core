@@ -21,6 +21,7 @@
  *
  * Pure, because the distinction is the substance rather than the styling.
  */
+import type { Translate } from "../locale/t";
 
 export type CellStatusKind = "live" | "stale" | "superseded" | "ended";
 
@@ -45,13 +46,10 @@ export function cellStatus(track: {
   child_codes?: string[] | null;
   /** Minutes since the last detection; `cellRecency` computes it. */
   ageMinutes: number;
-}): CellStatus {
+}, t: Translate): CellStatus {
+  const status = (kind: CellStatusKind): CellStatus => ({ kind, label: t(`storm.status.${kind}`) });
   if (!track.active) {
-    return (track.child_codes?.length ?? 0) > 0
-      ? { kind: "superseded", label: "superseded" }
-      : { kind: "ended", label: "dissipated" };
+    return status((track.child_codes?.length ?? 0) > 0 ? "superseded" : "ended");
   }
-  return track.ageMinutes >= STALE_MINUTES
-    ? { kind: "stale", label: "no new data" }
-    : { kind: "live", label: "live" };
+  return status(track.ageMinutes >= STALE_MINUTES ? "stale" : "live");
 }

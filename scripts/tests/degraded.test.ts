@@ -17,10 +17,15 @@ const signals = (over: Partial<DegradedSignals>): DegradedSignals => (
   { ...EMPTY_SIGNALS, ...over }
 );
 
-const ids = (s: DegradedSignals, now = 0) => evaluateDegraded(s, now).reasons.map((r) => r.id);
+/** Echoes the key and its values, so a reason's content can be asserted on. */
+const t = (key: string, options?: { values?: Record<string, string | number> }) => (
+  `${key} ${JSON.stringify(options?.values ?? {})}`
+);
+
+const ids = (s: DegradedSignals, now = 0) => evaluateDegraded(s, now, t).reasons.map((r) => r.id);
 
 test("a healthy session is not degraded", () => {
-  const state = evaluateDegraded(EMPTY_SIGNALS, 0);
+  const state = evaluateDegraded(EMPTY_SIGNALS, 0, t);
   assert.equal(state.degraded, false);
   assert.deepEqual(state.reasons, []);
 });
@@ -114,6 +119,7 @@ test("several criteria are reported together, and clear independently", () => {
   const recovered = evaluateDegraded(
     { ...both, health: nextHealth(failed, "/a"), recentP95Ms: 100 },
     1000,
+    t,
   );
   assert.deepEqual(recovered.reasons.map((r) => r.id), ["stale-publish"]);
   assert.equal(recovered.degraded, true);
@@ -125,7 +131,7 @@ test("every reason says something a person can act on", () => {
     recentP95Ms: 9000,
     recentSamples: 40,
     publishOverdueS: 900,
-  }), 1000);
+  }), 1000, t);
   for (const reason of state.reasons) {
     assert.ok(reason.detail.length > 0, `${reason.id} reported an empty detail`);
   }

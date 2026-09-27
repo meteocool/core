@@ -11,6 +11,7 @@ import { cleanupDegradedStatus, initDegradedStatus } from "../lib/degradedStatus
 import { cleanupPageZoomGuard, initPageZoomGuard } from "../lib/pageZoom";
 import { cleanupWakeup, initWakeup } from "../lib/wakeup";
 import App from "../App.svelte";
+import { i18nReady } from "../locale/i18n";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
 initNetworkStatus();
@@ -27,7 +28,9 @@ window.addEventListener("pagehide", () => {
   cleanupWakeup();
 });
 
-const app = mount(App, {
+// Held until the chosen language's strings are in (src/locale/i18n.ts),
+// so the first paint is not English for a moment before it switches.
+const app = i18nReady.then(() => mount(App, {
   target: document.body,
   props: {
     device: "android",
@@ -37,7 +40,7 @@ const app = mount(App, {
       }
     },
   },
-});
+}));
 
 export default app;
 

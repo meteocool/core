@@ -41,6 +41,7 @@
  * tell this from the measured view will over-read it.
  */
 import { onDestroy, onMount, tick } from "svelte";
+import { _ } from "svelte-i18n";
 import { loadCutaway } from "../lib/cellCutaway";
 import { createRaymarcher, type Raymarcher } from "../lib/volumeRaymarch";
 import type { Cutaway } from "../lib/cellCutaway";
@@ -250,7 +251,8 @@ onDestroy(() => {
 // No track, no direction of travel: the slice is measured from north, and the
 // caption and buttons say so rather than naming a track that was never measured.
 $: reference = headingDeg == null ? ("north" as const) : ("track" as const);
-$: [snapA, snapB] = cutSnapLabels(reference);
+$: [snapA, snapB] = cutSnapLabels(reference, $_);
+$: cut = cutLabel($cutRotationDeg + $cutSweepDeg, $_, reference);
 
 // Capped at two: the marching cost is per pixel, and a phone at three times
 // density would triple it for a difference nobody can see on a postcard.
@@ -258,7 +260,7 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
 </script>
 
 {#if failed}
-  <p class="unavailable">Volume unavailable</p>
+  <p class="unavailable">{$_("storm.volume.unavailable")}</p>
 {:else if cutaway}
   <figure>
     <canvas
@@ -269,11 +271,11 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
       use:watchVisibility
       tabindex="0"
       role="slider"
-      aria-label="Turn the slice through the storm"
+      aria-label={$_("storm.cut.cutaway_aria")}
       aria-valuemin={-180}
       aria-valuemax={180}
       aria-valuenow={Math.round($cutRotationDeg)}
-      aria-valuetext={cutLabel($cutRotationDeg + $cutSweepDeg, reference)}
+      aria-valuetext={cut}
       on:pointerdown={onPointerDown}
       on:pointermove={onPointerMove}
       on:pointerup={onPointerUp}
@@ -287,8 +289,7 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
         on:click={() => { stopSweep(false); cutRotationDeg.set(90); }}>{snapB}</button>
     </div>
     <figcaption>
-      Stylised. Radar volume from {cutaway.header.sites.join(", ")},
-      {cutLabel($cutRotationDeg + $cutSweepDeg, reference)}.
+      {$_("storm.cut.cutaway_caption", { values: { sites: cutaway.header.sites.join(", "), cut } })}
     </figcaption>
   </figure>
 {/if}

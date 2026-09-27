@@ -20,6 +20,7 @@
  * for as long as the panel stayed open -- scrolled out of view included.
  */
 import { onDestroy, onMount, tick } from "svelte";
+import { _ } from "svelte-i18n";
 import { loadCutaway } from "../lib/cellCutaway";
 import type { Cutaway } from "../lib/cellCutaway";
 import { createRaymarcher, type Raymarcher } from "../lib/volumeRaymarch";
@@ -237,7 +238,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
 </script>
 
 {#if failed}
-  <p class="unavailable">Volume unavailable</p>
+  <p class="unavailable">{$_("storm.volume.unavailable")}</p>
 {:else if cutaway}
   <figure class="cappi">
     <div class="stage" style="height: {height}px">
@@ -249,7 +250,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
         use:watchVisibility
         tabindex="0"
         role="slider"
-        aria-label="Height of the slice"
+        aria-label={$_("storm.volume.cappi_height")}
         aria-valuemin={Math.round(lowKm * 10) / 10}
         aria-valuemax={Math.round(highKm * 10) / 10}
         aria-valuenow={Math.round(heightKm * 10) / 10}
@@ -268,7 +269,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
         <span class="marker" style="top: {at(heightKm, rulerTop)}">{heightKm.toFixed(1)} km</span>
       </div>
     </div>
-    <figcaption>Everything above {heightKm.toFixed(1)} km cut away. Drag up or down to hold a height.</figcaption>
+    <figcaption>{$_("storm.volume.cappi_caption", { values: { km: heightKm.toFixed(1) } })}</figcaption>
   </figure>
 {/if}
 

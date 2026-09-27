@@ -269,7 +269,7 @@
         {/if}
         {#if activeCap === "precipTypes"}
             <div class="palette">
-                <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title="Precipitation<br />Types" />
+                <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title={$_("chrome.scales.precipitation_types")} />
             </div>
         {/if}
         {#if activeCap === "aerosols"}
@@ -293,10 +293,10 @@
                         <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
                     </div>
                     <div class="float">
-                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== "sentinel2"}">Clouds</sl-checkbox>
+                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== "sentinel2"}">{$_("chrome.satellite.clouds")}</sl-checkbox>
                     </div>
                     <div class="float">
-                        <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>
+                        <sl-checkbox use:labelsBorders checked="true">{$_("chrome.satellite.labels_borders")}</sl-checkbox>
                     </div>
                 {/if}
             </div>
