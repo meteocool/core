@@ -117,7 +117,10 @@ $: showVolume = !compact || expanded;
   {/if}
 
   {#if showVolume}
-    <footer>observed {seen} &middot; {ago} ago</footer>
+    <h3 class="section">Details</h3>
+    <dl class="facts">
+      <div><dt>Observed</dt><dd>{seen} &middot; {ago} ago</dd></div>
+    </dl>
   {/if}
 </StormPanel>
 
@@ -128,11 +131,10 @@ $: showVolume = !compact || expanded;
 .how {
   display: block;
   margin: 0 auto;
-  font: inherit; font-size: 12px;
-  background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer;
+  font: 500 13px/1.3 var(--mc-font);
+  background: none; border: none; color: var(--mc-text-2); cursor: pointer;
   padding: 2px 12px 10px;
 }
 .how::before { content: "\2303"; margin-right: 0.35rem; }
-.how:hover { opacity: 1; }
-footer { padding-bottom: 4px; }
+.how:hover { color: var(--mc-text); }
 </style>

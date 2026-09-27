@@ -798,19 +798,35 @@ if (postInitCb) postInitCb(lm);
     max-width: none;
   }
 
+  /* The drawer material (src/glass.css) supplies the fill, blur, shadow and
+     ink; this is the frame. It does not scroll itself: the content scrolls
+     inside it, so what runs past the top and bottom can fade out into the
+     glass -- a mask on the frame would fade the glass along with it. */
   .cell-details-panel {
     position: absolute;
     top: 12px;
     right: 12px;
     z-index: var(--mc-z-details);
+    display: flex;
+    flex-direction: column;
     max-width: min(392px, calc(100vw - 24px));
     max-height: calc(100vh - 24px);
+    overflow: hidden;
+    border: 1px solid var(--mc-drawer-edge);
+    border-radius: var(--mc-radius-tray);
+    box-sizing: border-box;
+  }
+  .cell-details-panel > .scroll {
+    min-height: 0;
     overflow-y: auto;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: var(--sl-panel-background-color, #fff);
-    color: var(--sl-color-neutral-900, #111);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.28);
+    overscroll-behavior: contain;
+    padding: 16px var(--mc-drawer-pad) var(--mc-fade-bottom);
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--mc-fade-top),
+      #000 calc(100% - var(--mc-fade-bottom)), transparent);
+    mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--mc-fade-top),
+      #000 calc(100% - var(--mc-fade-bottom)), transparent);
   }
 
   /* Set on <body> while the panel is up on a phone; see the subscription above.
@@ -854,8 +870,8 @@ if (postInitCb) postInitCb(lm);
   {#if $smallScreen}
     <CellSheet track={$selectedCell} />
   {:else}
-    <div class="cell-details-panel">
-      <CellDetails track={$selectedCell} />
+    <div class="cell-details-panel mc-drawer">
+      <div class="scroll"><CellDetails track={$selectedCell} /></div>
     </div>
   {/if}
 {:else if $selectedCell && $smallScreen}
@@ -872,8 +888,8 @@ if (postInitCb) postInitCb(lm);
 {:else if $selectedVolume}
   <!-- A storm core with no KONRAD3D track, in the same popup as a cell's
        details: the same panel, only with less to say. -->
-  <div class="cell-details-panel" class:cloud-bottom={$smallScreen}>
-    <CloudDetails cloud={$selectedVolume} />
+  <div class="cell-details-panel mc-drawer" class:cloud-bottom={$smallScreen}>
+    <div class="scroll"><CloudDetails cloud={$selectedVolume} /></div>
   </div>
 {/if}
 
