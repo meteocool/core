@@ -22,11 +22,12 @@ const proxied = import.meta.env.DEV;
 // doc/staging-and-demo.md). Its data and tile hostnames are staging's with
 // `demo` in place of `staging`, and it shares staging's geocoder. The API is the
 // exception: demo.meteocool.com itself is this Worker, so the API behind it is
-// api-demo.meteocool.com where staging's is staging.meteocool.com.
+// api-demo.meteocool.com, and staging's is api-next.meteocool.com to match.
+// staging.meteocool.com still reaches the same API for builds that use it.
 const demo = import.meta.env.MODE === "demo";
 const cluster = demo || import.meta.env.MODE === "staging";
 const environment = demo ? "demo" : "staging";
-const apiOrigin = demo ? "https://api-demo.meteocool.com" : "https://staging.meteocool.com";
+const apiOrigin = demo ? "https://api-demo.meteocool.com" : "https://api-next.meteocool.com";
 
 const pick = <T>(proxiedValue: T, clusterValue: T, productionValue: T): T =>
   (proxied ? proxiedValue : cluster ? clusterValue : productionValue);
