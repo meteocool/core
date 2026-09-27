@@ -24,6 +24,7 @@ import {
 } from "../stores";
 import { get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
+import { origin3D, used3D } from "../lib/open3d";
 import { normaliseCut } from "../lib/cutAngle";
 import { startSweep, stopSweep } from "../lib/cutSweep";
 import { elementCentre, setElementCentre } from "../lib/viewCentre";
@@ -547,6 +548,13 @@ export default class Cells3DCapability extends Capability {
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
       // The tilt and heading only this map has go out with it, for the URL.
+      // A camera move the reader made -- drag, wheel, pinch, tilt, turn, the
+      // zoom buttons -- carries the DOM event that caused it; one from code
+      // (a storm being framed, the camera settling back) does not. Only the
+      // reader's own mean they have started using this map; see open3d.ts.
+      gl.on("movestart", (event) => {
+        if (event.originalEvent) used3D();
+      });
       gl.on("moveend", () => {
         this.pushCameraToView();
         if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
@@ -561,6 +569,9 @@ export default class Cells3DCapability extends Capability {
         // anyway if the cell stands inside a volume.
         const cell = hits.find((feature) => feature.layer.id !== "cloud-marker" && feature.properties?.code);
         const cloud = hits.find((feature) => feature.layer.id === "cloud-marker");
+        // Picking another storm here is using the map too; tapping past every
+        // storm to close the panel is not -- that is just closing it.
+        if (cell?.properties?.code || cloud?.properties?.code) used3D();
         if (cell?.properties?.code) {
           selectedVolume.set(null);
           // The same two steps the flat map takes -- panel at once on a
@@ -659,8 +670,15 @@ export default class Cells3DCapability extends Capability {
     const before = this.pitchBeforeOpen;
     this.pitchBeforeOpen = null;
     if (!gl || before === null) return;
+    // On the way back to the flat map, `leave` owns the camera: two eases at
+    // once, and the later one wins.
+    if (origin3D()) return;
     if (Math.abs(gl.getPitch() - OPEN_PITCH) > PITCH_KEPT_DEG) return;
-    gl.easeTo({ pitch: before, duration: 700 });
+    // A detour from the flat map arrives with no tilt of its own to go back
+    // to. When the reader stays on this map after one -- they started using
+    // it, see lib/open3d.ts -- a flat 3D map is the one view that shows none
+    // of what it is for, so it settles to the tilt it opens at instead.
+    gl.easeTo({ pitch: before < 1 ? INITIAL_PITCH : before, duration: 700 });
   }
 
   /**

@@ -23,13 +23,14 @@
  */
 import { get } from "svelte/store";
 import { onDestroy } from "svelte";
-import { locale } from "svelte-i18n";
+import { _, locale } from "svelte-i18n";
 import SliceDial from "./SliceDial.svelte";
 import StormPanel from "./StormPanel.svelte";
 import Readings from "./Readings.svelte";
 import VolumeProvenance from "./VolumeProvenance.svelte";
 import { dbzColour } from "../lib/cellVolume";
 import { duration, reading } from "../lib/cellMetrics";
+import { currentLocale } from "../locale/t";
 import { stormPlace, type StormPlace } from "../lib/reverseGeocode";
 import { radarColormap, selectedVolume, sharedActiveCap } from "../stores";
 import type { RadarVolume } from "../api";
@@ -47,7 +48,7 @@ export let expanded = false;
 export let expand: (() => void) | null = null;
 
 /** What the title says before the place arrives, and if it never does. */
-const UNNAMED = "3D radar view";
+$: unnamed = $_("storm.cloud.unnamed");
 
 let place: StormPlace | null = null;
 let placeFor = "";
@@ -60,7 +61,7 @@ async function name(target: RadarVolume): Promise<void> {
   if (placeFor === target.path) place = found;
 }
 $: void name(cloud);
-$: title = place?.name ?? UNNAMED;
+$: title = place?.name ?? unnamed;
 
 $: rule = cloud.peak_dbz != null ? `rgb(${dbzColour(cloud.peak_dbz, $radarColormap).join(", ")})` : "currentColor";
 
@@ -73,18 +74,20 @@ onDestroy(() => clearInterval(clockTimer));
 
 /** 24-hour, as every other time in the panels; see `CellDetails`. */
 $: seen = new Date(cloud.reference_time)
-  .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-$: ago = duration(Math.max(0, (tick - new Date(cloud.reference_time).getTime()) / 60_000));
+  .toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit", hour12: false });
+$: ago = duration(Math.max(0, (tick - new Date(cloud.reference_time).getTime()) / 60_000), $_);
 
 $: readings = [
-  reading("peak", cloud.peak_dbz),
+  reading("peak", cloud.peak_dbz, $_),
   // The threshold comes with the volume: the area is only meaningful beside it,
   // and it is set on the worker, where it has already changed once. No meter:
   // there is no class of storm by area to measure it against.
   ...(cloud.area_km2 != null
     ? [{
       key: "area",
-      label: cloud.seed_dbz != null ? `area >${Math.round(cloud.seed_dbz)} dBZ` : "area",
+      label: cloud.seed_dbz != null
+        ? $_("storm.reading.area_above", { values: { dbz: Math.round(cloud.seed_dbz) } })
+        : $_("storm.reading.area"),
       text: `${Math.round(cloud.area_km2)} km²`,
       band: null,
       bandName: null,
@@ -97,14 +100,14 @@ $: on3d = $sharedActiveCap === "cells3d";
 $: showVolume = !compact || expanded;
 </script>
 
-<StormPanel {rule} label={place ? `3D radar view: ${place.name}` : UNNAMED} place={place?.area ?? null} onClose={close}>
+<StormPanel {rule} label={place ? $_("storm.cloud.label", { values: { place: place.name } }) : unnamed} place={place?.area ?? null} onClose={close}>
   <span slot="header" class="headline">{title}</span>
 
   {#if on3d}
     <div class="dial"><SliceDial reference="north" /></div>
   {/if}
 
-  <h3 class="section">Readings</h3>
+  <h3 class="section">{$_("storm.section.readings")}</h3>
   <Readings items={readings} />
 
   {#if showVolume}
@@ -113,13 +116,16 @@ $: showVolume = !compact || expanded;
          again when a core sits still into the next scan. -->
     {#key cloud.path}<VolumeProvenance volume={cloud} at={cloud} />{/key}
   {:else if expand}
-    <button type="button" class="how" on:click={expand}>Slice by height, radars</button>
+    <button type="button" class="how" on:click={expand}>{$_("storm.cloud.more")}</button>
   {/if}
 
   {#if showVolume}
-    <h3 class="section">Details</h3>
+    <h3 class="section">{$_("storm.section.details")}</h3>
     <dl class="facts">
-      <div><dt>Observed</dt><dd>{seen} &middot; {ago} ago</dd></div>
+      <div>
+        <dt>{$_("storm.fact.observed")}</dt>
+        <dd>{seen} &middot; {$_("storm.ago", { values: { duration: ago } })}</dd>
+      </div>
     </dl>
   {/if}
 </StormPanel>

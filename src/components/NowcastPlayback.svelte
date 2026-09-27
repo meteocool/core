@@ -21,7 +21,7 @@ import {
   latLon,
   lightningLayerVisible,
   bottomToolbarMode, radarColormap, precacheForecast,
-  inspectLatLon, mapExtent4326, mapTapped, radarStale,
+  dryAtUser, inspectLatLon, mapExtent4326, mapTapped, modelCompareAt, radarStale,
   frameRequest, playbackRunning,
 } from "../stores";
 
@@ -39,6 +39,7 @@ import LastUpdated from "./LastUpdated.svelte";
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import { _, locale } from "svelte-i18n";
+import type { Translate } from "../locale/t";
 import { get } from "svelte/store";
 import { dbz2color } from "../lib/cmap_utils";
 import {
@@ -50,6 +51,7 @@ import {
 } from "../layers/extents";
 import { reverseGeocode } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
+import DryOutlook from "./DryOutlook.svelte";
 import ChartSkeleton from "./ChartSkeleton.svelte";
 
 export let cap: RadarCapability;
@@ -146,14 +148,19 @@ let axisTicks: { pct: number; minutes: number; anchor: "start" | "end" | null }[
 /** How close to an end a regular tick may sit before the end label wins, in %. */
 const AXIS_EDGE_CLEAR = 9;
 
-/** "-2h", "+45m", "+1h30m" -- and "now" for the zero mark. */
-function formatOffset(minutes: number): string {
-  if (minutes === 0) return $_("now");
+/**
+ * "-2h", "+45m", "+1h30m" -- and "now" for the zero mark. Takes the template's
+ * `$_`, so the axis is re-labelled when the language changes.
+ */
+function formatOffset(minutes: number, t: Translate): string {
+  if (minutes === 0) return t("now");
   const sign = minutes < 0 ? "-" : "+";
   const abs = Math.abs(minutes);
-  if (abs % 60 === 0) return `${sign}${abs / 60}h`;
-  if (abs < 60) return `${sign}${abs}m`;
-  return `${sign}${Math.floor(abs / 60)}h${abs % 60}m`;
+  if (abs % 60 === 0) return t("chrome.playback.offset_hours", { values: { sign, hours: abs / 60 } });
+  if (abs < 60) return t("chrome.playback.offset_minutes", { values: { sign, minutes: abs } });
+  return t("chrome.playback.offset_hours_minutes", {
+    values: { sign, hours: Math.floor(abs / 60), minutes: abs % 60 },
+  });
 }
 
 function redraw(config) {
@@ -409,6 +416,36 @@ $: chartShowable = (hasPrecipitation || $inspectLatLon !== null)
   && !outOfCoverage;
 $: if (!chartShowable) chartDismissed = false;
 $: if ($bottomToolbarMode === "player") chartDismissed = false;
+
+/**
+ * The same slot on a dry day: what the weather models say for the client's
+ * own position, when the radar has nothing for it (see DryOutlook).
+ *
+ * Only when the rain chart has nothing to say -- which it cannot, over a dry
+ * position with no tapped point -- and only for a position the radar covers:
+ * outside every network "nothing on the radar" is no data, not no rain.
+ * Dismissal lasts as long as the dry spell does, as the chart's lasts as long
+ * as there is something to plot, and opening the player re-arms it the same
+ * way. A failed forecast fetch takes it down for the session.
+ */
+const covers = (point: [number, number] | null): boolean => point !== null
+  && radarExtents4326.some(([minLon, minLat, maxLon, maxLat]) => (
+    point[1] >= minLon && point[1] <= maxLon && point[0] >= minLat && point[0] <= maxLat));
+let outlookDismissed = false;
+let outlookUnavailable = false;
+$: outlookShowable = $dryAtUser
+  && $latLon !== null
+  && covers($latLon)
+  && $inspectLatLon === null
+  && $sharedActiveCap === "radar"
+  && !outOfCoverage
+  && !chartShowable
+  && !$radarStale
+  && !outlookUnavailable
+  // The drawer it opens covers it, and the strip would only restate it.
+  && !$modelCompareAt;
+$: if (!$dryAtUser) outlookDismissed = false;
+$: if ($bottomToolbarMode === "player") outlookDismissed = false;
 
 /* Between a tap and the grid that answers it, the strip is up with the last
    point's bars still in it. Flagged here rather than read off the capability,
@@ -1236,6 +1273,15 @@ onDestroy(() => {
   </DismissableStrip>
 {/if}
 
+{#if canvasVisible && outlookShowable && !outlookDismissed && $latLon}
+  <DryOutlook
+    lat={$latLon[0]}
+    lon={$latLon[1]}
+    collapsed={$bottomToolbarMode !== "player"}
+    on:dismiss={() => { outlookDismissed = true; }}
+    on:unavailable={() => { outlookUnavailable = true; }} />
+{/if}
+
 {#if canvasVisible && chartShowable && !chartDismissed}
   <DismissableStrip
     title={chartTitle}
@@ -1261,7 +1307,7 @@ onDestroy(() => {
               class:start={tick.anchor === "start"}
               class:end={tick.anchor === "end"}
               style:left={tick.anchor === "end" ? null : `${tick.pct}%`}>
-              {formatOffset(tick.minutes)}
+              {formatOffset(tick.minutes, $_)}
             </span>
           {/each}
         </div>
@@ -1283,7 +1329,7 @@ onDestroy(() => {
         </div>
 
         <div class="transport button-group-toolbar">
-          <sl-button-group label="Playback Controls">
+          <sl-button-group label={$_("chrome.playback.controls")}>
             <sl-button size={buttonSize} class="icon-btn" on:click={playPause}>
               <div class="faIconButton">
                 <Icon icon={playPauseButton} />
@@ -1303,15 +1349,15 @@ onDestroy(() => {
         </div>
 
         <div class="layers button-group-toolbar">
-          <sl-button-group label="Map Layers">
-            <sl-button size={buttonSize} variant="{ $lightningLayerVisible ? "primary" : "default"}" on:click={toggleLightning}>⚡ <span class="wide-only">Lightning Strikes</span></sl-button>
-            <sl-button size={buttonSize} variant="{ $cycloneLayerVisible ? "primary" : "default"}" on:click={toggleCyclones}>🌀 <span class="wide-only">Mesocyclones</span></sl-button>
-            <sl-button size={buttonSize} variant="{ $cellLayerVisible ? "primary" : "default"}" on:click={toggleCells}>⛈ <span class="wide-only">Storm Cells</span></sl-button>
+          <sl-button-group label={$_("chrome.playback.map_layers")}>
+            <sl-button size={buttonSize} variant="{ $lightningLayerVisible ? "primary" : "default"}" on:click={toggleLightning}>⚡ <span class="wide-only">{$_("chrome.playback.lightning")}</span></sl-button>
+            <sl-button size={buttonSize} variant="{ $cycloneLayerVisible ? "primary" : "default"}" on:click={toggleCyclones}>🌀 <span class="wide-only">{$_("chrome.playback.mesocyclones")}</span></sl-button>
+            <sl-button size={buttonSize} variant="{ $cellLayerVisible ? "primary" : "default"}" on:click={toggleCells}>⛈ <span class="wide-only">{$_("chrome.playback.cells")}</span></sl-button>
           </sl-button-group>
         </div>
 
         <button type="button" class="close-inline controlButton" on:click={hide}
-          title="Collapse playback controls" aria-label="Collapse playback controls">
+          title={$_("chrome.playback.collapse")} aria-label={$_("chrome.playback.collapse")}>
           <Icon icon={faAngleDoubleDown} />
         </button>
 
@@ -1331,13 +1377,13 @@ onDestroy(() => {
     {#if showOpenControls}
       <div class="buttonBar right">
         <button type="button" class="controlButton" on:click={show}
-          title="Playback Controls" aria-label="Playback Controls">
+          title={$_("chrome.playback.controls")} aria-label={$_("chrome.playback.controls")}>
           <Icon icon={faAngleDoubleUp} class="controlIcon" />
         </button>
       </div>
       <div class="buttonBar">
         <button type="button" class="controlButton" on:click={showAndPlay}
-          title="Play" aria-label="Play">
+          title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
           <Icon icon={faPlay} class="controlIcon" />
         </button>
       </div>

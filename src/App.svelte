@@ -2,7 +2,10 @@
 import { onDestroy } from "svelte";
 import { derived, get } from "svelte/store";
 import View from "ol/View";
-import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
+import { locale } from "svelte-i18n";
+// The catalogues and the language in use, set up before anything renders.
+import "./locale/i18n";
+import { chooseLocale } from "./locale/choose";
 
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
@@ -21,8 +24,6 @@ import { progress } from "./lib/progress";
 import Settings from "./lib/Settings";
 import type { SettingValue } from "./lib/Settings";
 
-import de from "./locale/de.json";
-import en from "./locale/en.json";
 import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
@@ -30,7 +31,7 @@ import {
   cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
+  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
@@ -64,6 +65,8 @@ import CellDetails from "./components/CellDetails.svelte";
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import CellSheet from "./components/CellSheet.svelte";
 import CloudDetails from "./components/CloudDetails.svelte";
+import ModelCompare from "./components/ModelCompare.svelte";
+import PointMenu from "./components/PointMenu.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
@@ -88,14 +91,6 @@ if (dd.isApp()) {
     document.body.classList.add("is-ios");
   }
 }
-
-addMessages("de", de);
-addMessages("en", en);
-
-init({
-  fallbackLocale: "en",
-  initialLocale: getLocaleFromNavigator(),
-});
 
 /**
  * The basemap the system colour scheme asks for.
@@ -131,6 +126,15 @@ initUIConstants();   // reads prefers-color-scheme into colorSchemeDark
 mapBaseLayer.set(systemBaseLayer());
 
 window.settings = new Settings({
+  /* The app's language, from injectSettings({ lang: "de" }). Stored, so the
+     next launch starts in it; re-chosen rather than applied as given, so a
+     `?lang=` on the URL still wins and a language we lack falls through to
+     the browser's. */
+  lang: {
+    type: "string",
+    default: "",
+    cb: () => { locale.set(chooseLocale()); },
+  },
   experimentalFeatures: {
     type: "boolean",
     default: false,
@@ -375,11 +379,20 @@ derived([selectedCell, selectedVolume], ([cell, cloud]) => (
  * playback state, and tearing that down and rebuilding it every time a popup
  * opens would be a lot of machinery moved for a visual answer.
  */
-derived([selectedCell, cellDetails, smallScreen], ([track, open, small]) => (
-  Boolean(track) && open && small
+derived([selectedCell, cellDetails, modelCompareAt, smallScreen], ([track, open, compare, small]) => (
+  small && ((Boolean(track) && open) || Boolean(compare))
 )).subscribe((hide) => {
   document.body.classList.toggle("cell-details-open", hide);
 });
+
+/**
+ * The drawer holds one thing: tapping a storm while the model comparison is
+ * open replaces it, as tapping a second storm replaces the first.
+ */
+derived([selectedCell, selectedVolume], ([cell, cloud]) => Boolean(cell || cloud))
+  .subscribe((storm) => { if (storm) modelCompareAt.set(null); });
+
+const closeCompare = () => modelCompareAt.set(null);
 
 // Cell tracks are fetched for what is on screen, so they follow the map rather
 // than a timer. The manager ignores a move that stays inside what it already
@@ -865,6 +878,8 @@ if (postInitCb) postInitCb(lm);
 
 <div id="nanobar" />
 <Map layerManager={lm} />
+<PointMenu layerManager={lm} />
+
 
 {#if $selectedCell && $cellDetails}
   {#if $smallScreen}
@@ -891,6 +906,32 @@ if (postInitCb) postInitCb(lm);
   <div class="cell-details-panel mc-drawer" class:cloud-bottom={$smallScreen}>
     <div class="scroll"><CloudDetails cloud={$selectedVolume} /></div>
   </div>
+{:else if $modelCompareAt}
+  <!-- The model comparison, opened from the dry-weather strip: the same
+       drawer a storm's details take, sheet on a phone and corner panel on a
+       desktop. Keyed on the place and range: the panel fetches once, on
+       mount. -->
+  {#key `${$modelCompareAt.lat},${$modelCompareAt.lon},${$modelCompareAt.hours ?? 24}`}
+    {#if $smallScreen}
+      <CellSheet onClose={closeCompare}>
+        <ModelCompare
+          lat={$modelCompareAt.lat}
+          lon={$modelCompareAt.lon}
+          initialHours={$modelCompareAt.hours ?? 24}
+          onClose={closeCompare} />
+      </CellSheet>
+    {:else}
+      <div class="cell-details-panel mc-drawer">
+        <div class="scroll">
+          <ModelCompare
+            lat={$modelCompareAt.lat}
+            lon={$modelCompareAt.lon}
+            initialHours={$modelCompareAt.hours ?? 24}
+            onClose={closeCompare} />
+        </div>
+      </div>
+    {/if}
+  {/key}
 {/if}
 
 {#if $toolbarVisible === "yes"}

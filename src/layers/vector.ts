@@ -1,8 +1,9 @@
 import VectorTileLayer from "ol/layer/VectorTile";
 import { Stroke, Style, Fill, Text } from "ol/style";
 import type { FeatureLike } from "ol/Feature";
-import { getLocaleFromNavigator } from "svelte-i18n";
+import { locale } from "svelte-i18n";
 import { placeNameForLocale } from "./placeName";
+import { chooseLocale } from "../locale/choose";
 import {
   imprintAttribution,
   osmAttribution,
@@ -24,7 +25,10 @@ import { belowMinZoom, protomapsSource, zoomFromResolution } from "./protomaps";
  */
 
 const overlayAttributions = [osmAttribution, protomapsAttribution, imprintAttribution];
-const placeName = placeNameForLocale(getLocaleFromNavigator());
+/* Place names in the frontend's language (see src/locale/choose.ts), and
+   again when an app tells us its language after the map is up: the label
+   layers are redrawn once the store has moved, further down. */
+let placeName = placeNameForLocale(chooseLocale());
 
 /**
  * A label's colours, picked to match whatever is drawn underneath it.
@@ -163,6 +167,12 @@ function applyPalette(palette: LabelPalette) {
 }
 
 watchBasemap(paletteFor, applyPalette);
+
+locale.subscribe((tag) => {
+  if (!tag) return;
+  placeName = placeNameForLocale(tag);
+  labelLayers.forEach((layer) => layer.changed());
+});
 
 /** The basemap as last seen, so a layer built later starts out correct. */
 let currentBasemap = "light";

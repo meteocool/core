@@ -1,0 +1,112 @@
+<script lang="ts">
+/**
+ * What the weather models say, in the strip the rain chart takes when there
+ * is rain -- for the reader's own position, on a day the radar has nothing
+ * for it.
+ *
+ * On a dry day the radar map is an empty map and the rain chart has nothing to
+ * plot, so the slot above the tray would be empty exactly when the reader's
+ * question has moved on from "is it raining" to "and later?". The model
+ * comparison answers that, so a small copy of its spread goes here: every
+ * model's rain chance as one thicket, the range as a band, the median on top.
+ *
+ * Over the week, unless the models see rain inside a day, when the week would
+ * squash it into a sliver at the left edge and the next 24 hours are the
+ * answer instead. See lib/compare/outlook.ts for where that line is.
+ *
+ * Tapping it, or its "All models" chip, opens the whole comparison in the
+ * drawer (see App.svelte), on the range the strip was showing.
+ *
+ * The strip is the same one the rain chart and the lightning histogram use,
+ * swipe-to-clear included; the caller owns whether it is up. A fetch that
+ * fails says "unavailable" and the caller takes it down -- this is a hint,
+ * and an error in its place is noise.
+ */
+import { createEventDispatcher, onDestroy, onMount } from "svelte";
+import { _ } from "svelte-i18n";
+import type { Chart } from "chart.js";
+import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
+import DismissableStrip from "./DismissableStrip.svelte";
+import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
+import { drawSpread } from "../lib/compare/spreadChart";
+import { rainWithin, stepAt } from "../lib/compare/outlook";
+import { openModelCompare } from "../lib/modelCompare";
+
+export let lat: number;
+export let lon: number;
+/** Whether the tray below is the short bar or the full player. */
+export let collapsed = true;
+
+const dispatch = createEventDispatcher<{ dismiss: void; unavailable: void }>();
+
+const WEEK = 168;
+const DAY = 24;
+const SPEC = { unit: "%", max: 100 };
+
+let data: HourlySeries | null = null;
+let canvas: HTMLCanvasElement | null = null;
+let chart: Chart | null = null;
+
+$: from = data ? stepAt(data.times, Date.now()) : 0;
+$: soon = data ? rainWithin(data, from, DAY) : false;
+$: hours = soon ? DAY : WEEK;
+
+onMount(async () => {
+  try {
+    data = await fetchHourlySeries({ lat, lon, forecastDays: 7, variable: "precipitation_probability" });
+  } catch {
+    dispatch("unavailable");
+  }
+});
+
+function draw() {
+  if (!canvas || !data) return;
+  chart?.destroy();
+  chart = drawSpread(canvas, data, { from, steps: hours, spec: SPEC, compact: true });
+}
+$: if (canvas && data && hours) draw();
+onDestroy(() => chart?.destroy());
+
+const openFull = () => openModelCompare(lat, lon, hours);
+</script>
+
+<DismissableStrip
+  title={$_(soon ? "dry_outlook_title_day" : "dry_outlook_title_week")}
+  linkLabel={$_("dry_outlook_link")}
+  linkIcon={faChartLine}
+  {collapsed}
+  tappable
+  on:dismiss
+  on:tap={openFull}
+  on:link={openFull}>
+  <div class="plot">
+    {#if data}
+      <canvas bind:this={canvas} aria-label={$_("dry_outlook_label")}></canvas>
+    {:else}
+      <p class="loading">{$_("dry_outlook_loading")}</p>
+    {/if}
+  </div>
+</DismissableStrip>
+
+<style>
+  /* The rain chart's insets, so the two strips hold their plots in the same
+     place and switching between them does not shift anything. */
+  .plot {
+    position: relative;
+    height: 100%;
+    margin: 2px var(--mc-tray-pad) 0 calc(var(--mc-tray-pad) + 2px);
+  }
+  canvas {
+    display: block;
+  }
+  .loading {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    color: var(--mc-text-2);
+    font: 400 12px/1.35 var(--mc-font);
+    letter-spacing: -0.005em;
+  }
+</style>

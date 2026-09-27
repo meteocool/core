@@ -17,6 +17,7 @@
 import { onDestroy } from "svelte";
 import { get } from "svelte/store";
 import { _, locale } from "svelte-i18n";
+import type { Translate } from "../locale/t";
 import { Chart } from "chart.js";
 import { toLonLat, transformExtent } from "ol/proj";
 import { unByKey } from "ol/Observable";
@@ -145,12 +146,23 @@ async function update() {
   }
 }
 
+/** "-30 min" … "now", one per bin; the last is a word, so it takes `$_`. */
+function axisLabels(t: Translate): string[] {
+  return Array(BINS).fill(null)
+    .map((_unused, i) => (i === BINS - 1 ? t("now") : `-${BINS - i} min`));
+}
+
+// Re-labelled when the language changes, since the chart outlives it.
+$: if (chart) {
+  chart.data.labels = axisLabels($_);
+  chart.update();
+}
+
 function canvasInit(elem: HTMLCanvasElement) {
   chart = new Chart(elem.getContext("2d")!, {
     type: "bar",
     data: {
-      labels: Array(BINS).fill(null)
-        .map((_unused, i) => (i === BINS - 1 ? "now" : `-${BINS - i} min`)),
+      labels: axisLabels($_),
       datasets: [
         {
           data: Array(BINS).fill(0),

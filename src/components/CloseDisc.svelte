@@ -4,11 +4,12 @@
  * the storm core's sheet on the 3D map, so every "storm you tapped" closes
  * with the same control in the same corner.
  */
+import { _ } from "svelte-i18n";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import Icon from "./Icon.svelte";
 </script>
 
-<button type="button" aria-label="Close" title="Close" on:click><Icon icon={faXmark} /></button>
+<button type="button" aria-label={$_("close")} title={$_("close")} on:click><Icon icon={faXmark} /></button>
 
 <style>
 /**

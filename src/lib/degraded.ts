@@ -19,6 +19,7 @@
  * signals and publishes the verdict is lib/degradedStatus.ts.
  */
 import { EMPTY_HEALTH, type ApiHealth } from "./apiHealth";
+import type { Translate } from "../locale/t";
 
 /**
  * Everything the criteria are allowed to look at, sampled at one instant.
@@ -97,46 +98,53 @@ export interface DegradedReason {
 
 export interface DegradedCriterion {
   id: string;
-  /** What the panel calls it when it is not tripped. */
+  /** The translation key of what the panel calls it when it is not tripped. */
   label: string;
-  /** Why it is tripped right now, or null. */
-  reason(signals: DegradedSignals, now: number): string | null;
+  /**
+   * Why it is tripped right now, or null. Worded through `t`, which the panel
+   * passes as its `$_` so the reason follows a language change.
+   */
+  reason(signals: DegradedSignals, now: number, t: Translate): string | null;
 }
 
 /** The whole definition. Adding a criterion means adding it here, and only here. */
 export const DEGRADED_CRITERIA: DegradedCriterion[] = [
   {
     id: "api-errors",
-    label: "backend errors",
+    label: "chrome.degraded.api_errors",
     /* Clears itself twice over: an endpoint leaves `failing` as soon as one
        call to it succeeds, and the whole thing ages out after DEGRADED_TTL_MS
        for a route nothing is retrying any more. */
-    reason: (s, now) => (isApiDegraded(s.health, now)
-      ? `failing: ${s.health.failing.join(", ")}`
+    reason: (s, now, t) => (isApiDegraded(s.health, now)
+      ? t("chrome.degraded.api_errors_reason", { values: { endpoints: s.health.failing.join(", ") } })
       : null),
   },
   {
     id: "slow-responses",
-    label: "response times",
+    label: "chrome.degraded.slow_responses",
     /* Clears itself because the window is recent: once the fast responses
        outnumber the slow ones the p95 comes back down on its own, with nothing
        to reset. */
-    reason: (s) => (
+    reason: (s, _now, t) => (
       s.recentSamples >= SLOW_MIN_SAMPLES
         && s.recentP95Ms !== null
         && s.recentP95Ms >= SLOW_P95_MS
-        ? `p95 ${Math.round(s.recentP95Ms)} ms over ${s.recentSamples} responses`
+        ? t("chrome.degraded.slow_responses_reason", {
+          values: { p95: Math.round(s.recentP95Ms), count: s.recentSamples },
+        })
         : null
     ),
   },
   {
     id: "stale-publish",
-    label: "publish cadence",
+    label: "chrome.degraded.stale_publish",
     /* Clears itself on the next frame that lands, because the overdue figure is
        measured from the newest publish rather than from when we noticed. */
-    reason: (s) => (
+    reason: (s, _now, t) => (
       s.publishOverdueS !== null && s.publishOverdueS >= PUBLISH_OVERDUE_S
-        ? `no new frame for ${Math.round(s.publishOverdueS / 60)}m past the expected time`
+        ? t("chrome.degraded.stale_publish_reason", {
+          values: { minutes: Math.round(s.publishOverdueS / 60) },
+        })
         : null
     ),
   },
@@ -152,11 +160,12 @@ export const NOT_DEGRADED: DegradedState = { degraded: false, reasons: [] };
 
 export function evaluateDegraded(
   signals: DegradedSignals,
-  now: number = Date.now(),
+  now: number,
+  t: Translate,
 ): DegradedState {
   const reasons: DegradedReason[] = [];
   for (const criterion of DEGRADED_CRITERIA) {
-    const detail = criterion.reason(signals, now);
+    const detail = criterion.reason(signals, now, t);
     if (detail) reasons.push({ id: criterion.id, detail });
   }
   return { degraded: reasons.length > 0, reasons };

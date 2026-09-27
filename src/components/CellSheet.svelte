@@ -18,6 +18,7 @@ import { fly } from "svelte/transition";
 import { cubicOut } from "svelte/easing";
 import { onDestroy } from "svelte";
 import { get } from "svelte/store";
+import { _ } from "svelte-i18n";
 import { cellDetails, sharedActiveCap } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -471,7 +472,7 @@ function bodyUp(event: PointerEvent) {
     class="grip"
     role="button"
     tabindex="0"
-    aria-label="Resize or close details"
+    aria-label={$_("storm.sheet.grip")}
     on:pointerdown={grab}
     on:pointermove={move}
     on:pointerup={release}

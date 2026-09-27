@@ -34,6 +34,7 @@ import VolumeProvenance from "./VolumeProvenance.svelte";
 import { open3DAvailable, openCellIn3D } from "../lib/open3d";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
 import { placementLabel } from "../lib/cellPlacement";
+import { currentLocale, type Translate } from "../locale/t";
 import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
 import type { CellStep, CellTrackProperties } from "../api";
 import type { ModelFrame, VolumeInput } from "../lib/cellVolume";
@@ -55,7 +56,7 @@ const round = (value: number | null | undefined, digits = 0): string => (
  * reader do the conversion to check they are the same moment.
  */
 const clock = (iso: string): string => new Date(iso)
-  .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  .toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit", hour12: false });
 
 /** "no new data" as a value on its own: capitalised, as a label would be. */
 const sentence = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
@@ -63,8 +64,8 @@ const sentence = (text: string): string => text.charAt(0).toUpperCase() + text.s
 const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
   "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 
-const compass = (deg: number | null | undefined): string => (
-  deg === null || deg === undefined ? "–" : COMPASS[Math.round(deg / 22.5) % 16]
+const compass = (deg: number | null | undefined, t: Translate): string => (
+  deg === null || deg === undefined ? "–" : t(`storm.compass.${COMPASS[Math.round(deg / 22.5) % 16]}`)
 );
 
 /* ---- the history chart ------------------------------------------------- */
@@ -267,7 +268,7 @@ function atX(t: number): number {
 $: panels = [
   {
     key: "dbz",
-    title: "Reflectivity",
+    title: $_("storm.history.reflectivity"),
     unit: "dBZ",
     height: 62,
     axis: false,
@@ -277,7 +278,7 @@ $: panels = [
   },
   {
     key: "top",
-    title: "Echo top",
+    title: $_("storm.history.echo_top"),
     unit: "km",
     height: 58,
     axis: true,
@@ -388,7 +389,7 @@ $: gridlines = panels.map((panel) => panel.scale.ticks.map((value) => ({
   y: panel.scale.at(value),
 })));
 
-$: readings = cellReadings(track, compass);
+$: readings = cellReadings(track, (deg) => compass(deg, $_), $_);
 
 /** The current detection, in the shape the volumetric model reads. */
 $: shape = latest && (track.structure ?? []).length
@@ -488,7 +489,7 @@ function frameFor(
   };
 }
 
-$: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
+$: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, $_);
 
 /* ---- the family ---------------------------------------------------------- */
 
@@ -563,14 +564,14 @@ $: recency = cellRecency(
   tick,
   $capLatestObservation > 0 ? $capLatestObservation * 1000 : null,
 );
-$: radarOffset = radarOffsetLabel(recency.behindMinutes);
+$: radarOffset = radarOffsetLabel(recency.behindMinutes, $_);
 
 /** Alive, quiet, superseded or gone. See lib/cellStatus.ts for why it is four. */
 $: status = cellStatus({
   active: track.active,
   child_codes: track.child_codes,
   ageMinutes: recency.ageMinutes,
-});
+}, $_);
 $: observedAt = clock(track.last_seen);
 
 /**
@@ -590,47 +591,51 @@ function close() {
 }
 </script>
 
-<StormPanel rule={colour} label="{BAND_NAMES[severity]} storm" {place} onClose={close}>
-  <span slot="header" class="headline severity">{BAND_NAMES[severity]}</span>
+<StormPanel rule={colour} label={$_(`storm.storm_label.${BAND_NAMES[severity]}`)} {place} onClose={close}>
+  <span slot="header" class="headline severity">{$_(`storm.band.${BAND_NAMES[severity]}`)}</span>
 
   <!-- Whether it is still there, how long it has been, and how old the
        numbers below are: the three things to know before reading any of
        them, in a row under the title. -->
   <dl class="stats">
     <div>
-      <dt>Status</dt>
+      <dt>{$_("storm.stat.status")}</dt>
       <!-- The dot is the same signal the "Latest" pill uses for the feed, and
            it means the same thing here: something is still arriving. -->
       <dd class="status {status.kind}"><span class="dot"></span>{sentence(status.label)}</dd>
     </div>
     <div>
-      <dt>Tracked</dt>
+      <dt>{$_("storm.stat.tracked")}</dt>
       <dd>{age}</dd>
     </div>
     <div>
-      <dt>Updated</dt>
-      <dd class:behind={radarOffset !== null}>{duration(recency.ageMinutes)} ago</dd>
+      <dt>{$_("storm.stat.updated")}</dt>
+      <dd class:behind={radarOffset !== null}>
+        {$_("storm.ago", { values: { duration: duration(recency.ageMinutes, $_) } })}
+      </dd>
     </div>
   </dl>
 
   <div class="signals">
     {#if track.meso_ever}
       <span class="signal rotating">
-        Rotating{track.meso_minutes ? ` ${duration(track.meso_minutes)}` : ""}
+        {$_("storm.signal.rotating")}{track.meso_minutes ? ` ${duration(track.meso_minutes, $_)}` : ""}
       </span>
     {/if}
     {#if track.hail_ever}
       <span class="signal hail">
-        Hail{track.hail_minutes ? ` ${duration(track.hail_minutes)}` : ""}
+        {$_("hail")}{track.hail_minutes ? ` ${duration(track.hail_minutes, $_)}` : ""}
       </span>
     {/if}
-    {#if track.lightning_jump_recent}<span class="signal jump">Lightning Jump</span>{/if}
-    {#if track.intensifying}<span class="signal up">Intensifying</span>{/if}
-    {#if track.split_ever}<span class="signal lineage">Split</span>{/if}
-    {#if track.merge_ever}<span class="signal lineage">Merged</span>{/if}
+    {#if track.lightning_jump_recent}<span class="signal jump">{$_("storm.signal.lightning_jump")}</span>{/if}
+    {#if track.intensifying}<span class="signal up">{$_("storm.signal.intensifying")}</span>{/if}
+    {#if track.split_ever}<span class="signal lineage">{$_("storm.signal.split")}</span>{/if}
+    {#if track.merge_ever}<span class="signal lineage">{$_("storm.signal.merged")}</span>{/if}
     {#if track.deviation_deg !== null && track.deviation_deg !== undefined
       && track.deviation_deg > DEVIANT_DEGREES}
-      <span class="signal deviant">Deviant {round(track.deviation_deg)}&deg;</span>
+      <span class="signal deviant">
+        {$_("storm.signal.deviant", { values: { deg: round(track.deviation_deg) } })}
+      </span>
     {/if}
   </div>
 
@@ -640,17 +645,19 @@ function close() {
     </div>
   {/if}
 
-  <h3 class="section">Readings</h3>
+  <h3 class="section">{$_("storm.section.readings")}</h3>
   <Readings items={readings} />
 
   <!-- Numbers before models: the readings are the answer to "how bad is it",
        which is what a reader wants first, and the 3D shapes are the slower,
        more exploratory read that can wait until they have scrolled to it. -->
   {#if shape && !phone3d}
-    <h3 class="section">Structure<span class="aside">drag to turn</span></h3>
+    <h3 class="section">
+      {$_("storm.section.structure")}<span class="aside">{$_("storm.section.structure_aside")}</span>
+    </h3>
     <figure class="model">
       <CellModel3D cell={shape} frame={modelFrame} width={CHART.width} height={200} />
-      <figcaption>at {observedAt}</figcaption>
+      <figcaption>{$_("storm.model_at", { values: { time: observedAt } })}</figcaption>
     </figure>
   {/if}
 
@@ -667,7 +674,9 @@ function close() {
       <VolumeProvenance volume={track.volume} at={latest ?? null} />
     {/key}
   {:else if track.volume}
-    <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
+    <h3 class="section">
+      {$_("storm.section.inside")}<span class="aside">{$_("storm.section.inside_aside")}</span>
+    </h3>
     <figure class="model">
       <!-- Keyed on the volume: the cutaway fetches once, on mount, so walking
            the family from one cell with a volume to another kept drawing the
@@ -685,19 +694,19 @@ function close() {
          neighbours rather than alone in a box. -->
     {#if $open3DAvailable}
       <button type="button" class="open-3d" on:click={() => openCellIn3D(track)}>
-        Open on the 3D map
+        {$_("storm.open_3d")}
       </button>
     {/if}
   {/if}
 
   {#if span && panels.length}
-    <h3 class="section">History</h3>
+    <h3 class="section">{$_("storm.section.history")}</h3>
     <div class="history">
       {#each panels as panel, panelIndex (panel.key)}
         <figure>
           <figcaption>{panel.title}, {panel.unit}</figcaption>
           <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
-               aria-label="{panel.title.toLowerCase()} over the tracked period, in {panel.unit}">
+               aria-label={$_("storm.history.aria", { values: { title: panel.title, unit: panel.unit } })}>
             {#each gridlines[panelIndex] ?? [] as line (line.value)}
               <line class="grid" x1={plot.x0} x2={plot.x1} y1={line.y} y2={line.y} />
               <text class="tick left" x={plot.x0 - 5} y={line.y}>{line.value}</text>
@@ -712,7 +721,7 @@ function close() {
                    lower one's top gridline label sits where this would go. -->
               {#if panelIndex === 0 && nowLabel}
                 <text class="nowlabel" x={nowLabel.x} y={CHART.top + 7}
-                      text-anchor={nowLabel.anchor}>now</text>
+                      text-anchor={nowLabel.anchor}>{$_("now")}</text>
               {/if}
             {/if}
 
@@ -760,10 +769,10 @@ function close() {
 
   <CellLineage {track} known={family} loading={loadingFamily} now={tick} />
 
-  <h3 class="section">Details</h3>
+  <h3 class="section">{$_("storm.section.details")}</h3>
   <dl class="facts">
     <div>
-      <dt>Observed</dt>
+      <dt>{$_("storm.fact.observed")}</dt>
       <dd>{observedAt}</dd>
     </div>
     <!-- Everything above is one detection, and the panel used to imply it was
@@ -772,16 +781,20 @@ function close() {
          the two are out of step and absent when they are not. -->
     {#if radarOffset}
       <div>
-        <dt>Radar</dt>
+        <dt>{$_("storm.fact.radar")}</dt>
         <dd class="behind">{radarOffset}</dd>
       </div>
     {/if}
     {#if track.active && forecast.length}
       <div>
-        <dt>Forecast</dt>
+        <dt>{$_("storm.fact.forecast")}</dt>
         <dd>
-          to {clock(forecast[forecast.length - 1].t)},
-          &plusmn;{round(forecast[forecast.length - 1].major_km, 1)} km
+          {$_("storm.fact.forecast_value", {
+            values: {
+              time: clock(forecast[forecast.length - 1].t),
+              km: round(forecast[forecast.length - 1].major_km, 1),
+            },
+          })}
         </dd>
       </div>
     {/if}

@@ -70,6 +70,30 @@ export const latLon = writable<[number, number] | null>(null);
  */
 export const inspectLatLon = writable<[number, number] | null>(null);
 /**
+ * Whether the radar has nothing for the client's own position: no echo at it
+ * in any step of the grid, the two hours behind or the nowcast ahead. The
+ * forecast strip's `hasPrecipitation` turned around -- the strip shows when
+ * there is rain to plot, and this is the moment it has nothing to say.
+ *
+ * Only ever answered from a grid sampled at `latLon`, never one sampled at a
+ * tapped point, so asking about somewhere else leaves it as it was. False
+ * whenever the answer is not known: no position, or no grid for it yet.
+ */
+export const dryAtUser = writable<boolean>(false);
+/**
+ * A point the map was held down on, as [lat, lon], while the choice of what
+ * to ask about it is up -- the precipitation there, or the forecast. Null
+ * when no choice is being offered. See PointMenu.
+ */
+export const pointMenuAt = writable<[number, number] | null>(null);
+/**
+ * Where the model comparison is open for, or null when it is shut. A store
+ * rather than one component's state: the dry-weather strip over the tray opens
+ * it, on the range it was showing, and so does a long press on the map. Open
+ * it through `openModelCompare` in lib/modelCompare.ts.
+ */
+export const modelCompareAt = writable<{ lat: number; lon: number; hours?: number } | null>(null);
+/**
  * Bumped on every tap on the map, whichever layer is showing. Separate from
  * inspectLatLon because a tap means "I am asking about the map" to strips that
  * have nothing to do with a point -- the lightning histogram covers the whole
@@ -139,6 +163,13 @@ export const radarCadence = writable<Cadence>(EMPTY_CADENCE);
  * is RadarCapability.
  */
 export const radarStale = writable<boolean>(false);
+/**
+ * Whether the backend is replaying a recorded storm rather than serving live
+ * weather -- the demo environment always is. Replay rewrites every timestamp
+ * to the present, so nothing on the map can tell; the backend says so on the
+ * radar timeseries, and the top pill says "Demo" where it would say "Latest".
+ */
+export const replay = writable<boolean>(false);
 export const zoomlevel = writable<number>(3);
 
 export const lightningLayerVisible = writable<boolean>(true);

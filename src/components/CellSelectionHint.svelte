@@ -14,6 +14,7 @@
  * it is also acknowledged: the reader learns they hit a strong cell that has
  * been going for half an hour, which for a lot of taps is the whole question.
  */
+import { _ } from "svelte-i18n";
 import { cellDetails, openStripCount, selectedCell } from "../stores";
 import { swipeAway } from "../lib/swipeAway";
 import { severityColour } from "../layers/cells";
@@ -23,7 +24,7 @@ export let track: import("../api").CellTrackProperties;
 
 $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
-$: alive = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
+$: alive = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, $_);
 
 /* DismissableStrip's own dock is a fixed 104px plus the 8px tray gap it docks
    above the toolbar with; stacking above it (rather than over it, which is
@@ -221,11 +222,13 @@ const onSwipeEnd = (cleared: boolean) => {
   use:swipeAway={{ onMove: onSwipe, onEnd: onSwipeEnd }}>
   <span class="swatch" style="background: {colour}"></span>
   <span class="what">
-    <span class="title"><b>{BAND_NAMES[severity]}</b> cell</span>
-    <span class="alive">alive for {alive}</span>
+    <span class="title">
+      <b>{$_(`storm.hint.band.${BAND_NAMES[severity]}`)}</b> {$_("storm.hint.cell")}
+    </span>
+    <span class="alive">{$_("storm.hint.alive", { values: { duration: alive } })}</span>
   </span>
   <button type="button" class="go" on:click={open}>
-    Details <span class="chevron" aria-hidden="true">›</span>
+    {$_("storm.hint.details")} <span class="chevron" aria-hidden="true">›</span>
   </button>
-  <button type="button" class="close" on:click={dismiss} aria-label="Clear selection">&times;</button>
+  <button type="button" class="close" on:click={dismiss} aria-label={$_("storm.hint.clear")}>&times;</button>
 </div>

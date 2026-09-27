@@ -1,4 +1,5 @@
 import Control from "ol/control/Control";
+import { t } from "../locale/t";
 
 /**
  * The system's location glyph: an arrow, not a crosshair.
@@ -58,7 +59,7 @@ export default class GeolocateControl extends Control {
   private locateHandler: LocateHandler;
 
   constructor(options: GeolocateControlOptions) {
-    const title = options.title ?? "Locate me";
+    const title = options.title ?? t("chrome.locate_me");
     const element = document.createElement("div");
     element.className = `ol-unselectable ol-control ${options.className ?? "ol-geolocate"}`;
 

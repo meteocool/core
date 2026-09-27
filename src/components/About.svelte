@@ -56,12 +56,12 @@ import GlassPanel from "./GlassPanel.svelte";
       <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"
         ><img
           src="assets/ios-app-store.png"
-          alt="ios app store link"
+          alt={$_("chrome.alt.app_store")}
           class="appstore-logo about" /></a>
       <a href="https://play.google.com/store/apps/details?id=com.meteocool"
         ><img
           class="appstore-logo about"
-          alt="google play app store"
+          alt={$_("chrome.alt.play_store")}
           src="assets/google-play-store.png" /></a>
     </div>
     <h2>{$_("features.header")}</h2>
@@ -88,7 +88,7 @@ import GlassPanel from "./GlassPanel.svelte";
       <img
         src="assets/volunteers.png"
         class="volunteers"
-        alt="not actually the volunteers" />
+        alt={$_("chrome.alt.not_the_volunteers")} />
     </p>
     <p>
       {@html $_("credits_help.text1")}

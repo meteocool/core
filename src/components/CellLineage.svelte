@@ -45,6 +45,7 @@ import { selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
 import { axisOffsets, buildLineage, nodeRole } from "../lib/cellLineage";
 import { placementLabel } from "../lib/cellPlacement";
+import { currentLocale, type Translate } from "../locale/t";
 import type { CellTrackProperties } from "../api";
 
 export let track: CellTrackProperties;
@@ -103,7 +104,7 @@ $: lineage = buildLineage(known, track.code);
 
 /** 24-hour, as everything else in this panel is. */
 const clock = (iso: string): string => new Date(iso)
-  .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  .toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit", hour12: false });
 
 interface Placed {
   code: string;
@@ -148,7 +149,7 @@ interface Laid {
  * rather than kept and updated -- these are a handful of nodes and the cost of
  * a rebuild is nothing next to the cost of a stale one.
  */
-function layout(graph: ReturnType<typeof buildLineage>, nowMs: number): Laid | null {
+function layout(graph: ReturnType<typeof buildLineage>, nowMs: number, t: Translate): Laid | null {
   if (graph.nodes.length < 2) return null;
   const g = new dagre.graphlib.Graph();
   g.setGraph({
@@ -188,9 +189,14 @@ function layout(graph: ReturnType<typeof buildLineage>, nowMs: number): Laid | n
       // reading "16:45" with nothing to tell them apart. This is also what a
       // reader is scanning the family for: which of these was the big one.
       peak: node.peakDbz === null ? "" : `${Math.round(node.peakDbz)} dBZ`,
-      place: placementLabel(known.get(node.code)?.placement, $_, "short") ?? "",
-      label: `${nodeRole(graph, node.code) || "cell"}, first seen ${clock(node.firstSeen)}`
-        + (node.peakDbz === null ? "" : `, peak ${Math.round(node.peakDbz)} dBZ`),
+      place: placementLabel(known.get(node.code)?.placement, t, "short") ?? "",
+      label: t(node.peakDbz === null ? "storm.lineage.node" : "storm.lineage.node_peak", {
+        values: {
+          role: t(`storm.lineage.role.${nodeRole(graph, node.code) || "cell"}`),
+          time: clock(node.firstSeen),
+          dbz: node.peakDbz === null ? "" : Math.round(node.peakDbz),
+        },
+      }),
     };
   });
 
@@ -236,7 +242,8 @@ function layout(graph: ReturnType<typeof buildLineage>, nowMs: number): Laid | n
   };
 }
 
-$: laid = layout(lineage, now);
+// `$_` passed in rather than read inside, so a change of language relays it.
+$: laid = layout(lineage, now, $_);
 
 let figure: HTMLElement;
 let scroller: HTMLElement;
@@ -473,7 +480,8 @@ function activate(event: KeyboardEvent, code: string) {
 {#if laid}
   <figure bind:this={figure}>
     <figcaption class="section">
-      Family<span class="aside">tap to follow{#if loading} &middot; loading…{/if}</span>
+      {$_("storm.section.family")}<span class="aside"
+        >{$_("storm.lineage.tap")}{#if loading} &middot; {$_("storm.lineage.loading")}{/if}</span>
     </figcaption>
     <div
       class="scroll"
@@ -484,7 +492,7 @@ function activate(event: KeyboardEvent, code: string) {
         #000 calc(100% - {fadeEnd}px), transparent 100%)"
     >
       <svg width={laid.width} height={laid.height} viewBox="0 0 {laid.width} {laid.height}"
-        role="group" aria-label="Storm lineage">
+        role="group" aria-label={$_("storm.lineage.aria")}>
         <!-- The clock, and a rule down the chart at every moment a cell in
              this family was first detected. Before this the columns were
              dagre's ranks, which are depth in the graph rather than time: one
@@ -501,7 +509,7 @@ function activate(event: KeyboardEvent, code: string) {
              of the chart, where a label to its right would be off the edge. -->
         {#if laid.nowX !== null}
           <line class="nowline" x1={laid.nowX} x2={laid.nowX} y1="0" y2={laid.height - AXIS_H} />
-          <text class="nowlabel" x={laid.nowX - 3} y="8">now</text>
+          <text class="nowlabel" x={laid.nowX - 3} y="8">{$_("now")}</text>
         {/if}
 
         {#each laid.edges as d, i (i)}

@@ -16,16 +16,16 @@
  * thicket and the tooltip names it.
  */
 import { onDestroy } from "svelte";
-import {
-  Chart, Filler, LineController, LineElement, PointElement, Tooltip,
-} from "chart.js";
+import { _, locale } from "svelte-i18n";
+import type { Chart } from "chart.js";
 import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
-import { modelById } from "../lib/compare/models";
+import { drawSpread } from "../lib/compare/spreadChart";
+import { stepAt } from "../lib/compare/outlook";
 
 export let lat: number;
 export let lon: number;
-
-Chart.register(LineController, LineElement, PointElement, Filler, Tooltip);
+/** Which range to open on: 24 (the default) or 168. */
+export let initialHours = 24;
 
 /**
  * Rain chance leads, temperature is a tap away.
@@ -38,21 +38,22 @@ Chart.register(LineController, LineElement, PointElement, Filler, Tooltip);
  */
 type Variable = "precipitation_probability" | "temperature_2m";
 
-const VARIABLES: Array<{ id: Variable; label: string; unit: string; max?: number }> = [
-  { id: "precipitation_probability", label: "Rain Chance", unit: "%", max: 100 },
-  { id: "temperature_2m", label: "Temperature", unit: "°" },
+/* Each one's label is `compare.variable.<id>`. */
+const VARIABLES: Array<{ id: Variable; unit: string; max?: number }> = [
+  { id: "precipitation_probability", unit: "%", max: 100 },
+  { id: "temperature_2m", unit: "°" },
 ];
 
 /* A day is what the next decision is made on; the week is for planning. The
    long view is a toggle rather than the default because seven days of hourly
    lines compresses each day into ~90px, where the daily cycle is a blur. */
-const RANGES: Array<{ hours: number; label: string }> = [
-  { hours: 24, label: "24 h" },
-  { hours: 168, label: "7 Days" },
+const RANGES: Array<{ hours: number; key: string }> = [
+  { hours: 24, key: "compare.range.day" },
+  { hours: 168, key: "compare.range.week" },
 ];
 
 let variable: Variable = "precipitation_probability";
-let hours = 24;
+let hours = initialHours;
 
 /* One fetch per variable, kept: the range toggle is a slice of what is already
    here, and switching back and forth should not re-ask open-meteo.
@@ -69,68 +70,6 @@ let canvas: HTMLCanvasElement | null = null;
 
 $: spec = VARIABLES.find((v) => v.id === variable)!;
 
-/** Read once per build: the tokens flip with the theme, the chart does not. */
-const token = (name: string, fallback: string) => (
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
-);
-
-function quantile(sorted: number[], q: number): number {
-  if (sorted.length === 1) return sorted[0];
-  const pos = (sorted.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  const next = sorted[base + 1];
-  return next === undefined ? sorted[base] : sorted[base] + rest * (next - sorted[base]);
-}
-
-/** min / median / max across whatever models answered, per step. */
-function envelope(series: HourlySeries, steps: number) {
-  const ids = Object.keys(series.series);
-  const min: Array<number | null> = [];
-  const max: Array<number | null> = [];
-  const mid: Array<number | null> = [];
-  const count: number[] = [];
-  for (let i = 0; i < steps; i += 1) {
-    const values = ids
-      .map((id) => series.series[id][i])
-      .filter((v): v is number => typeof v === "number" && Number.isFinite(v))
-      .sort((a, b) => a - b);
-    count.push(values.length);
-    if (!values.length) {
-      min.push(null); max.push(null); mid.push(null);
-      continue;
-    }
-    min.push(values[0]);
-    max.push(values[values.length - 1]);
-    mid.push(quantile(values, 0.5));
-  }
-  return { min, max, mid, count };
-}
-
-/**
- * Which x positions are worth a label, at this range.
- *
- * Over a week that is the midnights, one per day. Over a day the midnights are
- * one tick, so the axis marks every six hours instead -- the same rule at both
- * ranges would leave a 24h chart with a single label on it.
- */
-function labels(times: number[], span: number): string[] {
-  const everyDay = span > 48;
-  return times.map((t) => {
-    const d = new Date(t);
-    if (everyDay) {
-      return d.getHours() === 0
-        ? d.toLocaleDateString(undefined, { weekday: "short" })
-        : "";
-    }
-    return d.getHours() % 6 === 0
-      // 24-hour throughout the app: these are meteorological times, read
-      // against model runs and radar timestamps that are all written that way.
-      ? d.toLocaleTimeString(undefined, { hour: "numeric", hour12: false })
-      : "";
-  });
-}
-
 function build(node: HTMLCanvasElement) {
   canvas = node;
   if (data) draw();
@@ -140,145 +79,11 @@ function build(node: HTMLCanvasElement) {
 function draw() {
   if (!canvas || !data) return;
   chart?.destroy();
-
-  const ink = token("--mc-text-2", "#666");
-  const faint = token("--mc-hairline", "rgba(0,0,0,0.1)");
-  const accent = token("--mc-accent", "#007aff");
-  const band = token("--mc-accent-tint", "rgba(0,122,255,0.14)");
-  const thicket = token("--mc-plot-thicket", "rgba(60,60,67,0.16)");
-
   // The window, not the whole download: the range toggle slices what is here.
-  const steps = Math.min(hours, data.times.length);
-  const times = data.times.slice(0, steps);
-  const env = envelope(data, steps);
-  const ids = Object.keys(data.series);
-  const labelAt = labels(times, steps);
-
-  const modelLines = ids.map((id) => ({
-    label: modelById(id)?.label ?? id,
-    data: data!.series[id].slice(0, steps),
-    borderColor: thicket,
-    borderWidth: 1.25,
-    pointRadius: 0,
-    // The hit area is generous even though the line is hairline: picking one
-    // model out of twenty-one is the whole interaction.
-    pointHitRadius: 8,
-    hoverBorderWidth: 2.5,
-    hoverBorderColor: accent,
-    tension: 0.25,
-    fill: false,
-    order: 3,
-  }));
-
-  chart = new Chart(canvas.getContext("2d")!, {
-    type: "line",
-    data: {
-      labels: labelAt,
-      datasets: [
-        {
-          label: "warmest",
-          data: env.max,
-          borderColor: "transparent",
-          pointRadius: 0,
-          pointHitRadius: 0,
-          fill: false,
-          order: 5,
-        },
-        {
-          label: "range",
-          data: env.min,
-          borderColor: "transparent",
-          backgroundColor: band,
-          pointRadius: 0,
-          pointHitRadius: 0,
-          // Fills up to the dataset before it: the models' full spread.
-          fill: "-1",
-          order: 5,
-        },
-        ...modelLines,
-        {
-          label: "median",
-          data: env.mid,
-          borderColor: accent,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHitRadius: 0,
-          tension: 0.25,
-          fill: false,
-          order: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      interaction: { mode: "nearest", intersect: false, axis: "xy" },
-      layout: { padding: { top: 4, right: 2, bottom: 0, left: 0 } },
-      plugins: {
-        legend: { display: false },
-        /* The datalabels plugin is registered app-wide for the radar chart, so
-           without this it writes a number onto all 2500 points here. */
-        datalabels: { display: false },
-        tooltip: {
-          displayColors: false,
-          /* The band is drawn with two invisible datasets; when a model's line
-             runs along the edge of the range, "nearest" picks both and the
-             tooltip says the same thing twice under a meaningless name. */
-          filter: (item) => item.dataset.label !== "range"
-            && item.dataset.label !== "warmest",
-          // Every model is a dataset; listing all of them would be a wall.
-          // The nearest line is the one being asked about.
-          callbacks: {
-            title: (items) => {
-              const index = items[0]?.dataIndex ?? 0;
-              return new Date(times[index]).toLocaleString(undefined, {
-                weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
-              });
-            },
-            label: (item) => {
-              const index = item.dataIndex;
-              const lo = env.min[index];
-              const hi = env.max[index];
-              const digits = spec.max ? 0 : 1;
-              const spread = lo != null && hi != null ? (hi - lo).toFixed(digits) : "–";
-              return [
-                `${item.dataset.label}: ${Number(item.parsed.y).toFixed(spec.max ? 0 : 1)}${spec.unit}`,
-                `median ${env.mid[index]?.toFixed(digits) ?? "–"} · spread ${spread} · ${env.count[index]} models`,
-              ];
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: {
-            display: true,
-            drawTicks: false,
-            /* A rule per day, not per hour: 168 verticals is a hatch, and the
-               only x position worth marking is where one day becomes the next. */
-            color: (ctx) => (labelAt[ctx.index] ? faint : "transparent"),
-          },
-          border: { display: false },
-          ticks: {
-            color: ink,
-            autoSkip: false,
-            maxRotation: 0,
-            callback: (_value, index) => labelAt[index] ?? "",
-          },
-        },
-        y: {
-          grid: { color: faint, drawTicks: false },
-          border: { display: false },
-          // A probability has a fixed ceiling, so the axis keeps it: a chart
-          // auto-scaled to 0-40% makes a quiet day look like a wet one.
-          min: spec.max ? 0 : undefined,
-          max: spec.max,
-          ticks: { color: ink, maxTicksLimit: 5, callback: (v) => `${v}${spec.unit}` },
-        },
-      },
-    },
-  });
+  // From the present hour, not from index 0: open-meteo's series start at
+  // local midnight, so "24 h" used to spend the morning's first hours on the
+  // past and stop short of this time tomorrow.
+  chart = drawSpread(canvas, data, { from: stepAt(data.times, Date.now()), steps: hours, spec });
 }
 
 async function load(which: Variable) {
@@ -312,8 +117,9 @@ async function load(which: Variable) {
 
 $: load(variable);
 /* Redrawing on a range change is a slice, not a fetch. Named so the reactive
-   block has something to depend on without re-running for anything else. */
-$: if (data && hours) draw();
+   block has something to depend on without re-running for anything else --
+   the language included, since the axis labels are baked in at draw time. */
+$: if (data && hours && $locale) draw();
 
 onDestroy(() => chart?.destroy());
 
@@ -321,20 +127,15 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
 </script>
 
 <style>
+  /* The heading is the drawer's own section heading (StormPanel's .section);
+     this only sets what sits under it. */
   .wrap {
-    margin: 0 16px 8px;
-  }
-
-  h2 {
-    margin: 0 0 1px;
-    font: 700 15px/1.25 var(--mc-font);
-    letter-spacing: -0.01em;
-    color: var(--mc-text);
+    margin: 0 0 8px;
   }
 
   .sub {
-    margin: 0 0 8px;
-    font: 400 12px/1.35 var(--mc-font);
+    margin: -4px 0 12px;
+    font: 400 13px/1.4 var(--mc-font);
     color: var(--mc-text-2);
   }
 
@@ -371,7 +172,7 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
                 color var(--mc-motion-fast) var(--mc-ease);
   }
   .segmented button.on {
-    background: var(--mc-sheet);
+    background: var(--mc-sheet-card);
     color: var(--mc-text);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   }
@@ -425,43 +226,40 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
 </style>
 
 <div class="wrap">
-  <h2>{spec.label}, all models</h2>
-  <p class="sub">
-    Where they agree the band is narrow. Where it widens, the forecast is a
-    guess. Hover a line to see which model it is.
-  </p>
+  <h3 class="section">{$_("compare.spread.heading", { values: { variable: $_(`compare.variable.${spec.id}`) } })}</h3>
+  <p class="sub">{$_("compare.spread.sub")}</p>
 
   <div class="controls">
-    <div class="segmented" role="group" aria-label="Variable">
+    <div class="segmented" role="group" aria-label={$_("compare.spread.variable_group")}>
       {#each VARIABLES as option (option.id)}
         <button
           type="button"
           class:on={variable === option.id}
           aria-pressed={variable === option.id}
-          on:click={() => { variable = option.id; }}>{option.label}</button>
+          on:click={() => { variable = option.id; }}>{$_(`compare.variable.${option.id}`)}</button>
       {/each}
     </div>
-    <div class="segmented" role="group" aria-label="Range">
+    <div class="segmented" role="group" aria-label={$_("compare.spread.range_group")}>
       {#each RANGES as option (option.hours)}
         <button
           type="button"
           class:on={hours === option.hours}
           aria-pressed={hours === option.hours}
-          on:click={() => { hours = option.hours; }}>{option.label}</button>
+          on:click={() => { hours = option.hours; }}>{$_(option.key)}</button>
       {/each}
     </div>
   </div>
 
   {#if error}
-    <p class="error">Could not load the model spread. {error}</p>
+    <p class="error">{$_("compare.spread.error")} {error}</p>
   {:else}
     <div class="plot" class:loading>
       <canvas use:build></canvas>
     </div>
     <div class="legend">
-      <span><i class="key"></i>Median</span>
-      <span><i class="key band"></i>Range Across Models</span>
-      <span><i class="key thin"></i>{modelCount || 21} models</span>
+      <span><i class="key"></i>{$_("compare.spread.median")}</span>
+      <span><i class="key band"></i>{$_("compare.spread.range")}</span>
+      <span><i class="key thin"></i>{$_("compare.models", { values: { count: modelCount || 21 } })}</span>
     </div>
   {/if}
 </div>
