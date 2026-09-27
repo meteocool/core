@@ -24,8 +24,12 @@
  */
 import CloseDisc from "./CloseDisc.svelte";
 
-/** The storm's own colour, for the rule down the header. */
-export let rule: string;
+/**
+ * The storm's own colour, for the rule down the header. None for a panel that
+ * is not about one storm -- the model comparison takes this frame too, so every
+ * drawer reads as the same kind of thing.
+ */
+export let rule: string | null = null;
 /** What a screen reader calls the panel. */
 export let label: string;
 /** Where the storm is, on its own line under the header; none at sea or offline. */
@@ -60,7 +64,7 @@ function onKeydown(event: KeyboardEvent) {
   <header>
     <!-- The storm's own colour, as the map draws it, so the panel says which
          of the shapes behind it it is about. -->
-    <span class="rule" style:background={rule} aria-hidden="true"></span>
+    {#if rule}<span class="rule" style:background={rule} aria-hidden="true"></span>{/if}
     <div class="titles">
       <h2 class="title"><slot name="header" /></h2>
       {#if place}<p class="place">{place}</p>{/if}

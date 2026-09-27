@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { STALE_MINUTES, cellStatus } from "../../src/lib/cellStatus.ts";
+import type { Translate } from "../../src/locale/t.ts";
+
+/** Names the message and what was put into it, so the tests see both. */
+const t: Translate = (key, options) => (
+  options?.values
+    ? `${key}(${Object.entries(options.values).map(([name, value]) => `${name}=${value}`).join(",")})`
+    : key
+);
 
 /**
  * A storm that stopped, a storm that became two storms, and a storm nobody has
@@ -11,29 +19,29 @@ import { STALE_MINUTES, cellStatus } from "../../src/lib/cellStatus.ts";
 const live = { active: true, ageMinutes: 3 };
 
 test("a recently detected active cell is live", () => {
-  assert.deepEqual(cellStatus(live), { kind: "live", label: "live" });
+  assert.deepEqual(cellStatus(live, t), { kind: "live", label: "storm.status.live" });
 });
 
 test("one missed run is jitter, not staleness", () => {
-  assert.equal(cellStatus({ active: true, ageMinutes: 6 }).kind, "live");
+  assert.equal(cellStatus({ active: true, ageMinutes: 6 }, t).kind, "live");
 });
 
 test("an active cell nothing has been heard from is stale", () => {
-  assert.equal(cellStatus({ active: true, ageMinutes: STALE_MINUTES }).kind, "stale");
-  assert.equal(cellStatus({ active: true, ageMinutes: 40 }).kind, "stale");
+  assert.equal(cellStatus({ active: true, ageMinutes: STALE_MINUTES }, t).kind, "stale");
+  assert.equal(cellStatus({ active: true, ageMinutes: 40 }, t).kind, "stale");
 });
 
 test("an ended cell with children was superseded, not lost", () => {
-  const status = cellStatus({ active: false, child_codes: ["B"], ageMinutes: 5 });
-  assert.deepEqual(status, { kind: "superseded", label: "superseded" });
+  const status = cellStatus({ active: false, child_codes: ["B"], ageMinutes: 5 }, t);
+  assert.deepEqual(status, { kind: "superseded", label: "storm.status.superseded" });
 });
 
 test("an ended cell with nowhere to go dissipated", () => {
-  assert.equal(cellStatus({ active: false, child_codes: [], ageMinutes: 5 }).kind, "ended");
-  assert.equal(cellStatus({ active: false, ageMinutes: 5 }).kind, "ended");
+  assert.equal(cellStatus({ active: false, child_codes: [], ageMinutes: 5 }, t).kind, "ended");
+  assert.equal(cellStatus({ active: false, ageMinutes: 5 }, t).kind, "ended");
 });
 
 test("age never promotes an ended cell back to stale", () => {
   // The cell is gone; how long ago it went is the footer's business.
-  assert.equal(cellStatus({ active: false, ageMinutes: 300 }).kind, "ended");
+  assert.equal(cellStatus({ active: false, ageMinutes: 300 }, t).kind, "ended");
 });

@@ -145,7 +145,34 @@ export interface HourlySeries {
  * far apart are the models, and when", which only reads as a curve over time.
  * Same endpoint, `hourly` instead of `daily`.
  */
-export async function fetchHourlySeries(
+/**
+ * Answers already had, for ten minutes: the strip on the map and the full
+ * comparison it opens ask for the same series at the same point, and
+ * open-meteo's free tier is rate limited. Keyed to about 100 m, which is
+ * finer than any model's grid. A failed fetch is dropped, so it is retried.
+ */
+const HOURLY_TTL_MS = 10 * 60 * 1000;
+const hourlyCache = new Map<string, { at: number; answer: Promise<HourlySeries> }>();
+
+export function fetchHourlySeries(
+  req: ForecastRequest & { variable?: string },
+): Promise<HourlySeries> {
+  // A caller that can abort gets its own request: one reader giving up must
+  // not cancel the answer another is waiting on.
+  if (req.signal) return fetchHourlySeriesUncached(req);
+  const key = [
+    req.lat.toFixed(3), req.lon.toFixed(3), req.variable ?? "temperature_2m",
+    req.forecastDays ?? 7, (req.models ?? MODEL_IDS).join(","),
+  ].join("|");
+  const cached = hourlyCache.get(key);
+  if (cached && Date.now() - cached.at < HOURLY_TTL_MS) return cached.answer;
+  const answer = fetchHourlySeriesUncached(req);
+  hourlyCache.set(key, { at: Date.now(), answer });
+  answer.catch(() => { if (hourlyCache.get(key)?.answer === answer) hourlyCache.delete(key); });
+  return answer;
+}
+
+async function fetchHourlySeriesUncached(
   req: ForecastRequest & { variable?: string },
 ): Promise<HourlySeries> {
   const models = req.models ?? MODEL_IDS;

@@ -18,6 +18,7 @@
  * core with none -- with a tick of haptics where the device has them.
  */
 import { onDestroy } from "svelte";
+import { _ } from "svelte-i18n";
 import { cutRotationDeg, cutSweepDeg } from "../stores";
 import { stopSweep } from "../lib/cutSweep";
 import { cutLabel, cutSnapLabels, normaliseCut } from "../lib/cutAngle";
@@ -64,8 +65,8 @@ $: shown = $cutRotationDeg + $cutSweepDeg;
 let angle = $cutRotationDeg;
 $: if (!dragging && !frame && Math.abs(normaliseCut(angle - shown)) > 0.01) angle = shown;
 
-$: [alongName, acrossName] = cutSnapLabels(reference);
-$: label = cutLabel(shown, reference);
+$: [alongName, acrossName] = cutSnapLabels(reference, $_);
+$: label = cutLabel(shown, $_, reference);
 
 /** The name a major tick carries, if it is one of the two directions that mean something. */
 function named(deg: number): string | null {
@@ -222,7 +223,7 @@ onDestroy(stop);
     <span class="label">{label}</span>
     {#if Math.abs(normaliseCut(shown)) % 180 >= 1}
       <button type="button" class="reset" on:click={reset}>
-        {reference === "north" ? "north–south" : "along track"}
+        {$_(reference === "north" ? "storm.cut.reset_north" : "storm.cut.reset_track")}
       </button>
     {/if}
   </div>
@@ -232,7 +233,7 @@ onDestroy(stop);
     bind:clientWidth={width}
     role="slider"
     tabindex="0"
-    aria-label="Turn the cut"
+    aria-label={$_("storm.cut.dial_aria")}
     aria-valuemin={-180}
     aria-valuemax={180}
     aria-valuenow={Math.round(normaliseCut(shown))}
