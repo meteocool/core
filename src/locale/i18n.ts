@@ -23,9 +23,7 @@ register("nl", () => import("./nl.json"));
 register("cs", () => import("./cs.json"));
 register("sk", () => import("./sk.json"));
 
-/* The app's language when it says, else the browser's: choose.ts. An app
-   that says so after load -- injectSettings({ lang }) -- moves it through the
-   `lang` setting in App.svelte. */
+/* The browser's language, or `?lang=`: choose.ts. */
 init({
   fallbackLocale: "en",
   initialLocale: chooseLocale(),
