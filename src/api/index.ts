@@ -14,6 +14,7 @@ import { markAbsent, nextHealth } from "../lib/apiHealth";
 import { progress } from "../lib/progress";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
+import type { NetworkEvent } from "./events";
 
 type Schemas = ApiSchemas["schemas"];
 
@@ -129,7 +130,10 @@ async function request<T>(
 }
 
 /** Radar and nowcast tile metadata for each timestep in the current window. */
-export function fetchRadarTimeseries(nanobar?: Progress, position?: { lat: number; lon: number }) {
+export function fetchRadarTimeseries(
+  nanobar?: Progress,
+  position?: { lat: number; lon: number; network?: NetworkEvent["network"] },
+) {
   return request(nanobar, "/v3/radar/timeseries", () =>
     apiClient.GET("/v3/radar/timeseries", { params: { query: position ?? {} } }));
 }
