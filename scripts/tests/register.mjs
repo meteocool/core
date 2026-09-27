@@ -19,6 +19,9 @@ registerHooks({
         // error message is the more useful one.
       }
     }
+    // OpenLayers' modules are imported by path the same way (`ol/proj`), and
+    // the package has no exports map to resolve them, so they get `.js`.
+    if (/^ol\/[^.]+$/.test(specifier)) return nextResolve(`${specifier}.js`, context);
     return nextResolve(specifier, context);
   },
 });

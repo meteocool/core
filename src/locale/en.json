@@ -79,6 +79,8 @@
   "show_for_my_location": "Show for My Location",
   "precipitation_at_point": "Precipitation Here",
   "precipitation_none": "No precipitation in the past two hours — and none forecast for the next two.",
+  "forecast_none_here": "No forecast here",
+  "precipitation_none_past": "No precipitation in the past two hours — and no forecast reaches here.",
   "hide": "Hide",
   "last_success": "Last update",
   "preview": "Preview",

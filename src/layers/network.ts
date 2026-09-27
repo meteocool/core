@@ -1,6 +1,7 @@
 import ImageTileSource from "ol/source/ImageTile";
 import TileLayer from "ol/layer/Tile";
 import { getRenderPixel } from "ol/render";
+import { getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
 import type RenderEvent from "ol/render/Event";
@@ -78,13 +79,13 @@ const STALE_AFTER_SECONDS = 30 * 60;
 /**
  * An independent tile layer for one EUMETNET network's composite.
  *
- * Deliberately not part of `RadarCapability`'s DWD grid/`GridStep` scrubbing:
- * these networks have no timesteps to scrub through, just one composite
- * replaced whenever a radar reports, so the layers share only the tile-URL
- * format (`tileSourceUrl`, the same one DWD's layer builds from) and the map
- * they render onto.
- *
- * Shown only on the live frame: see `setLive`.
+ * Two frames, from two places. The live frame is its own: fetched here and
+ * replaced whenever a radar reports, on the network's own socket event, which
+ * lands every minute or two -- far more often than DWD's grid is refetched.
+ * Every other past step shows the composite the grid carries for it
+ * (`RadarFrames.networks`), which `RadarCapability` hands over as the
+ * scrubber moves. The networks have no forecast, so on a forecast step this
+ * is hidden and DWD is the radar: see `show`.
  */
 export default class NetworkRadarLayer {
   readonly network: Network;
@@ -93,9 +94,18 @@ export default class NetworkRadarLayer {
 
   private layer: TileLayer<ImageTileSource> | null = null;
 
+  /** The URL the layer's source is on, so an unchanged step costs nothing. */
+  private url = "";
+
   private live = true;
 
   private fresh = false;
+
+  /** The newest composite, from `refresh`. */
+  private liveFrame: RadarFrame | null = null;
+
+  /** This network's composite for the step on screen, when that is not the live one. */
+  private stepFrame: RadarFrame | null = null;
 
   constructor(map: Map, network: Network) {
     this.map = map;
@@ -108,13 +118,73 @@ export default class NetworkRadarLayer {
     if (!frame) return; // nothing composited yet, or the request failed
 
     this.fresh = Date.now() / 1000 - frame.processed_time < STALE_AFTER_SECONDS;
-    const url = tileSourceUrl("meteoradar", frame.tile_id);
-    if (this.layer) {
-      (this.layer.getSource() as ImageTileSource | null)?.setUrl(url);
-      this.applyVisibility();
+    this.liveFrame = frame;
+    this.apply();
+  }
+
+  /**
+   * What the map is showing: the live frame, or another step and this
+   * network's composite for it -- null when the grid has none, which is every
+   * forecast step and any gap in the network's ingest.
+   *
+   * Without one the layer steps aside and DWD, whole on that step (see
+   * `networkHoles.ts`), is the radar there. Drawing the nearest frame instead
+   * would put now's weather beside an hour-ago label, or over DWD's forecast,
+   * blending the two.
+   */
+  show(live: boolean, frame: RadarFrame | null) {
+    this.live = live;
+    this.stepFrame = frame;
+    this.apply();
+  }
+
+  /**
+   * The tile URLs to ask for ahead of playback, for these frames where the
+   * map is looking. Empty until the layer exists, which it does from the
+   * first composite on.
+   */
+  tileUrls(frames: RadarFrame[], max: number): string[] {
+    const source = this.layer?.getSource();
+    const view = this.map.getView();
+    const size = this.map.getSize();
+    const resolution = view.getResolution();
+    if (!source || !size || resolution === undefined) return [];
+    const extent = getIntersection(view.calculateExtent(size), this.network.extent);
+    if (isEmpty(extent)) return [];
+    const tileGrid = source.getTileGridForProjection(view.getProjection());
+    const z = tileGrid.getZForResolution(resolution);
+
+    const urls: string[] = [];
+    for (const frame of frames) {
+      const template = tileSourceUrl("meteoradar", frame.tile_id);
+      tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
+        if (urls.length >= max) return;
+        urls.push(template
+          .replace("{z}", String(tz))
+          .replace("{x}", String(x))
+          .replace("{-y}", String(2 ** tz - 1 - y)));
+      });
+    }
+    return urls;
+  }
+
+  private apply() {
+    const frame = this.live ? (this.fresh ? this.liveFrame : null) : this.stepFrame;
+    if (!frame) {
+      this.layer?.setVisible(false);
       return;
     }
+    const url = tileSourceUrl("meteoradar", frame.tile_id);
+    if (!this.layer) {
+      this.createLayer(url);
+    } else if (url !== this.url) {
+      (this.layer.getSource() as ImageTileSource | null)?.setUrl(url);
+    }
+    this.url = url;
+    this.layer!.setVisible(true);
+  }
 
+  private createLayer(url: string) {
     const source = trackTileLoads(new ImageTileSource({
       attributions: [this.network.attribution],
       crossOrigin: "anonymous",
@@ -137,25 +207,7 @@ export default class NetworkRadarLayer {
       extent: this.network.extent,
     });
     this.clipToExclusiveCoverage(this.layer);
-    this.applyVisibility();
     this.map.addLayer(this.layer);
-  }
-
-  /**
-   * Whether the map is showing the live frame.
-   *
-   * This layer is one frame, the newest: it has no history and no forecast.
-   * Drawn under any other step it would put now's weather beside an hour-ago
-   * label -- or over DWD's forecast, blending the two -- so it steps aside and
-   * DWD, whole again (see `networkHoles.ts`), is the radar for that step.
-   */
-  setLive(live: boolean) {
-    this.live = live;
-    this.applyVisibility();
-  }
-
-  private applyVisibility() {
-    this.layer?.setVisible(this.live && this.fresh);
   }
 
   /**

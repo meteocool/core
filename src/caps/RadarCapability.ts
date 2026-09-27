@@ -6,7 +6,11 @@ import snow from "../assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd";
 import type { LayerFactory } from "../layers/dwd";
 import NetworkRadarLayer, { NETWORKS } from "../layers/network";
+import { networkAt } from "../layers/networkAt";
+import { ALL_NETWORKS } from "../layers/networkHoles";
 import type NetworkHoleTileSource from "../layers/networkHoles";
+import type { NetworkCode } from "../layers/networkHoles";
+import type { RadarFrame } from "../api";
 import {
   capDescription,
   capLatestObservation,
@@ -140,11 +144,18 @@ export default class RadarCapability extends Capability {
   snowOverlay: VectorTileLayer | null;
 
   /**
-   * The EUMETNET networks' composites -- independent tile layers, not part of
-   * the DWD grid/GridStep this class otherwise manages. See `layers/network.ts`
-   * for why they stay separate.
+   * The EUMETNET networks' composites -- tile layers of their own beside the
+   * DWD grid/GridStep this class otherwise manages, each keeping its own live
+   * frame. See `layers/network.ts` for why they stay separate.
    */
   private networks: NetworkRadarLayer[];
+
+  /**
+   * Each network's composite for each observed step it has one for, from the
+   * same response as the grid. What the network layers show off the live
+   * frame, and which steps' DWD tiles have that network cut out.
+   */
+  private networkGrid: Partial<Record<NetworkCode, Record<number, RadarFrame>>> = {};
 
   /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
   stale: boolean;
@@ -190,16 +201,14 @@ export default class RadarCapability extends Capability {
     this.stale = false;
     this.networks = NETWORKS.map((network) => new NetworkRadarLayer(map, network));
 
-    /* The networks show only the live frame, and DWD is holed only there: on
-       any other step DWD is the whole picture. The same predicate as the cell
-       layer's gate in App.svelte, so the two never disagree about which frame
-       is live. */
+    /* The networks follow the scrubber: their own newest frame on the live
+       one, the grid's composite on any other past step, nothing on a forecast
+       step. "Live" is the same predicate as the cell layer's gate in
+       App.svelte, so the two never disagree about which frame it is. */
     this.unsubscribeLiveFrame = derived(
       [capTimeIndicator, capLatestObservation],
-      ([shown, newest]) => showsLatestFrame(shown, newest),
-    ).subscribe((onLiveFrame) => {
-      for (const network of this.networks) network.setLive(onLiveFrame);
-    });
+      ([shown, newest]) => [shown, showsLatestFrame(shown, newest)] as const,
+    ).subscribe(([shown, onLiveFrame]) => this.showNetworks(shown, onLiveFrame));
 
     window.radar = this;
 
@@ -429,6 +438,17 @@ export default class RadarCapability extends Capability {
       });
     }
 
+    // The networks' frames for the same steps: over their countries DWD's
+    // tiles are holes, so without these playback there is half-loaded anyway.
+    for (const network of this.networks) {
+      const frames: RadarFrame[] = [];
+      for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
+        const frame = this.networkGrid[network.network.code]?.[step];
+        if (frame) frames.push(frame);
+      }
+      if (frames.length) urls.push(...network.tileUrls(frames, PREFETCH_MAX_TILES));
+    }
+
     if (this.prefetched.size > PREFETCH_REMEMBERED) this.prefetched.clear();
     for (const url of urls) {
       if (this.prefetched.has(url)) continue;
@@ -534,14 +554,47 @@ export default class RadarCapability extends Capability {
     super.getMap().addLayer(this.layer);
     const shownStep = get(capTimeIndicator);
     const shown = this.clientGrid[shownStep]?.url ?? newest.url;
-    this.source.setLiveUrl(newest.url, shown);
+    this.source.setHoles(this.holes(), shown);
     this.applyRadarOpacity();
   }
 
-  /** Where the forecast is sampled: a tapped point, else the client's own. */
+  /**
+   * Which networks to cut out of which of DWD's frames: on each observed step,
+   * those the grid has a composite for, and on the live one all of them --
+   * those layers bring their own newest frame there, whatever the grid says.
+   */
+  private holes(): globalThis.Map<string, NetworkCode[]> {
+    const holes = new globalThis.Map<string, NetworkCode[]>();
+    const newest = this.getMostRecentObservation();
+    for (const [key, frame] of Object.entries(this.clientGrid ?? {})) {
+      if (!frame?.url || frame.source !== "observation") continue;
+      const step = parseInt(key, 10);
+      const codes = step === newest
+        ? ALL_NETWORKS
+        : ALL_NETWORKS.filter((code) => this.networkGrid[code]?.[step]);
+      if (codes.length) holes.set(frame.url, codes);
+    }
+    return holes;
+  }
+
+  /** Point every network layer at the step on screen. */
+  private showNetworks(shown: number, live: boolean) {
+    for (const network of this.networks) {
+      network.show(live, this.networkGrid[network.network.code]?.[shown] ?? null);
+    }
+  }
+
+  /**
+   * Where the forecast is sampled: a tapped point, else the client's own --
+   * with the network the map draws there, whose composites the past half of
+   * the strip is then read from.
+   */
   getPosition() {
     const at = this.inspectLatlon ?? this.latlon;
-    return at ? { lat: at[0], lon: at[1] } : undefined;
+    if (!at) return undefined;
+    const [lat, lon] = at;
+    const network = networkAt(lat, lon);
+    return network ? { lat, lon, network } : { lat, lon };
   }
 
   async downloadCurrentRadar() {
@@ -655,6 +708,7 @@ export default class RadarCapability extends Capability {
     if (!obj) return;
 
     this.serverGrid = obj.frames;
+    this.networkGrid = obj.networks ?? {};
     this.serverTime = obj.server_time;
     // The backend is the only thing that knows: a replay is built to be
     // indistinguishable from here, so there is nothing in the frames to infer
@@ -671,12 +725,12 @@ export default class RadarCapability extends Capability {
         super.getMap().addLayer(this.layer);
       }
     }
-    // Before any setUrl below: the step being moved onto is the one to hole.
-    // Following live, that step is the newest, so it is named here and the
-    // frame being left is not re-keyed on the way out.
+    // Before any setUrl below: the step being moved onto is the one whose
+    // holes matter. Following live, that step is the newest, so it is named
+    // here and the frame being left is not re-keyed on the way out.
     const newestUrl = this.clientGrid?.[this.getMostRecentObservation()]?.url;
     if (newestUrl) {
-      this.source?.setLiveUrl(newestUrl, this.trackingMode === "live" ? newestUrl : undefined);
+      this.source?.setHoles(this.holes(), this.trackingMode === "live" ? newestUrl : undefined);
     }
     switch (this.trackingMode) {
       case "live":
@@ -704,6 +758,10 @@ export default class RadarCapability extends Capability {
     // the one that matters, and it leaves the indicator where the reader put
     // it, now measurably behind.
     setFrames({ newest: this.getMostRecentObservation() });
+    // A new grid can carry composites for the step on screen that the last
+    // one did not, and the indicator has not moved to say so.
+    const shown = get(capTimeIndicator);
+    this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
     capLastUpdated.set(latestRadar);
     this.publishCadenceFromGrid();
     radarStale.set(false);
