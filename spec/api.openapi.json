@@ -424,6 +424,21 @@
           "tile_id": {
             "title": "Tile Id",
             "type": "string"
+          },
+          "tiles": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/TileRows"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Which tiles exist, by zoom level. Tiles that would be fully transparent are not rendered, so a client asking for every tile in the grid is refused most of them on a dry day; with this it need not ask. Absent on frames rendered before the index existed, which means every tile may exist.",
+            "title": "Tiles"
           }
         },
         "required": [
@@ -450,17 +465,6 @@
               ]
             },
             "title": "Frames",
-            "type": "object"
-          },
-          "networks": {
-            "additionalProperties": {
-              "additionalProperties": {
-                "$ref": "#/components/schemas/RadarFrame"
-              },
-              "type": "object"
-            },
-            "description": "meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.",
-            "title": "Networks",
             "type": "object"
           },
           "replay": {
@@ -606,6 +610,40 @@
           "timestamp"
         ],
         "title": "TelemetryReading",
+        "type": "object"
+      },
+      "TileRows": {
+        "description": "Which tiles of one zoom level exist, as a bitmap over a rectangle.\n\n`x` and `y` are the rectangle's corner in the numbering the tile URL uses\n(XYZ x, TMS y), `w` and `h` its size in tiles, and `bits` one bit per tile\nof it, row major from that corner, most significant bit first, base64.",
+        "properties": {
+          "bits": {
+            "title": "Bits",
+            "type": "string"
+          },
+          "h": {
+            "title": "H",
+            "type": "integer"
+          },
+          "w": {
+            "title": "W",
+            "type": "integer"
+          },
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h",
+          "bits"
+        ],
+        "title": "TileRows",
         "type": "object"
       },
       "Unregister": {
@@ -1163,7 +1201,7 @@
     },
     "/v3/radar/switzerland": {
       "get": {
-        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA route of its own beside `/timeseries`, which carries this network's\npast too (`networks.ch`): a client refetches this whenever a radar reports\n-- every minute or two, on the `network` socket event -- and the whole\ntimeseries only when DWD publishes. Same `RadarFrame` shape as every other\nframe here, so the client needs one type and one tile-URL builder for\nevery network.",
+        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA separate route and collection (`reflectivity_ch`) rather than folding\ninto `/timeseries`: that endpoint models a forecast keyed by time, which\nthis network has none of -- one composite, replaced whenever a radar\nreports, no history. Same `RadarFrame` shape as every other frame here, so\nthe client needs one type and one tile-URL builder for every network.",
         "operationId": "switzerland_v3_radar_switzerland_get",
         "responses": {
           "200": {
@@ -1185,7 +1223,7 @@
     },
     "/v3/radar/timeseries": {
       "get": {
-        "description": "Tile metadata for each timestep in a window, past and forecast.\n\nWith `lat` and `lon`, each frame also carries the dBZ at that point. With\n`network` as well, it is that network's reading wherever it has a composite\nfor the step -- which is every observed step, while its ingest is running\n-- and DWD's everywhere else, the forecast included. The client names the\nnetwork because it is the one that knows which draws where: the borders are\n`extents.ts`'s, and a point sampled from a network the map is not showing\nthere would put bars under the chart that nothing on the map agrees with.",
+        "description": "Tile metadata for each timestep in a window, past and forecast.",
         "operationId": "timeseries_v3_radar_timeseries_get",
         "parameters": [
           {
@@ -1226,28 +1264,6 @@
               "default": 0.0,
               "title": "Lon",
               "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "network",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "ch",
-                    "fr",
-                    "cz",
-                    "pl"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Network"
             }
           }
         ],
