@@ -12,7 +12,7 @@
   "precipitation_here": "Niederschlag an deinem Standort",
   "connection_details": "Verbindungsdetails",
   "title": "Über meteocool",
-  "text1": "meteocool is a free GIS visualisation &amp; aggregation platform with focus on severe weather. Optimized for\n        mobile devices, you can use it to both chase or avoid upcoming weather - that’s up to you.",
+  "text1": "meteocool ist eine kostenlose GIS-Plattform zur Visualisierung und Aggregation von Wetterdaten mit Fokus auf Unwetter. Optimiert für Mobilgeräte, damit du anrückendem Wetter hinterherjagen oder ausweichen kannst – ganz wie du willst.",
   "text2": "meteocool nutzt Daten vom DWD, Echtzeit Blitzinformationen von blitzortung.org und Satellitenbilder vom EC/ESA Copernicus Erdbeobachtungsprogramm.",
   "features": {
     "header": "Eigenschaften",
@@ -55,7 +55,7 @@
   "demo": "Demo",
   "rain_and_thunderstorms": "Regen & Gewitter",
   "nrt_satellite": "Satellit",
-  "precipitation_types": "Niederschlags-\narten",
+  "precipitation_types": "Niederschlagsarten",
   "storm_cells_3d": "Gewitterzellen 3D",
   "layer_switcher_placeholder": "Wenn du dankbar für meteocool bist, gib jemand Bedürftigem etwas dafür.",
   "snow": "Schnee",
