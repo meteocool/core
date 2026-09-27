@@ -27,7 +27,7 @@ const here = (file: string) => fileURLToPath(new URL(file, import.meta.url));
 function proxyTargets(mode: string) {
   const localStack = mode === "localstack";
   const API = process.env.MC_API
-    ?? (localStack ? "http://127.0.0.1:5001" : "https://staging.meteocool.com");
+    ?? (localStack ? "http://127.0.0.1:5001" : "https://api-next.meteocool.com");
   return {
     API,
     SOCKET: process.env.MC_SOCKET ?? API,
