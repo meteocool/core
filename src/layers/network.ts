@@ -1,4 +1,5 @@
-import ImageTileSource from "ol/source/ImageTile";
+import IndexedTileSource from "./indexedTiles";
+import { hasTile } from "../lib/tileIndex";
 import TileLayer from "ol/layer/Tile";
 import { getRenderPixel } from "ol/render";
 import { getIntersection, isEmpty } from "ol/extent";
@@ -92,7 +93,7 @@ export default class NetworkRadarLayer {
 
   private readonly map: Map;
 
-  private layer: TileLayer<ImageTileSource> | null = null;
+  private layer: TileLayer<IndexedTileSource> | null = null;
 
   /** The URL the layer's source is on, so an unchanged step costs nothing. */
   private url = "";
@@ -159,6 +160,9 @@ export default class NetworkRadarLayer {
       const template = tileSourceUrl("meteoradar", frame.tile_id);
       tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
         if (urls.length >= max) return;
+        // Not a tile the frame does not have: the index is what the loader
+        // will consult too, so this is a request that would never be made.
+        if (!hasTile(frame.tiles, tz, x, 2 ** tz - 1 - y)) return;
         urls.push(template
           .replace("{z}", String(tz))
           .replace("{x}", String(x))
@@ -176,16 +180,17 @@ export default class NetworkRadarLayer {
     }
     const url = tileSourceUrl("meteoradar", frame.tile_id);
     if (!this.layer) {
-      this.createLayer(url);
+      this.createLayer(url, frame.tiles);
     } else if (url !== this.url) {
-      (this.layer.getSource() as ImageTileSource | null)?.setUrl(url);
+      (this.layer.getSource() as IndexedTileSource | null)?.setUrl(url, frame.tiles);
     }
     this.url = url;
     this.layer!.setVisible(true);
   }
 
-  private createLayer(url: string) {
-    const source = trackTileLoads(new ImageTileSource({
+  private createLayer(url: string, index: RadarFrame["tiles"]) {
+    const source = trackTileLoads(new IndexedTileSource({
+      index,
       attributions: [this.network.attribution],
       crossOrigin: "anonymous",
       minZoom: 3,
@@ -224,7 +229,7 @@ export default class NetworkRadarLayer {
    * DWD counterpart uses: the clip is a `CanvasRenderingContext2D` path, and
    * a WebGL layer's render events hand out no such context.
    */
-  private clipToExclusiveCoverage(layer: TileLayer<ImageTileSource>) {
+  private clipToExclusiveCoverage(layer: TileLayer<IndexedTileSource>) {
     layer.on("prerender", (event: RenderEvent) => {
       const context = event.context as CanvasRenderingContext2D | undefined;
       if (!context) return;
