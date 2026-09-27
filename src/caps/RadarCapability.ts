@@ -10,6 +10,8 @@ import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
 import type NetworkHoleTileSource from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
+import { hasTile } from "../lib/tileIndex";
+import type { TileIndex } from "../lib/tileIndex";
 import type { RadarFrame } from "../api";
 import {
   capDescription,
@@ -98,6 +100,8 @@ export interface GridStep {
   bucket?: string;
   /** When the backend produced this frame. Absent on the seeded placeholders. */
   processed_time?: number;
+  /** Which tiles the frame has; see lib/tileIndex.ts. Absent on older frames. */
+  tiles?: TileIndex | null;
 }
 
 /** The ±2h five-minute grid the playback slider scrubs across. */
@@ -428,8 +432,11 @@ export default class RadarCapability extends Capability {
     for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
       const template = this.clientGrid[step]?.url;
       if (!template) break;
+      const index = this.clientGrid[step]?.tiles;
       tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
         if (urls.length >= PREFETCH_MAX_TILES) return;
+        // A tile the frame does not have is answered locally; see lib/tileIndex.ts.
+        if (!hasTile(index, tz, x, 2 ** tz - 1 - y)) return;
         urls.push(template
           .replace("{z}", String(tz))
           .replace("{x}", String(x))
@@ -554,8 +561,18 @@ export default class RadarCapability extends Capability {
     super.getMap().addLayer(this.layer);
     const shownStep = get(capTimeIndicator);
     const shown = this.clientGrid[shownStep]?.url ?? newest.url;
+    this.source.setIndices(this.indices());
     this.source.setHoles(this.holes(), shown);
     this.applyRadarOpacity();
+  }
+
+  /** Which tiles each of DWD's frames has, by the frame's URL; see lib/tileIndex.ts. */
+  private indices(): globalThis.Map<string, TileIndex | null | undefined> {
+    const indices = new globalThis.Map<string, TileIndex | null | undefined>();
+    for (const frame of Object.values(this.clientGrid ?? {})) {
+      if (frame?.url) indices.set(frame.url, frame.tiles);
+    }
+    return indices;
   }
 
   /**
@@ -730,6 +747,8 @@ export default class RadarCapability extends Capability {
     // here and the frame being left is not re-keyed on the way out.
     const newestUrl = this.clientGrid?.[this.getMostRecentObservation()]?.url;
     if (newestUrl) {
+      // Indices first: the frame `setHoles` re-points at consults them.
+      this.source?.setIndices(this.indices());
       this.source?.setHoles(this.holes(), this.trackingMode === "live" ? newestUrl : undefined);
     }
     switch (this.trackingMode) {

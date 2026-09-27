@@ -1,5 +1,6 @@
-import ImageTileSource from "ol/source/ImageTile";
+import IndexedTileSource, { blankTile, fillTemplate, loadImage, present } from "./indexedTiles";
 import { chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd } from "./extents";
+import type { TileIndex } from "../lib/tileIndex";
 import type { NetworkEvent } from "../api/events";
 
 /** A network, by the code the backend files it under. */
@@ -56,28 +57,6 @@ function tileExtent(z: number, x: number, y: number): Extent {
   return [west, north - span, west + span, north];
 }
 
-/**
- * The tile URL, with the template filled in.
- *
- * `{-y}` is TMS numbering, counting rows from the south, which is how the tiles
- * are published; OpenLayers hands the loader XYZ coordinates, counting from the
- * north. Getting this backwards mirrors the map vertically.
- */
-function fillTemplate(template: string, z: number, x: number, y: number): string {
-  return template
-    .replace("{z}", String(z))
-    .replace("{x}", String(x))
-    .replace("{-y}", String(2 ** z - 1 - y))
-    .replace("{y}", String(y));
-}
-
-function loadImage(url: string, crossOrigin: string | null): Promise<HTMLImageElement> {
-  const image = new Image();
-  if (crossOrigin !== null) image.crossOrigin = crossOrigin;
-  image.src = url;
-  return image.decode().then(() => image);
-}
-
 /** Erase every hole this tile meets, returning a canvas in its place. */
 function withHoles(image: HTMLImageElement, extent: Extent, holes: typeof HOLES): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
@@ -124,25 +103,31 @@ function withHoles(image: HTMLImageElement, extent: Extent, holes: typeof HOLES)
  * wrong in both directions: playback walks a single source across every step,
  * observations and forecasts alike.
  */
-export default class NetworkHoleTileSource extends ImageTileSource {
-  private readonly crossOriginValue: string | null;
-
-  private url = "";
+export default class NetworkHoleTileSource extends IndexedTileSource {
+  /* `declare`, not initialised: the base constructor calls `setUrl` before
+     a subclass's field initialisers run, and initialisers here would wipe
+     what that first call set. Every one of these is written in `setUrl`. */
+  declare private url: string;
 
   /** Which networks to erase from which frame, by the frame's URL. */
-  private holes = new Map<string, NetworkCode[]>();
+  declare private holes: Map<string, NetworkCode[]>;
 
   /** `holes` as one string, so an unchanged grid is noticed as unchanged. */
-  private holesSignature = "";
+  declare private holesSignature: string;
 
-  constructor(options: ConstructorParameters<typeof ImageTileSource>[0] & { url: string }) {
-    const { url, ...rest } = options;
-    super(rest);
-    this.crossOriginValue = options.crossOrigin ?? null;
+  constructor(options: ConstructorParameters<typeof IndexedTileSource>[0]) {
     // Built for the newest observation, which is what every caller hands it.
-    this.holes = new Map([[url, ALL_NETWORKS]]);
-    this.holesSignature = signature(this.holes);
-    this.setUrl(url);
+    // Set before super(): the base constructor calls setUrl, which reads them.
+    NetworkHoleTileSource.pending = new Map([[options.url, ALL_NETWORKS]]);
+    super(options);
+  }
+
+  /** The holes for a source under construction; see the constructor. */
+  private static pending: Map<string, NetworkCode[]> | null = null;
+
+  /** Which frames have which tiles, by URL; see lib/tileIndex.ts. */
+  setIndices(indices: Map<string, TileIndex | null | undefined>) {
+    for (const [url, index] of indices) this.remember(url, index);
   }
 
   /**
@@ -163,14 +148,22 @@ export default class NetworkHoleTileSource extends ImageTileSource {
     if (showing) this.setUrl(showing);
   }
 
-  setUrl(url: string) {
+  setUrl(url: string, index?: TileIndex | null) {
+    if (NetworkHoleTileSource.pending) {
+      this.holes = NetworkHoleTileSource.pending;
+      this.holesSignature = signature(this.holes);
+      NetworkHoleTileSource.pending = null;
+    }
     this.url = url;
-    super.setUrl(url);
+    // The base class installs the index gate, or OpenLayers' own loader.
+    super.setUrl(url, index);
     const codes = this.holes.get(url);
     if (!codes?.length) return; // DWD is the only radar drawn on this step
     const holes = HOLES.filter((hole) => codes.includes(hole.code));
     const crossOrigin = this.crossOriginValue;
+    const gate = this.indexFor(url);
     this.setLoader(async (z: number, x: number, y: number) => {
+      if (!present(gate, z, x, y)) return blankTile();
       const extent = tileExtent(z, x, y);
       const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin);
       const met = holes.filter((hole) => overlaps(extent, hole.bbox));
