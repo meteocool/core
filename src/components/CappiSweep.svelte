@@ -20,6 +20,7 @@
  * for as long as the panel stayed open -- scrolled out of view included.
  */
 import { onDestroy, onMount, tick } from "svelte";
+import { _ } from "svelte-i18n";
 import { loadCutaway } from "../lib/cellCutaway";
 import type { Cutaway } from "../lib/cellCutaway";
 import { createRaymarcher, type Raymarcher } from "../lib/volumeRaymarch";
@@ -237,7 +238,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
 </script>
 
 {#if failed}
-  <p class="unavailable">Volume unavailable</p>
+  <p class="unavailable">{$_("storm.volume.unavailable")}</p>
 {:else if cutaway}
   <figure class="cappi">
     <div class="stage" style="height: {height}px">
@@ -249,7 +250,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
         use:watchVisibility
         tabindex="0"
         role="slider"
-        aria-label="Height of the slice"
+        aria-label={$_("storm.volume.cappi_height")}
         aria-valuemin={Math.round(lowKm * 10) / 10}
         aria-valuemax={Math.round(highKm * 10) / 10}
         aria-valuenow={Math.round(heightKm * 10) / 10}
@@ -268,7 +269,7 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
         <span class="marker" style="top: {at(heightKm, rulerTop)}">{heightKm.toFixed(1)} km</span>
       </div>
     </div>
-    <figcaption>Everything above {heightKm.toFixed(1)} km cut away. Drag up or down to hold a height.</figcaption>
+    <figcaption>{$_("storm.volume.cappi_caption", { values: { km: heightKm.toFixed(1) } })}</figcaption>
   </figure>
 {/if}
 
@@ -278,8 +279,8 @@ figure { margin: 0; }
    pictures read as a pair. */
 .stage {
   display: flex; align-items: stretch;
-  border-radius: 8px;
-  background: rgba(128, 128, 128, 0.08);
+  border-radius: 14px;
+  background: var(--mc-tint, rgba(128, 128, 128, 0.08));
   overflow: hidden;
 }
 canvas {
@@ -319,6 +320,6 @@ canvas:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
   border-radius: 0 4px 4px 0;
   clip-path: polygon(0 50%, 5px 0, 100% 0, 100% 100%, 5px 100%);
 }
-figcaption { font-size: 10px; opacity: 0.55; margin-top: 4px; }
+figcaption { font: 400 12px/1.35 var(--mc-font); color: var(--mc-text-2); margin-top: 8px; }
 .unavailable { font-size: 0.75rem; opacity: 0.6; }
 </style>

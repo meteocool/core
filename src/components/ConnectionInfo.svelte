@@ -74,6 +74,14 @@ const stale = (at: number | null | undefined, bad = STALE_BAD_S, warn = STALE_WA
   return age >= warn ? "warn" : undefined;
 };
 
+/**
+ * A diagnostics string. Read through `$_` on every refresh, so a language
+ * change reaches the panel on its next tick.
+ */
+const tr = (key: string, values?: Record<string, string | number>) => (
+  $_(`chrome.diagnostics.${key}`, values ? { values } : undefined)
+);
+
 let sections: Section[] = [];
 let steps: Array<{ minutes: number; kind: string; title: string }> = [];
 let storage: Row[] = [];
@@ -84,11 +92,11 @@ const num = (v: unknown, digits = 0) => (typeof v === "number" && Number.isFinit
   ? v.toFixed(digits) : "—");
 
 function ago(at: number | null | undefined): string {
-  if (at == null) return "never";
+  if (at == null) return tr("never");
   const s = Math.round((Date.now() - at) / 1000);
-  if (Math.abs(s) < 90) return `${s}s ago`;
+  if (Math.abs(s) < 90) return tr("ago_seconds", { n: s });
   const m = Math.round(s / 60);
-  return Math.abs(m) < 90 ? `${m}m ago` : `${(m / 60).toFixed(1)}h ago`;
+  return Math.abs(m) < 90 ? tr("ago_minutes", { n: m }) : tr("ago_hours", { n: (m / 60).toFixed(1) });
 }
 
 /** A span in seconds, as "40s" / "2m10s" / "1h05m". Sign is the caller's. */
@@ -127,14 +135,14 @@ function quantile(sorted: number[], q: number): number | undefined {
  * dev proxy's relative paths or to an absolute origin.
  */
 const SERVICES: Array<{ name: string; match: RegExp }> = [
-  { name: "radar grid", match: /\/v3\/radar\/timeseries/ },
-  { name: "api (other)", match: /\/v3\/(?!radar\/timeseries)/ },
-  { name: "radar tiles", match: /(\/tiles\/|tiles-a\.meteocool|assets-staging\.meteocool).*\.png/ },
+  { name: "radar_grid", match: /\/v3\/radar\/timeseries/ },
+  { name: "api_other", match: /\/v3\/(?!radar\/timeseries)/ },
+  { name: "radar_tiles", match: /(\/tiles\/|tiles-a\.meteocool|assets-staging\.meteocool).*\.png/ },
   { name: "basemap", match: /map\.meteocool\.com|\.mvt(\?|$)/ },
   { name: "lightning", match: /lightning_cache|\/lightning/ },
   { name: "mesocyclones", match: /mesocyclone/ },
   { name: "geocoder", match: /bigdatacloud|\/geocoding\/|geocoding-staging\.meteocool|geocoding\.meteocool/ },
-  { name: "websocket poll", match: /socket\.io/ },
+  { name: "websocket_poll", match: /socket\.io/ },
 ];
 
 type ServiceRow = {
@@ -156,7 +164,7 @@ function serviceRows(): ServiceRow[] {
   return SERVICES.map(({ name, match }) => {
     const t = summariseRequests(match);
     return {
-      name,
+      name: tr(`service.${name}`),
       count: t.count,
       median: t.count ? num(t.medianMs, 0) : "—",
       medianSeverity: worseOf(t.medianMs),
@@ -184,15 +192,15 @@ function errorRows(): Row[] {
   const broken = isApiDegraded(health);
   const out: Row[] = [
     // A call that failed and recovered is history; one failing now is the fault.
-    ["failed calls", `${health.failures}`, health.failures ? "warn" : undefined],
+    [tr("failed_calls"), `${health.failures}`, health.failures ? "warn" : undefined],
     [
-      "failing now",
-      health.failing.length ? health.failing.join(", ") : "none",
+      tr("failing_now"),
+      health.failing.length ? health.failing.join(", ") : tr("none"),
       broken ? "bad" : undefined,
     ],
     [
-      "last failure",
-      health.lastFailureAt ? ago(health.lastFailureAt) : "never",
+      tr("last_failure"),
+      health.lastFailureAt ? ago(health.lastFailureAt) : tr("never"),
       broken ? "bad" : undefined,
     ],
   ];
@@ -200,12 +208,12 @@ function errorRows(): Row[] {
      has nothing published is not a fault and does not put the map in its
      degraded state, but "why is there no Swiss radar" still deserves an answer
      somewhere, and this is the panel that answers it. */
-  if (health.absent.length) out.push(["nothing published", health.absent.join(", ")]);
+  if (health.absent.length) out.push([tr("nothing_published"), health.absent.join(", ")]);
   for (const [endpoint, count] of Object.entries(health.byEndpoint)) {
-    out.push([endpoint, `${count} failed`, health.failing.includes(endpoint) ? "bad" : "warn"]);
+    out.push([endpoint, tr("n_failed", { count }), health.failing.includes(endpoint) ? "bad" : "warn"]);
   }
   if (health.lastMessage) {
-    out.push(["last message", health.lastMessage.slice(0, 160), broken ? "bad" : undefined]);
+    out.push([tr("last_message"), health.lastMessage.slice(0, 160), broken ? "bad" : undefined]);
   }
   return out;
 }
@@ -213,15 +221,15 @@ function errorRows(): Row[] {
 /** Everything the page asked for, however it was routed. */
 function allTraffic(): Row[] {
   const t = summariseRequests(/./);
-  if (!t.count) return [["requests", "none observed"]];
+  if (!t.count) return [[tr("requests"), tr("none_observed")]];
   return [
-    ["window", `${num((t.oldestAgeMs ?? 0) / 1000, 0)}s`],
-    ["requests", `${t.count}`],
-    ["median", `${num(t.medianMs, 0)} ms`, worseOf(t.medianMs)],
+    [tr("window"), `${num((t.oldestAgeMs ?? 0) / 1000, 0)}s`],
+    [tr("requests"), `${t.count}`],
+    [tr("median"), `${num(t.medianMs, 0)} ms`, worseOf(t.medianMs)],
     ["p95", `${num(t.p95Ms, 0)} ms`, worseOf(t.p95Ms)],
-    ["slowest", `${num(t.slowestMs, 0)} ms`, worseOf(t.slowestMs)],
-    ["transferred", bytes(t.transferredBytes)],
-    ["served from cache", `${t.fromCache}`],
+    [tr("slowest"), `${num(t.slowestMs, 0)} ms`, worseOf(t.slowestMs)],
+    [tr("transferred"), bytes(t.transferredBytes)],
+    [tr("served_from_cache"), `${t.fromCache}`],
   ];
 }
 
@@ -234,34 +242,36 @@ function connectionRows(): Row[] {
   };
   const c = nav.connection;
   const net = $networkStatus;
+  const bool = (v: boolean) => tr(v ? "true" : "false");
   return [
-    ["online", String(net.online), net.online ? undefined : "bad"],
+    [tr("online"), bool(net.online), net.online ? undefined : "bad"],
     [
-      "effective type",
-      net.effectiveType ?? "unreported",
+      tr("effective_type"),
+      net.effectiveType ?? tr("unreported"),
       net.effectiveType && SLOW_EFFECTIVE_TYPES.includes(net.effectiveType) ? "warn" : undefined,
     ],
-    ["downlink", c?.downlink != null ? `${c.downlink} Mbit/s (estimate)` : "—"],
+    [tr("downlink"), c?.downlink != null ? tr("estimate", { value: `${c.downlink} Mbit/s` }) : "—"],
     // The estimate, not a measurement -- flagged only when it is bad enough to
     // explain something, never as the reason on its own.
-    ["round trip", c?.rtt != null ? `${c.rtt} ms (estimate)` : "—", worseOf(c?.rtt ?? null)],
-    ["save data", c?.saveData != null ? String(c.saveData) : "—", c?.saveData ? "warn" : undefined],
-    ["reads as slow", String(net.isSlow), net.isSlow ? "warn" : undefined],
-    ["NetworkInformation API", c ? "present" : "absent"],
+    [tr("round_trip"), c?.rtt != null ? tr("estimate", { value: `${c.rtt} ms` }) : "—", worseOf(c?.rtt ?? null)],
+    [tr("save_data"), c?.saveData != null ? bool(c.saveData) : "—", c?.saveData ? "warn" : undefined],
+    [tr("reads_as_slow"), bool(net.isSlow), net.isSlow ? "warn" : undefined],
+    ["NetworkInformation API", tr(c ? "present" : "absent")],
   ];
 }
 
 function endpointRows(): Row[] {
+  const sameOrigin = tr("same_origin");
   return [
-    ["build mode", import.meta.env.MODE],
-    ["commit", (typeof __GIT_COMMIT_HASH__ === "string" && __GIT_COMMIT_HASH__) || "unset"],
-    ["api", v3APIBaseUrl || "(same origin)"],
-    ["tiles", tileBaseUrl || "(same origin)"],
-    ["data", dataUrl || "(same origin)"],
-    ["websocket", websocketBaseUrl || "(same origin)"],
+    [tr("build_mode"), import.meta.env.MODE],
+    [tr("commit"), (typeof __GIT_COMMIT_HASH__ === "string" && __GIT_COMMIT_HASH__) || tr("unset")],
+    [tr("api"), v3APIBaseUrl || sameOrigin],
+    [tr("tiles"), tileBaseUrl || sameOrigin],
+    [tr("data"), dataUrl || sameOrigin],
+    [tr("websocket"), websocketBaseUrl || sameOrigin],
     [
-      "poke channel",
-      cap.socketConnected === null ? "—" : (cap.socketConnected ? "connected" : "disconnected"),
+      tr("poke_channel"),
+      cap.socketConnected === null ? "—" : tr(cap.socketConnected ? "connected" : "disconnected"),
       // Without it the map only refreshes on its own timer, which is a real
       // degradation even though every request still works.
       cap.socketConnected === false ? "warn" : undefined,
@@ -278,16 +288,16 @@ function freshnessRows(): Row[] {
   const skew = cap.serverTime ? Math.round(Date.now() / 1000 - cap.serverTime) : null;
   const lastUpdate = $capLastUpdated ? $capLastUpdated.getTime() : null;
   return [
-    ["radar processed", ago(lastUpdate), stale(lastUpdate)],
-    ["newest frame built", ago(newest ? newest * 1000 : null), stale(newest ? newest * 1000 : null)],
-    ["last tile arrived", ago($tileStatus.lastSuccessAt), stale($tileStatus.lastSuccessAt)],
+    [tr("radar_processed"), ago(lastUpdate), stale(lastUpdate)],
+    [tr("newest_frame_built"), ago(newest ? newest * 1000 : null), stale(newest ? newest * 1000 : null)],
+    [tr("last_tile_arrived"), ago($tileStatus.lastSuccessAt), stale($tileStatus.lastSuccessAt)],
     ...cadenceRows(),
     [
-      "server clock vs ours",
+      tr("server_clock"),
       skew === null ? "—" : `${skew > 0 ? "+" : ""}${skew}s`,
       skew === null ? undefined : worseOf(Math.abs(skew), SKEW_BAD_S, SKEW_WARN_S),
     ],
-    ["tracking mode", cap.trackingMode],
+    [tr("tracking_mode"), cap.trackingMode],
   ];
 }
 
@@ -308,10 +318,10 @@ function cadenceRows(): Row[] {
   const cadence = $radarCadence;
   if (cadence.periodS === null) {
     return [[
-      "next update expected",
+      tr("next_update"),
       cadence.samples
-        ? `learning — ${cadence.samples} of ${MIN_INTERVALS} intervals seen`
-        : "learning — no frames observed yet",
+        ? tr("learning_intervals", { seen: cadence.samples, needed: MIN_INTERVALS })
+        : tr("learning_no_frames"),
     ]];
   }
   const late = overdueBy(cadence, Date.now() / 1000) ?? 0;
@@ -320,13 +330,15 @@ function cadenceRows(): Row[] {
     : (late >= cadence.periodS ? "warn" : undefined);
   return [
     [
-      "next update expected",
-      late >= 0 ? `overdue by ${duration(late)}` : `in ${duration(late)}`,
+      tr("next_update"),
+      late >= 0
+        ? tr("overdue_by", { duration: duration(late) })
+        : tr("due_in", { duration: duration(late) }),
       severity,
     ],
     [
-      "observed cadence",
-      `every ${duration(cadence.periodS)} (median of ${cadence.samples} intervals)`,
+      tr("observed_cadence"),
+      tr("cadence_every", { period: duration(cadence.periodS), count: cadence.samples }),
     ],
   ];
 }
@@ -344,24 +356,25 @@ function degradedRows(): Row[] {
   const now = Date.now();
   const signals = readDegradedSignals(now);
   const rows: Row[] = [[
-    "state",
-    $degradedStatus.degraded ? "degraded" : "ok",
+    tr("state"),
+    tr($degradedStatus.degraded ? "degraded" : "ok"),
     $degradedStatus.degraded ? "bad" : undefined,
   ]];
   for (const criterion of DEGRADED_CRITERIA) {
-    const reason = criterion.reason(signals, now);
-    rows.push([criterion.label, reason ?? "ok", reason ? "bad" : undefined]);
+    const reason = criterion.reason(signals, now, $_);
+    rows.push([$_(criterion.label), reason ?? tr("ok"), reason ? "bad" : undefined]);
   }
   /* The measurement behind the latency criterion, whether or not it tripped:
      "response times ok" over two samples is a different claim from the same
      words over forty, and this is the row that says which. */
   const window = duration(LATENCY_WINDOW_MS / 1000);
   rows.push([
-    "latency window",
+    tr("latency_window"),
     signals.recentSamples
-      ? `p95 ${num(signals.recentP95Ms, 0)} ms over ${signals.recentSamples} api`
-        + ` ${signals.recentSamples === 1 ? "response" : "responses"} in the last ${window}`
-      : `no api responses in the last ${window}`,
+      ? tr("latency_window_value", {
+        p95: num(signals.recentP95Ms, 0), count: signals.recentSamples, window,
+      })
+      : tr("latency_window_empty", { window }),
   ]);
   return rows;
 }
@@ -381,26 +394,33 @@ function gridRows(): Row[] {
     .filter((v): v is number => v !== null)
     .sort((a, b) => a - b);
   return [
-    ["steps", `${keys.length}`],
-    ["filled", `${filled.length} (${obs} observation, ${filled.length - obs} forecast)`],
-    ["with reflectivity", `${withDbz}${withDbz === 0 ? " — no position shared?" : ""}`],
-    ["window", config ? `${(config.start - config.now) / 60}m … ${(config.end - config.now) / 60}m` : "—"],
-    ["playable to", config ? `${(lastPlayable - config.now) / 60}m` : "—"],
-    ["unpublished tail", config ? `${Math.max(0, (config.end - lastPlayable) / 60)}m` : "—"],
-    ["pipeline lag", lags.length ? `${num(quantile(lags, 0.5), 0)}s median, ${num(lags[lags.length - 1], 0)}s worst` : "—"],
+    [tr("steps"), `${keys.length}`],
+    [tr("filled"), tr("filled_value", { filled: filled.length, obs, forecast: filled.length - obs })],
+    [tr("with_reflectivity"), withDbz === 0 ? tr("with_reflectivity_none", { count: withDbz }) : `${withDbz}`],
+    [tr("window"), config ? `${(config.start - config.now) / 60}m … ${(config.end - config.now) / 60}m` : "—"],
+    [tr("playable_to"), config ? `${(lastPlayable - config.now) / 60}m` : "—"],
+    [tr("unpublished_tail"), config ? `${Math.max(0, (config.end - lastPlayable) / 60)}m` : "—"],
+    [
+      tr("pipeline_lag"),
+      lags.length
+        ? tr("pipeline_lag_value", {
+          median: num(quantile(lags, 0.5), 0), worst: num(lags[lags.length - 1], 0),
+        })
+        : "—",
+    ],
   ];
 }
 
 function contextRows(): Row[] {
   const pos = $latLon;
   return [
-    ["capability", $sharedActiveCap || "—"],
-    ["basemap", $mapBaseLayer],
-    ["chrome scheme", document.documentElement.dataset.chrome ?? "—"],
-    ["colour scheme", document.documentElement.dataset.theme ?? "—"],
-    ["position", pos ? `${pos[0].toFixed(4)}, ${pos[1].toFixed(4)}` : "not shared"],
-    ["zoom", num($zoomlevel, 1)],
-    ["viewport", `${window.innerWidth}×${window.innerHeight} @${window.devicePixelRatio}x`],
+    [tr("capability"), $sharedActiveCap || "—"],
+    [tr("basemap"), $mapBaseLayer],
+    [tr("chrome_scheme"), document.documentElement.dataset.chrome ?? "—"],
+    [tr("colour_scheme"), document.documentElement.dataset.theme ?? "—"],
+    [tr("position"), pos ? `${pos[0].toFixed(4)}, ${pos[1].toFixed(4)}` : tr("not_shared")],
+    [tr("zoom"), num($zoomlevel, 1)],
+    [tr("viewport"), `${window.innerWidth}×${window.innerHeight} @${window.devicePixelRatio}x`],
   ];
 }
 
@@ -440,15 +460,15 @@ async function readTileCache(): Promise<Row[]> {
   // A URL shaped like the ones the radar layer builds, to test the route with.
   const sample = `${tileBaseUrl}/bucket/${"0".repeat(8)}-0000-0000-0000-${"0".repeat(12)}/8/1/1.png`;
   const routed = WEATHER_TILE_ROUTE.test(sample);
-  out.push(["tiles routed", routed ? "yes" : "no — not cached", routed ? undefined : "warn"]);
-  if (!routed) out.push(["tile origin", tileBaseUrl || "(same origin)"]);
-  out.push(["basemap routed", BASEMAP_ROUTE.test("https://map.meteocool.com/x/1/1/1.mvt") ? "yes" : "no"]);
+  out.push([tr("tiles_routed"), tr(routed ? "yes" : "no_not_cached"), routed ? undefined : "warn"]);
+  if (!routed) out.push([tr("tile_origin"), tileBaseUrl || tr("same_origin")]);
+  out.push([tr("basemap_routed"), tr(BASEMAP_ROUTE.test("https://map.meteocool.com/x/1/1/1.mvt") ? "yes" : "no")]);
 
   try {
     const cached = await cachedTilesetIds();
     if (cached) {
-      out.push(["cached tiles", `${cached.entries}`]);
-      out.push(["cached tilesets", `${Object.keys(cached.ids).length}`]);
+      out.push([tr("cached_tiles"), `${cached.entries}`]);
+      out.push([tr("cached_tilesets"), `${Object.keys(cached.ids).length}`]);
       const wanted: IdSet = {};
       for (const frame of Object.values(cap.clientGrid ?? {})) {
         if (frame?.tile_id) wanted[frame.tile_id] = true;
@@ -456,13 +476,13 @@ async function readTileCache(): Promise<Row[]> {
       const ids = Object.keys(wanted);
       const warmed = ids.filter((id) => cached.ids[id]).length;
       out.push([
-        "frames warmed",
-        ids.length ? `${warmed} of ${ids.length}` : "no tilesets yet",
+        tr("frames_warmed"),
+        ids.length ? tr("n_of_total", { n: warmed, total: ids.length }) : tr("no_tilesets"),
         ids.length && warmed === 0 ? "warn" : undefined,
       ]);
     }
     if (typeof caches !== "undefined" && (await caches.keys()).includes(BASEMAP_CACHE)) {
-      out.push(["basemap tiles", `${(await (await caches.open(BASEMAP_CACHE)).keys()).length}`]);
+      out.push([tr("basemap_tiles"), `${(await (await caches.open(BASEMAP_CACHE)).keys()).length}`]);
     }
   } catch { /* cross-origin, disabled, or private mode */ }
 
@@ -472,11 +492,11 @@ async function readTileCache(): Promise<Row[]> {
      inert -- every call site is commented out -- and reported as such
      because "why is nothing precached" is exactly the sort of question this
      panel exists to answer. */
-  out.push(["forecast preload", get(precacheForecast) ? "on — next frames fetched ahead of playback" : "off"]);
+  out.push([tr("forecast_preload"), tr(get(precacheForecast) ? "preload_on" : "off")]);
   try {
     const dbs = await indexedDB.databases?.();
     const present = dbs?.some((db) => db.name === "tiles2");
-    out.push(["idb tiles2", present ? "present" : "absent"]);
+    out.push(["idb tiles2", tr(present ? "present" : "absent")]);
   } catch { /* databases() is not everywhere */ }
   return out;
 }
@@ -503,10 +523,10 @@ async function readStorage(): Promise<Row[]> {
   try {
     const est = await navigator.storage?.estimate?.();
     if (est) {
-      out.push(["used", bytes(est.usage)]);
-      out.push(["quota", bytes(est.quota)]);
+      out.push([tr("used"), bytes(est.usage)]);
+      out.push([tr("quota"), bytes(est.quota)]);
       if (est.usage != null && est.quota) {
-        out.push(["of quota", `${((est.usage / est.quota) * 100).toFixed(1)}%`]);
+        out.push([tr("of_quota"), `${((est.usage / est.quota) * 100).toFixed(1)}%`]);
       }
     }
   } catch { /* storage estimate is best effort */ }
@@ -515,26 +535,26 @@ async function readStorage(): Promise<Row[]> {
       const names = await caches.keys();
       for (const name of names) {
         const keys = await (await caches.open(name)).keys();
-        out.push([cacheLabel(name), `${keys.length} entries`]);
+        out.push([cacheLabel(name), tr("n_entries", { count: keys.length })]);
       }
-      if (!names.length) out.push(["cache storage", "empty"]);
+      if (!names.length) out.push([tr("cache_storage"), tr("empty")]);
     }
   } catch { /* cross-origin or disabled */ }
   const sw = navigator.serviceWorker?.controller;
-  out.push(["service worker", sw ? sw.state : "not controlling"]);
+  out.push([tr("service_worker"), sw ? sw.state : tr("not_controlling")]);
   return out;
 }
 
 function refresh() {
   sections = [
-    { title: "Connection", rows: connectionRows() },
-    { title: "Freshness", rows: freshnessRows() },
-    { title: "Forecast grid", rows: gridRows() },
-    { title: "All traffic", rows: allTraffic() },
-    { title: "Degraded state", rows: degradedRows() },
-    { title: "API errors", rows: errorRows() },
-    { title: "Endpoints", rows: endpointRows() },
-    { title: "Context", rows: contextRows() },
+    { title: tr("section.connection"), rows: connectionRows() },
+    { title: tr("section.freshness"), rows: freshnessRows() },
+    { title: tr("section.forecast_grid"), rows: gridRows() },
+    { title: tr("section.all_traffic"), rows: allTraffic() },
+    { title: tr("section.degraded"), rows: degradedRows() },
+    { title: tr("section.api_errors"), rows: errorRows() },
+    { title: tr("section.endpoints"), rows: endpointRows() },
+    { title: tr("section.context"), rows: contextRows() },
   ];
   services = serviceRows();
 
@@ -544,9 +564,9 @@ function refresh() {
     const f = grid[k];
     const minutes = now ? Math.round((k - now) / 60) : 0;
     const kind = !f || !f.url ? "missing" : (f.source === "observation" ? "observation" : "forecast");
-    const built = f?.processed_time ? ago(f.processed_time * 1000) : "not built";
-    const dbz = f?.dbz != null ? `${f.dbz.toFixed(1)} dBZ` : "no sample";
-    return { minutes, kind, title: `${minutes >= 0 ? "+" : ""}${minutes}m · ${kind} · ${dbz} · built ${built}` };
+    const built = f?.processed_time ? tr("built", { ago: ago(f.processed_time * 1000) }) : tr("not_built");
+    const dbz = f?.dbz != null ? `${f.dbz.toFixed(1)} dBZ` : tr("no_sample");
+    return { minutes, kind, title: `${minutes >= 0 ? "+" : ""}${minutes}m · ${tr(kind)} · ${dbz} · ${built}` };
   });
 }
 
@@ -734,33 +754,33 @@ onDestroy(() => {
 <GlassPanel title={$_("connection_details")} wide on:close>
     <div class="grid">
       <div class="section wide">
-        <h3>Timesteps</h3>
+        <h3>{$_("chrome.diagnostics.timesteps")}</h3>
         <div class="steps">
           {#each steps as step, i (i)}
             <div class="step {step.kind}" title={step.title}></div>
           {/each}
         </div>
         <div class="legend">
-          <span><i class="swatch" style="background: var(--mc-accent)"></i>Observation</span>
-          <span><i class="swatch" style="background: var(--mc-accent-tint)"></i>Forecast</span>
-          <span><i class="swatch" style="background: var(--mc-red-tint)"></i>Missing</span>
+          <span><i class="swatch" style="background: var(--mc-accent)"></i>{$_("chrome.diagnostics.observation")}</span>
+          <span><i class="swatch" style="background: var(--mc-accent-tint)"></i>{$_("chrome.diagnostics.forecast")}</span>
+          <span><i class="swatch" style="background: var(--mc-red-tint)"></i>{$_("chrome.diagnostics.missing")}</span>
         </div>
       </div>
 
       <div class="section wide">
-        <h3>Latency by service</h3>
+        <h3>{$_("chrome.diagnostics.latency_by_service")}</h3>
         <div class="table-scroll">
           <table>
             <thead>
               <tr>
-                <th class="name">Service</th>
+                <th class="name">{$_("chrome.diagnostics.col.service")}</th>
                 <th>n</th>
-                <th>Median</th>
+                <th>{$_("chrome.diagnostics.col.median")}</th>
                 <th>p95</th>
-                <th>Slowest</th>
-                <th>Last</th>
-                <th>Bytes</th>
-                <th>Cached</th>
+                <th>{$_("chrome.diagnostics.col.slowest")}</th>
+                <th>{$_("chrome.diagnostics.col.last")}</th>
+                <th>{$_("chrome.diagnostics.col.bytes")}</th>
+                <th>{$_("chrome.diagnostics.col.cached")}</th>
               </tr>
             </thead>
             <tbody>
@@ -794,7 +814,7 @@ onDestroy(() => {
       {/each}
 
       <div class="section">
-        <h3>Tile cache</h3>
+        <h3>{$_("chrome.diagnostics.section.tile_cache")}</h3>
         <dl>
           {#each tileCache as [key, value, severity] (key)}
             <dt title={key} class={severity ?? ""}>{key}</dt>
@@ -804,7 +824,7 @@ onDestroy(() => {
       </div>
 
       <div class="section">
-        <h3>Storage</h3>
+        <h3>{$_("chrome.diagnostics.section.storage")}</h3>
         <dl>
           {#each storage as [key, value] (key)}
             <dt title={key}>{key}</dt>

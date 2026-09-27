@@ -28,6 +28,13 @@ import type { CellTrackProperties, RadarVolume } from "../api";
  * storm closes (with the camera settling to nadir first; see
  * Cells3DCapability.leave). A 3D map picked from the switcher, or opened by a
  * link, is not a detour and is left alone.
+ *
+ * Nor is one the reader has started using. A drag, a zoom, a tilt or a turn of
+ * the 3D map, or a second storm picked on it, means they are looking around
+ * rather than at the one storm they came for, and taking the map away from
+ * them when they close its panel would be taking away what they were doing.
+ * Cells3DCapability reports that through `used3D`, and the way back is
+ * forgotten.
  */
 
 /** Where a detour to the 3D map started, or null when the reader chose it. */
@@ -94,6 +101,11 @@ export function origin3D(): Origin | null {
 
 /** The reader has chosen a map of their own; there is nothing to go back to. */
 export function forget3DOrigin(): void {
+  origin = null;
+}
+
+/** The reader has used the 3D map itself: it is theirs now, and stays. */
+export function used3D(): void {
   origin = null;
 }
 

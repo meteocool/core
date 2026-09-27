@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { cellRecency, radarOffsetLabel, SAME_FRAME_MINUTES } from "../../src/lib/cellRecency.ts";
+import type { Translate } from "../../src/locale/t.ts";
+
+/** Names the message and what was put into it, so the tests see both. */
+const t: Translate = (key, options) => (
+  options?.values
+    ? `${key}(${Object.entries(options.values).map(([name, value]) => `${name}=${value}`).join(",")})`
+    : key
+);
 
 const MIN = 60_000;
 const now = 1_000 * MIN;
@@ -17,24 +25,24 @@ test("a detection stamped ahead of the clock reads as current, not negative", ()
 
 test("with no radar grid there is nothing to compare against", () => {
   assert.equal(cellRecency(now, now, null).behindMinutes, null);
-  assert.equal(radarOffsetLabel(null), null);
+  assert.equal(radarOffsetLabel(null, t), null);
 });
 
 test("the two products on the same step say nothing", () => {
   // The panel is busy enough without a line confirming nothing is wrong.
-  assert.equal(radarOffsetLabel(0), null);
-  assert.equal(radarOffsetLabel(SAME_FRAME_MINUTES - 0.1), null);
-  assert.equal(radarOffsetLabel(-(SAME_FRAME_MINUTES - 0.1)), null);
+  assert.equal(radarOffsetLabel(0, t), null);
+  assert.equal(radarOffsetLabel(SAME_FRAME_MINUTES - 0.1, t), null);
+  assert.equal(radarOffsetLabel(-(SAME_FRAME_MINUTES - 0.1), t), null);
 });
 
 test("a detection a frame behind the radar says so", () => {
   const { behindMinutes } = cellRecency(now - 10 * MIN, now, now - 5 * MIN);
   assert.equal(behindMinutes, 5);
-  assert.equal(radarOffsetLabel(behindMinutes), "5 min behind the radar");
+  assert.equal(radarOffsetLabel(behindMinutes, t), "storm.radar_offset.behind(m=5)");
 });
 
 test("a detection ahead of the composite is reported rather than rounded away", () => {
-  assert.equal(radarOffsetLabel(-5), "5 min ahead of the radar");
+  assert.equal(radarOffsetLabel(-5, t), "storm.radar_offset.ahead(m=5)");
 });
 
 test("the offset is against the radar frame, not the clock", () => {
@@ -43,5 +51,5 @@ test("the offset is against the radar frame, not the clock", () => {
   const { ageMinutes, behindMinutes } = cellRecency(now - 30 * MIN, now, now - 30 * MIN);
   assert.equal(ageMinutes, 30);
   assert.equal(behindMinutes, 0);
-  assert.equal(radarOffsetLabel(behindMinutes), null);
+  assert.equal(radarOffsetLabel(behindMinutes, t), null);
 });

@@ -14,11 +14,22 @@
  *
  * Section headings are `h3.section` with an optional `span.aside`, set from
  * here for whatever is inside, `CellLineage` and `VolumeProvenance` included.
+ * So are the two row shapes the panels share: `.stats`, a line of three
+ * facts under the title, and `dl.facts`, label-and-value rows at the end.
+ *
+ * The type and the spacing follow the system's own place cards: a bold title
+ * with the place under it in the secondary ink, bold section headings a step
+ * above the body, labels carried by colour rather than by being small, and
+ * air between the groups rather than rules.
  */
 import CloseDisc from "./CloseDisc.svelte";
 
-/** The storm's own colour, for the rule down the header. */
-export let rule: string;
+/**
+ * The storm's own colour, for the rule down the header. None for a panel that
+ * is not about one storm -- the model comparison takes this frame too, so every
+ * drawer reads as the same kind of thing.
+ */
+export let rule: string | null = null;
 /** What a screen reader calls the panel. */
 export let label: string;
 /** Where the storm is, on its own line under the header; none at sea or offline. */
@@ -50,20 +61,23 @@ function onKeydown(event: KeyboardEvent) {
 <svelte:window on:keydown={onKeydown} />
 
 <section class="storm-panel" aria-label={label}>
-  <header style="border-color: {rule}">
-    <slot name="header" />
+  <header>
+    <!-- The storm's own colour, as the map draws it, so the panel says which
+         of the shapes behind it it is about. -->
+    {#if rule}<span class="rule" style:background={rule} aria-hidden="true"></span>{/if}
+    <div class="titles">
+      <h2 class="title"><slot name="header" /></h2>
+      {#if place}<p class="place">{place}</p>{/if}
+    </div>
     <CloseDisc on:click={onClose} />
   </header>
-  {#if place}
-    <p class="place">{place}</p>
-  {/if}
   <slot />
 </section>
 
 <style>
   .storm-panel {
-    font-size: 13px;
-    line-height: 1.45;
+    font: var(--mc-type-body);
+    color: var(--mc-text);
     /* One width for both kinds of storm, so opening one after the other does
        not resize the popup under the pointer; the charts are drawn to it. */
     width: 340px;
@@ -72,79 +86,143 @@ function onKeydown(event: KeyboardEvent) {
   @media only screen and (max-width: 620px) {
     .storm-panel { width: auto; min-width: 300px; }
   }
+
   header {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    border-left: 4px solid;
-    padding-left: 8px;
-    margin-bottom: 6px;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
   }
-  @media only screen and (max-width: 620px) {
-    header { align-items: center; }
+  /* A bar rather than a border, so it can be rounded and stop short of the
+     line box's leading, top and bottom. */
+  .rule {
+    flex: 0 0 4px;
+    align-self: stretch;
+    margin: 3px 0;
+    border-radius: 2px;
   }
-  /* What the storm is called, whichever panel names it. */
-  header :global(.headline) {
+  .titles {
+    flex: 1 1 auto;
     min-width: 0;
-    font-weight: 600;
+  }
+  .title {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    margin: 0;
+    font: var(--mc-type-title);
+    letter-spacing: -0.02em;
     overflow-wrap: anywhere;
   }
-  /* Beside it, quieter: how old it is. */
-  header :global(.meta) {
-    font-size: 11px;
-    opacity: 0.65;
-    white-space: nowrap;
+  /* What the storm is called, whichever panel names it. */
+  .title :global(.headline) {
+    min-width: 0;
   }
   .place {
-    margin: -2px 0 6px;
-    padding-left: 12px;
-    font-size: 0.9em;
-    opacity: 0.8;
+    margin: 3px 0 0;
+    font: var(--mc-type-subtitle);
+    color: var(--mc-text-2);
   }
 
   /**
-   * A section heading, on the footing iOS gives one in a grouped list.
-   *
-   * Apple sets these at Footnote (13px) semibold in the secondary label
-   * colour, not at a size above the body in the primary one -- a section
-   * header names the group, it is not the loudest thing in it. Tracking goes
-   * slightly positive rather than negative: at this size the default fit is
-   * too tight, which is the opposite of the problem a display size has.
+   * Three facts in a row under the title, as the system's place cards set
+   * "Hours / Open": a small label in the secondary ink over a value in the
+   * primary, centred in equal columns. The value carries the colour when
+   * there is one to carry.
+   */
+  .storm-panel :global(.stats) {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 0;
+    text-align: center;
+  }
+  .storm-panel :global(.stats dt) {
+    font: var(--mc-type-label);
+    color: var(--mc-text-2);
+  }
+  .storm-panel :global(.stats dd) {
+    margin: 4px 0 0;
+    font: var(--mc-type-value);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /**
+   * A section heading, on the footing the place cards give one: bold, in the
+   * primary ink, a clear step above the body -- it names the group, and the
+   * air above it is what separates the groups, so there are no rules.
    *
    * `h3` because these are real headings -- the panel is a section of the page
    * and each block is a section of the panel, so a screen reader can jump
    * between them.
    */
   .storm-panel :global(.section) {
-    margin: 18px 0 7px;
-    font: 600 13px/1.25 var(--mc-font, system-ui);
-    letter-spacing: 0.006em;
-    color: var(--sl-color-neutral-600, #57534e);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 26px 0 10px;
+    font: var(--mc-type-heading);
+    letter-spacing: -0.01em;
+    color: var(--mc-text);
   }
-  /* The first heading follows the signals row or the dial, which already
-     carries the gap. */
-  .storm-panel :global(.section:first-of-type) {
-    margin-top: 10px;
+  /* The first heading follows the stats or the dial, which carry a gap. Only
+     the panel's own: `:first-of-type` counts per parent, so unqualified it
+     also caught the first heading inside VolumeProvenance and CellLineage,
+     which come after whole sections and need the full gap. */
+  .storm-panel > :global(h3.section:first-of-type) {
+    margin-top: 18px;
   }
   /**
    * The aside is the hint that used to live in the caption ("drag to turn",
-   * "tap to follow"). Set a step quieter again, and separated by a middot:
-   * a margin alone left two phrases touching with nothing to say they were
-   * different things.
+   * "tap to follow"), set at the far end of the heading's line where the
+   * place cards put their "Edit": a different kind of thing from the heading,
+   * so it is somewhere else rather than just quieter.
    */
   .storm-panel :global(.section .aside) {
-    font: 400 12px/1 var(--mc-font, system-ui);
-    color: var(--sl-color-neutral-500, #78716c);
+    margin-left: auto;
+    font: 400 13px/1.25 var(--mc-font);
     letter-spacing: 0;
+    color: var(--mc-text-3);
+    text-align: right;
   }
-  .storm-panel :global(.section .aside)::before {
-    content: "·";
-    margin: 0 5px;
-    color: var(--sl-color-neutral-400, #a8a29e);
+
+  /**
+   * Label-and-value rows at the end, as the place cards' "Details": the label
+   * in the secondary ink, the value in the primary, a hairline between rows
+   * that stops short of the edge the text starts from.
+   */
+  .storm-panel :global(.facts) {
+    margin: 0;
+  }
+  .storm-panel :global(.facts > div) {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .storm-panel :global(.facts > div:first-child) {
+    padding-top: 0;
+  }
+  .storm-panel :global(.facts > div + div) {
+    border-top: 0.5px solid var(--mc-separator);
+  }
+  .storm-panel :global(.facts dt) {
+    color: var(--mc-text-2);
+  }
+  .storm-panel :global(.facts dd) {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
 
   .storm-panel :global(footer) {
-    font-size: 11px;
-    opacity: 0.6;
+    margin-top: 12px;
+    font: 400 12px/1.4 var(--mc-font);
+    color: var(--mc-text-3);
   }
 </style>

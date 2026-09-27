@@ -97,13 +97,15 @@ onMount(() => {
     gap: 8px;
     /* Top and right match, so the disc sits square in the corner with the
        same air on both sides of it. */
-    padding: 14px 14px 8px 16px;
+    padding: 14px 14px 6px var(--mc-drawer-pad);
   }
+  /* The drawer's title, as the storm panel sets it: bold and a clear step
+     above everything in the panel, so the panel says what it is at a glance. */
   h2 {
     flex: 1 1 auto;
     margin: 0;
-    font: 700 15px/1.3 var(--mc-font);
-    letter-spacing: -0.01em;
+    font: var(--mc-type-title);
+    letter-spacing: -0.02em;
   }
 
   /*
@@ -148,14 +150,23 @@ onMount(() => {
   }
 
   /* The only scroller: the panel stops at the bottom of the screen, so a long
-     body scrolls inside it rather than running off the map. */
+     body scrolls inside it rather than running off the map -- and fades out
+     at both ends into the glass, rather than being cut off under the header
+     and at the rim. The padding is the fade's length, so the first and last
+     lines rest clear of it. */
   .body {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding: 0 16px 14px;
+    padding: var(--mc-fade-top) var(--mc-drawer-pad) var(--mc-fade-bottom);
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--mc-fade-top),
+      #000 calc(100% - var(--mc-fade-bottom)), transparent);
+    mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--mc-fade-top),
+      #000 calc(100% - var(--mc-fade-bottom)), transparent);
   }
 
   /* A phone on its side has about 375px of height for all of this, and half of

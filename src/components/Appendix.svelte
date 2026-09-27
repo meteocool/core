@@ -1,6 +1,7 @@
 <script lang="ts">
 import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
 import Icon from "./Icon.svelte";
+import { _ } from "svelte-i18n";
 
 function init(_node: HTMLElement) {
   // Placeholder: the element is not used yet.
@@ -70,7 +71,7 @@ function init(_node: HTMLElement) {
                 href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623"
         ><img
                 src="assets/ios-app-store.png"
-                alt="ios app store link"
+                alt={$_("chrome.alt.app_store")}
                 class="appstore-logo"
         /></a>
     </div>
@@ -80,7 +81,7 @@ function init(_node: HTMLElement) {
                 href="https://play.google.com/store/apps/details?id=com.meteocool"
         ><img
                 class="appstore-logo"
-                alt="google play app store"
+                alt={$_("chrome.alt.play_store")}
                 src="assets/google-play-store.png"
         /></a>
     </div>

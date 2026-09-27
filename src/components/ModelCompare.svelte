@@ -6,6 +6,11 @@
    * models read straight from open-meteo, combined into one weighted forecast
    * with an agreement signal. meteocompare has no backend, so this reads the
    * same public API rather than a server of ours.
+   *
+   * Drawn in the drawers' frame (StormPanel): the phone's sheet and the
+   * desktop's corner panel, as a storm's details are -- App.svelte picks the
+   * surface. It used to be a solid screen of its own over the whole map, with
+   * its own title and close, which read as a different app.
    */
   import { onMount } from "svelte";
   import { fetchForecast, type Forecast } from "../lib/compare/openMeteo";
@@ -15,13 +20,17 @@
   import { reportError } from "../lib/Toast";
   import ModelSpread from "./ModelSpread.svelte";
   import { reverseGeocode } from "../lib/reverseGeocode";
-  import { locale } from "svelte-i18n";
+  import { _, locale } from "svelte-i18n";
   import { get } from "svelte/store";
+  import { currentLocale, type Translate } from "../locale/t";
+  import StormPanel from "./StormPanel.svelte";
 
   /** Where to forecast for: meteocool's map centre when the panel was opened. */
   export let lat: number;
   export let lon: number;
   export let onClose: () => void = () => {};
+  /** The spread's range to open on, in hours; see ModelSpread. */
+  export let initialHours = 24;
 
   /* The report is about a place, so the place is the heading. Coordinates are
      the fallback and the detail line, not the title: nobody recognises their
@@ -55,10 +64,10 @@
     return Math.max(0, (new Date(`${date}T12:00:00`).getTime() - Date.now()) / 3600000);
   }
 
-  function dayName(date: string, index: number): string {
-    if (index === 0) return "Today";
-    if (index === 1) return "Tomorrow";
-    return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" });
+  function dayName(date: string, index: number, t: Translate): string {
+    if (index === 0) return t("compare.today");
+    if (index === 1) return t("compare.tomorrow");
+    return new Date(`${date}T12:00:00`).toLocaleDateString(currentLocale(), { weekday: "short" });
   }
 
   function round(value: number | null, digits = 0): string {
@@ -78,12 +87,12 @@
     wind: Consensus;
   }
 
-  function view(f: Forecast): DayView[] {
+  function view(f: Forecast, t: Translate): DayView[] {
     return f.days.map((day, index) => {
       const lead = leadHours(day.date);
       return {
         date: day.date,
-        name: dayName(day.date, index),
+        name: dayName(day.date, index, t),
         lead,
         code: consensusOf(day.values.weather_code, "weather_code", lead),
         high: consensusOf(day.values.temperature_2m_max, "temperature_2m_max", lead),
@@ -95,7 +104,8 @@
     });
   }
 
-  $: days = forecast ? view(forecast) : [];
+  // `$_` as an argument, so the day names follow a language change.
+  $: days = forecast ? view(forecast, $_) : [];
 
   function toggle(date: string) {
     expanded = expanded === date ? null : date;
@@ -119,99 +129,30 @@
 </script>
 
 <style>
-  /* Solid sheet, no blur: it covers the whole viewport. */
-  .panel {
-    position: absolute;
-    inset: 0;
-    z-index: var(--mc-z-sheet-2);
-    box-sizing: border-box;
-    padding: var(--mc-safe-top) 0 calc(var(--mc-safe-bottom) + 16px);
-    background: var(--mc-sheet);
-    color: var(--mc-text);
-    font-family: var(--mc-font);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* A large title, the way a system app opens a screen: the place is the
-     subject, so it is the title, and there is no room above it for a label
-     saying what kind of screen this is. The tile that opens this already said
-     that, and by the time you are reading a forecast you know. */
-  header {
-    padding: 10px 56px 14px 16px;
-  }
-
-  h1 {
-    margin: 0;
-    /* Shrinks before it wraps: a long German place name at 34px is wider than
-       a phone, and two lines of large title pushes the chart off the screen. */
-    font-size: clamp(25px, 7.4vw, 34px);
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-  }
-
-  /* The subtitle a large title takes: secondary ink, body size, one line. The
-     coordinates moved into the panel's own footnote -- six decimals under a
-     place name is the kind of detail that reads as clutter until you need it,
-     and the diagnostics panel is where the numbers live. */
-  .where {
-    margin: 3px 0 0;
-    font: 400 15px/1.3 var(--mc-font);
-    letter-spacing: -0.01em;
-    color: var(--mc-text-2);
-  }
-
-  .close {
-    position: absolute;
-    top: calc(var(--mc-safe-top) + 10px);
-    right: 12px;
-    z-index: 1;
-    width: 32px;
-    height: 32px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--mc-tint);
-    color: var(--mc-text-2);
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
-  }
-  .close:hover {
-    background: var(--mc-tint-hover);
-    color: var(--mc-text);
-  }
-  .close:active {
-    transform: scale(var(--mc-press));
-  }
-
-  /* The seven days as one inset grouped card. */
+  /* The seven days as rows, as the drawers set label-and-value rows: a
+     hairline between them and no card around them -- the drawer is the card. */
   .days {
-    margin: 0 12px 12px;
+    margin: 0;
     padding: 0;
-    background: var(--mc-sheet-card);
-    border: 1px solid var(--mc-separator);
-    border-radius: var(--mc-radius-card);
-    box-shadow: var(--mc-glass-highlight);
-    overflow: hidden;
   }
 
   .day {
     display: grid;
-    grid-template-columns: 5.2em 2.2em 1fr 4.6em 4.6em;
+    /* The name takes what is left; everything else is as wide as it needs.
+       Two lines per row -- high and low over their spread, the amount over
+       its chance -- so no figure has to wrap on a phone. */
+    grid-template-columns: minmax(4.4em, 1fr) 1.6em auto 4.4em auto;
     align-items: center;
     gap: 0.5em;
-    padding: 10px 12px;
-    border-top: 1px solid var(--mc-separator);
+    margin: 0 -8px;
+    padding: 10px 8px;
+    border-radius: 10px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: background-color var(--mc-motion-fast);
   }
-  .day:first-child {
-    border-top: 0;
+  .day + .day {
+    border-top: 0.5px solid var(--mc-separator);
   }
   .day:hover {
     background-color: var(--mc-tint);
@@ -222,29 +163,29 @@
 
   .name {
     font-weight: 600;
-    font-size: 14px;
   }
 
   .icon {
-    font-size: 20px;
+    font-size: 19px;
     text-align: center;
   }
 
   .temps {
+    font: 600 15px/1.25 var(--mc-font);
     font-variant-numeric: tabular-nums;
-    font-size: 15px;
-    font-weight: 500;
+    white-space: nowrap;
   }
 
   /* Scoped to the figures, so it no longer dims the "uncertain" badge too. */
   .temps .low,
   .precip .low {
     color: var(--mc-text-2);
+    font-weight: 400;
   }
 
   .spread {
-    margin-left: 0.4em;
-    font-size: 11px;
+    display: block;
+    font: 400 11px/1.3 var(--mc-font);
     font-variant-numeric: tabular-nums;
     color: var(--mc-text-3);
   }
@@ -252,13 +193,15 @@
   .precip {
     font-variant-numeric: tabular-nums;
     font-size: 13px;
+    line-height: 1.3;
     text-align: right;
+    white-space: nowrap;
   }
 
   /* The agreement signal: tinted capsules with ink text, not saturated fills. */
   .tier {
-    display: inline-block;
-    padding: 5px 8px;
+    justify-self: end;
+    padding: 5px 9px;
     border-radius: var(--mc-radius-pill);
     font: 600 11px/1 var(--mc-font);
     letter-spacing: 0.01em;
@@ -270,11 +213,11 @@
   .tier.low { background: var(--mc-red-tint); color: var(--mc-red-ink); }
 
   .breakdown {
-    margin: 0;
-    padding: 6px 12px 10px 12px;
-    font-size: 12px;
+    margin: 0 0 6px;
+    padding: 8px 12px;
+    border-radius: 12px;
     background: var(--mc-tint);
-    border-top: 1px solid var(--mc-separator);
+    font-size: 12px;
   }
 
   .model {
@@ -299,14 +242,6 @@
   .status {
     padding: 2em 1em;
     text-align: center;
-    font-size: 14px;
-    color: var(--mc-text-2);
-  }
-
-  footer {
-    padding: 0 16px;
-    font-size: 11px;
-    line-height: 1.5;
     color: var(--mc-text-2);
   }
 
@@ -315,34 +250,35 @@
   }
 </style>
 
-<div class="panel">
-  <div class="close" on:click={onClose} title="Close">×</div>
-
-  <header>
-    <h1>{placeName ?? `${lat.toFixed(3)}, ${lon.toFixed(3)}`}</h1>
-    <p class="where">
-      {#if forecast}{forecast.respondingModels.length} of 21 models{:else}Comparing models…{/if}
-    </p>
-  </header>
+<StormPanel
+  label={placeName ? $_("compare.title_place", { values: { place: placeName } }) : $_("compare.title")}
+  place={forecast
+    ? $_("compare.responding", { values: { count: forecast.respondingModels.length } })
+    : $_("compare.comparing")}
+  {onClose}>
+  <span slot="header" class="headline">{placeName ?? `${lat.toFixed(3)}, ${lon.toFixed(3)}`}</span>
 
   {#if loading}
-    <div class="status">Asking 21 weather models…</div>
+    <div class="status">{$_("compare.loading")}</div>
   {:else if error}
-    <div class="status">Could not reach open-meteo.<br />{error}</div>
+    <div class="status">{$_("compare.error")}<br />{error}</div>
   {:else}
     <!-- The spread first: the point of comparing models is the disagreement,
          which is a curve over time, not a column of daily numbers. -->
-    <ModelSpread {lat} {lon} />
+    <ModelSpread {lat} {lon} {initialHours} />
 
+    <h3 class="section">{$_("compare.days_heading")}<span class="aside">{$_("compare.days_aside")}</span></h3>
     <div class="days">
       {#each days as day (day.date)}
-        <div class="day" on:click={() => toggle(day.date)}>
+        <div class="day" role="button" tabindex="0" aria-expanded={expanded === day.date}
+             on:click={() => toggle(day.date)}
+             on:keydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(day.date); } }}>
           <span class="name">{day.name}</span>
-          <span class="icon" title={weatherCode(day.code.value).label}>
-            {weatherCode(day.code.value).icon}
+          <span class="icon" title={weatherCode(day.code.value, $_).label}>
+            {weatherCode(day.code.value, $_).icon}
           </span>
           <span class="temps">
-            {round(day.high.value)}°<span class="low"> / {round(day.low.value)}°</span>
+            {round(day.high.value)}° <span class="low">/ {round(day.low.value)}°</span>
             {#if day.high.stdDev >= 0.5}
               <span class="spread">±{round(day.high.stdDev, 1)}</span>
             {/if}
@@ -355,12 +291,10 @@
           </span>
           <span
             class="tier {tierFor(day.high.predictability)}"
-            title="Temperature spread ±{round(day.high.stdDev, 1)}° across {day.high.contributors.length} models">
-            {tierFor(day.high.predictability) === "high"
-              ? "Agreed"
-              : tierFor(day.high.predictability) === "mid"
-                ? "Mixed"
-                : "Uncertain"}
+            title={$_("compare.tier_title", {
+              values: { spread: round(day.high.stdDev, 1), count: day.high.contributors.length },
+            })}>
+            {$_(`compare.tier.${tierFor(day.high.predictability)}`)}
           </span>
         </div>
 
@@ -379,16 +313,16 @@
       {/each}
     </div>
 
+    <!-- The sentence is split around the links rather than carrying markup
+         through the translation. -->
     <footer>
-      Forecast for {lat.toFixed(4)}, {lon.toFixed(4)}.
-      Weighted across {forecast?.respondingModels.length} models that cover this point, discounting
-      shared lineage so a family of related models does not read as independent
-      agreement. The badge scores temperature agreement against the spread
-      normal for that lead time. Method and model registry from
+      {$_("compare.footer.method", {
+        values: { lat: lat.toFixed(4), lon: lon.toFixed(4), count: forecast?.respondingModels.length ?? 0 },
+      })}
+      {$_("compare.footer.registry")}
       <a href="https://github.com/Flowm/meteocompare" target="_blank" rel="noreferrer">meteocompare</a>;
-      data from <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo.com</a>
+      {$_("compare.footer.data")} <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo.com</a>
       (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>).
-      Tap a day for the per-model figures.
     </footer>
   {/if}
-</div>
+</StormPanel>
