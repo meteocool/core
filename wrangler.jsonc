@@ -34,9 +34,17 @@
       "workers_dev": true,
       // next.meteocool.com is the staging web address; web.staging stays as
       // an alias so nothing that learned the old name breaks.
+      //
+      // app.meteocool.com is where the iOS app loads its map and sends its
+      // push registrations (the Worker forwards them to API_ORIGIN). It is
+      // attached to whichever environment the app should use. To move the app,
+      // move this line to that environment and deploy both: a custom domain
+      // belongs to one Worker at a time. Move the push registrations in the
+      // same step, or the old cluster goes on notifying the phones as well.
       "routes": [
         { "pattern": "next.meteocool.com", "custom_domain": true },
         { "pattern": "web.staging.meteocool.com", "custom_domain": true },
+        { "pattern": "app.meteocool.com", "custom_domain": true },
       ],
       "observability": {
         "enabled": true,
@@ -46,7 +54,10 @@
       // Without this the staging Worker advertises production's preview image
       // in its OpenGraph tags: the Worker is bundled by wrangler, so Vite's
       // `--mode staging` never reaches it.
-      "vars": { "PREVIEW_ORIGIN": "https://api-next.meteocool.com" },
+      "vars": {
+        "PREVIEW_ORIGIN": "https://api-next.meteocool.com",
+        "API_ORIGIN": "https://api-next.meteocool.com",
+      },
     },
     // The demo environment beside staging on the same cluster, replaying a
     // recorded storm. Built with `--mode demo`, which points it at demo's
@@ -65,7 +76,10 @@
         "logs": { "enabled": true },
         "traces": { "enabled": true },
       },
-      "vars": { "PREVIEW_ORIGIN": "https://api-demo.meteocool.com" },
+      "vars": {
+        "PREVIEW_ORIGIN": "https://api-demo.meteocool.com",
+        "API_ORIGIN": "https://api-demo.meteocool.com",
+      },
     },
     // Not production. meteocool.com is the old frontend on the old backend,
     // served by the Cloudflare Pages project `core`, and the apps in the
@@ -79,6 +93,8 @@
     "production": {
       "name": "meteocool-web-production",
       "workers_dev": false,
+      // No API_ORIGIN yet: production's v4 API has no hostname. Set it before
+      // app.meteocool.com moves here.
       "vars": { "PREVIEW_ORIGIN": "https://api.meteocool.com" },
     },
   },

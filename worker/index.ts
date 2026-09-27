@@ -13,7 +13,12 @@
  * module-level `ogtag` on every request, so two overlapping requests could swap
  * each other's language -- and the rewriter only runs when the response is
  * actually HTML.
+ *
+ * It also forwards the native apps' API calls to this environment's backend;
+ * see api.ts.
  */
+
+import { appApiRequest, isAppApiPath } from "./api";
 
 interface Env {
   ASSETS: Fetcher;
@@ -27,6 +32,13 @@ interface Env {
    * it always did.
    */
   PREVIEW_ORIGIN?: string;
+  /**
+   * Origin of the API this environment's build talks to, set per environment
+   * in wrangler.jsonc. The apps' API calls are forwarded there (api.ts).
+   * Unset, nothing is forwarded and those paths 404, so a missing var shows up
+   * as failed registrations rather than registrations on the wrong backend.
+   */
+  API_ORIGIN?: string;
 }
 
 const DEFAULT_PREVIEW_ORIGIN = "https://api.meteocool.com";
@@ -103,6 +115,10 @@ class MetaTagHandler {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const { searchParams, pathname } = new URL(request.url);
+
+    if (env.API_ORIGIN && isAppApiPath(pathname)) {
+      return fetch(appApiRequest(request, env.API_ORIGIN));
+    }
 
     if (pathname !== "/" && pathname !== "/index.html") {
       return env.ASSETS.fetch(request);
