@@ -1,5 +1,5 @@
 <script lang="ts">
-  import mapBg from "../../assets/map-bg.png";
+  import mapBg from "../../assets/map-bg.webp";
 
   export let palette: string;
   export let valueFormat: ((value: string, index: number) => string) | null = null;

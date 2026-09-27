@@ -2,3 +2,6 @@
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
 
+# Vite names everything under /assets/ by content hash, so a URL is immutable.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

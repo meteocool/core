@@ -217,9 +217,6 @@ function draw() {
       layout: { padding: { top: 4, right: 2, bottom: 0, left: 0 } },
       plugins: {
         legend: { display: false },
-        /* The datalabels plugin is registered app-wide for the radar chart, so
-           without this it writes a number onto all 2500 points here. */
-        datalabels: { display: false },
         tooltip: {
           displayColors: false,
           /* The band is drawn with two invisible datasets; when a model's line
