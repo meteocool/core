@@ -17,6 +17,8 @@
  * about whether two things on screen can be compared at all.
  */
 
+import type { Translate } from "../locale/t";
+
 /** Below this the two products are on the same step and say so. */
 export const SAME_FRAME_MINUTES = 2.5;
 
@@ -54,13 +56,13 @@ export function cellRecency(
  * step, which needs no sentence -- the panel is busy enough without a line
  * confirming that nothing is wrong.
  */
-export function radarOffsetLabel(behindMinutes: number | null): string | null {
+export function radarOffsetLabel(behindMinutes: number | null, t: Translate): string | null {
   if (behindMinutes === null) return null;
   if (Math.abs(behindMinutes) < SAME_FRAME_MINUTES) return null;
   const minutes = Math.round(Math.abs(behindMinutes));
   // Ahead happens when a detection lands before the composite it came from is
   // published. Rare, and worth saying plainly rather than rounding to zero.
-  return behindMinutes > 0
-    ? `${minutes} min behind the radar`
-    : `${minutes} min ahead of the radar`;
+  return t(behindMinutes > 0 ? "storm.radar_offset.behind" : "storm.radar_offset.ahead", {
+    values: { m: minutes },
+  });
 }

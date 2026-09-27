@@ -4,6 +4,8 @@
   import { onMount } from "svelte";
   import Map from "ol/Map";
   import View from "ol/View";
+  import { unByKey } from "ol/Observable";
+  import type { EventsKey } from "ol/events";
   import type BaseLayer from "ol/layer/Base";
   import { dwdLayerStatic } from "../layers/dwd";
   import { get } from "svelte/store";
@@ -54,29 +56,57 @@
    * frosting, it gets its own map built here: the basemap the app is on, and
    * the newest radar frame over it.
    *
-   * Decoration, and treated as such. No interactions, no controls, no
-   * subscriptions, and nothing keeps it up to date -- it is behind a 10px blur
-   * under a label saying Preview, and it exists so the tile reads as a map
-   * rather than as a hole. If the radar has not loaded yet it simply shows the
-   * basemap, which is what the other tiles do too.
+   * Decoration, and treated as such: no interactions and no controls. It
+   * exists so the tile reads as a map rather than as a hole. If the radar has
+   * not loaded yet it simply shows the basemap, which is what the other tiles
+   * do too.
+   *
+   * It does follow the map, though, as every other tile does. Those draw
+   * through the one View the app's maps share, so a pan moves all of them;
+   * this one was built on a View of its own, copied once at mount -- with the
+   * app, before the reader had moved anything -- and then sat still on the
+   * opening view while the tiles around it panned.
+   *
+   * Following rather than sharing: a map writes its own size into its View
+   * (`setViewportSize`) whenever it is resized or handed the View, and this
+   * one mounts hidden at 0x0 and lives as long as the app, so on the shared
+   * View it would keep overwriting the size the real map's constraints are
+   * worked out from. A View of its own, kept in step, has nothing to write
+   * over. The shared View is itself replaced when the rotation setting
+   * changes (see App.svelte), so the map's `change:view` rebinds it.
    */
   function decorativeMap(node) {
-    // Wherever the reader is looking, so the tile shows their weather rather
-    // than a fixed corner of the country.
-    const views: View[] = [];
-    layerManager.forEachMap((map: Map) => views.push(map.getView()));
-    const view: View | undefined = views[0];
-
+    const own = new View({ center: [0, 0], zoom: 7 });
     const preview_ = new Map({
       target: node,
       layers: [layerManager.baseLayerFactory(get(mapBaseLayer))],
       controls: [],
       interactions: [],
-      view: new View({
-        center: view?.getCenter() ?? [0, 0],
-        zoom: (view?.getZoom() ?? 7) - 1,
-      }),
+      view: own,
     });
+
+    // Wherever the reader is looking, so the tile shows their weather rather
+    // than a fixed corner of the country -- and wherever they look next.
+    // A hidden tile has no size, and OpenLayers skips drawing a map without
+    // one, so following along while the switcher is shut costs three setters.
+    const source: Map | undefined = layerManager.maps[0];
+    let viewKeys: EventsKey[] = [];
+    const follow = () => {
+      unByKey(viewKeys);
+      const shared = source?.getView();
+      if (!shared) return;
+      const sync = () => {
+        const center = shared.getCenter();
+        const resolution = shared.getResolution();
+        if (center) own.setCenter(center);
+        if (resolution !== undefined) own.setResolution(resolution);
+        own.setRotation(shared.getRotation());
+      };
+      sync();
+      viewKeys = shared.on(["change:center", "change:resolution", "change:rotation"], sync) as EventsKey[];
+    };
+    follow();
+    const mapKey = source?.on("change:view", follow);
 
     /*
      * The radar goes on when there is radar, which is not now.
@@ -104,6 +134,8 @@
     return {
       destroy() {
         unsubscribe();
+        unByKey(viewKeys);
+        if (mapKey) unByKey(mapKey);
         preview_.setTarget(undefined);
       },
     };

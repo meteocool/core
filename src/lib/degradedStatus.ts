@@ -3,6 +3,7 @@ import { apiHealth, degradedStatus, radarCadence } from "../stores";
 import { evaluateDegraded, type DegradedSignals } from "./degraded";
 import { summariseRequests } from "./requestTiming";
 import { overdueBy } from "./updateCadence";
+import { t } from "../locale/t";
 
 /**
  * Sampling the signals lib/degraded.ts judges, and publishing the verdict.
@@ -48,7 +49,7 @@ export function readDegradedSignals(now: number = Date.now()): DegradedSignals {
 
 export function refreshDegradedStatus() {
   const now = Date.now();
-  const next = evaluateDegraded(readDegradedSignals(now), now);
+  const next = evaluateDegraded(readDegradedSignals(now), now, t);
   degradedStatus.update((current) => (
     /* Same verdict, same reasons: hand back the old object so a pill that is
        already saying this is not re-rendered every five seconds. */

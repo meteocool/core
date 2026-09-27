@@ -20,7 +20,7 @@ import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
 import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
 import {
-  inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, mapView, sharedActiveCap,
+  inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, mapView, pointMenuAt, sharedActiveCap,
   zoomlevel,
 } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
@@ -338,7 +338,11 @@ export class LayerManager {
         navigator.vibrate?.(12);
         if (capability !== "radar") return;
         const [clickedLon, clickedLat] = toLonLat(coordinate);
-        inspectLatLon.set([clickedLat, clickedLon]);
+        // Not straight to the strip any more: a held point has two questions
+        // it can be asking -- what is falling there, and what the weather
+        // models say -- so the hold offers both (PointMenu), and the choice
+        // sets `inspectLatLon` or opens the comparison.
+        pointMenuAt.set([clickedLat, clickedLon]);
       }, LONG_PRESS_MS);
     });
 

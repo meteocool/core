@@ -40,6 +40,7 @@ import { DeviceDetect as dd } from "./DeviceDetect";
 import type { LayerManager } from "./LayerManager";
 import type Settings from "./Settings";
 import { reportToast } from "./Toast";
+import { t } from "../locale/t";
 import { setElementCentre } from "./viewCentre";
 
 /** The setting each overlay is stored under, whose callback drives its store. */
@@ -253,7 +254,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
     if (token !== generation || selection() !== before) return;
     const track = answer as unknown as CellTrack | null;
     if (!track?.properties) {
-      reportToast("That storm is no longer being tracked.");
+      reportToast(t("storm.toast.cell_gone"));
       return;
     }
     const trimmed = trimToLastRun(track);
@@ -281,7 +282,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
     const cloud = await cells3d.restoreCloud(link.cloud!);
     if (token !== generation || selection() !== before) return;
     if (!cloud) {
-      reportToast("That storm core's radar volume is no longer available.");
+      reportToast(t("storm.toast.volume_gone"));
       return;
     }
     selectedCell.set(null);

@@ -18,6 +18,7 @@ import {
   capLatestObservation,
   capLastUpdated,
   capTimeIndicator,
+  dryAtUser,
   lastFocus,
   inspectLatLon,
   latLon,
@@ -25,6 +26,7 @@ import {
   radarCadence,
   radarColorScheme,
   radarStale,
+  replay,
   selectedCell,
   setFrames,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
@@ -33,7 +35,7 @@ import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
 import type NanobarWrapper from "../lib/NanobarWrapper";
 import type { CapabilityOptions, RadarSocket } from "./options";
-import { reportReplay } from "../lib/Toast";
+import { isDry } from "../lib/dryness";
 import Capability from "./Capability";
 import { tileBaseUrl } from "../urls";
 import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
@@ -244,7 +246,10 @@ export default class RadarCapability extends Capability {
     });
 
     latLon.subscribe((latlonUpdate) => {
-      if (!latlonUpdate) return true;
+      if (!latlonUpdate) {
+        dryAtUser.set(false);
+        return true;
+      }
       const [lat, lon] = latlonUpdate;
       if (this.latlon) {
         const [oldLat, oldLon] = this.latlon;
@@ -616,12 +621,17 @@ export default class RadarCapability extends Capability {
 
   async downloadCurrentRadar() {
     live.set(false);
+    // Taken with the position, before the round trip: a point tapped while the
+    // request is out must not have the answer for the client's own position
+    // read as the answer for it, or the other way round.
+    const forUser = this.inspectLatlon === null && this.latlon !== null;
     const data = await fetchRadarTimeseries(this.nanobar, this.getPosition()).catch(() => null);
     if (!data) {
       live.set(false);
       return;
     }
     this.processRadar(data);
+    if (forUser) dryAtUser.set(isDry(data.frames));
   }
 
   async downloadSnowOverlay() {
@@ -730,7 +740,7 @@ export default class RadarCapability extends Capability {
     // The backend is the only thing that knows: a replay is built to be
     // indistinguishable from here, so there is nothing in the frames to infer
     // it from.
-    if (obj.replay) reportReplay();
+    replay.set(Boolean(obj.replay));
     this.gridconfig = this.regenerateGridConfig();
     const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
 

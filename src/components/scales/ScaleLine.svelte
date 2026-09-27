@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import mapBg from "../../assets/map-bg.webp";
 
   export let palette: string;
@@ -137,7 +138,7 @@
 
 <div class="wrapper">
     <div class="legend-label">{@html title}</div>
-    <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
+    <div class="scale" title={$_("chrome.scales.colormap", { values: { name: capitalizeFirst(prettyName), min: minDbz, max: maxDbz } })}>
         <div class="scale-line" style:--backgroundImage={backgroundImage} style:--backgroundUrl={backgroundUrl}>
             <div class="scale-dividers">
                 {#each vs as value, i (i)}

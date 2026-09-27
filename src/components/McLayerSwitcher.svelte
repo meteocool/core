@@ -6,8 +6,6 @@
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import { _ } from "svelte-i18n";
-  import ModelCompare from "./ModelCompare.svelte";
-  import { toLonLat } from "ol/proj";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
   import { selectedCell, selectedVolume } from "../stores";
@@ -33,19 +31,6 @@
   // lightning sat when there were five of these.
   $: tailSpans = tiles.length > 1 && (tiles.length - 1) % 2 === 1;
 
-  // The comparison panel is not a map layer, so it does not get a capability:
-  // the tile opens it over the switcher instead of switching the map.
-  let compareAt: { lat: number; lon: number } | null = null;
-
-  function openCompare() {
-    // The map centre as it stands when the panel opens, held until it is
-    // reopened -- open-meteo's free tier is rate limited, and refetching on
-    // every pan would spend that on views nobody is reading.
-    const centre = layerManager.getCurrentMap()?.getView().getCenter();
-    if (!centre) return;
-    const [lon, lat] = toLonLat(centre);
-    compareAt = { lat, lon };
-  }
   const childCanvases = {};
 
   const allAttributionsArray = Object.entries(attributions)
@@ -237,52 +222,12 @@
     border-radius: 14px;
     font-size: 16px;
   }
-
-  /* Not a MiniMap: there is no map behind it, so it is a card rather than glass. */
-  .compare {
-    flex: 0 0 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    background: var(--mc-sheet-card);
-    border: 1px solid var(--mc-separator);
-    border-radius: var(--mc-radius-card);
-    box-shadow: var(--mc-glass-highlight);
-    -webkit-tap-highlight-color: transparent;
-    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
-  }
-  .compare:hover {
-    background: var(--mc-sheet-card-hover);
-  }
-  .compare:active {
-    transform: scale(0.985);
-  }
-
-  .compare-label {
-    color: var(--mc-text);
-    padding: 0 12px;
-    font: 600 15px/1.2 var(--mc-font);
-    text-align: center;
-  }
-
-  .compare-sub {
-    display: block;
-    margin-top: 2px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--mc-text-2);
-  }
 </style>
 
 {#if !dd.isApp()}
   <div class="lsToggle" on:click={open}>
     <Icon icon={faLayerGroup} class="lsIcon" />
   </div>
-{/if}
-
-{#if compareAt}
-  <ModelCompare lat={compareAt.lat} lon={compareAt.lon} onClose={() => (compareAt = null)} />
 {/if}
 
 <div class="ls" id="ls">
@@ -303,12 +248,6 @@
               on:changeLayer={changeLayer} />
           </div>
         {/each}
-      </div>
-      <div class="compare" on:click={openCompare}>
-        <span class="compare-label">
-          🌡 {$_("model_comparison")}
-          <span class="compare-sub">{$_("model_comparison_sub")}</span>
-        </span>
       </div>
     </div>
   </div>

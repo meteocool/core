@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import ScaleLine from "./ScaleLine.svelte";
   import { onDestroy } from "svelte";
   import { radarColormap, unit } from "../../stores";
@@ -39,7 +40,7 @@
         if (isApp) {
           return `${value} min`;
         }
-        return `${value} <span class="minutes"> Minute${intValue === 1 ? "" : "s"}</span>`;
+        return `${value} <span class="minutes"> ${$_("chrome.scales.minutes", { values: { count: intValue } })}</span>`;
       }
       return "";
     }}

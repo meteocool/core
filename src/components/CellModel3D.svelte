@@ -18,6 +18,7 @@
  * so a storm that looks tall and narrow is tall and narrow.
  */
 import { onMount, onDestroy } from "svelte";
+import { _ } from "svelte-i18n";
 import { colorSchemeDark, radarColormap } from "../stores";
 import { cellVolume, dbzColour, frameOf } from "../lib/cellVolume";
 import type { CellVolumeModel, ModelFrame } from "../lib/cellVolume";
@@ -540,7 +541,7 @@ $: if (canvas && (mesh || frame)) ensureLoop();
     on:pointermove={onPointerMove}
     on:pointerup={onPointerUp}
     on:pointercancel={onPointerUp}
-    aria-label="Three-dimensional model of the storm cell's reflectivity structure"
+    aria-label={$_("storm.model_aria")}
   ></canvas>
 {/if}
 

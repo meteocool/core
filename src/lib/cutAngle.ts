@@ -6,6 +6,8 @@
  * exist under the test runner. Arithmetic about angles has no business
  * depending on the bundler.
  */
+import type { Translate } from "../locale/t";
+
 /**
  * A slice angle, folded into [-180, 180).
  *
@@ -36,20 +38,22 @@ export type CutReference = "track" | "north";
  * Named by its angle to whatever it is measured from. Which half is kept does
  * not change what the cut is, so 0 and 180 read the same.
  */
-export function cutLabel(degrees: number, reference: CutReference = "track"): string {
+export function cutLabel(degrees: number, t: Translate, reference: CutReference = "track"): string {
   const off = Math.abs(normaliseCut(degrees));
   const toAxis = Math.min(off, 180 - off);
   if (reference === "north") {
-    if (toAxis < 1) return "cut north to south";
-    if (Math.abs(toAxis - 90) < 1) return "cut east to west";
-    return `cut ${Math.round(toAxis)}\u00b0 off north\u2013south`;
+    if (toAxis < 1) return t("storm.cut.north_south");
+    if (Math.abs(toAxis - 90) < 1) return t("storm.cut.east_west");
+    return t("storm.cut.off_north", { values: { deg: Math.round(toAxis) } });
   }
-  if (toAxis < 1) return "cut along the storm's track";
-  if (Math.abs(toAxis - 90) < 1) return "cut across the storm's track";
-  return `cut ${Math.round(toAxis)}\u00b0 off the storm's track`;
+  if (toAxis < 1) return t("storm.cut.along");
+  if (Math.abs(toAxis - 90) < 1) return t("storm.cut.across");
+  return t("storm.cut.off_track", { values: { deg: Math.round(toAxis) } });
 }
 
 /** The two snap buttons' labels, for whichever the slice is measured from. */
-export function cutSnapLabels(reference: CutReference): [string, string] {
-  return reference === "north" ? ["N\u2013S", "E\u2013W"] : ["along", "across"];
+export function cutSnapLabels(reference: CutReference, t: Translate): [string, string] {
+  return reference === "north"
+    ? [t("storm.cut.snap_ns"), t("storm.cut.snap_ew")]
+    : [t("storm.cut.snap_along"), t("storm.cut.snap_across")];
 }
