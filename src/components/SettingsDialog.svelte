@@ -79,15 +79,16 @@ function setRotation(value: boolean) {
   /* The panel is GlassPanel's, shared with About and Connection Details. This
      is the content: grouped lists in the system's style, a checkmark for the
      chosen row and a switch for each toggle. */
+  /* The drawers' section heading (see StormPanel): bold, in the primary ink,
+     a step above the rows, with air above it rather than a rule. */
   h2 {
-    font: 600 13px/1.3 var(--mc-font);
-    color: var(--mc-text-2);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin: 18px 4px 6px;
+    font: var(--mc-type-heading);
+    letter-spacing: -0.01em;
+    color: var(--mc-text);
+    margin: 24px 2px 10px;
   }
   h2:first-child {
-    margin-top: 4px;
+    margin-top: 0;
   }
 
   .group {
@@ -110,7 +111,7 @@ function setRotation(value: boolean) {
     border: 0;
     background: transparent;
     color: var(--mc-text);
-    font: 500 15px/1.3 var(--mc-font);
+    font: 400 15px/1.3 var(--mc-font);
     text-align: left;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;

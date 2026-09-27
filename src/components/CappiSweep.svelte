@@ -278,8 +278,8 @@ figure { margin: 0; }
    pictures read as a pair. */
 .stage {
   display: flex; align-items: stretch;
-  border-radius: 8px;
-  background: rgba(128, 128, 128, 0.08);
+  border-radius: 14px;
+  background: var(--mc-tint, rgba(128, 128, 128, 0.08));
   overflow: hidden;
 }
 canvas {
@@ -319,6 +319,6 @@ canvas:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
   border-radius: 0 4px 4px 0;
   clip-path: polygon(0 50%, 5px 0, 100% 0, 100% 100%, 5px 100%);
 }
-figcaption { font-size: 10px; opacity: 0.55; margin-top: 4px; }
+figcaption { font: 400 12px/1.35 var(--mc-font); color: var(--mc-text-2); margin-top: 8px; }
 .unavailable { font-size: 0.75rem; opacity: 0.6; }
 </style>

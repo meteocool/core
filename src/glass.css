@@ -82,6 +82,50 @@
   --mc-reading-text-2: rgba(60, 60, 67, 0.84);
   --mc-reading-text-3: rgba(60, 60, 67, 0.62);
 
+  /* The drawer: the storm's panel and sheet, which follow the OS scheme
+     ([data-theme]) like the other sheets do, but are glass rather than solid.
+
+     Modelled on the system's own place cards: a wide kernel so the map comes
+     through as soft washes of colour rather than shapes, a little of that
+     colour kept (saturate above 100%, where the reading material pulls it
+     down) and the backdrop tone-mapped away from the ink -- dimmed under light
+     text, lifted under dark. The fill then only has to finish the job, so it
+     can stay thin enough that the drawer reads as a pane over the map rather
+     than a slab in front of it.
+
+     Worked through as the reading material was -- every backdrop from black
+     through the radar's loudest hues to white, filtered, then filled, then
+     inked, in sRGB -- the primary ink holds 8:1 and the secondary 4.5:1 in
+     both schemes. The worst case is the one that looks least likely and is
+     not: a light drawer over the dark basemap, where there is nothing for the
+     brightness step to lift, and which is why the light fill is the thicker. */
+  --mc-drawer-backdrop: blur(40px) saturate(150%) brightness(1.2);
+  --mc-drawer-fill: rgba(250, 250, 252, 0.8);
+  --mc-drawer-text-2: rgba(60, 60, 67, 0.84);
+  --mc-drawer-text-3: rgba(60, 60, 67, 0.62);
+  --mc-drawer-fill-solid: rgba(246, 246, 248, 0.97);
+  --mc-drawer-edge: rgba(255, 255, 255, 0.62);
+  --mc-drawer-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 0 0 0.5px rgba(0, 0, 0, 0.10),
+    0 12px 36px rgba(0, 0, 0, 0.20);
+  /* How far scrolled content fades out at the drawer's edges, rather than
+     being cut off by them. The bottom one is longer: that is where the eye
+     is carried by a scroll, and a hard edge there reads as "that's all". */
+  --mc-fade-top: 14px;
+  --mc-fade-bottom: 28px;
+
+  /* The drawer's type ramp. Heavier and larger at the top than a panel of
+     footnotes -- a bold title, bold section headings a step above the body --
+     with the secondary ink carrying the labels rather than a smaller size. */
+  --mc-type-title: 700 22px/1.18 var(--mc-font);
+  --mc-type-subtitle: 500 14px/1.3 var(--mc-font);
+  --mc-type-heading: 700 17px/1.25 var(--mc-font);
+  --mc-type-body: 400 14px/1.4 var(--mc-font);
+  --mc-type-label: 500 12px/1.25 var(--mc-font);
+  --mc-type-value: 600 15px/1.2 var(--mc-font);
+  --mc-drawer-pad: 18px;
+
   /* The bevel, which is what reads as refraction. A lens is brightest where it
      turns away from the viewer, so: a specular top rim, a fainter rim all the
      way round, and a shaded bottom lip. Three inset shadows rather than a
@@ -304,12 +348,36 @@
   --mc-orange: #ff9f0a;
   --mc-orange-tint: rgba(255, 159, 10, 0.24);
   --mc-orange-ink: #ffb340;
+  --mc-drawer-backdrop: blur(40px) saturate(150%) brightness(0.55);
+  --mc-drawer-fill: rgba(30, 34, 42, 0.62);
+  --mc-drawer-text-2: rgba(235, 235, 245, 0.78);
+  --mc-drawer-text-3: rgba(235, 235, 245, 0.55);
+  --mc-drawer-fill-solid: rgba(30, 33, 40, 0.97);
+  --mc-drawer-edge: rgba(255, 255, 255, 0.12);
+  --mc-drawer-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 0.5px rgba(0, 0, 0, 0.5),
+    0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 /* Keep the collapsed iOS tray near the edge, above the home indicator. */
 :root.is-ios {
   --mc-collapsed-bottom: max(12px, calc(var(--mc-safe-bottom) - 12px));
   --mc-player-h: 132px;
+}
+
+/* A phone is held closer and read at arm's length less often than a desktop
+   panel, and the system's own sizes go up a step there too. */
+@media only screen and (max-width: 620px) {
+  :root {
+    --mc-type-title: 700 24px/1.17 var(--mc-font);
+    --mc-type-subtitle: 500 15px/1.3 var(--mc-font);
+    --mc-type-heading: 700 19px/1.25 var(--mc-font);
+    --mc-type-body: 400 15px/1.4 var(--mc-font);
+    --mc-type-label: 500 13px/1.25 var(--mc-font);
+    --mc-type-value: 600 17px/1.2 var(--mc-font);
+    --mc-drawer-pad: 16px;
+  }
 }
 
 /* Desktop can afford a wider kernel -- and the player grows a legend row. */
@@ -334,6 +402,8 @@
     --mc-glass-fill-strong: var(--mc-glass-fill-solid);
     --mc-reading-backdrop: none;
     --mc-reading-fill: var(--mc-glass-fill-solid);
+    --mc-drawer-backdrop: none;
+    --mc-drawer-fill: var(--mc-drawer-fill-solid);
   }
 }
 @media (prefers-reduced-transparency: reduce) {
@@ -343,6 +413,8 @@
     --mc-glass-fill-strong: var(--mc-glass-fill-solid);
     --mc-reading-backdrop: none;
     --mc-reading-fill: var(--mc-glass-fill-solid);
+    --mc-drawer-backdrop: none;
+    --mc-drawer-fill: var(--mc-drawer-fill-solid);
   }
 }
 /* Kill switch, set by ui.ts on weak WebViews: solid fills, no blur. */
@@ -352,6 +424,8 @@
   --mc-glass-fill-strong: var(--mc-glass-fill-solid);
   --mc-reading-backdrop: none;
   --mc-reading-fill: var(--mc-glass-fill-solid);
+  --mc-drawer-backdrop: none;
+  --mc-drawer-fill: var(--mc-drawer-fill-solid);
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
@@ -413,6 +487,18 @@
   background: var(--mc-reading-fill);
   -webkit-backdrop-filter: var(--mc-reading-backdrop);
   backdrop-filter: var(--mc-reading-backdrop);
+}
+/* The drawer material, for the storm's panel and sheet. Not a chrome root:
+   the ink follows [data-theme], as the fill does. */
+.mc-drawer {
+  --mc-text-2: var(--mc-drawer-text-2);
+  --mc-text-3: var(--mc-drawer-text-3);
+  background: var(--mc-drawer-fill);
+  -webkit-backdrop-filter: var(--mc-drawer-backdrop);
+  backdrop-filter: var(--mc-drawer-backdrop);
+  box-shadow: var(--mc-drawer-shadow);
+  color: var(--mc-text);
+  font-family: var(--mc-font);
 }
 .mc-num { font-variant-numeric: tabular-nums; }
 

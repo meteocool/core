@@ -57,6 +57,9 @@ const round = (value: number | null | undefined, digits = 0): string => (
 const clock = (iso: string): string => new Date(iso)
   .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 
+/** "no new data" as a value on its own: capitalised, as a label would be. */
+const sentence = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
 const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
   "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 
@@ -264,7 +267,7 @@ function atX(t: number): number {
 $: panels = [
   {
     key: "dbz",
-    title: "reflectivity",
+    title: "Reflectivity",
     unit: "dBZ",
     height: 62,
     axis: false,
@@ -274,7 +277,7 @@ $: panels = [
   },
   {
     key: "top",
-    title: "echo top",
+    title: "Echo top",
     unit: "km",
     height: 58,
     axis: true,
@@ -588,15 +591,27 @@ function close() {
 </script>
 
 <StormPanel rule={colour} label="{BAND_NAMES[severity]} storm" {place} onClose={close}>
-  <svelte:fragment slot="header">
-    <span class="headline severity">{BAND_NAMES[severity]}</span>
-    <span class="meta">{age}</span>
-    <!-- The dot is the same signal the "Latest" pill uses for the feed, and it
-         means the same thing here: something is still arriving. -->
-    <span class="status {status.kind}">
-      <span class="dot"></span>{status.label}
-    </span>
-  </svelte:fragment>
+  <span slot="header" class="headline severity">{BAND_NAMES[severity]}</span>
+
+  <!-- Whether it is still there, how long it has been, and how old the
+       numbers below are: the three things to know before reading any of
+       them, in a row under the title. -->
+  <dl class="stats">
+    <div>
+      <dt>Status</dt>
+      <!-- The dot is the same signal the "Latest" pill uses for the feed, and
+           it means the same thing here: something is still arriving. -->
+      <dd class="status {status.kind}"><span class="dot"></span>{sentence(status.label)}</dd>
+    </div>
+    <div>
+      <dt>Tracked</dt>
+      <dd>{age}</dd>
+    </div>
+    <div>
+      <dt>Updated</dt>
+      <dd class:behind={radarOffset !== null}>{duration(recency.ageMinutes)} ago</dd>
+    </div>
+  </dl>
 
   <div class="signals">
     {#if track.meso_ever}
@@ -682,7 +697,7 @@ function close() {
         <figure>
           <figcaption>{panel.title}, {panel.unit}</figcaption>
           <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
-               aria-label="{panel.title} over the tracked period, in {panel.unit}">
+               aria-label="{panel.title.toLowerCase()} over the tracked period, in {panel.unit}">
             {#each gridlines[panelIndex] ?? [] as line (line.value)}
               <line class="grid" x1={plot.x0} x2={plot.x1} y1={line.y} y2={line.y} />
               <text class="tick left" x={plot.x0 - 5} y={line.y}>{line.value}</text>
@@ -745,19 +760,32 @@ function close() {
 
   <CellLineage {track} known={family} loading={loadingFamily} now={tick} />
 
-  <footer class="recency" class:offset={radarOffset !== null}>
-    <span>
-      observed {observedAt} &middot; {duration(recency.ageMinutes)} ago
-    </span>
-    {#if radarOffset}<span class="behind">{radarOffset}</span>{/if}
-  </footer>
-
-  {#if track.active && forecast.length}
-    <footer>
-      forecast to {clock(forecast[forecast.length - 1].t)},
-      &plusmn;{round(forecast[forecast.length - 1].major_km, 1)} km
-    </footer>
-  {/if}
+  <h3 class="section">Details</h3>
+  <dl class="facts">
+    <div>
+      <dt>Observed</dt>
+      <dd>{observedAt}</dd>
+    </div>
+    <!-- Everything above is one detection, and the panel used to imply it was
+         current. This is the part that decides whether the numbers can be
+         read against the radar drawn behind them at all, so it is there when
+         the two are out of step and absent when they are not. -->
+    {#if radarOffset}
+      <div>
+        <dt>Radar</dt>
+        <dd class="behind">{radarOffset}</dd>
+      </div>
+    {/if}
+    {#if track.active && forecast.length}
+      <div>
+        <dt>Forecast</dt>
+        <dd>
+          to {clock(forecast[forecast.length - 1].t)},
+          &plusmn;{round(forecast[forecast.length - 1].major_km, 1)} km
+        </dd>
+      </div>
+    {/if}
+  </dl>
 </StormPanel>
 
 <style>
@@ -778,36 +806,29 @@ function close() {
   .status {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
+    gap: 6px;
   }
   .status .dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: currentColor;
-    /* The baseline-aligned header would hang a 6px round dot off the bottom of
-       the text box; this pins it to the middle of the word beside it. */
     flex: 0 0 auto;
   }
   .status.live {
-    color: var(--mc-red, #e5484d);
+    color: var(--mc-red);
   }
   .status.live .dot {
     animation: cell-alive 2s ease-in-out infinite;
   }
   /* Not an error, and not nothing: the numbers above are older than they look. */
   .status.stale {
-    color: var(--mc-orange, #f5a524);
+    color: var(--mc-orange-ink);
   }
-  /* Ended is a fact, not a warning, so it recedes to the weight of the age. */
+  /* Ended is a fact, not a warning, so it recedes to the secondary ink. */
   .status.superseded,
   .status.ended {
-    color: var(--sl-color-neutral-500, #78716c);
-    font-weight: 500;
+    color: var(--mc-text-2);
   }
   @keyframes cell-alive {
     50% { opacity: 0.25; }
@@ -815,70 +836,71 @@ function close() {
   @media (prefers-reduced-motion: reduce) {
     .status.live .dot { animation: none; }
   }
-  /* Everything above is one detection, and the panel used to imply it was
-     current. The second half is the one that decides whether the numbers can
-     be read against the radar drawn behind them at all, so it is marked when
-     it appears and absent when the two are in step. */
-  .recency {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    /* Colour rather than the footer's opacity, so the clause below can be
-       louder than the line it sits in; opacity on a parent cannot be undone. */
-    opacity: 1;
-    color: var(--sl-color-neutral-500, #78716c);
-  }
-  .recency .behind {
-    color: var(--mc-orange, #d97706);
-    font-weight: 600;
+  /* The readings are older than the radar drawn behind them. */
+  .behind {
+    color: var(--mc-orange-ink);
   }
 
   .dial { margin: 2px 0 8px; }
+  /* The signatures, as tinted capsules with the ink in the hue: the place
+     cards' own buttons, at the size of a tag. */
   .signals {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 4px;
   }
+  .signals:empty { display: none; }
   .signal {
-    font-size: 11px;
-    padding: 1px 6px;
-    border-radius: 9px;
-    background: rgba(128, 128, 128, 0.18);
+    padding: 5px 11px;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+    font: 600 13px/1.2 var(--mc-font);
     white-space: nowrap;
   }
-  .rotating { background: rgba(156, 54, 181, 0.22); }
-  .hail { background: rgba(224, 49, 49, 0.22); }
-  .jump { background: rgba(240, 180, 41, 0.26); }
-  .deviant { background: rgba(31, 110, 200, 0.2); }
+  .rotating { background: rgba(175, 82, 222, 0.18); color: #8944ab; }
+  .hail { background: var(--mc-red-tint); color: var(--mc-red-ink); }
+  .jump { background: var(--mc-orange-tint); color: var(--mc-orange-ink); }
+  .deviant { background: var(--mc-accent-tint); color: var(--mc-accent); }
+  :global(html[data-theme="dark"]) .rotating { background: rgba(191, 90, 242, 0.24); color: #da8fff; }
+
   figure { margin: 0 0 6px; }
+  /* A picture on the drawer, as the place cards' photos sit: a rounded pane
+     of its own, a tint darker than the glass around it. */
   .model {
-    border-radius: 8px;
-    background: rgba(128, 128, 128, 0.08);
+    border-radius: 14px;
+    background: var(--mc-tint);
     overflow: hidden;
   }
   figcaption {
-    font-size: 10px;
-    opacity: 0.55;
-    margin-bottom: 2px;
+    font: 400 12px/1.3 var(--mc-font);
+    color: var(--mc-text-2);
+    margin-bottom: 4px;
   }
   .model figcaption {
-    margin: 0 0 4px 8px;
+    margin: 0 0 8px 12px;
   }
-  /* A link in the accent, not a second button beside the close disc: it is
-     one more way to look at the model directly above it. */
+  /* A pill in the accent, as the place cards set a secondary action: tinted,
+     full width, the ink in the accent. One more way to look at the model
+     directly above it, so it sits under it rather than beside the close disc. */
   .open-3d {
     display: block;
-    margin: 2px 0 0 auto;
-    padding: 6px 2px;
-    font: 600 12px/1.2 var(--mc-font, system-ui);
-    color: var(--mc-accent, #0a84ff);
-    background: none;
+    width: 100%;
+    min-height: 44px;
+    margin: 10px 0 0;
+    padding: 0 16px;
     border: none;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-accent-tint);
+    color: var(--mc-accent);
+    font: 600 15px/1.2 var(--mc-font);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
   }
-  .open-3d::after { content: " \2192"; }
-  .open-3d:hover { text-decoration: underline; }
+  .open-3d:hover { background: color-mix(in srgb, var(--mc-accent) 22%, transparent); }
+  .open-3d:active { transform: scale(var(--mc-press)); }
+  .open-3d:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .history figcaption {
     display: flex;
     gap: 10px;
@@ -933,4 +955,28 @@ function close() {
     font-variant-numeric: tabular-nums;
   }
   .left { text-anchor: end; dominant-baseline: middle; }
+
+  /* The cell's own line. The accent panel's stroke and head are set in the
+     markup, from the severity; the other one is plain ink, as context. Without
+     these the context trace fell back to SVG's own defaults -- no stroke at
+     all, a black head -- and the latest-value labels were black on the dark
+     sheet. */
+  .trace {
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .trace.context {
+    stroke: currentColor;
+    stroke-opacity: 0.7;
+  }
+  .head.context {
+    fill: currentColor;
+  }
+  .direct {
+    font: 600 11px/1 var(--mc-font);
+    fill: currentColor;
+    dominant-baseline: middle;
+    font-variant-numeric: tabular-nums;
+  }
 </style>

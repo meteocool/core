@@ -233,6 +233,14 @@ function release() {
  * without it, a plain tap on anything in the body would start a drag before
  * the tap underneath it ever got the event.
  */
+/**
+ * Whether the body has been scrolled off its top. At rest the header sits
+ * just under the grip's strip and the fade above it is short, so the close
+ * disc is not faded with it; once reading has scrolled up under the bar, the
+ * fade grows to cover the whole strip, or the text runs under the bar.
+ */
+let scrolled = false;
+
 let bodyPointer: number | null = null;
 let bodyStartX = 0;
 let bodyStartY = 0;
@@ -298,40 +306,25 @@ function bodyUp(event: PointerEvent) {
        panel into the air with bare map underneath until the finger let go. */
     --rest: max(0px, calc(var(--full-h) - var(--sheet-h)));
     transform: translateY(calc(var(--rest) + var(--drag, 0px)));
-    padding: 0 12px calc(12px + var(--mc-safe-bottom));
-    border-radius: 22px 22px 0 0;
+    /* The drawer's own inset, as the place cards keep theirs: the text sits
+       well in from the glass's edge rather than against it. */
+    padding: 0 var(--mc-drawer-pad) calc(12px + var(--mc-safe-bottom));
+    border-radius: 28px 28px 0 0;
     /* The tray tokens are built for a pill with three words on it. This is two
        charts, a 3D model and thirty numbers, over a radar composite running
        green to magenta: at --mc-glass-fill-strong the colours come through and
-       the text sits in a rainbow. So the sheet takes the panel's own themed
-       fill -- which flips light and dark with the rest of the UI, as the tray
-       tokens do not -- and gives back just enough of it to keep the map
-       showing at the edges. */
-    background: var(--sl-panel-background-color, #fff);
-    -webkit-backdrop-filter: var(--mc-glass-backdrop);
-    backdrop-filter: var(--mc-glass-backdrop);
-    border-top: 1px solid var(--mc-glass-edge);
-    box-shadow: var(--mc-glass-ring-lg);
-    color: var(--sl-color-neutral-900, #111);
+       the text sits in a rainbow. So the sheet is the drawer material (see
+       src/glass.css), which blurs the map to washes of colour and tone-maps it
+       away from the ink, and which flips light and dark with the rest of the
+       UI, as the tray tokens do not. The class supplies the fill, the blur,
+       the shadow and the ink. */
+    border-top: 1px solid var(--mc-drawer-edge);
   }
 
   .sheet.fit {
     --rest: 0px;
     height: auto;
     max-height: calc(70vh - var(--mc-safe-top));
-  }
-
-  @supports (background: color-mix(in srgb, red 50%, transparent)) {
-    .sheet {
-      background: color-mix(in srgb, var(--sl-panel-background-color, #fff) 88%, transparent);
-    }
-  }
-
-  /* No blur means nothing is softening what shows through, so nothing does. */
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .sheet {
-      background: var(--sl-panel-background-color, #fff);
-    }
   }
 
   /* The grab area, not just the bar: a 6px line is not a thumb target, so the
@@ -345,7 +338,7 @@ function bodyUp(event: PointerEvent) {
     align-items: center;
     justify-content: center;
     height: 44px;
-    margin: 0 -12px;
+    margin: 0 calc(-1 * var(--mc-drawer-pad));
     cursor: grab;
     touch-action: none;
   }
@@ -356,8 +349,8 @@ function bodyUp(event: PointerEvent) {
     width: 40px;
     height: 5px;
     border-radius: 3px;
-    background: var(--mc-text-2, #8a8a8e);
-    opacity: 0.4;
+    background: var(--mc-text-3);
+    opacity: 0.7;
   }
 
   /* A sheet that only closes needs its grip as a sign, not as the target: the
@@ -395,11 +388,31 @@ function bodyUp(event: PointerEvent) {
   /* 21px, so the disc's 10px pull lands it 12px below the sheet's outer edge
      past the 1px top border, and the header on the line the 3D sheet's is.
      What scrolls up past that fades out in the strip the bar stands in, rather
-     than running under it. */
+     than running under it.
+
+     And out at the bottom, over the last stretch before the screen's edge,
+     so the reading runs off into the glass rather than being guillotined by
+     it. That edge is not the body's: the sheet is laid out full height and
+     parked with its lower part below the screen (see --rest), so the fade
+     ends that far up from the body's own bottom, less the sheet's padding --
+     and follows a drag, which moves the edge. The scroll range is padded by
+     the fade's length, so the last line still scrolls clear of it. */
   .sheet:not(.fit) .body {
+    --fade-top: 11px;
+    --fade-end: max(0px, calc(var(--rest) + var(--drag, 0px) - 12px - var(--mc-safe-bottom)));
     padding-top: 21px;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 11px);
-    mask-image: linear-gradient(to bottom, transparent, #000 11px);
+    padding-bottom: calc(var(--rest) + var(--mc-fade-bottom));
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--fade-top),
+      #000 calc(100% - var(--fade-end) - var(--mc-fade-bottom)),
+      transparent calc(100% - var(--fade-end)));
+    mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--fade-top),
+      #000 calc(100% - var(--fade-end) - var(--mc-fade-bottom)),
+      transparent calc(100% - var(--fade-end)));
+  }
+  .sheet:not(.fit) .body.scrolled {
+    --fade-top: 40px;
   }
 
   .body {
@@ -447,7 +460,7 @@ function bodyUp(event: PointerEvent) {
 </style>
 
 <div
-  class="sheet"
+  class="sheet mc-drawer"
   class:fit={!expandable || (fitAtRest && detent === HALF)}
   class:dragging
   class:settling={!dragging}
@@ -468,6 +481,8 @@ function bodyUp(event: PointerEvent) {
   </div>
   <div
     class="body"
+    class:scrolled
+    on:scroll={(e) => { scrolled = e.currentTarget.scrollTop > 0; }}
     on:pointerdown={bodyDown}
     on:pointermove={bodyMove}
     on:pointerup={bodyUp}
