@@ -2,10 +2,8 @@
 import { onDestroy } from "svelte";
 import { derived, get } from "svelte/store";
 import View from "ol/View";
-import { locale } from "svelte-i18n";
 // The catalogues and the language in use, set up before anything renders.
 import "./locale/i18n";
-import { chooseLocale } from "./locale/choose";
 
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
@@ -126,15 +124,6 @@ initUIConstants();   // reads prefers-color-scheme into colorSchemeDark
 mapBaseLayer.set(systemBaseLayer());
 
 window.settings = new Settings({
-  /* The app's language, from injectSettings({ lang: "de" }). Stored, so the
-     next launch starts in it; re-chosen rather than applied as given, so a
-     `?lang=` on the URL still wins and a language we lack falls through to
-     the browser's. */
-  lang: {
-    type: "string",
-    default: "",
-    cb: () => { locale.set(chooseLocale()); },
-  },
   experimentalFeatures: {
     type: "boolean",
     default: false,
