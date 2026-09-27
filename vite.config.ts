@@ -95,6 +95,10 @@ export default defineConfig(({ mode }) => {
         injectManifest: {
           maximumFileSizeToCacheInBytes: 50000000,
           globIgnores: [
+            // MapLibre is imported on demand by the 3D map; precaching it
+            // handed every visitor 445 KB they might never use. The service
+            // worker caches it on first use instead (src/sw.ts).
+            "**/maplibre-gl*",
             "**/volunteers.png",
             "**/imprint.html",
             "**/_headers",
@@ -110,6 +114,19 @@ export default defineConfig(({ mode }) => {
       outDir: "dist",
       sourcemap: true,
       rollupOptions: {
+        output: {
+          // The libraries in chunks of their own, so a deploy that touches
+          // only the app leaves them cached: they are most of the bytes and
+          // change least often.
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return undefined;
+            if (id.includes("/node_modules/ol/")) return "ol";
+            if (id.includes("@shoelace-style") || id.includes("/node_modules/lit") || id.includes("@lit/")) return "shoelace";
+            if (id.includes("/node_modules/chart.js/") || id.includes("@kurkle/")) return "chartjs";
+            if (id.includes("@sentry")) return "sentry";
+            return undefined;
+          },
+        },
         input: {
           index: here("index.html"),
           ios: here("ios.html"),

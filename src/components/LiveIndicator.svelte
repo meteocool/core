@@ -9,7 +9,8 @@ import {
   radarStale,
 } from "../stores";
 import { shouldShowNetworkBanner } from "../lib/networkBanner";
-import ConnectionInfo from "./ConnectionInfo.svelte";
+// The diagnostics panel is loaded when it is opened; it is a reader of everything and needed by nothing.
+const loadConnectionInfo = () => import("./ConnectionInfo.svelte");
 import type RadarCapability from "../caps/RadarCapability";
 
 export let cap: RadarCapability;
@@ -258,5 +259,7 @@ onDestroy(() => {
 {/if}
 
 {#if showInfo}
-  <ConnectionInfo {cap} on:close={() => { showInfo = false; }} />
+  {#await loadConnectionInfo() then { default: ConnectionInfo }}
+    <svelte:component this={ConnectionInfo} {cap} on:close={() => { showInfo = false; }} />
+  {/await}
 {/if}

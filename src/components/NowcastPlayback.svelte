@@ -9,11 +9,9 @@ import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocationCrosshairs";
 import Icon from "./Icon.svelte";
 import StateMachine from "javascript-state-machine";
-import ChartDataLabels from "chartjs-plugin-datalabels";
 import { fly } from "svelte/transition";
 import { onDestroy, onMount, tick } from "svelte";
 import { CategoryScale, LinearScale, BarController, BarElement, Chart } from "chart.js";
-import { BarWithErrorBarsChart } from "chartjs-chart-error-bars";
 import {
   lastFocus, sharedActiveCap,
   cellLayerVisible,
@@ -29,7 +27,6 @@ Chart.register(CategoryScale);
 Chart.register(LinearScale);
 Chart.register(BarController);
 Chart.register(BarElement);
-Chart.register(ChartDataLabels);
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import type RadarCapability from "../caps/RadarCapability";
@@ -125,8 +122,10 @@ if (dd.isApp()) {
 // };
 
 let autoPlay = false;
-/** A bar chart; the error-bar dataset shape is not used (see redraw). */
-let chart: BarWithErrorBarsChart<{ y: number }[], string> | null = null;
+/** The precipitation bars. A plain bar chart: the error-bar variant this
+    used to be was never given error bars, and dragged five more chart types
+    into the bundle with it. */
+let chart: Chart<"bar", { y: number }[], string> | null = null;
 
 /**
  * The time axis, drawn as HTML under the plot instead of by Chart.js.
@@ -223,7 +222,8 @@ function redraw(config) {
   const peak = Math.max(...d.map((step) => step.y));
   const scaleMax = Math.max(45, Math.ceil(peak));
 
-  chart = new BarWithErrorBarsChart(canvas.getContext("2d")!, {
+  chart = new Chart(canvas.getContext("2d")!, {
+    type: "bar",
     data: {
       labels: sortedKeys.map((key) => ((key - config.now) / 60)).map((v) => `${v}`),
       datasets: [{
@@ -284,12 +284,9 @@ function redraw(config) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        // No per-bar labels: the time axis below the bars carries the when,
-        // and the rotated pills that used to sit on top covered the map.
-        datalabels: {
-          display: false,
-        },
-},
+        legend: { display: false },
+        tooltip: { enabled: false },
+      },
       scales: {
         x: {
           /* The axis is drawn as HTML underneath the canvas, not by Chart.js --
