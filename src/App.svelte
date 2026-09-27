@@ -60,10 +60,13 @@ import makeCellLayer from "./layers/cells";
 import makeCellPulseLayer from "./layers/cellPulse";
 import makeCloudHintLayer, { setCloudHints } from "./layers/cloudHints";
 import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
-import CellDetails from "./components/CellDetails.svelte";
+/* The storm panels are loaded when a storm is opened, not with the page: the
+   history charts, the lineage graph (dagre) and the two 3D pictures are a
+   third of the app's code, and most sessions never tap a cell. */
+const loadCellDetails = () => import("./components/CellDetails.svelte");
+const loadCellSheet = () => import("./components/CellSheet.svelte");
+const loadCloudDetails = () => import("./components/CloudDetails.svelte");
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
-import CellSheet from "./components/CellSheet.svelte";
-import CloudDetails from "./components/CloudDetails.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
@@ -260,7 +263,12 @@ lightningLayerVisible.subscribe((value) => {
 lightningLayerVisible.set(window.settings.getBoolean("layerLightning"));
 
 const nb = progress();
-const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`);
+// WebSocket first: socket.io's default opens a long-polling transport and
+// upgrades it, which is three requests and a sticky-session hazard before the
+// first poke. Polling stays as the fallback for a network that blocks it.
+const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`, {
+  transports: ["websocket", "polling"],
+});
 radarSocketIO.on("connect", () => {
   console.log("radar/forecast websocket connected!");
 });
@@ -852,10 +860,14 @@ if (postInitCb) postInitCb(lm);
 
 {#if $selectedCell && $cellDetails}
   {#if $smallScreen}
-    <CellSheet track={$selectedCell} />
+    {#await loadCellSheet() then { default: CellSheet }}
+      <svelte:component this={CellSheet} track={$selectedCell} />
+    {/await}
   {:else}
     <div class="cell-details-panel">
-      <CellDetails track={$selectedCell} />
+      {#await loadCellDetails() then { default: CellDetails }}
+        <svelte:component this={CellDetails} track={$selectedCell} />
+      {/await}
     </div>
   {/if}
 {:else if $selectedCell && $smallScreen}
@@ -866,14 +878,18 @@ if (postInitCb) postInitCb(lm);
        storm was tapped, only as tall as what it holds -- a few facts and the
        dial that turns the cut -- until it is pulled up for how the volume
        was built. -->
-  <CellSheet fitAtRest onClose={() => selectedVolume.set(null)} let:expanded let:expand>
-    <CloudDetails cloud={$selectedVolume} compact {expanded} {expand} />
-  </CellSheet>
+  {#await Promise.all([loadCellSheet(), loadCloudDetails()]) then [{ default: CellSheet }, { default: CloudDetails }]}
+    <svelte:component this={CellSheet} fitAtRest onClose={() => selectedVolume.set(null)} let:expanded let:expand>
+      <svelte:component this={CloudDetails} cloud={$selectedVolume} compact {expanded} {expand} />
+    </svelte:component>
+  {/await}
 {:else if $selectedVolume}
   <!-- A storm core with no KONRAD3D track: one short popup, the same place on
        every screen size, because there is no history to need the sheet. -->
   <div class="cell-details-panel" class:cloud-bottom={$smallScreen}>
-    <CloudDetails cloud={$selectedVolume} width={$smallScreen ? 300 : 340} />
+    {#await loadCloudDetails() then { default: CloudDetails }}
+      <svelte:component this={CloudDetails} cloud={$selectedVolume} width={$smallScreen ? 300 : 340} />
+    {/await}
   </div>
 {/if}
 

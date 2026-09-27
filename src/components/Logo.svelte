@@ -1,7 +1,8 @@
 <script lang="ts">
 import logo from "../assets/logo.svg";
-import About from "./About.svelte";
-import SettingsDialog from "./SettingsDialog.svelte";
+// Both sheets load when first opened; neither is part of looking at the map.
+const loadAbout = () => import("./About.svelte");
+const loadSettings = () => import("./SettingsDialog.svelte");
 import Icon from "./Icon.svelte";
 import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
 import { _ } from "svelte-i18n";
@@ -124,9 +125,13 @@ function toggleSettings() {
     </button>
   </div>
   {#if showAbout}
-    <About on:close={toggleAbout} />
+    {#await loadAbout() then { default: About }}
+      <svelte:component this={About} on:close={toggleAbout} />
+    {/await}
   {/if}
   {#if showSettings}
-    <SettingsDialog on:close={toggleSettings} />
+    {#await loadSettings() then { default: SettingsDialog }}
+      <svelte:component this={SettingsDialog} on:close={toggleSettings} />
+    {/await}
   {/if}
 {/if}
