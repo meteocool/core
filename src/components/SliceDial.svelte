@@ -305,7 +305,9 @@ onDestroy(stop);
   opacity: 0.6;
   transition: opacity 120ms, color 120ms;
 }
-.deg.centred { opacity: 1; font-weight: 600; color: var(--mc-chrome-accent, #007aff); }
+/* The drawer's accent, not the chrome's: the dial sits on the drawer, which
+   follows the app's scheme rather than the basemap. */
+.deg.centred { opacity: 1; font-weight: 600; color: var(--mc-accent, #007aff); }
 .needle {
   position: absolute; bottom: 3px; height: 22px; left: 50%;
   width: 3px; margin-left: -1.5px; border-radius: 2px;

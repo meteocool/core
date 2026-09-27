@@ -58,7 +58,7 @@ export let items: Array<Omit<Reading, "fill"> & { fill: number | null }>;
   .metrics {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 7px 14px;
+    gap: 14px 20px;
     margin: 0 0 8px;
     padding: 0;
     list-style: none;
@@ -70,21 +70,38 @@ export let items: Array<Omit<Reading, "fill"> & { fill: number | null }>;
     align-content: start;
     gap: 0 6px;
   }
+  /* The label in the secondary ink at the body's own size, rather than
+     shrunk: colour says which is the label, and a label too small to read at
+     a glance is one the reader has to stop for. Capitalised as a label is,
+     whatever case the metric came in -- "VIL" stays "VIL". */
   .name {
-    opacity: 0.6;
-    font-size: 11px;
+    display: inline-block;
+    white-space: nowrap;
+    color: var(--mc-text-2);
+    font: var(--mc-type-label);
+    font-size: 13px;
+  }
+  .name::first-letter {
+    text-transform: uppercase;
   }
   .value {
     text-align: right;
+    font: var(--mc-type-value);
     font-variant-numeric: tabular-nums;
     color: var(--band-ink);
-    font-weight: 600;
     white-space: nowrap;
+  }
+  /* A step under the stats' values on a phone: two readings and their labels
+     share a half-width column there, and at the full step the longest pair --
+     "Area >30 dBZ" beside "8311 km²" -- broke the label onto two lines. */
+  @media only screen and (max-width: 620px) {
+    .metrics { column-gap: 16px; }
+    .value { font-size: 16px; }
   }
   .meter {
     grid-column: 1 / -1;
-    height: 3px;
-    margin-top: 3px;
+    height: 4px;
+    margin-top: 6px;
     border-radius: 2px;
     /* A light step of the same hue, so the band reads across the whole track
        and not only across the filled part of it. The neutral underneath is

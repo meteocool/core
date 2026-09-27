@@ -15,8 +15,9 @@ import GlassPanel from "./GlassPanel.svelte";
   }
 
   h2 {
-    font: 600 15px/1.3 var(--mc-font);
-    margin: 18px 0 6px;
+    font: var(--mc-type-heading);
+    letter-spacing: -0.01em;
+    margin: 24px 0 8px;
   }
 
   a,
