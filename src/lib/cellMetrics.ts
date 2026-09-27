@@ -1,4 +1,5 @@
 import type { CellTrackProperties } from "../api";
+import type { Translate } from "../locale/t";
 
 /**
  * A storm's numbers, banded so they can be read without knowing radar.
@@ -24,19 +25,21 @@ import type { CellTrackProperties } from "../api";
 
 export type Band = 0 | 1 | 2 | 3;
 
+/** The bands' identifiers; what each is called is `storm.band.<name>`. */
 export const BAND_NAMES = ["weak", "moderate", "strong", "extreme"] as const;
 
 /** Minutes up to an hour, then hours: "127 min" is not a duration anyone reads. */
-export function duration(minutes: number): string {
-  if (minutes < 60) return `${Math.round(minutes)} min`;
+export function duration(minutes: number, t: Translate): string {
+  if (minutes < 60) return t("storm.duration.min", { values: { m: Math.round(minutes) } });
   const hours = Math.floor(minutes / 60);
   const rest = Math.round(minutes % 60);
-  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+  return rest
+    ? t("storm.duration.h_min", { values: { h: hours, m: rest } })
+    : t("storm.duration.h", { values: { h: hours } });
 }
 
 interface Metric {
   key: string;
-  label: string;
   /** The three cut points between the four bands. */
   cuts: [number, number, number];
   /** What the meter's track spans, [empty, full]. */
@@ -47,22 +50,22 @@ interface Metric {
 
 const METRICS: Record<string, Metric> = {
   peak: {
-    key: "peak", label: "peak", cuts: [45, 55, 60], domain: [20, 68], unit: "dBZ", digits: 1,
+    key: "peak", cuts: [45, 55, 60], domain: [20, 68], unit: "dBZ", digits: 1,
   },
   echoTop: {
-    key: "echoTop", label: "echo top", cuts: [7, 10, 12.5], domain: [2, 15], unit: "km", digits: 1,
+    key: "echoTop", cuts: [7, 10, 12.5], domain: [2, 15], unit: "km", digits: 1,
   },
   vil: {
-    key: "vil", label: "VIL", cuts: [10, 25, 40], domain: [0, 55], unit: "kg/m²", digits: 1,
+    key: "vil", cuts: [10, 25, 40], domain: [0, 55], unit: "kg/m²", digits: 1,
   },
   speed: {
-    key: "speed", label: "motion", cuts: [30, 55, 75], domain: [0, 95], unit: "km/h", digits: 0,
+    key: "speed", cuts: [30, 55, 75], domain: [0, 95], unit: "km/h", digits: 0,
   },
   gust: {
-    key: "gust", label: "gusts", cuts: [50, 75, 100], domain: [0, 125], unit: "km/h", digits: 0,
+    key: "gust", cuts: [50, 75, 100], domain: [0, 125], unit: "km/h", digits: 0,
   },
   lightning: {
-    key: "lightning", label: "lightning", cuts: [5, 25, 60], domain: [0, 80], unit: "/5 min", digits: 0,
+    key: "lightning", cuts: [5, 25, 60], domain: [0, 80], unit: "/5 min", digits: 0,
   },
 };
 
@@ -92,12 +95,14 @@ const fillOf = (metric: Metric, value: number): number => {
 export function reading(
   key: keyof typeof METRICS,
   value: number | null | undefined,
+  t: Translate,
   suffix = "",
 ): Reading {
   const metric = METRICS[key];
+  const label = t(`storm.reading.${metric.key}`);
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return {
-      key, label: metric.label, text: "–", band: null, bandName: null, fill: 0,
+      key, label, text: "–", band: null, bandName: null, fill: 0,
     };
   }
   const index = band(metric, value);
@@ -105,10 +110,10 @@ export function reading(
   const gap = metric.unit.startsWith("/") ? "" : " ";
   return {
     key,
-    label: metric.label,
+    label,
     text: `${value.toFixed(metric.digits)}${gap}${metric.unit}${suffix}`,
     band: index,
-    bandName: BAND_NAMES[index],
+    bandName: t(`storm.band.${BAND_NAMES[index]}`),
     fill: fillOf(metric, value),
   };
 }
@@ -117,20 +122,21 @@ export function reading(
 export function cellReadings(
   track: CellTrackProperties,
   compass: (deg: number | null | undefined) => string,
+  t: Translate,
 ): Reading[] {
   const series = track.series ?? [];
   const latest = series[series.length - 1];
   const out = [
-    reading("peak", track.max_dbz),
-    reading("echoTop", track.echo_top_max_m == null ? null : track.echo_top_max_m / 1000),
-    reading("vil", track.vil_max),
+    reading("peak", track.max_dbz, t),
+    reading("echoTop", track.echo_top_max_m == null ? null : track.echo_top_max_m / 1000, t),
+    reading("vil", track.vil_max, t),
   ];
   if (latest) {
-    out.push(reading("speed", latest.speed_kmh, ` ${compass(latest.heading_deg)}`));
+    out.push(reading("speed", latest.speed_kmh, t, ` ${compass(latest.heading_deg)}`));
     // Only when there is something to say: a blank meter for every storm that
     // never gusted is six rows of nothing on a panel this size.
-    if (latest.gust_kmh) out.push(reading("gust", latest.gust_kmh));
-    if (latest.lightning_rate) out.push(reading("lightning", latest.lightning_rate));
+    if (latest.gust_kmh) out.push(reading("gust", latest.gust_kmh, t));
+    if (latest.lightning_rate) out.push(reading("lightning", latest.lightning_rate, t));
   }
   return out;
 }

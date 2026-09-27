@@ -2,7 +2,8 @@
 import { onDestroy } from "svelte";
 import { derived, get } from "svelte/store";
 import View from "ol/View";
-import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
+// The catalogues and the language in use, set up before anything renders.
+import "./locale/i18n";
 
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
@@ -21,8 +22,6 @@ import { progress } from "./lib/progress";
 import Settings from "./lib/Settings";
 import type { SettingValue } from "./lib/Settings";
 
-import de from "./locale/de.json";
-import en from "./locale/en.json";
 import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
@@ -30,7 +29,7 @@ import {
   cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, mapExtent4326, networkStatus, precacheForecast, radarColormap,
+  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, toolbarVisible,
 } from "./stores";
 
@@ -66,7 +65,11 @@ import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D }
 const loadCellDetails = () => import("./components/CellDetails.svelte");
 const loadCellSheet = () => import("./components/CellSheet.svelte");
 const loadCloudDetails = () => import("./components/CloudDetails.svelte");
+// The model comparison too: its charts and the forecast fetch are for the
+// few who open it.
+const loadModelCompare = () => import("./components/ModelCompare.svelte");
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
+import PointMenu from "./components/PointMenu.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
@@ -91,14 +94,6 @@ if (dd.isApp()) {
     document.body.classList.add("is-ios");
   }
 }
-
-addMessages("de", de);
-addMessages("en", en);
-
-init({
-  fallbackLocale: "en",
-  initialLocale: getLocaleFromNavigator(),
-});
 
 /**
  * The basemap the system colour scheme asks for.
@@ -383,11 +378,20 @@ derived([selectedCell, selectedVolume], ([cell, cloud]) => (
  * playback state, and tearing that down and rebuilding it every time a popup
  * opens would be a lot of machinery moved for a visual answer.
  */
-derived([selectedCell, cellDetails, smallScreen], ([track, open, small]) => (
-  Boolean(track) && open && small
+derived([selectedCell, cellDetails, modelCompareAt, smallScreen], ([track, open, compare, small]) => (
+  small && ((Boolean(track) && open) || Boolean(compare))
 )).subscribe((hide) => {
   document.body.classList.toggle("cell-details-open", hide);
 });
+
+/**
+ * The drawer holds one thing: tapping a storm while the model comparison is
+ * open replaces it, as tapping a second storm replaces the first.
+ */
+derived([selectedCell, selectedVolume], ([cell, cloud]) => Boolean(cell || cloud))
+  .subscribe((storm) => { if (storm) modelCompareAt.set(null); });
+
+const closeCompare = () => modelCompareAt.set(null);
 
 // Cell tracks are fetched for what is on screen, so they follow the map rather
 // than a timer. The manager ignores a move that stays inside what it already
@@ -806,19 +810,35 @@ if (postInitCb) postInitCb(lm);
     max-width: none;
   }
 
+  /* The drawer material (src/glass.css) supplies the fill, blur, shadow and
+     ink; this is the frame. It does not scroll itself: the content scrolls
+     inside it, so what runs past the top and bottom can fade out into the
+     glass -- a mask on the frame would fade the glass along with it. */
   .cell-details-panel {
     position: absolute;
     top: 12px;
     right: 12px;
     z-index: var(--mc-z-details);
+    display: flex;
+    flex-direction: column;
     max-width: min(392px, calc(100vw - 24px));
     max-height: calc(100vh - 24px);
+    overflow: hidden;
+    border: 1px solid var(--mc-drawer-edge);
+    border-radius: var(--mc-radius-tray);
+    box-sizing: border-box;
+  }
+  .cell-details-panel > .scroll {
+    min-height: 0;
     overflow-y: auto;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: var(--sl-panel-background-color, #fff);
-    color: var(--sl-color-neutral-900, #111);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.28);
+    overscroll-behavior: contain;
+    padding: 16px var(--mc-drawer-pad) var(--mc-fade-bottom);
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--mc-fade-top),
+      #000 calc(100% - var(--mc-fade-bottom)), transparent);
+    mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--mc-fade-top),
+      #000 calc(100% - var(--mc-fade-bottom)), transparent);
   }
 
   /* Set on <body> while the panel is up on a phone; see the subscription above.
@@ -857,6 +877,8 @@ if (postInitCb) postInitCb(lm);
 
 <div id="nanobar" />
 <Map layerManager={lm} />
+<PointMenu layerManager={lm} />
+
 
 {#if $selectedCell && $cellDetails}
   {#if $smallScreen}
@@ -864,10 +886,12 @@ if (postInitCb) postInitCb(lm);
       <svelte:component this={CellSheet} track={$selectedCell} />
     {/await}
   {:else}
-    <div class="cell-details-panel">
-      {#await loadCellDetails() then { default: CellDetails }}
-        <svelte:component this={CellDetails} track={$selectedCell} />
-      {/await}
+    <div class="cell-details-panel mc-drawer">
+      <div class="scroll">
+        {#await loadCellDetails() then { default: CellDetails }}
+          <svelte:component this={CellDetails} track={$selectedCell} />
+        {/await}
+      </div>
     </div>
   {/if}
 {:else if $selectedCell && $smallScreen}
@@ -886,11 +910,43 @@ if (postInitCb) postInitCb(lm);
 {:else if $selectedVolume}
   <!-- A storm core with no KONRAD3D track, in the same popup as a cell's
        details: the same panel, only with less to say. -->
-  <div class="cell-details-panel" class:cloud-bottom={$smallScreen}>
-    {#await loadCloudDetails() then { default: CloudDetails }}
-      <svelte:component this={CloudDetails} cloud={$selectedVolume} />
-    {/await}
+  <div class="cell-details-panel mc-drawer" class:cloud-bottom={$smallScreen}>
+    <div class="scroll">
+      {#await loadCloudDetails() then { default: CloudDetails }}
+        <svelte:component this={CloudDetails} cloud={$selectedVolume} />
+      {/await}
+    </div>
   </div>
+{:else if $modelCompareAt}
+  <!-- The model comparison, opened from the dry-weather strip: the same
+       drawer a storm's details take, sheet on a phone and corner panel on a
+       desktop. Keyed on the place and range: the panel fetches once, on
+       mount. -->
+  {#key `${$modelCompareAt.lat},${$modelCompareAt.lon},${$modelCompareAt.hours ?? 24}`}
+    {#await Promise.all([loadModelCompare(), $smallScreen ? loadCellSheet() : null]) then [{ default: ModelCompare }, sheet]}
+      {#if sheet}
+        <svelte:component this={sheet.default} onClose={closeCompare}>
+          <svelte:component
+            this={ModelCompare}
+            lat={$modelCompareAt.lat}
+            lon={$modelCompareAt.lon}
+            initialHours={$modelCompareAt.hours ?? 24}
+            onClose={closeCompare} />
+        </svelte:component>
+      {:else}
+        <div class="cell-details-panel mc-drawer">
+          <div class="scroll">
+            <svelte:component
+              this={ModelCompare}
+              lat={$modelCompareAt.lat}
+              lon={$modelCompareAt.lon}
+              initialHours={$modelCompareAt.hours ?? 24}
+              onClose={closeCompare} />
+          </div>
+        </div>
+      {/if}
+    {/await}
+  {/key}
 {/if}
 
 {#if $toolbarVisible === "yes"}

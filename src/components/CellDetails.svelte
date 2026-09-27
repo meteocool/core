@@ -34,6 +34,7 @@ import VolumeProvenance from "./VolumeProvenance.svelte";
 import { open3DAvailable, openCellIn3D } from "../lib/open3d";
 import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
 import { placementLabel } from "../lib/cellPlacement";
+import { currentLocale, type Translate } from "../locale/t";
 import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
 import type { CellStep, CellTrackProperties } from "../api";
 import type { ModelFrame, VolumeInput } from "../lib/cellVolume";
@@ -55,13 +56,16 @@ const round = (value: number | null | undefined, digits = 0): string => (
  * reader do the conversion to check they are the same moment.
  */
 const clock = (iso: string): string => new Date(iso)
-  .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  .toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit", hour12: false });
+
+/** "no new data" as a value on its own: capitalised, as a label would be. */
+const sentence = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
   "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 
-const compass = (deg: number | null | undefined): string => (
-  deg === null || deg === undefined ? "–" : COMPASS[Math.round(deg / 22.5) % 16]
+const compass = (deg: number | null | undefined, t: Translate): string => (
+  deg === null || deg === undefined ? "–" : t(`storm.compass.${COMPASS[Math.round(deg / 22.5) % 16]}`)
 );
 
 /* ---- the history chart ------------------------------------------------- */
@@ -264,7 +268,7 @@ function atX(t: number): number {
 $: panels = [
   {
     key: "dbz",
-    title: "reflectivity",
+    title: $_("storm.history.reflectivity"),
     unit: "dBZ",
     height: 62,
     axis: false,
@@ -274,7 +278,7 @@ $: panels = [
   },
   {
     key: "top",
-    title: "echo top",
+    title: $_("storm.history.echo_top"),
     unit: "km",
     height: 58,
     axis: true,
@@ -385,7 +389,7 @@ $: gridlines = panels.map((panel) => panel.scale.ticks.map((value) => ({
   y: panel.scale.at(value),
 })));
 
-$: readings = cellReadings(track, compass);
+$: readings = cellReadings(track, (deg) => compass(deg, $_), $_);
 
 /** The current detection, in the shape the volumetric model reads. */
 $: shape = latest && (track.structure ?? []).length
@@ -485,7 +489,7 @@ function frameFor(
   };
 }
 
-$: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000);
+$: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, $_);
 
 /* ---- the family ---------------------------------------------------------- */
 
@@ -560,14 +564,14 @@ $: recency = cellRecency(
   tick,
   $capLatestObservation > 0 ? $capLatestObservation * 1000 : null,
 );
-$: radarOffset = radarOffsetLabel(recency.behindMinutes);
+$: radarOffset = radarOffsetLabel(recency.behindMinutes, $_);
 
 /** Alive, quiet, superseded or gone. See lib/cellStatus.ts for why it is four. */
 $: status = cellStatus({
   active: track.active,
   child_codes: track.child_codes,
   ageMinutes: recency.ageMinutes,
-});
+}, $_);
 $: observedAt = clock(track.last_seen);
 
 /**
@@ -587,35 +591,51 @@ function close() {
 }
 </script>
 
-<StormPanel rule={colour} label="{BAND_NAMES[severity]} storm" {place} onClose={close}>
-  <svelte:fragment slot="header">
-    <span class="headline severity">{BAND_NAMES[severity]}</span>
-    <span class="meta">{age}</span>
-    <!-- The dot is the same signal the "Latest" pill uses for the feed, and it
-         means the same thing here: something is still arriving. -->
-    <span class="status {status.kind}">
-      <span class="dot"></span>{status.label}
-    </span>
-  </svelte:fragment>
+<StormPanel rule={colour} label={$_(`storm.storm_label.${BAND_NAMES[severity]}`)} {place} onClose={close}>
+  <span slot="header" class="headline severity">{$_(`storm.band.${BAND_NAMES[severity]}`)}</span>
+
+  <!-- Whether it is still there, how long it has been, and how old the
+       numbers below are: the three things to know before reading any of
+       them, in a row under the title. -->
+  <dl class="stats">
+    <div>
+      <dt>{$_("storm.stat.status")}</dt>
+      <!-- The dot is the same signal the "Latest" pill uses for the feed, and
+           it means the same thing here: something is still arriving. -->
+      <dd class="status {status.kind}"><span class="dot"></span>{sentence(status.label)}</dd>
+    </div>
+    <div>
+      <dt>{$_("storm.stat.tracked")}</dt>
+      <dd>{age}</dd>
+    </div>
+    <div>
+      <dt>{$_("storm.stat.updated")}</dt>
+      <dd class:behind={radarOffset !== null}>
+        {$_("storm.ago", { values: { duration: duration(recency.ageMinutes, $_) } })}
+      </dd>
+    </div>
+  </dl>
 
   <div class="signals">
     {#if track.meso_ever}
       <span class="signal rotating">
-        Rotating{track.meso_minutes ? ` ${duration(track.meso_minutes)}` : ""}
+        {$_("storm.signal.rotating")}{track.meso_minutes ? ` ${duration(track.meso_minutes, $_)}` : ""}
       </span>
     {/if}
     {#if track.hail_ever}
       <span class="signal hail">
-        Hail{track.hail_minutes ? ` ${duration(track.hail_minutes)}` : ""}
+        {$_("hail")}{track.hail_minutes ? ` ${duration(track.hail_minutes, $_)}` : ""}
       </span>
     {/if}
-    {#if track.lightning_jump_recent}<span class="signal jump">Lightning Jump</span>{/if}
-    {#if track.intensifying}<span class="signal up">Intensifying</span>{/if}
-    {#if track.split_ever}<span class="signal lineage">Split</span>{/if}
-    {#if track.merge_ever}<span class="signal lineage">Merged</span>{/if}
+    {#if track.lightning_jump_recent}<span class="signal jump">{$_("storm.signal.lightning_jump")}</span>{/if}
+    {#if track.intensifying}<span class="signal up">{$_("storm.signal.intensifying")}</span>{/if}
+    {#if track.split_ever}<span class="signal lineage">{$_("storm.signal.split")}</span>{/if}
+    {#if track.merge_ever}<span class="signal lineage">{$_("storm.signal.merged")}</span>{/if}
     {#if track.deviation_deg !== null && track.deviation_deg !== undefined
       && track.deviation_deg > DEVIANT_DEGREES}
-      <span class="signal deviant">Deviant {round(track.deviation_deg)}&deg;</span>
+      <span class="signal deviant">
+        {$_("storm.signal.deviant", { values: { deg: round(track.deviation_deg) } })}
+      </span>
     {/if}
   </div>
 
@@ -625,17 +645,19 @@ function close() {
     </div>
   {/if}
 
-  <h3 class="section">Readings</h3>
+  <h3 class="section">{$_("storm.section.readings")}</h3>
   <Readings items={readings} />
 
   <!-- Numbers before models: the readings are the answer to "how bad is it",
        which is what a reader wants first, and the 3D shapes are the slower,
        more exploratory read that can wait until they have scrolled to it. -->
   {#if shape && !phone3d}
-    <h3 class="section">Structure<span class="aside">drag to turn</span></h3>
+    <h3 class="section">
+      {$_("storm.section.structure")}<span class="aside">{$_("storm.section.structure_aside")}</span>
+    </h3>
     <figure class="model">
       <CellModel3D cell={shape} frame={modelFrame} width={CHART.width} height={200} />
-      <figcaption>at {observedAt}</figcaption>
+      <figcaption>{$_("storm.model_at", { values: { time: observedAt } })}</figcaption>
     </figure>
   {/if}
 
@@ -652,7 +674,9 @@ function close() {
       <VolumeProvenance volume={track.volume} at={latest ?? null} />
     {/key}
   {:else if track.volume}
-    <h3 class="section">Inside<span class="aside">drag to turn the cut</span></h3>
+    <h3 class="section">
+      {$_("storm.section.inside")}<span class="aside">{$_("storm.section.inside_aside")}</span>
+    </h3>
     <figure class="model">
       <!-- Keyed on the volume: the cutaway fetches once, on mount, so walking
            the family from one cell with a volume to another kept drawing the
@@ -670,19 +694,19 @@ function close() {
          neighbours rather than alone in a box. -->
     {#if $open3DAvailable}
       <button type="button" class="open-3d" on:click={() => openCellIn3D(track)}>
-        Open on the 3D map
+        {$_("storm.open_3d")}
       </button>
     {/if}
   {/if}
 
   {#if span && panels.length}
-    <h3 class="section">History</h3>
+    <h3 class="section">{$_("storm.section.history")}</h3>
     <div class="history">
       {#each panels as panel, panelIndex (panel.key)}
         <figure>
           <figcaption>{panel.title}, {panel.unit}</figcaption>
           <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
-               aria-label="{panel.title} over the tracked period, in {panel.unit}">
+               aria-label={$_("storm.history.aria", { values: { title: panel.title, unit: panel.unit } })}>
             {#each gridlines[panelIndex] ?? [] as line (line.value)}
               <line class="grid" x1={plot.x0} x2={plot.x1} y1={line.y} y2={line.y} />
               <text class="tick left" x={plot.x0 - 5} y={line.y}>{line.value}</text>
@@ -697,7 +721,7 @@ function close() {
                    lower one's top gridline label sits where this would go. -->
               {#if panelIndex === 0 && nowLabel}
                 <text class="nowlabel" x={nowLabel.x} y={CHART.top + 7}
-                      text-anchor={nowLabel.anchor}>now</text>
+                      text-anchor={nowLabel.anchor}>{$_("now")}</text>
               {/if}
             {/if}
 
@@ -745,19 +769,36 @@ function close() {
 
   <CellLineage {track} known={family} loading={loadingFamily} now={tick} />
 
-  <footer class="recency" class:offset={radarOffset !== null}>
-    <span>
-      observed {observedAt} &middot; {duration(recency.ageMinutes)} ago
-    </span>
-    {#if radarOffset}<span class="behind">{radarOffset}</span>{/if}
-  </footer>
-
-  {#if track.active && forecast.length}
-    <footer>
-      forecast to {clock(forecast[forecast.length - 1].t)},
-      &plusmn;{round(forecast[forecast.length - 1].major_km, 1)} km
-    </footer>
-  {/if}
+  <h3 class="section">{$_("storm.section.details")}</h3>
+  <dl class="facts">
+    <div>
+      <dt>{$_("storm.fact.observed")}</dt>
+      <dd>{observedAt}</dd>
+    </div>
+    <!-- Everything above is one detection, and the panel used to imply it was
+         current. This is the part that decides whether the numbers can be
+         read against the radar drawn behind them at all, so it is there when
+         the two are out of step and absent when they are not. -->
+    {#if radarOffset}
+      <div>
+        <dt>{$_("storm.fact.radar")}</dt>
+        <dd class="behind">{radarOffset}</dd>
+      </div>
+    {/if}
+    {#if track.active && forecast.length}
+      <div>
+        <dt>{$_("storm.fact.forecast")}</dt>
+        <dd>
+          {$_("storm.fact.forecast_value", {
+            values: {
+              time: clock(forecast[forecast.length - 1].t),
+              km: round(forecast[forecast.length - 1].major_km, 1),
+            },
+          })}
+        </dd>
+      </div>
+    {/if}
+  </dl>
 </StormPanel>
 
 <style>
@@ -778,36 +819,29 @@ function close() {
   .status {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
+    gap: 6px;
   }
   .status .dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: currentColor;
-    /* The baseline-aligned header would hang a 6px round dot off the bottom of
-       the text box; this pins it to the middle of the word beside it. */
     flex: 0 0 auto;
   }
   .status.live {
-    color: var(--mc-red, #e5484d);
+    color: var(--mc-red);
   }
   .status.live .dot {
     animation: cell-alive 2s ease-in-out infinite;
   }
   /* Not an error, and not nothing: the numbers above are older than they look. */
   .status.stale {
-    color: var(--mc-orange, #f5a524);
+    color: var(--mc-orange-ink);
   }
-  /* Ended is a fact, not a warning, so it recedes to the weight of the age. */
+  /* Ended is a fact, not a warning, so it recedes to the secondary ink. */
   .status.superseded,
   .status.ended {
-    color: var(--sl-color-neutral-500, #78716c);
-    font-weight: 500;
+    color: var(--mc-text-2);
   }
   @keyframes cell-alive {
     50% { opacity: 0.25; }
@@ -815,70 +849,71 @@ function close() {
   @media (prefers-reduced-motion: reduce) {
     .status.live .dot { animation: none; }
   }
-  /* Everything above is one detection, and the panel used to imply it was
-     current. The second half is the one that decides whether the numbers can
-     be read against the radar drawn behind them at all, so it is marked when
-     it appears and absent when the two are in step. */
-  .recency {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    /* Colour rather than the footer's opacity, so the clause below can be
-       louder than the line it sits in; opacity on a parent cannot be undone. */
-    opacity: 1;
-    color: var(--sl-color-neutral-500, #78716c);
-  }
-  .recency .behind {
-    color: var(--mc-orange, #d97706);
-    font-weight: 600;
+  /* The readings are older than the radar drawn behind them. */
+  .behind {
+    color: var(--mc-orange-ink);
   }
 
   .dial { margin: 2px 0 8px; }
+  /* The signatures, as tinted capsules with the ink in the hue: the place
+     cards' own buttons, at the size of a tag. */
   .signals {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 4px;
   }
+  .signals:empty { display: none; }
   .signal {
-    font-size: 11px;
-    padding: 1px 6px;
-    border-radius: 9px;
-    background: rgba(128, 128, 128, 0.18);
+    padding: 5px 11px;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+    font: 600 13px/1.2 var(--mc-font);
     white-space: nowrap;
   }
-  .rotating { background: rgba(156, 54, 181, 0.22); }
-  .hail { background: rgba(224, 49, 49, 0.22); }
-  .jump { background: rgba(240, 180, 41, 0.26); }
-  .deviant { background: rgba(31, 110, 200, 0.2); }
+  .rotating { background: rgba(175, 82, 222, 0.18); color: #8944ab; }
+  .hail { background: var(--mc-red-tint); color: var(--mc-red-ink); }
+  .jump { background: var(--mc-orange-tint); color: var(--mc-orange-ink); }
+  .deviant { background: var(--mc-accent-tint); color: var(--mc-accent); }
+  :global(html[data-theme="dark"]) .rotating { background: rgba(191, 90, 242, 0.24); color: #da8fff; }
+
   figure { margin: 0 0 6px; }
+  /* A picture on the drawer, as the place cards' photos sit: a rounded pane
+     of its own, a tint darker than the glass around it. */
   .model {
-    border-radius: 8px;
-    background: rgba(128, 128, 128, 0.08);
+    border-radius: 14px;
+    background: var(--mc-tint);
     overflow: hidden;
   }
   figcaption {
-    font-size: 10px;
-    opacity: 0.55;
-    margin-bottom: 2px;
+    font: 400 12px/1.3 var(--mc-font);
+    color: var(--mc-text-2);
+    margin-bottom: 4px;
   }
   .model figcaption {
-    margin: 0 0 4px 8px;
+    margin: 0 0 8px 12px;
   }
-  /* A link in the accent, not a second button beside the close disc: it is
-     one more way to look at the model directly above it. */
+  /* A pill in the accent, as the place cards set a secondary action: tinted,
+     full width, the ink in the accent. One more way to look at the model
+     directly above it, so it sits under it rather than beside the close disc. */
   .open-3d {
     display: block;
-    margin: 2px 0 0 auto;
-    padding: 6px 2px;
-    font: 600 12px/1.2 var(--mc-font, system-ui);
-    color: var(--mc-accent, #0a84ff);
-    background: none;
+    width: 100%;
+    min-height: 44px;
+    margin: 10px 0 0;
+    padding: 0 16px;
     border: none;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-accent-tint);
+    color: var(--mc-accent);
+    font: 600 15px/1.2 var(--mc-font);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
   }
-  .open-3d::after { content: " \2192"; }
-  .open-3d:hover { text-decoration: underline; }
+  .open-3d:hover { background: color-mix(in srgb, var(--mc-accent) 22%, transparent); }
+  .open-3d:active { transform: scale(var(--mc-press)); }
+  .open-3d:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .history figcaption {
     display: flex;
     gap: 10px;
@@ -933,4 +968,28 @@ function close() {
     font-variant-numeric: tabular-nums;
   }
   .left { text-anchor: end; dominant-baseline: middle; }
+
+  /* The cell's own line. The accent panel's stroke and head are set in the
+     markup, from the severity; the other one is plain ink, as context. Without
+     these the context trace fell back to SVG's own defaults -- no stroke at
+     all, a black head -- and the latest-value labels were black on the dark
+     sheet. */
+  .trace {
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .trace.context {
+    stroke: currentColor;
+    stroke-opacity: 0.7;
+  }
+  .head.context {
+    fill: currentColor;
+  }
+  .direct {
+    font: 600 11px/1 var(--mc-font);
+    fill: currentColor;
+    dominant-baseline: middle;
+    font-variant-numeric: tabular-nums;
+  }
 </style>

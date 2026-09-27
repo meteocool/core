@@ -48,6 +48,13 @@ export let linkIcon: IconDefinition | null = null;
 /** Whether the tray below is the short bar or the full player. */
 export let collapsed = true;
 
+/**
+ * Whether a tap on the strip itself -- anywhere but its buttons -- raises
+ * `tap`, the way tapping a notification opens what it is about. Off for the
+ * charts, whose taps are reading the plot.
+ */
+export let tappable = false;
+
 const dispatch = createEventDispatcher();
 
 /* The travel that separates a tap from a swipe, and the share of the width
@@ -64,6 +71,15 @@ let committed = false;
 let settling = false;
 let swiping = false;
 let dockWidth = 0;
+/* Set once a press has turned into a swipe, so the click the browser still
+   fires at the end of it is not read as a tap. Cleared on the next press. */
+let swiped = false;
+
+function onTap(event: MouseEvent) {
+  if (!tappable || swiped || reveal > 0) return;
+  if ((event.target as Element).closest("button")) return;
+  dispatch("tap");
+}
 
 /* How the strip leaves: down into the tray when a button sent it there, or on
    out past the leading edge when it was swiped away. */
@@ -112,6 +128,7 @@ function swipeToDismiss(node: HTMLElement) {
     startY = e.clientY;
     startReveal = reveal;
     axis = "undecided";
+    swiped = false;
   }
 
   function onMove(e: PointerEvent) {
@@ -128,6 +145,7 @@ function swipeToDismiss(node: HTMLElement) {
       try { node.setPointerCapture(e.pointerId); } catch { /* ignore */ }
       dockWidth = node.getBoundingClientRect().width || 1;
       swiping = true;
+      swiped = true;
       settling = false;
     }
     if (axis !== "x") return;
@@ -219,6 +237,10 @@ function swipeToDismiss(node: HTMLElement) {
     touch-action: none;                   /* the swipe owns the horizontal drag */
     user-select: none;                    /* a mouse drag must not select the title */
     -webkit-user-select: none;
+  }
+
+  .strip-dock.tappable {
+    cursor: pointer;
   }
 
   .strip-dock.collapsed {
@@ -472,7 +494,10 @@ function swipeToDismiss(node: HTMLElement) {
   class:collapsed
   class:open={reveal > 0}
   class:swiping
+  class:tappable
   use:swipeToDismiss
+  on:click={onTap}
+  role="presentation"
   out:fly={{ ...out }}
   in:fade={{ duration: 200 }}>
   <button
