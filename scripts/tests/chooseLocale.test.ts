@@ -3,8 +3,8 @@ import test from "node:test";
 import { chooseLocale, normaliseLocale } from "../../src/locale/choose.ts";
 
 /**
- * The frontend's language: the app's when it says, the browser's otherwise.
- * Wrong, a German app shows an English map, or the other way round.
+ * The frontend's language: the browser's (in the apps, the system's), unless
+ * the URL says. Wrong, a German phone shows an English map.
  */
 
 test("region and case do not matter, languages we lack are null", () => {
@@ -18,13 +18,12 @@ test("region and case do not matter, languages we lack are null", () => {
   assert.equal(normaliseLocale(null), null);
 });
 
-test("the app beats the browser, and the URL beats the stored app setting", () => {
-  assert.equal(chooseLocale({ app: "de", browser: ["en-US"] }), "de");
-  assert.equal(chooseLocale({ url: "en", app: "de", browser: ["de-DE"] }), "en");
+test("the URL beats the browser", () => {
+  assert.equal(chooseLocale({ url: "en", browser: ["de-DE"] }), "en");
 });
 
-test("an app language we lack falls through to the browser", () => {
-  assert.equal(chooseLocale({ app: "it", browser: ["de-CH", "en"] }), "de");
+test("a URL language we lack falls through to the browser", () => {
+  assert.equal(chooseLocale({ url: "it", browser: ["de-CH", "en"] }), "de");
 });
 
 test("the browser's first language we have wins, in its order", () => {
