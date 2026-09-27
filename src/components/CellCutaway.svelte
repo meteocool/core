@@ -154,13 +154,16 @@ function step(now: number): void {
     spun += turned;
   }
   lastTickAt = now;
-  if (now - lastDrawAt >= 1000 / CUT_FPS - 1) {
+  const moving = turning() || dragging;
+  // Capped while the camera moves; the last frame is always drawn, or a turn
+  // of the slice landing just after a frame would never show.
+  if (!moving || now - lastDrawAt >= 1000 / CUT_FPS - 1) {
     render();
     lastDrawAt = now;
   }
   // Keep going only while the camera moves; a turn of the slice asks for its
   // own frame through `requestDraw`.
-  if (turning() || dragging) frame = requestAnimationFrame(step);
+  if (moving) frame = requestAnimationFrame(step);
 }
 
 /** Draw a frame, and go on drawing for as long as something is moving. */

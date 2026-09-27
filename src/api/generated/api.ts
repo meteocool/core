@@ -267,11 +267,12 @@ export interface paths {
          * Swiss reflectivity tile metadata.
          * @description The newest Swiss reflectivity composite -- one frame, not a timeseries.
          *
-         *     A separate route and collection (`reflectivity_ch`) rather than folding
-         *     into `/timeseries`: that endpoint models a forecast keyed by time, which
-         *     this network has none of -- one composite, replaced whenever a radar
-         *     reports, no history. Same `RadarFrame` shape as every other frame here, so
-         *     the client needs one type and one tile-URL builder for every network.
+         *     A route of its own beside `/timeseries`, which carries this network's
+         *     past too (`networks.ch`): a client refetches this whenever a radar reports
+         *     -- every minute or two, on the `network` socket event -- and the whole
+         *     timeseries only when DWD publishes. Same `RadarFrame` shape as every other
+         *     frame here, so the client needs one type and one tile-URL builder for
+         *     every network.
          */
         get: operations["switzerland_v3_radar_switzerland_get"];
         put?: never;
@@ -292,6 +293,14 @@ export interface paths {
         /**
          * Radar and nowcast tile metadata.
          * @description Tile metadata for each timestep in a window, past and forecast.
+         *
+         *     With `lat` and `lon`, each frame also carries the dBZ at that point. With
+         *     `network` as well, it is that network's reading wherever it has a composite
+         *     for the step -- which is every observed step, while its ingest is running
+         *     -- and DWD's everywhere else, the forecast included. The client names the
+         *     network because it is the one that knows which draws where: the borders are
+         *     `extents.ts`'s, and a point sampled from a network the map is not showing
+         *     there would put bars under the chart that nothing on the map agrees with.
          */
         get: operations["timeseries_v3_radar_timeseries_get"];
         put?: never;
@@ -583,6 +592,15 @@ export interface components {
             /** Frames */
             frames: {
                 [key: string]: components["schemas"]["RadarFrame"] | null;
+            };
+            /**
+             * Networks
+             * @description meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.
+             */
+            networks?: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["RadarFrame"];
+                };
             };
             /**
              * Replay
@@ -1077,6 +1095,7 @@ export interface operations {
                 end?: number;
                 lat?: number;
                 lon?: number;
+                network?: ("ch" | "fr" | "cz" | "pl") | null;
             };
             header?: never;
             path?: never;

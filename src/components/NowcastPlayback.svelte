@@ -142,6 +142,17 @@ let chart: Chart<"bar", { y: number }[], string> | null = null;
  */
 let axisTicks: { pct: number; minutes: number; anchor: "start" | "end" | null }[] = [];
 
+/**
+ * Where along the track the forecast starts, in %, when there is none at the
+ * point being asked about -- and null whenever there is one, or nothing at all.
+ *
+ * Outside DWD's grid the past comes from meteocool's own composites of the
+ * neighbouring networks, which have no forecast, so the right half of the
+ * strip is empty for a reason rather than because it will stay dry. Flat
+ * bars there would say the latter.
+ */
+let noForecastFrom: number | null = null;
+
 /** How close to an end a regular tick may sit before the end label wins, in %. */
 const AXIS_EDGE_CLEAR = 9;
 
@@ -198,6 +209,13 @@ function redraw(config) {
      when that is the truth beats the previous behaviour, which was to drop the
      label entirely because no category sat exactly on the hour. */
   const bars = sortedKeys.length;
+  const firstForecast = sortedKeys.findIndex((step) => grid[step] != null && grid[step].source !== "observation");
+  const unknown = (step: number) => grid[step] == null || grid[step].dbz == null;
+  noForecastFrom = firstForecast > 0
+    && sortedKeys.slice(firstForecast).every(unknown)
+    && !sortedKeys.slice(0, firstForecast).every(unknown)
+    ? (firstForecast / bars) * 100
+    : null;
   const minutesAt = (index: number) => Math.round((sortedKeys[index] - config.now) / 60);
   const ticks: typeof axisTicks = bars === 0 ? [] : [
     { pct: 0, minutes: minutesAt(0), anchor: "start" },
@@ -1190,6 +1208,23 @@ onDestroy(() => {
 
   /* Nothing fell in the window. Sits over the plot rather than replacing it, so
      the strip keeps its height and the tray below does not move. */
+  /* Over the forecast half only, like the bars it stands in for. */
+  .no-forecast {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 16px;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    padding: 0 8px;
+    text-align: center;
+    color: var(--mc-text-2);
+    font: 400 12px/1.35 var(--mc-font);
+    letter-spacing: -0.005em;
+    pointer-events: none;
+  }
+
   .empty {
     position: absolute;
     inset: 0;
@@ -1245,11 +1280,14 @@ onDestroy(() => {
       {#if gridLoading}
         <ChartSkeleton bars={25} />
       {:else if !hasPrecipitation}
-        <p class="empty">{$_("precipitation_none")}</p>
+        <p class="empty">{$_(noForecastFrom === null ? "precipitation_none" : "precipitation_none_past")}</p>
       {/if}
       <div class="barChart-canvas" class:hidden={gridLoading || !hasPrecipitation}>
         <canvas use:canvasInit></canvas>
       </div>
+      {#if !gridLoading && hasPrecipitation && noForecastFrom !== null}
+        <p class="no-forecast" style:left={`${noForecastFrom}%`}>{$_("forecast_none_here")}</p>
+      {/if}
       {#if !gridLoading && hasPrecipitation}
         <div class="axis" aria-hidden="true">
           {#each axisTicks as tick (tick.pct)}

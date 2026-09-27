@@ -884,11 +884,11 @@ if (postInitCb) postInitCb(lm);
     </svelte:component>
   {/await}
 {:else if $selectedVolume}
-  <!-- A storm core with no KONRAD3D track: one short popup, the same place on
-       every screen size, because there is no history to need the sheet. -->
+  <!-- A storm core with no KONRAD3D track, in the same popup as a cell's
+       details: the same panel, only with less to say. -->
   <div class="cell-details-panel" class:cloud-bottom={$smallScreen}>
     {#await loadCloudDetails() then { default: CloudDetails }}
-      <svelte:component this={CloudDetails} cloud={$selectedVolume} width={$smallScreen ? 300 : 340} />
+      <svelte:component this={CloudDetails} cloud={$selectedVolume} />
     {/await}
   </div>
 {/if}
