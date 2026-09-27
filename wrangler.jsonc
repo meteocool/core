@@ -46,7 +46,7 @@
       // Without this the staging Worker advertises production's preview image
       // in its OpenGraph tags: the Worker is bundled by wrangler, so Vite's
       // `--mode staging` never reaches it.
-      "vars": { "PREVIEW_ORIGIN": "https://staging.meteocool.com" },
+      "vars": { "PREVIEW_ORIGIN": "https://api-next.meteocool.com" },
     },
     // The demo environment beside staging on the same cluster, replaying a
     // recorded storm. Built with `--mode demo`, which points it at demo's
