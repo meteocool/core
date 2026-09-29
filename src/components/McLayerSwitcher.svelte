@@ -5,6 +5,7 @@
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
+  import { postToNative } from "../lib/nativeBridge";
   import { _ } from "svelte-i18n";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
@@ -65,13 +66,8 @@
 
   function open() {
     window.openLayerswitcher?.();
-    // The iOS wrapper was told about close but never about open, so it could
-    // not hide its own chrome while the switcher was up.
-    if (dd.isIos()) {
-      window.webkit?.messageHandlers.scriptHandler.postMessage(
-        "layerSwitcherOpened",
-      );
-    }
+    // The apps hide their own buttons while the switcher is up.
+    postToNative("layerSwitcherOpened");
   }
 
   function close() {
@@ -82,11 +78,7 @@
       map.setTarget(null);
       map.updateSize();
     });
-    if (dd.isIos()) {
-      window.webkit?.messageHandlers.scriptHandler.postMessage(
-        "layerSwitcherClosed",
-      );
-    }
+    postToNative("layerSwitcherClosed");
     // Map.svelte re-measures the tray and restores the view padding.
     toolbarTransitionEnd();
   }

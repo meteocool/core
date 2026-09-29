@@ -29,6 +29,7 @@ Chart.register(BarController);
 Chart.register(BarElement);
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { postToNative } from "../lib/nativeBridge";
 import type RadarCapability from "../caps/RadarCapability";
 import type { GridConfig } from "../caps/RadarCapability";
 
@@ -871,9 +872,8 @@ function sliderChangedHandler(value, userInteraction = false) {
     fsm.pressPause();
   }
 
-  if (userInteraction && dd.isIos()) {
-    const impact = value === 0 ? "impactMedium" : "impactLight";
-    window.webkit?.messageHandlers.scriptHandler.postMessage(impact);
+  if (userInteraction && dd.isApp()) {
+    postToNative(value === 0 ? "impactMedium" : "impactLight");
   }
 
   // Both callers land here -- a drag and a playback tick -- so this is the one
