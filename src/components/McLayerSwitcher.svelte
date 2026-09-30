@@ -53,6 +53,9 @@
     selectedCell.set(null);
     selectedVolume.set(null);
     ls.style.display = "block";
+    // Here rather than in open(), so the apps' own buttons are covered too:
+    // they hide their chrome while the switcher is up.
+    postToNative("layerSwitcherOpened");
     // The View is shared with the main map, which carries bottom padding for
     // the glass tray; the tiles are not under it.
     layerManager.maps[0]?.getView().setProperties({ padding: [0, 0, 0, 0] });
@@ -66,8 +69,6 @@
 
   function open() {
     window.openLayerswitcher?.();
-    // The apps hide their own buttons while the switcher is up.
-    postToNative("layerSwitcherOpened");
   }
 
   function close() {
