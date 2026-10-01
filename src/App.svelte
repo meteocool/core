@@ -630,6 +630,11 @@ const finePointer = typeof window === "undefined" || !window.matchMedia
  * instead. `forEachFeatureAtPixel` stops at the first cell feature under the
  * finger, which may be the path or the forecast dots as easily as the centroid
  * -- they all carry their track's code.
+ *
+ * A cell before a "3D" tag, when the finger is on both: the tag sits beside
+ * its core, which is usually inside a cell, so it caught taps aimed at the
+ * cell and switched maps instead of opening the storm. The 3D map ranks the
+ * two the same way. The tag answers where no cell is under the finger.
  */
 lm.forEachMap((map) => {
   /* `mapExtent4326` is published on moveend, so on a cold load -- where the
@@ -647,7 +652,15 @@ lm.forEachMap((map) => {
   });
 
   map.on("singleclick", (event) => {
-    if (cloudHintLayer.getVisible()) {
+    const cellsShown = get(cellLayerVisible);
+    const code = cellsShown
+      ? map.forEachFeatureAtPixel(
+        event.pixel,
+        (feature) => feature.get("code") as string | undefined,
+        { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
+      )
+      : undefined;
+    if (!code && cloudHintLayer.getVisible()) {
       const cloud = map.forEachFeatureAtPixel(
         event.pixel,
         (feature) => feature.get("cloud") as RadarVolume | undefined,
@@ -658,12 +671,7 @@ lm.forEachMap((map) => {
         return;
       }
     }
-    if (!get(cellLayerVisible)) return;
-    const code = map.forEachFeatureAtPixel(
-      event.pixel,
-      (feature) => feature.get("code") as string | undefined,
-      { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
-    );
+    if (!cellsShown) return;
     const next = nextSelection(
       { code: get(selectedCell)?.code ?? null, details: get(cellDetails) },
       code ?? null,
