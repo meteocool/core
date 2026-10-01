@@ -16,13 +16,13 @@
  */
 import { fly } from "svelte/transition";
 import { cubicOut } from "svelte/easing";
-import { onDestroy } from "svelte";
+import { onDestroy, onMount } from "svelte";
 import { get } from "svelte/store";
 import { _ } from "svelte-i18n";
 import { cellDetails, sharedActiveCap } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
-import { postToNative } from "../lib/nativeBridge";
+import { holdNativeChrome, postToNative } from "../lib/nativeBridge";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import CellDetails from "./CellDetails.svelte";
 
@@ -135,6 +135,9 @@ function syncNativeChrome(expanded: boolean) {
 $: syncNativeChrome(detent === FULL);
 
 onDestroy(() => syncNativeChrome(false));
+
+// From the first frame, before whatever the sheet holds has loaded.
+onMount(holdNativeChrome);
 
 /* ---- drag the grabber --------------------------------------------------- */
 
