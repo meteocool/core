@@ -22,7 +22,9 @@
  * above the body, labels carried by colour rather than by being small, and
  * air between the groups rather than rules.
  */
+import { onMount } from "svelte";
 import CloseDisc from "./CloseDisc.svelte";
+import { holdNativeChrome } from "../lib/nativeBridge";
 
 /**
  * The storm's own colour, for the rule down the header. None for a panel that
@@ -56,6 +58,9 @@ function onKeydown(event: KeyboardEvent) {
   if (target && /^(?:INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
   onClose();
 }
+
+// The corner panel on a wide screen sits where the apps' buttons are.
+onMount(holdNativeChrome);
 </script>
 
 <svelte:window on:keydown={onKeydown} />

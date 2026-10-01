@@ -3,6 +3,7 @@ import { _ } from "svelte-i18n";
 import { createEventDispatcher, onMount } from "svelte";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import Icon from "./Icon.svelte";
+import { holdNativeChrome } from "../lib/nativeBridge";
 
 /**
  * A panel of text floating over the map: About, Settings, Connection Details.
@@ -49,7 +50,11 @@ onMount(() => {
   // Where the keyboard goes next, and what a screen reader announces.
   panel.focus({ preventScroll: true });
   window.addEventListener("keydown", onKeydown, true);
-  return () => window.removeEventListener("keydown", onKeydown, true);
+  const releaseChrome = holdNativeChrome();
+  return () => {
+    window.removeEventListener("keydown", onKeydown, true);
+    releaseChrome();
+  };
 });
 </script>
 
