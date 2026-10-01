@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  axisTicks, barCeiling, forecastGapFrom, glideStep, hasEcho, indexOf, restingStep, rubberBand,
-  timelineSteps,
+  axisTicks, barCeiling, forecastGapFrom, glideStep, hasEcho, indexOf, lastPlayableIndex, restingStep,
+  rubberBand, timelineSteps,
 } from "../../src/lib/timeline.ts";
 import type { GridConfig } from "../../src/caps/RadarCapability.ts";
 
@@ -29,13 +29,23 @@ function grid(from: number, to: number, dbz: (t: number) => number | null): Grid
   return { grid: out, start: from, end: to, now: NOW, length: Object.keys(out).length };
 }
 
-test("steps are sorted, cut at the last playable step, and floored at zero", () => {
+test("steps are sorted, span the whole grid, mark the unpublished tail, and floor at zero", () => {
   const config = grid(NOW - 2 * STEP, NOW + 3 * STEP, (t) => (t === NOW ? -5 : 10));
   const steps = timelineSteps(config, NOW + STEP);
-  assert.deepEqual(steps.map((s) => s.t), [NOW - 2 * STEP, NOW - STEP, NOW, NOW + STEP]);
+  assert.deepEqual(steps.map((s) => s.t), [NOW - 2 * STEP, NOW - STEP, NOW, NOW + STEP, NOW + 2 * STEP, NOW + 3 * STEP]);
   assert.equal(steps[2].dbz, 0);
   assert.equal(steps[2].forecast, false);
   assert.equal(steps[3].forecast, true);
+  assert.deepEqual(steps.map((s) => s.playable), [true, true, true, true, false, false]);
+  assert.equal(lastPlayableIndex(steps), 3);
+});
+
+test("the axis ends at +2h even when the last frames are not published yet", () => {
+  const config = grid(NOW - 24 * STEP, NOW + 24 * STEP, () => 0);
+  const steps = timelineSteps(config, NOW + 21 * STEP);
+  const ticks = axisTicks(steps, NOW, 60);
+  assert.equal(ticks.at(-1)?.minutes, 120);
+  assert.equal(lastPlayableIndex(steps), 45);
 });
 
 test("a grid with no readings has no echo and a flat ceiling", () => {
@@ -53,6 +63,9 @@ test("the ceiling rises with hail so nothing clips", () => {
 test("a past with readings and a forecast with none marks where the forecast would start", () => {
   const steps = timelineSteps(grid(NOW - 3 * STEP, NOW + 4 * STEP, (t) => (t <= NOW ? 20 : null)), NOW + 4 * STEP);
   assert.equal(forecastGapFrom(steps), 4 / 8);
+  // An unpublished tail is not a missing forecast.
+  const wet = timelineSteps(grid(NOW - 3 * STEP, NOW + 4 * STEP, (t) => (t <= NOW + 2 * STEP ? 20 : null)), NOW + 2 * STEP);
+  assert.equal(forecastGapFrom(wet), null);
 });
 
 test("no gap is reported when the forecast has readings, or when nothing does", () => {
