@@ -36,6 +36,7 @@ export type CellCurrent = DataSchemas["schemas"]["CellCurrent"];
 export type CellLayer = DataSchemas["schemas"]["CellLayer"];
 export type CellVolume = DataSchemas["schemas"]["CellVolume"];
 export type RadarVolume = DataSchemas["schemas"]["RadarVolume"];
+export type CurrentVolumes = DataSchemas["schemas"]["CurrentVolumes"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
