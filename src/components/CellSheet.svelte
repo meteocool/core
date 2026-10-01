@@ -305,6 +305,51 @@ function release() {
  */
 let scrolled = false;
 
+/* ---- the scroll indicator ----------------------------------------------- */
+
+/**
+ * The sheet's own scroll indicator, in place of the platform's.
+ *
+ * The platform draws its indicator down the scroller's whole right edge, and
+ * the scroller starts at the sheet's top -- so on a phone it ran from under
+ * the grip, behind the close disc in the corner, which nothing in CSS moves.
+ * This one keeps to a track from below the disc to the screen's edge (the
+ * sheet's lower part is parked off it; see --rest), shows while the body
+ * scrolls and fades out after, as the platform's does.
+ */
+/** Where the track starts: the corner disc's 11px, its 44px, and a gap. */
+const INDICATOR_TOP = 63;
+/** Clear of the screen's bottom edge, and of the home indicator's curve. */
+const INDICATOR_BOTTOM_GAP = 10;
+const INDICATOR_MIN_THUMB = 36;
+const INDICATOR_LINGER_MS = 900;
+
+let indicatorShown = false;
+let thumbTop = 0;
+let thumbHeight = 0;
+let indicatorTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showIndicator(el: HTMLElement) {
+  const range = el.scrollHeight - el.clientHeight;
+  const sheetTop = sheetEl.getBoundingClientRect().top;
+  const body = el.getBoundingClientRect();
+  const visibleBottom = Math.min(body.bottom, window.innerHeight);
+  const track = visibleBottom - sheetTop - INDICATOR_BOTTOM_GAP - INDICATOR_TOP;
+  if (range <= 0 || track <= INDICATOR_MIN_THUMB) {
+    indicatorShown = false;
+    return;
+  }
+  // What is on screen of the body, against all there is to scroll through.
+  const onScreen = visibleBottom - body.top;
+  thumbHeight = Math.max(INDICATOR_MIN_THUMB, (track * onScreen) / (onScreen + range));
+  thumbTop = INDICATOR_TOP + (track - thumbHeight) * Math.min(1, Math.max(0, el.scrollTop / range));
+  indicatorShown = true;
+  if (indicatorTimer !== null) clearTimeout(indicatorTimer);
+  indicatorTimer = setTimeout(() => { indicatorShown = false; }, INDICATOR_LINGER_MS);
+}
+
+onDestroy(() => { if (indicatorTimer !== null) clearTimeout(indicatorTimer); });
+
 let bodyPointer: number | null = null;
 let bodyStartX = 0;
 let bodyStartY = 0;
@@ -492,6 +537,9 @@ function bodyUp(event: PointerEvent) {
   .body {
     flex: 1 1 auto;
     overflow-y: auto;
+    /* The platform's indicator ran behind the close disc; the sheet draws its
+       own (.indicator). */
+    scrollbar-width: none;
     /* Momentum scrolling, and a scroll that does not drag the map behind. */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -517,6 +565,29 @@ function bodyUp(event: PointerEvent) {
     touch-action: none;
     overflow: visible;
     padding-top: 3px;
+  }
+
+  .body::-webkit-scrollbar {
+    display: none;
+  }
+
+  .indicator {
+    position: absolute;
+    top: 0;
+    right: 3px;
+    z-index: 2;
+    width: 3px;
+    height: var(--thumb-h);
+    border-radius: 2px;
+    background: var(--mc-text-3);
+    transform: translateY(var(--thumb-top));
+    opacity: 0;
+    transition: opacity 260ms ease;
+    pointer-events: none;
+  }
+  .indicator.shown {
+    opacity: 0.6;
+    transition-duration: 80ms;
   }
 
   /* The way out, in the corner and out of the body, so it stays where it is
@@ -574,7 +645,7 @@ function bodyUp(event: PointerEvent) {
   <div
     class="body"
     class:scrolled
-    on:scroll={(e) => { scrolled = e.currentTarget.scrollTop > 0; }}
+    on:scroll={(e) => { scrolled = e.currentTarget.scrollTop > 0; showIndicator(e.currentTarget); }}
     on:pointerdown={bodyDown}
     on:pointermove={bodyMove}
     on:pointerup={bodyUp}
@@ -583,6 +654,11 @@ function bodyUp(event: PointerEvent) {
       {#if track}<CellDetails {track} />{/if}
     </slot>
   </div>
+  <div
+    class="indicator"
+    class:shown={indicatorShown}
+    style="--thumb-top: {thumbTop}px; --thumb-h: {thumbHeight}px"
+    aria-hidden="true"></div>
   <div class="corner">
     <CloseDisc material={material === "reading" ? "chrome" : "drawer"} on:click={close} />
   </div>
