@@ -188,12 +188,16 @@ export const KM_PER_DEGREE = 111.32;
 
 /** The part of the screen a storm is framed into, in CSS pixels. */
 export interface FramingRoom {
+  /** The map's own size. */
   width: number;
   height: number;
   /** Where the room starts below the controls along the top. */
   top: number;
-  /** Where it ends above the sheet. */
+  /** Where it ends above the sheet, or the tray. */
   bottom: number;
+  /** Where it starts and ends across: the whole width on a phone, short of the panel on a desktop. */
+  left: number;
+  right: number;
 }
 
 /** A MapLibre camera, bar the bearing, which the caller turns to face the cut. */
@@ -202,13 +206,14 @@ export interface FramingCamera {
   lat: number;
   /** MapLibre's zoom, a level below the flat map's. */
   zoom: number;
-  /** How far below the middle of the screen the camera's centre is drawn. */
+  /** How far right of and below the middle of the screen the camera's centre is drawn. */
+  offsetX: number;
   offsetY: number;
 }
 
 /**
  * Where to stand for a storm's cut to fill the room, square on to it and from
- * low down -- the 3D map's picture of an opened storm on a phone.
+ * low down -- the 3D map's picture of an opened storm.
  *
  * `directionDeg` is the compass direction the cut runs along. The storm's
  * width is what the cut shows of it, its extent along the plane, and its
@@ -233,10 +238,10 @@ export function framingCamera(
   // Metres per pixel that fit both where the storm will stand. Across, a
   // plane square to the camera is drawn at the scale of the ground under
   // it; upwards it is foreshortened by the tilt.
-  const { width, height, top, bottom } = room;
+  const { height, top, bottom, left, right } = room;
   const tilt = (pitchDeg * Math.PI) / 180;
   const atFoot = Math.max(
-    widthM / (width * OPEN_FILL),
+    widthM / ((right - left) * OPEN_FILL),
     (heightM * Math.sin(tilt)) / ((bottom - top) * OPEN_FILL),
   );
   // The storm's foot, so that the whole of it sits between the controls
@@ -251,5 +256,7 @@ export function framingCamera(
   const above = Math.atan((height / 2 - foot) / focal);
   const atMiddle = (atFoot * Math.cos(tilt + above)) / Math.cos(tilt);
   const zoom = Math.min(Math.log2((WORLD_METRES_AT_ZOOM_0 * Math.cos(latRad)) / atMiddle), maxZoom);
-  return { lon, lat, zoom, offsetY: foot - height / 2 };
+  // Across, the scale along a row of the screen is the same everywhere in it,
+  // so the room's middle is only a shift.
+  return { lon, lat, zoom, offsetX: (left + right) / 2 - room.width / 2, offsetY: foot - height / 2 };
 }
