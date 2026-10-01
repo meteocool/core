@@ -74,9 +74,16 @@ export let fitAtRest = false;
  * Opens at full height rather than half. For reading: a page of settings or
  * diagnostics has nothing on the map to keep in view, and at half height is a
  * column of text in a strip. Pulling it down still lands on half before it
- * closes, as every sheet does.
+ * closes, unless `halfway` says otherwise.
  */
 export let full = false;
+/**
+ * Whether the sheet has a half-height stop at all. Not for a page that is read
+ * rather than navigated with -- About, Settings, Connection Details: a third
+ * of a page of prose over a strip of map is neither, so pulling one down
+ * closes it rather than parking it half open.
+ */
+export let halfway = true;
 /**
  * The glass it is made of. The drawer's by default (see src/glass.css): the
  * storm panels' material, which keeps some of the map's colour. "reading"
@@ -265,7 +272,7 @@ function release() {
     if (expandable) detent = FULL;
   } else if (moved > SNAP_PX) {
     // Down from full lands on half; down from half lets go of the cell.
-    if (detent === FULL) detent = HALF;
+    if (detent === FULL && halfway) detent = HALF;
     else close();
   }
 }
