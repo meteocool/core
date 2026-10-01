@@ -59,10 +59,13 @@ export function correctCtrlClicks(
     const release = event as unknown as Press;
     if (release.button === 2) asLeftButton(release);
   };
-  target.addEventListener("mousedown", down, true);
-  target.addEventListener("mouseup", up, true);
+  // `{ capture: true }`, not `true`: Node 22's EventTarget, which the tests
+  // run on, does not match a bare `true` on removal, so the undo undid nothing.
+  const capture = { capture: true };
+  target.addEventListener("mousedown", down, capture);
+  target.addEventListener("mouseup", up, capture);
   return () => {
-    target.removeEventListener("mousedown", down, true);
-    target.removeEventListener("mouseup", up, true);
+    target.removeEventListener("mousedown", down, capture);
+    target.removeEventListener("mouseup", up, capture);
   };
 }
