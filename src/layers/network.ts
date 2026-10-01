@@ -2,14 +2,17 @@ import IndexedTileSource from "./indexedTiles";
 import { hasTile } from "../lib/tileIndex";
 import TileLayer from "ol/layer/Tile";
 import { getRenderPixel } from "ol/render";
-import { getIntersection, isEmpty } from "ol/extent";
+import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
 import type RenderEvent from "ol/render/Event";
-import { chmiAttribution, imgwAttribution, meteoFranceAttribution, meteoSwissAttribution } from "./attributions";
+import {
+  chmiAttribution, dwdAttribution, imgwAttribution, meteoFranceAttribution, meteoSwissAttribution,
+} from "./attributions";
 import {
   chExclusiveCoverage,
   chRadarExtent,
+  dwdRadarExtent,
   czExclusiveCoverage,
   czRadarExtent,
   frExclusiveCoverage,
@@ -20,7 +23,7 @@ import {
 import { tileSourceUrl } from "./dwd";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
-import { fetchCzechRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar } from "../api";
+import { fetchCzechRadar, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar } from "../api";
 import type { Progress, RadarFrame } from "../api";
 import type { NetworkEvent } from "../api/events";
 
@@ -32,8 +35,8 @@ export interface Network {
   attribution: string;
   /** The composite grid's rectangle: a cheap first cut, not the coverage claim. */
   extent: Extent;
-  /** Where this network may draw; see `extents.ts` for who draws where. */
-  coverage: number[][][];
+  /** Where this network may draw; see `extents.ts` for who draws where. Null draws everywhere. */
+  coverage: number[][][] | null;
 }
 
 export const SWITZERLAND: Network = {
@@ -69,6 +72,22 @@ export const POLAND: Network = {
 };
 
 export const NETWORKS: Network[] = [SWITZERLAND, FRANCE, CZECHIA, POLAND];
+
+/**
+ * Every network's lowest tilts on one grid, DWD's included: the merged
+ * composite worker-analysis builds on its background worker. Not one of
+ * `NETWORKS`: it is not cut to a country and it stands in for all five
+ * products at once, on the live step, when the reader asks for it.
+ */
+export const EUROPE: Network = {
+  code: "eu",
+  fetch: fetchEuropeRadar,
+  attribution: [dwdAttribution, meteoSwissAttribution, meteoFranceAttribution, chmiAttribution, imgwAttribution].join(" "),
+  extent: [dwdRadarExtent, chRadarExtent, frRadarExtent, czRadarExtent, plRadarExtent].reduce(
+    (whole, one) => extend(whole, one), createEmpty(),
+  ),
+  coverage: null,
+};
 
 /**
  * A frame older than this is not shown. The backend publishes whenever a radar
@@ -220,15 +239,16 @@ export default class NetworkRadarLayer {
     this.layer = new TileLayer({
       source,
       // Just under DWD's 80. The clip below means they never cover the same
-      // pixel, so this only settles which draws first.
-      zIndex: 79,
+      // pixel, so this only settles which draws first. Europe's draws above
+      // DWD's instead, which is hidden while it shows.
+      zIndex: this.network.coverage ? 79 : 81,
       opacity: NOWCAST_OPACITY,
       cacheSize: 512,
       // The rectangle is a cheap first pass; `coverage` is the real edge, and
       // an extent cannot describe it because it is not a rectangle.
       extent: this.network.extent,
     });
-    this.clipToExclusiveCoverage(this.layer);
+    if (this.network.coverage) this.clipToExclusiveCoverage(this.layer);
     this.map.addLayer(this.layer);
   }
 
@@ -252,7 +272,7 @@ export default class NetworkRadarLayer {
       if (!context) return;
       context.save();
       context.beginPath();
-      for (const ring of this.network.coverage) {
+      for (const ring of this.network.coverage ?? []) {
         ring.forEach((coordinate, index) => {
           const [x, y] = getRenderPixel(event, this.map.getPixelFromCoordinate(coordinate));
           if (index === 0) context.moveTo(x, y);
