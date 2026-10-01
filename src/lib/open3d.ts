@@ -29,12 +29,12 @@ import type { CellTrackProperties, RadarVolume } from "../api";
  * Cells3DCapability.leave). A 3D map picked from the switcher, or opened by a
  * link, is not a detour and is left alone.
  *
- * Nor is one the reader has started using. A drag, a zoom, a tilt or a turn of
- * the 3D map, or a second storm picked on it, means they are looking around
- * rather than at the one storm they came for, and taking the map away from
- * them when they close its panel would be taking away what they were doing.
- * Cells3DCapability reports that through `used3D`, and the way back is
- * forgotten.
+ * Moving the 3D map or picking another storm on it does not cancel the way
+ * back. It used to: a reader who had looked around was taken to be using the
+ * 3D map and was left on it -- tilted, with no storm open and no obvious way
+ * to the radar. Closing the storm always goes back now. A move only changes
+ * where to: from where the reader is (Cells3DCapability reports it through
+ * `moved3D`), not the view they left, which may be far away by then.
  */
 
 /** Where a detour to the 3D map started, or null when the reader chose it. */
@@ -104,9 +104,9 @@ export function forget3DOrigin(): void {
   origin = null;
 }
 
-/** The reader has used the 3D map itself: it is theirs now, and stays. */
-export function used3D(): void {
-  origin = null;
+/** The reader has moved the 3D map: go back from where it is now. */
+export function moved3D(): void {
+  if (origin) origin = { ...origin, view: null };
 }
 
 /** Go back to the map the detour started from. False when there was none. */
