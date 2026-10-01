@@ -205,7 +205,11 @@ export default class RadarCapability extends Capability {
     this.serverTime = 0;
     this.snowOverlay = null;
     this.stale = false;
-    this.networks = NETWORKS.map((network) => new NetworkRadarLayer(map, network));
+    // Observers hear of every network's new live frame: the 3D map drapes
+    // the same one, forwarded from App.svelte like DWD's grid is.
+    this.networks = NETWORKS.map((network) => new NetworkRadarLayer(
+      map, network, () => this.notify("networks", this.liveNetworkFrames()),
+    ));
 
     /* The networks follow the scrubber: their own newest frame on the live
        one, the grid's composite on any other past step, nothing on a forecast
@@ -531,6 +535,16 @@ export default class RadarCapability extends Capability {
   private applyRadarOpacity() {
     const base = this.stale ? STALE_OPACITY : NOWCAST_OPACITY;
     this.layer?.setOpacity(this.inspecting ? base * INSPECT_OPACITY : base);
+  }
+
+  /** Each network's newest composite, where it is fresh enough to draw: what the live step shows. */
+  liveNetworkFrames(): Partial<Record<NetworkCode, RadarFrame>> {
+    const frames: Partial<Record<NetworkCode, RadarFrame>> = {};
+    for (const network of this.networks) {
+      const frame = network.current();
+      if (frame) frames[network.network.code] = frame;
+    }
+    return frames;
   }
 
   /** Everything: DWD's grid and every network's frame. For a wake, where any of it may have moved on. */
