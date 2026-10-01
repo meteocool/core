@@ -97,3 +97,22 @@ test("a glide slows, stops dead at an end, and rests on a whole step", () => {
   assert.equal(restingStep(-0.8, 10), 0);
   assert.equal(restingStep(12, 10), 10);
 });
+
+test("a needle let go near now is caught by it; one further away is not", () => {
+  assert.equal(restingStep(24.8, 47, 24), 24);
+  assert.equal(restingStep(23.2, 47, 24), 24);
+  assert.equal(restingStep(22.9, 47, 24), 23);
+  assert.equal(restingStep(30.4, 47, 24), 30);
+});
+
+test("a slow glide is caught crossing now; a fast one passes through", () => {
+  const slow = glideStep({ pos: 23.95, velocity: 0.005 }, 16, 47, 24);
+  assert.equal(slow.pos, 24);
+  assert.equal(slow.velocity, 0);
+  const fast = glideStep({ pos: 23.95, velocity: 0.08 }, 16, 47, 24);
+  assert.ok(fast.pos > 24);
+  assert.ok(fast.velocity > 0);
+  // Not crossing it: nothing to catch.
+  const away = glideStep({ pos: 30, velocity: 0.005 }, 16, 47, 24);
+  assert.ok(away.pos > 30 && away.velocity > 0);
+});

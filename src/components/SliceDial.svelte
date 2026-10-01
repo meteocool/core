@@ -23,6 +23,7 @@ import { cutRotationDeg, cutSweepDeg } from "../stores";
 import { stopSweep } from "../lib/cutSweep";
 import { cutLabel, cutSnapLabels, normaliseCut } from "../lib/cutAngle";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
+import { haptic } from "../lib/haptics";
 import type { CutReference } from "../lib/cutAngle";
 
 export let reference: CutReference = "track";
@@ -96,7 +97,7 @@ function turnTo(next: number): void {
   const detent = Math.round(next / 90);
   if (Math.abs(next - detent * 90) < 1 && detent !== lastDetent) {
     lastDetent = detent;
-    navigator.vibrate?.(6);
+    haptic("detent");
   } else if (Math.abs(next - (lastDetent ?? 0) * 90) > DETENT_DEG) {
     lastDetent = null;
   }
