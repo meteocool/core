@@ -204,7 +204,7 @@ window.settings = new Settings({
   },
   layer3dTerrain: {
     type: "boolean",
-    default: false,
+    default: true,
     cb: (value) => {
       terrain3dVisible.set(Boolean(value));
     },
