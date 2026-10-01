@@ -27,7 +27,8 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cells3dLoading, cells3dVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
+  cellLayerVisible, cells3dLoading, cells3dVisible, cycloneLayerVisible, europeCompositeVisible, lastFocus,
+  layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
@@ -76,6 +77,7 @@ import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import Cells3DCapability from "./caps/Cells3DCapability";
+import { tileSourceUrl } from "./layers/dwd";
 import { radolanOverlay } from "./layers/dwd";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
@@ -196,6 +198,13 @@ window.settings = new Settings({
     default: false,
     cb: (value) => {
       cells3dVisible.set(Boolean(value));
+    },
+  },
+  layerEuropeComposite: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      europeCompositeVisible.set(Boolean(value));
     },
   },
   layerSnow: {
@@ -505,17 +514,29 @@ window.lm = lm;
 const cells3d = lm.getCapability("cells3d") as Cells3DCapability | undefined;
 const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
+  // With the European composite on, the 3D map drapes that one frame, whole,
+  // in place of DWD's and the networks'; see RadarCapability.showNetworks.
   const forwardRadarFrame = () => {
     const step = radarCap.getMostRecentObservation();
+    const europe = radarCap.liveEuropeFrame();
+    if (europe) {
+      cells3d.setRadarFrame(tileSourceUrl("meteoradar", europe.tile_id), step, europe.tiles, { whole: true });
+      return;
+    }
     const frame = radarCap.clientGrid?.[step];
     cells3d.setRadarFrame(frame?.url ?? null, step, frame?.tiles);
   };
   // The networks' own newest frames go the same way: the 3D map drapes them
   // over their countries, cut out of DWD's frame as the flat map does.
-  const forwardNetworkFrames = () => cells3d.setNetworkFrames(radarCap.liveNetworkFrames());
+  const forwardNetworkFrames = () => {
+    cells3d.setNetworkFrames(radarCap.liveEuropeFrame() ? {} : radarCap.liveNetworkFrames());
+  };
   radarCap.addObserver((subject) => {
     if (subject === "grid") forwardRadarFrame();
-    if (subject === "networks") forwardNetworkFrames();
+    if (subject === "networks") {
+      forwardRadarFrame();
+      forwardNetworkFrames();
+    }
   });
   forwardNetworkFrames();
   // A new run means new cells as well as a new frame. Not in a hidden tab,

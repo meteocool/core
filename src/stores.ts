@@ -185,6 +185,13 @@ export const cellLayerVisible = writable<boolean>(true);
  */
 export const cells3dVisible = writable<boolean>(false);
 /**
+ * Whether the live frame is drawn from the merged European composite -- every
+ * network's lowest tilts on one grid -- in place of DWD's frame and the four
+ * network layers. Off unless the reader turns it on: a product built on a
+ * background worker, offered beside the map's own arrangement, not over it.
+ */
+export const europeCompositeVisible = writable<boolean>(false);
+/**
  * Whether the 3D map is still being brought up for the first time.
  *
  * MapLibre is fetched on first use, then compiles its shaders, parses the

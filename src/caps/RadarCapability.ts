@@ -5,7 +5,7 @@ import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
 import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd";
 import type { LayerFactory } from "../layers/dwd";
-import NetworkRadarLayer, { NETWORKS } from "../layers/network";
+import NetworkRadarLayer, { EUROPE, NETWORKS } from "../layers/network";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
 import type NetworkHoleTileSource from "../layers/networkHoles";
@@ -30,6 +30,7 @@ import {
   selectedCell,
   setFrames,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
+  europeCompositeVisible,
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
@@ -157,6 +158,16 @@ export default class RadarCapability extends Capability {
   private networks: NetworkRadarLayer[];
 
   /**
+   * The merged European composite, drawn in place of DWD's frame and the
+   * networks' on the live step while the reader has it on; see `showNetworks`.
+   */
+  private europe: NetworkRadarLayer;
+
+  private europeWanted = false;
+
+  private unsubscribeEurope: (() => void) | null = null;
+
+  /**
    * Each network's composite for each observed step it has one for, from the
    * same response as the grid. What the network layers show off the live
    * frame, and which steps' DWD tiles have that network cut out.
@@ -210,6 +221,16 @@ export default class RadarCapability extends Capability {
     this.networks = NETWORKS.map((network) => new NetworkRadarLayer(
       map, network, () => this.notify("networks", this.liveNetworkFrames()),
     ));
+    this.europe = new NetworkRadarLayer(map, EUROPE, () => {
+      this.reshowNetworks();
+      this.notify("networks", this.liveNetworkFrames());
+    });
+    this.unsubscribeEurope = europeCompositeVisible.subscribe((wanted) => {
+      this.europeWanted = wanted;
+      if (wanted) this.europe.refresh(this.nanobar);
+      this.reshowNetworks();
+      this.notify("networks", this.liveNetworkFrames());
+    });
 
     /* The networks follow the scrubber: their own newest frame on the live
        one, the grid's composite on any other past step, nothing on a forecast
@@ -352,6 +373,10 @@ export default class RadarCapability extends Capability {
       // every minute or two.
       this.networkHandler = ({ network }) => {
         whenVisible(`radar:network:${network}`, () => {
+          if (network === EUROPE.code) {
+            if (this.europeWanted) this.europe.refresh(this.nanobar);
+            return;
+          }
           this.networks.find((layer) => layer.network.code === network)?.refresh(this.nanobar);
         });
       };
@@ -547,11 +572,17 @@ export default class RadarCapability extends Capability {
     return frames;
   }
 
+  /** The merged European composite's newest frame, when the reader has it on and it is fresh; else null. */
+  liveEuropeFrame(): RadarFrame | null {
+    return this.europeWanted ? this.europe.current() : null;
+  }
+
   /** Everything: DWD's grid and every network's frame. For a wake, where any of it may have moved on. */
   reloadAll() {
     console.log("reloadAll");
     this.reloadRadar();
     for (const network of this.networks) network.refresh(this.nanobar);
+    if (this.europeWanted) this.europe.refresh(this.nanobar);
   }
 
   /**
@@ -613,11 +644,27 @@ export default class RadarCapability extends Capability {
     return holes;
   }
 
-  /** Point every network layer at the step on screen. */
+  /**
+   * Point every network layer at the step on screen.
+   *
+   * On the live step with the European composite on and fresh, that one
+   * frame stands in for all five products: DWD's layer and the networks'
+   * are hidden under it rather than blended with it, since every palette is
+   * part transparent and two drawn together read as a third intensity.
+   */
   private showNetworks(shown: number, live: boolean) {
+    const europe = live && this.liveEuropeFrame() !== null;
     for (const network of this.networks) {
-      network.show(live, this.networkGrid[network.network.code]?.[shown] ?? null);
+      network.show(live && !europe, europe ? null : this.networkGrid[network.network.code]?.[shown] ?? null);
     }
+    this.europe.show(europe, null);
+    this.layer?.setVisible(!europe);
+  }
+
+  /** `showNetworks` again for the step on screen, when what should show there has changed. */
+  private reshowNetworks() {
+    const shown = get(capTimeIndicator);
+    this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
   }
 
   /**
@@ -864,6 +911,9 @@ export default class RadarCapability extends Capability {
 
   destroy() {
     for (const network of this.networks) network.destroy();
+    this.europe.destroy();
+    this.unsubscribeEurope?.();
+    this.unsubscribeEurope = null;
     this.unsubscribeLiveFrame?.();
     this.unsubscribeLiveFrame = null;
     if (this.gridRefreshTimeout !== null) {
