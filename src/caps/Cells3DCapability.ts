@@ -1297,7 +1297,11 @@ export default class Cells3DCapability extends Capability {
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
     ));
     this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway, tier }]) => ({
-      key, cutaway, dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
+      key,
+      cutaway,
+      dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
+      // Held whole: its layers are interpolation, which a peel cannot reveal anything in.
+      peels: tier !== TIER_UNOPENABLE,
     })));
     this.applyTierFilters();
     if (this.shown) this.gl?.triggerRepaint();
