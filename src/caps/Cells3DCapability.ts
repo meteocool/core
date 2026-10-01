@@ -39,6 +39,7 @@ import { normaliseCut } from "../lib/cutAngle";
 import { startSweep, stopSweep } from "../lib/cutSweep";
 import { elementCentre, setElementCentre } from "../lib/viewCentre";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { tracked } from "../lib/progress";
 import { isBehind, scanTime, VolumeFeed } from "../lib/scans";
 import type { Scan } from "../lib/scans";
@@ -528,6 +529,9 @@ export default class Cells3DCapability extends Capability {
   /** The pending strike update, if one is waiting; see `scheduleStrikes`. */
   private strikeTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** Takes back the ⌃-click correction, where one was needed; see lib/ctrlDrag.ts. */
+  private uncorrectCtrlClicks: (() => void) | null = null;
+
   constructor(map: OlMap, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "cells3d", () => Cells3DCapability.announce(), additionalLayers);
 
@@ -720,6 +724,10 @@ export default class Cells3DCapability extends Capability {
       if (!dd.isApp()) {
         gl.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
         gl.addControl(new maplibre.NavigationControl({ showZoom: false, visualizePitch: true }), "top-right");
+      }
+      // ⌃-drag turns and tilts in a Mac's Firefox as well; see lib/ctrlDrag.ts.
+      if (reportsCtrlClickAsRight(navigator.userAgent, dd.isMac())) {
+        this.uncorrectCtrlClicks = correctCtrlClicks(this.container);
       }
       // Fires on the first style and again after every `setStyle`, which is
       // what a light/dark switch does -- and that discards everything added on
@@ -1945,6 +1953,8 @@ export default class Cells3DCapability extends Capability {
     stopSweep(false);
     this.unsubscribeVolume?.();
     this.unsubscribeVolume = null;
+    this.uncorrectCtrlClicks?.();
+    this.uncorrectCtrlClicks = null;
     this.gl?.remove();
     this.gl = null;
     forgetMaskedTiles(this.radarMask?.key);
