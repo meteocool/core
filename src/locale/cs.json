@@ -245,7 +245,8 @@
       "cell": "buňka",
       "alive": "aktivní {duration}",
       "details": "Podrobnosti",
-      "clear": "Zrušit výběr"
+      "clear": "Zrušit výběr",
+      "clear_action": "Zrušit"
     },
     "sheet": {
       "grip": "Změnit velikost nebo zavřít podrobnosti"
