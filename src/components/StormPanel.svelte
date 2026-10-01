@@ -43,16 +43,16 @@ export let onClose: () => void;
  * desktop does.
  *
  * Three things are deliberately left alone. A panel above this one owns the
- * key first -- About, Settings and Connection Details close on Escape
- * themselves, and can be open over this -- so an open one means the key was
- * not aimed here. A handler that already called `preventDefault` means the
- * same; GlassPanel does, from the capture phase, so it always runs first. And
- * Escape in a field means "cancel what I am typing", never "close the panel
- * behind it".
+ * key first -- About, Settings and Connection Details (GlassPanel) close on
+ * Escape themselves, and can be open over this -- so an open one means the
+ * key was not aimed here. A handler that already called `preventDefault`
+ * means the same; GlassPanel does, from the capture phase, so it always runs
+ * first. And Escape in a field means "cancel what I am typing", never "close
+ * the panel behind it".
  */
 function onKeydown(event: KeyboardEvent) {
   if (event.key !== "Escape" || event.defaultPrevented) return;
-  if (document.querySelector("sl-dialog[open], [role='dialog'][aria-modal='true']")) return;
+  if (document.querySelector("[role='dialog'][aria-modal='true']")) return;
   const target = event.target as HTMLElement | null;
   if (target?.isContentEditable) return;
   if (target && /^(?:INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
