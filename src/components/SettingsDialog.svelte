@@ -1,8 +1,9 @@
 <script lang="ts">
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
-import { mapBaseLayer, radarColormap } from "../stores";
+import { cells3dVisible, mapBaseLayer, radarColormap } from "../stores";
 import { dbz2color } from "../lib/cmap_utils";
+import { capabilityEnabled } from "../caps/enabled";
 
 /**
  * The web's settings: the ones the apps push in through
@@ -14,10 +15,12 @@ import { dbz2color } from "../lib/cmap_utils";
  * Everything goes through `window.settings.set()`, which persists it and fires
  * the setting's callback, exactly as an injection from an app does.
  *
- * Two differences from the apps. The basemap can follow the system scheme,
- * which is the default and what "system" stores. And there is no Experimental
+ * Three differences from the apps. The basemap can follow the system scheme,
+ * which is the default and what "system" stores. There is no Experimental
  * Features switch -- nothing in the web app reads it -- but a link to staging,
- * which is where the web's unreleased features actually are.
+ * which is where the web's unreleased features actually are. And the 3D map's
+ * KONRAD3D cells can be turned on, which the apps have no screen for: there
+ * they stay off, as they are by default.
  */
 
 const BASE_LAYERS = ["system", "light", "dark", "osm", "cyclosm"];
@@ -71,6 +74,13 @@ function setColorMap(value: string) {
 function setRotation(value: boolean) {
   window.settings.set("mapRotation", value);
   rotation = value;
+}
+
+/** Only where the 3D map is offered at all. */
+const offers3d = capabilityEnabled("cells3d");
+
+function setCells3d(value: boolean) {
+  window.settings.set("layer3dCells", value);
 }
 
 </script>
@@ -260,6 +270,21 @@ function setRotation(value: boolean) {
     </div>
   {/if}
 
+  {#if offers3d}
+    <h2>{$_("settings.map_3d")}</h2>
+    <div class="group">
+      <label class="row">
+        <span class="label">{$_("settings.konrad_cells")}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          class="switch"
+          checked={$cells3dVisible}
+          on:change={(event) => setCells3d(event.currentTarget.checked)} />
+      </label>
+    </div>
+    <p class="hint">{$_("settings.konrad_cells_hint")}</p>
+  {/if}
   <h2>{$_("settings.environment")}</h2>
   <div class="group">
     <a class="row" href={otherEnvironment} target="_blank" rel="noopener">

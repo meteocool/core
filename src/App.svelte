@@ -26,7 +26,7 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
+  cellLayerVisible, cells3dVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
@@ -42,7 +42,7 @@ import "./glass.css";
 import { websocketBaseUrl } from "./urls";
 import { onWake, wake, whenVisible } from "./lib/wakeup";
 import { fetchCurrentVolumes, fetchLightningCache, fetchMesocyclones } from "./api";
-import type { RadarVolume } from "./api";
+import type { CurrentVolumes, RadarVolume } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
@@ -58,6 +58,7 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import makeCellPulseLayer from "./layers/cellPulse";
 import makeCloudHintLayer, { setCloudHints } from "./layers/cloudHints";
+import { VolumeFeed } from "./lib/scans";
 import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
 /* The storm panels are loaded when a storm is opened, not with the page: the
    history charts, the lineage graph (dagre) and the two 3D pictures are a
@@ -187,6 +188,13 @@ window.settings = new Settings({
     default: true,
     cb: (value) => {
       cellLayerVisible.set(Boolean(value));
+    },
+  },
+  layer3dCells: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      cells3dVisible.set(Boolean(value));
     },
   },
   layerSnow: {
@@ -342,11 +350,19 @@ derived(
   ([shown, newest]) => hintsWanted && showsLatestFrame(shown, newest),
 ).subscribe((value) => cloudHintLayer.setVisible(value));
 
-async function reloadCloudHints() {
+const cloudHints = new VolumeFeed<CurrentVolumes>(
+  () => fetchCurrentVolumes().catch(() => null),
+  (answer) => setCloudHints(cloudHintSource, (answer.volumes ?? []) as RadarVolume[]),
+);
+
+/* `run` is the scan of a KONRAD3D run that has just landed. Its cores are
+   usually not built yet, and fetched only now the tags stood a scan behind
+   until the next run; they are waited for -- see lib/scans.ts. */
+async function reloadCloudHints(run: number | null = null) {
   if (!hintsWanted) return;
   const answer = await fetchCurrentVolumes(nb).catch(() => null);
-  if (!answer) return;
-  setCloudHints(cloudHintSource, (answer.volumes ?? []) as RadarVolume[]);
+  if (answer) cloudHints.offer(answer);
+  cloudHints.follow(run);
 }
 
 /* The panel is a property of a selection and cannot outlive one. Anything that
@@ -496,26 +512,31 @@ window.lm = lm;
 /* The 3D map drapes the same radar frame the flat map is showing, so the two
    never disagree about what the weather is. RadarCapability already resolves
    which frame is current and what its tiles are; this just forwards it rather
-   than working it out a second time. */
+   than working it out a second time -- with its scan, against which the 3D map
+   greys out storms from an older one; see lib/scans.ts. */
 const cells3d = lm.getCapability("cells3d") as Cells3DCapability | undefined;
 const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
   const forwardRadarFrame = () => {
     const step = radarCap.getMostRecentObservation();
-    cells3d.setRadarUrl(radarCap.clientGrid?.[step]?.url ?? null);
+    cells3d.setRadarFrame(radarCap.clientGrid?.[step]?.url ?? null, step);
   };
   radarCap.addObserver((subject) => {
     if (subject === "grid") forwardRadarFrame();
   });
-  // A new run means new cells as well as a new frame.
-  radarSocketIO.on("cells", () => cells3d.newRun());
+  // A new run means new cells as well as a new frame. Not in a hidden tab,
+  // where it was the cells and megabytes of volumes for nobody; the newest
+  // run is fetched on the way back.
+  radarSocketIO.on("cells", () => whenVisible("cells3d", () => cells3d.newRun()));
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
   cells3d.setStrikeSource(lightningSource);
 }
 
 // The cores are rebuilt with each run, so the tags follow the same nudge.
-radarSocketIO.on("cells", () => void reloadCloudHints());
+radarSocketIO.on("cells", (cells) => {
+  whenVisible("cloudHints", () => void reloadCloudHints(Math.floor(cells.reference_time / 1000)));
+});
 void reloadCloudHints();
 
 // The panels' "open in 3D" links and the tags above all switch through this,

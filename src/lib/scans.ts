@@ -1,0 +1,119 @@
+/**
+ * Telling apart what on the 3D map is from the radar's scan and what is older.
+ *
+ * Three products describe each five-minute scan, and none of them arrives at
+ * the same time as another. Live, DWD's composite for a scan is out about
+ * four minutes after the scan starts; KONRAD3D's cells for that same scan come
+ * about two minutes later; the volumes are built from the column maximum by a
+ * slower job of our own and land half a minute after the cells. Drawn in full
+ * colour over the newest radar, the older ones stand a scan upwind of the echo
+ * under them for part of every cycle, which reads as the map being wrong
+ * rather than late.
+ *
+ * It is only lateness. In data time they agree: checked against 486 KONRAD3D
+ * cells from two convective days in September 2026, 355 overlapped the
+ * composite of their own scan best, and 3 the scan before. So whatever is from
+ * an older scan than the radar is drawn as such, until its own scan arrives.
+ */
+
+/** A scan's time, epoch seconds: what the radar grid is keyed by. */
+export type Scan = number;
+
+/** The ISO time a run or a list of volumes carries, as a scan; null for none. */
+export function scanTime(value: string | null | undefined): Scan | null {
+  if (!value) return null;
+  const millis = Date.parse(value);
+  return Number.isFinite(millis) ? Math.floor(millis / 1000) : null;
+}
+
+/**
+ * Whether something measured at `scan` is older than the radar drawn under it.
+ *
+ * Not when either is unknown: there is nothing to be behind.
+ */
+export function isBehind(scan: Scan | null | undefined, radar: Scan | null): boolean {
+  return scan !== null && scan !== undefined && radar !== null && scan < radar;
+}
+
+/** Between two asks for a scan's volumes that are not built yet. */
+export const VOLUME_RETRY_MS = 20_000;
+
+/** Asks at most -- two minutes of them -- after which that scan has none coming. */
+export const VOLUME_RETRIES = 6;
+
+/** What `/cells/volumes` answers, as far as following it goes. */
+interface Scanned {
+  reference_time?: string | null;
+}
+
+/**
+ * The newest volumes, kept up with the KONRAD3D runs.
+ *
+ * Volumes are asked for when a run lands, which is the one moment their scan's
+ * are reliably not there yet. So `follow` asks again, every
+ * `VOLUME_RETRY_MS`, until an answer reaches the run's scan.
+ *
+ * Every answer, whoever fetched it, goes through `offer`, which passes on only
+ * those newer than the last: two requests in flight can come back in either
+ * order, and the older one landing second would put the previous scan back.
+ */
+export class VolumeFeed<T extends Scanned> {
+  /** The scan of the last answer passed on; null before one, or when none was built. */
+  private newest: Scan | null = null;
+
+  private timer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Bumped by every new wait and every stop, so an ask already in flight lands nowhere. */
+  private generation = 0;
+
+  private readonly fetch: () => Promise<T | null>;
+
+  private readonly apply: (volumes: T) => void;
+
+  constructor(fetch: () => Promise<T | null>, apply: (volumes: T) => void) {
+    this.fetch = fetch;
+    this.apply = apply;
+  }
+
+  /** Pass an answer on, unless it is no newer than the last one; true when it was. */
+  offer(answer: T): boolean {
+    const scan = scanTime(answer.reference_time);
+    if (scan !== null && this.newest !== null && scan <= this.newest) return false;
+    this.newest = scan;
+    this.apply(answer);
+    return true;
+  }
+
+  /**
+   * Keep asking until the volumes reach `run`'s scan, replacing any earlier wait.
+   *
+   * Nothing to wait for without a run, or when nothing has been built at all:
+   * the volumes come from the newest scan that has any, so an empty answer is
+   * not a scan running late.
+   */
+  follow(run: Scan | null): void {
+    this.stop();
+    this.wait(this.generation, run, VOLUME_RETRIES);
+  }
+
+  /** Stop waiting; an ask already in flight is dropped when it lands. */
+  stop(): void {
+    this.generation += 1;
+    if (this.timer !== null) clearTimeout(this.timer);
+    this.timer = null;
+  }
+
+  private wait(generation: number, run: Scan | null, left: number): void {
+    if (run === null || this.newest === null || this.newest >= run || left <= 0) return;
+    this.timer = setTimeout(async () => {
+      this.timer = null;
+      // A hidden tab lets its turns pass unasked; back within the two
+      // minutes, the next one asks, and after that the wake refresh does.
+      const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+      const answer = hidden ? null : await this.fetch();
+      if (generation !== this.generation) return;
+      if (answer) this.offer(answer);
+      this.wait(generation, run, left - 1);
+    }, VOLUME_RETRY_MS);
+  }
+}
