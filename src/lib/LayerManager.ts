@@ -312,6 +312,26 @@ export class LayerManager {
     const viewport = newMap.getViewport();
     let pressTimer: number | null = null;
     let pressOrigin: [number, number] | null = null;
+    /** What the last press was made with, for a `contextmenu` that does not say. */
+    let lastPointerType = "";
+
+    /** A held point -- or a right-clicked one -- asks about the weather there. */
+    const askAbout = (coordinate: number[]) => {
+      const capability = newMap.get("capability");
+      // A held finger is still a tap as far as the strips are concerned:
+      // every layer hears it, only radar samples a point from it, because
+      // only radar has a reading that belongs to one.
+      mapTapped.update((n) => n + 1);
+      // Confirmation that the hold took, before the strip animates in.
+      haptic("bump");
+      if (capability !== "radar") return;
+      const [clickedLon, clickedLat] = toLonLat(coordinate);
+      // Not straight to the strip any more: a held point has two questions
+      // it can be asking -- what is falling there, and what the weather
+      // models say -- so the hold offers both (PointMenu), and the choice
+      // sets `inspectLatLon` or opens the comparison.
+      pointMenuAt.set([clickedLat, clickedLon]);
+    };
 
     const cancelPress = () => {
       if (pressTimer !== null) window.clearTimeout(pressTimer);
@@ -321,8 +341,9 @@ export class LayerManager {
 
     viewport.addEventListener("pointerdown", (event: PointerEvent) => {
       cancelPress();
-      // Secondary buttons open the browser's own menu; leave them to it. A
-      // second finger means a pinch, which is a zoom and never a question.
+      lastPointerType = event.pointerType;
+      // Secondary buttons are the context menu's; see below. A second finger
+      // means a pinch, which is a zoom and never a question.
       if (event.button > 0 || !event.isPrimary) return;
       if (get(sharedActiveCap) !== newMap.get("capability")) return;
       pressOrigin = [event.clientX, event.clientY];
@@ -330,20 +351,7 @@ export class LayerManager {
       pressTimer = window.setTimeout(() => {
         pressTimer = null;
         pressOrigin = null;
-        const capability = newMap.get("capability");
-        // A held finger is still a tap as far as the strips are concerned:
-        // every layer hears it, only radar samples a point from it, because
-        // only radar has a reading that belongs to one.
-        mapTapped.update((n) => n + 1);
-        // Confirmation that the hold took, before the strip animates in.
-        haptic("bump");
-        if (capability !== "radar") return;
-        const [clickedLon, clickedLat] = toLonLat(coordinate);
-        // Not straight to the strip any more: a held point has two questions
-        // it can be asking -- what is falling there, and what the weather
-        // models say -- so the hold offers both (PointMenu), and the choice
-        // sets `inspectLatLon` or opens the comparison.
-        pointMenuAt.set([clickedLat, clickedLon]);
+        askAbout(coordinate);
       }, LONG_PRESS_MS);
     });
 
@@ -364,10 +372,21 @@ export class LayerManager {
     newMap.on("movestart", cancelPress);
     /* Otherwise a hold on a touch device races the platform's own selection
        callout, which pops up over the map just as the strip arrives. There is
-       no selectable content under it to lose. */
+       no selectable content under it to lose.
+
+       And a right-click is a desktop's long press: the browser's own menu has
+       nothing to offer on a map, and the hold's is what a right-click on one
+       means everywhere else. Not for touch, whose long press fires this event
+       too and already has its timer; nor on the menu itself, which sits in
+       the map's overlays. */
     viewport.addEventListener("contextmenu", (event) => {
       if (get(sharedActiveCap) !== newMap.get("capability")) return;
       event.preventDefault();
+      const pointerType = (event as PointerEvent).pointerType || lastPointerType;
+      if (pointerType !== "mouse" && pointerType !== "pen") return;
+      if ((event.target as HTMLElement | null)?.closest(".ol-overlay-container")) return;
+      cancelPress();
+      askAbout(newMap.getEventCoordinate(event));
     });
 
     newMap.on("moveend", () => {
