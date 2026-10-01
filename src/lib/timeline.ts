@@ -144,6 +144,10 @@ export const FRICTION = 0.006;
 export const OVERSHOOT = 1.5;
 /** Below this speed a glide is over, in steps per millisecond. */
 export const AT_REST = 0.0005;
+/** How close to the detent a released needle has to come to be caught by it, in steps. */
+export const DETENT_STEPS = 0.9;
+/** A glide slower than this is caught by the detent as it crosses it, in steps per millisecond. */
+export const DETENT_CATCH = 0.012;
 
 /** Clamp into the strip, with rubber-banding past the ends. */
 export function rubberBand(pos: number, last: number): number {
@@ -152,18 +156,30 @@ export function rubberBand(pos: number, last: number): number {
   return pos;
 }
 
-/** One frame of a glide: slow down, move, and stop dead at an end. */
-export function glideStep(needle: Needle, dt: number, last: number): Needle {
+/**
+ * One frame of a glide: slow down, move, and stop dead at an end -- or at the
+ * detent, when the glide has slowed enough for it to catch. A fast flick
+ * passes straight through, so the strip can still be thrown from end to end.
+ */
+export function glideStep(needle: Needle, dt: number, last: number, detent: number | null = null): Needle {
   const velocity = needle.velocity * Math.exp(-FRICTION * dt);
   let pos = needle.pos + velocity * dt;
   if (pos <= 0 || pos >= last) {
     pos = Math.min(Math.max(pos, 0), last);
     return { pos, velocity: 0 };
   }
+  if (detent !== null && Math.abs(velocity) < DETENT_CATCH
+    && (needle.pos - detent) * (pos - detent) <= 0 && needle.pos !== pos) {
+    return { pos: detent, velocity: 0 };
+  }
   return { pos, velocity: Math.abs(velocity) < AT_REST ? 0 : velocity };
 }
 
-/** Where a released needle comes to rest: the nearest whole step inside the strip. */
-export function restingStep(pos: number, last: number): number {
+/**
+ * Where a released needle comes to rest: the detent if it is close, otherwise
+ * the nearest whole step inside the strip.
+ */
+export function restingStep(pos: number, last: number, detent: number | null = null): number {
+  if (detent !== null && Math.abs(pos - detent) <= DETENT_STEPS) return detent;
   return Math.min(Math.max(Math.round(pos), 0), last);
 }

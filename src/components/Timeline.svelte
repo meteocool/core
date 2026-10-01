@@ -26,6 +26,7 @@ import { _ } from "svelte-i18n";
 import { radarColormap } from "../stores";
 import { dbz2color } from "../lib/cmap_utils";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
+import { haptic } from "../lib/haptics";
 import {
   AT_REST, axisTicks, barCeiling, glideStep, indexOf, restingStep, rubberBand,
   type TimelineStep,
@@ -106,13 +107,16 @@ $: shownIndex = restingStep(pos, last);
 $: readout = n > 0 ? formatOffset(Math.round((steps[shownIndex].t - now) / 60), $_) : "";
 
 let reported = -1;
-/** Tell the player when the needle crosses onto another step, with a tick of haptics at now and the ends. */
+/**
+ * Tell the player when the needle crosses onto another step. A tick of
+ * haptics per step, and a firmer one on now and at the ends -- the detents.
+ */
 function report(): void {
-  const index = restingStep(pos, last);
+  const index = Math.min(Math.max(Math.round(pos), 0), last);
   if (index === reported || n === 0) return;
-  const crossedNow = reported !== -1 && (index === nowIndex || (reported - nowIndex) * (index - nowIndex) < 0);
+  const detent = index === nowIndex || index === 0 || index === last;
   reported = index;
-  if (crossedNow || index === 0 || index === last) navigator.vibrate?.(6);
+  haptic(detent ? "detent" : "tick");
   dispatch("seek", steps[index].t);
 }
 
@@ -121,9 +125,9 @@ function stop(): void {
   frame = 0;
 }
 
-/** Ease onto the nearest whole step. */
+/** Ease onto the nearest whole step -- or onto now, when it is close. */
 function settle(): void {
-  const target = restingStep(pos, last);
+  const target = restingStep(pos, last, nowIndex);
   const from = pos;
   if (Math.abs(target - from) < 0.001) {
     pos = target;
@@ -149,7 +153,7 @@ function glide(): void {
   }
   let lastT = performance.now();
   const step = (t: number) => {
-    const next = glideStep({ pos, velocity }, t - lastT, last);
+    const next = glideStep({ pos, velocity }, t - lastT, last, nowIndex);
     lastT = t;
     pos = next.pos;
     velocity = next.velocity;

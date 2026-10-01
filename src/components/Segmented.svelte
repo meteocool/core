@@ -17,8 +17,7 @@
  * the same material as the rest of the chrome rather than a white slab.
  */
 import { createEventDispatcher, onDestroy, onMount, tick } from "svelte";
-import { DeviceDetect as dd } from "../lib/DeviceDetect";
-import { postToNative } from "../lib/nativeBridge";
+import { haptic } from "../lib/haptics";
 
 /** The options, in order. */
 export let options: Array<{ value: T; label: string }> = [];
@@ -91,8 +90,7 @@ function choose(next: T): void {
   if (next === value) return;
   value = next;
   dispatch("change", next);
-  if (dd.isApp()) postToNative("impactLight");
-  else navigator.vibrate?.(4);
+  haptic("detent");
 }
 
 /*
@@ -143,7 +141,7 @@ function onPointerMove(event: PointerEvent): void {
   const over = options[nearest(left, width)];
   if (over && over.value !== hovered) {
     hovered = over.value;
-    if (!dd.isApp()) navigator.vibrate?.(3);
+    haptic("tick");
   }
 }
 

@@ -7,6 +7,7 @@ import {
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
 import GeolocateControl from "./GeolocateControl";
+import { haptic } from "./haptics";
 import { circular as circularPolygon } from "ol/geom/Polygon";
 
 import VectorLayer from "ol/layer/Vector";
@@ -335,7 +336,7 @@ export class LayerManager {
         // only radar has a reading that belongs to one.
         mapTapped.update((n) => n + 1);
         // Confirmation that the hold took, before the strip animates in.
-        navigator.vibrate?.(12);
+        haptic("bump");
         if (capability !== "radar") return;
         const [clickedLon, clickedLat] = toLonLat(coordinate);
         // Not straight to the strip any more: a held point has two questions

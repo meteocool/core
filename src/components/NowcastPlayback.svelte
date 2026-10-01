@@ -20,7 +20,6 @@ import {
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
-import { postToNative } from "../lib/nativeBridge";
 import type RadarCapability from "../caps/RadarCapability";
 import type { GridConfig } from "../caps/RadarCapability";
 
@@ -578,10 +577,6 @@ function sliderChangedHandler(value, userInteraction = false) {
   if (userInteraction && fsm.state === "playing") {
     console.log("Pausing due to sliderChangedHandler");
     fsm.pressPause();
-  }
-
-  if (userInteraction && dd.isApp()) {
-    postToNative(value === 0 ? "impactMedium" : "impactLight");
   }
 
   // Both callers land here -- a drag and a playback tick -- so this is the one
