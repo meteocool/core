@@ -220,7 +220,7 @@ const MAIN_MAP_ID = "map";
 const INITIAL_PITCH = 55;
 
 /**
- * The tilt an opened storm is looked at from, on a phone: low, so the cut
+ * The tilt an opened storm is looked at from: low, so the cut
  * stands up in front of the reader, short of the horizon filling the screen.
  */
 const OPEN_PITCH = 76;
@@ -239,6 +239,17 @@ const OPEN_TOP_PX = 64;
 
 /** The share of the screen the phone's detail sheet covers at rest. */
 const OPEN_SHEET_FRACTION = 0.32;
+
+/**
+ * The desktop's storm panel, anchored top right: at most this wide, 12px in
+ * from the edge, and kept clear of by as much again. See `.cell-details-panel`
+ * in App.svelte.
+ */
+const OPEN_PANEL_PX = 392;
+const OPEN_PANEL_MARGIN_PX = 12;
+
+/** The tray along a desktop's bottom edge, which the storm stays above. */
+const OPEN_TRAY_PX = 88;
 
 /** How long a camera set by a link or a history step is kept over a storm opened after it. */
 const CAMERA_KEPT_MS = 3000;
@@ -1030,14 +1041,13 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Stand the camera in front of an opened storm's cut, on a phone.
+   * Stand the camera in front of an opened storm's cut.
    *
-   * On a phone the panel's own rendering of the storm is gone -- the map is
-   * the picture -- so opening a storm frames it the way that rendering did:
-   * close enough that the cross-section spans the screen, from low down, so
-   * the cut stands up as a wall of weather rather than lying flat as a map,
-   * and square on to it, so what is shown is the face and not its edge. It is
-   * placed in the part of the screen the sheet leaves, with room for its top.
+   * Close enough that the cross-section spans the room, from low down, so the
+   * cut stands up as a wall of weather rather than lying flat as a map, and
+   * square on to it, so what is shown is the face and not its edge. It is
+   * placed in the part of the screen the panel leaves -- above the sheet on a
+   * phone, left of it on a desktop -- with room for its top.
    *
    * The half kept is whichever faces the camera: a vertical plane turned half
    * way round is the same cut, and the caption reads the same. That keeps the
@@ -1048,7 +1058,7 @@ export default class Cells3DCapability extends Capability {
    */
   private frameOpened(cutaway: Cutaway): void {
     const gl = this.gl;
-    if (!gl || !this.opened || !get(smallScreen) || get(sharedActiveCap) !== this.getName()) return;
+    if (!gl || !this.opened || get(sharedActiveCap) !== this.getName()) return;
     if (performance.now() - this.cameraSetAt < CAMERA_KEPT_MS) return;
 
     // Facing the cut is looking along the kept half's side of the plane: for
@@ -1067,13 +1077,11 @@ export default class Cells3DCapability extends Capability {
 
     // The storm itself rather than its box; see `locateStorm`.
     const { clientWidth: width, clientHeight: height } = gl.getContainer();
-    const camera = framingCamera(
-      cutaway,
-      direction,
-      { width, height, top: OPEN_TOP_PX, bottom: height * (1 - OPEN_SHEET_FRACTION) },
-      OPEN_PITCH,
-      gl.getMaxZoom(),
-    );
+    const panel = Math.min(OPEN_PANEL_PX, width - 2 * OPEN_PANEL_MARGIN_PX) + 2 * OPEN_PANEL_MARGIN_PX;
+    const room = get(smallScreen)
+      ? { width, height, top: OPEN_TOP_PX, bottom: height * (1 - OPEN_SHEET_FRACTION), left: 0, right: width }
+      : { width, height, top: OPEN_TOP_PX, bottom: height - OPEN_TRAY_PX, left: 0, right: Math.max(width - panel, width / 2) };
+    const camera = framingCamera(cutaway, direction, room, OPEN_PITCH, gl.getMaxZoom());
 
     this.pitchBeforeOpen ??= gl.getPitch();
     gl.easeTo({
@@ -1081,7 +1089,7 @@ export default class Cells3DCapability extends Capability {
       zoom: camera.zoom,
       pitch: OPEN_PITCH,
       bearing: bearing + off,
-      offset: [0, camera.offsetY],
+      offset: [camera.offsetX, camera.offsetY],
       duration: 900,
     });
   }

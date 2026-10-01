@@ -74,7 +74,10 @@ const near = (actual: number, expected: number, within: number) => (
 );
 
 /** A phone held upright, with the controls along the top and the sheet at rest. */
-const phone = { width: 375, height: 812, top: 64, bottom: 812 * (1 - 0.32) };
+const phone = { width: 375, height: 812, top: 64, bottom: 812 * (1 - 0.32), left: 0, right: 375 };
+
+/** A laptop's window, with the storm panel down the right. */
+const desktop = { width: 1440, height: 900, top: 64, bottom: 900 - 88, left: 0, right: 1440 - 416 };
 
 test("a shower in a field of weak echo is framed on the shower, not on its box", () => {
   // The regression: everything above 20 dBZ spans the box, so a camera framed
@@ -171,4 +174,16 @@ test("the camera is centred on the storm, not on the box", () => {
   const camera = framingCamera({ header, extentM: [40000, 40000, 16000], ...storm }, 0, phone, 76, 13);
   near((camera.lon - header.lon) * 111.32 * Math.cos((header.lat * Math.PI) / 180), 8, 0.3);
   near((camera.lat - header.lat) * 111.32, -6, 0.3);
+});
+
+test("on a desktop the storm stands in the room left of the panel, and fills it", () => {
+  const storm = locateStorm(header, box(layered(disc(0, 0, 5, 7, 29), showers)));
+  const cutaway = { header, extentM: [40000, 40000, 16000] as [number, number, number], ...storm };
+  const camera = framingCamera(cutaway, 90, desktop, 76, 13);
+  // The middle of the room, not of the window: the panel would cover the storm.
+  assert.equal(desktop.width / 2 + camera.offsetX, (desktop.left + desktop.right) / 2);
+  const whole = framingCamera(
+    { header, extentM: [40000, 40000, 16000], centreKm: [0, 0, 0], halfKm: [20, 20, 8] }, 90, desktop, 76, 13,
+  );
+  assert.ok(camera.zoom - whole.zoom > 1.5, `zoom ${camera.zoom} stands back almost as far as the box's ${whole.zoom}`);
 });
