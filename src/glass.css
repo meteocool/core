@@ -215,7 +215,7 @@
   --mc-bar-h: 84px;                                   /* collapsed toolbar; the flanking discs centre on it */
   --mc-player-h: 168px;                               /* expanded player tray: head row + timeline + transport row */
   --mc-strip-h: 104px;                                /* a chart strip above the tray (DismissableStrip) */
-  --mc-hint-h: 48px;                                  /* the cell hint bar above those (CellSelectionHint) */
+  --mc-hint-h: 54px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);
   --mc-safe-bottom: env(safe-area-inset-bottom, 0px);
   --mc-collapsed-bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
