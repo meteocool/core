@@ -16,7 +16,7 @@ import { makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
 import { isSuccessor } from "../lib/cloudSuccession";
-import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
+import { dbzColour, dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
   capDescription, cellDetails, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap, selectedCell, selectedVolume,
@@ -30,9 +30,13 @@ import { startSweep, stopSweep } from "../lib/cutSweep";
 import { elementCentre, setElementCentre } from "../lib/viewCentre";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { tracked } from "../lib/progress";
+import { isBehind, scanTime, VolumeFeed } from "../lib/scans";
+import type { Scan } from "../lib/scans";
 
 import { trimToLastRun } from "../lib/cellTrack";
-import type { CellCurrent, CellTrack, CellTrackProperties, CellVolume, RadarVolume } from "../api";
+import type {
+  CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarVolume,
+} from "../api";
 import type { MapView } from "../stores";
 import type VectorSource from "ol/source/Vector";
 
@@ -238,12 +242,33 @@ function severityColour(): DataDrivenPropertyValueSpecification<string> {
  * The assertion is the same story as `severityColour`: a run-length shape
  * cannot be checked against the spec's fixed-arity tuple.
  */
-function dbzRamp(colormap: string): DataDrivenPropertyValueSpecification<string> {
+function dbzRamp(colormap: string, grey = false): DataDrivenPropertyValueSpecification<string> {
   return [
     "interpolate", ["linear"], ["get", "dbz"],
-    ...dbzStops(colormap).flatMap(([dbz, colour]) => [dbz, colour]),
+    ...dbzStops(colormap).flatMap(([dbz, colour]) => [dbz, grey ? greyOf(dbzColour(dbz, colormap)) : colour]),
   ] as unknown as DataDrivenPropertyValueSpecification<string>;
 }
+
+/**
+ * A palette colour as the grey of its own lightness, for a storm from an
+ * older scan than the radar: drained of colour, a strong core still reads as
+ * the strongest part of it.
+ */
+function greyOf([r, g, b]: [number, number, number]): string {
+  const lightness = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+  return `rgb(${lightness}, ${lightness}, ${lightness})`;
+}
+
+/**
+ * How much of their usual opacity the tiers of an older scan's cells keep.
+ *
+ * Grey alone still stood as a solid block over the newer echo it is a scan
+ * behind; faded as well, the radar under it shows through.
+ */
+const BEHIND_OPACITY = 0.5;
+
+/** An older scan's footprint, whose severity is that scan's too. */
+const BEHIND_LINE = "#8c8c8c";
 
 export default class Cells3DCapability extends Capability {
   private gl: GlMap | null = null;
@@ -253,11 +278,35 @@ export default class Cells3DCapability extends Capability {
 
   private cells: CellCurrent[] = [];
 
+  /** The scan the cells were found in; null before the first run. */
+  private cellsScan: Scan | null = null;
+
+  /** The newest cells request, so a slower earlier answer cannot win. */
+  private cellsToken: symbol | null = null;
+
   /** Every storm core with a volume in the newest scan, KONRAD3D cell or not. */
   private clouds: RadarVolume[] = [];
 
+  /** The scan `clouds` come from; null when none has been built. */
+  private cloudsScan: Scan | null = null;
+
+  /**
+   * The storm cores, waited for until they are the cells' scan's.
+   *
+   * Asked for when a run lands, which live is half a minute before that
+   * scan's volumes exist; fetched only then, every storm stood a scan upwind
+   * of the radar under it until the next run. Waits only while shown.
+   */
+  private readonly volumes = new VolumeFeed<CurrentVolumes>(
+    () => fetchCurrentVolumes().catch(() => null),
+    (answer) => this.takeClouds(answer),
+  );
+
   /** The radar frame to drape, as a tile URL template. Set by the caller. */
   private radarUrl: string | null = null;
+
+  /** The scan of that frame, which anything older is greyed against; see lib/scans.ts. */
+  private radarScan: Scan | null = null;
 
   /**
    * The flat map's strike buffer, read rather than duplicated.
@@ -652,6 +701,8 @@ export default class Cells3DCapability extends Capability {
     this.shown = false;
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
+    // `attach` refreshes, and waits again from there.
+    this.volumes.stop();
     this.detach();
     super.willLoseFocus();
   }
@@ -939,14 +990,39 @@ export default class Cells3DCapability extends Capability {
     if (name === this.colormap) return;
     this.colormap = name;
     this.cloudsLayer?.setColormap(name);
+    // Hidden, the paint is set and waits for the map to be shown again.
+    this.applyStaleness();
+  }
+
+  /**
+   * Paint the cells and the storm cores, greying whatever is from an older
+   * scan than the radar under it.
+   *
+   * Live, the composite for a scan is out two minutes before KONRAD3D's cells
+   * for it, and half a minute more before its volumes. In full colour those
+   * stood a scan upwind of the echo beneath them as though measured with it;
+   * greyed, they read as what they are, the last word on that storm until its
+   * newer scan lands, and colour comes back with it. See lib/scans.ts.
+   */
+  private applyStaleness(): void {
+    this.cloudsLayer?.setRadarScan(this.radarScan);
     const gl = this.gl;
     if (!gl || !this.styleReady) return;
-    if (gl.getLayer("cloud-marker")) gl.setPaintProperty("cloud-marker", "circle-stroke-color", dbzRamp(name));
-    RING_ALPHAS.forEach((_opacity, tier) => {
+    const cellsBehind = isBehind(this.cellsScan, this.radarScan);
+    RING_ALPHAS.forEach((opacity, tier) => {
       const id = `cell-volume-${tier}`;
-      if (gl.getLayer(id)) gl.setPaintProperty(id, "fill-extrusion-color", dbzRamp(name));
+      if (!gl.getLayer(id)) return;
+      gl.setPaintProperty(id, "fill-extrusion-color", dbzRamp(this.colormap, cellsBehind));
+      gl.setPaintProperty(id, "fill-extrusion-opacity", cellsBehind ? opacity * BEHIND_OPACITY : opacity);
     });
-    // Hidden, the paint is set and waits for the map to be shown again.
+    if (gl.getLayer("cell-footprint")) {
+      gl.setPaintProperty("cell-footprint", "line-color", cellsBehind ? BEHIND_LINE : severityColour());
+    }
+    if (gl.getLayer("cloud-marker")) {
+      gl.setPaintProperty(
+        "cloud-marker", "circle-stroke-color", dbzRamp(this.colormap, isBehind(this.cloudsScan, this.radarScan)),
+      );
+    }
     if (this.shown) gl.triggerRepaint();
   }
 
@@ -1213,17 +1289,21 @@ export default class Cells3DCapability extends Capability {
     }, STRIKE_REDRAW_MS);
   }
 
-  /** Point the draped radar at a frame. Called with the same URL the 2D map uses. */
-  setRadarUrl(url: string | null): void {
+  /**
+   * Point the draped radar at a frame, and say which scan it is. Called with
+   * the same frame the 2D map shows.
+   */
+  setRadarFrame(url: string | null, scan: Scan): void {
     this.radarUrl = url;
+    this.radarScan = url ? scan : null;
     // Held for `attach`: a hidden map would load the whole frame's tiles.
     if (!this.shown) return;
-    const source = this.gl?.getSource(RADAR_SOURCE);
-    if (source && "setTiles" in source && url) {
-      (source as unknown as { setTiles(tiles: string[]): void }).setTiles([this.tiles(url)]);
-    } else if (this.gl?.isStyleLoaded()) {
-      this.applyData();
-    }
+    // `styleReady`, not `isStyleLoaded()`, for the reason on the field: a
+    // frame landing while tiles were in flight was otherwise not draped until
+    // the next run.
+    if (!this.gl || !this.styleReady) return;
+    this.ensureRadar(this.gl);
+    this.applyStaleness();
   }
 
   /**
@@ -1252,22 +1332,40 @@ export default class Cells3DCapability extends Capability {
   }
 
   private async load(): Promise<void> {
+    const token = Symbol("cells");
+    this.cellsToken = token;
     try {
       const [current, clouds] = await Promise.all([
         fetchCurrentCells(this.nanobar),
         // Its own failure is not the cells' failure: a map with storms and no
-        // cutaways is worth drawing, so an error here is an empty list.
-        fetchCurrentVolumes().catch(() => ({ volumes: [] })),
+        // cutaways is worth drawing. Nor does it take the storms already
+        // drawn away; they stay until an answer replaces them.
+        fetchCurrentVolumes().catch(() => null),
       ]);
+      if (this.cellsToken !== token) return;
       this.cells = (current.cells ?? []) as CellCurrent[];
-      this.clouds = (clouds.volumes ?? []) as RadarVolume[];
-      void this.loadClouds();
+      this.cellsScan = scanTime(current.reference_time);
+      // The same scan as before still loads: a load cut short by switching
+      // away left volumes to fetch, and this is the refresh `attach` relies on.
+      if (!clouds || !this.volumes.offer(clouds)) void this.loadClouds();
+      if (this.shown) this.volumes.follow(this.cellsScan);
     } catch {
       // Already reported by the API wrapper; an empty 3D map is not worth a
       // second message on top of it.
       return;
     }
     this.applyData();
+  }
+
+  /** A newer scan's storm cores, from a refresh or from waiting for one. */
+  private takeClouds(answer: CurrentVolumes): void {
+    this.clouds = (answer.volumes ?? []) as RadarVolume[];
+    this.cloudsScan = scanTime(answer.reference_time);
+    void this.loadClouds();
+    // A refresh draws them with everything else; a wait has only these to draw.
+    if (!this.gl || !this.styleReady) return;
+    this.ensureClouds(this.gl);
+    this.applyStaleness();
   }
 
   /**
@@ -1290,6 +1388,7 @@ export default class Cells3DCapability extends Capability {
     this.ensureClouds(gl);
     this.ensureVolumes(gl);
     this.ensureStrikes();
+    this.applyStaleness();
   }
 
   private ensureRadar(gl: GlMap): void {
@@ -1457,6 +1556,7 @@ export default class Cells3DCapability extends Capability {
   destroy(): void {
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
+    this.volumes.stop();
     this.unsubscribeTheme?.();
     this.unsubscribeTheme = null;
     this.unsubscribeSelection?.();
