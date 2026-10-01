@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { envelope, rainWithin, stepAt } from "../../src/lib/compare/outlook.ts";
+import { envelope, rainIn, rainWithin, stepAt } from "../../src/lib/compare/outlook.ts";
 import type { HourlySeries } from "../../src/lib/compare/openMeteo.ts";
 
 /**
@@ -49,4 +49,24 @@ test("one wet model among dry ones is disagreement, not rain", () => {
   const wet = new Array(24).fill(90);
   const dry = new Array(24).fill(0);
   assert.equal(rainWithin(series({ a: wet, b: dry, c: dry }), 0, 24), false);
+});
+
+test("the strip says how far off the rain is: the first hour the median reaches it", () => {
+  const wet = new Array(168).fill(0);
+  wet[5] = 40;
+  wet[30] = 80;
+  const s = series({ a: wet, b: wet, c: new Array(168).fill(0) });
+  assert.equal(rainIn(s, 0, 168), 5);
+  // Counted from the present, not from the series' midnight.
+  assert.equal(rainIn(s, 3, 168), 2);
+  assert.equal(rainIn(s, 6, 168), 24);
+  // Already raining by the models' reckoning: within the hour.
+  assert.equal(rainIn(s, 5, 168), 0);
+});
+
+test("a week the median never reaches has no rain to count down to", () => {
+  const drizzle = new Array(168).fill(20);
+  assert.equal(rainIn(series({ a: drizzle, b: drizzle }), 0, 168), null);
+  // Nor does one wet model among dry ones.
+  assert.equal(rainIn(series({ a: new Array(168).fill(90), b: drizzle, c: drizzle }), 0, 168), null);
 });
