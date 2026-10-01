@@ -360,6 +360,7 @@
   },
   "chrome": {
     "locate_me": "Zlokalizuj mnie",
+    "layer_switcher": "Warstwy mapy",
     "playback": {
       "lightning": "Wyładowania",
       "mesocyclones": "Mezocyklony",
