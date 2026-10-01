@@ -32,7 +32,8 @@ import {
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
-  radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, toolbarVisible,
+  radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
+  toolbarVisible,
 } from "./stores";
 
 import "./global.css";
@@ -199,6 +200,13 @@ window.settings = new Settings({
     default: false,
     cb: (value) => {
       cells3dVisible.set(Boolean(value));
+    },
+  },
+  layer3dTerrain: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      terrain3dVisible.set(Boolean(value));
     },
   },
   layerEuropeComposite: {
