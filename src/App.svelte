@@ -26,7 +26,7 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
+  cellLayerVisible, cells3dVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
@@ -188,6 +188,13 @@ window.settings = new Settings({
     default: true,
     cb: (value) => {
       cellLayerVisible.set(Boolean(value));
+    },
+  },
+  layer3dCells: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      cells3dVisible.set(Boolean(value));
     },
   },
   layerSnow: {

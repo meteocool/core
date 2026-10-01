@@ -178,6 +178,12 @@ export const toolbarVisible = writable<"yes" | "no">("yes");
 export const cycloneLayerVisible = writable<boolean>(true);
 /** Whether tracked thunderstorm cells are drawn. */
 export const cellLayerVisible = writable<boolean>(true);
+/**
+ * Whether the 3D map draws KONRAD3D's cells as extruded tiers. Off unless the
+ * reader turns it on: the radar volumes are the storms there, and the cells
+ * land minutes after the radar under them -- see lib/scans.ts.
+ */
+export const cells3dVisible = writable<boolean>(false);
 /** The cell the detail popup is showing, or null when it is closed. */
 export const selectedCell = writable<CellTrackProperties | null>(null);
 /**
