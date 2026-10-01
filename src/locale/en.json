@@ -267,6 +267,7 @@
       "radars": "Radars",
       "coverage": "{pct}% beam coverage 3–8 km",
       "unavailable": "Volume unavailable",
+      "not_openable": "Not seen well enough to cut open: the radars' beams cover too little of the 3–8 km layer. Drawn on the map, but no cutaway.",
       "cappi_height": "Height of the slice",
       "cappi_caption": "Everything above {km} km cut away. Drag up or down to hold a height."
     },
