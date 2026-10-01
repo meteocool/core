@@ -14,6 +14,11 @@
  * squash it into a sliver at the left edge and the next 24 hours are the
  * answer instead. See lib/compare/outlook.ts for where that line is.
  *
+ * The title says how far off that rain is -- "Rain likely in 5 hours", "in
+ * 3 days" -- and "No rain in sight" only over a week the models agree is dry.
+ * It used to say "Dry for now" over the day the models had just agreed it
+ * would rain in, which is true of the radar and the opposite of the chart.
+ *
  * Tapping it, or its "All models" chip, opens the whole comparison in the
  * drawer (see App.svelte), on the range the strip was showing.
  *
@@ -29,7 +34,7 @@ import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
 import DismissableStrip from "./DismissableStrip.svelte";
 import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
 import { drawSpread } from "../lib/compare/spreadChart";
-import { rainWithin, stepAt } from "../lib/compare/outlook";
+import { rainIn, stepAt } from "../lib/compare/outlook";
 import { openModelCompare } from "../lib/modelCompare";
 
 export let lat: number;
@@ -48,8 +53,19 @@ let canvas: HTMLCanvasElement | null = null;
 let chart: Chart | null = null;
 
 $: from = data ? stepAt(data.times, Date.now()) : 0;
-$: soon = data ? rainWithin(data, from, DAY) : false;
+/** Hours until the models agree on rain, within the week; null for a dry week. */
+$: wetIn = data ? rainIn(data, from, WEEK) : null;
+$: soon = wetIn !== null && wetIn < DAY;
 $: hours = soon ? DAY : WEEK;
+// Neutral until the models answer: "No rain in sight" before they have is a
+// claim nobody made, and it flashed before every "Rain likely in …".
+$: title = !data
+  ? $_("dry_outlook_label")
+  : wetIn === null
+  ? $_("dry_outlook_title_week")
+  : soon
+    ? $_("dry_outlook_title_hours", { values: { hours: wetIn } })
+    : $_("dry_outlook_title_days", { values: { days: Math.max(1, Math.round(wetIn / DAY)) } });
 
 onMount(async () => {
   try {
@@ -71,7 +87,7 @@ const openFull = () => openModelCompare(lat, lon, hours);
 </script>
 
 <DismissableStrip
-  title={$_(soon ? "dry_outlook_title_day" : "dry_outlook_title_week")}
+  {title}
   linkLabel={$_("dry_outlook_link")}
   linkIcon={faChartLine}
   {collapsed}
