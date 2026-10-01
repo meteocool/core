@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  decideAxis, shouldClear, SWIPE_COMMIT, SWIPE_SLOP,
+  decideAxis, pullTo, shouldClear, SWIPE_COMMIT, SWIPE_DETENT, SWIPE_SLOP,
 } from "../../src/lib/swipeAway.ts";
 
 /**
@@ -46,4 +46,21 @@ test("a zero-width element cannot be cleared by accident", () => {
   // Before layout, every fraction of the width is zero and every drag would
   // otherwise count as having crossed it.
   assert.equal(shouldClear(-5, 0), false);
+});
+
+test("a parked panel follows a rightward drag back shut", () => {
+  // Parked open at the detent, the finger pushes it back the way it came:
+  // half way, then all the way, and no further than shut.
+  assert.equal(pullTo(SWIPE_DETENT, 0, 300), SWIPE_DETENT);
+  assert.equal(pullTo(SWIPE_DETENT, 40, 300), SWIPE_DETENT - 40);
+  assert.equal(pullTo(SWIPE_DETENT, SWIPE_DETENT, 300), 0);
+  assert.equal(pullTo(SWIPE_DETENT, 400, 300), 0);
+});
+
+test("a pull tracks the finger to the detent, then gives only part of the travel", () => {
+  assert.equal(pullTo(0, -50, 300), 50);
+  assert.equal(pullTo(0, -SWIPE_DETENT, 300), SWIPE_DETENT);
+  const past = pullTo(0, -(SWIPE_DETENT + 100), 300);
+  assert.ok(past > SWIPE_DETENT && past < SWIPE_DETENT + 100);
+  assert.equal(pullTo(0, -5000, 300), 300);
 });
