@@ -9,6 +9,7 @@ import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { fromLonLat, transformExtent } from "ol/proj";
 import Map from "./components/Map.svelte";
+import MapLoading from "./components/MapLoading.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
@@ -26,7 +27,7 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cells3dVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
+  cellLayerVisible, cells3dLoading, cells3dVisible, cycloneLayerVisible, lastFocus, layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
@@ -898,6 +899,12 @@ if (postInitCb) postInitCb(lm);
 
 <div id="nanobar" />
 <Map layerManager={lm} />
+<!-- The glass veil over the map while the 3D map is brought up for the
+     first time; gated on the active map as well, so switching away during
+     the bring-up takes it with it. -->
+{#if $cells3dLoading && $sharedActiveCap === "cells3d"}
+  <MapLoading />
+{/if}
 <PointMenu layerManager={lm} />
 
 

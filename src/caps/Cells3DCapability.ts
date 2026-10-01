@@ -19,7 +19,7 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzColour, dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
+  capDescription, cellDetails, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
   selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen,
 } from "../stores";
 import { get } from "svelte/store";
@@ -89,6 +89,27 @@ async function loadMapLibre() {
   lib.config.WORKER_URL = worker.default;
   return lib;
 }
+
+/**
+ * Resolves once the browser has painted whatever is pending.
+ *
+ * The first frame only schedules the second; the paint happens between them.
+ * Used to get the loading veil on screen before MapLibre's parse and shader
+ * compile take the main thread, which would otherwise hold the veil back
+ * until the work it was meant to cover is half done.
+ */
+function painted(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+}
+
+/**
+ * How long the first bring-up may take before the veil comes down regardless.
+ *
+ * MapLibre's `idle` is the signal; this stands in if it never comes -- a
+ * WebGL context that failed, a tile server that answers nothing -- so a
+ * map that will never settle is at least a map the reader can see.
+ */
+const SETTLE_CEILING_MS = 15000;
 
 const CELL_SOURCE = "cells";
 /** The raymarched volume, which replaces the selected storm's extruded tiers. */
@@ -405,6 +426,19 @@ export default class Cells3DCapability extends Capability {
   private firstRefresh: Promise<void> | null = null;
 
   /**
+   * Resolves once the map has drawn its first settled frame: style parsed,
+   * shaders built, the tiles on screen loaded. Already resolved before the
+   * map exists, so anything awaiting it on a later open goes straight on.
+   *
+   * Framing an opened storm waits on it (see `open`): the camera ease is 900ms
+   * of motion, and started while MapLibre is still compiling and the volume
+   * is still uploading it stutters through most of them. After the first
+   * settled frame the same ease is smooth, and it is what the reader sees as
+   * the veil lifts.
+   */
+  private settled: Promise<void> = Promise.resolve();
+
+  /**
    * Whether this map owns the main map element right now.
    *
    * The MapLibre map is kept when another capability takes over, so coming
@@ -551,32 +585,50 @@ export default class Cells3DCapability extends Capability {
      */
     host.appendChild(this.container);
 
+    let built = false;
     if (!this.gl) {
+      // The veil first, and on screen, before the megabyte of library is
+      // parsed and the map built: both take the main thread, and a veil
+      // asked for in the same frame appeared only once they were done.
+      cells3dLoading.set(true);
+      await painted();
       const maplibre = await loadMapLibre();
       // Another attach may have won the race while the library was loading.
       if (this.gl) return;
       this.maplibre = maplibre;
+      built = true;
+      let settle!: () => void;
+      this.settled = new Promise((resolve) => { settle = resolve; });
+      setTimeout(settle, SETTLE_CEILING_MS);
       const view = this.map.getView();
       const centre = elementCentre(view);
       const [lon, lat] = centre ? toLonLat(centre) : [10, 51];
       const asked = this.requestedCamera ?? {};
       this.requestedCamera = null;
 
-      const gl = new maplibre.Map({
-        container: this.container,
-        style: this.style(),
-        center: [asked.lon ?? lon, asked.lat ?? lat],
-        zoom: (asked.zoom ?? view.getZoom() ?? 6) - 1,
-        pitch: asked.pitch ?? INITIAL_PITCH,
-        bearing: asked.bearing ?? 0,
-        maxZoom: 13,
-        // MapLibre stops at 60 unless told otherwise, which is a view from a
-        // hilltop; an opened storm is looked at from lower -- see frameOpened.
-        maxPitch: 85,
-        // Spelled out rather than behind an (i), like the flat map's; see the
-        // attribution rules in glass.css.
-        attributionControl: { compact: false },
-      });
+      let gl: GlMap;
+      try {
+        gl = new maplibre.Map({
+          container: this.container,
+          style: this.style(),
+          center: [asked.lon ?? lon, asked.lat ?? lat],
+          zoom: (asked.zoom ?? view.getZoom() ?? 6) - 1,
+          pitch: asked.pitch ?? INITIAL_PITCH,
+          bearing: asked.bearing ?? 0,
+          maxZoom: 13,
+          // MapLibre stops at 60 unless told otherwise, which is a view from a
+          // hilltop; an opened storm is looked at from lower -- see frameOpened.
+          maxPitch: 85,
+          // Spelled out rather than behind an (i), like the flat map's; see the
+          // attribution rules in glass.css.
+          attributionControl: { compact: false },
+        });
+      } catch (error) {
+        // No WebGL, most likely. The veil has nothing to wait for.
+        settle();
+        cells3dLoading.set(false);
+        throw error;
+      }
       /*
        * Two controls where one would do, so they can be drawn as the flat
        * map's are: a zoom capsule, and below it a disc -- there the locate
@@ -594,8 +646,16 @@ export default class Cells3DCapability extends Capability {
       // Fires on the first style and again after every `setStyle`, which is
       // what a light/dark switch does -- and that discards everything added on
       // top of it, so this is also how the storms get put back.
+      let firstStyle = true;
       gl.on("style.load", () => {
         this.styleReady = true;
+        if (firstStyle) {
+          firstStyle = false;
+          // `idle`: everything on screen rendered and nothing left in flight,
+          // which the first time round means the basemap, the draped radar
+          // and the storms `applyData` is about to add.
+          gl.once("idle", settle);
+        }
         // `setStyle` throws the volumes away with every other layer. The
         // loaded fields are kept, so `applyData` puts the same storms back
         // without fetching them again, and the open one is cut again.
@@ -663,6 +723,9 @@ export default class Cells3DCapability extends Capability {
       // camera to publish then; and MapLibre does not report its first one.
       if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
     } else {
+      // A map that exists is a map that has been brought up: no veil, whatever
+      // was left set by a bring-up the reader switched away from.
+      cells3dLoading.set(false);
       this.pullCameraFromView();
       this.gl.resize();
       // Catch up on what was held back while hidden: the theme, then the
@@ -673,13 +736,21 @@ export default class Cells3DCapability extends Capability {
     }
 
     // Switched away again while MapLibre was loading.
-    if (!this.shown) return;
+    if (!this.shown) {
+      if (built) cells3dLoading.set(false);
+      return;
+    }
 
     // Whatever the reader picked on the flat map meanwhile.
     const track = get(selectedCell);
     const cloud = get(selectedVolume);
-    void this.open(track ? this.targetOfTrack(track) : cloud ? this.targetOfCloud(cloud) : null);
+    const opening = this.open(track ? this.targetOfTrack(track) : cloud ? this.targetOfCloud(cloud) : null);
     void this.refresh();
+    // The veil lifts on the first settled frame -- and not before the storm
+    // the reader came for has its volume loaded and uploaded, which is the
+    // other stall of a first bring-up; `open` has framed it by then, so the
+    // map comes into view already easing onto the storm.
+    if (built) void Promise.all([this.settled, opening]).finally(() => cells3dLoading.set(false));
   }
 
   /**
@@ -890,6 +961,10 @@ export default class Cells3DCapability extends Capability {
     }
     // Tapped past while it loaded: the volume is kept and drawn like any
     // other, but cutting it now would open the storm the reader has left.
+    if (this.openToken !== token) return;
+    // Not before the map's first settled frame; see `settled`. Resolved
+    // already on every open after the first, so this costs nothing then.
+    await this.settled;
     if (this.openToken !== token) return;
     this.opened = { path: target.volume.path, heading: target.heading };
     // The storm open before this one may have been kept past its scan.
