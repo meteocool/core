@@ -1,5 +1,6 @@
 import ImageTileSource from "ol/source/ImageTile";
 import { hasTile } from "../lib/tileIndex";
+import { recolourImage, recolouringFor } from "./recolour";
 import type { TileIndex } from "../lib/tileIndex";
 
 /**
@@ -56,17 +57,38 @@ const REMEMBERED = 400;
  * `setUrl` takes the frame's index alongside its URL and remembers it, so a
  * later `setUrl` back to the same frame -- playback walks one source across
  * every step -- finds it again.
+ *
+ * And it draws the tiles in a palette, when given one other than the classic
+ * the renderer paints them in: see recolour.ts. DWD's layer does that on the
+ * GPU instead, and never sets one here.
  */
 export default class IndexedTileSource extends ImageTileSource {
   protected readonly crossOriginValue: string | null;
 
   protected readonly indices = new Map<string, TileIndex | null>();
 
-  constructor(options: ConstructorParameters<typeof ImageTileSource>[0] & { url: string; index?: TileIndex | null }) {
-    const { url, index, ...rest } = options;
+  /* `declare`, not initialised: the constructor's `setUrl` runs before a
+     subclass's initialisers would, and reads this. Unset means classic. */
+  declare private palette: string | undefined;
+
+  /** The URL the source is on; see `setPalette`. */
+  declare private shownUrl: string | undefined;
+
+  constructor(options: ConstructorParameters<typeof ImageTileSource>[0] & {
+    url: string; index?: TileIndex | null; palette?: string;
+  }) {
+    const { url, index, palette, ...rest } = options;
     super(rest);
     this.crossOriginValue = options.crossOrigin ?? null;
+    this.palette = palette;
     this.setUrl(url, index);
+  }
+
+  /** Draw the tiles in this palette from now on, reloading the ones held. */
+  setPalette(palette: string): void {
+    if (palette === (this.palette ?? "classic")) return;
+    this.palette = palette;
+    if (this.shownUrl) this.setUrl(this.shownUrl);
   }
 
   /** Keep a frame's index for when its URL comes round. */
@@ -83,12 +105,19 @@ export default class IndexedTileSource extends ImageTileSource {
 
   setUrl(url: string, index?: TileIndex | null): void {
     this.remember(url, index);
+    this.shownUrl = url;
     super.setUrl(url);
     const gate = this.indexFor(url);
-    if (!gate) return; // nothing known: OpenLayers' own loader, as before
+    const table = recolouringFor(this.palette ?? "classic");
+    if (!gate && !table) return; // nothing to do: OpenLayers' own loader, as before
     const crossOrigin = this.crossOriginValue;
-    this.setLoader(async (z: number, x: number, y: number) => (
-      present(gate, z, x, y) ? loadImage(fillTemplate(url, z, x, y), crossOrigin) : blankTile()
-    ));
+    this.setLoader(async (z: number, x: number, y: number) => {
+      if (gate && !present(gate, z, x, y)) return blankTile();
+      const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin);
+      return table ? recolourImage(image, table) : image;
+    });
+    // Cached by key, and the key `super.setUrl` gave is the bare URL: without
+    // the palette in it, a change of palette went on serving the old tiles.
+    if (table) this.setKey(`${url}#palette:${this.palette}`);
   }
 }
