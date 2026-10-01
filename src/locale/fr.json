@@ -360,6 +360,7 @@
   },
   "chrome": {
     "locate_me": "Me localiser",
+    "layer_switcher": "Couches de la carte",
     "playback": {
       "lightning": "Impacts de foudre",
       "mesocyclones": "Mésocyclones",

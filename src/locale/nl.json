@@ -360,6 +360,7 @@
   },
   "chrome": {
     "locate_me": "Mijn locatie tonen",
+    "layer_switcher": "Kaartlagen",
     "playback": {
       "lightning": "Blikseminslagen",
       "mesocyclones": "Mesocyclonen",

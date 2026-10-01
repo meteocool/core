@@ -97,7 +97,8 @@
 </script>
 
 <style>
-  /* A 44px glass disc on the top line at right. Web only. */
+  /* A 44px glass disc on the top line at right, in the discs' own material
+     (.glass/.glass-pill), with their hover, press and focus. Web only. */
   .lsToggle {
     position: absolute;
     top: var(--mc-top-stack);
@@ -108,14 +109,7 @@
     box-sizing: border-box;
     display: grid;
     place-items: center;
-    border-radius: 50%;
-    background: var(--mc-glass-fill);
-    -webkit-backdrop-filter: var(--mc-glass-backdrop);
-    backdrop-filter: var(--mc-glass-backdrop);
-    border: 1px solid var(--mc-glass-edge);
-    box-shadow: var(--mc-glass-ring);
-    color: var(--mc-text);
-    text-align: center;
+    padding: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
@@ -127,8 +121,12 @@
   .lsToggle:active {
     transform: scale(var(--mc-press));
   }
+  .lsToggle:focus-visible {
+    outline: 2px solid var(--mc-accent);
+    outline-offset: 2px;
+  }
 
-  div :global(.lsIcon) {
+  .lsToggle :global(.lsIcon) {
     position: static;
     transform: none;
     font-size: 20px;
@@ -218,9 +216,14 @@
 </style>
 
 {#if !dd.isApp()}
-  <div class="lsToggle" on:click={open}>
+  <button
+    type="button"
+    class="lsToggle glass glass-pill"
+    aria-label={$_("chrome.layer_switcher")}
+    title={$_("chrome.layer_switcher")}
+    on:click={open}>
     <Icon icon={faLayerGroup} class="lsIcon" />
-  </div>
+  </button>
 {/if}
 
 <div class="ls" id="ls">

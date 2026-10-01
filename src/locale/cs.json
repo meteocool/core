@@ -360,6 +360,7 @@
   },
   "chrome": {
     "locate_me": "Najít mě",
+    "layer_switcher": "Vrstvy mapy",
     "playback": {
       "lightning": "Blesky",
       "mesocyclones": "Mezocyklóny",
