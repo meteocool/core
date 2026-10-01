@@ -616,6 +616,11 @@ export interface components {
             tiles?: {
                 [key: string]: components["schemas"]["TileRows"];
             } | null;
+            /**
+             * Upstream Time
+             * @description When the radars measured what this frame shows, unix seconds: for a network's composite, its newest scan. The cutaway volumes carry the same time as `reference_time`, so a client can tell a volume from an older scan than the frame under it. Absent on frames recorded without one.
+             */
+            upstream_time?: number | null;
         };
         /**
          * RadarFrames
@@ -765,6 +770,24 @@ export interface components {
             tile_id: string;
             /** Upstream Time */
             upstream_time: number;
+        };
+        /**
+         * VolumesRefresh
+         * @description A nudge that one composite scan's radar volumes have been built.
+         *
+         *     Deliberately not a third `cells`, though `/cells/volumes` serves them: that
+         *     event has the frontend refetch the flat map's tracks and the 3D map's cells
+         *     too, and the volumes do not follow KONRAD3D. They are built from the DMAX
+         *     composite and land tens of seconds after `data` announced the same scan's
+         *     cells -- and a scan in which KONRAD3D warned about nothing can still have
+         *     some. Clients refetch `/cells/volumes`.
+         */
+        VolumesRefresh: {
+            /**
+             * Reference Time
+             * @description Time of the composite scan the volumes were built from, milliseconds since the epoch
+             */
+            reference_time: number;
         };
     };
     responses: never;

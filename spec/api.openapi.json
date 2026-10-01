@@ -440,6 +440,18 @@
             ],
             "description": "Which tiles exist, by zoom level. Tiles that would be fully transparent are not rendered, so a client asking for every tile in the grid is refused most of them on a dry day; with this it need not ask. Absent on frames rendered before the index existed, which means every tile may exist.",
             "title": "Tiles"
+          },
+          "upstream_time": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the radars measured what this frame shows, unix seconds: for a network's composite, its newest scan. The cutaway volumes carry the same time as `reference_time`, so a client can tell a volume from an older scan than the frame under it. Absent on frames recorded without one.",
+            "title": "Upstream Time"
           }
         },
         "required": [
@@ -747,6 +759,21 @@
           "upstream_time"
         ],
         "title": "VectorOverlay",
+        "type": "object"
+      },
+      "VolumesRefresh": {
+        "description": "A nudge that one composite scan's radar volumes have been built.\n\nDeliberately not a third `cells`, though `/cells/volumes` serves them: that\nevent has the frontend refetch the flat map's tracks and the 3D map's cells\ntoo, and the volumes do not follow KONRAD3D. They are built from the DMAX\ncomposite and land tens of seconds after `data` announced the same scan's\ncells -- and a scan in which KONRAD3D warned about nothing can still have\nsome. Clients refetch `/cells/volumes`.",
+        "properties": {
+          "reference_time": {
+            "description": "Time of the composite scan the volumes were built from, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time"
+        ],
+        "title": "VolumesRefresh",
         "type": "object"
       }
     }

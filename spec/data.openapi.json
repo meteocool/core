@@ -1549,6 +1549,21 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VolumesRefresh": {
+        "description": "A nudge that one composite scan's radar volumes have been built.\n\nDeliberately not a third `cells`, though `/cells/volumes` serves them: that\nevent has the frontend refetch the flat map's tracks and the 3D map's cells\ntoo, and the volumes do not follow KONRAD3D. They are built from the DMAX\ncomposite and land tens of seconds after `data` announced the same scan's\ncells -- and a scan in which KONRAD3D warned about nothing can still have\nsome. Clients refetch `/cells/volumes`.",
+        "properties": {
+          "reference_time": {
+            "description": "Time of the composite scan the volumes were built from, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time"
+        ],
+        "title": "VolumesRefresh",
+        "type": "object"
       }
     }
   },

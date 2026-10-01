@@ -54,7 +54,7 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
-import { isBehind, scanTime } from "../lib/scans";
+import { isBehind, networkOf, scanTime } from "../lib/scans";
 import { VERTICAL_SCALE } from "./terrain";
 import type { Scan } from "../lib/scans";
 
@@ -471,6 +471,8 @@ interface Cloud {
   coreDbz: number;
   /** The scan it was measured in. */
   scan: Scan | null;
+  /** The network whose composite it was found in, whose radar it is judged against. */
+  network: string;
   /** How much of its opacity it keeps; see `DIM_UNOPENABLE`. */
   dim: number;
   /** Whether it peels when not cut; see `setClouds`. */
@@ -497,10 +499,11 @@ export interface CloudsLayer extends CustomLayerInterface {
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
   /**
-   * The scan of the radar under the storms: any from an older one are drawn
-   * grey, bar the one that is cut open, which is being read for its colours.
+   * The scan of each network's radar, by its code: a storm from an older scan
+   * than its own network's is drawn grey, bar the one that is cut open, which
+   * is being read for its colours. See lib/scans.ts.
    */
-  setRadarScan(scan: Scan | null): void;
+  setRadarScans(scanOf: (network: string) => Scan | null): void;
 }
 
 /**
@@ -526,7 +529,7 @@ export function makeCloudsLayer(
   let cutKey: string | null = null;
   let cutHeading = 0;
   let colormap = initialColormap;
-  let radarScan: Scan | null = null;
+  let radarScanOf: (network: string) => Scan | null = () => null;
   /** Uniform locations, looked up once per program rather than a dozen times a frame. */
   let uniforms = new Map<string, WebGLUniformLocation | null>();
   /** The pending peel frame, if one has been asked for. */
@@ -638,6 +641,7 @@ export function makeCloudsLayer(
           // A pass over every voxel, so only for a storm that will use it.
           coreDbz: peels ? coreDbz(cutaway) : DBZ_LOW,
           scan: scanTime(cutaway.header.reference_time),
+          network: networkOf(cutaway.header),
           dim,
           peels,
           texture: gl ? upload(gl, cutaway) : null,
@@ -662,8 +666,8 @@ export function makeCloudsLayer(
       if (gl) paintRamp(gl);
     },
 
-    setRadarScan(scan) {
-      radarScan = scan;
+    setRadarScans(scanOf) {
+      radarScanOf = scanOf;
     },
 
     onAdd(added: GlMap, context: WebGL2RenderingContext) {
@@ -776,7 +780,7 @@ export function makeCloudsLayer(
         const peelsNow = !cut && cloud.peels && !holding;
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
-        context.uniform1f(at("uBehind"), !cut && isBehind(cloud.scan, radarScan) ? 1 : 0);
+        context.uniform1f(at("uBehind"), !cut && isBehind(cloud.scan, radarScanOf(cloud.network)) ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
         context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.coreDbz - DBZ_LOW) * peel : DBZ_LOW);
         if (cut) {
