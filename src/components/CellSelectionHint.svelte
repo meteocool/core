@@ -8,15 +8,24 @@
  * something a map can say. So this says it, and is the thing to tap -- the
  * hint and the affordance are the same object, because a hint that only tells
  * you to tap somewhere else costs a second reach at the point the reader has
- * already got what they wanted.
+ * already got what they wanted. The whole bar opens the details, as tapping
+ * a notification opens what it is about; the chip only says so.
  *
  * It names the storm rather than saying "tap again", so the tap that produced
  * it is also acknowledged: the reader learns they hit a strong cell that has
  * been going for half an hour, which for a lot of taps is the whole question.
+ *
+ * One of the bars above the tray, in the same dock as the chart strips
+ * (SwipeDock): it fades in, swipes aside to a Clear action, and leaves the
+ * way they do. It used to leave on any pull, with no detent and no action,
+ * beside strips that parked on one.
  */
+import { fly, fade } from "svelte/transition";
+import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { _ } from "svelte-i18n";
+import Icon from "./Icon.svelte";
+import SwipeDock, { type Leaving } from "./SwipeDock.svelte";
 import { cellDetails, openStripCount, selectedCell } from "../stores";
-import { swipeAway } from "../lib/swipeAway";
 import { severityColour } from "../layers/cells";
 import { BAND_NAMES, duration } from "../lib/cellMetrics";
 
@@ -26,84 +35,52 @@ $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
 $: alive = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, $_);
 
-/* DismissableStrip's own dock is a fixed 104px plus the 8px tray gap it docks
-   above the toolbar with; stacking above it (rather than over it, which is
-   what both floating at "toolbar + 8px" on their own produces) means lifting
-   by exactly that much per strip currently on screen. */
-const STRIP_LIFT_PX = 112;
-$: stackLift = $openStripCount * STRIP_LIFT_PX;
-
 const open = () => cellDetails.set(true);
+
+/* How the bar leaves: down into the tray when its button sent it there, or
+   on out past the leading edge when it was swiped away. */
+let out: Leaving = { y: 60, duration: 200 };
 
 /* The map clears the selection when the background is tapped; this is the same
    thing for a thumb that has the bar under it rather than the map. */
-const dismiss = (event: Event) => {
-  event.stopPropagation();
+function clear(leaving: Leaving) {
+  out = leaving;
   selectedCell.set(null);
-};
-
-/* ---- swipe left to clear ------------------------------------------------ */
-
-/**
- * The same gesture the map's strips have, from the same action.
- *
- * Consistency here is a matter of feel rather than looks, and the feel is
- * almost all in when a drag stops being a tap -- six pixels -- and how far it
- * has to go to count -- 45% of the width. Both live in lib/swipeAway.ts and
- * both things that swipe read them from there, so the two cannot drift.
- *
- * The bar carries two controls, and neither is harmed: below the slop nothing
- * is captured, so a tap on "details" or on the close button reaches it.
- */
-let pulled = 0;
-let released = true;
-
-const onSwipe = (dx: number) => {
-  released = false;
-  pulled = dx;
-};
-
-const onSwipeEnd = (cleared: boolean) => {
-  released = true;
-  if (cleared) {
-    // Off the edge first, so the bar is seen to leave rather than blinking out.
-    pulled = -window.innerWidth;
-    setTimeout(() => selectedCell.set(null), 160);
-    return;
-  }
-  pulled = 0;
-};
+}
 </script>
 
 <style>
-  /* Full width rather than a pill that shrinks to its text. A bar that changes
-     width with the name of the storm reads as mangled next to the trays above
-     and below it, which are full-width and squared off to the same gutters. */
-  .hint {
-    /* The swipe owns the horizontal drag; without this the browser's own pan
-       takes it and the bar never moves. */
-    touch-action: pan-y;
+  /* The bar's slot on the map: full width rather than a pill that shrinks to
+     its text. A bar that changes width with the name of the storm reads as
+     mangled next to the trays above and below it, which are full-width and
+     squared off to the same gutters.
+
+     Stacked above whichever strips are up -- a strip's dock is a fixed height
+     plus the tray gap it floats above -- so clearing a strip below reads as
+     this bar settling down into its place, the way a cleared notification
+     lets the ones above it drop, rather than an abrupt jump once the strip's
+     own exit finishes. */
+  .hint-dock {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 8px + var(--stack-lift, 0px));
-    /* Animated so clearing a strip below reads as this bar settling down into
-       its place, the way a cleared notification lets the ones above it drop --
-       rather than an abrupt jump once the strip's own exit finishes. */
-    transition: bottom var(--mc-motion-spring, 280ms) var(--mc-ease-spring, ease);
+    left: var(--mc-gutter);
+    right: var(--mc-gutter);
+    bottom: calc(
+      max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom))
+      + var(--mc-tray-gap)
+      + var(--open-strips, 0) * (var(--mc-strip-h) + var(--mc-tray-gap))
+    );
+    height: var(--mc-hint-h);
+    transition: bottom var(--mc-motion-spring) var(--mc-ease-spring);
     z-index: var(--mc-z-pill);
-    margin: 0 8px;
+  }
+
+  .hint {
+    height: 100%;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 48px;
-    padding: 6px 6px 6px 14px;
-    border-radius: var(--mc-radius-tray);
-    background: var(--mc-glass-fill-strong);
-    -webkit-backdrop-filter: var(--mc-glass-backdrop);
-    backdrop-filter: var(--mc-glass-backdrop);
-    border: 1px solid var(--mc-glass-edge);
-    box-shadow: var(--mc-glass-ring-lg);
+    padding: 0 2px 0 14px;
     color: var(--mc-text);
     font: 500 13px/1.3 var(--mc-font);
   }
@@ -167,6 +144,7 @@ const onSwipeEnd = (cleared: boolean) => {
     font: 600 13px/1 var(--mc-font);
     letter-spacing: 0;
     cursor: pointer;
+    pointer-events: auto;
   }
 
   /* Where color-mix is missing the tint would fall back to nothing, leaving
@@ -184,51 +162,68 @@ const onSwipeEnd = (cleared: boolean) => {
     margin-top: -1px;
   }
 
+  /* The strips' close button: a touch-sized hit area around a small glyph.
+     44px is Apple's minimum for a thumb, and this one sits next to the
+     control it must not be hit instead of. */
   .close {
     flex: 0 0 auto;
-    /* 44px is Apple's minimum for a thumb, and this one sits next to the
-       control it must not be hit instead of. */
+    display: grid;
+    place-items: center;
     width: 44px;
     height: 44px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--mc-text-2);
-    font-size: 22px;
+    border-radius: var(--mc-radius-pill);
+    background: none;
+    color: var(--mc-text-3);
+    font-size: 13px;
     line-height: 1;
     cursor: pointer;
+    pointer-events: auto;
+    transition: color var(--mc-motion-fast) var(--mc-ease),
+                background var(--mc-motion-fast) var(--mc-ease);
+  }
+  .close:hover,
+  .close:focus-visible {
+    color: var(--mc-text);
+    background: var(--mc-tint-hover);
   }
 
   .go:active {
     transform: scale(var(--mc-press));
   }
 
-  /* Follows the finger while it is down, springs back or leaves when it lifts. */
-  .hint.settling {
-    transition: transform 180ms var(--mc-ease, cubic-bezier(0.32, 0.72, 0, 1)),
-                opacity 180ms linear;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .go:active { transform: none; }
-    .hint { transition: none; }
-    .hint.settling { transition: none; }
+    .hint-dock { transition: none; }
   }
 </style>
 
-<div class="hint" class:settling={released}
-  style="--colour: {colour}; --stack-lift: {stackLift}px; transform: translateX({pulled}px); opacity: {1 - Math.min(1, -pulled / 220)}"
-  use:swipeAway={{ onMove: onSwipe, onEnd: onSwipeEnd }}>
-  <span class="swatch" style="background: {colour}"></span>
-  <span class="what">
-    <span class="title">
-      <b>{$_(`storm.hint.band.${BAND_NAMES[severity]}`)}</b> {$_("storm.hint.cell")}
-    </span>
-    <span class="alive">{$_("storm.hint.alive", { values: { duration: alive } })}</span>
-  </span>
-  <button type="button" class="go" on:click={open}>
-    {$_("storm.hint.details")} <span class="chevron" aria-hidden="true">›</span>
-  </button>
-  <button type="button" class="close" on:click={dismiss} aria-label={$_("storm.hint.clear")}>&times;</button>
+<div
+  class="hint-dock"
+  style="--colour: {colour}; --open-strips: {$openStripCount}"
+  out:fly={{ ...out }}
+  in:fade={{ duration: 200 }}>
+  <SwipeDock action={$_("storm.hint.clear_action")} tappable strong on:tap={open} on:dismiss={(e) => clear(e.detail)}>
+    <div class="hint">
+      <span class="swatch" style="background: {colour}"></span>
+      <span class="what">
+        <span class="title">
+          <b>{$_(`storm.hint.band.${BAND_NAMES[severity]}`)}</b> {$_("storm.hint.cell")}
+        </span>
+        <span class="alive">{$_("storm.hint.alive", { values: { duration: alive } })}</span>
+      </span>
+      <button type="button" class="go" on:click={open}>
+        {$_("storm.hint.details")} <span class="chevron" aria-hidden="true">›</span>
+      </button>
+      <button
+        type="button"
+        class="close"
+        aria-label={$_("storm.hint.clear")}
+        title={$_("storm.hint.clear")}
+        on:click={() => clear({ y: 60, duration: 200 })}>
+        <Icon icon={faXmark} />
+      </button>
+    </div>
+  </SwipeDock>
 </div>
