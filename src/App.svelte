@@ -10,6 +10,7 @@ import type { Socket } from "socket.io-client";
 import { fromLonLat, transformExtent } from "ol/proj";
 import Map from "./components/Map.svelte";
 import MapLoading from "./components/MapLoading.svelte";
+import Guide3D from "./components/Guide3D.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
@@ -942,6 +943,12 @@ if (postInitCb) postInitCb(lm);
      the bring-up takes it with it. -->
 {#if $cells3dLoading && $sharedActiveCap === "cells3d"}
   <MapLoading />
+{/if}
+<!-- The 3D map's controls and legend, once it is up. A desktop's: the apps
+     draw their own chrome, and a toolbar asked away is a display that wants
+     none of this either. -->
+{#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$smallScreen && !dd.isApp() && $toolbarVisible === "yes"}
+  <Guide3D />
 {/if}
 <PointMenu layerManager={lm} />
 
