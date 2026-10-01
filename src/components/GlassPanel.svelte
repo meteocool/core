@@ -28,7 +28,7 @@ import { holdNativeChrome } from "../lib/nativeBridge";
  * on it -- anywhere outside the floating panel -- closes it, as does Escape.
  *
  * Close is the panels' glass disc in the top-right corner, in the chrome's
- * tints; see CloseDisc.
+ * tints; see CloseDisc. On a phone the sheet draws it, out of the scroll.
  */
 
 export let title: string;
@@ -163,6 +163,7 @@ onMount(() => {
     align-items: flex-start;
     gap: 10px;
     margin-bottom: 14px;
+    padding-right: var(--mc-sheet-corner, 0px);
   }
   .in-sheet h2 {
     min-width: 0;
@@ -185,17 +186,12 @@ onMount(() => {
 
 {#if $smallScreen}
   {#await loadSheet() then { default: CellSheet }}
-    <svelte:component this={CellSheet} full material="reading" onClose={close}>
-      <div
-        class="panel in-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabindex="-1"
-        use:autofocus>
+    <!-- The sheet is the dialog, and draws the close disc in its corner, where
+         it stays while the reading scrolls; see lib/sheetContext.ts. -->
+    <svelte:component this={CellSheet} full material="reading" onClose={close} dialogLabelledBy={titleId}>
+      <div class="panel in-sheet" tabindex="-1" use:autofocus>
         <header>
           <h2 id={titleId}>{title}</h2>
-          <CloseDisc material="chrome" on:click={close} />
         </header>
         <slot />
       </div>
