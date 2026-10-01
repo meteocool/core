@@ -6,11 +6,12 @@
  * This puts them all on the map at once: the same field and the same shader,
  * standing on the ground each storm is over, at the scale of the terrain, as
  * a sky of clouds. The one being inspected is sliced along its track, as the
- * panel cuts it; every other one peels, over and over: its faint envelope
- * thins away shell by shell until only the strongest echo is left standing,
- * then grows back. A cut shows a storm's core from one side; the peel shows
- * where in the cloud the intensity actually sits, which is the question a map
- * full of storms is asking.
+ * panel cuts it; every other one that could be opened peels, over and over:
+ * its faint envelope thins away shell by shell until only the strongest echo
+ * is left standing, then grows back. A cut shows a storm's core from one
+ * side; the peel shows where in the cloud the intensity actually sits, which
+ * is the question a map full of storms is asking. One the radars did not see
+ * well enough to open is held whole: its inside is interpolation.
  *
  * ## How a raymarcher gets onto a MapLibre map
  *
@@ -461,6 +462,8 @@ interface Cloud {
   scan: Scan | null;
   /** How much of its opacity it keeps; see `DIM_UNOPENABLE`. */
   dim: number;
+  /** Whether it peels when not cut; see `setClouds`. */
+  peels: boolean;
   texture: WebGLTexture | null;
 }
 
@@ -471,8 +474,13 @@ export interface CloudsLayer extends CustomLayerInterface {
    * Keyed by the volume's path, not the core's code: a code is a grid
    * position, unique only within one scan, so the same code can name two
    * different storms -- or two scans of one -- at the same time.
+   *
+   * `peels: false` holds a storm whole: one the radars did not see well
+   * enough to open, whose layers are interpolation, so peeling them shows
+   * nothing about where the intensity sits -- and costs a frame every
+   * twelfth of a second for as long as one is on screen.
    */
-  setClouds(clouds: ReadonlyArray<{ key: string; cutaway: Cutaway; dim?: number }>): void;
+  setClouds(clouds: ReadonlyArray<{ key: string; cutaway: Cutaway; dim?: number; peels?: boolean }>): void;
   /** Open one storm, by the key it was handed over under, with a cut at this heading. */
   setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
@@ -602,19 +610,23 @@ export function makeCloudsLayer(
         if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
         clouds.delete(key);
       }
-      for (const { key, cutaway, dim = 1 } of next) {
+      for (const { key, cutaway, dim = 1, peels = true } of next) {
         const held = clouds.get(key);
         if (held?.cutaway === cutaway) {
+          if (peels && !held.peels) held.coreDbz = coreDbz(cutaway);
           held.dim = dim;
+          held.peels = peels;
           continue;
         }
         if (held?.texture && gl) gl.deleteTexture(held.texture);
         clouds.set(key, {
           cutaway,
           model: modelFor(cutaway),
-          coreDbz: coreDbz(cutaway),
+          // A pass over every voxel, so only for a storm that will use it.
+          coreDbz: peels ? coreDbz(cutaway) : DBZ_LOW,
           scan: scanTime(cutaway.header.reference_time),
           dim,
+          peels,
           texture: gl ? upload(gl, cutaway) : null,
         });
       }
@@ -675,7 +687,7 @@ export function makeCloudsLayer(
       const peel = still ? 0 : peelAt(peelTime);
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
-      /** Whether any storm but the open one is on screen, which is what a peel frame is for. */
+      /** Whether any storm that peels is on screen, which is what a peel frame is for. */
       let peeling = false;
 
       // Far to near, by where each box's middle lands in clip space.
@@ -736,11 +748,12 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
         const cut = key === cutKey;
-        if (!cut) peeling = true;
+        const peelsNow = !cut && cloud.peels;
+        if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
         context.uniform1f(at("uBehind"), !cut && isBehind(cloud.scan, radarScan) ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
-        context.uniform1f(at("uLow"), cut ? DBZ_LOW : DBZ_LOW + (cloud.coreDbz - DBZ_LOW) * peel);
+        context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.coreDbz - DBZ_LOW) * peel : DBZ_LOW);
         if (cut) {
           // Along the heading, so the normal lies across it; through the storm,
           // not the middle of the box. The two horizontal axes share a scale in
