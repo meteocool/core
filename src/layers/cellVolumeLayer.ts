@@ -648,6 +648,10 @@ export function makeCloudsLayer(
     },
 
     setCut(key, headingDeg) {
+      // Opened or closed, the peel starts again from the whole storm: it is
+      // held while one is open (see render), and resuming mid-peel would
+      // jump every other storm to a different shell the moment it closed.
+      if (key !== cutKey) peelTime = 0;
       cutKey = key;
       cutHeading = headingDeg;
       wake();
@@ -694,10 +698,15 @@ export function makeCloudsLayer(
       // the map draws and resumes where it paused. Held whole for anyone who
       // has asked for less motion.
       const now = performance.now() / 1000;
-      const active = peelActive();
+      // Held whole while a storm is cut open: the reader is reading that one,
+      // and a dozen others peeling around it kept the map redrawing at the
+      // peel's pace under the sweep and the detail panel, which made the open
+      // storm the laggiest thing on screen.
+      const holding = still || cutKey !== null;
+      const active = peelActive() && !holding;
       if (active && lastFrameAt !== null) peelTime += Math.min(now - lastFrameAt, 1 / PEEL_FPS);
       lastFrameAt = now;
-      const peel = still ? 0 : peelAt(peelTime);
+      const peel = holding ? 0 : peelAt(peelTime);
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
       /** Whether any storm that peels is on screen, which is what a peel frame is for. */
@@ -764,7 +773,7 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
         const cut = key === cutKey;
-        const peelsNow = !cut && cloud.peels;
+        const peelsNow = !cut && cloud.peels && !holding;
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
         context.uniform1f(at("uBehind"), !cut && isBehind(cloud.scan, radarScan) ? 1 : 0);
