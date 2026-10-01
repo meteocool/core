@@ -559,6 +559,9 @@ if (cells3d && radarCap) {
   // where it was the cells and megabytes of volumes for nobody; the newest
   // run is fetched on the way back.
   radarSocketIO.on("cells", () => whenVisible("cells3d", () => cells3d.newRun()));
+  // And every network's runs, which have no KONRAD3D run to follow, as they
+  // are built -- in a hidden tab, once, on the way back.
+  radarSocketIO.on("volumes", () => whenVisible("cells3dVolumes", () => cells3d.newVolumes()));
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
   cells3d.setStrikeSource(lightningSource);
@@ -567,6 +570,10 @@ if (cells3d && radarCap) {
 // The cores are rebuilt with each run, so the tags follow the same nudge.
 radarSocketIO.on("cells", (cells) => {
   whenVisible("cloudHints", () => void reloadCloudHints(Math.floor(cells.reference_time / 1000)));
+});
+// And with each network's runs as they are built, which no KONRAD3D run announces.
+radarSocketIO.on("volumes", () => {
+  whenVisible("cloudHints", () => void reloadCloudHints());
 });
 void reloadCloudHints();
 
