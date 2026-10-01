@@ -21,7 +21,7 @@ import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway } from "../lib/cellCutaway";
 import { framingCamera } from "../lib/stormFrame";
-import { DIM_UNOPENABLE, makeCloudsLayer } from "../layers/cellVolumeLayer";
+import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
 import { isSuccessor } from "../lib/cloudSuccession";
@@ -433,6 +433,17 @@ export default class Cells3DCapability extends Capability {
    */
   private cutaways = new Map<string, { code: string; cutaway: Cutaway; lon: number; lat: number; tier: number }>();
 
+  /**
+   * Listed storms whose volume loaded too faint to draw; see `isFaint`.
+   *
+   * Neither drawn nor ringed, and not held: a volume is immutable, so one
+   * found faint stays faint, and remembering it by path keeps it from being
+   * fetched again and from taking a place another storm in view could have.
+   * Opened anyway -- a KONRAD3D cell tapped inside one, a link to one -- it is
+   * drawn, because then a reader asked for exactly that storm.
+   */
+  private faint = new Set<string>();
+
   /** Which storm is open, by its volume's path, and which way its slice runs before the reader turns it. */
   private opened: { path: string; heading: number | null } | null = null;
 
@@ -767,8 +778,10 @@ export default class Cells3DCapability extends Capability {
           // reader had moved on from it.
           this.picking = null;
           selectedCell.set(null);
-          selectedVolume.set(cloud?.properties?.code
-            ? this.clouds.find((c) => c.code === cloud.properties.code) ?? null
+          // By path: a code is a grid position, unique only within one
+          // network's scan, and the list holds five networks' scans.
+          selectedVolume.set(cloud?.properties?.path
+            ? this.clouds.find((c) => c.path === cloud.properties.path) ?? null
             : null);
         }
       });
@@ -1161,6 +1174,11 @@ export default class Cells3DCapability extends Capability {
    * taking the storm a reader is looking at away between two refreshes would
    * look like the popup had broken. `pushClouds` keeps the newer scan of it
    * off the map meanwhile.
+   *
+   * A volume that turns out faint is set aside instead, its ring taken off,
+   * and its place goes to the next storm in view -- so this asks `wanted`
+   * again after a pass that found one, until a pass finds none. A volume that
+   * would not load is not asked for again in the same call.
    */
   private async loadClouds(): Promise<void> {
     const token = Symbol("clouds");
@@ -1168,28 +1186,40 @@ export default class Cells3DCapability extends Capability {
     this.dropUnlisted();
     this.pushClouds();
 
-    const missing = this.wanted().filter((cloud) => !this.cutaways.has(cloud.path));
-    for (let i = 0; i < missing.length; i += VOLUME_FETCHES) {
-      const batch = missing.slice(i, i + VOLUME_FETCHES);
-      const loaded = await Promise.all(batch.map(async (cloud) => {
-        try {
-          return { cloud, cutaway: await loadCutaway(cloud) };
-        } catch {
-          return null;
+    const tried = new Set<string>();
+    const missing = () => this.wanted().filter((cloud) => !this.cutaways.has(cloud.path) && !tried.has(cloud.path));
+    for (let pass = missing(); pass.length; pass = missing()) {
+      const faintBefore = this.faint.size;
+      for (let i = 0; i < pass.length; i += VOLUME_FETCHES) {
+        const batch = pass.slice(i, i + VOLUME_FETCHES);
+        const faintInBatch = this.faint.size;
+        for (const cloud of batch) tried.add(cloud.path);
+        const loaded = await Promise.all(batch.map(async (cloud) => {
+          try {
+            return { cloud, cutaway: await loadCutaway(cloud) };
+          } catch {
+            return null;
+          }
+        }));
+        if (this.loadToken !== token) return;
+        for (const found of loaded) {
+          if (!found) continue;
+          const { cloud, cutaway } = found;
+          if (isFaint(cutaway)) {
+            this.faint.add(cloud.path);
+            continue;
+          }
+          this.cutaways.set(cloud.path, {
+            code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat, tier: tierOf(cloud, cutaway),
+          });
         }
-      }));
-      if (this.loadToken !== token) return;
-      for (const found of loaded) {
-        if (!found) continue;
-        const { cloud, cutaway } = found;
-        this.cutaways.set(cloud.path, {
-          code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat, tier: tierOf(cloud, cutaway),
-        });
+        this.pushClouds();
+        if (this.faint.size > faintInBatch && this.gl && this.styleReady) this.ensureClouds(this.gl);
+        // Switched away: the rest waits for `attach`, whose refresh fetches
+        // whatever is still missing.
+        if (!this.shown) return;
       }
-      this.pushClouds();
-      // Switched away: the rest waits for `attach`, whose refresh fetches
-      // whatever is still missing.
-      if (!this.shown) return;
+      if (this.faint.size === faintBefore) return;
     }
   }
 
@@ -1204,7 +1234,7 @@ export default class Cells3DCapability extends Capability {
     const gl = this.gl;
     const bounds = gl?.getBounds();
     const centre = gl?.getCenter();
-    let candidates = this.clouds;
+    let candidates = this.clouds.filter((cloud) => !this.faint.has(cloud.path));
     if (bounds && centre) {
       const west = bounds.getWest();
       const east = bounds.getEast();
@@ -1212,7 +1242,7 @@ export default class Cells3DCapability extends Capability {
       const north = bounds.getNorth();
       const dx = (east - west) * VIEW_MARGIN;
       const dy = (north - south) * VIEW_MARGIN;
-      candidates = this.clouds.filter((cloud) => (
+      candidates = candidates.filter((cloud) => (
         cloud.lon >= west - dx && cloud.lon <= east + dx && cloud.lat >= south - dy && cloud.lat <= north + dy
       ));
     }
@@ -1248,7 +1278,11 @@ export default class Cells3DCapability extends Capability {
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
     ));
     this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway, tier }]) => ({
-      key, cutaway, dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
+      key,
+      cutaway,
+      dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
+      // Held whole: its layers are interpolation, which a peel cannot reveal anything in.
+      peels: tier !== TIER_UNOPENABLE,
     })));
     this.applyTierFilters();
     if (this.shown) this.gl?.triggerRepaint();
@@ -1277,10 +1311,11 @@ export default class Cells3DCapability extends Capability {
   private ensureClouds(gl: GlMap): void {
     const data = {
       type: "FeatureCollection" as const,
-      features: this.clouds.map((cloud) => ({
+      // Not under a storm too faint to draw: a ring promises a cloud.
+      features: this.clouds.filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => ({
         type: "Feature" as const,
         geometry: { type: "Point" as const, coordinates: [cloud.lon, cloud.lat] },
-        properties: { code: cloud.code, dbz: cloud.peak_dbz ?? 40, tier: cloud.tier ?? 2 },
+        properties: { code: cloud.code, path: cloud.path, dbz: cloud.peak_dbz ?? 40, tier: cloud.tier ?? 2 },
       })),
     };
     const source = gl.getSource(CLOUD_SOURCE);
@@ -1557,6 +1592,9 @@ export default class Cells3DCapability extends Capability {
   private takeClouds(answer: CurrentVolumes): void {
     this.clouds = (answer.volumes ?? []) as RadarVolume[];
     this.cloudsScan = scanTime(answer.reference_time);
+    // Only the listed ones are worth remembering; every run brings new paths.
+    const listed = new Set(this.clouds.map((cloud) => cloud.path));
+    for (const path of this.faint) if (!listed.has(path)) this.faint.delete(path);
     void this.loadClouds();
     // A refresh draws them with everything else; a wait has only these to draw.
     if (!this.gl || !this.styleReady) return;
