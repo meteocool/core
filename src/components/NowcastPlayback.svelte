@@ -799,19 +799,22 @@ onDestroy(() => {
   }
   .controlButton.collapse:hover { color: var(--mc-text); }
 
-  /* "-2h": whether the loop runs from the start of the strip or from now. */
+  /* "-2h": whether the loop runs from the start of the strip or from now.
+     The same height as the play and loop discs beside it, so the three read as
+     one row of controls rather than two discs and a smaller tag. */
   .chip {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 32px;
-    padding: 0 12px;
+    height: var(--mc-control);
+    box-sizing: border-box;
+    padding: 0 14px;
     border: 0;
     border-radius: var(--mc-radius-pill);
     background: var(--mc-tint);
     color: var(--mc-text);
-    font: 600 13px/32px var(--mc-font);
+    font: 600 14px/1 var(--mc-font);
     font-variant-numeric: tabular-nums;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -823,7 +826,7 @@ onDestroy(() => {
   .chip.on { background: var(--mc-accent); color: #fff; }
   .chip.on:hover { background: var(--mc-accent-strong); }
   .chip[disabled] { opacity: 0.4; cursor: default; }
-  .chip :global(svg) { width: 12px; height: 12px; }
+  .chip :global(svg) { width: 14px; height: 14px; }
 
   /* The two collapsed-state controls: standalone discs at the bottom corners,
      flanking the tray rather than sitting on it -- the same kind of control as
