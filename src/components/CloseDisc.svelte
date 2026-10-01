@@ -1,15 +1,30 @@
 <script lang="ts">
 /**
- * The detail panels' way out, as a glass disc: the cell's panel and sheet, and
- * the storm core's sheet on the 3D map, so every "storm you tapped" closes
- * with the same control in the same corner.
+ * The panels' way out, as a glass disc: the cell's panel and sheet, the storm
+ * core's, and the reading panels (About, Settings, Connection Details), so
+ * everything that opens over the map closes with the same control in the
+ * same corner.
  */
 import { _ } from "svelte-i18n";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import Icon from "./Icon.svelte";
+
+/**
+ * Whose tints the disc takes. The drawer's by default: a flat tint under the
+ * drawer's own rim, for the storm panels. "chrome" for the reading panels
+ * (GlassPanel), whose glass has ink that follows the basemap rather than the
+ * scheme: there the disc takes the chrome's edge and the lens bevel instead,
+ * which is the rule for anything sitting on that glass.
+ */
+export let material: "drawer" | "chrome" = "drawer";
 </script>
 
-<button type="button" aria-label={$_("close")} title={$_("close")} on:click><Icon icon={faXmark} /></button>
+<button
+  type="button"
+  class:chrome={material === "chrome"}
+  aria-label={$_("close")}
+  title={$_("close")}
+  on:click><Icon icon={faXmark} /></button>
 
 <style>
 /**
@@ -51,6 +66,12 @@ button:active {
   transform: scale(var(--mc-press, 0.94));
 }
 button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+
+/* On the reading panels' glass: the chrome's edge and bevel, no inset rim. */
+button.chrome {
+  border: 1px solid var(--mc-glass-edge);
+  box-shadow: var(--mc-glass-highlight);
+}
 
 /* A thumb needs 44px; a mouse does not, and at desktop size a target that
    big beside the title is the loudest thing in the panel. */

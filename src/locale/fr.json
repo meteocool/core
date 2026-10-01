@@ -248,7 +248,8 @@
       "cell": "cellule",
       "alive": "active depuis {duration}",
       "details": "Détails",
-      "clear": "Effacer la sélection"
+      "clear": "Effacer la sélection",
+      "clear_action": "Effacer"
     },
     "sheet": {
       "grip": "Redimensionner ou fermer les détails"
