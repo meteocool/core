@@ -366,6 +366,7 @@
   },
   "chrome": {
     "locate_me": "Standort anzeigen",
+    "layer_switcher": "Kartenebenen",
     "playback": {
       "lightning": "Blitze",
       "mesocyclones": "Mesozyklonen",

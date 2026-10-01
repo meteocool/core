@@ -366,6 +366,7 @@
   },
   "chrome": {
     "locate_me": "Locate me",
+    "layer_switcher": "Map layers",
     "playback": {
       "lightning": "Lightning Strikes",
       "mesocyclones": "Mesocyclones",
