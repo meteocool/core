@@ -115,6 +115,7 @@ uniform float uSteps;
 uniform float uCut;        // 1 for the storm being inspected, 0 for every other
 uniform float uLow;        // where the echo starts to show, which the peel raises
 uniform float uBehind;     // 1 for a storm from an older scan than the radar under it
+uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
 
 out vec4 fragColour;
 
@@ -230,8 +231,13 @@ void main() {
     float grey = dot(accumulated.rgb, vec3(0.299, 0.587, 0.114));
     accumulated = vec4(vec3(grey), accumulated.a) * ${BEHIND_FADE};
   }
-  fragColour = accumulated;
+  // Premultiplied as well: a storm the radars did not see well enough to
+  // open is drawn fainter whole, so the map says which storms have a picture.
+  fragColour = accumulated * uDim;
 }`;
+
+/** How much of its opacity a storm keeps when its coverage is below the floor for opening. */
+export const DIM_UNOPENABLE = 0.45;
 
 /* Column-major 4x4 helpers, in the layout WebGL and MapLibre both use.
    Written here rather than pulled from gl-matrix: it is two functions, and
@@ -378,6 +384,8 @@ interface Cloud {
   coreDbz: number;
   /** The scan it was measured in. */
   scan: Scan | null;
+  /** How much of its opacity it keeps; see `DIM_UNOPENABLE`. */
+  dim: number;
   texture: WebGLTexture | null;
 }
 
@@ -389,7 +397,7 @@ export interface CloudsLayer extends CustomLayerInterface {
    * position, unique only within one scan, so the same code can name two
    * different storms -- or two scans of one -- at the same time.
    */
-  setClouds(clouds: ReadonlyArray<{ key: string; cutaway: Cutaway }>): void;
+  setClouds(clouds: ReadonlyArray<{ key: string; cutaway: Cutaway; dim?: number }>): void;
   /** Open one storm, by the key it was handed over under, with a cut at this heading. */
   setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
@@ -519,15 +527,19 @@ export function makeCloudsLayer(
         if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
         clouds.delete(key);
       }
-      for (const { key, cutaway } of next) {
+      for (const { key, cutaway, dim = 1 } of next) {
         const held = clouds.get(key);
-        if (held?.cutaway === cutaway) continue;
+        if (held?.cutaway === cutaway) {
+          held.dim = dim;
+          continue;
+        }
         if (held?.texture && gl) gl.deleteTexture(held.texture);
         clouds.set(key, {
           cutaway,
           model: modelFor(cutaway),
           coreDbz: coreDbz(cutaway),
           scan: scanTime(cutaway.header.reference_time),
+          dim,
           texture: gl ? upload(gl, cutaway) : null,
         });
       }
@@ -652,6 +664,7 @@ export function makeCloudsLayer(
         if (!cut) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
         context.uniform1f(at("uBehind"), !cut && isBehind(cloud.scan, radarScan) ? 1 : 0);
+        context.uniform1f(at("uDim"), cloud.dim);
         context.uniform1f(at("uLow"), cut ? DBZ_LOW : DBZ_LOW + (cloud.coreDbz - DBZ_LOW) * peel);
         if (cut) {
           // Along the heading, so the normal lies across it; through the storm,

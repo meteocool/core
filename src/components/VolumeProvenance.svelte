@@ -28,9 +28,15 @@ $: radars = at
 $: coverage = volume.coverage != null
   ? $_("storm.volume.coverage", { values: { pct: Math.round(volume.coverage * 100) } })
   : null;
+/* Below the worker's floor the storm is drawn but never cut: the cutaway
+   cannot show when its data is thin, so the panel says so instead. */
+$: unopenable = volume.tier === 1;
 </script>
 
 <div class="provenance" bind:clientWidth={width}>
+  {#if unopenable}
+    <p class="unopenable">{$_("storm.volume.not_openable")}</p>
+  {/if}
   <h3 class="section">CAPPI<span class="aside">{$_("storm.volume.cappi_aside")}</span></h3>
   <CappiSweep {volume} {width} height={Math.round(Math.min(240, width * 0.66))} />
 
@@ -55,4 +61,5 @@ $: coverage = volume.coverage != null
 .radars li + li { border-top: 0.5px solid var(--mc-separator); }
 .radars li:first-child { padding-top: 0; }
 .detail { color: var(--mc-text-2); font-variant-numeric: tabular-nums; }
+.unopenable { margin: 0 0 12px; color: var(--mc-text-2); font-size: 13px; line-height: 1.4; }
 </style>

@@ -477,9 +477,9 @@ export interface components {
          *     named after the first directory, and the store answers 403.
          *
          *     `coverage` is the mean confidence through the 3 to 8 km layer, which is
-         *     where an overhang would be. A volume is only built above a floor, so this
-         *     is never poor; it is here so a client can say how well the storm was seen
-         *     rather than implying every cutaway is equally well founded.
+         *     where an overhang would be. It decides the tier: a volume below the
+         *     worker's floor is drawn on the map but not offered for opening, since
+         *     the cutaway cannot show when its own data is thin.
          */
         CellVolume: {
             /**
@@ -493,15 +493,31 @@ export interface components {
              */
             coverage: number;
             /**
+             * Oldest Scan At
+             * @description The oldest sweep still weighted in the box; a span of minutes for networks whose tilts rotate
+             */
+            oldest_scan_at?: string | null;
+            /**
              * Path
              * @description Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx
              */
             path: string;
             /**
+             * Scanned At
+             * @description The newest sweep in the box
+             */
+            scanned_at?: string | null;
+            /**
              * Sites
-             * @description Radars that contributed, by DWD short name
+             * @description Radars that contributed, by EUMETNET node code (deisn, frnan)
              */
             sites?: string[];
+            /**
+             * Tier
+             * @description 1: drawn on the map but not openable, its coverage below the floor; 2: the cutaway opens
+             * @default 2
+             */
+            tier: number;
         };
         /**
          * CellsRefresh
@@ -544,12 +560,12 @@ export interface components {
         };
         /**
          * CurrentVolumes
-         * @description Every storm with a radar volume, from the newest scan that has any.
+         * @description Every storm with a radar volume, from each network's newest scan that has any.
          */
         CurrentVolumes: {
             /**
              * Reference Time
-             * @description The scan these come from; null when nothing has been built
+             * @description The newest scan among these; null when nothing has been built
              */
             reference_time?: string | null;
             /** Volumes */
@@ -701,7 +717,7 @@ export interface components {
             bytes?: number | null;
             /**
              * Code
-             * @description Stable within one scan: the core's grid position, prefixed R
+             * @description Where the core's peak stands, to a hundredth of a degree, prefixed G
              */
             code: string;
             /**
@@ -720,6 +736,17 @@ export interface components {
              */
             lon: number;
             /**
+             * Network
+             * @description The network whose composite the core was found in
+             * @default de
+             */
+            network: string;
+            /**
+             * Oldest Scan At
+             * @description The oldest sweep still weighted in the box; a span of minutes for networks whose tilts rotate
+             */
+            oldest_scan_at?: string | null;
+            /**
              * Path
              * @description Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx
              */
@@ -736,15 +763,26 @@ export interface components {
              */
             reference_time: string;
             /**
+             * Scanned At
+             * @description The newest sweep in the box
+             */
+            scanned_at?: string | null;
+            /**
              * Seed Dbz
              * @description The threshold `area_km2` was measured above. Carried per volume because an area means nothing without it, and the setting can change between building and showing.
              */
             seed_dbz?: number | null;
             /**
              * Sites
-             * @description Radars that contributed, by DWD short name
+             * @description Radars that contributed, by EUMETNET node code (deisn, frnan)
              */
             sites?: string[];
+            /**
+             * Tier
+             * @description 1: drawn on the map but not openable, its coverage below the floor; 2: the cutaway opens
+             * @default 2
+             */
+            tier: number;
         };
         /**
          * SnowRefresh

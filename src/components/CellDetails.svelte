@@ -639,7 +639,7 @@ function close() {
     {/if}
   </div>
 
-  {#if on3d && track.volume}
+  {#if on3d && track.volume && track.volume.tier !== 1}
     <div class="dial">
       <SliceDial reference={latest?.heading_deg != null ? "track" : "north"} />
     </div>

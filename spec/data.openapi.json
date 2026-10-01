@@ -668,7 +668,7 @@
         "type": "object"
       },
       "CellVolume": {
-        "description": "Where to find this cell's radar volume, and how much to trust it.\n\nThe volume is the cutaway view's data: a 40 by 40 by 16 km box of\nreflectivity and confidence around the cell, built from the polar sweeps\nthe flat products are made from. It is a separate object rather than part\nof this payload because it is about 140 kB and almost nobody opens it, and\nit carries no URL because it lives in the same public bucket as the\nrendered tiles -- the client joins `path` to the tile base it already has.\n\n`path` includes the bucket, and has to. The tile base is the object\nstore's own root, not a bucket inside it, so the first segment of every\npath under it names the bucket -- which is why the rendered tiles are\nfetched from `<base>/meteoradar/...`. A path without it asks for a bucket\nnamed after the first directory, and the store answers 403.\n\n`coverage` is the mean confidence through the 3 to 8 km layer, which is\nwhere an overhang would be. A volume is only built above a floor, so this\nis never poor; it is here so a client can say how well the storm was seen\nrather than implying every cutaway is equally well founded.",
+        "description": "Where to find this cell's radar volume, and how much to trust it.\n\nThe volume is the cutaway view's data: a 40 by 40 by 16 km box of\nreflectivity and confidence around the cell, built from the polar sweeps\nthe flat products are made from. It is a separate object rather than part\nof this payload because it is about 140 kB and almost nobody opens it, and\nit carries no URL because it lives in the same public bucket as the\nrendered tiles -- the client joins `path` to the tile base it already has.\n\n`path` includes the bucket, and has to. The tile base is the object\nstore's own root, not a bucket inside it, so the first segment of every\npath under it names the bucket -- which is why the rendered tiles are\nfetched from `<base>/meteoradar/...`. A path without it asks for a bucket\nnamed after the first directory, and the store answers 403.\n\n`coverage` is the mean confidence through the 3 to 8 km layer, which is\nwhere an overhang would be. It decides the tier: a volume below the\nworker's floor is drawn on the map but not offered for opening, since\nthe cutaway cannot show when its own data is thin.",
         "properties": {
           "bytes": {
             "anyOf": [
@@ -687,18 +687,50 @@
             "title": "Coverage",
             "type": "number"
           },
+          "oldest_scan_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The oldest sweep still weighted in the box; a span of minutes for networks whose tilts rotate",
+            "title": "Oldest Scan At"
+          },
           "path": {
             "description": "Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx",
             "title": "Path",
             "type": "string"
           },
+          "scanned_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newest sweep in the box",
+            "title": "Scanned At"
+          },
           "sites": {
-            "description": "Radars that contributed, by DWD short name",
+            "description": "Radars that contributed, by EUMETNET node code (deisn, frnan)",
             "items": {
               "type": "string"
             },
             "title": "Sites",
             "type": "array"
+          },
+          "tier": {
+            "default": 2,
+            "description": "1: drawn on the map but not openable, its coverage below the floor; 2: the cutaway opens",
+            "title": "Tier",
+            "type": "integer"
           }
         },
         "required": [
@@ -765,7 +797,7 @@
         "type": "object"
       },
       "CurrentVolumes": {
-        "description": "Every storm with a radar volume, from the newest scan that has any.",
+        "description": "Every storm with a radar volume, from each network's newest scan that has any.",
         "properties": {
           "reference_time": {
             "anyOf": [
@@ -777,7 +809,7 @@
                 "type": "null"
               }
             ],
-            "description": "The scan these come from; null when nothing has been built",
+            "description": "The newest scan among these; null when nothing has been built",
             "title": "Reference Time"
           },
           "volumes": {
@@ -1023,7 +1055,7 @@
             "title": "Bytes"
           },
           "code": {
-            "description": "Stable within one scan: the core's grid position, prefixed R",
+            "description": "Where the core's peak stands, to a hundredth of a degree, prefixed G",
             "title": "Code",
             "type": "string"
           },
@@ -1041,6 +1073,25 @@
             "description": "Longitude of the core's peak, and of the box's centre",
             "title": "Lon",
             "type": "number"
+          },
+          "network": {
+            "default": "de",
+            "description": "The network whose composite the core was found in",
+            "title": "Network",
+            "type": "string"
+          },
+          "oldest_scan_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The oldest sweep still weighted in the box; a span of minutes for networks whose tilts rotate",
+            "title": "Oldest Scan At"
           },
           "path": {
             "description": "Path under the tile base, bucket first, e.g. meteoradar/volumes/20260922T011500/1234.mcvx",
@@ -1065,6 +1116,19 @@
             "title": "Reference Time",
             "type": "string"
           },
+          "scanned_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newest sweep in the box",
+            "title": "Scanned At"
+          },
           "seed_dbz": {
             "anyOf": [
               {
@@ -1078,12 +1142,18 @@
             "title": "Seed Dbz"
           },
           "sites": {
-            "description": "Radars that contributed, by DWD short name",
+            "description": "Radars that contributed, by EUMETNET node code (deisn, frnan)",
             "items": {
               "type": "string"
             },
             "title": "Sites",
             "type": "array"
+          },
+          "tier": {
+            "default": 2,
+            "description": "1: drawn on the map but not openable, its coverage below the floor; 2: the cutaway opens",
+            "title": "Tier",
+            "type": "integer"
           }
         },
         "required": [

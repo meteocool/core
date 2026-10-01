@@ -67,6 +67,7 @@ export let height = 210;
 let canvas: HTMLCanvasElement;
 let cutaway: Cutaway | null = null;
 let failed: string | null = null;
+let unopenable = false;
 let frame = 0;
 let controller: AbortController | null = null;
 let raymarcher: Raymarcher | null = null;
@@ -227,6 +228,12 @@ onMount(() => {
   // than this component's lifetime -- see the rule beside the other selection
   // rules in App.svelte -- so a link that opens a storm cut at 40 degrees is
   // not undone by the panel mounting a moment later.
+  // Not seen well enough to open: the panel says so rather than drawing a
+  // cut through interpolation that looks as convincing as a real one.
+  if (volume.tier === 1) {
+    unopenable = true;
+    return;
+  }
   controller = new AbortController();
   loadCutaway(volume, controller.signal)
     .then(async (loaded) => {
@@ -259,7 +266,9 @@ $: cut = cutLabel($cutRotationDeg + $cutSweepDeg, $_, reference);
 const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 2) : 1;
 </script>
 
-{#if failed}
+{#if unopenable}
+  <p class="unavailable">{$_("storm.volume.not_openable")}</p>
+{:else if failed}
   <p class="unavailable">{$_("storm.volume.unavailable")}</p>
 {:else if cutaway}
   <figure>
