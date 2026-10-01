@@ -381,7 +381,10 @@
       "play": "Abspielen",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",
-      "offset_hours_minutes": "{sign}{hours}h{minutes}min"
+      "offset_hours_minutes": "{sign}{hours}h{minutes}min",
+      "timeline": "Radar-Zeitleiste",
+      "loop": "Schleife",
+      "from_start": "Schleife ab zwei Stunden zurück"
     },
     "satellite": {
       "clouds": "Wolken",
