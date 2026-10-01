@@ -5,10 +5,13 @@ import type NanobarWrapper from "../lib/NanobarWrapper";
 import type { CapabilityOptions, RadarSocket } from "./options";
 import Capability from "./Capability";
 import StrikeManagerV2 from "../lib/StrikeManagerV2";
-import { capDescription, capLastUpdated, showForecastPlaybutton } from "../stores";
+import { capDescription, capLastUpdated, radarColorScheme, showForecastPlaybutton } from "../stores";
 import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
 import { fetchLightningLayer, fetchLightningSince } from "../api";
 import { noaaBREF } from "../layers/noaa";
+import NetworkRadarLayer, { EUROPE } from "../layers/network";
+import { whenVisible } from "../lib/wakeup";
+import type { NetworkEvent } from "../api/events";
 
 /**
  * The API's lightning_baseline_max_hours, which defaults to one hour, less a
@@ -16,6 +19,12 @@ import { noaaBREF } from "../layers/noaa";
  * exactly on the limit is already past it by the time the request lands.
  */
 const BASELINE_MAX_SECONDS = 60 * 60 - 120;
+
+/**
+ * How strongly the rain is laid under the strikes: enough to say which
+ * strikes are in which storm, faint enough that the strikes are the map.
+ */
+const RAIN_UNDERLAY_OPACITY = 0.3;
 
 export default class LightningCapability extends Capability {
   /** The current vector tile layer, replaced whenever a new tile set lands. */
@@ -33,11 +42,23 @@ export default class LightningCapability extends Capability {
   /** Kept so destroy() can take the handler back off the socket again. */
   private lightningHandler: ((data: { lon: number; lat: number; time: number }) => void) | null = null;
 
+  /**
+   * The merged European composite, faint under the strikes: a strike reads
+   * as a storm's when the storm is there to see. Its newest frame only, as
+   * the radar map's live step draws it, in the reader's palette.
+   */
+  private readonly rain: NetworkRadarLayer;
+
+  private networkHandler: ((event: NetworkEvent) => void) | null = null;
+
+  private unsubscribePalette: (() => void) | null = null;
+
   constructor(map: Map, additionalLayers: BaseLayer[], args: CapabilityOptions) {
     super(map, "lightning", () => {
       capDescription.set("foo");
       showForecastPlaybutton.set(false);
       this.fetchLightning();
+      void this.rain.refresh(this.nb);
     }, additionalLayers);
 
     if (args.cmap) super.setCmap(args.cmap);
@@ -47,6 +68,15 @@ export default class LightningCapability extends Capability {
     this.socketio = args.socket;
 
     map.addLayer(noaaBREF());
+
+    this.rain = new NetworkRadarLayer(map, EUROPE, undefined, RAIN_UNDERLAY_OPACITY);
+    this.unsubscribePalette = radarColorScheme.subscribe((palette) => this.rain.setPalette(palette));
+    // A new merged frame every few minutes, announced like any network's.
+    this.networkHandler = ({ network }) => {
+      if (network !== EUROPE.code) return;
+      whenVisible("lightning:network:eu", () => { void this.rain.refresh(this.nb); });
+    };
+    this.socketio?.on("network", this.networkHandler);
   }
 
   async fetchLightning() {
@@ -98,5 +128,12 @@ export default class LightningCapability extends Capability {
       this.socketio.off("lightning", this.lightningHandler);
       this.lightningHandler = null;
     }
+    if (this.socketio && this.networkHandler) {
+      this.socketio.off("network", this.networkHandler);
+      this.networkHandler = null;
+    }
+    this.unsubscribePalette?.();
+    this.unsubscribePalette = null;
+    this.rain.destroy();
   }
 }
