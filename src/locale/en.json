@@ -381,7 +381,10 @@
       "play": "Play",
       "offset_minutes": "{sign}{minutes}m",
       "offset_hours": "{sign}{hours}h",
-      "offset_hours_minutes": "{sign}{hours}h{minutes}m"
+      "offset_hours_minutes": "{sign}{hours}h{minutes}m",
+      "timeline": "Radar timeline",
+      "loop": "Loop",
+      "from_start": "Loop from two hours back"
     },
     "satellite": {
       "clouds": "Clouds",

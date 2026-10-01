@@ -213,7 +213,7 @@
   --mc-tray-pad: 8px;                                 /* a tray's horizontal padding */
   --mc-rail-gap: 10px;                                /* player grid column gap; the forecast bars key off both */
   --mc-bar-h: 84px;                                   /* collapsed toolbar; the flanking discs centre on it */
-  --mc-player-h: 132px;                               /* expanded player tray: track row + controls row + meta/legend row */
+  --mc-player-h: 168px;                               /* expanded player tray: head row + timeline + transport row */
   --mc-strip-h: 104px;                                /* a chart strip above the tray (DismissableStrip) */
   --mc-hint-h: 48px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);
@@ -365,7 +365,7 @@
 /* Keep the collapsed iOS tray near the edge, above the home indicator. */
 :root.is-ios {
   --mc-collapsed-bottom: max(12px, calc(var(--mc-safe-bottom) - 12px));
-  --mc-player-h: 132px;
+  --mc-player-h: 168px;
 }
 
 /* A phone is held closer and read at arm's length less often than a desktop
@@ -388,7 +388,7 @@
     --mc-glass-blur: 28px;
     --mc-tray-pad: 12px;
     --mc-bar-h: 42px;
-    --mc-player-h: 104px;
+    --mc-player-h: 164px;
   }
 }
 
