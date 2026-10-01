@@ -1,7 +1,7 @@
 <script lang="ts">
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
-import { cells3dVisible, europeCompositeVisible, mapBaseLayer, radarColormap } from "../stores";
+import { cells3dVisible, europeCompositeVisible, mapBaseLayer, radarColormap, terrain3dVisible } from "../stores";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
 
@@ -81,6 +81,10 @@ const offers3d = capabilityEnabled("cells3d");
 
 function setCells3d(value: boolean) {
   window.settings.set("layer3dCells", value);
+}
+
+function setTerrain3d(value: boolean) {
+  window.settings.set("layer3dTerrain", value);
 }
 
 function setEuropeComposite(value: boolean) {
@@ -288,6 +292,18 @@ function setEuropeComposite(value: boolean) {
       </label>
     </div>
     <p class="hint">{$_("settings.konrad_cells_hint")}</p>
+    <div class="group">
+      <label class="row">
+        <span class="label">{$_("settings.terrain")}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          class="switch"
+          checked={$terrain3dVisible}
+          on:change={(event) => setTerrain3d(event.currentTarget.checked)} />
+      </label>
+    </div>
+    <p class="hint">{$_("settings.terrain_hint")}</p>
   {/if}
   <h2>{$_("settings.experimental")}</h2>
   <div class="group">

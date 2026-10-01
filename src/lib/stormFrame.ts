@@ -226,6 +226,8 @@ export function framingCamera(
   room: FramingRoom,
   pitchDeg: number,
   maxZoom: number,
+  /** How much taller than life the map draws heights. */
+  verticalScale = 1,
 ): FramingCamera {
   const { header, centreKm, halfKm, extentM } = cutaway;
   const latRad = (header.lat * Math.PI) / 180;
@@ -233,7 +235,7 @@ export function framingCamera(
   const lat = header.lat + centreKm[1] / KM_PER_DEGREE;
   const along = (directionDeg * Math.PI) / 180;
   const widthM = 2000 * (halfKm[0] * Math.abs(Math.sin(along)) + halfKm[1] * Math.abs(Math.cos(along)));
-  const heightM = extentM[2] / 2 + 1000 * (centreKm[2] + halfKm[2]);
+  const heightM = (extentM[2] / 2 + 1000 * (centreKm[2] + halfKm[2])) * verticalScale;
 
   // Metres per pixel that fit both where the storm will stand. Across, a
   // plane square to the camera is drawn at the scale of the ground under
