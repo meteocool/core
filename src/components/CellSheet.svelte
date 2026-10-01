@@ -1,3 +1,15 @@
+<script module lang="ts">
+/**
+ * How many sheets are up. The bottom toolbar and the collapsed player's discs
+ * hide while any are: see `body.cell-details-open` in App.svelte. Counted
+ * here rather than derived from the stores in App.svelte, so every sheet --
+ * a storm's, the model comparison's, a reading panel's -- hides them the
+ * same way, and they come back after the last one's outro rather than under
+ * it.
+ */
+let openSheets = 0;
+</script>
+
 <script lang="ts">
 /**
  * The detail panel as a sheet, on a phone.
@@ -13,6 +25,12 @@
  * Glass rather than the desktop panel's solid fill, so the map keeps showing
  * through the edges and the sheet reads as floating over it rather than as a
  * second screen that replaced it.
+ *
+ * The one surface a phone has for anything that opens over the map: the
+ * storm panels take it through App.svelte, and the reading panels -- About,
+ * Settings, Connection Details -- through GlassPanel, in the reading
+ * material and opened at full height, since they are read rather than
+ * navigated with.
  */
 import { fly } from "svelte/transition";
 import { cubicOut } from "svelte/easing";
@@ -50,6 +68,21 @@ export let expandable = true;
  * because a grabber alone does not say there is anything above it.
  */
 export let fitAtRest = false;
+/**
+ * Opens at full height rather than half. For reading: a page of settings or
+ * diagnostics has nothing on the map to keep in view, and at half height is a
+ * column of text in a strip. Pulling it down still lands on half before it
+ * closes, as every sheet does.
+ */
+export let full = false;
+/**
+ * The glass it is made of. The drawer's by default (see src/glass.css): the
+ * storm panels' material, which keeps some of the map's colour. "reading"
+ * for a wall of text, which takes the reading material instead -- the same
+ * glass the floating panel uses on a desktop, so a panel reads the same on
+ * both.
+ */
+export let material: "drawer" | "reading" = "drawer";
 
 /**
  * The sheet slides, unless the reader has asked things not to move.
@@ -113,7 +146,7 @@ const HALF = get(sharedActiveCap) === "cells3d" ? 0.32 : 0.4;
 // of that chrome on every phone rather than on the one this was tuned on.
 const FULL = 0.95;
 
-let detent = HALF;
+let detent = full ? FULL : HALF;
 
 /**
  * At FULL the sheet covers the native buttons floating on top of the
@@ -138,6 +171,15 @@ onDestroy(() => syncNativeChrome(false));
 
 // From the first frame, before whatever the sheet holds has loaded.
 onMount(holdNativeChrome);
+
+onMount(() => {
+  openSheets += 1;
+  document.body.classList.add("cell-details-open");
+  return () => {
+    openSheets -= 1;
+    if (openSheets === 0) document.body.classList.remove("cell-details-open");
+  };
+});
 
 /* ---- drag the grabber --------------------------------------------------- */
 
@@ -324,6 +366,16 @@ function bodyUp(event: PointerEvent) {
     border-top: 1px solid var(--mc-drawer-edge);
   }
 
+  /* The reading material, over the drawer's shape and shadow: the fill, the
+     blur and the ink are the floating panel's (.glass-reading). */
+  .sheet.reading {
+    --mc-text-2: var(--mc-reading-text-2);
+    --mc-text-3: var(--mc-reading-text-3);
+    background: var(--mc-reading-fill);
+    -webkit-backdrop-filter: var(--mc-reading-backdrop);
+    backdrop-filter: var(--mc-reading-backdrop);
+  }
+
   .sheet.fit {
     --rest: 0px;
     height: auto;
@@ -464,6 +516,7 @@ function bodyUp(event: PointerEvent) {
 
 <div
   class="sheet mc-drawer"
+  class:reading={material === "reading"}
   class:fit={!expandable || (fitAtRest && detent === HALF)}
   class:dragging
   class:settling={!dragging}

@@ -251,7 +251,8 @@
       "cell": "cell",
       "alive": "alive for {duration}",
       "details": "Details",
-      "clear": "Clear selection"
+      "clear": "Clear selection",
+      "clear_action": "Clear"
     },
     "sheet": {
       "grip": "Resize or close details"

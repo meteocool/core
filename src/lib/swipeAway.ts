@@ -1,15 +1,17 @@
 /**
- * Swipe left to clear, as an action both things that do it can share.
+ * Swipe left to clear, as an action everything that does it shares.
  *
- * The strips at the bottom of the map have cleared this way for a while, and
- * the cell hint bar now does too. What has to match between them is not the
+ * The strips at the bottom of the map clear this way, and so does the cell
+ * hint bar -- through the same dock (components/SwipeDock.svelte), which
+ * parks the panel at a detent to show the action under it and takes it off
+ * the edge past the commit point. What has to match between them is not the
  * look but the feel, and the feel is almost all in one rule -- when a drag
  * stops being a tap and which way it counts as going -- so that rule lives
  * here rather than being written out twice and drifting.
  *
- * What the two do with the gesture still differs: the strip parks open at a
- * detent to show a Hide button, the hint bar just leaves. So this reports the
- * travel and leaves the meaning to the caller.
+ * This reports the travel and leaves the meaning to the caller: the dock
+ * turns it into a reveal, and anything else is free to turn it into
+ * something else.
  */
 
 /**
@@ -45,6 +47,11 @@ export function shouldClear(dx: number, width: number, commit = SWIPE_COMMIT): b
 }
 
 export interface SwipeAwayOptions {
+  /**
+   * Called once a press has turned into a horizontal swipe: the moment to
+   * measure the element and stop animating it, since the finger has it now.
+   */
+  onStart?: (node: HTMLElement) => void;
   /** Called with the leftward travel, in pixels, as the finger moves. */
   onMove: (dx: number) => void;
   /** Called on release: `cleared` says whether it went far enough. */
@@ -84,6 +91,7 @@ export function swipeAway(node: HTMLElement, options: SwipeAwayOptions) {
       axis = decideAxis(dx, dy);
       if (axis !== "x") return;
       try { node.setPointerCapture(event.pointerId); } catch { /* already gone */ }
+      opts.onStart?.(node);
     }
     if (axis !== "x") return;
     // Leftward only: there is nothing to the right to reveal, and letting the
