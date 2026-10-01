@@ -11,7 +11,7 @@
  * plane through the storm is the cross-section; a horizontal one with its
  * normal pointing up is a CAPPI, everything above the chosen height gone.
  */
-import { FRAMING_DBZ } from "./cellCutaway";
+import { FRAMING_DBZ } from "./stormFrame";
 import type { Cutaway } from "./cellCutaway";
 import { dbzColour } from "./cellVolume";
 
