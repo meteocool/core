@@ -16,12 +16,13 @@
  */
 import { fly } from "svelte/transition";
 import { cubicOut } from "svelte/easing";
-import { onDestroy } from "svelte";
+import { onDestroy, onMount } from "svelte";
 import { get } from "svelte/store";
 import { _ } from "svelte-i18n";
 import { cellDetails, sharedActiveCap } from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { holdNativeChrome, postToNative } from "../lib/nativeBridge";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import CellDetails from "./CellDetails.svelte";
 
@@ -126,16 +127,17 @@ let detent = HALF;
 let sheetExpandedNative = false;
 
 function syncNativeChrome(expanded: boolean) {
-  if (!dd.isIos() || expanded === sheetExpandedNative) return;
+  if (!dd.isApp() || expanded === sheetExpandedNative) return;
   sheetExpandedNative = expanded;
-  window.webkit?.messageHandlers.scriptHandler.postMessage(
-    expanded ? "detailSheetExpanded" : "detailSheetCollapsed",
-  );
+  postToNative(expanded ? "detailSheetExpanded" : "detailSheetCollapsed");
 }
 
 $: syncNativeChrome(detent === FULL);
 
 onDestroy(() => syncNativeChrome(false));
+
+// From the first frame, before whatever the sheet holds has loaded.
+onMount(holdNativeChrome);
 
 /* ---- drag the grabber --------------------------------------------------- */
 

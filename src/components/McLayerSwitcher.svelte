@@ -5,6 +5,7 @@
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
+  import { postToNative } from "../lib/nativeBridge";
   import { _ } from "svelte-i18n";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
@@ -52,6 +53,9 @@
     selectedCell.set(null);
     selectedVolume.set(null);
     ls.style.display = "block";
+    // Here rather than in open(), so the apps' own buttons are covered too:
+    // they hide their chrome while the switcher is up.
+    postToNative("layerSwitcherOpened");
     // The View is shared with the main map, which carries bottom padding for
     // the glass tray; the tiles are not under it.
     layerManager.maps[0]?.getView().setProperties({ padding: [0, 0, 0, 0] });
@@ -65,13 +69,6 @@
 
   function open() {
     window.openLayerswitcher?.();
-    // The iOS wrapper was told about close but never about open, so it could
-    // not hide its own chrome while the switcher was up.
-    if (dd.isIos()) {
-      window.webkit?.messageHandlers.scriptHandler.postMessage(
-        "layerSwitcherOpened",
-      );
-    }
   }
 
   function close() {
@@ -82,11 +79,7 @@
       map.setTarget(null);
       map.updateSize();
     });
-    if (dd.isIos()) {
-      window.webkit?.messageHandlers.scriptHandler.postMessage(
-        "layerSwitcherClosed",
-      );
-    }
+    postToNative("layerSwitcherClosed");
     // Map.svelte re-measures the tray and restores the view padding.
     toolbarTransitionEnd();
   }
