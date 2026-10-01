@@ -214,6 +214,8 @@
   --mc-rail-gap: 10px;                                /* player grid column gap; the forecast bars key off both */
   --mc-bar-h: 84px;                                   /* collapsed toolbar; the flanking discs centre on it */
   --mc-player-h: 132px;                               /* expanded player tray: track row + controls row + meta/legend row */
+  --mc-strip-h: 104px;                                /* a chart strip above the tray (DismissableStrip) */
+  --mc-hint-h: 48px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);
   --mc-safe-bottom: env(safe-area-inset-bottom, 0px);
   --mc-collapsed-bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));

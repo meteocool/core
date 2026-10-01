@@ -245,7 +245,8 @@
       "cell": "komórka",
       "alive": "aktywna od {duration}",
       "details": "Szczegóły",
-      "clear": "Wyczyść zaznaczenie"
+      "clear": "Wyczyść zaznaczenie",
+      "clear_action": "Wyczyść"
     },
     "sheet": {
       "grip": "Zmień rozmiar lub zamknij szczegóły"
