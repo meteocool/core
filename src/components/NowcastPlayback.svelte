@@ -10,23 +10,14 @@ import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocati
 import Icon from "./Icon.svelte";
 import StateMachine from "javascript-state-machine";
 import { fly } from "svelte/transition";
-import { onDestroy, onMount, tick } from "svelte";
-import { CategoryScale, LinearScale, BarController, BarElement, Chart } from "chart.js";
+import { onDestroy, onMount } from "svelte";
 import {
   lastFocus, sharedActiveCap,
-  cellLayerVisible,
-  cycloneLayerVisible,
   latLon,
-  lightningLayerVisible,
-  bottomToolbarMode, radarColormap, precacheForecast,
+  bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, mapTapped, modelCompareAt, radarStale,
-  frameRequest, playbackRunning,
+  frameRequest, playbackRunning, capTimeIndicator,
 } from "../stores";
-
-Chart.register(CategoryScale);
-Chart.register(LinearScale);
-Chart.register(BarController);
-Chart.register(BarElement);
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { postToNative } from "../lib/nativeBridge";
@@ -36,10 +27,10 @@ import type { GridConfig } from "../caps/RadarCapability";
 import LastUpdated from "./LastUpdated.svelte";
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
+import Timeline from "./Timeline.svelte";
 import { _, locale } from "svelte-i18n";
-import type { Translate } from "../locale/t";
 import { get } from "svelte/store";
-import { dbz2color } from "../lib/cmap_utils";
+import { forecastGapFrom, hasEcho, timelineSteps } from "../lib/timeline";
 import {
   chRadarExtent4326,
   czRadarExtent4326,
@@ -59,21 +50,9 @@ let gridConfig: GridConfig | null = null;
 /** How many frames ahead of playback to ask for tiles: about a second and a half of the loop. */
 const PREFETCH_FRAMES = 3;
 
-// Assigned when the client has no position; not rendered today.
-let _showBars = true;
-
-let userLatLon;
 /** Manual subscriptions, so they are handed to onDestroy at the bottom. */
 const subscriptions: (() => void)[] = [];
 
-subscriptions.push(latLon.subscribe((latlonUpdate) => {
-  userLatLon = latlonUpdate;
-  if (!userLatLon) {
-    _showBars = false;
-  }
-}));
-
-let canvasVisible = true;
 let showOpenControls = false;
 
 let oldTimeStep = 0;
@@ -104,252 +83,24 @@ let playTimeout;
  */
 let seekTo: number | null = null;
 
-/** The Shoelace <sl-range> scrubber. */
-let slRange: (HTMLElement & { value: number }) | null = null;
+/**
+ * The step the player is on, unix seconds: what the needle sits on and what
+ * a playback tick advances. Zero until the player has been opened.
+ */
+let shown = 0;
 
 let loop = true;
 let historicActive = true;
 let includeHistoric = false;
-let canvas: HTMLCanvasElement;
-
-let buttonSize = "small";
-if (dd.isApp()) {
-  buttonSize = "medium";
-}
-// window.onresize = () => {
-//   if (window.innerWidth < 990) {
-//     buttonSize = "medium";
-//   } else {
-//     buttonSize = "small";
-//   }
-// };
 
 let autoPlay = false;
-/** The precipitation bars. A plain bar chart: the error-bar variant this
-    used to be was never given error bars, and dragged five more chart types
-    into the bundle with it. */
-let chart: Chart<"bar", { y: number }[], string> | null = null;
 
 /**
- * The time axis, drawn as HTML under the plot instead of by Chart.js.
- *
- * Chart.js centres a tick label on its category, so the two labels that matter
- * most -- the ones saying how far back and how far forward the chart reaches --
- * hung half off the canvas and were clipped, and there is nowhere to pad them
- * to: the plot area has to span the scrubber's track exactly, or the bars stop
- * lining up with the minute the slider plays. Here the end labels are anchored
- * to the ends of the track and the rest are centred on their bar.
- *
- * `pct` is the position along the track, `minutes` the offset from now, and
- * `anchor` marks the two ends.
+ * How often the time axis is labelled, in minutes. The grid is on a 5-minute
+ * step, so every interval here divides it exactly.
  */
-let axisTicks: { pct: number; minutes: number; anchor: "start" | "end" | null }[] = [];
+const labelEvery = dd.breakpoint() === "reduced" || dd.breakpoint() === "small" ? 60 : 30;
 
-/**
- * Where along the track the forecast starts, in %, when there is none at the
- * point being asked about -- and null whenever there is one, or nothing at all.
- *
- * Outside DWD's grid the past comes from meteocool's own composites of the
- * neighbouring networks, which have no forecast, so the right half of the
- * strip is empty for a reason rather than because it will stay dry. Flat
- * bars there would say the latter.
- */
-let noForecastFrom: number | null = null;
-
-/** How close to an end a regular tick may sit before the end label wins, in %. */
-const AXIS_EDGE_CLEAR = 9;
-
-/**
- * "-2h", "+45m", "+1h30m" -- and "now" for the zero mark. Takes the template's
- * `$_`, so the axis is re-labelled when the language changes.
- */
-function formatOffset(minutes: number, t: Translate): string {
-  if (minutes === 0) return t("now");
-  const sign = minutes < 0 ? "-" : "+";
-  const abs = Math.abs(minutes);
-  if (abs % 60 === 0) return t("chrome.playback.offset_hours", { values: { sign, hours: abs / 60 } });
-  if (abs < 60) return t("chrome.playback.offset_minutes", { values: { sign, minutes: abs } });
-  return t("chrome.playback.offset_hours_minutes", {
-    values: { sign, hours: Math.floor(abs / 60), minutes: abs % 60 },
-  });
-}
-
-function redraw(config) {
-  if (!config) return;
-  console.log("Redrawing");
-  const { grid } = config;
-  if (!canvas) {
-    console.log("Grid not yet initialized, skipping redraw");
-    return;
-  }
-  // if (Object.values(grid).map((step) => step.dbz).reduce((a, b) => a + b, 0) === 0) {
-  //   canvasVisible = false;
-  //   return;
-  // }
-  // Truncated where the scrubber is, not where the grid is: the bars have to
-  // line up with the slider under them, so a bar's position reads as the minute
-  // the slider would be at. The unpublished tail is not plottable anyway -- its
-  // steps carry no dbz -- so it would only have added flat bars nothing could
-  // ever scrub to. Numeric sort: the default is lexicographic, which is only
-  // harmless here because every key is a 10-digit timestamp.
-  const lastPlayable = cap.getLastPlayableStep();
-  const sortedKeys = Object.keys(grid)
-    .map((e) => parseInt(e, 10))
-    .sort((a, b) => a - b)
-    .filter((step) => step <= lastPlayable);
-  // with error bars:
-  // return {y: grid[step].dbz, yMin: grid[step].dbz - grid[step].dbzMin, yMax: grid[step].dbz + grid[step].dbzMax};
-  const d = sortedKeys.map((step) => (
-    { y: Math.max(0, grid[step] != null ? grid[step].dbz : 0) }
-  ));
-  if (chart) chart.destroy();
-
-  // How often the time axis is labelled, in minutes. The grid is on a 5-minute
-  // step, so every interval here divides it exactly.
-  let tickEvery = 30;
-  if (dd.breakpoint() === "reduced") tickEvery = 60;
-  if (dd.breakpoint() === "small") tickEvery = 60;
-
-  /* The ends are always labelled, whatever they land on: the right-hand one is
-     how far the forecast actually reaches, which is the nowcast's published
-     horizon rather than a round +2h -- the last few steps are still being
-     computed, and the chart stops where the scrubber does. Saying "+1h50m"
-     when that is the truth beats the previous behaviour, which was to drop the
-     label entirely because no category sat exactly on the hour. */
-  const bars = sortedKeys.length;
-  const firstForecast = sortedKeys.findIndex((step) => grid[step] != null && grid[step].source !== "observation");
-  const unknown = (step: number) => grid[step] == null || grid[step].dbz == null;
-  noForecastFrom = firstForecast > 0
-    && sortedKeys.slice(firstForecast).every(unknown)
-    && !sortedKeys.slice(0, firstForecast).every(unknown)
-    ? (firstForecast / bars) * 100
-    : null;
-  const minutesAt = (index: number) => Math.round((sortedKeys[index] - config.now) / 60);
-  const ticks: typeof axisTicks = bars === 0 ? [] : [
-    { pct: 0, minutes: minutesAt(0), anchor: "start" },
-  ];
-  for (let i = 1; i < bars - 1; i += 1) {
-    const minutes = minutesAt(i);
-    if (minutes % tickEvery !== 0) continue;
-    // Centred on its bar, the way Chart.js placed it.
-    const pct = ((i + 0.5) / bars) * 100;
-    if (pct < AXIS_EDGE_CLEAR || pct > 100 - AXIS_EDGE_CLEAR) continue;
-    ticks.push({ pct, minutes, anchor: null });
-  }
-  if (bars > 1) ticks.push({ pct: 100, minutes: minutesAt(bars - 1), anchor: "end" });
-  axisTicks = ticks;
-
-  // The ceiling the bars are drawn against. 95 dBZ is the top of the colour
-  // table, not a rainfall anyone sees: a typical shower peaks around 20, so
-  // every bar came out a fifth of the height it had room for -- which did not
-  // matter while the chart was a transparent overlay and looks like a mistake
-  // now that it sits in a bubble of its own. 45 dBZ is heavy rain; taking the
-  // max with the peak means hail still never clips.
-  const peak = Math.max(...d.map((step) => step.y));
-  const scaleMax = Math.max(45, Math.ceil(peak));
-
-  chart = new Chart(canvas.getContext("2d")!, {
-    type: "bar",
-    data: {
-      labels: sortedKeys.map((key) => ((key - config.now) / 60)).map((v) => `${v}`),
-      datasets: [{
-        data: d,
-        barPercentage: 0.99,
-        categoryPercentage: 0.99,
-        backgroundColor: d.map(((value) => dbz2color(value.y, get(radarColormap))))
-          .map(([r, g, b], index) => {
-            if (grid[sortedKeys[index]] == null) {
-              return `rgba(0, 0, 0, 1)`;
-            }
-            const certain = grid[sortedKeys[index]].source === "observation" ? 1 : 0.7;
-            return `rgba(${r}, ${g}, ${b}, ${certain})`;
-          }),
-        borderColor: d.map((value, index) => (sortedKeys[index] === cap.getMostRecentObservation() ? "#ff0000" : getComputedStyle(document.body)
-          .getPropertyValue("--sl-color-info-700"))),
-        borderWidth: 1,
-      }],
-    },
-    options: {
-      animation: {
-        duration: 0,
-      },
-      // animation: {
-      //   onComplete: (chart) => {
-      //     const chartInstance = chart,
-      //             ctx = canvas.getContext("2d");
-
-      //     ctx.font = fontString(
-      //             18,
-      //             "Italic",
-      //             "Sans",
-      //     );
-      //     ctx.textAlign = "center";
-      //     ctx.textBaseline = "bottom";
-      //     console.log(chartInstance.data.datasets);
-
-      //     chartInstance.data.datasets.forEach(function(dataset, i) {
-      //       const meta = chartInstance.controller.getDatasetMeta(i);
-      //       meta.data.forEach(function(bar, index) {
-      //         const data = dataset.data[index];
-      //         ctx.fillStyle = "#000";
-      //         ctx.fillText(data, bar._model.x, bar._model.y - 2);
-      //       });
-      //     });
-      //   }
-      // },
-      layout: {
-        padding: {
-          // No horizontal padding: the plot area has to span the canvas exactly,
-          // because the canvas is positioned to span the scrubber's track.
-          left: 0,
-          right: 0,
-          top: 4,
-          bottom: 0,
-        },
-      },
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false },
-      },
-      scales: {
-        x: {
-          /* The axis is drawn as HTML underneath the canvas, not by Chart.js --
-             see axisTicks. The scale itself still has to exist, because it is
-             what places the bars; it just reserves no room and paints nothing,
-             so the plot area spans the scrubber's track exactly. */
-          display: false,
-          grid: {
-            display: false,
-          },
-          border: {
-            display: false,
-          },
-        },
-        y: {
-          type: "linear",
-          // display, not just the ticks: a shown-but-empty scale still reserves
-          // width, which offset every bar from the slider position it plays.
-          display: false,
-          grid: {
-            display: false,
-          },
-          border: {
-            display: false,
-          },
-          beginAtZero: true,
-          ticks: {
-            display: false,
-          },
-          max: scaleMax,
-          min: 0,
-        },
-      },
-    },
-  });
-}
-$: redraw(gridConfig);
 
 /**
  * The newest step the scrubber may reach.
@@ -361,14 +112,23 @@ $: redraw(gridConfig);
  */
 $: lastPlayableStep = gridConfig ? cap.getLastPlayableStep() : undefined;
 
+/** The strip's bars, oldest first, cut where the scrubber stops. */
+$: steps = gridConfig && lastPlayableStep !== undefined ? timelineSteps(gridConfig, lastPlayableStep) : [];
+
 /**
  * Whether there is anything worth plotting: a step with measurable echo at the
  * client's position. Every dbz is null until a position has been shared, so
  * this keeps the strip away when there is no location either -- it used to
  * render a full-width row of zero-height bars over the map instead.
  */
-$: hasPrecipitation = !!gridConfig
-  && Object.values(gridConfig.grid).some((f) => f && f.dbz != null && f.dbz > 0);
+$: hasPrecipitation = hasEcho(steps);
+
+/**
+ * Where along the track the forecast starts, as a fraction, when there is none
+ * at the point being asked about -- and null whenever there is one, or nothing
+ * at all. Flat bars there would say "dry" when the truth is "no forecast".
+ */
+$: noForecastFrom = forecastGapFrom(steps);
 
 /**
  * Whether the forecast strip is on screen.
@@ -530,37 +290,16 @@ subscriptions.push(inspectLatLon.subscribe(() => { gridLoading = true; }));
    the rising edge -- the grid that clears radarStale also clears this. */
 subscriptions.push(radarStale.subscribe((value) => { if (value) gridLoading = true; }));
 
-/* The canvas spans the scrubber's track while the player is open and the whole
-   tray when it is collapsed, so its container changes width with the mode.
-   Chart.js re-reads that on resize() and nowhere else, and the recreate in
-   onShowScrollbar only runs when a chart already exists -- opening the player
-   before the first one is built left it sized for the collapsed tray. */
-$: if (chart && $bottomToolbarMode) tick().then(() => chart?.resize());
 function updateSliderToLatest(_config) {
-  if (!slRange) return;
   // Never mid-playback: that would throw a running sequence back to now.
   if (fsm.state === "playing") return;
   // Only from the frame that was the newest observation last time round.
-  if (liveEdge === null || Number(slRange.value) !== liveEdge) return;
+  if (liveEdge === null || shown !== liveEdge) return;
   const latest = cap.getMostRecentObservation();
-  slRange.value = latest;
+  shown = latest;
   liveEdge = latest;
 }
 $: updateSliderToLatest(gridConfig);
-
-function canvasInit(elem: HTMLCanvasElement) {
-  canvas = elem;
-  redraw(gridConfig);
-  return {
-    destroy() {
-      // The strip unmounts whenever the rain stops. Without this, redraw()
-      // would go on building charts into a canvas that is no longer on the page.
-      chart?.destroy();
-      chart = null;
-      canvas = null as unknown as HTMLCanvasElement;
-    },
-  };
-}
 
 const fsm = new StateMachine({
   init: "followLatest",
@@ -594,27 +333,17 @@ const fsm = new StateMachine({
   methods: {
     onShowScrollbar: () => {
       bottomToolbarMode.set("player");
-      if (chart) {
-        const active = chart;
-        canvasVisible = false;
-        const xTicks = active.options.scales?.x?.ticks;
-        if (xTicks) xTicks.display = true;
-        setTimeout(() => {
-          canvasVisible = true;
-          active.update();
-        }, 400);
-      }
       playPauseButton = faPlay;
       // Opening parks the scrubber on the live edge, so it tracks refreshes
       // until the user drags it somewhere else -- unless it was opened to show
       // one frame in particular, which is then where it parks.
       const park = () => {
         if (seekTo !== null) {
-          if (slRange) slRange.value = seekTo;
+          shown = seekTo;
           return;
         }
         liveEdge = cap.getMostRecentObservation();
-        if (slRange) slRange.value = liveEdge;
+        shown = liveEdge;
       };
       park();
       setTimeout(() => {
@@ -651,38 +380,28 @@ const fsm = new StateMachine({
       }
     },
     onPressPlay: () => {
-      const playTick = (ttl = 10) => {
+      const playTick = () => {
         // Pause and close both cancel playTimeout; a tick that outlives them
         // would otherwise resume playback on its own.
         if (fsm.state !== "playing") return;
-        if (!slRange) {
-          // "Workaround" for #2320876836
-          if (ttl < 1) {
-            console.error("slRange element did not appear");
-            return;
-          }
-          // Through playTimeout, so pause and close can cancel the retry chain.
-          playTimeout = window.setTimeout(() => playTick(ttl - 1), 200);
-          return;
-        }
         let thisFrameDelayMs = 450;
-        if (!slRange || !gridConfig) return;
-        const sliderValueInt = Number(slRange.value);
+        if (!gridConfig) return;
+        const sliderValueInt = shown;
         const lastStep = lastPlayableStep ?? gridConfig.end;
         if (sliderValueInt >= lastStep) {
-          slRange.value = includeHistoric ? gridConfig.start : gridConfig.now;
+          shown = includeHistoric ? gridConfig.start : gridConfig.now;
         } else {
-          slRange.value = sliderValueInt + 5 * 60;
+          shown = sliderValueInt + 5 * 60;
         }
         if (sliderValueInt === 0) {
           thisFrameDelayMs = 800;
         }
-        sliderChangedHandler(slRange.value);
+        sliderChangedHandler(shown);
         // The next frames' tiles, asked for before the player reaches them,
         // so each frame is whole when it is shown. The setting is the
         // "preload forecast" switch, which used to be wired to nothing.
-        if ($precacheForecast) cap.prefetchFrames(Number(slRange.value), PREFETCH_FRAMES);
-        if (slRange.value !== gridConfig.now || loop) {
+        if ($precacheForecast) cap.prefetchFrames(shown, PREFETCH_FRAMES);
+        if (shown !== gridConfig.now || loop) {
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
         } else {
           playTimeout = 0;
@@ -713,18 +432,7 @@ const fsm = new StateMachine({
       if (transition.from === "followLatest") return;
       oldTimeStep = 0;
       liveEdge = null;
-      slRange = null;
       cap.resetToLatest();
-      if (chart) {
-        const active = chart;
-        const xTicks = active.options.scales?.x?.ticks;
-        if (xTicks) xTicks.display = false;
-        canvasVisible = false;
-        setTimeout(() => {
-          canvasVisible = true;
-          active.update();
-        }, 400);
-      }
     },
   },
 });
@@ -757,8 +465,8 @@ function takeFrameRequest() {
   if (fsm.state === "followLatest") {
     seekTo = wanted;
     fsm.showScrollbar();
-  } else if (slRange) {
-    slRange.value = wanted;
+  } else {
+    shown = wanted;
   }
   sliderChangedHandler(wanted);
 }
@@ -889,15 +597,18 @@ function sliderChangedHandler(value, userInteraction = false) {
   oldTimeStep = value;
 }
 
-function initSlider(elem) {
-  elem.addEventListener("sl-change", (value) => sliderChangedHandler(value.target.value, true));
-  slRange = elem;
-  window.slr = slRange;
-  // XXX why...
-  // window.setTimeout(() => {
-  //  slRange.value = `${gridNow}`;
-  //  console.log(`${gridNow}`);
-  // }, 200);
+/** A hand on the strip: playback stops where it is, and the hand has it. */
+function grabbed() {
+  if (fsm.state === "playing") {
+    console.log("Pausing due to a grab on the timeline");
+    fsm.pressPause();
+  }
+}
+
+/** The needle has reached another step. */
+function seek(event: CustomEvent<number>) {
+  shown = event.detail;
+  sliderChangedHandler(event.detail, true);
 }
 
 function playPause() {
@@ -919,18 +630,6 @@ function toggleHistoric() {
   includeHistoric = !includeHistoric;
 }
 
-function toggleLightning() {
-  lightningLayerVisible.set(!$lightningLayerVisible);
-}
-
-function toggleCells() {
-  cellLayerVisible.set(!$cellLayerVisible);
-}
-
-function toggleCyclones() {
-  cycloneLayerVisible.set(!$cycloneLayerVisible);
-}
-
 let last = new Date();
 subscriptions.push(lastFocus.subscribe((focus) => {
   if (focus.getTime() > (last.getTime() + 2 * 60 * 1000) && cap.trackingMode !== "live") {
@@ -944,21 +643,107 @@ onDestroy(() => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   playbackRunning.set(false);
-  chart?.destroy();
 });
 </script>
 
 <style>
   /* The player inherits the tray material from :global(.bottomToolbar) in
-     BottomToolbar.svelte. Heights are what Map.svelte measures. */
-  /* Share the responsive height with the forecast strip above the tray.
-     Map.svelte measures the tray to keep map padding in sync. */
+     BottomToolbar.svelte. Its height is what Map.svelte measures; the forecast
+     strip above the collapsed bar keys off the same token. */
   .timeslider {
     height: var(--mc-player-h);
     z-index: var(--mc-z-tray-player);
     padding: 8px var(--mc-tray-pad) 6px;
     overflow: hidden;
   }
+
+  /* ---------------------------------------------------------------------
+     The open player, three rows at every size:
+
+         head      where the strip's numbers are from, and the way out
+         timeline  the strip: forecast bars, needle, axis
+         row       transport on the left, freshness and legend on the right
+     --------------------------------------------------------------------- */
+  .player {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+  }
+
+  .head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 28px;
+    /* Clear of the tray's corner, so the title does not start inside the
+       curve; the strip below keeps the tray's own inset so its bars line up
+       with the minute the needle is at. */
+    padding: 0 0 0 8px;
+  }
+  .title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font: 700 13px/1.3 var(--mc-font);
+    letter-spacing: -0.01em;
+    color: var(--mc-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .title.quiet {
+    font-weight: 500;
+    color: var(--mc-text-2);
+  }
+
+  /* The way back to the client's own position: a tinted chip, the same one
+     the collapsed strip carries, so it reads as a control beside a place name. */
+  .link {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-accent-tint);
+    color: var(--mc-accent);
+    font: 600 12px/1.25 var(--mc-font);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--mc-motion-fast) var(--mc-ease),
+                transform var(--mc-motion-fast) var(--mc-ease),
+                opacity var(--mc-motion-fast) var(--mc-ease);
+  }
+  .link:hover { background: color-mix(in srgb, var(--mc-accent) 26%, transparent); }
+  .link:active { opacity: 0.6; transform: scale(0.96); }
+  .link:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .link :global(svg) { width: 11px; height: 11px; }
+
+  .plot {
+    position: relative;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .row {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
+    min-width: 0;
+  }
+  .spacer { flex: 1 1 auto; min-width: 0; }
+  .status {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .legend { display: none; min-width: 0; }
 
   /* A tint on the open tray; collapsed controls add their own glass below. */
   .controlButton {
@@ -978,7 +763,7 @@ onDestroy(() => {
     text-align: center;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
   }
   .controlButton:hover {
     cursor: pointer;
@@ -989,6 +774,57 @@ onDestroy(() => {
     transform: scale(var(--mc-press));
     background: var(--mc-tint-active);
   }
+  .controlButton:focus-visible {
+    outline: 2px solid var(--mc-accent);
+    outline-offset: 2px;
+  }
+  /* Play is the one filled control in the tray. */
+  .controlButton.play {
+    background: var(--mc-accent);
+    color: #fff;
+  }
+  .controlButton.play:hover { background: var(--mc-accent-strong); }
+  .controlButton.play :global(svg) { margin-left: 2px; }
+  .controlButton.play.playing :global(svg) { margin-left: 0; }
+  .controlButton.on {
+    background: var(--mc-accent);
+    color: #fff;
+  }
+  .controlButton.on:hover { background: var(--mc-accent-strong); }
+  /* The collapse disc is smaller than the transport, like a close disc. */
+  .controlButton.collapse {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    color: var(--mc-text-3);
+  }
+  .controlButton.collapse:hover { color: var(--mc-text); }
+
+  /* "-2h": whether the loop runs from the start of the strip or from now. */
+  .chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+    color: var(--mc-text);
+    font: 600 13px/32px var(--mc-font);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), opacity var(--mc-motion-fast);
+  }
+  .chip:hover { background: var(--mc-tint-hover); }
+  .chip:active { transform: scale(var(--mc-press)); }
+  .chip:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .chip.on { background: var(--mc-accent); color: #fff; }
+  .chip.on:hover { background: var(--mc-accent-strong); }
+  .chip[disabled] { opacity: 0.4; cursor: default; }
+  .chip :global(svg) { width: 12px; height: 12px; }
 
   /* The two collapsed-state controls: standalone discs at the bottom corners,
      flanking the tray rather than sitting on it -- the same kind of control as
@@ -1025,161 +861,13 @@ onDestroy(() => {
     background: var(--mc-glass-fill-strong);
   }
 
-  /* ---------------------------------------------------------------------
-     One grid for the whole player, three rows at every size:
-
-         track     the scrubber, always full width
-         controls  transport, layers, and the freshness line
-         legend    the colour scale
-
-     Only the columns and the set of visible items change per tier, so the
-     tray keeps a single height and nothing reflows into a ragged wrap. An
-     item that has no area in the current tier is display:none -- otherwise
-     grid auto-places it and quietly adds a row.
-     --------------------------------------------------------------------- */
-  .player-grid {
-    display: grid;
-    height: 100%;
-    align-content: center;
-    align-items: center;
-    column-gap: var(--mc-rail-gap);
-    row-gap: 4px;
-    /* Phone: transport, layers, and collapse share a row. */
-    grid-template-columns: auto minmax(0, 1fr) var(--mc-control);
-    grid-template-areas:
-      "track     track  track"
-      "transport layers close"
-      "status    status status";
-  }
-
-  .track        { grid-area: track; min-width: 0; }
-  .transport    { grid-area: transport; }
-  .layers       { grid-area: layers; min-width: 0; }
-  .close-inline { grid-area: close; }
-  .status       { grid-area: status; min-width: 0; justify-self: center; }
-  .layers sl-button-group { width: 100%; }
-  .button-group-toolbar.layers sl-button-group::part(base) { display: flex; }
-  .layers sl-button { flex: 1 1 0; min-width: 0; }
-  .legend       { grid-area: legend; display: none; min-width: 0; }
-
-  /* Keep collapse at the trailing edge at every width. */
-  @media only screen and (min-width: 621px) {
-    :global(html:not(.is-ios)) .player-grid {
-      grid-template-columns: auto auto 1fr var(--mc-control);
-      grid-template-areas:
-        "track     track  track  track"
-        "transport layers .      close"
-        "legend    legend status close";
-    }
+  /* Desktop: the legend joins the row at the right. */
+  @media only screen and (min-width: 1120px) {
     :global(html:not(.is-ios)) .legend { display: block; }
-    :global(html:not(.is-ios)) .status { justify-self: end; }
-    :global(html:not(.is-ios)) .close-inline {
-      position: absolute;
-      right: 6px;
-      bottom: 6px;
-    }
-    :global(html:not(.is-ios)) .layers sl-button-group { width: auto; }
-    :global(html:not(.is-ios)) .layers sl-button { flex: initial; }
-    :global(html:not(.is-ios)) .range::part(input) { height: var(--track-height); }
   }
 
-  /* Wide: labels on the layer buttons and the legend below. */
-  @media only screen and (min-width: 1120px) {
-    :global(html:not(.is-ios)) .player-grid {
-      grid-template-columns: auto auto 1fr var(--mc-control);
-      grid-template-areas:
-        "track     track  track  track"
-        "transport layers status close"
-        "legend    legend legend close";
-    }
-  }
-
-  /* Labels inside the layer buttons: wide tier only. */
-  .wide-only { display: none; }
-  @media only screen and (min-width: 1120px) {
-    :global(html:not(.is-ios)) .wide-only { display: inline; }
-  }
-
-  /* sl-range is themed through its custom properties in glass.css. */
-  .range {
-    width: 100%;
-    top: 0;
-    margin: 4px 0 2px;
-  }
-
-  /* Grow the native input hit area while keeping the painted track thin. */
-  .range::part(input) {
-    height: 44px;
-    background-size: 100% var(--track-height);
-    background-position: center;
-    background-repeat: no-repeat;
-  }
-
-  /* Segmented tint capsules. sl-button-group part: base. sl-button parts: base prefix label suffix */
-  .button-group-toolbar sl-button-group::part(base) {
-    display: inline-flex;
-    gap: 2px;
-    padding: 2px;
-    border-radius: var(--mc-radius-pill);
-    background: var(--mc-tint);
-  }
-  .button-group-toolbar sl-button {
-    margin-inline-start: 0;   /* the group's shadow :host pulls non-first buttons left by 1px */
-  }
-  .button-group-toolbar sl-button::part(base) {
-    min-height: 32px;
-    height: 32px;
-    padding: 0 2px;
-    border: 0;
-    border-radius: var(--mc-radius-pill);   /* outer ::part wins over the group's first/inner/last radius zeroing */
-    background: transparent;
-    color: var(--mc-text);
-    font: 600 13px/32px var(--mc-font);
-    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
-  }
-  .button-group-toolbar sl-button::part(base)::after {
-    display: none;   /* the group separator */
-  }
-  .button-group-toolbar sl-button:not([disabled])::part(base):hover {
-    background: var(--mc-tint-hover);
-  }
-  .button-group-toolbar sl-button::part(base):active {
-    transform: scale(var(--mc-press));
-  }
-  .button-group-toolbar sl-button[variant="primary"]::part(base) {
-    background: var(--mc-accent);
-    color: #fff;
-  }
-  .button-group-toolbar sl-button[variant="primary"]:not([disabled])::part(base):hover {
-    background: var(--mc-accent-strong);
-  }
-  .button-group-toolbar sl-button[disabled]::part(base) {
-    opacity: 0.4;
-  }
-  .button-group-toolbar sl-button::part(label) {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 12px;
-  }
-  /* A text button needs the 12px above; an icon-only one is already a 32px
-     .faIconButton box and would otherwise be 56px wide, which is what pushed
-     the transport group to 206px and squeezed the row on a phone. */
-  .button-group-toolbar sl-button.icon-btn::part(label) {
-    padding: 0 4px;
-  }
-
-  .faIconButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    margin: 0;
-    font-size: 16px;
-  }
-
-  /* The plot and scrubber share the same inset. */
+  /* The collapsed strip's plot: the same timeline, read-only, spanning the
+     strip's own inset. */
   .barChart-plot {
     position: relative;
     height: 100%;
@@ -1197,56 +885,11 @@ onDestroy(() => {
     overflow: hidden;
   }
 
-  /* Short by the height of the axis row below it, which used to live inside the
-     canvas as a Chart.js scale. */
-  .barChart-canvas {
-    height: calc(100% - 16px);
-  }
-  /* The canvas keeps its box while the skeleton is up -- Chart.js sizes itself
-     from the element, and a display:none parent would measure it at zero. */
-  .barChart-canvas.hidden {
-    visibility: hidden;
-  }
-  .barChart-plot canvas {
-    display: block;
-  }
-
-  /* Spans the track exactly, like the canvas above it, so a tick sits over the
-     minute the scrubber would be at. */
-  .axis {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 16px;
-    pointer-events: none;
-  }
-  .tick {
-    position: absolute;
-    top: 0;
-    /* Centred on its bar; the ends override this and sit flush instead, which
-       is the whole reason the axis is not drawn on the canvas. */
-    transform: translateX(-50%);
-    white-space: nowrap;
-    font: 600 10px/16px var(--mc-font);
-    letter-spacing: -0.01em;
-    color: inherit;
-  }
-  .tick.start,
-  .tick.end {
-    transform: none;
-  }
-  .tick.start {
-    left: 0;
-  }
-  .tick.end {
-    right: 0;
-  }
-
-  /* Nothing fell in the window. Sits over the plot rather than replacing it, so
-     the strip keeps its height and the tray below does not move. */
-  /* Over the forecast half only, like the bars it stands in for. */
-  .no-forecast {
+  /* Nothing fell in the window. Sits over the ruler rather than replacing it,
+     so the strip keeps its height and the needle still has a track. Over the
+     forecast half only when that is the half with nothing. */
+  .no-forecast,
+  .empty {
     position: absolute;
     top: 0;
     right: 0;
@@ -1261,33 +904,20 @@ onDestroy(() => {
     letter-spacing: -0.005em;
     pointer-events: none;
   }
-
   .empty {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    display: grid;
-    place-items: center;
+    left: 0;
     padding: 0 16px;
-    text-align: center;
-    color: var(--mc-text-2);
-    font: 400 12px/1.35 var(--mc-font);
-    letter-spacing: -0.005em;
+  }
+  .skeleton {
+    position: absolute;
+    inset: 0 0 16px;
   }
 
   @media only screen and (max-width: 620px) {
-    .player-grid {
-      column-gap: 4px;
-    }
-    .layers sl-button::part(label) {
-      padding: 0 4px;
-    }
     .timeslider {
       padding: 6px 8px 4px;
     }
-    .range {
-      margin-bottom: 0;
-    }
+    .row { gap: 4px; }
     :global(.bottomToolbar.lastUpdatedBottom.player-open) {
       display: none;
     }
@@ -1305,7 +935,7 @@ onDestroy(() => {
   </DismissableStrip>
 {/if}
 
-{#if canvasVisible && outlookShowable && !outlookDismissed && $latLon}
+{#if outlookShowable && !outlookDismissed && $latLon}
   <DryOutlook
     lat={$latLon[0]}
     lon={$latLon[1]}
@@ -1314,42 +944,40 @@ onDestroy(() => {
     on:unavailable={() => { outlookUnavailable = true; }} />
 {/if}
 
-{#if canvasVisible && chartShowable && !chartDismissed}
+<!-- Collapsed: the forecast floats above the bar as a strip, the same timeline
+     without a hand on it. Tapping it opens the player, where the strip becomes
+     the scrubber. -->
+{#if $bottomToolbarMode !== "player" && chartShowable && !chartDismissed}
   <DismissableStrip
     title={chartTitle}
     linkLabel={$inspectLatLon && $latLon ? $_("show_for_my_location") : null}
     linkIcon={faLocationCrosshairs}
-    collapsed={$bottomToolbarMode !== "player"}
+    collapsed
+    tappable
+    on:tap={show}
     on:dismiss={dismissChart}
     on:link={returnToCurrentPosition}>
     <div class="barChart-plot">
       {#if gridLoading}
-        <ChartSkeleton bars={25} />
-      {:else if !hasPrecipitation}
-        <p class="empty">{$_(noForecastFrom === null ? "precipitation_none" : "precipitation_none_past")}</p>
-      {/if}
-      <div class="barChart-canvas" class:hidden={gridLoading || !hasPrecipitation}>
-        <canvas use:canvasInit></canvas>
-      </div>
-      {#if !gridLoading && hasPrecipitation && noForecastFrom !== null}
-        <p class="no-forecast" style:left={`${noForecastFrom}%`}>{$_("forecast_none_here")}</p>
-      {/if}
-      {#if !gridLoading && hasPrecipitation}
-        <div class="axis" aria-hidden="true">
-          {#each axisTicks as tick (tick.pct)}
-            <span
-              class="tick"
-              class:start={tick.anchor === "start"}
-              class:end={tick.anchor === "end"}
-              style:left={tick.anchor === "end" ? null : `${tick.pct}%`}>
-              {formatOffset(tick.minutes, $_)}
-            </span>
-          {/each}
-        </div>
+        <div class="skeleton"><ChartSkeleton bars={25} /></div>
+      {:else}
+        <Timeline
+          {steps}
+          now={gridConfig?.now ?? 0}
+          latest={cap.getMostRecentObservation()}
+          value={$capTimeIndicator}
+          interactive={false}
+          {labelEvery} />
+        {#if !hasPrecipitation}
+          <p class="empty">{$_(noForecastFrom === null ? "precipitation_none" : "precipitation_none_past")}</p>
+        {:else if noForecastFrom !== null}
+          <p class="no-forecast" style:left={`${noForecastFrom * 100}%`}>{$_("forecast_none_here")}</p>
+        {/if}
       {/if}
     </div>
   </DismissableStrip>
 {/if}
+
 {#if $bottomToolbarMode === "player"}
   <div
     class="bottomToolbar timeslider"
@@ -1358,54 +986,74 @@ onDestroy(() => {
     on:outrostart={toolbarTransitionStart}
     on:introend={toolbarTransitionEnd}
     on:outroend={toolbarTransitionEnd}>
-      <div class="player-grid">
-        <div class="track">
-          <sl-range min="{gridConfig?.start}" max="{lastPlayableStep}" step="{60 * 5}" class="range" use:initSlider tooltip="none"></sl-range>
-        </div>
-
-        <div class="transport button-group-toolbar">
-          <sl-button-group label={$_("chrome.playback.controls")}>
-            <sl-button size={buttonSize} class="icon-btn" on:click={playPause}>
-              <div class="faIconButton">
-                <Icon icon={playPauseButton} />
-              </div>
-            </sl-button>
-            <sl-button size={buttonSize} class="icon-btn" variant="{loop ? "primary" : "default"}" on:click={toggleLoop}>
-              <div class="faIconButton">
-                <Icon icon={faRetweet} />
-              </div>
-            </sl-button>
-            <sl-button size={buttonSize} class="icon-btn" variant="{includeHistoric ? "primary" : "default"}" disabled="{!historicActive}" on:click={toggleHistoric}>
-              <div class="faIconButton">
-                <Icon icon={faHistory} />
-              </div>
-            </sl-button>
-          </sl-button-group>
-        </div>
-
-        <div class="layers button-group-toolbar">
-          <sl-button-group label={$_("chrome.playback.map_layers")}>
-            <sl-button size={buttonSize} variant="{ $lightningLayerVisible ? "primary" : "default"}" on:click={toggleLightning}>⚡ <span class="wide-only">{$_("chrome.playback.lightning")}</span></sl-button>
-            <sl-button size={buttonSize} variant="{ $cycloneLayerVisible ? "primary" : "default"}" on:click={toggleCyclones}>🌀 <span class="wide-only">{$_("chrome.playback.mesocyclones")}</span></sl-button>
-            <sl-button size={buttonSize} variant="{ $cellLayerVisible ? "primary" : "default"}" on:click={toggleCells}>⛈ <span class="wide-only">{$_("chrome.playback.cells")}</span></sl-button>
-          </sl-button-group>
-        </div>
-
-        <button type="button" class="close-inline controlButton" on:click={hide}
+    <div class="player">
+      <div class="head">
+        {#if $inspectLatLon || $latLon}
+          <span class="title" class:quiet={!hasPrecipitation && !gridLoading}>
+            {#if !gridLoading && !hasPrecipitation}
+              {$_(noForecastFrom === null ? "precipitation_none" : "precipitation_none_past")}
+            {:else}
+              {chartTitle}
+            {/if}
+          </span>
+          {#if $inspectLatLon && $latLon}
+            <button type="button" class="link" on:click={returnToCurrentPosition}>
+              <Icon icon={faLocationCrosshairs} />
+              <span>{$_("show_for_my_location")}</span>
+            </button>
+          {/if}
+        {:else}
+          <span class="title quiet">{$_("chrome.playback.controls")}</span>
+        {/if}
+        <button type="button" class="controlButton collapse" on:click={hide}
           title={$_("chrome.playback.collapse")} aria-label={$_("chrome.playback.collapse")}>
           <Icon icon={faAngleDoubleDown} />
         </button>
+      </div>
 
-        <div class="status">
-          <LastUpdated />
-        </div>
+      <div class="plot">
+        {#if gridLoading && !hasPrecipitation}
+          <div class="skeleton"><ChartSkeleton bars={25} /></div>
+        {/if}
+        <Timeline
+          {steps}
+          now={gridConfig?.now ?? 0}
+          latest={cap.getMostRecentObservation()}
+          value={shown}
+          {labelEvery}
+          on:grab={grabbed}
+          on:seek={seek} />
+        {#if !gridLoading && hasPrecipitation && noForecastFrom !== null}
+          <p class="no-forecast" style:left={`${noForecastFrom * 100}%`}>{$_("forecast_none_here")}</p>
+        {/if}
+      </div>
 
+      <div class="row">
+        <button type="button" class="controlButton play" class:playing={$playbackRunning}
+          on:click={playPause}
+          title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
+          <Icon icon={playPauseButton} />
+        </button>
+        <button type="button" class="controlButton" class:on={loop} on:click={toggleLoop}
+          title={$_("chrome.playback.loop")} aria-label={$_("chrome.playback.loop")} aria-pressed={loop}>
+          <Icon icon={faRetweet} />
+        </button>
+        <button type="button" class="chip" class:on={includeHistoric} disabled={!historicActive} on:click={toggleHistoric}
+          title={$_("chrome.playback.from_start")} aria-label={$_("chrome.playback.from_start")} aria-pressed={includeHistoric}>
+          <Icon icon={faHistory} />
+          <span>-2h</span>
+        </button>
+        <div class="spacer"></div>
         {#if !dd.isApp()}
           <div class="legend">
             <RadarScaleLine />
           </div>
         {/if}
+        <div class="status">
+          <LastUpdated />
+        </div>
       </div>
+    </div>
   </div>
 {:else}
   {#if $sharedActiveCap === "radar"}
