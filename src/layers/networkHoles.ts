@@ -1,5 +1,6 @@
 import IndexedTileSource, { blankTile, fillTemplate, loadImage, present } from "./indexedTiles";
 import { chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd } from "./extents";
+import { maskPath, maskTile, overlaps, tileExtent } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
 import type { NetworkEvent } from "../api/events";
 
@@ -18,72 +19,23 @@ export type NetworkCode = NetworkEvent["network"];
  * and no 2D context to call `clip()` on.
  *
  * So the holes are punched into the tile images themselves, before OpenLayers
- * ever sees them. That works whichever renderer draws them.
+ * ever sees them (`tileMask.ts`, which the 3D map cuts with too). That works
+ * whichever renderer draws them.
  *
  * Only tiles that actually meet a hole are touched; the rest are handed back
  * exactly as loaded, so this costs nothing for the vast majority of the grid.
  */
 
-/** Web mercator's half-extent in metres, which is also tile 0's half-width. */
-const MERCATOR_LIMIT = 20037508.34;
-
-type Extent = [number, number, number, number];
-
-const bboxOf = (rings: number[][][]): Extent => {
-  const xs = rings.flat().map(([x]) => x);
-  const ys = rings.flat().map(([, y]) => y);
-  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-};
-
-/** Every network's hole, with its bounding box for a cheap first test. */
-const HOLES = ([
+/** Every network's hole, with its bounding box for a cheap first test. Shared with the 3D map. */
+export const HOLES = ([
   ["ch", chBorders],
   ["fr", frBordersNearDwd],
   ["cz", czBordersNearDwd],
   ["pl", plBordersNearDwd],
-] as [NetworkCode, number[][][]][]).map(([code, rings]) => ({ code, rings, bbox: bboxOf(rings) }));
+] as [NetworkCode, number[][][]][]).map(([code, rings]) => ({ code, ...maskPath(rings) }));
 
 /** Every network: what the live frame is holed for. */
 export const ALL_NETWORKS: NetworkCode[] = HOLES.map((hole) => hole.code);
-
-const overlaps = (a: Extent, b: Extent) =>
-  a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
-
-/** The web-mercator extent of one XYZ tile. */
-function tileExtent(z: number, x: number, y: number): Extent {
-  const span = (2 * MERCATOR_LIMIT) / 2 ** z;
-  const west = -MERCATOR_LIMIT + x * span;
-  const north = MERCATOR_LIMIT - y * span;
-  return [west, north - span, west + span, north];
-}
-
-/** Erase every hole this tile meets, returning a canvas in its place. */
-function withHoles(image: HTMLImageElement, extent: Extent, holes: typeof HOLES): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
-  const context = canvas.getContext("2d")!;
-  context.drawImage(image, 0, 0);
-
-  const [west, south, east, north] = extent;
-  context.globalCompositeOperation = "destination-out";
-  for (const { rings } of holes) {
-    // One path per network: the rings of one are wound to nest correctly, and
-    // two networks' borders merely touch.
-    context.beginPath();
-    for (const ring of rings) {
-      ring.forEach(([mx, my], index) => {
-        const px = ((mx - west) / (east - west)) * canvas.width;
-        const py = ((north - my) / (north - south)) * canvas.height;
-        if (index === 0) context.moveTo(px, py);
-        else context.lineTo(px, py);
-      });
-      context.closePath();
-    }
-    context.fill();
-  }
-  return canvas;
-}
 
 /**
  * An `ImageTileSource` whose tiles have the networks' countries erased -- on
@@ -167,7 +119,7 @@ export default class NetworkHoleTileSource extends IndexedTileSource {
       const extent = tileExtent(z, x, y);
       const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin);
       const met = holes.filter((hole) => overlaps(extent, hole.bbox));
-      return met.length ? withHoles(image, extent, met) : image;
+      return met.length ? maskTile(image, extent, met) : image;
     });
     // A key of their own for holed tiles, naming the holes. OpenLayers caches
     // tiles by key, and the key `super.setUrl` gave is the bare URL -- so

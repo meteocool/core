@@ -1,0 +1,113 @@
+import { hasTile } from "../lib/tileIndex";
+import { fillTemplate, loadImage } from "./indexedTiles";
+import { maskTile, overlaps, tileExtent } from "./tileMask";
+import type { MaskPath } from "./tileMask";
+import type { TileIndex } from "../lib/tileIndex";
+
+/**
+ * Radar tiles for MapLibre with the same cuts the flat map makes.
+ *
+ * On the flat map DWD's live frame has the EUMETNET networks' countries
+ * erased (`networkHoles.ts`) and each network's layer is clipped to the
+ * ground `extents.ts` gives it (`network.ts`), so exactly one radar colours
+ * any pixel. MapLibre has no canvas clip and no loader hook on a raster
+ * source; what it has is `addProtocol`, which lets a URL scheme answer a
+ * tile request with an image of its own making. So the 3D map's radar
+ * sources point at `masked://`, and each request here fetches the real tile,
+ * makes the cut on a canvas, and hands the result back.
+ *
+ * The frame's tile index is consulted first, as the flat map's sources do:
+ * a tile the frame does not have is answered as empty without a request.
+ */
+
+export const MASKED_SCHEME = "masked";
+
+/** What one registered source's tiles are made from. */
+export interface MaskedSpec {
+  /** The published template, `{-y}` and all. */
+  template: string;
+  /** Which tiles the frame has; see lib/tileIndex.ts. Absent on older frames. */
+  index?: TileIndex | null;
+  /** Polygons to cut out of every tile they meet. */
+  erase?: MaskPath[];
+  /** Keep only what falls inside this polygon; nothing outside its box is even fetched. */
+  keep?: MaskPath | null;
+}
+
+const registry = new Map<string, MaskedSpec>();
+let serial = 0;
+let installed = false;
+
+/**
+ * Register a frame, and get the `tiles` template to give a MapLibre source.
+ *
+ * The returned key is what `forgetMaskedTiles` takes; a source that is
+ * re-pointed should forget the frame it leaves, or the registry grows by one
+ * entry per scan for as long as the page is open.
+ */
+export function registerMaskedTiles(spec: MaskedSpec): { key: string; tiles: string } {
+  serial += 1;
+  const key = String(serial);
+  registry.set(key, spec);
+  return { key, tiles: `${MASKED_SCHEME}://${key}/{z}/{x}/{y}` };
+}
+
+export function forgetMaskedTiles(key: string | null | undefined): void {
+  if (key) registry.delete(key);
+}
+
+const REQUEST = new RegExp(`^${MASKED_SCHEME}://(\\d+)/(\\d+)/(\\d+)/(\\d+)$`);
+
+/** A tile with nothing in it, which MapLibre draws as nothing. */
+const EMPTY = { data: null };
+
+/**
+ * Answer one tile request. Exported for the protocol and for the test.
+ *
+ * Nothing to cut, and the bytes are passed through for MapLibre to decode
+ * off the main thread as it would any tile. A 404 is an empty tile rather
+ * than an error: frames from before the index existed have no other way to
+ * say which tiles they lack.
+ */
+export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise<{ data: ArrayBuffer | ImageBitmap | null }> {
+  const match = REQUEST.exec(url);
+  if (!match) throw new Error(`Not a masked tile: ${url}`);
+  const spec = registry.get(match[1]);
+  if (!spec) return EMPTY; // a frame already forgotten: the source is being re-pointed
+  const z = Number(match[2]);
+  const x = Number(match[3]);
+  const y = Number(match[4]);
+  // The index is numbered the way the URL is: XYZ x, TMS y.
+  if (!hasTile(spec.index, z, x, 2 ** z - 1 - y)) return EMPTY;
+
+  const extent = tileExtent(z, x, y);
+  const keep = spec.keep ?? null;
+  if (keep && !overlaps(extent, keep.bbox)) return EMPTY;
+  const erase = (spec.erase ?? []).filter((path) => overlaps(extent, path.bbox));
+  const source = fillTemplate(spec.template, z, x, y);
+
+  if (!erase.length && !keep) {
+    const response = await fetch(source, { signal });
+    if (response.status === 404) return EMPTY;
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${source}`);
+    return { data: await response.arrayBuffer() };
+  }
+
+  let image: HTMLImageElement;
+  try {
+    image = await loadImage(source, "anonymous");
+  } catch {
+    return EMPTY; // the image loader cannot tell a 404 from anything else
+  }
+  return { data: await createImageBitmap(maskTile(image, extent, erase, keep)) };
+}
+
+/** What MapLibre's `addProtocol` takes, narrowed to what is used. */
+type Protocol = (params: { url: string }, abort: AbortController) => Promise<{ data: unknown }>;
+
+/** Teach MapLibre the scheme, once; the module is a singleton like MapLibre's registry. */
+export function installMaskedProtocol(maplibre: { addProtocol(scheme: string, load: Protocol): void }): void {
+  if (installed) return;
+  installed = true;
+  maplibre.addProtocol(MASKED_SCHEME, (params, abort) => loadMaskedTile(params.url, abort.signal));
+}

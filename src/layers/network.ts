@@ -108,9 +108,13 @@ export default class NetworkRadarLayer {
   /** This network's composite for the step on screen, when that is not the live one. */
   private stepFrame: RadarFrame | null = null;
 
-  constructor(map: Map, network: Network) {
+  /** Told after every new live frame; the 3D map drapes the same one. */
+  private readonly onLiveFrame: (() => void) | undefined;
+
+  constructor(map: Map, network: Network, onLiveFrame?: () => void) {
     this.map = map;
     this.network = network;
+    this.onLiveFrame = onLiveFrame;
   }
 
   /** Fetch the newest composite and show it, creating the layer on first use. */
@@ -121,6 +125,19 @@ export default class NetworkRadarLayer {
     this.fresh = Date.now() / 1000 - frame.processed_time < STALE_AFTER_SECONDS;
     this.liveFrame = frame;
     this.apply();
+    this.onLiveFrame?.();
+  }
+
+  /**
+   * The newest composite, if it is still worth drawing: what the live step
+   * shows, and what the 3D map drapes. Judged against now rather than at
+   * `refresh`, so a frame left to age on a map nobody touched is not handed
+   * on as current.
+   */
+  current(): RadarFrame | null {
+    const frame = this.liveFrame;
+    if (!frame || Date.now() / 1000 - frame.processed_time >= STALE_AFTER_SECONDS) return null;
+    return frame;
   }
 
   /**
