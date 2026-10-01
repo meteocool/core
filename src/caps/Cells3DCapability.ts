@@ -379,7 +379,7 @@ export default class Cells3DCapability extends Capability {
   private radarIndex: TileIndex | null | undefined = undefined;
 
   /** The `masked://` registration of that frame; see `ensureRadar`. */
-  private radarMask: { url: string; whole: boolean; key: string; tiles: string } | null = null;
+  private radarMask: { url: string; whole: boolean; palette: string; key: string; tiles: string } | null = null;
 
   /** Whether the frame is drawn whole: the merged European composite, which stands in for every network. */
   private radarWhole = false;
@@ -391,7 +391,7 @@ export default class Cells3DCapability extends Capability {
   private networkFrames: Partial<Record<NetworkCode, RadarFrame>> = {};
 
   /** Each network's `masked://` registration, by the frame it was made for. */
-  private networkMasks: Partial<Record<NetworkCode, { tileId: string; key: string; tiles: string }>> = {};
+  private networkMasks: Partial<Record<NetworkCode, { tileId: string; palette: string; key: string; tiles: string }>> = {};
 
   /**
    * The flat map's strike buffer, read rather than duplicated.
@@ -1128,6 +1128,12 @@ export default class Cells3DCapability extends Capability {
     if (name === this.colormap) return;
     this.colormap = name;
     this.cloudsLayer?.setColormap(name);
+    // The radar under the storms too: DWD's and every network's rasters are
+    // recoloured as they load (recolour.ts), so they are pointed afresh.
+    if (this.gl && this.styleReady) {
+      this.ensureRadar(this.gl);
+      this.ensureNetworks(this.gl);
+    }
     // Hidden, the paint is set and waits for the map to be shown again.
     this.applyStaleness();
   }
@@ -1670,13 +1676,18 @@ export default class Cells3DCapability extends Capability {
   private ensureRadar(gl: GlMap): void {
     if (!this.radarUrl) return;
 
-    if (this.radarMask?.url !== this.radarUrl || this.radarMask.whole !== this.radarWhole) {
+    if (this.radarMask?.url !== this.radarUrl || this.radarMask.whole !== this.radarWhole
+      || this.radarMask.palette !== this.colormap) {
       forgetMaskedTiles(this.radarMask?.key);
       this.radarMask = {
         url: this.radarUrl,
         whole: this.radarWhole,
+        palette: this.colormap,
         ...registerMaskedTiles({
-          template: this.radarUrl, index: this.radarIndex, erase: this.radarWhole ? [] : HOLES,
+          template: this.radarUrl,
+          index: this.radarIndex,
+          erase: this.radarWhole ? [] : HOLES,
+          palette: this.colormap,
         }),
       };
     }
@@ -1727,14 +1738,16 @@ export default class Cells3DCapability extends Capability {
       }
 
       let mask = this.networkMasks[code];
-      if (mask?.tileId !== frame.tile_id) {
+      if (mask?.tileId !== frame.tile_id || mask.palette !== this.colormap) {
         forgetMaskedTiles(mask?.key);
         mask = {
           tileId: frame.tile_id,
+          palette: this.colormap,
           ...registerMaskedTiles({
             template: tileSourceUrl("meteoradar", frame.tile_id),
             index: frame.tiles,
             keep: network.coverage ? maskPath(network.coverage) : null,
+            palette: this.colormap,
           }),
         };
         this.networkMasks[code] = mask;

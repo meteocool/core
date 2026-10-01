@@ -1,6 +1,7 @@
 import { hasTile } from "../lib/tileIndex";
 import { fillTemplate, loadImage } from "./indexedTiles";
 import { maskTile, overlaps, tileExtent } from "./tileMask";
+import { recolourImage, recolouringFor } from "./recolour";
 import type { MaskPath } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
 
@@ -32,6 +33,8 @@ export interface MaskedSpec {
   erase?: MaskPath[];
   /** Keep only what falls inside this polygon; nothing outside its box is even fetched. */
   keep?: MaskPath | null;
+  /** The palette to draw the tiles in, as the flat map does; see recolour.ts. Classic if absent. */
+  palette?: string;
 }
 
 const registry = new Map<string, MaskedSpec>();
@@ -64,8 +67,8 @@ const EMPTY = { data: null };
 /**
  * Answer one tile request. Exported for the protocol and for the test.
  *
- * Nothing to cut, and the bytes are passed through for MapLibre to decode
- * off the main thread as it would any tile. A 404 is an empty tile rather
+ * Nothing to cut and nothing to recolour, and the bytes are passed through
+ * for MapLibre to decode off the main thread as it would any tile. A 404 is an empty tile rather
  * than an error: frames from before the index existed have no other way to
  * say which tiles they lack.
  */
@@ -85,8 +88,9 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
   if (keep && !overlaps(extent, keep.bbox)) return EMPTY;
   const erase = (spec.erase ?? []).filter((path) => overlaps(extent, path.bbox));
   const source = fillTemplate(spec.template, z, x, y);
+  const table = recolouringFor(spec.palette ?? "classic");
 
-  if (!erase.length && !keep) {
+  if (!erase.length && !keep && !table) {
     const response = await fetch(source, { signal });
     if (response.status === 404) return EMPTY;
     if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${source}`);
@@ -99,7 +103,8 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
   } catch {
     return EMPTY; // the image loader cannot tell a 404 from anything else
   }
-  return { data: await createImageBitmap(maskTile(image, extent, erase, keep)) };
+  const cut = erase.length || keep ? maskTile(image, extent, erase, keep) : image;
+  return { data: await createImageBitmap(table ? recolourImage(cut, table) : cut) };
 }
 
 /** What MapLibre's `addProtocol` takes, narrowed to what is used. */
