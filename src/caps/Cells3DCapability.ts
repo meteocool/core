@@ -41,7 +41,7 @@ import { elementCentre, setElementCentre } from "../lib/viewCentre";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { tracked } from "../lib/progress";
-import { isBehind, scanTime, VolumeFeed } from "../lib/scans";
+import { isBehind, networkOf, scanTime, VolumeFeed } from "../lib/scans";
 import type { Scan } from "../lib/scans";
 
 import { trimToLastRun } from "../lib/cellTrack";
@@ -332,6 +332,19 @@ const BEHIND_OPACITY = 0.5;
 /** An older scan's footprint, whose severity is that scan's too. */
 export const BEHIND_LINE = "#8c8c8c";
 
+/**
+ * A storm core's ground ring, in the palette, or grey where it is from an
+ * older scan than its own network's radar (the feature's `behind`).
+ */
+function ringColour(colormap: string): DataDrivenPropertyValueSpecification<string> {
+  return [
+    "case", ["get", "behind"], dbzRamp(colormap, true), dbzRamp(colormap),
+  ] as unknown as DataDrivenPropertyValueSpecification<string>;
+}
+
+/** Between a run's volumes being announced and asking for them, so a run's parts are fetched together. */
+const VOLUMES_SETTLE_MS = 1500;
+
 export default class Cells3DCapability extends Capability {
   private gl: GlMap | null = null;
 
@@ -362,8 +375,8 @@ export default class Cells3DCapability extends Capability {
   /** Every storm core with a volume in the newest scan, KONRAD3D cell or not. */
   private clouds: RadarVolume[] = [];
 
-  /** The scan `clouds` come from; null when none has been built. */
-  private cloudsScan: Scan | null = null;
+  /** A refetch of the volumes, waiting for the rest of a run's parts; see `newVolumes`. */
+  private volumesTimer: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * The storm cores, waited for until they reach the newest scan on the map.
@@ -871,6 +884,8 @@ export default class Cells3DCapability extends Capability {
     this.strikeTimer = null;
     // `attach` refreshes, and waits again from there.
     this.volumes.stop();
+    if (this.volumesTimer !== null) clearTimeout(this.volumesTimer);
+    this.volumesTimer = null;
     this.detach();
     super.willLoseFocus();
   }
@@ -1161,7 +1176,7 @@ export default class Cells3DCapability extends Capability {
    * newer scan lands, and colour comes back with it. See lib/scans.ts.
    */
   private applyStaleness(): void {
-    this.cloudsLayer?.setRadarScan(this.radarScan);
+    this.cloudsLayer?.setRadarScans((network) => this.radarScanOf(network));
     const gl = this.gl;
     if (!gl || !this.styleReady) return;
     const cellsBehind = isBehind(this.cellsScan, this.radarScan);
@@ -1175,11 +1190,23 @@ export default class Cells3DCapability extends Capability {
       gl.setPaintProperty("cell-footprint", "line-color", cellsBehind ? BEHIND_LINE : severityColour());
     }
     if (gl.getLayer("cloud-marker")) {
-      gl.setPaintProperty(
-        "cloud-marker", "circle-stroke-color", dbzRamp(this.colormap, isBehind(this.cloudsScan, this.radarScan)),
-      );
+      // Each ring's `behind` is worked out with its data.
+      this.ensureClouds(gl);
+      gl.setPaintProperty("cloud-marker", "circle-stroke-color", ringColour(this.colormap));
     }
     if (this.shown) gl.triggerRepaint();
+  }
+
+  /**
+   * The scan of the radar a storm from this network is judged against: its
+   * own network's frame, which carries the scan its runs are stamped with.
+   * DWD's frame for Germany's, and for every network while the merged
+   * composite is draped whole in their place. Null -- nothing is behind it --
+   * where a network has no fresh frame, or one from before frames said.
+   */
+  private radarScanOf(network: string): Scan | null {
+    if (network === "de" || this.radarWhole) return this.radarScan;
+    return this.networkFrames[network as NetworkCode]?.upstream_time ?? null;
   }
 
   /** Tell the layer which storm is open, and which way its slice now runs. */
@@ -1360,7 +1387,13 @@ export default class Cells3DCapability extends Capability {
       features: this.clouds.filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => ({
         type: "Feature" as const,
         geometry: { type: "Point" as const, coordinates: [cloud.lon, cloud.lat] },
-        properties: { code: cloud.code, path: cloud.path, dbz: cloud.peak_dbz ?? 40, tier: cloud.tier ?? 2 },
+        properties: {
+          code: cloud.code,
+          path: cloud.path,
+          dbz: cloud.peak_dbz ?? 40,
+          tier: cloud.tier ?? 2,
+          behind: isBehind(scanTime(cloud.reference_time), this.radarScanOf(networkOf(cloud))),
+        },
       })),
     };
     const source = gl.getSource(CLOUD_SOURCE);
@@ -1378,7 +1411,7 @@ export default class Cells3DCapability extends Capability {
         "circle-radius": 11,
         "circle-color": "rgba(0, 0, 0, 0)",
         "circle-stroke-width": 2.5,
-        "circle-stroke-color": dbzRamp(this.colormap),
+        "circle-stroke-color": ringColour(this.colormap),
         "circle-stroke-opacity": [
           "case", ["==", ["get", "tier"], TIER_UNOPENABLE], RING_OPACITY.unopenable, RING_OPACITY.openable,
         ],
@@ -1556,8 +1589,29 @@ export default class Cells3DCapability extends Capability {
    */
   setNetworkFrames(frames: Partial<Record<NetworkCode, RadarFrame>>): void {
     this.networkFrames = frames;
-    if (!this.shown || !this.gl || !this.styleReady) return;
-    this.ensureNetworks(this.gl);
+    // Each network's storms are greyed against its own frame, so a new one
+    // may bring their colour back -- hidden or not, as `applyColormap` does.
+    if (this.shown && this.gl && this.styleReady) this.ensureNetworks(this.gl);
+    this.applyStaleness();
+  }
+
+  /**
+   * Re-read the volumes, when a run's (or a part of a run's) are built.
+   *
+   * Each network's runs land on their own clock and a run in parts, so the
+   * ones that land between two KONRAD3D runs were otherwise not seen until
+   * the next -- by when its radar had moved on and they were drawn grey. A
+   * moment's wait first, so a run's parts landing together are one fetch.
+   */
+  newVolumes(): void {
+    if (!this.shown || this.volumesTimer !== null) return;
+    this.volumesTimer = setTimeout(() => {
+      this.volumesTimer = null;
+      if (!this.shown) return;
+      void fetchCurrentVolumes().catch(() => null).then((answer) => {
+        if (answer && this.shown) this.volumes.offer(answer);
+      });
+    }, VOLUMES_SETTLE_MS);
   }
 
   /**
@@ -1637,7 +1691,6 @@ export default class Cells3DCapability extends Capability {
   /** A newer scan's storm cores, from a refresh or from waiting for one. */
   private takeClouds(answer: CurrentVolumes): void {
     this.clouds = (answer.volumes ?? []) as RadarVolume[];
-    this.cloudsScan = scanTime(answer.reference_time);
     // Only the listed ones are worth remembering; every run brings new paths.
     const listed = new Set(this.clouds.map((cloud) => cloud.path));
     for (const path of this.faint) if (!listed.has(path)) this.faint.delete(path);
@@ -1935,6 +1988,8 @@ export default class Cells3DCapability extends Capability {
   destroy(): void {
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
+    if (this.volumesTimer !== null) clearTimeout(this.volumesTimer);
+    this.volumesTimer = null;
     this.volumes.stop();
     this.unsubscribeTheme?.();
     this.unsubscribeTheme = null;

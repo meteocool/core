@@ -974,6 +974,24 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * VolumesRefresh
+         * @description A nudge that one composite scan's radar volumes have been built.
+         *
+         *     Deliberately not a third `cells`, though `/cells/volumes` serves them: that
+         *     event has the frontend refetch the flat map's tracks and the 3D map's cells
+         *     too, and the volumes do not follow KONRAD3D. They are built from the DMAX
+         *     composite and land tens of seconds after `data` announced the same scan's
+         *     cells -- and a scan in which KONRAD3D warned about nothing can still have
+         *     some. Clients refetch `/cells/volumes`.
+         */
+        VolumesRefresh: {
+            /**
+             * Reference Time
+             * @description Time of the composite scan the volumes were built from, milliseconds since the epoch
+             */
+            reference_time: number;
+        };
     };
     responses: never;
     parameters: never;

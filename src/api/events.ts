@@ -21,6 +21,8 @@ export type SnowEvent = Schemas["SnowRefresh"];
 export type CellsEvent = Schemas["CellsRefresh"];
 /** One EUMETNET network's composite was re-rendered; refetch only that network's frame. */
 export type NetworkEvent = Schemas["NetworkRefresh"];
+/** One run's volumes, or one part of a run's, are built; refetch `/cells/volumes`. */
+export type VolumesEvent = Schemas["VolumesRefresh"];
 
 export interface ServerToClientEvents {
   cells: (cells: CellsEvent) => void;
@@ -29,6 +31,7 @@ export interface ServerToClientEvents {
   network: (network: NetworkEvent) => void;
   poke: (poke: PokeEvent) => void;
   snow: (snow: SnowEvent) => void;
+  volumes: (volumes: VolumesEvent) => void;
 }
 
 /** The browser never emits: this channel is one-way. */
