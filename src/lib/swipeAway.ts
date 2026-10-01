@@ -89,6 +89,11 @@ export interface SwipeAwayOptions {
  * can be taken away without a `pointerup` ever arriving -- a system gesture
  * claiming the touch, the node being re-laid-out under it -- and without it the
  * element stays parked mid-drag and ignores every later touch.
+ *
+ * Only the node's own loss, though. A touch is captured by whatever it lands
+ * on, and taking it for the node makes that child -- the cell hint's Details
+ * button -- lose it, an event that bubbles up here. Read as the swipe ending,
+ * it stopped every swipe that began on a button dead.
  */
 export function swipeAway(node: HTMLElement, options: SwipeAwayOptions) {
   let opts = options;
@@ -124,6 +129,7 @@ export function swipeAway(node: HTMLElement, options: SwipeAwayOptions) {
 
   function onUp(event: PointerEvent) {
     if (event.pointerId !== pointer) return;
+    if (event.type === "lostpointercapture" && event.target !== node) return;
     pointer = null;
     try {
       if (node.hasPointerCapture(event.pointerId)) node.releasePointerCapture(event.pointerId);
