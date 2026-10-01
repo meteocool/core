@@ -43,6 +43,7 @@ import "@shoelace-style/shoelace/dist/themes/dark.css";
 import "./glass.css";
 import { websocketBaseUrl } from "./urls";
 import { onWake, wake, whenVisible } from "./lib/wakeup";
+import { installScrollbars } from "./lib/scrollbars";
 import { fetchCurrentVolumes, fetchLightningCache, fetchMesocyclones } from "./api";
 import type { CurrentVolumes, RadarVolume } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
@@ -553,6 +554,9 @@ radarSocketIO.on("cells", (cells) => {
   whenVisible("cloudHints", () => void reloadCloudHints(Math.floor(cells.reference_time / 1000)));
 });
 void reloadCloudHints();
+
+// Thin scrollbars that show only while something scrolls; see lib/scrollbars.ts.
+installScrollbars();
 
 // The panels' "open in 3D" links and the tags above all switch through this,
 // and the way back -- see below -- through the same manager.

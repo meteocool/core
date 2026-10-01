@@ -898,3 +898,52 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    text and the map did not move. Only the links still want a tap. */
 .maplibre-host .maplibregl-ctrl.maplibregl-ctrl-attrib { pointer-events: none; }
 .maplibre-host .maplibregl-ctrl-attrib a { pointer-events: auto; }
+
+/* Scrollbars as a phone draws them: a few pixels of thumb, there while the
+   reader scrolls and gone a moment after. With a mouse, a desktop browser
+   draws the classic kind -- a grey gutter and thumb down the side of every
+   drawer and popup, scrolling or not. Here the strip is narrow and clear, and
+   the thumb is drawn only on what lib/scrollbars.ts marks as scrolling, or
+   under the pointer, so it can still be grabbed.
+
+   Only with a fine pointer: touch screens already have the overlay kind, and
+   styling them would turn it back into a gutter. The ink is the text's own,
+   thinned, so the thumb reads on the glass and on the sheets alike. */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    min-height: 32px;
+    min-width: 32px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background-clip: padding-box;
+    background-color: transparent;
+  }
+  .mc-scrolling::-webkit-scrollbar-thumb,
+  ::-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(in srgb, currentColor 38%, transparent);
+  }
+
+  /* Firefox has no pseudo-elements for this, only the standard properties --
+     which Chromium honours too, and then ignores the rules above, so they are
+     kept to the browser that needs them. */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+    .mc-scrolling,
+    *:hover {
+      scrollbar-color: color-mix(in srgb, currentColor 38%, transparent) transparent;
+    }
+  }
+}
