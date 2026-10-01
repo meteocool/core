@@ -1,24 +1,34 @@
 <script lang="ts">
 import { _ } from "svelte-i18n";
 import { createEventDispatcher, onMount } from "svelte";
-import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
-import Icon from "./Icon.svelte";
+import CloseDisc from "./CloseDisc.svelte";
+import { smallScreen } from "../stores";
 import { holdNativeChrome } from "../lib/nativeBridge";
 
 /**
- * A panel of text floating over the map: About, Settings, Connection Details.
+ * A panel of text over the map: About, Settings, Connection Details.
+ *
+ * One component, two frames, chosen by the screen -- the same split the storm
+ * panels make in App.svelte, so everything that opens over the map takes the
+ * same two shapes. On a desktop it is a panel floating over the map; on a
+ * phone it is the sheet (CellSheet) a storm's details come up in, at full
+ * height, pulled down to dismiss. The reading panels used to float on a
+ * phone too, as a card the size of the screen with no grip and no slide,
+ * beside storm sheets that had both.
  *
  * Glass rather than a solid sheet, so the map stays in view behind whatever is
  * being read -- but in the reading material (`.glass-reading` in
  * src/glass.css), not the chrome's. The chrome's glass boosts saturation and
  * lifts the backdrop, which is what makes a pill look like a lens and is
  * exactly wrong under a paragraph over a squall line: the radar comes through
- * brighter than it is on the map. See the material for how it holds up.
+ * brighter than it is on the map. See the material for how it holds up. The
+ * sheet takes the same material, so the panel reads the same on both.
  *
  * No backdrop dim: the map stays at full strength around the panel, and a tap
- * on it -- anywhere outside the panel -- closes it, as does Escape.
+ * on it -- anywhere outside the floating panel -- closes it, as does Escape.
  *
- * Close is a glass disc in the top-right corner, as on the storm popup.
+ * Close is the panels' glass disc in the top-right corner, in the chrome's
+ * tints; see CloseDisc.
  */
 
 export let title: string;
@@ -26,13 +36,20 @@ export let title: string;
 /** Fill what the map leaves, for a wall of readings; otherwise a reading column. */
 export let wide = false;
 
+/* The sheet is the storm panels' chunk, not this one's: it brings the cell's
+   details, charts and model with it, which About has no use for on a desktop. */
+const loadSheet = () => import("./CellSheet.svelte");
+
 const dispatch = createEventDispatcher();
 const titleId = `panel-${Math.random().toString(36).slice(2)}`;
 
-let panel: HTMLElement;
-
 function close() {
   dispatch("close");
+}
+
+/** Where the keyboard goes next, and what a screen reader announces. */
+function autofocus(node: HTMLElement) {
+  node.focus({ preventScroll: true });
 }
 
 /*
@@ -47,9 +64,8 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 onMount(() => {
-  // Where the keyboard goes next, and what a screen reader announces.
-  panel.focus({ preventScroll: true });
   window.addEventListener("keydown", onKeydown, true);
+  // The sheet holds the chrome too; the bridge counts, so both can.
   const releaseChrome = holdNativeChrome();
   return () => {
     window.removeEventListener("keydown", onKeydown, true);
@@ -79,23 +95,26 @@ onMount(() => {
   }
 
   .panel {
+    color: var(--mc-text);
+    font-family: var(--mc-font);
+    outline: none;
+  }
+
+  .floating {
     width: min(31rem, 100%);
     max-height: 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    color: var(--mc-text);
-    font-family: var(--mc-font);
-    outline: none;
   }
   /* A wall of readings: paging through a narrow column of them is worse than
      reading a wide one. */
-  .panel.wide {
+  .floating.wide {
     width: min(72rem, 100%);
     height: 100%;
   }
 
-  header {
+  .floating header {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -111,47 +130,6 @@ onMount(() => {
     margin: 0;
     font: var(--mc-type-title);
     letter-spacing: -0.02em;
-  }
-
-  /*
-   * Close, as a glass disc: the storm popup's (CellDetails.svelte), in this
-   * panel's own material. That one is built from Shoelace's neutrals because
-   * its panel is a light sheet in either scheme; this one sits on glass whose
-   * ink follows the basemap, so it takes the chrome tints -- a flat tint and
-   * the lens bevel, no second blur, which is the rule for anything on glass.
-   */
-  .close {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    margin-left: auto;
-    padding: 0;
-    border: 1px solid var(--mc-glass-edge);
-    border-radius: 50%;
-    background: var(--mc-tint);
-    box-shadow: var(--mc-glass-highlight);
-    color: var(--mc-text);
-    font-size: 14px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
-  }
-  .close:hover { background: var(--mc-tint-hover); }
-  .close:active { transform: scale(var(--mc-press)); }
-  .close:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-
-  /* A thumb needs 44px; a mouse does not, and at desktop size a target that
-     big beside the title is the loudest thing in the panel. Not pulled into
-     the corner the way the storm popup's is: against a 26px corner radius
-     that left it 4px from the edge, crowding the rim it sits inside. */
-  @media only screen and (max-width: 620px) {
-    .close {
-      width: 44px;
-      height: 44px;
-      font-size: 18px;
-    }
   }
 
   /* The only scroller: the panel stops at the bottom of the screen, so a long
@@ -174,6 +152,23 @@ onMount(() => {
       #000 calc(100% - var(--mc-fade-bottom)), transparent);
   }
 
+  /* In the sheet, which scrolls and insets the body itself: the header is
+     the storm panel's (StormPanel.svelte), the disc pulled into the corner
+     the sheet keeps clear for it, and the body is the reading. */
+  .in-sheet {
+    font: var(--mc-type-body);
+  }
+  .in-sheet header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .in-sheet h2 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   /* A phone on its side has about 375px of height for all of this, and half of
      it should not go to a gap above the panel. The top line goes behind it
      here; the panel is modal anyway, and the reading beats the affordance. */
@@ -182,29 +177,47 @@ onMount(() => {
       padding-top: calc(var(--mc-safe-top) + var(--mc-gutter));
       padding-bottom: calc(var(--mc-safe-bottom) + var(--mc-gutter) / 2);
     }
-    header {
+    .floating header {
       padding: 10px 10px 4px 14px;
     }
   }
 </style>
 
-<div class="scrim" on:click|self={close} role="presentation">
-  <div
-    bind:this={panel}
-    class="panel glass glass-tray glass-reading"
-    class:wide
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby={titleId}
-    tabindex="-1">
-    <header>
-      <h2 id={titleId}>{title}</h2>
-      <button type="button" class="close" aria-label={$_("close")} title={$_("close")} on:click={close}>
-        <Icon icon={faXmark} />
-      </button>
-    </header>
-    <div class="body">
-      <slot />
+{#if $smallScreen}
+  {#await loadSheet() then { default: CellSheet }}
+    <svelte:component this={CellSheet} full material="reading" onClose={close}>
+      <div
+        class="panel in-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabindex="-1"
+        use:autofocus>
+        <header>
+          <h2 id={titleId}>{title}</h2>
+          <CloseDisc material="chrome" on:click={close} />
+        </header>
+        <slot />
+      </div>
+    </svelte:component>
+  {/await}
+{:else}
+  <div class="scrim" on:click|self={close} role="presentation">
+    <div
+      class="panel floating glass glass-tray glass-reading"
+      class:wide
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      tabindex="-1"
+      use:autofocus>
+      <header>
+        <h2 id={titleId}>{title}</h2>
+        <CloseDisc material="chrome" on:click={close} />
+      </header>
+      <div class="body">
+        <slot />
+      </div>
     </div>
   </div>
-</div>
+{/if}
