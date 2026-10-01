@@ -193,6 +193,8 @@ export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
     maxZoom: 8,
     transition: 300,
     tileSize: 512,
+    // Classes, not intensities: blending snow into hail past zoom 8 draws a colour no class has.
+    interpolate: false,
   }));
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
