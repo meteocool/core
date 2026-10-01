@@ -130,6 +130,12 @@ export default class NetworkRadarLayer {
   /** Told after every new live frame; the 3D map drapes the same one. */
   private readonly onLiveFrame: (() => void) | undefined;
 
+  /**
+   * The palette the reader chose, which the tiles are recoloured into on
+   * load (recolour.ts): they come in the classic one, as DWD's do.
+   */
+  private palette = "classic";
+
   constructor(map: Map, network: Network, onLiveFrame?: () => void) {
     this.map = map;
     this.network = network;
@@ -173,6 +179,12 @@ export default class NetworkRadarLayer {
     this.live = live;
     this.stepFrame = frame;
     this.apply();
+  }
+
+  /** Draw this network in a palette from now on; the tiles on screen reload in it. */
+  setPalette(palette: string) {
+    this.palette = palette;
+    this.layer?.getSource()?.setPalette(palette);
   }
 
   /**
@@ -235,6 +247,7 @@ export default class NetworkRadarLayer {
       transition: 0,
       interpolate: false,
       url,
+      palette: this.palette,
     }));
     this.layer = new TileLayer({
       source,

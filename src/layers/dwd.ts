@@ -20,10 +20,10 @@ import type BaseLayer from "ol/layer/Base";
  */
 export type LayerFactory = (tileId: string, bucket?: string) => [BaseLayer, NetworkHoleTileSource, string];
 import { NOWCAST_OPACITY } from "./ui";
-import { cmapFromString } from "../lib/cmap_utils";
-import { RVP6_CLASSIC }  from "../colormaps";
+import { recolouringFor } from "./recolour";
 
-let cmap = RVP6_CLASSIC;
+/** The palette DWD's frames are drawn in, by the name the settings store it under. */
+let palette = "classic";
 
 // OpenLayers 10 renders WebGLTile layers from DataTile sources only, so these
 // moved onto ol/source/ImageTile. Three of the old options went with that:
@@ -98,13 +98,10 @@ export const DWDLayerFactoryGL: LayerFactory = (tileId, bucket = "meteoradar") =
     ["+", ["*", 255 * 256, ["band", 2]], ["*", 255, ["band", 3]]],
   ];
 
-  const indexes = RVP6_CLASSIC.map((rgba) => {
-    const [r, g, b, _] = rgba;
-    return (r * 256 * 256) + (g * 256) + b;
-  });
-
-  const cmapAlphaNorm = cmap.map((color) => [color[0], color[1], color[2], color[3] / 255]);
-  const matches = indexes.map((element, index) => [element, cmapAlphaNorm[index]]).flat();
+  // Each classic colour to the palette's at the same dBZ (recolour.ts), the
+  // same table the networks' layers and the 3D map are recoloured with.
+  const matches = [...(recolouringFor(palette) ?? new Map()).entries()]
+    .flatMap(([classic, [r, g, b, a]]) => [classic, [r, g, b, a / 255]]);
 
   const reflectivityLayer = new TileLayer({
     zIndex: 3,
@@ -126,7 +123,7 @@ export const DWDLayerFactoryGL: LayerFactory = (tileId, bucket = "meteoradar") =
 };
 
 export function setDwdCmap(colorMapString: string) {
-  [cmap] = cmapFromString(colorMapString);
+  palette = colorMapString;
 }
 
 /** The dark wash over everywhere neither radar network reaches. */
