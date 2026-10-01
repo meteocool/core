@@ -21,5 +21,6 @@ export const chmiAttribution = `© ${link("https://www.chmi.cz/", "ČHMÚ")}`;
 export const imgwAttribution = `© ${link("https://www.imgw.pl/", "IMGW-PIB")}`;
 export const noaaAttribution = link("https://www.weather.gov/disclaimer", "NOAA/NWS");
 export const blitzortungAttribution = `© ${link("https://www.blitzortung.org/", "Blitzortung.org")}`;
+export const mapterhornAttribution = `© ${link("https://mapterhorn.com/attribution", "Mapterhorn")}`;
 export const protomapsAttribution = `© ${link("https://protomaps.com", "Protomaps")}`;
 export const imprintAttribution = "| <a href=\"/imprint.html\">Imprint</a> · <a href=\"/imprint.html#data\">Data licences</a>";
