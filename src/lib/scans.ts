@@ -14,7 +14,19 @@
  * cells from two convective days in September 2026, 355 overlapped the
  * composite of their own scan best, and 3 the scan before. So whatever is from
  * an older scan than the radar is drawn as such, until its own scan arrives.
+ *
+ * Against its own network's radar, not DWD's. A storm from France's run is
+ * stamped with the newest scan in France's composite, which is on France's
+ * clock -- 15:29, 15:34 -- and the frame draped over France carries the same
+ * stamp (`RadarFrame.upstream_time`). Judged against DWD's five-minute frame
+ * instead, every one of them was a minute or more behind the moment DWD's next
+ * scan landed, built in time or not.
  */
+
+/** The network a volume's storm was found in; volumes from before networks were recorded are DWD's. */
+export function networkOf(volume: { network?: string | null }): string {
+  return volume.network || "de";
+}
 
 /** A scan's time, epoch seconds: what the radar grid is keyed by. */
 export type Scan = number;
@@ -54,7 +66,7 @@ interface Scanned {
  * `VOLUME_RETRY_MS`, until an answer reaches the run's scan.
  *
  * Every answer, whoever fetched it, goes through `offer`, which passes on only
- * those newer than the last: two requests in flight can come back in either
+ * those no older than the last: two requests in flight can come back in either
  * order, and the older one landing second would put the previous scan back.
  */
 export class VolumeFeed<T extends Scanned> {
@@ -75,10 +87,17 @@ export class VolumeFeed<T extends Scanned> {
     this.apply = apply;
   }
 
-  /** Pass an answer on, unless it is no newer than the last one; true when it was. */
+  /**
+   * Pass an answer on, unless it is older than the last one; true when it was.
+   *
+   * One as new is passed on too. `reference_time` is the newest of every
+   * network's runs, so Germany's run landing after Switzerland's newer one
+   * leaves it where it was -- and a run is built in parts, each listed as it
+   * lands, under the same scan.
+   */
   offer(answer: T): boolean {
     const scan = scanTime(answer.reference_time);
-    if (scan !== null && this.newest !== null && scan <= this.newest) return false;
+    if (scan !== null && this.newest !== null && scan < this.newest) return false;
     this.newest = scan;
     this.apply(answer);
     return true;

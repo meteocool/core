@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
-import { isBehind, scanTime, VolumeFeed, VOLUME_RETRIES, VOLUME_RETRY_MS } from "../../src/lib/scans.ts";
+import { isBehind, networkOf, scanTime, VolumeFeed, VOLUME_RETRIES, VOLUME_RETRY_MS } from "../../src/lib/scans.ts";
 
 const at = (hhmm: string) => scanTime(`2026-10-01T${hhmm}:00Z`)!;
 
@@ -45,7 +45,9 @@ test("the feed asks again until the run's own volumes are built", async (t) => {
   await settle();
   t.mock.timers.tick(VOLUME_RETRY_MS);
   await settle();
-  assert.deepEqual(seen, ["2026-10-01T00:00:00Z", "2026-10-01T00:05:00Z"]);
+  // The first ask is still 00:00's, passed on again: it may hold parts of a
+  // run, or another network's, that the last answer did not.
+  assert.deepEqual(seen, ["2026-10-01T00:00:00Z", "2026-10-01T00:00:00Z", "2026-10-01T00:05:00Z"]);
 
   // Caught up: no more asks.
   t.mock.timers.tick(VOLUME_RETRY_MS * 5);
@@ -71,8 +73,24 @@ test("an older answer landing late does not put the previous scan back", () => {
   const feed = new VolumeFeed(async () => null, (answer) => seen.push(answer.reference_time));
   assert.ok(feed.offer(volumes("00:05")));
   assert.ok(!feed.offer(volumes("00:00")));
-  assert.ok(!feed.offer(volumes("00:05")));
   assert.deepEqual(seen, ["2026-10-01T00:05:00Z"]);
+});
+
+test("an answer as new as the last is passed on: another network's run, or a further part", () => {
+  // The list's time is the newest of every network's runs, so Germany's
+  // 00:00 run landing after Switzerland's 00:01 leaves it at 00:01.
+  const seen: Array<string | null | undefined> = [];
+  const feed = new VolumeFeed(async () => null, (answer) => seen.push(answer.reference_time));
+  assert.ok(feed.offer(volumes("00:01")));
+  assert.ok(feed.offer(volumes("00:01")));
+  assert.equal(seen.length, 2);
+});
+
+test("a storm is judged against its own network's radar", () => {
+  assert.equal(networkOf({ network: "fr" }), "fr");
+  // From before volumes were filed by network: DWD's, which was all there was.
+  assert.equal(networkOf({ network: null }), "de");
+  assert.equal(networkOf({}), "de");
 });
 
 test("stopping drops an ask already in flight", async (t) => {
