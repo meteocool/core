@@ -41,6 +41,15 @@
  * it. `gl_FragDepth` comes from the point where the ray enters the storm
  * rather than from the fullscreen triangle, or the whole box would sit at one
  * depth and either float in front of everything or vanish behind it.
+ *
+ * And it is put into the depth range MapLibre is drawing with, by hand.
+ * MapLibre draws its 3D layers -- the terrain, the extrusions, this -- into
+ * `[0, 0.995]` or so, not `[0, 1]`, and `glDepthRange` maps only the depth a
+ * triangle interpolates: a depth written to `gl_FragDepth` is taken as it is.
+ * Written as `[0, 1]`, every storm stood half a percent behind its true depth,
+ * which close up is nothing -- and zoomed out, where every depth on screen
+ * crowds up against 1, is more than the gap between a storm and the ground
+ * behind it: over the Alps with terrain on, the clouds vanished.
  */
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
 import type { Cutaway } from "../lib/cellCutaway";
@@ -129,6 +138,7 @@ uniform float uCut;        // 1 for the storm being inspected, 0 for every other
 uniform float uLow;        // where the echo starts to show, which the peel raises
 uniform float uBehind;     // 1 for a storm from an older scan than the radar under it
 uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
+uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
 
 out vec4 fragColour;
 
@@ -211,7 +221,7 @@ void main() {
       // The first sample that is actually storm is what this pixel's depth is,
       // so the map's own geometry occludes it in the right order.
       vec4 clip = uForward * vec4(p, 1.0);
-      gl_FragDepth = clamp(0.5 + 0.5 * clip.z / clip.w, 0.0, 1.0);
+      gl_FragDepth = mix(uDepthRange.x, uDepthRange.y, clamp(0.5 + 0.5 * clip.z / clip.w, 0.0, 1.0));
       wrote = true;
     }
 
@@ -718,6 +728,9 @@ export function makeCloudsLayer(
       context.uniform1i(at("uVolume"), 0);
       context.uniform2f(at("uViewport"), width, height);
       context.uniform1f(at("uSteps"), STEPS);
+      // Whatever MapLibre has set for this layer; see "Depth" above.
+      const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
+      context.uniform2f(at("uDepthRange"), depthNear, depthFar);
 
       context.enable(context.BLEND);
       context.blendFunc(context.ONE, context.ONE_MINUS_SRC_ALPHA);
