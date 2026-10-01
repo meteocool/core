@@ -246,6 +246,9 @@ export default class RadarCapability extends Capability {
     //mcTileCache.setMap(map);
     radarColorScheme.subscribe((colorScheme) => {
       setDwdCmap(colorScheme);
+      // The other networks and the merged composite in the same palette:
+      // their tiles are classic too, recoloured on load (recolour.ts).
+      for (const network of [...this.networks, this.europe]) network.setPalette(colorScheme);
 
       const oldLayer = this.layer;
       if (oldLayer && super.getMap()) {
