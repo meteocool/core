@@ -369,22 +369,6 @@ derived([selectedCell, selectedVolume], ([cell, cloud]) => (
 )).subscribe(() => cutRotationDeg.set(0));
 
 /**
- * The bottom trays step aside for the panel on a phone.
- *
- * The panel is nearly the whole screen there, and what is left of the map is
- * the strip below it -- which is exactly where the scale, the clock and the
- * playback controls sit. Hidden through a class on <body> rather than by not
- * rendering them: the player owns subscriptions to the radar grid and its own
- * playback state, and tearing that down and rebuilding it every time a popup
- * opens would be a lot of machinery moved for a visual answer.
- */
-derived([selectedCell, cellDetails, modelCompareAt, smallScreen], ([track, open, compare, small]) => (
-  small && ((Boolean(track) && open) || Boolean(compare))
-)).subscribe((hide) => {
-  document.body.classList.toggle("cell-details-open", hide);
-});
-
-/**
  * The drawer holds one thing: tapping a storm while the model comparison is
  * open replaces it, as tapping a second storm replaces the first.
  */
@@ -392,6 +376,9 @@ derived([selectedCell, selectedVolume], ([cell, cloud]) => Boolean(cell || cloud
   .subscribe((storm) => { if (storm) modelCompareAt.set(null); });
 
 const closeCompare = () => modelCompareAt.set(null);
+const closeVolume = () => selectedVolume.set(null);
+/** Whether the selected storm stands cut open on the 3D map behind its sheet. */
+$: cutOpen = $sharedActiveCap === "cells3d";
 
 // Cell tracks are fetched for what is on screen, so they follow the map rather
 // than a timer. The manager ignores a move that stays inside what it already
@@ -800,16 +787,6 @@ if (postInitCb) postInitCb(lm);
   /* Anchored rather than floating over the tap: the map animates under a
      popup, and a panel that chases the storm is harder to read than one that
      stays put. Above the toolbar, clear of the bottom tray. */
-  /* On a phone the storm-core popup sits along the bottom, where a thumb is,
-     rather than in the desktop corner over the map it came from. */
-  .cell-details-panel.cloud-bottom {
-    top: auto;
-    left: 12px;
-    right: 12px;
-    bottom: calc(12px + var(--mc-safe-bottom, 0px));
-    max-width: none;
-  }
-
   /* The drawer material (src/glass.css) supplies the fill, blur, shadow and
      ink; this is the frame. It does not scroll itself: the content scrolls
      inside it, so what runs past the top and bottom can fade out into the
@@ -841,9 +818,17 @@ if (postInitCb) postInitCb(lm);
       #000 calc(100% - var(--mc-fade-bottom)), transparent);
   }
 
-  /* Set on <body> while the panel is up on a phone; see the subscription above.
-     Both trays carry .bottomToolbar, and .buttonBar is the pair of discs the
-     collapsed player puts in the bottom corners. */
+  /* The bottom trays step aside for a sheet on a phone.
+
+     The sheet is most of the screen there, and what is left of the map is the
+     strip below it -- which is exactly where the scale, the clock and the
+     playback controls sit. Hidden through a class on <body>, which CellSheet
+     sets while any sheet is up, rather than by not rendering them: the player
+     owns subscriptions to the radar grid and its own playback state, and
+     tearing that down and rebuilding it every time a sheet opens would be a
+     lot of machinery moved for a visual answer. Both trays carry
+     .bottomToolbar, and .buttonBar is the pair of discs the collapsed player
+     puts in the bottom corners. */
   :global(body.cell-details-open .bottomToolbar),
   :global(body.cell-details-open .buttonBar) {
     display: none;
@@ -896,21 +881,24 @@ if (postInitCb) postInitCb(lm);
   {/if}
 {:else if $selectedCell && $smallScreen}
   <CellSelectionHint track={$selectedCell} />
-{:else if $selectedVolume && $smallScreen && $sharedActiveCap === "cells3d"}
-  <!-- On the 3D map a phone's storm core is cut open on the map itself, and
-       takes the cell's glass sheet: the same surface for whichever kind of
-       storm was tapped, only as tall as what it holds -- a few facts and the
-       dial that turns the cut -- until it is pulled up for how the volume
-       was built. -->
+{:else if $selectedVolume && $smallScreen}
+  <!-- A phone's storm core takes the cell's glass sheet: the same surface for
+       whichever kind of storm was tapped. On the 3D map the storm is cut open
+       on the map itself, so the sheet is only as tall as what it holds -- a
+       few facts and the dial that turns the cut -- until it is pulled up for
+       how the volume was built. A volume is only ever selected for that map
+       (see lib/open3d.ts), so the flat map holds one just for the moment a
+       tapped tag takes to switch: one sheet, which takes its resting shape
+       when the map arrives, rather than a card replaced by a sheet. -->
   {#await Promise.all([loadCellSheet(), loadCloudDetails()]) then [{ default: CellSheet }, { default: CloudDetails }]}
-    <svelte:component this={CellSheet} fitAtRest onClose={() => selectedVolume.set(null)} let:expanded let:expand>
-      <svelte:component this={CloudDetails} cloud={$selectedVolume} compact {expanded} {expand} />
+    <svelte:component this={CellSheet} fitAtRest={cutOpen} onClose={closeVolume} let:expanded let:expand>
+      <svelte:component this={CloudDetails} cloud={$selectedVolume} compact={cutOpen} {expanded} {expand} />
     </svelte:component>
   {/await}
 {:else if $selectedVolume}
   <!-- A storm core with no KONRAD3D track, in the same popup as a cell's
        details: the same panel, only with less to say. -->
-  <div class="cell-details-panel mc-drawer" class:cloud-bottom={$smallScreen}>
+  <div class="cell-details-panel mc-drawer">
     <div class="scroll">
       {#await loadCloudDetails() then { default: CloudDetails }}
         <svelte:component this={CloudDetails} cloud={$selectedVolume} />
