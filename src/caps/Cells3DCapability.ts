@@ -11,6 +11,7 @@ import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
 import { blitzortungAttribution, dwdAttribution } from "../layers/attributions";
 import { tileSourceUrl } from "../layers/dwd";
 import { NETWORKS } from "../layers/network";
+import { SEVERITY_COLOURS } from "../layers/cells";
 import { HOLES } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
 import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
@@ -214,7 +215,13 @@ const BOX_HALF_KM = 20;
  * them, and half an hour of accumulation over a squall line is a solid smear
  * -- ten minutes keeps it to what is happening now.
  */
-const STRIKE_MINUTES = 10;
+export const STRIKE_MINUTES = 10;
+
+/** A strike's two circles: a soft glow, and a bright core with a rim. The legend draws the same. */
+export const STRIKE_COLOURS = { glow: "#ffd166", core: "#fff8e1", rim: "#f7b500" };
+
+/** How strongly a storm core's ring is drawn: fainter under one that does not open, as the storm itself is. */
+export const RING_OPACITY = { openable: 0.9, unopenable: 0.45 };
 
 /** How often a burst of strikes is redrawn at most; see `scheduleStrikes`. */
 const STRIKE_REDRAW_MS = 1000;
@@ -269,9 +276,6 @@ export interface CameraRequest {
   bearing?: number;
 }
 
-/** DWD severity classes, in the colours their own charts use. */
-const SEVERITY_COLOURS = ["#2f9e44", "#f0b429", "#e03131", "#9c36b5"];
-
 /**
  * Severity class to colour.
  *
@@ -325,7 +329,7 @@ function greyOf([r, g, b]: [number, number, number]): string {
 const BEHIND_OPACITY = 0.5;
 
 /** An older scan's footprint, whose severity is that scan's too. */
-const BEHIND_LINE = "#8c8c8c";
+export const BEHIND_LINE = "#8c8c8c";
 
 export default class Cells3DCapability extends Capability {
   private gl: GlMap | null = null;
@@ -1367,8 +1371,9 @@ export default class Cells3DCapability extends Capability {
         "circle-color": "rgba(0, 0, 0, 0)",
         "circle-stroke-width": 2.5,
         "circle-stroke-color": dbzRamp(this.colormap),
-        // Fainter under a storm that does not open, as the storm itself is.
-        "circle-stroke-opacity": ["case", ["==", ["get", "tier"], TIER_UNOPENABLE], 0.45, 0.9],
+        "circle-stroke-opacity": [
+          "case", ["==", ["get", "tier"], TIER_UNOPENABLE], RING_OPACITY.unopenable, RING_OPACITY.openable,
+        ],
       },
     });
   }
@@ -1850,7 +1855,7 @@ export default class Cells3DCapability extends Capability {
       source: STRIKE_SOURCE,
       paint: {
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 12, 14],
-        "circle-color": "#ffd166",
+        "circle-color": STRIKE_COLOURS.glow,
         "circle-blur": 1,
         "circle-opacity": ["*", 0.5, fade] as never,
       },
@@ -1861,8 +1866,8 @@ export default class Cells3DCapability extends Capability {
       source: STRIKE_SOURCE,
       paint: {
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 1.4, 12, 3.4],
-        "circle-color": "#fff8e1",
-        "circle-stroke-color": "#f7b500",
+        "circle-color": STRIKE_COLOURS.core,
+        "circle-stroke-color": STRIKE_COLOURS.rim,
         "circle-stroke-width": 1,
         "circle-opacity": fade,
         "circle-stroke-opacity": fade,

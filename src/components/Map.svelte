@@ -278,11 +278,14 @@
   :global(.maplibre-host .maplibregl-ctrl-top-right .maplibregl-ctrl) {
     margin: 0 0 var(--mc-gutter);
   }
-  /* And the attribution where the flat map keeps its own. */
+  /* And the attribution where the flat map keeps its own -- beside the 3D
+     map's guide in the bottom-left corner (Guide3D.svelte), which publishes
+     how much of the edge it takes, so a wrapped line of credits never runs
+     under it. */
   :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
     right: 2px;
     bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 1px);
-    max-width: calc(100% - 4px);
+    max-width: calc(100% - 4px - var(--mc-guide-3d-inset, 0px));
   }
   /* Up the right edge on a phone, as the flat map's (src/glass.css). The
      corner box already lets touches through; its float would put the text at
