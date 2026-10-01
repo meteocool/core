@@ -410,6 +410,12 @@ derived([selectedCell, selectedVolume], ([cell, cloud]) => (
 derived([selectedCell, selectedVolume], ([cell, cloud]) => Boolean(cell || cloud))
   .subscribe((storm) => { if (storm) modelCompareAt.set(null); });
 
+/**
+ * And opening the player puts it away: the player is the screen's bottom edge
+ * and the frames it steps through, which the comparison's drawer covered.
+ */
+bottomToolbarMode.subscribe((mode) => { if (mode === "player") modelCompareAt.set(null); });
+
 const closeCompare = () => modelCompareAt.set(null);
 const closeVolume = () => selectedVolume.set(null);
 /** Whether the selected storm stands cut open on the 3D map behind its sheet. */
