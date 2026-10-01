@@ -20,6 +20,8 @@ export type NativeMessage =
   | "layerSwitcherClosed"
   | "detailSheetExpanded"
   | "detailSheetCollapsed"
+  | "drawerOpened"
+  | "drawerClosed"
   | "impactLight"
   | "impactMedium";
 
@@ -87,4 +89,30 @@ export function postToNative(message: NativeMessage): void {
   }
   const android = typeof Android === "undefined" ? undefined : Android;
   if (typeof android?.postMessage === "function") android.postMessage(message);
+}
+
+let openDrawers = 0;
+
+/**
+ * Marks a drawer or panel as open over the map until the returned function is
+ * called: a storm's sheet or corner panel, the model comparison, About,
+ * Settings. The host hears `drawerOpened` when the first one opens and
+ * `drawerClosed` when the last one goes, so a panel opened over a sheet does
+ * not bring the buttons back when it closes.
+ *
+ * The native buttons float in the map's top corner, where the corner panel
+ * sits on a wide screen and where a sheet pulled up reaches on a phone; CSS
+ * cannot move them. Android hides them on this; iOS, which keys off
+ * `detailSheetExpanded`, ignores it. Releasing twice is harmless.
+ */
+export function holdNativeChrome(): () => void {
+  openDrawers += 1;
+  if (openDrawers === 1) postToNative("drawerOpened");
+  let held = true;
+  return () => {
+    if (!held) return;
+    held = false;
+    openDrawers -= 1;
+    if (openDrawers === 0) postToNative("drawerClosed");
+  };
 }
