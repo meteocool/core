@@ -59,7 +59,7 @@ const MIN_ZOOM = 5;
  * Measured on the map, at the level's own scale, so the same pills stay put
  * while the map pans and change only as it crosses a level.
  */
-const SPACING_PX: Record<number, number> = { 5: 160, 6: 120, 7: 84, 8: 52 };
+const SPACING_PX: Record<number, number> = { 5: 128, 6: 96, 7: 67, 8: 42 };
 
 /** The resolution of zoom 0 in OpenLayers' default grid, which every View here uses. */
 const ZOOM0_RESOLUTION = 156543.03392804097;
