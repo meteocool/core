@@ -19,6 +19,7 @@ import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway } from "../lib/cellCutaway";
+import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
@@ -219,7 +220,7 @@ const MAIN_MAP_ID = "map";
 const INITIAL_PITCH = 55;
 
 /**
- * The tilt an opened storm is looked at from, on a phone: low, so the cut
+ * The tilt an opened storm is looked at from: low, so the cut
  * stands up in front of the reader, short of the horizon filling the screen.
  */
 const OPEN_PITCH = 76;
@@ -233,26 +234,25 @@ const PITCH_KEPT_DEG = 4;
  */
 const LEAVE_MS = 1100;
 
-/** How much of the room the storm is given, leaving it a margin. */
-const OPEN_FILL = 0.9;
-
 /** The map controls and the logo along the top, which the storm stays below. */
 const OPEN_TOP_PX = 64;
 
 /** The share of the screen the phone's detail sheet covers at rest. */
 const OPEN_SHEET_FRACTION = 0.32;
 
+/**
+ * The desktop's storm panel, anchored top right: at most this wide, 12px in
+ * from the edge, and kept clear of by as much again. See `.cell-details-panel`
+ * in App.svelte.
+ */
+const OPEN_PANEL_PX = 392;
+const OPEN_PANEL_MARGIN_PX = 12;
+
+/** The tray along a desktop's bottom edge, which the storm stays above. */
+const OPEN_TRAY_PX = 88;
+
 /** How long a camera set by a link or a history step is kept over a storm opened after it. */
 const CAMERA_KEPT_MS = 3000;
-
-/** MapLibre's vertical field of view, radians: its default, which this map keeps. */
-const MAPLIBRE_FOV = (36.8699 * Math.PI) / 180;
-
-/** Metres per pixel at zoom 0 on the equator, for MapLibre's 512px tiles. */
-const WORLD_METRES_AT_ZOOM_0 = 40_075_016.686 / 512;
-
-/** Kilometres in a degree of latitude, and of longitude at the equator; close enough to frame with. */
-const KM_PER_DEGREE = 111.32;
 
 /** Where a link asks the camera to be, in the flat map's zoom levels like `mapView`. */
 export interface CameraRequest {
@@ -1041,14 +1041,13 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Stand the camera in front of an opened storm's cut, on a phone.
+   * Stand the camera in front of an opened storm's cut.
    *
-   * On a phone the panel's own rendering of the storm is gone -- the map is
-   * the picture -- so opening a storm frames it the way that rendering did:
-   * close enough that the cross-section spans the screen, from low down, so
-   * the cut stands up as a wall of weather rather than lying flat as a map,
-   * and square on to it, so what is shown is the face and not its edge. It is
-   * placed in the part of the screen the sheet leaves, with room for its top.
+   * Close enough that the cross-section spans the room, from low down, so the
+   * cut stands up as a wall of weather rather than lying flat as a map, and
+   * square on to it, so what is shown is the face and not its edge. It is
+   * placed in the part of the screen the panel leaves -- above the sheet on a
+   * phone, left of it on a desktop -- with room for its top.
    *
    * The half kept is whichever faces the camera: a vertical plane turned half
    * way round is the same cut, and the caption reads the same. That keeps the
@@ -1059,7 +1058,7 @@ export default class Cells3DCapability extends Capability {
    */
   private frameOpened(cutaway: Cutaway): void {
     const gl = this.gl;
-    if (!gl || !this.opened || !get(smallScreen) || get(sharedActiveCap) !== this.getName()) return;
+    if (!gl || !this.opened || get(sharedActiveCap) !== this.getName()) return;
     if (performance.now() - this.cameraSetAt < CAMERA_KEPT_MS) return;
 
     // Facing the cut is looking along the kept half's side of the plane: for
@@ -1076,50 +1075,21 @@ export default class Cells3DCapability extends Capability {
       cutRotationDeg.set(normaliseCut(turn + 180));
     }
 
-    // The storm itself rather than its box: the box is a fixed 40 km, the
-    // storm rarely is. Its width is what the cut shows of it -- its extent
-    // along the plane -- and its height is from the ground to its top; the
-    // storm's centre is measured from the middle of the box, which stands on
-    // the ground.
-    const { header, centreKm, halfKm, extentM } = cutaway;
-    const latRad = (header.lat * Math.PI) / 180;
-    const lon = header.lon + centreKm[0] / (KM_PER_DEGREE * Math.cos(latRad));
-    const lat = header.lat + centreKm[1] / KM_PER_DEGREE;
-    const along = (direction * Math.PI) / 180;
-    const widthM = 2000 * (halfKm[0] * Math.abs(Math.sin(along)) + halfKm[1] * Math.abs(Math.cos(along)));
-    const heightM = extentM[2] / 2 + 1000 * (centreKm[2] + halfKm[2]);
-
-    // Metres per pixel that fit both where the storm will stand. Across, a
-    // plane square to the camera is drawn at the scale of the ground under
-    // it; upwards it is foreshortened by the tilt.
+    // The storm itself rather than its box; see `locateStorm`.
     const { clientWidth: width, clientHeight: height } = gl.getContainer();
-    const top = OPEN_TOP_PX;
-    const bottom = height * (1 - OPEN_SHEET_FRACTION);
-    const tilt = (OPEN_PITCH * Math.PI) / 180;
-    const atFoot = Math.max(
-      widthM / (width * OPEN_FILL),
-      (heightM * Math.sin(tilt)) / ((bottom - top) * OPEN_FILL),
-    );
-    // The storm's foot, so that the whole of it sits between the controls
-    // and the sheet: halfway down that gap, plus half its own height.
-    const foot = (top + bottom) / 2 + (heightM * Math.sin(tilt)) / atFoot / 2;
-    // A zoom is a scale at the middle of the screen, and at this tilt the
-    // scale changes fast up the screen: the ground under a point above the
-    // middle is further off, by the ratio of the two rays' cosines to the
-    // vertical. Asked for at the middle, a storm standing a hundred pixels
-    // higher came out a third smaller than it was meant to.
-    const focal = height / 2 / Math.tan(MAPLIBRE_FOV / 2);
-    const above = Math.atan((height / 2 - foot) / focal);
-    const atMiddle = (atFoot * Math.cos(tilt + above)) / Math.cos(tilt);
-    const zoom = Math.min(Math.log2((WORLD_METRES_AT_ZOOM_0 * Math.cos(latRad)) / atMiddle), gl.getMaxZoom());
+    const panel = Math.min(OPEN_PANEL_PX, width - 2 * OPEN_PANEL_MARGIN_PX) + 2 * OPEN_PANEL_MARGIN_PX;
+    const room = get(smallScreen)
+      ? { width, height, top: OPEN_TOP_PX, bottom: height * (1 - OPEN_SHEET_FRACTION), left: 0, right: width }
+      : { width, height, top: OPEN_TOP_PX, bottom: height - OPEN_TRAY_PX, left: 0, right: Math.max(width - panel, width / 2) };
+    const camera = framingCamera(cutaway, direction, room, OPEN_PITCH, gl.getMaxZoom());
 
     this.pitchBeforeOpen ??= gl.getPitch();
     gl.easeTo({
-      center: [lon, lat],
-      zoom,
+      center: [camera.lon, camera.lat],
+      zoom: camera.zoom,
       pitch: OPEN_PITCH,
       bearing: bearing + off,
-      offset: [0, foot - height / 2],
+      offset: [camera.offsetX, camera.offsetY],
       duration: 900,
     });
   }
