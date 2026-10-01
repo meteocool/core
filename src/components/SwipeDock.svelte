@@ -27,7 +27,7 @@ export type Leaving = { x?: number; y?: number; duration: number };
  * when it was swiped, so the caller's exit transition continues the gesture.
  */
 import { createEventDispatcher } from "svelte";
-import { swipeAway, SWIPE_COMMIT } from "../lib/swipeAway";
+import { pullTo, swipeAway, SWIPE_COMMIT, SWIPE_DETENT } from "../lib/swipeAway";
 
 /** What the action under the panel says: Hide, Clear. */
 export let action: string;
@@ -43,9 +43,7 @@ export let strong = false;
 const dispatch = createEventDispatcher<{ dismiss: Leaving; tap: void }>();
 
 /** What the action settles to once the swipe has opened it. */
-const ACTION_REST = 96;
-/** How much of the finger's travel past the detent the panel actually takes. */
-const ACTION_GIVE = 0.7;
+const ACTION_REST = SWIPE_DETENT;
 
 /** How far the panel is currently pulled aside, and how that is animated. */
 let reveal = 0;
@@ -87,12 +85,8 @@ function onStart(node: HTMLElement) {
 }
 
 function onMove(dx: number) {
-  const pulled = Math.max(0, startReveal - dx);
-  // Up to the detent the panel tracks the finger exactly; past it only part
-  // of the travel is taken, which is the resistance you feel before it gives.
-  reveal = pulled <= ACTION_REST
-    ? pulled
-    : Math.min(dockWidth, ACTION_REST + (pulled - ACTION_REST) * ACTION_GIVE);
+  // Leftward opens it, rightward pushes it back shut; see `pullTo`.
+  reveal = pullTo(startReveal, dx, dockWidth);
 
   // Crossing the commit point throws the action open the rest of the way in
   // one spring rather than waiting for the finger to drag it there.
@@ -128,6 +122,21 @@ function closeFromOutside(node: HTMLElement) {
 
 /* Clears the swipe flag on the next press, so a tap after a swipe is a tap. */
 const onDown = () => { swiped = false; };
+
+/*
+ * The click a swipe ends with goes nowhere. A swipe that starts on a control
+ * -- the hint's Details button sits in the middle of the bar -- ends with the
+ * browser's click on that control, iOS's included whatever has captured the
+ * pointer, so the slide opened the details instead. Caught on the way down,
+ * before the control's own handler.
+ */
+function swallowAfterSwipe(event: MouseEvent) {
+  if (!swiped) return;
+  // One click per swipe: a keyboard press on the button afterwards is meant.
+  swiped = false;
+  event.preventDefault();
+  event.stopPropagation();
+}
 </script>
 
 <style>
@@ -281,6 +290,7 @@ const onDown = () => { swiped = false; };
   use:swipeAway={{ onStart, onMove, onEnd }}
   use:closeFromOutside
   on:pointerdown={onDown}
+  on:click|capture={swallowAfterSwipe}
   on:click={onTap}
   role="presentation">
   <button
