@@ -21,6 +21,7 @@ import type { Chart } from "chart.js";
 import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
 import { drawSpread } from "../lib/compare/spreadChart";
 import { stepAt } from "../lib/compare/outlook";
+import Segmented from "./Segmented.svelte";
 
 export let lat: number;
 export let lon: number;
@@ -150,33 +151,6 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
     margin-bottom: 10px;
   }
 
-  .segmented {
-    display: inline-flex;
-    padding: 2px;
-    border-radius: 9px;
-    background: var(--mc-tint);
-  }
-
-  .segmented button {
-    padding: 4px 11px;
-    border: 0;
-    border-radius: 7px;
-    background: none;
-    color: var(--mc-text-2);
-    font: 600 12px/1.2 var(--mc-font);
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background var(--mc-motion-fast) var(--mc-ease),
-                color var(--mc-motion-fast) var(--mc-ease);
-  }
-  .segmented button.on {
-    background: var(--mc-sheet-card);
-    color: var(--mc-text);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-  }
-
   .plot {
     position: relative;
     height: 200px;
@@ -230,24 +204,14 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
   <p class="sub">{$_("compare.spread.sub")}</p>
 
   <div class="controls">
-    <div class="segmented" role="group" aria-label={$_("compare.spread.variable_group")}>
-      {#each VARIABLES as option (option.id)}
-        <button
-          type="button"
-          class:on={variable === option.id}
-          aria-pressed={variable === option.id}
-          on:click={() => { variable = option.id; }}>{$_(`compare.variable.${option.id}`)}</button>
-      {/each}
-    </div>
-    <div class="segmented" role="group" aria-label={$_("compare.spread.range_group")}>
-      {#each RANGES as option (option.hours)}
-        <button
-          type="button"
-          class:on={hours === option.hours}
-          aria-pressed={hours === option.hours}
-          on:click={() => { hours = option.hours; }}>{$_(option.key)}</button>
-      {/each}
-    </div>
+    <Segmented
+      bind:value={variable}
+      label={$_("compare.spread.variable_group")}
+      options={VARIABLES.map((option) => ({ value: option.id, label: $_(`compare.variable.${option.id}`) }))} />
+    <Segmented
+      bind:value={hours}
+      label={$_("compare.spread.range_group")}
+      options={RANGES.map((option) => ({ value: option.hours, label: $_(option.key) }))} />
   </div>
 
   {#if error}
