@@ -63,6 +63,17 @@ const PEEL_SECONDS = 10;
 const PEEL_CORE_VOXELS = 300;
 /** The softness of the peel's edge, in dBZ: as wide as the unpeeled ramp. */
 const PEEL_BAND = DBZ_HIGH - DBZ_LOW;
+/** Opacity per kilometre of fully dense storm; see the shader's march. */
+const OPACITY_PER_KM = 0.62;
+/**
+ * The least a storm has to show to be drawn: this much of its silhouette, in
+ * km2, at least half opaque at the map's tilt; see `solidKm2`. A 2 by 2 km
+ * core stands clear of the basemap at the zoom a region is looked at; below
+ * it, what is drawn is a wisp or a tint.
+ */
+const SOLID_KM2_MIN = 4;
+/** The tilt a storm's silhouette is measured at: the one the 3D map opens at. */
+const VIEW_PITCH_DEG = 55;
 /** Samples along each ray. Fewer than the panel uses: this shares a frame. */
 const STEPS = 128;
 /**
@@ -217,7 +228,7 @@ void main() {
       // mean anything, and measured this way the storm is exactly as opaque
       // here as in the panel.
       float stepKm = dt * length(direction * uExtentKm);
-      alpha = clamp(density * stepKm * 0.62, 0.0, 1.0);
+      alpha = clamp(density * stepKm * ${OPACITY_PER_KM}, 0.0, 1.0);
       colour *= lambert;
     }
     accumulated.rgb += (1.0 - accumulated.a) * colour * alpha;
@@ -360,6 +371,70 @@ function coreDbz(cutaway: Cutaway): number {
   }
   return Math.max(DBZ_LOW, byte / header.dbz_scale + header.dbz_floor - PEEL_BAND);
 }
+
+/**
+ * How much of a storm would read as cloud: the area of its silhouette that is
+ * at least half opaque, in km2, seen at the tilt the 3D map opens at, from
+ * the south or from the west -- whichever shows more of it.
+ *
+ * The list's peak is the composite's, not the box's, and the two can disagree
+ * completely: a box filled from sweeps an hour newer than the composite that
+ * seeded it, or a shower that is all drizzle, holds a few hundred voxels just
+ * over `DBZ_LOW` -- where the shader's opacity is still zero. Measured the
+ * way the shader draws it -- the same ramp, the same confidence, the same
+ * opacity per kilometre -- so what this calls faint is what the map would
+ * have drawn faint.
+ *
+ * At the map's tilt rather than straight from the side: looked at along the
+ * ground, the 40 km of box a wide, thin shield lies across adds up to a solid
+ * wall that no camera on the map ever sees. Each voxel's opacity is spread
+ * over the bin of the view plane it lands in; from the north or the east the
+ * same rays run the other way, and opacity summed along a ray does not care
+ * which way.
+ */
+export function solidKm2(cutaway: Cutaway): number {
+  const { voxels, header } = cutaway;
+  const { nx, ny, nz } = header;
+  const [sx, sy, sz] = header.step_m.map((metres) => metres / 1000);
+  const tilt = (VIEW_PITCH_DEG * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(tilt), Math.sin(tilt)];
+  // Square bins as fine as the grid across, which is what a reader sees.
+  const bin = Math.min(sx, sy);
+  // Opacity for each stored reflectivity byte, per voxel and per bin, with
+  // the confidence byte's scale folded in, so a voxel costs one multiply.
+  const perVoxel = new Float32Array(256);
+  for (let byte = 0; byte < 256; byte += 1) {
+    const t = Math.min(Math.max((byte / header.dbz_scale + header.dbz_floor - DBZ_LOW) / PEEL_BAND, 0), 1);
+    perVoxel[byte] = (t * t * (3 - 2 * t) * OPACITY_PER_KM * sx * sy * sz) / (bin * bin * 255);
+  }
+  // Optical depth through each bin of the two views: x across and y running
+  // up the screen, then y across and x up it.
+  const [wideX, wideY] = [Math.ceil((nx * sx) / bin), Math.ceil((ny * sy) / bin)];
+  const fromSouth = new Float32Array(wideX * (Math.ceil((ny * sy * cos + nz * sz * sin) / bin) + 1));
+  const fromWest = new Float32Array(wideY * (Math.ceil((nx * sx * cos + nz * sz * sin) / bin) + 1));
+  let at = 0;
+  for (let z = 0; z < nz; z += 1) {
+    const up = (z + 0.5) * sz * sin;
+    for (let y = 0; y < ny; y += 1) {
+      const rowY = Math.floor(((y + 0.5) * sy * cos + up) / bin);
+      const acrossY = Math.floor(((y + 0.5) * sy) / bin);
+      for (let x = 0; x < nx; x += 1, at += 2) {
+        const depth = perVoxel[voxels[at]] * voxels[at + 1];
+        if (!depth) continue;
+        fromSouth[rowY * wideX + Math.floor(((x + 0.5) * sx) / bin)] += depth;
+        fromWest[Math.floor(((x + 0.5) * sx * cos + up) / bin) * wideY + acrossY] += depth;
+      }
+    }
+  }
+  // Half opaque is a transmittance of a half, exp(-depth) = 0.5.
+  const solid = (depths: Float32Array) => (
+    depths.reduce((count, depth) => (depth >= Math.LN2 ? count + 1 : count), 0) * bin * bin
+  );
+  return Math.max(solid(fromSouth), solid(fromWest));
+}
+
+/** Whether a storm would be drawn too faint to make out; see `solidKm2`. */
+export const isFaint = (cutaway: Cutaway): boolean => solidKm2(cutaway) < SOLID_KM2_MIN;
 
 /**
  * How far through its peel a storm is, 0 whole to 1 down to the core.
