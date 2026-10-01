@@ -185,6 +185,12 @@ export const cellLayerVisible = writable<boolean>(true);
  */
 export const cells3dVisible = writable<boolean>(false);
 /**
+ * Whether the 3D map stands on the ground's relief -- elevation at true scale,
+ * and a faint hillshade -- or on a flat sea-level plane. Off unless the reader
+ * turns it on, until it has been measured on a phone.
+ */
+export const terrain3dVisible = writable<boolean>(false);
+/**
  * Whether the live frame is drawn from the merged European composite -- every
  * network's lowest tilts on one grid -- in place of DWD's frame and the four
  * network layers. Off unless the reader turns it on: a product built on a

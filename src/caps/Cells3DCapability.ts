@@ -15,6 +15,7 @@ import { HOLES } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
 import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
 import { maskPath } from "../layers/tileMask";
+import { applyTerrain, VERTICAL_SCALE } from "../layers/terrain";
 import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
@@ -28,7 +29,7 @@ import { dbzColour, dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
   capDescription, cellDetails, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
-  selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen,
+  selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen, terrain3dVisible,
 } from "../stores";
 import { get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
@@ -337,6 +338,11 @@ export default class Cells3DCapability extends Capability {
 
   private unsubscribeCellsWanted: (() => void) | null = null;
 
+  /** Whether the map stands on the ground's relief; see `terrain3dVisible`. */
+  private terrainWanted = get(terrain3dVisible);
+
+  private unsubscribeTerrain: (() => void) | null = null;
+
   /** The scan the cells were found in; null before the first run, and while they are off. */
   private cellsScan: Scan | null = null;
 
@@ -525,6 +531,11 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeSweep = cutSweepDeg.subscribe(() => this.applyCut());
     this.unsubscribeColormap = radarColormap.subscribe((name) => this.applyColormap(name));
     this.unsubscribeCellsWanted = cells3dVisible.subscribe((wanted) => this.applyCellsWanted(wanted));
+    this.unsubscribeTerrain = terrain3dVisible.subscribe((wanted) => {
+      this.terrainWanted = wanted;
+      // Before the style is up, `applyData` adds it once it is.
+      if (this.gl && this.styleReady) applyTerrain(this.gl, wanted, this.dark);
+    });
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
       if (!this.gl) return;
@@ -1081,7 +1092,7 @@ export default class Cells3DCapability extends Capability {
     const room = get(smallScreen)
       ? { width, height, top: OPEN_TOP_PX, bottom: height * (1 - OPEN_SHEET_FRACTION), left: 0, right: width }
       : { width, height, top: OPEN_TOP_PX, bottom: height - OPEN_TRAY_PX, left: 0, right: Math.max(width - panel, width / 2) };
-    const camera = framingCamera(cutaway, direction, room, OPEN_PITCH, gl.getMaxZoom());
+    const camera = framingCamera(cutaway, direction, room, OPEN_PITCH, gl.getMaxZoom(), VERTICAL_SCALE);
 
     this.pitchBeforeOpen ??= gl.getPitch();
     gl.easeTo({
@@ -1568,6 +1579,7 @@ export default class Cells3DCapability extends Capability {
     // Nothing to do yet: `style.load` calls this again once there is.
     if (!gl || !this.styleReady) return;
 
+    applyTerrain(gl, this.terrainWanted, this.dark);
     this.ensureRadar(gl);
     this.ensureNetworks(gl);
     this.ensureCells(gl);
@@ -1820,8 +1832,9 @@ export default class Cells3DCapability extends Capability {
         filter: this.tierFilter(tier),
         paint: {
           "fill-extrusion-color": dbzRamp(this.colormap),
-          "fill-extrusion-base": ["get", "base"],
-          "fill-extrusion-height": ["get", "top"],
+          // Stretched upwards as the storms and the ground are.
+          "fill-extrusion-base": ["*", ["get", "base"], VERTICAL_SCALE],
+          "fill-extrusion-height": ["*", ["get", "top"], VERTICAL_SCALE],
           "fill-extrusion-opacity": opacity,
         },
       });
@@ -1842,6 +1855,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeColormap = null;
     this.unsubscribeCellsWanted?.();
     this.unsubscribeCellsWanted = null;
+    this.unsubscribeTerrain?.();
+    this.unsubscribeTerrain = null;
     this.unsubscribeSweep?.();
     this.unsubscribeSweep = null;
     stopSweep(false);

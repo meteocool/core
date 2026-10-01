@@ -127,6 +127,8 @@
     "map_3d": "Mapa 3D",
     "konrad_cells": "Komórki KONRAD3D",
     "konrad_cells_hint": "Rysuje śledzone przez DWD komórki burzowe jako nakładające się warstwy. Docierają kilka minut po radarze i do tego czasu są wyszarzone.",
+    "terrain": "Ukształtowanie terenu",
+    "terrain_hint": "Unosi mapę 3D zgodnie z rzeźbą terenu i cieniuje wzniesienia, w rzeczywistej skali. Pobiera kafelki wysokości podczas przesuwania mapy.",
     "environment": "Podgląd",
     "staging": "Otwórz Staging",
     "staging_hint": "Staging uruchamia kolejną wersję meteocool przed jej wydaniem. Spodziewaj się nowych funkcji i sporadycznych błędów; twoje ustawienia stąd się nie przenoszą.",

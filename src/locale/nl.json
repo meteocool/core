@@ -127,6 +127,8 @@
     "map_3d": "3D-kaart",
     "konrad_cells": "KONRAD3D-cellen",
     "konrad_cells_hint": "Tekent de door de DWD gevolgde onweerscellen als gestapelde lagen. Ze komen enkele minuten na de radar binnen en zijn tot dan grijs.",
+    "terrain": "Terrein",
+    "terrain_hint": "Tilt de 3D-kaart op het reliëf van het terrein en schaduwt de heuvels, op ware schaal. Laadt hoogtetegels terwijl je de kaart beweegt.",
     "environment": "Voorbeeld",
     "staging": "Staging openen",
     "staging_hint": "Staging draait de volgende versie van meteocool, nog voor de release. Verwacht nieuwe functies en af en toe iets dat stuk is; je instellingen hier worden niet overgenomen.",

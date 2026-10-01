@@ -45,6 +45,7 @@ import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
 import { isBehind, scanTime } from "../lib/scans";
+import { VERTICAL_SCALE } from "./terrain";
 import type { Scan } from "../lib/scans";
 
 /** Reflectivity below this is drizzle or the fringe of the anvil. */
@@ -485,13 +486,15 @@ export function makeCloudsLayer(
    * The unit cube, onto the ground the storm is actually over.
    *
    * The scale is negative on y because Mercator's y runs south and the box's
-   * does not; the box sits on the ground, so z starts at zero.
+   * does not; the box sits on the ground, so z starts at zero. Upwards it is
+   * stretched as the terrain is, by `VERTICAL_SCALE` -- in the matrix only:
+   * the shader's kilometres stay true, so a storm is as opaque as it is.
    */
   function modelFor(cutaway: Cutaway): Float64Array {
     const { header, extentM } = cutaway;
     const centre = MercatorCoordinate.fromLngLat({ lng: header.lon, lat: header.lat }, 0);
     const metre = centre.meterInMercatorCoordinateUnits();
-    const [sx, sy, sz] = [extentM[0] * metre, extentM[1] * metre, extentM[2] * metre];
+    const [sx, sy, sz] = [extentM[0] * metre, extentM[1] * metre, extentM[2] * metre * VERTICAL_SCALE];
     return new Float64Array([
       sx, 0, 0, 0,
       0, -sy, 0, 0,
