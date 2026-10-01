@@ -136,10 +136,14 @@ export default class NetworkRadarLayer {
    */
   private palette = "classic";
 
-  constructor(map: Map, network: Network, onLiveFrame?: () => void) {
+  /** How strongly it is drawn: the radar map's own, unless a map lays it under something else. */
+  private readonly opacity: number;
+
+  constructor(map: Map, network: Network, onLiveFrame?: () => void, opacity = NOWCAST_OPACITY) {
     this.map = map;
     this.network = network;
     this.onLiveFrame = onLiveFrame;
+    this.opacity = opacity;
   }
 
   /** Fetch the newest composite and show it, creating the layer on first use. */
@@ -255,7 +259,7 @@ export default class NetworkRadarLayer {
       // pixel, so this only settles which draws first. Europe's draws above
       // DWD's instead, which is hidden while it shows.
       zIndex: this.network.coverage ? 79 : 81,
-      opacity: NOWCAST_OPACITY,
+      opacity: this.opacity,
       cacheSize: 512,
       // The rectangle is a cheap first pass; `coverage` is the real edge, and
       // an extent cannot describe it because it is not a rectangle.
