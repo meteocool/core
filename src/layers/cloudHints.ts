@@ -30,7 +30,8 @@ import type { RadarVolume } from "../api";
  *
  * Decluttered among themselves only, strongest first: a line of showers can
  * put a dozen cores within a finger's width at a wide zoom, and a stack of
- * overlapping pills is neither readable nor tappable.
+ * overlapping pills is neither readable nor tappable. At a wide zoom they are
+ * thinned further, to one per neighbourhood; see `SPACING_PX`.
  */
 
 /** Where the pill sits relative to the core, in pixels right and up. */
@@ -44,6 +45,24 @@ const DBZ_STEP = 5;
 
 /** Below this the pills are more clutter than signal: the whole country is on screen. */
 const MIN_ZOOM = 5;
+
+/**
+ * How far apart the pills are kept at a wide zoom, in pixels, by whole zoom
+ * level; closer than that, only the stronger core keeps its pill.
+ *
+ * Not overlapping is too little there. At zoom 6 a field of showers over the
+ * German Bight is 150 pixels across and twenty pills that merely do not touch
+ * tile it solid, saying "these have volumes" twenty times. One per
+ * neighbourhood says it once, and the 3D map shows the rest. From zoom 9 the
+ * cores stand far enough apart that overlap is the only rule.
+ *
+ * Measured on the map, at the level's own scale, so the same pills stay put
+ * while the map pans and change only as it crosses a level.
+ */
+const SPACING_PX: Record<number, number> = { 5: 160, 6: 120, 7: 84, 8: 52 };
+
+/** The resolution of zoom 0 in OpenLayers' default grid, which every View here uses. */
+const ZOOM0_RESOLUTION = 156543.03392804097;
 
 interface Palette {
   fill: string;
@@ -96,9 +115,47 @@ function hintStyle(feature: FeatureLike): Style {
   return style;
 }
 
+const peakOf = (feature: FeatureLike): number => feature.get("peak_dbz") ?? 0;
+
+/**
+ * The pills a whole zoom level keeps: strongest first, each one at least that
+ * level's spacing from every stronger one kept. Null where every pill is kept.
+ */
+function thin(features: Feature[], zoom: number): Set<Feature> | null {
+  const spacingPx = SPACING_PX[Math.max(zoom, MIN_ZOOM)];
+  if (!spacingPx) return null;
+  const spacing = spacingPx * (ZOOM0_RESOLUTION / 2 ** zoom);
+  const kept: Array<[number, number]> = [];
+  const keep = new Set<Feature>();
+  for (const feature of [...features].sort((a, b) => peakOf(b) - peakOf(a))) {
+    const [x, y] = (feature.getGeometry() as Point).getCoordinates();
+    if (kept.some(([kx, ky]) => Math.hypot(x - kx, y - ky) < spacing)) continue;
+    kept.push([x, y]);
+    keep.add(feature);
+  }
+  return keep;
+}
+
 /** The feature source, and the layer that draws it. */
 export default function makeCloudHintLayer(): [VectorSource, VectorLayer<VectorSource>] {
   const source = new VectorSource({ features: [] });
+
+  /*
+   * Thinned once per level and per set of cores, not per frame: the style
+   * runs for every pill on every frame of a zoom. Keyed on the level, so a
+   * zoom within it changes nothing; on the source's revision, so a new scan's
+   * cores are thinned afresh.
+   */
+  let thinned: { zoom: number; revision: number; keep: Set<Feature> | null } | null = null;
+  const keepsAt = (resolution: number): Set<Feature> | null => {
+    const zoom = Math.floor(Math.log2(ZOOM0_RESOLUTION / resolution) + 1e-6);
+    const revision = source.getRevision();
+    if (thinned?.zoom !== zoom || thinned.revision !== revision) {
+      thinned = { zoom, revision, keep: thin(source.getFeatures(), zoom) };
+    }
+    return thinned.keep;
+  };
+
   const layer = new VectorLayer({
     source,
     // Over the tracked cells at 202: the pill is beside a centroid, never on
@@ -109,8 +166,12 @@ export default function makeCloudHintLayer(): [VectorSource, VectorLayer<VectorS
     // place labels, which declutter together under `true`.
     declutter: "cloud-hints",
     // Earlier features win the declutter, so the strongest core keeps its pill.
-    renderOrder: (a, b) => (b.get("peak_dbz") ?? 0) - (a.get("peak_dbz") ?? 0),
-    style: hintStyle,
+    renderOrder: (a, b) => peakOf(b) - peakOf(a),
+    // Thinned away is not drawn, and so not tappable either.
+    style: (feature, resolution) => {
+      const keep = keepsAt(resolution);
+      return !keep || keep.has(feature as Feature) ? hintStyle(feature) : undefined;
+    },
   });
 
   watchBasemap((basemap) => (isDarkBasemap(basemap) ? DARK : LIGHT), (next) => {
