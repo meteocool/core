@@ -188,7 +188,7 @@ onMount(() => {
   {#await loadSheet() then { default: CellSheet }}
     <!-- The sheet is the dialog, and draws the close disc in its corner, where
          it stays while the reading scrolls; see lib/sheetContext.ts. -->
-    <svelte:component this={CellSheet} full material="reading" onClose={close} dialogLabelledBy={titleId}>
+    <svelte:component this={CellSheet} full halfway={false} material="reading" onClose={close} dialogLabelledBy={titleId}>
       <div class="panel in-sheet" tabindex="-1" use:autofocus>
         <header>
           <h2 id={titleId}>{title}</h2>
