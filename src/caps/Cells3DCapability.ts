@@ -368,7 +368,10 @@ export default class Cells3DCapability extends Capability {
   private radarIndex: TileIndex | null | undefined = undefined;
 
   /** The `masked://` registration of that frame; see `ensureRadar`. */
-  private radarMask: { url: string; key: string; tiles: string } | null = null;
+  private radarMask: { url: string; whole: boolean; key: string; tiles: string } | null = null;
+
+  /** Whether the frame is drawn whole: the merged European composite, which stands in for every network. */
+  private radarWhole = false;
 
   /** The scan of that frame, which anything older is greyed against; see lib/scans.ts. */
   private radarScan: Scan | null = null;
@@ -1469,9 +1472,10 @@ export default class Cells3DCapability extends Capability {
    * Point the draped radar at a frame, and say which scan it is. Called with
    * the same frame the 2D map shows.
    */
-  setRadarFrame(url: string | null, scan: Scan, index?: TileIndex | null): void {
+  setRadarFrame(url: string | null, scan: Scan, index?: TileIndex | null, options: { whole?: boolean } = {}): void {
     this.radarUrl = url;
     this.radarIndex = index;
+    this.radarWhole = options.whole ?? false;
     this.radarScan = url ? scan : null;
     // Held for `attach`: a hidden map would load the whole frame's tiles.
     if (!this.shown) return;
@@ -1619,11 +1623,14 @@ export default class Cells3DCapability extends Capability {
   private ensureRadar(gl: GlMap): void {
     if (!this.radarUrl) return;
 
-    if (this.radarMask?.url !== this.radarUrl) {
+    if (this.radarMask?.url !== this.radarUrl || this.radarMask.whole !== this.radarWhole) {
       forgetMaskedTiles(this.radarMask?.key);
       this.radarMask = {
         url: this.radarUrl,
-        ...registerMaskedTiles({ template: this.radarUrl, index: this.radarIndex, erase: HOLES }),
+        whole: this.radarWhole,
+        ...registerMaskedTiles({
+          template: this.radarUrl, index: this.radarIndex, erase: this.radarWhole ? [] : HOLES,
+        }),
       };
     }
     const { tiles } = this.radarMask;
@@ -1680,7 +1687,7 @@ export default class Cells3DCapability extends Capability {
           ...registerMaskedTiles({
             template: tileSourceUrl("meteoradar", frame.tile_id),
             index: frame.tiles,
-            keep: maskPath(network.coverage),
+            keep: network.coverage ? maskPath(network.coverage) : null,
           }),
         };
         this.networkMasks[code] = mask;

@@ -304,12 +304,13 @@
         "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
         "properties": {
           "network": {
-            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW",
+            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network",
             "enum": [
               "ch",
               "fr",
               "cz",
-              "pl"
+              "pl",
+              "eu"
             ],
             "title": "Network",
             "type": "string"
@@ -465,6 +466,17 @@
               ]
             },
             "title": "Frames",
+            "type": "object"
+          },
+          "networks": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/RadarFrame"
+              },
+              "type": "object"
+            },
+            "description": "meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.",
+            "title": "Networks",
             "type": "object"
           },
           "replay": {
@@ -1133,6 +1145,28 @@
         ]
       }
     },
+    "/v3/radar/europe": {
+      "get": {
+        "description": "The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.\n\nDWD's, MeteoSwiss's, Meteo-France's, CHMI's and IMGW's radars on one grid,\ncomposited by meteocool every few minutes on a background worker. A\nproduct behind a setting: the map's own arrangement of five products\nstays, and this is offered beside it. Not in `/timeseries`: it keeps no\nhistory, and every client would carry it otherwise.",
+        "operationId": "europe_v3_radar_europe_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Merged European reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v3/radar/france": {
       "get": {
         "description": "The newest French reflectivity composite -- one frame, not a timeseries.\n\nMeteo-France's twenty-three radars, composited by meteocool from their\nlowest tilts; see `/switzerland` for why this is a route of its own.",
@@ -1201,7 +1235,7 @@
     },
     "/v3/radar/switzerland": {
       "get": {
-        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA separate route and collection (`reflectivity_ch`) rather than folding\ninto `/timeseries`: that endpoint models a forecast keyed by time, which\nthis network has none of -- one composite, replaced whenever a radar\nreports, no history. Same `RadarFrame` shape as every other frame here, so\nthe client needs one type and one tile-URL builder for every network.",
+        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA route of its own beside `/timeseries`, which carries this network's\npast too (`networks.ch`): a client refetches this whenever a radar reports\n-- every minute or two, on the `network` socket event -- and the whole\ntimeseries only when DWD publishes. Same `RadarFrame` shape as every other\nframe here, so the client needs one type and one tile-URL builder for\nevery network.",
         "operationId": "switzerland_v3_radar_switzerland_get",
         "responses": {
           "200": {
@@ -1223,7 +1257,7 @@
     },
     "/v3/radar/timeseries": {
       "get": {
-        "description": "Tile metadata for each timestep in a window, past and forecast.",
+        "description": "Tile metadata for each timestep in a window, past and forecast.\n\nWith `lat` and `lon`, each frame also carries the dBZ at that point. With\n`network` as well, it is that network's reading wherever it has a composite\nfor the step -- which is every observed step, while its ingest is running\n-- and DWD's everywhere else, the forecast included. The client names the\nnetwork because it is the one that knows which draws where: the borders are\n`extents.ts`'s, and a point sampled from a network the map is not showing\nthere would put bars under the chart that nothing on the map agrees with.",
         "operationId": "timeseries_v3_radar_timeseries_get",
         "parameters": [
           {
@@ -1264,6 +1298,28 @@
               "default": 0.0,
               "title": "Lon",
               "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "network",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ch",
+                    "fr",
+                    "cz",
+                    "pl"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Network"
             }
           }
         ],

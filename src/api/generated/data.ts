@@ -666,10 +666,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW
+             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl";
+            network: "ch" | "fr" | "cz" | "pl" | "eu";
         };
         /**
          * PointGeometry
