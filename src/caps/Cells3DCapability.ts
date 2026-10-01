@@ -1224,8 +1224,17 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Which of the listed storms to hold volumes for: those in view, strongest
-   * first and nearer first among equals, up to `RESIDENT_VOLUMES`.
+   * Which of the listed storms to hold volumes for: those on screen first,
+   * then those just past its edges, strongest first and nearer first among
+   * equals within each, up to `RESIDENT_VOLUMES`.
+   *
+   * On screen by projecting each storm, not by the viewport's bounds: tilted,
+   * the bounds are the box around a trapezoid running to the horizon, mostly
+   * ground nobody can see, and ranked by strength alone the storms off to its
+   * sides took the places of the ones in front of the camera. Zoomed out over
+   * the Alps at 72 degrees, 48 storms stood on screen as bare rings while 13 of
+   * the 16 volumes held were for storms off it. The margin still counts, after
+   * them: it is what makes a pan land on clouds already loaded.
    *
    * Before the map exists, or when it has no bounds yet, the strongest few
    * of the whole list, so a first attach has something to draw at once.
@@ -1235,7 +1244,8 @@ export default class Cells3DCapability extends Capability {
     const bounds = gl?.getBounds();
     const centre = gl?.getCenter();
     let candidates = this.clouds.filter((cloud) => !this.faint.has(cloud.path));
-    if (bounds && centre) {
+    let shown = new Set<RadarVolume>();
+    if (gl && bounds && centre) {
       const west = bounds.getWest();
       const east = bounds.getEast();
       const south = bounds.getSouth();
@@ -1245,11 +1255,23 @@ export default class Cells3DCapability extends Capability {
       candidates = candidates.filter((cloud) => (
         cloud.lon >= west - dx && cloud.lon <= east + dx && cloud.lat >= south - dy && cloud.lat <= north + dy
       ));
+      const { clientWidth: width, clientHeight: height } = gl.getContainer();
+      shown = new Set(candidates.filter((cloud) => {
+        // Inside the bounds proper as well: a point past the horizon projects
+        // to somewhere meaningless, which can be on the canvas.
+        if (cloud.lon < west || cloud.lon > east || cloud.lat < south || cloud.lat > north) return false;
+        const { x, y } = gl.project([cloud.lon, cloud.lat]);
+        return x >= 0 && x <= width && y >= 0 && y <= height;
+      }));
     }
     const distance = (cloud: RadarVolume) => (centre
       ? Math.hypot((cloud.lon - centre.lng) * Math.cos((cloud.lat * Math.PI) / 180), cloud.lat - centre.lat)
       : 0);
-    const ranked = [...candidates].sort((a, b) => (b.peak_dbz ?? 0) - (a.peak_dbz ?? 0) || distance(a) - distance(b));
+    const ranked = [...candidates].sort((a, b) => (
+      Number(shown.has(b)) - Number(shown.has(a))
+      || (b.peak_dbz ?? 0) - (a.peak_dbz ?? 0)
+      || distance(a) - distance(b)
+    ));
     return ranked.slice(0, RESIDENT_VOLUMES);
   }
 
