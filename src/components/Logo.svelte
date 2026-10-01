@@ -49,9 +49,12 @@ function toggleSettings() {
     -webkit-tap-highlight-color: transparent;
     transition:
       background-color var(--mc-motion-fast),
+      color var(--mc-motion-fast),
       transform var(--mc-motion-fast) var(--mc-ease);
   }
-  .logo-pill:hover { background: var(--mc-glass-fill-strong); }
+  /* The discs' hover: the fill strengthens and the ink goes accent -- here
+     the wordmark, there the glyph. */
+  .logo-pill:hover { background: var(--mc-glass-fill-strong); color: var(--mc-accent); }
   .logo-pill:active { transform: scale(var(--mc-press)); }
   .logo-pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
 
