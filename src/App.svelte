@@ -507,11 +507,17 @@ const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
   const forwardRadarFrame = () => {
     const step = radarCap.getMostRecentObservation();
-    cells3d.setRadarFrame(radarCap.clientGrid?.[step]?.url ?? null, step);
+    const frame = radarCap.clientGrid?.[step];
+    cells3d.setRadarFrame(frame?.url ?? null, step, frame?.tiles);
   };
+  // The networks' own newest frames go the same way: the 3D map drapes them
+  // over their countries, cut out of DWD's frame as the flat map does.
+  const forwardNetworkFrames = () => cells3d.setNetworkFrames(radarCap.liveNetworkFrames());
   radarCap.addObserver((subject) => {
     if (subject === "grid") forwardRadarFrame();
+    if (subject === "networks") forwardNetworkFrames();
   });
+  forwardNetworkFrames();
   // A new run means new cells as well as a new frame. Not in a hidden tab,
   // where it was the cells and megabytes of volumes for nobody; the newest
   // run is fetched on the way back.

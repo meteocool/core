@@ -9,6 +9,13 @@ import Capability from "./Capability";
 import type { CapabilityOptions } from "./options";
 import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
 import { blitzortungAttribution, dwdAttribution } from "../layers/attributions";
+import { tileSourceUrl } from "../layers/dwd";
+import { NETWORKS } from "../layers/network";
+import { HOLES } from "../layers/networkHoles";
+import type { NetworkCode } from "../layers/networkHoles";
+import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
+import { maskPath } from "../layers/tileMask";
+import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway } from "../lib/cellCutaway";
@@ -35,7 +42,7 @@ import type { Scan } from "../lib/scans";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import type {
-  CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarVolume,
+  CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarFrame, RadarVolume,
 } from "../api";
 import type { MapView } from "../stores";
 import type VectorSource from "ol/source/Vector";
@@ -143,6 +150,9 @@ const RADAR_SOURCE = "radar";
  */
 const RADAR_OPACITY = 0.35;
 const STRIKE_SOURCE = "strikes";
+
+/** One EUMETNET network's draped composite: its source and its layer share the id. */
+const networkLayerId = (code: NetworkCode) => `radar-${code}`;
 
 /** The layers a tap can land on to mean "that storm". */
 const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint", "cloud-marker"];
@@ -334,8 +344,20 @@ export default class Cells3DCapability extends Capability {
   /** The radar frame to drape, as a tile URL template. Set by the caller. */
   private radarUrl: string | null = null;
 
+  /** Which tiles that frame has, so the ones it lacks are never asked for; see lib/tileIndex.ts. */
+  private radarIndex: TileIndex | null | undefined = undefined;
+
+  /** The `masked://` registration of that frame; see `ensureRadar`. */
+  private radarMask: { url: string; key: string; tiles: string } | null = null;
+
   /** The scan of that frame, which anything older is greyed against; see lib/scans.ts. */
   private radarScan: Scan | null = null;
+
+  /** Each network's newest composite, as the flat map's live step draws it. Set by the caller. */
+  private networkFrames: Partial<Record<NetworkCode, RadarFrame>> = {};
+
+  /** Each network's `masked://` registration, by the frame it was made for. */
+  private networkMasks: Partial<Record<NetworkCode, { tileId: string; key: string; tiles: string }>> = {};
 
   /**
    * The flat map's strike buffer, read rather than duplicated.
@@ -596,6 +618,8 @@ export default class Cells3DCapability extends Capability {
       // Another attach may have won the race while the library was loading.
       if (this.gl) return;
       this.maplibre = maplibre;
+      // The radar rasters' tiles come through `masked://`; see `ensureRadar`.
+      installMaskedProtocol(maplibre);
       built = true;
       let settle!: () => void;
       this.settled = new Promise((resolve) => { settle = resolve; });
@@ -1374,8 +1398,9 @@ export default class Cells3DCapability extends Capability {
    * Point the draped radar at a frame, and say which scan it is. Called with
    * the same frame the 2D map shows.
    */
-  setRadarFrame(url: string | null, scan: Scan): void {
+  setRadarFrame(url: string | null, scan: Scan, index?: TileIndex | null): void {
     this.radarUrl = url;
+    this.radarIndex = index;
     this.radarScan = url ? scan : null;
     // Held for `attach`: a hidden map would load the whole frame's tiles.
     if (!this.shown) return;
@@ -1388,11 +1413,14 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * MapLibre spells the flipped row `{y}` with `scheme: "tms"`, where
-   * OpenLayers spells it `{-y}` in the template itself.
+   * Point each network's draped composite at its newest frame. Called with
+   * the same frames the flat map's live step shows; a network left out has
+   * nothing fresh, and its layer stands down.
    */
-  private tiles(url: string): string {
-    return url.replace("{-y}", "{y}");
+  setNetworkFrames(frames: Partial<Record<NetworkCode, RadarFrame>>): void {
+    this.networkFrames = frames;
+    if (!this.shown || !this.gl || !this.styleReady) return;
+    this.ensureNetworks(this.gl);
   }
 
   /**
@@ -1496,6 +1524,7 @@ export default class Cells3DCapability extends Capability {
     if (!gl || !this.styleReady) return;
 
     this.ensureRadar(gl);
+    this.ensureNetworks(gl);
     this.ensureCells(gl);
     this.ensureClouds(gl);
     this.ensureVolumes(gl);
@@ -1503,36 +1532,122 @@ export default class Cells3DCapability extends Capability {
     this.applyStaleness();
   }
 
+  /**
+   * DWD's frame, with the EUMETNET networks' countries cut out of it.
+   *
+   * The same cut the flat map's live frame gets (`networkHoles.ts`), for the
+   * same reason: the networks' composites drape over those countries
+   * (`ensureNetworks`), every palette is part transparent, and DWD showing
+   * through underneath would blend into colours neither radar measured. The
+   * holes are cut whether or not a network has a frame to fill them, as the
+   * flat map does -- a country whose radar is down shows nothing rather than
+   * DWD's long-range view of it alone.
+   *
+   * MapLibre cannot clip a raster, so the tiles go through `maskedTiles.ts`.
+   */
   private ensureRadar(gl: GlMap): void {
     if (!this.radarUrl) return;
+
+    if (this.radarMask?.url !== this.radarUrl) {
+      forgetMaskedTiles(this.radarMask?.key);
+      this.radarMask = {
+        url: this.radarUrl,
+        ...registerMaskedTiles({ template: this.radarUrl, index: this.radarIndex, erase: HOLES }),
+      };
+    }
+    const { tiles } = this.radarMask;
 
     const existing = gl.getSource(RADAR_SOURCE);
     if (existing) {
       // Unchanged is left alone: `setTiles` reloads every tile on screen, and
       // this runs on every refresh and every return to this map.
       const source = existing as unknown as { tiles?: string[]; setTiles(tiles: string[]): void };
-      const tiles = this.tiles(this.radarUrl);
       if (source.tiles?.[0] !== tiles) source.setTiles([tiles]);
       return;
     }
 
     gl.addSource(RADAR_SOURCE, {
       type: "raster",
-      tiles: [this.tiles(this.radarUrl)],
+      tiles: [tiles],
       tileSize: 512,
       minzoom: 3,
       maxzoom: 8,
       attribution: dwdAttribution,
-      // The backend writes these with TMS row numbering, which OpenLayers
-      // spells `{-y}` in the template and MapLibre spells with this flag.
-      scheme: "tms",
     });
     gl.addLayer({
       id: RADAR_SOURCE,
       type: "raster",
       source: RADAR_SOURCE,
       paint: { "raster-opacity": RADAR_OPACITY, "raster-resampling": "nearest" },
-    });
+    }, this.rasterAnchor(gl));
+  }
+
+  /**
+   * Each network's newest composite, draped over the ground `extents.ts`
+   * gives it and nowhere else -- the other half of the cut `ensureRadar`
+   * makes, so exactly one radar colours any pixel, as on the flat map.
+   *
+   * One source and one layer per network, kept and re-pointed rather than
+   * rebuilt: a network's frame lands every minute or two, and `setTiles`
+   * only reloads what is on screen.
+   */
+  private ensureNetworks(gl: GlMap): void {
+    for (const network of NETWORKS) {
+      const { code } = network;
+      const id = networkLayerId(code);
+      const frame = this.networkFrames[code];
+      if (!frame) {
+        if (gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", "none");
+        continue;
+      }
+
+      let mask = this.networkMasks[code];
+      if (mask?.tileId !== frame.tile_id) {
+        forgetMaskedTiles(mask?.key);
+        mask = {
+          tileId: frame.tile_id,
+          ...registerMaskedTiles({
+            template: tileSourceUrl("meteoradar", frame.tile_id),
+            index: frame.tiles,
+            keep: maskPath(network.coverage),
+          }),
+        };
+        this.networkMasks[code] = mask;
+      }
+
+      const existing = gl.getSource(id);
+      if (existing) {
+        const source = existing as unknown as { tiles?: string[]; setTiles(tiles: string[]): void };
+        if (source.tiles?.[0] !== mask.tiles) source.setTiles([mask.tiles]);
+        gl.setLayoutProperty(id, "visibility", "visible");
+        continue;
+      }
+
+      gl.addSource(id, {
+        type: "raster",
+        tiles: [mask.tiles],
+        tileSize: 512,
+        minzoom: 3,
+        maxzoom: 8,
+        attribution: network.attribution,
+      });
+      gl.addLayer({
+        id,
+        type: "raster",
+        source: id,
+        paint: { "raster-opacity": RADAR_OPACITY, "raster-resampling": "nearest" },
+      }, this.rasterAnchor(gl));
+    }
+  }
+
+  /**
+   * Where a radar raster goes in the style: under everything this map draws
+   * on top of the ground. The storms are added in `applyData` after the
+   * rasters, but a frame can arrive later than the storms did, and a raster
+   * appended then would paint over them.
+   */
+  private rasterAnchor(gl: GlMap): string | undefined {
+    return gl.getStyle().layers.find((layer) => /^(cell|cloud|strike)-/.test(layer.id))?.id;
   }
 
   /**
@@ -1686,6 +1801,10 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeVolume = null;
     this.gl?.remove();
     this.gl = null;
+    forgetMaskedTiles(this.radarMask?.key);
+    this.radarMask = null;
+    for (const mask of Object.values(this.networkMasks)) forgetMaskedTiles(mask?.key);
+    this.networkMasks = {};
     this.detach();
     this.container = null;
   }
