@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  decideAxis, pullTo, shouldClear, SWIPE_COMMIT, SWIPE_DETENT, SWIPE_SLOP,
+  decideAxis, pullTo, shouldClear, swipeAway, SWIPE_COMMIT, SWIPE_DETENT, SWIPE_SLOP,
 } from "../../src/lib/swipeAway.ts";
 
 /**
@@ -63,4 +63,58 @@ test("a pull tracks the finger to the detent, then gives only part of the travel
   const past = pullTo(0, -(SWIPE_DETENT + 100), 300);
   assert.ok(past > SWIPE_DETENT && past < SWIPE_DETENT + 100);
   assert.equal(pullTo(0, -5000, 300), 300);
+});
+
+/**
+ * The action itself, on a stand-in node: enough of the DOM for its listeners,
+ * its pointer capture and its width.
+ */
+function fakeNode() {
+  const node = new EventTarget() as EventTarget & Record<string, unknown>;
+  Object.assign(node, {
+    setPointerCapture() {},
+    hasPointerCapture() { return true; },
+    releasePointerCapture() {},
+    getBoundingClientRect() { return { width: 300 }; },
+  });
+  return node;
+}
+
+function pointer(type: string, x: number, target?: EventTarget): Event {
+  const event = new Event(type);
+  Object.assign(event, { pointerId: 1, button: 0, clientX: x, clientY: 10 });
+  if (target) Object.defineProperty(event, "target", { value: target });
+  return event;
+}
+
+test("a swipe begun on a button inside keeps going when the button loses the pointer", () => {
+  // A touch is captured by what it lands on -- the hint's Details button --
+  // and taking it for the dock makes the button lose it. That loss bubbles
+  // up to the dock, and was read as the swipe ending: it stopped dead.
+  const node = fakeNode();
+  const button = new EventTarget();
+  const moves: number[] = [];
+  let ended = 0;
+  swipeAway(node as unknown as HTMLElement, { onMove: (dx) => moves.push(dx), onEnd: () => { ended += 1; } });
+
+  node.dispatchEvent(pointer("pointerdown", 200));
+  node.dispatchEvent(pointer("pointermove", 180));
+  node.dispatchEvent(pointer("lostpointercapture", 180, button));
+  node.dispatchEvent(pointer("pointermove", 150));
+
+  assert.equal(ended, 0);
+  assert.deepEqual(moves, [-20, -50]);
+
+  node.dispatchEvent(pointer("pointerup", 150));
+  assert.equal(ended, 1);
+});
+
+test("losing the pointer itself still ends the swipe", () => {
+  const node = fakeNode();
+  let ended = 0;
+  swipeAway(node as unknown as HTMLElement, { onMove: () => {}, onEnd: () => { ended += 1; } });
+  node.dispatchEvent(pointer("pointerdown", 200));
+  node.dispatchEvent(pointer("pointermove", 180));
+  node.dispatchEvent(pointer("lostpointercapture", 180));
+  assert.equal(ended, 1);
 });
