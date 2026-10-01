@@ -22,7 +22,10 @@
  * 3D map…" on every visit; the sentence is still what a screen reader hears.
  * Each language has its own list (`loading_3d_words`), not a translation of
  * the English one: a word that is fun in one language is a mouthful in another.
+ * A bring-up held up by a slow network moves on to another word every few
+ * seconds, so a long wait reads as the app still working rather than stuck.
  */
+import { onDestroy, onMount } from "svelte";
 import { fade } from "svelte/transition";
 import { _, json } from "svelte-i18n";
 import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
@@ -44,9 +47,20 @@ function pick(words: string[]): string | null {
   return word;
 }
 
-/* Picked again only if the language changes under the veil. */
+/** How long one word stays up while the veil does. */
+const WORD_MS = 5000;
+
+let tick = 0;
+let timer: ReturnType<typeof setInterval> | null = null;
+onMount(() => { timer = setInterval(() => { tick += 1; }, WORD_MS); });
+onDestroy(() => { if (timer !== null) clearInterval(timer); });
+
+/* Picked again every WORD_MS, and if the language changes under the veil. */
 $: words = (($json("loading_3d_words") as unknown) ?? []) as string[];
-$: word = pick(Array.isArray(words) ? words.filter((w) => typeof w === "string" && w) : []);
+$: usable = Array.isArray(words) ? words.filter((w) => typeof w === "string" && w) : [];
+/** A fresh word for this tick; the tick is the argument only so it re-runs. */
+const wordFor = (_tick: number, list: string[]) => pick(list);
+$: word = wordFor(tick, usable);
 </script>
 
 <style>
@@ -126,7 +140,9 @@ $: word = pick(Array.isArray(words) ? words.filter((w) => typeof w === "string" 
   <div class="capsule">
     <sl-spinner class="spinner"></sl-spinner>
     {#if word}
-      <span aria-hidden="true">{word}…</span>
+      {#key word}
+        <span aria-hidden="true" in:fade={{ duration: 180 }}>{word}…</span>
+      {/key}
       <span class="sr-only">{$_("preparing_3d")}</span>
     {:else}
       <span>{$_("preparing_3d")}</span>
