@@ -716,6 +716,19 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 .ol-zoom .ol-zoom-in { border-radius: 0; border-bottom: 1px solid var(--mc-separator); }
 .ol-zoom .ol-zoom-out { border-radius: 0; }
 
+/* One press for every standalone disc: the switcher's scale. A capsule of two
+   buttons cannot scale one half, so those fill instead (above); a capsule of
+   one is a disc, and takes the scale as well as the fill. The 3D map's
+   compass is the same disc under MapLibre's markup, further down. */
+.ol-geolocate,
+.ol-rotate {
+  transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
+}
+.ol-geolocate:active,
+.ol-rotate:active {
+  transform: scale(var(--mc-press));
+}
+
 /* The locate button's glyph is an inline SVG, not a text character: centre it
    as a box rather than leaving it on the text baseline the +/- sit on, and let
    it take the button's colour through currentColor on hover and focus. */
@@ -829,6 +842,13 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   -webkit-tap-highlight-color: transparent;
 }
 .maplibre-host .maplibregl-ctrl-group button + button { border-top: 1px solid var(--mc-separator); }
+/* The compass disc presses like the locate disc above it; see .ol-geolocate. */
+.maplibre-host .maplibregl-ctrl-group:has(> button:only-child) {
+  transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
+}
+.maplibre-host .maplibregl-ctrl-group:has(> button:only-child):active {
+  transform: scale(var(--mc-press));
+}
 .maplibre-host .maplibregl-ctrl-group button:not(:disabled):hover,
 .maplibre-host .maplibregl-ctrl-group button:focus {
   background: var(--mc-tint);
