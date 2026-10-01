@@ -148,34 +148,59 @@ onDestroy(() => {
     touch-action: none;
   }
 
+  /* The line's full 44px as the hit area, around a 28px pill: the pill is a
+     status line rather than a disc, and a 44px capsule saying "Latest" is
+     heavier than its news -- but it is centred on the line the discs stand
+     on, not hung from its top edge, and a thumb gets the line's full height.
+     The button is the target; the pill inside it is the control everyone
+     sees, in the same glass as the discs (.glass/.glass-pill), with their
+     hover, press and focus. */
   .live {
-    padding-top: 0;
     pointer-events: auto;
+    display: grid;
+    place-items: center;
+    height: var(--mc-control-lg);
+    margin: 0;
+    padding: 0 4px;
+    border: 0;
+    background: none;
     cursor: pointer;
-    transition: opacity 500ms linear, transform var(--mc-motion-fast) var(--mc-ease);
-  }
-  .live:active {
-    transform: scale(var(--mc-press));
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 500ms linear;
   }
   .live.dim {
     opacity: 0.5;
   }
+  .live:focus-visible {
+    outline: none;
+  }
 
-  /* Neutral glass capsule with a coloured dot: the red-50 tag fill stayed pink
-     in dark mode. sl-tag parts: base content remove-button */
-  :global(.live::part(base)) {
+  /* Neutral glass capsule with a coloured dot: the red-50 tag fill this was
+     built on stayed pink in dark mode. */
+  .pill {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     height: var(--mc-pill-h);
     padding: 0 12px 0 10px;
-    gap: 6px;
-    border-radius: var(--mc-radius-pill);
-    background: var(--mc-glass-fill);
-    -webkit-backdrop-filter: var(--mc-glass-backdrop);
-    backdrop-filter: var(--mc-glass-backdrop);
-    border: 1px solid var(--mc-glass-edge);
-    box-shadow: var(--mc-glass-ring);
-    color: var(--mc-text);
     font: 600 12px/1 var(--mc-font);
     letter-spacing: 0.01em;
+    transition:
+      background-color var(--mc-motion-fast),
+      color var(--mc-motion-fast),
+      transform var(--mc-motion-fast) var(--mc-ease);
+  }
+  .live:hover .pill {
+    background: var(--mc-glass-fill-strong);
+    color: var(--mc-accent);
+  }
+  .live:active .pill {
+    transform: scale(var(--mc-press));
+  }
+  .live:focus-visible .pill {
+    outline: 2px solid var(--mc-accent);
+    outline-offset: 2px;
   }
 
   .circle-container {
@@ -212,7 +237,7 @@ onDestroy(() => {
   }
 
   /* No dot on this side, so the tighter leading inset it paid for goes back. */
-  :global(.live.clock::part(base)) {
+  .clock .pill {
     padding: 0 12px;
   }
 
@@ -241,31 +266,28 @@ onDestroy(() => {
 
 {#if state !== "none"}
   <div class="live-wrapper" role="status" aria-live="polite">
-    <sl-tag
-      variant="danger"
+    <button
+      type="button"
       class="live"
       class:clock={state === "time"}
       class:dim
-      size="small"
-      pill
-      role="button"
-      tabindex="0"
       title={$_("connection_details")}
-      on:click={() => { showInfo = true; }}
-      on:keydown={(e) => { if (e.key === "Enter" || e.key === " ") showInfo = true; }}>
-      <!-- Demo holds a steady dot in the accent rather than the live pulse:
-           the pulse says "arriving now", and a recording is not. -->
-      {#if state === "live"}
-        <div class="circle-container circle-container-light-red" use:blink>
-          <Icon icon={faCircle} />
-        </div>
-      {:else if showDot}
-        <div class="circle-container {state}">
-          <Icon icon={faCircle} />
-        </div>
-      {/if}
-      <span class="label" class:clock={state === "time"}>{label}</span>
-    </sl-tag>
+      on:click={() => { showInfo = true; }}>
+      <span class="pill glass glass-pill">
+        <!-- Demo holds a steady dot in the accent rather than the live pulse:
+             the pulse says "arriving now", and a recording is not. -->
+        {#if state === "live"}
+          <div class="circle-container circle-container-light-red" use:blink>
+            <Icon icon={faCircle} />
+          </div>
+        {:else if showDot}
+          <div class="circle-container {state}">
+            <Icon icon={faCircle} />
+          </div>
+        {/if}
+        <span class="label" class:clock={state === "time"}>{label}</span>
+      </span>
+    </button>
   </div>
 {/if}
 
