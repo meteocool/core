@@ -21,14 +21,14 @@
  * has reached and `grab` that a hand is on it. Which frame the map shows,
  * and the play loop, stay with NowcastPlayback.
  */
-import { createEventDispatcher, onDestroy } from "svelte";
+import { createEventDispatcher, onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import { radarColormap } from "../stores";
 import { dbz2color } from "../lib/cmap_utils";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import { haptic } from "../lib/haptics";
 import {
-  AT_REST, axisTicks, barCeiling, glideStep, indexOf, restingStep, rubberBand,
+  AT_REST, axisTicks, barCeiling, glideStep, indexOf, lastPlayableIndex, restingStep, rubberBand,
   type TimelineStep,
 } from "../lib/timeline";
 import type { Translate } from "../locale/t";
@@ -56,7 +56,8 @@ const TICK_MAJOR = 13;
 
 let width = 0;
 $: n = steps.length;
-$: last = Math.max(n - 1, 0);
+/** The last step the needle may reach; the strip itself runs on to +2h. */
+$: last = lastPlayableIndex(steps);
 $: slot = n > 0 ? width / n : 0;
 $: ceiling = barCeiling(steps);
 $: nowIndex = indexOf(steps, latest);
@@ -79,7 +80,7 @@ $: ticks = axisTicks(steps, now, labelEvery);
 $: bars = steps.map((step, i) => {
   const minutes = Math.round((step.t - now) / 60);
   if (step.dbz === null || step.dbz <= 0) {
-    return { i, x: (i + 0.5) * slot, h: 0, fill: "", major: minutes % 30 === 0 };
+    return { i, x: (i + 0.5) * slot, h: 0, fill: "", major: minutes % 30 === 0, pending: !step.playable };
   }
   const [r, g, b] = dbz2color(step.dbz, $radarColormap);
   const alpha = step.forecast ? 0.72 : 1;
@@ -89,7 +90,26 @@ $: bars = steps.map((step, i) => {
     h: Math.max(2, (step.dbz / ceiling) * (PLOT_H - 4)),
     fill: `rgba(${r}, ${g}, ${b}, ${alpha})`,
     major: minutes % 30 === 0,
+    pending: !step.playable,
   };
+});
+
+/*
+ * The first time the player opens in a session, the knob gives one small
+ * nudge, so a thumb knows the strip is there to be dragged -- a touch screen
+ * has no hover and no cursor to say so. Once per session, and never under
+ * reduced motion.
+ */
+const HINTED = "mc-timeline-hinted";
+let nudge = false;
+onMount(() => {
+  if (!interactive) return;
+  let seen = true;
+  try { seen = sessionStorage.getItem(HINTED) === "1"; } catch { /* private mode: hint every time */ }
+  if (seen || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  try { sessionStorage.setItem(HINTED, "1"); } catch { /* ignore */ }
+  const timer = setTimeout(() => { nudge = true; }, 700);
+  return () => clearTimeout(timer);
 });
 
 /*
@@ -304,6 +324,10 @@ onDestroy(stop);
   .tick.major {
     opacity: 0.5;
   }
+  /* The unpublished tail: on the axis, but not yet anything to see. */
+  .tick.pending {
+    opacity: 0.12;
+  }
 
   /* What has already happened, tinted, so the eye finds now without reading. */
   .past {
@@ -332,6 +356,35 @@ onDestroy(stop);
   }
   .strip:not(.interactive) .needle {
     opacity: 0.85;
+  }
+  .needle-group {
+    will-change: transform;
+  }
+  .knob {
+    fill: var(--mc-chrome-accent, var(--mc-accent));
+    stroke: rgba(255, 255, 255, 0.7);
+    stroke-width: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+    transition: transform var(--mc-motion-fast) var(--mc-ease);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .grip {
+    fill: rgba(255, 255, 255, 0.85);
+  }
+  /* Under a finger the knob grows a little, as a picked-up thing does. */
+  .strip.dragging .knob {
+    transform: scale(1.15);
+  }
+  /* The first-open hint: a small sway of the knob and needle, twice. */
+  .needle-group.nudge {
+    animation: mc-timeline-nudge 1100ms var(--mc-ease) 1;
+  }
+  @keyframes mc-timeline-nudge {
+    0%, 100% { translate: 0 0; }
+    22% { translate: 9px 0; }
+    50% { translate: -7px 0; }
+    76% { translate: 4px 0; }
   }
 
   /* The offset under the needle, while a hand is on it. */
@@ -401,6 +454,7 @@ onDestroy(stop);
           <rect
             class="tick"
             class:major={bar.major}
+            class:pending={bar.pending}
             x={bar.x - 0.75}
             y={PLOT_H - (bar.major ? TICK_MAJOR : TICK)}
             width="1.5"
@@ -420,7 +474,15 @@ onDestroy(stop);
           {/if}
         {/each}
         <line class="now" x1={(nowIndex + 1) * slot} x2={(nowIndex + 1) * slot} y1="0" y2={PLOT_H} />
-        <rect class="needle" x={needleX - 1.5} y="0.5" width="3" height={PLOT_H - 1} rx="1.5" />
+        <g class="needle-group" class:nudge style:transform="translateX({needleX}px)" on:animationend={() => { nudge = false; }}>
+          <rect class="needle" x="-1.5" y="0.5" width="3" height={PLOT_H - 1} rx="1.5" />
+          {#if interactive}
+            <!-- The knob: a thumb's handle on the needle, with a grip. -->
+            <rect class="knob" x="-7" y={PLOT_H / 2 - 11} width="14" height="22" rx="7" />
+            <rect class="grip" x="-2.5" y={PLOT_H / 2 - 5} width="1.5" height="10" rx="0.75" />
+            <rect class="grip" x="1" y={PLOT_H / 2 - 5} width="1.5" height="10" rx="0.75" />
+          {/if}
+        </g>
       </svg>
       {#if active}
         <span class="readout" style:left="{Math.min(Math.max(needleX, 24), width - 24)}px">{readout}</span>

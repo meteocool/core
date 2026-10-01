@@ -18,21 +18,25 @@ export interface TimelineStep {
   dbz: number | null;
   /** A nowcast rather than an observation: drawn fainter. */
   forecast: boolean;
+  /**
+   * Whether the map can show it. The grid runs to +2h but the tail of the
+   * nowcast is published behind it; those steps are on the axis, so the strip
+   * is always the same two hours each way, but the needle cannot reach them.
+   */
+  playable: boolean;
 }
 
 /**
- * The steps the scrubber may reach, oldest first.
+ * The whole grid, oldest first, each step marked playable or not.
  *
- * Truncated where the scrubber is, not where the grid is: the grid runs to
- * +2h but the tail of the nowcast is published behind it, and a bar nothing
- * can scrub to would only add flat space on the right. Numeric sort -- the
- * keys are 10-digit timestamps, so a lexicographic one would merely happen to
- * agree.
+ * The strip spans the grid rather than stopping at the last published frame,
+ * so its right-hand end always reads +2h and the axis never shifts as the
+ * tail fills in. Numeric sort -- the keys are 10-digit timestamps, so a
+ * lexicographic one would merely happen to agree.
  */
 export function timelineSteps(config: GridConfig, lastPlayable: number): TimelineStep[] {
   return Object.keys(config.grid)
     .map((key) => parseInt(key, 10))
-    .filter((t) => t <= lastPlayable)
     .sort((a, b) => a - b)
     .map((t) => {
       const step = config.grid[t];
@@ -41,8 +45,16 @@ export function timelineSteps(config: GridConfig, lastPlayable: number): Timelin
         t,
         dbz: dbz == null || Number.isNaN(dbz) ? null : Math.max(0, dbz),
         forecast: step != null && step.source !== "observation",
+        playable: t <= lastPlayable,
       };
     });
+}
+
+/** The index of the last step the needle may reach. */
+export function lastPlayableIndex(steps: TimelineStep[]): number {
+  let index = 0;
+  steps.forEach((step, i) => { if (step.playable) index = i; });
+  return index;
 }
 
 /**
@@ -56,8 +68,11 @@ export function forecastGapFrom(steps: TimelineStep[]): number | null {
   const first = steps.findIndex((step) => step.forecast);
   if (first <= 0) return null;
   const unknown = (step: TimelineStep) => step.dbz === null;
-  if (!steps.slice(first).every(unknown)) return null;
-  if (steps.slice(0, first).every(unknown)) return null;
+  // Only the published forecast can say it has nothing; the unpublished
+  // tail has nothing because it is not here yet.
+  const published = steps.filter((step) => step.playable);
+  if (!published.slice(first).every(unknown)) return null;
+  if (published.slice(0, first).every(unknown)) return null;
   return first / steps.length;
 }
 
