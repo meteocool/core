@@ -68,8 +68,18 @@ export function stepAt(times: number[], now: number): number {
  */
 export const RAIN_LIKELY_PCT = 30;
 
+/**
+ * How many hours from `from` until the models' median rain chance first
+ * reaches RAIN_LIKELY_PCT, looking `hours` ahead: 0 for the hour now, null
+ * for a window it never reaches. What the strip counts down to.
+ */
+export function rainIn(series: HourlySeries, from: number, hours: number): number | null {
+  const steps = Math.max(0, Math.min(hours, series.times.length - from));
+  const at = envelope(series, from, steps).mid.findIndex((v) => v !== null && v >= RAIN_LIKELY_PCT);
+  return at < 0 ? null : at;
+}
+
 /** Whether the models' median rain chance reaches RAIN_LIKELY_PCT within `hours` of `from`. */
 export function rainWithin(series: HourlySeries, from: number, hours: number): boolean {
-  const steps = Math.max(0, Math.min(hours, series.times.length - from));
-  return envelope(series, from, steps).mid.some((v) => v !== null && v >= RAIN_LIKELY_PCT);
+  return rainIn(series, from, hours) !== null;
 }
