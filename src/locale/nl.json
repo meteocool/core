@@ -58,6 +58,7 @@
   "precipitation_types": "Neerslagtypen",
   "storm_cells_3d": "Onweerscellen 3D",
   "preparing_3d": "3D-kaart wordt voorbereid…",
+  "loading_3d_words": ["Scannen", "Aftasten", "Pingen", "Pulseren", "Peilen", "Roteren", "Kantelen", "Terugverstrooien", "Polariseren", "Ontvouwen", "Ontstoren", "Kalibreren", "Rasteren", "Interpoleren", "Voxeliseren", "Nowcasten", "Batterij leegtrekken"],
   "layer_switcher_placeholder": "Als je dankbaar bent voor meteocool, geef dan iets terug aan iemand die het nodig heeft.",
   "snow": "Sneeuw",
   "graupel": "Graupel",

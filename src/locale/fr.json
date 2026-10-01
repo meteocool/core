@@ -58,6 +58,7 @@
   "precipitation_types": "Types de précipitations",
   "storm_cells_3d": "Cellules orageuses 3D",
   "preparing_3d": "Préparation de la carte 3D…",
+  "loading_3d_words": ["Balayage", "Sondage", "Télémétrie", "Inclinaison", "Rotation", "Rétrodiffusion", "Polarisation", "Effet Doppler", "Dépliement", "Filtrage des échos fixes", "Étalonnage", "Maillage", "Interpolation", "Voxelisation", "Lancer de rayons", "Prévision immédiate", "Vidage de la batterie"],
   "layer_switcher_placeholder": "Si vous êtes reconnaissant envers meteocool, rendez quelque chose à une personne dans le besoin.",
   "snow": "Neige",
   "graupel": "Graupel",
