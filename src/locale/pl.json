@@ -58,6 +58,7 @@
   "precipitation_types": "Rodzaje opadów",
   "storm_cells_3d": "Komórki burzowe 3D",
   "preparing_3d": "Przygotowywanie mapy 3D…",
+  "loading_3d_words": ["Skanowanie", "Pingowanie", "Pulsowanie", "Namierzanie", "Obracanie", "Pochylanie", "Rozpraszanie wsteczne", "Polaryzowanie", "Filtrowanie zakłóceń", "Kalibrowanie", "Interpolowanie", "Wokselizowanie", "Rozładowywanie baterii"],
   "layer_switcher_placeholder": "Jeśli jesteś wdzięczny za meteocool, odwdzięcz się komuś w potrzebie.",
   "snow": "Śnieg",
   "graupel": "Krupa",

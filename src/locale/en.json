@@ -58,6 +58,7 @@
   "precipitation_types": "Precipitation Types",
   "storm_cells_3d": "Storm Cells 3D",
   "preparing_3d": "Preparing the 3D map…",
+  "loading_3d_words": ["Scanning", "Sweeping", "Pinging", "Pulsing", "Beaming", "Echoing", "Ranging", "Tilting", "Rotating", "Backscattering", "Polarizing", "Doppler-shifting", "Dealiasing", "Decluttering", "Calibrating", "Gridding", "Compositing", "Interpolating", "Voxelizing", "Raymarching", "Nowcasting", "Draining battery"],
   "layer_switcher_placeholder": "If you are thankful for meteocool, give something back to someone in need.",
   "snow": "Snow",
   "graupel": "Graupel",

@@ -16,10 +16,37 @@
  * of its own: the backdrop blur is what turns the bring-up's flicker into a
  * soft wash of colour. The capsule in the middle is the ordinary glass pill,
  * with the spinner and a line of text.
+ *
+ * The line is one word of what a radar does -- "Scanning…", "Backscattering…"
+ * -- a different one from the last time, rather than the same "Preparing the
+ * 3D map…" on every visit; the sentence is still what a screen reader hears.
+ * Each language has its own list (`loading_3d_words`), not a translation of
+ * the English one: a word that is fun in one language is a mouthful in another.
  */
 import { fade } from "svelte/transition";
-import { _ } from "svelte-i18n";
+import { _, json } from "svelte-i18n";
 import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
+
+/**
+ * The last word shown, kept across reloads: the veil comes up once per page,
+ * so a word remembered in memory alone would repeat on the next visit as often
+ * as chance allows.
+ */
+const LAST_WORD_KEY = "mc-3d-loading-word";
+
+function pick(words: string[]): string | null {
+  if (!words.length) return null;
+  let last: string | null = null;
+  try { last = localStorage.getItem(LAST_WORD_KEY); } catch { /* storage blocked: any word will do */ }
+  const fresh = words.length > 1 ? words.filter((word) => word !== last) : words;
+  const word = fresh[Math.floor(Math.random() * fresh.length)];
+  try { localStorage.setItem(LAST_WORD_KEY, word); } catch { /* as above */ }
+  return word;
+}
+
+/* Picked again only if the language changes under the veil. */
+$: words = (($json("loading_3d_words") as unknown) ?? []) as string[];
+$: word = pick(Array.isArray(words) ? words.filter((w) => typeof w === "string" && w) : []);
 </script>
 
 <style>
@@ -58,6 +85,15 @@ import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
     animation: settle var(--mc-motion-spring) var(--mc-ease-spring) both;
   }
 
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   /* sl-spinner props: --track-width --track-color --indicator-color --speed */
   .spinner {
     --track-width: 2.5px;
@@ -89,6 +125,11 @@ import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
 <div class="veil" out:fade={{ duration: 420 }} role="status" aria-live="polite">
   <div class="capsule">
     <sl-spinner class="spinner"></sl-spinner>
-    <span>{$_("preparing_3d")}</span>
+    {#if word}
+      <span aria-hidden="true">{word}…</span>
+      <span class="sr-only">{$_("preparing_3d")}</span>
+    {:else}
+      <span>{$_("preparing_3d")}</span>
+    {/if}
   </div>
 </div>
