@@ -142,8 +142,13 @@ const VOLUME_FETCHES = 4;
  * texture and a raymarch per frame. So only what is in view, strongest and
  * nearest first, up to this many: the rest stay as the ground rings, which
  * are already there and tappable, and load when the camera comes to them.
+ *
+ * Raised from 16 on 2026-10-01: zoomed out over the Alps, 40 storms stood on
+ * screen and 16 got clouds. The raymarch is scissored to each storm's box, so
+ * a storm drawn small costs little; the cost that grows is the textures, 38 MB
+ * at this many.
  */
-const RESIDENT_VOLUMES = 16;
+const RESIDENT_VOLUMES = 24;
 
 /** How far past the viewport's edge a storm still counts as in view, as a fraction of the viewport. */
 const VIEW_MARGIN = 0.35;
