@@ -249,7 +249,8 @@
       "cell": "cel",
       "alive": "sinds {duration} actief",
       "details": "Details",
-      "clear": "Selectie wissen"
+      "clear": "Selectie wissen",
+      "clear_action": "Wissen"
     },
     "sheet": {
       "grip": "Details vergroten, verkleinen of sluiten"

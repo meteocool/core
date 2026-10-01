@@ -251,7 +251,8 @@
       "cell": "Zelle",
       "alive": "seit {duration} aktiv",
       "details": "Details",
-      "clear": "Auswahl aufheben"
+      "clear": "Auswahl aufheben",
+      "clear_action": "Aufheben"
     },
     "sheet": {
       "grip": "Details vergrößern, verkleinern oder schließen"

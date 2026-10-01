@@ -29,6 +29,7 @@ import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
 import Icon from "./Icon.svelte";
 import { inspectLatLon, pointMenuAt, selectedCell, selectedVolume, sharedActiveCap } from "../stores";
 import { openModelCompare } from "../lib/modelCompare";
+import { holdNativeChrome } from "../lib/nativeBridge";
 import { reverseGeocode } from "../lib/reverseGeocode";
 import type { LayerManager } from "../lib/LayerManager";
 
@@ -114,6 +115,18 @@ function close() {
   if ($pointMenuAt) pointMenuAt.set(null);
 }
 
+/* Placed to stay on screen, the menu can still open under the apps' buttons
+   in the top corner, which nothing here can move -- so they go while it is up. */
+let releaseChrome: (() => void) | null = null;
+function holdChrome(open: boolean) {
+  if (open && !releaseChrome) releaseChrome = holdNativeChrome();
+  else if (!open && releaseChrome) {
+    releaseChrome();
+    releaseChrome = null;
+  }
+}
+$: holdChrome($pointMenuAt !== null);
+
 /* Held on another layer, or a storm tapped: the question is somewhere else. */
 $: if ($sharedActiveCap !== "radar" || $selectedCell || $selectedVolume) close();
 
@@ -143,6 +156,7 @@ function onKeydown(event: KeyboardEvent) {
 window.addEventListener("pointerdown", onOutside, true);
 window.addEventListener("keydown", onKeydown, true);
 onDestroy(() => {
+  holdChrome(false);
   window.removeEventListener("pointerdown", onOutside, true);
   window.removeEventListener("keydown", onKeydown, true);
 });
