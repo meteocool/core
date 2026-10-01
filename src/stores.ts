@@ -184,6 +184,17 @@ export const cellLayerVisible = writable<boolean>(true);
  * land minutes after the radar under them -- see lib/scans.ts.
  */
 export const cells3dVisible = writable<boolean>(false);
+/**
+ * Whether the 3D map is still being brought up for the first time.
+ *
+ * MapLibre is fetched on first use, then compiles its shaders, parses the
+ * style and pulls the basemap, radar and storm volumes -- several seconds on
+ * a phone, with the main thread pegged for much of it. Set by
+ * Cells3DCapability from the switch to that map until its first settled
+ * frame; App draws a glass veil over the map while it is true, so the
+ * half-built map is not what the reader watches.
+ */
+export const cells3dLoading = writable<boolean>(false);
 /** The cell the detail popup is showing, or null when it is closed. */
 export const selectedCell = writable<CellTrackProperties | null>(null);
 /**
