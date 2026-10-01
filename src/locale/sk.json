@@ -249,7 +249,8 @@
       "cell": "bunka",
       "alive": "aktívna už {duration}",
       "details": "Podrobnosti",
-      "clear": "Zrušiť výber"
+      "clear": "Zrušiť výber",
+      "clear_action": "Zrušiť"
     },
     "sheet": {
       "grip": "Zmeniť veľkosť alebo zavrieť podrobnosti"
