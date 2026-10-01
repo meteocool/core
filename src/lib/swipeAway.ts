@@ -41,6 +41,28 @@ export function decideAxis(dx: number, dy: number, slop = SWIPE_SLOP): SwipeAxis
   return Math.abs(dx) > Math.abs(dy) ? "x" : "y";
 }
 
+/** Where a pull parks the panel with its action showing, in px. */
+export const SWIPE_DETENT = 96;
+
+/** How much of the finger's travel past the detent the panel actually takes. */
+export const SWIPE_GIVE = 0.7;
+
+/**
+ * How far aside a panel is pulled, for a drag of `dx` (negative is leftward)
+ * that started with it `from` px aside, on an element `width` wide.
+ *
+ * Up to the detent the panel tracks the finger exactly; past it only part of
+ * the travel is taken, which is the resistance felt before it gives. A
+ * rightward drag takes back what a leftward one opened, down to shut -- which
+ * is how a parked panel is pushed closed again with the finger that opened it.
+ */
+export function pullTo(from: number, dx: number, width: number): number {
+  const pulled = Math.max(0, from - dx);
+  return pulled <= SWIPE_DETENT
+    ? pulled
+    : Math.min(width, SWIPE_DETENT + (pulled - SWIPE_DETENT) * SWIPE_GIVE);
+}
+
 /** Whether a leftward travel of `dx` over `width` is far enough to clear. */
 export function shouldClear(dx: number, width: number, commit = SWIPE_COMMIT): boolean {
   return width > 0 && -dx >= width * commit;
@@ -52,7 +74,7 @@ export interface SwipeAwayOptions {
    * measure the element and stop animating it, since the finger has it now.
    */
   onStart?: (node: HTMLElement) => void;
-  /** Called with the leftward travel, in pixels, as the finger moves. */
+  /** Called with the horizontal travel, in pixels (negative is leftward), as the finger moves. */
   onMove: (dx: number) => void;
   /** Called on release: `cleared` says whether it went far enough. */
   onEnd: (cleared: boolean) => void;
@@ -94,9 +116,10 @@ export function swipeAway(node: HTMLElement, options: SwipeAwayOptions) {
       opts.onStart?.(node);
     }
     if (axis !== "x") return;
-    // Leftward only: there is nothing to the right to reveal, and letting the
-    // element follow a rightward drag makes it look loose.
-    opts.onMove(Math.min(0, dx));
+    // Both ways: a rightward drag pushes back what a leftward one opened. The
+    // caller decides how far the element may go (see `pullTo`); clamping here
+    // left a parked panel that no drag could push shut again.
+    opts.onMove(dx);
   }
 
   function onUp(event: PointerEvent) {
