@@ -19,8 +19,8 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzColour, dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap, selectedCell, selectedVolume,
-  sharedActiveCap, showForecastPlaybutton, smallScreen,
+  capDescription, cellDetails, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
+  selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen,
 } from "../stores";
 import { get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
@@ -278,7 +278,15 @@ export default class Cells3DCapability extends Capability {
 
   private cells: CellCurrent[] = [];
 
-  /** The scan the cells were found in; null before the first run. */
+  /**
+   * Whether the KONRAD3D cells are drawn at all; see `cells3dVisible`. Off,
+   * they are not even fetched, and the volumes are the only storms here.
+   */
+  private cellsWanted = get(cells3dVisible);
+
+  private unsubscribeCellsWanted: (() => void) | null = null;
+
+  /** The scan the cells were found in; null before the first run, and while they are off. */
   private cellsScan: Scan | null = null;
 
   /** The newest cells request, so a slower earlier answer cannot win. */
@@ -291,11 +299,11 @@ export default class Cells3DCapability extends Capability {
   private cloudsScan: Scan | null = null;
 
   /**
-   * The storm cores, waited for until they are the cells' scan's.
+   * The storm cores, waited for until they reach the newest scan on the map.
    *
-   * Asked for when a run lands, which live is half a minute before that
-   * scan's volumes exist; fetched only then, every storm stood a scan upwind
-   * of the radar under it until the next run. Waits only while shown.
+   * Asked for when a KONRAD3D run lands, which live is half a minute before
+   * that scan's volumes exist; fetched only then, every storm stood a scan
+   * upwind of the radar under it until the next run. Waits only while shown.
    */
   private readonly volumes = new VolumeFeed<CurrentVolumes>(
     () => fetchCurrentVolumes().catch(() => null),
@@ -437,6 +445,7 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeCut = cutRotationDeg.subscribe(() => this.applyCut());
     this.unsubscribeSweep = cutSweepDeg.subscribe(() => this.applyCut());
     this.unsubscribeColormap = radarColormap.subscribe((name) => this.applyColormap(name));
+    this.unsubscribeCellsWanted = cells3dVisible.subscribe((wanted) => this.applyCellsWanted(wanted));
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
       if (!this.gl) return;
@@ -1336,25 +1345,56 @@ export default class Cells3DCapability extends Capability {
     this.cellsToken = token;
     try {
       const [current, clouds] = await Promise.all([
-        fetchCurrentCells(this.nanobar),
+        // Not asked for while they are off: a severe afternoon's run is a
+        // sizeable answer for a map that would draw none of it.
+        this.cellsWanted ? fetchCurrentCells(this.nanobar) : null,
         // Its own failure is not the cells' failure: a map with storms and no
         // cutaways is worth drawing. Nor does it take the storms already
         // drawn away; they stay until an answer replaces them.
         fetchCurrentVolumes().catch(() => null),
       ]);
       if (this.cellsToken !== token) return;
-      this.cells = (current.cells ?? []) as CellCurrent[];
-      this.cellsScan = scanTime(current.reference_time);
+      // Turned off while the answer was on its way is off.
+      const run = this.cellsWanted ? current : null;
+      this.cells = (run?.cells ?? []) as CellCurrent[];
+      this.cellsScan = run ? scanTime(run.reference_time) : null;
       // The same scan as before still loads: a load cut short by switching
       // away left volumes to fetch, and this is the refresh `attach` relies on.
       if (!clouds || !this.volumes.offer(clouds)) void this.loadClouds();
-      if (this.shown) this.volumes.follow(this.cellsScan);
+      if (this.shown) this.volumes.follow(this.newestScan());
     } catch {
       // Already reported by the API wrapper; an empty 3D map is not worth a
       // second message on top of it.
       return;
     }
     this.applyData();
+  }
+
+  /**
+   * Turn the KONRAD3D cells on or off.
+   *
+   * On, they are fetched now if the map is showing, and otherwise by the
+   * refresh `attach` does. Off, they go at once, and their layers stay on
+   * the style empty -- nothing to tap, nothing to hide a tier of.
+   */
+  private applyCellsWanted(wanted: boolean): void {
+    if (wanted === this.cellsWanted) return;
+    this.cellsWanted = wanted;
+    if (wanted) {
+      if (this.shown) void this.refresh();
+      return;
+    }
+    this.cells = [];
+    this.cellsScan = null;
+    if (!this.gl || !this.styleReady) return;
+    this.ensureCells(this.gl);
+    this.applyTierFilters();
+  }
+
+  /** The newest scan anything on this map is from, which the volumes are waited for to reach. */
+  private newestScan(): Scan | null {
+    const scans = [this.cellsScan, this.radarScan].filter((scan): scan is Scan => scan !== null);
+    return scans.length ? Math.max(...scans) : null;
   }
 
   /** A newer scan's storm cores, from a refresh or from waiting for one. */
@@ -1565,6 +1605,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeCut = null;
     this.unsubscribeColormap?.();
     this.unsubscribeColormap = null;
+    this.unsubscribeCellsWanted?.();
+    this.unsubscribeCellsWanted = null;
     this.unsubscribeSweep?.();
     this.unsubscribeSweep = null;
     stopSweep(false);
