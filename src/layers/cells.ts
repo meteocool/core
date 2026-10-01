@@ -34,8 +34,8 @@ import { leadLabel, outlineIsCurrent } from "../lib/cellGeometry";
  * a tap away rather than permanently spread across every storm at once.
  */
 
-/** DWD's severity classes, in the colours their own charts use. */
-const SEVERITY_COLOURS = ["#2f9e44", "#f0b429", "#e03131", "#9c36b5"];
+/** DWD's severity classes, in the colours their own charts use; the 3D map and its legend take them from here. */
+export const SEVERITY_COLOURS = ["#2f9e44", "#f0b429", "#e03131", "#9c36b5"];
 
 export type CellFeatureKind = "path" | "link" | "cell" | "outline" | "forecast" | "ellipse";
 
