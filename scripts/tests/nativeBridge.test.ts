@@ -8,7 +8,7 @@ import test from "node:test";
  * message there must be dropped rather than throw.
  */
 
-const { postToNative } = await import("../../src/lib/nativeBridge.ts");
+const { holdNativeChrome, postToNative } = await import("../../src/lib/nativeBridge.ts");
 
 const globals = globalThis as Record<string, unknown>;
 
@@ -45,4 +45,20 @@ test("a browser has no host to tell", () => {
   reset();
   globals.window = {};
   assert.doesNotThrow(() => postToNative("impactMedium"));
+});
+
+test("the host hears the first drawer open and the last one close", () => {
+  reset();
+  const seen: string[] = [];
+  globals.window = {};
+  globals.Android = { requestSettings() {}, postMessage: (m: string) => seen.push(m) };
+  const sheet = holdNativeChrome();
+  const panel = holdNativeChrome();
+  panel();
+  panel();
+  assert.deepEqual(seen, ["drawerOpened"]);
+  sheet();
+  assert.deepEqual(seen, ["drawerOpened", "drawerClosed"]);
+  holdNativeChrome()();
+  assert.deepEqual(seen, ["drawerOpened", "drawerClosed", "drawerOpened", "drawerClosed"]);
 });
