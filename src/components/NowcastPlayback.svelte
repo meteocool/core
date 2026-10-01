@@ -200,8 +200,9 @@ $: if ($bottomToolbarMode === "player") chartDismissed = false;
  * position with no tapped point -- and only for a position the radar covers:
  * outside every network "nothing on the radar" is no data, not no rain.
  * Dismissal lasts as long as the dry spell does, as the chart's lasts as long
- * as there is something to plot, and opening the player re-arms it the same
- * way. A failed forecast fetch takes it down for the session.
+ * as there is something to plot. It stands aside while the player is open,
+ * and comes back when it closes unless it was dismissed. A failed forecast
+ * fetch takes it down for the session.
  */
 const covers = (point: [number, number] | null): boolean => point !== null
   && radarExtents4326.some(([minLon, minLat, maxLon, maxLat]) => (
@@ -218,9 +219,12 @@ $: outlookShowable = $dryAtUser
   && !$radarStale
   && !outlookUnavailable
   // The drawer it opens covers it, and the strip would only restate it.
-  && !$modelCompareAt;
+  && !$modelCompareAt
+  // Nor over the player: the reader is stepping through the radar's frames,
+  // and what the models say about the coming days is not one of them. The
+  // rain chart stays, because it is those frames at the reader's position.
+  && $bottomToolbarMode !== "player";
 $: if (!$dryAtUser) outlookDismissed = false;
-$: if ($bottomToolbarMode === "player") outlookDismissed = false;
 
 /* Between a tap and the grid that answers it, the strip is up with the last
    point's bars still in it. Flagged here rather than read off the capability,
