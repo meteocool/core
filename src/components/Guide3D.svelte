@@ -4,7 +4,7 @@
  * desktop's bottom-left corner, closed into a "?" pill.
  *
  * The 3D map is the one map here a reader cannot read by having seen a radar
- * map before: clouds that peel away and grow back, rings on the ground, some
+ * map before: clouds that peel away and grow back, boxes on the ground, some
  * storms grey and some faint, and a mouse that needs its right button to tilt.
  * Nothing on screen said what any of it was. The card says, once, beside the
  * map rather than over the storms; closed, it stays closed across visits, and
@@ -104,8 +104,13 @@ const mac = dd.isMac();
   </g>
 {/snippet}
 
-{#snippet ring(colour: string, opacity: number)}
-  <ellipse cx="16" cy="15" rx="11" ry="5.5" fill="none" stroke={colour} stroke-width="2.5" stroke-opacity={opacity} />
+<!-- A storm's box on the ground, seen at the map's tilt, with the 3D tag on its spin axis. -->
+{#snippet box(colour: string, opacity: number)}
+  <g opacity={opacity}>
+    <path d="M3 20H23L29 9H9Z" fill="none" stroke={colour} stroke-width="1.5" stroke-linejoin="round" />
+    <rect class="tag" x="10.5" y="11.5" width="11" height="6" rx="3" />
+    <circle cx="13.6" cy="14.5" r="1.5" fill={colour} />
+  </g>
 {/snippet}
 
 <!-- The pointer, tip at the origin. -->
@@ -225,10 +230,10 @@ const mac = dd.isMac();
           </div>
         </li>
         <li>
-          <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">{@render ring(ringColour, RING_OPACITY.openable)}</svg>
+          <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">{@render box(ringColour, RING_OPACITY.openable)}</svg>
           <div>
-            <strong>{$_("guide_3d.ring")}</strong>
-            <span>{$_("guide_3d.ring_body")}</span>
+            <strong>{$_("guide_3d.box")}</strong>
+            <span>{$_("guide_3d.box_body")}</span>
           </div>
         </li>
         <li>
@@ -247,7 +252,7 @@ const mac = dd.isMac();
         <li>
           <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
             {@render cloud(shells, RING_OPACITY.unopenable)}
-            {@render ring(ringColour, RING_OPACITY.unopenable)}
+            {@render box(ringColour, RING_OPACITY.unopenable)}
           </svg>
           <div>
             <strong>{$_("guide_3d.faint")}</strong>
@@ -257,7 +262,7 @@ const mac = dd.isMac();
         <li>
           <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
             {@render cloud(["#b4b4b4", "#9a9a9a", "#7a7a7a"], 0.7)}
-            {@render ring(BEHIND_LINE, RING_OPACITY.openable)}
+            {@render box(BEHIND_LINE, RING_OPACITY.openable)}
           </svg>
           <div>
             <strong>{$_("guide_3d.grey")}</strong>
@@ -477,6 +482,13 @@ const mac = dd.isMac();
     width: 32px;
     height: 24px;
     color: var(--mc-text);
+  }
+  /* The 3D tag, as the map draws it: a pale pill with a faint edge. */
+  .swatch :global(.tag) {
+    fill: var(--mc-glass-fill-solid);
+    stroke: currentColor;
+    stroke-opacity: 0.25;
+    stroke-width: 0.8;
   }
   .legend strong {
     font-weight: 600;
