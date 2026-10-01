@@ -58,6 +58,7 @@
   "precipitation_types": "Niederschlagsarten",
   "storm_cells_3d": "Gewitterzellen 3D",
   "preparing_3d": "3D-Karte wird vorbereitet…",
+  "loading_3d_words": ["Scannen", "Abtasten", "Pingen", "Pulsen", "Peilen", "Orten", "Rotieren", "Neigen", "Rückstreuen", "Polarisieren", "Dopplern", "Entfalten", "Entstören", "Kalibrieren", "Rastern", "Interpolieren", "Voxelisieren", "Raymarchen", "Nowcasten", "Akku leersaugen"],
   "layer_switcher_placeholder": "Wenn du dankbar für meteocool bist, gib jemand Bedürftigem etwas dafür.",
   "snow": "Schnee",
   "graupel": "Graupel",

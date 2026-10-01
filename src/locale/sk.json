@@ -58,6 +58,7 @@
   "precipitation_types": "Typy zrážok",
   "storm_cells_3d": "Búrkové bunky 3D",
   "preparing_3d": "Pripravuje sa 3D mapa…",
+  "loading_3d_words": ["Skenovanie", "Pingovanie", "Pulzovanie", "Zameriavanie", "Otáčanie", "Nakláňanie", "Spätný rozptyl", "Polarizovanie", "Filtrovanie rušenia", "Kalibrovanie", "Interpolovanie", "Voxelizovanie", "Vybíjanie batérie"],
   "layer_switcher_placeholder": "Ak si vďačný za meteocool, daj niečo späť niekomu, kto to potrebuje.",
   "snow": "Sneh",
   "graupel": "Snehové krúpky",
