@@ -34,6 +34,7 @@
 import type { CellVolume } from "../api";
 import { tileBaseUrl } from "../urls";
 import { tracked } from "./progress";
+import { locateStorm, STORM_DBZ } from "./stormFrame";
 
 const MAGIC = 0x5856434d; // "MCVX", little-endian
 
@@ -80,80 +81,10 @@ export interface Cutaway {
    * storm rarely fills it -- a camera framed on the box draws most cells as a
    * speck in a lot of empty air. These two put the camera on the weather
    * instead, which is the same problem `CellModel3D` solves with its frame.
+   * See `locateStorm`.
    */
   centreKm: [number, number, number];
   halfKm: [number, number, number];
-}
-
-/**
- * Below this a voxel is drizzle, clutter or the far fringe of the anvil, and
- * including it in the framing would pull the camera back for nothing.
- *
- * Above the renderer's own floor rather than equal to it: the faintest echo
- * the shader draws is nearly transparent, so framing on it would leave the
- * storm small inside a margin of air the reader cannot see.
- */
-export const FRAMING_DBZ = 20;
-
-/** The smallest half-extent worth framing, so a tiny cell is not magnified absurdly. */
-const MIN_HALF_KM = 4;
-
-/**
- * Find the storm inside the box.
- *
- * One pass over 819k voxels, which is a few milliseconds once, against a
- * picture that is redrawn sixty times a second for as long as the panel is
- * open.
- */
-function locate(header: CutawayHeader, voxels: Uint8Array): {
-  centreKm: [number, number, number];
-  halfKm: [number, number, number];
-} {
-  const floor = (FRAMING_DBZ - header.dbz_floor) * header.dbz_scale;
-  let minX = header.nx, minY = header.ny, minZ = header.nz;
-  let maxX = -1, maxY = -1, maxZ = -1;
-
-  for (let z = 0; z < header.nz; z += 1) {
-    for (let y = 0; y < header.ny; y += 1) {
-      const row = (z * header.ny + y) * header.nx * 2;
-      for (let x = 0; x < header.nx; x += 1) {
-        const at = row + x * 2;
-        // Confidence zero means nothing was measured there, whatever the other
-        // byte says, so it must not drag the framing outwards.
-        if (voxels[at] < floor || voxels[at + 1] === 0) continue;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-        if (z < minZ) minZ = z;
-        if (z > maxZ) maxZ = z;
-      }
-    }
-  }
-
-  if (maxX < 0) {
-    // Nothing above the floor: an empty box, which happens when a storm
-    // collapses between the run and the build. Frame the whole thing.
-    return {
-      centreKm: [0, 0, 0],
-      halfKm: [
-        (header.nx * header.step_m[0]) / 2000,
-        (header.ny * header.step_m[1]) / 2000,
-        (header.nz * header.step_m[2]) / 2000,
-      ],
-    };
-  }
-
-  const span = (lo: number, hi: number, count: number, step: number): [number, number] => {
-    // Voxel centres, in kilometres from the box's own centre.
-    const low = (lo + 0.5 - count / 2) * (step / 1000);
-    const high = (hi + 0.5 - count / 2) * (step / 1000);
-    return [(low + high) / 2, Math.max((high - low) / 2, MIN_HALF_KM)];
-  };
-  const [cx, hx] = span(minX, maxX, header.nx, header.step_m[0]);
-  const [cy, hy] = span(minY, maxY, header.ny, header.step_m[1]);
-  const [cz, hz] = span(minZ, maxZ, header.nz, header.step_m[2]);
-  return { centreKm: [cx, cy, cz], halfKm: [hx, hy, hz] };
 }
 
 /** How big the box is on each axis, in metres. */
@@ -165,7 +96,8 @@ function extentOf(header: CutawayHeader): [number, number, number] {
   ];
 }
 
-export function decodeCutaway(buffer: ArrayBuffer): Cutaway {
+/** `stormDbz` is what the storm's footprint is measured above; see `locateStorm`. */
+export function decodeCutaway(buffer: ArrayBuffer, stormDbz = STORM_DBZ): Cutaway {
   const view = new DataView(buffer);
   if (view.getUint32(0, true) !== MAGIC) throw new Error("not a volume");
   const version = view.getUint32(4, true);
@@ -181,7 +113,7 @@ export function decodeCutaway(buffer: ArrayBuffer): Cutaway {
   if (voxels.length !== wanted) {
     throw new Error(`volume is ${voxels.length} bytes, header wants ${wanted}`);
   }
-  return { header, voxels, extentM: extentOf(header), ...locate(header, voxels) };
+  return { header, voxels, extentM: extentOf(header), ...locateStorm(header, voxels, stormDbz) };
 }
 
 /**
@@ -191,10 +123,15 @@ export function decodeCutaway(buffer: ArrayBuffer): Cutaway {
  * rendered tiles already use -- so nothing here guesses a URL. A cell whose
  * volume was never built carries no path, and the caller never gets this far.
  */
-export function loadCutaway(volume: CellVolume, signal?: AbortSignal): Promise<Cutaway> {
+export function loadCutaway(
+  volume: CellVolume & { seed_dbz?: number | null },
+  signal?: AbortSignal,
+): Promise<Cutaway> {
   return tracked(volume.path, async () => {
     const response = await fetch(`${tileBaseUrl}/${volume.path}`, { signal });
     if (!response.ok) throw new Error(`volume ${volume.path}: ${response.status}`);
-    return decodeCutaway(await response.arrayBuffer());
+    // The threshold the list measured the storm at, so the framing finds the
+    // same storm; a cell's volume does not carry one.
+    return decodeCutaway(await response.arrayBuffer(), volume.seed_dbz ?? STORM_DBZ);
   });
 }
