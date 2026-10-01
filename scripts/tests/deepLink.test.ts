@@ -23,6 +23,17 @@ test("a storm core's volume path shortens to scan/code and back", () => {
   assert.equal(cloudPath("20260924T194500/R39853139"), PATH);
 });
 
+test("a network's storm core, named the way the worker files it now, round-trips too", () => {
+  // `volumes/{scan}/{network}-{code}.mcvx`, the code a position: every
+  // volume since five networks were boxed. The link took only the old
+  // `R...` names, so an opened core was never written into the address.
+  const path = "meteoradar/volumes/20261001T142500/de-G1401218632.mcvx";
+  assert.equal(cloudLink(path), "20261001T142500/de-G1401218632");
+  assert.equal(cloudPath("20261001T142500/de-G1401218632"), path);
+  assert.equal(cloudPath(cloudLink("meteoradar/volumes/20261001T071100/pl-G1411619766.mcvx")!),
+    "meteoradar/volumes/20261001T071100/pl-G1411619766.mcvx");
+});
+
 test("a cloud link can only ever name a volume", () => {
   // Rebuilt from two validated pieces, so there is no way to point the client
   // at another object on the tile host.

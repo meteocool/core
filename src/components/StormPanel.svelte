@@ -25,6 +25,7 @@
 import { onMount } from "svelte";
 import CloseDisc from "./CloseDisc.svelte";
 import { holdNativeChrome } from "../lib/nativeBridge";
+import { inSheet } from "../lib/sheetContext";
 
 /**
  * The storm's own colour, for the rule down the header. None for a panel that
@@ -37,6 +38,9 @@ export let label: string;
 /** Where the storm is, on its own line under the header; none at sea or offline. */
 export let place: string | null = null;
 export let onClose: () => void;
+
+/** In the phone's sheet, which draws the close disc itself, where it does not scroll. */
+const sheetCloses = inSheet();
 
 /**
  * Escape closes the panel, which is what every other dismissable surface on a
@@ -74,7 +78,7 @@ onMount(holdNativeChrome);
       <h2 class="title"><slot name="header" /></h2>
       {#if place}<p class="place">{place}</p>{/if}
     </div>
-    <CloseDisc on:click={onClose} />
+    {#if !sheetCloses}<CloseDisc on:click={onClose} />{/if}
   </header>
   <slot />
 </section>
@@ -97,6 +101,8 @@ onMount(holdNativeChrome);
     align-items: flex-start;
     gap: 10px;
     margin-bottom: 14px;
+    /* Clear of the sheet's close disc, in a sheet; nothing anywhere else. */
+    padding-right: var(--mc-sheet-corner, 0px);
   }
   /* A bar rather than a border, so it can be rounded and stop short of the
      line box's leading, top and bottom. */

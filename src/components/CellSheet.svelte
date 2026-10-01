@@ -42,7 +42,9 @@ import { afterClose } from "../lib/cellSelection";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { holdNativeChrome, postToNative } from "../lib/nativeBridge";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
+import { provideSheet } from "../lib/sheetContext";
 import CellDetails from "./CellDetails.svelte";
+import CloseDisc from "./CloseDisc.svelte";
 
 /**
  * The cell whose details fill the sheet -- or none, when something else is
@@ -83,6 +85,16 @@ export let full = false;
  * both.
  */
 export let material: "drawer" | "reading" = "drawer";
+/**
+ * The id of the title that names the sheet, for a sheet that is a modal
+ * dialog -- the reading panels. On the sheet itself rather than on the panel
+ * inside it, so the close disc, which is the sheet's, is inside the dialog: a
+ * modal tells a screen reader that everything outside it is out of reach.
+ */
+export let dialogLabelledBy: string | null = null;
+
+// The panel inside leaves its own close disc out; see lib/sheetContext.ts.
+provideSheet();
 
 /**
  * The sheet slides, unless the reader has asked things not to move.
@@ -476,13 +488,15 @@ function bodyUp(event: PointerEvent) {
     /* Momentum scrolling, and a scroll that does not drag the map behind. */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    /* CellDetails' close button is a 44px glass disc pulled toward the top
-       right corner by negative margins, to sit further into the corner than
-       a header row half its height would otherwise place it. Without room to
-       give, that overhang sat outside the scroll container's own edges and
-       was clipped there at rest -- overflow-y:auto implicitly makes
-       overflow-x auto too, so the same applies on the right. */
+    /* 8px in on the right, past the sheet's own 12: what is written here
+       ends 20px from the sheet's edge, as it did when the close disc sat in
+       the panels' headers and overhung this padding. */
     padding: 10px 8px 0 0;
+    /* How far a panel's header keeps in from the right for the sheet's own
+       close disc in the corner (.corner): the disc's 44px and its 12px from
+       the edge, plus the 10px a header leaves before it, less the 20px this
+       body is in already. Read by StormPanel and GlassPanel. */
+    --mc-sheet-corner: 46px;
     /* The scroll range ends at the screen's edge, not at the parked part
        below it, so the last line can still be scrolled into view. */
     padding-bottom: var(--rest);
@@ -490,16 +504,28 @@ function bodyUp(event: PointerEvent) {
   /* Nothing in here to scroll -- it is as tall as what it holds -- so a drag
      is the sheet's from the first pixel, rather than the browser's to claim as
      a pan and cancel before the axis is decided. */
-  /* And nothing to clip, which lets the close disc overhang into the grip's
-     row and sit square in the corner: the sheet's 12px side padding less the
-     body's 8px right padding the disc's margin cancels leaves 12px to the
-     right; the 1px top border, the 18px grip and this 3px, less the disc's
-     10px pull, leave 12px above. Clipped by the body's own top edge, it lost a
-     slice off the top at the previous 4px. */
+  /* And nothing to clip. The 1px top border, the 18px grip and this 3px put
+     a panel's header level with the corner's close disc, 12px down. */
   .fit .body {
     touch-action: none;
     overflow: visible;
     padding-top: 3px;
+  }
+
+  /* The way out, in the corner and out of the body, so it stays where it is
+     while the reading scrolls under it, and clear of the fade the body's top
+     edge takes. The same place it held in a panel's header at rest: 12px in
+     from the right and 12px below the outer edge, past the 1px top border.
+     Over the grip, which keeps clear of this column on both sides. */
+  .corner {
+    position: absolute;
+    top: 11px;
+    right: 12px;
+    z-index: 2;
+  }
+  /* The disc's own margins pull it into a header's corner; here it is placed. */
+  .corner :global(button) {
+    margin: 0;
   }
 
   .dragging {
@@ -516,6 +542,9 @@ function bodyUp(event: PointerEvent) {
 
 <div
   class="sheet mc-drawer"
+  role={dialogLabelledBy ? "dialog" : undefined}
+  aria-modal={dialogLabelledBy ? "true" : undefined}
+  aria-labelledby={dialogLabelledBy}
   class:reading={material === "reading"}
   class:fit={!expandable || (fitAtRest && detent === HALF)}
   class:dragging
@@ -546,5 +575,8 @@ function bodyUp(event: PointerEvent) {
     <slot expanded={detent === FULL} expand={() => { if (expandable) detent = FULL; }}>
       {#if track}<CellDetails {track} />{/if}
     </slot>
+  </div>
+  <div class="corner">
+    <CloseDisc material={material === "reading" ? "chrome" : "drawer"} on:click={close} />
   </div>
 </div>
