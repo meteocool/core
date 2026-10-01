@@ -267,6 +267,7 @@
       "radars": "Radare",
       "coverage": "{pct} % Strahlabdeckung 3–8 km",
       "unavailable": "Volumen nicht verfügbar",
+      "not_openable": "Nicht gut genug erfasst, um es aufzuschneiden: Die Radarstrahlen decken die 3–8-km-Schicht zu wenig ab. Auf der Karte gezeichnet, aber kein Schnitt.",
       "cappi_height": "Höhe des Schnitts",
       "cappi_caption": "Alles oberhalb von {km} km ist weggeschnitten. Nach oben oder unten ziehen, um eine Höhe festzuhalten."
     },

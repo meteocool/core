@@ -19,7 +19,7 @@ import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway } from "../lib/cellCutaway";
-import { makeCloudsLayer } from "../layers/cellVolumeLayer";
+import { DIM_UNOPENABLE, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
 import { isSuccessor } from "../lib/cloudSuccession";
@@ -131,6 +131,23 @@ const VOLUME_LAYER = "cell-volume-raymarched";
  * storm appears as its volume arrives instead of all of them at the end.
  */
 const VOLUME_FETCHES = 4;
+
+/**
+ * How many volumes are held at once.
+ *
+ * The list now covers five networks and every shower with a core, so on a
+ * continental afternoon it runs to dozens; each held one is a 1.6 MB 3D
+ * texture and a raymarch per frame. So only what is in view, strongest and
+ * nearest first, up to this many: the rest stay as the ground rings, which
+ * are already there and tappable, and load when the camera comes to them.
+ */
+const RESIDENT_VOLUMES = 16;
+
+/** How far past the viewport's edge a storm still counts as in view, as a fraction of the viewport. */
+const VIEW_MARGIN = 0.35;
+
+/** A storm not seen well enough to open; see `RadarVolume.tier`. */
+const TIER_UNOPENABLE = 1;
 const FOOTPRINT_SOURCE = "cell-footprints";
 const RADAR_SOURCE = "radar";
 
@@ -153,6 +170,9 @@ const STRIKE_SOURCE = "strikes";
 
 /** One EUMETNET network's draped composite: its source and its layer share the id. */
 const networkLayerId = (code: NetworkCode) => `radar-${code}`;
+
+/** Which tier a volume is in: what the list says, else what its own header says, else openable. */
+const tierOf = (listed: { tier?: number }, cutaway: Cutaway) => listed.tier ?? cutaway.header.tier ?? 2;
 
 /** The layers a tap can land on to mean "that storm". */
 const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint", "cloud-marker"];
@@ -402,7 +422,7 @@ export default class Cells3DCapability extends Capability {
    * in the next scan's list is the same object, and fetching it again would
    * be several hundred kilobytes for nothing.
    */
-  private cutaways = new Map<string, { code: string; cutaway: Cutaway; lon: number; lat: number }>();
+  private cutaways = new Map<string, { code: string; cutaway: Cutaway; lon: number; lat: number; tier: number }>();
 
   /** Which storm is open, by its volume's path, and which way its slice runs before the reader turns it. */
   private opened: { path: string; heading: number | null } | null = null;
@@ -701,6 +721,8 @@ export default class Cells3DCapability extends Capability {
       gl.on("moveend", () => {
         this.pushCameraToView();
         if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
+        // The camera has come to other storms: load theirs, let go of the far ones.
+        void this.loadClouds();
       });
       // Tapping a storm opens the same popup the flat map opens, and tapping
       // past one closes it -- the panel is rendered above whichever map is
@@ -971,7 +993,7 @@ export default class Cells3DCapability extends Capability {
     if (!entry) {
       try {
         const cutaway = await loadCutaway(target.volume);
-        entry = { code: target.code, cutaway, lon: target.lon, lat: target.lat };
+        entry = { code: target.code, cutaway, lon: target.lon, lat: target.lat, tier: tierOf(target.volume, cutaway) };
         this.cutaways.set(target.volume.path, entry);
         this.pushClouds();
       } catch {
@@ -983,6 +1005,15 @@ export default class Cells3DCapability extends Capability {
     // Tapped past while it loaded: the volume is kept and drawn like any
     // other, but cutting it now would open the storm the reader has left.
     if (this.openToken !== token) return;
+    // Not seen well enough to open: the panel says so, the storm stays whole
+    // on the map, and nothing is cut -- a cut through interpolation between
+    // two sweeps kilometres apart looks exactly as convincing as a real one.
+    if (entry.tier === TIER_UNOPENABLE) {
+      this.opened = null;
+      stopSweep(false);
+      this.applyCut();
+      return;
+    }
     // Not before the map's first settled frame; see `settled`. Resolved
     // already on every open after the first, so this costs nothing then.
     await this.settled;
@@ -1153,7 +1184,7 @@ export default class Cells3DCapability extends Capability {
     this.dropUnlisted();
     this.pushClouds();
 
-    const missing = this.clouds.filter((cloud) => !this.cutaways.has(cloud.path));
+    const missing = this.wanted().filter((cloud) => !this.cutaways.has(cloud.path));
     for (let i = 0; i < missing.length; i += VOLUME_FETCHES) {
       const batch = missing.slice(i, i + VOLUME_FETCHES);
       const loaded = await Promise.all(batch.map(async (cloud) => {
@@ -1167,7 +1198,9 @@ export default class Cells3DCapability extends Capability {
       for (const found of loaded) {
         if (!found) continue;
         const { cloud, cutaway } = found;
-        this.cutaways.set(cloud.path, { code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat });
+        this.cutaways.set(cloud.path, {
+          code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat, tier: tierOf(cloud, cutaway),
+        });
       }
       this.pushClouds();
       // Switched away: the rest waits for `attach`, whose refresh fetches
@@ -1176,11 +1209,41 @@ export default class Cells3DCapability extends Capability {
     }
   }
 
-  /** Forget every volume the newest scan no longer lists, bar the open one. */
+  /**
+   * Which of the listed storms to hold volumes for: those in view, strongest
+   * first and nearer first among equals, up to `RESIDENT_VOLUMES`.
+   *
+   * Before the map exists, or when it has no bounds yet, the strongest few
+   * of the whole list, so a first attach has something to draw at once.
+   */
+  private wanted(): RadarVolume[] {
+    const gl = this.gl;
+    const bounds = gl?.getBounds();
+    const centre = gl?.getCenter();
+    let candidates = this.clouds;
+    if (bounds && centre) {
+      const west = bounds.getWest();
+      const east = bounds.getEast();
+      const south = bounds.getSouth();
+      const north = bounds.getNorth();
+      const dx = (east - west) * VIEW_MARGIN;
+      const dy = (north - south) * VIEW_MARGIN;
+      candidates = this.clouds.filter((cloud) => (
+        cloud.lon >= west - dx && cloud.lon <= east + dx && cloud.lat >= south - dy && cloud.lat <= north + dy
+      ));
+    }
+    const distance = (cloud: RadarVolume) => (centre
+      ? Math.hypot((cloud.lon - centre.lng) * Math.cos((cloud.lat * Math.PI) / 180), cloud.lat - centre.lat)
+      : 0);
+    const ranked = [...candidates].sort((a, b) => (b.peak_dbz ?? 0) - (a.peak_dbz ?? 0) || distance(a) - distance(b));
+    return ranked.slice(0, RESIDENT_VOLUMES);
+  }
+
+  /** Forget every volume no longer listed or no longer wanted in view, bar the open one. */
   private dropUnlisted(): void {
-    const listed = new Set(this.clouds.map((cloud) => cloud.path));
+    const wanted = new Set(this.wanted().map((cloud) => cloud.path));
     for (const path of this.cutaways.keys()) {
-      if (!listed.has(path) && path !== this.opened?.path) this.cutaways.delete(path);
+      if (!wanted.has(path) && path !== this.opened?.path) this.cutaways.delete(path);
     }
   }
 
@@ -1200,7 +1263,9 @@ export default class Cells3DCapability extends Capability {
     const drawn = [...this.cutaways].filter(([path, { cutaway }]) => (
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
     ));
-    this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway }]) => ({ key, cutaway })));
+    this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway, tier }]) => ({
+      key, cutaway, dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
+    })));
     this.applyTierFilters();
     if (this.shown) this.gl?.triggerRepaint();
   }
@@ -1231,7 +1296,7 @@ export default class Cells3DCapability extends Capability {
       features: this.clouds.map((cloud) => ({
         type: "Feature" as const,
         geometry: { type: "Point" as const, coordinates: [cloud.lon, cloud.lat] },
-        properties: { code: cloud.code, dbz: cloud.peak_dbz ?? 40 },
+        properties: { code: cloud.code, dbz: cloud.peak_dbz ?? 40, tier: cloud.tier ?? 2 },
       })),
     };
     const source = gl.getSource(CLOUD_SOURCE);
@@ -1250,7 +1315,8 @@ export default class Cells3DCapability extends Capability {
         "circle-color": "rgba(0, 0, 0, 0)",
         "circle-stroke-width": 2.5,
         "circle-stroke-color": dbzRamp(this.colormap),
-        "circle-stroke-opacity": 0.9,
+        // Fainter under a storm that does not open, as the storm itself is.
+        "circle-stroke-opacity": ["case", ["==", ["get", "tier"], TIER_UNOPENABLE], 0.45, 0.9],
       },
     });
   }
@@ -1321,19 +1387,24 @@ export default class Cells3DCapability extends Capability {
     const listed = this.clouds.find((cloud) => cloud.path === path);
     if (listed) return listed;
     try {
-      const cutaway = await loadCutaway({ path, coverage: 0 });
+      const cutaway = await loadCutaway({ path, coverage: 0, tier: 2 });
       const { header } = cutaway;
+      const tier = header.tier ?? 2;
       // Held like a listed one, so opening it does not fetch it a second time.
-      this.cutaways.set(path, { code: header.code, cutaway, lon: header.lon, lat: header.lat });
+      this.cutaways.set(path, { code: header.code, cutaway, lon: header.lon, lat: header.lat, tier });
       this.pushClouds();
       return {
         path,
         code: header.code,
+        network: header.network ?? "de",
+        tier,
         lon: header.lon,
         lat: header.lat,
         reference_time: header.reference_time,
         coverage: header.coverage,
         sites: header.sites,
+        scanned_at: header.scanned_at ?? null,
+        oldest_scan_at: header.oldest_scan_at ?? null,
       };
     } catch {
       return null;

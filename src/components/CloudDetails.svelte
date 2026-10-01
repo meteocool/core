@@ -103,7 +103,7 @@ $: showVolume = !compact || expanded;
 <StormPanel {rule} label={place ? $_("storm.cloud.label", { values: { place: place.name } }) : unnamed} place={place?.area ?? null} onClose={close}>
   <span slot="header" class="headline">{title}</span>
 
-  {#if on3d}
+  {#if on3d && cloud.tier !== 1}
     <div class="dial"><SliceDial reference="north" /></div>
   {/if}
 

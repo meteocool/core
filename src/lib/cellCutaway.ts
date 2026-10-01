@@ -54,10 +54,17 @@ export interface CutawayHeader {
   /** Reflectivity is `byte / dbz_scale + dbz_floor`. */
   dbz_floor: number;
   dbz_scale: number;
-  /** Which radars contributed, by DWD short name. */
+  /** Which radars contributed, by EUMETNET node code (older volumes: DWD's bare short name). */
   sites: string[];
   /** Mean confidence through the 3-to-8 km layer, 0 to 1. */
   coverage: number;
+  /** The network whose composite the core was found in; absent on older volumes. */
+  network?: string | null;
+  /** 1: drawn but not openable; 2: the cutaway opens. Absent on older volumes, which were all openable. */
+  tier?: number | null;
+  /** The newest and the oldest sweep in the box, ISO; absent on older volumes. */
+  scanned_at?: string | null;
+  oldest_scan_at?: string | null;
 }
 
 export interface Cutaway {
