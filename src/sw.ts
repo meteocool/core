@@ -15,6 +15,14 @@ import {
   BASEMAP_CACHE, BASEMAP_ROUTE, WEATHER_TILE_CACHE, WEATHER_TILE_ROUTE,
 } from "./lib/tileCacheRoutes";
 
+// The precache first: workbox routes a request to the first route that
+// matches, and the /assets/ route below matches every chunk in the manifest.
+// Registered after it, as it was, the precache answered nothing -- a chunk it
+// held was fetched from the network all the same on first use, so a storm
+// panel opened offline failed to load although its code was on disk.
+cleanupOutdatedCaches();
+precacheAndRoute(self.__WB_MANIFEST);
+
 // Two caches, because the two tilesets have opposite needs.
 //
 // The basemap is versioned into its own path (map.meteocool.com/<version>/),
@@ -58,11 +66,10 @@ registerRoute(
   }),
 );
 
- 
 // Everything Vite emits under /assets/ carries a content hash in its name, so
 // a URL never changes meaning: cache-first, for as long as the browser keeps
-// it. This is what serves the on-demand chunks -- MapLibre, the storm panels,
-// Sentry -- on their second use, in place of precaching them for everyone.
+// it. This is what serves the chunks left out of the precache -- MapLibre --
+// on their second use, in place of precaching them for everyone.
 registerRoute(
   ({ url }) => url.origin === self.location.origin && url.pathname.startsWith("/assets/"),
   new CacheFirst({
@@ -74,7 +81,5 @@ registerRoute(
   }),
 );
 
-cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST);
 self.skipWaiting();
 clientsClaim();

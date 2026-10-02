@@ -59,6 +59,7 @@
   "storm_cells_3d": "Búrkové bunky 3D",
   "preparing_3d": "Pripravuje sa 3D mapa…",
   "loading_3d_words": ["Skenovanie", "Pingovanie", "Pulzovanie", "Zameriavanie", "Otáčanie", "Nakláňanie", "Spätný rozptyl", "Polarizovanie", "Filtrovanie rušenia", "Kalibrovanie", "Interpolovanie", "Voxelizovanie", "Vybíjanie batérie"],
+  "failed_3d": "3D mapu sa nepodarilo načítať.",
   "guide_3d": {
     "title": "3D mapa",
     "open": "Ovládanie a legenda",
@@ -118,6 +119,7 @@
   "offline": "Offline",
   "slow_connection": "Pomalé pripojenie",
   "retry": "Skúsiť znova",
+  "load_failed": "Nepodarilo sa načítať.",
   "lightning_in": "Blesky v {place}",
   "lightning_in_view": "Blesky vo výreze mapy",
   "lightning_none": "V tejto oblasti neboli nedávno zaznamenané žiadne blesky. ⚡️",

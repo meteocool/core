@@ -59,6 +59,7 @@
   "storm_cells_3d": "Cellules orageuses 3D",
   "preparing_3d": "Préparation de la carte 3D…",
   "loading_3d_words": ["Balayage", "Sondage", "Télémétrie", "Inclinaison", "Rotation", "Rétrodiffusion", "Polarisation", "Effet Doppler", "Dépliement", "Filtrage des échos fixes", "Étalonnage", "Maillage", "Interpolation", "Voxelisation", "Lancer de rayons", "Prévision immédiate", "Vidage de la batterie"],
+  "failed_3d": "La carte 3D n’a pas pu être chargée.",
   "guide_3d": {
     "title": "Carte 3D",
     "open": "Commandes et légende",
@@ -118,6 +119,7 @@
   "offline": "Hors ligne",
   "slow_connection": "Connexion lente",
   "retry": "Réessayer",
+  "load_failed": "Chargement impossible.",
   "lightning_in": "Foudre à {place}",
   "lightning_in_view": "Foudre dans la vue",
   "lightning_none": "Aucun impact de foudre récent dans cette zone. ⚡️",

@@ -81,6 +81,36 @@ export const SLOW_P95_MS = 4000;
 /** Below this the p95 is one or two requests wearing a percentile's hat. */
 export const SLOW_MIN_SAMPLES = 5;
 
+/** How many quick answers in a row say the slowness is over; see `sinceRecovery`. */
+export const QUICK_RUN = 3;
+
+/**
+ * The part of the latency window still worth judging, oldest first: from the
+ * newest run of QUICK_RUN quick answers on, or all of it without one.
+ *
+ * The window is two minutes long so it holds enough responses to mean
+ * something, and that made the criterion two minutes slow to clear: a
+ * backend answering quickly again went on being called slow on the strength
+ * of what it did before. Three quick answers in a row -- which the resync
+ * after a network comes back is many times over -- now put everything sent
+ * before them behind it, and the warning goes at the next recheck rather
+ * than when the old answers age out. Slow answers sent after the run count
+ * as before.
+ */
+export function sinceRecovery(durations: number[]): number[] {
+  const quick = (ms: number) => ms < SLOW_P95_MS;
+  let run = 0;
+  for (let i = durations.length - 1; i >= 0; i -= 1) {
+    run = quick(durations[i]) ? run + 1 : 0;
+    if (run < QUICK_RUN) continue;
+    // The whole run, not only its newest three.
+    let start = i;
+    while (start > 0 && quick(durations[start - 1])) start -= 1;
+    return durations.slice(start);
+  }
+  return durations;
+}
+
 /**
  * How far past its own expected publish the backend has to be.
  *
@@ -122,9 +152,9 @@ export const DEGRADED_CRITERIA: DegradedCriterion[] = [
   {
     id: "slow-responses",
     label: "chrome.degraded.slow_responses",
-    /* Clears itself because the window is recent: once the fast responses
-       outnumber the slow ones the p95 comes back down on its own, with nothing
-       to reset. */
+    /* Clears itself twice over: once quick answers have superseded the slow
+       ones (`sinceRecovery`, applied to the signal), and in any case once the
+       slow responses have aged out of the window, with nothing to reset. */
     reason: (s, _now, t) => (
       s.recentSamples >= SLOW_MIN_SAMPLES
         && s.recentP95Ms !== null

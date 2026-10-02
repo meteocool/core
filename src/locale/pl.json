@@ -59,6 +59,7 @@
   "storm_cells_3d": "Komórki burzowe 3D",
   "preparing_3d": "Przygotowywanie mapy 3D…",
   "loading_3d_words": ["Skanowanie", "Pingowanie", "Pulsowanie", "Namierzanie", "Obracanie", "Pochylanie", "Rozpraszanie wsteczne", "Polaryzowanie", "Filtrowanie zakłóceń", "Kalibrowanie", "Interpolowanie", "Wokselizowanie", "Rozładowywanie baterii"],
+  "failed_3d": "Nie udało się wczytać mapy 3D.",
   "guide_3d": {
     "title": "Mapa 3D",
     "open": "Sterowanie i legenda",
@@ -118,6 +119,7 @@
   "offline": "Offline",
   "slow_connection": "Wolne połączenie",
   "retry": "Spróbuj ponownie",
+  "load_failed": "Nie udało się wczytać.",
   "lightning_in": "Wyładowania w {place}",
   "lightning_in_view": "Wyładowania w widoku",
   "lightning_none": "Brak niedawnych wyładowań w tym rejonie. ⚡️",

@@ -34,6 +34,7 @@
 import type { CellVolume } from "../api";
 import { tileBaseUrl } from "../urls";
 import { tracked } from "./progress";
+import { timedFetch } from "./timedFetch";
 import { locateStorm, STORM_DBZ } from "./stormFrame";
 
 const MAGIC = 0x5856434d; // "MCVX", little-endian
@@ -117,6 +118,21 @@ export function decodeCutaway(buffer: ArrayBuffer, stormDbz = STORM_DBZ): Cutawa
 }
 
 /**
+ * A volume that is not there any more: past its retention, or never built.
+ *
+ * Told apart from a download that failed, which a link to the storm should
+ * wait out rather than report as the storm being gone. The bucket answers
+ * 403 rather than 404 for a key it does not have when listing is not
+ * allowed, so both mean this.
+ */
+export class VolumeGone extends Error {
+  constructor(path: string, status: number) {
+    super(`volume ${path}: ${status}`);
+    this.name = "VolumeGone";
+  }
+}
+
+/**
  * Pull one cell's volume down.
  *
  * The path comes from the API, bucket included, and the base is the one the
@@ -128,7 +144,8 @@ export function loadCutaway(
   signal?: AbortSignal,
 ): Promise<Cutaway> {
   return tracked(volume.path, async () => {
-    const response = await fetch(`${tileBaseUrl}/${volume.path}`, { signal });
+    const response = await timedFetch(`${tileBaseUrl}/${volume.path}`, { signal });
+    if (response.status === 403 || response.status === 404) throw new VolumeGone(volume.path, response.status);
     if (!response.ok) throw new Error(`volume ${volume.path}: ${response.status}`);
     // The threshold the list measured the storm at, so the framing finds the
     // same storm; a cell's volume does not carry one.

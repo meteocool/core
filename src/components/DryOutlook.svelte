@@ -23,9 +23,9 @@
  * drawer (see App.svelte), on the range the strip was showing.
  *
  * The strip is the same one the rain chart and the lightning histogram use,
- * swipe-to-clear included; the caller owns whether it is up. A fetch that
- * fails says "unavailable" and the caller takes it down -- this is a hint,
- * and an error in its place is noise.
+ * swipe-to-clear included; the caller owns whether it is up. A first fetch
+ * that fails says "unavailable" and the caller takes it down -- this is a
+ * hint, and an error in its place is noise.
  */
 import { createEventDispatcher, onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
@@ -36,6 +36,7 @@ import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
 import { drawSpread } from "../lib/compare/spreadChart";
 import { rainIn, stepAt } from "../lib/compare/outlook";
 import { openModelCompare } from "../lib/modelCompare";
+import { onWake } from "../lib/wakeup";
 
 export let lat: number;
 export let lon: number;
@@ -51,8 +52,10 @@ const SPEC = { unit: "%", max: 100 };
 let data: HourlySeries | null = null;
 let canvas: HTMLCanvasElement | null = null;
 let chart: Chart | null = null;
+/** The present the plot starts from and the title counts from; moved on by a wake. */
+let now = Date.now();
 
-$: from = data ? stepAt(data.times, Date.now()) : 0;
+$: from = data ? stepAt(data.times, now) : 0;
 /** Hours until the models agree on rain, within the week; null for a dry week. */
 $: wetIn = data ? rainIn(data, from, WEEK) : null;
 $: soon = wetIn !== null && wetIn < DAY;
@@ -67,21 +70,40 @@ $: title = !data
     ? $_("dry_outlook_title_hours", { values: { hours: wetIn } })
     : $_("dry_outlook_title_days", { values: { days: Math.max(1, Math.round(wetIn / DAY)) } });
 
-onMount(async () => {
+async function load() {
   try {
     data = await fetchHourlySeries({ lat, lon, forecastDays: 7, variable: "precipitation_probability" });
   } catch {
-    dispatch("unavailable");
+    // Up with an answer already, a refresh that fails keeps it: the models'
+    // hours are still the best guess at them, and a strip that went down for
+    // the session over one bad minute of network would be the worse hint.
+    if (!data) dispatch("unavailable");
   }
-});
+  now = Date.now();
+}
 
-function draw() {
+onMount(load);
+
+/*
+ * Brought up to date on a wake. The strip stays up for as long as the dry
+ * spell does, and it counted "Rain likely in 5 hours" from when it was put
+ * up: a phone back from an afternoon in a pocket was told the same five
+ * hours. Asked again -- from the cache while that answer is under ten
+ * minutes old, see fetchHourlySeries -- and counted from now either way.
+ */
+const unsubscribeWake = onWake(() => { void load(); });
+
+function draw(start: number, steps: number) {
   if (!canvas || !data) return;
   chart?.destroy();
-  chart = drawSpread(canvas, data, { from, steps: hours, spec: SPEC, compact: true });
+  chart = drawSpread(canvas, data, { from: start, steps, spec: SPEC, compact: true });
 }
-$: if (canvas && data && hours) draw();
-onDestroy(() => chart?.destroy());
+// Both as arguments, so a wake that moves `from` redraws as well as retitles.
+$: if (canvas && data) draw(from, hours);
+onDestroy(() => {
+  unsubscribeWake();
+  chart?.destroy();
+});
 
 const openFull = () => openModelCompare(lat, lon, hours);
 </script>

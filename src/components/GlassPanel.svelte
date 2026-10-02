@@ -39,6 +39,7 @@ export let wide = false;
 /* The sheet is the storm panels' chunk, not this one's: it brings the cell's
    details, charts and model with it, which About has no use for on a desktop. */
 const loadSheet = () => import("./CellSheet.svelte");
+import Lazy from "./Lazy.svelte";
 
 const dispatch = createEventDispatcher();
 const titleId = `panel-${Math.random().toString(36).slice(2)}`;
@@ -185,10 +186,10 @@ onMount(() => {
 </style>
 
 {#if $smallScreen}
-  {#await loadSheet() then { default: CellSheet }}
+  <Lazy load={loadSheet} floating let:module>
     <!-- The sheet is the dialog, and draws the close disc in its corner, where
          it stays while the reading scrolls; see lib/sheetContext.ts. -->
-    <svelte:component this={CellSheet} full halfway={false} material="reading" onClose={close} dialogLabelledBy={titleId}>
+    <svelte:component this={module.default} full halfway={false} material="reading" onClose={close} dialogLabelledBy={titleId}>
       <div class="panel in-sheet" tabindex="-1" use:autofocus>
         <header>
           <h2 id={titleId}>{title}</h2>
@@ -196,7 +197,7 @@ onMount(() => {
         <slot />
       </div>
     </svelte:component>
-  {/await}
+  </Lazy>
 {:else}
   <div class="scrim" on:click|self={close} role="presentation">
     <div

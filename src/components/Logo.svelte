@@ -3,6 +3,7 @@ import logo from "../assets/logo.svg";
 // Both sheets load when first opened; neither is part of looking at the map.
 const loadAbout = () => import("./About.svelte");
 const loadSettings = () => import("./SettingsDialog.svelte");
+import Lazy from "./Lazy.svelte";
 import Icon from "./Icon.svelte";
 import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
 import { _ } from "svelte-i18n";
@@ -128,13 +129,13 @@ function toggleSettings() {
     </button>
   </div>
   {#if showAbout}
-    {#await loadAbout() then { default: About }}
-      <svelte:component this={About} on:close={toggleAbout} />
-    {/await}
+    <Lazy load={loadAbout} floating let:module>
+      <svelte:component this={module.default} on:close={toggleAbout} />
+    </Lazy>
   {/if}
   {#if showSettings}
-    {#await loadSettings() then { default: SettingsDialog }}
-      <svelte:component this={SettingsDialog} on:close={toggleSettings} />
-    {/await}
+    <Lazy load={loadSettings} floating let:module>
+      <svelte:component this={module.default} on:close={toggleSettings} />
+    </Lazy>
   {/if}
 {/if}

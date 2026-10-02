@@ -9,6 +9,7 @@ import { cleanupRequestTiming, initRequestTiming } from "../lib/requestTiming";
 import { cleanupDegradedStatus, initDegradedStatus } from "../lib/degradedStatus";
 import { cleanupPageZoomGuard, initPageZoomGuard } from "../lib/pageZoom";
 import { cleanupWakeup, initWakeup } from "../lib/wakeup";
+import { cleanupRecovery, initRecovery } from "../lib/recovery";
 import App from "../App.svelte";
 import { i18nReady } from "../locale/i18n";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -19,12 +20,14 @@ initRequestTiming();
 initDegradedStatus();
 initPageZoomGuard();
 initWakeup();
+initRecovery();
 window.addEventListener("pagehide", () => {
   cleanupNetworkStatus();
   cleanupRequestTiming();
   cleanupDegradedStatus();
   cleanupPageZoomGuard();
   cleanupWakeup();
+  cleanupRecovery();
 });
 
 // Held until the chosen language's strings are in (src/locale/i18n.ts),

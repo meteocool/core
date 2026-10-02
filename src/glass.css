@@ -504,6 +504,21 @@
 }
 .mc-num { font-variant-numeric: tabular-nums; }
 
+/* "Retry", wherever something failed to load: the accent-tint pill of the
+   strips' links. `small` inside a reading, beside a line of its own text. */
+.mc-retry {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--mc-radius-pill);
+  background: var(--mc-accent-tint);
+  color: var(--mc-accent);
+  font: 600 13px/1.25 var(--mc-font);
+  cursor: pointer;
+}
+.mc-retry:hover { background: color-mix(in srgb, var(--mc-accent) 26%, transparent); }
+.mc-retry:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+.mc-retry.small { padding: 3px 10px; font-size: 12px; }
+
 /* ---------------------------------------------------------------------------
    Shoelace, themed once. Part names as in the 2.20 render templates.
    --------------------------------------------------------------------------- */

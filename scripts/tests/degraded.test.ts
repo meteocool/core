@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DEGRADED_CRITERIA, DEGRADED_TTL_MS, EMPTY_SIGNALS, PUBLISH_OVERDUE_S,
-  SLOW_MIN_SAMPLES, SLOW_P95_MS, evaluateDegraded, type DegradedSignals,
+  SLOW_MIN_SAMPLES, SLOW_P95_MS, evaluateDegraded, sinceRecovery, type DegradedSignals,
 } from "../../src/lib/degraded.ts";
 import { EMPTY_HEALTH, markAbsent, nextHealth } from "../../src/lib/apiHealth.ts";
 
@@ -85,6 +85,19 @@ test("latency recovers on its own as the window fills with fast responses", () =
   // Nothing reset: the window simply moved on.
   const after = signals({ recentP95Ms: 250, recentSamples: 20 });
   assert.deepEqual(ids(after), []);
+});
+
+test("a run of quick answers puts the slow ones before it behind it", () => {
+  const slow = SLOW_P95_MS + 2000;
+  const quick = 300;
+  // Slow throughout, or a quick answer here and there: all of it counts.
+  assert.deepEqual(sinceRecovery([slow, slow, slow, slow, slow]), [slow, slow, slow, slow, slow]);
+  assert.deepEqual(sinceRecovery([slow, quick, quick, slow, slow]), [slow, quick, quick, slow, slow]);
+  // The resync after the network came back: three quick in a row and on.
+  assert.deepEqual(sinceRecovery([slow, slow, slow, quick, quick, quick, quick]), [quick, quick, quick, quick]);
+  // Slow again after it counts again, from the run on.
+  assert.deepEqual(sinceRecovery([slow, quick, quick, quick, slow]), [quick, quick, quick, slow]);
+  assert.deepEqual(sinceRecovery([]), []);
 });
 
 test("a p95 exactly on the threshold counts, one below it does not", () => {
