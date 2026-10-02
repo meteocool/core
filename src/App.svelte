@@ -53,6 +53,7 @@ import type { CurrentVolumes, RadarVolume } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
+import { isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
 import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
@@ -276,11 +277,34 @@ window.settings = new Settings({
       lightningLayerVisible.set(Boolean(value));
     },
   },
+  // A picture of the map for a headless renderer; see lib/screenshot.ts. Last,
+  // so it has the final word over logo, layerswitcher and toolbar above.
+  screenshot: {
+    type: "string",
+    default: "no",
+    source: "url",
+    cb: (value) => {
+      if (!isScreenshot(value)) return;
+      document.documentElement.classList.add(SCREENSHOT_CLASS);
+      logoStyle.set("none");
+      layerswitcherVisible.set("no");
+      toolbarVisible.set("no");
+      bottomToolbarMode.set("hidden");
+    },
+  },
 });
 /* A link says which overlays the sender had on. Held for this page load only,
    and before the stores below first read their settings, so the layers come up
    the way the link says without the link rewriting the reader's own choices. */
 applyLinkedOverlays(window.settings);
+
+/* A screenshot draws the radar, the strikes and the cyclones once, and keeps
+   nothing up to date: no socket, no timers, no cells or "3D" tags. */
+const screenshot = isScreenshot(window.settings.get("screenshot"));
+// Held like a link's overlays, so the reader's own setting is not touched.
+// The tracks are only asked for once the map has drawn, so they would land
+// on the picture after it was declared finished.
+if (screenshot) window.settings.override("layerCells", false);
 
 const [lightningSource, lightningLayer] = makeLightningLayer();
 lightningLayerVisible.subscribe((value) => {
@@ -300,6 +324,7 @@ const SOCKET_RESYNC_QUIET_MS = 15_000;
 const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`, {
   transports: ["websocket", "polling"],
   tryAllTransports: true,
+  autoConnect: !screenshot,
 });
 /* A socket that comes back has missed whatever was poked while it was gone,
    and nothing else says so: the map would keep the frames it had until the
@@ -379,7 +404,7 @@ derived(
    way there -- see layers/cloudHints.ts. Only where that map is offered, and,
    like the cells, only on the newest observation, which is the scan the cores
    were found in. */
-const hintsWanted = capabilityEnabled("cells3d");
+const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
 const [cloudHintSource, cloudHintLayer] = makeCloudHintLayer();
 derived(
   [capTimeIndicator, capLatestObservation],
@@ -466,7 +491,7 @@ radarSocketIO.on("mesocyclones", (data) => {
 // being old: fadeStrikes/fadeCyclones existed and were never called, so a quiet
 // day left half-hour-old strikes on the map until the ring buffer wrapped.
 const FADE_INTERVAL_MS = 5 * 60 * 1000;
-const fadeInterval = window.setInterval(() => {
+const fadeInterval = screenshot ? undefined : window.setInterval(() => {
   strikemgr.fadeStrikes();
   mesocyclonemgr.fadeCyclones();
 }, FADE_INTERVAL_MS);
@@ -489,6 +514,7 @@ const lm = new LayerManager({
       options: {
         nanobar: nb,
         socket_io: radarSocketIO,
+        screenshot,
       },
     },
     {
@@ -534,7 +560,10 @@ const lm = new LayerManager({
       options: {
         nanobar: nb,
       },
-    }].filter((descriptor) => capabilityEnabled(descriptor.name)),
+    }].filter((descriptor) => capabilityEnabled(descriptor.name))
+    // A screenshot is of the radar map. Without the 3D one, MapLibre and the
+    // storm volumes are never loaded.
+    .filter((descriptor) => !screenshot || descriptor.name === "radar"),
 });
 window.lm = lm;
 
@@ -784,8 +813,16 @@ async function reloadCyclones() {
   detections.forEach((detection) => mesocyclonemgr.addCyclone(detection));
 }
 
-reloadLightning();
-reloadCyclones();
+const lightningLoaded = reloadLightning();
+const cyclonesLoaded = reloadCyclones();
+
+if (screenshot && radarCap) {
+  whenDrawn(
+    radarCap.getMap(),
+    Promise.allSettled([radarCap.loaded, lightningLoaded, cyclonesLoaded]),
+    markScreenshotReady,
+  );
+}
 
 /* Everything that has to happen when the page starts running again. The web
    never reached this: the hook existed for the two native apps to call, and
@@ -793,6 +830,8 @@ reloadCyclones();
    expired frames until the next poke happened to arrive. lib/wakeup.ts is the
    browser's side of it. */
 const unsubscribeWake = onWake(() => {
+  // A picture is taken once; the entrypoint does not watch for wakes either.
+  if (screenshot) return;
   lastFocus.set(new Date());
   if (window.matchMedia) {
     colorSchemeDark.set(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark )").matches);

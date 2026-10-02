@@ -206,6 +206,17 @@ export default class RadarCapability extends Capability {
   /** Where the grid in hand was sampled, as `positionKey` put it; see `sampledHere`. */
   private gridSampledAt: string | null = null;
 
+  /** The snow overlay's request in flight, for `loaded`. */
+  private snowRequest: Promise<void> = Promise.resolve();
+
+  /**
+   * The first grid, every network's newest frame and the snow overlay,
+   * settled either way: every layer the first picture has is on the map by
+   * then, though not yet its tiles. What a screenshot waits on before it
+   * waits for the map to draw; see lib/screenshot.ts.
+   */
+  loaded: Promise<unknown> = Promise.resolve();
+
   constructor(map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "radar", () => {
       capDescription.set("Radar Reflectivity");
@@ -350,7 +361,7 @@ export default class RadarCapability extends Capability {
 
     snowLayerVisible.subscribe((value) => {
       if (value) {
-        this.downloadSnowOverlay();
+        this.snowRequest = this.downloadSnowOverlay();
       } else {
         this.processSnowOverlay({ active: false });
       }
@@ -396,8 +407,11 @@ export default class RadarCapability extends Capability {
       this.socket_io.on("poke", this.pokeHandler);
       this.socket_io.on("snow", this.snowHandler);
       this.socket_io.on("network", this.networkHandler);
-      this.downloadCurrentRadar();
-      for (const network of this.networks) network.refresh(this.nanobar);
+      this.loaded = Promise.allSettled([
+        this.downloadCurrentRadar(),
+        ...this.networks.map((network) => network.refresh(this.nanobar)),
+        this.snowRequest,
+      ]);
     }
 
     // Initialize grid
@@ -410,7 +424,8 @@ export default class RadarCapability extends Capability {
         this.notify("grid", this.clientGridConfig);
       }
     };
-    restartHandler();
+    // A screenshot is taken and closed long before the grid moves on.
+    if (!options.screenshot) restartHandler();
   }
 
   updateClientGridFromServerGrid(server) {
