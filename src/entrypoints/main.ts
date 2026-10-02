@@ -1,6 +1,11 @@
 import { startSentry } from "../lib/sentry";
+import { screenshotRequested } from "../lib/screenshot";
 
-if (import.meta.env.PROD) startSentry();
+// A screenshot is a page nobody looks at for long (lib/screenshot.ts): no
+// error reports, no service worker, no wakes, no position.
+const screenshot = screenshotRequested(window.location.href);
+
+if (import.meta.env.PROD && !screenshot) startSentry();
 
 import { Workbox } from "workbox-window";
 import { mount } from "svelte";
@@ -15,7 +20,7 @@ import { i18nReady } from "../locale/i18n";
 import { linkPlacesView } from "../lib/urlState";
 
 // Register service worker
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+if ("serviceWorker" in navigator && import.meta.env.PROD && !screenshot) {
   const wb = new Workbox("sw.js");
   wb.addEventListener("controlling", (evt) => {
     if (evt.isUpdate) {
@@ -32,10 +37,12 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
 
 initNetworkStatus();
 initRequestTiming();
-// After initRequestTiming(): the first evaluation reads that rolling window.
-initDegradedStatus();
+if (!screenshot) {
+  // After initRequestTiming(): the first evaluation reads that rolling window.
+  initDegradedStatus();
+  initWakeup();
+}
 initPageZoomGuard();
-initWakeup();
 initRecovery();
 window.addEventListener("pagehide", () => {
   cleanupNetworkStatus();
@@ -53,7 +60,7 @@ const app = i18nReady.then(() => mount(App, {
   props: {
     device: "web",
     postInitCb(layermanager) {
-      if ("geolocation" in navigator) {
+      if ("geolocation" in navigator && !screenshot) {
         navigator.geolocation.getCurrentPosition((position) => {
           // Marked either way; flown to only when the link did not say where
           // to look -- otherwise a shared storm is on screen for the second

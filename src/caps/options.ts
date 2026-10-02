@@ -16,4 +16,6 @@ export interface CapabilityOptions {
   socket_io?: RadarSocket;
   cmap?: string;
   hasBaseLayer?: boolean;
+  /** A screenshot's map (lib/screenshot.ts): fetched once, never refreshed. */
+  screenshot?: boolean;
 }

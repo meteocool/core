@@ -35,6 +35,7 @@ import type Settings from "./Settings";
 import type NanobarWrapper from "./NanobarWrapper";
 import type { CapabilityOptions } from "../caps/options";
 import { elementCentre } from "./viewCentre";
+import { isScreenshot } from "./screenshot";
 
 /** One entry of the capability list App.svelte builds. */
 export interface CapabilityDescriptor {
@@ -201,11 +202,16 @@ export class LayerManager {
 
   mapFactory(baselayer: boolean | undefined = true) {
     let controls;
-    if (!dd.isApp()) {
+    const attribution = () => inOrder(new Attribution({
+      collapsible: false,
+    }));
+    if (isScreenshot(this.settings.get("screenshot"))) {
+      // Nothing to press in a picture, and the basemap's licence still has
+      // to be on it.
+      controls = [attribution()];
+    } else if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
-        inOrder(new Attribution({
-          collapsible: false,
-        })),
+        attribution(),
         new GeolocateControl({
           onLocate: () => {
             // Asking to be located is asking about yourself again.
