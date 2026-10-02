@@ -114,7 +114,7 @@
   "dry_outlook_title_hours": "{hours, plural, =0 {Regen waarschijnlijk binnen het uur} other {Regen waarschijnlijk over # uur}}",
   "dry_outlook_title_days": "{days, plural, one {Regen waarschijnlijk over # dag} other {Regen waarschijnlijk over # dagen}}",
   "dry_outlook_link": "Alle modellen",
-  "dry_outlook_label": "Regenkans volgens de weermodellen",
+  "dry_outlook_label": "Neerslag volgens de weermodellen",
   "dry_outlook_loading": "Weermodellen raadplegen…",
   "offline": "Offline",
   "slow_connection": "Trage verbinding",
@@ -358,7 +358,7 @@
       "data": "data van"
     },
     "variable": {
-      "precipitation_probability": "Regenkans",
+      "precipitation": "Neerslag",
       "temperature_2m": "Temperatuur"
     },
     "range": {

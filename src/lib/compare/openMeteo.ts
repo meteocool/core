@@ -185,6 +185,7 @@ async function fetchHourlySeriesUncached(
     models: models.join(","),
     forecast_days: String(req.forecastDays ?? 7),
     timezone: "auto",
+    precipitation_unit: "mm",
     temperature_unit: "celsius",
   });
 

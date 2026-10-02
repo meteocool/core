@@ -8,7 +8,7 @@
  * plot, so the slot above the tray would be empty exactly when the reader's
  * question has moved on from "is it raining" to "and later?". The model
  * comparison answers that, so a small copy of its spread goes here: every
- * model's rain chance as one thicket, the range as a band, the median on top.
+ * model's hourly rainfall as one thicket, the range as a band, the median on top.
  *
  * Over the week, unless the models see rain inside a day, when the week would
  * squash it into a sliver at the left edge and the next 24 hours are the
@@ -33,7 +33,7 @@ import type { Chart } from "chart.js";
 import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
 import DismissableStrip from "./DismissableStrip.svelte";
 import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
-import { drawSpread } from "../lib/compare/spreadChart";
+import { drawSpread, RAINFALL } from "../lib/compare/spreadChart";
 import { rainIn, stepAt } from "../lib/compare/outlook";
 import { openModelCompare } from "../lib/modelCompare";
 import { onWake } from "../lib/wakeup";
@@ -47,7 +47,6 @@ const dispatch = createEventDispatcher<{ dismiss: void; unavailable: void }>();
 
 const WEEK = 168;
 const DAY = 24;
-const SPEC = { unit: "%", max: 100 };
 
 let data: HourlySeries | null = null;
 let canvas: HTMLCanvasElement | null = null;
@@ -72,7 +71,7 @@ $: title = !data
 
 async function load() {
   try {
-    data = await fetchHourlySeries({ lat, lon, forecastDays: 7, variable: "precipitation_probability" });
+    data = await fetchHourlySeries({ lat, lon, forecastDays: 7, variable: "precipitation" });
   } catch {
     // Up with an answer already, a refresh that fails keeps it: the models'
     // hours are still the best guess at them, and a strip that went down for
@@ -96,7 +95,7 @@ const unsubscribeWake = onWake(() => { void load(); });
 function draw(start: number, steps: number) {
   if (!canvas || !data) return;
   chart?.destroy();
-  chart = drawSpread(canvas, data, { from: start, steps, spec: SPEC, compact: true });
+  chart = drawSpread(canvas, data, { from: start, steps, spec: RAINFALL, compact: true });
 }
 // Both as arguments, so a wake that moves `from` redraws as well as retitles.
 $: if (canvas && data) draw(from, hours);

@@ -19,7 +19,7 @@ import { onDestroy } from "svelte";
 import { _, locale } from "svelte-i18n";
 import type { Chart } from "chart.js";
 import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
-import { drawSpread } from "../lib/compare/spreadChart";
+import { drawSpread, RAINFALL, type SpreadSpec } from "../lib/compare/spreadChart";
 import { stepAt } from "../lib/compare/outlook";
 import { onWake } from "../lib/wakeup";
 import Segmented from "./Segmented.svelte";
@@ -30,19 +30,22 @@ export let lon: number;
 export let initialHours = 24;
 
 /**
- * Rain chance leads, temperature is a tap away.
+ * Rainfall leads, temperature is a tap away.
  *
  * "Will it rain" is the question people open a weather app with, and it is also
- * the one the models disagree about most -- a spread of 40 points on a
- * probability is a real disagreement, where two degrees of temperature is
- * noise. Temperature is the calmer, prettier curve, which is exactly why it
+ * the one the models disagree about most -- one model's dry hour against
+ * another's downpour is a real disagreement, where two degrees of temperature
+ * is noise. Temperature is the calmer, prettier curve, which is exactly why it
  * should not be the one on screen by default.
+ *
+ * The amount, not the chance: nearly every model publishes it, where about
+ * half publish a chance, and it says how much as well as whether.
  */
-type Variable = "precipitation_probability" | "temperature_2m";
+type Variable = "precipitation" | "temperature_2m";
 
 /* Each one's label is `compare.variable.<id>`. */
-const VARIABLES: Array<{ id: Variable; unit: string; max?: number }> = [
-  { id: "precipitation_probability", unit: "%", max: 100 },
+const VARIABLES: Array<SpreadSpec & { id: Variable }> = [
+  { id: "precipitation", ...RAINFALL },
   { id: "temperature_2m", unit: "°" },
 ];
 
@@ -54,7 +57,7 @@ const RANGES: Array<{ hours: number; key: string }> = [
   { hours: 168, key: "compare.range.week" },
 ];
 
-let variable: Variable = "precipitation_probability";
+let variable: Variable = "precipitation";
 let hours = initialHours;
 
 /* One fetch per variable, kept: the range toggle is a slice of what is already
