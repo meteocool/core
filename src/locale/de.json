@@ -114,7 +114,7 @@
   "dry_outlook_title_hours": "{hours, plural, =0 {Regen wahrscheinlich innerhalb der Stunde} one {Regen wahrscheinlich in # Stunde} other {Regen wahrscheinlich in # Stunden}}",
   "dry_outlook_title_days": "{days, plural, one {Regen wahrscheinlich in # Tag} other {Regen wahrscheinlich in # Tagen}}",
   "dry_outlook_link": "Alle Modelle",
-  "dry_outlook_label": "Regenwahrscheinlichkeit aller Wettermodelle",
+  "dry_outlook_label": "Niederschlag aller Wettermodelle",
   "dry_outlook_loading": "Frage die Wettermodelle…",
   "offline": "Offline",
   "slow_connection": "Langsame Verbindung",
@@ -364,7 +364,7 @@
       "data": "Daten von"
     },
     "variable": {
-      "precipitation_probability": "Regenwahrscheinlichkeit",
+      "precipitation": "Niederschlag",
       "temperature_2m": "Temperatur"
     },
     "range": {
