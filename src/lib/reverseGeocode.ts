@@ -28,6 +28,7 @@
 
 import { geocodingUrl } from "../urls";
 import { tracked } from "./progress";
+import { timedFetch } from "./timedFetch";
 
 const BIGDATACLOUD_ENDPOINT = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 
@@ -186,8 +187,10 @@ async function fromNominatim(
     zoom: String(zoom),
     "accept-language": language,
   });
-  const response = await fetch(`${geocodingUrl}/reverse?${query}`, { signal });
-  if (!response.ok) return null;
+  const response = await timedFetch(`${geocodingUrl}/reverse?${query}`, { signal });
+  // Thrown, not null: a null answer is cached as "nothing here", and a 502 or
+  // a 429 is not that -- the place would have stayed nameless all session.
+  if (!response.ok) throw new Error(`nominatim ${response.status}`);
   // A point with nothing around it is a 200 carrying `{"error": "Unable to
   // geocode"}`, not a 404, so the body has to be read to know there was a miss.
   return asPlace(await response.json() as NominatimResponse);
@@ -200,8 +203,8 @@ async function fromBigDataCloud(
   signal: AbortSignal,
 ): Promise<Place | null> {
   const url = `${BIGDATACLOUD_ENDPOINT}?latitude=${lat}&longitude=${lon}&localityLanguage=${language}`;
-  const response = await fetch(url, { signal });
-  if (!response.ok) return null;
+  const response = await timedFetch(url, { signal });
+  if (!response.ok) throw new Error(`bigdatacloud ${response.status}`);
   return fromBigDataCloudBody(await response.json() as BigDataCloudResponse);
 }
 

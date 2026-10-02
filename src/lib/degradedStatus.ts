@@ -1,7 +1,7 @@
 import { get } from "svelte/store";
 import { apiHealth, degradedStatus, radarCadence } from "../stores";
-import { evaluateDegraded, type DegradedSignals } from "./degraded";
-import { summariseRequests } from "./requestTiming";
+import { evaluateDegraded, sinceRecovery, type DegradedSignals } from "./degraded";
+import { quantile, requestDurations } from "./requestTiming";
 import { overdueBy } from "./updateCadence";
 import { t } from "../locale/t";
 
@@ -37,11 +37,11 @@ const API_MATCH = /\/v3\//;
 
 /** Everything the criteria look at, read at one instant. */
 export function readDegradedSignals(now: number = Date.now()): DegradedSignals {
-  const recent = summariseRequests(API_MATCH, LATENCY_WINDOW_MS);
+  const recent = sinceRecovery(requestDurations(API_MATCH, LATENCY_WINDOW_MS));
   return {
     health: get(apiHealth),
-    recentP95Ms: recent.p95Ms,
-    recentSamples: recent.count,
+    recentP95Ms: quantile([...recent].sort((a, b) => a - b), 0.95),
+    recentSamples: recent.length,
     // The grid's timestamps are epoch seconds, so the comparison is too.
     publishOverdueS: overdueBy(get(radarCadence), Math.round(now / 1000)),
   };

@@ -49,11 +49,53 @@ export function cleanupRequestTiming() {
   observer?.disconnect();
   observer = null;
   entries = [];
+  abandoned = [];
 }
 
-function quantile(sorted: number[], q: number): number | null {
+/** Abandoned requests remembered at most; far more than a window holds. */
+const ABANDONED_KEPT = 200;
+
+/** How far apart a request's start and its entry's may be and still be the same request. */
+const SAME_START_MS = 50;
+
+/** Requests timedFetch gave up on: their URL, and when they started on the performance clock. */
+let abandoned: Array<{ url: string; startTime: number }> = [];
+
+/**
+ * A request that was given up on as stalled (lib/timedFetch.ts).
+ *
+ * The browser still records it, with the fifteen seconds it was waited for
+ * as its duration -- and the slow-responses criterion read that as the
+ * backend taking fifteen seconds to answer, and went on saying so for the
+ * whole latency window after the network was back. It did not answer at all:
+ * that is a failure, which the api-errors criterion counts, and which clears
+ * the moment the endpoint answers again. Left out of every summary here.
+ */
+export function noteAbandoned(url: string, startTime: number) {
+  abandoned.push({ url, startTime });
+  if (abandoned.length > ABANDONED_KEPT) abandoned = abandoned.slice(-ABANDONED_KEPT);
+}
+
+const wasAbandoned = (entry: PerformanceResourceTiming): boolean => abandoned.some(
+  (a) => a.url === entry.name && Math.abs(a.startTime - entry.startTime) < SAME_START_MS,
+);
+
+export function quantile(sorted: number[], q: number): number | null {
   if (!sorted.length) return null;
   return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
+}
+
+/** The matching requests' entries in the window, oldest first; see `summariseRequests`. */
+function matching(match: RegExp, sinceMs?: number): PerformanceResourceTiming[] {
+  const floor = sinceMs == null ? null : performance.now() - sinceMs;
+  return entries
+    .filter((e) => match.test(e.name) && (floor === null || e.startTime >= floor) && !wasAbandoned(e))
+    .sort((a, b) => a.startTime - b.startTime);
+}
+
+/** How long each matching request in the window took, in the order they were sent. */
+export function requestDurations(match: RegExp, sinceMs?: number): number[] {
+  return matching(match, sinceMs).map((e) => e.duration);
 }
 
 /**
@@ -66,10 +108,7 @@ function quantile(sorted: number[], q: number): number | null {
  * which is what the diagnostics panel's own rows want.
  */
 export function summariseRequests(match: RegExp, sinceMs?: number): TimingSummary {
-  const floor = sinceMs == null ? null : performance.now() - sinceMs;
-  const matched = entries.filter(
-    (e) => match.test(e.name) && (floor === null || e.startTime >= floor),
-  );
+  const matched = matching(match, sinceMs);
   const durations = matched.map((e) => e.duration).sort((a, b) => a - b);
   const last = matched[matched.length - 1];
   return {
