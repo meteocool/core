@@ -26,7 +26,7 @@
  * seconds, so a long wait reads as the app still working rather than stuck.
  *
  * And one that failed -- MapLibre could not be fetched -- says so, with a
- * way to try again, instead: a word cycling every two seconds over a map
+ * way to try again, instead: a word cycling every second and a half over a map
  * that will never come is the one thing worse than a spinner that stops.
  */
 import { onDestroy, onMount } from "svelte";
@@ -56,7 +56,7 @@ function pick(words: string[]): string | null {
 }
 
 /** How long one word stays up while the veil does. */
-const WORD_MS = 2000;
+const WORD_MS = 1500;
 
 let tick = 0;
 let timer: ReturnType<typeof setInterval> | null = null;
