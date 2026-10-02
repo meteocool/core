@@ -76,3 +76,22 @@ test("an override of the wrong type, or of an unknown key, is refused", () => {
   settings.override("nonsense", true);
   assert.equal(settings.getBoolean("layerLightning"), true);
 });
+
+test("screenshot mode is read off the address, and nothing it does is stored", (t) => {
+  store.clear();
+  location.href = "https://meteocool.com/?latLonZ=50.96%2C10.9%2C8.0&screenshot=yes";
+  t.after(() => { location.href = "https://meteocool.com/"; });
+  const seen: string[] = [];
+  const settings = new Settings({
+    layerCells: { type: "boolean", default: true },
+    screenshot: { type: "string", default: "no", source: "url", cb: (value) => seen.push(String(value)) },
+  });
+  // Fired from the constructor, which is when App.svelte hides the chrome.
+  assert.deepEqual(seen, ["yes"]);
+  assert.equal(settings.get("screenshot"), "yes");
+  // App.svelte's way of keeping the cells off for the picture: the store
+  // echoes it straight back, and it must not become the reader's.
+  settings.override("layerCells", false);
+  settings.set("layerCells", false);
+  assert.equal(store.size, 0);
+});
