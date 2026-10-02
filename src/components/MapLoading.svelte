@@ -48,7 +48,7 @@ function pick(words: string[]): string | null {
 }
 
 /** How long one word stays up while the veil does. */
-const WORD_MS = 5000;
+const WORD_MS = 2000;
 
 let tick = 0;
 let timer: ReturnType<typeof setInterval> | null = null;
