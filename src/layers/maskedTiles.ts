@@ -1,5 +1,5 @@
-import { hasTile } from "../lib/tileIndex";
-import { fillTemplate, loadImage } from "./indexedTiles";
+import { hasTile, sourceTile } from "../lib/tileIndex";
+import { fillTemplate, loadImage, magnify } from "./indexedTiles";
 import { maskTile, overlaps, tileExtent } from "./tileMask";
 import { recolourImage, recolouringFor } from "./recolour";
 import type { MaskPath } from "./tileMask";
@@ -80,26 +80,29 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
   const z = Number(match[2]);
   const x = Number(match[3]);
   const y = Number(match[4]);
+  // Past the frame's deepest zoom, the part of its ancestor there: DWD's
+  // observation goes to zoom 9 and its forecast to 8 (lib/tileIndex.ts).
+  const from = sourceTile(spec.index, z, x, y);
   // The index is numbered the way the URL is: XYZ x, TMS y.
-  if (!hasTile(spec.index, z, x, 2 ** z - 1 - y)) return EMPTY;
+  if (!hasTile(spec.index, from.z, from.x, 2 ** from.z - 1 - from.y)) return EMPTY;
 
   const extent = tileExtent(z, x, y);
   const keep = spec.keep ?? null;
   if (keep && !overlaps(extent, keep.bbox)) return EMPTY;
   const erase = (spec.erase ?? []).filter((path) => overlaps(extent, path.bbox));
-  const source = fillTemplate(spec.template, z, x, y);
+  const source = fillTemplate(spec.template, from.z, from.x, from.y);
   const table = recolouringFor(spec.palette ?? "classic");
 
-  if (!erase.length && !keep && !table) {
+  if (!erase.length && !keep && !table && from.scale === 1) {
     const response = await fetch(source, { signal });
     if (response.status === 404) return EMPTY;
     if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${source}`);
     return { data: await response.arrayBuffer() };
   }
 
-  let image: HTMLImageElement;
+  let image: HTMLImageElement | HTMLCanvasElement;
   try {
-    image = await loadImage(source, "anonymous");
+    image = magnify(await loadImage(source, "anonymous"), from);
   } catch {
     return EMPTY; // the image loader cannot tell a 404 from anything else
   }
