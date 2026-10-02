@@ -114,7 +114,7 @@
   "dry_outlook_title_hours": "{hours, plural, =0 {Rain likely within the hour} one {Rain likely in # hour} other {Rain likely in # hours}}",
   "dry_outlook_title_days": "{days, plural, one {Rain likely in # day} other {Rain likely in # days}}",
   "dry_outlook_link": "All models",
-  "dry_outlook_label": "Rain chance across the weather models",
+  "dry_outlook_label": "Rainfall across the weather models",
   "dry_outlook_loading": "Asking the weather models…",
   "offline": "Offline",
   "slow_connection": "Slow connection",
@@ -364,7 +364,7 @@
       "data": "data from"
     },
     "variable": {
-      "precipitation_probability": "Rain Chance",
+      "precipitation": "Rainfall",
       "temperature_2m": "Temperature"
     },
     "range": {
