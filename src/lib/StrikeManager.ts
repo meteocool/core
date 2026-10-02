@@ -1,6 +1,13 @@
 import Point from "ol/geom/Point";
 import { Feature } from "ol";
-import type VectorSource from "ol/source/Vector";
+import type StrikeSource from "../layers/strikeSource";
+
+/** One strike: EPSG:3857 metres, and its time in ms, which is also its feature id. */
+export interface Strike {
+  lon: number;
+  lat: number;
+  time: number;
+}
 
 /**
  * The strike layer used by the radar capability: a ring buffer of features,
@@ -11,14 +18,14 @@ export default class StrikeManager {
   maxStrikes: number;
 
   /** The source the features are drawn from. */
-  vs: VectorSource;
+  vs: StrikeSource;
 
   /** Feature ids, oldest first. */
   strikes: number[];
 
   enabled: boolean;
 
-  constructor(maxStrikes: number, vectorSource: VectorSource) {
+  constructor(maxStrikes: number, vectorSource: StrikeSource) {
     this.maxStrikes = maxStrikes;
     this.vs = vectorSource;
     this.strikes = [];
@@ -60,22 +67,35 @@ export default class StrikeManager {
     return this.vs.addFeature(lightning);
   }
 
+  /**
+   * Many strikes, one by one as `addStrikeWithTime` adds them, for one change
+   * on the source rather than one each; see layers/strikeSource.ts.
+   */
+  addStrikes(strikes: Strike[]) {
+    this.vs.batch(() => {
+      strikes.forEach(({ lon, lat, time }) => this.addStrikeWithTime(lon, lat, time));
+    });
+  }
+
   // purge old strikes
   fadeStrikes() {
     const now = new Date().getTime();
     const MINS = 60 * 1000;
-    // Backwards: removeOne splices, so a forward walk skips the element that
-    // slides into the index it just vacated.
-    for (let idx = this.strikes.length - 1; idx >= 0; idx -= 1) {
-      const id = this.strikes[idx];
-      if (id < now - 30 * MINS) {
-        this.removeOne(id, idx);
+    // One change for the lot, as in addStrikes.
+    this.vs.batch(() => {
+      // Backwards: removeOne splices, so a forward walk skips the element that
+      // slides into the index it just vacated.
+      for (let idx = this.strikes.length - 1; idx >= 0; idx -= 1) {
+        const id = this.strikes[idx];
+        if (id < now - 30 * MINS) {
+          this.removeOne(id, idx);
+        }
       }
-    }
-    // Not `refresh()`: on an OpenLayers 10 vector source that is `clear()`,
-    // and it emptied the whole map of strikes every five minutes rather than
-    // the ones that had aged out.
-    this.vs.changed();
+      // Not `refresh()`: on an OpenLayers 10 vector source that is `clear()`,
+      // and it emptied the whole map of strikes every five minutes rather than
+      // the ones that had aged out.
+      this.vs.changed();
+    });
   }
 
   clearAll() {

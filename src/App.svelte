@@ -772,9 +772,7 @@ async function reloadLightning() {
   const strikes = await fetchLightningCache(nb).catch(() => null);
   if (!strikes) return;
   strikemgr.clearAll();
-  strikes.forEach((strike) => {
-    strikemgr.addStrikeWithTime(strike.lon, strike.lat, Math.round(strike.time));
-  });
+  strikemgr.addStrikes(strikes.map((strike) => ({ lon: strike.lon, lat: strike.lat, time: Math.round(strike.time) })));
 }
 
 async function reloadCyclones() {

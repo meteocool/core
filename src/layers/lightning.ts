@@ -13,6 +13,7 @@ import { blitzortungAttribution, imprintAttribution } from "./attributions";
 import { tileBaseUrl } from "../urls";
 import { LightningColors } from "../colormaps";
 import { TIME_KEY } from "../lib/StrikeManagerV2";
+import StrikeSource from "./strikeSource";
 
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;
@@ -86,8 +87,8 @@ const crossFactory = (ts, zIndexOffset = 0) => {
 };
 
 /** The feature source, and the layer that draws it. */
-export default function makeLightningLayer(): [VectorSource, VectorLayer<VectorSource>] {
-  const ss = new VectorSource({
+export default function makeLightningLayer(): [StrikeSource, VectorLayer<VectorSource>] {
+  const ss = new StrikeSource({
     features: [],
   });
   const clusters = new Cluster({
@@ -147,6 +148,6 @@ export const lightningLayerGL = (tileId: string) => {
 /** Strikes newer than the published tile set, drawn from a client-side source. */
 export const lightningLayerDumb = () => new VectorLayer({
   zIndex: 91,
-  source: new VectorSource({}),
+  source: new StrikeSource({}),
   style: (feature: FeatureLike) => crossFactory(feature.get(TIME_KEY), 1000),
 });
