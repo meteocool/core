@@ -10,7 +10,7 @@ import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
 import type NetworkHoleTileSource from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
-import { hasTile } from "../lib/tileIndex";
+import { hasTile, sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
 import type { RadarFrame } from "../api";
 import {
@@ -470,15 +470,18 @@ export default class RadarCapability extends Capability {
       const template = this.clientGrid[step]?.url;
       if (!template) break;
       const index = this.clientGrid[step]?.tiles;
-      tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
+      tileGrid.forEachTileCoord(extent, z, ([tz, tx, ty]) => {
         if (urls.length >= PREFETCH_MAX_TILES) return;
+        // Past a frame's deepest zoom its tiles come out of their ancestor's.
+        const { z: sz, x, y } = sourceTile(index, tz, tx, ty);
         // A tile the frame does not have is answered locally; see lib/tileIndex.ts.
-        if (!hasTile(index, tz, x, 2 ** tz - 1 - y)) return;
-        urls.push(template
-          .replace("{z}", String(tz))
+        if (!hasTile(index, sz, x, 2 ** sz - 1 - y)) return;
+        const url = template
+          .replace("{z}", String(sz))
           .replace("{x}", String(x))
-          .replace("{-y}", String(2 ** tz - 1 - y))
-          .replace("{y}", String(y)));
+          .replace("{-y}", String(2 ** sz - 1 - y))
+          .replace("{y}", String(y));
+        if (!urls.includes(url)) urls.push(url);
       });
     }
 
