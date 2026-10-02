@@ -10,12 +10,13 @@
  */
 import { MODEL_IDS } from "./models";
 import { tracked } from "../progress";
+import { timedFetch } from "../timedFetch";
 
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
 
 /** One call to the forecast endpoint, read to the end. */
 async function ask<T>(params: URLSearchParams, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${FORECAST_URL}?${params}`, { signal });
+  const response = await timedFetch(`${FORECAST_URL}?${params}`, { signal });
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     throw new Error(`open-meteo ${response.status}: ${body || response.statusText}`);
