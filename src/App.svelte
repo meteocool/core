@@ -454,7 +454,7 @@ radarSocketIO.on("cells", () => {
 });
 
 radarSocketIO.on("lightning", (data) => {
-  strikemgr.addStrike(data.lon, data.lat);
+  strikemgr.addLiveStrike(data);
 });
 window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
