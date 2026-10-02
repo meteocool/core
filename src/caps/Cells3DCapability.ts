@@ -1932,7 +1932,9 @@ export default class Cells3DCapability extends Capability {
       tiles: [tiles],
       tileSize: 512,
       minzoom: 3,
-      maxzoom: 8,
+      // The observed frame's depth, HX at 250 m; an older frame's 8 is
+      // magnified past it in maskedTiles.ts.
+      maxzoom: 9,
       attribution: dwdAttribution,
     });
     gl.addLayer({

@@ -31,11 +31,13 @@ let palette = "classic";
 // the layer rather than the source, and `tilePixelRatio` no longer exists --
 // ImageTile's `tileSize` *is* the source image size, and the server really does
 // serve 512px tiles, so the retina-doubled ratio was declaring them as 1024.
+// Zoom 9 for the observed frame, HX at 250 m; a forecast step is WN at 1 km
+// and stops at 8, and answers 9 out of its own 8 (lib/tileIndex.ts).
 const commonDWDParameters = {
   attributions: [dwdAttribution, blitzortungAttribution],
   crossOrigin: "anonymous" as const,
   minZoom: 3,
-  maxZoom: 8,
+  maxZoom: 9,
   tileSize: 512,
   transition: 0,
   interpolate: false,
