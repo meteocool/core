@@ -122,6 +122,17 @@ export function wake(reason: string) {
 }
 
 /**
+ * Whether a wake ran in the last `ms`.
+ *
+ * For signals that usually trail one: the socket reconnecting a second after
+ * a return to the page is that same return, and the wake already refetched
+ * everything the socket would have poked for.
+ */
+export function wokeWithin(ms: number): boolean {
+  return Date.now() - lastWakeAt < ms;
+}
+
+/**
  * Start watching. Idempotent, like initNetworkStatus(): the entrypoints and a
  * hot reload can both reach it, and a second watchdog would be invisible.
  */

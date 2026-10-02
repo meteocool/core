@@ -44,6 +44,7 @@ import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
+import { timedFetch } from "../lib/timedFetch";
 import { derived, get } from "svelte/store";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
@@ -195,6 +196,15 @@ export default class RadarCapability extends Capability {
 
   /** The self-rescheduling grid refresh, so destroy() can stop it. */
   private gridRefreshTimeout: number | null = null;
+
+  /** Numbers each timeseries request, in the order they were sent. */
+  private gridRequests = 0;
+
+  /** The newest request whose answer has been applied; see `downloadCurrentRadar`. */
+  private gridApplied = 0;
+
+  /** Where the grid in hand was sampled, as `positionKey` put it; see `sampledHere`. */
+  private gridSampledAt: string | null = null;
 
   constructor(map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "radar", () => {
@@ -500,7 +510,7 @@ export default class RadarCapability extends Capability {
       // Same request the tile loader makes -- a CORS one, no credentials --
       // so the cache entry is the one it will look for. The body is read to
       // the end: a response left unread is not stored.
-      fetch(url, { mode: "cors", credentials: "same-origin", priority: "low" } as RequestInit)
+      timedFetch(url, { mode: "cors", credentials: "same-origin", priority: "low" } as RequestInit)
         .then((response) => (response.ok ? response.arrayBuffer() : undefined))
         .catch(() => { this.prefetched.delete(url); });
     }
@@ -683,17 +693,44 @@ export default class RadarCapability extends Capability {
     return network ? { lat, lon, network } : { lat, lon };
   }
 
+  /** The position the forecast is sampled at, as a key two of them can be compared by. */
+  private positionKey(): string {
+    return JSON.stringify(this.getPosition() ?? null);
+  }
+
+  /**
+   * Whether the grid in hand was sampled where the forecast is sampled now.
+   *
+   * Not after a tap whose own request failed: the grid is still the last
+   * point's, and the strip drawing its bars under the new point's name would
+   * be a forecast for somewhere else. The strip keeps its skeleton up until
+   * an answer for the new point lands, which the recovery retries bring.
+   */
+  sampledHere(): boolean {
+    return this.gridSampledAt === this.positionKey();
+  }
+
   async downloadCurrentRadar() {
     live.set(false);
     // Taken with the position, before the round trip: a point tapped while the
     // request is out must not have the answer for the client's own position
     // read as the answer for it, or the other way round.
     const forUser = this.inspectLatlon === null && this.latlon !== null;
+    const at = this.positionKey();
+    this.gridRequests += 1;
+    const request = this.gridRequests;
     const data = await fetchRadarTimeseries(this.nanobar, this.getPosition()).catch(() => null);
     if (!data) {
       live.set(false);
       return;
     }
+    /* A poke, a wake, a tap and the retries a bad network brings all send
+       one of these, and they need not answer in order. Older than one
+       already applied, this one would put the previous grid -- or another
+       point's forecast -- back. */
+    if (request < this.gridApplied) return;
+    this.gridApplied = request;
+    this.gridSampledAt = at;
     this.processRadar(data);
     if (forUser) dryAtUser.set(isDry(data.frames));
   }

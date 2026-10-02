@@ -209,6 +209,14 @@ export const europeCompositeVisible = writable<boolean>(false);
  * half-built map is not what the reader watches.
  */
 export const cells3dLoading = writable<boolean>(false);
+/**
+ * Whether bringing the 3D map up failed: MapLibre itself could not be
+ * fetched, which is the first open of the 3D map on a network that is down,
+ * or a tab that has outlived the deploy whose chunks it was asking for. The
+ * veil says so, with a way to try again, rather than spinning over a blank
+ * map for as long as anyone looks at it.
+ */
+export const cells3dFailed = writable<boolean>(false);
 /** The cell the detail popup is showing, or null when it is closed. */
 export const selectedCell = writable<CellTrackProperties | null>(null);
 /**

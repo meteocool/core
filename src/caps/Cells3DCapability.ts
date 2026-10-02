@@ -20,7 +20,7 @@ import { applyTerrain, VERTICAL_SCALE } from "../layers/terrain";
 import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
-import { loadCutaway } from "../lib/cellCutaway";
+import { loadCutaway, VolumeGone } from "../lib/cellCutaway";
 import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
@@ -29,7 +29,7 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzColour, dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
+  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
   selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen, terrain3dVisible,
 } from "../stores";
 import { get } from "svelte/store";
@@ -521,6 +521,18 @@ export default class Cells3DCapability extends Capability {
   /** The first answer for the list of storms, which a linked cloud waits on. */
   private firstRefresh: Promise<void> | null = null;
 
+  /** The element the map was last attached to, for `retry`. */
+  private host: HTMLElement | null = null;
+
+  /**
+   * Sources a tile of which failed to load, to be asked again by `resync`.
+   *
+   * MapLibre never retries a tile on its own: one that failed while the
+   * network was down stays a hole in the basemap or the radar until the
+   * camera leaves it.
+   */
+  private failedSources = new Set<string>();
+
   /**
    * Resolves once the map has drawn its first settled frame: style parsed,
    * shaders built, the tiles on screen loaded. Already resolved before the
@@ -688,15 +700,31 @@ export default class Cells3DCapability extends Capability {
      * already a child moves it to the end, which is exactly what is wanted.
      */
     host.appendChild(this.container);
+    this.host = host;
 
     let built = false;
     if (!this.gl) {
       // The veil first, and on screen, before the megabyte of library is
       // parsed and the map built: both take the main thread, and a veil
       // asked for in the same frame appeared only once they were done.
+      cells3dFailed.set(false);
       cells3dLoading.set(true);
       await painted();
-      const maplibre = await loadMapLibre();
+      let maplibre: Awaited<ReturnType<typeof loadMapLibre>>;
+      try {
+        maplibre = await loadMapLibre();
+      } catch (error) {
+        /* MapLibre is not precached, so a first open on a network that is
+           down lands here, and so does a tab that outlived the deploy whose
+           chunks it asks for. Uncaught, this left the veil spinning over an
+           empty map for good; it now says so and offers `retry`, which a
+           wake also tries. */
+        console.warn(error);
+        if (this.gl) return;
+        cells3dLoading.set(false);
+        if (this.shown) cells3dFailed.set(true);
+        return;
+      }
       // Another attach may have won the race while the library was loading.
       if (this.gl) return;
       this.maplibre = maplibre;
@@ -826,6 +854,20 @@ export default class Cells3DCapability extends Capability {
             : null);
         }
       });
+      /* A tile that failed is noted for `resync` to ask for again. Listening
+         at all also stops MapLibre's own console.error for each one, which
+         went to Sentry as a fault of ours for every tile a phone lost. */
+      gl.on("error", (event) => {
+        // A source's errors carry which source and tile; MapLibre's typing
+        // knows only the error.
+        const { sourceId, tile } = event as typeof event & { sourceId?: string; tile?: unknown };
+        if (sourceId && tile) {
+          this.failedSources.add(sourceId);
+          console.warn(`3D map: a ${sourceId} tile failed`, event.error);
+          return;
+        }
+        console.error(event.error);
+      });
       gl.on("mousemove", (event) => {
         const over = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) }).length > 0;
         gl.getCanvas().style.cursor = over ? "pointer" : "";
@@ -891,6 +933,7 @@ export default class Cells3DCapability extends Capability {
   willLoseFocus(): void {
     this.pushCameraToView();
     this.shown = false;
+    cells3dFailed.set(false);
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
     // `attach` refreshes, and waits again from there.
@@ -967,6 +1010,40 @@ export default class Cells3DCapability extends Capability {
         duration: LEAVE_MS,
       });
     });
+  }
+
+  /** Bring the map up again after MapLibre failed to load; see `cells3dFailed`. */
+  retry(): void {
+    if (!this.shown || this.gl || !this.host) return;
+    void this.attach(this.host);
+  }
+
+  /**
+   * Catch up after the page or the network has been away (lib/wakeup.ts).
+   *
+   * The socket's `cells` and `volumes` events are what keep this map current,
+   * and a socket that was down missed them; the tiles that failed meanwhile
+   * are holes until they are asked for again. A bring-up that failed is
+   * tried again, since the network may well be back.
+   */
+  resync(): void {
+    if (!this.shown) return;
+    if (!this.gl) {
+      if (get(cells3dFailed)) this.retry();
+      return;
+    }
+    void this.refresh();
+    const gl = this.gl;
+    for (const id of this.failedSources) {
+      if (gl.getSource(id)) gl.refreshTiles(id);
+    }
+    this.failedSources.clear();
+    // The storm the reader opened, if its volume failed to come down then:
+    // the panel retries its own copy, and the cut here would stay unmade.
+    const track = get(selectedCell);
+    const cloud = get(selectedVolume);
+    const target = track ? this.targetOfTrack(track) : cloud ? this.targetOfCloud(cloud) : null;
+    if (target && this.opened?.path !== target.volume.path) void this.open(target);
   }
 
   private detach(): void {
@@ -1560,6 +1637,8 @@ export default class Cells3DCapability extends Capability {
    * was measured. That is enough to open it where it was, as it was.
    *
    * Null when the volume has gone as well, which is the end of its retention.
+   * A download that failed is thrown instead: the volume may well be there,
+   * and the link should be tried again rather than called gone.
    */
   async restoreCloud(path: string): Promise<RadarVolume | null> {
     await (this.firstRefresh ?? this.refresh());
@@ -1585,8 +1664,9 @@ export default class Cells3DCapability extends Capability {
         scanned_at: header.scanned_at ?? null,
         oldest_scan_at: header.oldest_scan_at ?? null,
       };
-    } catch {
-      return null;
+    } catch (error) {
+      if (error instanceof VolumeGone) return null;
+      throw error;
     }
   }
 
@@ -1715,30 +1795,28 @@ export default class Cells3DCapability extends Capability {
   private async load(): Promise<void> {
     const token = Symbol("cells");
     this.cellsToken = token;
-    try {
-      const [current, clouds] = await Promise.all([
-        // Not asked for while they are off: a severe afternoon's run is a
-        // sizeable answer for a map that would draw none of it.
-        this.cellsWanted ? fetchCurrentCells(this.nanobar) : null,
-        // Its own failure is not the cells' failure: a map with storms and no
-        // cutaways is worth drawing. Nor does it take the storms already
-        // drawn away; they stay until an answer replaces them.
-        fetchCurrentVolumes().catch(() => null),
-      ]);
-      if (this.cellsToken !== token) return;
+    const [current, clouds] = await Promise.all([
+      // Not asked for while they are off: a severe afternoon's run is a
+      // sizeable answer for a map that would draw none of it. A failure
+      // (already reported by the API wrapper) keeps the cells already drawn,
+      // and no longer takes a good answer for the volumes down with it.
+      this.cellsWanted ? fetchCurrentCells(this.nanobar).catch(() => undefined) : null,
+      // Its own failure is not the cells' failure: a map with storms and no
+      // cutaways is worth drawing. Nor does it take the storms already
+      // drawn away; they stay until an answer replaces them.
+      fetchCurrentVolumes().catch(() => null),
+    ]);
+    if (this.cellsToken !== token) return;
+    if (current !== undefined) {
       // Turned off while the answer was on its way is off.
       const run = this.cellsWanted ? current : null;
       this.cells = (run?.cells ?? []) as CellCurrent[];
       this.cellsScan = run ? scanTime(run.reference_time) : null;
-      // The same scan as before still loads: a load cut short by switching
-      // away left volumes to fetch, and this is the refresh `attach` relies on.
-      if (!clouds || !this.volumes.offer(clouds)) void this.loadClouds();
-      if (this.shown) this.volumes.follow(this.newestScan());
-    } catch {
-      // Already reported by the API wrapper; an empty 3D map is not worth a
-      // second message on top of it.
-      return;
     }
+    // The same scan as before still loads: a load cut short by switching
+    // away left volumes to fetch, and this is the refresh `attach` relies on.
+    if (!clouds || !this.volumes.offer(clouds)) void this.loadClouds();
+    if (this.shown) this.volumes.follow(this.newestScan());
     this.applyData();
   }
 

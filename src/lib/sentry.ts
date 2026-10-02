@@ -17,8 +17,11 @@ const DSN = "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5
 
 type Early = { kind: "error"; error: unknown } | { kind: "rejection"; reason: unknown };
 const early: Early[] = [];
-const onError = (event: ErrorEvent) => { early.push({ kind: "error", error: event.error ?? event.message }); };
-const onRejection = (event: PromiseRejectionEvent) => { early.push({ kind: "rejection", reason: event.reason }); };
+/** Held at most, for a page that cannot fetch the SDK for a while: the first ones are the telling ones. */
+const EARLY_KEPT = 50;
+const keep = (item: Early) => { if (early.length < EARLY_KEPT) early.push(item); };
+const onError = (event: ErrorEvent) => { keep({ kind: "error", error: event.error ?? event.message }); };
+const onRejection = (event: PromiseRejectionEvent) => { keep({ kind: "rejection", reason: event.reason }); };
 
 /** Start reporting when the browser has time for it; safe to call more than once. */
 export function startSentry(): void {
@@ -37,7 +40,15 @@ export function startSentry(): void {
 let started = false;
 
 async function init(): Promise<void> {
-  const Sentry = await import("@sentry/browser");
+  let Sentry: typeof import("@sentry/browser");
+  try {
+    Sentry = await import("@sentry/browser");
+  } catch {
+    // Offline at load, most likely: the errors are kept, and handed over once
+    // the network is back and the chunk with it.
+    window.addEventListener("online", () => { void init(); }, { once: true });
+    return;
+  }
   const options: BrowserOptions = {
     dsn: DSN,
     integrations: [

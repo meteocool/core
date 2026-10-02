@@ -98,4 +98,13 @@ export default class Capability extends Observable {
    * calls it on every registered capability when it tears down.
    */
   destroy?(): void;
+
+  /**
+   * Catch up after the page or the network has been away (lib/wakeup.ts):
+   * refetch whatever the socket would have announced meanwhile, and whatever
+   * failed while the network was down. LayerManager calls it on the
+   * capability showing. Optional -- the radar keeps itself current from
+   * `lastFocus` whether it is showing or not.
+   */
+  resync?(): void;
 }

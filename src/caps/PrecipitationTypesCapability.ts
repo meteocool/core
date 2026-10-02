@@ -26,6 +26,11 @@ export default class PrecipitationTypesCapability extends Capability {
     this.nb = args.nanobar;
   }
 
+  /** Only fetched on being shown otherwise, so a failed first fetch stayed failed. */
+  resync() {
+    void this.fetchPrecipTypes();
+  }
+
   async fetchPrecipTypes() {
     const data = await fetchPrecipitationTypes(this.nb).catch(() => null);
     if (!data) return;

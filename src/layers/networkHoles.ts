@@ -114,10 +114,10 @@ export default class NetworkHoleTileSource extends IndexedTileSource {
     const holes = HOLES.filter((hole) => codes.includes(hole.code));
     const crossOrigin = this.crossOriginValue;
     const gate = this.indexFor(url);
-    this.setLoader(async (z: number, x: number, y: number) => {
+    this.setLoader(async (z: number, x: number, y: number, options?: { signal?: AbortSignal }) => {
       if (!present(gate, z, x, y)) return blankTile();
       const extent = tileExtent(z, x, y);
-      const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin);
+      const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin, options?.signal);
       const met = holes.filter((hole) => overlaps(extent, hole.bbox));
       return met.length ? maskTile(image, extent, met) : image;
     });

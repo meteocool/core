@@ -1,9 +1,10 @@
 import { hasTile } from "../lib/tileIndex";
-import { fillTemplate, loadImage } from "./indexedTiles";
+import { fillTemplate } from "./indexedTiles";
 import { maskTile, overlaps, tileExtent } from "./tileMask";
 import { recolourImage, recolouringFor } from "./recolour";
 import type { MaskPath } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
+import { timedFetch } from "../lib/timedFetch";
 
 /**
  * Radar tiles for MapLibre with the same cuts the flat map makes.
@@ -90,21 +91,21 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
   const source = fillTemplate(spec.template, z, x, y);
   const table = recolouringFor(spec.palette ?? "classic");
 
-  if (!erase.length && !keep && !table) {
-    const response = await fetch(source, { signal });
-    if (response.status === 404) return EMPTY;
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${source}`);
-    return { data: await response.arrayBuffer() };
-  }
+  const response = await timedFetch(source, { signal });
+  if (response.status === 404) return EMPTY;
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${source}`);
+  if (!erase.length && !keep && !table) return { data: await response.arrayBuffer() };
 
-  let image: HTMLImageElement;
-  try {
-    image = await loadImage(source, "anonymous");
-  } catch {
-    return EMPTY; // the image loader cannot tell a 404 from anything else
-  }
+  /* Fetched rather than loaded as an <img>, which could not tell a 404 from
+     a network that dropped the request: every failure came back as an empty
+     tile, and MapLibre kept it as one -- a hole in the radar until the frame
+     changed. A failure now fails, and the 3D map asks for it again when the
+     network is back (Cells3DCapability.resync). */
+  const image = await createImageBitmap(await response.blob());
   const cut = erase.length || keep ? maskTile(image, extent, erase, keep) : image;
-  return { data: await createImageBitmap(table ? recolourImage(cut, table) : cut) };
+  const painted = table ? recolourImage(cut, table) : cut;
+  image.close();
+  return { data: await createImageBitmap(painted) };
 }
 
 /** What MapLibre's `addProtocol` takes, narrowed to what is used. */
