@@ -1,7 +1,7 @@
 import ImageTileSource from "ol/source/ImageTile";
-import { hasTile } from "../lib/tileIndex";
+import { hasTile, sourceTile } from "../lib/tileIndex";
 import { recolourImage, recolouringFor } from "./recolour";
-import type { TileIndex } from "../lib/tileIndex";
+import type { SourceTile, TileIndex } from "../lib/tileIndex";
 import { RequestStalled } from "../lib/timedFetch";
 
 /**
@@ -88,6 +88,48 @@ export function present(index: TileIndex | null | undefined, z: number, x: numbe
   return hasTile(index, z, x, 2 ** z - 1 - y);
 }
 
+/**
+ * One part of a tile, drawn at the tile's full size pixel for pixel.
+ *
+ * Nearest-neighbour, as every radar layer here draws: a 1 km pixel magnified
+ * stays a square of its own colour rather than a blur into its neighbours.
+ */
+export function magnify<T extends HTMLImageElement | ImageBitmap>(
+  image: T,
+  { scale, column, row }: Pick<SourceTile, "scale" | "column" | "row">,
+): T | HTMLCanvasElement {
+  if (scale === 1) return image;
+  // An <img> or, for the 3D map's tiles (maskedTiles.ts), a decoded bitmap.
+  const size = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
+  const part = size / scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (!context) return image;
+  context.imageSmoothingEnabled = false;
+  context.drawImage(image, column * part, row * part, part, part, 0, 0, size, size);
+  return canvas;
+}
+
+/**
+ * What a frame has for tile `z`/`x`/`y`: the tile, the part of its ancestor
+ * past the frame's deepest zoom (`sourceTile`), or a blank where it has nothing.
+ */
+export async function loadFrameTile(
+  template: string,
+  index: TileIndex | null | undefined,
+  z: number,
+  x: number,
+  y: number,
+  crossOrigin: string | null,
+  signal?: AbortSignal,
+): Promise<HTMLImageElement | HTMLCanvasElement> {
+  const from = sourceTile(index, z, x, y);
+  if (index && !present(index, from.z, from.x, from.y)) return blankTile();
+  return magnify(await loadImage(fillTemplate(template, from.z, from.x, from.y), crossOrigin, signal), from);
+}
+
 /** How many frames' indices a source remembers before starting afresh. */
 const REMEMBERED = 400;
 
@@ -153,9 +195,8 @@ export default class IndexedTileSource extends ImageTileSource {
     // Ours even with nothing to gate or recolour, for the ceiling on each tile
     // that OpenLayers' own loader does not have; see TILE_TIMEOUT_MS.
     this.setLoader(async (z: number, x: number, y: number, options?: { signal?: AbortSignal }) => {
-      if (gate && !present(gate, z, x, y)) return blankTile();
-      const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin, options?.signal);
-      return table ? recolourImage(image, table) : image;
+      const image = await loadFrameTile(url, gate, z, x, y, crossOrigin, options?.signal);
+      return table && image !== blankTile() ? recolourImage(image, table) : image;
     });
     // Cached by key, and the key `super.setUrl` gave is the bare URL: without
     // the palette in it, a change of palette went on serving the old tiles.

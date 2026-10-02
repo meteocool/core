@@ -1,5 +1,5 @@
-import { hasTile } from "../lib/tileIndex";
-import { fillTemplate } from "./indexedTiles";
+import { hasTile, sourceTile } from "../lib/tileIndex";
+import { fillTemplate, magnify } from "./indexedTiles";
 import { maskTile, overlaps, tileExtent } from "./tileMask";
 import { recolourImage, recolouringFor } from "./recolour";
 import type { MaskPath } from "./tileMask";
@@ -81,30 +81,35 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
   const z = Number(match[2]);
   const x = Number(match[3]);
   const y = Number(match[4]);
+  // Past the frame's deepest zoom, the part of its ancestor there: DWD's
+  // observation goes to zoom 9 and its forecast to 8 (lib/tileIndex.ts).
+  const from = sourceTile(spec.index, z, x, y);
   // The index is numbered the way the URL is: XYZ x, TMS y.
-  if (!hasTile(spec.index, z, x, 2 ** z - 1 - y)) return EMPTY;
+  if (!hasTile(spec.index, from.z, from.x, 2 ** from.z - 1 - from.y)) return EMPTY;
 
   const extent = tileExtent(z, x, y);
   const keep = spec.keep ?? null;
   if (keep && !overlaps(extent, keep.bbox)) return EMPTY;
   const erase = (spec.erase ?? []).filter((path) => overlaps(extent, path.bbox));
-  const source = fillTemplate(spec.template, z, x, y);
+  const source = fillTemplate(spec.template, from.z, from.x, from.y);
   const table = recolouringFor(spec.palette ?? "classic");
 
   const response = await timedFetch(source, { signal });
   if (response.status === 404) return EMPTY;
   if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${source}`);
-  if (!erase.length && !keep && !table) return { data: await response.arrayBuffer() };
+  if (!erase.length && !keep && !table && from.scale === 1) return { data: await response.arrayBuffer() };
 
   /* Fetched rather than loaded as an <img>, which could not tell a 404 from
      a network that dropped the request: every failure came back as an empty
      tile, and MapLibre kept it as one -- a hole in the radar until the frame
      changed. A failure now fails, and the 3D map asks for it again when the
      network is back (Cells3DCapability.resync). */
-  const image = await createImageBitmap(await response.blob());
+  const bitmap = await createImageBitmap(await response.blob());
+  const image = magnify(bitmap, from);
   const cut = erase.length || keep ? maskTile(image, extent, erase, keep) : image;
   const painted = table ? recolourImage(cut, table) : cut;
-  image.close();
+  if (painted === bitmap) return { data: bitmap };
+  bitmap.close();
   return { data: await createImageBitmap(painted) };
 }
 

@@ -1,4 +1,4 @@
-import IndexedTileSource, { blankTile, fillTemplate, loadImage, present } from "./indexedTiles";
+import IndexedTileSource, { blankTile, loadFrameTile } from "./indexedTiles";
 import { chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd } from "./extents";
 import { maskPath, maskTile, overlaps, tileExtent } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
@@ -115,9 +115,9 @@ export default class NetworkHoleTileSource extends IndexedTileSource {
     const crossOrigin = this.crossOriginValue;
     const gate = this.indexFor(url);
     this.setLoader(async (z: number, x: number, y: number, options?: { signal?: AbortSignal }) => {
-      if (!present(gate, z, x, y)) return blankTile();
+      const image = await loadFrameTile(url, gate, z, x, y, crossOrigin, options?.signal);
+      if (image === blankTile()) return image;
       const extent = tileExtent(z, x, y);
-      const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin, options?.signal);
       const met = holes.filter((hole) => overlaps(extent, hole.bbox));
       return met.length ? maskTile(image, extent, met) : image;
     });
