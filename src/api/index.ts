@@ -12,6 +12,8 @@ import { reportError } from "../lib/Toast";
 import { apiHealth } from "../stores";
 import { markAbsent, nextHealth } from "../lib/apiHealth";
 import { progress } from "../lib/progress";
+import { isTransient } from "../lib/timedFetch";
+import { noteTransientFailure } from "../lib/recovery";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
 import type { NetworkEvent } from "./events";
@@ -98,6 +100,55 @@ export class NothingPublished extends Error {
   }
 }
 
+/**
+ * How long to wait before each retry of a call that failed for the network's
+ * sake. Two, so a blip -- a dropped connection, one stalled request, a
+ * gateway that hiccupped -- is ridden out with the loading bar still moving
+ * and nothing else to see. Anything longer is an outage, and lib/recovery.ts
+ * is what comes back for it.
+ */
+export const RETRY_DELAYS_MS = [1000, 4000];
+
+/** An HTTP answer that is not the data, kept with its status so it can be judged. */
+class Refused extends Error {
+  readonly status: number | undefined;
+
+  constructor(id: string, status: number | undefined, error: unknown) {
+    super(`${id} failed (${status ?? "no status"}): ${JSON.stringify(error)}`);
+    this.name = "Refused";
+    this.status = status;
+  }
+}
+
+const transient = (error: unknown): boolean => (
+  error instanceof Refused ? isTransient(error, error.status) : isTransient(error)
+);
+
+const offline = (): boolean => typeof navigator !== "undefined" && navigator.onLine === false;
+
+const pause = (ms: number) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
+/**
+ * The same call once more, quietly: no loading bar, no retries, no report.
+ * True when it answered, which is recorded as the endpoint recovering.
+ */
+async function probe<T>(id: string, send: () => Promise<Answer<T>>, optional: boolean): Promise<boolean> {
+  try {
+    const { data, error, response } = await send();
+    if (error === undefined && data !== undefined) {
+      recordOutcome(id);
+      return true;
+    }
+    if (optional && isAbsence(response)) {
+      apiHealth.update((health) => markAbsent(health, id));
+      return true;
+    }
+  } catch {
+    // Still down; the next probe asks again.
+  }
+  return false;
+}
+
 async function request<T>(
   nanobar: Progress | undefined,
   id: string,
@@ -108,23 +159,42 @@ async function request<T>(
   const bar = nanobar ?? progress();
   bar.start(id);
   try {
-    const { data, error, response } = await send();
-    if (error === undefined && data !== undefined) {
-      recordOutcome(id);
-      return data;
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const { data, error, response } = await send();
+        if (error === undefined && data !== undefined) {
+          recordOutcome(id);
+          return data;
+        }
+        if (optional && isAbsence(response)) {
+          apiHealth.update((health) => markAbsent(health, id));
+          throw new NothingPublished(id);
+        }
+        throw new Refused(id, response?.status, error);
+      } catch (error) {
+        // An absence has already been recorded, and nobody is told the backend is
+        // broken over it.
+        if (error instanceof NothingPublished) throw error;
+        /* Asked again only for what the network did, and not while the browser
+           knows it is offline: that ends with an `online` event, and the wake
+           it brings refetches everything anyway. */
+        const again = RETRY_DELAYS_MS[attempt];
+        if (again !== undefined && transient(error) && !offline()) {
+          await pause(again);
+          continue;
+        }
+        recordOutcome(id, error);
+        if (transient(error)) {
+          // The reader's network, not a fault of ours: a warning rather than a
+          // Sentry report, and asked again until it answers (lib/recovery.ts).
+          console.warn(error);
+          noteTransientFailure(id, () => probe(id, send, optional));
+        } else {
+          reportError(error);
+        }
+        throw error;
+      }
     }
-    if (optional && isAbsence(response)) {
-      apiHealth.update((health) => markAbsent(health, id));
-      throw new NothingPublished(id);
-    }
-    throw new Error(`${id} failed: ${JSON.stringify(error)}`);
-  } catch (error) {
-    // An absence has already been recorded, and nobody is told the backend is
-    // broken over it.
-    if (error instanceof NothingPublished) throw error;
-    recordOutcome(id, error);
-    reportError(error);
-    throw error;
   } finally {
     bar.finish(id);
   }

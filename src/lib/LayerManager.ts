@@ -6,6 +6,7 @@ import {
 } from "ol/proj";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
+import { orderAttributions } from "../layers/attributions";
 import GeolocateControl from "./GeolocateControl";
 import { haptic } from "./haptics";
 import { circular as circularPolygon } from "ol/geom/Polygon";
@@ -81,6 +82,19 @@ interface CapabilityMap {
 // the mapRotation setting does -- has to reapply it: OpenLayers keeps the
 // configured extent private, so it cannot be read back off an existing View.
 export const VIEW_EXTENT = [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])];
+
+/**
+ * An attribution control that lists its credits in ATTRIBUTION_ORDER rather
+ * than in the order their layers happened to be added. OpenLayers offers no
+ * option for it, so the one method that collects them is wrapped.
+ */
+function inOrder(control: Attribution): Attribution {
+  type Collecting = { collectSourceAttributions_(frameState: unknown): string[] };
+  const target = control as unknown as Collecting;
+  const collect = target.collectSourceAttributions_.bind(control);
+  target.collectSourceAttributions_ = (frameState) => orderAttributions(collect(frameState));
+  return control;
+}
 
 export class LayerManager {
   options: LayerManagerOptions;
@@ -189,9 +203,9 @@ export class LayerManager {
     let controls;
     if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
-        new Attribution({
+        inOrder(new Attribution({
           collapsible: false,
-        }),
+        })),
         new GeolocateControl({
           onLocate: () => {
             // Asking to be located is asking about yourself again.
@@ -467,6 +481,11 @@ export class LayerManager {
    */
   getCurrentMap(): Map | undefined {
     return this.currentCap ? this.capabilities[this.currentCap]?.map : undefined;
+  }
+
+  /** Catch up the map on screen after a wake; see `Capability.resync`. */
+  resync() {
+    if (this.currentCap) this.capabilities[this.currentCap]?.resync?.();
   }
 
   getCapability(name: string) {

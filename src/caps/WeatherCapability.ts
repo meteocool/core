@@ -5,6 +5,7 @@ import type BaseLayer from "ol/layer/Base";
 import type NanobarWrapper from "../lib/NanobarWrapper";
 import type { CapabilityOptions } from "./options";
 import Capability from "./Capability";
+import { timedFetch } from "../lib/timedFetch";
 
 const WEATHER_DESCRIPTION = `
 Temperature at 2m above ground from the ICON weather model.
@@ -44,7 +45,7 @@ export default class WeatherCapability extends Capability {
 
   reloadTilesWeather() {
     this.nanobar.start(this.url);
-    fetch(this.url)
+    timedFetch(this.url)
       .then((response) => response.json())
       .then((obj) => {
         this.iconLayers = obj;

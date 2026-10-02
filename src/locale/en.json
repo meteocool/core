@@ -59,6 +59,7 @@
   "storm_cells_3d": "Storm Cells 3D",
   "preparing_3d": "Preparing the 3D map…",
   "loading_3d_words": ["Scanning", "Sweeping", "Pinging", "Pulsing", "Beaming", "Echoing", "Ranging", "Tilting", "Rotating", "Backscattering", "Polarizing", "Doppler-shifting", "Dealiasing", "Decluttering", "Calibrating", "Gridding", "Compositing", "Interpolating", "Voxelizing", "Raymarching", "Nowcasting", "Draining battery"],
+  "failed_3d": "The 3D map could not be loaded.",
   "guide_3d": {
     "title": "3D map",
     "open": "Controls and legend",
@@ -118,6 +119,7 @@
   "offline": "Offline",
   "slow_connection": "Slow connection",
   "retry": "Retry",
+  "load_failed": "Could not be loaded.",
   "lightning_in": "Lightning in {place}",
   "lightning_in_view": "Lightning in View",
   "lightning_none": "No recent lightning in this area. ⚡️",

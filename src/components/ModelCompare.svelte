@@ -12,8 +12,10 @@
    * surface. It used to be a solid screen of its own over the whole map, with
    * its own title and close, which read as a different app.
    */
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { fetchForecast, type Forecast } from "../lib/compare/openMeteo";
+  import { isAbort } from "../lib/timedFetch";
+  import { onWake } from "../lib/wakeup";
   import { consensusOf, tierFor, type Consensus } from "../lib/compare/consensus";
   import { modelById } from "../lib/compare/models";
   import { weatherCode } from "../lib/compare/weatherCodes";
@@ -43,20 +45,45 @@
   /** Which day's per-model breakdown is expanded; null for none. */
   let expanded: string | null = null;
 
-  onMount(async () => {
-    /* Resolved once: the panel is built with the map centre it was opened on,
-       so the point never moves underneath it. Not a reactive statement -- the
-       assignment happens in an async callback, which as a `$:` is the shape of
-       an infinite loop even when it is not one. */
-    reverseGeocode(lat, lon, get(locale) ?? "en", "local", "compare").then((name) => { placeName = name; });
+  /**
+   * Called off when the panel closes. Twenty-one models' worth of forecast
+   * went on downloading for a panel nobody had open any more, and held the
+   * loading bar up until it was done -- on a slow link, a long time.
+   */
+  const controller = new AbortController();
+
+  /**
+   * Ask, and again on a retry or a wake: the error used to be where the panel
+   * stayed until it was closed, however long ago the network had come back.
+   */
+  async function load() {
+    loading = true;
+    error = null;
     try {
-      forecast = await fetchForecast({ lat, lon, forecastDays: 7 });
+      forecast = await fetchForecast({ lat, lon, forecastDays: 7, signal: controller.signal });
     } catch (e) {
+      // Our own abort is the panel closing, not open-meteo failing.
+      if (isAbort(e)) return;
       error = e instanceof Error ? e.message : String(e);
       reportError(e);
     } finally {
       loading = false;
     }
+  }
+
+  onMount(() => {
+    /* Resolved once: the panel is built with the map centre it was opened on,
+       so the point never moves underneath it. Not a reactive statement -- the
+       assignment happens in an async callback, which as a `$:` is the shape of
+       an infinite loop even when it is not one. */
+    reverseGeocode(lat, lon, get(locale) ?? "en", "local", "compare").then((name) => { placeName = name; });
+    load();
+  });
+
+  const unsubscribeWake = onWake(() => { if (error && !loading) load(); });
+  onDestroy(() => {
+    unsubscribeWake();
+    controller.abort();
   });
 
   /** Midnight local on the queried day, relative to now, in hours. */
@@ -245,6 +272,11 @@
     color: var(--mc-text-2);
   }
 
+  /* Under the error it retries. */
+  .mc-retry {
+    margin-top: 12px;
+  }
+
   footer a {
     color: var(--mc-accent);
   }
@@ -261,7 +293,10 @@
   {#if loading}
     <div class="status">{$_("compare.loading")}</div>
   {:else if error}
-    <div class="status">{$_("compare.error")}<br />{error}</div>
+    <div class="status">
+      {$_("compare.error")}<br />{error}
+      <br /><button type="button" class="mc-retry" on:click={() => load()}>{$_("retry")}</button>
+    </div>
   {:else}
     <!-- The spread first: the point of comparing models is the disagreement,
          which is a curve over time, not a column of daily numbers. -->

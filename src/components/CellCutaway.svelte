@@ -48,6 +48,8 @@ import type { Cutaway } from "../lib/cellCutaway";
 import { cutRotationDeg, cutSweepDeg, radarColormap } from "../stores";
 import { stopSweep } from "../lib/cutSweep";
 import { cutLabel, cutSnapLabels, normaliseCut } from "../lib/cutAngle";
+import { isAbort } from "../lib/timedFetch";
+import { onWake } from "../lib/wakeup";
 import type { CellVolume } from "../api";
 
 export let volume: CellVolume;
@@ -67,6 +69,11 @@ export let height = 210;
 let canvas: HTMLCanvasElement;
 let cutaway: Cutaway | null = null;
 let failed: string | null = null;
+/**
+ * Whether what failed was the download, which a better network can fix -- as
+ * against the GPU, which no number of retries will give WebGL2.
+ */
+let retryable = false;
 let unopenable = false;
 let frame = 0;
 let controller: AbortController | null = null;
@@ -221,6 +228,39 @@ function onKey(event: KeyboardEvent): void {
   event.preventDefault();
 }
 
+/**
+ * Fetch the volume, and draw it once the canvas is there to draw into.
+ *
+ * Again on a retry. A volume that did not come down on a train used to leave
+ * "unavailable" in the panel until it was closed and opened again, long after
+ * the network had come back. The button is the reader's way to ask again; a
+ * wake (lib/wakeup.ts) is the app's, so a panel left open through the tunnel
+ * has the storm in it by the time anyone looks.
+ */
+function load(): void {
+  controller?.abort();
+  controller = new AbortController();
+  failed = null;
+  retryable = false;
+  loadCutaway(volume, controller.signal)
+    .then(async (loaded) => {
+      cutaway = loaded;
+      // The canvas is inside `{#if cutaway}`, so it does not exist until
+      // Svelte has flushed that assignment. `tick` is the only thing that
+      // promises it has: a microtask of our own races the framework's.
+      await tick();
+      if (canvas) start(loaded);
+    })
+    .catch((error: Error) => {
+      // Our own abort is the panel closing, not the volume failing.
+      if (isAbort(error)) return;
+      failed = error.message;
+      retryable = true;
+    });
+}
+
+const unsubscribeWake = onWake(() => { if (retryable) load(); });
+
 onMount(() => {
   still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (still) spin = Math.PI * 0.25;
@@ -234,22 +274,11 @@ onMount(() => {
     unopenable = true;
     return;
   }
-  controller = new AbortController();
-  loadCutaway(volume, controller.signal)
-    .then(async (loaded) => {
-      cutaway = loaded;
-      // The canvas is inside `{#if cutaway}`, so it does not exist until
-      // Svelte has flushed that assignment. `tick` is the only thing that
-      // promises it has: a microtask of our own races the framework's.
-      await tick();
-      if (canvas) start(loaded);
-    })
-    .catch((error: Error) => {
-      if (error.name !== "AbortError") failed = error.message;
-    });
+  load();
 });
 
 onDestroy(() => {
+  unsubscribeWake();
   controller?.abort();
   if (frame) cancelAnimationFrame(frame);
   raymarcher?.dispose();
@@ -269,7 +298,12 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
 {#if unopenable}
   <p class="unavailable">{$_("storm.volume.not_openable")}</p>
 {:else if failed}
-  <p class="unavailable">{$_("storm.volume.unavailable")}</p>
+  <div class="failed">
+    <p class="unavailable">{$_("storm.volume.unavailable")}</p>
+    {#if retryable}
+      <button type="button" class="mc-retry small" on:click={() => load()}>{$_("retry")}</button>
+    {/if}
+  </div>
 {:else if cutaway}
   <figure>
     <canvas
@@ -301,6 +335,13 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
       {$_("storm.cut.cutaway_caption", { values: { sites: cutaway.header.sites.join(", "), cut } })}
     </figcaption>
   </figure>
+{:else}
+  <!-- The volume on its way down, in the space it will take. Nothing there at
+       all read as a storm with nothing inside it, and everything under the
+       panel moved down when the picture arrived. -->
+  <div class="waiting" style="width: {width}px; height: {height}px;">
+    <sl-spinner></sl-spinner>
+  </div>
 {/if}
 
 <style>
@@ -334,4 +375,11 @@ figcaption {
   font-size: 0.75rem;
   opacity: 0.6;
 }
+.waiting {
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+}
+.waiting sl-spinner { font-size: 22px; --track-width: 2.5px; }
+.failed { display: flex; align-items: center; gap: 0.5rem; }
 </style>

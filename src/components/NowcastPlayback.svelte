@@ -40,6 +40,7 @@ import {
 import { reverseGeocode } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
 import DryOutlook from "./DryOutlook.svelte";
+import { onWake } from "../lib/wakeup";
 import ChartSkeleton from "./ChartSkeleton.svelte";
 
 export let cap: RadarCapability;
@@ -202,13 +203,20 @@ $: if ($bottomToolbarMode === "player") chartDismissed = false;
  * Dismissal lasts as long as the dry spell does, as the chart's lasts as long
  * as there is something to plot. It stands aside while the player is open,
  * and comes back when it closes unless it was dismissed. A failed forecast
- * fetch takes it down for the session.
+ * fetch takes it down until the page next wakes -- the network back, the
+ * page looked at again -- and at most once a minute: for the session, as it
+ * was, one dropped request on a train lost the strip until a reload.
  */
 const covers = (point: [number, number] | null): boolean => point !== null
   && radarExtents4326.some(([minLon, minLat, maxLon, maxLat]) => (
     point[1] >= minLon && point[1] <= maxLon && point[0] >= minLat && point[0] <= maxLat));
 let outlookDismissed = false;
 let outlookUnavailable = false;
+let outlookFailedAt = 0;
+const OUTLOOK_RETRY_MS = 60_000;
+subscriptions.push(onWake(() => {
+  if (outlookUnavailable && Date.now() - outlookFailedAt >= OUTLOOK_RETRY_MS) outlookUnavailable = false;
+}));
 $: outlookShowable = $dryAtUser
   && $latLon !== null
   && covers($latLon)
@@ -502,7 +510,9 @@ onMount(async () => {
     console.log(`NowcastPlayback observed event ${subject}`);
     if (subject === "grid" && data) {
       gridConfig = data as GridConfig;
-      gridLoading = false;
+      // The minute's re-announcement of a grid sampled before the last tap is
+      // not the answer the skeleton is waiting for; see `sampledHere`.
+      gridLoading = !cap.sampledHere();
       showOpenControls = true;
       _latest = cap.getMostRecentObservation();
       takeFrameRequest();
@@ -943,7 +953,7 @@ onDestroy(() => {
     lon={$latLon[1]}
     collapsed={$bottomToolbarMode !== "player"}
     on:dismiss={() => { outlookDismissed = true; }}
-    on:unavailable={() => { outlookUnavailable = true; }} />
+    on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
 {/if}
 
 <!-- Collapsed: the forecast floats above the bar as a strip, the same timeline

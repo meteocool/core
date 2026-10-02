@@ -41,6 +41,9 @@ export default class StrikeManagerV2 {
   // the schema describes as "in projected metres, as the frontend expects".
   // See the note in StrikeManager.
   addStrike(lon: number, lat: number, timestamp: number) {
+    // A backfill after a resync asks again for strikes already drawn; a
+    // second feature under the same key would never be evicted.
+    if (this.strikes[timestamp.toString()]) return;
     const strike = new Feature(new Point([lon, lat]));
     strike.set(TIME_KEY, timestamp);
     this.strikes[timestamp.toString()] = strike;

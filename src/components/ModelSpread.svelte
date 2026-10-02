@@ -21,6 +21,7 @@ import type { Chart } from "chart.js";
 import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
 import { drawSpread } from "../lib/compare/spreadChart";
 import { stepAt } from "../lib/compare/outlook";
+import { onWake } from "../lib/wakeup";
 import Segmented from "./Segmented.svelte";
 
 export let lat: number;
@@ -91,14 +92,21 @@ async function load(which: Variable) {
   const cached = fetched[which];
   if (cached) {
     data = cached;
+    // The other variable's failure is not this one's.
+    error = null;
     loading = false;
     draw();
     return;
   }
   loading = true;
+  // Back to the dimmed plot while it asks, on a retry as on a switch.
+  error = null;
   try {
     // Always the full week, whatever the range toggle says: the long view is
-    // then free, and one variable is one request for the session.
+    // then free, and one variable is one request for the session. No signal:
+    // one would opt it out of the cache the map's dry-day strip shares with
+    // this (see fetchHourlySeries), and an answer that lands after the panel
+    // has closed is the next one's.
     const series = await fetchHourlySeries({
       lat, lon, forecastDays: 7, variable: which,
     });
@@ -109,7 +117,8 @@ async function load(which: Variable) {
     data = series;
     error = null;
   } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
+    // Nor may its failure: the error used to replace a plot that had loaded.
+    if (which === variable) error = e instanceof Error ? e.message : String(e);
   } finally {
     if (which === variable) loading = false;
     draw();
@@ -117,12 +126,19 @@ async function load(which: Variable) {
 }
 
 $: load(variable);
+
+/* Failed, it used to stay failed until the panel was closed; a wake asks again. */
+const unsubscribeWake = onWake(() => { if (error) load(variable); });
+
 /* Redrawing on a range change is a slice, not a fetch. Named so the reactive
    block has something to depend on without re-running for anything else --
    the language included, since the axis labels are baked in at draw time. */
 $: if (data && hours && $locale) draw();
 
-onDestroy(() => chart?.destroy());
+onDestroy(() => {
+  unsubscribeWake();
+  chart?.destroy();
+});
 
 $: modelCount = data ? Object.keys(data.series).length : 0;
 </script>
@@ -197,6 +213,11 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
     font: 400 12px/1.4 var(--mc-font);
     color: var(--mc-text-2);
   }
+
+  /* Beside the error line it retries. */
+  .mc-retry {
+    margin-inline-start: 6px;
+  }
 </style>
 
 <div class="wrap">
@@ -215,7 +236,10 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
   </div>
 
   {#if error}
-    <p class="error">{$_("compare.spread.error")} {error}</p>
+    <p class="error">
+      {$_("compare.spread.error")} {error}
+      <button type="button" class="mc-retry small" on:click={() => load(variable)}>{$_("retry")}</button>
+    </p>
   {:else}
     <div class="plot" class:loading>
       <canvas use:build></canvas>

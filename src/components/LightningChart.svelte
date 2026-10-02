@@ -28,6 +28,7 @@ import { fetchLightningStats } from "../api";
 import { LightningColors } from "../colormaps";
 import { mapTapped, sharedActiveCap } from "../stores";
 import { reverseGeocode, scaleForZoom } from "../lib/reverseGeocode";
+import { onWake } from "../lib/wakeup";
 import DismissableStrip from "./DismissableStrip.svelte";
 import ChartSkeleton from "./ChartSkeleton.svelte";
 
@@ -119,6 +120,18 @@ function redraw(data: number[]) {
 /** How long to wait for a map that exists but has not been laid out yet. */
 const LAYOUT_RETRY_MS = 250;
 
+/**
+ * Which request the strip is waiting for.
+ *
+ * A pan that settles while the last box's counts are still on their way asks
+ * for the new box alongside, and nothing said which answer had to land last:
+ * on a slow link the old box's could, and the strip drew them under the new
+ * one's name. Each request takes a number, and only the newest is drawn. A
+ * movestart takes one as well, because whatever was out then was asked about
+ * a view that is going away.
+ */
+let statsToken = 0;
+
 async function update() {
   const polygon = viewportRing();
   if (!polygon) {
@@ -132,17 +145,19 @@ async function update() {
     return;
   }
   resolvePlace();
+  const token = ++statsToken;
   try {
     const data = await fetchLightningStats(polygon);
+    if (token !== statsToken) return;
     unavailable = false;
     noLightning = data.bins.reduce((total, bin) => total + bin, 0) === 0;
     if (!noLightning) redraw(data.bins);
   } catch {
+    if (token !== statsToken) return;
     noLightning = true;
     unavailable = true;
   } finally {
-    delayedLoader = null;
-    loading = false;
+    if (token === statsToken) loading = false;
   }
 }
 
@@ -253,15 +268,35 @@ function attachMap(map: Map) {
         clearTimeout(delayedLoader);
         delayedLoader = null;
       }
+      statsToken += 1;
       loading = true;
     }),
     map.on("moveend", () => {
-      if (delayedLoader) return;
-      delayedLoader = setTimeout(() => update(), 650);
+      /* Forgotten as soon as it fires. It used to be held until the request it
+         started had come back, so the handle meant two things: a moveend in
+         that window was dropped as though a load were already pending, and the
+         request's `finally` cleared whatever timer was pending by then, which
+         the next movestart could no longer cancel. */
+      if (delayedLoader) clearTimeout(delayedLoader);
+      delayedLoader = setTimeout(() => { delayedLoader = null; update(); }, 650);
     }),
   ];
   update();
 }
+
+/*
+ * Asked again on a wake. A failed count stayed "unavailable" until the map was
+ * moved, and a good one stayed whatever the half hour had been when it was
+ * asked: the axis says "the last 30 minutes", and after a phone has been in a
+ * pocket those are other minutes. A failed strip goes back to the skeleton
+ * while it asks; a good one stays up until the newer answer replaces it.
+ * Only while attached -- without the layer up there is no view to ask about.
+ */
+subscriptions.push(onWake(() => {
+  if (!attachedMap) return;
+  if (unavailable) loading = true;
+  update();
+}));
 
 $: {
   if ($sharedActiveCap === "lightning") {

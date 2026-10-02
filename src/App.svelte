@@ -10,6 +10,7 @@ import type { Socket } from "socket.io-client";
 import { fromLonLat, transformExtent } from "ol/proj";
 import Map from "./components/Map.svelte";
 import MapLoading from "./components/MapLoading.svelte";
+import Lazy from "./components/Lazy.svelte";
 import Guide3D from "./components/Guide3D.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -28,7 +29,7 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cells3dLoading, cells3dVisible, cycloneLayerVisible, europeCompositeVisible, lastFocus,
+  cellLayerVisible, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, europeCompositeVisible, lastFocus,
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
@@ -44,7 +45,8 @@ import "@shoelace-style/shoelace/dist/themes/dark.css";
 // Last on purpose: it re-points Shoelace's panel, overlay and primary tokens.
 import "./glass.css";
 import { websocketBaseUrl } from "./urls";
-import { onWake, wake, whenVisible } from "./lib/wakeup";
+import { onWake, wake, whenVisible, wokeWithin } from "./lib/wakeup";
+import { retryFailedTiles } from "./lib/tileStatus";
 import { installScrollbars } from "./lib/scrollbars";
 import { fetchCurrentVolumes, fetchLightningCache, fetchMesocyclones } from "./api";
 import type { CurrentVolumes, RadarVolume } from "./api";
@@ -74,6 +76,8 @@ const loadCloudDetails = () => import("./components/CloudDetails.svelte");
 // The model comparison too: its charts and the forecast fetch are for the
 // few who open it.
 const loadModelCompare = () => import("./components/ModelCompare.svelte");
+const loadCloudSheet = () => Promise.all([loadCellSheet(), loadCloudDetails()]);
+const loadCompare = (sheet: boolean) => () => Promise.all([loadModelCompare(), sheet ? loadCellSheet() : null]);
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import PointMenu from "./components/PointMenu.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
@@ -286,14 +290,26 @@ lightningLayerVisible.subscribe((value) => {
 lightningLayerVisible.set(window.settings.getBoolean("layerLightning"));
 
 const nb = progress();
+/** How recent a wake makes a socket reconnect's own resync redundant. */
+const SOCKET_RESYNC_QUIET_MS = 15_000;
 // WebSocket first: socket.io's default opens a long-polling transport and
 // upgrades it, which is three requests and a sticky-session hazard before the
-// first poke. Polling stays as the fallback for a network that blocks it.
+// first poke. Polling is the fallback for a network that blocks it -- only
+// with `tryAllTransports`, without which engine.io opens the first transport
+// on every attempt and a network that blocks WebSockets never gets a poke.
 const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`, {
   transports: ["websocket", "polling"],
+  tryAllTransports: true,
 });
+/* A socket that comes back has missed whatever was poked while it was gone,
+   and nothing else says so: the map would keep the frames it had until the
+   next poke, minutes away. So a reconnect resyncs, unless a wake has just
+   done that -- coming back to the page reconnects the socket too. */
+let socketConnectedBefore = false;
 radarSocketIO.on("connect", () => {
   console.log("radar/forecast websocket connected!");
+  if (socketConnectedBefore && !wokeWithin(SOCKET_RESYNC_QUIET_MS)) wake("socket reconnected");
+  socketConnectedBefore = true;
 });
 
 const strikemgr = new StrikeManager(1000, lightningSource);
@@ -785,6 +801,14 @@ const unsubscribeWake = onWake(() => {
      everything else, so the socket can sit disconnected for minutes after we
      are back. The poke that refreshes the map comes over it. */
   if (radarSocketIO.disconnected) radarSocketIO.connect();
+  /* The cells follow the map and the socket, and neither moves for a page
+     that was away or a fetch that failed: nothing else would ask again. */
+  cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+  /* The map on screen catches up on what only switching to it fetches, and
+     the tiles lost while the network was down are asked for again: neither
+     OpenLayers nor MapLibre retries a tile that failed. */
+  lm.resync();
+  if (retryFailedTiles()) lm.forEachMap((map) => map.render());
   reloadLightning();
   reloadCyclones();
   void reloadCloudHints();
@@ -948,13 +972,13 @@ if (postInitCb) postInitCb(lm);
 <!-- The glass veil over the map while the 3D map is brought up for the
      first time; gated on the active map as well, so switching away during
      the bring-up takes it with it. -->
-{#if $cells3dLoading && $sharedActiveCap === "cells3d"}
-  <MapLoading />
+{#if ($cells3dLoading || $cells3dFailed) && $sharedActiveCap === "cells3d"}
+  <MapLoading failed={$cells3dFailed} onretry={() => cells3d?.retry()} />
 {/if}
 <!-- The 3D map's controls and legend, once it is up. A desktop's: the apps
      draw their own chrome, and a toolbar asked away is a display that wants
      none of this either. -->
-{#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$smallScreen && !dd.isApp() && $toolbarVisible === "yes"}
+{#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && !$smallScreen && !dd.isApp() && $toolbarVisible === "yes"}
   <Guide3D />
 {/if}
 <PointMenu layerManager={lm} />
@@ -962,15 +986,15 @@ if (postInitCb) postInitCb(lm);
 
 {#if $selectedCell && $cellDetails}
   {#if $smallScreen}
-    {#await loadCellSheet() then { default: CellSheet }}
-      <svelte:component this={CellSheet} track={$selectedCell} />
-    {/await}
+    <Lazy load={loadCellSheet} floating let:module>
+      <svelte:component this={module.default} track={$selectedCell} />
+    </Lazy>
   {:else}
     <div class="cell-details-panel mc-drawer">
       <div class="scroll">
-        {#await loadCellDetails() then { default: CellDetails }}
-          <svelte:component this={CellDetails} track={$selectedCell} />
-        {/await}
+        <Lazy load={loadCellDetails} let:module>
+          <svelte:component this={module.default} track={$selectedCell} />
+        </Lazy>
       </div>
     </div>
   {/if}
@@ -985,19 +1009,19 @@ if (postInitCb) postInitCb(lm);
        (see lib/open3d.ts), so the flat map holds one just for the moment a
        tapped tag takes to switch: one sheet, which takes its resting shape
        when the map arrives, rather than a card replaced by a sheet. -->
-  {#await Promise.all([loadCellSheet(), loadCloudDetails()]) then [{ default: CellSheet }, { default: CloudDetails }]}
-    <svelte:component this={CellSheet} fitAtRest={cutOpen} onClose={closeVolume} let:expanded let:expand>
-      <svelte:component this={CloudDetails} cloud={$selectedVolume} compact={cutOpen} {expanded} {expand} />
+  <Lazy load={loadCloudSheet} floating let:module>
+    <svelte:component this={module[0].default} fitAtRest={cutOpen} onClose={closeVolume} let:expanded let:expand>
+      <svelte:component this={module[1].default} cloud={$selectedVolume} compact={cutOpen} {expanded} {expand} />
     </svelte:component>
-  {/await}
+  </Lazy>
 {:else if $selectedVolume}
   <!-- A storm core with no KONRAD3D track, in the same popup as a cell's
        details: the same panel, only with less to say. -->
   <div class="cell-details-panel mc-drawer">
     <div class="scroll">
-      {#await loadCloudDetails() then { default: CloudDetails }}
-        <svelte:component this={CloudDetails} cloud={$selectedVolume} />
-      {/await}
+      <Lazy load={loadCloudDetails} let:module>
+        <svelte:component this={module.default} cloud={$selectedVolume} />
+      </Lazy>
     </div>
   </div>
 {:else if $modelCompareAt}
@@ -1006,7 +1030,7 @@ if (postInitCb) postInitCb(lm);
        desktop. Keyed on the place and range: the panel fetches once, on
        mount. -->
   {#key `${$modelCompareAt.lat},${$modelCompareAt.lon},${$modelCompareAt.hours ?? 24}`}
-    {#await Promise.all([loadModelCompare(), $smallScreen ? loadCellSheet() : null]) then [{ default: ModelCompare }, sheet]}
+    <Lazy load={loadCompare($smallScreen)} floating let:module={[{ default: ModelCompare }, sheet]}>
       {#if sheet}
         <svelte:component this={sheet.default} onClose={closeCompare}>
           <svelte:component
@@ -1028,7 +1052,7 @@ if (postInitCb) postInitCb(lm);
           </div>
         </div>
       {/if}
-    {/await}
+    </Lazy>
   {/key}
 {/if}
 

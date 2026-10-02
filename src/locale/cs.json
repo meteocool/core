@@ -59,6 +59,7 @@
   "storm_cells_3d": "Bouřkové buňky 3D",
   "preparing_3d": "Připravuje se 3D mapa…",
   "loading_3d_words": ["Skenování", "Pingování", "Pulzování", "Zaměřování", "Otáčení", "Naklánění", "Zpětný rozptyl", "Polarizování", "Filtrování rušení", "Kalibrování", "Interpolování", "Voxelizování", "Vybíjení baterie"],
+  "failed_3d": "3D mapu se nepodařilo načíst.",
   "guide_3d": {
     "title": "3D mapa",
     "open": "Ovládání a legenda",
@@ -118,6 +119,7 @@
   "offline": "Offline",
   "slow_connection": "Pomalé připojení",
   "retry": "Zkusit znovu",
+  "load_failed": "Nepodařilo se načíst.",
   "lightning_in": "Blesky v {place}",
   "lightning_in_view": "Blesky ve výřezu mapy",
   "lightning_none": "V této oblasti žádné nedávné blesky. ⚡️",
