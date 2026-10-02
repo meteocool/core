@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hasTile } from "../../src/lib/tileIndex.ts";
+import { deepestZoom, hasTile, sourceTile } from "../../src/lib/tileIndex.ts";
 
 /**
  * The same example the encoder's test in meteocool/ng uses: zoom 5 is a 2x2
@@ -41,4 +41,26 @@ test("bits are read row major, most significant first, across byte boundaries", 
   assert.equal(hasTile(wide, 3, 2, 2), true);
   assert.equal(hasTile(wide, 3, 1, 2), false);
   assert.equal(hasTile(wide, 3, 0, 0), false);
+});
+
+test("a frame goes as deep as its index does", () => {
+  // The observation is tiled to 9, a forecast step to 8; an older frame says nothing.
+  assert.equal(deepestZoom(index), 5);
+  assert.equal(deepestZoom({ ...index, "9": index["5"] }), 9);
+  assert.equal(deepestZoom(null), undefined);
+  assert.equal(deepestZoom({}), undefined);
+});
+
+test("within a frame's depth a tile comes from itself", () => {
+  assert.deepEqual(sourceTile(index, 5, 16, 11), { z: 5, x: 16, y: 11, scale: 1, column: 0, row: 0 });
+  assert.deepEqual(sourceTile(null, 9, 271, 170), { z: 9, x: 271, y: 170, scale: 1, column: 0, row: 0 });
+});
+
+test("past it, from the part of its ancestor that covers it", () => {
+  // A forecast step tiled to 8, asked for zoom 9: each z8 tile is two by two z9s.
+  const forecast = { "8": { x: 130, y: 80, w: 10, h: 10, bits: "" } };
+  assert.deepEqual(sourceTile(forecast, 9, 271, 170), { z: 8, x: 135, y: 85, scale: 2, column: 1, row: 0 });
+  assert.deepEqual(sourceTile(forecast, 9, 270, 171), { z: 8, x: 135, y: 85, scale: 2, column: 0, row: 1 });
+  // Two levels past, four by four.
+  assert.deepEqual(sourceTile(forecast, 10, 543, 343), { z: 8, x: 135, y: 85, scale: 4, column: 3, row: 3 });
 });
