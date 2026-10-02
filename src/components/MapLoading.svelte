@@ -24,11 +24,19 @@
  * the English one: a word that is fun in one language is a mouthful in another.
  * A bring-up held up by a slow network moves on to another word every few
  * seconds, so a long wait reads as the app still working rather than stuck.
+ *
+ * And one that failed -- MapLibre could not be fetched -- says so, with a
+ * way to try again, instead: a word cycling every two seconds over a map
+ * that will never come is the one thing worse than a spinner that stops.
  */
 import { onDestroy, onMount } from "svelte";
 import { fade } from "svelte/transition";
 import { _, json } from "svelte-i18n";
 import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
+
+/** Whether the bring-up failed; see `cells3dFailed`. */
+export let failed = false;
+export let onretry: () => void = () => {};
 
 /**
  * The last word shown, kept across reloads: the veil comes up once per page,
@@ -60,7 +68,7 @@ $: words = (($json("loading_3d_words") as unknown) ?? []) as string[];
 $: usable = Array.isArray(words) ? words.filter((w) => typeof w === "string" && w) : [];
 /** A fresh word for this tick; the tick is the argument only so it re-runs. */
 const wordFor = (_tick: number, list: string[]) => pick(list);
-$: word = wordFor(tick, usable);
+$: word = failed ? null : wordFor(tick, usable);
 </script>
 
 <style>
@@ -108,6 +116,11 @@ $: word = wordFor(tick, usable);
     white-space: nowrap;
   }
 
+  .mc-retry {
+    flex: none;
+    margin-inline-start: 4px;
+  }
+
   /* sl-spinner props: --track-width --track-color --indicator-color --speed */
   .spinner {
     --track-width: 2.5px;
@@ -138,14 +151,19 @@ $: word = wordFor(tick, usable);
 
 <div class="veil" out:fade={{ duration: 420 }} role="status" aria-live="polite">
   <div class="capsule">
-    <sl-spinner class="spinner"></sl-spinner>
-    {#if word}
-      {#key word}
-        <span aria-hidden="true" in:fade={{ duration: 180 }}>{word}…</span>
-      {/key}
-      <span class="sr-only">{$_("preparing_3d")}</span>
+    {#if failed}
+      <span>{$_("failed_3d")}</span>
+      <button type="button" class="mc-retry" on:click={onretry}>{$_("retry")}</button>
     {:else}
-      <span>{$_("preparing_3d")}</span>
+      <sl-spinner class="spinner"></sl-spinner>
+      {#if word}
+        {#key word}
+          <span aria-hidden="true" in:fade={{ duration: 180 }}>{word}…</span>
+        {/key}
+        <span class="sr-only">{$_("preparing_3d")}</span>
+      {:else}
+        <span>{$_("preparing_3d")}</span>
+      {/if}
     {/if}
   </div>
 </div>

@@ -11,6 +11,7 @@ import {
 import { shouldShowNetworkBanner } from "../lib/networkBanner";
 // The diagnostics panel is loaded when it is opened; it is a reader of everything and needed by nothing.
 const loadConnectionInfo = () => import("./ConnectionInfo.svelte");
+import Lazy from "./Lazy.svelte";
 import type RadarCapability from "../caps/RadarCapability";
 
 export let cap: RadarCapability;
@@ -292,7 +293,7 @@ onDestroy(() => {
 {/if}
 
 {#if showInfo}
-  {#await loadConnectionInfo() then { default: ConnectionInfo }}
-    <svelte:component this={ConnectionInfo} {cap} on:close={() => { showInfo = false; }} />
-  {/await}
+  <Lazy load={loadConnectionInfo} floating let:module>
+    <svelte:component this={module.default} {cap} on:close={() => { showInfo = false; }} />
+  </Lazy>
 {/if}

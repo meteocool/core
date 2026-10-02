@@ -2,6 +2,7 @@ import ImageTileSource from "ol/source/ImageTile";
 import { hasTile } from "../lib/tileIndex";
 import { recolourImage, recolouringFor } from "./recolour";
 import type { TileIndex } from "../lib/tileIndex";
+import { RequestStalled } from "../lib/timedFetch";
 
 /**
  * Tile sources that consult a frame's tile index before asking the network.
@@ -24,11 +25,50 @@ export function fillTemplate(template: string, z: number, x: number, y: number):
     .replace("{y}", String(y));
 }
 
-export function loadImage(url: string, crossOrigin: string | null): Promise<HTMLImageElement> {
+/**
+ * How long one tile may take, whole, before it counts as failed.
+ *
+ * An image says nothing until it is done, so this is a ceiling rather than
+ * timedFetch's stall: generous enough for a tile on a slow link, short
+ * enough that a tile sent into a dead connection gives back its place in
+ * OpenLayers' queue. That queue loads sixteen at a time, and sixteen tiles
+ * that never answer were a map that never loaded another one.
+ */
+export const TILE_TIMEOUT_MS = 30_000;
+
+export function loadImage(
+  url: string,
+  crossOrigin: string | null,
+  signal?: AbortSignal,
+): Promise<HTMLImageElement> {
   const image = new Image();
   if (crossOrigin !== null) image.crossOrigin = crossOrigin;
-  image.src = url;
-  return image.decode().then(() => image);
+  return new Promise((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const settle = () => {
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+      signal?.removeEventListener("abort", cancel);
+    };
+    // Emptying `src` is what calls the request off.
+    const give = (reason: unknown) => {
+      settle();
+      image.src = "";
+      reject(reason);
+    };
+    const cancel = () => give(signal?.reason);
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    signal?.addEventListener("abort", cancel, { once: true });
+    timer = setTimeout(() => give(new RequestStalled(url, TILE_TIMEOUT_MS)), TILE_TIMEOUT_MS);
+    image.src = url;
+    image.decode().then(
+      () => { settle(); resolve(image); },
+      (error) => { settle(); reject(error); },
+    );
+  });
 }
 
 let blank: HTMLCanvasElement | null = null;
@@ -109,11 +149,12 @@ export default class IndexedTileSource extends ImageTileSource {
     super.setUrl(url);
     const gate = this.indexFor(url);
     const table = recolouringFor(this.palette ?? "classic");
-    if (!gate && !table) return; // nothing to do: OpenLayers' own loader, as before
     const crossOrigin = this.crossOriginValue;
-    this.setLoader(async (z: number, x: number, y: number) => {
+    // Ours even with nothing to gate or recolour, for the ceiling on each tile
+    // that OpenLayers' own loader does not have; see TILE_TIMEOUT_MS.
+    this.setLoader(async (z: number, x: number, y: number, options?: { signal?: AbortSignal }) => {
       if (gate && !present(gate, z, x, y)) return blankTile();
-      const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin);
+      const image = await loadImage(fillTemplate(url, z, x, y), crossOrigin, options?.signal);
       return table ? recolourImage(image, table) : image;
     });
     // Cached by key, and the key `super.setUrl` gave is the bare URL: without

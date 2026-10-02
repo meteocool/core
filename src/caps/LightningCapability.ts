@@ -79,10 +79,24 @@ export default class LightningCapability extends Capability {
     this.socketio?.on("network", this.networkHandler);
   }
 
-  async fetchLightning() {
+  /**
+   * Only ever fetched on being shown, so a first fetch that failed left the
+   * map without strikes -- and without the socket's live ones, which hang off
+   * the first success -- until the reader switched away and back.
+   */
+  resync() {
+    void this.fetchLightning(true);
+    void this.rain.refresh(this.nb);
+  }
+
+  /** `backfill`: the tile set may be unchanged, but strikes since it may have been missed. */
+  async fetchLightning(backfill = false) {
     const data = await fetchLightningLayer(this.nb).catch(() => null);
     if (!data) return;
-    if (this.currentLayer && this.currentLayer.get("tile_id") === data.tile_id) return;
+    if (this.currentLayer && this.currentLayer.get("tile_id") === data.tile_id) {
+      if (backfill) void this.fetchRemaining(data.most_recent_strike);
+      return;
+    }
 
     const newLayer = lightningLayerGL(data.tile_id);
     newLayer.set("tile_id", data.tile_id);

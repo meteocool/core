@@ -25,6 +25,8 @@ import { loadCutaway } from "../lib/cellCutaway";
 import type { Cutaway } from "../lib/cellCutaway";
 import { createRaymarcher, type Raymarcher } from "../lib/volumeRaymarch";
 import { radarColormap } from "../stores";
+import { isAbort } from "../lib/timedFetch";
+import { onWake } from "../lib/wakeup";
 import type { CellVolume } from "../api";
 
 export let volume: CellVolume;
@@ -51,6 +53,8 @@ const REST_AT = 0.6;
 let canvas: HTMLCanvasElement;
 let cutaway: Cutaway | null = null;
 let failed: string | null = null;
+/** Whether it was the download that failed rather than WebGL2; see CellCutaway. */
+let retryable = false;
 let raymarcher: Raymarcher | null = null;
 let controller: AbortController | null = null;
 let still = false;
@@ -207,9 +211,12 @@ function onKey(event: KeyboardEvent): void {
   event.preventDefault();
 }
 
-onMount(() => {
-  still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** Fetch the volume, and again on a retry or a wake; see CellCutaway's `load`. */
+function load(): void {
+  controller?.abort();
   controller = new AbortController();
+  failed = null;
+  retryable = false;
   loadCutaway(volume, controller.signal)
     .then(async (loaded) => {
       cutaway = loaded;
@@ -218,11 +225,22 @@ onMount(() => {
       if (canvas) start(loaded);
     })
     .catch((error: Error) => {
-      if (error.name !== "AbortError") failed = error.message;
+      // Our own abort is the panel closing, not the volume failing.
+      if (isAbort(error)) return;
+      failed = error.message;
+      retryable = true;
     });
+}
+
+const unsubscribeWake = onWake(() => { if (retryable) load(); });
+
+onMount(() => {
+  still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  load();
 });
 
 onDestroy(() => {
+  unsubscribeWake();
   controller?.abort();
   if (frame) cancelAnimationFrame(frame);
   raymarcher?.dispose();
@@ -238,7 +256,12 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
 </script>
 
 {#if failed}
-  <p class="unavailable">{$_("storm.volume.unavailable")}</p>
+  <div class="failed">
+    <p class="unavailable">{$_("storm.volume.unavailable")}</p>
+    {#if retryable}
+      <button type="button" class="mc-retry small" on:click={() => load()}>{$_("retry")}</button>
+    {/if}
+  </div>
 {:else if cutaway}
   <figure class="cappi">
     <div class="stage" style="height: {height}px">
@@ -271,6 +294,12 @@ const at = (km: number, top: number) => `${(1 - km / top) * 100}%`;
     </div>
     <figcaption>{$_("storm.volume.cappi_caption", { values: { km: heightKm.toFixed(1) } })}</figcaption>
   </figure>
+{:else}
+  <!-- On its way down: the stage it will be drawn on, so the radars below do
+       not jump when it lands; see CellCutaway. -->
+  <div class="stage waiting" style="height: {height}px">
+    <sl-spinner></sl-spinner>
+  </div>
 {/if}
 
 <style>
@@ -322,4 +351,7 @@ canvas:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 }
 figcaption { font: 400 12px/1.35 var(--mc-font); color: var(--mc-text-2); margin-top: 8px; }
 .unavailable { font-size: 0.75rem; opacity: 0.6; }
+.waiting { align-items: center; justify-content: center; }
+.waiting sl-spinner { font-size: 22px; --track-width: 2.5px; }
+.failed { display: flex; align-items: center; gap: 0.5rem; }
 </style>

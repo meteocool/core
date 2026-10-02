@@ -59,6 +59,7 @@
   "storm_cells_3d": "Onweerscellen 3D",
   "preparing_3d": "3D-kaart wordt voorbereid…",
   "loading_3d_words": ["Scannen", "Aftasten", "Pingen", "Pulseren", "Peilen", "Roteren", "Kantelen", "Terugverstrooien", "Polariseren", "Ontvouwen", "Ontstoren", "Kalibreren", "Rasteren", "Interpoleren", "Voxeliseren", "Nowcasten", "Batterij leegtrekken"],
+  "failed_3d": "De 3D-kaart kon niet worden geladen.",
   "guide_3d": {
     "title": "3D-kaart",
     "open": "Bediening en legenda",
@@ -118,6 +119,7 @@
   "offline": "Offline",
   "slow_connection": "Trage verbinding",
   "retry": "Opnieuw proberen",
+  "load_failed": "Kon niet worden geladen.",
   "lightning_in": "Bliksem in {place}",
   "lightning_in_view": "Bliksem in beeld",
   "lightning_none": "Geen recente bliksem in dit gebied. ⚡️",

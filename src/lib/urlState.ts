@@ -23,7 +23,7 @@
 import { get } from "svelte/store";
 import type { Readable } from "svelte/store";
 import { fromLonLat } from "ol/proj";
-import { fetchCellTrack } from "../api";
+import { fetchCellTrack, NothingPublished } from "../api";
 import type { CellTrack, Progress } from "../api";
 import type Cells3DCapability from "../caps/Cells3DCapability";
 import type { CameraRequest } from "../caps/Cells3DCapability";
@@ -42,6 +42,7 @@ import type Settings from "./Settings";
 import { reportToast } from "./Toast";
 import { t } from "../locale/t";
 import { setElementCentre } from "./viewCentre";
+import { onWake } from "./wakeup";
 
 /** The setting each overlay is stored under, whose callback drives its store. */
 const OVERLAY_SETTINGS: Record<Overlay, string> = {
@@ -229,6 +230,25 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
   /** The View every OpenLayers map shares, and the 3D map reads on attach. */
   const sharedView = () => lm.maps[0]?.getView();
 
+  /** Restores waiting for the network to come back; see `againOnWake`. */
+  const waiting = new Set<() => void>();
+
+  /**
+   * Try a restore again on the next wake, for a link whose storm failed to
+   * download rather than turned out to be gone. Opened on a train, a link
+   * used to say the storm had dissipated when it was the network that had;
+   * it now waits for the network, which a wake is the sign of
+   * (lib/recovery.ts), unless the reader or Back has moved on by then.
+   */
+  function againOnWake(token: number, retry: () => Promise<void>) {
+    const off = onWake(() => {
+      off();
+      waiting.delete(off);
+      if (token === generation) retry().catch((error) => console.error("could not restore the link", error));
+    });
+    waiting.add(off);
+  }
+
   /** Bring a storm into view, for a link that named it but not where to look. */
   function centreOn(lat: number, lon: number) {
     const view = sharedView();
@@ -245,13 +265,24 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
    * The code may be for a storm that has since dissipated, or that is nowhere
    * near the viewport, so the track is fetched on its own and pinned for the
    * layer to draw. One the backend has forgotten is a 404, which is the link
-   * outliving the storm and is said as such rather than as a failure.
+   * outliving the storm and is said as such rather than as a failure. Any
+   * other failure is the network's, and is tried again once it is back.
    */
   async function restoreCell(link: LinkState, token: number, opening: boolean) {
     const before = selection();
-    const answer = await fetchCellTrack(link.cell!, nanobar, { optional: true }).catch(() => null);
+    let answer: unknown = null;
+    let failed = false;
+    try {
+      answer = await fetchCellTrack(link.cell!, nanobar, { optional: true });
+    } catch (error) {
+      failed = !(error instanceof NothingPublished);
+    }
     // The reader has moved on in the meantime, and their choice beats the link's.
     if (token !== generation || selection() !== before) return;
+    if (failed) {
+      againOnWake(token, () => restoreCell(link, token, opening));
+      return;
+    }
     const track = answer as unknown as CellTrack | null;
     if (!track?.properties) {
       reportToast(t("storm.toast.cell_gone"));
@@ -279,8 +310,18 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
   async function restoreCloud(link: LinkState, token: number, opening: boolean) {
     if (!cells3d) return;
     const before = selection();
-    const cloud = await cells3d.restoreCloud(link.cloud!);
+    let cloud: Awaited<ReturnType<typeof cells3d.restoreCloud>> = null;
+    let failed = false;
+    try {
+      cloud = await cells3d.restoreCloud(link.cloud!);
+    } catch {
+      failed = true;
+    }
     if (token !== generation || selection() !== before) return;
+    if (failed) {
+      againOnWake(token, () => restoreCloud(link, token, opening));
+      return;
+    }
     if (!cloud) {
       reportToast(t("storm.toast.volume_gone"));
       return;
@@ -408,6 +449,8 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
 
   return () => {
     unsubscribers.forEach((unsubscribe) => unsubscribe());
+    waiting.forEach((off) => off());
+    waiting.clear();
     window.removeEventListener("popstate", onPopState);
     if (timer !== null) window.clearTimeout(timer);
     timer = null;

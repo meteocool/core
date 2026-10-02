@@ -22,7 +22,8 @@ import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
 import { cellStatus } from "../lib/cellStatus";
 import { MAX_FAMILY, missingRelatives } from "../lib/cellLineage";
 import { timeTicks } from "../lib/timeTicks";
-import { fetchCellTrack } from "../api";
+import { fetchCellTrack, NothingPublished } from "../api";
+import { onWake } from "../lib/wakeup";
 import CellLineage from "./CellLineage.svelte";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
@@ -509,8 +510,22 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, 
  */
 let family: Map<string, CellTrackProperties> = new SvelteMap();
 let loadingFamily = false;
+/**
+ * Which walk is the current one.
+ *
+ * A hop starts a new walk while the last may still be waiting on a round, and
+ * the old one used to carry on regardless. Landing late, it put the family it
+ * had been walking back over the new one -- the storm just left, charted under
+ * the one now open -- and its `finally` cleared "loading" while the new walk
+ * was still out. A walk that is no longer the newest stops at its next await
+ * and touches nothing.
+ */
+let familyWalk = 0;
+/** Whether the last walk lost relatives to the network, so a wake walks it again. */
+let familyIncomplete = false;
 
 async function loadFamily(root: CellTrackProperties) {
+  const walk = ++familyWalk;
   /*
    * Kept when the new cell is one this family already holds.
    *
@@ -527,9 +542,14 @@ async function loadFamily(root: CellTrackProperties) {
     : new SvelteMap<string, CellTrackProperties>([[root.code, root]]);
   known.set(root.code, root);
   family = known;
+  familyIncomplete = false;
   // Nothing to walk, and no request worth making for the two thirds of cells
-  // that have no relatives at all.
-  if (!missingRelatives(known, root.code).length) return;
+  // that have no relatives at all. Not loading either, whatever a walk this
+  // one has superseded had said.
+  if (!missingRelatives(known, root.code).length) {
+    loadingFamily = false;
+    return;
+  }
 
   loadingFamily = true;
   try {
@@ -537,7 +557,16 @@ async function loadFamily(root: CellTrackProperties) {
       const wanted = missingRelatives(known, root.code)
         .slice(0, MAX_FAMILY - known.size);
       if (!wanted.length) break;
-      const answers = await Promise.all(wanted.map((code) => fetchCellTrack(code).catch(() => null)));
+      /* `optional`: a relative the backend has since forgotten answers 404,
+         which is the lineage outliving its oldest members, not the backend
+         failing -- counted as a failure, it put the map in its degraded state
+         for every old family opened. Such a one comes back undefined. */
+      const answers = await Promise.all(wanted.map((code) => fetchCellTrack(code, undefined, { optional: true })
+        .catch((error) => (error instanceof NothingPublished ? undefined : null))));
+      if (walk !== familyWalk) return;
+      // A request that failed (null), as against a relative that is gone: the
+      // chart stays as far as it got, and a wake comes back for the rest.
+      if (answers.includes(null)) familyIncomplete = true;
       answers.forEach((answer) => {
         const relative = answer?.properties as CellTrackProperties | undefined;
         if (relative) known.set(relative.code, relative);
@@ -549,13 +578,24 @@ async function loadFamily(root: CellTrackProperties) {
       family = new SvelteMap(known);
     }
   } finally {
-    loadingFamily = false;
+    if (walk === familyWalk) loadingFamily = false;
   }
 }
 
 /* Keyed on the code: the panel is reused when a relative is tapped in the
    chart, and the family has to be rebuilt around whichever cell is open. */
 $: void loadFamily(track);
+
+/* The open cell is already in the family, so walking again from it keeps what
+   arrived and asks only for what did not. Closing the panel supersedes any
+   walk still out, so it stops asking at its next round. */
+const unsubscribeWake = onWake(() => {
+  if (familyIncomplete && !loadingFamily) void loadFamily(track);
+});
+onDestroy(() => {
+  unsubscribeWake();
+  familyWalk += 1;
+});
 
 /* ---- how current any of this is ---------------------------------------- */
 

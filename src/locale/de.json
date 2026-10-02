@@ -59,6 +59,7 @@
   "storm_cells_3d": "Gewitterzellen 3D",
   "preparing_3d": "3D-Karte wird vorbereitet…",
   "loading_3d_words": ["Scannen", "Abtasten", "Pingen", "Pulsen", "Peilen", "Orten", "Rotieren", "Neigen", "Rückstreuen", "Polarisieren", "Dopplern", "Entfalten", "Entstören", "Kalibrieren", "Rastern", "Interpolieren", "Voxelisieren", "Raymarchen", "Nowcasten", "Akku leersaugen"],
+  "failed_3d": "Die 3D-Karte konnte nicht geladen werden.",
   "guide_3d": {
     "title": "3D-Karte",
     "open": "Bedienung und Legende",
@@ -118,6 +119,7 @@
   "offline": "Offline",
   "slow_connection": "Langsame Verbindung",
   "retry": "Erneut versuchen",
+  "load_failed": "Konnte nicht geladen werden.",
   "lightning_in": "Blitze in {place}",
   "lightning_in_view": "Blitze im Kartenausschnitt",
   "lightning_none": "Keine Blitze in diesem Gebiet. ⚡️",

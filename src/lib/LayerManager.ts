@@ -483,6 +483,11 @@ export class LayerManager {
     return this.currentCap ? this.capabilities[this.currentCap]?.map : undefined;
   }
 
+  /** Catch up the map on screen after a wake; see `Capability.resync`. */
+  resync() {
+    if (this.currentCap) this.capabilities[this.currentCap]?.resync?.();
+  }
+
   getCapability(name: string) {
     return this.capabilities[name];
   }
