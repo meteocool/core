@@ -114,7 +114,7 @@
   "dry_outlook_title_hours": "{hours, plural, =0 {Pluie probable d’ici une heure} one {Pluie probable dans # heure} other {Pluie probable dans # heures}}",
   "dry_outlook_title_days": "{days, plural, one {Pluie probable dans # jour} other {Pluie probable dans # jours}}",
   "dry_outlook_link": "Tous les modèles",
-  "dry_outlook_label": "Probabilité de pluie selon les modèles météo",
+  "dry_outlook_label": "Précipitations selon les modèles météo",
   "dry_outlook_loading": "Interrogation des modèles météo…",
   "offline": "Hors ligne",
   "slow_connection": "Connexion lente",
@@ -358,7 +358,7 @@
       "data": "données de"
     },
     "variable": {
-      "precipitation_probability": "Probabilité de pluie",
+      "precipitation": "Précipitations",
       "temperature_2m": "Température"
     },
     "range": {

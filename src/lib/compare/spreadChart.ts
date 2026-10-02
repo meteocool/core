@@ -20,7 +20,17 @@ export interface SpreadSpec {
   unit: string;
   /** A fixed ceiling, for a probability. */
   max?: number;
+  /** A ceiling the axis starts at and grows past, for an amount. */
+  suggestedMax?: number;
 }
+
+/**
+ * Hourly rainfall, mm in the hour before each step. Always 0-6 mm unless a
+ * model forecasts more, so a few drops and a downpour read apart at a glance:
+ * auto-scaled, a tenth of a millimetre of drizzle fills the plot like a
+ * cloudburst would.
+ */
+export const RAINFALL: SpreadSpec = { unit: " mm", suggestedMax: 6 };
 
 export interface SpreadOptions {
   /** First step plotted. */
@@ -77,6 +87,13 @@ export function drawSpread(canvas: HTMLCanvasElement, data: HourlySeries, option
 
   const times = data.times.slice(from, from + steps);
   const env = envelope(data, from, steps);
+  const ticks = compact ? 3 : 5;
+  // Inside a soft ceiling, steps that land on it: left to Chart.js, the
+  // strip's three ticks round 0-6 mm up to 0-10.
+  const top = Math.max(0, ...env.max.filter((v): v is number => v !== null));
+  const stepSize = spec.suggestedMax && top <= spec.suggestedMax
+    ? spec.suggestedMax / (compact ? 2 : 3)
+    : undefined;
   const ids = Object.keys(data.series);
   const labelAt = labels(times, steps);
   const tickFont = compact ? { size: 10 } : undefined;
@@ -200,13 +217,16 @@ export function drawSpread(canvas: HTMLCanvasElement, data: HourlySeries, option
           grid: { color: faint, drawTicks: false },
           border: { display: false },
           // A probability has a fixed ceiling, so the axis keeps it: a chart
-          // auto-scaled to 0-40% makes a quiet day look like a wet one.
-          min: spec.max ? 0 : undefined,
+          // auto-scaled to 0-40% makes a quiet day look like a wet one. An
+          // amount has a floor to its ceiling, for the same reason.
+          min: spec.max || spec.suggestedMax ? 0 : undefined,
           max: spec.max,
+          suggestedMax: spec.suggestedMax,
           ticks: {
             color: ink,
             font: tickFont,
-            maxTicksLimit: compact ? 3 : 5,
+            maxTicksLimit: ticks,
+            stepSize,
             padding: compact ? 4 : 3,
             callback: (v) => `${v}${spec.unit}`,
           },

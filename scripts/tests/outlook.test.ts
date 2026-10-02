@@ -12,10 +12,10 @@ import type { HourlySeries } from "../../src/lib/compare/openMeteo.ts";
 const HOUR = 3_600_000;
 const t0 = Date.UTC(2026, 8, 27, 0);
 
-/** Hourly series from midnight, one row of rain chances per model. */
+/** Hourly series from midnight, one row of hourly rainfall (mm) per model. */
 function series(rows: Record<string, Array<number | null>>): HourlySeries {
   const length = Math.max(...Object.values(rows).map((r) => r.length));
-  return { times: Array.from({ length }, (_u, i) => t0 + i * HOUR), series: rows, units: "%" };
+  return { times: Array.from({ length }, (_u, i) => t0 + i * HOUR), series: rows, units: "mm" };
 }
 
 test("the present is the hour now falls in, not midnight", () => {
@@ -36,7 +36,7 @@ test("the envelope is min, median and max across the models that answered", () =
 
 test("rain the median reaches inside the window counts", () => {
   const wet = new Array(48).fill(0);
-  wet[20] = 60;
+  wet[20] = 1.5;
   const s = series({ a: wet, b: wet, c: new Array(48).fill(0) });
   assert.equal(rainWithin(s, 0, 24), true);
   // Past the window it is the week's business, not the day's.
@@ -46,15 +46,15 @@ test("rain the median reaches inside the window counts", () => {
 });
 
 test("one wet model among dry ones is disagreement, not rain", () => {
-  const wet = new Array(24).fill(90);
+  const wet = new Array(24).fill(4);
   const dry = new Array(24).fill(0);
   assert.equal(rainWithin(series({ a: wet, b: dry, c: dry }), 0, 24), false);
 });
 
 test("the strip says how far off the rain is: the first hour the median reaches it", () => {
   const wet = new Array(168).fill(0);
-  wet[5] = 40;
-  wet[30] = 80;
+  wet[5] = 0.3;
+  wet[30] = 2;
   const s = series({ a: wet, b: wet, c: new Array(168).fill(0) });
   assert.equal(rainIn(s, 0, 168), 5);
   // Counted from the present, not from the series' midnight.
@@ -65,8 +65,8 @@ test("the strip says how far off the rain is: the first hour the median reaches 
 });
 
 test("a week the median never reaches has no rain to count down to", () => {
-  const drizzle = new Array(168).fill(20);
+  const drizzle = new Array(168).fill(0.1);
   assert.equal(rainIn(series({ a: drizzle, b: drizzle }), 0, 168), null);
   // Nor does one wet model among dry ones.
-  assert.equal(rainIn(series({ a: new Array(168).fill(90), b: drizzle, c: drizzle }), 0, 168), null);
+  assert.equal(rainIn(series({ a: new Array(168).fill(4), b: drizzle, c: drizzle }), 0, 168), null);
 });

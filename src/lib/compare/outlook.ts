@@ -62,24 +62,26 @@ export function stepAt(times: number[], now: number): number {
 }
 
 /**
- * Median rain chance at or above this, at any hour of the window, is "rain
- * coming". The median rather than the wettest model: one outlier calling for
- * a shower is exactly the disagreement the plot exists to show, not a verdict.
+ * Median hourly rainfall at or above this, at any hour of the window, is "rain
+ * coming": half the models or more put light rain on that hour. The median
+ * rather than the wettest model: one outlier calling for a shower is exactly
+ * the disagreement the plot exists to show, not a verdict. Above the 0.1 mm
+ * models report as trace, which some put on every cloudy hour.
  */
-export const RAIN_LIKELY_PCT = 30;
+export const RAIN_LIKELY_MM = 0.2;
 
 /**
- * How many hours from `from` until the models' median rain chance first
- * reaches RAIN_LIKELY_PCT, looking `hours` ahead: 0 for the hour now, null
- * for a window it never reaches. What the strip counts down to.
+ * How many hours from `from` until the models' median rainfall first reaches
+ * RAIN_LIKELY_MM, looking `hours` ahead: 0 for the hour now, null for a
+ * window it never reaches. What the strip counts down to.
  */
 export function rainIn(series: HourlySeries, from: number, hours: number): number | null {
   const steps = Math.max(0, Math.min(hours, series.times.length - from));
-  const at = envelope(series, from, steps).mid.findIndex((v) => v !== null && v >= RAIN_LIKELY_PCT);
+  const at = envelope(series, from, steps).mid.findIndex((v) => v !== null && v >= RAIN_LIKELY_MM);
   return at < 0 ? null : at;
 }
 
-/** Whether the models' median rain chance reaches RAIN_LIKELY_PCT within `hours` of `from`. */
+/** Whether the models' median rainfall reaches RAIN_LIKELY_MM within `hours` of `from`. */
 export function rainWithin(series: HourlySeries, from: number, hours: number): boolean {
   return rainIn(series, from, hours) !== null;
 }
