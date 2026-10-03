@@ -36,6 +36,21 @@ export default class StrikeManager {
     return this.addStrikeWithTime(lon, lat, new Date().getTime(), addCb);
   }
 
+  /**
+   * A strike off the socket, under its own time rather than the moment it
+   * arrived.
+   *
+   * Keyed on arrival, it never matched anything: the same strike sent again a
+   * few hundred milliseconds later -- upstream repeats about one in ten --
+   * was drawn twice, as was a strike the cache already held, and its age ran
+   * from when it reached the page rather than from when it struck. Under its
+   * own time it rounds to the id the cache gives it (App.svelte), and the
+   * source refuses the copy.
+   */
+  addLiveStrike({ lon, lat, time }: { lon: number; lat: number; time: number }) {
+    return this.addStrikeWithTime(lon, lat, Math.round(time));
+  }
+
   removeOne(id: number, idx: number) {
     const remove = this.vs.getFeatureById(id);
     if (remove) {
