@@ -10,6 +10,8 @@ import { isDarkBasemap, watchBasemap } from "./casing";
 import { dbzColour } from "../lib/cellVolume";
 import { radarColormap } from "../stores";
 import type { RadarVolume } from "../api";
+import { isVolumeBehind } from "../lib/scans";
+import type { RadarScans } from "../lib/scans";
 
 /**
  * A "3D" tag beside every storm core the 3D map can cut open.
@@ -32,6 +34,11 @@ import type { RadarVolume } from "../api";
  * put a dozen cores within a finger's width at a wide zoom, and a stack of
  * overlapping pills is neither readable nor tappable. At a wide zoom they are
  * thinned further, to one per neighbourhood; see `SPACING_PX`.
+ *
+ * Only for a core as new as the radar under it. The 3D map draws one from an
+ * older scan grey, a scan upwind of the echo, which is no place to send
+ * anyone: the tag is taken off when the radar moves on and put back when that
+ * scan's volumes land. See lib/scans.ts.
  */
 
 /** Where the pill sits relative to the core, in pixels right and up. */
@@ -136,9 +143,33 @@ function thin(features: Feature[], zoom: number): Set<Feature> | null {
   return keep;
 }
 
-/** The feature source, and the layer that draws it. */
-export default function makeCloudHintLayer(): [VectorSource, VectorLayer<VectorSource>] {
-  const source = new VectorSource({ features: [] });
+export interface CloudHints {
+  layer: VectorLayer<VectorSource>;
+  /** Replace the cores with the newest list's. */
+  setClouds(clouds: RadarVolume[]): void;
+  /** The radar the flat map draws, which a core must be as new as to be tagged. */
+  setRadar(radar: RadarScans): void;
+}
+
+/** The layer, and the way to keep its tags up with the volumes and the radar. */
+export default function makeCloudHints(): CloudHints {
+  const source: VectorSource = new VectorSource({ features: [] });
+  let clouds: RadarVolume[] = [];
+  let radar: RadarScans = { scan: null, whole: false, networks: {} };
+
+  /*
+   * Off the source rather than merely not drawn, so a core from an older scan
+   * neither takes a fresh one's place in the thinning nor answers a tap. Each
+   * feature carries its core for the tap.
+   */
+  const fill = () => {
+    source.clear(true);
+    source.addFeatures(clouds.filter((cloud) => !isVolumeBehind(cloud, radar)).map((cloud) => new Feature({
+      geometry: new Point(fromLonLat([cloud.lon, cloud.lat])),
+      peak_dbz: cloud.peak_dbz ?? null,
+      cloud,
+    })));
+  };
 
   /*
    * Thinned once per level and per set of cores, not per frame: the style
@@ -183,15 +214,15 @@ export default function makeCloudHintLayer(): [VectorSource, VectorLayer<VectorS
     layer.changed();
   });
 
-  return [source, layer];
-}
-
-/** Replace the tagged cores with the newest scan's. Each feature carries its core for the tap. */
-export function setCloudHints(source: VectorSource, clouds: RadarVolume[]): void {
-  source.clear(true);
-  source.addFeatures(clouds.map((cloud) => new Feature({
-    geometry: new Point(fromLonLat([cloud.lon, cloud.lat])),
-    peak_dbz: cloud.peak_dbz ?? null,
-    cloud,
-  })));
+  return {
+    layer,
+    setClouds(next) {
+      clouds = next;
+      fill();
+    },
+    setRadar(next) {
+      radar = next;
+      fill();
+    },
+  };
 }

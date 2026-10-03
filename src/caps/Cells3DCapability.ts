@@ -43,8 +43,8 @@ import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { tracked } from "../lib/progress";
 import { boxFootprint } from "../lib/cloudFootprint";
-import { isBehind, networkOf, scanTime, VolumeFeed } from "../lib/scans";
-import type { Scan } from "../lib/scans";
+import { isBehind, isVolumeBehind, radarScanOf, scanTime, VolumeFeed } from "../lib/scans";
+import type { RadarScans, Scan } from "../lib/scans";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import type {
@@ -1300,8 +1300,12 @@ export default class Cells3DCapability extends Capability {
    * where a network has no fresh frame, or one from before frames said.
    */
   private radarScanOf(network: string): Scan | null {
-    if (network === "de" || this.radarWhole) return this.radarScan;
-    return this.networkFrames[network as NetworkCode]?.upstream_time ?? null;
+    return radarScanOf(network, this.radarScans());
+  }
+
+  /** The radar under the storms, which the flat map's "3D" tags are judged against too. */
+  private radarScans(): RadarScans {
+    return { scan: this.radarScan, whole: this.radarWhole, networks: this.networkFrames };
   }
 
   /** Tell the layer which storm is open, and which way its slice now runs. */
@@ -1486,7 +1490,7 @@ export default class Cells3DCapability extends Capability {
       // Not for a storm too faint to draw: a box promises a cloud.
       features: this.clouds.filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => {
         const dbz = cloud.peak_dbz ?? 40;
-        const behind = isBehind(scanTime(cloud.reference_time), this.radarScanOf(networkOf(cloud)));
+        const behind = isVolumeBehind(cloud, this.radarScans());
         const properties = { code: cloud.code, path: cloud.path, dbz, tier: cloud.tier ?? 2, behind };
         const loaded = this.cutaways.get(cloud.path)?.cutaway;
         const { ring, pivot } = loaded
