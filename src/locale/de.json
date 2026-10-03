@@ -83,7 +83,7 @@
     "clouds_body": "Radarecho in 3D, nach Stärke eingefärbt. Jede schält sich bis auf den Kern ab und wächst wieder.",
     "scale_aria": "Reflektivität von {min} bis {max} dBZ",
     "box": "Kästen",
-    "box_body": "Der Raum, in den sich ein Gewitter öffnet, nach Spitzenwert eingefärbt. Klicke sein 3D-Schild, um das sich der Schnitt dreht, um es zu öffnen.",
+    "box_body": "Der Raum, in den sich ein Gewitter öffnet, nach Spitzenwert eingefärbt. Klicke hinein, um es zu öffnen.",
     "cut": "Aufgeschnitten",
     "cut_body": "Das geöffnete Gewitter im Schnitt. Drehen kannst du ihn im Panel.",
     "faint": "Blass",

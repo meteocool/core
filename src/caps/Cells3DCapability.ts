@@ -3,7 +3,8 @@ import { toLonLat, fromLonLat } from "ol/proj";
 import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
-  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, StyleSpecification,
+  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, MapGeoJSONFeature,
+  StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
 import type { CapabilityOptions } from "./options";
@@ -42,7 +43,6 @@ import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { tracked } from "../lib/progress";
 import { boxFootprint } from "../lib/cloudFootprint";
-import { DARK, DBZ_STEP, LIGHT, pillSvg, RENDER_SCALE } from "../layers/cloudHints";
 import { isBehind, networkOf, scanTime, VolumeFeed } from "../lib/scans";
 import type { Scan } from "../lib/scans";
 
@@ -185,17 +185,17 @@ const networkLayerId = (code: NetworkCode) => `radar-${code}`;
 /** Which tier a volume is in: what the list says, else what its own header says, else openable. */
 const tierOf = (listed: { tier?: number }, cutaway: Cutaway) => listed.tier ?? cutaway.header.tier ?? 2;
 
-/** Every storm core with a volume: its box's outline and the chip on its spin axis. */
+/** Every storm core with a volume: its box's outline, and the box to tap it by. */
 const CLOUD_SOURCE = "clouds";
 
 /** The outline of the box a storm's cutaway raymarches, on the ground. */
 const CLOUD_BOX = "cloud-box";
 
-/** The chip on a storm's spin axis, which is what a tap opens it by. */
-const CLOUD_CHIP = "cloud-chip";
+/** The inside of a storm's box, undrawn: what a tap opens it by. */
+const CLOUD_HIT = "cloud-hit";
 
 /** The layers a tap can land on to mean "that storm". */
-const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint", CLOUD_CHIP];
+const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint", CLOUD_HIT];
 
 /** Whatever is being raymarched, reduced to what drawing it needs. */
 interface VolumeTarget {
@@ -475,8 +475,6 @@ export default class Cells3DCapability extends Capability {
    */
   private faint = new Set<string>();
 
-  /** Chip images being decoded, by name; see `chipImage`. */
-  private readonly chipsLoading = new Set<string>();
 
   /** Which storm is open, by its volume's path, and which way its slice runs before the reader turns it. */
   private opened: { path: string; heading: number | null } | null = null;
@@ -826,8 +824,17 @@ export default class Cells3DCapability extends Capability {
         // A KONRAD3D cell first, when both are under the finger: it has a
         // history and a heading, and the popup it opens carries the cutaway
         // anyway if the cell stands inside a volume.
-        const cell = hits.find((feature) => feature.layer.id !== CLOUD_CHIP && feature.properties?.code);
-        const cloud = hits.find((feature) => feature.layer.id === CLOUD_CHIP);
+        const cell = hits.find((feature) => feature.layer.id !== CLOUD_HIT && feature.properties?.code);
+        // Of overlapping boxes, the storm whose spin axis is nearest the finger.
+        const distance = ({ properties }: MapGeoJSONFeature) => {
+          const { x, y } = gl.project([properties.pivotLon, properties.pivotLat]);
+          return Math.hypot(x - event.point.x, y - event.point.y);
+        };
+        const cloud = hits
+          .filter((feature) => feature.layer.id === CLOUD_HIT)
+          .reduce<MapGeoJSONFeature | undefined>((best, feature) => (
+            best && distance(best) <= distance(feature) ? best : feature
+          ), undefined);
         if (cell?.properties?.code) {
           selectedVolume.set(null);
           // The same two steps the flat map takes -- panel at once on a
@@ -1278,7 +1285,7 @@ export default class Cells3DCapability extends Capability {
       gl.setPaintProperty("cell-footprint", "line-color", cellsBehind ? BEHIND_LINE : severityColour());
     }
     if (gl.getSource(CLOUD_SOURCE)) {
-      // Each storm's `behind`, and its chip's colours, are worked out with its data.
+      // Each storm's `behind`, and so its box's colour, is worked out with its data.
       this.ensureClouds(gl);
       gl.setPaintProperty(CLOUD_BOX, "line-color", boxColour(this.colormap));
     }
@@ -1444,7 +1451,7 @@ export default class Cells3DCapability extends Capability {
       // Held whole: its layers are interpolation, which a peel cannot reveal anything in.
       peels: tier !== TIER_UNOPENABLE,
     })));
-    // A volume just in moves its chip from the box's centre onto its storm.
+    // A volume just in moves its spin axis from the box's centre onto its storm.
     if (this.gl && this.styleReady && this.gl.getSource(CLOUD_SOURCE)) this.ensureClouds(this.gl);
     this.applyTierFilters();
     if (this.shown) this.gl?.triggerRepaint();
@@ -1456,34 +1463,28 @@ export default class Cells3DCapability extends Capability {
     const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap);
     gl.addLayer(layer);
     this.cloudsLayer = layer;
-    // The chips over the storms, where a dense one would otherwise hide its
-    // own; the outlines stay under them, on the ground.
-    if (gl.getLayer(CLOUD_CHIP)) gl.moveLayer(CLOUD_CHIP);
     this.pushClouds();
     this.applyCut();
   }
 
   /**
    * Every storm core with a volume: the outline of its box on the ground, and
-   * a chip where the cut's spin axis will stand.
+   * its inside as the tap target.
    *
    * The outline is the box the cutaway raymarches, so a reader sees before
    * tapping what will open -- 40 km of sky, not the storm alone -- and which
-   * of two overlapping storms a box belongs to. The chip is the flat map's
-   * "3D" pill, on the vertical the cut turns about (`lib/cloudFootprint.ts`):
-   * the storm's own centre once its volume is in, the box's until then. It is
-   * the tap target, sized in pixels so a finger can hit it at any zoom, and it
-   * gives way to a stronger storm's chip where two would overlap, as the flat
-   * map's do, and is drawn over the storms (see `ensureVolumes`) so a dense
-   * one does not hide its own. Both are coloured by the core's peak on the
-   * radar's ramp, grey when the storm is a scan behind its radar, and fainter
-   * for one that does not open.
+   * of two overlapping storms a box belongs to. Fainter for one that does not
+   * open. No "3D" pill as on the flat map: here every storm already stands in
+   * 3D, and a tag over each one only covered the clouds it pointed at. A tap
+   * anywhere in a box opens its storm instead, the nearest one by its spin
+   * axis (`lib/cloudFootprint.ts`) where boxes overlap -- the storm's own
+   * centre once its volume is in, the box's until then.
    */
   private ensureClouds(gl: GlMap): void {
     const data = {
       type: "FeatureCollection" as const,
       // Not for a storm too faint to draw: a box promises a cloud.
-      features: this.clouds.filter((cloud) => !this.faint.has(cloud.path)).flatMap((cloud) => {
+      features: this.clouds.filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => {
         const dbz = cloud.peak_dbz ?? 40;
         const behind = isBehind(scanTime(cloud.reference_time), this.radarScanOf(networkOf(cloud)));
         const properties = { code: cloud.code, path: cloud.path, dbz, tier: cloud.tier ?? 2, behind };
@@ -1494,18 +1495,11 @@ export default class Cells3DCapability extends Capability {
             [loaded.extentM[0], loaded.extentM[1]], [loaded.centreKm[0], loaded.centreKm[1]],
           )
           : boxFootprint(cloud.lon, cloud.lat);
-        return [
-          {
-            type: "Feature" as const,
-            geometry: { type: "Polygon" as const, coordinates: [ring] },
-            properties: { ...properties, kind: "box" },
-          },
-          {
-            type: "Feature" as const,
-            geometry: { type: "Point" as const, coordinates: pivot },
-            properties: { ...properties, kind: "chip", chip: this.chipImage(dbz, behind) },
-          },
-        ];
+        return {
+          type: "Feature" as const,
+          geometry: { type: "Polygon" as const, coordinates: [ring] },
+          properties: { ...properties, pivotLon: pivot[0], pivotLat: pivot[1] },
+        };
       }),
     };
     const source = gl.getSource(CLOUD_SOURCE);
@@ -1520,7 +1514,6 @@ export default class Cells3DCapability extends Capability {
       id: CLOUD_BOX,
       type: "line",
       source: CLOUD_SOURCE,
-      filter: ["==", ["get", "kind"], "box"],
       layout: { "line-join": "round" },
       paint: {
         "line-color": boxColour(this.colormap),
@@ -1528,53 +1521,13 @@ export default class Cells3DCapability extends Capability {
         "line-opacity": ["case", unopenable, RING_OPACITY.unopenable, RING_OPACITY.openable],
       },
     });
+    // Not drawn, only hit: a fill at no opacity is still queried.
     gl.addLayer({
-      id: CLOUD_CHIP,
-      type: "symbol",
+      id: CLOUD_HIT,
+      type: "fill",
       source: CLOUD_SOURCE,
-      filter: ["==", ["get", "kind"], "chip"],
-      layout: {
-        "icon-image": ["get", "chip"],
-        // Strongest first, as the flat map's pills are decluttered.
-        "symbol-sort-key": ["*", -1, ["get", "dbz"]],
-        "icon-padding": 2,
-      },
-      paint: {
-        "icon-opacity": ["case", unopenable, 0.55, 1],
-      },
+      paint: { "fill-opacity": 0 },
     });
-  }
-
-  /**
-   * The name of the chip for a storm of this peak, once its image is on the
-   * style; empty, which draws no chip, while it is still being made.
-   *
-   * The pill is an SVG, which decodes asynchronously. A name the style has
-   * no image for makes MapLibre complain on every layout, so the chip waits
-   * for its image instead: the data is set again once it is in. One image per
-   * five dBZ, palette, theme and greyness, as the flat map caches its styles;
-   * a light/dark switch replaces the style and with it every image.
-   */
-  private chipImage(dbz: number, behind: boolean): string {
-    const gl = this.gl;
-    const bucket = Math.round(dbz / DBZ_STEP) * DBZ_STEP;
-    const id = `cloud-chip:${this.colormap}:${this.dark ? "dark" : "light"}:${bucket}${behind ? ":behind" : ""}`;
-    if (!gl || gl.hasImage(id)) return gl ? id : "";
-    if (this.chipsLoading.has(id)) return "";
-    this.chipsLoading.add(id);
-    const rgb = dbzColour(bucket, this.colormap);
-    const core = behind ? greyOf(rgb) : `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-    const image = new Image();
-    image.onload = () => {
-      this.chipsLoading.delete(id);
-      const map = this.gl;
-      if (!map || !this.styleReady) return;
-      if (!map.hasImage(id)) map.addImage(id, image, { pixelRatio: RENDER_SCALE });
-      if (map.getSource(CLOUD_SOURCE)) this.ensureClouds(map);
-    };
-    image.onerror = () => this.chipsLoading.delete(id);
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pillSvg(core, this.dark ? DARK : LIGHT))}`;
-    return "";
   }
 
   private async select(code: string, details: boolean): Promise<void> {

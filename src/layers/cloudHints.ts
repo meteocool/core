@@ -38,10 +38,10 @@ import type { RadarVolume } from "../api";
 const DISPLACEMENT: [number, number] = [8, 8];
 
 /** Drawn at twice its size and scaled down, so it stays crisp on a retina screen. */
-export const RENDER_SCALE = 2;
+const RENDER_SCALE = 2;
 
 /** Peaks are bucketed so the cache holds a handful of styles, not one per core. */
-export const DBZ_STEP = 5;
+const DBZ_STEP = 5;
 
 /** Below this the pills are more clutter than signal: the whole country is on screen. */
 const MIN_ZOOM = 5;
@@ -64,14 +64,14 @@ const SPACING_PX: Record<number, number> = { 5: 128, 6: 96, 7: 67, 8: 42 };
 /** The resolution of zoom 0 in OpenLayers' default grid, which every View here uses. */
 const ZOOM0_RESOLUTION = 156543.03392804097;
 
-export interface Palette {
+interface Palette {
   fill: string;
   edge: string;
   text: string;
 }
 
-export const LIGHT: Palette = { fill: "rgba(255, 255, 255, 0.94)", edge: "rgba(17, 20, 26, 0.18)", text: "#11141a" };
-export const DARK: Palette = { fill: "rgba(24, 28, 36, 0.92)", edge: "rgba(255, 255, 255, 0.22)", text: "#f2f4f7" };
+const LIGHT: Palette = { fill: "rgba(255, 255, 255, 0.94)", edge: "rgba(17, 20, 26, 0.18)", text: "#11141a" };
+const DARK: Palette = { fill: "rgba(24, 28, 36, 0.92)", edge: "rgba(255, 255, 255, 0.22)", text: "#f2f4f7" };
 
 let palette = LIGHT;
 let colormap = "classic";
@@ -82,10 +82,10 @@ const styleCache = new Map<string, Style>();
  *
  * The cube is a filled hexagon with its three inner edges drawn in the pill's
  * own colour, which reads as a solid block at this size where a wireframe
- * reads as a smudge. The 3D map draws the same pill on each box's spin axis.
+ * reads as a smudge. The 3D map has none: every storm on it stands in 3D.
  */
-export function pillSvg(core: string, colours: Palette = palette): string {
-  const { fill, edge, text } = colours;
+function pillSvg(core: string): string {
+  const { fill, edge, text } = palette;
   const s = RENDER_SCALE;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${34 * s}" height="${18 * s}" viewBox="0 0 34 18">`
     + `<rect x="0.5" y="0.5" width="33" height="17" rx="8.5" fill="${fill}" stroke="${edge}"/>`
