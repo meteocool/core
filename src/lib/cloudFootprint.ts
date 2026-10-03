@@ -2,8 +2,8 @@
  * Where a storm's box stands on the ground, and where its cut turns.
  *
  * The 3D map marks every storm it could open with the outline of the box the
- * cutaway raymarches and a chip on the cut's spin axis, so a reader sees
- * before tapping what will open and what it will turn around. Both must sit
+ * cutaway raymarches, so a reader sees before tapping what will open, and of
+ * overlapping boxes opens the one whose spin axis is nearest the tap. Both must sit
  * exactly where the volume will: the box is placed by `cellVolumeLayer.ts`'s
  * model matrix, a square in Mercator scaled by the metre at the box's centre,
  * so this does the same arithmetic rather than a geodesic one that would

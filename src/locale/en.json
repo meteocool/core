@@ -83,7 +83,7 @@
     "clouds_body": "Radar echo in 3D, coloured by strength. Each peels down to its core and grows back.",
     "scale_aria": "Reflectivity from {min} to {max} dBZ",
     "box": "Boxes",
-    "box_body": "The space a storm opens into, coloured by its peak. Click its 3D tag, where the cut will turn, to open it.",
+    "box_body": "The space a storm opens into, coloured by its peak. Click inside it to open the storm.",
     "cut": "Cut open",
     "cut_body": "The storm you opened, sliced. Turn the slice in its panel.",
     "faint": "Faint",
