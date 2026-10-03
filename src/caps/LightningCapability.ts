@@ -134,7 +134,7 @@ export default class LightningCapability extends Capability {
 
     const data = await fetchLightningSince(requested, this.nb).catch(() => null);
     if (!data) return;
-    data.strikes.forEach((elem) => this.sm!.addStrike(elem.lon, elem.lat, elem.time_wall));
+    this.sm!.addStrikes(data.strikes.map((elem) => ({ lon: elem.lon, lat: elem.lat, timestamp: elem.time_wall })));
   }
 
   destroy() {
