@@ -25,50 +25,23 @@ import { colorSchemeDark, mapBaseLayer } from "../stores";
 import { isDarkBasemap } from "./casing";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
-/**
- * Shoelace dropped these token names between 2.0-beta and 2.0 stable, but
- * meteocool's own CSS is written against them -- and the dark-mode set below
- * defines them, so only *light* mode lost them. Restoring them here as the
- * light-mode defaults keeps every existing `var(--sl-color-white)` working
- * rather than rewriting them across a dozen components.
- */
-const shoelaceBetaAliases = {
-  "sl-color-white": "var(--sl-color-neutral-0)",
-  "sl-color-black": "var(--sl-color-neutral-1000)",
-  "sl-color-info-100": "var(--sl-color-sky-100)",
-  "sl-color-info-200": "var(--sl-color-sky-200)",
-  "sl-color-info-700": "var(--sl-color-sky-700)",
-  "sl-color-primary-text": "var(--sl-color-neutral-0)",
+/** Light-mode values for the tokens below, restored when dark mode is left. */
+const uiConstantsDefault: Record<string, string> = {
   "svg-dark-to-light": "none",
 };
 
-export const uiConstantsDefault = {
-  ...shoelaceBetaAliases,
-};
-
 /**
- * The legacy --sl-color-* names components still read, tuned so they land on
- * the same dark material as the --mc-* tokens in src/glass.css: sheets equal
- * the dark basemap earth, so the switcher feels like the map went to sleep
- * rather than like a different app. Keys are unchanged so nothing that reads
- * them breaks.
+ * Shoelace's gray scale, which themes/dark.css maps its neutral-* tokens onto,
+ * tuned so its internals land on the same dark material as the --mc-* tokens
+ * in src/glass.css: sheets equal the dark basemap earth, so the switcher feels
+ * like the map went to sleep rather than like a different app.
  */
 const darkmodeConstants = {
-  "sl-color-white": "#1c1f24",
-  "sl-color-black": "#f2f2f7",
   "sl-color-gray-50": "#262a30",
   "sl-color-gray-700": "#f2f2f7",
   "sl-color-gray-300": "#4a505a",
   "sl-color-gray-200": "#343941",
   "sl-color-gray-600": "#aeb3bb",
-  "sl-color-info-100": "#262a30",
-  // Was never remapped, so the legend strip's border stayed sky-blue in dark.
-  "sl-color-info-200": "rgba(255, 255, 255, 0.16)",
-  // Read by NowcastPlayback through getComputedStyle for Chart.js: must stay a plain colour.
-  "sl-color-info-700": "#c2c7cf",
-  "sl-color-primary-text": "#ffffff",
-  // System blue, the same hue as --mc-accent in dark.
-  "sl-color-primary-600": "#0a84ff",
   // CSS people be like https://codepen.io/sosuke/pen/Pjoqqp
   "svg-dark-to-light": "invert(99%) sepia(0%) saturate(469%) hue-rotate(31deg) brightness(119%) contrast(100%)",
 };
@@ -95,11 +68,6 @@ export function setUIConstant(name: string, suite: Record<string, string> = uiCo
 
 export function unsetUIConstant(name: string) {
   document.documentElement.style.removeProperty(`--${name}`);
-}
-
-export function resetUIConstantByPrefix(prefix: string) {
-  // .map produced booleans, which were then passed as CSS variable names.
-  Object.keys(uiConstantsDefault).filter((key) => key.startsWith(prefix)).forEach((key) => setUIConstant(key));
 }
 
 /** The dark-mode query and its listener, kept so cleanup can detach them. */
@@ -167,9 +135,7 @@ colorSchemeDark.subscribe((isDark) => {
     if (isDark) {
       setUIConstant(key, darkmodeConstants);
     } else if (key in uiConstantsDefault) {
-      // Leaving dark mode restores the light default rather than unsetting:
-      // several of these names are Shoelace beta tokens that no longer exist
-      // in 2.x, so unsetting them leaves the variable undefined.
+      // Leaving dark mode restores the light default rather than unsetting.
       setUIConstant(key);
     } else {
       unsetUIConstant(key);
