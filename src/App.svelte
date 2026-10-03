@@ -65,7 +65,7 @@ import CellTrackManager from "./lib/CellTrackManager";
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import makeCellPulseLayer from "./layers/cellPulse";
-import makeCloudHintLayer, { setCloudHints } from "./layers/cloudHints";
+import makeCloudHints from "./layers/cloudHints";
 import { VolumeFeed } from "./lib/scans";
 import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
 /* The storm panels are loaded when a storm is opened, not with the page: the
@@ -403,9 +403,11 @@ derived(
 /* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the
    way there -- see layers/cloudHints.ts. Only where that map is offered, and,
    like the cells, only on the newest observation, which is the scan the cores
-   were found in. */
+   were found in -- and only for the cores as new as that radar, which the 3D
+   map draws in colour rather than grey. */
 const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
-const [cloudHintSource, cloudHintLayer] = makeCloudHintLayer();
+const hints = makeCloudHints();
+const cloudHintLayer = hints.layer;
 derived(
   [capTimeIndicator, capLatestObservation],
   ([shown, newest]) => hintsWanted && showsLatestFrame(shown, newest),
@@ -413,17 +415,19 @@ derived(
 
 const cloudHints = new VolumeFeed<CurrentVolumes>(
   () => fetchCurrentVolumes().catch(() => null),
-  (answer) => setCloudHints(cloudHintSource, (answer.volumes ?? []) as RadarVolume[]),
+  (answer) => hints.setClouds((answer.volumes ?? []) as RadarVolume[]),
 );
 
 /* `run` is the scan of a KONRAD3D run that has just landed. Its cores are
    usually not built yet, and fetched only now the tags stood a scan behind
-   until the next run; they are waited for -- see lib/scans.ts. */
-async function reloadCloudHints(run: number | null = null) {
+   until the next run; they are waited for -- see lib/scans.ts. Without one, a
+   wait already under way goes on: a network's run landing says nothing of
+   whether DWD's cores are built yet. */
+async function reloadCloudHints(run?: number) {
   if (!hintsWanted) return;
   const answer = await fetchCurrentVolumes(nb).catch(() => null);
   if (answer) cloudHints.offer(answer);
-  cloudHints.follow(run);
+  if (run !== undefined) cloudHints.follow(run);
 }
 
 /* The panel is a property of a selection and cannot outlive one. Anything that
@@ -610,6 +614,17 @@ if (cells3d && radarCap) {
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
   cells3d.setStrikeSource(lightningSource);
+}
+
+/* The tags are judged against the same radar: a frame landing ahead of its
+   scan's cores takes their tags off, and the cores landing -- the nudges
+   below -- put them back. */
+if (radarCap && hintsWanted) {
+  const forwardHintRadar = () => hints.setRadar(radarCap.liveRadarScans());
+  radarCap.addObserver((subject) => {
+    if (subject === "grid" || subject === "networks") forwardHintRadar();
+  });
+  forwardHintRadar();
 }
 
 // The cores are rebuilt with each run, so the tags follow the same nudge.
