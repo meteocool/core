@@ -12,8 +12,8 @@ import { onDestroy, onMount } from "svelte";
 import GlassPanel from "./GlassPanel.svelte";
 import { _ } from "svelte-i18n";
 import {
-  apiHealth, capLastUpdated, degradedStatus, latLon, mapBaseLayer, networkStatus,
-  radarCadence, sharedActiveCap, tileStatus, zoomlevel,
+  apiHealth, capLastUpdated, connectionStatus, degradedStatus, latLon, mapBaseLayer, networkStatus,
+  radarCadence, reachability, sharedActiveCap, tileStatus, zoomlevel,
   precacheForecast,
 } from "../stores";
 import { get } from "svelte/store";
@@ -243,7 +243,18 @@ function connectionRows(): Row[] {
   const c = nav.connection;
   const net = $networkStatus;
   const bool = (v: boolean) => tr(v ? "true" : "false");
+  // The state machine's own word first (lib/connectionState.ts), with what it
+  // reads that the rows below do not show.
+  const { state, since } = $connectionStatus;
+  const reach = $reachability;
   return [
+    [
+      tr("connection_state"),
+      `${state === "online" ? tr("ok") : $_(state === "catching-up" ? "catching_up" : state)} (${ago(since || null)})`,
+      { offline: "bad", degraded: "bad", "catching-up": "warn" }[state] as Severity | undefined,
+    ],
+    [tr("last_answer"), ago(reach.lastAnswerAt), reach.unreachableSince !== null ? "bad" : undefined],
+    [tr("calls_in_flight"), String(reach.inFlight)],
     [tr("online"), bool(net.online), net.online ? undefined : "bad"],
     [
       tr("effective_type"),
