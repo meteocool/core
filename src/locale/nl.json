@@ -83,7 +83,7 @@
     "clouds_body": "Radarecho in 3D, gekleurd naar sterkte. Elke wolk pelt af tot de kern en groeit weer aan.",
     "scale_aria": "Reflectiviteit van {min} tot {max} dBZ",
     "box": "Kaders",
-    "box_body": "De ruimte waarin een onweer opengaat, gekleurd naar zijn piek. Klik op het 3D-label, waar de snede draait, om het te openen.",
+    "box_body": "De ruimte waarin een onweer opengaat, gekleurd naar zijn piek. Klik erin om het te openen.",
     "cut": "Opengesneden",
     "cut_body": "De geopende bui in doorsnede. Draai de doorsnede in het paneel.",
     "faint": "Vaag",
