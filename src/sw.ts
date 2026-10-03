@@ -12,7 +12,7 @@ import { ExpirationPlugin } from "workbox-expiration";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 import {
-  BASEMAP_CACHE, BASEMAP_ROUTE, WEATHER_TILE_CACHE, WEATHER_TILE_ROUTE,
+  BASEMAP_CACHE, BASEMAP_ROUTE, TERRAIN_CACHE, TERRAIN_ROUTE, WEATHER_TILE_CACHE, WEATHER_TILE_ROUTE,
 } from "./lib/tileCacheRoutes";
 
 // The precache first: workbox routes a request to the first route that
@@ -37,6 +37,23 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 20000,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// Terrain is versioned the same way, but each tile is a large image: capped at
+// a few hundred megabytes, which is the ground under a good many storms.
+registerRoute(
+  TERRAIN_ROUTE,
+  new CacheFirst({
+    cacheName: TERRAIN_CACHE,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 2000,
         maxAgeSeconds: 30 * 24 * 60 * 60,
         purgeOnQuotaError: true,
       }),
