@@ -5,7 +5,7 @@ import { _ } from "svelte-i18n";
 import { onDestroy } from "svelte";
 import { format } from "date-fns";
 import {
-  bottomToolbarMode, capTimeIndicator, degradedStatus, lastFocus, live, networkStatus,
+  bottomToolbarMode, capTimeIndicator, connectionStatus, lastFocus, live, networkStatus,
   radarStale, replay,
 } from "../stores";
 import { shouldShowNetworkBanner } from "../lib/networkBanner";
@@ -30,7 +30,8 @@ $: frameTime = $capTimeIndicator
  * Connectivity outranks freshness: "Latest" over a dead connection is a lie,
  * and two stacked bubbles saying different things about the same data read
  * worse than one saying the more important of them. The dot carries the state
- * -- blinking red for live, orange for a slow connection, solid red offline.
+ * -- blinking red for live, orange for a slow connection, solid red offline,
+ * a pulsing accent while catching up.
  *
  * The frame clock sits here too, and outranks "Latest": with the player open,
  * which frame you are looking at is the thing worth a pill, and "Latest" stops
@@ -39,13 +40,14 @@ $: frameTime = $capTimeIndicator
  * line could say for free.
  */
 $: state = (() => {
-  if (!$networkStatus.online) return "offline";
-  // A backend that is misbehaving outranks a connection that merely measures as
-  // slow: one is a fact, the other is an estimate, and only one of them means
-  // the data on screen may be wrong. What counts as misbehaving, and how it
-  // stops counting again, is lib/degraded.ts -- the pill only reads the verdict,
-  // which is re-taken on a timer so it clears itself without a tick of its own.
-  if ($degradedStatus.degraded) return "degraded";
+  // Offline, catching up and degraded are one state machine's, and only one of
+  // them holds at a time; see lib/connectionState.ts. Each outranks a
+  // connection that merely measures as slow: those are facts, that is an
+  // estimate, and only they mean the data on screen may be wrong.
+  const connection = $connectionStatus.state;
+  if (connection === "offline") return "offline";
+  if (connection === "catching-up") return "catching_up";
+  if (connection === "degraded") return "degraded";
   // Knowing the frames are out of date beats showing their clock or calling
   // them the latest, and beats a connection that only measures as slow: this
   // one is not an estimate either, and it is about the picture on the map.
@@ -64,6 +66,7 @@ $: state = (() => {
 
 $: label = {
   offline: $_("offline"),
+  catching_up: $_("catching_up"),
   degraded: $_("degraded"),
   stale: $_("outdated"),
   slow: $_("slow_connection"),
@@ -231,6 +234,15 @@ onDestroy(() => {
   .circle-container.demo {
     color: var(--mc-accent);
   }
+  /* Something is arriving, as with live, but not yet the news: the accent,
+     breathing rather than blinking. */
+  .circle-container.catching_up {
+    color: var(--mc-accent);
+    animation: catching-up 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes catching-up {
+    to { opacity: 0.3; }
+  }
 
   .label {
     font-size: 12px;
@@ -261,6 +273,9 @@ onDestroy(() => {
     }
     .circle-container-light-red {
       color: var(--mc-red) !important;
+    }
+    .circle-container.catching_up {
+      animation: none;
     }
   }
 </style>

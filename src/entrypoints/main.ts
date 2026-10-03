@@ -12,6 +12,7 @@ import { mount } from "svelte";
 import { cleanupNetworkStatus, initNetworkStatus } from "../lib/networkStatus";
 import { cleanupRequestTiming, initRequestTiming } from "../lib/requestTiming";
 import { cleanupDegradedStatus, initDegradedStatus } from "../lib/degradedStatus";
+import { cleanupConnectionStatus, initConnectionStatus } from "../lib/connectionStatus";
 import { cleanupPageZoomGuard, initPageZoomGuard } from "../lib/pageZoom";
 import { cleanupWakeup, initWakeup } from "../lib/wakeup";
 import { cleanupRecovery, initRecovery } from "../lib/recovery";
@@ -40,6 +41,8 @@ initRequestTiming();
 if (!screenshot) {
   // After initRequestTiming(): the first evaluation reads that rolling window.
   initDegradedStatus();
+  // After initDegradedStatus() and initNetworkStatus(): the machine reads both verdicts.
+  initConnectionStatus();
   initWakeup();
 }
 initPageZoomGuard();
@@ -48,6 +51,7 @@ window.addEventListener("pagehide", () => {
   cleanupNetworkStatus();
   cleanupRequestTiming();
   cleanupDegradedStatus();
+  cleanupConnectionStatus();
   cleanupPageZoomGuard();
   cleanupWakeup();
   cleanupRecovery();
