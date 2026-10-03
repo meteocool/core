@@ -47,6 +47,30 @@ export function isBehind(scan: Scan | null | undefined, radar: Scan | null): boo
   return scan !== null && scan !== undefined && radar !== null && scan < radar;
 }
 
+/** The radar drawn under the storms, as far as telling which are behind it goes. */
+export interface RadarScans {
+  /** DWD's frame's scan; null where no frame is drawn. */
+  scan: Scan | null;
+  /** Whether that one frame is the merged European composite, draped in place of every network's. */
+  whole: boolean;
+  /** Each network's newest frame, where it has a fresh one; its `upstream_time` is its scan. */
+  networks: Partial<Record<string, { upstream_time?: Scan | null }>>;
+}
+
+/** The scan of the radar a storm from `network` is judged against: its own network's frame. */
+export function radarScanOf(network: string, radar: RadarScans): Scan | null {
+  if (network === "de" || radar.whole) return radar.scan;
+  return radar.networks[network]?.upstream_time ?? null;
+}
+
+/** Whether a storm's volume is from an older scan than its radar: what the 3D map draws grey. */
+export function isVolumeBehind(
+  volume: { network?: string | null; reference_time?: string | null },
+  radar: RadarScans,
+): boolean {
+  return isBehind(scanTime(volume.reference_time), radarScanOf(networkOf(volume), radar));
+}
+
 /** Between two asks for a scan's volumes that are not built yet. */
 export const VOLUME_RETRY_MS = 20_000;
 
