@@ -14,6 +14,14 @@
 export const BASEMAP_ROUTE = /^https:\/\/map\.meteocool\.com\/.*\.mvt$/;
 
 /**
+ * Versioned terrain, from the same host: immutable per URL as well. Its own
+ * cache, because a terrain tile is a 120-160 kB image where a basemap tile is
+ * a few kB of vectors, and sharing one entry cap would let the 3D map's relief
+ * push the flat map's streets out.
+ */
+export const TERRAIN_ROUTE = /^https:\/\/map\.meteocool\.com\/mapterhorn-[^/]+\/.*\.webp$/;
+
+/**
  * Radar frames: cache-first.
  *
  * Every frame's tiles live under a `tile_id` that names that one rendering,
@@ -25,4 +33,5 @@ export const BASEMAP_ROUTE = /^https:\/\/map\.meteocool\.com\/.*\.mvt$/;
 export const WEATHER_TILE_ROUTE = /^https:\/\/(?:tiles-a|assets-[a-z]+)\.meteocool\.com\/.+\.png$/;
 
 export const BASEMAP_CACHE = "basemap-cache";
+export const TERRAIN_CACHE = "terrain-cache";
 export const WEATHER_TILE_CACHE = "weather-tile-cache";

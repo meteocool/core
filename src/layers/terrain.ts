@@ -8,8 +8,9 @@
  * above them. MapLibre's exaggeration scales the terrain alone, not a custom
  * layer, which is why the storm layer applies it itself.
  *
- * Mapterhorn's own public tiles for now; the URL is the one thing to change
- * when they are hosted beside the basemap.
+ * Served beside the basemap from map.meteocool.com, out of our own copy of
+ * Mapterhorn's archive -- the same bytes as their public tiles, versioned by
+ * build date like the basemap so a URL never changes content.
  */
 import type { HillshadeLayerSpecification, Map as GlMap } from "maplibre-gl";
 import { mapterhornAttribution } from "./attributions";
@@ -26,13 +27,20 @@ export const VERTICAL_SCALE = 1.5;
 const TERRAIN_SOURCE = "terrain";
 const HILLSHADE_LAYER = "hillshade";
 
-/** Terrarium-encoded 512px WebP, worldwide. */
-const TERRAIN_TILES = "https://tiles.mapterhorn.com/{z}/{x}/{y}.webp";
+/**
+ * Which build of the archive; bumped when a newer one is uploaded. Optional
+ * chaining because the tests import this module (through the storm layer's
+ * `VERTICAL_SCALE`) under Node, where there is no `import.meta.env`.
+ */
+const TERRAIN_VERSION = import.meta.env?.VITE_TERRAIN_VERSION ?? "20261002";
+
+/** Terrarium-encoded 512px WebP, worldwide, zoom 0 to 12. */
+const TERRAIN_TILES = `https://map.meteocool.com/mapterhorn-${TERRAIN_VERSION}/{z}/{x}/{y}.webp`;
 
 /**
- * Where the tiles stop being fetched; MapLibre overzooms past it. About 20 m
- * a pixel, finer than a 250 m radar voxel by far, and every level more is
- * four times the tiles on a phone's connection.
+ * Where the tiles stop being fetched; MapLibre overzooms past it. The archive
+ * itself ends here too. About 20 m a pixel, finer than a 250 m radar voxel by
+ * far, and every level more is four times the tiles on a phone's connection.
  */
 const TERRAIN_MAX_ZOOM = 12;
 
