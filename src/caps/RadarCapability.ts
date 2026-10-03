@@ -13,6 +13,7 @@ import type { NetworkCode } from "../layers/networkHoles";
 import { hasTile, sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
 import type { RadarFrame } from "../api";
+import type { RadarScans } from "../lib/scans";
 import {
   capDescription,
   capLatestObservation,
@@ -606,6 +607,22 @@ export default class RadarCapability extends Capability {
   /** The merged European composite's newest frame, when the reader has it on and it is fresh; else null. */
   liveEuropeFrame(): RadarFrame | null {
     return this.europeWanted ? this.europe.current() : null;
+  }
+
+  /**
+   * The scans of the radar the live step shows: what a storm's volume is
+   * judged against, drawn grey on the 3D map when older. The same frames
+   * App.svelte drapes there -- the merged composite whole, or DWD's and each
+   * network's own.
+   */
+  liveRadarScans(): RadarScans {
+    const step = this.getMostRecentObservation();
+    const europe = this.liveEuropeFrame();
+    return {
+      scan: europe || this.clientGrid?.[step]?.url ? step : null,
+      whole: europe !== null,
+      networks: europe ? {} : this.liveNetworkFrames(),
+    };
   }
 
   /** Everything: DWD's grid and every network's frame. For a wake, where any of it may have moved on. */

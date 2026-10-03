@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
-import { isBehind, networkOf, scanTime, VolumeFeed, VOLUME_RETRIES, VOLUME_RETRY_MS } from "../../src/lib/scans.ts";
+import {
+  isBehind, isVolumeBehind, networkOf, radarScanOf, scanTime, VolumeFeed, VOLUME_RETRIES, VOLUME_RETRY_MS,
+} from "../../src/lib/scans.ts";
 
 const at = (hhmm: string) => scanTime(`2026-10-01T${hhmm}:00Z`)!;
 
@@ -121,4 +123,32 @@ test("nothing is waited for without a run or without any volumes", async (t) => 
   t.mock.timers.tick(VOLUME_RETRY_MS * 3);
   await settle();
   assert.equal(fetch.mock.callCount(), 0);
+});
+
+const radar = (de: string | null, networks: Record<string, string> = {}, whole = false) => ({
+  scan: de && at(de),
+  whole,
+  networks: Object.fromEntries(Object.entries(networks).map(([code, hhmm]) => [code, { upstream_time: at(hhmm) }])),
+});
+const storm = (hhmm: string, network?: string) => ({ network, reference_time: `2026-10-01T${hhmm}:00Z` });
+
+test("a storm is judged against its own network's radar, not DWD's", () => {
+  // France's composite is on its own clock: 00:04 is its newest, DWD's 00:05.
+  const shown = radar("00:05", { fr: "00:04" });
+  assert.ok(!isVolumeBehind(storm("00:04", "fr"), shown));
+  assert.ok(isVolumeBehind(storm("00:00", "de"), shown));
+  // Volumes from before networks were recorded are DWD's.
+  assert.ok(isVolumeBehind(storm("00:00"), shown));
+  assert.ok(!isVolumeBehind(storm("00:05"), shown));
+});
+
+test("under the merged composite every storm is judged against its one frame", () => {
+  const shown = radar("00:05", {}, true);
+  assert.equal(radarScanOf("fr", shown), at("00:05"));
+  assert.ok(isVolumeBehind(storm("00:04", "fr"), shown));
+});
+
+test("a storm with no radar drawn under it is not behind", () => {
+  assert.ok(!isVolumeBehind(storm("00:00", "fr"), radar("00:05")));
+  assert.ok(!isVolumeBehind(storm("00:00"), radar(null)));
 });
