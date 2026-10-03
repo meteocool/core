@@ -9,8 +9,9 @@
  */
 import { apiClient, dataClient } from "./client";
 import { reportError } from "../lib/Toast";
-import { apiHealth } from "../stores";
+import { apiHealth, reachability } from "../stores";
 import { markAbsent, nextHealth } from "../lib/apiHealth";
+import { answered, finished, started, unanswered } from "../lib/reachability";
 import { progress } from "../lib/progress";
 import { isTransient } from "../lib/timedFetch";
 import { noteTransientFailure } from "../lib/recovery";
@@ -126,6 +127,25 @@ const transient = (error: unknown): boolean => (
 
 const offline = (): boolean => typeof navigator !== "undefined" && navigator.onLine === false;
 
+/**
+ * Send once, and say whether the backend was there: anything that came back
+ * with a response was answered, a 500 included. Only a call that got nothing
+ * at all -- refused by the network, or stalled -- counts against it, and only
+ * when its caller has given up on it (`noAnswer`): a retry may yet get through.
+ */
+async function sendOnce<T>(send: () => Promise<Answer<T>>): Promise<Answer<T>> {
+  const answer = await send();
+  if (answer.response) reachability.update((r) => answered(r, Date.now()));
+  return answer;
+}
+
+/** A call sent at `sentAt` has had its last try and got nothing back; see lib/reachability.ts. */
+function noAnswer(error: unknown, sentAt: number) {
+  if (!(error instanceof Refused) && transient(error)) {
+    reachability.update((r) => unanswered(r, sentAt, Date.now()));
+  }
+}
+
 const pause = (ms: number) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
 /**
@@ -133,8 +153,10 @@ const pause = (ms: number) => new Promise((resolve) => { setTimeout(resolve, ms)
  * True when it answered, which is recorded as the endpoint recovering.
  */
 async function probe<T>(id: string, send: () => Promise<Answer<T>>, optional: boolean): Promise<boolean> {
+  const sentAt = Date.now();
+  reachability.update(started);
   try {
-    const { data, error, response } = await send();
+    const { data, error, response } = await sendOnce(send);
     if (error === undefined && data !== undefined) {
       recordOutcome(id);
       return true;
@@ -143,8 +165,11 @@ async function probe<T>(id: string, send: () => Promise<Answer<T>>, optional: bo
       apiHealth.update((health) => markAbsent(health, id));
       return true;
     }
-  } catch {
+  } catch (error) {
     // Still down; the next probe asks again.
+    noAnswer(error, sentAt);
+  } finally {
+    reachability.update(finished);
   }
   return false;
 }
@@ -158,10 +183,12 @@ async function request<T>(
   // The shared bar unless a caller brings its own: every request shows.
   const bar = nanobar ?? progress();
   bar.start(id);
+  reachability.update(started);
   try {
     for (let attempt = 0; ; attempt += 1) {
+      const sentAt = Date.now();
       try {
-        const { data, error, response } = await send();
+        const { data, error, response } = await sendOnce(send);
         if (error === undefined && data !== undefined) {
           recordOutcome(id);
           return data;
@@ -183,6 +210,9 @@ async function request<T>(
           await pause(again);
           continue;
         }
+        // Unreachable before failing, so the machine goes straight to offline
+        // rather than by way of degraded (lib/connectionState.ts).
+        noAnswer(error, sentAt);
         recordOutcome(id, error);
         if (transient(error)) {
           // The reader's network, not a fault of ours: a warning rather than a
@@ -197,6 +227,7 @@ async function request<T>(
     }
   } finally {
     bar.finish(id);
+    reachability.update(finished);
   }
 }
 

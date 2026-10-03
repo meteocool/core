@@ -1,5 +1,7 @@
 import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
 import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
+import { REACHABLE, type Reachability } from "./lib/reachability";
+import { INITIAL_CONNECTION, type Connection } from "./lib/connectionState";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties, RadarVolume } from "./api";
@@ -144,6 +146,19 @@ export const apiHealth = writable<ApiHealth>(EMPTY_HEALTH);
  * could sit on the map indefinitely.
  */
 export const degradedStatus = writable<DegradedState>(NOT_DEGRADED);
+
+/**
+ * Whether the backend answers at all, as the API calls find it. The rules are
+ * lib/reachability.ts, and api/index.ts applies them.
+ */
+export const reachability = writable<Reachability>(REACHABLE);
+
+/**
+ * Where the connection's state machine is -- online, degraded, offline or
+ * catching up -- and since when. The machine is lib/connectionState.ts, and
+ * lib/connectionStatus.ts runs it; the pill and the diagnostics read this.
+ */
+export const connectionStatus = writable<Connection>(INITIAL_CONNECTION);
 
 /**
  * The backend's publish rhythm as observed this session, written by
