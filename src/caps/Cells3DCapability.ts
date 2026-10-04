@@ -250,6 +250,20 @@ const OPEN_PITCH = 76;
 
 /** How far from the opening tilt the map can be at closing and still count as not re-tilted. */
 const PITCH_KEPT_DEG = 4;
+
+/**
+ * The steepest the map tilts: a view from low over the ground, just short of
+ * where MapLibre loses track of what it is looking at.
+ *
+ * When a drag or an ease ends over terrain, MapLibre finds the centre again
+ * where the line of sight meets the ground. Steeper than acos(0.1), about
+ * 84.26 degrees, it gives that up and puts the centre 10 km in front of the
+ * camera instead -- which, from the camera's height at a regional zoom, is
+ * hundreds of kilometres back from where the reader was looking. A tilt into
+ * the old limit of 85 flung the map from Bavaria to the Atlantic and to a
+ * street-level zoom.
+ */
+const MAX_PITCH = 84;
 /**
  * How long the camera takes to right itself on the way back to a flat map;
  * see `leave`. Longer than the tilt's own 700ms: this one also pulls back
@@ -751,7 +765,7 @@ export default class Cells3DCapability extends Capability {
           maxZoom: 13,
           // MapLibre stops at 60 unless told otherwise, which is a view from a
           // hilltop; an opened storm is looked at from lower -- see frameOpened.
-          maxPitch: 85,
+          maxPitch: MAX_PITCH,
           // Spelled out rather than behind an (i), like the flat map's; see the
           // attribution rules in glass.css.
           attributionControl: { compact: false },
