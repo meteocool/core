@@ -16,7 +16,7 @@ import { imprintAttribution, osmAttribution, protomapsAttribution } from "./attr
  * -- Nextzen now answers every request with "An API key is required" and no
  * longer issues keys, so that overlay had gone blank.
  */
-const MAP_VERSION = import.meta.env.VITE_MAP_VERSION ?? "20260104";
+const MAP_VERSION = import.meta.env?.VITE_MAP_VERSION ?? "20260104";
 
 /** The tileset stops here; OpenLayers overzooms past it. */
 export const MAP_MAX_ZOOM = 15;
@@ -164,11 +164,29 @@ export function themeStyleFunction(theme: BasemapTheme) {
   };
 }
 
+/**
+ * The tile layers a theme draws from. Landuse is the heavy one -- 1,400 to
+ * 2,600 features a tile from z7 to z10, several times the cost of decoding
+ * everything else in it -- and light and dark draw none of it, so a theme
+ * with no landuse colours does not decode it at all.
+ */
+export function themeLayers(theme: BasemapTheme): string[] {
+  return [
+    "earth",
+    "water",
+    ...(Object.keys(theme.landcover).length ? ["landcover"] : []),
+    ...(Object.keys(theme.landuse).length ? ["landuse"] : []),
+    "buildings",
+    "roads",
+    "boundaries",
+  ];
+}
+
 /** Builds a basemap layer for one theme. */
 export function basemapLayer(theme: BasemapTheme) {
   const layer = new VectorTileLayer({
     source: protomapsSource(
-      ["earth", "water", "landcover", "landuse", "buildings", "roads", "boundaries"],
+      themeLayers(theme),
       [osmAttribution, protomapsAttribution, imprintAttribution],
     ),
     style: themeStyleFunction(theme),
