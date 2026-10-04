@@ -5,6 +5,8 @@ import type NanobarWrapper from "../lib/NanobarWrapper";
 import type { CapabilityOptions, RadarSocket } from "./options";
 import Capability from "./Capability";
 import StrikeManagerV2 from "../lib/StrikeManagerV2";
+import { LIVE_STRIKE_BATCH_MS } from "../lib/StrikeManager";
+import { coalesce, type Coalescer } from "../lib/coalesce";
 import { capDescription, capLastUpdated, radarColorScheme, showForecastPlaybutton } from "../stores";
 import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
 import { fetchLightningLayer, fetchLightningSince } from "../api";
@@ -41,6 +43,9 @@ export default class LightningCapability extends Capability {
 
   /** Kept so destroy() can take the handler back off the socket again. */
   private lightningHandler: ((data: { lon: number; lat: number; time: number }) => void) | null = null;
+
+  /** Live strikes waiting to be added together; see lib/coalesce.ts. */
+  private liveStrikes: Coalescer<{ lon: number; lat: number; time: number }> | null = null;
 
   /**
    * The merged European composite, faint under the strikes: a strike reads
@@ -127,7 +132,13 @@ export default class LightningCapability extends Capability {
       this.sm = sm;
       // Strikes newer than the published tile set arrive here; the tile set
       // itself covers everything older than the baseline.
-      this.lightningHandler = (data) => sm.addStrike(data.lon, data.lat, data.time / 10e5);
+      // Gathered for a moment, for one change on the source; see lib/coalesce.ts.
+      this.liveStrikes = coalesce<{ lon: number; lat: number; time: number }>(
+        (strikes) => sm.addStrikes(strikes.map(({ lon, lat, time }) => ({ lon, lat, timestamp: time / 10e5 }))),
+        LIVE_STRIKE_BATCH_MS,
+      );
+      const liveStrikes = this.liveStrikes;
+      this.lightningHandler = (data) => liveStrikes.push(data);
       this.socketio?.on("lightning", this.lightningHandler);
     }
     this.sm.setBaseline(requested);
@@ -142,6 +153,8 @@ export default class LightningCapability extends Capability {
       this.socketio.off("lightning", this.lightningHandler);
       this.lightningHandler = null;
     }
+    this.liveStrikes?.cancel();
+    this.liveStrikes = null;
     if (this.socketio && this.networkHandler) {
       this.socketio.off("network", this.networkHandler);
       this.networkHandler = null;
