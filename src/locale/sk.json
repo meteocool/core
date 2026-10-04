@@ -164,7 +164,7 @@
       "homeyer": "Homeyer (porucha farebného videnia)",
       "lang": "Lang"
     },
-    "color_map_hint": "Zmení farby, v ktorých sú zrážky zobrazené. 'Klasická' sa vykresľuje najrýchlejšie.",
+    "color_map_hint": "Zmení farby, v ktorých sú zrážky zobrazené.",
     "map": "Mapa",
     "rotation": "Otáčanie mapy dvomi prstami",
     "map_3d": "3D mapa",

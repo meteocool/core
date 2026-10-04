@@ -164,7 +164,7 @@
       "homeyer": "Homeyer (porucha barvocitu)",
       "lang": "Lang"
     },
-    "color_map_hint": "Mění barvy, ve kterých se vykreslují srážky. 'Klasická' je nejrychlejší.",
+    "color_map_hint": "Mění barvy, ve kterých se vykreslují srážky.",
     "map": "Mapa",
     "rotation": "Otáčení mapy dvěma prsty",
     "map_3d": "3D mapa",

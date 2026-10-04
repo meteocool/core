@@ -21,6 +21,7 @@ import {
   plRadarExtent,
 } from "./extents";
 import { tileSourceUrl } from "./dwd";
+import { drawnTileId } from "../lib/rvp6";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
 import { fetchCzechRadar, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar } from "../api";
@@ -132,7 +133,8 @@ export default class NetworkRadarLayer {
 
   /**
    * The palette the reader chose, which the tiles are recoloured into on
-   * load (recolour.ts): they come in the classic one, as DWD's do.
+   * load (recolour.ts): they come in the classic one, as DWD's RGBA frames
+   * do, or as values, which are painted in it.
    */
   private palette = "classic";
 
@@ -209,7 +211,7 @@ export default class NetworkRadarLayer {
 
     const urls: string[] = [];
     for (const frame of frames) {
-      const template = tileSourceUrl("meteoradar", frame.tile_id);
+      const template = tileSourceUrl("meteoradar", drawnTileId(frame));
       tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
         if (urls.length >= max) return;
         // Not a tile the frame does not have: the index is what the loader
@@ -230,19 +232,20 @@ export default class NetworkRadarLayer {
       this.layer?.setVisible(false);
       return;
     }
-    const url = tileSourceUrl("meteoradar", frame.tile_id);
+    const url = tileSourceUrl("meteoradar", drawnTileId(frame));
     if (!this.layer) {
-      this.createLayer(url, frame.tiles);
+      this.createLayer(url, frame);
     } else if (url !== this.url) {
-      (this.layer.getSource() as IndexedTileSource | null)?.setUrl(url, frame.tiles);
+      (this.layer.getSource() as IndexedTileSource | null)?.setUrl(url, frame.tiles, frame.values?.encoding);
     }
     this.url = url;
     this.layer!.setVisible(true);
   }
 
-  private createLayer(url: string, index: RadarFrame["tiles"]) {
+  private createLayer(url: string, frame: RadarFrame) {
     const source = trackTileLoads(new IndexedTileSource({
-      index,
+      index: frame.tiles,
+      encoding: frame.values?.encoding,
       attributions: [this.network.attribution],
       crossOrigin: "anonymous",
       minZoom: 3,

@@ -364,7 +364,7 @@ const fsm = new StateMachine({
       if (autoPlay) {
         setTimeout(() => {
           console.log("Triggering auto-play");
-          if (cap.source && fsm.state === "manualScrolling") {
+          if (cap.hasFrameLayer && fsm.state === "manualScrolling") {
             fsm.pressPlay();
           } else {
             setTimeout(() => {

@@ -14,10 +14,15 @@
  * map classic colour *i* to the palette's colour *i*, which drew the map up to
  * 13.5 dBZ off its own legend; the table is built with `dbz2color`, the one the
  * legend, the timeline and the 3D map read, so all of them agree.
+ *
+ * A frame rendered as value tiles (lib/rvp6.ts) has no colours to map: its
+ * bytes are reflectivities, painted from the palette's 256-entry table by
+ * `paintValueImage` here and by a `palette` style on DWD's WebGL layer.
  */
 import { RVP6_CLASSIC, RVP6_CLASSIC_LEFTPAD } from "../colormaps";
 import type { Rgba } from "../colormaps";
 import { dbz2color } from "../lib/cmap_utils";
+import { paintValuePixels, rvp6Table } from "../lib/rvp6";
 
 /** Classic colour, as `0xRRGGBB`, to the palette's RGBA at the same reflectivity. */
 export type Recolouring = ReadonlyMap<number, Rgba>;
@@ -63,18 +68,31 @@ export function recolourPixels(pixels: Uint8ClampedArray, table: Recolouring): v
   }
 }
 
-/** A decoded tile, or a canvas already drawn on, recoloured onto a canvas of its own. */
-export function recolourImage(
-  image: CanvasImageSource & { naturalWidth?: number; naturalHeight?: number; width: number; height: number },
-  table: Recolouring,
-): HTMLCanvasElement {
+type Drawable = CanvasImageSource & { naturalWidth?: number; naturalHeight?: number; width: number; height: number };
+
+/** The image on a canvas of its own, its pixels passed through `paint` on the way. */
+function repaint(image: Drawable, paint: (pixels: Uint8ClampedArray) => void): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth ?? image.width;
   canvas.height = image.naturalHeight ?? image.height;
   const context = canvas.getContext("2d", { willReadFrequently: true })!;
   context.drawImage(image, 0, 0);
   const data = context.getImageData(0, 0, canvas.width, canvas.height);
-  recolourPixels(data.data, table);
+  paint(data.data);
   context.putImageData(data, 0, 0);
   return canvas;
+}
+
+/** A decoded tile, or a canvas already drawn on, recoloured onto a canvas of its own. */
+export function recolourImage(image: Drawable, table: Recolouring): HTMLCanvasElement {
+  return repaint(image, (pixels) => recolourPixels(pixels, table));
+}
+
+/**
+ * A decoded value tile (lib/rvp6.ts), or a canvas it was drawn on, painted in
+ * a palette onto a canvas of its own. Every palette, classic too: the tile
+ * holds reflectivities, not colours.
+ */
+export function paintValueImage(image: Drawable, palette: string): HTMLCanvasElement {
+  return repaint(image, (pixels) => paintValuePixels(pixels, rvp6Table(palette)));
 }

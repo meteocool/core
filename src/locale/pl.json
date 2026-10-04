@@ -164,7 +164,7 @@
       "homeyer": "Homeyer (deficyt widzenia barw)",
       "lang": "Lang"
     },
-    "color_map_hint": "Zmienia kolory, w jakich rysowane są opady. „Klasyczna” renderuje się najszybciej.",
+    "color_map_hint": "Zmienia kolory, w jakich rysowane są opady.",
     "map": "Mapa",
     "rotation": "Obracanie mapy dwoma palcami",
     "map_3d": "Mapa 3D",
