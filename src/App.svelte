@@ -712,12 +712,28 @@ const finePointer = typeof window === "undefined" || !window.matchMedia
  * cell and switched maps instead of opening the storm. The 3D map ranks the
  * two the same way. The tag answers where no cell is under the finger.
  */
+/*
+ * The first hit test on a page costs 150 ms whatever it asks: OpenLayers
+ * times canvas readback three ways, 50 ms each, to choose how to read its
+ * hit-detection canvas, and only then answers. That was the first hover over
+ * the map, or the first tap on a storm, freezing the map. Asking any question
+ * once the map is drawn and the page is idle pays it while nobody is waiting
+ * -- the benchmark is OpenLayers' own and runs once for the page, and any
+ * drawn vector layer gets it there.
+ */
+function whenIdle(task: () => void) {
+  // Missing from older Safari, whatever the DOM types say.
+  if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(task, { timeout: 5000 });
+  else window.setTimeout(task, 2000);
+}
+
 lm.forEachMap((map) => {
   /* `mapExtent4326` is published on moveend, so on a cold load -- where the
      view comes from the URL before the map has a target -- it stays null until
      the user pans, and the layer would sit empty behind a map full of storms.
      The first completed render is when there is a viewport to ask about. */
   map.once("rendercomplete", () => {
+    if (!screenshot) whenIdle(() => map.hasFeatureAtPixel([0, 0]));
     const size = map.getSize();
     if (!size) return;
     cellmgr.reload(transformExtent(
