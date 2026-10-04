@@ -36,7 +36,7 @@ export default class PrecipitationTypesCapability extends Capability {
     if (!data) return;
     if (this.currentLayer && this.currentLayer.get("tile_id") === data.tile_id) return;
 
-    const newLayer = dwdPrecipTypes(data.tile_id);
+    const newLayer = dwdPrecipTypes(data);
     newLayer.set("tile_id", data.tile_id);
     super.getMap().addLayer(newLayer);
     if (this.currentLayer) {

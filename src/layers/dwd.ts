@@ -14,6 +14,8 @@ import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
 import { carriesValues, drawnTileId, rvp6Style } from "../lib/rvp6";
 import type { ValueTiles } from "../lib/rvp6";
+import { HG_CLASS_ENCODING, hgClassStyle } from "../lib/hgClasses";
+import type { ClassTiles } from "../api";
 import type { TileIndex } from "../lib/tileIndex";
 import type { NetworkCode } from "./networkHoles";
 import type BaseLayer from "ol/layer/Base";
@@ -163,7 +165,7 @@ const valueLayers = new Set<TileLayer>();
 export const dwdValueLayer: LayerFactory = (frame) => {
   const tileId = drawnTileId(frame);
   const url = tileSourceUrl(frame.bucket ?? "meteoradar", tileId);
-  const source = trackTileLoads(new ValueTileSource({ ...commonDWDParameters, url }));
+  const source = trackTileLoads(new ValueTileSource({ ...commonDWDParameters, url, holed: true }));
   source.set("tile_id", tileId);
   const layer = new TileLayer({
     source,
@@ -247,18 +249,29 @@ export const radolanOverlay = () => {
   return layer;
 };
 
-export const dwdPrecipTypes = (tileId, bucket = "meteoradar") => {
-  const sourceUrl = `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
-  const reflectivitySource = trackTileLoads(new ImageTileSource({
-    url: sourceUrl,
+/**
+ * The precipitation-type layer for its newest frame: a byte per class where
+ * the frame says so (lib/hgClasses.ts), coloured on the GPU; RGBA as rendered
+ * before.
+ */
+export const dwdPrecipTypes = (frame: { tile_id: string; values?: ClassTiles | null }, bucket = "meteoradar") => {
+  const parameters = {
     attributions: [dwdAttribution],
-    crossOrigin: "anonymous",
     minZoom: 3,
     maxZoom: 8,
     transition: 300,
     tileSize: 512,
     // Classes, not intensities: blending snow into hail past zoom 8 draws a colour no class has.
     interpolate: false,
+  };
+  if (frame.values?.encoding === HG_CLASS_ENCODING) {
+    const source = trackTileLoads(new ValueTileSource({ ...parameters, url: tileSourceUrl(bucket, frame.values.tile_id) }));
+    return new TileLayer({ source, style: hgClassStyle(), zIndex: 3, opacity: NOWCAST_OPACITY, cacheSize: 256 });
+  }
+  const reflectivitySource = trackTileLoads(new ImageTileSource({
+    ...parameters,
+    url: tileSourceUrl(bucket, frame.tile_id),
+    crossOrigin: "anonymous",
   }));
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,

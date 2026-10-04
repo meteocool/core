@@ -25,6 +25,7 @@ export type RadarFrame = Schemas["RadarFrame"];
 export type RadarFrames = Schemas["RadarFrames"];
 export type VectorOverlay = Schemas["VectorOverlay"];
 export type PrecipitationTypes = Schemas["PrecipitationTypes"];
+export type ClassTiles = Schemas["ClassTiles"];
 export type LightningLayerMetadata = Schemas["LightningLayerMetadata"];
 export type LightningCollection = Schemas["LightningCollection"];
 export type LightningStats = Schemas["LightningStats"];
