@@ -1,4 +1,3 @@
- 
 import Feature from "ol/Feature";
 import Fill from "ol/style/Fill";
 import Style from "ol/style/Style";
@@ -7,20 +6,47 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ImageTileSource from "ol/source/ImageTile";
 import NetworkHoleTileSource from "./networkHoles";
+import ValueTileSource from "./valueTiles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdRadarExtent, radarCoverageInv } from "./extents";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
+import { carriesValues, drawnTileId, rvp6Style } from "../lib/rvp6";
+import type { ValueTiles } from "../lib/rvp6";
+import type { TileIndex } from "../lib/tileIndex";
+import type { NetworkCode } from "./networkHoles";
 import type BaseLayer from "ol/layer/Base";
+import type Projection from "ol/proj/Projection";
+import type TileGrid from "ol/tilegrid/TileGrid";
+import { NOWCAST_OPACITY } from "./ui";
+import { recolouringFor } from "./recolour";
+
+/** What a layer is built for: one frame's tile set, and what its bytes mean. */
+export interface TileFrame {
+  tile_id: string;
+  bucket?: string;
+  values?: ValueTiles | null;
+}
+
+/**
+ * What RadarCapability re-points as playback moves: `ValueTileSource` for
+ * value frames, `NetworkHoleTileSource` for RGBA ones.
+ */
+export interface FrameSource {
+  setUrl(url: string, index?: TileIndex | null): void;
+  setIndices(indices: Map<string, TileIndex | null | undefined>): void;
+  setHoles(holes: Map<string, NetworkCode[]>, showing?: string): void;
+  refresh(): void;
+  set(key: string, value: unknown): void;
+  getTileGridForProjection(projection: Projection): TileGrid;
+}
 
 /**
  * Builds the layer and source for one radar tile set, plus the URL template.
  * RadarCapability swaps between these when the colormap changes.
  */
-export type LayerFactory = (tileId: string, bucket?: string) => [BaseLayer, NetworkHoleTileSource, string];
-import { NOWCAST_OPACITY } from "./ui";
-import { recolouringFor } from "./recolour";
+export type LayerFactory = (frame: TileFrame) => [BaseLayer, FrameSource, string];
 
 /** The palette DWD's frames are drawn in, by the name the settings store it under. */
 let palette = "classic";
@@ -49,6 +75,7 @@ const commonDWDParameters = {
  * Shared by every network's reflectivity layer -- DWD's and the EUMETNET ones alike
  * hand the client the same `RadarFrame` shape, so this is the one place that
  * turns it into a tile source URL rather than each layer hand-rolling its own.
+ * A value frame's tiles are at the same place, under `values.tile_id`.
  */
 export const tileSourceUrl = (bucket: string, tileId: string) =>
   `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
@@ -74,7 +101,7 @@ export const dwdSource = (tileId: string, bucket = "meteoradar") => {
   return reflectivitySource;
 };
 
-export const dwdLayerStatic: LayerFactory = (tileId, bucket) => {
+export const dwdLayerStatic: LayerFactory = ({ tile_id: tileId, bucket }) => {
   const reflectivitySource = dwdSource(tileId, bucket);
   const reflectivityLayer = new TileLayer({
     source: reflectivitySource,
@@ -88,7 +115,7 @@ export const dwdLayerStatic: LayerFactory = (tileId, bucket) => {
   return [reflectivityLayer, reflectivitySource, ""];
 };
 
-export const DWDLayerFactoryGL: LayerFactory = (tileId, bucket = "meteoradar") => {
+export const DWDLayerFactoryGL: LayerFactory = ({ tile_id: tileId, bucket = "meteoradar" }) => {
   const sourceUrl = tileSourceUrl(bucket, tileId);
   // Through `dwdSource` rather than its own source, so this colour scheme gets
   // Switzerland cut out of it exactly as the classic one does.
@@ -124,8 +151,43 @@ export const DWDLayerFactoryGL: LayerFactory = (tileId, bucket = "meteoradar") =
   return [reflectivityLayer, reflectivitySource, sourceUrl];
 };
 
+/** The value layers built, so a palette change restyles them in place. */
+const valueLayers = new Set<TileLayer>();
+
+/**
+ * DWD's frames as value tiles (lib/rvp6.ts), in the palette by style.
+ *
+ * One factory for every palette: the tiles hold reflectivities, and the
+ * palette is a 256-entry lookup on the GPU, the same cost in every one.
+ */
+export const dwdValueLayer: LayerFactory = (frame) => {
+  const tileId = drawnTileId(frame);
+  const url = tileSourceUrl(frame.bucket ?? "meteoradar", tileId);
+  const source = trackTileLoads(new ValueTileSource({ ...commonDWDParameters, url }));
+  source.set("tile_id", tileId);
+  const layer = new TileLayer({
+    source,
+    style: rvp6Style(palette),
+    zIndex: 80,
+    opacity: NOWCAST_OPACITY,
+    cacheSize: 512,
+    extent: dwdRadarExtent,
+  });
+  layer.set("tile_id", tileId);
+  valueLayers.add(layer);
+  return [layer, source, url];
+};
+
+/** The layer a frame needs: value tiles in the palette, or RGBA ones as rendered. */
+export const dwdLayerFor: LayerFactory = (frame) => (carriesValues(frame) ? dwdValueLayer : dwdLayerStatic)(frame);
+
 export function setDwdCmap(colorMapString: string) {
   palette = colorMapString;
+  for (const layer of valueLayers) {
+    // Disposed: OpenLayers takes the source away.
+    if (!layer.getSource()) valueLayers.delete(layer);
+    else layer.setStyle(rvp6Style(palette));
+  }
 }
 
 /** The dark wash over everywhere neither radar network reaches. */

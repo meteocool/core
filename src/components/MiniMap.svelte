@@ -7,7 +7,7 @@
   import { unByKey } from "ol/Observable";
   import type { EventsKey } from "ol/events";
   import type BaseLayer from "ol/layer/Base";
-  import { dwdLayerStatic } from "../layers/dwd";
+  import { dwdLayerFor } from "../layers/dwd";
   import { get } from "svelte/store";
   import { capTimeIndicator, mapBaseLayer } from "../stores";
   const dispatch = createEventDispatcher();
@@ -126,8 +126,11 @@
       const frame = step === undefined ? null : radar?.clientGrid?.[step];
       if (!frame?.tile_id || frame.tile_id === shown) return;
       shown = frame.tile_id;
-      if (tiles) preview_.removeLayer(tiles);
-      [tiles] = dwdLayerStatic(frame.tile_id, frame.bucket);
+      if (tiles) {
+        preview_.removeLayer(tiles);
+        tiles.dispose();
+      }
+      [tiles] = dwdLayerFor(frame);
       preview_.addLayer(tiles);
     });
 

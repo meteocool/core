@@ -3,15 +3,16 @@ import VectorTileSource from "ol/source/VectorTile";
 import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
-import { DWDLayerFactoryGL, dwdLayerStatic, setDwdCmap } from "../layers/dwd";
-import type { LayerFactory } from "../layers/dwd";
+import { DWDLayerFactoryGL, dwdLayerStatic, dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
+import type { FrameSource, LayerFactory } from "../layers/dwd";
 import NetworkRadarLayer, { EUROPE, NETWORKS } from "../layers/network";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
-import type NetworkHoleTileSource from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
 import { hasTile, sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
+import { carriesValues, drawnTileId } from "../lib/rvp6";
+import type { ValueTiles } from "../lib/rvp6";
 import type { RadarFrame } from "../api";
 import type { RadarScans } from "../lib/scans";
 import {
@@ -107,6 +108,16 @@ export interface GridStep {
   processed_time?: number;
   /** Which tiles the frame has; see lib/tileIndex.ts. Absent on older frames. */
   tiles?: TileIndex | null;
+  /** That the tiles hold values, not colours; see lib/rvp6.ts. Absent on RGBA frames. */
+  values?: ValueTiles | null;
+}
+
+/** A layer DWD's frames are drawn through, its source, and which frames it draws. */
+interface DwdLayer {
+  layer: BaseLayer;
+  source: FrameSource;
+  /** Value frames (lib/rvp6.ts), or RGBA ones. */
+  values: boolean;
 }
 
 /** The ±2h five-minute grid the playback slider scrubs across. */
@@ -119,16 +130,34 @@ export interface GridConfig {
 }
 
 export default class RadarCapability extends Capability {
-  layer: BaseLayer | null;
+  /**
+   * The layers DWD's frames are drawn through: one for value tiles, one for
+   * RGBA, each there while the grid has a frame it can draw. Their sources'
+   * URLs are swapped as playback moves.
+   *
+   * A frame rendered as value tiles is coloured on the GPU by its layer's
+   * style; one rendered before the backend switched (ADR 0010 in
+   * meteocool/ng) is RGBA and draws as it always did. For the two hours
+   * after the switch a grid holds both and playback walks across them, so
+   * each step is drawn by the layer that can draw it and the other is
+   * hidden. Once no frame in the grid is RGBA its layer goes.
+   */
+  private dwd: { values: DwdLayer | null; rgba: DwdLayer | null } = { values: null, rgba: null };
 
-  /** The tile source behind `layer`; its URL is swapped as playback moves. */
-  source: NetworkHoleTileSource | null = null;
+  /** The value frames' URLs: the URL alone does not say. */
+  private valueUrls = new Set<string>();
+
+  /** Whether the step on screen is a value frame, which decides the layer it is drawn by. */
+  private showingValues = false;
+
+  /** Whether the merged European composite stands in for DWD's frame on screen; see `showNetworks`. */
+  private europeShown = false;
 
   layers: Record<string, BaseLayer>;
 
-  sources: Record<string, NetworkHoleTileSource>;
+  sources: Record<string, FrameSource>;
 
-  /** Builds a layer for a tile set; swapped when the colormap changes. */
+  /** Builds the layer for RGBA frames; swapped when the colormap changes. Value frames have one for every palette. */
   layerFactory: LayerFactory;
 
   /** The full grid, and the subset handed to the UI. */
@@ -224,7 +253,6 @@ export default class RadarCapability extends Capability {
       showForecastPlaybutton.set(true);
     }, additionalLayers);
 
-    this.layer = null;
     this.layers = {};
     this.nanobar = options.nanobar!;
     this.socket_io = options.socket_io;
@@ -267,18 +295,20 @@ export default class RadarCapability extends Capability {
 
     //mcTileCache.setMap(map);
     radarColorScheme.subscribe((colorScheme) => {
+      // Value frames are restyled where they stand: the palette is their style.
       setDwdCmap(colorScheme);
       // The other networks and the merged composite in the same palette:
-      // their tiles are classic too, recoloured on load (recolour.ts).
+      // recoloured or painted on load (recolour.ts).
       for (const network of [...this.networks, this.europe]) network.setPalette(colorScheme);
 
-      const oldLayer = this.layer;
-      if (oldLayer && super.getMap()) {
-        super.getMap().removeLayer(oldLayer);
-        oldLayer.dispose();
+      // RGBA frames are drawn by a layer per palette -- classic as rendered,
+      // any other through a colour match -- so theirs is rebuilt.
+      const rgba = this.dwd.rgba;
+      if (rgba) {
+        this.map.removeLayer(rgba.layer);
+        rgba.layer.dispose();
+        this.dwd.rgba = null;
       }
-      this.layer = null;
-      this.source = null;
       // These compared this.layer -- a layer -- against a layer *factory*, so
       // both tests were vacuously true.
       if (colorScheme === "classic" && this.layerFactory !== dwdLayerStatic) {
@@ -432,6 +462,7 @@ export default class RadarCapability extends Capability {
   updateClientGridFromServerGrid(server) {
     let latestRadar = new Date(0);
     const body = { ...this.gridconfig.grid };
+    const valueUrls = new Set<string>();
 
     latestRadar = new Date(this.serverTime * 1000);
 
@@ -447,7 +478,10 @@ export default class RadarCapability extends Capability {
       }
 
       const bucket = layerAttributes.source === "observation" ? "meteoradar" : "meteonowcast";
-      const sourceUrl = `${tileBaseUrl}/${bucket}/${layerAttributes.tile_id}/{z}/{x}/{-y}.png`;
+      // The set the client draws: a frame's value tiles where it has them.
+      // Everything keyed by URL -- indices, holes, prefetch -- follows.
+      const sourceUrl = tileSourceUrl(bucket, drawnTileId(layerAttributes));
+      if (carriesValues(layerAttributes)) valueUrls.add(sourceUrl);
 
       body[step] = layerAttributes;
       body[step].bucket = bucket;
@@ -460,6 +494,7 @@ export default class RadarCapability extends Capability {
     });
     this.clientGrid = body;
     this.clientGridConfig = { ...this.gridconfig, grid: body };
+    this.valueUrls = valueUrls;
     return latestRadar;
   }
 
@@ -481,12 +516,14 @@ export default class RadarCapability extends Capability {
    * moves is when they are asked for.
    */
   prefetchFrames(fromStep: number, count: number) {
-    if (!this.source || !this.clientGrid) return;
+    // Either layer's: both are the same 512 px web-mercator grid.
+    const source = this.dwdLayers()[0]?.source;
+    if (!source || !this.clientGrid) return;
     const view = this.map.getView();
     const size = this.map.getSize();
     const resolution = view.getResolution();
     if (!size || resolution === undefined) return;
-    const tileGrid = this.source.getTileGridForProjection(view.getProjection());
+    const tileGrid = source.getTileGridForProjection(view.getProjection());
     const z = tileGrid.getZForResolution(resolution);
     const extent = view.calculateExtent(size);
     const last = this.getLastPlayableStep();
@@ -560,7 +597,71 @@ export default class RadarCapability extends Capability {
   }
 
   setUrl(url: string) {
-    this.source?.setUrl(url);
+    this.showFrame(url);
+  }
+
+  /** Whether DWD's frames have a layer to be drawn by, which they do from the first grid on. */
+  get hasFrameLayer(): boolean {
+    return this.dwdLayers().length > 0;
+  }
+
+  /** The layers in use; see `dwd`. */
+  private dwdLayers(): DwdLayer[] {
+    return [this.dwd.values, this.dwd.rgba].filter((drawn): drawn is DwdLayer => drawn !== null);
+  }
+
+  /**
+   * Build the layer each kind of frame in the grid needs, and take away one
+   * no frame needs any more. Each is built on the newest frame of its kind.
+   */
+  private ensureLayers() {
+    const newest: { values: GridStep | null; rgba: GridStep | null } = { values: null, rgba: null };
+    for (const frame of Object.values(this.clientGrid ?? {})) {
+      if (frame?.url) newest[carriesValues(frame) ? "values" : "rgba"] = frame;
+    }
+    for (const kind of ["values", "rgba"] as const) {
+      const built = this.dwd[kind];
+      const frame = newest[kind];
+      if (built && !frame) {
+        this.map.removeLayer(built.layer);
+        built.layer.dispose();
+        this.dwd[kind] = null;
+      } else if (!built && frame) {
+        const [layer, source] = (kind === "values" ? dwdValueLayer : this.layerFactory)(frame);
+        this.map.addLayer(layer);
+        this.dwd[kind] = { layer, source, values: kind === "values" };
+      }
+    }
+  }
+
+  /**
+   * Hand every layer the grid's indices and holes. `showing`, the URL about
+   * to be on screen (see `NetworkHoleTileSource.setHoles`), goes to the layer
+   * that draws it; the other re-decides for the frame it is on.
+   */
+  private pointLayers(showing?: string) {
+    const indices = this.indices();
+    const holes = this.holes();
+    const values = showing !== undefined && this.valueUrls.has(showing);
+    for (const drawn of this.dwdLayers()) {
+      // Indices first: the frame `setHoles` re-points at consults them.
+      drawn.source.setIndices(indices);
+      drawn.source.setHoles(holes, showing !== undefined && drawn.values === values ? showing : undefined);
+    }
+  }
+
+  /** Put a frame on screen, through the layer that draws its kind. */
+  private showFrame(url: string) {
+    this.showingValues = this.valueUrls.has(url);
+    this.dwd[this.showingValues ? "values" : "rgba"]?.source.setUrl(url);
+    this.applyVisibility();
+  }
+
+  /** Each layer visible on the steps it draws, and neither under the European composite. */
+  private applyVisibility() {
+    for (const drawn of this.dwdLayers()) {
+      drawn.layer.setVisible(!this.europeShown && drawn.values === this.showingValues);
+    }
   }
 
   /**
@@ -591,7 +692,7 @@ export default class RadarCapability extends Capability {
    */
   private applyRadarOpacity() {
     const base = this.stale ? STALE_OPACITY : NOWCAST_OPACITY;
-    this.layer?.setOpacity(this.inspecting ? base * INSPECT_OPACITY : base);
+    for (const drawn of this.dwdLayers()) drawn.layer.setOpacity(this.inspecting ? base * INSPECT_OPACITY : base);
   }
 
   /** Each network's newest composite, where it is fresh enough to draw: what the live step shows. */
@@ -643,24 +744,21 @@ export default class RadarCapability extends Capability {
   }
 
   /**
-   * Put the layer back after the palette changed, from the grid in hand.
+   * Put the layers back after the palette changed, from the grid in hand.
    *
    * Nothing to do before the first grid lands: `processRadar` builds the
-   * layer then. After that the layer is rebuilt on the frame being shown,
-   * with the live frame holed as before, and the grid is neither refetched
-   * nor re-announced -- no observer's picture of it has changed.
+   * layers then. After that the one taken away is rebuilt on the frame being
+   * shown, with the live frame holed as before, and the grid is neither
+   * refetched nor re-announced -- no observer's picture of it has changed.
    */
   private rebuildLayer() {
-    if (this.layer || !this.clientGrid) return;
-    const newestStep = this.getMostRecentObservation();
-    const newest = this.clientGrid[newestStep];
+    if (!this.clientGrid) return;
+    const newest = this.clientGrid[this.getMostRecentObservation()];
     if (!newest?.url) return;
-    [this.layer, this.source] = this.layerFactory(newest.tile_id, newest.bucket);
-    super.getMap().addLayer(this.layer);
-    const shownStep = get(capTimeIndicator);
-    const shown = this.clientGrid[shownStep]?.url ?? newest.url;
-    this.source.setIndices(this.indices());
-    this.source.setHoles(this.holes(), shown);
+    this.ensureLayers();
+    const shown = this.clientGrid[get(capTimeIndicator)]?.url ?? newest.url;
+    this.pointLayers(shown);
+    this.showFrame(shown);
     this.applyRadarOpacity();
   }
 
@@ -706,7 +804,8 @@ export default class RadarCapability extends Capability {
       network.show(live && !europe, europe ? null : this.networkGrid[network.network.code]?.[shown] ?? null);
     }
     this.europe.show(europe, null);
-    this.layer?.setVisible(!europe);
+    this.europeShown = europe;
+    this.applyVisibility();
   }
 
   /** `showNetworks` again for the step on screen, when what should show there has changed. */
@@ -880,23 +979,12 @@ export default class RadarCapability extends Capability {
     this.gridconfig = this.regenerateGridConfig();
     const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
 
-    if (!this.layer) {
-      const last = this.clientGrid?.[this.getMostRecentObservation()];
-      if (last) {
-        [this.layer, this.source] = this.layerFactory(last.tile_id, last.bucket);
-        // mcTileCache.setSource(this.source);
-        super.getMap().addLayer(this.layer);
-      }
-    }
+    this.ensureLayers();
     // Before any setUrl below: the step being moved onto is the one whose
     // holes matter. Following live, that step is the newest, so it is named
     // here and the frame being left is not re-keyed on the way out.
     const newestUrl = this.clientGrid?.[this.getMostRecentObservation()]?.url;
-    if (newestUrl) {
-      // Indices first: the frame `setHoles` re-points at consults them.
-      this.source?.setIndices(this.indices());
-      this.source?.setHoles(this.holes(), this.trackingMode === "live" ? newestUrl : undefined);
-    }
+    if (newestUrl) this.pointLayers(this.trackingMode === "live" ? newestUrl : undefined);
     switch (this.trackingMode) {
       case "live":
         // Publishes the pair itself: following the grid means the indicator
@@ -958,7 +1046,7 @@ export default class RadarCapability extends Capability {
     const mostRecent = this.getMostRecentObservation();
     if (this.clientGrid && mostRecent in this.clientGrid) {
       const url = this.clientGrid[mostRecent].url;
-      if (this.source && url) this.source.setUrl(url);
+      if (url) this.showFrame(url);
       // Both halves: the newest observation is what is being reset onto, so
       // there is no tick in which the two disagree.
       setFrames({ shown: mostRecent, newest: mostRecent });
@@ -967,8 +1055,9 @@ export default class RadarCapability extends Capability {
   }
 
   setSource(timestep: number) {
-    if (!this.source) return;
-    this.source.refresh();
+    const drawn = this.dwdLayers();
+    if (!drawn.length) return;
+    for (const { source } of drawn) source.refresh();
     if (this.trackingMode !== "manual") {
       this.trackingMode = "manual";
       live.set(false);
@@ -979,9 +1068,7 @@ export default class RadarCapability extends Capability {
     }
     setFrames({ shown: timestep });
     const step = this.clientGrid?.[timestep];
-    if (this.source && step && step.url != null) {
-      this.source.setUrl(step.url);
-    }
+    if (step && step.url != null) this.showFrame(step.url);
   }
 
   destroy() {
