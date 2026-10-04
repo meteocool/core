@@ -405,9 +405,6 @@ export default class Cells3DCapability extends Capability {
   /** Which tiles that frame has, so the ones it lacks are never asked for; see lib/tileIndex.ts. */
   private radarIndex: TileIndex | null | undefined = undefined;
 
-  /** What that frame's tiles hold, when values rather than colours; see lib/rvp6.ts. */
-  private radarEncoding: string | undefined = undefined;
-
   /** The `masked://` registration of that frame; see `ensureRadar`. */
   private radarMask: { url: string; whole: boolean; palette: string; key: string; tiles: string } | null = null;
 
@@ -1255,7 +1252,7 @@ export default class Cells3DCapability extends Capability {
     this.colormap = name;
     this.cloudsLayer?.setColormap(name);
     // The radar under the storms too: DWD's and every network's rasters are
-    // recoloured as they load (recolour.ts), so they are pointed afresh.
+    // painted as they load (maskedTiles.ts), so they are pointed afresh.
     if (this.gl && this.styleReady) {
       this.ensureRadar(this.gl);
       this.ensureNetworks(this.gl);
@@ -1693,11 +1690,10 @@ export default class Cells3DCapability extends Capability {
     url: string | null,
     scan: Scan,
     index?: TileIndex | null,
-    options: { whole?: boolean; encoding?: string } = {},
+    options: { whole?: boolean } = {},
   ): void {
     this.radarUrl = url;
     this.radarIndex = index;
-    this.radarEncoding = options.encoding;
     this.radarWhole = options.whole ?? false;
     this.radarScan = url ? scan : null;
     // Held for `attach`: a hidden map would load the whole frame's tiles.
@@ -1880,7 +1876,6 @@ export default class Cells3DCapability extends Capability {
           index: this.radarIndex,
           erase: this.radarWhole ? [] : HOLES,
           palette: this.colormap,
-          encoding: this.radarEncoding,
         }),
       };
     }
@@ -1944,7 +1939,6 @@ export default class Cells3DCapability extends Capability {
             index: frame.tiles,
             keep: network.coverage ? maskPath(network.coverage) : null,
             palette: this.colormap,
-            encoding: frame.values?.encoding,
           }),
         };
         this.networkMasks[code] = mask;
