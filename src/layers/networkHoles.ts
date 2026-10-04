@@ -92,7 +92,7 @@ export default class NetworkHoleTileSource extends IndexedTileSource {
    * viewport of its tiles was requested to be thrown away.
    */
   setHoles(holes: Map<string, NetworkCode[]>, showing: string = this.url) {
-    const next = signature(holes);
+    const next = holesSignature(holes);
     if (next === this.holesSignature && showing === this.url) return;
     this.holes = holes;
     this.holesSignature = next;
@@ -103,7 +103,7 @@ export default class NetworkHoleTileSource extends IndexedTileSource {
   setUrl(url: string, index?: TileIndex | null) {
     if (NetworkHoleTileSource.pending) {
       this.holes = NetworkHoleTileSource.pending;
-      this.holesSignature = signature(this.holes);
+      this.holesSignature = holesSignature(this.holes);
       NetworkHoleTileSource.pending = null;
     }
     this.url = url;
@@ -130,6 +130,7 @@ export default class NetworkHoleTileSource extends IndexedTileSource {
   }
 }
 
-function signature(holes: Map<string, NetworkCode[]>): string {
+/** A frame-to-holes map as one string, so an unchanged one is noticed as unchanged. */
+export function holesSignature(holes: Map<string, NetworkCode[]>): string {
   return [...holes].map(([url, codes]) => `${url}=${codes.join(",")}`).join("|");
 }
