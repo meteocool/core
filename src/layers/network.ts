@@ -1,11 +1,9 @@
-import IndexedTileSource from "./indexedTiles";
+import ValueTileSource from "./valueTiles";
 import { hasTile } from "../lib/tileIndex";
-import TileLayer from "ol/layer/Tile";
-import { getRenderPixel } from "ol/render";
+import TileLayer from "ol/layer/WebGLTile";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
-import type RenderEvent from "ol/render/Event";
 import {
   chmiAttribution, dwdAttribution, imgwAttribution, meteoFranceAttribution, meteoSwissAttribution,
 } from "./attributions";
@@ -21,7 +19,8 @@ import {
   plRadarExtent,
 } from "./extents";
 import { tileSourceUrl } from "./dwd";
-import { drawnTileId } from "../lib/rvp6";
+import { maskPath } from "./tileMask";
+import { drawnTileId, rvp6Style } from "../lib/rvp6";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
 import { fetchCzechRadar, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar } from "../api";
@@ -113,7 +112,7 @@ export default class NetworkRadarLayer {
 
   private readonly map: Map;
 
-  private layer: TileLayer<IndexedTileSource> | null = null;
+  private layer: TileLayer | null = null;
 
   /** The URL the layer's source is on, so an unchanged step costs nothing. */
   private url = "";
@@ -131,11 +130,7 @@ export default class NetworkRadarLayer {
   /** Told after every new live frame; the 3D map drapes the same one. */
   private readonly onLiveFrame: (() => void) | undefined;
 
-  /**
-   * The palette the reader chose, which the tiles are recoloured into on
-   * load (recolour.ts): they come in the classic one, as DWD's RGBA frames
-   * do, or as values, which are painted in it.
-   */
+  /** The palette the reader chose: the layer's style, so a change reloads nothing. */
   private palette = "classic";
 
   /** How strongly it is drawn: the radar map's own, unless a map lays it under something else. */
@@ -187,10 +182,10 @@ export default class NetworkRadarLayer {
     this.apply();
   }
 
-  /** Draw this network in a palette from now on; the tiles on screen reload in it. */
+  /** Draw this network in a palette from now on. */
   setPalette(palette: string) {
     this.palette = palette;
-    this.layer?.getSource()?.setPalette(palette);
+    this.layer?.setStyle(rvp6Style(palette));
   }
 
   /**
@@ -236,77 +231,48 @@ export default class NetworkRadarLayer {
     if (!this.layer) {
       this.createLayer(url, frame);
     } else if (url !== this.url) {
-      (this.layer.getSource() as IndexedTileSource | null)?.setUrl(url, frame.tiles, frame.values?.encoding);
+      (this.layer.getSource() as ValueTileSource | null)?.setUrl(url, frame.tiles);
     }
     this.url = url;
     this.layer!.setVisible(true);
   }
 
+  /**
+   * The layer, drawn only over the ground `extents.ts` gives this network.
+   *
+   * Every network colours dBZ on its own scale and every palette is part
+   * transparent, so wherever two are drawn over each other the result is a
+   * blend that reads as a third intensity neither measured. So each tile is
+   * cut to `coverage` as it loads (`valueTiles.ts`), which keeps exactly one
+   * network's colours on any pixel -- the other half of that bargain is the
+   * holes cut into DWD's tiles (`networkHoles.ts`). A WebGL layer cannot be
+   * clipped at render time, and nothing outside the coverage is even fetched.
+   */
   private createLayer(url: string, frame: RadarFrame) {
-    const source = trackTileLoads(new IndexedTileSource({
+    const source = trackTileLoads(new ValueTileSource({
+      url,
       index: frame.tiles,
-      encoding: frame.values?.encoding,
+      keep: this.network.coverage ? maskPath(this.network.coverage) : null,
       attributions: [this.network.attribution],
-      crossOrigin: "anonymous",
       minZoom: 3,
       maxZoom: 8,
       tileSize: 512,
       transition: 0,
       interpolate: false,
-      url,
-      palette: this.palette,
     }));
     this.layer = new TileLayer({
       source,
-      // Just under DWD's 80. The clip below means they never cover the same
-      // pixel, so this only settles which draws first. Europe's draws above
-      // DWD's instead, which is hidden while it shows.
+      style: rvp6Style(this.palette),
+      // Just under DWD's 80. The cut means they never cover the same pixel,
+      // so this only settles which draws first. Europe's draws above DWD's
+      // instead, which is hidden while it shows.
       zIndex: this.network.coverage ? 79 : 81,
       opacity: this.opacity,
       cacheSize: 512,
-      // The rectangle is a cheap first pass; `coverage` is the real edge, and
-      // an extent cannot describe it because it is not a rectangle.
+      // The rectangle is a cheap first pass; `coverage` is the real edge.
       extent: this.network.extent,
     });
-    if (this.network.coverage) this.clipToExclusiveCoverage(this.layer);
     this.map.addLayer(this.layer);
-  }
-
-  /**
-   * Draw this layer only over the ground `extents.ts` gives this network.
-   *
-   * A canvas clip rather than opacity or a z-order: every network colours dBZ
-   * on its own scale, and every palette is part transparent, so wherever two
-   * of them are drawn over each other the result is a blend that reads as a
-   * third intensity that neither measured. Clipping keeps exactly one
-   * network's colours on any given pixel -- with the other half of that
-   * bargain in `networkHoles.ts`, which takes these countries out of DWD's tiles.
-   *
-   * This is why the layer is an `ol/layer/Tile` and not the `WebGLTile` its
-   * DWD counterpart uses: the clip is a `CanvasRenderingContext2D` path, and
-   * a WebGL layer's render events hand out no such context.
-   */
-  private clipToExclusiveCoverage(layer: TileLayer<IndexedTileSource>) {
-    layer.on("prerender", (event: RenderEvent) => {
-      const context = event.context as CanvasRenderingContext2D | undefined;
-      if (!context) return;
-      context.save();
-      context.beginPath();
-      for (const ring of this.network.coverage ?? []) {
-        ring.forEach((coordinate, index) => {
-          const [x, y] = getRenderPixel(event, this.map.getPixelFromCoordinate(coordinate));
-          if (index === 0) context.moveTo(x, y);
-          else context.lineTo(x, y);
-        });
-        context.closePath();
-      }
-      context.clip();
-    });
-    // Paired with the save() above; without it the clip leaks onto whatever
-    // the map draws next.
-    layer.on("postrender", (event: RenderEvent) => {
-      (event.context as CanvasRenderingContext2D | undefined)?.restore();
-    });
   }
 
   destroy() {
