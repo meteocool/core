@@ -58,7 +58,8 @@ import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
-import StrikeManager from "./lib/StrikeManager";
+import StrikeManager, { LIVE_STRIKE_BATCH_MS } from "./lib/StrikeManager";
+import { coalesce } from "./lib/coalesce";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
 import CellTrackManager from "./lib/CellTrackManager";
 
@@ -483,9 +484,15 @@ radarSocketIO.on("cells", () => {
   whenVisible("cells", () => cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb }));
 });
 
-radarSocketIO.on("lightning", (data) => {
-  strikemgr.addLiveStrike(data);
-});
+// Gathered for a moment rather than drawn one by one: each strike on its own
+// reclustered all of them and redrew the whole map, many times a second in a
+// thunderstorm. See lib/coalesce.ts.
+const liveStrikes = coalesce<{ lon: number; lat: number; time: number }>(
+  (strikes) => strikemgr.addLiveStrikes(strikes),
+  LIVE_STRIKE_BATCH_MS,
+);
+radarSocketIO.on("lightning", (data) => liveStrikes.push(data));
+onDestroy(() => liveStrikes.cancel());
 window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
   mesocyclonemgr.clearAll();
