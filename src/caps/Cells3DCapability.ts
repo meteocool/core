@@ -42,6 +42,7 @@ import { startSweep, stopSweep } from "../lib/cutSweep";
 import { elementCentre, setElementCentre } from "../lib/viewCentre";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
+import { middleDragTurnsAndTilts } from "../lib/middleDrag";
 import { tracked } from "../lib/progress";
 import { boxFootprint } from "../lib/cloudFootprint";
 import { isBehind, isVolumeBehind, radarScanOf, scanTime, VolumeFeed } from "../lib/scans";
@@ -250,6 +251,20 @@ const OPEN_PITCH = 76;
 
 /** How far from the opening tilt the map can be at closing and still count as not re-tilted. */
 const PITCH_KEPT_DEG = 4;
+
+/**
+ * The steepest the map tilts: a view from low over the ground, just short of
+ * where MapLibre loses track of what it is looking at.
+ *
+ * When a drag or an ease ends over terrain, MapLibre finds the centre again
+ * where the line of sight meets the ground. Steeper than acos(0.1), about
+ * 84.26 degrees, it gives that up and puts the centre 10 km in front of the
+ * camera instead -- which, from the camera's height at a regional zoom, is
+ * hundreds of kilometres back from where the reader was looking. A tilt into
+ * the old limit of 85 flung the map from Bavaria to the Atlantic and to a
+ * street-level zoom.
+ */
+const MAX_PITCH = 84;
 /**
  * How long the camera takes to right itself on the way back to a flat map;
  * see `leave`. Longer than the tilt's own 700ms: this one also pulls back
@@ -566,6 +581,8 @@ export default class Cells3DCapability extends Capability {
 
   /** Takes back the ⌃-click correction, where one was needed; see lib/ctrlDrag.ts. */
   private uncorrectCtrlClicks: (() => void) | null = null;
+  /** Takes back the middle drag's turning and tilting; see lib/middleDrag.ts. */
+  private unmiddleDrag: (() => void) | null = null;
 
   constructor(map: OlMap, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "cells3d", () => Cells3DCapability.announce(), additionalLayers);
@@ -751,7 +768,7 @@ export default class Cells3DCapability extends Capability {
           maxZoom: 13,
           // MapLibre stops at 60 unless told otherwise, which is a view from a
           // hilltop; an opened storm is looked at from lower -- see frameOpened.
-          maxPitch: 85,
+          maxPitch: MAX_PITCH,
           // Spelled out rather than behind an (i), like the flat map's; see the
           // attribution rules in glass.css.
           attributionControl: { compact: false },
@@ -780,6 +797,10 @@ export default class Cells3DCapability extends Capability {
       if (reportsCtrlClickAsRight(navigator.userAgent, dd.isMac())) {
         this.uncorrectCtrlClicks = correctCtrlClicks(this.container);
       }
+      // A middle drag turns and tilts, as in SketchUp; see lib/middleDrag.ts.
+      // On the canvas only: a middle click on an attribution link opens a tab.
+      this.unmiddleDrag?.();
+      this.unmiddleDrag = middleDragTurnsAndTilts(gl.getCanvasContainer());
       // Fires on the first style and again after every `setStyle`, which is
       // what a light/dark switch does -- and that discards everything added on
       // top of it, so this is also how the storms get put back.
@@ -2135,6 +2156,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeVolume = null;
     this.uncorrectCtrlClicks?.();
     this.uncorrectCtrlClicks = null;
+    this.unmiddleDrag?.();
+    this.unmiddleDrag = null;
     this.gl?.remove();
     this.gl = null;
     forgetMaskedTiles(this.radarMask?.key);
