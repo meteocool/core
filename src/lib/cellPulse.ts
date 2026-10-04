@@ -9,10 +9,11 @@
  * an animation that stutters says "this page is struggling", which is the
  * opposite of "this storm is live".
  *
- * Stepping costs a fraction of that. The ring never changes shape; only the
- * dash pattern's offset moves, one dash-width per tick, so the whole thing is
- * a handful of prebuilt styles cycled in order. Five ticks a second against
- * twenty, and nine distinct styles per colour against a new one every frame.
+ * Stepping costs a fraction of that. The ring never changes shape; it turns
+ * one dash-width per tick, and a turn of one whole dash and gap looks the
+ * same as no turn at all, so nine notches loop forever. A turn is a transform,
+ * which the compositor animates without the page: no style, layout or paint
+ * per tick, where the dash offset it replaced repainted every frame.
  *
  * The step is also the point rather than a compromise. Smooth rotation at this
  * size reads as a shimmer; a notch reads as a mechanism running -- a second
@@ -65,14 +66,25 @@ export const DASH_PERIOD = DASH[0] + DASH[1];
 export const TICK_MS = 200;
 
 /**
- * Where the dash pattern starts, for a given moment.
- *
- * Negative, so the dashes travel the way the pattern is read rather than
- * appearing to slide backwards. Driven off the wall clock rather than a
- * per-cell counter, so every live cell steps together: a map where each one
- * runs its own cycle shimmers, where one shared beat reads as the map itself
- * being live.
+ * The ring's length as the dash pattern measures it: a whole number of dash
+ * periods. The circle itself is 2π × 11 ≈ 69 px round, 7.7 periods, which
+ * leaves a stub of a dash where its path starts and ends; laid on a path
+ * length of eight periods instead (SVG's `pathLength`), the dashes shrink by
+ * four percent and close up without a seam, so turning the ring shows no join.
  */
-export function dashOffset(nowMs: number): number {
-  return -(Math.floor(nowMs / TICK_MS) % DASH_PERIOD);
+export const RING_PATH_LENGTH = Math.round((2 * Math.PI * RING_RADIUS) / DASH_PERIOD) * DASH_PERIOD;
+
+/** One notch, as an angle: a dash-width of the path length. */
+export const NOTCH_DEGREES = 360 / RING_PATH_LENGTH;
+
+/**
+ * How far round the ring is turned at a given moment, in degrees clockwise --
+ * the way the pattern is read, rather than appearing to slide backwards.
+ *
+ * Driven off the wall clock rather than a per-cell counter, so every live cell
+ * steps together: a map where each one runs its own cycle shimmers, where one
+ * shared beat reads as the map itself being live.
+ */
+export function ringAngle(nowMs: number): number {
+  return (Math.floor(nowMs / TICK_MS) % DASH_PERIOD) * NOTCH_DEGREES;
 }
