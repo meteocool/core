@@ -63,7 +63,7 @@
    * `innerHeight - rect.top` rather than `rect.height`, so a bar that is itself
    * offset by a safe-area inset still yields the space it actually occludes.
    */
-  function applyMapHeight() {
+  function applyMapHeight(padView = true) {
     const mapElement = document.getElementById(mapID);
     if (!mapElement) return;
     const mode = get(bottomToolbarMode);
@@ -83,26 +83,52 @@
       }
     }
 
-    document.documentElement.style.setProperty("--bottom-toolbar-height", `${occluded}px`);
-
-    // Full-bleed map: the tray is glass and needs the map beneath it. The strip
-    // it covers becomes view padding, so centring, fit() and the geolocation
-    // marker land in the visible part rather than under the bar. The View is
-    // shared by every map, hence maps[0] rather than the current capability,
-    // which is not set yet on the first measurement.
+    if (occluded !== appliedHeight) {
+      document.documentElement.style.setProperty("--bottom-toolbar-height", `${occluded}px`);
+      appliedHeight = occluded;
+    }
     mapElement.style.height = "100%";
-    const view = layerManager.maps[0]?.getView();
-    if (view) view.padding = [0, 0, occluded, 0];
-
-    layerManager.forEachMap((m) => m.updateSize());
+    // No updateSize(): the map is full-bleed, so its element keeps its size
+    // whatever the bars do, and OpenLayers watches the element for the times
+    // it does change. Calling it here read the layout back out of all four
+    // maps on every frame of every toolbar transition.
+    if (padView) applyPadding(occluded);
     return occluded;
+  }
+
+  /** The height the stylesheet was last told about. */
+  let appliedHeight = -1;
+
+  /** The padding last handed to the View, and which View it went to. */
+  let appliedPadding = -1;
+  let paddedView: unknown;
+
+  /**
+   * Full-bleed map: the tray is glass and needs the map beneath it. The strip
+   * it covers becomes view padding, so centring, fit() and the geolocation
+   * marker land in the visible part rather than under the bar. The View is
+   * shared by every map, hence maps[0] rather than the current capability,
+   * which is not set yet on the first measurement.
+   *
+   * Only on a change: OpenLayers' padding setter moves the centre whether or
+   * not the padding did, and a moved centre is every map drawn again. Nothing
+   * on screen moves with it either -- the setter compensates -- so during a
+   * transition it waits for the bar to settle rather than redrawing the map
+   * under each frame of it.
+   */
+  function applyPadding(occluded: number) {
+    const view = layerManager.maps[0]?.getView();
+    if (!view || (occluded === appliedPadding && view === paddedView)) return;
+    view.padding = [0, 0, occluded, 0];
+    appliedPadding = occluded;
+    paddedView = view;
   }
 
   /** Re-measure every frame until the height stops changing, or we run out. */
   function pollUntilSettled() {
     if (transitionFrame !== undefined) return;
     const step = () => {
-      const occluded = applyMapHeight();
+      const occluded = applyMapHeight(false);
       transitionFramesLeft -= 1;
 
       if (occluded === lastOccluded) {
@@ -114,6 +140,7 @@
 
       if (stableFrames >= SETTLED_FRAMES || transitionFramesLeft <= 0) {
         transitionFrame = undefined;
+        if (occluded !== undefined) applyPadding(occluded);
         return;
       }
       transitionFrame = requestAnimationFrame(step);

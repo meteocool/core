@@ -58,7 +58,8 @@ import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants } from "./layers/ui";
 import makeLightningLayer from "./layers/lightning";
-import StrikeManager from "./lib/StrikeManager";
+import StrikeManager, { LIVE_STRIKE_BATCH_MS } from "./lib/StrikeManager";
+import { coalesce } from "./lib/coalesce";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
 import CellTrackManager from "./lib/CellTrackManager";
 
@@ -483,9 +484,15 @@ radarSocketIO.on("cells", () => {
   whenVisible("cells", () => cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb }));
 });
 
-radarSocketIO.on("lightning", (data) => {
-  strikemgr.addLiveStrike(data);
-});
+// Gathered for a moment rather than drawn one by one: each strike on its own
+// reclustered all of them and redrew the whole map, many times a second in a
+// thunderstorm. See lib/coalesce.ts.
+const liveStrikes = coalesce<{ lon: number; lat: number; time: number }>(
+  (strikes) => strikemgr.addLiveStrikes(strikes),
+  LIVE_STRIKE_BATCH_MS,
+);
+radarSocketIO.on("lightning", (data) => liveStrikes.push(data));
+onDestroy(() => liveStrikes.cancel());
 window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
   mesocyclonemgr.clearAll();
@@ -705,12 +712,28 @@ const finePointer = typeof window === "undefined" || !window.matchMedia
  * cell and switched maps instead of opening the storm. The 3D map ranks the
  * two the same way. The tag answers where no cell is under the finger.
  */
+/*
+ * The first hit test on a page costs 150 ms whatever it asks: OpenLayers
+ * times canvas readback three ways, 50 ms each, to choose how to read its
+ * hit-detection canvas, and only then answers. That was the first hover over
+ * the map, or the first tap on a storm, freezing the map. Asking any question
+ * once the map is drawn and the page is idle pays it while nobody is waiting
+ * -- the benchmark is OpenLayers' own and runs once for the page, and any
+ * drawn vector layer gets it there.
+ */
+function whenIdle(task: () => void) {
+  // Missing from older Safari, whatever the DOM types say.
+  if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(task, { timeout: 5000 });
+  else window.setTimeout(task, 2000);
+}
+
 lm.forEachMap((map) => {
   /* `mapExtent4326` is published on moveend, so on a cold load -- where the
      view comes from the URL before the map has a target -- it stays null until
      the user pans, and the layer would sit empty behind a map full of storms.
      The first completed render is when there is a viewport to ask about. */
   map.once("rendercomplete", () => {
+    if (!screenshot) whenIdle(() => map.hasFeatureAtPixel([0, 0]));
     const size = map.getSize();
     if (!size) return;
     cellmgr.reload(transformExtent(
@@ -796,6 +819,10 @@ window.settings.setCb("mapRotation", (value) => {
     minZoom: current.getView().getMinZoom(),
     enableRotation: Boolean(value),
     extent: VIEW_EXTENT,
+    // The tray's strip, which the centre above is measured inside. Left off,
+    // the map jumped by half a tray and stayed unpadded until the bars next
+    // moved.
+    padding: current.getView().padding,
   });
   lm.forEachMap((map) => map.setView(newView));
 });

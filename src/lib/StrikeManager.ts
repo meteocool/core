@@ -10,6 +10,12 @@ export interface Strike {
 }
 
 /**
+ * How long live strikes are held so they reach the map together; see
+ * lib/coalesce.ts. Short against the feed's own latency, which is seconds.
+ */
+export const LIVE_STRIKE_BATCH_MS = 500;
+
+/**
  * The strike layer used by the radar capability: a ring buffer of features,
  * keyed by the strike time that is also their feature id.
  */
@@ -51,6 +57,11 @@ export default class StrikeManager {
     return this.addStrikeWithTime(lon, lat, Math.round(time));
   }
 
+  /** Live strikes that arrived together, for one change on the source. */
+  addLiveStrikes(strikes: { lon: number; lat: number; time: number }[]) {
+    this.vs.batch(() => strikes.forEach((strike) => this.addLiveStrike(strike)));
+  }
+
   removeOne(id: number, idx: number) {
     const remove = this.vs.getFeatureById(id);
     if (remove) {
@@ -69,6 +80,10 @@ export default class StrikeManager {
   // strike off the map.
   addStrikeWithTime(lon: number, lat: number, time: number, addCb: ((feature: Feature) => void) | null = null) {
     if (!this.enabled) return false;
+    // A repeat -- the feed sends about one strike in ten twice -- would take
+    // a slot in the ring buffer for a feature the source refuses, and evicting
+    // that slot later took the one real feature with it, early.
+    if (this.vs.getFeatureById(time)) return false;
     const lightning = new Feature(new Point([lon, lat]));
     lightning.setId(time);
     this.strikes.push(lightning.getId() as number);
