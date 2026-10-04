@@ -388,6 +388,23 @@ export interface components {
             reference_time: number;
         };
         /**
+         * ClassTiles
+         * @description What a precipitation-type tile set holds: a byte per HG class, not colours.
+         */
+        ClassTiles: {
+            /**
+             * Encoding
+             * @description Single-band 8-bit greyscale PNG; pixel = HG class as a byte: 1 not classifiable, 2 drizzle, 3 rain, 4 snow, 5 sleet, 6 graupel, 7 hail; 0 draws nothing. A byte keeps its class; a new class takes a new byte.
+             * @constant
+             */
+            encoding: "hg-class-u8";
+            /**
+             * Tile Id
+             * @description The tile set, at the same place as `tile_id`'s.
+             */
+            tile_id: string;
+        };
+        /**
          * ClearNotification
          * @description An acknowledgement that a delivered notification was seen.
          */
@@ -590,6 +607,8 @@ export interface components {
             tile_id: string;
             /** Upstream Time */
             upstream_time: number;
+            /** @description What the tile set's bytes mean: HG classes. Absent on frames rendered in RGBA. */
+            values?: components["schemas"]["ClassTiles"] | null;
         };
         /**
          * RadarFrame
