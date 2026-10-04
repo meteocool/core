@@ -4,7 +4,7 @@ import Style from "ol/style/Style";
 import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
-import ValueTileSource from "./valueTiles";
+import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdRadarExtent, radarCoverageInv } from "./extents";
 import { isDarkBasemap, watchBasemap } from "./casing";
@@ -67,14 +67,14 @@ export function dwdValueLayer(frame: TileFrame): [TileLayer, ValueTileSource, st
   const url = tileSourceUrl(frame.bucket ?? "meteoradar", tileId);
   const source = trackTileLoads(new ValueTileSource({ ...commonDWDParameters, url, holed: true }));
   source.set("tile_id", tileId);
-  const layer = new TileLayer({
+  const layer = staleOnlyWhileLoading(new TileLayer({
     source,
     style: rvp6Style(palette),
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
     cacheSize: 512,
     extent: dwdRadarExtent,
-  });
+  }));
   layer.set("tile_id", tileId);
   valueLayers.add(layer);
   return [layer, source, url];
@@ -161,5 +161,5 @@ export const dwdPrecipTypes = (frame: { tile_id: string; values?: ClassTiles | n
     // Classes, not intensities: blending snow into hail past zoom 8 draws a colour no class has.
     interpolate: false,
   }));
-  return new TileLayer({ source, style: hgClassStyle(), zIndex: 3, opacity: NOWCAST_OPACITY, cacheSize: 256 });
+  return staleOnlyWhileLoading(new TileLayer({ source, style: hgClassStyle(), zIndex: 3, opacity: NOWCAST_OPACITY, cacheSize: 256 }));
 };
