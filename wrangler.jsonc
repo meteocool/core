@@ -57,6 +57,10 @@
       "vars": {
         "PREVIEW_ORIGIN": "https://api-next.meteocool.com",
         "API_ORIGIN": "https://api-next.meteocool.com",
+        // The iOS app's AR storm view reads these through app.meteocool.com
+        // (worker/api.ts).
+        "DATA_ORIGIN": "https://data-staging.meteocool.com",
+        "ASSET_ORIGIN": "https://assets-staging.meteocool.com",
       },
     },
     // The demo environment beside staging on the same cluster, replaying a
@@ -79,6 +83,8 @@
       "vars": {
         "PREVIEW_ORIGIN": "https://api-demo.meteocool.com",
         "API_ORIGIN": "https://api-demo.meteocool.com",
+        "DATA_ORIGIN": "https://data-demo.meteocool.com",
+        "ASSET_ORIGIN": "https://assets-demo.meteocool.com",
       },
     },
     // Not production. meteocool.com is the old frontend on the old backend,

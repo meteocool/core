@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appApiRequest, isAppApiPath } from "../../worker/api.ts";
+import { appApiRequest, isAppApiPath, isAppDataPath, isVolumePath, volumeRedirect } from "../../worker/api.ts";
 
 /**
  * The Worker behind app.meteocool.com forwards the apps' API calls to its own
@@ -38,3 +38,30 @@ test("the path cannot escape the API origin", () => {
   const forwarded = appApiRequest(new Request("https://app.meteocool.com//evil.example/post_location"), "https://api-next.meteocool.com");
   assert.equal(new URL(forwarded.url).host, "api-next.meteocool.com");
 });
+
+test("the AR view's data routes are forwarded, and nothing else of the data service", () => {
+  for (const path of ["/cells/volumes", "/cells/current", "/cells/tracks", "/cells/tracks/2026100402050000012345",
+    "/lightning_cache", "/mesocyclones/all/"]) {
+    assert.ok(isAppDataPath(path), path);
+  }
+  for (const path of ["/cells", "/cells/tracks/abc", "/cells/volumes/x", "/mesocyclones/7", "/ios.html", "/sw.js"]) {
+    assert.ok(!isAppDataPath(path), path);
+  }
+});
+
+test("only storm volumes are redirected to the asset host", () => {
+  assert.ok(isVolumePath("/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx"));
+  assert.ok(isVolumePath("/meteoradar/volumes/20260922T011500/R12345.mcvx"));
+  for (const path of ["/meteoradar/abc/1/2/3.png", "/meteoradar/volumes/20261004T020500/../x.mcvx",
+    "/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx/x", "/meteonowcast/volumes/20261004T020500/de-G1374918628.mcvx"]) {
+    assert.ok(!isVolumePath(path), path);
+  }
+  const response = volumeRedirect(
+    new Request("https://app.meteocool.com/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx?x=1"),
+    "https://assets-staging.meteocool.com",
+  );
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("Location"),
+    "https://assets-staging.meteocool.com/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx");
+});
+

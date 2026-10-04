@@ -18,7 +18,7 @@
  * see api.ts.
  */
 
-import { appApiRequest, isAppApiPath } from "./api";
+import { appApiRequest, isAppApiPath, isAppDataPath, isVolumePath, volumeRedirect } from "./api";
 
 interface Env {
   ASSETS: Fetcher;
@@ -39,6 +39,13 @@ interface Env {
    * as failed registrations rather than registrations on the wrong backend.
    */
   API_ORIGIN?: string;
+  /**
+   * Origin of this environment's data service, which the iOS app's AR view
+   * reads through this hostname (api.ts). Unset, those paths 404.
+   */
+  DATA_ORIGIN?: string;
+  /** Origin of this environment's asset host, where storm volumes live. */
+  ASSET_ORIGIN?: string;
 }
 
 const DEFAULT_PREVIEW_ORIGIN = "https://api.meteocool.com";
@@ -118,6 +125,12 @@ export default {
 
     if (env.API_ORIGIN && isAppApiPath(pathname)) {
       return fetch(appApiRequest(request, env.API_ORIGIN));
+    }
+    if (env.DATA_ORIGIN && isAppDataPath(pathname)) {
+      return fetch(appApiRequest(request, env.DATA_ORIGIN));
+    }
+    if (env.ASSET_ORIGIN && isVolumePath(pathname)) {
+      return volumeRedirect(request, env.ASSET_ORIGIN);
     }
 
     if (pathname !== "/" && pathname !== "/index.html") {
