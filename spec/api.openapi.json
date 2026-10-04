@@ -30,6 +30,28 @@
         "title": "CellsRefresh",
         "type": "object"
       },
+      "ClassTiles": {
+        "description": "What a precipitation-type tile set holds: a byte per HG class, not colours.",
+        "properties": {
+          "encoding": {
+            "const": "hg-class-u8",
+            "description": "Single-band 8-bit greyscale PNG; pixel = HG class as a byte: 1 not classifiable, 2 drizzle, 3 rain, 4 snow, 5 sleet, 6 graupel, 7 hail; 0 draws nothing. A byte keeps its class; a new class takes a new byte.",
+            "title": "Encoding",
+            "type": "string"
+          },
+          "tile_id": {
+            "description": "The tile set, at the same place as `tile_id`'s.",
+            "title": "Tile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tile_id",
+          "encoding"
+        ],
+        "title": "ClassTiles",
+        "type": "object"
+      },
       "ClearNotification": {
         "description": "An acknowledgement that a delivered notification was seen.",
         "properties": {
@@ -365,6 +387,17 @@
           "upstream_time": {
             "title": "Upstream Time",
             "type": "integer"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassTiles"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the tile set's bytes mean: HG classes. Absent on frames rendered in RGBA."
           }
         },
         "required": [
