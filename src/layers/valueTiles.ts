@@ -6,6 +6,7 @@ import type { NetworkCode } from "./networkHoles";
 import { maskTile, overlaps, tileExtent } from "./tileMask";
 import type { MaskPath } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
+import type WebGLTileLayer from "ol/layer/WebGLTile";
 
 /**
  * Radar frames as value tiles, drawn by the GPU in the reader's palette.
@@ -149,4 +150,32 @@ export default class ValueTileSource extends DataTileSource {
     // to load afresh, so the holes are part of it.
     this.setKey(codes.length ? `${url}#holes:${codes.join(",")}` : url);
   }
+}
+
+/**
+ * Let an older frame stand in only while the frame on screen loads.
+ *
+ * When a source changes key -- a new frame, a step of playback -- OpenLayers
+ * draws a tile it has not loaded yet from the same tile of an earlier key, so
+ * the radar never flashes empty between frames. It keeps that up for half the
+ * layer's cache in keys, which for these layers is hundreds of frames, and it
+ * prefers such a tile to a coarser one of the frame actually showing. So a
+ * tile cached at zoom 8 an hour ago was still a stand-in an hour later: zoom
+ * out, let a frame or two arrive, zoom back in, and the map showed the radar
+ * from before you zoomed out, then jumped to now. Panning back over ground
+ * seen earlier did the same.
+ *
+ * Once the frame on screen is fully drawn, the earlier keys are dropped: the
+ * swap they bridge is over. A later zoom or pan then fills in from coarser
+ * tiles of the current frame, which is blurrier for a moment but never the
+ * wrong time.
+ */
+export function staleOnlyWhileLoading(layer: WebGLTileLayer): WebGLTileLayer {
+  layer.on("postrender", () => {
+    const renderer = layer.getRenderer() as unknown as { renderComplete?: boolean; getStaleKeys?(): string[] } | null;
+    if (!renderer?.renderComplete) return;
+    const stale = renderer.getStaleKeys?.();
+    if (stale?.length) stale.length = 0;
+  });
+  return layer;
 }
