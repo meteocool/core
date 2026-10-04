@@ -166,7 +166,7 @@
       "homeyer": "Homeyer (Color Vision Deficiency)",
       "lang": "Lang"
     },
-    "color_map_hint": "Changes the colors the precipitation is drawn in. 'Classic' renders fastest.",
+    "color_map_hint": "Changes the colors the precipitation is drawn in.",
     "map": "Map",
     "rotation": "Two-Finger Map Rotation",
     "map_3d": "3D Map",

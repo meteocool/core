@@ -11,6 +11,7 @@ import type { CapabilityOptions } from "./options";
 import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
 import { blitzortungAttribution, dwdAttribution } from "../layers/attributions";
 import { tileSourceUrl } from "../layers/dwd";
+import { drawnTileId } from "../lib/rvp6";
 import { NETWORKS } from "../layers/network";
 import { SEVERITY_COLOURS } from "../layers/cells";
 import { HOLES } from "../layers/networkHoles";
@@ -403,6 +404,9 @@ export default class Cells3DCapability extends Capability {
 
   /** Which tiles that frame has, so the ones it lacks are never asked for; see lib/tileIndex.ts. */
   private radarIndex: TileIndex | null | undefined = undefined;
+
+  /** What that frame's tiles hold, when values rather than colours; see lib/rvp6.ts. */
+  private radarEncoding: string | undefined = undefined;
 
   /** The `masked://` registration of that frame; see `ensureRadar`. */
   private radarMask: { url: string; whole: boolean; palette: string; key: string; tiles: string } | null = null;
@@ -1685,9 +1689,15 @@ export default class Cells3DCapability extends Capability {
    * Point the draped radar at a frame, and say which scan it is. Called with
    * the same frame the 2D map shows.
    */
-  setRadarFrame(url: string | null, scan: Scan, index?: TileIndex | null, options: { whole?: boolean } = {}): void {
+  setRadarFrame(
+    url: string | null,
+    scan: Scan,
+    index?: TileIndex | null,
+    options: { whole?: boolean; encoding?: string } = {},
+  ): void {
     this.radarUrl = url;
     this.radarIndex = index;
+    this.radarEncoding = options.encoding;
     this.radarWhole = options.whole ?? false;
     this.radarScan = url ? scan : null;
     // Held for `attach`: a hidden map would load the whole frame's tiles.
@@ -1870,6 +1880,7 @@ export default class Cells3DCapability extends Capability {
           index: this.radarIndex,
           erase: this.radarWhole ? [] : HOLES,
           palette: this.colormap,
+          encoding: this.radarEncoding,
         }),
       };
     }
@@ -1922,16 +1933,18 @@ export default class Cells3DCapability extends Capability {
       }
 
       let mask = this.networkMasks[code];
-      if (mask?.tileId !== frame.tile_id || mask.palette !== this.colormap) {
+      const tileId = drawnTileId(frame);
+      if (mask?.tileId !== tileId || mask.palette !== this.colormap) {
         forgetMaskedTiles(mask?.key);
         mask = {
-          tileId: frame.tile_id,
+          tileId,
           palette: this.colormap,
           ...registerMaskedTiles({
-            template: tileSourceUrl("meteoradar", frame.tile_id),
+            template: tileSourceUrl("meteoradar", tileId),
             index: frame.tiles,
             keep: network.coverage ? maskPath(network.coverage) : null,
             palette: this.colormap,
+            encoding: frame.values?.encoding,
           }),
         };
         this.networkMasks[code] = mask;

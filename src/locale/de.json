@@ -166,7 +166,7 @@
       "homeyer": "Homeyer (Achromasie)",
       "lang": "Lang (Achromasie)"
     },
-    "color_map_hint": "Ändert die Farben, in denen der Niederschlag gezeichnet wird. 'Klassisch' ist am schnellsten.",
+    "color_map_hint": "Ändert die Farben, in denen der Niederschlag gezeichnet wird.",
     "map": "Karte",
     "rotation": "Rotation der Karte",
     "map_3d": "3D-Karte",

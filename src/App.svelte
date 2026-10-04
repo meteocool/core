@@ -86,6 +86,7 @@ import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import Cells3DCapability from "./caps/Cells3DCapability";
 import { tileSourceUrl } from "./layers/dwd";
+import { drawnTileId } from "./lib/rvp6";
 import { radolanOverlay } from "./layers/dwd";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
@@ -585,11 +586,13 @@ if (cells3d && radarCap) {
     const step = radarCap.getMostRecentObservation();
     const europe = radarCap.liveEuropeFrame();
     if (europe) {
-      cells3d.setRadarFrame(tileSourceUrl("meteoradar", europe.tile_id), step, europe.tiles, { whole: true });
+      cells3d.setRadarFrame(tileSourceUrl("meteoradar", drawnTileId(europe)), step, europe.tiles, {
+        whole: true, encoding: europe.values?.encoding,
+      });
       return;
     }
     const frame = radarCap.clientGrid?.[step];
-    cells3d.setRadarFrame(frame?.url ?? null, step, frame?.tiles);
+    cells3d.setRadarFrame(frame?.url ?? null, step, frame?.tiles, { encoding: frame?.values?.encoding });
   };
   // The networks' own newest frames go the same way: the 3D map drapes them
   // over their countries, cut out of DWD's frame as the flat map does.
