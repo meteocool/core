@@ -621,6 +621,8 @@ export interface components {
              * @description When the radars measured what this frame shows, unix seconds: for a network's composite, its newest scan. The cutaway volumes carry the same time as `reference_time`, so a client can tell a volume from an older scan than the frame under it. Absent on frames recorded without one.
              */
             upstream_time?: number | null;
+            /** @description What the tile set's bytes mean: single-band RVP6. Absent on frames rendered in RGBA. */
+            values?: components["schemas"]["ValueTiles"] | null;
         };
         /**
          * RadarFrames
@@ -758,6 +760,23 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * ValueTiles
+         * @description What a frame's tile set holds when it is values, not colours.
+         */
+        ValueTiles: {
+            /**
+             * Encoding
+             * @description Single-band 8-bit greyscale PNG; pixel = RVP6 = (dBZ + 32.5) * 2, clipped to 0..255; 0 draws nothing.
+             * @constant
+             */
+            encoding: "rvp6-u8";
+            /**
+             * Tile Id
+             * @description The tile set, at the same place as `tile_id`'s.
+             */
+            tile_id: string;
         };
         /**
          * VectorOverlay
