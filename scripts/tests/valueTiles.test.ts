@@ -4,6 +4,7 @@ import type { TestContext } from "node:test";
 import { blankTile, fillTemplate, present } from "../../src/layers/indexedTiles.ts";
 import { loadValueTile } from "../../src/layers/valueTiles.ts";
 import { sourceTile } from "../../src/lib/tileIndex.ts";
+import { maskPath, tileExtent } from "../../src/layers/tileMask.ts";
 
 /** The fixture tileIndex.test.ts uses: zoom 5 a 2x2 rectangle from (16, 20), TMS y. */
 const index = {
@@ -50,14 +51,14 @@ test("past a frame's depth the tile comes out of its ancestor's", () => {
 
 test("a tile the frame does not have is a blank, and nothing is fetched", async (t) => {
   const { fetched } = browser(t, () => new Response("", { status: 500 }));
-  const tile = await loadValueTile(TEMPLATE, index, 5, 17, 11, []);
+  const tile = await loadValueTile(TEMPLATE, index, 5, 17, 11, [], null);
   assert.equal(tile, blankTile());
   assert.deepEqual(fetched, []);
 });
 
 test("a tile the frame has is fetched and decoded as its bytes", async (t) => {
   const { fetched, decoded } = browser(t, () => new Response(new Uint8Array([137, 80, 78, 71])));
-  const tile = await loadValueTile(TEMPLATE, index, 5, 16, 11, []);
+  const tile = await loadValueTile(TEMPLATE, index, 5, 16, 11, [], null);
   assert.deepEqual(fetched, ["https://tiles.example/meteoradar/v/5/16/20.png"]);
   // No colour management and no premultiplying: a value one off is another class.
   assert.deepEqual(decoded, [{ colorSpaceConversion: "none", premultiplyAlpha: "none" }]);
@@ -66,10 +67,19 @@ test("a tile the frame has is fetched and decoded as its bytes", async (t) => {
 
 test("a 404 is a blank, not a failure", async (t) => {
   browser(t, () => new Response("", { status: 404 }));
-  assert.equal(await loadValueTile(TEMPLATE, null, 5, 16, 11, []), blankTile());
+  assert.equal(await loadValueTile(TEMPLATE, null, 5, 16, 11, [], null), blankTile());
 });
 
 test("any other refusal fails the tile, to be asked for again", async (t) => {
   browser(t, () => new Response("", { status: 503 }));
-  await assert.rejects(loadValueTile(TEMPLATE, null, 5, 16, 11, []), /503/);
+  await assert.rejects(loadValueTile(TEMPLATE, null, 5, 16, 11, [], null), /503/);
+});
+
+test("a tile outside the ground a network keeps to is a blank, and nothing is fetched", async (t) => {
+  const { fetched } = browser(t, () => new Response(new Uint8Array([137, 80, 78, 71])));
+  // A square the size of tile 5/0/0, far from tile 5/16/11.
+  const [west, south, east, north] = tileExtent(5, 0, 0);
+  const keep = maskPath([[[west, south], [east, south], [east, north], [west, north]]]);
+  assert.equal(await loadValueTile(TEMPLATE, index, 5, 16, 11, [], keep), blankTile());
+  assert.deepEqual(fetched, []);
 });

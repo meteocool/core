@@ -8,24 +8,32 @@ import type { MaskPath } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
 
 /**
- * DWD's frames as value tiles, drawn by the GPU in the reader's palette.
+ * Radar frames as value tiles, drawn by the GPU in the reader's palette.
  *
- * A value tile is a greyscale PNG of RVP6 bytes (lib/rvp6.ts). Decoded
+ * A value tile is a greyscale PNG of bytes: RVP6 for reflectivity
+ * (lib/rvp6.ts), a class for precipitation types (lib/hgClasses.ts). Decoded
  * without colour management it is an RGBA bitmap with R = G = B = the
  * value, handed to WebGL as it is: the layer's `palette` style reads band 1
  * and colours it, so nothing is read back to the CPU and a palette change
  * is a style change, not a reload.
  *
- * Otherwise this is `NetworkHoleTileSource` for those tiles: the same frame
- * index gate, the same magnification past a frame's deepest zoom, and the
- * EUMETNET networks' countries erased on the steps they have frames for.
- * Erased is transparent, value 0 to the palette, which draws nothing.
+ * The frame's tile index gates every request (lib/tileIndex.ts), and past a
+ * frame's deepest zoom a tile is cut out of its ancestor's. Two cuts make
+ * exactly one radar colour any pixel, as WebGL layers cannot be clipped:
+ * DWD's tiles have the EUMETNET networks' countries erased on the steps
+ * those have frames for (`setHoles`), and each network's are kept to the
+ * ground `extents.ts` gives it (`keep`). Erased is transparent, which the
+ * style draws as nothing.
  */
 
 /** How many frames' indices a source remembers before starting afresh. */
 const REMEMBERED = 400;
 
-/** One tile of a value frame, with `holes` erased wherever they meet it. */
+/**
+ * One tile of a value frame, with `holes` erased wherever they meet it and,
+ * given `keep`, nothing left outside it. Nothing is fetched for a tile
+ * outside `keep` altogether.
+ */
 export async function loadValueTile(
   template: string,
   index: TileIndex | null | undefined,
@@ -33,14 +41,16 @@ export async function loadValueTile(
   x: number,
   y: number,
   holes: MaskPath[],
+  keep: MaskPath | null,
   signal?: AbortSignal,
 ): Promise<ImageBitmap | HTMLCanvasElement> {
+  const extent = tileExtent(z, x, y);
+  if (keep && !overlaps(extent, keep.bbox)) return blankTile();
   const image = await loadValueFrameTile(template, index, z, x, y, signal);
   if (image === blankTile()) return image;
-  const extent = tileExtent(z, x, y);
   const met = holes.filter((hole) => overlaps(extent, hole.bbox));
-  if (!met.length) return image;
-  const cut = maskTile(image, extent, met);
+  if (!met.length && !keep) return image;
+  const cut = maskTile(image, extent, met, keep);
   if (image instanceof ImageBitmap) image.close();
   return cut;
 }
@@ -57,22 +67,35 @@ export default class ValueTileSource extends DataTileSource {
 
   private url: string;
 
-  /** Which networks to erase from which frame, by the frame's URL; see `NetworkHoleTileSource`. */
+  /**
+   * Which networks to erase from which frame, by the frame's URL.
+   *
+   * The EUMETNET networks have history but no forecast. So a network is cut
+   * out of an observed step when the grid has its composite for that step
+   * (see `RadarCapability`), and on every other step DWD is left whole:
+   * scrubbing forward would otherwise leave Switzerland and France without
+   * the only forecast there is. The live frame is holed for every network,
+   * whatever the grid says: those layers keep their own newest frame.
+   */
   private holes: Map<string, NetworkCode[]>;
 
   private holesSignature: string;
 
+  /** The only ground this source draws on, or anywhere. */
+  private readonly keep: MaskPath | null;
+
   /**
    * `holed`: DWD's reflectivity, built for its newest observation, which is
    * holed for every network until `setHoles` says otherwise. Anything else
-   * has no holes cut.
+   * has no holes cut. `keep`: a network's own ground.
    */
   constructor(options: Omit<DataTileOptions, "loader" | "bandCount"> & {
-    url: string; index?: TileIndex | null; holed?: boolean;
+    url: string; index?: TileIndex | null; holed?: boolean; keep?: MaskPath | null;
   }) {
-    const { url, index, holed, ...rest } = options;
+    const { url, index, holed, keep, ...rest } = options;
     // RGBA, though only one band means anything: a decoded PNG is four.
     super({ ...rest, bandCount: 4 });
+    this.keep = keep ?? null;
     this.holes = new Map(holed ? [[url, ALL_NETWORKS]] : []);
     this.holesSignature = holesSignature(this.holes);
     this.url = url;
@@ -96,7 +119,15 @@ export default class ValueTileSource extends DataTileSource {
     for (const [url, index] of indices) this.remember(url, index);
   }
 
-  /** Which frames to cut which networks out of; `showing` as `NetworkHoleTileSource.setHoles`. */
+  /**
+   * Which frames to cut which networks out of.
+   *
+   * `showing` is the URL the caller is about to put on screen, when it is not
+   * the one there now. Re-deciding for the frame being left -- which is what
+   * happened on every new observation while following live -- gave that frame
+   * a fresh key for the instant before the newest replaced it, and a
+   * viewport of its tiles was requested to be thrown away.
+   */
   setHoles(holes: Map<string, NetworkCode[]>, showing: string = this.url): void {
     const next = holesSignature(holes);
     if (next === this.holesSignature && showing === this.url) return;
@@ -111,7 +142,11 @@ export default class ValueTileSource extends DataTileSource {
     const gate = this.indexFor(url);
     const codes = this.holes.get(url) ?? [];
     const holes = HOLES.filter((hole) => codes.includes(hole.code));
-    this.setLoader((z, x, y, options) => loadValueTile(url, gate, z, x, y, holes, options.signal));
+    const keep = this.keep;
+    this.setLoader((z, x, y, options) => loadValueTile(url, gate, z, x, y, holes, keep, options.signal));
+    // What the renderer caches tiles by: a frame whose holes changed (the live
+    // frame becoming history, a network's composite arriving for a step) has
+    // to load afresh, so the holes are part of it.
     this.setKey(codes.length ? `${url}#holes:${codes.join(",")}` : url);
   }
 }

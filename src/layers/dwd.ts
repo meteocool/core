@@ -4,25 +4,17 @@ import Style from "ol/style/Style";
 import TileLayer from "ol/layer/WebGLTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
-import ImageTileSource from "ol/source/ImageTile";
-import NetworkHoleTileSource from "./networkHoles";
 import ValueTileSource from "./valueTiles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import { dwdRadarExtent, radarCoverageInv } from "./extents";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
-import { carriesValues, drawnTileId, rvp6Style } from "../lib/rvp6";
+import { drawnTileId, rvp6Style } from "../lib/rvp6";
 import type { ValueTiles } from "../lib/rvp6";
-import { HG_CLASS_ENCODING, hgClassStyle } from "../lib/hgClasses";
+import { hgClassStyle } from "../lib/hgClasses";
 import type { ClassTiles } from "../api";
-import type { TileIndex } from "../lib/tileIndex";
-import type { NetworkCode } from "./networkHoles";
-import type BaseLayer from "ol/layer/Base";
-import type Projection from "ol/proj/Projection";
-import type TileGrid from "ol/tilegrid/TileGrid";
 import { NOWCAST_OPACITY } from "./ui";
-import { recolouringFor } from "./recolour";
 
 /** What a layer is built for: one frame's tile set, and what its bytes mean. */
 export interface TileFrame {
@@ -31,39 +23,15 @@ export interface TileFrame {
   values?: ValueTiles | null;
 }
 
-/**
- * What RadarCapability re-points as playback moves: `ValueTileSource` for
- * value frames, `NetworkHoleTileSource` for RGBA ones.
- */
-export interface FrameSource {
-  setUrl(url: string, index?: TileIndex | null): void;
-  setIndices(indices: Map<string, TileIndex | null | undefined>): void;
-  setHoles(holes: Map<string, NetworkCode[]>, showing?: string): void;
-  refresh(): void;
-  set(key: string, value: unknown): void;
-  getTileGridForProjection(projection: Projection): TileGrid;
-}
-
-/**
- * Builds the layer and source for one radar tile set, plus the URL template.
- * RadarCapability swaps between these when the colormap changes.
- */
-export type LayerFactory = (frame: TileFrame) => [BaseLayer, FrameSource, string];
-
 /** The palette DWD's frames are drawn in, by the name the settings store it under. */
 let palette = "classic";
 
-// OpenLayers 10 renders WebGLTile layers from DataTile sources only, so these
-// moved onto ol/source/ImageTile. Three of the old options went with that:
-// `imageSmoothing: false` is now `interpolate: false`, `cacheSize` belongs on
-// the layer rather than the source, and `tilePixelRatio` no longer exists --
-// ImageTile's `tileSize` *is* the source image size, and the server really does
-// serve 512px tiles, so the retina-doubled ratio was declaring them as 1024.
 // Zoom 9 for the observed frame, HX at 250 m; a forecast step is WN at 1 km
-// and stops at 8, and answers 9 out of its own 8 (lib/tileIndex.ts).
+// and stops at 8, and answers 9 out of its own 8 (lib/tileIndex.ts). The
+// server serves 512 px tiles, and `interpolate: false` keeps every radar
+// pixel a square of its own class.
 const commonDWDParameters = {
   attributions: [dwdAttribution, blitzortungAttribution],
-  crossOrigin: "anonymous" as const,
   minZoom: 3,
   maxZoom: 9,
   tileSize: 512,
@@ -77,92 +45,24 @@ const commonDWDParameters = {
  * Shared by every network's reflectivity layer -- DWD's and the EUMETNET ones alike
  * hand the client the same `RadarFrame` shape, so this is the one place that
  * turns it into a tile source URL rather than each layer hand-rolling its own.
- * A value frame's tiles are at the same place, under `values.tile_id`.
+ * A frame's value tiles are at the same place, under `values.tile_id`.
  */
 export const tileSourceUrl = (bucket: string, tileId: string) =>
   `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
-
-/**
- * The tile source for one DWD tile set.
- *
- * An observed step's tiles come back with the EUMETNET networks' countries
- * erased wherever those networks have a frame for the step, so that their own
- * layers are the only radar drawn over their ground -- see `networkHoles.ts`
- * for why the holes are cut into the images rather than clipped at render
- * time. Forecast steps are left whole: the networks have no forecast, so DWD
- * is all there is for them.
- */
-export const dwdSource = (tileId: string, bucket = "meteoradar") => {
-  // Always this source: playback re-points one source across every step, so
-  // which tiles get holes is decided per URL there.
-  const reflectivitySource = trackTileLoads(new NetworkHoleTileSource({
-    ...commonDWDParameters,
-    url: tileSourceUrl(bucket, tileId),
-  }));
-  reflectivitySource.set("tile_id", tileId);
-  return reflectivitySource;
-};
-
-export const dwdLayerStatic: LayerFactory = ({ tile_id: tileId, bucket }) => {
-  const reflectivitySource = dwdSource(tileId, bucket);
-  const reflectivityLayer = new TileLayer({
-    source: reflectivitySource,
-    zIndex: 80,
-    opacity: NOWCAST_OPACITY,
-    cacheSize: 512,
-    extent: dwdRadarExtent,
-  });
-
-  reflectivityLayer.set("tile_id", tileId);
-  return [reflectivityLayer, reflectivitySource, ""];
-};
-
-export const DWDLayerFactoryGL: LayerFactory = ({ tile_id: tileId, bucket = "meteoradar" }) => {
-  const sourceUrl = tileSourceUrl(bucket, tileId);
-  // Through `dwdSource` rather than its own source, so this colour scheme gets
-  // Switzerland cut out of it exactly as the classic one does.
-  const reflectivitySource = dwdSource(tileId, bucket);
-
-  const toColorId = [
-    "+",
-    ["*", 255 * 256 * 256, ["band", 1]],
-    ["+", ["*", 255 * 256, ["band", 2]], ["*", 255, ["band", 3]]],
-  ];
-
-  // Each classic colour to the palette's at the same dBZ (recolour.ts), the
-  // same table the networks' layers and the 3D map are recoloured with.
-  const matches = [...(recolouringFor(palette) ?? new Map()).entries()]
-    .flatMap(([classic, [r, g, b, a]]) => [classic, [r, g, b, a / 255]]);
-
-  const reflectivityLayer = new TileLayer({
-    zIndex: 3,
-    cacheSize: 512,
-    opacity: NOWCAST_OPACITY,
-    source: reflectivitySource,
-    extent: dwdRadarExtent,
-    style: {
-      color: [
-        "match",
-        toColorId,
-        ...matches,
-        [255, 0, 0, 0],
-      ],
-    },
-  });
-  reflectivityLayer.set("tileId", tileId);
-  return [reflectivityLayer, reflectivitySource, sourceUrl];
-};
 
 /** The value layers built, so a palette change restyles them in place. */
 const valueLayers = new Set<TileLayer>();
 
 /**
- * DWD's frames as value tiles (lib/rvp6.ts), in the palette by style.
+ * The layer DWD's frames are drawn through, built on one of them.
  *
- * One factory for every palette: the tiles hold reflectivities, and the
- * palette is a 256-entry lookup on the GPU, the same cost in every one.
+ * Playback re-points its source at every step (`ValueTileSource.setUrl`),
+ * which also cuts the EUMETNET networks' countries out of the observed
+ * steps those networks have frames for: see `networkHoles.ts` for why. The
+ * palette is the layer's style, a 256-entry lookup on the GPU, the same
+ * cost in every palette.
  */
-export const dwdValueLayer: LayerFactory = (frame) => {
+export function dwdValueLayer(frame: TileFrame): [TileLayer, ValueTileSource, string] {
   const tileId = drawnTileId(frame);
   const url = tileSourceUrl(frame.bucket ?? "meteoradar", tileId);
   const source = trackTileLoads(new ValueTileSource({ ...commonDWDParameters, url, holed: true }));
@@ -178,10 +78,7 @@ export const dwdValueLayer: LayerFactory = (frame) => {
   layer.set("tile_id", tileId);
   valueLayers.add(layer);
   return [layer, source, url];
-};
-
-/** The layer a frame needs: value tiles in the palette, or RGBA ones as rendered. */
-export const dwdLayerFor: LayerFactory = (frame) => (carriesValues(frame) ? dwdValueLayer : dwdLayerStatic)(frame);
+}
 
 export function setDwdCmap(colorMapString: string) {
   palette = colorMapString;
@@ -250,12 +147,12 @@ export const radolanOverlay = () => {
 };
 
 /**
- * The precipitation-type layer for its newest frame: a byte per class where
- * the frame says so (lib/hgClasses.ts), coloured on the GPU; RGBA as rendered
- * before.
+ * The precipitation-type layer for its newest frame: a byte per HG class
+ * (lib/hgClasses.ts), coloured on the GPU.
  */
 export const dwdPrecipTypes = (frame: { tile_id: string; values?: ClassTiles | null }, bucket = "meteoradar") => {
-  const parameters = {
+  const source = trackTileLoads(new ValueTileSource({
+    url: tileSourceUrl(bucket, frame.values?.tile_id ?? frame.tile_id),
     attributions: [dwdAttribution],
     minZoom: 3,
     maxZoom: 8,
@@ -263,21 +160,6 @@ export const dwdPrecipTypes = (frame: { tile_id: string; values?: ClassTiles | n
     tileSize: 512,
     // Classes, not intensities: blending snow into hail past zoom 8 draws a colour no class has.
     interpolate: false,
-  };
-  if (frame.values?.encoding === HG_CLASS_ENCODING) {
-    const source = trackTileLoads(new ValueTileSource({ ...parameters, url: tileSourceUrl(bucket, frame.values.tile_id) }));
-    return new TileLayer({ source, style: hgClassStyle(), zIndex: 3, opacity: NOWCAST_OPACITY, cacheSize: 256 });
-  }
-  const reflectivitySource = trackTileLoads(new ImageTileSource({
-    ...parameters,
-    url: tileSourceUrl(bucket, frame.tile_id),
-    crossOrigin: "anonymous",
   }));
-  const reflectivityLayer = new TileLayer({
-    source: reflectivitySource,
-    zIndex: 3,
-    opacity: NOWCAST_OPACITY,
-    cacheSize: 256,
-  });
-  return reflectivityLayer;
+  return new TileLayer({ source, style: hgClassStyle(), zIndex: 3, opacity: NOWCAST_OPACITY, cacheSize: 256 });
 };

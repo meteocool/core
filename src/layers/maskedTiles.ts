@@ -1,8 +1,7 @@
 import { hasTile, sourceTile } from "../lib/tileIndex";
 import { VALUE_DECODE, fillTemplate, magnify } from "./indexedTiles";
 import { maskTile, overlaps, tileExtent } from "./tileMask";
-import { paintValueImage, recolourImage, recolouringFor } from "./recolour";
-import { RVP6_ENCODING } from "../lib/rvp6";
+import { paintValuePixels, rvp6Table } from "../lib/rvp6";
 import type { MaskPath } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
 import { timedFetch } from "../lib/timedFetch";
@@ -21,6 +20,10 @@ import { timedFetch } from "../lib/timedFetch";
  *
  * The frame's tile index is consulted first, as the flat map's sources do:
  * a tile the frame does not have is answered as empty without a request.
+ *
+ * The tiles carry values (lib/rvp6.ts) and MapLibre has no single-band
+ * palette, so each is decoded as its bytes, cut, and painted in the
+ * palette here: the one place a tile's pixels still pass through the CPU.
  */
 
 export const MASKED_SCHEME = "masked";
@@ -35,10 +38,8 @@ export interface MaskedSpec {
   erase?: MaskPath[];
   /** Keep only what falls inside this polygon; nothing outside its box is even fetched. */
   keep?: MaskPath | null;
-  /** The palette to draw the tiles in, as the flat map does; see recolour.ts. Classic if absent. */
+  /** The palette to draw the tiles in, as the flat map does. Classic if absent. */
   palette?: string;
-  /** What the tiles hold, when that is values rather than colours: the frame's `values.encoding`. */
-  encoding?: string;
 }
 
 const registry = new Map<string, MaskedSpec>();
@@ -68,19 +69,26 @@ const REQUEST = new RegExp(`^${MASKED_SCHEME}://(\\d+)/(\\d+)/(\\d+)/(\\d+)$`);
 /** A tile with nothing in it, which MapLibre draws as nothing. */
 const EMPTY = { data: null };
 
+/** A decoded value tile, or a canvas it was drawn on, painted in a palette onto a canvas of its own. */
+export function paintValueImage(image: ImageBitmap | HTMLCanvasElement, palette: string): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d", { willReadFrequently: true })!;
+  context.drawImage(image, 0, 0);
+  const data = context.getImageData(0, 0, canvas.width, canvas.height);
+  paintValuePixels(data.data, rvp6Table(palette));
+  context.putImageData(data, 0, 0);
+  return canvas;
+}
+
 /**
  * Answer one tile request. Exported for the protocol and for the test.
  *
- * Nothing to cut and nothing to recolour, and the bytes are passed through
- * for MapLibre to decode off the main thread as it would any tile. A 404 is an empty tile rather
- * than an error: frames from before the index existed have no other way to
- * say which tiles they lack.
- *
- * A frame of value tiles (lib/rvp6.ts) is never passed through: MapLibre has
- * no single-band palette, so its tiles are decoded as their bytes, cut, and
- * painted in the palette here, whichever it is.
+ * A 404 is an empty tile rather than an error: frames from before the index
+ * existed have no other way to say which tiles they lack.
  */
-export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise<{ data: ArrayBuffer | ImageBitmap | null }> {
+export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise<{ data: ImageBitmap | null }> {
   const match = REQUEST.exec(url);
   if (!match) throw new Error(`Not a masked tile: ${url}`);
   const spec = registry.get(match[1]);
@@ -99,26 +107,20 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
   if (keep && !overlaps(extent, keep.bbox)) return EMPTY;
   const erase = (spec.erase ?? []).filter((path) => overlaps(extent, path.bbox));
   const source = fillTemplate(spec.template, from.z, from.x, from.y);
-  const values = spec.encoding === RVP6_ENCODING;
-  const table = values ? null : recolouringFor(spec.palette ?? "classic");
 
   const response = await timedFetch(source, { signal });
   if (response.status === 404) return EMPTY;
   if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${source}`);
-  if (!values && !erase.length && !keep && !table && from.scale === 1) return { data: await response.arrayBuffer() };
 
   /* Fetched rather than loaded as an <img>, which could not tell a 404 from
      a network that dropped the request: every failure came back as an empty
      tile, and MapLibre kept it as one -- a hole in the radar until the frame
      changed. A failure now fails, and the 3D map asks for it again when the
      network is back (Cells3DCapability.resync). */
-  const bitmap = await createImageBitmap(await response.blob(), values ? VALUE_DECODE : undefined);
+  const bitmap = await createImageBitmap(await response.blob(), VALUE_DECODE);
   const image = magnify(bitmap, from);
   const cut = erase.length || keep ? maskTile(image, extent, erase, keep) : image;
-  const painted = values
-    ? paintValueImage(cut, spec.palette ?? "classic")
-    : table ? recolourImage(cut, table) : cut;
-  if (painted === bitmap) return { data: bitmap };
+  const painted = paintValueImage(cut, spec.palette ?? "classic");
   bitmap.close();
   return { data: await createImageBitmap(painted) };
 }

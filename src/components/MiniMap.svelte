@@ -7,7 +7,7 @@
   import { unByKey } from "ol/Observable";
   import type { EventsKey } from "ol/events";
   import type BaseLayer from "ol/layer/Base";
-  import { dwdLayerFor } from "../layers/dwd";
+  import { dwdValueLayer } from "../layers/dwd";
   import { get } from "svelte/store";
   import { capTimeIndicator, mapBaseLayer } from "../stores";
   const dispatch = createEventDispatcher();
@@ -130,7 +130,7 @@
         preview_.removeLayer(tiles);
         tiles.dispose();
       }
-      [tiles] = dwdLayerFor(frame);
+      [tiles] = dwdValueLayer(frame);
       preview_.addLayer(tiles);
     });
 
