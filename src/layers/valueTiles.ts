@@ -62,12 +62,18 @@ export default class ValueTileSource extends DataTileSource {
 
   private holesSignature: string;
 
-  constructor(options: Omit<DataTileOptions, "loader" | "bandCount"> & { url: string; index?: TileIndex | null }) {
-    const { url, index, ...rest } = options;
+  /**
+   * `holed`: DWD's reflectivity, built for its newest observation, which is
+   * holed for every network until `setHoles` says otherwise. Anything else
+   * has no holes cut.
+   */
+  constructor(options: Omit<DataTileOptions, "loader" | "bandCount"> & {
+    url: string; index?: TileIndex | null; holed?: boolean;
+  }) {
+    const { url, index, holed, ...rest } = options;
     // RGBA, though only one band means anything: a decoded PNG is four.
     super({ ...rest, bandCount: 4 });
-    // Built for the newest observation, which is what every caller hands it.
-    this.holes = new Map([[url, ALL_NETWORKS]]);
+    this.holes = new Map(holed ? [[url, ALL_NETWORKS]] : []);
     this.holesSignature = holesSignature(this.holes);
     this.url = url;
     this.setUrl(url, index);
