@@ -533,11 +533,11 @@ export class LayerManager {
   /**
    * Draw a capability into a thumbnail, without handing it the map.
    *
-   * The layer switcher's tiles are live previews, so each one has to point its
-   * capability's map at a small element. They used to do that through
-   * `setTarget`, which also moves focus -- so simply mounting the switcher
-   * told every capability in turn that it now owned the main map, and told the
-   * one that actually did that it had lost it. Nothing depended on the
+   * The layer switcher's tiles are live previews, so opening it points each
+   * capability's map at a small element. That used to go through `setTarget`,
+   * which also moves focus -- so simply mounting the switcher told every
+   * capability in turn that it now owned the main map, and told the one that
+   * actually did that it had lost it. Nothing depended on the
    * difference while every capability was an OpenLayers map drawing into
    * whatever element it was given; the 3D map, which has to take its canvas
    * down when it loses focus, made it matter.

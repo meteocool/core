@@ -26,6 +26,14 @@
    */
   export let preview = false;
 
+  /**
+   * Whether the switcher is open. The tiles mount with the app, hidden, and
+   * stay mounted; a map attached to a hidden tile still schedules a frame on
+   * every change of the View it follows, so nothing is attached until the
+   * switcher shows them.
+   */
+  export let open = false;
+
   let className = "";
   export { className as class };
   let uniqueID =
@@ -39,18 +47,23 @@
     });
   });
 
-  function mapInit(node) {
-    if (preview) return decorativeMap(node);
-    // A preview, not a handover: see LayerManager.setPreviewTarget. Mounting
-    // these tiles used to move focus between capabilities as a side effect.
-    layerManager.setPreviewTarget(layer, node.id);
+  /*
+   * A capability's own map is pointed at its tile by the switcher as it opens
+   * (McLayerSwitcher.openLayerswitcher), not here at mount: attached to a
+   * hidden tile for the whole session, the lightning and precipitation maps
+   * drew two empty frames for every frame of the real map. Only the tile
+   * that has no capability map to borrow builds one, and attaches it while
+   * the switcher is open.
+   */
+  function mapInit(node, opened: boolean) {
+    if (preview) return decorativeMap(node, opened);
     return undefined;
   }
 
   /**
    * A throwaway map for a tile whose capability cannot draw one.
    *
-   * `setPreviewTarget` hands a capability's single map to a single element, so
+   * The switcher hands a capability's single map to a single element, so
    * two tiles cannot both show the radar -- and the 3D one has no OpenLayers
    * map of its own to hand over at all. Rather than leave it blank behind the
    * frosting, it gets its own map built here: the basemap the app is on, and
@@ -74,11 +87,13 @@
    * worked out from. A View of its own, kept in step, has nothing to write
    * over. The shared View is itself replaced when the rotation setting
    * changes (see App.svelte), so the map's `change:view` rebinds it.
+   *
+   * Attached and following only while the switcher is open: shut, it would
+   * still take a frame for every frame of the real map.
    */
-  function decorativeMap(node) {
+  function decorativeMap(node, opened: boolean) {
     const own = new View({ center: [0, 0], zoom: 7 });
     const preview_ = new Map({
-      target: node,
       layers: [layerManager.baseLayerFactory(get(mapBaseLayer))],
       controls: [],
       interactions: [],
@@ -87,14 +102,14 @@
 
     // Wherever the reader is looking, so the tile shows their weather rather
     // than a fixed corner of the country -- and wherever they look next.
-    // A hidden tile has no size, and OpenLayers skips drawing a map without
-    // one, so following along while the switcher is shut costs three setters.
     const source: Map | undefined = layerManager.maps[0];
     let viewKeys: EventsKey[] = [];
+    let visible = false;
     const follow = () => {
       unByKey(viewKeys);
+      viewKeys = [];
       const shared = source?.getView();
-      if (!shared) return;
+      if (!shared || !visible) return;
       const sync = () => {
         const center = shared.getCenter();
         const resolution = shared.getResolution();
@@ -105,8 +120,14 @@
       sync();
       viewKeys = shared.on(["change:center", "change:resolution", "change:rotation"], sync) as EventsKey[];
     };
-    follow();
     const mapKey = source?.on("change:view", follow);
+    const show = (now: boolean) => {
+      if (now === visible) return;
+      visible = now;
+      preview_.setTarget(now ? node : undefined);
+      follow();
+    };
+    show(opened);
 
     /*
      * The radar goes on when there is radar, which is not now.
@@ -135,6 +156,7 @@
     });
 
     return {
+      update: show,
       destroy() {
         unsubscribe();
         unByKey(viewKeys);
@@ -251,7 +273,7 @@
 <div
   id="map-{uniqueID}"
   class="miniMap"
-  use:mapInit
+  use:mapInit={open}
   on:mousedown={mouseDown}
   on:mouseup={mouseUp} />
 {#if preview}
