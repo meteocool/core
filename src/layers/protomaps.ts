@@ -1,6 +1,6 @@
 import VectorTileLayer from "ol/layer/VectorTile";
 import VectorTileSource from "ol/source/VectorTile";
-import MVT from "ol/format/MVT";
+import TrimmedMVT from "./trimmedMVT";
 import Style from "ol/style/Style";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
@@ -24,14 +24,14 @@ export const MAP_MAX_ZOOM = 15;
 export const mapEndpoint = `https://map.meteocool.com/${MAP_VERSION}`;
 
 /**
- * One source per layer set. MVT's `layers` option drops everything else before
- * it reaches the style function, which matters: a basemap that never draws
- * place labels should not be decoding them either.
+ * One source per layer set. Everything else is cut out of the tile before it
+ * is read (./trimmedMVT), which matters: a basemap that never draws place
+ * labels should not be decoding them either.
  */
 export function protomapsSource(layers: string[], attributions: string[]) {
   return new VectorTileSource({
     url: `${mapEndpoint}/{z}/{x}/{y}.mvt`,
-    format: new MVT({ layers }),
+    format: new TrimmedMVT({ layers }),
     attributions,
     maxZoom: MAP_MAX_ZOOM,
   });
