@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DASH, DASH_PERIOD, isLive, LIVE_MINUTES, TICK_MS, dashOffset,
+  DASH, DASH_PERIOD, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, TICK_MS, ringAngle,
 } from "../../src/lib/cellPulse.ts";
 
 /**
@@ -9,39 +9,45 @@ import {
  *
  * It replaced an expanding-and-fading ping that rebuilt every live cell's
  * style twenty times a second and visibly failed to keep up with a hundred of
- * them on screen. Here the ring never changes shape: only the dash pattern's
- * offset moves, so the animation is a handful of prebuilt styles cycled in
- * order.
+ * them on screen. Here the ring never changes shape: it only turns, a notch at
+ * a time, which the compositor can animate without the page.
  */
-test("a full turn is one dash and one gap, which is what the styles cost", () => {
+test("a cycle is one dash and one gap, nine notches", () => {
   assert.equal(DASH_PERIOD, DASH[0] + DASH[1]);
-  // The whole animation, cached: nine styles per colour rather than a new one
-  // every frame.
-  const offsets = new Set();
-  for (let ms = 0; ms < TICK_MS * DASH_PERIOD * 3; ms += 10) offsets.add(dashOffset(ms));
-  assert.equal(offsets.size, DASH_PERIOD);
+  const angles = new Set();
+  for (let ms = 0; ms < TICK_MS * DASH_PERIOD * 3; ms += 10) angles.add(ringAngle(ms));
+  assert.equal(angles.size, DASH_PERIOD);
+});
+
+test("the pattern closes round the ring, so the turn loops without a jump", () => {
+  // A whole number of dash periods round the path: no stub where it joins.
+  assert.equal(RING_PATH_LENGTH % DASH_PERIOD, 0);
+  // Close to the circle's own length, so the dashes keep their size.
+  assert.ok(Math.abs(RING_PATH_LENGTH / (2 * Math.PI * RING_RADIUS) - 1) < 0.05);
+  // A cycle turns the ring by exactly one dash period, which looks like none.
+  assert.equal((DASH_PERIOD * NOTCH_DEGREES * RING_PATH_LENGTH) / 360, DASH_PERIOD);
 });
 
 test("it holds still between ticks rather than sweeping", () => {
   // The step is the point: smooth rotation at this size reads as a shimmer,
   // a notch reads as a mechanism running.
-  assert.equal(dashOffset(0), dashOffset(TICK_MS - 1));
-  assert.notEqual(dashOffset(0), dashOffset(TICK_MS));
+  assert.equal(ringAngle(0), ringAngle(TICK_MS - 1));
+  assert.notEqual(ringAngle(0), ringAngle(TICK_MS));
 });
 
 test("the dashes travel the way the pattern is read", () => {
-  // Positive offsets slide the pattern the other way, which looks like the
-  // ring rotating backwards.
-  for (let tick = 0; tick < DASH_PERIOD; tick += 1) {
-    assert.ok(dashOffset(tick * TICK_MS) <= 0);
+  // Clockwise, which CSS spells as a positive angle; the other way looks like
+  // the ring running backwards.
+  for (let tick = 1; tick < DASH_PERIOD; tick += 1) {
+    assert.ok(ringAngle(tick * TICK_MS) > ringAngle((tick - 1) * TICK_MS));
   }
 });
 
 test("every live cell steps together, off one clock", () => {
   // A map where each cell runs its own cycle shimmers; one shared beat reads
   // as the map itself being live.
-  assert.equal(dashOffset(1_000_000), dashOffset(1_000_000));
-  assert.equal(dashOffset(0), dashOffset(TICK_MS * DASH_PERIOD));
+  assert.equal(ringAngle(1_000_000), ringAngle(1_000_000));
+  assert.equal(ringAngle(0), ringAngle(TICK_MS * DASH_PERIOD));
 });
 
 /**

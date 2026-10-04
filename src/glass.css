@@ -429,6 +429,19 @@
   --mc-drawer-backdrop: none;
   --mc-drawer-fill: var(--mc-drawer-fill-solid);
 }
+/* While the flat map pans or zooms, set by ui.ts (setMapMoving). A blurred
+   surface over a map that redraws every frame is re-blurred every frame, which
+   was most of the GPU's work per frame when profiled; the solid fallback costs
+   nothing, and the glass comes back once the map is at rest. */
+:root[data-map-moving], :root[data-map-moving][data-theme="dark"], :root[data-map-moving][data-chrome="dark"] {
+  --mc-glass-backdrop: none;
+  --mc-glass-fill: var(--mc-glass-fill-solid);
+  --mc-glass-fill-strong: var(--mc-glass-fill-solid);
+  --mc-reading-backdrop: none;
+  --mc-reading-fill: var(--mc-glass-fill-solid);
+  --mc-drawer-backdrop: none;
+  --mc-drawer-fill: var(--mc-drawer-fill-solid);
+}
 @media (prefers-reduced-motion: reduce) {
   :root {
     --mc-motion-fast: 0ms; --mc-motion: 0ms; --mc-press: 1;

@@ -36,6 +36,7 @@ import type NanobarWrapper from "./NanobarWrapper";
 import type { CapabilityOptions } from "../caps/options";
 import { elementCentre } from "./viewCentre";
 import { isScreenshot } from "./screenshot";
+import { setMapMoving } from "../layers/ui";
 
 /** One entry of the capability list App.svelte builds. */
 export interface CapabilityDescriptor {
@@ -390,6 +391,15 @@ export class LayerManager {
        keyboard pan, a double-tap zoom -- and a coordinate sampled before that
        is no longer under the finger. */
     newMap.on("movestart", cancelPress);
+    /* The glass over the map goes solid while the map on screen moves, and
+       blurs again once it stops; see setMapMoving. Only the full-size map:
+       the switcher's thumbnails share its View, so they move with it anyway. */
+    newMap.on("movestart", () => {
+      if (newMap.getTargetElement()?.id === "map") setMapMoving(true);
+    });
+    newMap.on("moveend", () => {
+      if (newMap.getTargetElement()?.id === "map") setMapMoving(false);
+    });
     /* Otherwise a hold on a touch device races the platform's own selection
        callout, which pops up over the map just as the strip arrives. There is
        no selectable content under it to lose.
@@ -507,6 +517,8 @@ export class LayerManager {
       // already has appends nothing. The layer switcher clears every map
       // before switching; Back and Forward switch without it.
       this.capabilities[this.currentCap].getMap().setTarget(undefined);
+      // A map taken off the screen mid-move never reports its moveend.
+      setMapMoving(false);
     }
     this.capabilities[cap].setTarget(target);
     sharedActiveCap.set(cap);

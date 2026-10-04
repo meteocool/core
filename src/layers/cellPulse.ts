@@ -7,7 +7,7 @@ import type Point from "ol/geom/Point";
 import type Feature from "ol/Feature";
 import { DARK_INK, watchInk } from "./casing";
 import {
-  DASH, DASH_PERIOD, RING_RADIUS, RING_WIDTH, TICK_MS,
+  DASH, DASH_PERIOD, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, RING_WIDTH, TICK_MS,
 } from "../lib/cellPulse";
 
 /**
@@ -29,15 +29,18 @@ import {
  *
  * So the rings are DOM: one small SVG per live cell, placed by this layer's
  * render function whenever the map itself draws, and stepped by a CSS
- * animation in between. The compositor runs that on its own; the map is not
- * involved, and the animation costs nothing when the tab is hidden because
- * the browser pauses it.
+ * animation in between. The animation turns the SVG rather than moving its
+ * dashes, because a transform is the one thing the compositor animates on its
+ * own: the page does no style, layout or paint per tick, the map is not
+ * involved, and the browser pauses it while the tab is hidden. The dash
+ * offset it used to animate cannot be composited, and repainted every ring on
+ * the main thread every frame, map at rest or not.
  *
  * ## Why it steps rather than sweeps
  *
- * See lib/cellPulse.ts. The ring never changes shape; only the dash pattern's
- * offset moves, one dash-width per tick. Here that is a `steps()` timing
- * function over one dash period, which is the same cycle the tests describe.
+ * See lib/cellPulse.ts. The ring never changes shape; it turns one dash-width
+ * per tick. Here that is a `steps()` timing function over a turn of one dash
+ * period, which is the same cycle the tests describe.
  * Every ring is started at the same phase of the wall clock, so they step
  * together: a map where each one runs its own cycle shimmers, where one
  * shared beat reads as the map itself being live.
@@ -54,25 +57,32 @@ const CYCLE_MS = TICK_MS * DASH_PERIOD;
 /**
  * One ring, phased to the shared beat.
  *
+ * Two elements, because two things move it: the map places the outer one,
+ * a transform written on every map frame, and the animation turns the inner
+ * one. On a single element the two transforms would overwrite each other.
+ *
  * A negative delay starts the animation part-way through, at the notch the
  * wall clock says every other ring is on.
  */
-function makeRing(): SVGSVGElement {
+function makeRing(): HTMLDivElement {
   const size = (RING_RADIUS + RING_WIDTH) * 2;
+  const ring = document.createElement("div");
   const svg = document.createElementNS(SVG, "svg");
   svg.setAttribute("width", String(size));
   svg.setAttribute("height", String(size));
   svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.style.animationDuration = `${CYCLE_MS}ms`;
+  svg.style.animationTimingFunction = `steps(${DASH_PERIOD}, end)`;
+  svg.style.animationDelay = `-${Date.now() % CYCLE_MS}ms`;
   const circle = document.createElementNS(SVG, "circle");
   circle.setAttribute("cx", String(size / 2));
   circle.setAttribute("cy", String(size / 2));
   circle.setAttribute("r", String(RING_RADIUS));
+  circle.setAttribute("pathLength", String(RING_PATH_LENGTH));
   circle.setAttribute("stroke-dasharray", `${DASH[0]} ${DASH[1]}`);
-  circle.style.animationDuration = `${CYCLE_MS}ms`;
-  circle.style.animationTimingFunction = `steps(${DASH_PERIOD}, end)`;
-  circle.style.animationDelay = `-${Date.now() % CYCLE_MS}ms`;
   svg.appendChild(circle);
-  return svg;
+  ring.appendChild(svg);
+  return ring;
 }
 
 /**
@@ -86,11 +96,11 @@ export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Lay
   const container = document.createElement("div");
   container.className = PULSE_CLASS;
   container.style.setProperty("--mc-pulse-ink", DARK_INK);
-  container.style.setProperty("--mc-pulse-period", `${DASH_PERIOD}px`);
+  container.style.setProperty("--mc-pulse-turn", `${DASH_PERIOD * NOTCH_DEGREES}deg`);
   container.style.setProperty("--mc-pulse-width", `${RING_WIDTH}px`);
 
   /** The ring drawn for each feature, by the feature's uid. */
-  const rings = new Map<string, SVGSVGElement>();
+  const rings = new Map<string, HTMLDivElement>();
 
   const layer = new Layer({
     source,
