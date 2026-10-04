@@ -3,8 +3,9 @@
  *
  * The backend writes each tile as a single-band 8-bit PNG whose pixels are
  * RVP6, `(dBZ + 32.5) * 2`, with 0 for nothing drawn (ADR 0010 in
- * meteocool/ng). A frame says so with `values`; a frame without it was
- * rendered in RGBA, in the classic palette, and draws as it always has.
+ * meteocool/ng). A frame says so with `values`. Frames rendered in RGBA,
+ * before the backend switched on 2026-10-04, are no longer drawn: the
+ * backends this frontend reads publish none.
  *
  * The palette is then applied here, in the browser: one 256-entry table per
  * palette, built from `dbz2color` like the legend and the timeline, so the
