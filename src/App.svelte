@@ -796,6 +796,10 @@ window.settings.setCb("mapRotation", (value) => {
     minZoom: current.getView().getMinZoom(),
     enableRotation: Boolean(value),
     extent: VIEW_EXTENT,
+    // The tray's strip, which the centre above is measured inside. Left off,
+    // the map jumped by half a tray and stayed unpadded until the bars next
+    // moved.
+    padding: current.getView().padding,
   });
   lm.forEachMap((map) => map.setView(newView));
 });
