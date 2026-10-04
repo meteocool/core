@@ -5,7 +5,8 @@ import { get as getProjection } from "ol/proj.js";
 import type Feature from "ol/Feature.js";
 
 const { default: StrikeSource } = await import("../../src/layers/strikeSource.ts");
-const { default: StrikeManager } = await import("../../src/lib/StrikeManager.ts");
+const { default: StrikeManager, LIVE_STRIKE_BATCH_MS } = await import("../../src/lib/StrikeManager.ts");
+const { coalesce } = await import("../../src/lib/coalesce.ts");
 const { default: StrikeManagerV2 } = await import("../../src/lib/StrikeManagerV2.ts");
 
 /**
@@ -64,7 +65,9 @@ test("the batch draws the same clusters as adding the strikes one by one", () =>
   new StrikeManager(1000, batched.source).addStrikes(strikes(times));
   const manager = new StrikeManager(1000, oneByOne.source);
   strikes(times).forEach(({ lon, lat, time }) => manager.addStrikeWithTime(lon, lat, time));
-  assert.equal(oneByOne.clusterings(), 600);
+  // One per distinct strike: a repeat is turned away before the source, which
+  // announced a change even for a feature it refused.
+  assert.equal(oneByOne.clusterings(), 300);
   assert.deepEqual(batched.ids(), oneByOne.ids());
   assert.deepEqual(batched.clusters(), oneByOne.clusters());
   assert.ok(batched.clusters().length < 300, "some strikes clustered");
@@ -139,4 +142,49 @@ test("the lightning map's backfill is one change, skips what it has, and the bas
   manager.setBaseline(15);
   assert.deepEqual(source.getFeatures().map((f) => f.get("time_wall_ns") as number).sort((a, b) => a - b), [20, 30]);
   assert.equal(changes, 3);
+});
+
+/**
+ * Live strikes arrive one socket event at a time. Each on its own was a
+ * recluster and a redraw of the whole map; gathered for a moment they are one
+ * of each, whatever the storm is doing.
+ */
+test("live strikes that arrive together are one change and one clustering", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const s = strikeSource();
+  const manager = new StrikeManager(1000, s.source);
+  const live = coalesce((items: { lon: number; lat: number; time: number }[]) => manager.addLiveStrikes(items), LIVE_STRIKE_BATCH_MS);
+  const now = Date.now();
+  strikes(Array.from({ length: 40 }, (_, i) => now - i)).forEach((strike) => live.push(strike));
+  assert.equal(s.changes(), 0);
+  t.mock.timers.tick(LIVE_STRIKE_BATCH_MS);
+  assert.equal(s.source.getFeatures().length, 40);
+  assert.equal(s.changes(), 1);
+  assert.equal(s.clusterings(), 1);
+  // The next strike opens a new window rather than riding on the last one.
+  live.push(strikes([now + 1])[0]);
+  t.mock.timers.tick(LIVE_STRIKE_BATCH_MS - 1);
+  assert.equal(s.changes(), 1);
+  t.mock.timers.tick(1);
+  assert.equal(s.changes(), 2);
+});
+
+test("a feed taken down drops the strikes it was holding", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const flushed: number[][] = [];
+  const live = coalesce((items: number[]) => flushed.push(items), 100);
+  live.push(1);
+  live.cancel();
+  t.mock.timers.tick(100);
+  assert.deepEqual(flushed, []);
+});
+
+test("a repeated strike does not hold a slot in the ring buffer", () => {
+  const s = strikeSource();
+  const manager = new StrikeManager(3, s.source);
+  // The feed repeats about one strike in ten. Counted twice, the repeat's
+  // slot was evicted first and took the strike's only feature with it.
+  manager.addLiveStrikes(strikes([1000, 1000, 2000, 3000]));
+  assert.deepEqual(manager.strikes, [1000, 2000, 3000]);
+  assert.deepEqual(s.ids(), [1000, 2000, 3000]);
 });

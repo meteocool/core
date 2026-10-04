@@ -12,6 +12,7 @@ import { radarColormap } from "../stores";
 import type { RadarVolume } from "../api";
 import { isVolumeBehind } from "../lib/scans";
 import type { RadarScans } from "../lib/scans";
+import { declutterAtRest, frozenOut } from "./frozenDeclutter";
 
 /**
  * A "3D" tag beside every storm core the 3D map can cut open.
@@ -187,7 +188,7 @@ export default function makeCloudHints(): CloudHints {
     return thinned.keep;
   };
 
-  const layer = new VectorLayer({
+  const layer: VectorLayer = new VectorLayer({
     source,
     // Over the tracked cells at 202: the pill is beside a centroid, never on
     // it, and where the two do touch it is the smaller target.
@@ -200,10 +201,15 @@ export default function makeCloudHints(): CloudHints {
     renderOrder: (a, b) => peakOf(b) - peakOf(a),
     // Thinned away is not drawn, and so not tappable either.
     style: (feature, resolution) => {
+      if (frozenOut(layer, feature)) return undefined;
       const keep = keepsAt(resolution);
       return !keep || keep.has(feature as Feature) ? hintStyle(feature) : undefined;
     },
   });
+  // Placed afresh only at rest, like the place labels; see ./frozenDeclutter.
+  // A second decluttered layer would put the map back in deferred mode on
+  // its own.
+  declutterAtRest(layer);
 
   watchBasemap((basemap) => (isDarkBasemap(basemap) ? DARK : LIGHT), (next) => {
     palette = next;
