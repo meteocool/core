@@ -1,4 +1,4 @@
-import ValueTileSource from "./valueTiles";
+import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import { hasTile } from "../lib/tileIndex";
 import TileLayer from "ol/layer/WebGLTile";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
@@ -260,7 +260,7 @@ export default class NetworkRadarLayer {
       transition: 0,
       interpolate: false,
     }));
-    this.layer = new TileLayer({
+    this.layer = staleOnlyWhileLoading(new TileLayer({
       source,
       style: rvp6Style(this.palette),
       // Just under DWD's 80. The cut means they never cover the same pixel,
@@ -271,7 +271,7 @@ export default class NetworkRadarLayer {
       cacheSize: 512,
       // The rectangle is a cheap first pass; `coverage` is the real edge.
       extent: this.network.extent,
-    });
+    }));
     this.map.addLayer(this.layer);
   }
 
