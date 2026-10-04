@@ -45,6 +45,9 @@
 
   const childCanvases = {};
 
+  /** Whether the panel is up; the tiles attach their maps only while it is. */
+  let isOpen = false;
+
   const allAttributionsArray = Object.entries(attributions)
     .filter((k) => k[0] !== "imprintAttribution")
     .map((k) => k[1]);
@@ -72,10 +75,11 @@
     layerManager.maps[0]?.getView().setProperties({ padding: [0, 0, 0, 0] });
     layerManager.forEachMap((map, cap) => {
       const target = childCanvases[cap];
-      console.log(`set ${cap} -> ${target}`);
-      map.setTarget(target);
+      // A preview, not a handover: see LayerManager.setPreviewTarget.
+      layerManager.setPreviewTarget(cap, target);
       map.updateSize();
     });
+    isOpen = true;
   };
 
   function open() {
@@ -85,11 +89,11 @@
   function close() {
     const ls = document.getElementById("ls");
     if (ls) ls.style.display = "none";
-    layerManager.forEachMap((map, cap) => {
-      console.log(`set ${cap} -> null`);
+    layerManager.forEachMap((map) => {
       map.setTarget(null);
       map.updateSize();
     });
+    isOpen = false;
     postToNative("layerSwitcherClosed");
     // Map.svelte re-measures the tray and restores the view padding.
     toolbarTransitionEnd();
@@ -286,6 +290,7 @@
               layer={tile.layer}
               label={tile.label}
               preview={tile.preview ?? false}
+              open={isOpen}
               on:mount={childMounted}
               on:changeLayer={changeLayer} />
           </div>
