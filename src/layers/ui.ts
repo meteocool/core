@@ -24,6 +24,7 @@ import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.j
 import { colorSchemeDark, mapBaseLayer } from "../stores";
 import { isDarkBasemap } from "./casing";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { onMapMotion } from "../lib/mapMotion";
 
 /** Light-mode values for the tokens below, restored when dark mode is left. */
 const uiConstantsDefault: Record<string, string> = {
@@ -60,36 +61,17 @@ export function setGlassMode(mode: GlassMode) {
   document.documentElement.dataset.glass = mode;
 }
 
-/**
- * How long the map has to be still before the blur comes back. Long enough to
- * span the gap between two wheel notches or a pinch lifted and put down again,
- * which would otherwise flicker the material and pay for a full re-blur in
- * between.
- */
-const GLASS_SETTLE_MS = 250;
-
-let glassSettleTimer: number | undefined;
-
-/**
+/*
  * Drop the backdrop blur while the flat map moves. Every blurred surface over
  * the map is blurred again on every frame of a pan or zoom, and profiling put
  * that at about two thirds of the GPU's work per frame; src/glass.css swaps in
  * the solid fallback for as long as `data-map-moving` is set.
  */
-export function setMapMoving(moving: boolean) {
-  window.clearTimeout(glassSettleTimer);
-  glassSettleTimer = undefined;
+onMapMotion((moving) => {
   const root = document.documentElement;
-  if (moving) {
-    root.dataset.mapMoving = "yes";
-    return;
-  }
-  if (!root.dataset.mapMoving) return;
-  glassSettleTimer = window.setTimeout(() => {
-    glassSettleTimer = undefined;
-    delete root.dataset.mapMoving;
-  }, GLASS_SETTLE_MS);
-}
+  if (moving) root.dataset.mapMoving = "yes";
+  else delete root.dataset.mapMoving;
+});
 
 export const NOWCAST_OPACITY = 0.75;
 

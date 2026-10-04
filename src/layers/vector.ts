@@ -13,6 +13,7 @@ import { mapBaseLayer } from "../stores";
 import { supportsVectorLabels } from "./base";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { belowMinZoom, protomapsSource, zoomFromResolution } from "./protomaps";
+import { declutterAtRest, frozenOut, markBufferCopies } from "./frozenDeclutter";
 
 /**
  * The label and border overlays, drawn *above* the weather so place names stay
@@ -242,31 +243,52 @@ function placeStyle(feature: FeatureLike, resolution: number): Style | undefined
   return style;
 }
 
+/**
+ * The same place, whichever tile and zoom level it came from: a label kept
+ * through a move stays through a zoom that changes level, where the tiles
+ * and so the features are new.
+ */
+const placeKey = (feature: FeatureLike) => feature.get("wikidata") ?? feature.get("name") ?? feature;
+
+/** Placed afresh only while the map is at rest; see ./frozenDeclutter. */
+function placedAtRest(layer: VectorTileLayer): VectorTileLayer {
+  declutterAtRest(layer, placeKey);
+  const source = layer.getSource();
+  if (source) markBufferCopies(source);
+  return layer;
+}
+
 /** Country borders plus place labels: used where there is no basemap underneath. */
-export const bordersAndWays = () => trackLabels(new VectorTileLayer({
-  zIndex: 99,
-  declutter: true,
-  source: protomapsSource(["boundaries", "places"], overlayAttributions),
-  style(feature, resolution) {
-    switch (feature.get("layer")) {
-      case "places":
-        return placeStyle(feature, resolution);
-      case "boundaries":
-        return feature.get("kind") === "country" ? boundaryStyle : undefined;
-      default:
-        return undefined;
-    }
-  },
-}));
+export const bordersAndWays = () => {
+  const layer: VectorTileLayer = new VectorTileLayer({
+    zIndex: 99,
+    declutter: true,
+    source: protomapsSource(["boundaries", "places"], overlayAttributions),
+    style(feature, resolution) {
+      switch (feature.get("layer")) {
+        case "places":
+          return frozenOut(layer, feature) ? undefined : placeStyle(feature, resolution);
+        case "boundaries":
+          return feature.get("kind") === "country" ? boundaryStyle : undefined;
+        default:
+          return undefined;
+      }
+    },
+  });
+  return trackLabels(placedAtRest(layer));
+};
 
 /** Place labels only: the basemap already draws its own borders. */
-export const labelsOnly = () => trackLabels(new VectorTileLayer({
-  zIndex: 99,
-  declutter: true,
-  renderMode: "vector",
-  source: protomapsSource(["places"], overlayAttributions),
-  style(feature, resolution) {
-    if (feature.get("layer") !== "places") return undefined;
-    return placeStyle(feature, resolution);
-  },
-}), true);
+export const labelsOnly = () => {
+  const layer: VectorTileLayer = new VectorTileLayer({
+    zIndex: 99,
+    declutter: true,
+    renderMode: "vector",
+    source: protomapsSource(["places"], overlayAttributions),
+    style(feature, resolution) {
+      if (feature.get("layer") !== "places" || frozenOut(layer, feature)) return undefined;
+      return placeStyle(feature, resolution);
+    },
+  });
+  return trackLabels(placedAtRest(layer), true);
+};
