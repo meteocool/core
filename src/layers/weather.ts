@@ -1,5 +1,5 @@
 import LayerGroup from "ol/layer/Group";
-import TileLayer from "ol/layer/WebGLTile";
+import TileLayer from "./webglTile";
 import ImageTileSource from "ol/source/ImageTile";
 import { centralEuropeExtent } from "./extents";
 import { tileBaseUrl } from "../urls";
