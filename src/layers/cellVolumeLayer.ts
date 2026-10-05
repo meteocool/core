@@ -55,8 +55,6 @@ import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from
 import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
-import { scanTime } from "../lib/scans";
-import type { Scan } from "../lib/scans";
 import { VERTICAL_SCALE } from "./terrain";
 
 /** Reflectivity below this is drizzle or the fringe of the anvil. */
@@ -115,6 +113,19 @@ const PEEL_FPS = 12;
  * resumes from where it stopped rather than jumping.
  */
 const PEEL_IDLE_SECONDS = 3 * PEEL_SECONDS;
+/**
+ * How far from an opened storm the cut reaches, in km: every cloud whose box
+ * comes this close to where the cut passes through is cut by the same plane.
+ *
+ * Whatever storm or scan it is from. Cut by storm, a neighbour that the
+ * backend counts as a storm of its own -- its peak a few dBZ apart, one tile
+ * over -- stood whole beside the face and hid it, and so did the newer scan's
+ * tiles around a storm kept open past its scan. Not every cloud on the map:
+ * the cut-away side is half the map, gone. At the tilt a storm opens at the
+ * camera stands about 30 km off, so this clears the ground between the two,
+ * and puts the edge of what is cut past the sides of the screen.
+ */
+const CUT_REACH_KM = 40;
 
 const VERTEX = `#version 300 es
 void main() {
@@ -137,7 +148,7 @@ uniform vec3 uPlanePoint;
 uniform float uDbzFloor;
 uniform float uDbzScale;
 uniform float uSteps;
-uniform float uCut;        // 1 for the storm being inspected, 0 for every other
+uniform float uCut;        // 1 for the storm being inspected and the clouds near it, 0 for every other
 uniform float uLow;        // where the echo starts to show, which the peel raises
 uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
 uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
@@ -200,7 +211,7 @@ void main() {
 
   // The cut, trimmed off the ray rather than tested per sample, so the exposed
   // face lands exactly on the plane instead of on whichever step came first.
-  // Only the storm a reader has opened is cut; every other one peels instead.
+  // Only the storm a reader has opened is cut, and the clouds around it.
   bool cutFace = false;
   if (uCut > 0.5) {
     float facing = dot(direction, uPlaneNormal);
@@ -529,6 +540,34 @@ export function carryCut(
   };
 }
 
+/**
+ * How far a cloud's drawn box stands from the cut, on the ground, in km: from
+ * the point the cut passes through to the nearest edge of the box, nothing if
+ * the point is inside it. `metre` is Mercator units to the metre, at the
+ * opened tile.
+ */
+export function kmFromCut(
+  model: Mat4, box: { min: readonly number[]; max: readonly number[] }, point: readonly [number, number, number],
+  metre: number,
+): number {
+  const xs = [model[12] + model[0] * box.min[0], model[12] + model[0] * box.max[0]];
+  // Mercator's y runs south, so the cube's y = 1 is the box's smaller y.
+  const ys = [model[13] + model[5] * box.min[1], model[13] + model[5] * box.max[1]];
+  const dx = Math.max(Math.min(...xs) - point[0], 0, point[0] - Math.max(...xs));
+  const dy = Math.max(Math.min(...ys) - point[1], 0, point[1] - Math.max(...ys));
+  return Math.hypot(dx, dy) / metre / 1000;
+}
+
+/** Whether every corner of a box is on the side of a cut that is gone: then there is nothing of it to draw. */
+export function cutAway(
+  corners: ReadonlyArray<readonly [number, number, number]>,
+  cut: { normal: readonly [number, number, number]; point: readonly [number, number, number] },
+): boolean {
+  return corners.every((corner) => (
+    corner.reduce((sum, value, axis) => sum + cut.normal[axis] * (value - cut.point[axis]), 0) > 0
+  ));
+}
+
 /** One storm on the map: its field, where its box stands, and its texture once uploaded. */
 interface Cloud {
   cutaway: Cutaway;
@@ -556,8 +595,6 @@ interface Cloud {
   dim: number;
   /** Whether it peels when not cut; see `setClouds`. */
   peels: boolean;
-  /** The scan it was measured in, which tells a storm's tiles of one scan from a newer scan's. */
-  scan: Scan | null;
   texture: WebGLTexture | null;
 }
 
@@ -579,9 +616,9 @@ export interface CloudsLayer extends CustomLayerInterface {
   }>): void;
   /**
    * Open one storm, by the key it was handed over under, with a cut at this
-   * heading. The other tiles of its storm are cut by the same plane, so the
-   * cut runs across the storm rather than stopping at the tile's edge, and
-   * no tile of it stands whole in front of the face.
+   * heading. Every cloud near it is cut by the same plane (`CUT_REACH_KM`),
+   * so the cut runs across the storm rather than stopping at the tile's
+   * edge, and nothing stands whole in front of the face.
    */
   setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
@@ -739,7 +776,6 @@ export function makeCloudsLayer(
           system,
           dim,
           peels,
-          scan: scanTime(cutaway.header.reference_time),
           texture: gl ? upload(gl, cutaway) : null,
         });
       }
@@ -851,6 +887,7 @@ export function makeCloudsLayer(
       const opened = cutKey !== null ? clouds.get(cutKey) : undefined;
       const along = (cutHeading * Math.PI) / 180;
       const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
+      const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
 
       for (const { key, cloud, forward } of ordered) {
         const rect = screenRect(forward, cloud.corners, width, height);
@@ -858,6 +895,15 @@ export function makeCloudsLayer(
         const inverse = invert(forward);
         if (!inverse) continue;
         const { header, extentM } = cloud.cutaway;
+
+        // The opened tile, and every cloud near enough to stand in front of
+        // its face; see `CUT_REACH_KM`. One wholly on the side that is gone
+        // is not drawn at all.
+        const plane = opened !== undefined && cutPoint !== null
+          && (key === cutKey || kmFromCut(cloud.model, cloud.box, cutPoint, metre) <= CUT_REACH_KM)
+          ? carryCut(cloud.model, opened.model, cutPoint, along)
+          : null;
+        if (plane && cutAway(cloud.corners, plane)) continue;
 
         if (rect === "all") {
           context.disable(context.SCISSOR_TEST);
@@ -877,20 +923,14 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
-        // The opened tile, and every other tile of its storm in the same
-        // scan: a storm kept open past its scan shares its system with the
-        // newer scan's tiles of it, which are not part of the one being read.
-        const cut = opened !== undefined && cutPoint !== null
-          && (key === cutKey || (opened.system !== null && cloud.system === opened.system && cloud.scan === opened.scan));
-        const peelsNow = !cut && cloud.peels && !holding;
+        const peelsNow = !plane && cloud.peels && !holding;
         if (peelsNow) peeling = true;
-        context.uniform1f(at("uCut"), cut ? 1 : 0);
+        context.uniform1f(at("uCut"), plane ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
         context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.peelFloor - DBZ_LOW) * peel : DBZ_LOW);
-        if (cut) {
-          const { normal, point } = carryCut(cloud.model, opened.model, cutPoint, along);
-          context.uniform3f(at("uPlaneNormal"), ...normal);
-          context.uniform3f(at("uPlanePoint"), ...point);
+        if (plane) {
+          context.uniform3f(at("uPlaneNormal"), ...plane.normal);
+          context.uniform3f(at("uPlanePoint"), ...plane.point);
         }
         context.drawArrays(context.TRIANGLES, 0, 3);
       }
