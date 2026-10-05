@@ -38,9 +38,11 @@ export function isAppDataPath(pathname: string): boolean {
 
 /**
  * A storm's volume file, as the data service names it: bucket first, then
- * the scan and the storm. Nothing else under the asset host is redirected.
+ * the scan and the box -- a map tile (`T` + zoom + x + y) since tiles, a
+ * storm's peak (`G`) or a cell (`R`) before them, as `lib/deepLink.ts` reads
+ * them. Nothing else under the asset host is redirected.
  */
-const VOLUME_PATH = /^\/meteoradar\/volumes\/\d{8}T\d{6}\/(?:[a-z]{2}-)?(?:G\d{10}|R\d{1,12})\.mcvx$/;
+const VOLUME_PATH = /^\/meteoradar\/volumes\/\d{8}T\d{6}\/(?:[a-z]{2}-)?(?:T\d{12}|G\d{10}|R\d{1,12})\.mcvx$/;
 
 export function isVolumePath(pathname: string): boolean {
   return VOLUME_PATH.test(pathname);
