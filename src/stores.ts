@@ -232,6 +232,13 @@ export const cells3dLoading = writable<boolean>(false);
  * map for as long as anyone looks at it.
  */
 export const cells3dFailed = writable<boolean>(false);
+/**
+ * Whether every storm on the 3D map is drawn grey: each one from an older scan
+ * than the radar under it (lib/scans.ts), and at least one storm to say it of.
+ * Set by Cells3DCapability while it is showing; App says why they are grey
+ * while it is true.
+ */
+export const cells3dBehind = writable<boolean>(false);
 /** The cell the detail popup is showing, or null when it is closed. */
 export const selectedCell = writable<CellTrackProperties | null>(null);
 /**

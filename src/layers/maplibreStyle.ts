@@ -1,7 +1,11 @@
 import { mapEndpoint, MAP_MAX_ZOOM } from "./protomaps";
 import { imprintAttribution, osmAttribution, protomapsAttribution } from "./attributions";
 import type { BasemapTheme } from "./protomaps";
-import type { StyleSpecification, LayerSpecification, ExpressionSpecification } from "maplibre-gl";
+import { LABEL_FAMILY, LABEL_TIERS, TIER_OF_DETAIL } from "./labels";
+import type { LabelPalette, LabelTier } from "./labels";
+import type {
+  StyleSpecification, LayerSpecification, ExpressionSpecification, SymbolLayerSpecification,
+} from "maplibre-gl";
 
 /**
  * The same basemap, described for MapLibre instead of OpenLayers.
@@ -242,8 +246,10 @@ export function basemapStyle(theme: BasemapTheme): StyleSpecification {
 
   return {
     version: 8,
-    // No glyph or sprite endpoint: this style draws no text or icons, and
-    // pointing at one meteocool does not host would fail on every tile.
+    // No glyph or sprite endpoint: meteocool hosts neither, and pointing at
+    // one would fail on every tile. With no glyphs URL, MapLibre draws the
+    // place names' letters itself, from the fonts the browser has; see
+    // `placeLabels`.
     sources: {
       [SOURCE]: {
         type: "vector",
@@ -253,5 +259,76 @@ export function basemapStyle(theme: BasemapTheme): StyleSpecification {
       },
     },
     layers,
+  };
+}
+
+/** The id of the place names' layer, which the 3D map adds over everything it draws. */
+export const PLACE_LABELS = "place-labels";
+
+/** A place's tier, as ./labels decides it, for the expressions below. */
+const TIER: ExpressionSpecification = [
+  "case",
+  ["==", ["get", "kind"], "country"], "country",
+  ["match", ["get", "kind_detail"], ...Object.entries(TIER_OF_DETAIL).flat(), "locality"],
+] as unknown as ExpressionSpecification;
+
+/** One value per tier, as an expression over the feature's tier. */
+function byTier(value: (tier: LabelTier) => unknown): ExpressionSpecification {
+  return [
+    "match",
+    TIER,
+    ...Object.entries(LABEL_TIERS).flatMap(([name, tier]) => [name, value(tier)]),
+    value(LABEL_TIERS.locality),
+  ] as unknown as ExpressionSpecification;
+}
+
+/**
+ * The first of these name properties that is a string and not empty, as
+ * `placeNameForLocale` picks it. Not a `coalesce`, which takes an empty
+ * string for a name.
+ */
+const firstName = (keys: string[]): ExpressionSpecification => [
+  "case",
+  ...keys.flatMap((key) => [
+    ["all", ["==", ["typeof", ["get", key]], "string"], ["!=", ["get", key], ""]], ["get", key],
+  ]),
+  "",
+] as unknown as ExpressionSpecification;
+
+/**
+ * The place names, set as the flat map sets them (./vector): the same tiers,
+ * family, inks and halos, out of the same tiles, in the same language order.
+ *
+ * Drawn locally rather than from a glyphs server: the style has no `glyphs`,
+ * so MapLibre rasterises every letter from the browser's own fonts -- the
+ * same `Calibri, sans-serif` the flat map's canvas falls back through, with
+ * the weight read off the font name.
+ *
+ * Shown from the zoom the flat map shows them at. Protomaps' `min_zoom` is
+ * in the flat map's levels, one above MapLibre's for the same view.
+ */
+export function placeLabels(palette: LabelPalette, nameKeys: string[]): SymbolLayerSpecification {
+  return {
+    id: PLACE_LABELS,
+    type: "symbol",
+    source: SOURCE,
+    "source-layer": "places",
+    filter: ["any", ["!", ["has", "min_zoom"]], [">=", ["+", ["zoom"], 1], ["get", "min_zoom"]]],
+    layout: {
+      "text-field": firstName(nameKeys),
+      "text-font": byTier(({ bold }) => ["literal", [bold ? `${LABEL_FAMILY} Bold` : LABEL_FAMILY, "sans-serif"]]),
+      "text-size": byTier(({ size }) => size),
+      // One line, as the flat map draws them.
+      "text-max-width": 30,
+      // Placed first wins: countries, then cities, then the rest.
+      "symbol-sort-key": byTier(({ rank }) => -rank),
+    },
+    paint: {
+      "text-color": byTier(({ muted }) => (muted ? palette.mutedInk : palette.ink)),
+      "text-halo-color": palette.halo,
+      // MapLibre's halo grows outwards from the glyph; OpenLayers' is centred
+      // on its outline, so half of it shows.
+      "text-halo-width": byTier(({ halo }) => (halo / 2) * palette.haloScale),
+    },
   };
 }

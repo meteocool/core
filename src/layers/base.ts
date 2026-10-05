@@ -42,6 +42,22 @@ export const lightTheme: BasemapTheme = {
   roadKinds: ["highway", "major_road"],
   boundaryCountry: "#9a958c",
   boundaryRegion: null,
+  /*
+   * Over the radar, as the dark theme's are, and the other way round: the
+   * lines above are pale, and a pale line under three quarters of radar is no
+   * line at all. Dark and mostly see-through instead, in the same warm and
+   * blue casts, so over the bare ground they land within a few levels of the
+   * colours above and over an echo they darken a line out of it.
+   */
+  raised: {
+    coastline: "rgba(70, 110, 140, 0.45)",
+    waterway: "rgba(90, 130, 160, 0.35)",
+    boundaryCountry: "rgba(70, 65, 58, 0.55)",
+    roads: {
+      highway: "rgba(110, 90, 60, 0.22)",
+      major_road: "rgba(110, 90, 60, 0.15)",
+    },
+  },
 };
 
 export const darkTheme: BasemapTheme = {
@@ -65,6 +81,22 @@ export const darkTheme: BasemapTheme = {
   roadKinds: ["highway", "major_road"],
   boundaryCountry: "#5c626b",
   boundaryRegion: null,
+  /*
+   * Over the radar. The lines above are as dark as the ground they are on, so
+   * under three quarters of radar they were gone, coast and all. Light and
+   * mostly see-through instead, which over the bare ground comes out a step
+   * or two lighter than the dark lines did, and over an echo lifts a pale
+   * line out of it.
+   */
+  raised: {
+    coastline: "rgba(150, 190, 220, 0.6)",
+    waterway: "rgba(150, 190, 220, 0.3)",
+    boundaryCountry: "rgba(255, 255, 255, 0.5)",
+    roads: {
+      highway: "rgba(255, 255, 255, 0.2)",
+      major_road: "rgba(255, 255, 255, 0.13)",
+    },
+  },
 };
 
 export const osmTheme: BasemapTheme = {
