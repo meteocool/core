@@ -169,6 +169,8 @@
     "color_map_hint": "Changes the colors the precipitation is drawn in.",
     "map": "Map",
     "rotation": "Two-Finger Map Rotation",
+    "solid_glass": "Solid Panels While Moving",
+    "solid_glass_hint": "Makes the frosted panels over the map solid while you pan or zoom, which keeps moving the map smooth on slower phones. Turned on automatically if this device struggles.",
     "map_3d": "3D Map",
     "konrad_cells": "KONRAD3D Cells",
     "konrad_cells_hint": "Draws DWD's tracked storm cells as stacked tiers. They arrive a few minutes after the radar and are greyed out until then.",

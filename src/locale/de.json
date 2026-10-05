@@ -169,6 +169,8 @@
     "color_map_hint": "Ändert die Farben, in denen der Niederschlag gezeichnet wird.",
     "map": "Karte",
     "rotation": "Rotation der Karte",
+    "solid_glass": "Feste Flächen beim Verschieben",
+    "solid_glass_hint": "Macht die Milchglas-Flächen über der Karte undurchsichtig, während du verschiebst oder zoomst. Das hält die Karte auf langsameren Handys flüssig. Wird automatisch eingeschaltet, wenn dieses Gerät ins Stocken gerät.",
     "map_3d": "3D-Karte",
     "konrad_cells": "KONRAD3D-Zellen",
     "konrad_cells_hint": "Zeichnet die vom DWD verfolgten Gewitterzellen als gestufte Körper. Sie kommen einige Minuten nach dem Radar und sind bis dahin ausgegraut.",
