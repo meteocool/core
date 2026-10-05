@@ -169,6 +169,8 @@ export class LayerManager {
       latLon.set([lat, lon]);
     }
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
+    const location = centerPoint === null ? null : { lat, lon, accuracy };
+    Object.values(this.capabilities).forEach((capability) => capability.showLocation?.(location));
 
     if (centerPoint === null) return;
 
@@ -191,7 +193,11 @@ export class LayerManager {
       newCenter = oldCenter;
     }
     if (zoom || focus) {
-      view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
+      // The 3D map's camera only reports to the View, so animating the View
+      // left it where it was -- and the apps' follow mode with it.
+      const showing = this.currentCap ? this.capabilities[this.currentCap] : undefined;
+      const looked = showing?.lookAt?.(focus ? [lon, lat] : null, zoom ? zoomLevel ?? null : null);
+      if (!looked) view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
     }
     this.forEachMap((map) => map.render());
   }
@@ -199,6 +205,7 @@ export class LayerManager {
   resetLocation() {
     this.positionFeatures.forEach((feature) => feature.setGeometry(undefined));
     this.accuracyFeatures.forEach((feature) => feature.setGeometry(undefined));
+    Object.values(this.capabilities).forEach((capability) => capability.showLocation?.(null));
   }
 
   mapFactory(baselayer: boolean | undefined = true) {

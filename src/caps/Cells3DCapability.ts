@@ -1,5 +1,6 @@
 import { Map as OlMap } from "ol";
 import { toLonLat, fromLonLat } from "ol/proj";
+import { circular as circularPolygon } from "ol/geom/Polygon";
 import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
@@ -7,8 +8,13 @@ import type {
   StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
+import type { UserLocation } from "./Capability";
 import type { CapabilityOptions } from "./options";
-import { basemapStyle, muteTheme } from "../layers/maplibreStyle";
+import { basemapStyle, muteTheme, PLACE_LABELS, placeLabels } from "../layers/maplibreStyle";
+import { darkLabels, lightLabels } from "../layers/labels";
+import { placeNameKeys } from "../layers/placeName";
+import { chooseLocale } from "../locale/choose";
+import { locale } from "svelte-i18n";
 import { blitzortungAttribution, dwdAttribution } from "../layers/attributions";
 import { tileSourceUrl } from "../layers/dwd";
 import { drawnTileId } from "../lib/rvp6";
@@ -198,6 +204,11 @@ const CLOUD_HIT = "cloud-hit";
 
 /** The layers a tap can land on to mean "that storm". */
 const PICKABLE = ["cell-volume-0", "cell-volume-1", "cell-footprint", CLOUD_HIT];
+
+/** The client's own position, and the circle its accuracy gives; see `ensureLocation`. */
+const LOCATION_SOURCE = "location";
+const LOCATION_ACCURACY = "location-accuracy";
+const LOCATION_DOT = "location-dot";
 
 /** Whatever is being raymarched, reduced to what drawing it needs. */
 interface VolumeTarget {
@@ -467,6 +478,12 @@ export default class Cells3DCapability extends Capability {
    */
   private strikes: VectorSource | null = null;
 
+  /** Where the client is, as LayerManager last reported it; see `showLocation`. */
+  private location: UserLocation | null = null;
+
+  /** The properties place names are read from, in the reader's language first. */
+  private nameKeys = placeNameKeys(chooseLocale());
+
   /** The newest select in flight, so a slower earlier answer cannot win. */
   private picking: symbol | null = null;
 
@@ -539,6 +556,8 @@ export default class Cells3DCapability extends Capability {
   private unsubscribeColormap: (() => void) | null = null;
 
   private unsubscribeSweep: (() => void) | null = null;
+
+  private unsubscribeLocale: (() => void) | null = null;
 
   /** The radar palette the settings name, which every storm here is painted in. */
   private colormap = get(radarColormap);
@@ -635,6 +654,12 @@ export default class Cells3DCapability extends Capability {
       this.terrainWanted = wanted;
       // Before the style is up, `applyData` adds it once it is.
       if (this.gl && this.styleReady) applyTerrain(this.gl, wanted, this.dark);
+    });
+    // An app tells the page its language after the map is up.
+    this.unsubscribeLocale = locale.subscribe((tag) => {
+      if (!tag) return;
+      this.nameKeys = placeNameKeys(tag);
+      if (this.gl && this.styleReady) this.ensureLabels(this.gl);
     });
     this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
       this.dark = Boolean(value);
@@ -1748,6 +1773,28 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
+   * Mark the client's position, from the same `updateLocation` the apps and
+   * the browser drive the flat map's blue dot through. Hidden, it is only
+   * kept: `attach` draws it.
+   */
+  showLocation(location: UserLocation | null): void {
+    this.location = location;
+    if (this.shown && this.gl && this.styleReady) this.ensureLocation(this.gl);
+  }
+
+  /** Fly this map's camera rather than the View's, which only follows it; see `Capability.lookAt`. */
+  lookAt(centre: [number, number] | null, zoom: number | null): boolean {
+    // Still being brought up, it opens wherever the View is by then.
+    if (!this.shown || !this.gl) return false;
+    this.gl.easeTo({
+      ...(centre ? { center: centre } : {}),
+      ...(zoom !== null ? { zoom: zoom - 1 } : {}),
+      duration: 500,
+    });
+    return true;
+  }
+
+  /**
    * Redraw the strikes soon, once, however many arrive meanwhile.
    *
    * The buffer fires `change` for every strike, and each redraw re-serialises
@@ -1926,6 +1973,8 @@ export default class Cells3DCapability extends Capability {
     this.ensureClouds(gl);
     this.ensureVolumes(gl);
     this.ensureStrikes();
+    this.ensureLabels(gl);
+    this.ensureLocation(gl);
     this.applyStaleness();
   }
 
@@ -2057,7 +2106,7 @@ export default class Cells3DCapability extends Capability {
    * appended then would paint over them.
    */
   private rasterAnchor(gl: GlMap): string | undefined {
-    return gl.getStyle().layers.find((layer) => /^(cell|cloud|strike)-/.test(layer.id))?.id;
+    return gl.getStyle().layers.find((layer) => /^(cell|cloud|strike|place|location)-/.test(layer.id))?.id;
   }
 
   /**
@@ -2116,6 +2165,9 @@ export default class Cells3DCapability extends Capability {
     const fade: DataDrivenPropertyValueSpecification<number> = [
       "interpolate", ["linear"], ["get", "age"], 0, 1, 1, 0,
     ] as unknown as DataDrivenPropertyValueSpecification<number>;
+    // Under the place names and the position, which can be on the map before
+    // the first strike is.
+    const below = [PLACE_LABELS, LOCATION_ACCURACY].find((id) => gl.getLayer(id));
     gl.addLayer({
       id: "strike-glow",
       type: "circle",
@@ -2126,7 +2178,7 @@ export default class Cells3DCapability extends Capability {
         "circle-blur": 1,
         "circle-opacity": ["*", 0.5, fade] as never,
       },
-    });
+    }, below);
     gl.addLayer({
       id: "strike-core",
       type: "circle",
@@ -2138,6 +2190,78 @@ export default class Cells3DCapability extends Capability {
         "circle-stroke-width": 1,
         "circle-opacity": fade,
         "circle-stroke-opacity": fade,
+      },
+    }, below);
+  }
+
+  /**
+   * The place names, over the storms and the strikes as the flat map's are
+   * over the radar, and under the position. In the palette of the basemap
+   * under them: a light/dark switch restyles the map, and they are added
+   * again in its colours. Only the language is changed in place.
+   */
+  private ensureLabels(gl: GlMap): void {
+    const layer = placeLabels(this.dark ? darkLabels : lightLabels, this.nameKeys);
+    if (gl.getLayer(PLACE_LABELS)) {
+      gl.setLayoutProperty(PLACE_LABELS, "text-field", layer.layout?.["text-field"]);
+      return;
+    }
+    gl.addLayer(layer, gl.getLayer(LOCATION_ACCURACY) ? LOCATION_ACCURACY : undefined);
+  }
+
+  /**
+   * The client's position: the flat map's blue dot and its accuracy circle,
+   * drawn the same way so the two maps agree on what it looks like.
+   *
+   * Last on the style, over the storms, strikes and place names, as the flat map's
+   * sits over every layer. The dot faces the screen at a fixed size however
+   * the map is tilted -- it marks a place, it is not a thing on the ground --
+   * while the circle lies on the ground, because it is an area of it.
+   */
+  private ensureLocation(gl: GlMap): void {
+    const at = this.location;
+    const features = at ? [
+      ...(at.accuracy > 0 ? [{
+        type: "Feature" as const,
+        geometry: { type: "Polygon" as const, coordinates: circularPolygon([at.lon, at.lat], at.accuracy, 64).getCoordinates() },
+        properties: {},
+      }] : []),
+      {
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [at.lon, at.lat] },
+        properties: {},
+      },
+    ] : [];
+    const data = { type: "FeatureCollection" as const, features };
+
+    const existing = gl.getSource(LOCATION_SOURCE);
+    if (existing) {
+      (existing as unknown as { setData(value: unknown): void }).setData(data);
+      return;
+    }
+
+    gl.addSource(LOCATION_SOURCE, { type: "geojson", data });
+    // OpenLayers' default polygon style, which is what the flat map's circle is drawn in.
+    gl.addLayer({
+      id: LOCATION_ACCURACY,
+      type: "fill",
+      source: LOCATION_SOURCE,
+      filter: ["==", ["geometry-type"], "Polygon"],
+      paint: { "fill-color": "rgba(255, 255, 255, 0.4)", "fill-outline-color": "#3399cc" },
+    });
+    gl.addLayer({
+      id: LOCATION_DOT,
+      type: "circle",
+      source: LOCATION_SOURCE,
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: {
+        // The flat map's 10px radius runs down the middle of its 3.5px
+        // stroke; MapLibre's stroke starts where the radius ends.
+        "circle-radius": 8.25,
+        "circle-color": "#048ef9",
+        "circle-stroke-color": "#fff",
+        "circle-stroke-width": 3.5,
+        "circle-pitch-scale": "viewport",
       },
     });
   }
@@ -2213,6 +2337,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeTerrain = null;
     this.unsubscribeSweep?.();
     this.unsubscribeSweep = null;
+    this.unsubscribeLocale?.();
+    this.unsubscribeLocale = null;
     stopSweep(false);
     this.unsubscribeVolume?.();
     this.unsubscribeVolume = null;
