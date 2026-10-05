@@ -110,8 +110,10 @@ export function initUIConstants() {
   }
 
   // dist/ is the webroot, not a path within it: the assets are copied to
-  // dist/shoelace/assets and so are served from /shoelace/assets.
-  setBasePath("/shoelace/assets");
+  // dist/shoelace/assets and so are served from /shoelace/assets. The base is
+  // the directory above them, because Shoelace asks for `assets/icons/<name>`
+  // under it; set to the assets themselves, every icon 404ed.
+  setBasePath("/shoelace");
 
   // A four-core Android WebView is better served by the opaque fallback than by
   // blurring the map behind every pill.

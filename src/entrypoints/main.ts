@@ -7,7 +7,7 @@ const screenshot = screenshotRequested(window.location.href);
 
 if (import.meta.env.PROD && !screenshot) startSentry();
 
-import { Workbox } from "workbox-window";
+import { registerServiceWorker } from "../lib/serviceWorker";
 import { mount } from "svelte";
 import { cleanupNetworkStatus, initNetworkStatus } from "../lib/networkStatus";
 import { cleanupRequestTiming, initRequestTiming } from "../lib/requestTiming";
@@ -20,21 +20,7 @@ import App from "../App.svelte";
 import { i18nReady } from "../locale/i18n";
 import { linkPlacesView } from "../lib/urlState";
 
-// Register service worker
-if ("serviceWorker" in navigator && import.meta.env.PROD && !screenshot) {
-  const wb = new Workbox("sw.js");
-  wb.addEventListener("controlling", (evt) => {
-    if (evt.isUpdate) {
-      console.log("Reloading page for latest content");
-      window.location.reload();
-    }
-  });
-  try {
-    wb.register();
-  } catch (error) {
-    console.log(error);
-  }
-}
+if (import.meta.env.PROD && !screenshot) registerServiceWorker();
 
 initNetworkStatus();
 initRequestTiming();

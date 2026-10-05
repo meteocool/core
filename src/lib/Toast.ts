@@ -86,3 +86,12 @@ export function reportError(message: unknown) {
 export function reportToast(message: string, variant = "primary", icon = "info-circle") {
   return toast(message, variant, icon, { duration: 15000 });
 }
+
+/**
+ * A notice about the reader's browser rather than the weather: it stays until
+ * closed, and once closed is not raised again, this session or the next. The
+ * condition outlives the page, and saying it on every visit would only nag.
+ */
+export function reportNotice(message: string, variant = "warning", icon = "exclamation-triangle") {
+  return toast(message, variant, icon, { remember: true });
+}

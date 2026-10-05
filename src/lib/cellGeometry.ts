@@ -247,6 +247,24 @@ export function padExtent(extent: Extent, fraction: number): Extent {
 }
 
 /**
+ * An extent the tracks endpoint accepts: on the one world, the right way round.
+ *
+ * Zoomed out, the padding takes the view past the poles, and a map panned
+ * round the globe reports longitudes beyond 180. The endpoint answers both
+ * with a 400, which left the storm layer empty and put the map in its degraded
+ * state. A view across the antimeridian asks for every longitude: the
+ * endpoint takes no box that wraps.
+ */
+export function worldExtent(extent: Extent): Extent {
+  const [west, south, east, north] = extent;
+  const lat = (value: number) => Math.min(90, Math.max(-90, value));
+  if (east - west >= 360) return [-180, lat(south), 180, lat(north)];
+  const shift = Math.floor((west + 180) / 360) * 360;
+  if (east - shift > 180) return [-180, lat(south), 180, lat(north)];
+  return [west - shift, lat(south), east - shift, lat(north)];
+}
+
+/**
  * Scale a ring about a point so it encloses `ratio` times the area.
  *
  * Area grows with the square of a linear factor, so the factor is its root.

@@ -886,6 +886,12 @@ export default class Cells3DCapability extends Capability {
         // `setStyle` throws the volumes away with every other layer. The
         // loaded fields are kept, so `applyData` puts the same storms back
         // without fetching them again, and the open one is cut again.
+        // Except when it diffs the two styles, which is how a light/dark
+        // switch goes: a custom layer is not in the diff, so it stays, and
+        // adding it again failed -- leaving the volumes on screen frozen,
+        // with every later update going to a layer that was never added.
+        // Taken off here, so it goes back above the layers added before it.
+        if (gl.getLayer(VOLUME_LAYER)) gl.removeLayer(VOLUME_LAYER);
         this.cloudsLayer = null;
         this.applyData();
         this.applyCut();

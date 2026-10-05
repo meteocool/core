@@ -23,9 +23,24 @@ const keep = (item: Early) => { if (early.length < EARLY_KEPT) early.push(item);
 const onError = (event: ErrorEvent) => { keep({ kind: "error", error: event.error ?? event.message }); };
 const onRejection = (event: PromiseRejectionEvent) => { keep({ kind: "rejection", reason: event.reason }); };
 
+/**
+ * Whether this is somebody's test rather than a reader's visit: a build served
+ * from a machine of our own (an emulator reaches it as 10.0.2.2), or a browser
+ * driven by automation, the profiling and screenshot harnesses among them.
+ * What goes wrong there is about the harness -- a service worker it blocks, no
+ * GPU, a backend the build was never pointed at -- and it was a quarter of
+ * the issues the current code raised.
+ */
+function testRun(): boolean {
+  const host = window.location.hostname;
+  return navigator.webdriver === true
+    || host === "localhost" || host.endsWith(".localhost") || host === "[::1]"
+    || /^(127|10)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host);
+}
+
 /** Start reporting when the browser has time for it; safe to call more than once. */
 export function startSentry(): void {
-  if (typeof window === "undefined" || started) return;
+  if (typeof window === "undefined" || started || testRun()) return;
   started = true;
   window.addEventListener("error", onError);
   window.addEventListener("unhandledrejection", onRejection);
@@ -56,6 +71,13 @@ async function init(): Promise<void> {
       Sentry.captureConsoleIntegration({ levels: ["error"] }),
     ],
     tracesSampleRate: 0.05,
+    // Not ours to fix: Cloudflare's analytics beacon, which the edge puts in
+    // every page and which throws on browsers too old for it, and extensions.
+    denyUrls: [
+      /cloudflareinsights\.com/,
+      /\/beacon\.min\.js/,
+      /^(chrome|moz|safari(-web)?)-extension:\/\//,
+    ],
     environment: import.meta.env.MODE,
     // Empty in a local build; set from COMMIT_REF or GITHUB_SHA in CI.
     release: __GIT_COMMIT_HASH__ || undefined,

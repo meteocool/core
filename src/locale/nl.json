@@ -586,5 +586,8 @@
       "not_built": "niet gebouwd",
       "no_sample": "geen meting"
     }
+  },
+  "notice": {
+    "no_webgl": "De regenradar kan niet worden getoond: deze browser biedt geen WebGL. Op een iPhone of iPad schakelt de isolatiemodus het uit."
   }
 }

@@ -1,6 +1,6 @@
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import { hasTile } from "../lib/tileIndex";
-import TileLayer from "ol/layer/WebGLTile";
+import TileLayer from "./webglTile";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";

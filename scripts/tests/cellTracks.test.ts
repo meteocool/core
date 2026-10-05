@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   distanceKm, ellipseRing4326, labelStepMinutes, lastRunStart, leadingTip, leadLabel,
-  MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent, TRACK_MAX_MINUTES, trackIsCurrent,
+  MAX_STORM_KMH, OUTLINE_MAX_MINUTES, outlineIsCurrent, padExtent, TRACK_MAX_MINUTES, trackIsCurrent,
+  worldExtent,
 } from "../../src/lib/cellGeometry.ts";
 
 /**
@@ -252,4 +253,30 @@ test("a bearing pointing back at the cell still labels the far end", () => {
   assert.ok(Math.abs(east[1] - west[1]) < 1e-9);
   // And it is downstream of the cell, not between the cell and the centroid.
   assert.ok(east[0] > 11.2);
+});
+
+/**
+ * The tracks endpoint answers 400 to a box off the world, and a zoomed-out
+ * view padded by a quarter is one: these are the boxes it was sent.
+ */
+test("a padded view zoomed out to the world stops at the poles", () => {
+  const box = worldExtent(padExtent([-29.5, -75.7, 60, 84], 0.25));
+  assert.equal(box[1], -90);
+  assert.equal(box[3], 90);
+  assert.ok(box[0] >= -180 && box[2] <= 180);
+});
+
+test("a view panned onto another copy of the world is asked for on this one", () => {
+  assert.deepEqual(worldExtent([365, 45, 375, 55]), [5, 45, 15, 55]);
+  assert.deepEqual(worldExtent([-355, 45, -345, 55]), [5, 45, 15, 55]);
+});
+
+test("a view across the antimeridian, or wider than the world, asks for every longitude", () => {
+  assert.deepEqual(worldExtent([170, -20, 190, 0]), [-180, -20, 180, 0]);
+  assert.deepEqual(worldExtent([-400, -60, 400, 60]), [-180, -60, 180, 60]);
+});
+
+test("a view already on the world is left as it is", () => {
+  assert.deepEqual(worldExtent([5, 45, 15, 55]), [5, 45, 15, 55]);
+  assert.deepEqual(worldExtent([-180, -90, 180, 90]), [-180, -90, 180, 90]);
 });
