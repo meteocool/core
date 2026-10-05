@@ -90,6 +90,13 @@ export function tileCentre(z: number, x: number, y: number): [number, number] {
   return [((x + 0.5) / n) * 360 - 180, (Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 0.5)) / n))) * 180) / Math.PI];
 }
 
+/** A tile's west, south, east and north edges in degrees, as the map draws it. */
+export function tileBounds(z: number, x: number, y: number): [number, number, number, number] {
+  const n = 2 ** z;
+  const lat = (row: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * row) / n))) * 180) / Math.PI;
+  return [(x / n) * 360 - 180, lat(y + 1), ((x + 1) / n) * 360 - 180, lat(y)];
+}
+
 /** MapLibre's earth, as `cloudFootprint.ts` and the worker measure a tile by. */
 const EARTH_CIRCUMFERENCE_M = 2 * Math.PI * 6371008.8;
 
