@@ -968,14 +968,19 @@ let behindDismissed = false;
     font-family: var(--mc-font);
   }
 
+  /* The one loading bar; lib/NanobarWrapper.ts builds it and runs it. Its
+     fill used to be the bare class `.bar`, which also styled every bar of
+     the chart skeletons (ChartSkeleton.svelte) with this one's glow. */
   :global(.nanobar) {
+    position: fixed;
+    left: 0;
     width: 100%;
     height: 3px;
     z-index: var(--mc-z-nanobar);
     top: var(--mc-safe-top);
     pointer-events: none;
   }
-  :global(.bar) {
+  :global(.nanobar-fill) {
     width: 0;
     height: 2px;
     background: var(--mc-brand);
@@ -1080,7 +1085,6 @@ let behindDismissed = false;
   <BottomToolbar layerManager={lm} />
 {/if}
 
-<div id="nanobar" />
 <Map layerManager={lm} />
 <!-- The glass veil over the map while the 3D map is brought up for the
      first time; gated on the active map as well, so switching away during
