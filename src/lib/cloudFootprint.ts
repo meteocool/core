@@ -16,7 +16,7 @@
  * -- stands in for it.
  */
 
-/** The box's width, east to west and north to south, as the worker builds it (`voxels.HALF_WIDTH_M`). */
+/** The width of a box from before tiles, east to west and north to south. */
 export const BOX_KM = 40;
 
 /** MapLibre's earth, so a metre here is the metre its Mercator coordinates use. */
@@ -26,6 +26,14 @@ const mercatorX = (lon: number) => (180 + lon) / 360;
 const mercatorY = (lat: number) => (180 - (180 / Math.PI) * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))) / 360;
 const lonOf = (x: number) => x * 360 - 180;
 const latOf = (y: number) => (360 / Math.PI) * Math.atan(Math.exp(((180 - y * 360) * Math.PI) / 180)) - 90;
+
+/**
+ * A zoom-`z` tile's width at latitude `lat`, in MapLibre's metres: the width
+ * of the box filling it, once its apron is taken off (`drawnExtentM`).
+ */
+export function tileWidthM(z: number, lat: number): number {
+  return (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180)) / 2 ** z;
+}
 
 /** A lon/lat pair, as GeoJSON orders it. */
 export type LonLat = [number, number];

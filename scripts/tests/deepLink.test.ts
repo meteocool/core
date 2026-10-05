@@ -34,6 +34,14 @@ test("a network's storm core, named the way the worker files it now, round-trips
     "meteoradar/volumes/20261001T071100/pl-G1411619766.mcvx");
 });
 
+test("a tile of a storm, named the way the worker files it since tiles, round-trips", () => {
+  // `T`, the zoom in two digits, x and y in five: the worker's `Tile.code`.
+  const path = "meteoradar/volumes/20261005T142500/fr-T100054200360.mcvx";
+  assert.equal(cloudLink(path), "20261005T142500/fr-T100054200360");
+  assert.equal(cloudPath("20261005T142500/fr-T100054200360"), path);
+  assert.equal(cloudPath("20261005T142500/fr-T1000542003600"), null);
+});
+
 test("a cloud link can only ever name a volume", () => {
   // Rebuilt from two validated pieces, so there is no way to point the client
   // at another object on the tile host.
