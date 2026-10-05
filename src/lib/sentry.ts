@@ -14,7 +14,9 @@
 import type { BrowserOptions } from "@sentry/browser";
 import { unsupportedBrowser } from "./browserSupport";
 
-const DSN = "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137";
+// The `v4-web` project, which only staging and demo report to: the old
+// production build still reports to `web`, and its issues are not ours.
+const DSN = "https://9527d5ff2482249661ee40aa73c7c7e7@o347743.ingest.us.sentry.io/4512206228750336";
 
 type Early = { kind: "error"; error: unknown } | { kind: "rejection"; reason: unknown };
 const early: Early[] = [];
