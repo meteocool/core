@@ -63,7 +63,7 @@ export function radarScanOf(network: string, radar: RadarScans): Scan | null {
   return radar.networks[network]?.upstream_time ?? null;
 }
 
-/** Whether a storm's volume is from an older scan than its radar: what the 3D map draws grey. */
+/** Whether a storm's volume is from an older scan than its radar: what the flat map leaves untagged. */
 export function isVolumeBehind(
   volume: { network?: string | null; reference_time?: string | null },
   radar: RadarScans,

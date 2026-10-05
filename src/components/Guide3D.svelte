@@ -27,7 +27,7 @@ import { SEVERITY_COLOURS } from "../layers/cells";
 import { VERTICAL_SCALE } from "../layers/terrain";
 import { currentLocale } from "../locale/t";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
-import { BEHIND_LINE, RING_OPACITY, STRIKE_COLOURS, STRIKE_MINUTES } from "../caps/Cells3DCapability";
+import { RING_OPACITY, STRIKE_COLOURS, STRIKE_MINUTES } from "../caps/Cells3DCapability";
 
 /** Set once the reader closes the card, so it opens only when asked from then on. */
 const CLOSED_KEY = "mc-3d-guide-closed";
@@ -257,16 +257,6 @@ const mac = dd.isMac();
           <div>
             <strong>{$_("guide_3d.faint")}</strong>
             <span>{$_("guide_3d.faint_body")}</span>
-          </div>
-        </li>
-        <li>
-          <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
-            {@render cloud(["#b4b4b4", "#9a9a9a", "#7a7a7a"], 0.7)}
-            {@render box(BEHIND_LINE, RING_OPACITY.openable)}
-          </svg>
-          <div>
-            <strong>{$_("guide_3d.grey")}</strong>
-            <span>{$_("guide_3d.grey_body")}</span>
           </div>
         </li>
         <li>
