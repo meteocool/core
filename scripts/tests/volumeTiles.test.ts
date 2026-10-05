@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { carryCut, cutPointOf, peelFloors } from "../../src/layers/cellVolumeLayer.ts";
+import { carryCut, cutAway, cutPointOf, kmFromCut, peelFloors } from "../../src/layers/cellVolumeLayer.ts";
 import {
   drawnExtentM, drawnPart, echoPart, overlap, parentOf, tileBounds, tileCentre, tileCode,
 } from "../../src/lib/volumeBox.ts";
@@ -92,6 +92,30 @@ test("the opened tile's cut, carried into the next tile east, is the same plane"
   const onPlane = [here.point[0] - Math.sin(along) * 0.2, here.point[1] - Math.cos(along) * 0.2, 0.3];
   assert.ok(Math.abs(side(here, onPlane)) < 1e-12);
   assert.ok(Math.abs(side(there, [onPlane[0] - 1, onPlane[1], onPlane[2]])) < 1e-9);
+});
+
+test("a neighbour's distance from the cut is to the nearest edge of its box", () => {
+  // 0.001 Mercator units of tile at 25 km a tile: 25 metres to the unit.
+  const metre = 0.001 / 25_000;
+  const whole = { min: [0, 0, 0], max: [1, 1, 1] };
+  const point: [number, number, number] = [0.5005, 0.3005, 0];
+  assert.equal(kmFromCut(model(0.5, 0.3, 0.001, 0.0002), whole, point, metre), 0);
+  // The next tile east starts 12.5 km east of the point, the one past it 37.5 km.
+  assert.ok(Math.abs(kmFromCut(model(0.501, 0.3, 0.001, 0.0002), whole, point, metre) - 12.5) < 1e-9);
+  assert.ok(Math.abs(kmFromCut(model(0.502, 0.3, 0.001, 0.0002), whole, point, metre) - 37.5) < 1e-9);
+  // Diagonally, to its corner; and to the box drawn, not the tile.
+  const corner = kmFromCut(model(0.501, 0.301, 0.001, 0.0002), whole, point, metre);
+  assert.ok(Math.abs(corner - Math.hypot(12.5, 12.5)) < 1e-9);
+  const eastHalf = { min: [0.5, 0, 0], max: [1, 1, 1] };
+  assert.ok(Math.abs(kmFromCut(model(0.501, 0.3, 0.001, 0.0002), eastHalf, point, metre) - 25) < 1e-9);
+});
+
+test("a box wholly on the cut-away side is not drawn", () => {
+  const corners = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]] as Array<[number, number, number]>;
+  const east = { normal: [1, 0, 0] as [number, number, number], point: [0.5, 0, 0] as [number, number, number] };
+  assert.equal(cutAway(corners, east), false);
+  assert.equal(cutAway(corners, { ...east, point: [-0.1, 0, 0] }), true);
+  assert.equal(cutAway(corners, { ...east, point: [1.1, 0, 0] }), false);
 });
 
 test("a box is marched only where it holds echo, a voxel wider", () => {
