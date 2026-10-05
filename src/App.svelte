@@ -56,7 +56,8 @@ import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState"
 import { isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
 import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
-import { cleanupUIConstants, initUIConstants } from "./layers/ui";
+import { cleanupUIConstants, initUIConstants, setSolidGlassWhileMoving } from "./layers/ui";
+import { watchForSlowDevice } from "./lib/slowDevice";
 import makeLightningLayer from "./layers/lightning";
 import StrikeManager, { LIVE_STRIKE_BATCH_MS } from "./lib/StrikeManager";
 import { coalesce } from "./lib/coalesce";
@@ -153,6 +154,14 @@ window.settings = new Settings({
   mapRotation: {
     type: "boolean",
     default: false,
+  },
+  /* The glass over the map goes solid while the map moves: smoother on a slow
+     phone, a visible flicker everywhere else. See layers/ui.ts, and
+     lib/slowDevice.ts for when it turns itself on. */
+  solidGlassWhileMoving: {
+    type: "boolean",
+    default: false,
+    cb: (value) => setSolidGlassWhileMoving(Boolean(value)),
   },
   /**
    * Standing notices the reader has closed, as a comma-separated list of
@@ -303,6 +312,8 @@ applyLinkedOverlays(window.settings);
 /* A screenshot draws the radar, the strikes and the cyclones once, and keeps
    nothing up to date: no socket, no timers, no cells or "3D" tags. */
 const screenshot = isScreenshot(window.settings.get("screenshot"));
+// A picture has no frame rate to judge.
+if (!screenshot) watchForSlowDevice(window.settings);
 // Held like a link's overlays, so the reader's own setting is not touched.
 // The tracks are only asked for once the map has drawn, so they would land
 // on the picture after it was declared finished.

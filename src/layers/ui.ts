@@ -61,15 +61,26 @@ export function setGlassMode(mode: GlassMode) {
   document.documentElement.dataset.glass = mode;
 }
 
-/*
- * Drop the backdrop blur while the flat map moves. Every blurred surface over
- * the map is blurred again on every frame of a pan or zoom, and profiling put
- * that at about two thirds of the GPU's work per frame; src/glass.css swaps in
- * the solid fallback for as long as `data-map-moving` is set.
+/** Whether the glass goes solid while the map moves; the `solidGlassWhileMoving` setting. */
+let solidWhileMoving = false;
+
+/**
+ * Drop the backdrop blur while the flat map moves -- or not. Every blurred
+ * surface over the map is blurred again on every frame of a pan or zoom, and
+ * profiling put that at about two thirds of the GPU's work per frame; with
+ * this on, src/glass.css swaps in the solid fallback for as long as
+ * `data-map-moving` is set. Off by default, because the panels visibly change
+ * every time the map is touched; lib/slowDevice.ts turns it on, once, for a
+ * phone that struggles.
  */
+export function setSolidGlassWhileMoving(on: boolean) {
+  solidWhileMoving = on;
+  if (!on) delete document.documentElement.dataset.mapMoving;
+}
+
 onMapMotion((moving) => {
   const root = document.documentElement;
-  if (moving) root.dataset.mapMoving = "yes";
+  if (moving && solidWhileMoving) root.dataset.mapMoving = "yes";
   else delete root.dataset.mapMoving;
 });
 
