@@ -72,7 +72,15 @@ function labels(times: number[], span: number): string[] {
   });
 }
 
-export function drawSpread(canvas: HTMLCanvasElement, data: HourlySeries, options: SpreadOptions): Chart {
+/**
+ * Null when the canvas has no 2D context to give: iOS stops handing them out
+ * once the page's canvases have used up its canvas memory, and Chart.js then
+ * reported "can't acquire context" as an error and built a chart that could
+ * not draw.
+ */
+export function drawSpread(canvas: HTMLCanvasElement, data: HourlySeries, options: SpreadOptions): Chart | null {
+  const context = canvas.getContext("2d");
+  if (!context) return null;
   const { spec, compact = false } = options;
   const from = Math.max(0, Math.min(options.from, data.times.length));
   const steps = Math.max(0, Math.min(options.steps, data.times.length - from));
@@ -114,7 +122,7 @@ export function drawSpread(canvas: HTMLCanvasElement, data: HourlySeries, option
     order: 3,
   }));
 
-  return new Chart(canvas.getContext("2d")!, {
+  return new Chart(context, {
     type: "line",
     data: {
       labels: labelAt,
