@@ -572,6 +572,8 @@ interface Cloud {
   dim: number;
   /** Whether it peels when not cut; see `setClouds`. */
   peels: boolean;
+  /** Kept past its scan only because it is open; see `setClouds`. */
+  held: boolean;
   texture: WebGLTexture | null;
 }
 
@@ -587,9 +589,13 @@ export interface CloudsLayer extends CustomLayerInterface {
    * enough to open, whose layers are interpolation, so peeling them shows
    * nothing about where the intensity sits -- and costs a frame every
    * twelfth of a second for as long as one is on screen.
+   *
+   * `held` marks the open storm kept on after a newer scan was listed
+   * without it: it is greyed like any other storm older than its radar,
+   * which the one being read is otherwise spared.
    */
   setClouds(clouds: ReadonlyArray<{
-    key: string; cutaway: Cutaway; dim?: number; peels?: boolean; system?: string | null;
+    key: string; cutaway: Cutaway; dim?: number; peels?: boolean; system?: string | null; held?: boolean;
   }>): void;
   /**
    * Open one storm, by the key it was handed over under, with a cut at this
@@ -728,16 +734,17 @@ export function makeCloudsLayer(
         if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
         clouds.delete(key);
       }
-      for (const { key, cutaway, dim = 1, peels = true, system = null } of next) {
-        const held = clouds.get(key);
-        if (held?.cutaway === cutaway) {
-          if (peels && !held.peels) held.coreDbz = coreDbz(cutaway);
-          held.dim = dim;
-          held.peels = peels;
-          held.system = system;
+      for (const { key, cutaway, dim = 1, peels = true, system = null, held = false } of next) {
+        const kept = clouds.get(key);
+        if (kept?.cutaway === cutaway) {
+          if (peels && !kept.peels) kept.coreDbz = coreDbz(cutaway);
+          kept.dim = dim;
+          kept.peels = peels;
+          kept.system = system;
+          kept.held = held;
           continue;
         }
-        if (held?.texture && gl) gl.deleteTexture(held.texture);
+        if (kept?.texture && gl) gl.deleteTexture(kept.texture);
         // Steps are counted on the tile, so a step is the same length in every box.
         const tile = drawnPart(cutaway.header);
         const across = Math.max(
@@ -762,6 +769,7 @@ export function makeCloudsLayer(
           network: networkOf(cutaway.header),
           dim,
           peels,
+          held,
           texture: gl ? upload(gl, cutaway) : null,
         });
       }
@@ -902,14 +910,19 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
-        // The opened tile, and every other tile of its storm.
+        // The opened tile, and every other tile of its storm in the same
+        // scan: a storm kept open past its scan shares its system with the
+        // newer scan's tiles of it, which are not part of the one being read.
         const cut = opened !== undefined && cutPoint !== null
-          && (key === cutKey || (opened.system !== null && cloud.system === opened.system));
+          && (key === cutKey || (opened.system !== null && cloud.system === opened.system && cloud.scan === opened.scan));
         const peelsNow = !cut && cloud.peels && !holding;
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
-        // Grey for an older scan, bar the one being read for its colours.
-        context.uniform1f(at("uBehind"), key !== cutKey && isBehind(cloud.scan, radarScanOf(cloud.network)) ? 1 : 0);
+        // Grey for an older scan, bar the one being read for its colours --
+        // unless it is only still here because it was open when its scan
+        // went: then there is nothing newer to read in it.
+        const read = key === cutKey && !cloud.held;
+        context.uniform1f(at("uBehind"), !read && isBehind(cloud.scan, radarScanOf(cloud.network)) ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
         context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.peelFloor - DBZ_LOW) * peel : DBZ_LOW);
         if (cut) {

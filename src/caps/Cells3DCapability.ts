@@ -53,7 +53,7 @@ import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { middleDragTurnsAndTilts } from "../lib/middleDrag";
 import { tracked } from "../lib/progress";
 import { boxFootprint, tileWidthM } from "../lib/cloudFootprint";
-import { isBehind, isVolumeBehind, radarScanOf, scanTime, VolumeFeed } from "../lib/scans";
+import { isBehind, isPastItsScan, isVolumeBehind, radarScanOf, scanTime, VolumeFeed } from "../lib/scans";
 import type { RadarScans, Scan } from "../lib/scans";
 
 import { trimToLastRun } from "../lib/cellTrack";
@@ -1293,8 +1293,9 @@ export default class Cells3DCapability extends Capability {
       this.frameOpened(cutaway);
       // Swung only where the cut is drawn: on the flat map the panel's own
       // camera already circles the storm, and a plane turning under a turning
-      // camera is two motions where one reads.
-      if (get(sharedActiveCap) === this.getName()) startSweep();
+      // camera is two motions where one reads. Nor for a storm past its scan;
+      // see `pushClouds`.
+      if (get(sharedActiveCap) === this.getName() && !this.heldOpen()) startSweep();
     });
   }
 
@@ -1604,6 +1605,7 @@ export default class Cells3DCapability extends Capability {
   private pushClouds(): void {
     const open = this.opened ? this.cutaways.get(this.opened.path) : undefined;
     const stale = open && !this.clouds.some((cloud) => cloud.path === this.opened?.path);
+    const held = this.heldOpen();
     const drawn = [...this.cutaways].filter(([path, { cutaway }]) => (
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
     ));
@@ -1614,11 +1616,30 @@ export default class Cells3DCapability extends Capability {
       dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
       // Held whole: its layers are interpolation, which a peel cannot reveal anything in.
       peels: tier !== TIER_UNOPENABLE,
+      held: held && key === this.opened?.path,
     })));
+    // Kept past its scan, it is grey and there is nothing newer in it to
+    // show: the slice stops where it is, rather than turning through a storm
+    // the radar has already moved on from.
+    if (held) stopSweep(true);
     // A volume just in moves its spin axis from the box's centre onto its storm.
     if (this.gl && this.styleReady && this.gl.getSource(CLOUD_SOURCE)) this.ensureClouds(this.gl);
     this.applyTierFilters();
     if (this.shown) this.gl?.triggerRepaint();
+  }
+
+  /**
+   * Whether the open storm is only still on the map because it is open: a
+   * newer scan of its network was listed without it while it was open, or
+   * it was opened from an older list than this one -- the flat map's, a
+   * link. See `isPastItsScan`.
+   */
+  private heldOpen(): boolean {
+    const path = this.opened?.path;
+    const open = path ? this.cutaways.get(path) : undefined;
+    if (!path || !open) return false;
+    const { network, reference_time: referenceTime } = open.cutaway.header;
+    return isPastItsScan({ path, network, reference_time: referenceTime }, this.clouds);
   }
 
   /** The one layer that draws every storm's volume, added once per style. */
