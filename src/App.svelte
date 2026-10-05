@@ -90,6 +90,7 @@ import Cells3DCapability from "./caps/Cells3DCapability";
 import { tileSourceUrl } from "./layers/dwd";
 import { drawnTileId } from "./lib/rvp6";
 import { radolanOverlay } from "./layers/dwd";
+import { forgetEarlierFrames } from "./layers/valueTiles";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
 
@@ -474,6 +475,13 @@ derived([selectedCell, selectedVolume], ([cell, cloud]) => Boolean(cell || cloud
  * and the frames it steps through, which the comparison's drawer covered.
  */
 bottomToolbarMode.subscribe((mode) => { if (mode === "player") modelCompareAt.set(null); });
+
+/** And closing it lets the frames it stepped through go; see `forgetEarlierFrames`. */
+let playerOpen = false;
+bottomToolbarMode.subscribe((mode) => {
+  if (playerOpen && mode !== "player") forgetEarlierFrames();
+  playerOpen = mode === "player";
+});
 
 const closeCompare = () => modelCompareAt.set(null);
 const closeVolume = () => selectedVolume.set(null);
