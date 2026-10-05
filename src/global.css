@@ -77,11 +77,17 @@ input[type="range"] {
   overflow: hidden;
   pointer-events: none;
 }
+/* The pane a pan slides (see `render` in cellPulse.ts), and the rings on it. */
 .mc-cell-pulse > div {
   position: absolute;
   top: 0;
   left: 0;
   will-change: transform;
+}
+.mc-cell-pulse > div > div {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 .mc-cell-pulse svg {
   display: block;
@@ -96,6 +102,10 @@ input[type="range"] {
 @keyframes mc-cell-pulse {
   /* Clockwise, so the dashes travel the way the pattern is read. */
   to { transform: rotate(var(--mc-pulse-turn)); }
+}
+/* Held on their notch while the map moves; see cellPulse.ts for why. */
+.mc-cell-pulse.mc-still svg {
+  animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
   .mc-cell-pulse svg { animation: none; }
