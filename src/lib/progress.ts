@@ -15,15 +15,16 @@ import NanobarWrapper from "./NanobarWrapper";
 let bar: NanobarWrapper | null = null;
 
 export function progress(): NanobarWrapper {
-  bar ??= new NanobarWrapper({});
+  bar ??= new NanobarWrapper();
   return bar;
 }
 
 /**
  * Run a download with the bar moving until it is done, body and all.
  *
- * Downloads under the same `id` share a step; different ids each add one, so
- * a batch of volumes fills the bar as it lands rather than jumping to the end.
+ * Each download is a step, so a batch of volumes fills the bar as it lands
+ * rather than jumping to the end; a finish only counts against a start under
+ * the same `id`.
  */
 export async function tracked<T>(id: string, work: () => Promise<T>): Promise<T> {
   const shown = progress();
