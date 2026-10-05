@@ -53,6 +53,7 @@ const otherEnvironment = `${onStaging ? PRODUCTION : STAGING}/${window.location.
 // basemap's store holds the resolved basemap, never "system", so the choice
 // itself is read from the setting.
 let rotation = window.settings.getBoolean("mapRotation");
+let solidGlass = window.settings.getBoolean("solidGlassWhileMoving");
 
 /*
  * Two-finger rotation needs two fingers: without a multitouch screen there is
@@ -74,6 +75,11 @@ function setColorMap(value: string) {
 function setRotation(value: boolean) {
   window.settings.set("mapRotation", value);
   rotation = value;
+}
+
+function setSolidGlass(value: boolean) {
+  window.settings.set("solidGlassWhileMoving", value);
+  solidGlass = value;
 }
 
 /** Only where the 3D map is offered at all. */
@@ -263,9 +269,9 @@ function setEuropeComposite(value: boolean) {
   </div>
   <p class="hint">{$_("settings.color_map_hint")}</p>
 
-  {#if multitouch}
-    <h2>{$_("settings.map")}</h2>
-    <div class="group">
+  <h2>{$_("settings.map")}</h2>
+  <div class="group">
+    {#if multitouch}
       <label class="row">
         <span class="label">{$_("settings.rotation")}</span>
         <input
@@ -275,8 +281,18 @@ function setEuropeComposite(value: boolean) {
           checked={rotation}
           on:change={(event) => setRotation(event.currentTarget.checked)} />
       </label>
-    </div>
-  {/if}
+    {/if}
+    <label class="row">
+      <span class="label">{$_("settings.solid_glass")}</span>
+      <input
+        type="checkbox"
+        role="switch"
+        class="switch"
+        checked={solidGlass}
+        on:change={(event) => setSolidGlass(event.currentTarget.checked)} />
+    </label>
+  </div>
+  <p class="hint">{$_("settings.solid_glass_hint")}</p>
 
   {#if offers3d}
     <h2>{$_("settings.map_3d")}</h2>

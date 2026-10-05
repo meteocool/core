@@ -429,10 +429,12 @@
   --mc-drawer-backdrop: none;
   --mc-drawer-fill: var(--mc-drawer-fill-solid);
 }
-/* While the flat map pans or zooms, set by ui.ts from lib/mapMotion.ts. A blurred
-   surface over a map that redraws every frame is re-blurred every frame, which
-   was most of the GPU's work per frame when profiled; the solid fallback costs
-   nothing, and the glass comes back once the map is at rest. */
+/* While the flat map pans or zooms, when the `solidGlassWhileMoving` setting
+   is on (set by ui.ts from lib/mapMotion.ts). A blurred surface over a map
+   that redraws every frame is re-blurred every frame, which was most of the
+   GPU's work per frame when profiled; the solid fallback costs nothing, and
+   the glass comes back once the map is at rest. Off by default: the panels
+   visibly change each time, which only a struggling phone is worth. */
 :root[data-map-moving], :root[data-map-moving][data-theme="dark"], :root[data-map-moving][data-chrome="dark"] {
   --mc-glass-backdrop: none;
   --mc-glass-fill: var(--mc-glass-fill-solid);
