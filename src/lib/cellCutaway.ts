@@ -36,6 +36,7 @@ import { tileBaseUrl } from "../urls";
 import { tracked } from "./progress";
 import { timedFetch } from "./timedFetch";
 import { locateStorm, STORM_DBZ } from "./stormFrame";
+import { parentOf, tileCode } from "./volumeBox";
 
 const MAGIC = 0x5856434d; // "MCVX", little-endian
 
@@ -122,6 +123,11 @@ export function decodeCutaway(buffer: ArrayBuffer, stormDbz = STORM_DBZ): Cutawa
   if (voxels.length !== wanted) {
     throw new Error(`volume is ${voxels.length} bytes, header wants ${wanted}`);
   }
+  return cutawayOf(header, voxels, stormDbz);
+}
+
+/** A volume from its header and voxels, with its extent and its storm's frame worked out. */
+function cutawayOf(header: CutawayHeader, voxels: Uint8Array, stormDbz = STORM_DBZ): Cutaway {
   return { header, voxels, extentM: extentOf(header), ...locateStorm(header, voxels, stormDbz) };
 }
 
@@ -159,4 +165,45 @@ export function loadCutaway(
     // same storm; a cell's volume does not carry one.
     return decodeCutaway(await response.arrayBuffer(), volume.seed_dbz ?? STORM_DBZ);
   });
+}
+
+/** The zoom a storm's cores are boxed at, finer than the rest of it; see the worker's `CORE_ZOOM`. */
+const CORE_ZOOM = 11;
+
+/**
+ * A volume for the panels to show: the volume itself, or for a core's tile,
+ * its parent made of it and its three siblings (`parentOf`).
+ *
+ * The map draws each tile on its own; this is only for the panel's window on
+ * the storm, where 13 km is too narrow to see a core in. The siblings are
+ * named from the opened tile's own path, as the worker files them: same scan,
+ * same network. One that is not there is empty air, and one that fails to
+ * load leaves the opened tile to show alone.
+ */
+export async function loadOpenedCutaway(
+  volume: CellVolume & { seed_dbz?: number | null },
+  signal?: AbortSignal,
+): Promise<Cutaway> {
+  const own = await loadCutaway(volume, signal);
+  const tile = own.header.tile;
+  if (!tile || tile[0] < CORE_ZOOM || !volume.path.includes(own.header.code)) return own;
+  const [z, x, y] = tile;
+  const quad = [[x & ~1, y & ~1], [x | 1, y & ~1], [x & ~1, y | 1], [x | 1, y | 1]];
+  try {
+    const children = await Promise.all(quad.map(async ([cx, cy]) => {
+      if (cx === x && cy === y) return own;
+      const path = volume.path.replace(own.header.code, tileCode(z, cx, cy));
+      try {
+        return await loadCutaway({ ...volume, path }, signal);
+      } catch (error) {
+        if (error instanceof VolumeGone) return null;
+        throw error;
+      }
+    }));
+    const stormDbz = volume.seed_dbz ?? STORM_DBZ;
+    return parentOf(own, children, (header, voxels) => cutawayOf(header, voxels, stormDbz));
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return own;
+  }
 }

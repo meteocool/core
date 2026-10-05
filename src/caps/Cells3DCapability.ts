@@ -159,9 +159,14 @@ const VOLUME_FETCHES = 4;
 const RESIDENT_BYTES = 24 * 160 * 160 * 32 * 2;
 /** One tile's texture, apron included, as the worker builds it (`voxels.TILE_VOXELS`, `APRON`). */
 const TILE_TEXTURE_BYTES = 106 * 106 * 32 * 2;
+/** One core's tile, a zoom finer: half as many voxels across (`voxels.across`). */
+const CORE_TEXTURE_BYTES = 54 * 54 * 32 * 2;
 /** One box's from before tiles. */
 const BOX_TEXTURE_BYTES = 160 * 160 * 32 * 2;
-const textureBytes = (volume: RadarVolume) => (volume.tile ? TILE_TEXTURE_BYTES : BOX_TEXTURE_BYTES);
+const textureBytes = (volume: RadarVolume) => {
+  if (!volume.tile) return BOX_TEXTURE_BYTES;
+  return volume.tile[0] > 10 ? CORE_TEXTURE_BYTES : TILE_TEXTURE_BYTES;
+};
 
 /** How far past the viewport's edge a storm still counts as in view, as a fraction of the viewport. */
 const VIEW_MARGIN = 0.35;
