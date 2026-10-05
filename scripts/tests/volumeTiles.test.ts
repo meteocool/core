@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { carryCut, cutPointOf, peelFloors } from "../../src/layers/cellVolumeLayer.ts";
-import { drawnExtentM, drawnPart, echoPart, overlap, parentOf, tileCentre, tileCode } from "../../src/lib/volumeBox.ts";
+import {
+  drawnExtentM, drawnPart, echoPart, overlap, parentOf, tileBounds, tileCentre, tileCode,
+} from "../../src/lib/volumeBox.ts";
 import type { Cutaway, CutawayHeader } from "../../src/lib/cellCutaway.ts";
 import { atLevel, fineAt } from "../../src/lib/volumeLevels.ts";
 import type { RadarVolume } from "../../src/api/index.ts";
@@ -203,14 +205,32 @@ test("zoomed out, a coarse tile stands in for the tiles in it, and never beside 
     listed("old-box", null),
   ];
 
-  assert.deepEqual(atLevel(clouds, true).map((cloud) => cloud.path), ["coarse", "elsewhere", "old-box"]);
-  assert.deepEqual(atLevel(clouds, false).map((cloud) => cloud.path), ["in", "core-in", "elsewhere", "old-box"]);
+  assert.deepEqual(atLevel(clouds, () => true).map((cloud) => cloud.path), ["coarse", "elsewhere", "old-box"]);
+  assert.deepEqual(atLevel(clouds, () => false).map((cloud) => cloud.path), ["in", "core-in", "elsewhere", "old-box"]);
 });
 
 test("an open tile keeps its own picture zoomed out, and its coarse tile steps aside", () => {
   const clouds = [listed("coarse", [9, 272, 177], true), listed("in", [10, 544, 354]), listed("next", [10, 545, 354])];
 
-  assert.deepEqual(atLevel(clouds, true, "in").map((cloud) => cloud.path), ["in", "next"]);
+  assert.deepEqual(atLevel(clouds, () => true, "in").map((cloud) => cloud.path), ["in", "next"]);
+});
+
+test("each coarse tile is coarse or fine on its own: near ones fine, far ones coarse", () => {
+  const clouds = [
+    listed("near", [9, 272, 177], true), listed("near-tile", [10, 544, 354]),
+    listed("far", [9, 280, 170], true), listed("far-tile", [10, 560, 340]),
+  ];
+  const coarse = (tile: readonly number[]) => tile[1] === 280;
+
+  assert.deepEqual(atLevel(clouds, coarse).map((cloud) => cloud.path), ["far", "near-tile"]);
+});
+
+test("a tile's bounds are the map's tile edges", () => {
+  const [west, south, east, north] = tileBounds(10, 544, 355);
+  assert.ok(Math.abs(west - 11.25) < 1e-9 && Math.abs(east - 11.6015625) < 1e-9);
+  const [, centreLat] = tileCentre(10, 544, 355);
+  assert.ok(south < centreLat && centreLat < north);
+  assert.deepEqual(tileBounds(10, 544, 354).slice(1, 2), [north]);
 });
 
 test("a tap on a coarse tile opens the finest tile under it", () => {

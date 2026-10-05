@@ -29,7 +29,7 @@ import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway, VolumeGone } from "../lib/cellCutaway";
-import { drawnExtentM } from "../lib/volumeBox";
+import { drawnExtentM, tileBounds, tileCode } from "../lib/volumeBox";
 import { atLevel, fineAt } from "../lib/volumeLevels";
 import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
@@ -177,11 +177,19 @@ const textureBytes = (volume: RadarVolume) => {
 };
 
 /**
- * Below this zoom the map draws each coarse tile in place of the tiles in it
- * (`lib/volumeLevels.ts`). A zoom-9 tile is then under 128 CSS pixels across,
- * so its 52 voxels are finer than the screen it covers.
+ * How large a coarse tile has to stand on screen, in CSS pixels across, for
+ * the map to draw the tiles in it instead (`lib/volumeLevels.ts`).
+ *
+ * Measured per coarse tile, so at a tilt the tiles near the camera turn fine
+ * while the ones towards the horizon stay coarse, and only the ones close up
+ * cost a tile's raymarch and texture. At 384 pixels a coarse voxel, about
+ * 1 km, is 7 pixels across, which the soft edges of a cloud still hide;
+ * below it the fine tiles' 250 m add little the screen can show. It turns
+ * back below 288, so a tile on the line does not flicker between the two
+ * while the camera settles.
  */
-const COARSE_BELOW_ZOOM = 7;
+const FINE_ABOVE_PX = 384;
+const COARSE_BELOW_PX = 288;
 
 /** How far past the viewport's edge a storm still counts as in view, as a fraction of the viewport. */
 const VIEW_MARGIN = 0.35;
@@ -514,8 +522,8 @@ export default class Cells3DCapability extends Capability {
    */
   private faint = new Set<string>();
 
-  /** Whether the outlines on the map are the coarse tiles'; see `coarse`. */
-  private coarseShown = false;
+  /** The coarse tiles, by code, that stand large enough on screen to be drawn as their tiles; see `updateDetail`. */
+  private fineTiles = new Set<string>();
 
 
   /** Which storm is open, by its volume's path, and which way its slice runs before the reader turns it. */
@@ -871,12 +879,8 @@ export default class Cells3DCapability extends Capability {
       gl.on("moveend", () => {
         this.pushCameraToView();
         if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
-        // Zoomed across the line between coarse tiles and fine: other outlines.
-        const coarse = this.coarse();
-        if (coarse !== this.coarseShown && this.styleReady) {
-          this.coarseShown = coarse;
-          this.ensureClouds(gl);
-        }
+        // Some places crossed the line between coarse tiles and fine: other outlines.
+        if (this.updateDetail() && this.styleReady) this.ensureClouds(gl);
         // The camera has come to other storms: load theirs, let go of the far ones.
         void this.loadClouds();
       });
@@ -1383,6 +1387,8 @@ export default class Cells3DCapability extends Capability {
   private async loadClouds(): Promise<void> {
     const token = Symbol("clouds");
     this.loadToken = token;
+    // A new list brings new coarse tiles, each to be measured on screen.
+    this.updateDetail();
     this.dropUnlisted();
     this.pushClouds();
 
@@ -1483,14 +1489,36 @@ export default class Cells3DCapability extends Capability {
     return held;
   }
 
-  /** Whether the camera is zoomed out far enough to draw coarse tiles; see `COARSE_BELOW_ZOOM`. */
-  private coarse(): boolean {
-    return (this.gl?.getZoom() ?? Infinity) < COARSE_BELOW_ZOOM;
+  /**
+   * Work out again which coarse tiles stand large enough on screen to be
+   * drawn as their tiles; see `FINE_ABOVE_PX`. Whether that changed anything.
+   */
+  private updateDetail(): boolean {
+    const gl = this.gl;
+    if (!gl) return false;
+    const fine = new Set<string>();
+    for (const cloud of this.clouds) {
+      if (!cloud.coarse || !cloud.tile) continue;
+      const [west, south, east, north] = tileBounds(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
+      const corners = ([[west, south], [east, south], [east, north], [west, north]] as const)
+        .map((corner) => gl.project([corner[0], corner[1]]));
+      const across = Math.max(
+        Math.max(...corners.map(({ x }) => x)) - Math.min(...corners.map(({ x }) => x)),
+        Math.max(...corners.map(({ y }) => y)) - Math.min(...corners.map(({ y }) => y)),
+      );
+      const code = tileCode(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
+      if (across > (this.fineTiles.has(code) ? COARSE_BELOW_PX : FINE_ABOVE_PX)) fine.add(code);
+    }
+    const changed = fine.size !== this.fineTiles.size || [...fine].some((code) => !this.fineTiles.has(code));
+    this.fineTiles = fine;
+    return changed;
   }
 
-  /** The listed volumes to draw at the camera's zoom: coarse tiles or fine, never both over one place. */
+  /** The listed volumes to draw: coarse tiles where they are small on screen, fine ones where large. */
   private levelled(): RadarVolume[] {
-    return atLevel(this.clouds, this.coarse(), this.opened?.path ?? null);
+    return atLevel(
+      this.clouds, (tile) => !this.fineTiles.has(tileCode(tile[0], tile[1], tile[2])), this.opened?.path ?? null,
+    );
   }
 
   /** Forget every volume no longer listed or no longer wanted in view, bar the open one. */
