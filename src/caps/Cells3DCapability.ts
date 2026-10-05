@@ -36,10 +36,10 @@ import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLa
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
 import { isSuccessor } from "../lib/cloudSuccession";
-import { dbzColour, dbzStops, RING_ALPHAS } from "../lib/cellVolume";
+import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, cells3dBehind, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
+  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
   selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen, terrain3dVisible,
 } from "../stores";
 import { get } from "svelte/store";
@@ -53,8 +53,8 @@ import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { middleDragTurnsAndTilts } from "../lib/middleDrag";
 import { tracked } from "../lib/progress";
 import { boxFootprint, tileWidthM } from "../lib/cloudFootprint";
-import { isBehind, isVolumeBehind, radarScanOf, scanTime, VolumeFeed } from "../lib/scans";
-import type { RadarScans, Scan } from "../lib/scans";
+import { scanTime, VolumeFeed } from "../lib/scans";
+import type { Scan } from "../lib/scans";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import type {
@@ -260,15 +260,6 @@ export const RING_OPACITY = { openable: 0.9, unopenable: 0.45 };
 /** How often a burst of strikes is redrawn at most; see `scheduleStrikes`. */
 const STRIKE_REDRAW_MS = 1000;
 
-/**
- * How long every storm has to stay grey before the map says why.
- *
- * Coming back to this map, the storms it kept are judged against the radar
- * that landed meanwhile until the refresh `attach` starts brings newer ones
- * -- a moment later, and not worth a notice that is gone as it arrives.
- */
-const BEHIND_SETTLE_MS = 2000;
-
 /** The id of the one full-size map element; minimaps carry generated ids. */
 const MAIN_MAP_ID = "map";
 
@@ -372,42 +363,20 @@ function severityColour(): DataDrivenPropertyValueSpecification<string> {
  * The assertion is the same story as `severityColour`: a run-length shape
  * cannot be checked against the spec's fixed-arity tuple.
  */
-function dbzRamp(colormap: string, grey = false): DataDrivenPropertyValueSpecification<string> {
+function dbzRamp(colormap: string): DataDrivenPropertyValueSpecification<string> {
   return [
     "interpolate", ["linear"], ["get", "dbz"],
-    ...dbzStops(colormap).flatMap(([dbz, colour]) => [dbz, grey ? greyOf(dbzColour(dbz, colormap)) : colour]),
+    ...dbzStops(colormap).flatMap(([dbz, colour]) => [dbz, colour]),
   ] as unknown as DataDrivenPropertyValueSpecification<string>;
 }
 
 /**
- * A palette colour as the grey of its own lightness, for a storm from an
- * older scan than the radar: drained of colour, a strong core still reads as
- * the strongest part of it.
- */
-function greyOf([r, g, b]: [number, number, number]): string {
-  const lightness = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-  return `rgb(${lightness}, ${lightness}, ${lightness})`;
-}
-
-/**
- * How much of their usual opacity the tiers of an older scan's cells keep.
- *
- * Grey alone still stood as a solid block over the newer echo it is a scan
- * behind; faded as well, the radar under it shows through.
- */
-const BEHIND_OPACITY = 0.5;
-
-/** An older scan's footprint, whose severity is that scan's too. */
-export const BEHIND_LINE = "#8c8c8c";
-
-/**
- * A storm's box outline, in the palette by its core's peak, or grey where it
- * is from an older scan than its own network's radar (the feature's `behind`).
+ * A storm's box outline, in the palette by its peak. In colour whatever scan
+ * it is from: a storm a scan behind the radar under it is still the newest
+ * picture of that storm there is, and greying it read as if it were gone.
  */
 function boxColour(colormap: string): DataDrivenPropertyValueSpecification<string> {
-  return [
-    "case", ["get", "behind"], dbzRamp(colormap, true), dbzRamp(colormap),
-  ] as unknown as DataDrivenPropertyValueSpecification<string>;
+  return dbzRamp(colormap);
 }
 
 /** Between a run's volumes being announced and asking for them, so a run's parts are fetched together. */
@@ -638,8 +607,6 @@ export default class Cells3DCapability extends Capability {
   /** The pending strike update, if one is waiting; see `scheduleStrikes`. */
   private strikeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /** Every storm gone grey, waiting to be reported; see `reportBehind`. */
-  private behindTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Takes back the ⌃-click correction, where one was needed; see lib/ctrlDrag.ts. */
   private uncorrectCtrlClicks: (() => void) | null = null;
@@ -1041,7 +1008,6 @@ export default class Cells3DCapability extends Capability {
     this.pushCameraToView();
     this.shown = false;
     cells3dFailed.set(false);
-    this.reportBehind();
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
     // `attach` refreshes, and waits again from there.
@@ -1368,85 +1334,29 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Paint the cells and the storm cores, greying whatever is from an older
-   * scan than the radar under it.
+   * Paint the cells and the storm cores in full colour.
    *
    * Live, the composite for a scan is out two minutes before KONRAD3D's cells
-   * for it, and half a minute more before its volumes. In full colour those
-   * stood a scan upwind of the echo beneath them as though measured with it;
-   * greyed, they read as what they are, the last word on that storm until its
-   * newer scan lands, and colour comes back with it. See lib/scans.ts.
+   * for it, and half a minute more before its volumes, so for part of every
+   * cycle the storms are a scan behind the radar under them. They stay in
+   * colour all the same: they are the newest picture of each storm there is,
+   * and greyed they read as gone.
    */
   private applyStaleness(): void {
-    this.cloudsLayer?.setRadarScans((network) => this.radarScanOf(network));
-    this.reportBehind();
     const gl = this.gl;
     if (!gl || !this.styleReady) return;
-    const cellsBehind = isBehind(this.cellsScan, this.radarScan);
     RING_ALPHAS.forEach((opacity, tier) => {
       const id = `cell-volume-${tier}`;
       if (!gl.getLayer(id)) return;
-      gl.setPaintProperty(id, "fill-extrusion-color", dbzRamp(this.colormap, cellsBehind));
-      gl.setPaintProperty(id, "fill-extrusion-opacity", cellsBehind ? opacity * BEHIND_OPACITY : opacity);
+      gl.setPaintProperty(id, "fill-extrusion-color", dbzRamp(this.colormap));
+      gl.setPaintProperty(id, "fill-extrusion-opacity", opacity);
     });
-    if (gl.getLayer("cell-footprint")) {
-      gl.setPaintProperty("cell-footprint", "line-color", cellsBehind ? BEHIND_LINE : severityColour());
-    }
+    if (gl.getLayer("cell-footprint")) gl.setPaintProperty("cell-footprint", "line-color", severityColour());
     if (gl.getSource(CLOUD_SOURCE)) {
-      // Each storm's `behind`, and so its box's colour, is worked out with its data.
       this.ensureClouds(gl);
       gl.setPaintProperty(CLOUD_BOX, "line-color", boxColour(this.colormap));
     }
     if (this.shown) gl.triggerRepaint();
-  }
-
-  /**
-   * The scan of the radar a storm from this network is judged against: its
-   * own network's frame, which carries the scan its runs are stamped with.
-   * DWD's frame for Germany's, and for every network while the merged
-   * composite is draped whole in their place. Null -- nothing is behind it --
-   * where a network has no fresh frame, or one from before frames said.
-   */
-  private radarScanOf(network: string): Scan | null {
-    return radarScanOf(network, this.radarScans());
-  }
-
-  /** The radar under the storms, which the flat map's "3D" tags are judged against too. */
-  private radarScans(): RadarScans {
-    return { scan: this.radarScan, whole: this.radarWhole, networks: this.networkFrames };
-  }
-
-  /**
-   * Whether every storm is drawn grey: every listed volume bar the faint ones
-   * nothing is drawn for, and the KONRAD3D cells where there are any. False
-   * with no storms at all -- an empty map is not a late one.
-   */
-  private allBehind(): boolean {
-    const scans = this.radarScans();
-    const clouds = this.clouds.filter((cloud) => !this.faint.has(cloud.path));
-    const cells = this.cells.length > 0;
-    if (!clouds.length && !cells) return false;
-    return clouds.every((cloud) => isVolumeBehind(cloud, scans))
-      && (!cells || isBehind(this.cellsScan, this.radarScan));
-  }
-
-  /**
-   * Tell App whether every storm is grey, so it can say why; see
-   * `cells3dBehind`. Grey only once it has lasted BEHIND_SETTLE_MS, colour
-   * at once, and never for a map that is not showing.
-   */
-  private reportBehind(): void {
-    if (!this.shown || !this.allBehind()) {
-      if (this.behindTimer !== null) clearTimeout(this.behindTimer);
-      this.behindTimer = null;
-      cells3dBehind.set(false);
-      return;
-    }
-    if (this.behindTimer !== null || get(cells3dBehind)) return;
-    this.behindTimer = setTimeout(() => {
-      this.behindTimer = null;
-      if (this.shown && this.allBehind()) cells3dBehind.set(true);
-    }, BEHIND_SETTLE_MS);
   }
 
   /** Tell the layer which storm is open, and which way its slice now runs. */
@@ -1651,8 +1561,7 @@ export default class Cells3DCapability extends Capability {
       // Not for a storm too faint to draw: a box promises a cloud.
       features: this.levelled().filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => {
         const dbz = cloud.peak_dbz ?? 40;
-        const behind = isVolumeBehind(cloud, this.radarScans());
-        const properties = { code: cloud.code, path: cloud.path, dbz, tier: cloud.tier ?? 2, behind };
+        const properties = { code: cloud.code, path: cloud.path, dbz, tier: cloud.tier ?? 2 };
         const loaded = this.cutaways.get(cloud.path)?.cutaway;
         // The tile itself, not its apron, which is the neighbours' to outline.
         const drawnM = loaded ? drawnExtentM(loaded) : null;
@@ -1899,8 +1808,6 @@ export default class Cells3DCapability extends Capability {
    */
   setNetworkFrames(frames: Partial<Record<NetworkCode, RadarFrame>>): void {
     this.networkFrames = frames;
-    // Each network's storms are greyed against its own frame, so a new one
-    // may bring their colour back -- hidden or not, as `applyColormap` does.
     if (this.shown && this.gl && this.styleReady) this.ensureNetworks(this.gl);
     this.applyStaleness();
   }
@@ -2376,8 +2283,6 @@ export default class Cells3DCapability extends Capability {
   destroy(): void {
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
-    if (this.behindTimer !== null) clearTimeout(this.behindTimer);
-    this.behindTimer = null;
     if (this.volumesTimer !== null) clearTimeout(this.volumesTimer);
     this.volumesTimer = null;
     this.volumes.stop();
