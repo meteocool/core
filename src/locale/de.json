@@ -127,6 +127,8 @@
   "lightning_unavailable": "Statistik momentan nicht verfügbar.",
   "radar_no_coverage": "Hier noch kein Radar",
   "radar_no_coverage_body": "Das Live-Radar stammt vom Deutschen Wetterdienst und deckt nur Deutschland und die Nachbarländer ab. Blitze, Satellit und die Wettermodelle funktionieren weltweit.",
+  "clouds_behind": "Die 3D-Wolken hängen hinterher",
+  "clouds_behind_body": "Das Radar hat schon einen neueren Scan als die Gewitter darauf, deshalb sind sie ausgegraut. Die Farbe kommt zurück, sobald die 3D-Wolken dieses Scans berechnet sind – ein paar Minuten nach dem Radar.",
   "outdated": "Veraltet",
   "degraded": "Eingeschränkt",
   "show_for_my_location": "Für meinen Standort",

@@ -341,8 +341,6 @@ onDestroy(stop);
     opacity: 0.6;
   }
 
-  /* Not ".bar": global.css styles the nanobar's progress strip under that
-     name, and in SVG 2 a CSS width wins over the attribute. */
   .rain {
     shape-rendering: crispEdges;
   }

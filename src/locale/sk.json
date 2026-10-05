@@ -127,6 +127,8 @@
   "lightning_unavailable": "Štatistiky momentálne nie sú dostupné.",
   "radar_no_coverage": "Tu zatiaľ nie je radar",
   "radar_no_coverage_body": "Radar naživo pochádza od nemeckej meteorologickej služby, ktorá ho zverejňuje len pre Nemecko a susedné krajiny. Blesky, satelit a predpovedné modely fungujú celosvetovo.",
+  "clouds_behind": "3D oblaky meškajú",
+  "clouds_behind_body": "Radar už má novší sken než zobrazené búrky, preto sú sivé. Farba sa vráti, keď budú vypočítané 3D oblaky z tohto skenu, niekoľko minút po radare.",
   "outdated": "Zastarané",
   "degraded": "Obmedzené",
   "show_for_my_location": "Zobraziť pre moju polohu",

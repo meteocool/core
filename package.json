@@ -30,7 +30,6 @@
     "idb": "^8.0.3",
     "javascript-state-machine": "^3.1.0",
     "maplibre-gl": "^6.10.0",
-    "nanobar": "^0.4.2",
     "ol": "^10.10.0",
     "openapi-fetch": "^0.17.0",
     "socket.io-client": "^4.8.1",
