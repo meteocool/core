@@ -296,6 +296,25 @@ const firstName = (keys: string[]): ExpressionSpecification => [
 ] as unknown as ExpressionSpecification;
 
 /**
+ * The 3D map's own floor under the smaller places, in MapLibre's levels.
+ *
+ * A tilted view takes in far more ground than the flat map does at the same
+ * zoom, and with the flat map's thresholds every village, suburb and city
+ * quarter in it stood in front of the clouds: around Munich at a regional
+ * zoom, dozens of names over the storms. Countries, regions and
+ * cities as on the flat map; towns from a regional zoom; villages, quarters
+ * and suburbs only close in; hamlets, neighbourhoods and the rest only at the
+ * top of the 3D map's range (13), where little but them is on screen. A filter's
+ * zoom is the tile's, so under a tilt the far ground, drawn from coarser
+ * tiles, stays clear of them for longer still.
+ */
+const LABEL_FLOOR: ExpressionSpecification = [
+  "case",
+  ["in", ["get", "kind"], ["literal", ["country", "region"]]], 0,
+  ["match", ["get", "kind_detail"], "city", 0, "town", 10, ["village", "suburb", "quarter"], 12, 13],
+] as unknown as ExpressionSpecification;
+
+/**
  * The place names, set as the flat map sets them (./vector): the same tiers,
  * family, inks and halos, out of the same tiles, in the same language order.
  *
@@ -304,8 +323,9 @@ const firstName = (keys: string[]): ExpressionSpecification => [
  * same `Calibri, sans-serif` the flat map's canvas falls back through, with
  * the weight read off the font name.
  *
- * Shown from the zoom the flat map shows them at. Protomaps' `min_zoom` is
- * in the flat map's levels, one above MapLibre's for the same view.
+ * Shown from the zoom the flat map shows them at -- Protomaps' `min_zoom` is
+ * in the flat map's levels, one above MapLibre's for the same view -- and no
+ * sooner than `LABEL_FLOOR` lets the smaller places in.
  */
 export function placeLabels(palette: LabelPalette, nameKeys: string[]): SymbolLayerSpecification {
   return {
@@ -313,7 +333,11 @@ export function placeLabels(palette: LabelPalette, nameKeys: string[]): SymbolLa
     type: "symbol",
     source: SOURCE,
     "source-layer": "places",
-    filter: ["any", ["!", ["has", "min_zoom"]], [">=", ["+", ["zoom"], 1], ["get", "min_zoom"]]],
+    filter: [
+      "all",
+      ["any", ["!", ["has", "min_zoom"]], [">=", ["+", ["zoom"], 1], ["get", "min_zoom"]]],
+      [">=", ["zoom"], LABEL_FLOOR],
+    ],
     layout: {
       "text-field": firstName(nameKeys),
       "text-font": byTier(({ bold }) => ["literal", [bold ? `${LABEL_FAMILY} Bold` : LABEL_FAMILY, "sans-serif"]]),
