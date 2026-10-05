@@ -62,14 +62,28 @@ export function maskTile(
   canvas.height = image.naturalHeight ?? image.height;
   const context = canvas.getContext("2d")!;
   context.drawImage(image, 0, 0);
+  cutTile(context, extent, erase, keep);
+  return canvas;
+}
 
+/**
+ * `maskTile`'s cut, made on whatever is drawn in `context` already: a page's
+ * canvas or a worker's (packTiles.worker.ts).
+ */
+export function cutTile(
+  context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  extent: Extent,
+  erase: MaskPath[],
+  keep: MaskPath | null,
+): void {
+  const { width, height } = context.canvas;
   const [west, south, east, north] = extent;
   const trace = (rings: number[][][]) => {
     context.beginPath();
     for (const ring of rings) {
       ring.forEach(([mx, my], index) => {
-        const px = ((mx - west) / (east - west)) * canvas.width;
-        const py = ((north - my) / (north - south)) * canvas.height;
+        const px = ((mx - west) / (east - west)) * width;
+        const py = ((north - my) / (north - south)) * height;
         if (index === 0) context.moveTo(px, py);
         else context.lineTo(px, py);
       });
@@ -87,5 +101,4 @@ export function maskTile(
     trace(keep.rings);
     context.fill();
   }
-  return canvas;
 }
