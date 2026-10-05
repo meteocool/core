@@ -78,6 +78,22 @@ declare global {
   const Android: AndroidBridge | undefined;
 }
 
+/** The Android bridge, if the host injected one: `Android?.` alone throws where it did not. */
+const androidBridge = (): AndroidBridge | undefined => (typeof Android === "undefined" ? undefined : Android);
+
+/**
+ * Call into the Android host. A Java exception on its side comes back as a
+ * thrown "Java exception was raised during method invocation", which is the
+ * app's fault and not the page's: it is reported, and the page goes on.
+ */
+function callAndroid(call: () => void): void {
+  try {
+    call();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 /**
  * Tell whichever native host the page runs in. A no-op in a browser, and on
  * Android builds older than 4.0, whose bridge only has requestSettings().
@@ -87,8 +103,25 @@ export function postToNative(message: NativeMessage): void {
     window.webkit.messageHandlers.scriptHandler.postMessage(message);
     return;
   }
-  const android = typeof Android === "undefined" ? undefined : Android;
-  if (typeof android?.postMessage === "function") android.postMessage(message);
+  const android = androidBridge();
+  if (typeof android?.postMessage === "function") callAndroid(() => android.postMessage!(message));
+}
+
+/**
+ * Ask the host for the reader's settings, which it answers through
+ * `window.settings.injectSettings`.
+ *
+ * The last thing App.svelte's setup does, so a throw here failed the whole
+ * mount: the Java side of `requestSettings` throws now and then, and the
+ * Android page opened in a browser has no bridge to call at all.
+ */
+export function requestNativeSettings(): void {
+  if (typeof window !== "undefined" && window.webkit?.messageHandlers?.scriptHandler) {
+    window.webkit.messageHandlers.scriptHandler.postMessage("requestSettings");
+    return;
+  }
+  const android = androidBridge();
+  if (typeof android?.requestSettings === "function") callAndroid(() => android.requestSettings());
 }
 
 let openDrawers = 0;
