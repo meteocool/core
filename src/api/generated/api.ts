@@ -125,26 +125,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v3/preview/og.png": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Open Graph preview image for a location.
-         * @description Render, or fetch an already-rendered, preview image.
-         */
-        get: operations["open_graph_preview_v3_preview_og_png_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v3/radar/classification": {
         parameters: {
             query?: never;
@@ -159,6 +139,31 @@ export interface paths {
          *     Served at /api/precip_types/ by the old Flask service, which this replaces.
          */
         get: operations["classification_v3_radar_classification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Which network's composite is drawn where.
+         * @description Each EUMETNET network's exclusive coverage, and the part of its country cut out of DWD's tiles.
+         *
+         *     The map clips each network's layer to its coverage and holes DWD's tiles
+         *     with the rest, and the server decides by the same shapes which domain a
+         *     point belongs to (ADR 0012), so the two cannot disagree. They change only
+         *     with a release.
+         */
+        get: operations["coverage_v3_radar_coverage_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -348,7 +353,7 @@ export interface paths {
         put?: never;
         /**
          * Submit a barometric reading.
-         * @description Record a barometric pressure observation.
+         * @description Accept a barometric reading, and keep nothing of it.
          */
         post: operations["post_pressure_v3_telemetry_pressure_post"];
         delete?: never;
@@ -413,6 +418,29 @@ export interface components {
             origin?: string | null;
             /** Token */
             token: string;
+        };
+        /**
+         * Coverages
+         * @description Which domain answers for which ground: the map draws by this, and the server decides by it.
+         */
+        Coverages: {
+            /**
+             * Crs
+             * @description The rings' projection: EPSG:3857, the map's own.
+             */
+            crs: string;
+            /**
+             * Domains
+             * @description Each EUMETNET network, by domain. DWD's (`de`) is wherever its grid reaches and none of these.
+             */
+            domains: {
+                [key: string]: components["schemas"]["NetworkCoverage"];
+            };
+            /**
+             * Priority
+             * @description Who wins outside every network's own borders where several reach, first to last.
+             */
+            priority: string[];
         };
         /**
          * FrameSource
@@ -563,6 +591,16 @@ export interface components {
             time: number;
         };
         /**
+         * NetworkCoverage
+         * @description Where one network answers, and what of its country is cut out of DWD's tiles.
+         */
+        NetworkCoverage: {
+            /** @description The part of its country cut out of DWD's observation tiles. */
+            dwd_hole: components["schemas"]["Rings"];
+            /** @description Where this network's composite alone is drawn. */
+            exclusive: components["schemas"]["Rings"];
+        };
+        /**
          * NetworkRefresh
          * @description A nudge that one EUMETNET network's composite has been re-rendered.
          *
@@ -670,6 +708,7 @@ export interface components {
             /** Server Time */
             server_time: number;
         };
+        Rings: number[][][];
         /**
          * SnowRefresh
          * @description A nudge that the snowfield overlay has been re-rendered.
@@ -1048,40 +1087,6 @@ export interface operations {
             };
         };
     };
-    open_graph_preview_v3_preview_og_png_get: {
-        parameters: {
-            query?: {
-                latLonZ?: string;
-                aspectRatio?: string;
-                logo?: boolean;
-                frame?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The rendered preview. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "image/png": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     classification_v3_radar_classification_get: {
         parameters: {
             query?: never;
@@ -1098,6 +1103,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrecipitationTypes"];
+                };
+            };
+        };
+    };
+    coverage_v3_radar_coverage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Coverages"];
                 };
             };
         };
