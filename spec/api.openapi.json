@@ -79,6 +79,39 @@
         "title": "ClearNotification",
         "type": "object"
       },
+      "Coverages": {
+        "description": "Which domain answers for which ground: the map draws by this, and the server decides by it.",
+        "properties": {
+          "crs": {
+            "description": "The rings' projection: EPSG:3857, the map's own.",
+            "title": "Crs",
+            "type": "string"
+          },
+          "domains": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/NetworkCoverage"
+            },
+            "description": "Each EUMETNET network, by domain. DWD's (`de`) is wherever its grid reaches and none of these.",
+            "title": "Domains",
+            "type": "object"
+          },
+          "priority": {
+            "description": "Who wins outside every network's own borders where several reach, first to last.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Priority",
+            "type": "array"
+          }
+        },
+        "required": [
+          "crs",
+          "priority",
+          "domains"
+        ],
+        "title": "Coverages",
+        "type": "object"
+      },
       "FrameSource": {
         "description": "Where a timestep's values came from.\n\nDeclared as an enum so it reaches the exported OpenAPI schema as one, and\nthe frontend's generated client types `source` as a union rather than a bare\nstring. It was a plain `str`, which is how the two deployments came to emit\ndifferent words for a forecast -- `nowcast_phys` in production, `forecast`\nhere -- without the contract, the generated client or any test noticing.\n\nThe values are production's, because shipped clients already read them:\n`precacheAllForecasts()` matches `nowcast_phys` literally.",
         "enum": [
@@ -322,6 +355,25 @@
         "title": "Mesocyclone",
         "type": "object"
       },
+      "NetworkCoverage": {
+        "description": "Where one network answers, and what of its country is cut out of DWD's tiles.",
+        "properties": {
+          "dwd_hole": {
+            "$ref": "#/components/schemas/Rings",
+            "description": "The part of its country cut out of DWD's observation tiles."
+          },
+          "exclusive": {
+            "$ref": "#/components/schemas/Rings",
+            "description": "Where this network's composite alone is drawn."
+          }
+        },
+        "required": [
+          "exclusive",
+          "dwd_hole"
+        ],
+        "title": "NetworkCoverage",
+        "type": "object"
+      },
       "NetworkRefresh": {
         "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
         "properties": {
@@ -552,6 +604,18 @@
         ],
         "title": "RadarFrames",
         "type": "object"
+      },
+      "Rings": {
+        "items": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "type": "array"
       },
       "SnowRefresh": {
         "description": "A nudge that the snowfield overlay has been re-rendered.",
@@ -1124,76 +1188,6 @@
         ]
       }
     },
-    "/v3/preview/og.png": {
-      "get": {
-        "description": "Render, or fetch an already-rendered, preview image.",
-        "operationId": "open_graph_preview_v3_preview_og_png_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "latLonZ",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Latlonz",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "aspectRatio",
-            "required": false,
-            "schema": {
-              "default": "square",
-              "title": "Aspectratio",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "logo",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Logo",
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "frame",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Frame",
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "image/png": {}
-            },
-            "description": "The rendered preview."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Open Graph preview image for a location.",
-        "tags": [
-          "preview"
-        ]
-      }
-    },
     "/v3/radar/classification": {
       "get": {
         "description": "The most recent precipitation-type tile set.\n\nServed at /api/precip_types/ by the old Flask service, which this replaces.",
@@ -1211,6 +1205,28 @@
           }
         },
         "summary": "Precipitation-type overlay metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/coverage": {
+      "get": {
+        "description": "Each EUMETNET network's exclusive coverage, and the part of its country cut out of DWD's tiles.\n\nThe map clips each network's layer to its coverage and holes DWD's tiles\nwith the rest, and the server decides by the same shapes which domain a\npoint belongs to (ADR 0012), so the two cannot disagree. They change only\nwith a release.",
+        "operationId": "coverage_v3_radar_coverage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coverages"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Which network's composite is drawn where.",
         "tags": [
           "radar"
         ]
@@ -1446,7 +1462,7 @@
     },
     "/v3/telemetry/pressure": {
       "post": {
-        "description": "Record a barometric pressure observation.",
+        "description": "Accept a barometric reading, and keep nothing of it.",
         "operationId": "post_pressure_v3_telemetry_pressure_post",
         "requestBody": {
           "content": {
