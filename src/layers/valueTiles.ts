@@ -1,9 +1,10 @@
 import DataTileSource from "ol/source/DataTile";
 import type { Options as DataTileOptions } from "ol/source/DataTile";
-import { blankTile, loadValueFrameTile } from "./indexedTiles";
+import { blankTile, fetchFrameTile } from "./indexedTiles";
 import { ALL_NETWORKS, HOLES, holesSignature } from "./networkHoles";
 import type { NetworkCode } from "./networkHoles";
-import { maskTile, overlaps, tileExtent } from "./tileMask";
+import { overlaps, tileExtent } from "./tileMask";
+import { packValueTile } from "./packTiles";
 import type { MaskPath } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
 import type WebGLTileLayer from "ol/layer/WebGLTile";
@@ -14,9 +15,9 @@ import type WebGLTileLayer from "ol/layer/WebGLTile";
  * A value tile is a greyscale PNG of bytes: RVP6 for reflectivity
  * (lib/rvp6.ts), a class for precipitation types (lib/hgClasses.ts). Decoded
  * without colour management it is an RGBA bitmap with R = G = B = the
- * value, handed to WebGL as it is: the layer's `palette` style reads band 1
- * and colours it, so nothing is read back to the CPU and a palette change
- * is a style change, not a reload.
+ * value, which a worker packs down to the value alone (packTiles.ts) before
+ * WebGL gets it: the layer's `palette` style reads band 1 and colours it on
+ * the GPU, so a palette change is a style change, not a reload.
  *
  * The frame's tile index gates every request (lib/tileIndex.ts), and past a
  * frame's deepest zoom a tile is cut out of its ancestor's. Two cuts make
@@ -34,6 +35,10 @@ const REMEMBERED = 400;
  * One tile of a value frame, with `holes` erased wherever they meet it and,
  * given `keep`, nothing left outside it. Nothing is fetched for a tile
  * outside `keep` altogether.
+ *
+ * Packed to the bytes that mean something (packTiles.ts), unless no worker
+ * can do it, when it is the decoded image or a canvas cut from it. `size` is
+ * the source's tile size.
  */
 export async function loadValueTile(
   template: string,
@@ -44,16 +49,14 @@ export async function loadValueTile(
   holes: MaskPath[],
   keep: MaskPath | null,
   signal?: AbortSignal,
-): Promise<ImageBitmap | HTMLCanvasElement> {
+  size = 512,
+): Promise<Uint8Array | ImageBitmap | HTMLCanvasElement> {
   const extent = tileExtent(z, x, y);
   if (keep && !overlaps(extent, keep.bbox)) return blankTile();
-  const image = await loadValueFrameTile(template, index, z, x, y, signal);
-  if (image === blankTile()) return image;
+  const fetched = await fetchFrameTile(template, index, z, x, y, signal);
+  if (!fetched) return blankTile();
   const met = holes.filter((hole) => overlaps(extent, hole.bbox));
-  if (!met.length && !keep) return image;
-  const cut = maskTile(image, extent, met, keep);
-  if (image instanceof ImageBitmap) image.close();
-  return cut;
+  return packValueTile(fetched.bitmap, fetched.from, extent, met, keep, size, signal);
 }
 
 /**
@@ -94,7 +97,9 @@ export default class ValueTileSource extends DataTileSource {
     url: string; index?: TileIndex | null; holed?: boolean; keep?: MaskPath | null;
   }) {
     const { url, index, holed, keep, ...rest } = options;
-    // RGBA, though only one band means anything: a decoded PNG is four.
+    // Band 4 is the coverage the style fades by: a packed tile has it as its
+    // second byte or, opaque throughout, not at all, which the GPU reads as
+    // opaque; an unpacked one is RGBA.
     super({ ...rest, bandCount: 4 });
     this.keep = keep ?? null;
     this.holes = new Map(holed ? [[url, ALL_NETWORKS]] : []);
@@ -144,7 +149,10 @@ export default class ValueTileSource extends DataTileSource {
     const codes = this.holes.get(url) ?? [];
     const holes = HOLES.filter((hole) => codes.includes(hole.code));
     const keep = this.keep;
-    this.setLoader((z, x, y, options) => loadValueTile(url, gate, z, x, y, holes, keep, options.signal));
+    this.setLoader((z, x, y, options) => {
+      const size = this.getTileGrid()!.getTileSize(z);
+      return loadValueTile(url, gate, z, x, y, holes, keep, options.signal, typeof size === "number" ? size : size[0]);
+    });
     // What the renderer caches tiles by: a frame whose holes changed (the live
     // frame becoming history, a network's composite arriving for a step) has
     // to load afresh, so the holes are part of it.
