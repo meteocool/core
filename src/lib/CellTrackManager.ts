@@ -8,7 +8,7 @@ import { fetchCellTracks } from "../api";
 import type { CellTrack, CellTrackProperties, Progress } from "../api";
 import type { CellFeatureKind } from "../layers/cells";
 import {
-  ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, trackIsCurrent,
+  ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, trackIsCurrent, worldExtent,
 } from "./cellGeometry";
 import { trimToLastRun } from "./cellTrack";
 import { buildCellLinks, supersededCodes } from "./cellLinks";
@@ -97,9 +97,9 @@ export default class CellTrackManager {
     nanobar?: Progress;
   } = {}): Promise<void> {
     if (!this.enabled || !extent) return;
-    if (!force && covers(this.fetched, extent)) return;
+    if (!force && covers(this.fetched, worldExtent(extent))) return;
 
-    const padded = padExtent(extent, BBOX_PADDING);
+    const padded = worldExtent(padExtent(extent, BBOX_PADDING));
     const token = Symbol("cells");
     this.pending = token;
 

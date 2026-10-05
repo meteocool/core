@@ -241,9 +241,17 @@ export function fetchRadarTimeseries(
     apiClient.GET("/v3/radar/timeseries", { params: { query: position ?? {} } }));
 }
 
-/** The most recent snowfield vector tile set. */
+/**
+ * The most recent snowfield vector tile set. `optional`: the backend answers
+ * 404 until its first snowfield is in, which outside winter is for weeks.
+ */
 export function fetchSnowOverlay(nanobar?: Progress) {
-  return request(nanobar, "/v3/radar/snow", () => apiClient.GET("/v3/radar/snow", {}));
+  return request(
+    nanobar,
+    "/v3/radar/snow",
+    () => apiClient.GET("/v3/radar/snow", {}),
+    { optional: true },
+  );
 }
 
 /**
@@ -318,9 +326,17 @@ export function fetchPrecipitationTypes(nanobar?: Progress) {
   );
 }
 
-/** The most recent lightning vector tile set. */
+/**
+ * The most recent lightning vector tile set. `optional`: 404 until the first
+ * set is built, which on a backend without a strike feed is never.
+ */
 export function fetchLightningLayer(nanobar?: Progress) {
-  return request(nanobar, "/v3/lightning/layer", () => apiClient.GET("/v3/lightning/layer", {}));
+  return request(
+    nanobar,
+    "/v3/lightning/layer",
+    () => apiClient.GET("/v3/lightning/layer", {}),
+    { optional: true },
+  );
 }
 
 /** Every strike recorded since `baseline`, as a unix timestamp in seconds. */

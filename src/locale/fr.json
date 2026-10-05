@@ -586,5 +586,8 @@
       "not_built": "non généré",
       "no_sample": "aucun échantillon"
     }
+  },
+  "notice": {
+    "no_webgl": "Le radar de pluie ne peut pas s'afficher : ce navigateur ne propose pas WebGL. Sur iPhone et iPad, le mode Isolement le désactive."
   }
 }

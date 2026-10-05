@@ -586,5 +586,8 @@
       "not_built": "nie zbudowano",
       "no_sample": "brak próbki"
     }
+  },
+  "notice": {
+    "no_webgl": "Nie można wyświetlić radaru opadów: ta przeglądarka nie obsługuje WebGL. Na iPhonie i iPadzie wyłącza go tryb blokady."
   }
 }

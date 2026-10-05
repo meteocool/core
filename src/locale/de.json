@@ -597,5 +597,8 @@
       "not_built": "nicht erstellt",
       "no_sample": "kein Messwert"
     }
+  },
+  "notice": {
+    "no_webgl": "Das Regenradar kann nicht angezeigt werden: Dieser Browser bietet kein WebGL. Auf iPhone und iPad schaltet der Blockierungsmodus es ab."
   }
 }

@@ -91,6 +91,8 @@ import Cells3DCapability from "./caps/Cells3DCapability";
 import { tileSourceUrl } from "./layers/dwd";
 import { drawnTileId } from "./lib/rvp6";
 import { radolanOverlay } from "./layers/dwd";
+import { webglSupported } from "./layers/webglTile";
+import { reportNotice } from "./lib/Toast";
 import { forgetEarlierFrames } from "./layers/valueTiles";
 import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
@@ -876,6 +878,10 @@ async function reloadCyclones() {
 
 const lightningLoaded = reloadLightning();
 const cyclonesLoaded = reloadCyclones();
+
+/* No WebGL, no radar: layers/webglTile.ts keeps those layers off the map so
+   the rest of it still draws, and this says why the rain is missing. */
+if (!screenshot && !webglSupported()) reportNotice($_("notice.no_webgl"));
 
 if (screenshot && radarCap) {
   whenDrawn(

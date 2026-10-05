@@ -586,5 +586,8 @@
       "not_built": "nevytvorené",
       "no_sample": "žiadna vzorka"
     }
+  },
+  "notice": {
+    "no_webgl": "Zrážkový radar nemožno zobraziť: tento prehliadač neponúka WebGL. Na iPhone a iPade ho vypína režim blokovania."
   }
 }
