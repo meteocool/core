@@ -13,6 +13,10 @@ import { mapBaseLayer } from "../stores";
 import { supportsVectorLabels } from "./base";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { belowMinZoom, protomapsSource, zoomFromResolution } from "./protomaps";
+import {
+  darkLabels, LABEL_FAMILY, LABEL_TIERS, lightLabels, satelliteLabels, tierOfPlace,
+} from "./labels";
+import type { LabelPalette, LabelTier, LabelTierName } from "./labels";
 
 /**
  * The label and border overlays, drawn *above* the weather so place names stay
@@ -30,65 +34,6 @@ const overlayAttributions = [osmAttribution, protomapsAttribution, imprintAttrib
    layers are redrawn once the store has moved, further down. */
 let placeName = placeNameForLocale(chooseLocale());
 
-/**
- * A label's colours, picked to match whatever is drawn underneath it.
- *
- * The halo is always the basemap's own colour, softened -- never a contrasting
- * one. Labels crowd, and at 11px the halo of one glyph merges into its
- * neighbours and into the counters of a, e and o. A halo in the basemap's
- * colour that merges just disappears back into the map; a contrasting one
- * merges into a plate. That is what the old black-on-opaque-white labels did
- * over the dark basemap: the white halo was the only part of the label with
- * any contrast against #1c1f24, so a cluster of village names read as a bright
- * smear with black holes punched in it rather than as type. Same rule the
- * casings follow in ./casing -- match the background, don't fight it.
- */
-interface LabelPalette {
-  /** Country, region and city. */
-  ink: string;
-  /** Town, village and hamlet: a step back, so the tiers part by luminance. */
-  mutedInk: string;
-  halo: string;
-  /** Multiplier on the tier halo widths, for backdrops that need more. */
-  haloScale: number;
-}
-
-/**
- * Near-black and near-white rather than the pure endpoints: #000 on #f6f4f0,
- * or #fff on #1c1f24, is more contrast than small type wants and makes it buzz.
- *
- * The muted step is deliberately small. These labels sit over *radar*, not
- * over the basemap, and reflectivity runs the whole luminance range -- so a
- * muted ink picked as a step back from the earth colour collapses the moment
- * the town lands on a green or yellow cell, which at this zoom is most of the
- * interesting ones. Size and weight carry the hierarchy; the ink only has to
- * hint at it.
- */
-const lightLabels: LabelPalette = {
-  ink: "#1b1e23",
-  mutedInk: "#3a4048",
-  halo: "rgba(246, 244, 240, 0.85)",
-  haloScale: 1,
-};
-
-const darkLabels: LabelPalette = {
-  ink: "#eef1f5",
-  mutedInk: "#ccd3dc",
-  halo: "rgba(28, 31, 36, 0.85)",
-  haloScale: 1,
-};
-
-/**
- * Satellite is the one backdrop no basemap colour stands in for: cloud tops
- * and snow come out brighter than any of the themes, so the halo has to work
- * harder to hold a light label off them.
- */
-const satelliteLabels: LabelPalette = {
-  ...darkLabels,
-  halo: "rgba(20, 23, 28, 0.92)",
-  haloScale: 1.3,
-};
-
 function paletteFor(basemap: string): LabelPalette {
   if (basemap === "satellite") return satelliteLabels;
   return isDarkBasemap(basemap) ? darkLabels : lightLabels;
@@ -101,7 +46,7 @@ function paletteFor(basemap: string): LabelPalette {
  * place -- every layer holds a reference to the same Style, so rebuilding it
  * would leave them all pointing at the old one.
  */
-interface LabelTier {
+interface TierPaint {
   fill: Fill;
   stroke: Stroke;
   /** Tiers below city take the palette's muted ink. */
@@ -109,40 +54,30 @@ interface LabelTier {
   haloWidth: number;
 }
 
-const tiers: LabelTier[] = [];
+const tiers: TierPaint[] = [];
 
 /**
- * OpenLayers strokes the glyph outline centred on it and then fills over the
- * top, so the halo you actually see is half of `haloWidth`.
- *
- * These ran 4 / 3 / 3 / 2 / 1.5, which made halo thickness part of the
- * hierarchy -- widest on the largest type, thinnest on the smallest. That was
- * backwards twice over: size and weight already carry the hierarchy, and it is
- * the small labels that most need lifting off a busy cell. They are uniform
- * now bar the country tier. Thinning them at 11px was only ever a defence
- * against the halo merging across letterforms, and a halo the colour of what
- * is behind it can merge all it likes.
+ * A tier's style; see ./labels for the tiers, and for why the halos are as
+ * they are.
  */
-function labelStyle(font: string, haloWidth: number, zIndex: number, muted = false) {
+function labelStyle({ size, bold, halo, rank, muted }: LabelTier) {
   const fill = new Fill({ color: lightLabels.ink });
-  const stroke = new Stroke({ color: lightLabels.halo, width: haloWidth });
-  tiers.push({ fill, stroke, muted, haloWidth });
+  const stroke = new Stroke({ color: lightLabels.halo, width: halo });
+  tiers.push({ fill, stroke, muted, haloWidth: halo });
   return new Style({
     text: new Text({
-      font,
+      font: `${bold ? "bold " : ""}${size}px ${LABEL_FAMILY},sans-serif`,
       fill,
       overflow: true,
       stroke,
     }),
-    zIndex,
+    zIndex: rank,
   });
 }
 
-const countryStyle = labelStyle("bold 18px Calibri,sans-serif", 2.6, 100);
-const regionStyle = labelStyle("16px Calibri,sans-serif", 2.2, 90);
-const cityStyle = labelStyle("bold 13px Calibri,sans-serif", 2.2, 92);
-const localityStyle = labelStyle("12px Calibri,sans-serif", 2.0, 90, true);
-const microLabelStyle = labelStyle("11px Calibri,sans-serif", 2.0, 88, true);
+const tierStyles = Object.fromEntries(
+  Object.entries(LABEL_TIERS).map(([name, tier]) => [name, labelStyle(tier)]),
+) as Record<LabelTierName, Style>;
 
 /**
  * Every live label layer, so one basemap change repaints all of them.
@@ -201,32 +136,9 @@ const boundaryStyle = new Style({
   zIndex: 1,
 });
 
-/**
- * Which label tier a place gets. Protomaps carries `kind_detail`
- * (country/city/town/village/hamlet/isolated_dwelling) and a `min_zoom` the
- * caller has already checked, so this is only about weight, not about whether
- * to draw at all.
- */
-function styleForPlace(feature: FeatureLike): Style | null {
-  if (feature.get("kind") === "country") return countryStyle;
-
-  switch (feature.get("kind_detail")) {
-    case "country":
-      return countryStyle;
-    case "region":
-      return regionStyle;
-    case "city":
-      return cityStyle;
-    case "town":
-      return localityStyle;
-    case "village":
-      return microLabelStyle;
-    case "hamlet":
-    case "isolated_dwelling":
-      return microLabelStyle;
-    default:
-      return localityStyle;
-  }
+/** Which label tier a place gets; see `tierOfPlace`. */
+function styleForPlace(feature: FeatureLike): Style {
+  return tierStyles[tierOfPlace(feature.get("kind"), feature.get("kind_detail"))];
 }
 
 function placeStyle(feature: FeatureLike, resolution: number): Style | undefined {
@@ -237,7 +149,6 @@ function placeStyle(feature: FeatureLike, resolution: number): Style | undefined
   if (!name) return undefined;
 
   const style = styleForPlace(feature);
-  if (!style) return undefined;
   style.getText()!.setText(String(name));
   return style;
 }

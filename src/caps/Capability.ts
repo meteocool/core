@@ -9,6 +9,13 @@ import { elementCentre } from "../lib/viewCentre";
 /** Invoked when a capability's map is attached to a DOM node. */
 export type TargetCallback = (target: string | HTMLElement) => void;
 
+/** The client's own position as `LayerManager.updateLocation` was given it; accuracy in metres, negative for none. */
+export interface UserLocation {
+  lat: number;
+  lon: number;
+  accuracy: number;
+}
+
 /**
  * A Capability implements map-related functionality (controller) on an OpenLayers map (view).
  * It has a 1-to-1 relationship to an @OL.Map Object, which must be valid during the entire lifetime
@@ -107,4 +114,21 @@ export default class Capability extends Observable {
    * `lastFocus` whether it is showing or not.
    */
   resync?(): void;
+
+  /**
+   * Mark the client's own position, or take the mark down for null.
+   * LayerManager calls it on every capability with whatever the apps or the
+   * browser last reported. Optional -- every OpenLayers map already carries
+   * LayerManager's blue dot; only a capability drawing a map of its own needs
+   * to draw it again.
+   */
+  showLocation?(location: UserLocation | null): void;
+
+  /**
+   * Move this capability's own camera to `centre` ([lon, lat]) and `zoom`, in
+   * the flat map's zoom levels, either left as it is for null. True when it
+   * did; false leaves LayerManager to animate the shared View instead.
+   * Optional -- for a map whose camera the View follows rather than leads.
+   */
+  lookAt?(centre: [number, number] | null, zoom: number | null): boolean;
 }
