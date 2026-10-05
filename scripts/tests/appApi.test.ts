@@ -52,8 +52,13 @@ test("the AR view's data routes are forwarded, and nothing else of the data serv
 test("only storm volumes are redirected to the asset host", () => {
   assert.ok(isVolumePath("/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx"));
   assert.ok(isVolumePath("/meteoradar/volumes/20260922T011500/R12345.mcvx"));
+  // Tiles: zoom-10, a zoom-11 core tile and a coarse zoom-9 one.
+  assert.ok(isVolumePath("/meteoradar/volumes/20261005T015000/de-T100053300344.mcvx"));
+  assert.ok(isVolumePath("/meteoradar/volumes/20261005T015000/fr-T110106600689.mcvx"));
+  assert.ok(isVolumePath("/meteoradar/volumes/20261005T015000/de-T090026600172.mcvx"));
   for (const path of ["/meteoradar/abc/1/2/3.png", "/meteoradar/volumes/20261004T020500/../x.mcvx",
-    "/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx/x", "/meteonowcast/volumes/20261004T020500/de-G1374918628.mcvx"]) {
+    "/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx/x", "/meteonowcast/volumes/20261004T020500/de-G1374918628.mcvx",
+    "/meteoradar/volumes/20261005T015000/de-T1000533003.mcvx", "/meteoradar/volumes/20261005T015000/de-T10005330034412.mcvx"]) {
     assert.ok(!isVolumePath(path), path);
   }
   const response = volumeRedirect(
