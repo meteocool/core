@@ -718,6 +718,12 @@ export interface components {
              */
             bytes?: number | null;
             /**
+             * Coarse
+             * @description A zoom-9 tile at about 1 km a voxel, built over the tiles of a run for a map zoomed out: drawn in place of the tiles inside it, never beside them
+             * @default false
+             */
+            coarse: boolean;
+            /**
              * Code
              * @description The tile, `T` + zoom (2 digits) + x + y (5 each); before tiles, the core's peak to a hundredth of a degree, prefixed G
              */
@@ -1104,7 +1110,10 @@ export interface operations {
     };
     current_volumes_cells_volumes_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Include the coarse zoom-9 tiles, which a client zoomed out draws in place of the tiles under them. Off by default, for clients that would draw both. */
+                coarse?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1118,6 +1127,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurrentVolumes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

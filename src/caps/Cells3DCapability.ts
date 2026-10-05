@@ -24,6 +24,7 @@ import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway, VolumeGone } from "../lib/cellCutaway";
 import { drawnExtentM } from "../lib/volumeBox";
+import { atLevel, fineAt } from "../lib/volumeLevels";
 import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
@@ -159,14 +160,22 @@ const VOLUME_FETCHES = 4;
 const RESIDENT_BYTES = 24 * 160 * 160 * 32 * 2;
 /** One tile's texture, apron included, as the worker builds it (`voxels.TILE_VOXELS`, `APRON`). */
 const TILE_TEXTURE_BYTES = 106 * 106 * 32 * 2;
-/** One core's tile, a zoom finer: half as many voxels across (`voxels.across`). */
+/** One core's tile or one coarse tile: half as many voxels across (`voxels.across`). */
 const CORE_TEXTURE_BYTES = 54 * 54 * 32 * 2;
 /** One box's from before tiles. */
 const BOX_TEXTURE_BYTES = 160 * 160 * 32 * 2;
 const textureBytes = (volume: RadarVolume) => {
   if (!volume.tile) return BOX_TEXTURE_BYTES;
-  return volume.tile[0] > 10 ? CORE_TEXTURE_BYTES : TILE_TEXTURE_BYTES;
+  // A core's tile and a coarse tile are both half a tile's voxels across.
+  return volume.tile[0] === 10 ? TILE_TEXTURE_BYTES : CORE_TEXTURE_BYTES;
 };
+
+/**
+ * Below this zoom the map draws each coarse tile in place of the tiles in it
+ * (`lib/volumeLevels.ts`). A zoom-9 tile is then under 128 CSS pixels across,
+ * so its 52 voxels are finer than the screen it covers.
+ */
+const COARSE_BELOW_ZOOM = 7;
 
 /** How far past the viewport's edge a storm still counts as in view, as a fraction of the viewport. */
 const VIEW_MARGIN = 0.35;
@@ -413,7 +422,7 @@ export default class Cells3DCapability extends Capability {
    * upwind of the radar under it until the next run. Waits only while shown.
    */
   private readonly volumes = new VolumeFeed<CurrentVolumes>(
-    () => fetchCurrentVolumes().catch(() => null),
+    () => fetchCurrentVolumes(undefined, { coarse: true }).catch(() => null),
     (answer) => this.takeClouds(answer),
   );
 
@@ -497,6 +506,9 @@ export default class Cells3DCapability extends Capability {
    * drawn, because then a reader asked for exactly that storm.
    */
   private faint = new Set<string>();
+
+  /** Whether the outlines on the map are the coarse tiles'; see `coarse`. */
+  private coarseShown = false;
 
 
   /** Which storm is open, by its volume's path, and which way its slice runs before the reader turns it. */
@@ -842,6 +854,12 @@ export default class Cells3DCapability extends Capability {
       gl.on("moveend", () => {
         this.pushCameraToView();
         if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
+        // Zoomed across the line between coarse tiles and fine: other outlines.
+        const coarse = this.coarse();
+        if (coarse !== this.coarseShown && this.styleReady) {
+          this.coarseShown = coarse;
+          this.ensureClouds(gl);
+        }
         // The camera has come to other storms: load theirs, let go of the far ones.
         void this.loadClouds();
       });
@@ -885,9 +903,12 @@ export default class Cells3DCapability extends Capability {
           selectedCell.set(null);
           // By path: a code is a grid position, unique only within one
           // network's scan, and the list holds five networks' scans.
-          selectedVolume.set(cloud?.properties?.path
+          const listed = cloud?.properties?.path
             ? this.clouds.find((c) => c.path === cloud.properties.path) ?? null
-            : null);
+            : null;
+          // A coarse tile opens the tile under the finger: 1 km voxels are a
+          // picture of where it rains, not one to cut a storm open by.
+          selectedVolume.set(listed?.coarse ? fineAt(this.clouds, event.lngLat.lng, event.lngLat.lat) : listed);
         }
       });
       /* A tile that failed is noted for `resync` to ask for again. Listening
@@ -1428,7 +1449,7 @@ export default class Cells3DCapability extends Capability {
     const gl = this.gl;
     const bounds = gl?.getBounds();
     const centre = gl?.getCenter();
-    let candidates = this.clouds.filter((cloud) => !this.faint.has(cloud.path));
+    let candidates = this.levelled().filter((cloud) => !this.faint.has(cloud.path));
     let shown = new Set<RadarVolume>();
     if (gl && bounds && centre) {
       const west = bounds.getWest();
@@ -1465,6 +1486,16 @@ export default class Cells3DCapability extends Capability {
       held.push(cloud);
     }
     return held;
+  }
+
+  /** Whether the camera is zoomed out far enough to draw coarse tiles; see `COARSE_BELOW_ZOOM`. */
+  private coarse(): boolean {
+    return (this.gl?.getZoom() ?? Infinity) < COARSE_BELOW_ZOOM;
+  }
+
+  /** The listed volumes to draw at the camera's zoom: coarse tiles or fine, never both over one place. */
+  private levelled(): RadarVolume[] {
+    return atLevel(this.clouds, this.coarse(), this.opened?.path ?? null);
   }
 
   /** Forget every volume no longer listed or no longer wanted in view, bar the open one. */
@@ -1533,7 +1564,7 @@ export default class Cells3DCapability extends Capability {
     const data = {
       type: "FeatureCollection" as const,
       // Not for a storm too faint to draw: a box promises a cloud.
-      features: this.clouds.filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => {
+      features: this.levelled().filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => {
         const dbz = cloud.peak_dbz ?? 40;
         const behind = isVolumeBehind(cloud, this.radarScans());
         const properties = { code: cloud.code, path: cloud.path, dbz, tier: cloud.tier ?? 2, behind };
@@ -1668,6 +1699,7 @@ export default class Cells3DCapability extends Capability {
         scanned_at: header.scanned_at ?? null,
         oldest_scan_at: header.oldest_scan_at ?? null,
         tile: header.tile ?? null,
+        coarse: (header.tile?.[0] ?? 10) < 10,
       };
     } catch (error) {
       if (error instanceof VolumeGone) return null;
@@ -1779,7 +1811,7 @@ export default class Cells3DCapability extends Capability {
     this.volumesTimer = setTimeout(() => {
       this.volumesTimer = null;
       if (!this.shown) return;
-      void fetchCurrentVolumes().catch(() => null).then((answer) => {
+      void fetchCurrentVolumes(undefined, { coarse: true }).catch(() => null).then((answer) => {
         if (answer && this.shown) this.volumes.offer(answer);
       });
     }, VOLUMES_SETTLE_MS);
@@ -1814,7 +1846,7 @@ export default class Cells3DCapability extends Capability {
       // Its own failure is not the cells' failure: a map with storms and no
       // cutaways is worth drawing. Nor does it take the storms already
       // drawn away; they stay until an answer replaces them.
-      fetchCurrentVolumes().catch(() => null),
+      fetchCurrentVolumes(undefined, { coarse: true }).catch(() => null),
     ]);
     if (this.cellsToken !== token) return;
     if (current !== undefined) {
