@@ -174,9 +174,6 @@
     "konrad_cells_hint": "Draws DWD's tracked storm cells as stacked tiers. They arrive a few minutes after the radar and are greyed out until then.",
     "terrain": "Terrain",
     "terrain_hint": "Raises the 3D map into the ground's relief and shades its hills, at true scale. Downloads elevation tiles as you move the map.",
-    "experimental": "Experimental",
-    "europe_composite": "Merged European Composite",
-    "europe_composite_hint": "Draws the live frame from one composite of every network's radars — DWD, MeteoSwiss, Météo-France, ČHMÚ and IMGW — in place of the five products side by side. Built every few minutes on a background worker; past and forecast steps are unchanged.",
     "environment": "Preview",
     "staging": "Open Staging",
     "staging_hint": "Staging runs the next version of meteocool before it is released. Expect new features and the occasional breakage; your settings here do not carry over.",
@@ -434,6 +431,23 @@
     "satellite": {
       "clouds": "Clouds",
       "labels_borders": "Labels & Borders"
+    },
+    "radar_product": {
+      "title": "Radar product",
+      "choose": "Choose the radar product",
+      "hx": "Lowest scan",
+      "hx_short": "Scan",
+      "hx_hint": "DWD and its neighbours' lowest scans: the rain near the ground",
+      "merged": "EU composite",
+      "merged_short": "EU",
+      "merged_hint": "Every network's radars merged on one grid",
+      "dmax": "DMAX",
+      "dmax_short": "DMAX",
+      "dmax_hint": "Strongest echo at any height, Germany only; a scan behind",
+      "age": "{minutes} min",
+      "unavailable": "unavailable",
+      "fell_back_short": "behind",
+      "fell_back": "{product} is behind or unavailable; {fallback} is shown until it catches up."
     },
     "scales": {
       "precipitation_types": "Precipitation<br />Types",

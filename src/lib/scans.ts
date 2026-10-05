@@ -51,15 +51,13 @@ export function isBehind(scan: Scan | null | undefined, radar: Scan | null): boo
 export interface RadarScans {
   /** DWD's frame's scan; null where no frame is drawn. */
   scan: Scan | null;
-  /** Whether that one frame is the merged European composite, draped in place of every network's. */
-  whole: boolean;
   /** Each network's newest frame, where it has a fresh one; its `upstream_time` is its scan. */
   networks: Partial<Record<string, { upstream_time?: Scan | null }>>;
 }
 
 /** The scan of the radar a storm from `network` is judged against: its own network's frame. */
 export function radarScanOf(network: string, radar: RadarScans): Scan | null {
-  if (network === "de" || radar.whole) return radar.scan;
+  if (network === "de") return radar.scan;
   return radar.networks[network]?.upstream_time ?? null;
 }
 

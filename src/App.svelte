@@ -30,7 +30,7 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, europeCompositeVisible, lastFocus,
+  cellLayerVisible, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, lastFocus, observedProduct,
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
@@ -52,6 +52,7 @@ import { installScrollbars } from "./lib/scrollbars";
 import { fetchCurrentVolumes, fetchLightningCache, fetchMesocyclones } from "./api";
 import type { CurrentVolumes, RadarVolume } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
+import { DEFAULT_PRODUCT, parseObservedProduct } from "./lib/observedProduct";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
 import { isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
@@ -88,8 +89,6 @@ import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { bordersAndWays, labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import Cells3DCapability from "./caps/Cells3DCapability";
-import { tileSourceUrl } from "./layers/dwd";
-import { drawnTileId } from "./lib/rvp6";
 import { radolanOverlay } from "./layers/dwd";
 import { webglSupported } from "./layers/webglTile";
 import { reportNotice } from "./lib/Toast";
@@ -139,6 +138,22 @@ function resolveBaseLayer(value: SettingValue): string {
   return value === "system" || !value ? systemBaseLayer() : String(value);
 }
 
+/**
+ * The merged composite used to be a switch in Settings, `layerEuropeComposite`;
+ * it is one of the products the tray's picker offers now. A reader who had it
+ * on keeps it, as the picker's choice, unless they have made one there since.
+ */
+function migrateEuropeComposite() {
+  try {
+    if (localStorage.getItem("layerEuropeComposite") === "true" && localStorage.getItem("radarProduct") === null) {
+      localStorage.setItem("radarProduct", "merged");
+    }
+    localStorage.removeItem("layerEuropeComposite");
+  } catch {
+    // Storage blocked: nothing was kept to carry over.
+  }
+}
+
 initUIConstants();   // reads prefers-color-scheme into colorSchemeDark
 
 /* Set before Settings is constructed: its constructor only fires a callback
@@ -146,6 +161,7 @@ initUIConstants();   // reads prefers-color-scheme into colorSchemeDark
    stored the store would otherwise stay on the initial value it was declared
    with in stores.ts. */
 mapBaseLayer.set(systemBaseLayer());
+migrateEuropeComposite();
 
 window.settings = new Settings({
   experimentalFeatures: {
@@ -230,11 +246,11 @@ window.settings = new Settings({
       terrain3dVisible.set(Boolean(value));
     },
   },
-  layerEuropeComposite: {
-    type: "boolean",
-    default: false,
+  radarProduct: {
+    type: "string",
+    default: DEFAULT_PRODUCT,
     cb: (value) => {
-      europeCompositeVisible.set(Boolean(value));
+      observedProduct.set(parseObservedProduct(value));
     },
   },
   layerSnow: {
@@ -609,22 +625,18 @@ window.lm = lm;
 const cells3d = lm.getCapability("cells3d") as Cells3DCapability | undefined;
 const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
-  // With the European composite on, the 3D map drapes that one frame, whole,
-  // in place of DWD's and the networks'; see RadarCapability.showNetworks.
+  // HX and the networks, whichever product the flat map draws: the storms on
+  // the 3D map are the column already, and are judged against these scans
+  // (ng ADR 0015).
   const forwardRadarFrame = () => {
     const step = radarCap.getMostRecentObservation();
-    const europe = radarCap.liveEuropeFrame();
-    if (europe) {
-      cells3d.setRadarFrame(tileSourceUrl("meteoradar", drawnTileId(europe)), step, europe.tiles, { whole: true });
-      return;
-    }
     const frame = radarCap.clientGrid?.[step];
     cells3d.setRadarFrame(frame?.url ?? null, step, frame?.tiles);
   };
   // The networks' own newest frames go the same way: the 3D map drapes them
   // over their countries, cut out of DWD's frame as the flat map does.
   const forwardNetworkFrames = () => {
-    cells3d.setNetworkFrames(radarCap.liveEuropeFrame() ? {} : radarCap.liveNetworkFrames());
+    cells3d.setNetworkFrames(radarCap.liveNetworkFrames());
   };
   radarCap.addObserver((subject) => {
     if (subject === "grid") forwardRadarFrame();

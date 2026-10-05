@@ -3,7 +3,7 @@ import { chExclusiveCoverage, czExclusiveCoverage, frExclusiveCoverage, plExclus
 import type { NetworkCode } from "./networkHoles";
 
 /** Each network's coverage, as `network.ts`'s layers are clipped to it. */
-const COVERAGE: [NetworkCode, number[][][]][] = [
+const COVERAGE: [Exclude<NetworkCode, "eu">, number[][][]][] = [
   ["ch", chExclusiveCoverage],
   ["fr", frExclusiveCoverage],
   ["cz", czExclusiveCoverage],
@@ -37,7 +37,7 @@ export function insideRings(rings: number[][][], [x, y]: number[]): boolean {
  * have to be the reading of the radar the map is showing under the finger.
  * The coverages overlap by nothing, so at most one matches.
  */
-export function networkAt(lat: number, lon: number): NetworkCode | undefined {
+export function networkAt(lat: number, lon: number): Exclude<NetworkCode, "eu"> | undefined {
   const point = fromLonLat([lon, lat]);
   return COVERAGE.find(([, rings]) => insideRings(rings, point))?.[0];
 }

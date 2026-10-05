@@ -25,12 +25,12 @@ import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
 import { fetchCzechRadar, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar } from "../api";
 import type { Progress, RadarFrame } from "../api";
-import type { NetworkEvent } from "../api/events";
+import type { NetworkCode } from "./networkHoles";
 
 /** One EUMETNET network, as the map draws it. */
 export interface Network {
   /** What the backend files it under: the socket event's `network`, the `reflectivity_{code}` collection. */
-  code: NetworkEvent["network"];
+  code: NetworkCode;
   fetch: (nanobar?: Progress) => Promise<RadarFrame | null | undefined>;
   attribution: string;
   /** The composite grid's rectangle: a cheap first cut, not the coverage claim. */
@@ -96,6 +96,11 @@ export const EUROPE: Network = {
  */
 const STALE_AFTER_SECONDS = 30 * 60;
 
+/** Whether a frame is still worth drawing as the newest: see `STALE_AFTER_SECONDS`. */
+export function isFresh(frame: RadarFrame, nowS = Date.now() / 1000): boolean {
+  return nowS - frame.processed_time < STALE_AFTER_SECONDS;
+}
+
 /**
  * An independent tile layer for one EUMETNET network's composite.
  *
@@ -148,7 +153,7 @@ export default class NetworkRadarLayer {
     const frame = await this.network.fetch(nanobar).catch(() => null);
     if (!frame) return; // nothing composited yet, or the request failed
 
-    this.fresh = Date.now() / 1000 - frame.processed_time < STALE_AFTER_SECONDS;
+    this.fresh = isFresh(frame);
     this.liveFrame = frame;
     this.apply();
     this.onLiveFrame?.();
@@ -162,8 +167,7 @@ export default class NetworkRadarLayer {
    */
   current(): RadarFrame | null {
     const frame = this.liveFrame;
-    if (!frame || Date.now() / 1000 - frame.processed_time >= STALE_AFTER_SECONDS) return null;
-    return frame;
+    return frame && isFresh(frame) ? frame : null;
   }
 
   /**

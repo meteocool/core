@@ -656,20 +656,20 @@ export interface components {
         };
         /**
          * NetworkRefresh
-         * @description A nudge that one EUMETNET network's composite has been re-rendered.
+         * @description A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.
          *
          *     Deliberately not a `Poke`, for the reason `CellsRefresh` is not one: the
          *     frontend's `poke` handler reloads DWD's whole radar timeseries, and a
          *     network composite lands every minute or two. Clients refetch only that
-         *     network's frame.
+         *     one frame, and ignore a value they do not know.
          */
         NetworkRefresh: {
             /**
              * Network
-             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "eu";
+            network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax";
         };
         /**
          * PointGeometry

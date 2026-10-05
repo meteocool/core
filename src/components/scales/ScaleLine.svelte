@@ -6,6 +6,8 @@
   export let valueFormat: ((value: string, index: number) => string) | null = null;
   export let prettyName: string;
   export let title = "";
+  /** Keep the title on a phone, where it is otherwise dropped for the strip's room. */
+  export let titleOnPhone = false;
 
   let className = "";
   export { className as class };
@@ -130,14 +132,14 @@
   }
 
   @media only screen and (max-width: 620px) {
-    .legend-label {
+    .legend-label:not(.keep) {
       display: none;
     }
   }
 </style>
 
 <div class="wrapper">
-    <div class="legend-label">{@html title}</div>
+    <div class="legend-label" class:keep={titleOnPhone}><slot name="title">{@html title}</slot></div>
     <div class="scale" title={$_("chrome.scales.colormap", { values: { name: capitalizeFirst(prettyName), min: minDbz, max: maxDbz } })}>
         <div class="scale-line" style:--backgroundImage={backgroundImage} style:--backgroundUrl={backgroundUrl}>
             <div class="scale-dividers">

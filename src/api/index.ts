@@ -18,6 +18,7 @@ import { noteTransientFailure } from "../lib/recovery";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
 import type { NetworkEvent } from "./events";
+import type { AlternativeProduct } from "../lib/observedProduct";
 
 type Schemas = ApiSchemas["schemas"];
 
@@ -235,10 +236,14 @@ async function request<T>(
 /** Radar and nowcast tile metadata for each timestep in the current window. */
 export function fetchRadarTimeseries(
   nanobar?: Progress,
-  position?: { lat: number; lon: number; network?: NetworkEvent["network"] },
+  position?: { lat: number; lon: number; network?: Exclude<NetworkEvent["network"], "eu" | "dmax"> },
+  product?: AlternativeProduct | null,
 ) {
+  // The chosen product's own past, beside HX's and the networks': asked for,
+  // since every frame carries its tile index (lib/observedProduct.ts).
+  const query = { ...position, ...(product ? { products: [product] } : {}) };
   return request(nanobar, "/v3/radar/timeseries", () =>
-    apiClient.GET("/v3/radar/timeseries", { params: { query: position ?? {} } }));
+    apiClient.GET("/v3/radar/timeseries", { params: { query } }));
 }
 
 /**
@@ -312,6 +317,20 @@ export function fetchEuropeRadar(nanobar?: Progress) {
     nanobar,
     "/v3/radar/europe",
     () => apiClient.GET("/v3/radar/europe", {}),
+    { optional: true },
+  );
+}
+
+/**
+ * DWD's most recent column maximum, DMAX: the strongest echo over every tilt,
+ * on HX's grid, a product the reader can draw instead of HX; `optional` for
+ * the reason Switzerland's is, and because a replay renders none.
+ */
+export function fetchColumnMaximum(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/dmax",
+    () => apiClient.GET("/v3/radar/dmax", {}),
     { optional: true },
   );
 }
