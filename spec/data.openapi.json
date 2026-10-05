@@ -668,7 +668,7 @@
         "type": "object"
       },
       "CellVolume": {
-        "description": "Where to find this cell's radar volume, and how much to trust it.\n\nThe volume is the cutaway view's data: a 40 by 40 by 16 km box of\nreflectivity and confidence around the cell, built from the polar sweeps\nthe flat products are made from. It is a separate object rather than part\nof this payload because it is about 140 kB and almost nobody opens it, and\nit carries no URL because it lives in the same public bucket as the\nrendered tiles -- the client joins `path` to the tile base it already has.\n\n`path` includes the bucket, and has to. The tile base is the object\nstore's own root, not a bucket inside it, so the first segment of every\npath under it names the bucket -- which is why the rendered tiles are\nfetched from `<base>/meteoradar/...`. A path without it asks for a bucket\nnamed after the first directory, and the store answers 403.\n\n`coverage` is the mean confidence through the 3 to 8 km layer, which is\nwhere an overhang would be. It decides the tier: a volume below the\nworker's floor is drawn on the map but not offered for opening, since\nthe cutaway cannot show when its own data is thin.",
+        "description": "Where to find this cell's radar volume, and how much to trust it.\n\nThe volume is the cutaway view's data: one map tile of sky, about 26 by\n26 by 16 km, of reflectivity and confidence, built from the polar sweeps\nthe flat products are made from. It is a separate object rather than part\nof this payload because it is tens of kB and almost nobody opens it, and\nit carries no URL because it lives in the same public bucket as the\nrendered tiles -- the client joins `path` to the tile base it already has.\n\n`path` includes the bucket, and has to. The tile base is the object\nstore's own root, not a bucket inside it, so the first segment of every\npath under it names the bucket -- which is why the rendered tiles are\nfetched from `<base>/meteoradar/...`. A path without it asks for a bucket\nnamed after the first directory, and the store answers 403.\n\n`coverage` is the mean confidence through the 3 to 8 km layer, which is\nwhere an overhang would be. It decides the tier: a volume below the\nworker's floor is drawn on the map but not offered for opening, since\nthe cutaway cannot show when its own data is thin.",
         "properties": {
           "bytes": {
             "anyOf": [
@@ -1029,7 +1029,7 @@
         "type": "object"
       },
       "RadarVolume": {
-        "description": "A storm that can be cut open, found in the radar composite.\n\nNot necessarily a KONRAD3D cell. These are storm cores in the\ncolumn-maximum composite, so most of them are showers KONRAD3D never\nreports -- it is a warning product and lists only what might do harm. The\nposition is the core's peak, which is where the box is centred.",
+        "description": "One tile of a storm that can be cut open, found in the radar composite.\n\nNot necessarily a KONRAD3D cell. These are storms in each network's\ncomposite, so most of them are showers KONRAD3D never reports -- it is a\nwarning product and lists only what might do harm. A storm is boxed by\nevery zoom-10 Web Mercator tile it covers, so the boxes abut and never\noverlap; volumes from before tiles are one box per storm, centred on its\npeak, and carry no `tile`.",
         "properties": {
           "area_km2": {
             "anyOf": [
@@ -1040,7 +1040,7 @@
                 "type": "null"
               }
             ],
-            "description": "Area of the core above the seed threshold",
+            "description": "Area of the box above the seed threshold",
             "title": "Area Km2"
           },
           "bytes": {
@@ -1056,7 +1056,7 @@
             "title": "Bytes"
           },
           "code": {
-            "description": "Where the core's peak stands, to a hundredth of a degree, prefixed G",
+            "description": "The tile, `T` + zoom (2 digits) + x + y (5 each); before tiles, the core's peak to a hundredth of a degree, prefixed G",
             "title": "Code",
             "type": "string"
           },
@@ -1066,18 +1066,18 @@
             "type": "number"
           },
           "lat": {
-            "description": "Latitude of the core's peak, and of the box's centre",
+            "description": "Latitude of the box's centre: the tile's middle in Mercator",
             "title": "Lat",
             "type": "number"
           },
           "lon": {
-            "description": "Longitude of the core's peak, and of the box's centre",
+            "description": "Longitude of the box's centre: the tile's middle in Mercator",
             "title": "Lon",
             "type": "number"
           },
           "network": {
             "default": "de",
-            "description": "The network whose composite the core was found in",
+            "description": "The network whose composite the storm was found in",
             "title": "Network",
             "type": "string"
           },
@@ -1108,7 +1108,7 @@
                 "type": "null"
               }
             ],
-            "description": "Strongest reflectivity in the core, column maximum",
+            "description": "Strongest reflectivity in the box, column maximum",
             "title": "Peak Dbz"
           },
           "reference_time": {
@@ -1150,11 +1150,38 @@
             "title": "Sites",
             "type": "array"
           },
+          "system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The code of the tile holding the peak of the storm this tile's own peak belongs to: one storm's tiles share it, so a client can treat them as one cloud",
+            "title": "System"
+          },
           "tier": {
             "default": 2,
             "description": "1: drawn on the map but not openable, its coverage below the floor; 2: the cutaway opens",
             "title": "Tier",
             "type": "integer"
+          },
+          "tile": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Web Mercator tile the box fills, as z, x, y; absent on volumes from before tiles",
+            "title": "Tile"
           }
         },
         "required": [

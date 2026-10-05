@@ -123,12 +123,13 @@ const CELL = /^[A-Za-z0-9_-]{1,64}$/;
  * services/worker-analysis/src/clouds.py `_key`; a core's code is its grid
  * position, which is only unique within one scan, hence the scan in front.
  *
- * Two namings: the network and a position code, `de-G1401218632`, for every
- * volume since the five networks were boxed, and the bare `R...` before.
- * Only the old one was accepted until 2026-10-01, so no newer core opened on
+ * Three namings: the network and a tile, `de-T100054400355`, since storms
+ * were boxed by map tile; the network and a position, `de-G1401218632`, from
+ * when the five networks were boxed until then; and the bare `R...` before.
+ * Only the oldest was accepted until 2026-10-01, so no newer core opened on
  * the map was ever written into the address, and no link to one opened.
  */
-const CLOUD_NAME = String.raw`((?:[a-z]{2}-)?(?:G\d{10}|R\d{1,12}))`;
+const CLOUD_NAME = String.raw`((?:[a-z]{2}-)?(?:T\d{12}|G\d{10}|R\d{1,12}))`;
 const CLOUD_LINK = new RegExp(String.raw`^(\d{8}T\d{6})\/${CLOUD_NAME}$`);
 const CLOUD_PATH = new RegExp(String.raw`^meteoradar\/volumes\/(\d{8}T\d{6})\/${CLOUD_NAME}\.mcvx$`);
 

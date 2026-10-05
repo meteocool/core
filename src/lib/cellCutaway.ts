@@ -5,9 +5,9 @@
  * numbers of vertical structure: `cellVolume.ts` reuses one measured outline at
  * every height and fits a profile to it, which is honest about what it knows
  * and cannot, by construction, lean. This is the other kind of picture. The
- * bytes here are a real 3D field -- DWD's polar sweeps, resampled onto a 40 by
- * 40 by 16 km grid around the storm -- so a core hanging downshear out over its
- * own inflow is in the data rather than in the renderer's imagination.
+ * bytes here are a real 3D field -- the polar sweeps, resampled onto one map
+ * tile of sky, about 26 by 26 by 16 km -- so a core hanging downshear out over
+ * its own inflow is in the data rather than in the renderer's imagination.
  *
  * ## Two channels, and why the second one matters more than it looks
  *
@@ -43,7 +43,7 @@ const MAGIC = 0x5856434d; // "MCVX", little-endian
 export interface CutawayHeader {
   code: string;
   reference_time: string;
-  /** Where the box is centred, which is the cell's own centroid. */
+  /** Where the box is centred: its tile's middle in Mercator, or before tiles the storm's peak. */
   lon: number;
   lat: number;
   nx: number;
@@ -67,6 +67,14 @@ export interface CutawayHeader {
   /** The newest and the oldest sweep in the box, ISO; absent on older volumes. */
   scanned_at?: string | null;
   oldest_scan_at?: string | null;
+  /** The Web Mercator tile the box fills, z, x, y; absent on volumes from before tiles. */
+  tile?: [number, number, number] | null;
+  /**
+   * Voxels at each end of each axis that are the neighbouring tiles' ground:
+   * sampled, so the field interpolates across a seam, but never drawn as
+   * this box. Absent on volumes from before tiles, which have none.
+   */
+  apron?: [number, number, number] | null;
 }
 
 export interface Cutaway {
@@ -88,7 +96,7 @@ export interface Cutaway {
   halfKm: [number, number, number];
 }
 
-/** How big the box is on each axis, in metres. */
+/** How big the box is on each axis, in metres, apron included: the texture's extent. */
 function extentOf(header: CutawayHeader): [number, number, number] {
   return [
     header.nx * header.step_m[0],
