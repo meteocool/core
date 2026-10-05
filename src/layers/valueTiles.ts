@@ -161,6 +161,35 @@ export default class ValueTileSource extends DataTileSource {
 }
 
 /**
+ * Asked for by `forgetEarlierFrames`; each layer compares its own count to it.
+ */
+let forgetting = 0;
+
+/**
+ * Let every value layer drop the tiles of every frame but the one it shows.
+ *
+ * Playback keeps each step's tiles, so a loop never fetches or decodes them
+ * twice -- up to 512 tiles a layer, for DWD and every network, most of the
+ * radar's memory. Once the player is closed nothing steps through them any
+ * more. Each layer lets them go the next time its own frame is fully drawn,
+ * which is after the switch back to the newest: dropped at once, they could
+ * not stand in while it loads, and the radar would blink empty.
+ */
+export function forgetEarlierFrames(): void {
+  forgetting += 1;
+}
+
+interface FrameCache {
+  renderComplete?: boolean;
+  getStaleKeys?(): string[];
+  tileRepresentationCache?: {
+    getKeys(): string[];
+    peek(key: string): { tile: { key: string }; dispose(): void };
+    remove(key: string): unknown;
+  };
+}
+
+/**
  * Let an older frame stand in only while the frame on screen loads.
  *
  * When a source changes key -- a new frame, a step of playback -- OpenLayers
@@ -176,14 +205,27 @@ export default class ValueTileSource extends DataTileSource {
  * Once the frame on screen is fully drawn, the earlier keys are dropped: the
  * swap they bridge is over. A later zoom or pan then fills in from coarser
  * tiles of the current frame, which is blurrier for a moment but never the
- * wrong time.
+ * wrong time. That is also when the earlier frames' tiles themselves go,
+ * if `forgetEarlierFrames` has asked since the last time.
  */
 export function staleOnlyWhileLoading(layer: WebGLTileLayer): WebGLTileLayer {
+  let forgot = forgetting;
   layer.on("postrender", () => {
-    const renderer = layer.getRenderer() as unknown as { renderComplete?: boolean; getStaleKeys?(): string[] } | null;
+    const renderer = layer.getRenderer() as unknown as FrameCache | null;
     if (!renderer?.renderComplete) return;
     const stale = renderer.getStaleKeys?.();
     if (stale?.length) stale.length = 0;
+    if (forgot === forgetting) return;
+    forgot = forgetting;
+    const cache = renderer.tileRepresentationCache;
+    const shown = layer.getSource()?.getKey();
+    if (!cache || shown === undefined) return;
+    for (const key of cache.getKeys()) {
+      const tile = cache.peek(key);
+      if (tile.tile.key === shown) continue;
+      cache.remove(key);
+      tile.dispose();
+    }
   });
   return layer;
 }
