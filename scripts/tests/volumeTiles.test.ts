@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { carryCut, cutPointOf, peelFloors } from "../../src/layers/cellVolumeLayer.ts";
-import { drawnExtentM, drawnPart, echoPart, overlap } from "../../src/lib/volumeBox.ts";
-import type { CutawayHeader } from "../../src/lib/cellCutaway.ts";
+import { drawnExtentM, drawnPart, echoPart, overlap, parentOf, tileCentre, tileCode } from "../../src/lib/volumeBox.ts";
+import type { Cutaway, CutawayHeader } from "../../src/lib/cellCutaway.ts";
 
 /** A tile's header as the worker writes it: 104 voxels across, one more each side of apron. */
 const TILE = {
@@ -114,4 +114,76 @@ test("a box is marched only where it holds echo, a voxel wider", () => {
 test("echo near a tile's edge is marched up to the edge, never into the apron", () => {
   const cut = overlap({ min: [1 / 106, 1 / 106, 0], max: [105 / 106, 105 / 106, 1] }, { min: [0, 0.4, 0], max: [0.3, 1, 0.5] });
   assert.deepEqual(cut, { min: [1 / 106, 0.4, 0], max: [0.3, 105 / 106, 0.5] });
+});
+
+test("a tile code is the worker's: T, the zoom in two digits, x and y in five", () => {
+  assert.equal(tileCode(10, 544, 355), "T100054400355");
+  assert.equal(tileCode(11, 1089, 711), "T110108900711");
+});
+
+test("a tile's centre is its middle in Mercator, as the worker places it", () => {
+  const [lon, lat] = tileCentre(10, 544, 355);
+  assert.ok(Math.abs(lon - 11.42578125) < 1e-9);
+  // What the worker's `Tile.centre` gives for row 355.
+  assert.ok(Math.abs(lat - 48.1074311884804) < 1e-9);
+});
+
+/** A core tile of 4 inner voxels a side and an apron of 1, two levels deep, every voxel marked by `mark`. */
+function child(x: number, y: number, mark: (column: number, row: number) => number): Cutaway {
+  const [n, nz] = [6, 2];
+  const voxels = new Uint8Array(n * n * nz * 2);
+  for (let level = 0; level < nz; level += 1) {
+    for (let row = 0; row < n; row += 1) {
+      for (let column = 0; column < n; column += 1) {
+        const at = ((level * n + row) * n + column) * 2;
+        voxels[at] = mark(column, row);
+        voxels[at + 1] = 255;
+      }
+    }
+  }
+  const header = {
+    code: tileCode(11, x, y), nx: n, ny: n, nz, step_m: [250, 250, 500], origin_m: [-750, -750, 0],
+    tile: [11, x, y], apron: [1, 1, 0], sites: [`s${x}${y}`], coverage: 0.8, dbz_floor: -32, dbz_scale: 2,
+  } as unknown as CutawayHeader;
+  return { header, voxels, extentM: [1500, 1500, 1000], centreKm: [0, 0, 0], halfKm: [1, 1, 1] };
+}
+
+test("a core tile's parent is its four siblings side by side, their outer aprons its own", () => {
+  // Each child marks its inner voxels with its quarter (1 NW, 2 NE, 3 SW, 4 SE)
+  // and its apron with 9, so where every voxel came from can be read back.
+  const quarter = { "100,200": 1, "101,200": 2, "100,201": 3, "101,201": 4 } as Record<string, number>;
+  const children = [[100, 200], [101, 200], [100, 201], [101, 201]].map(([x, y]) => child(x, y, (column, row) => (
+    column === 0 || row === 0 || column === 5 || row === 5 ? 9 : quarter[`${x},${y}`]
+  )));
+  const placed = (header: CutawayHeader, voxels: Uint8Array) => ({ header, voxels }) as unknown as Cutaway;
+
+  const parent = parentOf(children[2], children, placed);
+
+  const { header, voxels } = parent;
+  assert.equal(header.nx, 10);
+  assert.deepEqual(header.tile, [10, 50, 100]);
+  assert.deepEqual(header.sites, ["s100200", "s100201", "s101200", "s101201"]);
+  const at = (column: number, row: number, level = 0) => voxels[((level * 10 + row) * 10 + column) * 2];
+  // Rows run south to north: the south-west child fills the lower left.
+  assert.equal(at(1, 1), 3);
+  assert.equal(at(4, 4), 3);
+  assert.equal(at(5, 4), 4);
+  assert.equal(at(4, 5), 1);
+  assert.equal(at(8, 8, 1), 2);
+  // The parent's apron is its children's outer aprons; inside, no apron is left.
+  assert.equal(at(0, 3), 9);
+  assert.equal(at(9, 7), 9);
+  assert.equal(at(3, 9), 9);
+  for (let row = 1; row < 9; row += 1) for (let column = 1; column < 9; column += 1) assert.notEqual(at(column, row), 9);
+});
+
+test("a sibling that was never built leaves its quarter of the parent empty", () => {
+  const children = [child(100, 200, () => 50), null, child(100, 201, () => 50), child(101, 201, () => 50)];
+  const placed = (header: CutawayHeader, voxels: Uint8Array) => ({ header, voxels }) as unknown as Cutaway;
+
+  const { voxels } = parentOf(children[0]!, children, placed);
+
+  const at = (column: number, row: number) => voxels[(row * 10 + column) * 2 + 1];
+  assert.equal(at(7, 7), 0);
+  assert.equal(at(2, 7), 255);
 });
