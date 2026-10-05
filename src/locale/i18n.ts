@@ -11,6 +11,7 @@
  * Imported for its side effect, before anything renders: App.svelte imports
  * it, and the entrypoints hold the first mount on `i18nReady`.
  */
+import { get } from "svelte/store";
 import { addMessages, init, locale, register, waitLocale } from "svelte-i18n";
 import en from "./en.json";
 import { chooseLocale } from "./choose";
@@ -23,11 +24,14 @@ register("nl", () => import("./nl.json"));
 register("cs", () => import("./cs.json"));
 register("sk", () => import("./sk.json"));
 
-/* The browser's language, or `?lang=`: choose.ts. */
-init({
+/* The browser's language, or `?lang=`: choose.ts. What `init` hands back
+   rejects when the chosen catalogue cannot be fetched; `i18nReady` below is
+   what copes with that, so the rejection itself is dropped rather than left
+   unhandled. */
+Promise.resolve(init({
   fallbackLocale: "en",
   initialLocale: chooseLocale(),
-});
+})).catch(() => undefined);
 
 locale.subscribe((tag) => {
   if (tag && typeof document !== "undefined") document.documentElement.lang = tag;
@@ -41,8 +45,14 @@ const READY_WAIT_MS = 1500;
  * a slow or failed chunk must never hold the map back. The page then renders
  * in English and switches over when the strings land -- svelte-i18n re-renders
  * everything reading `$_` once they do.
+ *
+ * English is set for that wait in so many words. svelte-i18n has no locale at
+ * all until the chosen catalogue is in, and formats nothing without one: every
+ * `$_` threw, the mount with it, and the page stayed blank.
  */
 export const i18nReady: Promise<void> = Promise.race([
   waitLocale().then(() => undefined, () => undefined),
   new Promise<void>((resolve) => { setTimeout(resolve, READY_WAIT_MS); }),
-]);
+]).then(() => {
+  if (get(locale) == null) locale.set("en");
+});
