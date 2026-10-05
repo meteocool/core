@@ -51,14 +51,6 @@ export let linkIcon: IconDefinition | null = null;
 export let collapsed = true;
 
 /**
- * Whether there is a tray below at all. The 3D map has none, so there the
- * strip stands on the bottom edge instead of over a gap where the bar would
- * be -- and on a desktop, with nothing full-width under it to line up with,
- * it is a card rather than a band across the whole map.
- */
-export let tray = true;
-
-/**
  * Whether a tap on the strip itself -- anywhere but its buttons -- raises
  * `tap`, the way tapping a notification opens what it is about. Off for the
  * charts, whose taps are reading the plot.
@@ -91,29 +83,12 @@ function dismiss(leaving: Leaving) {
     z-index: var(--mc-z-chart);
   }
 
+  /* Over the short bar, from wherever the bar stands: its own
+     --mc-collapsed-bottom, which in the iOS app is closer to the edge than the
+     safe-area inset (glass.css). Measured from the inset instead, the strip
+     stood 28px above the iOS bar rather than a tray gap. */
   .strip-dock.collapsed {
-    bottom: calc(
-      var(--mc-safe-bottom) + var(--mc-tray-gap) + var(--mc-bar-h) + var(--mc-tray-gap)
-    );
-  }
-
-  .strip-dock.trayless {
-    bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
-  }
-
-  /* Centred, as wide as a toast, and off the guide in the 3D map's bottom
-     left corner, which publishes how much of the edge it takes (Guide3D):
-     past it where the window is too narrow to centre the card clear of it.
-     Over the line of credits along the bottom edge (Map.svelte), which a
-     phone turns up the side instead. */
-  @media (min-width: 621px) {
-    .strip-dock.trayless {
-      --clear: var(--mc-guide-3d-inset, var(--mc-gutter));
-      bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap) + 14px);
-      left: max(var(--clear), calc(50% - 14rem));
-      right: auto;
-      width: min(28rem, calc(100% - var(--clear) - var(--mc-gutter)));
-    }
+    bottom: calc(var(--mc-collapsed-bottom) + var(--mc-bar-h) + var(--mc-tray-gap));
   }
 
   /* The panel's content: a title row over the plot, the same width as the
@@ -247,7 +222,6 @@ function dismiss(leaving: Leaving) {
 <div
   class="strip-dock"
   class:collapsed
-  class:trayless={!tray}
   out:fly={{ ...out }}
   in:fade={{ duration: 200 }}>
   <SwipeDock action={$_("hide")} {tappable} on:tap on:dismiss={(e) => dismiss(e.detail)}>
