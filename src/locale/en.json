@@ -597,5 +597,8 @@
       "not_built": "not built",
       "no_sample": "no sample"
     }
+  },
+  "notice": {
+    "no_webgl": "The rain radar cannot be shown: this browser does not offer WebGL. On an iPhone or iPad, Lockdown Mode turns it off."
   }
 }

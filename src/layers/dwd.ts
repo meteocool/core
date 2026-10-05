@@ -1,7 +1,7 @@
 import Feature from "ol/Feature";
 import Fill from "ol/style/Fill";
 import Style from "ol/style/Style";
-import TileLayer from "ol/layer/WebGLTile";
+import TileLayer from "./webglTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";

@@ -1,5 +1,5 @@
 import LayerGroup from "ol/layer/Group";
-import TileLayer from "ol/layer/WebGLTile";
+import TileLayer from "./webglTile";
 import ImageTileSource from "ol/source/ImageTile";
 // These used `crossOrigin: null` under XYZ to leave the attribute off the
 // image entirely; ImageTile takes only "anonymous"/"use-credentials", and

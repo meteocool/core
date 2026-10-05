@@ -586,5 +586,8 @@
       "not_built": "nesestaveno",
       "no_sample": "žádný vzorek"
     }
+  },
+  "notice": {
+    "no_webgl": "Srážkový radar nelze zobrazit: tento prohlížeč nenabízí WebGL. Na iPhonu a iPadu ho vypíná režim blokování."
   }
 }
