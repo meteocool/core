@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import {
-  isBehind, isVolumeBehind, networkOf, radarScanOf, scanTime, VolumeFeed, VOLUME_RETRIES, VOLUME_RETRY_MS,
+  isBehind, isPastItsScan, isVolumeBehind, networkOf, radarScanOf, scanTime, VolumeFeed, VOLUME_RETRIES,
+  VOLUME_RETRY_MS,
 } from "../../src/lib/scans.ts";
 
 const at = (hhmm: string) => scanTime(`2026-10-01T${hhmm}:00Z`)!;
@@ -151,4 +152,17 @@ test("under the merged composite every storm is judged against its one frame", (
 test("a storm with no radar drawn under it is not behind", () => {
   assert.ok(!isVolumeBehind(storm("00:00", "fr"), radar("00:05")));
   assert.ok(!isVolumeBehind(storm("00:00"), radar(null)));
+});
+
+test("an open storm is past its scan once a newer list of its network comes without it", () => {
+  const open = { path: "a/1020/de-1", network: "de", reference_time: "2026-10-01T10:20:00Z" };
+  const later = (path: string, network = "de") => ({ path, network, reference_time: "2026-10-01T10:25:00Z" });
+  assert.equal(isPastItsScan(open, [later("b/1025/de-1"), later("b/1025/de-2")]), true);
+  // Still listed, or nothing newer from its own network: nothing has moved past it.
+  assert.equal(isPastItsScan(open, [open, later("b/1025/de-2")]), false);
+  assert.equal(isPastItsScan(open, [later("b/1025/ch-1", "ch")]), false);
+  // Before the first list, every storm is missing from it.
+  assert.equal(isPastItsScan(open, []), false);
+  // Volumes from before networks were recorded are DWD's.
+  assert.equal(isPastItsScan({ ...open, network: null }, [later("b/1025/de-1")]), true);
 });
