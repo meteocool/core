@@ -41,6 +41,8 @@ let chart;
 let loading = true;
 let unavailable = false;
 let noLightning = false;
+/** No 2D context to draw the counts on; see `canvasInit`. */
+let cannotDraw = false;
 let delayedLoader: ReturnType<typeof setTimeout> | null = null;
 
 let dismissed = false;
@@ -133,6 +135,15 @@ const LAYOUT_RETRY_MS = 250;
 let statsToken = 0;
 
 async function update() {
+  if (cannotDraw) {
+    // Outdating any count already asked for, which would land over a canvas
+    // it cannot be drawn on and take the message back down.
+    statsToken += 1;
+    loading = false;
+    noLightning = true;
+    unavailable = true;
+    return;
+  }
   const polygon = viewportRing();
   if (!polygon) {
     /* Not an error and not an empty result: the map is on its way onto the
@@ -174,7 +185,17 @@ $: if (chart) {
 }
 
 function canvasInit(elem: HTMLCanvasElement) {
-  chart = new Chart(elem.getContext("2d")!, {
+  /* iOS stops handing out 2D contexts once the page's canvases have used up
+     its canvas memory. Chart.js then reported "can't acquire context" as an
+     error and left a chart that could not draw; the strip says the counts are
+     unavailable instead. */
+  const context = elem.getContext("2d");
+  if (!context) {
+    cannotDraw = true;
+    update();
+    return undefined;
+  }
+  chart = new Chart(context, {
     type: "bar",
     data: {
       labels: axisLabels($_),
