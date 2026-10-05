@@ -1,10 +1,12 @@
-import type { FrameState } from "ol/Map";
-
 /**
- * Whether the flat map on screen is moving, for the things that are cheaper
- * done differently while it does: the glass drops its blur (layers/ui.ts) and
- * the decluttered labels stop being placed afresh every frame
- * (layers/frozenDeclutter.ts).
+ * Whether the flat map on screen is moving, for the things that are done
+ * differently while it does: the glass can drop its blur (layers/ui.ts), and
+ * a touch device's first moves are timed (lib/slowDevice.ts).
+ *
+ * Not for anything that changes how OpenLayers draws: a vector layer does not
+ * rebuild what it draws while the map is being moved, so switching, say,
+ * label decluttering off for a drag left the cells, the storm tags and the
+ * no-radar wash drawn for the other mode, and not drawn at all.
  *
  * LayerManager reports the main map's movestart and moveend. Listeners hear
  * `true` at once and `false` only once the map has been still for
@@ -16,11 +18,7 @@ import type { FrameState } from "ol/Map";
 /** How long the map has to be still before it counts as stopped. */
 export const SETTLE_MS = 250;
 
-/**
- * `frameState`, on a start, is the last frame drawn at rest: what movestart
- * hands over, and what the labels were last placed in.
- */
-export type MotionListener = (moving: boolean, frameState?: FrameState | null) => void;
+export type MotionListener = (moving: boolean) => void;
 
 const listeners = new Set<MotionListener>();
 let moving = false;
@@ -33,13 +31,13 @@ export function onMapMotion(listener: MotionListener): () => void {
 }
 
 /** Report the main map starting (`true`) or coming to rest (`false`). */
-export function reportMapMotion(now: boolean, frameState?: FrameState | null) {
+export function reportMapMotion(now: boolean) {
   clearTimeout(settleTimer);
   settleTimer = undefined;
   if (now) {
     if (moving) return;
     moving = true;
-    listeners.forEach((listener) => listener(true, frameState));
+    listeners.forEach((listener) => listener(true));
     return;
   }
   if (!moving) return;
