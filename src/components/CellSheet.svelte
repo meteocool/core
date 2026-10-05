@@ -330,6 +330,9 @@ let thumbHeight = 0;
 let indicatorTimer: ReturnType<typeof setTimeout> | null = null;
 
 function showIndicator(el: HTMLElement) {
+  // A closing sheet's body still scrolls as its content goes, after the sheet
+  // itself is unbound.
+  if (!sheetEl) return;
   const range = el.scrollHeight - el.clientHeight;
   const sheetTop = sheetEl.getBoundingClientRect().top;
   const body = el.getBoundingClientRect();
