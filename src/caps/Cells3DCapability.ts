@@ -1318,6 +1318,10 @@ export default class Cells3DCapability extends Capability {
     // already on every open after the first, so this costs nothing then.
     await this.settled;
     if (this.openToken !== token) return;
+    // Held again: a refresh landing while the map settled let go of every
+    // volume not in its list, and a linked storm from an older scan is in
+    // none, so it was never drawn or cut.
+    this.cutaways.set(target.volume.path, entry);
     this.opened = { path: target.volume.path, heading: target.heading };
     // The storm open before this one may have been kept past its scan.
     this.dropUnlisted();
