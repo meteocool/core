@@ -1,4 +1,5 @@
 import { Workbox } from "workbox-window";
+import { unsupportedBrowser } from "./browserSupport";
 
 /**
  * Install the service worker, and reload onto a new one once it takes over.
@@ -10,7 +11,7 @@ import { Workbox } from "workbox-window";
  * warning, where each entry point used to leave it an unhandled rejection.
  */
 export function registerServiceWorker(): void {
-  if (!("serviceWorker" in navigator)) return;
+  if (!("serviceWorker" in navigator) || unsupportedBrowser) return;
   const wb = new Workbox("sw.js");
   wb.addEventListener("controlling", (evt) => {
     if (evt.isUpdate) {
