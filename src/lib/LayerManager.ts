@@ -37,6 +37,7 @@ import type { CapabilityOptions } from "../caps/options";
 import { elementCentre } from "./viewCentre";
 import { isScreenshot } from "./screenshot";
 import { reportMapMotion } from "./mapMotion";
+import { releaseWhileHidden } from "./hiddenMaps";
 
 /** One entry of the capability list App.svelte builds. */
 export interface CapabilityDescriptor {
@@ -452,6 +453,7 @@ export class LayerManager {
       mapView.set({ lat, lon, zoom: newMap.getView().getZoom() ?? 0 });
     });
     newMap.set("baselayer", baselayer);
+    releaseWhileHidden(newMap);
     return newMap;
   }
 
