@@ -19,7 +19,7 @@ export type PokeEvent = Schemas["Poke"];
 export type SnowEvent = Schemas["SnowRefresh"];
 /** A new KONRAD3D run landed; the payload is a nudge, not the cells. */
 export type CellsEvent = Schemas["CellsRefresh"];
-/** One EUMETNET network's composite was re-rendered; refetch only that network's frame. */
+/** One EUMETNET network's composite, the merged one (`eu`) or DWD's DMAX (`dmax`) was re-rendered; refetch only that frame. */
 export type NetworkEvent = Schemas["NetworkRefresh"];
 /** One run's volumes, or one part of a run's, are built; refetch `/cells/volumes`. */
 export type VolumesEvent = Schemas["VolumesRefresh"];

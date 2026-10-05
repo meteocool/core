@@ -3,6 +3,7 @@ import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
 import { REACHABLE, type Reachability } from "./lib/reachability";
 import { INITIAL_CONNECTION, type Connection } from "./lib/connectionState";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
+import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct } from "./lib/observedProduct";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties, RadarVolume } from "./api";
 
@@ -207,12 +208,22 @@ export const cells3dVisible = writable<boolean>(false);
  */
 export const terrain3dVisible = writable<boolean>(true);
 /**
- * Whether the live frame is drawn from the merged European composite -- every
- * network's lowest tilts on one grid -- in place of DWD's frame and the four
- * network layers. Off unless the reader turns it on: a product built on a
- * background worker, offered beside the map's own arrangement, not over it.
+ * Which product the radar map's observed frames are drawn from, as the reader
+ * picked it in the tray: HX with the networks around it, the merged
+ * composite, or DMAX; see lib/observedProduct.ts. Mirrors the `radarProduct`
+ * setting.
  */
-export const europeCompositeVisible = writable<boolean>(false);
+export const observedProduct = writable<ObservedProduct>(DEFAULT_PRODUCT);
+/**
+ * What the radar map does with that choice, for the picker: what it draws --
+ * the choice, or the default while the choice falls behind -- and how old
+ * each product's newest scan is. Published by RadarCapability.
+ */
+export const radarProducts = writable<{ chosen: ObservedProduct; drawn: ObservedProduct; scans: NewestScans }>({
+  chosen: DEFAULT_PRODUCT,
+  drawn: DEFAULT_PRODUCT,
+  scans: { hx: null, merged: null, dmax: null },
+});
 /**
  * Whether the 3D map is still being brought up for the first time.
  *

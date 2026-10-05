@@ -6,6 +6,7 @@ import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
 import type ValueTileSource from "../layers/valueTiles";
 import NetworkRadarLayer, { EUROPE, NETWORKS } from "../layers/network";
+import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
@@ -32,7 +33,8 @@ import {
   selectedCell,
   setFrames,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
-  europeCompositeVisible,
+  observedProduct,
+  radarProducts,
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
@@ -41,9 +43,11 @@ import type { CapabilityOptions, RadarSocket } from "./options";
 import { isDry } from "../lib/dryness";
 import Capability from "./Capability";
 import { tileBaseUrl } from "../urls";
-import { fetchRadarTimeseries, fetchSnowOverlay } from "../api";
+import { fetchColumnMaximum, fetchRadarTimeseries, fetchSnowOverlay } from "../api";
 import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
+import { DEFAULT_PRODUCT, drawnProduct, stepFrame } from "../lib/observedProduct";
+import type { AlternativeProduct, NewestScans, ObservedProduct } from "../lib/observedProduct";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
 import { timedFetch } from "../lib/timedFetch";
@@ -106,6 +110,8 @@ export interface GridStep {
   bucket?: string;
   /** When the backend produced this frame. Absent on the seeded placeholders. */
   processed_time?: number;
+  /** When the radars measured it; a forecast step's run's issue time. */
+  upstream_time?: number | null;
   /** Which tiles the frame has; see lib/tileIndex.ts. Absent on older frames. */
   tiles?: TileIndex | null;
   /** Where the frame's value tiles are, and what they hold; see lib/rvp6.ts. */
@@ -159,14 +165,33 @@ export default class RadarCapability extends Capability {
   private networks: NetworkRadarLayer[];
 
   /**
-   * The merged European composite, drawn in place of DWD's frame and the
-   * networks' on the live step while the reader has it on; see `showNetworks`.
+   * The merged European composite, drawn whole in place of DWD's frame and
+   * the networks' on every observed step while it is the drawn product; see
+   * `showNetworks`. Its newest frame is fetched whatever is drawn, for the
+   * picker's age.
    */
   private europe: NetworkRadarLayer;
 
-  private europeWanted = false;
+  /**
+   * DWD's column maximum, newest frame: drawn through DWD's own layer, on
+   * HX's grid and with HX's holes, while it is the drawn product; see
+   * `dwdFrame`. Fetched whatever is drawn, like the merged composite.
+   */
+  private dmax = new LatestFrame(fetchColumnMaximum);
 
-  private unsubscribeEurope: (() => void) | null = null;
+  /** The product the reader picked; see lib/observedProduct.ts. */
+  private chosen: ObservedProduct = DEFAULT_PRODUCT;
+
+  /** The product the map draws: the choice, or the default while it falls behind. */
+  private drawn: ObservedProduct = DEFAULT_PRODUCT;
+
+  private unsubscribeProduct: (() => void) | null = null;
+
+  /**
+   * The chosen product's frame for each observed step it has one for, from
+   * the same response as the grid when the request asked for it.
+   */
+  private productGrid: Partial<Record<AlternativeProduct, Record<number, RadarFrame>>> = {};
 
   /**
    * Each network's composite for each observed step it has one for, from the
@@ -240,15 +265,16 @@ export default class RadarCapability extends Capability {
     this.networks = NETWORKS.map((network) => new NetworkRadarLayer(
       map, network, () => this.notify("networks", this.liveNetworkFrames()),
     ));
-    this.europe = new NetworkRadarLayer(map, EUROPE, () => {
-      this.reshowNetworks();
-      this.notify("networks", this.liveNetworkFrames());
-    });
-    this.unsubscribeEurope = europeCompositeVisible.subscribe((wanted) => {
-      this.europeWanted = wanted;
-      if (wanted) this.europe.refresh(this.nanobar);
-      this.reshowNetworks();
-      this.notify("networks", this.liveNetworkFrames());
+    // Not an observer's business: the 3D map drapes HX and the networks
+    // whatever the flat map draws.
+    this.europe = new NetworkRadarLayer(map, EUROPE, () => this.productsChanged());
+    this.unsubscribeProduct = observedProduct.subscribe((product) => {
+      this.chosen = product;
+      // Its past comes with the grid, asked for by name: a grid already in
+      // hand was asked for without it. The first call is construction, whose
+      // own first request below asks.
+      if (product !== DEFAULT_PRODUCT && this.serverGrid && !this.productGrid[product]) this.reloadRadar();
+      this.productsChanged();
     });
 
     /* The networks follow the scrubber: their own newest frame on the live
@@ -369,13 +395,17 @@ export default class RadarCapability extends Capability {
           this.downloadSnowOverlay();
         });
       };
-      // One network's composite, re-rendered: refetch that one frame only.
-      // Not `poke`, which reloads DWD's whole timeseries, and these land
-      // every minute or two.
+      // One network's composite, the merged one or DMAX, re-rendered:
+      // refetch that one frame only. Not `poke`, which reloads DWD's whole
+      // timeseries, and these land every minute or two.
       this.networkHandler = ({ network }) => {
         whenVisible(`radar:network:${network}`, () => {
           if (network === EUROPE.code) {
-            if (this.europeWanted) this.europe.refresh(this.nanobar);
+            this.europe.refresh(this.nanobar);
+            return;
+          }
+          if (network === "dmax") {
+            this.refreshColumnMaximum();
             return;
           }
           this.networks.find((layer) => layer.network.code === network)?.refresh(this.nanobar);
@@ -387,6 +417,8 @@ export default class RadarCapability extends Capability {
       this.loaded = Promise.allSettled([
         this.downloadCurrentRadar(),
         ...this.networks.map((network) => network.refresh(this.nanobar)),
+        this.europe.refresh(this.nanobar),
+        this.refreshColumnMaximum(),
         this.snowRequest,
       ]);
     }
@@ -472,9 +504,9 @@ export default class RadarCapability extends Capability {
 
     const urls: string[] = [];
     for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
-      const template = this.clientGrid[step]?.url;
-      if (!template) break;
-      const index = this.clientGrid[step]?.tiles;
+      const frame = this.dwdFrame(step);
+      if (!frame) break;
+      const { url: template, tiles: index } = frame;
       tileGrid.forEachTileCoord(extent, z, ([tz, tx, ty]) => {
         if (urls.length >= PREFETCH_MAX_TILES) return;
         // Past a frame's deepest zoom its tiles come out of their ancestor's.
@@ -492,14 +524,21 @@ export default class RadarCapability extends Capability {
 
     // The networks' frames for the same steps: over their countries DWD's
     // tiles are holes, so without these playback there is half-loaded anyway.
+    // Or the merged composite's, on the steps it stands in for all of them.
+    const ahead: number[] = [];
+    for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
+      ahead.push(step);
+    }
+    const merged = ahead.map((step) => this.alternativeFrame("merged", step));
     for (const network of this.networks) {
-      const frames: RadarFrame[] = [];
-      for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
-        const frame = this.networkGrid[network.network.code]?.[step];
-        if (frame) frames.push(frame);
-      }
+      const frames = ahead
+        .filter((_step, i) => !merged[i])
+        .map((step) => this.networkGrid[network.network.code]?.[step])
+        .filter((frame): frame is RadarFrame => Boolean(frame));
       if (frames.length) urls.push(...network.tileUrls(frames, PREFETCH_MAX_TILES));
     }
+    const europe = merged.filter((frame): frame is RadarFrame => frame !== null);
+    if (europe.length) urls.push(...this.europe.tileUrls(europe, PREFETCH_MAX_TILES));
 
     if (this.prefetched.size > PREFETCH_REMEMBERED) this.prefetched.clear();
     for (const url of urls) {
@@ -588,33 +627,91 @@ export default class RadarCapability extends Capability {
     return frames;
   }
 
-  /** The merged European composite's newest frame, when the reader has it on and it is fresh; else null. */
-  liveEuropeFrame(): RadarFrame | null {
-    return this.europeWanted ? this.europe.current() : null;
-  }
-
   /**
-   * The scans of the radar the live step shows: what a storm's volume is
-   * judged against, drawn grey on the 3D map when older. The same frames
-   * App.svelte drapes there -- the merged composite whole, or DWD's and each
-   * network's own.
+   * The scans of the radar the live step shows on the 3D map: what a storm's
+   * volume is judged against, drawn grey there when older. The same frames
+   * App.svelte drapes there, DWD's and each network's own, whichever product
+   * the flat map draws.
    */
   liveRadarScans(): RadarScans {
     const step = this.getMostRecentObservation();
-    const europe = this.liveEuropeFrame();
     return {
-      scan: europe || this.clientGrid?.[step]?.url ? step : null,
-      whole: europe !== null,
-      networks: europe ? {} : this.liveNetworkFrames(),
+      scan: this.clientGrid?.[step]?.url ? step : null,
+      networks: this.liveNetworkFrames(),
     };
   }
 
-  /** Everything: DWD's grid and every network's frame. For a wake, where any of it may have moved on. */
+  /** Everything: DWD's grid and every other product's frame. For a wake, where any of it may have moved on. */
   reloadAll() {
     console.log("reloadAll");
     this.reloadRadar();
     for (const network of this.networks) network.refresh(this.nanobar);
-    if (this.europeWanted) this.europe.refresh(this.nanobar);
+    this.europe.refresh(this.nanobar);
+    this.refreshColumnMaximum();
+  }
+
+  /** DMAX's newest frame, and whatever that changes on the map. */
+  private async refreshColumnMaximum() {
+    await this.dmax.refresh(this.nanobar);
+    this.productsChanged();
+  }
+
+  /** Each product's newest scan, where it has a fresh frame: what the picker ages, and the fallback judges. */
+  private newestScans(): NewestScans {
+    const step = this.getMostRecentObservation();
+    const newest = this.clientGrid?.[step];
+    return {
+      hx: newest?.url && newest.source === "observation" ? (newest.upstream_time ?? step) : null,
+      merged: this.europe.current()?.upstream_time ?? null,
+      dmax: this.dmax.current()?.upstream_time ?? null,
+    };
+  }
+
+  /**
+   * Re-decide what the map draws, after anything that can change it -- the
+   * reader's choice, or a new frame of any of the three products -- say so to
+   * the picker, and put it on the step on screen.
+   */
+  private productsChanged() {
+    const scans = this.newestScans();
+    this.drawn = drawnProduct(this.chosen, scans);
+    radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans });
+    const shown = get(capTimeIndicator);
+    const url = this.dwdFrame(shown)?.url;
+    if (this.source && url) {
+      // Indices first: the frame `setHoles` re-points at consults them.
+      this.source.setIndices(this.indices());
+      this.source.setHoles(this.holes(), url);
+    }
+    this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
+  }
+
+  /**
+   * The drawn product's own frame for a step, when that is `product` and it
+   * has one there; null where the default stands. See `stepFrame`.
+   */
+  private alternativeFrame(product: AlternativeProduct, step: number): RadarFrame | null {
+    const frame = this.clientGrid?.[step];
+    return stepFrame(
+      product,
+      this.drawn,
+      { observed: frame?.source === "observation" && Boolean(frame.url), live: step === this.getMostRecentObservation(), key: step },
+      this.productGrid[product],
+      product === "dmax" ? this.dmax.current() : this.europe.current(),
+    );
+  }
+
+  /**
+   * What DWD's layer draws on a step, and which tiles that frame has: DMAX's
+   * frame there while it is the drawn product and has one, else the grid's --
+   * HX's, or WN's on a forecast step. Null where the grid has nothing yet.
+   */
+  private dwdFrame(step: number): { url: string; tiles?: TileIndex | null } | null {
+    const frame = this.clientGrid?.[step];
+    if (!frame?.url) return null;
+    const dmax = this.alternativeFrame("dmax", step);
+    if (dmax) return { url: tileSourceUrl("meteoradar", drawnTileId(dmax)), tiles: dmax.tiles };
+    return { url: frame.url, tiles: frame.tiles };
   }
 
   /**
@@ -626,11 +723,12 @@ export default class RadarCapability extends Capability {
     this.downloadCurrentRadar();
   }
 
-  /** Which tiles each of DWD's frames has, by the frame's URL; see lib/tileIndex.ts. */
+  /** Which tiles each frame DWD's layer draws has, by the frame's URL; see lib/tileIndex.ts. */
   private indices(): globalThis.Map<string, TileIndex | null | undefined> {
     const indices = new globalThis.Map<string, TileIndex | null | undefined>();
-    for (const frame of Object.values(this.clientGrid ?? {})) {
-      if (frame?.url) indices.set(frame.url, frame.tiles);
+    for (const key of Object.keys(this.clientGrid ?? {})) {
+      const frame = this.dwdFrame(parseInt(key, 10));
+      if (frame) indices.set(frame.url, frame.tiles);
     }
     return indices;
   }
@@ -649,7 +747,12 @@ export default class RadarCapability extends Capability {
       const codes = step === newest
         ? ALL_NETWORKS
         : ALL_NETWORKS.filter((code) => this.networkGrid[code]?.[step]);
-      if (codes.length) holes.set(frame.url, codes);
+      if (!codes.length) continue;
+      // DMAX's newest frame is drawn on the live step and is usually also the
+      // step before's, a cycle behind HX: one URL, cut for both.
+      const url = this.dwdFrame(step)!.url;
+      const already = holes.get(url) ?? [];
+      holes.set(url, ALL_NETWORKS.filter((code) => codes.includes(code) || already.includes(code)));
     }
     return holes;
   }
@@ -657,24 +760,21 @@ export default class RadarCapability extends Capability {
   /**
    * Point every network layer at the step on screen.
    *
-   * On the live step with the European composite on and fresh, that one
-   * frame stands in for all five products: DWD's layer and the networks'
-   * are hidden under it rather than blended with it, since every palette is
-   * part transparent and two drawn together read as a third intensity.
+   * On an observed step the merged composite is drawn on, while it is the
+   * drawn product, that one frame stands in for all five products: DWD's
+   * layer and the networks' are hidden under it rather than blended with it,
+   * since every palette is part transparent and two drawn together read as a
+   * third intensity.
    */
   private showNetworks(shown: number, live: boolean) {
-    const europe = live && this.liveEuropeFrame() !== null;
+    const europe = this.alternativeFrame("merged", shown);
     for (const network of this.networks) {
       network.show(live && !europe, europe ? null : this.networkGrid[network.network.code]?.[shown] ?? null);
     }
-    this.europe.show(europe, null);
+    // The frame itself, the live one included: `alternativeFrame` has
+    // already judged the newest fresh.
+    this.europe.show(false, europe);
     this.layer?.setVisible(!europe);
-  }
-
-  /** `showNetworks` again for the step on screen, when what should show there has changed. */
-  private reshowNetworks() {
-    const shown = get(capTimeIndicator);
-    this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
   }
 
   /**
@@ -716,7 +816,8 @@ export default class RadarCapability extends Capability {
     const at = this.positionKey();
     this.gridRequests += 1;
     const request = this.gridRequests;
-    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition()).catch(() => null);
+    const product = this.chosen === "hx" ? null : this.chosen;
+    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), product).catch(() => null);
     if (!data) {
       live.set(false);
       return;
@@ -834,6 +935,7 @@ export default class RadarCapability extends Capability {
 
     this.serverGrid = obj.frames;
     this.networkGrid = obj.networks ?? {};
+    this.productGrid = obj.products ?? {};
     this.serverTime = obj.server_time;
     // The backend is the only thing that knows: a replay is built to be
     // indistinguishable from here, so there is nothing in the frames to infer
@@ -841,6 +943,8 @@ export default class RadarCapability extends Capability {
     replay.set(Boolean(obj.replay));
     this.gridconfig = this.regenerateGridConfig();
     const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
+    // Before any URL is chosen below: whether DMAX is drawn decides which.
+    this.drawn = drawnProduct(this.chosen, this.newestScans());
 
     if (!this.layer) {
       const last = this.clientGrid?.[this.getMostRecentObservation()];
@@ -852,7 +956,7 @@ export default class RadarCapability extends Capability {
     // Before any setUrl below: the step being moved onto is the one whose
     // holes matter. Following live, that step is the newest, so it is named
     // here and the frame being left is not re-keyed on the way out.
-    const newestUrl = this.clientGrid?.[this.getMostRecentObservation()]?.url;
+    const newestUrl = this.dwdFrame(this.getMostRecentObservation())?.url;
     if (newestUrl) {
       // Indices first: the frame `setHoles` re-points at consults them.
       this.source?.setIndices(this.indices());
@@ -885,9 +989,9 @@ export default class RadarCapability extends Capability {
     // it, now measurably behind.
     setFrames({ newest: this.getMostRecentObservation() });
     // A new grid can carry composites for the step on screen that the last
-    // one did not, and the indicator has not moved to say so.
-    const shown = get(capTimeIndicator);
-    this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
+    // one did not, and the indicator has not moved to say so -- and HX's
+    // newest scan, which the other products are measured against.
+    this.productsChanged();
     capLastUpdated.set(latestRadar);
     this.publishCadenceFromGrid();
     radarStale.set(false);
@@ -921,7 +1025,7 @@ export default class RadarCapability extends Capability {
     // the newest observation falls back to the server's clock, a placeholder.
     const step = this.clientGrid?.[mostRecent];
     if (step) {
-      const { url } = step;
+      const url = this.dwdFrame(mostRecent)?.url;
       if (this.source && url) this.source.setUrl(url);
       // Both halves: the newest observation is what is being reset onto, so
       // there is no tick in which the two disagree.
@@ -942,15 +1046,15 @@ export default class RadarCapability extends Capability {
       live.set(true);
     }
     setFrames({ shown: timestep });
-    const step = this.clientGrid?.[timestep];
-    if (step && step.url != null) this.source.setUrl(step.url);
+    const frame = this.dwdFrame(timestep);
+    if (frame) this.source.setUrl(frame.url);
   }
 
   destroy() {
     for (const network of this.networks) network.destroy();
     this.europe.destroy();
-    this.unsubscribeEurope?.();
-    this.unsubscribeEurope = null;
+    this.unsubscribeProduct?.();
+    this.unsubscribeProduct = null;
     this.unsubscribeLiveFrame?.();
     this.unsubscribeLiveFrame = null;
     if (this.gridRefreshTimeout !== null) {

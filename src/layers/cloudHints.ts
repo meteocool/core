@@ -174,7 +174,7 @@ export interface CloudHints {
 export default function makeCloudHints(): CloudHints {
   const source: VectorSource = new VectorSource({ features: [] });
   let clouds: RadarVolume[] = [];
-  let radar: RadarScans = { scan: null, whole: false, networks: {} };
+  let radar: RadarScans = { scan: null, networks: {} };
 
   /*
    * Off the source rather than merely not drawn, so a core from an older scan

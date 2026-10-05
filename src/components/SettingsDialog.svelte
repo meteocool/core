@@ -1,7 +1,7 @@
 <script lang="ts">
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
-import { cells3dVisible, europeCompositeVisible, mapBaseLayer, radarColormap, terrain3dVisible } from "../stores";
+import { cells3dVisible, mapBaseLayer, radarColormap, terrain3dVisible } from "../stores";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
 
@@ -91,10 +91,6 @@ function setCells3d(value: boolean) {
 
 function setTerrain3d(value: boolean) {
   window.settings.set("layer3dTerrain", value);
-}
-
-function setEuropeComposite(value: boolean) {
-  window.settings.set("layerEuropeComposite", value);
 }
 
 </script>
@@ -321,19 +317,6 @@ function setEuropeComposite(value: boolean) {
     </div>
     <p class="hint">{$_("settings.terrain_hint")}</p>
   {/if}
-  <h2>{$_("settings.experimental")}</h2>
-  <div class="group">
-    <label class="row">
-      <span class="label">{$_("settings.europe_composite")}</span>
-      <input
-        type="checkbox"
-        role="switch"
-        class="switch"
-        checked={$europeCompositeVisible}
-        on:change={(event) => setEuropeComposite(event.currentTarget.checked)} />
-    </label>
-  </div>
-  <p class="hint">{$_("settings.europe_composite_hint")}</p>
   <h2>{$_("settings.environment")}</h2>
   <div class="group">
     <a class="row" href={otherEnvironment} target="_blank" rel="noopener">

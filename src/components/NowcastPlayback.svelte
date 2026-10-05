@@ -25,6 +25,7 @@ import type { GridConfig } from "../caps/RadarCapability";
 
 import LastUpdated from "./LastUpdated.svelte";
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
+import RadarProductPicker from "./RadarProductPicker.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import Timeline from "./Timeline.svelte";
 import { _, locale } from "svelte-i18n";
@@ -759,6 +760,10 @@ onDestroy(() => {
     white-space: nowrap;
   }
   .legend { display: none; min-width: 0; }
+  .product-pill {
+    flex: 0 0 auto;
+    display: inline-flex;
+  }
 
   /* A tint on the open tray; collapsed controls add their own glass below. */
   .controlButton {
@@ -882,6 +887,7 @@ onDestroy(() => {
   /* Desktop: the legend joins the row at the right. */
   @media only screen and (min-width: 1120px) {
     :global(html:not(.is-ios)) .legend { display: block; }
+    :global(html:not(.is-ios)) .product-pill:not(.always) { display: none; }
   }
 
   /* The collapsed strip's plot: the same timeline, read-only, spanning the
@@ -1023,6 +1029,10 @@ onDestroy(() => {
         {:else}
           <span class="title quiet">{$_("chrome.playback.controls")}</span>
         {/if}
+        <!-- The product picker is the legend's caption; where the legend is not
+             shown, it is this, up here rather than in the row of controls,
+             which has no room left on a phone. -->
+        <span class="product-pill" class:always={dd.isApp()}><RadarProductPicker variant="pill" /></span>
         <button type="button" class="controlButton collapse" on:click={hide}
           title={$_("chrome.playback.collapse")} aria-label={$_("chrome.playback.collapse")}>
           <Icon icon={faAngleDoubleDown} />

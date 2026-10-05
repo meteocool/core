@@ -424,6 +424,23 @@
       "clouds": "Chmury",
       "labels_borders": "Etykiety i granice"
     },
+    "radar_product": {
+      "title": "Produkt radarowy",
+      "choose": "Wybierz produkt radarowy",
+      "hx": "Najniższy skan",
+      "hx_short": "Skan",
+      "hx_hint": "Najniższe skany DWD i sąsiadów: deszcz przy ziemi",
+      "merged": "Kompozyt UE",
+      "merged_short": "UE",
+      "merged_hint": "Radary wszystkich sieci na jednej siatce",
+      "dmax": "DMAX",
+      "dmax_short": "DMAX",
+      "dmax_hint": "Najsilniejsze echo na dowolnej wysokości, tylko Niemcy; skan później",
+      "age": "{minutes} min",
+      "unavailable": "niedostępny",
+      "fell_back_short": "opóźniony",
+      "fell_back": "{product} jest opóźniony lub niedostępny; do czasu nadrobienia pokazywany jest {fallback}."
+    },
     "scales": {
       "precipitation_types": "Rodzaje<br />opadów",
       "colormap": "Paleta kolorów: {name} ({min} - {max} dBZ)",

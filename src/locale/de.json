@@ -174,9 +174,6 @@
     "konrad_cells_hint": "Zeichnet die vom DWD verfolgten Gewitterzellen als gestufte Körper. Sie kommen einige Minuten nach dem Radar und sind bis dahin ausgegraut.",
     "terrain": "Gelände",
     "terrain_hint": "Hebt die 3D-Karte ins Relief des Geländes und schattiert die Hügel, in echtem Maßstab. Lädt beim Bewegen der Karte Höhendaten nach.",
-    "experimental": "Experimentell",
-    "europe_composite": "Europäisches Gesamtkomposit",
-    "europe_composite_hint": "Zeichnet das Live-Bild aus einem Komposit aller Radarnetze – DWD, MeteoSwiss, Météo-France, ČHMÚ und IMGW – statt aus fünf Produkten nebeneinander. Wird alle paar Minuten auf einem Hintergrund-Worker gebaut; Vergangenheit und Vorhersage bleiben unverändert.",
     "environment": "Vorschau",
     "staging": "Staging öffnen",
     "staging_hint": "Auf Staging läuft die nächste Version von meteocool, bevor sie veröffentlicht wird. Neue Funktionen, gelegentlich auch Fehler; deine Einstellungen hier werden nicht übernommen.",
@@ -434,6 +431,23 @@
     "satellite": {
       "clouds": "Wolken",
       "labels_borders": "Beschriftungen & Grenzen"
+    },
+    "radar_product": {
+      "title": "Radarprodukt",
+      "choose": "Radarprodukt wählen",
+      "hx": "Unterster Scan",
+      "hx_short": "Scan",
+      "hx_hint": "Die untersten Scans des DWD und der Nachbarn: der Regen nahe am Boden",
+      "merged": "EU-Komposit",
+      "merged_short": "EU",
+      "merged_hint": "Die Radare aller Netze auf einem Raster vereint",
+      "dmax": "DMAX",
+      "dmax_short": "DMAX",
+      "dmax_hint": "Stärkstes Echo in jeder Höhe, nur Deutschland; einen Scan später",
+      "age": "{minutes} Min.",
+      "unavailable": "nicht verfügbar",
+      "fell_back_short": "verzögert",
+      "fell_back": "{product} ist verzögert oder nicht verfügbar; bis es aufholt, wird {fallback} gezeigt."
     },
     "scales": {
       "precipitation_types": "Niederschlags-<br />arten",
