@@ -14,6 +14,7 @@ import { cleanupRecovery, initRecovery } from "../lib/recovery";
 import App from "../App.svelte";
 import { i18nReady } from "../locale/i18n";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { requestNativeSettings } from "../lib/nativeBridge";
 
 registerServiceWorker();
 
@@ -43,9 +44,7 @@ const app = i18nReady.then(() => mount(App, {
   props: {
     device: "ios",
     postInitCb() {
-      if (dd.isIos()) {
-        window.webkit?.messageHandlers.scriptHandler.postMessage("requestSettings");
-      }
+      if (dd.isIos()) requestNativeSettings();
     },
   },
 }));

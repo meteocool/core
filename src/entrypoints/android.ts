@@ -14,6 +14,7 @@ import { cleanupRecovery, initRecovery } from "../lib/recovery";
 import App from "../App.svelte";
 import { i18nReady } from "../locale/i18n";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
+import { requestNativeSettings } from "../lib/nativeBridge";
 
 initNetworkStatus();
 initRequestTiming();
@@ -41,9 +42,7 @@ const app = i18nReady.then(() => mount(App, {
   props: {
     device: "android",
     postInitCb() {
-      if (dd.isAndroid()) {
-        Android?.requestSettings();
-      }
+      if (dd.isAndroid()) requestNativeSettings();
     },
   },
 }));

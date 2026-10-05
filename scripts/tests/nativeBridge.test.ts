@@ -8,7 +8,7 @@ import test from "node:test";
  * message there must be dropped rather than throw.
  */
 
-const { holdNativeChrome, postToNative } = await import("../../src/lib/nativeBridge.ts");
+const { holdNativeChrome, postToNative, requestNativeSettings } = await import("../../src/lib/nativeBridge.ts");
 
 const globals = globalThis as Record<string, unknown>;
 
@@ -61,4 +61,43 @@ test("the host hears the first drawer open and the last one close", () => {
   assert.deepEqual(seen, ["drawerOpened", "drawerClosed"]);
   holdNativeChrome()();
   assert.deepEqual(seen, ["drawerOpened", "drawerClosed", "drawerOpened", "drawerClosed"]);
+});
+
+/**
+ * The settings request ends App.svelte's setup, so anything it throws fails
+ * the mount and leaves a blank page.
+ */
+test("each host is asked for its settings its own way", () => {
+  reset();
+  const ios: string[] = [];
+  globals.window = { webkit: { messageHandlers: { scriptHandler: { postMessage: (m: string) => ios.push(m) } } } };
+  requestNativeSettings();
+  assert.deepEqual(ios, ["requestSettings"]);
+
+  reset();
+  let asked = 0;
+  globals.window = {};
+  globals.Android = { requestSettings() { asked += 1; } };
+  requestNativeSettings();
+  assert.equal(asked, 1);
+});
+
+test("the Android page in a browser, with no bridge injected, asks nobody", () => {
+  reset();
+  globals.window = {};
+  assert.doesNotThrow(() => requestNativeSettings());
+});
+
+test("a Java exception on the Android side is reported, not thrown", (t) => {
+  reset();
+  const reported = t.mock.method(console, "error", () => {});
+  globals.window = {};
+  const javaException = new Error("Error invoking requestSettings: Java exception was raised during method invocation");
+  globals.Android = {
+    requestSettings() { throw javaException; },
+    postMessage() { throw javaException; },
+  };
+  assert.doesNotThrow(() => requestNativeSettings());
+  assert.doesNotThrow(() => postToNative("drawerOpened"));
+  assert.deepEqual(reported.mock.calls.map((call) => call.arguments[0]), [javaException, javaException]);
 });
