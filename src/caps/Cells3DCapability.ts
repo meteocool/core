@@ -284,6 +284,21 @@ const OPEN_PITCH = 76;
 const PITCH_KEPT_DEG = 4;
 
 /**
+ * How far the camera can be from where an opened storm framed it, at
+ * closing, and still count as not moved: a nudge, not a view of the reader's
+ * own. The shift is of the centre on screen, as a share of the shorter side.
+ */
+const CAMERA_KEPT = { zoom: 0.5, bearingDeg: 10, pitchDeg: PITCH_KEPT_DEG, shift: 0.1 };
+
+/** A camera, as far as going back to one goes. */
+interface Camera {
+  center: [number, number];
+  zoom: number;
+  pitch: number;
+  bearing: number;
+}
+
+/**
  * The steepest the map tilts: a view from low over the ground, just short of
  * where MapLibre loses track of what it is looking at.
  *
@@ -536,11 +551,21 @@ export default class Cells3DCapability extends Capability {
   private cameraSetAt = -Infinity;
 
   /**
-   * The tilt the map had before an opened storm lowered it, to go back to on
-   * closing; null when no storm has lowered it. The first one's, across a walk
-   * from storm to storm: the reader's own view is the one before any of them.
+   * The camera the reader had before an opened storm was framed, to go back
+   * to on closing; null when no storm has moved it. The first one's, across a
+   * walk from storm to storm: the reader's own view is the one before any of
+   * them.
    */
-  private pitchBeforeOpen: number | null = null;
+  private cameraBeforeOpen: Camera | null = null;
+
+  /** Where the latest framing left the camera, which a reader's own move is told from; see `restoreCamera`. */
+  private framedCamera: Camera | null = null;
+
+  /** Whether another storm was opened after the first, so closing is no longer one step back. */
+  private walked = false;
+
+  /** Stops waiting for the latest framing to land; see `frameOpened`. */
+  private unwatchFraming: (() => void) | null = null;
 
   /** The newest open, so a volume still loading cannot reopen over a newer choice. */
   private openToken: symbol | null = null;
@@ -1023,27 +1048,62 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Back up to the tilt the reader had, once the storm that lowered it closes.
+   * Back to the view the reader had, once the storm that moved the camera
+   * closes.
    *
-   * Looking at a cut from low down is right while it is open and wrong for a
-   * map: the far half of the screen is horizon. Only the tilt goes back -- the
-   * reader may well want to stay where the storm was -- and only if it is
-   * still the one the opening set: a reader who tilted the map themselves
-   * since has chosen a view, and it is kept.
+   * Opening a storm flies in close, low and square to its cut. Closing the
+   * one storm that was opened, with the camera still where that left it, is
+   * a step back out: position, zoom, heading and tilt all go back to the
+   * reader's own. Otherwise the reader has made the view theirs -- moved it,
+   * or walked on to another storm -- and only the tilt goes back, and only if
+   * it is still the one the opening set: looking at a cut from low down is
+   * right while it is open and wrong for a map, where the far half of the
+   * screen is horizon.
    */
-  private restorePitch(): void {
+  private restoreCamera(): void {
     const gl = this.gl;
-    const before = this.pitchBeforeOpen;
-    this.pitchBeforeOpen = null;
+    const before = this.cameraBeforeOpen;
+    const framed = this.framedCamera;
+    const walked = this.walked;
+    this.forgetCameraBeforeOpen();
     if (!gl || before === null) return;
     // On the way back to the flat map, `leave` owns the camera: two eases at
     // once, and the later one wins.
     if (origin3D()) return;
+    if (!walked && framed && this.stillAt(gl, framed)) {
+      gl.easeTo({ ...before, duration: 900 });
+      return;
+    }
     if (Math.abs(gl.getPitch() - OPEN_PITCH) > PITCH_KEPT_DEG) return;
     // A 3D map that had no tilt of its own to go back to: a flat 3D map is
     // the one view that shows none of what it is for, so it settles to the
     // tilt it opens at instead.
-    gl.easeTo({ pitch: before < 1 ? INITIAL_PITCH : before, duration: 700 });
+    gl.easeTo({ pitch: before.pitch < 1 ? INITIAL_PITCH : before.pitch, duration: 700 });
+  }
+
+  private forgetCameraBeforeOpen(): void {
+    this.unwatchFraming?.();
+    this.unwatchFraming = null;
+    this.cameraBeforeOpen = null;
+    this.framedCamera = null;
+    this.walked = false;
+  }
+
+  private cameraOf(gl: GlMap): Camera {
+    const { lng, lat } = gl.getCenter();
+    return { center: [lng, lat], zoom: gl.getZoom(), pitch: gl.getPitch(), bearing: gl.getBearing() };
+  }
+
+  /** Whether the camera is still about where `camera` had it; see `CAMERA_KEPT`. */
+  private stillAt(gl: GlMap, camera: Camera): boolean {
+    const turned = Math.abs(((gl.getBearing() - camera.bearing + 540) % 360) - 180);
+    const { clientWidth: width, clientHeight: height } = gl.getContainer();
+    const { x, y } = gl.project(camera.center);
+    const shift = Math.hypot(x - width / 2, y - height / 2) / Math.min(width, height);
+    return Math.abs(gl.getZoom() - camera.zoom) <= CAMERA_KEPT.zoom
+      && turned <= CAMERA_KEPT.bearingDeg
+      && Math.abs(gl.getPitch() - camera.pitch) <= CAMERA_KEPT.pitchDeg
+      && shift <= CAMERA_KEPT.shift;
   }
 
   /**
@@ -1066,7 +1126,7 @@ export default class Cells3DCapability extends Capability {
     const gl = this.gl;
     if (!gl || !this.shown) return Promise.resolve();
     stopSweep(false);
-    this.pitchBeforeOpen = null;
+    this.forgetCameraBeforeOpen();
     return new Promise((resolve) => {
       let settled = false;
       const done = () => {
@@ -1210,7 +1270,7 @@ export default class Cells3DCapability extends Capability {
       this.opened = null;
       stopSweep(false);
       this.applyCut();
-      this.restorePitch();
+      this.restoreCamera();
       // A storm kept past its scan only because it was open goes with it, and
       // the newer scan of it that was held back in its place comes out.
       this.dropUnlisted();
@@ -1243,6 +1303,9 @@ export default class Cells3DCapability extends Capability {
       this.opened = null;
       stopSweep(false);
       this.applyCut();
+      // Picked after one that was opened: closing it is no step back to the
+      // view before that one.
+      if (this.cameraBeforeOpen) this.walked = true;
       return;
     }
     // Not before the map's first settled frame; see `settled`. Resolved
@@ -1312,7 +1375,23 @@ export default class Cells3DCapability extends Capability {
       : { width, height, top: OPEN_TOP_PX, bottom: height - OPEN_TRAY_PX, left: 0, right: Math.max(width - panel, width / 2) };
     const camera = framingCamera(cutaway, direction, room, OPEN_PITCH, gl.getMaxZoom(), VERTICAL_SCALE);
 
-    this.pitchBeforeOpen ??= gl.getPitch();
+    if (this.cameraBeforeOpen) this.walked = true;
+    else this.cameraBeforeOpen = this.cameraOf(gl);
+    // Where it lands, which closing compares the camera with: the ease's own
+    // moveend, told from any other by the token it carries. Landed early --
+    // the reader took hold of the map -- it is where they took over.
+    this.unwatchFraming?.();
+    this.framedCamera = null;
+    const framing = Symbol("framing");
+    // MapLibre's typing knows nothing of the data an ease is given to carry.
+    const landed = (event: object) => {
+      if ((event as { framing?: symbol }).framing !== framing) return;
+      this.unwatchFraming?.();
+      this.unwatchFraming = null;
+      this.framedCamera = this.cameraOf(gl);
+    };
+    gl.on("moveend", landed);
+    this.unwatchFraming = () => gl.off("moveend", landed);
     gl.easeTo({
       center: [camera.lon, camera.lat],
       zoom: camera.zoom,
@@ -1320,7 +1399,7 @@ export default class Cells3DCapability extends Capability {
       bearing: bearing + off,
       offset: [camera.offsetX, camera.offsetY],
       duration: 900,
-    });
+    }, { framing });
   }
 
   /** Repaint every storm, ring and tier in the radar palette the settings now name. */
