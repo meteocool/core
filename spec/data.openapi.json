@@ -1055,6 +1055,12 @@
             "description": "Compressed size, so a client can decide on mobile",
             "title": "Bytes"
           },
+          "coarse": {
+            "default": false,
+            "description": "A zoom-9 tile at about 1 km a voxel, built over the tiles of a run for a map zoomed out: drawn in place of the tiles inside it, never beside them",
+            "title": "Coarse",
+            "type": "boolean"
+          },
           "code": {
             "description": "The tile, `T` + zoom (2 digits) + x + y (5 each); before tiles, the core's peak to a hundredth of a degree, prefixed G",
             "title": "Code",
@@ -1771,6 +1777,20 @@
       "get": {
         "description": "Every cloud a reader can cut open, whether KONRAD3D warned about it or not.\n\nThese come from the column-maximum composite, not from KONRAD3D, so on\nmost afternoons there are storms here that `/current` never mentions:\nKONRAD3D reports the cells that might hurt someone, and a rain shower\nwith a respectable core inside it is not one of them.",
         "operationId": "current_volumes_cells_volumes_get",
+        "parameters": [
+          {
+            "description": "Include the coarse zoom-9 tiles, which a client zoomed out draws in place of the tiles under them. Off by default, for clients that would draw both.",
+            "in": "query",
+            "name": "coarse",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Include the coarse zoom-9 tiles, which a client zoomed out draws in place of the tiles under them. Off by default, for clients that would draw both.",
+              "title": "Coarse",
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -1781,6 +1801,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Storms with a radar volume built for them, from the newest composite scan.",

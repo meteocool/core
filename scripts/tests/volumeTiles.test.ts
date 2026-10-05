@@ -3,6 +3,8 @@ import test from "node:test";
 import { carryCut, cutPointOf, peelFloors } from "../../src/layers/cellVolumeLayer.ts";
 import { drawnExtentM, drawnPart, echoPart, overlap, parentOf, tileCentre, tileCode } from "../../src/lib/volumeBox.ts";
 import type { Cutaway, CutawayHeader } from "../../src/lib/cellCutaway.ts";
+import { atLevel, fineAt } from "../../src/lib/volumeLevels.ts";
+import type { RadarVolume } from "../../src/api/index.ts";
 
 /** A tile's header as the worker writes it: 104 voxels across, one more each side of apron. */
 const TILE = {
@@ -186,4 +188,37 @@ test("a sibling that was never built leaves its quarter of the parent empty", ()
   const at = (column: number, row: number) => voxels[(row * 10 + column) * 2 + 1];
   assert.equal(at(7, 7), 0);
   assert.equal(at(2, 7), 255);
+});
+
+const listed = (path: string, tile: number[] | null, coarse = false) => (
+  { path, tile, coarse, peak_dbz: 40 } as unknown as RadarVolume
+);
+
+test("zoomed out, a coarse tile stands in for the tiles in it, and never beside them", () => {
+  const clouds = [
+    listed("coarse", [9, 272, 177], true),
+    listed("in", [10, 544, 354]),
+    listed("core-in", [11, 1089, 709]),
+    listed("elsewhere", [10, 600, 354]),
+    listed("old-box", null),
+  ];
+
+  assert.deepEqual(atLevel(clouds, true).map((cloud) => cloud.path), ["coarse", "elsewhere", "old-box"]);
+  assert.deepEqual(atLevel(clouds, false).map((cloud) => cloud.path), ["in", "core-in", "elsewhere", "old-box"]);
+});
+
+test("an open tile keeps its own picture zoomed out, and its coarse tile steps aside", () => {
+  const clouds = [listed("coarse", [9, 272, 177], true), listed("in", [10, 544, 354]), listed("next", [10, 545, 354])];
+
+  assert.deepEqual(atLevel(clouds, true, "in").map((cloud) => cloud.path), ["in", "next"]);
+});
+
+test("a tap on a coarse tile opens the finest tile under it", () => {
+  const clouds = [listed("coarse", [9, 272, 177], true), listed("tile", [10, 544, 355]), listed("core", [11, 1089, 710])];
+
+  // Munich is in tile 544/355 and in its core tile 1089/710; 11.35 E 48.0 N is
+  // in the same tile but in core tile 1088/711, which is not listed.
+  assert.equal(fineAt(clouds, 11.576, 48.137)?.path, "core");
+  assert.equal(fineAt(clouds, 11.35, 48.0)?.path, "tile");
+  assert.equal(fineAt(clouds, 2.35, 48.85), null);
 });
