@@ -394,8 +394,8 @@ export class LayerManager {
     /* Some things are done differently while the map on screen moves; see
        lib/mapMotion.ts. Only the full-size map: the switcher's thumbnails
        share its View, so they move with it anyway. */
-    newMap.on("movestart", (event) => {
-      if (newMap.getTargetElement()?.id === "map") reportMapMotion(true, event.frameState);
+    newMap.on("movestart", () => {
+      if (newMap.getTargetElement()?.id === "map") reportMapMotion(true);
     });
     newMap.on("moveend", () => {
       if (newMap.getTargetElement()?.id === "map") reportMapMotion(false);
