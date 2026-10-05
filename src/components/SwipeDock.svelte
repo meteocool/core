@@ -272,7 +272,7 @@ function swallowAfterSwipe(event: MouseEvent) {
      cuts a wedge out of its own trailing corners, and the action starts at the
      panel's edge, so the wedge is bare map with the action's straight edge
      beside it -- a hard corner against a curve. Neither piece can fill it
-     (the panel is 10%-white glass, so an action reaching under it would tint
+     (the panel is translucent glass, so an action reaching under it would tint
      the whole edge red), so the curve is the thing to drop. What is left is
      two straight edges meeting, with the dock's own corners carried by the
      action. */

@@ -15,11 +15,9 @@
 
    Both are set by src/layers/ui.ts. The split exists because the basemap is a
    setting of its own: "dark mode" in this app does not darken the map, so dark
-   chrome over the light basemap is an ordinary combination. Glass whose fill
-   fights the map under it stops looking like glass and starts looking like a
-   grey slab, so the floating chrome follows the map and only the sheets follow
-   the OS. That is also what Apple's chrome does -- theirs gets it for free,
-   because their basemap follows the OS too.
+   chrome over the light basemap is an ordinary combination. Floating controls
+   follow the map and sheets follow the OS. The controls need a neutral fill
+   that keeps their text legible even over bright radar cells.
 
    There is deliberately no prefers-color-scheme block here: the iOS/Android
    wrappers drive dark mode through the store, and a media query would disagree
@@ -36,26 +34,18 @@
 :root {
   /* glass material
 
-     The legibility budget is split between the backdrop filter and the fill,
-     and the filter carries most of it. A scrim opaque enough to hold text on
-     its own is what makes glass read as a flat grey slab: the map's shapes and
-     colours never come through it. Tone-mapping the backdrop instead --
-     dimming it in dark mode, lifting it in light mode -- buys the same
-     contrast while the map stays visible underneath, which is the whole point
-     of the material.
-
-     The basemap is a separate user setting from the colour scheme, so every
-     combination happens: dark chrome over the light basemap, light chrome over
-     the dark one. The brightness step is what keeps both legible. */
+     The neutral fill carries legibility regardless of the radar beneath it.
+     Blur softens cell edges and reduced saturation leaves a quiet hint of the
+     map's colours. Neither filter is a substitute for text contrast. */
   --mc-glass-blur: 20px;                              /* phone; desktop below */
-  --mc-glass-saturate: 190%;
-  --mc-glass-brightness: 1.06;                        /* light scheme lifts the backdrop */
+  --mc-glass-saturate: 70%;
+  --mc-glass-brightness: 1;
   --mc-glass-backdrop:
     blur(var(--mc-glass-blur))
     saturate(var(--mc-glass-saturate))
     brightness(var(--mc-glass-brightness));
-  --mc-glass-fill: rgba(255, 255, 255, 0.52);         /* pills, discs */
-  --mc-glass-fill-strong: rgba(255, 255, 255, 0.64);  /* text-heavy trays, toasts */
+  --mc-glass-fill: rgba(255, 255, 255, 0.82);         /* pills, discs */
+  --mc-glass-fill-strong: rgba(255, 255, 255, 0.90);  /* text-heavy trays, toasts */
   --mc-glass-fill-solid: rgba(255, 255, 255, 0.94);   /* every no-blur fallback */
   --mc-glass-edge: rgba(255, 255, 255, 0.70);         /* the luminous 1px border */
   --mc-glass-edge-outer: rgba(0, 0, 0, 0.14);         /* so white glass still reads on a pale map */
@@ -63,20 +53,14 @@
   /* The reading material: glass under text. About, Settings, Connection
      Details -- paragraphs and tables, not a label on a pill.
 
-     The chrome's recipe cannot carry that. It saturates the backdrop to 190%
-     and lifts it, so over a squall line a paragraph sits on radar brighter and
-     louder than the map itself. This one turns each of those around: a kernel
-     wide enough that no cell edge survives it, colour pulled down rather than
-     up, and the backdrop tone-mapped away from the ink -- lifted and
-     whitened under dark text, dimmed under light text -- and the secondary
-     inks are a step firmer than the chrome's, which are tuned for a two-word
-     label, not a column of them.
+     A wider kernel softens the map further under paragraphs, with the backdrop
+     tone-mapped away from the ink -- lifted and whitened under dark text,
+     dimmed under light text.
 
      Worked through over every backdrop colour (the filters, then the fill,
      then the ink, in sRGB): the primary ink holds at least 9.7:1, the
      secondary 4.9:1 and the tertiary 3:1, whatever the radar is doing. The
-     chrome's own glass, for comparison, goes to 1:1 in dark chrome over a
-     bright cell. The map is still there; it is just out of focus and quiet. */
+     map is still there; it is just out of focus and quiet. */
   --mc-reading-backdrop: blur(40px) saturate(70%) brightness(1.25);
   --mc-reading-fill: rgba(255, 255, 255, 0.82);
   --mc-reading-text-2: rgba(60, 60, 67, 0.84);
@@ -148,8 +132,8 @@
   --mc-chrome-text: #1c1c1e;
   /* Rasterized legend SVGs follow the basemap, like the surrounding ink. */
   --svg-dark-to-light: none;
-  --mc-chrome-text-2: rgba(60, 60, 67, 0.66);
-  --mc-chrome-text-3: rgba(60, 60, 67, 0.38);
+  --mc-chrome-text-2: rgba(60, 60, 67, 0.84);
+  --mc-chrome-text-3: rgba(60, 60, 67, 0.66);
   --mc-chrome-tint: rgba(60, 60, 67, 0.10);
   --mc-chrome-tint-hover: rgba(60, 60, 67, 0.16);
   --mc-chrome-tint-active: rgba(60, 60, 67, 0.22);
@@ -284,15 +268,12 @@
   --ol-brand-color: var(--mc-accent);
 }
 
-/* The glass, keyed on the BASEMAP. Over a dark map the material lightens --
-   a low-alpha white scrim on a blurred, saturated backdrop -- which is what
-   makes it read as a lens rather than a panel, and it is why Apple's chrome
-   looks lighter than the map beneath it. */
+/* Dark-map controls need a dark neutral fill even when radar covers the map.
+   Keep the same restrained saturation as light chrome and dim the backdrop. */
 :root[data-chrome="dark"] {
-  --mc-glass-saturate: 200%;
-  --mc-glass-brightness: 1.35;
-  --mc-glass-fill: rgba(255, 255, 255, 0.10);
-  --mc-glass-fill-strong: rgba(255, 255, 255, 0.15);
+  --mc-glass-brightness: 0.85;
+  --mc-glass-fill: rgba(28, 28, 30, 0.82);
+  --mc-glass-fill-strong: rgba(28, 28, 30, 0.90);
   --mc-glass-fill-solid: rgba(28, 28, 30, 0.94);
   --mc-glass-edge: rgba(255, 255, 255, 0.22);
   --mc-glass-edge-outer: rgba(0, 0, 0, 0.45);
@@ -310,8 +291,8 @@
 
   --mc-chrome-text: #ffffff;
   --svg-dark-to-light: invert(99%) sepia(0%) saturate(469%) hue-rotate(31deg) brightness(119%) contrast(100%);
-  --mc-chrome-text-2: rgba(235, 235, 245, 0.72);
-  --mc-chrome-text-3: rgba(235, 235, 245, 0.42);
+  --mc-chrome-text-2: rgba(235, 235, 245, 0.82);
+  --mc-chrome-text-3: rgba(235, 235, 245, 0.62);
   --mc-chrome-tint: rgba(255, 255, 255, 0.14);
   --mc-chrome-tint-hover: rgba(255, 255, 255, 0.22);
   --mc-chrome-tint-active: rgba(255, 255, 255, 0.30);
@@ -398,8 +379,7 @@
 /* Fallback ladder. Each rung flips the same tokens, so every surface degrades
    identically without needing a class. The chrome-dark root is listed with the
    others because it sets the fill too, and at the same specificity as the
-   rung: left out, a dark basemap under a light OS theme kept its 10% fill
-   with nothing blurred behind it, which is barely there at all. */
+   rung: leaving it out would retain a translucent fill without a blur. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root, :root[data-theme="dark"], :root[data-chrome="dark"] {
     --mc-glass-backdrop: none;
