@@ -13,6 +13,7 @@ import { cleanupWakeup, initWakeup } from "../lib/wakeup";
 import { cleanupRecovery, initRecovery } from "../lib/recovery";
 import App from "../App.svelte";
 import { i18nReady } from "../locale/i18n";
+import { unsupportedBrowser } from "../lib/browserSupport";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { requestNativeSettings } from "../lib/nativeBridge";
 
@@ -36,8 +37,9 @@ window.addEventListener("pagehide", () => {
 });
 
 // Held until the chosen language's strings are in (src/locale/i18n.ts),
-// so the first paint is not English for a moment before it switches.
-const app = i18nReady.then(() => mount(App, {
+// so the first paint is not English for a moment before it switches. Not at
+// all where the page has said the browser cannot run it (src/browserCheck.js).
+const app = unsupportedBrowser ? null : i18nReady.then(() => mount(App, {
   target: document.body,
   props: {
     device: "android",

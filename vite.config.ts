@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, transformWithEsbuild } from "vite";
+import type { Plugin } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import { VitePWA } from "vite-plugin-pwa";
@@ -43,6 +45,25 @@ function proxyTargets(mode: string) {
   };
 }
 
+/**
+ * src/browserCheck.js, inline at the top of each app page's body, where it runs
+ * before the bundle is even fetched: it is there for the browsers that cannot
+ * parse the bundle. Minified to ES5, which also fails the build if anything
+ * newer slips into it.
+ */
+function browserCheck(): Plugin {
+  const pages = /^\/(index|ios|android)\.html$/;
+  return {
+    name: "meteocool:browser-check",
+    async transformIndexHtml(_html, ctx) {
+      if (!pages.test(ctx.path)) return undefined;
+      const source = readFileSync(here("src/browserCheck.js"), "utf8");
+      const { code } = await transformWithEsbuild(source, "browserCheck.js", { minify: true, target: "es5" });
+      return [{ tag: "script", children: code.trim(), injectTo: "body-prepend" as const }];
+    },
+  };
+}
+
 // Cloudflare Pages sets COMMIT_REF; GitHub Actions sets GITHUB_SHA. Webpack read
 // only the first, so every CI build shipped an undefined Sentry release.
 const commit = process.env.COMMIT_REF ?? process.env.GITHUB_SHA ?? process.env.GIT_COMMIT_HASH ?? "";
@@ -73,6 +94,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       svelte(),
+      browserCheck(),
       viteStaticCopy({
         // Shoelace loads its icons at runtime from the base path set in
         // src/layers/ui.js, so they cannot be bundled.
