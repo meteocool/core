@@ -68,7 +68,11 @@ async function init(): Promise<void> {
   const options: BrowserOptions = {
     dsn: DSN,
     integrations: [
-      Sentry.browserTracingIntegration(),
+      Sentry.browserTracingIntegration({
+        // socket.io's long polls, one after the other by design: as spans they
+        // only had Sentry flag the page for requests it could have run at once.
+        shouldCreateSpanForRequest: (url) => !url.includes("/socket.io/"),
+      }),
       Sentry.captureConsoleIntegration({ levels: ["error"] }),
     ],
     tracesSampleRate: 0.05,
