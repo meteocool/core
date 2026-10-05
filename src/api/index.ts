@@ -384,8 +384,12 @@ export function fetchCurrentCells(nanobar?: Progress) {
  * showers `/cells/current` never mentions -- which is the point of them: they
  * are the clouds a reader can cut open that no warning product would list.
  */
-export function fetchCurrentVolumes(nanobar?: Progress) {
-  return request(nanobar, "/cells/volumes", () => dataClient.GET("/cells/volumes", {}));
+export function fetchCurrentVolumes(nanobar?: Progress, { coarse = false }: { coarse?: boolean } = {}) {
+  // Coarse tiles only for the 3D map, which draws them in place of the tiles
+  // under them when zoomed out; anything else would draw both.
+  return request(nanobar, "/cells/volumes", () => dataClient.GET("/cells/volumes", {
+    params: { query: coarse ? { coarse: true } : {} },
+  }));
 }
 
 /**
