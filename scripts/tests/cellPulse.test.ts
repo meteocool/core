@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DASH, DASH_PERIOD, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, TICK_MS, ringAngle,
+  DASH, DASH_PERIOD, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, TICK_MS, onlySlid, ringAngle,
 } from "../../src/lib/cellPulse.ts";
 
 /**
@@ -73,4 +73,18 @@ test("one missed detection does not take a live storm off the map", () => {
 test("a cell that has stopped being detected stops pinging", () => {
   assert.equal(isLive(LIVE_MINUTES + 0.1), false);
   assert.equal(isLive(85), false);
+});
+
+/**
+ * The rings slide together while the map only pans, and are laid out afresh
+ * whenever the zoom, the turn or the cells change: a pan moves every ring by
+ * the same amount, anything else moves each by its own.
+ */
+test("a pan slides the rings together; anything else lays them out again", () => {
+  const laid = { resolution: 611.5, rotation: 0, revision: 7 };
+  assert.equal(onlySlid(laid, { ...laid }), true);
+  assert.equal(onlySlid(laid, { ...laid, resolution: 600 }), false, "a zoom");
+  assert.equal(onlySlid(laid, { ...laid, rotation: 0.1 }), false, "a turn");
+  assert.equal(onlySlid(laid, { ...laid, revision: 8 }), false, "a cell added, removed or moved");
+  assert.equal(onlySlid(null, laid), false, "nothing laid out yet");
 });

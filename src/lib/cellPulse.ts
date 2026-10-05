@@ -88,3 +88,25 @@ export const NOTCH_DEGREES = 360 / RING_PATH_LENGTH;
 export function ringAngle(nowMs: number): number {
   return (Math.floor(nowMs / TICK_MS) % DASH_PERIOD) * NOTCH_DEGREES;
 }
+
+/** Where the rings were last laid out: the view's scale and turn, and which cells. */
+export interface RingLayout {
+  resolution: number;
+  rotation: number;
+  /** The source's revision: a cell added, removed or moved changes it. */
+  revision: number;
+}
+
+/**
+ * Whether the map has only slid since the rings were laid out, so that moving
+ * them all together is moving each one where it belongs.
+ *
+ * A pan moves every point on screen by the same amount; a zoom or a turn moves
+ * each by its own, and a new or vanished cell changes which rings there are.
+ */
+export function onlySlid(laid: RingLayout | null, now: RingLayout): boolean {
+  return laid !== null
+    && laid.resolution === now.resolution
+    && laid.rotation === now.rotation
+    && laid.revision === now.revision;
+}
