@@ -71,6 +71,28 @@ export function isVolumeBehind(
   return isBehind(scanTime(volume.reference_time), radarScanOf(networkOf(volume), radar));
 }
 
+/** A volume as far as telling whether a list has moved past it goes. */
+interface Listed {
+  path: string;
+  network?: string | null;
+  reference_time?: string | null;
+}
+
+/**
+ * Whether a volume is past its scan: the list has a newer scan from its
+ * network, and the volume is not in it. The 3D map keeps an open storm on
+ * through that, and it has nothing newer to show. Not merely missing from the
+ * list, which before the first one lands is every storm.
+ */
+export function isPastItsScan(volume: Listed, listed: ReadonlyArray<Listed>): boolean {
+  if (listed.some((other) => other.path === volume.path)) return false;
+  const scan = scanTime(volume.reference_time);
+  const network = networkOf(volume);
+  return scan !== null && listed.some((other) => (
+    networkOf(other) === network && (scanTime(other.reference_time) ?? -Infinity) > scan
+  ));
+}
+
 /** Between two asks for a scan's volumes that are not built yet. */
 export const VOLUME_RETRY_MS = 20_000;
 
