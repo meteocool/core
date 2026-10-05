@@ -208,7 +208,7 @@ interface FrameCache {
  * wrong time. That is also when the earlier frames' tiles themselves go,
  * if `forgetEarlierFrames` has asked since the last time.
  */
-export function staleOnlyWhileLoading(layer: WebGLTileLayer): WebGLTileLayer {
+export function staleOnlyWhileLoading<L extends WebGLTileLayer>(layer: L): L {
   let forgot = forgetting;
   layer.on("postrender", () => {
     const renderer = layer.getRenderer() as unknown as FrameCache | null;
