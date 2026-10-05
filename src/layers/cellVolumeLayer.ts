@@ -55,9 +55,7 @@ import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from
 import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
-import { isBehind, networkOf, scanTime } from "../lib/scans";
 import { VERTICAL_SCALE } from "./terrain";
-import type { Scan } from "../lib/scans";
 
 /** Reflectivity below this is drizzle or the fringe of the anvil. */
 const DBZ_LOW = 20;
@@ -115,12 +113,6 @@ const PEEL_FPS = 12;
  * resumes from where it stopped rather than jumping.
  */
 const PEEL_IDLE_SECONDS = 3 * PEEL_SECONDS;
-/**
- * How much of itself a storm from an older scan than the radar keeps, drawn
- * in greys: enough to say a storm is there, not so much that it hides the
- * newer echo it is a scan behind. See lib/scans.ts.
- */
-const BEHIND_FADE = 0.55;
 
 const VERTEX = `#version 300 es
 void main() {
@@ -145,7 +137,6 @@ uniform float uDbzScale;
 uniform float uSteps;
 uniform float uCut;        // 1 for the storm being inspected, 0 for every other
 uniform float uLow;        // where the echo starts to show, which the peel raises
-uniform float uBehind;     // 1 for a storm from an older scan than the radar under it
 uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
 uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
 uniform vec3 uBoxMin;      // the part of the cube that is drawn: all of it, bar a tile's apron
@@ -273,12 +264,7 @@ void main() {
   }
 
   if (!wrote) discard;
-  if (uBehind > 0.5) {
-    // Premultiplied, so the grey and the fade both apply to the colour as stored.
-    float grey = dot(accumulated.rgb, vec3(0.299, 0.587, 0.114));
-    accumulated = vec4(vec3(grey), accumulated.a) * ${BEHIND_FADE};
-  }
-  // Premultiplied as well: a storm the radars did not see well enough to
+  // Premultiplied: a storm the radars did not see well enough to
   // open is drawn fainter whole, so the map says which storms have a picture.
   fragColour = accumulated * uDim;
 }`;
@@ -564,10 +550,6 @@ interface Cloud {
   peelFloor: number;
   /** The storm it is a tile of, by the code of the tile holding the storm's peak; null before tiles. */
   system: string | null;
-  /** The scan it was measured in. */
-  scan: Scan | null;
-  /** The network whose composite it was found in, whose radar it is judged against. */
-  network: string;
   /** How much of its opacity it keeps; see `DIM_UNOPENABLE`. */
   dim: number;
   /** Whether it peels when not cut; see `setClouds`. */
@@ -600,12 +582,6 @@ export interface CloudsLayer extends CustomLayerInterface {
   setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
-  /**
-   * The scan of each network's radar, by its code: a storm from an older scan
-   * than its own network's is drawn grey, bar the one that is cut open, which
-   * is being read for its colours. See lib/scans.ts.
-   */
-  setRadarScans(scanOf: (network: string) => Scan | null): void;
 }
 
 /**
@@ -631,7 +607,6 @@ export function makeCloudsLayer(
   let cutKey: string | null = null;
   let cutHeading = 0;
   let colormap = initialColormap;
-  let radarScanOf: (network: string) => Scan | null = () => null;
   /** Uniform locations, looked up once per program rather than a dozen times a frame. */
   let uniforms = new Map<string, WebGLUniformLocation | null>();
   /** The pending peel frame, if one has been asked for. */
@@ -758,8 +733,6 @@ export function makeCloudsLayer(
           coreDbz: own,
           peelFloor: own,
           system,
-          scan: scanTime(cutaway.header.reference_time),
-          network: networkOf(cutaway.header),
           dim,
           peels,
           texture: gl ? upload(gl, cutaway) : null,
@@ -785,9 +758,6 @@ export function makeCloudsLayer(
       if (gl) paintRamp(gl);
     },
 
-    setRadarScans(scanOf) {
-      radarScanOf = scanOf;
-    },
 
     onAdd(added: GlMap, context: WebGL2RenderingContext) {
       map = added;
@@ -908,8 +878,6 @@ export function makeCloudsLayer(
         const peelsNow = !cut && cloud.peels && !holding;
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
-        // Grey for an older scan, bar the one being read for its colours.
-        context.uniform1f(at("uBehind"), key !== cutKey && isBehind(cloud.scan, radarScanOf(cloud.network)) ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
         context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.peelFloor - DBZ_LOW) * peel : DBZ_LOW);
         if (cut) {

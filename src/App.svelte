@@ -13,7 +13,6 @@ import Map from "./components/Map.svelte";
 import MapLoading from "./components/MapLoading.svelte";
 import Lazy from "./components/Lazy.svelte";
 import Guide3D from "./components/Guide3D.svelte";
-import DismissableStrip from "./components/DismissableStrip.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
@@ -31,7 +30,7 @@ import { tileRefreshSignal } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cells3dBehind, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, europeCompositeVisible, lastFocus,
+  cellLayerVisible, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, europeCompositeVisible, lastFocus,
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
@@ -954,15 +953,6 @@ onDestroy(startUrlState({
 
 if (postInitCb) postInitCb(lm);
 
-/*
- * Whether the reader closed the 3D map's notice that every storm is grey.
- * For the rest of the session rather than until the storms take colour
- * again, as the radar's coverage notice is re-armed: live, the volumes
- * land a scan behind the radar for most of every five-minute cycle, so a
- * notice re-armed by each fresh scan would be back within minutes of being
- * closed, every time.
- */
-let behindDismissed = false;
 </script>
 
 <style>
@@ -1066,16 +1056,6 @@ let behindDismissed = false;
     height: 100%;
   }
 
-  /* The grey storms' notice, set as the radar's coverage notice is
-     (NowcastPlayback). */
-  .notice {
-    margin: 2px calc(var(--mc-tray-pad) + 8px) 0;
-    font: 400 12px/1.35 var(--mc-font);
-    letter-spacing: -0.005em;
-    color: var(--mc-text-2);
-    overflow: hidden;
-  }
-
   :global(*) {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -1105,14 +1085,6 @@ let behindDismissed = false;
      none of this either. -->
 {#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && !$smallScreen && !dd.isApp() && $toolbarVisible === "yes"}
   <Guide3D />
-{/if}
-<!-- Why every storm on the 3D map is grey. Out of the way of a phone's storm
-     sheet, which takes the same bottom edge. -->
-{#if $sharedActiveCap === "cells3d" && $cells3dBehind && !behindDismissed && !$cells3dLoading && !$cells3dFailed
-  && $toolbarVisible === "yes" && !($smallScreen && ($selectedVolume || ($selectedCell && $cellDetails)))}
-  <DismissableStrip title={$_("clouds_behind")} tray={false} on:dismiss={() => { behindDismissed = true; }}>
-    <p class="notice">{$_("clouds_behind_body")}</p>
-  </DismissableStrip>
 {/if}
 <PointMenu layerManager={lm} />
 
