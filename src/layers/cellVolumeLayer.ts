@@ -52,6 +52,7 @@
  * behind it: over the Alps with terrain on, the clouds vanished.
  */
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
+import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
 import { isBehind, networkOf, scanTime } from "../lib/scans";
@@ -85,8 +86,16 @@ const OPACITY_PER_KM = 0.62;
 const SOLID_KM2_MIN = 4;
 /** The tilt a storm's silhouette is measured at: the one the 3D map opens at. */
 const VIEW_PITCH_DEG = 55;
-/** Samples along each ray. Fewer than the panel uses: this shares a frame. */
+/**
+ * Samples along a ray across the whole width of a 160-voxel box: fewer than
+ * the panel uses, since this shares a frame. A smaller box gets
+ * proportionally fewer, so a ray samples the same distance per step whatever
+ * box it crosses: a tile of 104 voxels takes 83. A ray that crosses less of
+ * the box takes fewer still; see the shader.
+ */
 const STEPS = 128;
+/** The box `STEPS` is counted for, in voxels across: the 40 km box before tiles. */
+const STEPS_VOXELS = 160;
 /**
  * How often the peel asks for a frame.
  *
@@ -139,6 +148,8 @@ uniform float uLow;        // where the echo starts to show, which the peel rais
 uniform float uBehind;     // 1 for a storm from an older scan than the radar under it
 uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
 uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
+uniform vec3 uBoxMin;      // the part of the cube that is drawn: all of it, bar a tile's apron
+uniform vec3 uBoxMax;
 
 out vec4 fragColour;
 
@@ -147,11 +158,17 @@ vec3 unproject(vec2 ndc, float z) {
   return p.xyz / p.w;
 }
 
-/** Where a ray enters and leaves the unit cube. */
+/**
+ * Where a ray enters and leaves the drawn part of the unit cube.
+ *
+ * The drawn part, not the cube: a tile's texture runs a voxel into each
+ * neighbour so the field interpolates across the seam, and that voxel is the
+ * neighbour's to draw. Marching it here too would draw the seam twice.
+ */
 bool hitBox(vec3 origin, vec3 direction, out float near, out float far) {
   vec3 inverse = 1.0 / direction;
-  vec3 a = (vec3(0.0) - origin) * inverse;
-  vec3 b = (vec3(1.0) - origin) * inverse;
+  vec3 a = (uBoxMin - origin) * inverse;
+  vec3 b = (uBoxMax - origin) * inverse;
   vec3 low = min(a, b), high = max(a, b);
   near = max(max(low.x, low.y), low.z);
   far = min(min(high.x, high.y), high.z);
@@ -205,13 +222,20 @@ void main() {
     if (far <= near) discard;
   }
 
-  float dt = (far - near) / uSteps;
+  // Steps in proportion to the length of the ray inside the box: uSteps for
+  // one whole width of it, fewer for a ray that only clips an edge or a
+  // corner, and never more than uSteps. Every step then covers about the
+  // same distance, so a storm boxed by many tiles costs what its own length
+  // of ray does, not a full march per tile it brushes.
+  float count = clamp(ceil((far - near) * uSteps), 4.0, uSteps);
+  float dt = (far - near) / count;
   vec3 light = normalize(vec3(-0.45, -0.7, 0.75));
   vec4 accumulated = vec4(0.0);
   float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
   bool wrote = false;
 
   for (float i = 0.0; i < uSteps; i += 1.0) {
+    if (i >= count) break;
     vec3 p = origin + direction * (near + dt * (i + dither));
     vec2 field = sampleField(p);
     float density = smoothstep(uLow, uLow + ${PEEL_BAND}.0, field.x) * field.y;
@@ -332,6 +356,13 @@ const CORNERS: Array<[number, number, number]> = [
   [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1],
 ];
 
+/** The corners of the drawn part of a box, in its unit cube. */
+function cornersOf(box: { min: [number, number, number]; max: [number, number, number] }): Array<[number, number, number]> {
+  return CORNERS.map(([x, y, z]) => [
+    x ? box.max[0] : box.min[0], y ? box.max[1] : box.min[1], z ? box.max[2] : box.min[2],
+  ]);
+}
+
 /**
  * The part of the screen a box can cover, in pixels, or null if none of it.
  *
@@ -344,10 +375,10 @@ const CORNERS: Array<[number, number, number]> = [
  * so that case falls back to the whole viewport rather than guessing.
  */
 function screenRect(
-  forward: Mat4, width: number, height: number,
+  forward: Mat4, corners: ReadonlyArray<[number, number, number]>, width: number, height: number,
 ): [number, number, number, number] | "all" | null {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const [x, y, z] of CORNERS) {
+  for (const [x, y, z] of corners) {
     const [cx, cy, , cw] = apply(forward, x, y, z);
     if (cw <= 0) return "all";
     const px = (cx / cw * 0.5 + 0.5) * width;
@@ -463,12 +494,76 @@ function peelAt(seconds: number): number {
   return eased(rise) - eased(fall);
 }
 
+/**
+ * Each storm's peel floor, by the key each of its tiles is held under: the
+ * strongest `coreDbz` among the tiles of one storm that peel, so they peel as
+ * one cloud (see `Cloud.peelFloor`). A storm from before tiles, with no
+ * `system`, is a storm of its own; one that does not peel stays at `DBZ_LOW`.
+ */
+export function peelFloors(
+  clouds: Iterable<[string, { system: string | null; coreDbz: number; peels: boolean }]>,
+): Map<string, number> {
+  const held = [...clouds];
+  const storms = new Map<string, number>();
+  const storm = (key: string, system: string | null) => system ?? key;
+  for (const [key, { system, coreDbz, peels }] of held) {
+    if (peels) storms.set(storm(key, system), Math.max(storms.get(storm(key, system)) ?? DBZ_LOW, coreDbz));
+  }
+  return new Map(held.map(([key, { system, peels }]) => [key, peels ? storms.get(storm(key, system))! : DBZ_LOW]));
+}
+
+/**
+ * Where the cut passes through the opened tile, on the map: through the
+ * storm, not the middle of the box (see `locateStorm`), as Mercator x and y
+ * and a height in the tile's cube scaled to the map.
+ */
+export function cutPointOf(model: Mat4, cutaway: Pick<Cutaway, "extentM" | "centreKm">): [number, number, number] {
+  const { extentM, centreKm } = cutaway;
+  const u = 0.5 + centreKm[0] / (extentM[0] / 1000);
+  const v = 0.5 + centreKm[1] / (extentM[1] / 1000);
+  return [model[12] + model[0] * u, model[13] + model[5] * v, (centreKm[2] / (extentM[2] / 1000)) * model[10]];
+}
+
+/**
+ * The cut in one cloud's own cube: the opened tile's plane, carried over.
+ *
+ * Along the heading, so the normal lies across it. The model matrices only
+ * scale and translate, so a point maps across by undoing one and doing the
+ * other, and the normal by the ratio of the scales: tiles of one storm differ
+ * in scale by the cosine of a few kilometres of latitude.
+ */
+export function carryCut(
+  model: Mat4, opened: Mat4, point: readonly [number, number, number], along: number,
+): { normal: [number, number, number]; point: [number, number, number] } {
+  return {
+    normal: [(Math.cos(along) * model[0]) / opened[0], (-Math.sin(along) * model[5]) / opened[5], 0],
+    point: [(point[0] - model[12]) / model[0], (point[1] - model[13]) / model[5], point[2] / model[10]],
+  };
+}
+
 /** One storm on the map: its field, where its box stands, and its texture once uploaded. */
 interface Cloud {
   cutaway: Cutaway;
   model: Float64Array;
-  /** Where the peel stops: the reflectivity only the core reaches. */
+  /**
+   * The part of its unit cube that is marched, and its corners: the tile,
+   * bar its apron, cut down to where it holds any echo (`echoPart`).
+   */
+  box: { min: [number, number, number]; max: [number, number, number] };
+  corners: Array<[number, number, number]>;
+  /** Samples along a ray through it; see `STEPS`. */
+  steps: number;
+  /** Where its own peel would stop: the reflectivity only its core reaches. */
   coreDbz: number;
+  /**
+   * Where its peel stops: the strongest `coreDbz` among the tiles of its
+   * storm, so one storm's tiles peel as one cloud. Each to its own floor,
+   * a weak tile beside a strong one emptied while its neighbour still stood,
+   * and the seam between them flickered through every peel.
+   */
+  peelFloor: number;
+  /** The storm it is a tile of, by the code of the tile holding the storm's peak; null before tiles. */
+  system: string | null;
   /** The scan it was measured in. */
   scan: Scan | null;
   /** The network whose composite it was found in, whose radar it is judged against. */
@@ -493,8 +588,15 @@ export interface CloudsLayer extends CustomLayerInterface {
    * nothing about where the intensity sits -- and costs a frame every
    * twelfth of a second for as long as one is on screen.
    */
-  setClouds(clouds: ReadonlyArray<{ key: string; cutaway: Cutaway; dim?: number; peels?: boolean }>): void;
-  /** Open one storm, by the key it was handed over under, with a cut at this heading. */
+  setClouds(clouds: ReadonlyArray<{
+    key: string; cutaway: Cutaway; dim?: number; peels?: boolean; system?: string | null;
+  }>): void;
+  /**
+   * Open one storm, by the key it was handed over under, with a cut at this
+   * heading. The other tiles of its storm are cut by the same plane, so the
+   * cut runs across the storm rather than stopping at the tile's edge, and
+   * no tile of it stands whole in front of the face.
+   */
   setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
@@ -626,20 +728,36 @@ export function makeCloudsLayer(
         if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
         clouds.delete(key);
       }
-      for (const { key, cutaway, dim = 1, peels = true } of next) {
+      for (const { key, cutaway, dim = 1, peels = true, system = null } of next) {
         const held = clouds.get(key);
         if (held?.cutaway === cutaway) {
           if (peels && !held.peels) held.coreDbz = coreDbz(cutaway);
           held.dim = dim;
           held.peels = peels;
+          held.system = system;
           continue;
         }
         if (held?.texture && gl) gl.deleteTexture(held.texture);
+        // Steps are counted on the tile, so a step is the same length in every box.
+        const tile = drawnPart(cutaway.header);
+        const across = Math.max(
+          cutaway.header.nx * (tile.max[0] - tile.min[0]), cutaway.header.ny * (tile.max[1] - tile.min[1]),
+        );
+        // Marched only where there is echo to draw: not the air above the
+        // storm's top, nor the empty part of a tile at the storm's edge.
+        const echo = echoPart(cutaway, DBZ_LOW);
+        const box = echo ? overlap(tile, echo) : tile;
+        const own = peels ? coreDbz(cutaway) : DBZ_LOW;
         clouds.set(key, {
           cutaway,
           model: modelFor(cutaway),
+          box,
+          corners: cornersOf(box),
+          steps: Math.max(16, Math.round((STEPS * across) / STEPS_VOXELS)),
           // A pass over every voxel, so only for a storm that will use it.
-          coreDbz: peels ? coreDbz(cutaway) : DBZ_LOW,
+          coreDbz: own,
+          peelFloor: own,
+          system,
           scan: scanTime(cutaway.header.reference_time),
           network: networkOf(cutaway.header),
           dim,
@@ -647,6 +765,7 @@ export function makeCloudsLayer(
           texture: gl ? upload(gl, cutaway) : null,
         });
       }
+      for (const [key, floor] of peelFloors(clouds)) clouds.get(key)!.peelFloor = floor;
       // New storms are worth peeling for a while, whatever the reader was doing.
       wake();
     },
@@ -740,7 +859,6 @@ export function makeCloudsLayer(
       context.uniform1i(at("uRamp"), 1);
       context.uniform1i(at("uVolume"), 0);
       context.uniform2f(at("uViewport"), width, height);
-      context.uniform1f(at("uSteps"), STEPS);
       // Whatever MapLibre has set for this layer; see "Depth" above.
       const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
       context.uniform2f(at("uDepthRange"), depthNear, depthFar);
@@ -754,12 +872,17 @@ export function makeCloudsLayer(
       context.depthMask(false);
       context.disable(context.CULL_FACE);
 
+      // The cut, on the map, carried into each cut tile's cube; see `carryCut`.
+      const opened = cutKey !== null ? clouds.get(cutKey) : undefined;
+      const along = (cutHeading * Math.PI) / 180;
+      const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
+
       for (const { key, cloud, forward } of ordered) {
-        const rect = screenRect(forward, width, height);
+        const rect = screenRect(forward, cloud.corners, width, height);
         if (rect === null) continue;
         const inverse = invert(forward);
         if (!inverse) continue;
-        const { header, extentM, centreKm } = cloud.cutaway;
+        const { header, extentM } = cloud.cutaway;
 
         if (rect === "all") {
           context.disable(context.SCISSOR_TEST);
@@ -773,26 +896,26 @@ export function makeCloudsLayer(
         context.uniformMatrix4fv(at("uForward"), false, new Float32Array(forward));
         context.uniformMatrix4fv(at("uInverse"), false, new Float32Array(inverse));
         context.uniform3f(at("uExtentKm"), extentM[0] / 1000, extentM[1] / 1000, extentM[2] / 1000);
+        context.uniform3f(at("uBoxMin"), ...cloud.box.min);
+        context.uniform3f(at("uBoxMax"), ...cloud.box.max);
+        context.uniform1f(at("uSteps"), cloud.steps);
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
-        const cut = key === cutKey;
+        // The opened tile, and every other tile of its storm.
+        const cut = opened !== undefined && cutPoint !== null
+          && (key === cutKey || (opened.system !== null && cloud.system === opened.system));
         const peelsNow = !cut && cloud.peels && !holding;
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), cut ? 1 : 0);
-        context.uniform1f(at("uBehind"), !cut && isBehind(cloud.scan, radarScanOf(cloud.network)) ? 1 : 0);
+        // Grey for an older scan, bar the one being read for its colours.
+        context.uniform1f(at("uBehind"), key !== cutKey && isBehind(cloud.scan, radarScanOf(cloud.network)) ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
-        context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.coreDbz - DBZ_LOW) * peel : DBZ_LOW);
+        context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.peelFloor - DBZ_LOW) * peel : DBZ_LOW);
         if (cut) {
-          // Along the heading, so the normal lies across it; through the storm,
-          // not the middle of the box. The two horizontal axes share a scale in
-          // cube space, so the heading needs no correction.
-          const along = (cutHeading * Math.PI) / 180;
-          context.uniform3f(at("uPlaneNormal"), Math.cos(along), -Math.sin(along), 0);
-          context.uniform3f(at("uPlanePoint"),
-            0.5 + centreKm[0] / (extentM[0] / 1000),
-            0.5 + centreKm[1] / (extentM[1] / 1000),
-            centreKm[2] / (extentM[2] / 1000));
+          const { normal, point } = carryCut(cloud.model, opened.model, cutPoint, along);
+          context.uniform3f(at("uPlaneNormal"), ...normal);
+          context.uniform3f(at("uPlanePoint"), ...point);
         }
         context.drawArrays(context.TRIANGLES, 0, 3);
       }

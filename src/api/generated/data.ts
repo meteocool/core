@@ -463,10 +463,10 @@ export interface components {
          * CellVolume
          * @description Where to find this cell's radar volume, and how much to trust it.
          *
-         *     The volume is the cutaway view's data: a 40 by 40 by 16 km box of
-         *     reflectivity and confidence around the cell, built from the polar sweeps
+         *     The volume is the cutaway view's data: one map tile of sky, about 26 by
+         *     26 by 16 km, of reflectivity and confidence, built from the polar sweeps
          *     the flat products are made from. It is a separate object rather than part
-         *     of this payload because it is about 140 kB and almost nobody opens it, and
+         *     of this payload because it is tens of kB and almost nobody opens it, and
          *     it carries no URL because it lives in the same public bucket as the
          *     rendered tiles -- the client joins `path` to the tile base it already has.
          *
@@ -697,17 +697,19 @@ export interface components {
         };
         /**
          * RadarVolume
-         * @description A storm that can be cut open, found in the radar composite.
+         * @description One tile of a storm that can be cut open, found in the radar composite.
          *
-         *     Not necessarily a KONRAD3D cell. These are storm cores in the
-         *     column-maximum composite, so most of them are showers KONRAD3D never
-         *     reports -- it is a warning product and lists only what might do harm. The
-         *     position is the core's peak, which is where the box is centred.
+         *     Not necessarily a KONRAD3D cell. These are storms in each network's
+         *     composite, so most of them are showers KONRAD3D never reports -- it is a
+         *     warning product and lists only what might do harm. A storm is boxed by
+         *     every zoom-10 Web Mercator tile it covers, so the boxes abut and never
+         *     overlap; volumes from before tiles are one box per storm, centred on its
+         *     peak, and carry no `tile`.
          */
         RadarVolume: {
             /**
              * Area Km2
-             * @description Area of the core above the seed threshold
+             * @description Area of the box above the seed threshold
              */
             area_km2?: number | null;
             /**
@@ -717,7 +719,7 @@ export interface components {
             bytes?: number | null;
             /**
              * Code
-             * @description Where the core's peak stands, to a hundredth of a degree, prefixed G
+             * @description The tile, `T` + zoom (2 digits) + x + y (5 each); before tiles, the core's peak to a hundredth of a degree, prefixed G
              */
             code: string;
             /**
@@ -727,17 +729,17 @@ export interface components {
             coverage: number;
             /**
              * Lat
-             * @description Latitude of the core's peak, and of the box's centre
+             * @description Latitude of the box's centre: the tile's middle in Mercator
              */
             lat: number;
             /**
              * Lon
-             * @description Longitude of the core's peak, and of the box's centre
+             * @description Longitude of the box's centre: the tile's middle in Mercator
              */
             lon: number;
             /**
              * Network
-             * @description The network whose composite the core was found in
+             * @description The network whose composite the storm was found in
              * @default de
              */
             network: string;
@@ -753,7 +755,7 @@ export interface components {
             path: string;
             /**
              * Peak Dbz
-             * @description Strongest reflectivity in the core, column maximum
+             * @description Strongest reflectivity in the box, column maximum
              */
             peak_dbz?: number | null;
             /**
@@ -778,11 +780,21 @@ export interface components {
              */
             sites?: string[];
             /**
+             * System
+             * @description The code of the tile holding the peak of the storm this tile's own peak belongs to: one storm's tiles share it, so a client can treat them as one cloud
+             */
+            system?: string | null;
+            /**
              * Tier
              * @description 1: drawn on the map but not openable, its coverage below the floor; 2: the cutaway opens
              * @default 2
              */
             tier: number;
+            /**
+             * Tile
+             * @description The Web Mercator tile the box fills, as z, x, y; absent on volumes from before tiles
+             */
+            tile?: number[] | null;
         };
         /**
          * SnowRefresh

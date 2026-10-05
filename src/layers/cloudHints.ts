@@ -35,6 +35,10 @@ import type { RadarScans } from "../lib/scans";
  * overlapping pills is neither readable nor tappable. At a wide zoom they are
  * thinned further, to one per neighbourhood; see `SPACING_PX`.
  *
+ * One per storm, not one per tile: a storm is boxed by every map tile it
+ * covers, and a squall line would otherwise carry a pill on each. The pill
+ * goes on the strongest of its tiles, which opens there.
+ *
  * Only for a core as new as the radar under it. The 3D map draws one from an
  * older scan grey, a scan upwind of the echo, which is no place to send
  * anyone: the tag is taken off when the radar moves on and put back when that
@@ -125,6 +129,21 @@ function hintStyle(feature: FeatureLike): Style {
 const peakOf = (feature: FeatureLike): number => feature.get("peak_dbz") ?? 0;
 
 /**
+ * The strongest tile of each storm, by its `system`; each volume from before
+ * tiles is a storm of its own. In the order given, bar the tiles left out.
+ */
+export function onePerStorm(clouds: RadarVolume[]): RadarVolume[] {
+  const strongest = new Map<string, RadarVolume>();
+  for (const cloud of clouds) {
+    const storm = cloud.system ?? cloud.path;
+    const held = strongest.get(storm);
+    if (!held || (cloud.peak_dbz ?? 0) > (held.peak_dbz ?? 0)) strongest.set(storm, cloud);
+  }
+  const kept = new Set(strongest.values());
+  return clouds.filter((cloud) => kept.has(cloud));
+}
+
+/**
  * The pills a whole zoom level keeps: strongest first, each one at least that
  * level's spacing from every stronger one kept. Null where every pill is kept.
  */
@@ -164,7 +183,7 @@ export default function makeCloudHints(): CloudHints {
    */
   const fill = () => {
     source.clear(true);
-    source.addFeatures(clouds.filter((cloud) => !isVolumeBehind(cloud, radar)).map((cloud) => new Feature({
+    source.addFeatures(onePerStorm(clouds.filter((cloud) => !isVolumeBehind(cloud, radar))).map((cloud) => new Feature({
       geometry: new Point(fromLonLat([cloud.lon, cloud.lat])),
       peak_dbz: cloud.peak_dbz ?? null,
       cloud,
