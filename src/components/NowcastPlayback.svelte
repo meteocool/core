@@ -420,7 +420,13 @@ const fsm = new StateMachine({
           fsm.pressPause();
         }
       };
-      playTick();
+      // From a timer rather than from here. A first tick that lands on the
+      // live frame pauses -- play pressed on the last step, or on the one
+      // before now, without the loop -- and a pause inside this transition
+      // threw, leaving the machine mid-transition for good: from then on
+      // pause, play and close all threw, and the player stayed open until
+      // the page was reloaded.
+      playTimeout = window.setTimeout(playTick, 0);
       playPauseButton = faPause;
     },
     onPressPause: () => {
