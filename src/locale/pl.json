@@ -127,6 +127,8 @@
   "lightning_unavailable": "Statystyki obecnie niedostępne.",
   "radar_no_coverage": "Tu jeszcze nie ma radaru",
   "radar_no_coverage_body": "Radar na żywo pochodzi z niemieckiej służby meteorologicznej, która udostępnia go tylko dla Niemiec i krajów sąsiednich. Wyładowania, satelita i modele prognostyczne działają na całym świecie.",
+  "clouds_behind": "Chmury 3D są opóźnione",
+  "clouds_behind_body": "Radar ma już nowszy skan niż widoczne burze, dlatego są wyszarzone. Kolor wróci, gdy chmury 3D z tego skanu zostaną obliczone, kilka minut po radarze.",
   "outdated": "Nieaktualne",
   "degraded": "Ograniczone",
   "show_for_my_location": "Pokaż dla mojej lokalizacji",

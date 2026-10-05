@@ -31,7 +31,7 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzColour, dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
+  capDescription, cellDetails, cells3dBehind, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
   selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen, terrain3dVisible,
 } from "../stores";
 import { get } from "svelte/store";
@@ -236,6 +236,15 @@ export const RING_OPACITY = { openable: 0.9, unopenable: 0.45 };
 
 /** How often a burst of strikes is redrawn at most; see `scheduleStrikes`. */
 const STRIKE_REDRAW_MS = 1000;
+
+/**
+ * How long every storm has to stay grey before the map says why.
+ *
+ * Coming back to this map, the storms it kept are judged against the radar
+ * that landed meanwhile until the refresh `attach` starts brings newer ones
+ * -- a moment later, and not worth a notice that is gone as it arrives.
+ */
+const BEHIND_SETTLE_MS = 2000;
 
 /** The id of the one full-size map element; minimaps carry generated ids. */
 const MAIN_MAP_ID = "map";
@@ -590,6 +599,9 @@ export default class Cells3DCapability extends Capability {
 
   /** The pending strike update, if one is waiting; see `scheduleStrikes`. */
   private strikeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Every storm gone grey, waiting to be reported; see `reportBehind`. */
+  private behindTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Takes back the ⌃-click correction, where one was needed; see lib/ctrlDrag.ts. */
   private uncorrectCtrlClicks: (() => void) | null = null;
@@ -976,6 +988,7 @@ export default class Cells3DCapability extends Capability {
     this.pushCameraToView();
     this.shown = false;
     cells3dFailed.set(false);
+    this.reportBehind();
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
     // `attach` refreshes, and waits again from there.
@@ -1307,6 +1320,7 @@ export default class Cells3DCapability extends Capability {
    */
   private applyStaleness(): void {
     this.cloudsLayer?.setRadarScans((network) => this.radarScanOf(network));
+    this.reportBehind();
     const gl = this.gl;
     if (!gl || !this.styleReady) return;
     const cellsBehind = isBehind(this.cellsScan, this.radarScan);
@@ -1341,6 +1355,39 @@ export default class Cells3DCapability extends Capability {
   /** The radar under the storms, which the flat map's "3D" tags are judged against too. */
   private radarScans(): RadarScans {
     return { scan: this.radarScan, whole: this.radarWhole, networks: this.networkFrames };
+  }
+
+  /**
+   * Whether every storm is drawn grey: every listed volume bar the faint ones
+   * nothing is drawn for, and the KONRAD3D cells where there are any. False
+   * with no storms at all -- an empty map is not a late one.
+   */
+  private allBehind(): boolean {
+    const scans = this.radarScans();
+    const clouds = this.clouds.filter((cloud) => !this.faint.has(cloud.path));
+    const cells = this.cells.length > 0;
+    if (!clouds.length && !cells) return false;
+    return clouds.every((cloud) => isVolumeBehind(cloud, scans))
+      && (!cells || isBehind(this.cellsScan, this.radarScan));
+  }
+
+  /**
+   * Tell App whether every storm is grey, so it can say why; see
+   * `cells3dBehind`. Grey only once it has lasted BEHIND_SETTLE_MS, colour
+   * at once, and never for a map that is not showing.
+   */
+  private reportBehind(): void {
+    if (!this.shown || !this.allBehind()) {
+      if (this.behindTimer !== null) clearTimeout(this.behindTimer);
+      this.behindTimer = null;
+      cells3dBehind.set(false);
+      return;
+    }
+    if (this.behindTimer !== null || get(cells3dBehind)) return;
+    this.behindTimer = setTimeout(() => {
+      this.behindTimer = null;
+      if (this.shown && this.allBehind()) cells3dBehind.set(true);
+    }, BEHIND_SETTLE_MS);
   }
 
   /** Tell the layer which storm is open, and which way its slice now runs. */
@@ -2147,6 +2194,8 @@ export default class Cells3DCapability extends Capability {
   destroy(): void {
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
+    if (this.behindTimer !== null) clearTimeout(this.behindTimer);
+    this.behindTimer = null;
     if (this.volumesTimer !== null) clearTimeout(this.volumesTimer);
     this.volumesTimer = null;
     this.volumes.stop();

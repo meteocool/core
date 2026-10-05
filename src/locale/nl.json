@@ -127,6 +127,8 @@
   "lightning_unavailable": "Statistieken momenteel niet beschikbaar.",
   "radar_no_coverage": "Hier nog geen radar",
   "radar_no_coverage_body": "Live radar komt van de Duitse weerdienst, die deze alleen publiceert voor Duitsland en de buurlanden. Bliksem, satelliet en de voorspellingsmodellen werken wereldwijd.",
+  "clouds_behind": "De 3D-wolken lopen achter",
+  "clouds_behind_body": "De radar heeft een nieuwere scan dan de buien erop, daarom zijn ze grijs. De kleur komt terug zodra de 3D-wolken van deze scan berekend zijn, een paar minuten na de radar.",
   "outdated": "Verouderd",
   "degraded": "Beperkt",
   "show_for_my_location": "Toon voor mijn locatie",
