@@ -26,11 +26,6 @@ import { isDarkBasemap } from "./casing";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { onMapMotion } from "../lib/mapMotion";
 
-/** Light-mode values for the tokens below, restored when dark mode is left. */
-const uiConstantsDefault: Record<string, string> = {
-  "svg-dark-to-light": "none",
-};
-
 /**
  * Shoelace's gray scale, which themes/dark.css maps its neutral-* tokens onto,
  * tuned so its internals land on the same dark material as the --mc-* tokens
@@ -43,8 +38,6 @@ const darkmodeConstants = {
   "sl-color-gray-300": "#4a505a",
   "sl-color-gray-200": "#343941",
   "sl-color-gray-600": "#aeb3bb",
-  // CSS people be like https://codepen.io/sosuke/pen/Pjoqqp
-  "svg-dark-to-light": "invert(99%) sepia(0%) saturate(469%) hue-rotate(31deg) brightness(119%) contrast(100%)",
 };
 
 /** Shoelace's dark theme (themes/dark.css) is scoped to this class and inert otherwise. */
@@ -86,7 +79,7 @@ onMapMotion((moving) => {
 
 export const NOWCAST_OPACITY = 0.75;
 
-export function setUIConstant(name: string, suite: Record<string, string> = uiConstantsDefault) {
+export function setUIConstant(name: string, suite: Record<string, string>) {
   document.documentElement.style.setProperty(`--${name}`, suite[name]);
 }
 
@@ -100,7 +93,6 @@ let darkModeHandler: ((event: MediaQueryListEvent) => void) | null = null;
 
 export function initUIConstants() {
   cleanupUIConstants();
-  Object.keys(uiConstantsDefault).forEach((key) => setUIConstant(key));
 
   if (window.matchMedia) {
     // One query for both the initial read and the subscription. The old code
@@ -158,9 +150,6 @@ colorSchemeDark.subscribe((isDark) => {
   Object.keys(darkmodeConstants).forEach((key) => {
     if (isDark) {
       setUIConstant(key, darkmodeConstants);
-    } else if (key in uiConstantsDefault) {
-      // Leaving dark mode restores the light default rather than unsetting.
-      setUIConstant(key);
     } else {
       unsetUIConstant(key);
     }
