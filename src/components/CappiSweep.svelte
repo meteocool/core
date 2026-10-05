@@ -21,7 +21,7 @@
  */
 import { onDestroy, onMount, tick } from "svelte";
 import { _ } from "svelte-i18n";
-import { loadCutaway } from "../lib/cellCutaway";
+import { loadOpenedCutaway } from "../lib/cellCutaway";
 import type { Cutaway } from "../lib/cellCutaway";
 import { createRaymarcher, type Raymarcher } from "../lib/volumeRaymarch";
 import { radarColormap } from "../stores";
@@ -217,7 +217,7 @@ function load(): void {
   controller = new AbortController();
   failed = null;
   retryable = false;
-  loadCutaway(volume, controller.signal)
+  loadOpenedCutaway(volume, controller.signal)
     .then(async (loaded) => {
       cutaway = loaded;
       // The canvas is inside `{#if cutaway}`; see CellCutaway for why `tick`.
