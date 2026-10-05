@@ -106,23 +106,20 @@ export function magnify(
 }
 
 /**
- * What a frame has for tile `z`/`x`/`y`: the tile's bytes, the part of its
- * ancestor past the frame's deepest zoom (`sourceTile`), or a blank where it
- * has nothing.
+ * What a frame has for tile `z`/`x`/`y`: the bitmap it comes out of -- its
+ * own, or its ancestor's past the frame's deepest zoom -- and which part of
+ * that it is (`sourceTile`), or null where the frame has nothing.
  */
-export async function loadValueFrameTile(
+export async function fetchFrameTile(
   template: string,
   index: TileIndex | null | undefined,
   z: number,
   x: number,
   y: number,
   signal?: AbortSignal,
-): Promise<ImageBitmap | HTMLCanvasElement> {
+): Promise<{ bitmap: ImageBitmap; from: SourceTile } | null> {
   const from = sourceTile(index, z, x, y);
-  if (index && !present(index, from.z, from.x, from.y)) return blankTile();
+  if (index && !present(index, from.z, from.x, from.y)) return null;
   const bitmap = await fetchValueTile(fillTemplate(template, from.z, from.x, from.y), signal);
-  if (!bitmap) return blankTile();
-  const image = magnify(bitmap, from);
-  if (image !== bitmap) bitmap.close();
-  return image;
+  return bitmap ? { bitmap, from } : null;
 }

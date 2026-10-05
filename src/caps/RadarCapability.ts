@@ -917,8 +917,11 @@ export default class RadarCapability extends Capability {
 
   resetToLatest() {
     const mostRecent = this.getMostRecentObservation();
-    if (this.clientGrid && mostRecent in this.clientGrid) {
-      const url = this.clientGrid[mostRecent].url;
+    // A step can be in the grid and still null: before anything is published,
+    // the newest observation falls back to the server's clock, a placeholder.
+    const step = this.clientGrid?.[mostRecent];
+    if (step) {
+      const { url } = step;
       if (this.source && url) this.source.setUrl(url);
       // Both halves: the newest observation is what is being reset onto, so
       // there is no tick in which the two disagree.
