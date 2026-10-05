@@ -30,6 +30,13 @@ export default class Settings {
    */
   private overrides = new Map<string, SettingValue>();
 
+  /**
+   * Values set where localStorage would not take them -- blocked, or a webview
+   * without it, where `localStorage` is null -- kept for this page load
+   * instead. Writing to it threw, so a switch did nothing but report an error.
+   */
+  private unsaved = new Map<string, SettingValue>();
+
   constructor(settingsCbs: Record<string, SettingDefinition>) {
     // expects a structure like this:
     // {
@@ -49,13 +56,14 @@ export default class Settings {
       return null;
     }
     if (this.overrides.has(key)) return this.overrides.get(key) ?? null;
+    if (this.unsaved.has(key)) return this.unsaved.get(key) ?? null;
 
     const url = new URL(document.location.href);
     let local: string | null = null;
     try {
       if (localStorage) local = localStorage.getItem(key);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Storage blocked: the default, as for a reader who never chose.
     }
     switch (this.getSourceForKey(key)) {
       case "localStorage":
@@ -145,13 +153,17 @@ export default class Settings {
     const url = new URL(window.location.href);
     switch (this.getSourceForKey(key)) {
       case "localStorage":
-        if (old !== value && this.settings[key].default !== value) {
-          // Both stores are string-keyed, which is why get() has to read the
-          // declared type back to recover a boolean.
-          localStorage.setItem(key, String(value));
-        } else if (this.settings[key].default === value && localStorage.getItem(key) !== null) {
-          // remove from localstorage if value is reset to default
-          localStorage.removeItem(key);
+        try {
+          if (old !== value && this.settings[key].default !== value) {
+            // Both stores are string-keyed, which is why get() has to read the
+            // declared type back to recover a boolean.
+            localStorage.setItem(key, String(value));
+          } else if (this.settings[key].default === value && localStorage.getItem(key) !== null) {
+            // remove from localstorage if value is reset to default
+            localStorage.removeItem(key);
+          }
+        } catch {
+          this.unsaved.set(key, value);
         }
         break;
       case "url":

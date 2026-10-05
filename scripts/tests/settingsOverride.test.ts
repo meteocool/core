@@ -95,3 +95,22 @@ test("screenshot mode is read off the address, and nothing it does is stored", (
   settings.set("layerCells", false);
   assert.equal(store.size, 0);
 });
+
+/**
+ * A webview without storage, where `localStorage` is null, or a browser that
+ * blocks it: set() threw, and the switch the reader had just flipped did
+ * nothing.
+ */
+test("without storage, a setting still changes, for this page load", (t) => {
+  const real = (globalThis as Record<string, unknown>).localStorage;
+  t.after(() => { (globalThis as Record<string, unknown>).localStorage = real; });
+  const seen: boolean[] = [];
+  const settings = lightning(seen);
+  (globalThis as Record<string, unknown>).localStorage = null;
+  assert.doesNotThrow(() => settings.set("layerLightning", false));
+  assert.equal(settings.getBoolean("layerLightning"), false);
+  assert.deepEqual(seen, [false]);
+  settings.set("layerLightning", true);
+  assert.equal(settings.getBoolean("layerLightning"), true);
+  assert.deepEqual(seen, [false, true]);
+});
