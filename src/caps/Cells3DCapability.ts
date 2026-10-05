@@ -265,6 +265,18 @@ const PITCH_KEPT_DEG = 4;
  * street-level zoom.
  */
 const MAX_PITCH = 84;
+
+/**
+ * The furthest the map zooms out, in MapLibre's levels: at the opening tilt,
+ * about half the world across a 1440px window, and Europe across a phone.
+ *
+ * Tighter than the flat map's 3 (2 here), because a tilted camera sees out to
+ * the horizon: at 2, the far edge of a desktop's screen spanned the whole
+ * world, the storms were a speck in the middle of it, and there was nothing
+ * to find the way back by. Still past where the radar's own tiles start, 3,
+ * so the map has radar under its centre however far out it is.
+ */
+const MIN_ZOOM = 3.5;
 /**
  * How long the camera takes to right itself on the way back to a flat map;
  * see `leave`. Longer than the tilt's own 700ms: this one also pulls back
@@ -765,6 +777,7 @@ export default class Cells3DCapability extends Capability {
           zoom: (asked.zoom ?? view.getZoom() ?? 6) - 1,
           pitch: asked.pitch ?? INITIAL_PITCH,
           bearing: asked.bearing ?? 0,
+          minZoom: MIN_ZOOM,
           maxZoom: 13,
           // MapLibre stops at 60 unless told otherwise, which is a view from a
           // hilltop; an opened storm is looked at from lower -- see frameOpened.
