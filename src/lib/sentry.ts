@@ -12,6 +12,7 @@
  * phone for a number that only needs a sample to be right.
  */
 import type { BrowserOptions } from "@sentry/browser";
+import { unsupportedBrowser } from "./browserSupport";
 
 const DSN = "https://ee86f8a6a22f4b7fb267b01e22c07d1e@o347743.ingest.sentry.io/5481137";
 
@@ -40,7 +41,7 @@ function testRun(): boolean {
 
 /** Start reporting when the browser has time for it; safe to call more than once. */
 export function startSentry(): void {
-  if (typeof window === "undefined" || started || testRun()) return;
+  if (typeof window === "undefined" || started || unsupportedBrowser || testRun()) return;
   started = true;
   window.addEventListener("error", onError);
   window.addEventListener("unhandledrejection", onRejection);
