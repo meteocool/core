@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import makeCloudHints from "../../src/layers/cloudHints.ts";
+import makeCloudHints, { onePerStorm } from "../../src/layers/cloudHints.ts";
 import { scanTime } from "../../src/lib/scans.ts";
 import type { RadarVolume } from "../../src/api/index.ts";
 
@@ -39,4 +39,17 @@ test("with no radar known, every core is tagged", () => {
   const hints = makeCloudHints();
   hints.setClouds([cloud("a", "00:00")]);
   assert.deepEqual(tagged(hints), ["a"]);
+});
+
+test("a storm boxed by several tiles carries one tag, on its strongest", () => {
+  const tile = (path: string, system: string | null, peak: number) => (
+    { ...cloud(path, "00:00"), system, peak_dbz: peak } as unknown as RadarVolume
+  );
+  const tiles = [tile("a", "T1", 40), tile("b", "T1", 58), tile("c", "T2", 35), tile("d", null, 30), tile("e", null, 31)];
+
+  assert.deepEqual(onePerStorm(tiles).map((kept) => kept.path), ["b", "c", "d", "e"]);
+
+  const hints = makeCloudHints();
+  hints.setClouds(tiles);
+  assert.deepEqual(tagged(hints), ["b", "c", "d", "e"]);
 });

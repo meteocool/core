@@ -23,6 +23,7 @@ import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway, VolumeGone } from "../lib/cellCutaway";
+import { drawnExtentM } from "../lib/volumeBox";
 import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
@@ -44,7 +45,7 @@ import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { middleDragTurnsAndTilts } from "../lib/middleDrag";
 import { tracked } from "../lib/progress";
-import { boxFootprint } from "../lib/cloudFootprint";
+import { boxFootprint, tileWidthM } from "../lib/cloudFootprint";
 import { isBehind, isVolumeBehind, radarScanOf, scanTime, VolumeFeed } from "../lib/scans";
 import type { RadarScans, Scan } from "../lib/scans";
 
@@ -141,20 +142,26 @@ const VOLUME_LAYER = "cell-volume-raymarched";
 const VOLUME_FETCHES = 4;
 
 /**
- * How many volumes are held at once.
+ * How much volume is held at once, in bytes of 3D texture.
  *
- * The list now covers five networks and every shower with a core, so on a
- * continental afternoon it runs to dozens; each held one is a 1.6 MB 3D
- * texture and a raymarch per frame. So only what is in view, strongest and
- * nearest first, up to this many: the rest stay as the ground rings, which
- * are already there and tappable, and load when the camera comes to them.
+ * The list now covers five networks and every tile of sky it rains in, so on
+ * a continental afternoon it runs to a hundred; each held one is a 3D texture
+ * and a raymarch per frame. So only what is in view, strongest and nearest
+ * first, up to this much: the rest stay as the ground outlines, which are
+ * already there and tappable, and load when the camera comes to them.
  *
- * Raised from 16 on 2026-10-01: zoomed out over the Alps, 40 storms stood on
- * screen and 16 got clouds. The raymarch is scissored to each storm's box, so
- * a storm drawn small costs little; the cost that grows is the textures, 38 MB
- * at this many.
+ * Raised from 16 boxes to 24 on 2026-10-01: zoomed out over the Alps, 40
+ * storms stood on screen and 16 got clouds. The raymarch is scissored to each
+ * box, so a storm drawn small costs little; the cost that grows is the
+ * textures. Counted in bytes since the boxes became tiles, each 0.44 of a box:
+ * the same 39 MB holds 54 tiles.
  */
-const RESIDENT_VOLUMES = 24;
+const RESIDENT_BYTES = 24 * 160 * 160 * 32 * 2;
+/** One tile's texture, apron included, as the worker builds it (`voxels.TILE_VOXELS`, `APRON`). */
+const TILE_TEXTURE_BYTES = 106 * 106 * 32 * 2;
+/** One box's from before tiles. */
+const BOX_TEXTURE_BYTES = 160 * 160 * 32 * 2;
+const textureBytes = (volume: RadarVolume) => (volume.tile ? TILE_TEXTURE_BYTES : BOX_TEXTURE_BYTES);
 
 /** How far past the viewport's edge a storm still counts as in view, as a fraction of the viewport. */
 const VIEW_MARGIN = 0.35;
@@ -208,15 +215,6 @@ interface VolumeTarget {
   /** Degrees clockwise from north; null for a storm with no track. */
   heading: number | null;
 }
-
-/**
- * The box a volume fills, in kilometres either side of its centre.
- *
- * Mirrors `voxels.HALF_WIDTH_M` on the worker. Used only to decide which
- * extruded cells stand inside the storm being drawn, so a mismatch hides a
- * tier too many or too few rather than breaking anything.
- */
-const BOX_HALF_KM = 20;
 
 /**
  * How long a strike stays on this map.
@@ -478,7 +476,11 @@ export default class Cells3DCapability extends Capability {
    * in the next scan's list is the same object, and fetching it again would
    * be several hundred kilobytes for nothing.
    */
-  private cutaways = new Map<string, { code: string; cutaway: Cutaway; lon: number; lat: number; tier: number }>();
+  private cutaways = new Map<string, {
+    code: string; cutaway: Cutaway; lon: number; lat: number; tier: number;
+    /** The storm it is a tile of; see `RadarVolume.system`. */
+    system: string | null;
+  }>();
 
   /**
    * Listed storms whose volume loaded too faint to draw; see `isFaint`.
@@ -1107,13 +1109,16 @@ export default class Cells3DCapability extends Capability {
 
   /** Every cell whose centroid falls inside any volume currently loaded. */
   private hiddenCodes(): string[] {
-    const boxes = [...this.cutaways.values()];
+    const boxes = [...this.cutaways.values()].map(({ cutaway }) => {
+      const [width, height] = drawnExtentM(cutaway);
+      return { lon: cutaway.header.lon, lat: cutaway.header.lat, halfX: width / 2000, halfY: height / 2000 };
+    });
     if (!boxes.length) return [];
     return this.cells
       .filter((cell) => boxes.some((box) => {
         const kmPerLon = 111.32 * Math.cos((box.lat * Math.PI) / 180);
-        return Math.abs((cell.lon - box.lon) * kmPerLon) <= BOX_HALF_KM
-          && Math.abs((cell.lat - box.lat) * 110.57) <= BOX_HALF_KM;
+        return Math.abs((cell.lon - box.lon) * kmPerLon) <= box.halfX
+          && Math.abs((cell.lat - box.lat) * 110.57) <= box.halfY;
       }))
       .map((cell) => cell.code);
   }
@@ -1169,7 +1174,10 @@ export default class Cells3DCapability extends Capability {
     if (!entry) {
       try {
         const cutaway = await loadCutaway(target.volume);
-        entry = { code: target.code, cutaway, lon: target.lon, lat: target.lat, tier: tierOf(target.volume, cutaway) };
+        entry = {
+          code: target.code, cutaway, lon: target.lon, lat: target.lat, tier: tierOf(target.volume, cutaway),
+          system: "system" in target.volume ? (target.volume as RadarVolume).system ?? null : null,
+        };
         this.cutaways.set(target.volume.path, entry);
         this.pushClouds();
       } catch {
@@ -1382,6 +1390,7 @@ export default class Cells3DCapability extends Capability {
           }
           this.cutaways.set(cloud.path, {
             code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat, tier: tierOf(cloud, cutaway),
+            system: cloud.system ?? null,
           });
         }
         this.pushClouds();
@@ -1397,7 +1406,7 @@ export default class Cells3DCapability extends Capability {
   /**
    * Which of the listed storms to hold volumes for: those on screen first,
    * then those just past its edges, strongest first and nearer first among
-   * equals within each, up to `RESIDENT_VOLUMES`.
+   * equals within each, up to `RESIDENT_BYTES`.
    *
    * On screen by projecting each storm, not by the viewport's bounds: tilted,
    * the bounds are the box around a trapezoid running to the horizon, mostly
@@ -1443,7 +1452,14 @@ export default class Cells3DCapability extends Capability {
       || (b.peak_dbz ?? 0) - (a.peak_dbz ?? 0)
       || distance(a) - distance(b)
     ));
-    return ranked.slice(0, RESIDENT_VOLUMES);
+    const held: RadarVolume[] = [];
+    let bytes = 0;
+    for (const cloud of ranked) {
+      bytes += textureBytes(cloud);
+      if (bytes > RESIDENT_BYTES) break;
+      held.push(cloud);
+    }
+    return held;
   }
 
   /** Forget every volume no longer listed or no longer wanted in view, bar the open one. */
@@ -1470,9 +1486,10 @@ export default class Cells3DCapability extends Capability {
     const drawn = [...this.cutaways].filter(([path, { cutaway }]) => (
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
     ));
-    this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway, tier }]) => ({
+    this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway, tier, system }]) => ({
       key,
       cutaway,
+      system,
       dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
       // Held whole: its layers are interpolation, which a peel cannot reveal anything in.
       peels: tier !== TIER_UNOPENABLE,
@@ -1494,17 +1511,18 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Every storm core with a volume: the outline of its box on the ground, and
-   * its inside as the tap target.
+   * Every tile of sky with a volume: the outline of its box on the ground,
+   * and its inside as the tap target.
    *
    * The outline is the box the cutaway raymarches, so a reader sees before
-   * tapping what will open -- 40 km of sky, not the storm alone -- and which
-   * of two overlapping storms a box belongs to. Fainter for one that does not
-   * open. No "3D" pill as on the flat map: here every storm already stands in
-   * 3D, and a tag over each one only covered the clouds it pointed at. A tap
-   * anywhere in a box opens its storm instead, the nearest one by its spin
-   * axis (`lib/cloudFootprint.ts`) where boxes overlap -- the storm's own
-   * centre once its volume is in, the box's until then.
+   * tapping what will open: one tile of sky, not the storm alone. A storm is
+   * covered by as many as it needs, which abut and never overlap. Fainter for
+   * one that does not open. No "3D" pill as on the flat map: here every storm
+   * already stands in 3D, and a tag over each one only covered the clouds it
+   * pointed at. A tap anywhere in a box opens it instead; where boxes from
+   * before tiles overlap, the nearest by its spin axis
+   * (`lib/cloudFootprint.ts`) -- the storm's own centre once its volume is
+   * in, the box's until then.
    */
   private ensureClouds(gl: GlMap): void {
     const data = {
@@ -1515,12 +1533,14 @@ export default class Cells3DCapability extends Capability {
         const behind = isVolumeBehind(cloud, this.radarScans());
         const properties = { code: cloud.code, path: cloud.path, dbz, tier: cloud.tier ?? 2, behind };
         const loaded = this.cutaways.get(cloud.path)?.cutaway;
-        const { ring, pivot } = loaded
+        // The tile itself, not its apron, which is the neighbours' to outline.
+        const drawnM = loaded ? drawnExtentM(loaded) : null;
+        const listedM = cloud.tile ? tileWidthM(cloud.tile[0], cloud.lat) : null;
+        const { ring, pivot } = loaded && drawnM
           ? boxFootprint(
-            loaded.header.lon, loaded.header.lat,
-            [loaded.extentM[0], loaded.extentM[1]], [loaded.centreKm[0], loaded.centreKm[1]],
+            loaded.header.lon, loaded.header.lat, [drawnM[0], drawnM[1]], [loaded.centreKm[0], loaded.centreKm[1]],
           )
-          : boxFootprint(cloud.lon, cloud.lat);
+          : boxFootprint(cloud.lon, cloud.lat, listedM ? [listedM, listedM] : undefined);
         return {
           type: "Feature" as const,
           geometry: { type: "Polygon" as const, coordinates: [ring] },
@@ -1628,7 +1648,7 @@ export default class Cells3DCapability extends Capability {
       const { header } = cutaway;
       const tier = header.tier ?? 2;
       // Held like a listed one, so opening it does not fetch it a second time.
-      this.cutaways.set(path, { code: header.code, cutaway, lon: header.lon, lat: header.lat, tier });
+      this.cutaways.set(path, { code: header.code, cutaway, lon: header.lon, lat: header.lat, tier, system: null });
       this.pushClouds();
       return {
         path,
@@ -1642,6 +1662,7 @@ export default class Cells3DCapability extends Capability {
         sites: header.sites,
         scanned_at: header.scanned_at ?? null,
         oldest_scan_at: header.oldest_scan_at ?? null,
+        tile: header.tile ?? null,
       };
     } catch (error) {
       if (error instanceof VolumeGone) return null;

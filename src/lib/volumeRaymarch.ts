@@ -12,6 +12,7 @@
  * normal pointing up is a CAPPI, everything above the chosen height gone.
  */
 import { FRAMING_DBZ } from "./stormFrame";
+import { drawnExtentM } from "./volumeBox";
 import type { Cutaway } from "./cellCutaway";
 import { dbzColour } from "./cellVolume";
 
@@ -50,6 +51,7 @@ precision highp sampler3D;
 uniform sampler3D uVolume;
 uniform sampler2D uRamp;
 uniform vec3 uHalf;        // half-extent of the box, in kilometres
+uniform vec3 uDrawnHalf;   // half-extent of the part drawn: the box, bar a tile's apron
 uniform vec3 uEye;         // camera position, same frame
 uniform vec3 uRight;
 uniform vec3 uUp;
@@ -63,11 +65,15 @@ uniform float uSteps;
 
 out vec4 fragColour;
 
-/** Where a ray enters and leaves the box, or nothing. */
+/**
+ * Where a ray enters and leaves the drawn part of the box, or nothing: all of
+ * it, bar a tile's apron, which is its neighbours' ground and only there to
+ * be interpolated across.
+ */
 bool hitBox(vec3 origin, vec3 direction, out float near, out float far) {
   vec3 inverse = 1.0 / direction;
-  vec3 a = (-uHalf - origin) * inverse;
-  vec3 b = (uHalf - origin) * inverse;
+  vec3 a = (-uDrawnHalf - origin) * inverse;
+  vec3 b = (uDrawnHalf - origin) * inverse;
   vec3 low = min(a, b);
   vec3 high = max(a, b);
   near = max(max(low.x, low.y), low.z);
@@ -283,6 +289,7 @@ export function createRaymarcher(canvas: HTMLCanvasElement, loaded: Cutaway, col
 
   const half: Vec3 = [loaded.extentM[0] / 2000, loaded.extentM[1] / 2000, loaded.extentM[2] / 2000];
   context.uniform3fv(at("uHalf"), half);
+  context.uniform3fv(at("uDrawnHalf"), drawnExtentM(loaded).map((metres) => metres / 2000));
   context.uniform1f(at("uDbzFloor"), loaded.header.dbz_floor);
   context.uniform1f(at("uDbzScale"), loaded.header.dbz_scale);
   context.uniform1f(at("uSteps"), STEPS);
