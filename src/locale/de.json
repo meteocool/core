@@ -169,19 +169,25 @@
     "color_map_hint": "Ändert die Farben, in denen der Niederschlag gezeichnet wird.",
     "map": "Karte",
     "rotation": "Rotation der Karte",
+    "rotation_hint": "Nur auf der 2D-Karte. Die 3D-Karte nutzt immer alle Touch-Gesten, auch zum Drehen und Neigen.",
     "solid_glass": "Feste Flächen beim Verschieben",
     "solid_glass_hint": "Macht die Milchglas-Flächen über der Karte undurchsichtig, während du verschiebst oder zoomst. Das hält die Karte auf langsameren Handys flüssig. Wird automatisch eingeschaltet, wenn dieses Gerät ins Stocken gerät.",
     "map_3d": "3D-Karte",
     "konrad_cells": "KONRAD3D-Zellen",
-    "konrad_cells_hint": "Zeichnet die vom DWD verfolgten Gewitterzellen als gestufte Körper. Sie kommen einige Minuten nach dem Radar und sind bis dahin ausgegraut.",
+    "konrad_cells_hint": "KONRAD3D ist die Erkennung und Verfolgung von Gewitterzellen im Radarverbund des Deutschen Wetterdienstes (DWD). Gezeichnet werden keine realistischen Wolkenvolumen: Jede Zelle ist ihr Umriss am Boden, zu Stufen gestapelt, deren Größe und Höhe aus wenigen Kennzahlen folgen, die KONRAD3D je Intensitätsstufe meldet. Sie vertragen sich schlecht mit den Radarvolumen der 3D-Karte und kommen erst Minuten nach dem Radar, daher lässt du sie besser aus.",
     "terrain": "Gelände",
     "terrain_hint": "Hebt die 3D-Karte ins Relief des Geländes und schattiert die Hügel, in echtem Maßstab. Lädt beim Bewegen der Karte Höhendaten nach.",
     "performance": "Leistung",
-    "environment": "Vorschau",
-    "staging": "Staging öffnen",
-    "staging_hint": "Auf Staging läuft die nächste Version von meteocool, bevor sie veröffentlicht wird. Neue Funktionen, gelegentlich auch Fehler; deine Einstellungen hier werden nicht übernommen.",
-    "production": "meteocool.com öffnen",
-    "production_hint": "Du bist auf Staging. Das öffnet die veröffentlichte Version."
+    "mode": "Modus",
+    "modes": {
+      "production": "Produktion",
+      "production_detail": "Aktuelles Wetter. Empfohlen.",
+      "experimental": "Experimentelle Funktionen",
+      "experimental_detail": "Aktuelles Wetter, mit Funktionen, die noch in Entwicklung sind. Kann Fehler enthalten. 🐛",
+      "demo": "Demo",
+      "demo_detail": "Ein aufgezeichnetes Unwetter, abgespielt, als fände es gerade statt. Nicht das aktuelle Wetter."
+    },
+    "mode_hint": "Lädt die Karte im gewählten Modus neu, mit derselben Ansicht. Jeder Modus hat seine eigenen Einstellungen."
   },
   "storm": {
     "band": {
