@@ -13,6 +13,7 @@ import Map from "./components/Map.svelte";
 import MapLoading from "./components/MapLoading.svelte";
 import Lazy from "./components/Lazy.svelte";
 import Guide3D from "./components/Guide3D.svelte";
+import PeelSlider from "./components/PeelSlider.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
@@ -1104,6 +1105,10 @@ if (postInitCb) postInitCb(lm);
      draw their own chrome, and a toolbar asked away is a display that wants
      none of this either. -->
 {#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && !dd.isApp() && $toolbarVisible === "yes"}
+  <!-- Not while a storm is open: a cut storm does not peel. -->
+  {#if !$selectedCell && !$selectedVolume}
+    <PeelSlider />
+  {/if}
   <Guide3D />
 {/if}
 <PointMenu layerManager={lm} />

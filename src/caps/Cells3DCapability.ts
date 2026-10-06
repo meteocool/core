@@ -39,10 +39,11 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView, radarColormap,
-  selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen, terrain3dVisible,
+  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView,
+  peelLevel, peelManual, radarColormap, selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen,
+  terrain3dVisible,
 } from "../stores";
-import { get } from "svelte/store";
+import { derived, get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
 import { moved3D, origin3D } from "../lib/open3d";
 import { normaliseCut } from "../lib/cutAngle";
@@ -569,6 +570,7 @@ export default class Cells3DCapability extends Capability {
   private openToken: symbol | null = null;
 
   private unsubscribeVolume: (() => void) | null = null;
+  private unsubscribePeel: (() => void) | null = null;
 
   private unsubscribeCut: (() => void) | null = null;
 
@@ -659,6 +661,10 @@ export default class Cells3DCapability extends Capability {
       if (track) void this.open(this.targetOfTrack(track));
       else if (!get(selectedVolume)) void this.open(null);
     });
+    // The slider's peel, once the reader has moved it; until then, null, and
+    // the clouds peel on their own and report where they are (ensureVolumes).
+    this.unsubscribePeel = derived([peelManual, peelLevel], ([manual, level]) => (manual ? level : null))
+      .subscribe((peel) => this.cloudsLayer?.setPeel(peel));
     this.unsubscribeVolume = selectedVolume.subscribe((cloud) => {
       if (!this.shown) return;
       if (cloud) void this.open(this.targetOfCloud(cloud));
@@ -1675,7 +1681,10 @@ export default class Cells3DCapability extends Capability {
   /** The one layer that draws every storm's volume, added once per style. */
   private ensureVolumes(gl: GlMap): void {
     if (this.cloudsLayer || !this.maplibre) return;
-    const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap);
+    const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap, (peel) => {
+      if (!get(peelManual)) peelLevel.set(peel);
+    });
+    if (get(peelManual)) layer.setPeel(get(peelLevel));
     gl.addLayer(layer);
     this.cloudsLayer = layer;
     this.pushClouds();
@@ -2438,6 +2447,8 @@ export default class Cells3DCapability extends Capability {
     stopSweep(false);
     this.unsubscribeVolume?.();
     this.unsubscribeVolume = null;
+    this.unsubscribePeel?.();
+    this.unsubscribePeel = null;
     this.uncorrectCtrlClicks?.();
     this.uncorrectCtrlClicks = null;
     this.unmiddleDrag?.();

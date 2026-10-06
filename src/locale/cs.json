@@ -64,6 +64,8 @@
     "title": "3D mapa",
     "open": "Ovládání a legenda",
     "pill": "Legenda",
+    "peel": "Loupat",
+    "peel_aria": "Oloupat bouřky až na jejich jádro",
     "controls": "Ovládání",
     "drag": "Táhnout",
     "move": "Posunout mapu",
