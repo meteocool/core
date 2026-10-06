@@ -23,10 +23,37 @@ export type NativeMessage =
   | "drawerOpened"
   | "drawerClosed"
   | "impactLight"
-  | "impactMedium";
+  | "impactMedium"
+  /** A link to send, as `share:` and the JSON of a `NativeShare`; see lib/share.ts. */
+  | `share:${string}`;
 
 /** The old name, from when only iOS was told. */
 export type IosMessage = NativeMessage;
+
+/**
+ * What the host can do for the page, declared by the host before the page
+ * loads (a document-start script on iOS). Absent in a browser and in builds
+ * that predate the feature, so every field is optional and false when missing.
+ */
+export interface NativeCapabilities {
+  /** Presents the system share sheet for a `share:` message. */
+  share?: boolean;
+}
+
+/**
+ * What a `share:` message carries: the link, its title for the sheet's header
+ * and a mail's subject, and where on the page the control asking for it is,
+ * in CSS pixels from the viewport's corner, for the popover an iPad hangs
+ * from it. The rect is optional; without it the sheet hangs from the middle.
+ */
+export interface NativeShare {
+  url: string;
+  title: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
 
 /** The JS interface the Android host injects under the name `Android`. */
 export interface AndroidBridge {
@@ -58,6 +85,16 @@ declare global {
 
     /** Opens the layer switcher. Defined by McLayerSwitcher. */
     openLayerswitcher?: () => void;
+
+    /** What the host can do for the page; see `NativeCapabilities`. */
+    nativeCapabilities?: NativeCapabilities;
+
+    /**
+     * The link to what is on screen, for a share the host starts itself: iOS
+     * offers one when the reader takes a screenshot. Null before the map is
+     * up. Defined by lib/share.ts.
+     */
+    shareLink?: () => { url: string; title: string } | null;
 
     /** Present only inside the iOS webview. */
     webkit?: {

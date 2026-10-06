@@ -108,6 +108,8 @@
   "point_menu_precipitation_sub": "Radar en nowcast",
   "point_menu_forecast": "Voorspelling",
   "point_menu_forecast_sub": "21 weermodellen vergeleken",
+  "point_menu_share": "Delen",
+  "point_menu_share_sub": "Stuur een link naar deze plek",
   "dry_outlook_title_week": "Geen regen in zicht · komende 7 dagen",
   "dry_outlook_title_hours": "{hours, plural, =0 {Regen waarschijnlijk binnen het uur} other {Regen waarschijnlijk over # uur}}",
   "dry_outlook_title_days": "{days, plural, one {Regen waarschijnlijk over # dag} other {Regen waarschijnlijk over # dagen}}",
@@ -609,5 +611,14 @@
   },
   "notice": {
     "no_webgl": "De regenradar kan niet worden getoond: deze browser biedt geen WebGL. Op een iPhone of iPad schakelt de isolatiemodus het uit."
+  },
+  "share": {
+    "share": "Delen",
+    "title": "meteocool weerradar",
+    "title_about": "{subject} · meteocool",
+    "copied": "Link gekopieerd",
+    "copy_failed": "Kon de link niet kopiëren",
+    "stale": "Deze link is {ago} gedeeld. Het weer kan sindsdien veranderd zijn.",
+    "stale_storm": "Deze link is {ago} gedeeld. De bui kan sindsdien verplaatst of veranderd zijn."
   }
 }
