@@ -1,4 +1,5 @@
 <script lang="ts">
+import { createEventDispatcher } from "svelte";
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
@@ -28,6 +29,8 @@ import { capabilityEnabled } from "../caps/enabled";
 
 const BASE_LAYERS = ["system", "light", "dark", "osm", "cyclosm"];
 const COLOR_MAPS = ["classic", "nws", "pyart_stepseq", "homeyer", "lang"];
+
+const dispatch = createEventDispatcher<{ about: void }>();
 
 /** The ramp a colormap paints, drizzle to hail, as a CSS gradient. */
 function swatch(cmap: string): string {
@@ -253,6 +256,14 @@ function setTerrain3d(value: boolean) {
 </style>
 
 <GlassPanel title={$_("settings.title")} on:close>
+  <!-- First, where the logo used to lead; Logo swaps this sheet for About's. -->
+  <div class="group">
+    <button type="button" class="row" on:click={() => dispatch("about")}>
+      <span class="label">{$_("settings.about")}</span>
+      <span class="detail" aria-hidden="true">›</span>
+    </button>
+  </div>
+
   <h2 id="settings-basemap">{$_("settings.base_layer")}</h2>
   <div class="group" role="radiogroup" aria-labelledby="settings-basemap">
     {#each BASE_LAYERS as layer (layer)}

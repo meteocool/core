@@ -1,6 +1,9 @@
 {
   "about": "À propos",
   "url": "meteocool.com",
+  "main_map": "Carte principale",
+  "main_map_hint_tap": "Touchez ici pour revenir à la carte principale",
+  "main_map_hint_click": "Cliquez ici pour revenir à la carte principale",
   "last_updated": "Dernière mise à jour",
   "downloading_nowcast": "Prévision en cours",
   "last_radar": "Données radar du",
@@ -150,6 +153,7 @@
   "compass_NW": "NO",
   "settings": {
     "title": "Paramètres",
+    "about": "À propos de meteocool",
     "base_layer": "Fond de carte",
     "base_layers": {
       "system": "Suivre le système",

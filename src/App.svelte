@@ -1085,7 +1085,7 @@ if (postInitCb) postInitCb(lm);
 </style>
 
 {#if !dd.isApp()}
-  <Logo />
+  <Logo layerManager={lm} />
 {/if}
 
 <!-- toolbarVisible holds "yes"/"no", and "no" is a truthy string: testing the

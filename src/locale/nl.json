@@ -1,6 +1,9 @@
 {
   "about": "Over",
   "url": "meteocool.com",
+  "main_map": "Hoofdkaart",
+  "main_map_hint_tap": "Tik hier om terug te gaan naar de hoofdkaart",
+  "main_map_hint_click": "Klik hier om terug te gaan naar de hoofdkaart",
   "last_updated": "Laatst bijgewerkt",
   "downloading_nowcast": "Voorspellen",
   "last_radar": "Radargegevens van",
@@ -150,6 +153,7 @@
   "compass_NW": "NW",
   "settings": {
     "title": "Instellingen",
+    "about": "Over meteocool",
     "base_layer": "Basiskaartlaag",
     "base_layers": {
       "system": "Systeeminstelling volgen",
