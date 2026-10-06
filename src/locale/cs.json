@@ -128,6 +128,8 @@
   "dry_outlook_title_week": "Žádný déšť v dohledu · dalších 7 dní",
   "dry_outlook_title_hours": "{hours, plural, =0 {Déšť pravděpodobný do hodiny} one {Déšť pravděpodobný za # hodinu} few {Déšť pravděpodobný za # hodiny} other {Déšť pravděpodobný za # hodin}}",
   "dry_outlook_title_days": "{days, plural, one {Déšť pravděpodobný za # den} few {Déšť pravděpodobný za # dny} other {Déšť pravděpodobný za # dní}}",
+  "dry_outlook_title_tomorrow": "Déšť pravděpodobný zítra",
+  "dry_outlook_title_weekday": "{day, select, 0 {Déšť pravděpodobný v neděli} 1 {Déšť pravděpodobný v pondělí} 2 {Déšť pravděpodobný v úterý} 3 {Déšť pravděpodobný ve středu} 4 {Déšť pravděpodobný ve čtvrtek} 5 {Déšť pravděpodobný v pátek} 6 {Déšť pravděpodobný v sobotu} other {Déšť pravděpodobný tento týden}}",
   "dry_outlook_link": "Všechny modely",
   "dry_outlook_label": "Srážky podle modelů počasí",
   "dry_outlook_loading": "Ptám se modelů počasí…",

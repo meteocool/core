@@ -128,6 +128,8 @@
   "dry_outlook_title_week": "No rain in sight · next 7 days",
   "dry_outlook_title_hours": "{hours, plural, =0 {Rain likely within the hour} one {Rain likely in # hour} other {Rain likely in # hours}}",
   "dry_outlook_title_days": "{days, plural, one {Rain likely in # day} other {Rain likely in # days}}",
+  "dry_outlook_title_tomorrow": "Rain likely tomorrow",
+  "dry_outlook_title_weekday": "{day, select, 0 {Rain likely on Sunday} 1 {Rain likely on Monday} 2 {Rain likely on Tuesday} 3 {Rain likely on Wednesday} 4 {Rain likely on Thursday} 5 {Rain likely on Friday} 6 {Rain likely on Saturday} other {Rain likely this week}}",
   "dry_outlook_link": "All models",
   "dry_outlook_label": "Rainfall across the weather models",
   "dry_outlook_loading": "Asking the weather models…",

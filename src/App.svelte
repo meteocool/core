@@ -1162,11 +1162,12 @@ if (postInitCb) postInitCb(lm);
   <!-- The model comparison, opened from the dry-weather strip: the same
        drawer a storm's details take, sheet on a phone and corner panel on a
        desktop. Keyed on the place and range: the panel fetches once, on
-       mount. -->
+       mount. The sheet opens at full height: it is charts to read, and at
+       half they were a strip of axis labels. -->
   {#key `${$modelCompareAt.lat},${$modelCompareAt.lon},${$modelCompareAt.hours ?? 24}`}
     <Lazy load={loadCompare($smallScreen)} floating let:module={[{ default: ModelCompare }, sheet]}>
       {#if sheet}
-        <svelte:component this={sheet.default} onClose={closeCompare}>
+        <svelte:component this={sheet.default} onClose={closeCompare} full>
           <svelte:component
             this={ModelCompare}
             lat={$modelCompareAt.lat}

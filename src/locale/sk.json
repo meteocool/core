@@ -128,6 +128,8 @@
   "dry_outlook_title_week": "Žiadny dážď na dohľad · nasledujúcich 7 dní",
   "dry_outlook_title_hours": "{hours, plural, =0 {Dážď pravdepodobný do hodiny} one {Dážď pravdepodobný o # hodinu} few {Dážď pravdepodobný o # hodiny} other {Dážď pravdepodobný o # hodín}}",
   "dry_outlook_title_days": "{days, plural, one {Dážď pravdepodobný o # deň} few {Dážď pravdepodobný o # dni} other {Dážď pravdepodobný o # dní}}",
+  "dry_outlook_title_tomorrow": "Dážď pravdepodobný zajtra",
+  "dry_outlook_title_weekday": "{day, select, 0 {Dážď pravdepodobný v nedeľu} 1 {Dážď pravdepodobný v pondelok} 2 {Dážď pravdepodobný v utorok} 3 {Dážď pravdepodobný v stredu} 4 {Dážď pravdepodobný vo štvrtok} 5 {Dážď pravdepodobný v piatok} 6 {Dážď pravdepodobný v sobotu} other {Dážď pravdepodobný tento týždeň}}",
   "dry_outlook_link": "Všetky modely",
   "dry_outlook_label": "Zrážky naprieč modelmi počasia",
   "dry_outlook_loading": "Pýtame sa modelov počasia…",
