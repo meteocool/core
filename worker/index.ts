@@ -14,11 +14,13 @@
  * each other's language -- and the rewriter only runs when the response is
  * actually HTML.
  *
- * It also forwards the native apps' API calls to this environment's backend;
- * see api.ts.
+ * It also forwards the native apps' API calls to this environment's backend
+ * (api.ts), and answers the files that open shared links in the apps
+ * (appLinks.ts).
  */
 
 import { appApiRequest, isAppApiPath, isAppDataPath, isVolumePath, volumeRedirect } from "./api";
+import { appLinksResponse } from "./appLinks";
 
 interface Env {
   ASSETS: Fetcher;
@@ -122,6 +124,9 @@ class MetaTagHandler {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const { searchParams, pathname } = new URL(request.url);
+
+    const appLinks = appLinksResponse(pathname);
+    if (appLinks) return appLinks;
 
     if (env.API_ORIGIN && isAppApiPath(pathname)) {
       return fetch(appApiRequest(request, env.API_ORIGIN));
