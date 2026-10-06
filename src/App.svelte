@@ -1103,10 +1103,11 @@ if (postInitCb) postInitCb(lm);
 {#if ($cells3dLoading || $cells3dFailed) && $sharedActiveCap === "cells3d"}
   <MapLoading failed={$cells3dFailed} onretry={() => cells3d?.retry()} />
 {/if}
-<!-- The 3D map's controls and legend, once it is up. Not in the apps, which
-     draw their own chrome, and a toolbar asked away is a display that wants
-     none of this either. -->
-{#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && !dd.isApp() && $toolbarVisible === "yes"}
+<!-- The 3D map's legend, peel and scan picker, once it is up. In the apps as
+     well: their own chrome is the zoom, locate and compass column, and none
+     of this is in it. A toolbar asked away is a display that wants none of
+     it either. -->
+{#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && $toolbarVisible === "yes"}
   <!-- Not while a storm is open: a cut storm does not peel, and its panel
        says when it was seen. With the picker of which scan the storms are
        from, which stays on its choice meanwhile. -->

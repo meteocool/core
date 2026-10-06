@@ -13,9 +13,9 @@
  * The swatches are drawn from the same constants and the same palette the map
  * paints with, so the legend cannot drift from what it explains.
  *
- * Not in the wrappers, which draw their own chrome over the webview. On a
- * phone it starts as the pill, and gives way to the storm's sheet, which is
- * where that corner goes when a storm opens.
+ * In the wrappers too, whose native chrome has no legend. On a phone it
+ * starts as the pill, and gives way to the storm's sheet, which is where that
+ * corner goes when a storm opens.
  */
 import { onDestroy } from "svelte";
 import { get } from "svelte/store";
@@ -102,6 +102,9 @@ const mac = dd.isMac();
    control key, so the gestures drawn for those are left out; the compass is
    a button on screen either way. A touchscreen laptop's pointer is fine. */
 const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+/* The web's compass disc; the apps draw their own over the webview, so the
+   row would explain a button that is not there. */
+const compass = !dd.isApp();
 </script>
 
 <!-- One cloud, as a swatch: three nested shells, centred in a 32x24 box. -->
@@ -187,6 +190,7 @@ const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
     </header>
 
     <div class="body">
+      {#if !touch || compass}
       <h3>{$_("guide_3d.controls")}</h3>
       <dl class="controls">
         {#if !touch}
@@ -211,6 +215,7 @@ const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
         <dt>{@render gesture("click", $_("guide_3d.click"))}</dt>
         <dd>{$_("guide_3d.click_storm")}</dd>
         {/if}
+        {#if compass}
         <dt>
           <span class="compass" role="img" aria-label={$_("guide_3d.compass")}>
             <svg viewBox="0 0 29 29" aria-hidden="true">
@@ -220,7 +225,9 @@ const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
           </span>
         </dt>
         <dd>{$_("guide_3d.compass_does")}</dd>
+        {/if}
       </dl>
+      {/if}
 
       <h3>{$_("guide_3d.legend")}</h3>
       <ul class="legend">
