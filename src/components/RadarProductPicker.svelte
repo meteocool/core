@@ -152,6 +152,7 @@ function portal(node: HTMLElement) {
         <span class="text">
           <span class="name">{$_(`chrome.radar_product.${product}`)}</span>
           <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
+          <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
         </span>
         <span class="age">{age(product, scans, nowS)}</span>
       </button>
@@ -256,6 +257,11 @@ function portal(node: HTMLElement) {
   .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .option .name { font: 600 14px/1.25 var(--mc-font); }
   .option .hint { color: var(--mc-text-2); font: 500 12px/1.3 var(--mc-font); }
+  .option .grid {
+    color: var(--mc-text-3);
+    font: 500 11px/1.3 var(--mc-font);
+    font-variant-numeric: tabular-nums;
+  }
   .option .age {
     color: var(--mc-text-2);
     font: 600 12px/1 var(--mc-font);

@@ -4,6 +4,7 @@ import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
+import { frameOnStep, templateOf } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
 import NetworkRadarLayer, { EUROPE, NETWORKS } from "../layers/network";
 import LatestFrame from "../layers/latestFrame";
@@ -518,7 +519,8 @@ export default class RadarCapability extends Capability {
     for (const step of ahead) {
       const frame = this.dwdFrame(step);
       if (!frame) break;
-      const { url: template, tiles: index } = frame;
+      const { tiles: index } = frame;
+      const template = templateOf(frame.url);
       tileGrid.forEachTileCoord(extent, z, ([tz, tx, ty]) => {
         if (urls.length >= PREFETCH_MAX_TILES) return;
         // Past a frame's deepest zoom its tiles come out of their ancestor's.
@@ -710,15 +712,18 @@ export default class RadarCapability extends Capability {
   }
 
   /**
-   * What DWD's layer draws on a step, and which tiles that frame has: DMAX's
-   * frame there while it is the drawn product and has one, else the grid's --
-   * HX's, or WN's on a forecast step. Null where the grid has nothing yet.
+   * What DWD's layer draws on a step, by the name its holes are keyed by,
+   * and which tiles that frame has: DMAX's frame there while it is the drawn
+   * product and has one, else the grid's -- HX's, or WN's on a forecast step.
+   * Null where the grid has nothing yet.
    */
   private dwdFrame(step: number): { url: string; tiles?: TileIndex | null } | null {
     const frame = this.clientGrid?.[step];
     if (!frame?.url) return null;
     const dmax = this.alternativeFrame("dmax", step);
-    if (dmax) return { url: tileSourceUrl("meteoradar", drawnTileId(dmax)), tiles: dmax.tiles };
+    if (dmax) {
+      return { url: frameOnStep(tileSourceUrl("meteoradar", drawnTileId(dmax)), dmax.upstream_time, step), tiles: dmax.tiles };
+    }
     return { url: frame.url, tiles: frame.tiles };
   }
 
@@ -755,12 +760,9 @@ export default class RadarCapability extends Capability {
       const codes = step === newest
         ? ALL_NETWORKS
         : ALL_NETWORKS.filter((code) => this.networkGrid[code]?.[step]);
-      if (!codes.length) continue;
-      // DMAX's newest frame is drawn on the live step and is usually also the
-      // step before's, a cycle behind HX: one URL, cut for both.
-      const url = this.dwdFrame(step)!.url;
-      const already = holes.get(url) ?? [];
-      holes.set(url, ALL_NETWORKS.filter((code) => codes.includes(code) || already.includes(code)));
+      // By the name the step's frame is drawn under, which tells DMAX's
+      // newest apart on the live step and on its own; see `frameOnStep`.
+      if (codes.length) holes.set(this.dwdFrame(step)!.url, codes);
     }
     return holes;
   }
