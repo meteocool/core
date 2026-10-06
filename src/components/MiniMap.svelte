@@ -8,6 +8,7 @@
   import type { EventsKey } from "ol/events";
   import type BaseLayer from "ol/layer/Base";
   import { dwdValueLayer } from "../layers/dwd";
+  import { labelsOnly } from "../layers/vector";
   import { get } from "svelte/store";
   import { capTimeIndicator, mapBaseLayer } from "../stores";
   const dispatch = createEventDispatcher();
@@ -66,8 +67,9 @@
    * The switcher hands a capability's single map to a single element, so
    * two tiles cannot both show the radar -- and the 3D one has no OpenLayers
    * map of its own to hand over at all. Rather than leave it blank behind the
-   * frosting, it gets its own map built here: the basemap the app is on, and
-   * the newest radar frame over it.
+   * frosting, it gets its own map built here: the basemap the app is on, the
+   * newest radar frame over it, and the place names over that -- the rain
+   * and thunderstorms tile's map, as near as OpenLayers can draw the 3D one.
    *
    * Decoration, and treated as such: no interactions and no controls. It
    * exists so the tile reads as a map rather than as a hole. If the radar has
@@ -94,7 +96,7 @@
   function decorativeMap(node, opened: boolean) {
     const own = new View({ center: [0, 0], zoom: 7 });
     const preview_ = new Map({
-      layers: [layerManager.baseLayerFactory(get(mapBaseLayer))],
+      layers: [layerManager.baseLayerFactory(get(mapBaseLayer)), labelsOnly()],
       controls: [],
       interactions: [],
       view: own,
@@ -202,9 +204,9 @@
     display: none;
   }
 
-  /* The frosting over a tile whose map is not the layer it stands for. Enough
-     blur that the basemap reads as a texture rather than as content, which is
-     the honest amount: there is nothing under it worth looking at. */
+  /* The frosting over a tile whose map is not the layer it stands for: enough
+     blur to say the picture is a stand-in, little enough that the place
+     names under it still say where. */
   .frost {
     position: absolute;
     inset: 0;
@@ -214,9 +216,11 @@
        border box survives, so the frost poked out at the corners. It carries
        the radius itself; `inherit` keeps it tied to the card's. */
     border-radius: inherit;
-    -webkit-backdrop-filter: blur(10px) saturate(1.2);
-    backdrop-filter: blur(10px) saturate(1.2);
-    background: var(--mc-glass-fill);
+    -webkit-backdrop-filter: blur(6px) saturate(1.2);
+    backdrop-filter: blur(6px) saturate(1.2);
+    /* A tint, not the panels' glass: at their 82% the map under it was a
+       black card, and the blur alone already says "stand-in". */
+    background: color-mix(in srgb, var(--mc-glass-fill) 35%, transparent);
     pointer-events: none;
   }
 
