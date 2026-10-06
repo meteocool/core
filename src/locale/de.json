@@ -108,6 +108,8 @@
   "point_menu_precipitation_sub": "Radar und Nowcast",
   "point_menu_forecast": "Vorhersage",
   "point_menu_forecast_sub": "21 Wettermodelle im Vergleich",
+  "point_menu_share": "Teilen",
+  "point_menu_share_sub": "Link zu diesem Ort senden",
   "dry_outlook_title_week": "Kein Regen in Sicht · 7 Tage",
   "dry_outlook_title_hours": "{hours, plural, =0 {Regen wahrscheinlich innerhalb der Stunde} one {Regen wahrscheinlich in # Stunde} other {Regen wahrscheinlich in # Stunden}}",
   "dry_outlook_title_days": "{days, plural, one {Regen wahrscheinlich in # Tag} other {Regen wahrscheinlich in # Tagen}}",
@@ -600,5 +602,14 @@
   },
   "notice": {
     "no_webgl": "Das Regenradar kann nicht angezeigt werden: Dieser Browser bietet kein WebGL. Auf iPhone und iPad schaltet der Blockierungsmodus es ab."
+  },
+  "share": {
+    "share": "Teilen",
+    "title": "meteocool Wetterradar",
+    "title_about": "{subject} · meteocool",
+    "copied": "Link kopiert",
+    "copy_failed": "Link konnte nicht kopiert werden",
+    "stale": "Dieser Link wurde {ago} geteilt. Das Wetter kann sich seitdem geändert haben.",
+    "stale_storm": "Dieser Link wurde {ago} geteilt. Das Unwetter kann seitdem weitergezogen sein oder sich verändert haben."
   }
 }

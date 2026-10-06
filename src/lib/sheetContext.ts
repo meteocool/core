@@ -10,12 +10,30 @@
  * in the desktop's bundle, and importing the sheet would bring it there too.
  */
 import { getContext, setContext } from "svelte";
+import { writable } from "svelte/store";
+import type { Writable } from "svelte/store";
 
 const SHEET = "mc-sheet-draws-close";
+const SHARE = "mc-sheet-share";
 
-/** Called by the sheet, during its own initialisation. */
-export function provideSheet(): void {
+/**
+ * A panel's share action, which the sheet draws beside its close disc for the
+ * same reason it draws that: so it stays put while the panel scrolls. Given
+ * the control it was pressed on, which an iPad's popover points at.
+ */
+export type SheetShare = (anchor: Element | null) => void;
+
+/** Called by the sheet, during its own initialisation. Returns where a panel puts its share action. */
+export function provideSheet(): Writable<SheetShare | null> {
   setContext(SHEET, true);
+  const share = writable<SheetShare | null>(null);
+  setContext(SHARE, share);
+  return share;
+}
+
+/** During a panel's initialisation: where to hand the sheet a share action, inside a sheet. */
+export function sheetShare(): Writable<SheetShare | null> | undefined {
+  return getContext<Writable<SheetShare | null> | undefined>(SHARE);
 }
 
 /** During a panel's initialisation: true inside a sheet. */

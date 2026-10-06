@@ -108,6 +108,8 @@
   "point_menu_precipitation_sub": "Radar and nowcast",
   "point_menu_forecast": "Forecast",
   "point_menu_forecast_sub": "21 weather models compared",
+  "point_menu_share": "Share",
+  "point_menu_share_sub": "Send a link to this place",
   "dry_outlook_title_week": "No rain in sight · next 7 days",
   "dry_outlook_title_hours": "{hours, plural, =0 {Rain likely within the hour} one {Rain likely in # hour} other {Rain likely in # hours}}",
   "dry_outlook_title_days": "{days, plural, one {Rain likely in # day} other {Rain likely in # days}}",
@@ -600,5 +602,14 @@
   },
   "notice": {
     "no_webgl": "The rain radar cannot be shown: this browser does not offer WebGL. On an iPhone or iPad, Lockdown Mode turns it off."
+  },
+  "share": {
+    "share": "Share",
+    "title": "meteocool weather radar",
+    "title_about": "{subject} · meteocool",
+    "copied": "Link copied",
+    "copy_failed": "Could not copy the link",
+    "stale": "This link was shared {ago}. The weather may have changed since.",
+    "stale_storm": "This link was shared {ago}. The storm may have moved or changed since."
   }
 }

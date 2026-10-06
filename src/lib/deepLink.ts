@@ -58,6 +58,13 @@ export interface LinkState {
   time?: number;
   /** The point the forecast strip is asked about, as [lat, lon]. */
   point?: [number, number];
+  /**
+   * When the link was shared, in unix seconds, to the minute. Set only on a
+   * link made to be sent (lib/shareLink.ts), so the receiver can be told how
+   * old what they were sent is; never part of what is on screen, so the
+   * address bar drops it with the first state the page writes.
+   */
+  shared?: number;
 }
 
 /**
@@ -67,7 +74,7 @@ export interface LinkState {
  * dashboard URL already in circulation still opens where it used to.
  */
 const OWNED = [
-  "layer", "latLonZ", "pitch", "bearing", "overlays", "t", "point", "cell", "details", "cloud", "cut",
+  "layer", "latLonZ", "pitch", "bearing", "overlays", "t", "point", "cell", "details", "cloud", "cut", "shared",
 ] as const;
 type OwnedKey = (typeof OWNED)[number];
 
@@ -247,6 +254,11 @@ export function parseLink(search: string | URLSearchParams): LinkState {
   const point = parsePair(params.get("point"));
   if (point) state.point = point;
 
+  // The same spelling as a frame's, which is what it is: a minute, in UTC.
+  const sharedAt = params.get("shared");
+  const shared = sharedAt ? frameTime(sharedAt) : null;
+  if (shared !== null) state.shared = shared;
+
   return state;
 }
 
@@ -279,6 +291,7 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
     cut: selection && state.cut !== undefined && Math.round(normaliseCut(state.cut)) !== 0
       ? fixed(Math.round(normaliseCut(state.cut)), 0)
       : null,
+    shared: state.shared === undefined ? null : frameLink(state.shared),
   };
 }
 

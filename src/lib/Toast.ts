@@ -88,6 +88,14 @@ export function reportToast(message: string, variant = "primary", icon = "info-c
 }
 
 /**
+ * A confirmation of something the reader just did ("Link copied"): it says
+ * so and goes, rather than sitting over the map for as long as a warning.
+ */
+export function reportBrief(message: string, variant = "success", icon = "check2-circle") {
+  return toast(message, variant, icon, { duration: 3000 });
+}
+
+/**
  * A notice about the reader's browser rather than the weather: it stays until
  * closed, and once closed is not raised again, this session or the next. The
  * condition outlives the page, and saying it on every visit would only nag.

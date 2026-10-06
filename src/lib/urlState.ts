@@ -39,8 +39,9 @@ import type { LinkState, Overlay } from "./deepLink";
 import { DeviceDetect as dd } from "./DeviceDetect";
 import type { LayerManager } from "./LayerManager";
 import type Settings from "./Settings";
+import { linkAge, staleNotice, staleSince } from "./shareLink";
 import { reportToast } from "./Toast";
-import { t } from "../locale/t";
+import { currentLocale, t } from "../locale/t";
 import { setElementCentre } from "./viewCentre";
 import { onWake } from "./wakeup";
 
@@ -137,8 +138,12 @@ function offLiveEdge(): boolean {
   return shown > 0 && newest > 0 && shown !== newest;
 }
 
-/** What is on screen, as a link would describe it; null before anything is. */
-function currentState(): LinkState | null {
+/**
+ * What is on screen, as a link would describe it; null before anything is.
+ * Also what a shared link says (lib/share.ts), which in the apps is the only
+ * place it is written: their webviews keep the URL they were opened with.
+ */
+export function currentState(): LinkState | null {
   const layer = get(sharedActiveCap);
   if (!layer) return null;
   const state: LinkState = { layer };
@@ -178,6 +183,23 @@ function currentState(): LinkState | null {
     if (point) state.point = point;
   }
   return state;
+}
+
+/**
+ * Tell the receiver of a shared link that has aged how old it is: the map
+ * opens on the weather now, and without a word the reader takes it for what
+ * the sender saw. Only for the link the page was opened with; Back never
+ * reaches a stamped entry, because the first write drops the stamp.
+ */
+function noticeAge(link: LinkState) {
+  const now = Date.now() / 1000;
+  const shared = staleSince(link, now);
+  if (shared === null) return;
+  // Intl rather than date-fns, whose catalogue for the reader's language may
+  // not have arrived this early in the load: "vor 2 Stunden", not "2 hours ago".
+  const [value, unit] = linkAge(now - shared);
+  const ago = new Intl.RelativeTimeFormat(currentLocale(), { numeric: "auto" }).format(-value, unit);
+  reportToast(t(staleNotice(link), { values: { ago } }), "primary", "clock-history");
 }
 
 interface Wiring {
@@ -436,6 +458,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
   }
 
   apply(openingLink, true);
+  noticeAge(openingLink);
 
   const watched: Readable<unknown>[] = [
     sharedActiveCap, mapView, selectedCell, selectedVolume, cellDetails, cutRotationDeg,

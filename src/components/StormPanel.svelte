@@ -22,10 +22,14 @@
  * above the body, labels carried by colour rather than by being small, and
  * air between the groups rather than rules.
  */
-import { onMount } from "svelte";
+import { onDestroy, onMount } from "svelte";
+import { get } from "svelte/store";
 import CloseDisc from "./CloseDisc.svelte";
+import ShareDisc from "./ShareDisc.svelte";
 import { holdNativeChrome } from "../lib/nativeBridge";
-import { inSheet } from "../lib/sheetContext";
+import { shareAvailable } from "../lib/share";
+import { inSheet, sheetShare } from "../lib/sheetContext";
+import type { SheetShare } from "../lib/sheetContext";
 
 /**
  * The storm's own colour, for the rule down the header. None for a panel that
@@ -38,9 +42,24 @@ export let label: string;
 /** Where the storm is, on its own line under the header; none at sea or offline. */
 export let place: string | null = null;
 export let onClose: () => void;
+/**
+ * Sends a link to what the panel shows; none for a panel with nothing to
+ * link to. Offered only where a share can go anywhere (lib/share.ts).
+ */
+export let onShare: SheetShare | null = null;
 
 /** In the phone's sheet, which draws the close disc itself, where it does not scroll. */
 const sheetCloses = inSheet();
+
+/* The sheet draws the share disc too, beside its close disc; see sheetContext. */
+const sheetShares = sheetShare();
+$: share = $shareAvailable ? onShare : null;
+$: sheetShares?.set(share);
+// Only its own: the panel that replaces this one in the sheet may have set
+// its action before this one goes.
+onDestroy(() => {
+  if (sheetShares && get(sheetShares) === share) sheetShares.set(null);
+});
 
 /**
  * Escape closes the panel, which is what every other dismissable surface on a
@@ -78,7 +97,10 @@ onMount(holdNativeChrome);
       <h2 class="title"><slot name="header" /></h2>
       {#if place}<p class="place">{place}</p>{/if}
     </div>
-    {#if !sheetCloses}<CloseDisc on:click={onClose} />{/if}
+    {#if !sheetCloses}
+      {#if share}<ShareDisc onShare={share} />{/if}
+      <CloseDisc on:click={onClose} />
+    {/if}
   </header>
   <slot />
 </section>
