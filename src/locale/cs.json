@@ -424,6 +424,23 @@
       "clouds": "Mraky",
       "labels_borders": "Popisky a hranice"
     },
+    "radar_product": {
+      "title": "Radarový produkt",
+      "choose": "Vyberte radarový produkt",
+      "hx": "Nejnižší sken",
+      "hx_short": "Sken",
+      "hx_hint": "Nejnižší skeny DWD a sousedů: déšť u země",
+      "merged": "Kompozit EU",
+      "merged_short": "EU",
+      "merged_hint": "Radary všech sítí na jedné mřížce",
+      "dmax": "DMAX",
+      "dmax_short": "DMAX",
+      "dmax_hint": "Nejsilnější odraz v jakékoli výšce, jen Německo; o sken později",
+      "age": "{minutes} min",
+      "unavailable": "nedostupné",
+      "fell_back_short": "zpožděno",
+      "fell_back": "{product} je zpožděný nebo nedostupný; dokud se nedorovná, zobrazuje se {fallback}."
+    },
     "scales": {
       "precipitation_types": "Typy<br />srážek",
       "colormap": "Barevná škála: {name} ({min} - {max} dBZ)",

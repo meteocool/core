@@ -10,7 +10,6 @@ const cloud = (path: string, hhmm: string, network = "de") => (
 );
 const radar = (de: string, networks: Record<string, string> = {}) => ({
   scan: scanTime(at(de)),
-  whole: false,
   networks: Object.fromEntries(Object.entries(networks).map(([code, hhmm]) => [code, { upstream_time: scanTime(at(hhmm)) }])),
 });
 const tagged = (hints: ReturnType<typeof makeCloudHints>) => hints.layer.getSource()!.getFeatures()

@@ -424,6 +424,23 @@
       "clouds": "Wolken",
       "labels_borders": "Labels & grenzen"
     },
+    "radar_product": {
+      "title": "Radarproduct",
+      "choose": "Kies het radarproduct",
+      "hx": "Laagste scan",
+      "hx_short": "Scan",
+      "hx_hint": "De laagste scans van DWD en de buren: de regen dicht bij de grond",
+      "merged": "EU-composiet",
+      "merged_short": "EU",
+      "merged_hint": "De radars van alle netwerken op één raster",
+      "dmax": "DMAX",
+      "dmax_short": "DMAX",
+      "dmax_hint": "Sterkste echo op elke hoogte, alleen Duitsland; een scan later",
+      "age": "{minutes} min",
+      "unavailable": "niet beschikbaar",
+      "fell_back_short": "achter",
+      "fell_back": "{product} loopt achter of is niet beschikbaar; tot het bijloopt wordt {fallback} getoond."
+    },
     "scales": {
       "precipitation_types": "Neerslag<br />typen",
       "colormap": "Kleurenschaal: {name} ({min} - {max} dBZ)",
