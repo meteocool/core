@@ -13,14 +13,16 @@
  * The swatches are drawn from the same constants and the same palette the map
  * paints with, so the legend cannot drift from what it explains.
  *
- * Desktop only: a phone's corner is the storm's sheet, and the wrappers draw
- * their own chrome over the webview.
+ * Not in the wrappers, which draw their own chrome over the webview. On a
+ * phone it starts as the pill, and gives way to the storm's sheet, which is
+ * where that corner goes when a storm opens.
  */
 import { onDestroy } from "svelte";
+import { get } from "svelte/store";
 import { fade, scale } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import CloseDisc from "./CloseDisc.svelte";
-import { cells3dVisible, radarColormap, selectedCell, selectedVolume } from "../stores";
+import { cells3dVisible, radarColormap, selectedCell, selectedVolume, smallScreen } from "../stores";
 import { dbzColour, dbzStops } from "../lib/cellVolume";
 import { BAND_NAMES } from "../lib/cellMetrics";
 import { SEVERITY_COLOURS } from "../layers/cells";
@@ -43,7 +45,9 @@ function remember(closed: boolean): void {
   } catch { /* storage blocked: the card opens again next visit, which is all that is lost */ }
 }
 
-let open = !wasClosed();
+/* Open on a first visit where there is room beside the map for it; a phone's
+   map would be most of the way under it. */
+let open = !wasClosed() && !get(smallScreen);
 
 function close() {
   open = false;
@@ -93,6 +97,11 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-guide-3d-ins
 
 /** Whether to name the control key as a Mac's keyboard does. */
 const mac = dd.isMac();
+
+/* A touch screen as the main pointer has no cursor, right button, wheel or
+   control key, so the gestures drawn for those are left out; the compass is
+   a button on screen either way. A touchscreen laptop's pointer is fine. */
+const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
 </script>
 
 <!-- One cloud, as a swatch: three nested shells, centred in a 32x24 box. -->
@@ -180,6 +189,7 @@ const mac = dd.isMac();
     <div class="body">
       <h3>{$_("guide_3d.controls")}</h3>
       <dl class="controls">
+        {#if !touch}
         <dt>{@render gesture("drag", $_("guide_3d.drag"))}</dt>
         <dd>{$_("guide_3d.move")}</dd>
         <dt>
@@ -200,6 +210,7 @@ const mac = dd.isMac();
         <dd>{$_("guide_3d.zoom")}</dd>
         <dt>{@render gesture("click", $_("guide_3d.click"))}</dt>
         <dd>{$_("guide_3d.click_storm")}</dd>
+        {/if}
         <dt>
           <span class="compass" role="img" aria-label={$_("guide_3d.compass")}>
             <svg viewBox="0 0 29 29" aria-hidden="true">
@@ -311,7 +322,7 @@ const mac = dd.isMac();
       <p class="note">{$_("guide_3d.heights", { values: { scale: VERTICAL_SCALE.toLocaleString(currentLocale()) } })}</p>
     </div>
   </section>
-{:else}
+{:else if !(storm && $smallScreen)}
   <button
     type="button"
     class="pill glass glass-pill"
@@ -340,7 +351,7 @@ const mac = dd.isMac();
   .guide {
     display: flex;
     flex-direction: column;
-    width: 344px;
+    width: min(344px, calc(100% - 2 * var(--mc-gutter)));
     /* Under the top line's chrome, at the shortest. */
     max-height: calc(100% - var(--mc-top-stack) - var(--mc-control-lg) - 2 * var(--mc-gutter) - var(--mc-safe-bottom));
     box-sizing: border-box;
@@ -566,6 +577,14 @@ const mac = dd.isMac();
     border-radius: 50%;
     background: var(--mc-tint);
     font: 700 13px/1 var(--mc-font);
+  }
+
+  /* A phone runs the credits up the right edge (Map.svelte); the card stops
+     short of them. */
+  @media only screen and (max-width: 620px) {
+    .guide {
+      width: calc(100% - var(--mc-gutter) - 32px);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
