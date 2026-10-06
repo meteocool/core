@@ -55,6 +55,7 @@ import { showsLatestFrame } from "./lib/freshness";
 import { DEFAULT_PRODUCT, parseObservedProduct } from "./lib/observedProduct";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
+import { exposeShareLink } from "./lib/share";
 import { isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
 import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
@@ -968,6 +969,7 @@ onDestroy(cleanupUIConstants);
 onDestroy(startUrlState({
   lm, settings: window.settings, cellmgr, cells3d, nanobar: nb,
 }));
+onDestroy(exposeShareLink());
 
 if (postInitCb) postInitCb(lm);
 

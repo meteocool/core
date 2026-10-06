@@ -40,6 +40,7 @@ import {
 } from "../layers/extents";
 import { reverseGeocode } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
+import { share, shareAvailable, shareIcon } from "../lib/share";
 import DryOutlook from "./DryOutlook.svelte";
 import { onWake } from "../lib/wakeup";
 import ChartSkeleton from "./ChartSkeleton.svelte";
@@ -1071,6 +1072,15 @@ onDestroy(() => {
           <Icon icon={faHistory} />
           <span>-2h</span>
         </button>
+        <!-- The frame on screen, parked or live, and the point the strip is
+             about: what a link from here says (lib/urlState.ts). -->
+        {#if $shareAvailable}
+          <button type="button" class="controlButton"
+            on:click={(event) => share({ subject: $inspectLatLon ? placeName : null, anchor: event.currentTarget })}
+            title={$_("share.share")} aria-label={$_("share.share")}>
+            <Icon icon={shareIcon()} />
+          </button>
+        {/if}
         <div class="spacer"></div>
         {#if !dd.isApp()}
           <div class="legend">

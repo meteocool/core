@@ -108,6 +108,8 @@
   "point_menu_precipitation_sub": "Radar a nowcasting",
   "point_menu_forecast": "Předpověď",
   "point_menu_forecast_sub": "Srovnání 21 modelů počasí",
+  "point_menu_share": "Sdílet",
+  "point_menu_share_sub": "Poslat odkaz na toto místo",
   "dry_outlook_title_week": "Žádný déšť v dohledu · dalších 7 dní",
   "dry_outlook_title_hours": "{hours, plural, =0 {Déšť pravděpodobný do hodiny} one {Déšť pravděpodobný za # hodinu} few {Déšť pravděpodobný za # hodiny} other {Déšť pravděpodobný za # hodin}}",
   "dry_outlook_title_days": "{days, plural, one {Déšť pravděpodobný za # den} few {Déšť pravděpodobný za # dny} other {Déšť pravděpodobný za # dní}}",
@@ -609,5 +611,14 @@
   },
   "notice": {
     "no_webgl": "Srážkový radar nelze zobrazit: tento prohlížeč nenabízí WebGL. Na iPhonu a iPadu ho vypíná režim blokování."
+  },
+  "share": {
+    "share": "Sdílet",
+    "title": "Meteoradar meteocool",
+    "title_about": "{subject} · meteocool",
+    "copied": "Odkaz zkopírován",
+    "copy_failed": "Odkaz se nepodařilo zkopírovat",
+    "stale": "Tento odkaz byl sdílen {ago}. Počasí se mezitím mohlo změnit.",
+    "stale_storm": "Tento odkaz byl sdílen {ago}. Bouřka se mezitím mohla posunout nebo změnit."
   }
 }

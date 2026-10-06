@@ -45,6 +45,7 @@ import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import { provideSheet } from "../lib/sheetContext";
 import CellDetails from "./CellDetails.svelte";
 import CloseDisc from "./CloseDisc.svelte";
+import ShareDisc from "./ShareDisc.svelte";
 
 /**
  * The cell whose details fill the sheet -- or none, when something else is
@@ -100,8 +101,8 @@ export let material: "drawer" | "reading" = "drawer";
  */
 export let dialogLabelledBy: string | null = null;
 
-// The panel inside leaves its own close disc out; see lib/sheetContext.ts.
-provideSheet();
+// The panel inside leaves its own close and share discs out; see lib/sheetContext.ts.
+const share = provideSheet();
 
 /**
  * The sheet slides, unless the reader has asked things not to move.
@@ -559,6 +560,11 @@ function bodyUp(event: PointerEvent) {
        below it, so the last line can still be scrolled into view. */
     padding-bottom: var(--rest);
   }
+  /* And the share disc beside it, when the panel has one: another 44px and
+     the corner's 8px gap. */
+  .body.shares {
+    --mc-sheet-corner: 98px;
+  }
   /* Nothing in here to scroll -- it is as tall as what it holds -- so a drag
      is the sheet's from the first pixel, rather than the browser's to claim as
      a pan and cancel before the axis is decided. */
@@ -603,9 +609,12 @@ function bodyUp(event: PointerEvent) {
     top: 11px;
     right: 12px;
     z-index: 2;
+    display: flex;
+    gap: 8px;
   }
   /* The disc's own margins pull it into a header's corner; here it is placed. */
-  .corner :global(button) {
+  .corner :global(button),
+  .corner :global(button.edge) {
     margin: 0;
   }
 
@@ -648,6 +657,7 @@ function bodyUp(event: PointerEvent) {
   <div
     class="body"
     class:scrolled
+    class:shares={$share !== null}
     on:scroll={(e) => { scrolled = e.currentTarget.scrollTop > 0; showIndicator(e.currentTarget); }}
     on:pointerdown={bodyDown}
     on:pointermove={bodyMove}
@@ -663,6 +673,7 @@ function bodyUp(event: PointerEvent) {
     style="--thumb-top: {thumbTop}px; --thumb-h: {thumbHeight}px"
     aria-hidden="true"></div>
   <div class="corner">
+    {#if $share}<ShareDisc onShare={$share} material={material === "reading" ? "chrome" : "drawer"} />{/if}
     <CloseDisc material={material === "reading" ? "chrome" : "drawer"} on:click={close} />
   </div>
 </div>

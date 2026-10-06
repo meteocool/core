@@ -1,7 +1,7 @@
 <script lang="ts">
 /**
  * What a long press on the radar map offers: the precipitation at that point,
- * or the forecast for it.
+ * the forecast for it, or a link to it to send someone.
  *
  * The hold used to go straight to the precipitation strip. The model
  * comparison asks about a point too, and the hold is the map's one "tell me
@@ -27,7 +27,8 @@ import type { EventsKey } from "ol/events";
 import { faDroplet } from "@fortawesome/free-solid-svg-icons/faDroplet";
 import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
 import Icon from "./Icon.svelte";
-import { inspectLatLon, pointMenuAt, selectedCell, selectedVolume, sharedActiveCap } from "../stores";
+import { share, shareAvailable, shareIcon } from "../lib/share";
+import { inspectLatLon, mapView, pointMenuAt, selectedCell, selectedVolume, sharedActiveCap } from "../stores";
 import { openModelCompare } from "../lib/modelCompare";
 import { holdNativeChrome } from "../lib/nativeBridge";
 import { reverseGeocode } from "../lib/reverseGeocode";
@@ -38,6 +39,8 @@ export let layerManager: LayerManager;
 /** Room the menu needs above the point, and to either side of it, in px. */
 const NEEDS_ABOVE = 170;
 const NEEDS_SIDE = 120;
+/** More above it for the share entry, where there is one: an entry's height. */
+const SHARE_ENTRY = 56;
 /**
  * How far into the menu the notch sits when the menu leans to one side: clear
  * of the 20px corner, so the notch comes off a straight edge rather than out
@@ -95,7 +98,7 @@ function place(point: [number, number] | null) {
   const coordinate = fromLonLat([point[1], point[0]]);
   const pixel = radar.getPixelFromCoordinate(coordinate);
   const width = radar.getSize()?.[0] ?? 0;
-  below = !!pixel && pixel[1] < NEEDS_ABOVE;
+  below = !!pixel && pixel[1] < NEEDS_ABOVE + (get(shareAvailable) ? SHARE_ENTRY : 0);
   side = !pixel ? "center"
     : pixel[0] < NEEDS_SIDE ? "left"
       : pixel[0] > width - NEEDS_SIDE ? "right" : "center";
@@ -140,6 +143,24 @@ function forecast() {
   const point = $pointMenuAt;
   close();
   if (point) openModelCompare(point[0], point[1]);
+}
+
+/**
+ * A link to the map centred on the point, with the point's precipitation open
+ * the way "Precipitation" opens it here, so the receiver lands on the place
+ * and on what it is getting. The share reads the button's place before the
+ * menu goes, for the popover an iPad points at it.
+ */
+function sendPoint(event: MouseEvent) {
+  const point = $pointMenuAt;
+  if (!point) return;
+  const view = get(mapView);
+  void share({
+    change: { view: { lat: point[0], lon: point[1], zoom: view?.zoom ?? 8 }, point },
+    subject: placeName,
+    anchor: event.currentTarget as Element,
+  });
+  close();
 }
 
 /* A tap anywhere else puts it away, as a context menu does. Capture phase,
@@ -187,6 +208,15 @@ onDestroy(() => {
           <span class="sub">{$_("point_menu_forecast_sub")}</span>
         </span>
       </button>
+      {#if $shareAvailable}
+        <button type="button" role="menuitem" on:click={sendPoint}>
+          <span class="icon"><Icon icon={shareIcon()} /></span>
+          <span class="text">
+            <span class="label">{$_("point_menu_share")}</span>
+            <span class="sub">{$_("point_menu_share_sub")}</span>
+          </span>
+        </button>
+      {/if}
     </div>
     <span class="notch" aria-hidden="true"></span>
     <span class="dot" aria-hidden="true"></span>

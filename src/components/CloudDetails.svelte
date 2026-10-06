@@ -34,6 +34,7 @@ import { currentLocale } from "../locale/t";
 import { stormPlace, type StormPlace } from "../lib/reverseGeocode";
 import { radarColormap, selectedVolume, sharedActiveCap } from "../stores";
 import type { RadarVolume } from "../api";
+import { share } from "../lib/share";
 
 export let cloud: RadarVolume;
 /**
@@ -100,7 +101,8 @@ $: on3d = $sharedActiveCap === "cells3d";
 $: showVolume = !compact || expanded;
 </script>
 
-<StormPanel {rule} label={place ? $_("storm.cloud.label", { values: { place: place.name } }) : unnamed} place={place?.area ?? null} onClose={close}>
+<StormPanel {rule} label={place ? $_("storm.cloud.label", { values: { place: place.name } }) : unnamed} place={place?.area ?? null} onClose={close}
+  onShare={(anchor) => share({ subject: title, anchor })}>
   <span slot="header" class="headline">{title}</span>
 
   {#if on3d && cloud.tier !== 1}
