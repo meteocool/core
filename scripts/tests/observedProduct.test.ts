@@ -15,7 +15,9 @@ import type { NewestScans } from "../../src/lib/observedProduct.ts";
 const T = 1_791_240_000;
 const MIN = 60;
 
-const scans = (hx: number | null, merged: number | null, dmax: number | null): NewestScans => ({ hx, merged, dmax });
+const scans = (hx: number | null, merged: number | null, dmax: number | null, colmax: number | null = null): NewestScans => ({
+  hx, merged, colmax, dmax,
+});
 
 test("the default is never behind, even with nothing to draw", () => {
   assert.equal(fallsBehind("hx", scans(null, T, T)), false);
@@ -34,6 +36,15 @@ test("DMAX three cycles behind gives way to the default", () => {
   assert.equal(drawnProduct("dmax", scans(T, T, T - 15 * MIN)), DEFAULT_PRODUCT);
 });
 
+test("the column maximum of every network, two cycles behind as it is for a minute of every five, is drawn", () => {
+  assert.equal(drawnProduct("colmax", scans(T, T, T, T - 10 * MIN)), "colmax");
+});
+
+test("the column maximum three cycles behind, one pass late, is still drawn; four gives way", () => {
+  assert.equal(drawnProduct("colmax", scans(T, T, T, T - 15 * MIN)), "colmax");
+  assert.equal(drawnProduct("colmax", scans(T, T, T, T - 20 * MIN)), DEFAULT_PRODUCT);
+});
+
 test("a product with nothing fresh gives way to the default", () => {
   assert.equal(drawnProduct("merged", scans(T, null, T)), DEFAULT_PRODUCT);
   assert.equal(drawnProduct("dmax", scans(T, T, null)), DEFAULT_PRODUCT);
@@ -50,6 +61,7 @@ test("a merged composite ahead of HX is drawn", () => {
 test("a setting that names no product is the default", () => {
   assert.equal(parseObservedProduct("dmax"), "dmax");
   assert.equal(parseObservedProduct("merged"), "merged");
+  assert.equal(parseObservedProduct("colmax"), "colmax");
   assert.equal(parseObservedProduct("eu"), "hx");
   assert.equal(parseObservedProduct(true), "hx");
   assert.equal(parseObservedProduct(null), "hx");

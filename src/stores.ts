@@ -236,7 +236,8 @@ export const cloudsTime = writable<CloudsTime>({ shown: null, loading: null, pro
 /**
  * Which product the radar map's observed frames are drawn from, as the reader
  * picked it in the tray: HX with the networks around it, the merged
- * composite, or DMAX; see lib/observedProduct.ts. Mirrors the `radarProduct`
+ * composite, the column maximum of every network, or DMAX; see
+ * lib/observedProduct.ts. Mirrors the `radarProduct`
  * setting.
  */
 export const observedProduct = writable<ObservedProduct>(DEFAULT_PRODUCT);
@@ -248,7 +249,7 @@ export const observedProduct = writable<ObservedProduct>(DEFAULT_PRODUCT);
 export const radarProducts = writable<{ chosen: ObservedProduct; drawn: ObservedProduct; scans: NewestScans }>({
   chosen: DEFAULT_PRODUCT,
   drawn: DEFAULT_PRODUCT,
-  scans: { hx: null, merged: null, dmax: null },
+  scans: { hx: null, merged: null, colmax: null, dmax: null },
 });
 /**
  * Whether the 3D map is still being brought up for the first time.

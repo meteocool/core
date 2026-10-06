@@ -2,7 +2,7 @@
 /**
  * How the radar works: how the radars scan, when what they measured is
  * published, and which part of meteocool is made from which. Opened from the
- * help button in the layer switcher.
+ * "?" in the radar product picker's menu.
  *
  * The diagrams are drawn here from the geometry rather than shipped as
  * pictures, so they take the app's own palette, theme and language: the side
@@ -136,7 +136,8 @@ const NODES: Record<string, [number, number, NodeKind]> = {
   hx: [1, 30, "file"], wn: [1, 90, "file"], hg: [1, 150, "file"], dmax: [1, 215, "file"], k3d: [1, 280, "file"],
   meso: [1, 340, "file"], sweeps: [1, 430, "file"], strk: [1, 560, "file"],
   m_de: [2, 30, "ours"], m_fc: [2, 90, "ours"], m_hg: [2, 150, "ours"], m_cell: [2, 230, "ours"], m_meso: [2, 300, "ours"],
-  m_3d: [2, 370, "ours"], m_net: [2, 440, "ours"], m_eu: [2, 500, "ours"], m_lt: [2, 560, "ours"],
+  m_3d: [2, 370, "ours"], m_net: [2, 440, "ours"], m_eu: [2, 500, "ours"], m_colmax: [2, 560, "ours"],
+  m_lt: [2, 620, "ours"],
 };
 /* The one box with nothing to add under its name. */
 const NO_SUBTITLE = new Set(["m_meso"]);
@@ -146,7 +147,8 @@ const nodes = Object.entries(NODES).map(([id, [col, y, kind]]) => ({
 const EDGES: Array<[string, string]> = [
   ["pcp", "hx"], ["pcp", "wn"], ["pcp", "hg"], ["vol", "dmax"], ["vol", "k3d"], ["vol", "meso"], ["vol", "sweeps"],
   ["nets", "sweeps"], ["bz", "strk"], ["hx", "m_de"], ["wn", "m_fc"], ["hg", "m_hg"], ["k3d", "m_cell"], ["dmax", "m_cell"],
-  ["meso", "m_meso"], ["dmax", "m_3d"], ["sweeps", "m_3d"], ["sweeps", "m_net"], ["sweeps", "m_eu"], ["strk", "m_lt"],
+  ["meso", "m_meso"], ["dmax", "m_3d"], ["sweeps", "m_3d"], ["sweeps", "m_net"], ["sweeps", "m_eu"], ["sweeps", "m_colmax"],
+  ["strk", "m_lt"],
 ];
 const STRONG = new Set(["dmax>m_3d", "sweeps>m_3d"]);
 const edges = EDGES.map(([a, b]) => {
@@ -163,17 +165,10 @@ const edges = EDGES.map(([a, b]) => {
     head: `M${x2 - 7},${y2 - 4} L${x2},${y2} L${x2 - 7},${y2 + 4}`,
   };
 });
-/* The network composites seed the other countries' 3D clouds: one edge within the last column. */
-const backEdge = (() => {
-  const x = COL_X[2] + COL_W[2];
-  const y1 = NODES.m_net[1] + NODE_H / 2;
-  const y2 = NODES.m_3d[1] + NODE_H / 2;
-  return { d: `M${x},${y1} C${x + 30},${y1} ${x + 30},${y2} ${x + 6},${y2}`, head: `M${x + 7},${y2 - 4} L${x},${y2} L${x + 7},${y2 + 4}` };
-})();
 
 const TIMES = ["pcp_done", "hx", "frame", "wn", "sweep_low", "vol_done", "dmax", "sweep_last", "clouds", "next_frame"];
 const OURS_TIMES = new Set(["frame", "clouds", "next_frame"]);
-const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "cells", "clouds", "meso", "lightning"];
+const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "colmax", "cells", "clouds", "meso", "lightning"];
 </script>
 
 <style>
@@ -454,7 +449,7 @@ const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "cells", "clo
     </div>
     <figure>
       <div class="fig">
-        <svg viewBox="0 0 1040 640" role="img" aria-label={$_("radar_help.made.caption")}>
+        <svg viewBox="0 0 1040 700" role="img" aria-label={$_("radar_help.made.caption")}>
           {#each ["measured", "published", "shown"] as head, i (i)}
             <text class="colhead" x={COL_X[i]} y="16">{$_(`radar_help.made.col_${head}`)}</text>
           {/each}
@@ -462,8 +457,6 @@ const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "cells", "clo
             <path class="edge" class:strong={edge.strong} d={edge.d} />
             <path class="edge" class:strong={edge.strong} d={edge.head} />
           {/each}
-          <path class="edge strong" d={backEdge.d} />
-          <path class="edge strong" d={backEdge.head} />
           {#each nodes as node, index (index)}
             <rect class="node {node.kind}" x={node.x} y={node.y} width={node.w} height={NODE_H} rx="7" />
             {#if node.subtitle}

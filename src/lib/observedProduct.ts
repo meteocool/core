@@ -1,12 +1,16 @@
 /**
- * Which product the radar map draws its observed frames from (ng ADR 0016).
+ * Which product the radar map draws its observed frames from (ng ADRs 0016, 0019).
  *
- * Three pictures of the same weather, each a trade the reader makes:
+ * Four pictures of the same weather, each a trade the reader makes:
  *
  * - `hx`, the default: DWD's HX over Germany, the lowest scan of every radar,
  *   with each EUMETNET network's own lowest-tilt composite around it.
- * - `merged`: meteocool's composite of all five networks on one grid, drawn
- *   whole in place of the six.
+ * - `merged`: meteocool's composite of all five networks' lowest scans on
+ *   one grid, drawn whole in place of the six.
+ * - `colmax`: meteocool's column maximum of all five networks, every tilt of
+ *   every radar evened out across them, drawn whole like `merged`. Built once
+ *   a cycle when the slowest network's volume is in, so a cycle or two
+ *   behind HX.
  * - `dmax`: DWD's column maximum over Germany, the strongest echo over every
  *   tilt, with the networks' composites around it as for HX. A cycle behind
  *   HX, because it needs the whole volume scan.
@@ -18,13 +22,13 @@
  * picker in the tray reads what it publishes.
  */
 
-export type ObservedProduct = "hx" | "merged" | "dmax";
+export type ObservedProduct = "hx" | "merged" | "colmax" | "dmax";
 
 /** The products other than the default, as `/v3/radar/timeseries?products=` names them. */
 export type AlternativeProduct = Exclude<ObservedProduct, "hx">;
 
 /** In the order the picker lists them. */
-export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = ["hx", "merged", "dmax"];
+export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = ["hx", "merged", "colmax", "dmax"];
 
 export const DEFAULT_PRODUCT: ObservedProduct = "hx";
 
@@ -42,6 +46,18 @@ export type NewestScans = Record<ObservedProduct, number | null>;
  */
 export const FALLBACK_BEHIND_S = 10 * 60;
 
+/**
+ * The column maximum of every network is a cycle further back than DMAX: it
+ * is built seven minutes into the cycle after its own, on a background
+ * worker, so for a minute or two of every five it trails HX by two cycles,
+ * and by three when one pass is late.
+ */
+const BEHIND_ALLOWED_S: Record<AlternativeProduct, number> = {
+  merged: FALLBACK_BEHIND_S,
+  dmax: FALLBACK_BEHIND_S,
+  colmax: FALLBACK_BEHIND_S + 5 * 60,
+};
+
 /** The value a setting holds, as a product: anything unknown is the default. */
 export function parseObservedProduct(value: unknown): ObservedProduct {
   return OBSERVED_PRODUCTS.includes(value as ObservedProduct) ? (value as ObservedProduct) : DEFAULT_PRODUCT;
@@ -49,7 +65,7 @@ export function parseObservedProduct(value: unknown): ObservedProduct {
 
 /**
  * Whether a product is not worth drawing now: it has nothing fresh, or its
- * newest scan trails the default's by more than `FALLBACK_BEHIND_S`.
+ * newest scan trails the default's by more than it may (`BEHIND_ALLOWED_S`).
  *
  * Measured against the default rather than the clock: when every feed is
  * late together, which is a sleeping tab or a stalled backend, the default is
@@ -60,7 +76,7 @@ export function fallsBehind(product: ObservedProduct, scans: NewestScans): boole
   const scan = scans[product];
   if (scan === null) return true;
   const reference = scans[DEFAULT_PRODUCT];
-  return reference !== null && reference - scan > FALLBACK_BEHIND_S;
+  return reference !== null && reference - scan > BEHIND_ALLOWED_S[product];
 }
 
 /** What the map draws: the reader's choice, or the default while the choice falls behind. */
