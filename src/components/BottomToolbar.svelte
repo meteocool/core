@@ -215,9 +215,12 @@
         .lastUpdatedBottom {
             padding: 6px 10px;
         }
-        /* Both discs stand in one column at the left (NowcastPlayback). */
+        /* Both discs stand in one column at the left (NowcastPlayback). A
+           little more inset than the other maps' trays: the strip, the age and
+           the chip run to both edges here. */
         .lastUpdatedBottom.has-discs {
             right: var(--mc-gutter);
+            padding: 6px 14px;
         }
         .parentz {
             flex-wrap: wrap;
