@@ -101,6 +101,16 @@
     "cells_body": "DWD's tracked cells in tiers, outlined by severity:",
     "heights": "Heights drawn {scale}× taller than life."
   },
+  "time_3d": {
+    "choose": "Show the storms at an earlier time",
+    "title": "Storms at",
+    "latest": "Latest",
+    "latest_aria": "Storms: latest scan",
+    "past_aria": "Storms at {time}, not live",
+    "loading": "Looking for the storms at {time}…",
+    "nothing": "No storms on record here at {time}",
+    "failed": "Could not look up the storms at {time}"
+  },
   "layer_switcher_placeholder": "If you are thankful for meteocool, give something back to someone in need.",
   "snow": "Snow",
   "graupel": "Graupel",

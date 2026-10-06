@@ -657,6 +657,9 @@ if (cells3d && radarCap) {
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
   cells3d.setStrikeSource(lightningSource);
+  // And the frames of the last two hours, for an earlier scan the reader
+  // picks to have its own radar under it, as the flat map would show it.
+  cells3d.setRadarHistory((step) => radarCap.observedAt(step));
 }
 
 /* The tags are judged against the same radar: a frame landing ahead of its
@@ -1104,9 +1107,11 @@ if (postInitCb) postInitCb(lm);
      draw their own chrome, and a toolbar asked away is a display that wants
      none of this either. -->
 {#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && !dd.isApp() && $toolbarVisible === "yes"}
-  <!-- Not while a storm is open: a cut storm does not peel. -->
+  <!-- Not while a storm is open: a cut storm does not peel, and its panel
+       says when it was seen. With the picker of which scan the storms are
+       from, which stays on its choice meanwhile. -->
   {#if !$selectedCell && !$selectedVolume}
-    <PeelSlider />
+    <PeelSlider pickScan={cells3d ? (scan) => cells3d.showScan(scan) : null} />
   {/if}
   <Guide3D />
 {/if}

@@ -11,12 +11,18 @@
  *
  * It takes the bottom edge the flat map's tray has, and publishes its height
  * as --mc-peel-h for what stands on that edge above it: the guide's pill and
- * card, and the credits.
+ * card, and the credits. At its end, which scan the storms are from
+ * (ScanPicker), so the edge stays one strip of controls; the peel works on
+ * an earlier scan's storms as on the newest's.
  */
 import { onDestroy } from "svelte";
 import { _ } from "svelte-i18n";
 import { peelLevel, peelManual, radarColormap } from "../stores";
 import { dbzColour } from "../lib/cellVolume";
+import ScanPicker from "./ScanPicker.svelte";
+
+/** Put an earlier scan's storms on the map, or the newest for null; without it, no picker. */
+export let pickScan: ((scan: number | null) => void) | null = null;
 
 /** The reflectivity the track spans: the clouds' faintest to a typical core. */
 const TRACK_MIN = 20;
@@ -39,7 +45,7 @@ $: document.documentElement.style.setProperty("--mc-peel-h", `calc(${height}px +
 onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
 </script>
 
-<div class="peel glass glass-tray" bind:offsetHeight={height}>
+<div class="peel glass glass-tray" class:picking={pickScan !== null} bind:offsetHeight={height}>
   <span class="label" aria-hidden="true">{$_("guide_3d.peel")}</span>
   <input
     type="range"
@@ -50,6 +56,9 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     aria-label={$_("guide_3d.peel_aria")}
     style:--track={track}
     on:input={moved} />
+  {#if pickScan}
+    <ScanPicker pick={pickScan} />
+  {/if}
 </div>
 
 <style>
@@ -70,6 +79,10 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     border-radius: var(--mc-radius-pill);
     color: var(--mc-text);
     font: 600 13px/1 var(--mc-font);
+  }
+  /* The picker's pill at the end, as far in from it as from the top and bottom. */
+  .peel.picking {
+    padding-right: calc((var(--mc-control) - var(--mc-pill-h)) / 2);
   }
   .label {
     flex: none;
