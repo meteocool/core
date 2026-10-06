@@ -108,6 +108,8 @@
   "point_menu_precipitation_sub": "Radar i nowcasting",
   "point_menu_forecast": "Prognoza",
   "point_menu_forecast_sub": "Porównanie 21 modeli pogodowych",
+  "point_menu_share": "Udostępnij",
+  "point_menu_share_sub": "Wyślij link do tego miejsca",
   "dry_outlook_title_week": "Nie widać deszczu · najbliższe 7 dni",
   "dry_outlook_title_hours": "{hours, plural, =0 {Deszcz prawdopodobny w ciągu godziny} one {Deszcz prawdopodobny za # godzinę} few {Deszcz prawdopodobny za # godziny} other {Deszcz prawdopodobny za # godzin}}",
   "dry_outlook_title_days": "{days, plural, one {Deszcz prawdopodobny za # dzień} other {Deszcz prawdopodobny za # dni}}",
@@ -589,5 +591,14 @@
   },
   "notice": {
     "no_webgl": "Nie można wyświetlić radaru opadów: ta przeglądarka nie obsługuje WebGL. Na iPhonie i iPadzie wyłącza go tryb blokady."
+  },
+  "share": {
+    "share": "Udostępnij",
+    "title": "Radar pogodowy meteocool",
+    "title_about": "{subject} · meteocool",
+    "copied": "Link skopiowany",
+    "copy_failed": "Nie udało się skopiować linku",
+    "stale": "Ten link udostępniono {ago}. Pogoda mogła się od tego czasu zmienić.",
+    "stale_storm": "Ten link udostępniono {ago}. Burza mogła się od tego czasu przesunąć lub zmienić."
   }
 }

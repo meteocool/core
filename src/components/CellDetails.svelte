@@ -39,6 +39,7 @@ import { currentLocale, type Translate } from "../locale/t";
 import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
 import type { CellStep, CellTrackProperties } from "../api";
 import type { ModelFrame, VolumeInput } from "../lib/cellVolume";
+import { share } from "../lib/share";
 
 export let track: CellTrackProperties;
 
@@ -165,6 +166,8 @@ $: colour = severityColour(severity);
 // What to call it. Null when the environment has no geocoder or the cell is out
 // at sea, and then the header is just the severity it always was.
 $: place = placementLabel(track.placement, $_, "long");
+// "Strong storm, 3 km west of Holzkirchen": what a shared link is about.
+$: shareSubject = [$_(`storm.storm_label.${BAND_NAMES[severity]}`), place].filter(Boolean).join(", ");
 $: series = track.series ?? [];
 $: latest = series[series.length - 1];
 /**
@@ -631,7 +634,8 @@ function close() {
 }
 </script>
 
-<StormPanel rule={colour} label={$_(`storm.storm_label.${BAND_NAMES[severity]}`)} {place} onClose={close}>
+<StormPanel rule={colour} label={$_(`storm.storm_label.${BAND_NAMES[severity]}`)} {place} onClose={close}
+  onShare={(anchor) => share({ subject: shareSubject, anchor })}>
   <span slot="header" class="headline severity">{$_(`storm.band.${BAND_NAMES[severity]}`)}</span>
 
   <!-- Whether it is still there, how long it has been, and how old the

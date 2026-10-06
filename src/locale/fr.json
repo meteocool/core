@@ -108,6 +108,8 @@
   "point_menu_precipitation_sub": "Radar et prévision immédiate",
   "point_menu_forecast": "Prévision",
   "point_menu_forecast_sub": "21 modèles météo comparés",
+  "point_menu_share": "Partager",
+  "point_menu_share_sub": "Envoyer un lien vers ce lieu",
   "dry_outlook_title_week": "Pas de pluie en vue · 7 prochains jours",
   "dry_outlook_title_hours": "{hours, plural, =0 {Pluie probable d’ici une heure} one {Pluie probable dans # heure} other {Pluie probable dans # heures}}",
   "dry_outlook_title_days": "{days, plural, one {Pluie probable dans # jour} other {Pluie probable dans # jours}}",
@@ -589,5 +591,14 @@
   },
   "notice": {
     "no_webgl": "Le radar de pluie ne peut pas s'afficher : ce navigateur ne propose pas WebGL. Sur iPhone et iPad, le mode Isolement le désactive."
+  },
+  "share": {
+    "share": "Partager",
+    "title": "Radar météo meteocool",
+    "title_about": "{subject} · meteocool",
+    "copied": "Lien copié",
+    "copy_failed": "Impossible de copier le lien",
+    "stale": "Ce lien a été partagé {ago}. La météo a pu changer depuis.",
+    "stale_storm": "Ce lien a été partagé {ago}. L’orage a pu se déplacer ou évoluer depuis."
   }
 }
