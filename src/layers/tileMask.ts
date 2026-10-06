@@ -3,10 +3,11 @@
  *
  * The flat map and the 3D map draw the same radar in two renderers --
  * OpenLayers and MapLibre -- and neither can clip a raster layer to a polygon
- * on the GPU. What both can do is hand a tile image through a 2D canvas
- * before the renderer sees it. This is that step, free of either renderer so
- * `networkHoles.ts` (OpenLayers) and `maskedTiles.ts` (MapLibre) make the
- * same cut from the same rings.
+ * on the GPU. What both can do is cut a tile's values before the renderer
+ * sees them, by how much of each pixel a polygon drawn on a 2D canvas
+ * leaves. This is that step, free of either renderer so `networkHoles.ts`
+ * (OpenLayers) and `maskedTiles.ts` (MapLibre) make the same cut from the
+ * same rings.
  *
  * Rings are web mercator (EPSG:3857) coordinates, as `extents.ts` holds
  * them; only tiles whose extent meets a polygon's bounding box need the
@@ -44,31 +45,38 @@ export function tileExtent(z: number, x: number, y: number): Extent {
 }
 
 /**
- * The tile with every `erase` polygon cut out of it and, when `keep` is given,
- * nothing left outside that polygon. Returns a canvas in the image's place.
+ * How much of each pixel of a tile is left once every `erase` polygon is cut
+ * out of it and, when `keep` is given, everything outside that polygon: 0 to
+ * 255 a pixel, the antialiased edge in between. Drawn on `context`'s canvas,
+ * a page's or a worker's (packTiles.worker.ts), which is the tile's size.
+ *
+ * Only the cut is drawn, never the tile: a canvas is free to colour-manage
+ * what is drawn on it, and a value one off is another value
+ * (lib/valuePng.ts). Its alpha it leaves alone.
+ */
+export function maskCoverage(
+  context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  extent: Extent,
+  erase: MaskPath[],
+  keep: MaskPath | null,
+): Uint8Array {
+  const { width, height } = context.canvas;
+  context.globalCompositeOperation = "copy";
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, width, height);
+  cutTile(context, extent, erase, keep);
+  const rgba = context.getImageData(0, 0, width, height).data;
+  const coverage = new Uint8Array(width * height);
+  for (let pixel = 0; pixel < coverage.length; pixel++) coverage[pixel] = rgba[pixel * 4 + 3];
+  return coverage;
+}
+
+/**
+ * The cut, made on whatever is drawn in `context` already.
  *
  * `erase` is one path per polygon: the rings of one are wound to nest
  * correctly, and two networks' borders merely touch. `keep` is one polygon,
  * applied last so that erasing never brings anything back.
- */
-export function maskTile(
-  image: CanvasImageSource & { naturalWidth?: number; naturalHeight?: number; width: number; height: number },
-  extent: Extent,
-  erase: MaskPath[],
-  keep: MaskPath | null = null,
-): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth ?? image.width;
-  canvas.height = image.naturalHeight ?? image.height;
-  const context = canvas.getContext("2d")!;
-  context.drawImage(image, 0, 0);
-  cutTile(context, extent, erase, keep);
-  return canvas;
-}
-
-/**
- * `maskTile`'s cut, made on whatever is drawn in `context` already: a page's
- * canvas or a worker's (packTiles.worker.ts).
  */
 export function cutTile(
   context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,

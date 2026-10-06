@@ -78,20 +78,21 @@ export function rvp6Style(palette: string) {
 }
 
 /**
- * Colour RGBA pixels that hold RVP6 in their red channel, in place.
+ * RGBA pixels for a tile's values (lib/valuePng.ts) in a palette.
  *
- * What a canvas reads back from a decoded value tile: R = G = B = the value
- * and alpha opaque, except where a polygon was cut (tileMask.ts): nothing
- * there, and part of a pixel on the cut's antialiased edge, which fades the
- * colour as `rvp6Style` does.
+ * `coverage` is what a cut left of each pixel (tileMask.ts), null for all of
+ * it: nothing where it was cut away, and part of a pixel on the cut's
+ * antialiased edge, which fades the colour as `rvp6Style` does.
  */
-export function paintValuePixels(pixels: Uint8ClampedArray, table: Rgba[]): void {
-  for (let at = 0; at < pixels.length; at += 4) {
-    const coverage = pixels[at + 3];
-    const [r, g, b, a] = table[coverage === 0 ? 0 : pixels[at]];
+export function paintValues(values: Uint8Array, coverage: Uint8Array | null, table: Rgba[]): Uint8ClampedArray<ArrayBuffer> {
+  const pixels = new Uint8ClampedArray(values.length * 4);
+  for (let pixel = 0, at = 0; pixel < values.length; pixel++, at += 4) {
+    const kept = coverage ? coverage[pixel] : 255;
+    const [r, g, b, a] = table[kept === 0 ? 0 : values[pixel]];
     pixels[at] = r;
     pixels[at + 1] = g;
     pixels[at + 2] = b;
-    pixels[at + 3] = coverage === 255 ? a : Math.round((a * coverage) / 255);
+    pixels[at + 3] = kept === 255 ? a : Math.round((a * kept) / 255);
   }
+  return pixels;
 }

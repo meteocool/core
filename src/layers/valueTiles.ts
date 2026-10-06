@@ -13,11 +13,11 @@ import type WebGLTileLayer from "ol/layer/WebGLTile";
  * Radar frames as value tiles, drawn by the GPU in the reader's palette.
  *
  * A value tile is a greyscale PNG of bytes: RVP6 for reflectivity
- * (lib/rvp6.ts), a class for precipitation types (lib/hgClasses.ts). Decoded
- * without colour management it is an RGBA bitmap with R = G = B = the
- * value, which a worker packs down to the value alone (packTiles.ts) before
- * WebGL gets it: the layer's `palette` style reads band 1 and colours it on
- * the GPU, so a palette change is a style change, not a reload.
+ * (lib/rvp6.ts), a class for precipitation types (lib/hgClasses.ts). A
+ * worker decodes it to those bytes (lib/valuePng.ts) and packs them
+ * (packTiles.ts) before WebGL gets them: the layer's `palette` style reads
+ * band 1 and colours it on the GPU, so a palette change is a style change,
+ * not a reload.
  *
  * The frame's tile index gates every request (lib/tileIndex.ts), and past a
  * frame's deepest zoom a tile is cut out of its ancestor's. Two cuts make
@@ -36,9 +36,8 @@ const REMEMBERED = 400;
  * given `keep`, nothing left outside it. Nothing is fetched for a tile
  * outside `keep` altogether.
  *
- * Packed to the bytes that mean something (packTiles.ts), unless no worker
- * can do it, when it is the decoded image or a canvas cut from it. `size` is
- * the source's tile size.
+ * Decoded and packed to the bytes that mean something (packTiles.ts), or a
+ * blank where there is nothing. `size` is the source's tile size.
  */
 export async function loadValueTile(
   template: string,
@@ -50,13 +49,13 @@ export async function loadValueTile(
   keep: MaskPath | null,
   signal?: AbortSignal,
   size = 512,
-): Promise<Uint8Array | ImageBitmap | HTMLCanvasElement> {
+): Promise<Uint8Array | HTMLCanvasElement> {
   const extent = tileExtent(z, x, y);
   if (keep && !overlaps(extent, keep.bbox)) return blankTile();
   const fetched = await fetchFrameTile(template, index, z, x, y, signal);
   if (!fetched) return blankTile();
   const met = holes.filter((hole) => overlaps(extent, hole.bbox));
-  return packValueTile(fetched.bitmap, fetched.from, extent, met, keep, size, signal);
+  return packValueTile(fetched.png, fetched.from, extent, met, keep, size, signal);
 }
 
 /**
