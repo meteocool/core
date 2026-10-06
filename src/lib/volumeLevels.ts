@@ -47,7 +47,7 @@ export function atLevel(
 }
 
 /** The column and row of the zoom-`z` tile a point stands in, as the map numbers them. */
-function tileAt(lon: number, lat: number, z: number): [number, number] {
+export function tileAt(lon: number, lat: number, z: number): [number, number] {
   const n = 2 ** z;
   const x = Math.floor(((lon + 180) / 360) * n);
   const y = Math.floor(((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * n);

@@ -101,6 +101,16 @@
     "cells_body": "Door de DWD gevolgde cellen in lagen, omlijnd naar zwaarte:",
     "heights": "Hoogtes {scale}× overdreven."
   },
+  "time_3d": {
+    "choose": "Toon de buien op een eerder tijdstip",
+    "title": "Buien om",
+    "latest": "Nieuwste",
+    "latest_aria": "Buien: nieuwste scan",
+    "past_aria": "Buien om {time}, niet live",
+    "loading": "Buien om {time} zoeken…",
+    "nothing": "Hier geen buien vastgelegd om {time}",
+    "failed": "De buien om {time} konden niet worden geladen"
+  },
   "layer_switcher_placeholder": "Als je dankbaar bent voor meteocool, geef dan iets terug aan iemand die het nodig heeft.",
   "snow": "Sneeuw",
   "graupel": "Graupel",

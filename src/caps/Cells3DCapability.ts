@@ -29,8 +29,8 @@ import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway, VolumeGone } from "../lib/cellCutaway";
-import { drawnExtentM, tileBounds, tileCode } from "../lib/volumeBox";
-import { atLevel, fineAt } from "../lib/volumeLevels";
+import { drawnExtentM, tileBounds, tileCentre, tileCode } from "../lib/volumeBox";
+import { atLevel, COARSE_ZOOM, fineAt } from "../lib/volumeLevels";
 import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
@@ -39,9 +39,9 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
-  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, colorSchemeDark, cutRotationDeg, cutSweepDeg, mapView,
-  peelLevel, peelManual, radarColormap, selectedCell, selectedVolume, sharedActiveCap, showForecastPlaybutton, smallScreen,
-  terrain3dVisible,
+  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, cloudsTime, colorSchemeDark, cutRotationDeg,
+  cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedVolume, sharedActiveCap,
+  showForecastPlaybutton, smallScreen, terrain3dVisible,
 } from "../stores";
 import { derived, get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
@@ -54,15 +54,21 @@ import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { middleDragTurnsAndTilts } from "../lib/middleDrag";
 import { tracked } from "../lib/progress";
 import { boxFootprint, tileWidthM } from "../lib/cloudFootprint";
-import { isPastItsScan, scanTime, VolumeFeed } from "../lib/scans";
+import { isPastItsScan, networkOf, scanTime, VolumeFeed } from "../lib/scans";
 import type { Scan } from "../lib/scans";
+import {
+  askScan, coarseOf, coarseTilesIn, FALLBACK_TEMPLATE, limited, listOf, noFinds, placeKey, placesToAsk, scanOnClock,
+  volumeOf,
+} from "../lib/cloudHistory";
+import type { Place, Quarter, ScanFinds } from "../lib/cloudHistory";
+import { networkAt } from "../layers/networkAt";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import { maplibreLocateControl } from "../lib/GeolocateControl";
 import type {
   CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarFrame, RadarVolume,
 } from "../api";
-import type { MapView } from "../stores";
+import type { CloudsTime, MapView } from "../stores";
 import type VectorSource from "ol/source/Vector";
 
 /**
@@ -407,6 +413,54 @@ function boxColour(colormap: string): DataDrivenPropertyValueSpecification<strin
 /** Between a run's volumes being announced and asking for them, so a run's parts are fetched together. */
 const VOLUMES_SETTLE_MS = 1500;
 
+/**
+ * How many coarse tiles an earlier scan is newly asked for at most, per
+ * look: where a newer scan had storms, around them, then the rest of the
+ * screen nearest its middle; see lib/cloudHistory.ts. Each is a request,
+ * most of them misses; the ones asked before cost nothing and do not count.
+ */
+const PAST_PLACES = 30;
+
+/**
+ * Of those, how many from the rest of the screen, where no storm was: the
+ * ground a storm that has died since would be on. Mostly misses, so a few a
+ * look; each move of the camera looks over a few more.
+ */
+const PAST_VIEW_PLACES = 8;
+
+/** How far an earlier scan is looked over from the coarse tile the middle of the screen is in, in coarse tiles. */
+const PAST_REACH = 4;
+
+/** Volumes asked for at once while an earlier scan is looked for: most are misses, or small. */
+const PAST_FETCHES = 12;
+
+/** How many earlier scans' finds are kept: what was asked for and found there, no voxels. */
+const PAST_KEPT = 12;
+
+/**
+ * The newest scan's own marks, put away while an earlier scan is on the
+ * map: its KONRAD3D cells and the last minutes' strikes, which are now's
+ * and not the scan's.
+ */
+const LIVE_ONLY = [
+  "cell-footprint", ...RING_ALPHAS.map((_opacity, tier) => `cell-volume-${tier}`), "strike-glow", "strike-core",
+];
+
+/** The radar of one observed step, as `RadarCapability.observedAt` gives it. */
+interface PastRadar {
+  url: string;
+  tiles?: TileIndex | null;
+  networks: Partial<Record<NetworkCode, RadarFrame>>;
+}
+
+/** An earlier scan on the map in place of the newest; see `showScan`. */
+interface PastScan {
+  /** On DWD's clock, as the picker has it. */
+  scan: Scan;
+  /** What is known of it, which a look adds to. */
+  finds: ScanFinds;
+}
+
 export default class Cells3DCapability extends Capability {
   private gl: GlMap | null = null;
 
@@ -434,8 +488,50 @@ export default class Cells3DCapability extends Capability {
   /** The newest cells request, so a slower earlier answer cannot win. */
   private cellsToken: symbol | null = null;
 
-  /** Every storm core with a volume in the newest scan, KONRAD3D cell or not. */
+  /**
+   * Every storm core with a volume on the map, KONRAD3D cell or not: the
+   * newest scan's, or an earlier scan's while one is shown in its place.
+   */
   private clouds: RadarVolume[] = [];
+
+  /** The newest scan's, as last listed: `clouds` while live, kept aside while an earlier scan is shown. */
+  private liveClouds: RadarVolume[] = [];
+
+  /** The earlier scan on the map; null while live. See `showScan`. */
+  private past: PastScan | null = null;
+
+  /** A scan picked and being looked for, until it is on the map or turns out empty. */
+  private pastLoading: Scan | null = null;
+
+  /** Whether the camera moved while it was, away from where it was looked for. */
+  private pastMoved = false;
+
+  /** The newest look at an earlier scan, so one superseded lands nowhere. */
+  private pastToken: symbol | null = null;
+
+  /** What every earlier scan looked at is known to have, by scan, the least recently looked at first. */
+  private pastFinds = new Map<Scan, ScanFinds>();
+
+  /** The coarse tiles of the earlier scan whose fine tiles were found, by code: only those can be drawn fine. */
+  private pastFine = new Set<string>();
+
+  /** An earlier scan's volumes being fetched, by path, so two looks over the same ground ask once. */
+  private pastFetches = new Map<string, Promise<Cutaway | null>>();
+
+  /** At most `PAST_FETCHES` of them at once. */
+  private readonly pastQueue = limited(PAST_FETCHES);
+
+  /** Each network's newest scan listed, which its earlier scans are counted from; see `scanOnClock`. */
+  private networkClocks = new Map<string, Scan>();
+
+  /** A listed volume's path, which an earlier scan's are named after; see `pathAt`. */
+  private volumePath: string | null = null;
+
+  /** Where the flat map has the radar for an observed step. Set by the caller. */
+  private radarAt: ((step: number) => PastRadar | null) | null = null;
+
+  /** What is draped in place of the newest frames while an earlier scan is shown; null while live. */
+  private drapedPast: { url: string | null; index?: TileIndex | null; networks: PastRadar["networks"] } | null = null;
 
   /** A refetch of the volumes, waiting for the rest of a run's parts; see `newVolumes`. */
   private volumesTimer: ReturnType<typeof setTimeout> | null = null;
@@ -924,6 +1020,10 @@ export default class Cells3DCapability extends Capability {
         if (this.updateDetail() && this.styleReady) this.ensureClouds(gl);
         // The camera has come to other storms: load theirs, let go of the far ones.
         void this.loadClouds();
+        // An earlier scan's are found only where the camera has been: look
+        // here too, or once the one being looked for is in.
+        if (this.pastLoading !== null) this.pastMoved = true;
+        else if (this.past) void this.lookAgain();
       });
       // Tapping a storm opens the same popup the flat map opens, and tapping
       // past one closes it -- the panel is rendered above whichever map is
@@ -970,7 +1070,12 @@ export default class Cells3DCapability extends Capability {
             : null;
           // A coarse tile opens the tile under the finger: 1 km voxels are a
           // picture of where it rains, not one to cut a storm open by.
-          selectedVolume.set(listed?.coarse ? fineAt(this.clouds, event.lngLat.lng, event.lngLat.lat) : listed);
+          const { lng, lat } = event.lngLat;
+          const opened = listed?.coarse ? fineAt(this.clouds, lng, lat) : listed;
+          selectedVolume.set(opened);
+          // An earlier scan's fine tiles are found only where the map has
+          // drawn them; under a coarse one drawn whole, they are asked for now.
+          if (!opened && listed?.coarse && this.past) void this.openPast(listed, lng, lat);
         }
       });
       /* A tile that failed is noted for `resync` to ask for again. Listening
@@ -1192,6 +1297,8 @@ export default class Cells3DCapability extends Capability {
       if (gl.getSource(id)) gl.refreshTiles(id);
     }
     this.failedSources.clear();
+    // An earlier scan's tiles that would not load then.
+    if (this.past) void this.lookAgain();
     // The storm the reader opened, if its volume failed to come down then:
     // the panel retries its own copy, and the cut here would stay unmade.
     const track = get(selectedCell);
@@ -1282,6 +1389,14 @@ export default class Cells3DCapability extends Capability {
   private async open(target: VolumeTarget | null): Promise<void> {
     const token = Symbol("open");
     this.openToken = token;
+    // An earlier scan still being looked for is given up: the storm opened
+    // meanwhile is the one the reader went to, and that scan's storms
+    // landing around it would be another scan's drawn over it.
+    if (target && this.pastLoading !== null) {
+      this.pastToken = null;
+      this.pastLoading = null;
+      this.publishTime();
+    }
     if (!target) {
       this.opened = null;
       stopSweep(false);
@@ -1599,26 +1714,50 @@ export default class Cells3DCapability extends Capability {
     const fine = new Set<string>();
     for (const cloud of this.clouds) {
       if (!cloud.coarse || !cloud.tile) continue;
-      const [west, south, east, north] = tileBounds(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
-      const corners = ([[west, south], [east, south], [east, north], [west, north]] as const)
-        .map((corner) => gl.project([corner[0], corner[1]]));
-      const across = Math.max(
-        Math.max(...corners.map(({ x }) => x)) - Math.min(...corners.map(({ x }) => x)),
-        Math.max(...corners.map(({ y }) => y)) - Math.min(...corners.map(({ y }) => y)),
-      );
       const code = tileCode(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
-      if (across > (this.fineTiles.has(code) ? COARSE_BELOW_PX : FINE_ABOVE_PX)) fine.add(code);
+      if (this.drawnFine(gl, cloud.tile)) fine.add(code);
     }
     const changed = fine.size !== this.fineTiles.size || [...fine].some((code) => !this.fineTiles.has(code));
     this.fineTiles = fine;
     return changed;
   }
 
-  /** The listed volumes to draw: coarse tiles where they are small on screen, fine ones where large. */
-  private levelled(): RadarVolume[] {
-    return atLevel(
-      this.clouds, (tile) => !this.fineTiles.has(tileCode(tile[0], tile[1], tile[2])), this.opened?.path ?? null,
+  /** Whether a coarse tile stands large enough on screen to be drawn as its tiles; see `FINE_ABOVE_PX`. */
+  private drawnFine(gl: GlMap, tile: readonly number[]): boolean {
+    const across = this.acrossPx(gl, tileBounds(tile[0], tile[1], tile[2]));
+    return across > (this.fineTiles.has(tileCode(tile[0], tile[1], tile[2])) ? COARSE_BELOW_PX : FINE_ABOVE_PX);
+  }
+
+  /** How large a stretch of ground, west, south, east, north, stands on screen, in CSS pixels across. */
+  private acrossPx(gl: GlMap, [west, south, east, north]: readonly number[]): number {
+    const corners = ([[west, south], [east, south], [east, north], [west, north]] as const)
+      .map(([lon, lat]) => gl.project([lon, lat]));
+    return Math.max(
+      Math.max(...corners.map(({ x }) => x)) - Math.min(...corners.map(({ x }) => x)),
+      Math.max(...corners.map(({ y }) => y)) - Math.min(...corners.map(({ y }) => y)),
     );
+  }
+
+  /** Whether a stretch of ground is on screen, or just past its edges; see `VIEW_MARGIN`. */
+  private inView(gl: GlMap, [west, south, east, north]: readonly number[]): boolean {
+    const bounds = gl.getBounds();
+    const dx = (bounds.getEast() - bounds.getWest()) * VIEW_MARGIN;
+    const dy = (bounds.getNorth() - bounds.getSouth()) * VIEW_MARGIN;
+    return east >= bounds.getWest() - dx && west <= bounds.getEast() + dx
+      && north >= bounds.getSouth() - dy && south <= bounds.getNorth() + dy;
+  }
+
+  /**
+   * The listed volumes to draw: coarse tiles where they are small on screen,
+   * fine ones where large. An earlier scan's coarse tile stays whole where
+   * its fine tiles have not been found, or were not there.
+   */
+  private levelled(): RadarVolume[] {
+    const coarse = (tile: readonly number[]) => {
+      const code = tileCode(tile[0], tile[1], tile[2]);
+      return !this.fineTiles.has(code) || (this.past !== null && !this.pastFine.has(code));
+    };
+    return atLevel(this.clouds, coarse, this.opened?.path ?? null);
   }
 
   /** Forget every volume no longer listed or no longer wanted in view, bar the open one. */
@@ -1825,26 +1964,13 @@ export default class Cells3DCapability extends Capability {
     if (listed) return listed;
     try {
       const cutaway = await loadCutaway({ path, coverage: 0, tier: 2 });
-      const { header } = cutaway;
-      const tier = header.tier ?? 2;
+      const volume = volumeOf(path, cutaway);
       // Held like a listed one, so opening it does not fetch it a second time.
-      this.cutaways.set(path, { code: header.code, cutaway, lon: header.lon, lat: header.lat, tier, system: null });
+      this.cutaways.set(path, {
+        code: volume.code, cutaway, lon: volume.lon, lat: volume.lat, tier: volume.tier, system: null,
+      });
       this.pushClouds();
-      return {
-        path,
-        code: header.code,
-        network: header.network ?? "de",
-        tier,
-        lon: header.lon,
-        lat: header.lat,
-        reference_time: header.reference_time,
-        coverage: header.coverage,
-        sites: header.sites,
-        scanned_at: header.scanned_at ?? null,
-        oldest_scan_at: header.oldest_scan_at ?? null,
-        tile: header.tile ?? null,
-        coarse: (header.tile?.[0] ?? 10) < 10,
-      };
+      return volume;
     } catch (error) {
       if (error instanceof VolumeGone) return null;
       throw error;
@@ -1920,7 +2046,8 @@ export default class Cells3DCapability extends Capability {
    * recent-activity glow. Nothing at all while hidden -- `attach` redraws.
    */
   private scheduleStrikes(): void {
-    if (!this.shown || this.strikeTimer !== null) return;
+    // Put away while an earlier scan is on the map; going back redraws them.
+    if (!this.shown || this.past || this.strikeTimer !== null) return;
     this.strikeTimer = setTimeout(() => {
       this.strikeTimer = null;
       this.ensureStrikes();
@@ -1935,6 +2062,8 @@ export default class Cells3DCapability extends Capability {
     this.radarUrl = url;
     this.radarIndex = index;
     this.radarScan = url ? scan : null;
+    // What the picker counts back from, when no German storm says.
+    this.publishTime();
     // Held for `attach`: a hidden map would load the whole frame's tiles.
     if (!this.shown) return;
     // `styleReady`, not `isStyleLoaded()`, for the reason on the field: a
@@ -2047,17 +2176,359 @@ export default class Cells3DCapability extends Capability {
     return scans.length ? Math.max(...scans) : null;
   }
 
-  /** A newer scan's storm cores, from a refresh or from waiting for one. */
+  /**
+   * A newer scan's storm cores, from a refresh or from waiting for one.
+   *
+   * Kept aside while an earlier scan is on the map, which stays until the
+   * reader picks the newest again: the picker says which scan is shown, and
+   * a run landing must not swap it from under them.
+   */
   private takeClouds(answer: CurrentVolumes): void {
-    this.clouds = (answer.volumes ?? []) as RadarVolume[];
-    // Only the listed ones are worth remembering; every run brings new paths.
-    const listed = new Set(this.clouds.map((cloud) => cloud.path));
-    for (const path of this.faint) if (!listed.has(path)) this.faint.delete(path);
+    this.liveClouds = (answer.volumes ?? []) as RadarVolume[];
+    for (const cloud of this.liveClouds) {
+      const scan = scanTime(cloud.reference_time);
+      const network = networkOf(cloud);
+      if (scan !== null && scan > (this.networkClocks.get(network) ?? -Infinity)) this.networkClocks.set(network, scan);
+    }
+    this.volumePath = this.liveClouds.find((cloud) => cloud.tile)?.path ?? this.volumePath;
+    this.publishTime();
+    // An earlier scan's, finished loading after a switch away cut it short.
+    if (this.past) {
+      void this.loadClouds();
+      return;
+    }
+    this.clouds = this.liveClouds;
+    this.forgetFaint();
     void this.loadClouds();
     // A refresh draws them with everything else; a wait has only these to draw.
     if (!this.gl || !this.styleReady) return;
     this.ensureClouds(this.gl);
     this.applyStaleness();
+  }
+
+  /** Only the listed faint storms are worth remembering; every run brings new paths. */
+  private forgetFaint(): void {
+    const listed = new Set(this.clouds.map((cloud) => cloud.path));
+    for (const path of this.faint) if (!listed.has(path)) this.faint.delete(path);
+  }
+
+  /** The scan "Latest" is: the newest German storms', else the radar's under them. */
+  private latestScan(): Scan | null {
+    let newest: Scan | null = null;
+    for (const cloud of this.liveClouds) {
+      const scan = networkOf(cloud) === "de" ? scanTime(cloud.reference_time) : null;
+      if (scan !== null && (newest === null || scan > newest)) newest = scan;
+    }
+    return newest ?? this.radarScan;
+  }
+
+  /**
+   * Show an earlier scan's storms in place of the newest, or the newest
+   * again for null, and keep showing them until the reader picks again.
+   *
+   * There is no list of an earlier scan's, so they are found in the bucket
+   * (lib/cloudHistory.ts): around where the storms are now, and over the rest
+   * of the screen, a few dozen requests the first time and none the next.
+   * Until they are, the map stays as it was; a scan with nothing here leaves
+   * it so, and the picker says why. Shown, it is the list the map is drawn
+   * from -- boxes, peel and taps as ever, a tap opening the storm as it was
+   * -- with the radar of the same scan draped under it, and the newest
+   * scan's own cells and strikes put away.
+   */
+  showScan(scan: Scan | null): void {
+    const latest = this.latestScan();
+    if (scan === null || (latest !== null && scan >= latest)) {
+      this.showLatest();
+      return;
+    }
+    if (this.past?.scan === scan) {
+      // Back to the one on the map, from another still being looked for.
+      if (this.pastLoading !== null) {
+        this.pastLoading = null;
+        this.pastToken = null;
+      }
+      this.publishTime({ missed: null });
+      return;
+    }
+    if (this.pastLoading === scan) return;
+    void this.findScan(scan);
+  }
+
+  /** Look an earlier scan's storms up, then put them on the map; see `showScan`. */
+  private async findScan(scan: Scan): Promise<void> {
+    const token = Symbol("past");
+    this.pastToken = token;
+    this.pastLoading = scan;
+    this.pastMoved = false;
+    this.publishTime({ progress: 0, missed: null });
+    const finds = this.findsOf(scan);
+    const failedBefore = finds.failed;
+    const landed = new Map<string, Cutaway>();
+    const plan = this.planPast(scan, finds);
+    if (plan) {
+      await this.askPast(scan, finds, landed, plan, (progress) => {
+        if (this.pastToken === token) this.publishTime({ progress });
+      });
+    }
+    if (this.pastToken !== token) return;
+    this.pastToken = null;
+    this.pastLoading = null;
+    if (!listOf(finds).length) {
+      // Nothing to show: the map stays as it was, and the picker says so.
+      this.publishTime({ missed: { scan, failed: !plan || finds.failed > failedBefore } });
+      return;
+    }
+    this.past = { scan, finds };
+    this.drapeAt(scan);
+    this.applyLiveOnly();
+    this.takePast(landed);
+    this.publishTime({ missed: null });
+    // Where the camera went meanwhile.
+    if (this.pastMoved) void this.lookAgain();
+  }
+
+  /** Back to the newest scan: its storms, its radar, its cells and strikes. */
+  private showLatest(): void {
+    // A look still in flight lands nowhere; what it finds is kept for next time.
+    this.pastToken = null;
+    this.pastLoading = null;
+    const was = this.past;
+    this.past = null;
+    if (was) {
+      this.clouds = this.liveClouds;
+      this.pastFine.clear();
+      this.forgetFaint();
+      this.drapeAt(null);
+      this.applyLiveOnly();
+      this.ensureStrikes();
+      void this.loadClouds();
+      if (this.gl && this.styleReady) {
+        this.ensureClouds(this.gl);
+        this.applyStaleness();
+      }
+    }
+    this.publishTime({ missed: null });
+  }
+
+  /**
+   * Look the earlier scan on the map over again where the camera is now,
+   * for storms it has not been looked for at, and fine tiles where its
+   * coarse ones have come close. Not while another is being picked: that
+   * one looks for itself, and again once it is on the map.
+   */
+  private async lookAgain(): Promise<void> {
+    const past = this.past;
+    if (!past || this.pastLoading !== null) return;
+    const token = Symbol("look");
+    this.pastToken = token;
+    const landed = new Map<string, Cutaway>();
+    const plan = this.planPast(past.scan, past.finds);
+    if (plan) await this.askPast(past.scan, past.finds, landed, plan);
+    if (this.pastToken !== token) return;
+    this.pastToken = null;
+    if (this.past === past) this.takePast(landed);
+  }
+
+  /**
+   * An earlier scan's coarse tile tapped, with no fine tile under the finger
+   * found yet: its fine tiles asked for, then the one under the finger
+   * opened, as a tap on the newest scan's would. A tap elsewhere meanwhile
+   * wins, as it does over a cell's track.
+   */
+  private async openPast(cloud: RadarVolume, lng: number, lat: number): Promise<void> {
+    const past = this.past;
+    if (!past || !cloud.tile) return;
+    const token = Symbol("pick");
+    this.picking = token;
+    const [x, y] = coarseOf(cloud.tile);
+    const landed = new Map<string, Cutaway>();
+    await this.askPast(past.scan, past.finds, landed, { places: [{ network: networkOf(cloud), x, y }], fine: () => true });
+    if (this.picking !== token || this.past !== past) return;
+    this.picking = null;
+    this.takePast(landed);
+    const found = fineAt(this.clouds, lng, lat);
+    if (found) selectedVolume.set(found);
+  }
+
+  /** What is known of an earlier scan, kept as the most recently looked at. */
+  private findsOf(scan: Scan): ScanFinds {
+    const finds = this.pastFinds.get(scan) ?? noFinds();
+    this.pastFinds.delete(scan);
+    this.pastFinds.set(scan, finds);
+    // The one on the map is never the oldest: it was just looked at.
+    for (const old of this.pastFinds.keys()) {
+      if (this.pastFinds.size <= PAST_KEPT) break;
+      this.pastFinds.delete(old);
+    }
+    return finds;
+  }
+
+  /**
+   * Which coarse tiles to ask an earlier scan for, from where the camera is,
+   * and which of them to ask the fine tiles of: those standing large on
+   * screen, nearest first, as far as the texture held would go. Null
+   * before the map is up.
+   */
+  private planPast(scan: Scan, finds: ScanFinds): { places: Place[]; fine(place: Place, stormy: Quarter[]): boolean } | null {
+    const gl = this.gl;
+    if (!gl) return null;
+    const { lng, lat } = gl.getCenter();
+    const bounds = gl.getBounds();
+    const radar = this.radarAt?.(scan);
+    const { clientWidth: width, clientHeight: height } = gl.getContainer();
+    // The coarse tiles whose middle is on screen, over the networks they can
+    // be asked of: Germany's, and any other whose clock is known. Inside the
+    // bounds proper as well: a point past the horizon projects to somewhere
+    // meaningless, which can be on the canvas.
+    const view = coarseTilesIn(
+      [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()], { lon: lng, lat }, PAST_REACH,
+    ).flatMap(([x, y]) => {
+      const [lon, latitude] = tileCentre(COARSE_ZOOM, x, y);
+      const { x: across, y: down } = gl.project([lon, latitude]);
+      if (across < 0 || across > width || down < 0 || down > height) return [];
+      const network = networkAt(latitude, lon) ?? "de";
+      const known = network === "de" || this.networkClocks.has(network)
+        || Boolean(radar?.networks[network as NetworkCode]?.upstream_time);
+      return known ? [{ network, x, y }] : [];
+    });
+    // Where storms were: found in this scan already, and in the nearest newer one looked at, else the list.
+    const placesOf = (volumes: RadarVolume[]) => volumes.flatMap((volume) => {
+      if (!volume.tile) return [];
+      const [x, y] = coarseOf(volume.tile);
+      return [{ network: networkOf(volume), x, y }];
+    });
+    const newer = [...this.pastFinds].filter(([other, known]) => other > scan && listOf(known).length > 0)
+      .sort(([a], [b]) => a - b)[0];
+    const storms = [...placesOf(listOf(finds)), ...placesOf(newer ? listOf(newer[1]) : this.liveClouds)];
+    const places = placesToAsk({
+      storms,
+      view,
+      inView: (place) => this.inView(gl, tileBounds(COARSE_ZOOM, place.x, place.y)),
+      distance: (place) => {
+        const [lon, latitude] = tileCentre(COARSE_ZOOM, place.x, place.y);
+        return Math.hypot((lon - lng) * Math.cos((latitude * Math.PI) / 180), latitude - lat);
+      },
+      count: PAST_PLACES,
+      viewCount: PAST_VIEW_PLACES,
+      asked: (place) => finds.coarse.has(placeKey(place)),
+    });
+    let planned = 0;
+    const fine = (place: Place, stormy: Quarter[]) => {
+      // A quarter with a storm in it is about a tile's texture, or a core's four.
+      const cost = stormy.length * TILE_TEXTURE_BYTES;
+      if (!this.drawnFine(gl, [COARSE_ZOOM, place.x, place.y]) || planned + cost > RESIDENT_BYTES) return false;
+      planned += cost;
+      return true;
+    };
+    return { places, fine };
+  }
+
+  /** Ask an earlier scan for what `plan` names, adding to `finds`, with each volume worth drawing put in `landed`. */
+  private async askPast(
+    scan: Scan,
+    finds: ScanFinds,
+    landed: Map<string, Cutaway>,
+    plan: { places: Place[]; fine(place: Place, stormy: Quarter[]): boolean },
+    progress?: (share: number) => void,
+  ): Promise<void> {
+    const radar = this.radarAt?.(scan);
+    await askScan({
+      // Each network's own scan: from the radar draped for it, which says,
+      // else counted on its clock.
+      scanOf: (network) => {
+        if (network === "de") return scan;
+        const upstream = radar?.networks[network as NetworkCode]?.upstream_time;
+        const clock = this.networkClocks.get(network);
+        return upstream ?? (clock === undefined ? scan : scanOnClock(clock, scan));
+      },
+      template: this.volumePath ?? FALLBACK_TEMPLATE,
+      places: plan.places,
+      fine: plan.fine,
+      fetch: (path) => this.fetchPast(path),
+      faint: isFaint,
+      landed: (volume, cutaway) => landed.set(volume.path, cutaway),
+      progress,
+    }, finds);
+  }
+
+  /** One of an earlier scan's volumes; null where there is none. Asked once however many looks want it. */
+  private fetchPast(path: string): Promise<Cutaway | null> {
+    let fetching = this.pastFetches.get(path);
+    if (!fetching) {
+      fetching = this.pastQueue(() => loadCutaway({ path, coverage: 0, tier: 2 }))
+        .catch((error) => {
+          if (error instanceof VolumeGone) return null;
+          throw error;
+        })
+        .finally(() => this.pastFetches.delete(path));
+      this.pastFetches.set(path, fetching);
+    }
+    return fetching;
+  }
+
+  /**
+   * Put what is known of the earlier scan on the map: its list in place of
+   * the newest's, with the volumes just found held, and the rest in view
+   * loaded as any listed storm's are.
+   */
+  private takePast(landed: Map<string, Cutaway>): void {
+    const past = this.past;
+    if (!past) return;
+    this.clouds = listOf(past.finds);
+    this.pastFine.clear();
+    for (const [key, tiles] of past.finds.fine) {
+      const tile = past.finds.coarse.get(key)?.volume.tile;
+      if (tiles.length && tile) this.pastFine.add(tileCode(tile[0], tile[1], tile[2]));
+    }
+    for (const volume of this.clouds) {
+      const cutaway = landed.get(volume.path);
+      if (!cutaway || this.cutaways.has(volume.path)) continue;
+      this.cutaways.set(volume.path, {
+        code: volume.code, cutaway, lon: volume.lon, lat: volume.lat, tier: tierOf(volume, cutaway), system: null,
+      });
+    }
+    void this.loadClouds();
+    if (this.gl && this.styleReady) this.ensureClouds(this.gl);
+  }
+
+  /**
+   * Where the flat map has the radar of an observed step, for an earlier
+   * scan's storms to have their own under them: the caller owns the grid.
+   * Without it, an earlier scan is shown with no radar under it.
+   */
+  setRadarHistory(at: (step: number) => PastRadar | null): void {
+    this.radarAt = at;
+  }
+
+  /** Drape the radar of an earlier scan, or the newest again for null. */
+  private drapeAt(scan: Scan | null): void {
+    const frame = scan === null ? null : this.radarAt?.(scan) ?? null;
+    this.drapedPast = scan === null ? null : { url: frame?.url ?? null, index: frame?.tiles, networks: frame?.networks ?? {} };
+    // Held for `attach` while hidden, as the newest frame is.
+    if (this.gl && this.styleReady && this.shown) {
+      this.ensureRadar(this.gl);
+      this.ensureNetworks(this.gl);
+    }
+  }
+
+  /** Put the newest scan's own marks away while an earlier scan is on the map, and back after; see `LIVE_ONLY`. */
+  private applyLiveOnly(): void {
+    const gl = this.gl;
+    if (!gl || !this.styleReady) return;
+    for (const id of LIVE_ONLY) {
+      if (gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", this.past ? "none" : "visible");
+    }
+  }
+
+  /** Tell the picker which scan is on the map, and what it is waiting for. */
+  private publishTime(patch: Partial<CloudsTime> = {}): void {
+    cloudsTime.update((time) => ({
+      ...time,
+      shown: this.past?.scan ?? null,
+      loading: this.pastLoading,
+      newest: this.latestScan(),
+      ...patch,
+    }));
   }
 
   /**
@@ -2085,6 +2556,8 @@ export default class Cells3DCapability extends Capability {
     this.ensureLabels(gl);
     this.ensureLocation(gl);
     this.applyStaleness();
+    // A restyle brings every layer back visible, an earlier scan's or not.
+    this.applyLiveOnly();
   }
 
   /**
@@ -2101,16 +2574,25 @@ export default class Cells3DCapability extends Capability {
    * MapLibre cannot clip a raster, so the tiles go through `maskedTiles.ts`.
    */
   private ensureRadar(gl: GlMap): void {
-    if (!this.radarUrl) return;
+    // An earlier scan's frame in place of the newest while one is shown.
+    const past = this.drapedPast;
+    const url = past ? past.url : this.radarUrl;
+    const index = past ? past.index : this.radarIndex;
+    if (!url) {
+      // An earlier scan the grid has no frame for: no radar, rather than the
+      // newest under storms from before it.
+      if (past && gl.getLayer(RADAR_SOURCE)) gl.setLayoutProperty(RADAR_SOURCE, "visibility", "none");
+      return;
+    }
 
-    if (this.radarMask?.url !== this.radarUrl || this.radarMask.palette !== this.colormap) {
+    if (this.radarMask?.url !== url || this.radarMask.palette !== this.colormap) {
       forgetMaskedTiles(this.radarMask?.key);
       this.radarMask = {
-        url: this.radarUrl,
+        url,
         palette: this.colormap,
         ...registerMaskedTiles({
-          template: this.radarUrl,
-          index: this.radarIndex,
+          template: url,
+          index,
           erase: HOLES,
           palette: this.colormap,
         }),
@@ -2124,6 +2606,7 @@ export default class Cells3DCapability extends Capability {
       // this runs on every refresh and every return to this map.
       const source = existing as unknown as { tiles?: string[]; setTiles(tiles: string[]): void };
       if (source.tiles?.[0] !== tiles) source.setTiles([tiles]);
+      gl.setLayoutProperty(RADAR_SOURCE, "visibility", "visible");
       return;
     }
 
@@ -2155,10 +2638,12 @@ export default class Cells3DCapability extends Capability {
    * only reloads what is on screen.
    */
   private ensureNetworks(gl: GlMap): void {
+    // An earlier scan's composites, as the grid has them for its step.
+    const frames = this.drapedPast ? this.drapedPast.networks : this.networkFrames;
     for (const network of NETWORKS) {
       const { code } = network;
       const id = networkLayerId(code);
-      const frame = this.networkFrames[code];
+      const frame = frames[code];
       if (!frame) {
         if (gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", "none");
         continue;
@@ -2299,6 +2784,8 @@ export default class Cells3DCapability extends Capability {
         "circle-stroke-opacity": fade,
       },
     }, below);
+    // The first strikes can land while an earlier scan is on the map.
+    this.applyLiveOnly();
   }
 
   /**
@@ -2423,6 +2910,9 @@ export default class Cells3DCapability extends Capability {
   }
 
   destroy(): void {
+    // A look still in flight lands nowhere.
+    this.pastToken = null;
+    this.picking = null;
     if (this.strikeTimer !== null) clearTimeout(this.strikeTimer);
     this.strikeTimer = null;
     if (this.volumesTimer !== null) clearTimeout(this.volumesTimer);

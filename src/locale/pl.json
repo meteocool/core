@@ -101,6 +101,16 @@
     "cells_body": "Śledzone przez DWD komórki w warstwach, obrysowane według zagrożenia:",
     "heights": "Wysokości zawyżone {scale}×."
   },
+  "time_3d": {
+    "choose": "Pokaż burze z wcześniejszej godziny",
+    "title": "Burze o",
+    "latest": "Najnowsze",
+    "latest_aria": "Burze: najnowszy skan",
+    "past_aria": "Burze o {time}, nie na żywo",
+    "loading": "Szukam burz o {time}…",
+    "nothing": "Brak zapisanych burz w tym miejscu o {time}",
+    "failed": "Nie udało się wczytać burz o {time}"
+  },
   "layer_switcher_placeholder": "Jeśli jesteś wdzięczny za meteocool, odwdzięcz się komuś w potrzebie.",
   "snow": "Śnieg",
   "graupel": "Krupa",

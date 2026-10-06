@@ -101,6 +101,16 @@
     "cells_body": "Bunky sledované DWD v stupňoch, ohraničené podľa nebezpečnosti:",
     "heights": "Výšky {scale}× prevýšené."
   },
+  "time_3d": {
+    "choose": "Zobraziť búrky v skoršom čase",
+    "title": "Búrky o",
+    "latest": "Najnovšie",
+    "latest_aria": "Búrky: najnovší sken",
+    "past_aria": "Búrky o {time}, nie naživo",
+    "loading": "Hľadám búrky o {time}…",
+    "nothing": "Tu nie sú o {time} zaznamenané žiadne búrky",
+    "failed": "Búrky o {time} sa nepodarilo načítať"
+  },
   "layer_switcher_placeholder": "Ak si vďačný za meteocool, daj niečo späť niekomu, kto to potrebuje.",
   "snow": "Sneh",
   "graupel": "Snehové krúpky",
