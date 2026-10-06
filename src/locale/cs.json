@@ -101,6 +101,16 @@
     "cells_body": "Buňky sledované DWD ve stupních, ohraničené podle nebezpečnosti:",
     "heights": "Výšky {scale}× převýšené."
   },
+  "time_3d": {
+    "choose": "Zobrazit bouřky v dřívějším čase",
+    "title": "Bouřky v",
+    "latest": "Nejnovější",
+    "latest_aria": "Bouřky: nejnovější sken",
+    "past_aria": "Bouřky v {time}, ne živě",
+    "loading": "Hledám bouřky v {time}…",
+    "nothing": "Zde nejsou v {time} zaznamenány žádné bouřky",
+    "failed": "Bouřky v {time} se nepodařilo načíst"
+  },
   "layer_switcher_placeholder": "Pokud oceňuješ meteocool, dej něco zpátky někomu, kdo to potřebuje.",
   "snow": "Sníh",
   "graupel": "Sněhové krupky",

@@ -638,6 +638,25 @@ export default class RadarCapability extends Capability {
   }
 
   /**
+   * The radar of one observed step, for the 3D map to drape under that
+   * scan's storms when the reader picks an earlier one: HX's frame, as the
+   * live drape is (App.svelte), and each network's composite for the step
+   * where the grid has one -- whose `upstream_time` is that network's own
+   * scan. Null for a step the grid has no observation for, which is any
+   * older than its two hours.
+   */
+  observedAt(step: number): { url: string; tiles?: TileIndex | null; networks: Partial<Record<NetworkCode, RadarFrame>> } | null {
+    const frame = this.clientGrid?.[step];
+    if (!frame?.url || frame.source !== "observation") return null;
+    const networks: Partial<Record<NetworkCode, RadarFrame>> = {};
+    for (const code of ALL_NETWORKS) {
+      const found = this.networkGrid[code]?.[step];
+      if (found) networks[code] = found;
+    }
+    return { url: frame.url, tiles: frame.tiles, networks };
+  }
+
+  /**
    * The scans of the radar the live step shows on the 3D map: what a storm's
    * volume is judged against, and its "3D" tag on the flat map left off when
    * older. The same frames App.svelte drapes there, DWD's and each network's

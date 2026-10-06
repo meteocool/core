@@ -216,6 +216,24 @@ export const terrain3dVisible = writable<boolean>(true);
 export const peelLevel = writable<number>(0);
 export const peelManual = writable<boolean>(false);
 /**
+ * Which scan the 3D map's storms are from, as Cells3DCapability.showScan
+ * publishes it for the picker beside the peel slider. Scans are epoch
+ * seconds on DWD's five-minute clock.
+ */
+export interface CloudsTime {
+  /** The scan on the map; null for the newest, kept up to date as runs land. */
+  shown: number | null;
+  /** A scan being looked for, until it is on the map or turns out empty; null for none. */
+  loading: number | null;
+  /** How far that has got, 0 to 1. */
+  progress: number;
+  /** The newest scan, which "Latest" is and the earlier ones count back from; null before the first list. */
+  newest: number | null;
+  /** The last scan asked for that had nothing here, or could not be looked through, to say so. */
+  missed: { scan: number; failed: boolean } | null;
+}
+export const cloudsTime = writable<CloudsTime>({ shown: null, loading: null, progress: 0, newest: null, missed: null });
+/**
  * Which product the radar map's observed frames are drawn from, as the reader
  * picked it in the tray: HX with the networks around it, the merged
  * composite, or DMAX; see lib/observedProduct.ts. Mirrors the `radarProduct`
