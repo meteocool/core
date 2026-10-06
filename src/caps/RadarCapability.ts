@@ -185,6 +185,12 @@ export default class RadarCapability extends Capability {
   /** The product the map draws: the choice, or the default while it falls behind. */
   private drawn: ObservedProduct = DEFAULT_PRODUCT;
 
+  /** Each product besides the default, by the newest frame it keeps. */
+  private latest: Record<AlternativeProduct, { current(): RadarFrame | null }>;
+
+  /** Which product's past the grid in hand was asked for with; see `downloadCurrentRadar`. */
+  private gridProduct: AlternativeProduct | null = null;
+
   private unsubscribeProduct: (() => void) | null = null;
 
   /**
@@ -268,12 +274,13 @@ export default class RadarCapability extends Capability {
     // Not an observer's business: the 3D map drapes HX and the networks
     // whatever the flat map draws.
     this.europe = new NetworkRadarLayer(map, EUROPE, () => this.productsChanged());
+    this.latest = { merged: this.europe, dmax: this.dmax };
     this.unsubscribeProduct = observedProduct.subscribe((product) => {
       this.chosen = product;
-      // Its past comes with the grid, asked for by name: a grid already in
-      // hand was asked for without it. The first call is construction, whose
-      // own first request below asks.
-      if (product !== DEFAULT_PRODUCT && this.serverGrid && !this.productGrid[product]) this.reloadRadar();
+      // Its past comes with the grid, asked for by name. Before the first
+      // grid, the request in flight is checked when it lands instead.
+      const wanted = this.wantedProduct();
+      if (this.serverGrid && wanted && wanted !== this.gridProduct) this.reloadRadar();
       this.productsChanged();
     });
 
@@ -502,8 +509,13 @@ export default class RadarCapability extends Capability {
     const extent = view.calculateExtent(size);
     const last = this.getLastPlayableStep();
 
+    const ahead: number[] = [];
+    for (let step = fromStep + STEP_SECONDS; step <= last && ahead.length < count; step += STEP_SECONDS) {
+      ahead.push(step);
+    }
+
     const urls: string[] = [];
-    for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
+    for (const step of ahead) {
       const frame = this.dwdFrame(step);
       if (!frame) break;
       const { url: template, tiles: index } = frame;
@@ -525,10 +537,6 @@ export default class RadarCapability extends Capability {
     // The networks' frames for the same steps: over their countries DWD's
     // tiles are holes, so without these playback there is half-loaded anyway.
     // Or the merged composite's, on the steps it stands in for all of them.
-    const ahead: number[] = [];
-    for (let step = fromStep + STEP_SECONDS, n = 0; step <= last && n < count; step += STEP_SECONDS, n += 1) {
-      ahead.push(step);
-    }
     const merged = ahead.map((step) => this.alternativeFrame("merged", step));
     for (const network of this.networks) {
       const frames = ahead
@@ -662,8 +670,8 @@ export default class RadarCapability extends Capability {
     const newest = this.clientGrid?.[step];
     return {
       hx: newest?.url && newest.source === "observation" ? (newest.upstream_time ?? step) : null,
-      merged: this.europe.current()?.upstream_time ?? null,
-      dmax: this.dmax.current()?.upstream_time ?? null,
+      merged: this.latest.merged.current()?.upstream_time ?? null,
+      dmax: this.latest.dmax.current()?.upstream_time ?? null,
     };
   }
 
@@ -697,7 +705,7 @@ export default class RadarCapability extends Capability {
       this.drawn,
       { observed: frame?.source === "observation" && Boolean(frame.url), live: step === this.getMostRecentObservation(), key: step },
       this.productGrid[product],
-      product === "dmax" ? this.dmax.current() : this.europe.current(),
+      this.latest[product].current(),
     );
   }
 
@@ -816,7 +824,7 @@ export default class RadarCapability extends Capability {
     const at = this.positionKey();
     this.gridRequests += 1;
     const request = this.gridRequests;
-    const product = this.chosen === "hx" ? null : this.chosen;
+    const product = this.wantedProduct();
     const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), product).catch(() => null);
     if (!data) {
       live.set(false);
@@ -829,8 +837,17 @@ export default class RadarCapability extends Capability {
     if (request < this.gridApplied) return;
     this.gridApplied = request;
     this.gridSampledAt = at;
+    this.gridProduct = product;
     this.processRadar(data);
     if (forUser) dryAtUser.set(isDry(data.frames));
+    // Picked while this was out: its past is still to be asked for.
+    const wanted = this.wantedProduct();
+    if (wanted && wanted !== product) this.reloadRadar();
+  }
+
+  /** The product whose past the timeseries is asked for with: the choice, unless that is the default. */
+  private wantedProduct(): AlternativeProduct | null {
+    return this.chosen === "hx" ? null : this.chosen;
   }
 
   async downloadSnowOverlay() {

@@ -44,6 +44,9 @@ $: face = variant === "adaptive" ? ($smallScreen ? "pill" : "caption") : variant
 $: ({ chosen, drawn, scans } = $radarProducts);
 /** The choice has fallen behind, and the default is drawn in its place. */
 $: fellBack = chosen !== drawn;
+$: fellBackNote = $_("chrome.radar_product.fell_back", {
+  values: { product: $_(`chrome.radar_product.${chosen}`), fallback: $_(`chrome.radar_product.${drawn}`) },
+});
 
 function age(product: ObservedProduct, newest: NewestScans, now: number): string {
   const minutes = ageMinutes(newest[product], now);
@@ -115,7 +118,8 @@ function portal(node: HTMLElement) {
   class:fellBack
   aria-haspopup="menu"
   aria-expanded={open}
-  title={$_("chrome.radar_product.choose")}
+  title={fellBack ? fellBackNote : $_("chrome.radar_product.choose")}
+  aria-label={face === "pill" ? `${$_("chrome.radar_product.choose")}: ${fellBack ? fellBackNote : $_(`chrome.radar_product.${chosen}`)}` : undefined}
   on:click={() => (open ? close() : show())}>
   {#if face === "pill"}
     <Icon icon={faSatelliteDish} />
@@ -153,11 +157,7 @@ function portal(node: HTMLElement) {
       </button>
     {/each}
     {#if fellBack}
-      <p class="note">
-        {$_("chrome.radar_product.fell_back", {
-          values: { product: $_(`chrome.radar_product.${chosen}`), fallback: $_(`chrome.radar_product.${drawn}`) },
-        })}
-      </p>
+      <p class="note">{fellBackNote}</p>
     {/if}
   </div>
 {/if}

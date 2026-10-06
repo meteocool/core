@@ -17,7 +17,7 @@ import { isTransient } from "../lib/timedFetch";
 import { noteTransientFailure } from "../lib/recovery";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
-import type { NetworkEvent } from "./events";
+import type { CountryNetwork } from "./events";
 import type { AlternativeProduct } from "../lib/observedProduct";
 
 type Schemas = ApiSchemas["schemas"];
@@ -236,7 +236,7 @@ async function request<T>(
 /** Radar and nowcast tile metadata for each timestep in the current window. */
 export function fetchRadarTimeseries(
   nanobar?: Progress,
-  position?: { lat: number; lon: number; network?: Exclude<NetworkEvent["network"], "eu" | "dmax"> },
+  position?: { lat: number; lon: number; network?: CountryNetwork },
   product?: AlternativeProduct | null,
 ) {
   // The chosen product's own past, beside HX's and the networks': asked for,

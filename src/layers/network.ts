@@ -1,4 +1,5 @@
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
+import LatestFrame from "./latestFrame";
 import { hasTile } from "../lib/tileIndex";
 import TileLayer from "./webglTile";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
@@ -90,18 +91,6 @@ export const EUROPE: Network = {
 };
 
 /**
- * A frame older than this is not shown. The backend publishes whenever a radar
- * reports, every few minutes; a frame this old means the ingest has stopped,
- * and old weather drawn as the live frame is worse than none.
- */
-const STALE_AFTER_SECONDS = 30 * 60;
-
-/** Whether a frame is still worth drawing as the newest: see `STALE_AFTER_SECONDS`. */
-export function isFresh(frame: RadarFrame, nowS = Date.now() / 1000): boolean {
-  return nowS - frame.processed_time < STALE_AFTER_SECONDS;
-}
-
-/**
  * An independent tile layer for one EUMETNET network's composite.
  *
  * Two frames, from two places. The live frame is its own: fetched here and
@@ -124,10 +113,8 @@ export default class NetworkRadarLayer {
 
   private live = true;
 
-  private fresh = false;
-
   /** The newest composite, from `refresh`. */
-  private liveFrame: RadarFrame | null = null;
+  private readonly latest: LatestFrame;
 
   /** This network's composite for the step on screen, when that is not the live one. */
   private stepFrame: RadarFrame | null = null;
@@ -144,17 +131,16 @@ export default class NetworkRadarLayer {
   constructor(map: Map, network: Network, onLiveFrame?: () => void, opacity = NOWCAST_OPACITY) {
     this.map = map;
     this.network = network;
+    this.latest = new LatestFrame(network.fetch);
     this.onLiveFrame = onLiveFrame;
     this.opacity = opacity;
   }
 
   /** Fetch the newest composite and show it, creating the layer on first use. */
   async refresh(nanobar?: Progress) {
-    const frame = await this.network.fetch(nanobar).catch(() => null);
+    const frame = await this.latest.refresh(nanobar);
     if (!frame) return; // nothing composited yet, or the request failed
 
-    this.fresh = isFresh(frame);
-    this.liveFrame = frame;
     this.apply();
     this.onLiveFrame?.();
   }
@@ -166,8 +152,7 @@ export default class NetworkRadarLayer {
    * on as current.
    */
   current(): RadarFrame | null {
-    const frame = this.liveFrame;
-    return frame && isFresh(frame) ? frame : null;
+    return this.latest.current();
   }
 
   /**
@@ -226,7 +211,7 @@ export default class NetworkRadarLayer {
   }
 
   private apply() {
-    const frame = this.live ? (this.fresh ? this.liveFrame : null) : this.stepFrame;
+    const frame = this.live ? this.latest.current() : this.stepFrame;
     if (!frame) {
       this.layer?.setVisible(false);
       return;
