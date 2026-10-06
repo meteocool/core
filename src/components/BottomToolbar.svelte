@@ -244,6 +244,41 @@
             margin-left: 0 !important;
             margin-right: 0 !important;
         }
+
+        /* Radar: the colour strip gets the whole first row; the product
+           picker (ScaleLine's title) and the freshness line share the second.
+           The two wrappers between them step aside so the picker and the
+           status line are items of this one flex row. */
+        .parentz.stacked .palette,
+        .parentz.stacked .palette :global(.wrapper) {
+            display: contents;
+        }
+        .parentz.stacked .palette :global(.scale) {
+            order: 0;
+            flex: 1 1 100%;
+        }
+        .parentz.stacked .palette :global(.legend-label) {
+            order: 1;
+        }
+        .parentz.stacked .break {
+            display: none;
+        }
+        /* The rest of the row, whatever the chip leaves. Basis 0 so the row
+           never wraps it onto a third line; the age is what has to fit, so
+           "Last updated" goes, and the age ellipsises before it overflows. */
+        .parentz.stacked .center {
+            order: 2;
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: flex-end;
+        }
+        .parentz.stacked .center :global(.info) {
+            min-width: 0;
+            flex-shrink: 1;
+        }
+        .parentz.stacked .center :global(.prefix) {
+            display: none;
+        }
     }
 </style>
 
@@ -261,7 +296,7 @@
         on:outrostart={toolbarTransitionStart}
         on:introend={toolbarTransitionEnd}
         on:outroend={toolbarTransitionEnd}>
-    <div class="parentz">
+    <div class="parentz" class:stacked={activeCap === "radar" && $bottomToolbarMode === "collapsed"}>
         {#if activeCap === "radar" && $bottomToolbarMode === "collapsed"}
             <div class="palette">
                 <RadarScaleLine/>
