@@ -172,6 +172,7 @@
     "konrad_cells_hint": "Vykresľuje búrkové bunky sledované DWD ako vrstvené stupne. Prichádzajú niekoľko minút po radare a dovtedy sú sivé.",
     "terrain": "Terén",
     "terrain_hint": "Zdvihne 3D mapu podľa reliéfu terénu a vytieňuje kopce, v skutočnej mierke. Pri posúvaní mapy sťahuje výškové dlaždice.",
+    "performance": "Výkon",
     "environment": "Náhľad",
     "staging": "Otvoriť Staging",
     "staging_hint": "Staging beží na ďalšej verzii meteocool ešte pred jej vydaním. Očakávaj nové funkcie a občas aj chybu; tvoje nastavenia sa sem neprenášajú.",

@@ -176,6 +176,7 @@
     "konrad_cells_hint": "Draws DWD's tracked storm cells as stacked tiers. They arrive a few minutes after the radar and are greyed out until then.",
     "terrain": "Terrain",
     "terrain_hint": "Raises the 3D map into the ground's relief and shades its hills, at true scale. Downloads elevation tiles as you move the map.",
+    "performance": "Performance",
     "environment": "Preview",
     "staging": "Open Staging",
     "staging_hint": "Staging runs the next version of meteocool before it is released. Expect new features and the occasional breakage; your settings here do not carry over.",

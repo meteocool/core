@@ -176,6 +176,7 @@
     "konrad_cells_hint": "Zeichnet die vom DWD verfolgten Gewitterzellen als gestufte Körper. Sie kommen einige Minuten nach dem Radar und sind bis dahin ausgegraut.",
     "terrain": "Gelände",
     "terrain_hint": "Hebt die 3D-Karte ins Relief des Geländes und schattiert die Hügel, in echtem Maßstab. Lädt beim Bewegen der Karte Höhendaten nach.",
+    "performance": "Leistung",
     "environment": "Vorschau",
     "staging": "Staging öffnen",
     "staging_hint": "Auf Staging läuft die nächste Version von meteocool, bevor sie veröffentlicht wird. Neue Funktionen, gelegentlich auch Fehler; deine Einstellungen hier werden nicht übernommen.",
