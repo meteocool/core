@@ -167,17 +167,23 @@
     "color_map_hint": "Change les couleurs utilisées pour les précipitations.",
     "map": "Carte",
     "rotation": "Rotation de la carte à deux doigts",
+    "rotation_hint": "Uniquement sur la carte 2D. La carte 3D utilise toujours tous les gestes tactiles, rotation et inclinaison comprises.",
     "map_3d": "Carte 3D",
     "konrad_cells": "Cellules KONRAD3D",
-    "konrad_cells_hint": "Affiche les cellules orageuses suivies par le DWD en paliers empilés. Elles arrivent quelques minutes après le radar et restent grisées jusque-là.",
+    "konrad_cells_hint": "KONRAD3D est la détection et le suivi des cellules orageuses dans le réseau radar du service météorologique allemand (DWD). Ce qui est dessiné n'est pas un volume nuageux réaliste : chaque cellule est son contour au sol, empilé en paliers dont la taille et la hauteur découlent de quelques valeurs que KONRAD3D fournit par niveau d'intensité. Elles se marient mal avec les volumes radar de la carte 3D et arrivent quelques minutes après le radar ; nous vous conseillons de laisser cette option désactivée.",
     "terrain": "Relief",
     "terrain_hint": "Élève la carte 3D selon le relief du terrain et ombre les reliefs, à l'échelle réelle. Télécharge des tuiles d'altitude au fil des déplacements.",
     "performance": "Performances",
-    "environment": "Aperçu",
-    "staging": "Ouvrir Staging",
-    "staging_hint": "Staging fait tourner la prochaine version de meteocool avant sa sortie. Attendez-vous à de nouvelles fonctionnalités et, parfois, à quelques bugs ; vos réglages ici ne sont pas conservés.",
-    "production": "Ouvrir meteocool.com",
-    "production_hint": "Vous êtes sur Staging. Ceci ouvre la version publiée."
+    "mode": "Mode",
+    "modes": {
+      "production": "Production",
+      "production_detail": "Météo actuelle. Recommandé.",
+      "experimental": "Fonctionnalités expérimentales",
+      "experimental_detail": "Météo actuelle, avec des fonctionnalités encore en développement. Peut se comporter de façon inattendue. 🐛",
+      "demo": "Démo",
+      "demo_detail": "Un orage enregistré, rejoué comme s'il avait lieu maintenant. Pas la météo actuelle."
+    },
+    "mode_hint": "Recharge la carte dans le mode choisi, sur la même vue. Chaque mode garde ses propres réglages."
   },
   "storm": {
     "band": {

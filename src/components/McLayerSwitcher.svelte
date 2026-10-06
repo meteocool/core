@@ -9,9 +9,7 @@
   import { _ } from "svelte-i18n";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
-  import {
-    cellLayerVisible, cycloneLayerVisible, lightningLayerVisible, selectedCell, selectedVolume,
-  } from "../stores";
+  import { selectedCell, selectedVolume } from "../stores";
 
   export let layerManager;
 
@@ -33,15 +31,6 @@
   // that remainder spans its row rather than leaving a hole -- which is how
   // lightning sat when there were five of these.
   $: tailSpans = tiles.length > 1 && (tiles.length - 1) % 2 === 1;
-
-  /* The radar map's overlays. They used to be buttons in the player tray,
-     which is about playback; a layer that is on or off is a layer question,
-     and this is where the layers are. */
-  $: overlays = [
-    { store: lightningLayerVisible, on: $lightningLayerVisible, label: `⚡ ${$_("chrome.playback.lightning")}` },
-    { store: cycloneLayerVisible, on: $cycloneLayerVisible, label: `🌀 ${$_("chrome.playback.mesocyclones")}` },
-    { store: cellLayerVisible, on: $cellLayerVisible, label: `⛈ ${$_("chrome.playback.cells")}` },
-  ];
 
   const childCanvases = {};
 
@@ -228,41 +217,6 @@
     border-radius: 14px;
     font-size: 16px;
   }
-
-  /* The overlays on the radar map, as a row of toggles under the tiles. */
-  .overlays {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .overlays-label {
-    flex: 0 0 100%;
-    font: 600 12px/1.3 var(--mc-font);
-    letter-spacing: -0.01em;
-    color: var(--mc-text-2);
-  }
-  .overlay {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 36px;
-    padding: 0 14px;
-    border: 0;
-    border-radius: var(--mc-radius-pill);
-    background: var(--mc-tint);
-    color: var(--mc-text);
-    font: 600 13px/36px var(--mc-font);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
-  }
-  .overlay:hover { background: var(--mc-tint-hover); }
-  .overlay:active { transform: scale(var(--mc-press)); }
-  .overlay:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-  .overlay.on { background: var(--mc-accent); color: #fff; }
 </style>
 
 {#if !dd.isApp()}
@@ -296,21 +250,6 @@
           </div>
         {/each}
       </div>
-      {#if capabilityEnabled("radar")}
-        <div class="overlays" role="group" aria-label={$_("chrome.playback.map_layers")}>
-          <span class="overlays-label">{$_("chrome.playback.map_layers")}</span>
-          {#each overlays as overlay (overlay.label)}
-            <button
-              type="button"
-              class="overlay"
-              class:on={overlay.on}
-              aria-pressed={overlay.on}
-              on:click={() => overlay.store.set(!overlay.on)}>
-              {overlay.label}
-            </button>
-          {/each}
-        </div>
-      {/if}
     </div>
   </div>
 </div>

@@ -169,19 +169,25 @@
     "color_map_hint": "Changes the colors the precipitation is drawn in.",
     "map": "Map",
     "rotation": "Two-Finger Map Rotation",
+    "rotation_hint": "Only on the 2D map. The 3D map always takes the full set of touch gestures, rotating and tilting included.",
     "solid_glass": "Solid Panels While Moving",
     "solid_glass_hint": "Makes the frosted panels over the map solid while you pan or zoom, which keeps moving the map smooth on slower phones. Turned on automatically if this device struggles.",
     "map_3d": "3D Map",
     "konrad_cells": "KONRAD3D Cells",
-    "konrad_cells_hint": "Draws DWD's tracked storm cells as stacked tiers. They arrive a few minutes after the radar and are greyed out until then.",
+    "konrad_cells_hint": "KONRAD3D is the German Weather Service's (DWD) detection and tracking of thunderstorm cells in its radar network. What it draws are not realistic cloud volumes: each cell is its outline on the ground, stacked into tiers sized and raised to a few figures KONRAD3D reports per intensity level. They clash with the 3D map's radar volumes and arrive minutes after the radar, so we suggest leaving this off.",
     "terrain": "Terrain",
     "terrain_hint": "Raises the 3D map into the ground's relief and shades its hills, at true scale. Downloads elevation tiles as you move the map.",
     "performance": "Performance",
-    "environment": "Preview",
-    "staging": "Open Staging",
-    "staging_hint": "Staging runs the next version of meteocool before it is released. Expect new features and the occasional breakage; your settings here do not carry over.",
-    "production": "Open meteocool.com",
-    "production_hint": "You are on staging. This opens the released version."
+    "mode": "Mode",
+    "modes": {
+      "production": "Production",
+      "production_detail": "Current weather. Recommended.",
+      "experimental": "Experimental Features",
+      "experimental_detail": "Current weather, with features still in development. Might cause unexpected behaviour. 🐛",
+      "demo": "Demo",
+      "demo_detail": "A recorded storm, replayed as if it were happening now. Not current weather."
+    },
+    "mode_hint": "Reloads the map in the selected mode, on the same view. Each mode keeps its own settings."
   },
   "storm": {
     "band": {
