@@ -1,6 +1,9 @@
 {
   "about": "O aplikácii",
   "url": "meteocool.com",
+  "main_map": "Hlavná mapa",
+  "main_map_hint_tap": "Ťuknutím sem sa vrátite na hlavnú mapu",
+  "main_map_hint_click": "Kliknutím sem sa vrátite na hlavnú mapu",
   "last_updated": "Naposledy aktualizované",
   "downloading_nowcast": "Predpovedá sa",
   "last_radar": "Radarové dáta z",
@@ -150,6 +153,7 @@
   "compass_NW": "SZ",
   "settings": {
     "title": "Nastavenia",
+    "about": "O aplikácii meteocool",
     "base_layer": "Podkladová mapa",
     "base_layers": {
       "system": "Podľa systému",
