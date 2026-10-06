@@ -265,9 +265,10 @@ function setTerrain3d(value: boolean) {
   </div>
   <p class="hint">{$_("settings.color_map_hint")}</p>
 
-  <h2>{$_("settings.map")}</h2>
-  <div class="group">
-    {#if multitouch}
+  <!-- Rotation is all the section holds, so without a multitouch screen it goes. -->
+  {#if multitouch}
+    <h2>{$_("settings.map")}</h2>
+    <div class="group">
       <label class="row">
         <span class="label">{$_("settings.rotation")}</span>
         <input
@@ -277,18 +278,8 @@ function setTerrain3d(value: boolean) {
           checked={rotation}
           on:change={(event) => setRotation(event.currentTarget.checked)} />
       </label>
-    {/if}
-    <label class="row">
-      <span class="label">{$_("settings.solid_glass")}</span>
-      <input
-        type="checkbox"
-        role="switch"
-        class="switch"
-        checked={solidGlass}
-        on:change={(event) => setSolidGlass(event.currentTarget.checked)} />
-    </label>
-  </div>
-  <p class="hint">{$_("settings.solid_glass_hint")}</p>
+    </div>
+  {/if}
 
   {#if offers3d}
     <h2>{$_("settings.map_3d")}</h2>
@@ -304,6 +295,23 @@ function setTerrain3d(value: boolean) {
       </label>
     </div>
     <p class="hint">{$_("settings.konrad_cells_hint")}</p>
+  {/if}
+
+  <!-- What costs frames or bandwidth, and can be traded away for them. -->
+  <h2>{$_("settings.performance")}</h2>
+  <div class="group">
+    <label class="row">
+      <span class="label">{$_("settings.solid_glass")}</span>
+      <input
+        type="checkbox"
+        role="switch"
+        class="switch"
+        checked={solidGlass}
+        on:change={(event) => setSolidGlass(event.currentTarget.checked)} />
+    </label>
+  </div>
+  <p class="hint">{$_("settings.solid_glass_hint")}</p>
+  {#if offers3d}
     <div class="group">
       <label class="row">
         <span class="label">{$_("settings.terrain")}</span>
@@ -317,6 +325,7 @@ function setTerrain3d(value: boolean) {
     </div>
     <p class="hint">{$_("settings.terrain_hint")}</p>
   {/if}
+
   <h2>{$_("settings.environment")}</h2>
   <div class="group">
     <a class="row" href={otherEnvironment} target="_blank" rel="noopener">
