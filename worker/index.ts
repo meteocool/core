@@ -19,7 +19,15 @@
  * (appLinks.ts).
  */
 
-import { appApiRequest, isAppApiPath, isAppDataPath, isVolumePath, volumeRedirect } from "./api";
+import {
+  appApiRequest,
+  isAppApiPath,
+  isAppApiRead,
+  isAppDataPath,
+  isPreviewRead,
+  isVolumePath,
+  volumeRedirect,
+} from "./api";
 import { appLinksResponse } from "./appLinks";
 
 interface Env {
@@ -34,6 +42,11 @@ interface Env {
    * it always did.
    */
   PREVIEW_ORIGIN?: string;
+  /**
+   * ng's preview-edge Worker, which the apps' preview requests are handed to,
+   * addressed to PREVIEW_ORIGIN (api.ts). Unbound, those paths 404.
+   */
+  PREVIEW?: Fetcher;
   /**
    * Origin of the API this environment's build talks to, set per environment
    * in wrangler.jsonc. The apps' API calls are forwarded there (api.ts).
@@ -128,8 +141,11 @@ export default {
     const appLinks = appLinksResponse(pathname);
     if (appLinks) return appLinks;
 
-    if (env.API_ORIGIN && isAppApiPath(pathname)) {
+    if (env.API_ORIGIN && (isAppApiPath(pathname) || isAppApiRead(request.method, pathname))) {
       return fetch(appApiRequest(request, env.API_ORIGIN));
+    }
+    if (env.PREVIEW && env.PREVIEW_ORIGIN && isPreviewRead(request.method, pathname)) {
+      return env.PREVIEW.fetch(appApiRequest(request, env.PREVIEW_ORIGIN));
     }
     if (env.DATA_ORIGIN && isAppDataPath(pathname)) {
       return fetch(appApiRequest(request, env.DATA_ORIGIN));

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appApiRequest, isAppApiPath, isAppDataPath, isVolumePath, volumeRedirect } from "../../worker/api.ts";
+import {
+  appApiRequest,
+  isAppApiPath,
+  isAppApiRead,
+  isAppDataPath,
+  isPreviewRead,
+  isVolumePath,
+  volumeRedirect,
+} from "../../worker/api.ts";
 
 /**
  * The Worker behind app.meteocool.com forwards the apps' API calls to its own
@@ -37,6 +45,36 @@ test("a forwarded request keeps its method, body, headers and query", async () =
 test("the path cannot escape the API origin", () => {
   const forwarded = appApiRequest(new Request("https://app.meteocool.com//evil.example/post_location"), "https://api-next.meteocool.com");
   assert.equal(new URL(forwarded.url).host, "api-next.meteocool.com");
+});
+
+test("the Live Activity's reads are forwarded, for GET only", () => {
+  assert.ok(isAppApiRead("GET", "/v3/radar/timeseries"));
+  assert.ok(isPreviewRead("GET", "/v3/preview/og.png"));
+  for (const method of ["POST", "PUT", "DELETE", "HEAD"]) {
+    assert.ok(!isAppApiRead(method, "/v3/radar/timeseries"), method);
+    assert.ok(!isPreviewRead(method, "/v3/preview/og.png"), method);
+  }
+  for (const path of ["/v3/radar", "/v3/radar/timeseries/x", "/v3/radar/frames", "/v3/preview", "/v3/previews/og.png"]) {
+    assert.ok(!isAppApiRead("GET", path), path);
+    assert.ok(!isPreviewRead("GET", path), path);
+  }
+});
+
+test("a forwarded read keeps its path and query", () => {
+  const timeseries = appApiRequest(
+    new Request("https://app.meteocool.com/v3/radar/timeseries?lat=48.137&lon=11.575"),
+    "https://api-next.meteocool.com",
+  );
+  assert.equal(timeseries.url, "https://api-next.meteocool.com/v3/radar/timeseries?lat=48.137&lon=11.575");
+  // preview-edge picks the frontend by this hostname, and the card by the
+  // query, commas and all.
+  const preview = appApiRequest(
+    new Request("https://app.meteocool.com/v3/preview/og.png?latLonZ=48.137,11.575,9.5&aspectRatio=square&logo=false"),
+    "https://api-demo.meteocool.com",
+  );
+  assert.equal(preview.url,
+    "https://api-demo.meteocool.com/v3/preview/og.png?latLonZ=48.137,11.575,9.5&aspectRatio=square&logo=false");
+  assert.equal(preview.method, "GET");
 });
 
 test("the AR view's data routes are forwarded, and nothing else of the data service", () => {

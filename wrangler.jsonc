@@ -62,6 +62,11 @@
         "DATA_ORIGIN": "https://data-staging.meteocool.com",
         "ASSET_ORIGIN": "https://assets-staging.meteocool.com",
       },
+      // ng's preview-edge Worker (infra/terraform/cloudflare/preview.tf). The
+      // apps' preview requests reach it this way rather than by a fetch to
+      // PREVIEW_ORIGIN, which from a Worker in the same zone would skip its
+      // route and land on the cluster (worker/api.ts).
+      "services": [{ "binding": "PREVIEW", "service": "meteocool-preview" }],
     },
     // The demo environment beside staging on the same cluster, replaying a
     // recorded storm. Built with `--mode demo`, which points it at demo's
@@ -86,6 +91,7 @@
         "DATA_ORIGIN": "https://data-demo.meteocool.com",
         "ASSET_ORIGIN": "https://assets-demo.meteocool.com",
       },
+      "services": [{ "binding": "PREVIEW", "service": "meteocool-preview" }],
     },
     // Not production. meteocool.com is the old frontend on the old backend,
     // served by the Cloudflare Pages project `core`, and the apps in the
