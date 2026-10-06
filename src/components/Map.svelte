@@ -103,6 +103,10 @@
   let appliedPadding = -1;
   let paddedView: unknown;
 
+  /** Waiting for the View's animation to end before padding it; see `applyPadding`. */
+  let paddingFrame: number | undefined;
+  let pendingPadding = 0;
+
   /**
    * Full-bleed map: the tray is glass and needs the map beneath it. The strip
    * it covers becomes view padding, so centring, fit() and the geolocation
@@ -115,10 +119,30 @@
    * on screen moves with it either -- the setter compensates -- so during a
    * transition it waits for the bar to settle rather than redrawing the map
    * under each frame of it.
+   *
+   * Nor while the View is animating: moving the centre cancels the
+   * animation. The apps' first position zooms in on the reader, and the
+   * outlook that position brings into the tray padded the View 10 ms into
+   * that zoom, so Auto Zoom never zoomed. The padding waits for it instead.
    */
   function applyPadding(occluded: number) {
     const view = layerManager.maps[0]?.getView();
     if (!view || (occluded === appliedPadding && view === paddedView)) return;
+    if (view.getAnimating()) {
+      pendingPadding = occluded;
+      if (paddingFrame === undefined) {
+        const wait = () => {
+          paddingFrame = undefined;
+          applyPadding(pendingPadding);
+        };
+        paddingFrame = requestAnimationFrame(wait);
+      }
+      return;
+    }
+    if (paddingFrame !== undefined) {
+      cancelAnimationFrame(paddingFrame);
+      paddingFrame = undefined;
+    }
     view.padding = [0, 0, occluded, 0];
     appliedPadding = occluded;
     paddedView = view;
@@ -206,6 +230,7 @@
         toolbarObserver?.disconnect();
         if (resizeFrame !== undefined) cancelAnimationFrame(resizeFrame);
         if (transitionFrame !== undefined) cancelAnimationFrame(transitionFrame);
+        if (paddingFrame !== undefined) cancelAnimationFrame(paddingFrame);
       },
     };
   }
