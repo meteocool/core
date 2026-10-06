@@ -64,6 +64,8 @@
     "title": "3D map",
     "open": "Controls and legend",
     "pill": "Legend",
+    "peel": "Peel",
+    "peel_aria": "Peel the storms down to their cores",
     "controls": "Controls",
     "drag": "Drag",
     "move": "Move the map",

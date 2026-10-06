@@ -64,6 +64,8 @@
     "title": "Mapa 3D",
     "open": "Sterowanie i legenda",
     "pill": "Legenda",
+    "peel": "Obieranie",
+    "peel_aria": "Obierz burze aż do ich rdzenia",
     "controls": "Sterowanie",
     "drag": "Przeciągnij",
     "move": "Przesuń mapę",

@@ -344,7 +344,8 @@ const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
   .pill {
     position: absolute;
     left: calc(var(--mc-gutter) + env(safe-area-inset-left, 0px));
-    bottom: calc(var(--mc-safe-bottom) + var(--mc-gutter));
+    /* Above the peel slider, which takes the bottom edge (PeelSlider). */
+    bottom: calc(var(--mc-safe-bottom) + var(--mc-gutter) + var(--mc-peel-h, 0px));
     z-index: var(--mc-z-chrome);
   }
 
@@ -353,7 +354,7 @@ const touch = window.matchMedia?.("(pointer: coarse)").matches ?? false;
     flex-direction: column;
     width: min(344px, calc(100% - 2 * var(--mc-gutter)));
     /* Under the top line's chrome, at the shortest. */
-    max-height: calc(100% - var(--mc-top-stack) - var(--mc-control-lg) - 2 * var(--mc-gutter) - var(--mc-safe-bottom));
+    max-height: calc(100% - var(--mc-top-stack) - var(--mc-control-lg) - 2 * var(--mc-gutter) - var(--mc-safe-bottom) - var(--mc-peel-h, 0px));
     box-sizing: border-box;
     transform-origin: bottom left;
   }

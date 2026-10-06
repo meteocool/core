@@ -208,6 +208,14 @@ export const cells3dVisible = writable<boolean>(false);
  */
 export const terrain3dVisible = writable<boolean>(true);
 /**
+ * The 3D map's peel, 0 every storm whole to 1 down to its core. The clouds
+ * write it as they peel on their own, so the slider follows them; the slider
+ * writes it and sets `peelManual`, which stops them peeling on their own for
+ * the rest of the visit.
+ */
+export const peelLevel = writable<number>(0);
+export const peelManual = writable<boolean>(false);
+/**
  * Which product the radar map's observed frames are drawn from, as the reader
  * picked it in the tray: HX with the networks around it, the merged
  * composite, or DMAX; see lib/observedProduct.ts. Mirrors the `radarProduct`

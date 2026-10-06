@@ -64,6 +64,8 @@
     "title": "3D-Karte",
     "open": "Bedienung und Legende",
     "pill": "Legende",
+    "peel": "Schälen",
+    "peel_aria": "Gewitter bis auf ihren Kern abschälen",
     "controls": "Bedienung",
     "drag": "Ziehen",
     "move": "Karte verschieben",

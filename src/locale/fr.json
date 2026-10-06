@@ -64,6 +64,8 @@
     "title": "Carte 3D",
     "open": "Commandes et légende",
     "pill": "Légende",
+    "peel": "Éplucher",
+    "peel_aria": "Éplucher les orages jusqu'à leur cœur",
     "controls": "Commandes",
     "drag": "Glisser",
     "move": "Déplacer la carte",

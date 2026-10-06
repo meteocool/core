@@ -311,7 +311,8 @@
      under it. */
   :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
     right: 2px;
-    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 1px);
+    /* Above the peel slider while it is up (PeelSlider). */
+    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + var(--mc-peel-h, 0px) + 1px);
     max-width: calc(100% - 4px - var(--mc-guide-3d-inset, 0px));
   }
   /* Up the right edge on a phone, as the flat map's (src/glass.css). The
