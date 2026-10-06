@@ -1,83 +1,87 @@
-<script>
-  export let steps;
+<script lang="ts">
+  /** Label to hex-colour, in the order they are drawn. */
+  export let steps: Record<string, string>;
   export let title = "";
+  export let valueFormat: ((value: string) => string) | null = null;
 
-  import cssVars from 'svelte-css-vars';
+  $: ncol = Object.values(steps).length;
+  $: palette = Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100 / ncol))}% ${Math.round((index + 1) * (100 / ncol))}%`).join(",");
+  $: vs = Object.keys(steps).map((c) => (valueFormat ? valueFormat(c) : c)).filter((e) => e !== "");
 
-  export let valueFormat;
-
-  $ : ncol = Object.values(steps).length;
-  $ : palette = Object.values(steps).map((color, index) => `#${color} ${Math.round(index * (100/ncol))}% ${Math.round((index+1)*(100/ncol))}%`).join(",");
-  $ : vs = Object.keys(steps).map((c) => (valueFormat ? valueFormat(c) : c)).filter((e) => e !== "");
-
-  $: scaleStyle = {
-    backgroundImage: `linear-gradient(to right, ${palette})`,
-  };
+  $: backgroundImage = `linear-gradient(to right, ${palette})`;
 </script>
 
 <style>
-  .scale-divider {
-    float: left;
-    padding-top: 1.05em;
-    font-size: 76%;
-    color: var(--sl-color-black);
-    line-height: 80%;
+  /* Same strip and label recipe as ScaleLine, so the two legends match in weight. */
+  .wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-around;
   }
 
-  /* XXX share styles with scaleline */
+  .legend-label {
+    height: auto;
+    color: var(--mc-text-2);
+    font: 600 10px/1.2 var(--mc-font);
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .scale {
+    width: 100%;
+    flex: 1;
+    float: none;
+    margin-right: 0;
+    padding-bottom: 0;
+    /* The ink -- 2px above the strip, the strip, and the labels hanging 14px
+       below its top, 28px in all -- and 6px of air under the labels before
+       the freshness line. At the Shoelace input height the box was twice
+       that on a phone, and the phone's tray, which centres its two rows,
+       pushed the freshness line down to its bottom edge. */
+    height: 34px;
+  }
+
   .scale-line {
     width: 100%;
-    border-radius: var(--sl-border-radius-pill);
-    border: 0.5px solid var(--sl-color-info-200);
+    height: 10px;
+    margin-top: 2px;
+    border-radius: var(--mc-radius-pill);
+    border: 1px solid var(--mc-hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
     background-image: var(--backgroundImage);
-    height: 16%;
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
   }
 
-  .scale {
-    width: 100%;
-    height: calc(var(--sl-input-height-medium) * 0.8);
+  .scale-divider {
     float: left;
-    margin-right: 2em;
-    padding-bottom: 0;
+    padding-top: 14px;
+    color: var(--mc-text);
+    font: 600 10px/1 var(--mc-font);
+    text-align: center;
   }
 
   @media only screen and (max-width: 990px) {
-      .scale-divider {
-          font-size: 74%;
-      }
-      .scale {
-          height: calc(var(--sl-input-height-medium) * 1.2);
-          padding-bottom: 0.25em;
-      }
+    .scale-divider {
+      font-size: 10px;
+    }
   }
 
-  .legend-label {
-      height: 100%;
-      color: var(--sl-color-gray-600);
-      line-height: 1.21;
-      font-size: 80%;
-      text-align: right;
-      word-break: break-word;
-  }
-  .scale {
-      flex: 1;
-  }
-  .wrapper {
-      display: flex;
-      gap: 0.75em;
-      justify-content: space-around;
+  @media only screen and (max-width: 620px) {
+    .legend-label {
+      display: none;
+    }
   }
 </style>
 
 <div class="wrapper">
     <div class="legend-label">{@html title}</div>
     <div class="scale">
-        <div class="scale-line" use:cssVars="{scaleStyle}">
+        <div class="scale-line" style:--backgroundImage={backgroundImage}>
             <div class="scale-dividers">
-                {#each vs as value}
+                {#each vs as value, i (i)}
                     <div class="scale-divider" style="width: {100/ncol}%;">
                         {@html value }
                     </div>

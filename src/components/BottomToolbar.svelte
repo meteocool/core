@@ -1,10 +1,12 @@
-<script>
+<script lang="ts">
+  import { onDestroy } from "svelte";
   import { fly } from "svelte/transition";
+  import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
   import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
-  import { Chart, LineController, Line, LineElement } from "chart.js";
-  import { transformExtent } from "ol/proj";
-  import { fromExtent } from "ol/geom/Polygon";
+  import {
+    BarController, BarElement, CategoryScale, Chart, LinearScale,
+  } from "chart.js";
   import LastUpdated from "./LastUpdated.svelte";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import {
@@ -13,27 +15,37 @@
     sharedActiveCap,
     bottomToolbarMode,
     zoomlevel,
-    satelliteLayerCloudy, satelliteLayerLabels, radarColormap, capLastUpdated, latLon,
+    satelliteLayerCloudy, satelliteLayerLabels,
   } from "../stores";
   import StepScaleLine from "./scales/StepScaleLine.svelte";
   import Appendix from "./Appendix.svelte";
   import RadarScaleLine from "./scales/RadarScaleLine.svelte";
   import LightningScaleLine from "./scales/LightningScaleLine.svelte";
+  import LightningChart from "./LightningChart.svelte";
   import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
-  import { v3APIBaseUrl } from "../urls";
-  import { LightningColors, precipTypeNames } from "../colormaps";
-  import DevStatus from "./DevStatus.svelte";
+  import { precipTypeNames } from "../colormaps";
 
   Chart.defaults.font.size = 10;
+  // Chart.js's own grey is unreadable on the dark tray; the token flips with the theme.
+  Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue("--mc-text-2").trim() || "#666";
 
   export let layerManager;
 
-  Chart.register(LineController);
-  Chart.register(LineElement);
+  // Assigned when a capability changes; not rendered today.
+  let _description: string;
+
+  // This chart is a bar chart. It previously registered the line controller and
+  // element -- which it does not use -- and relied on NowcastPlayback having
+  // registered the bar ones first, so it only rendered if that component had
+  // been constructed already.
+  Chart.register(BarController, BarElement, CategoryScale, LinearScale);
 
   let s3Disabled = false;
   let e;
-  zoomlevel.subscribe((z) => {
+  /* Handed back in onDestroy: the toolbar is torn down when the URL hides it
+     and rebuilt when it comes back. */
+  const subscriptions: (() => void)[] = [];
+  subscriptions.push(zoomlevel.subscribe((z) => {
     if (z > 12) {
       satelliteLayer.set("sentinel2");
       if (e) e.checked = true;
@@ -41,284 +53,128 @@
     } else {
       s3Disabled = false;
     }
-  });
+  }));
 
   function cloudmask(elem) {
-    elem.addEventListener("sl-change", (event) => {
+    elem.addEventListener("sl-change", (_event) => {
       satelliteLayerCloudy.set(!get(satelliteLayerCloudy));
     });
   }
 
   function labelsBorders(elem) {
-    elem.addEventListener("sl-change", (event) => {
-      satelliteLayerLabels.set(event.target.checked);
+    elem.addEventListener("sl-change", (event: Event) => {
+      satelliteLayerLabels.set((event.target as HTMLInputElement).checked);
     });
   }
 
   function sentinel2(elem) {
-    elem.addEventListener("sl-change", (event) => {
-      const satellite = event.target.checked ? "sentinel2" : "sentinel3";
+    elem.addEventListener("sl-change", (event: Event) => {
+      const satellite = (event.target as HTMLInputElement).checked ? "sentinel2" : "sentinel3";
       satelliteLayer.set(satellite);
     });
   }
 
-  let description;
-  capDescription.subscribe((desc) => {
-    description = desc;
-  });
+  subscriptions.push(capDescription.subscribe((desc) => {
+    _description = desc;
+  }));
 
   let activeCap;
-  sharedActiveCap.subscribe((val) => {
+  subscriptions.push(sharedActiveCap.subscribe((val) => {
     activeCap = val;
-  });
+  }));
 
-  let lightningCanvas;
-  let chart;
-  function redrawLightningChart(data) {
-    if (chart) {
-      chart.data.datasets[0].data = data;
-      chart.options.scales.y.max = Math.max.apply(this, data);
-      chart.update();
-    }
-  }
+  /*
+   * No tray on the 3D map. It shows one timestep, so there is no player to
+   * collapse into this bar, no scale it draws, and no "last updated" line of
+   * its own -- which left a full-width strip of glass with a GitHub icon in
+   * it, over the part of the map the storms stand on.
+   *
+   * Before the first capability is attached the store is still empty, so the
+   * one that is about to be is asked instead; otherwise a link that opens on
+   * the 3D map would show the bar for a frame and then fly it out.
+   */
+  $: showsBar = (activeCap || layerManager.startingCapability()) !== "cells3d";
 
-  let loading = true;
-  let unavailable = false;
-  let noLightning = false;
-  let delayedLoader;
+  onDestroy(() => subscriptions.forEach((unsubscribe) => unsubscribe()));
 
-  function updateLightningChart() {
-    const map = layerManager.getCurrentMap();
-    const extent = transformExtent(map.getView().calculateExtent(map.getSize()), "EPSG:3857", "EPSG:4326");
-    const p = fromExtent(extent);
-
-    const URL = `${v3APIBaseUrl}/lightning/stats?`;
-    fetch(URL + new URLSearchParams({
-      bbox: JSON.stringify({ coordinates: p.getLinearRing(0).getCoordinates() }),
-    }))
-      .then((response) => {
-        if (response.ok) return response.json();
-        throw new Error("Server error");
-      })
-      .then((data) => {
-        if (!data) return;
-        unavailable = false;
-        if (data.bins.reduce((partialSum, a) => partialSum + a, 0) === 0) {
-          noLightning = true;
-          return;
-        }
-        noLightning = false;
-        redrawLightningChart(data.bins);
-      })
-      .catch((error) => {
-        noLightning = true;
-        unavailable = true;
-        console.log(error);
-      });
-    delayedLoader = null;
-    loading = false;
-  }
-
-  function lightningChartCanvas(elem) {
-    lightningCanvas = elem;
-
-    chart = new Chart(lightningCanvas.getContext("2d"), {
-      type: "bar",
-      data: {
-        labels: Array(30).fill(null).map((_, i) => (i === 30 - 1 ? "now" : `-${30 - i} min`)),
-        datasets: [
-          {
-            data: [
-              222,
-              151,
-              141,
-              184,
-              155,
-              125,
-              296,
-              148,
-              199,
-              151,
-              144,
-              219,
-              133,
-              158,
-              184,
-              194,
-              166,
-              140,
-              166,
-              125,
-              123,
-              154,
-              115,
-              158,
-              207,
-              117,
-              193,
-              113,
-              215,
-              164,
-            ],
-            backgroundColor: Array(30).fill(null).map((_, i) => LightningColors[Math.min((30 - i) - Math.max(-20 * (30 - i), -30), LightningColors.length - 1)]),
-            datalabels: {
-              display: false,
-            },
-          },
-        ],
-      },
-      options: {
-        plugins: {
-          legend: {
-            display: false,
-          },
-        },
-        hover: {
-          animationDuration: 0,
-        },
-        layout: {
-          padding: {
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: -2,
-          },
-        },
-        responsive: true,
-        maintainAspectRatio: false,
-        tooltips: {
-          enabled: true,
-        },
-        legend: {
-          display: false,
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false,
-              drawBorder: false,
-              tickMarkLength: 1,
-              autoSkip: true,
-            },
-            ticks: {
-              padding: -5,
-              maxRotation: 0,
-              minRotation: 0,
-            },
-            afterFit: (scale) => {
-              scale.height = 20;
-              scale.paddingBottom = 0;
-            },
-            afterUpdate: (scale) => {
-              scale.height = 20;
-              scale.paddingBottom = 0;
-            },
-          },
-          y: {
-            type: "linear",
-            grid: {
-              display: false,
-              drawBorder: false,
-            },
-            min: 0,
-            max: 300,
-            callback(value, index, values) {
-              if (index === values.length - 1) return Math.min.apply(this, chart.data.datasets[0].data);
-              if (index === 0) return Math.max.apply(this, chart.data.datasets[0].data);
-              return "";
-            },
-          },
-        },
-      },
-    });
-
-    layerManager.getCurrentMap().on("movestart", () => {
-      if (get(sharedActiveCap) !== "lightning") return;
-      if (delayedLoader) {
-        clearTimeout(delayedLoader);
-        delayedLoader = null;
-      }
-      loading = true;
-    });
-
-    layerManager.getCurrentMap().on("moveend", () => {
-      if (get(sharedActiveCap) !== "lightning") return;
-      if (delayedLoader) {
-        return;
-      }
-      delayedLoader = setTimeout(() => updateLightningChart(), 650);
-    });
-  }
 </script>
 
 <style>
+    /* The tray material, shared with NowcastPlayback's .timeslider: a floating
+       glass tray 8px off the edges, 8px above the safe-area inset. The blur
+       must sit on this element -- it is the one carrying transition:fly, and a
+       blurred child of a fading parent samples a blank backdrop. */
     :global(.bottomToolbar) {
         position: absolute;
-        bottom: 0;
-        left: 0;
-        border-top-left-radius: 11px;
-        border-top-right-radius: 11px;
-        border-top: 1px solid var(--sl-color-gray-50);
-        width: 100%;
-        background-color: var(--sl-color-white);
-    }
-
-    @media only screen and (max-width: 620px) {
-        :global(.bottomToolbar) {
-            height: 84px !important;
-            padding-top: 0px;
-        }
-
-        .break {
-            flex-basis: 100%;
-            height: 0;
-        }
-
-        .left {
-            display: none;
-        }
-
-        .palette {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
+        left: var(--mc-gutter);
+        right: var(--mc-gutter);
+        width: auto;
+        bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
+        box-sizing: border-box;
+        border: 1px solid var(--mc-glass-edge);
+        border-radius: var(--mc-radius-tray);
+        background: var(--mc-glass-fill-strong);
+        -webkit-backdrop-filter: var(--mc-glass-backdrop);
+        backdrop-filter: var(--mc-glass-backdrop);
+        box-shadow: var(--mc-glass-ring-lg);
+        color: var(--mc-text);
+        font-family: var(--mc-font);
     }
 
     .lastUpdatedBottom {
-        height: 42px;
-        bottom: env(safe-area-inset-bottom);
-        z-index: 4;
-        padding-top: 0.2em;
-        padding-bottom: 0.2em;
+        bottom: var(--mc-collapsed-bottom);
+        height: var(--mc-bar-h);
+        z-index: var(--mc-z-tray);
+        padding: 0 12px;
+    }
+
+    /* NowcastPlayback's play and unfold discs are their own glass controls at
+       the gutter, not items in this row, so the tray ends where they begin. */
+    .lastUpdatedBottom.has-discs {
+        left: calc(var(--mc-gutter) + var(--mc-control) + var(--mc-tray-gap));
+        right: calc(var(--mc-gutter) + var(--mc-control) + var(--mc-tray-gap));
+    }
+
+    /* Desktop: fully covered by the open player, so release its blur once the
+       player has flown in. Map.svelte measures .timeslider in player mode. */
+    :global(.bottomToolbar.lastUpdatedBottom.player-open) {
+        visibility: hidden;
+        transition: visibility 0s linear 250ms;
+    }
+
+    /* The wrappers get the identical floating tray: the map showing under the
+       bar is now the intent, not a strip to swallow. */
+    :global(.is-app .bottomToolbar) {
+        margin-bottom: 0;
+    }
+
+    /* Only a wrap point, and only on a phone. Left in the row on desktop it is a
+       zero-width flex item that still collects the gap on both sides, which is
+       what made the space between the legend and the status line twice every
+       other gap in the row. */
+    .break {
+        display: none;
     }
 
     .parentz {
         display: flex;
-        flex-wrap: wrap;
-        padding-top: 0.4em;
-        gap: 1px;
-    }
-
-    .left {
-        height: 28px;
-        text-align: center;
-        float: left;
-        cursor: pointer;
-        text-decoration: underline;
-        flex-grow: 0; /* do not grow   - initial value: 0 */
-        flex-shrink: 0; /* do not shrink - initial value: 1 */
-        flex-basis: 6%;
-        min-width: 84px;
+        flex-wrap: nowrap;
+        align-items: center;
+        height: 100%;
+        gap: 2px 12px;
+        padding: 0;
+        box-sizing: border-box;
+        overflow: hidden;   /* the tray has a fixed height; nothing may spill under its rounded edge */
     }
 
     .right {
-        height: 100%;
-        text-align: right;
+        flex: 0 0 auto;
+        height: auto;
+        display: flex;
+        align-items: center;
         white-space: nowrap;
         padding: 0;
-        flex-grow: 0; /* do not grow   - initial value: 0 */
-        flex-shrink: 0; /* do not shrink - initial value: 1 */
-        flex-basis: 3%;
+        text-align: right;
     }
 
     @media only screen and (max-width: 650px) {
@@ -328,84 +184,140 @@
     }
 
     .center {
-        flex: auto;
-        padding: 0.5em;
-        font-size: 9pt;
+        flex: 0 1 auto;
+        min-width: 0;
         position: relative;
-        flex-grow: 1; /* do not grow   - initial value: 0 */
-        flex-shrink: 1; /* do not shrink - initial value: 1 */
-        flex-basis: 2%;
+        padding: 0;
+        font: 500 12px/1.2 var(--mc-font);
         text-align: center;
-        padding-top: 0;
     }
 
     .palette {
-        flex: auto;
-        padding: 0.5em;
-        padding-top: 0;
+        flex: 1 1 50%;
+        min-width: 0;
         position: relative;
-        flex-grow: 1; /* do not grow   - initial value: 0 */
-        flex-shrink: 1; /* do not shrink - initial value: 1 */
-        flex-basis: 50%;
+        height: auto;
+        padding: 0;
         text-align: center;
-        height: 32px;
     }
 
     .float {
-        display: inline-block;
-        margin-right: 2em;
-        margin-top: 0.5em;
-        margin-bottom: 1.5em;
+        display: inline-flex;
+        align-items: center;
+        margin: 0 16px 0 0;
     }
 
-    .lightningChart {
-        height: 45px;
-        width: 100%;
-        margin-top: -4px;
-        z-index: 99;
-    }
+    /* Phone. Last in the sheet on purpose: these rules share their specificity
+       with the base ones above, so declared any earlier they lose to them and
+       the whole block goes quietly inert -- which is what had happened to it,
+       leaving the collapsed bar unwrapped and its freshness line overflowing. */
+    @media only screen and (max-width: 620px) {
+        .lastUpdatedBottom {
+            padding: 6px 10px;
+        }
+        /* Both discs stand in one column at the left (NowcastPlayback). A
+           little more inset than the other maps' trays: the strip, the age and
+           the chip run to both edges here. */
+        .lastUpdatedBottom.has-discs {
+            right: var(--mc-gutter);
+            padding: 6px 14px;
+        }
+        .parentz {
+            flex-wrap: wrap;
+            /* The scale and the "last updated" line are two short rows in a
+               bar with a fixed height (shared with NowcastPlayback's flanking
+               discs, which centre on it) -- space-between was pinning them to
+               the top of that height rather than centring the pair, leaving
+               dead air below. */
+            align-content: center;
+        }
+        .palette {
+            flex: 1 1 100%;
+            height: auto;
+            padding: 0 4px;
+        }
+        .center {
+            flex: 1 1 100%;
+            display: flex;
+            justify-content: center;
+            padding: 0;
+        }
+        .break {
+            display: block;
+            flex-basis: 100%;
+            height: 0;
+        }
+        .palette {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
 
-    .loading {
-        opacity: 0.55;
-    }
-
-    .lightning_chart_overlay_opacity {
-        opacity: 0.4;
-    }
-
-    .lightning-chart-overlay {
-        position: absolute;
-        top: 10px;
-        text-align: center;
-        width: 100%;
-        color: var(--sl-color-black);
-        font-weight: bold;
-        text-shadow: var(--sl-color-white);
-        font-size: 110%;
-        z-index: 100;
+        /* Radar: the colour strip gets the whole first row; the freshness
+           line and the product picker (ScaleLine's title) share the second,
+           the age at the left and the picker at the right.
+           The two wrappers between them step aside so the picker and the
+           status line are items of this one flex row. */
+        .parentz.stacked .palette,
+        .parentz.stacked .palette :global(.wrapper) {
+            display: contents;
+        }
+        .parentz.stacked .palette :global(.scale) {
+            order: 0;
+            flex: 1 1 100%;
+        }
+        .parentz.stacked .palette :global(.legend-label) {
+            order: 2;
+        }
+        .parentz.stacked .break {
+            display: none;
+        }
+        /* The rest of the row, whatever the chip leaves. Basis 0 so the row
+           never wraps it onto a third line; the age is what has to fit, so
+           "Last updated" goes, and the age ellipsises before it overflows. */
+        .parentz.stacked .center {
+            order: 1;
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: flex-start;
+        }
+        .parentz.stacked .center :global(.info) {
+            min-width: 0;
+            flex-shrink: 1;
+        }
+        .parentz.stacked .center :global(.prefix) {
+            display: none;
+        }
     }
 </style>
 
+<!-- Outside the bar, not in it: the strip is its own floating tray above this
+     one, and nesting it would put it inside the bar's transition and clip. -->
+<LightningChart {layerManager} />
+
+{#if showsBar}
 <div
         class="bottomToolbar lastUpdatedBottom"
-        transition:fly={{ y: 100, duration: 200 }}>
-    <div class="parentz">
+        class:has-discs={activeCap === "radar" && $bottomToolbarMode === "collapsed"}
+        class:player-open={$bottomToolbarMode === "player"}
+        transition:fly={{ y: 100, duration: 200 }}
+        on:introstart={toolbarTransitionStart}
+        on:outrostart={toolbarTransitionStart}
+        on:introend={toolbarTransitionEnd}
+        on:outroend={toolbarTransitionEnd}>
+    <div class="parentz" class:stacked={activeCap === "radar" && $bottomToolbarMode === "collapsed"}>
         {#if activeCap === "radar" && $bottomToolbarMode === "collapsed"}
-            <div class="left">
-                <!-- empty -->
-            </div>
             <div class="palette">
                 <RadarScaleLine/>
             </div>
         {/if}
         {#if activeCap === "precipTypes"}
             <div class="palette">
-                <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title="Precipitation<br />Types" />
+                <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title={$_("chrome.scales.precipitation_types")} />
             </div>
         {/if}
         {#if activeCap === "aerosols"}
             <div class="palette">
-                <AerosolScaleLine steps="{precipTypeNames}" valueFormat={$_}/>
+                <AerosolScaleLine />
             </div>
         {/if}
         {#if activeCap === "lightning" && $bottomToolbarMode === "collapsed"}
@@ -424,25 +336,10 @@
                         <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
                     </div>
                     <div class="float">
-                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== 'sentinel2'}">Clouds</sl-checkbox>
+                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== "sentinel2"}">{$_("chrome.satellite.clouds")}</sl-checkbox>
                     </div>
                     <div class="float">
-                        <sl-checkbox use:labelsBorders checked="true">Labels &amp; Borders</sl-checkbox>
-                    </div>
-                {/if}
-                {#if activeCap === "lightning"}
-                    {#if noLightning}
-                        <div class="lightning-chart-overlay">
-                            if (successCb) successCb(blob);
-                            {#if unavailable}
-                                Statistics currently unavailable.
-                            {:else}
-                                No recent lightning in this area. ⚡️
-                            {/if}
-                        </div>
-                    {/if}
-                    <div class="lightningChart" class:loading class:lightning_chart_overlay_opacity={noLightning || unavailable}>
-                        <canvas use:lightningChartCanvas></canvas>
+                        <sl-checkbox use:labelsBorders checked="true">{$_("chrome.satellite.labels_borders")}</sl-checkbox>
                     </div>
                 {/if}
             </div>
@@ -454,3 +351,4 @@
         {/if}
     </div>
 </div>
+{/if}

@@ -1,0 +1,1039 @@
+<script lang="ts">
+/**
+ * What one tracked thunderstorm has been doing.
+ *
+ * A cell's current reflectivity says very little on its own: a 55 dBZ core that
+ * has been weakening for twenty minutes and one that has doubled its VIL in ten
+ * are the same number and completely different storms. So this leads with the
+ * signatures that separate a severe storm from a heavy shower -- rotation,
+ * hail, a lightning jump, motion that departs from everything nearby -- shows
+ * the storm's own shape as a turning 3D model, and plots the history behind the
+ * current reading.
+ *
+ * Framed by `StormPanel`, as a storm core's `CloudDetails` is, so the two read
+ * as one kind of panel wherever they open.
+ */
+import { _ } from "svelte-i18n";
+import { onDestroy } from "svelte";
+import { SvelteMap } from "svelte/reactivity";
+import { capLatestObservation, cellDetails, selectedCell, sharedActiveCap, smallScreen } from "../stores";
+import { afterClose } from "../lib/cellSelection";
+import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
+import { cellStatus } from "../lib/cellStatus";
+import { MAX_FAMILY, missingRelatives } from "../lib/cellLineage";
+import { timeTicks } from "../lib/timeTicks";
+import { fetchCellTrack, NothingPublished } from "../api";
+import { onWake } from "../lib/wakeup";
+import CellLineage from "./CellLineage.svelte";
+import { severityColour } from "../layers/cells";
+import CellModel3D from "./CellModel3D.svelte";
+import CellCutaway from "./CellCutaway.svelte";
+import SliceDial from "./SliceDial.svelte";
+import StormPanel from "./StormPanel.svelte";
+import Readings from "./Readings.svelte";
+import VolumeProvenance from "./VolumeProvenance.svelte";
+import { open3DAvailable, openCellIn3D } from "../lib/open3d";
+import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
+import { placementLabel } from "../lib/cellPlacement";
+import { currentLocale, type Translate } from "../locale/t";
+import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
+import type { CellStep, CellTrackProperties } from "../api";
+import type { ModelFrame, VolumeInput } from "../lib/cellVolume";
+import { share } from "../lib/share";
+
+export let track: CellTrackProperties;
+
+/** Below this, a heading differs from its neighbours by less than the noise. */
+const DEVIANT_DEGREES = 30;
+
+const round = (value: number | null | undefined, digits = 0): string => (
+  value === null || value === undefined ? "–" : Number(value).toFixed(digits)
+);
+
+/**
+ * 24-hour, always.
+ *
+ * Radar timestamps, model runs and DWD's own products are all written that
+ * way, and a popup that says 03:10 PM beside a strip labelled 15:10 makes the
+ * reader do the conversion to check they are the same moment.
+ */
+const clock = (iso: string): string => new Date(iso)
+  .toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit", hour12: false });
+
+/** "no new data" as a value on its own: capitalised, as a label would be. */
+const sentence = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+  "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+const compass = (deg: number | null | undefined, t: Translate): string => (
+  deg === null || deg === undefined ? "–" : t(`storm.compass.${COMPASS[Math.round(deg / 22.5) % 16]}`)
+);
+
+/* ---- the history chart ------------------------------------------------- */
+
+/**
+ * Two charts, not one with two scales.
+ *
+ * The first version of this drew reflectivity against a left axis and echo top
+ * against a right one. That is the oldest bad habit in charting: where the two
+ * scales line up is a choice, so the crossing point where the lines meet is
+ * something the chart invents rather than something the storm did. Stacked as
+ * small multiples over one shared clock they answer the same question -- is the
+ * core strengthening while the cloud collapses? -- without either line being
+ * able to lie about the other.
+ *
+ * The earlier version before that was a bare sparkline with no scale at all,
+ * which can say "went up a bit" and nothing more: a rise from 48 to 52 dBZ and
+ * one from 30 to 62 drew the identical line, because both were normalised to
+ * the box.
+ *
+ * Still hand-drawn rather than handed to a chart library. This is one popup
+ * with two dozen points in it, and the app already pays for one map renderer.
+ */
+const CHART = {
+  width: 336, left: 28, right: 38, top: 9,
+};
+
+/** Room for the time labels, on the lower chart only. */
+const AXIS_ROOM = 16;
+
+const plot = { x0: CHART.left, x1: CHART.width - CHART.right };
+
+/** Tick values at 1, 2, 2.5 or 5 times a power of ten, whichever fits. */
+function niceTicks(min: number, max: number, target = 4): number[] {
+  const span = max - min || 1;
+  const rough = span / target;
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= rough)
+    ?? 10 * magnitude;
+  const ticks: number[] = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + step / 1000; v += step) {
+    ticks.push(Math.round(v * 1000) / 1000);
+  }
+  return ticks;
+}
+
+interface Scale {
+  min: number;
+  max: number;
+  ticks: number[];
+  at: (value: number) => number;
+}
+
+/** A vertical scale over `values`, padded out to whole ticks. */
+function verticalScale(values: number[], y0: number, y1: number, target = 4): Scale | null {
+  const real = values.filter((v) => Number.isFinite(v));
+  if (real.length < 2) return null;
+  const low = Math.min(...real);
+  const high = Math.max(...real);
+  // A flat series still needs a box to sit in, or every point lands on one row.
+  const pad = (high - low || Math.max(Math.abs(high) * 0.1, 1)) * 0.15;
+  const ticks = niceTicks(low - pad, high + pad, target);
+  const min = Math.min(low - pad, ticks[0]);
+  const max = Math.max(high + pad, ticks[ticks.length - 1]);
+  return {
+    min,
+    max,
+    ticks,
+    at: (value: number) => y0 + ((value - min) / (max - min)) * (y1 - y0),
+  };
+}
+
+/** Points along a series, skipping steps where that series is missing. */
+function path(
+  steps: Array<{ t: number; v: number | null | undefined }>,
+  atX: (t: number) => number,
+  scale: Scale | null,
+): string {
+  if (!scale) return "";
+  let open = false;
+  return steps
+    .map(({ t, v }) => {
+      if (v === null || v === undefined || !Number.isFinite(v)) {
+        open = false;
+        return "";
+      }
+      const command = open ? "L" : "M";
+      open = true;
+      return `${command}${atX(t).toFixed(1)},${scale.at(v).toFixed(1)}`;
+    })
+    .join("");
+}
+
+$: severity = Math.min(Math.max(track.max_severity, 0), 3);
+$: colour = severityColour(severity);
+// What to call it. Null when the environment has no geocoder or the cell is out
+// at sea, and then the header is just the severity it always was.
+$: place = placementLabel(track.placement, $_, "long");
+// "Strong storm, 3 km west of Holzkirchen": what a shared link is about.
+$: shareSubject = [$_(`storm.storm_label.${BAND_NAMES[severity]}`), place].filter(Boolean).join(", ");
+$: series = track.series ?? [];
+$: latest = series[series.length - 1];
+/**
+ * On the 3D map the storm stands behind the panel, cut open when it has a
+ * volume, so the panel's own raymarched cutaway would be a second, smaller
+ * copy of it -- one more GPU raymarch every frame for a picture already on
+ * screen. It turns the cut on the map with the dial instead, and shows the
+ * CAPPI, which is the one view of the volume the map does not give.
+ *
+ * On a phone the measured structure model goes too: there it costs the map
+ * half the screen.
+ */
+$: on3d = $sharedActiveCap === "cells3d";
+$: phone3d = on3d && $smallScreen;
+$: forecast = track.forecast ?? [];
+
+/**
+ * A clock of our own, because everything below is relative to now and nothing
+ * else on the page ticks.
+ *
+ * Every quarter minute: the readings are five-minutely, so a slower tick would
+ * let "4 min ago" sit there while it became six, and a faster one would redraw
+ * the panel to change nothing. Cleared on destroy -- this component is created
+ * and thrown away on every tap.
+ */
+let tick = Date.now();
+const clockTimer = setInterval(() => { tick = Date.now(); }, 15_000);
+onDestroy(() => clearInterval(clockTimer));
+
+$: times = series.map((step) => new Date(step.t).getTime());
+
+/**
+ * Every cell of the family, so the charts can show what this one came out of.
+ *
+ * Ordered so the drawing is stable as the panel is walked, for the reason
+ * spelled out on `buildLineage`: the traversal order depends on which cell is
+ * open, and a chart whose faint lines reshuffle on every hop is worse than one
+ * without them.
+ */
+$: relatives = [...family.values()]
+  .filter((other) => other.code !== track.code && (other.series ?? []).length > 1)
+  .sort((a, b) => a.first_seen.localeCompare(b.first_seen) || a.code.localeCompare(b.code));
+
+/**
+ * The window the charts cover: the family's, not just this cell's.
+ *
+ * It used to run past the last detection to a shaded lead time. That band is
+ * gone -- radar forecasts a cell's position and not its intensity, so there
+ * was never a trace to mark the start of, and an empty third of the chart was
+ * paying for a distinction the axis labels can make on their own.
+ *
+ * What the window covers instead is every cell drawn on it. A merge is two
+ * traces ending where a third takes over, and it only reads that way if all of
+ * them are on one clock.
+ */
+$: familyTimes = relatives.flatMap((other) => (other.series ?? [])
+  .map((step) => new Date(step.t).getTime()));
+/**
+ * The window runs to now, not to the last reading.
+ *
+ * Which is the whole point of marking it. A cell's readings stop when DWD
+ * stopped detecting it, and a chart that ends there quietly implies the record
+ * is current -- the trace runs to the right-hand edge whether it was measured
+ * a minute ago or an hour. Carrying the axis to the present puts the gap on
+ * the page, where the `now` line then says what it is.
+ *
+ * `tick` rather than `Date.now()` so the line moves: it is the same
+ * quarter-minute clock the "6 min ago" reading runs on, so the two cannot
+ * disagree about what time it is.
+ */
+$: span = (() => {
+  if (times.length < 2) return null;
+  const from = Math.min(times[0], ...familyTimes);
+  const end = Math.max(times[times.length - 1], ...familyTimes, tick);
+  // A little past the end, so `now` lands inside the plot with a gap after it
+  // rather than on the axis line. Without this the marker is always exactly on
+  // the right-hand edge -- carrying the window to now makes now the edge by
+  // construction -- and an invisible line is not a mark.
+  return { from, to: end + (end - from) * 0.05 };
+})();
+
+/**
+ * Time to an x position, over the window the charts cover.
+ *
+ * Plotted against the clock rather than against the index, so a gap in the
+ * radar record shows as a gap rather than being closed up into a steady line.
+ */
+function atX(t: number): number {
+  if (!span || span.to <= span.from) return plot.x0;
+  return plot.x0 + ((t - span.from) / (span.to - span.from)) * (plot.x1 - plot.x0);
+}
+
+/**
+ * The two panels.
+ *
+ * Reflectivity leads in the cell's own severity colour, echo top follows in
+ * plain ink: one series is the point and the other is context, which is
+ * emphasis rather than two colours competing. Each panel is a single series,
+ * so it needs no legend -- its caption names it -- and the latest value is
+ * labelled on the line instead of every point carrying a number.
+ */
+$: panels = [
+  {
+    key: "dbz",
+    title: $_("storm.history.reflectivity"),
+    unit: "dBZ",
+    height: 62,
+    axis: false,
+    digits: 0,
+    pick: (step: CellStep) => step.max_dbz ?? null,
+    accent: true,
+  },
+  {
+    key: "top",
+    title: $_("storm.history.echo_top"),
+    unit: "km",
+    height: 58,
+    axis: true,
+    digits: 1,
+    pick: (step: CellStep) => (step.echo_top_m == null ? null : step.echo_top_m / 1000),
+    accent: false,
+  },
+].map((spec) => ({ ...spec, values: series.map(spec.pick) })).map((panel) => {
+  const bottom = panel.axis ? AXIS_ROOM : 5;
+  const y0 = panel.height - bottom;
+  /*
+   * The family's readings, faint and dashed behind this cell's.
+   *
+   * A merge is the thing this makes visible: two traces running until they
+   * stop, and a third carrying on from where their values were. The panel can
+   * say "merged" in a tag and the family chart can say which cells, but only
+   * this says what the merge did to the storm -- whether the survivor took the
+   * strongest of them or came out above all three.
+   *
+   * Dashed and unlabelled, because they are context: the reader asked about
+   * one cell and the others are here to give its line something to be measured
+   * against. They are folded into the scale rather than clipped, or a relative
+   * stronger than the open cell would leave the chart through the top.
+   */
+  const relativeSeries = relatives.map((other) => (other.series ?? []).map((step) => ({
+    t: new Date(step.t).getTime(),
+    v: panel.pick(step),
+  })));
+  const scale = verticalScale(
+    [
+      ...panel.values,
+      ...relativeSeries.flatMap((points) => points.map((point) => point.v)),
+    ].filter((v): v is number => v !== null),
+    y0,
+    CHART.top,
+    3,
+  );
+  const points = panel.values.map((v, i) => ({ t: times[i], v }));
+  const lastAt = [...panel.values].reduce<number>(
+    (found, v, i) => (v === null ? found : i),
+    -1,
+  );
+  return {
+    ...panel,
+    y0,
+    scale,
+    family: scale
+      ? relativeSeries.map((points) => path(points, atX, scale)).filter(Boolean)
+      : [],
+    path: path(points, atX, scale),
+    last: lastAt >= 0 ? { t: times[lastAt], v: panel.values[lastAt] as number } : null,
+  };
+  // `flatMap` rather than `filter`, so a panel whose series is missing drops
+  // out with its `scale` narrowed to non-null for everything downstream.
+}).flatMap((panel) => (panel.scale ? [{ ...panel, scale: panel.scale }] : []));
+
+/**
+ * Whole minutes at a step that fits, from lib/timeTicks.ts.
+ *
+ * The old axis labelled three moments taken from the data -- first reading,
+ * last reading, end of the forecast -- which moved with the cell and left a
+ * track running 16:07 to 16:52 with nothing between its two ends. Ticks on the
+ * clock read the same way as every other time in this panel, and two charts
+ * stacked over one window line up with each other.
+ */
+$: ticks = span ? timeTicks(span.from, span.to, 4) : [];
+
+/**
+ * The ticks with their positions already worked out.
+ *
+ * Not `x={atX(t)}` in the markup, which is what this was. The block is keyed
+ * on the tick's timestamp so that a tick surviving a change of cell is not
+ * torn down and rebuilt -- and Svelte has no way to know `atX` reads `span`,
+ * so a surviving tick kept the x it had been given under the old window.
+ * Walking the family put 16:00 and 16:30 at the same pixel.
+ *
+ * Computed in a reactive statement that names `span` outright, so it is redone
+ * whenever the window moves and every tick in it is a new object.
+ */
+$: tickMarks = span
+  ? ticks.map((t) => ({ t, x: atX(t), label: clock(new Date(t).toISOString()) }))
+  : [];
+
+/**
+ * Where the present is on the charts, and whether it is worth drawing.
+ *
+ * Not when it lands on the right-hand edge with the last reading, which is the
+ * ordinary case for a cell being detected right now: a line on the axis says
+ * nothing there, and the label would sit on top of the last tick.
+ */
+$: nowAt = span && tick > span.from ? atX(tick) : null;
+/**
+ * Which side of the line the label sits on.
+ *
+ * To the right where there is room, which reads better -- the label follows
+ * the line the way a caption follows what it names. Where there is not, it
+ * goes to the left rather than the axis being padded out to make room: a
+ * tenth of the chart left empty to seat one eight-pixel word is a bad trade
+ * on a chart this size.
+ */
+$: nowLabel = nowAt === null ? null : (plot.x1 - nowAt > 24
+  ? { x: nowAt + 3, anchor: "start" }
+  : { x: nowAt - 3, anchor: "end" });
+
+/** The value gridlines, for the same reason: `panel.scale.at` is a function too. */
+$: gridlines = panels.map((panel) => panel.scale.ticks.map((value) => ({
+  value,
+  y: panel.scale.at(value),
+})));
+
+$: readings = cellReadings(track, (deg) => compass(deg, $_), $_);
+
+/** The current detection, in the shape the volumetric model reads. */
+$: shape = latest && (track.structure ?? []).length
+  ? ({
+    code: track.code,
+    lon: latest.lon,
+    lat: latest.lat,
+    echo_bottom_m: track.echo_bottom_m,
+    polygon: track.polygon,
+    structure: track.structure,
+  } satisfies VolumeInput)
+  : null;
+
+
+/* ---- the model's frame --------------------------------------------------- */
+
+/**
+ * The widest a family's frame may grow beyond the open cell's own.
+ *
+ * A common scale is the whole point, but taken literally it has a floor
+ * problem: a 2 km cell that has just split off a 30 km supercell would be
+ * drawn at a fifteenth of the canvas, which is a dot rather than a shape, and
+ * a shape is what the picture is for. Past this ratio the shared scale is
+ * abandoned for that one cell rather than rendering something unreadable --
+ * the ruler beside it still says what it is.
+ */
+const MAX_FRAME_RATIO = 4;
+
+/**
+ * Each cell's own extent, worked out once.
+ *
+ * `cellVolume` rebuilds a solid from the threshold stack, and the family runs
+ * to MAX_FAMILY members -- doing that on every frame of a turning model, or on
+ * every clock tick, would be absurd for a number that cannot change while the
+ * panel is open.
+ */
+// Deliberately not a SvelteMap. This is a memo, not state: it is written
+// during the reactive statement that reads it, so a reactive Map would
+// invalidate that statement from inside itself. What drives the frame is
+// `family`, which is reactive already.
+// eslint-disable-next-line svelte/prefer-svelte-reactivity
+const extents = new Map<string, ModelFrame | null>();
+
+function extentOf(cell: CellTrackProperties): ModelFrame | null {
+  const cached = extents.get(cell.code);
+  if (cached !== undefined) return cached;
+
+  const steps = cell.series ?? [];
+  const at = steps[steps.length - 1];
+  const volume = at && (cell.structure ?? []).length
+    ? cellVolume({
+      code: cell.code,
+      lon: at.lon,
+      lat: at.lat,
+      echo_bottom_m: cell.echo_bottom_m,
+      polygon: cell.polygon,
+      structure: cell.structure,
+    })
+    : null;
+  const extent = volume ? frameOf(volume) : null;
+  extents.set(cell.code, extent);
+  return extent;
+}
+
+/**
+ * One frame for the whole family, so size means something across a hop.
+ *
+ * Every model used to be normalised to fill its canvas, which made the most
+ * legible quantity in the picture -- how big the storm looks -- carry no
+ * information at all: walking from a cell to the parent it split from showed
+ * two storms the same size. Framing them all on the family's envelope is what
+ * makes the comparison the panel invites an honest one.
+ *
+ * It only ever grows: the family arrives in rounds behind the first paint, so
+ * a frame that tracked the set exactly would shrink the model a step at a time
+ * as relatives landed. Growing is a single settle, and `CellModel3D` eases it.
+ */
+$: modelFrame = shape ? frameFor(track, family) : null;
+
+function frameFor(
+  root: CellTrackProperties,
+  known: Map<string, CellTrackProperties>,
+): ModelFrame | null {
+  const own = extentOf(root);
+  if (!own) return null;
+
+  let frame = own;
+  known.forEach((other) => {
+    const extent = extentOf(other);
+    if (extent) frame = unionFrame(frame, extent);
+  });
+
+  return {
+    radiusKm: Math.min(frame.radiusKm, own.radiusKm * MAX_FRAME_RATIO),
+    lowKm: Math.max(frame.lowKm, own.lowKm * MAX_FRAME_RATIO),
+    highKm: Math.min(frame.highKm, Math.max(own.highKm, 1) * MAX_FRAME_RATIO),
+  };
+}
+
+$: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, $_);
+
+/* ---- the family ---------------------------------------------------------- */
+
+/**
+ * The relatives of the open cell, fetched one at a time until the family closes.
+ *
+ * They cannot come from the map's own data. Tracks are fetched for the
+ * viewport, and a storm's parent may have been detected well outside it -- or
+ * before the window the map asked for -- so a family assembled from what is on
+ * screen is arbitrarily truncated. `/cells/tracks/{code}` answers for any code,
+ * which is what closes it.
+ *
+ * Breadth-first through `missingRelatives`, which names the codes the reached
+ * tracks point at and we do not hold yet. It re-runs after each round, so a
+ * grandparent is asked for only once its parent has arrived and confirmed it
+ * exists, and nothing is asked for twice. `MAX_FAMILY` bounds it.
+ */
+let family: Map<string, CellTrackProperties> = new SvelteMap();
+let loadingFamily = false;
+/**
+ * Which walk is the current one.
+ *
+ * A hop starts a new walk while the last may still be waiting on a round, and
+ * the old one used to carry on regardless. Landing late, it put the family it
+ * had been walking back over the new one -- the storm just left, charted under
+ * the one now open -- and its `finally` cleared "loading" while the new walk
+ * was still out. A walk that is no longer the newest stops at its next await
+ * and touches nothing.
+ */
+let familyWalk = 0;
+/** Whether the last walk lost relatives to the network, so a wake walks it again. */
+let familyIncomplete = false;
+
+async function loadFamily(root: CellTrackProperties) {
+  const walk = ++familyWalk;
+  /*
+   * Kept when the new cell is one this family already holds.
+   *
+   * Walking the chart re-roots the panel on a relative, and rebuilding from
+   * that relative meant starting again from a map of one: the chart fell below
+   * the two nodes it needs to draw anything, vanished, and grew back a round
+   * at a time as the fetches landed. Every hop was a graph that disappeared and
+   * relaid itself under a cursor that had not moved, which is the opposite of
+   * what a thing you navigate by should do. Within one lineage the family is
+   * the same family, so it survives the hop and only the highlight moves.
+   */
+  const known = family.has(root.code)
+    ? family
+    : new SvelteMap<string, CellTrackProperties>([[root.code, root]]);
+  known.set(root.code, root);
+  family = known;
+  familyIncomplete = false;
+  // Nothing to walk, and no request worth making for the two thirds of cells
+  // that have no relatives at all. Not loading either, whatever a walk this
+  // one has superseded had said.
+  if (!missingRelatives(known, root.code).length) {
+    loadingFamily = false;
+    return;
+  }
+
+  loadingFamily = true;
+  try {
+    for (let round = 0; round < 4; round += 1) {
+      const wanted = missingRelatives(known, root.code)
+        .slice(0, MAX_FAMILY - known.size);
+      if (!wanted.length) break;
+      /* `optional`: a relative the backend has since forgotten answers 404,
+         which is the lineage outliving its oldest members, not the backend
+         failing -- counted as a failure, it put the map in its degraded state
+         for every old family opened. Such a one comes back undefined. */
+      const answers = await Promise.all(wanted.map((code) => fetchCellTrack(code, undefined, { optional: true })
+        .catch((error) => (error instanceof NothingPublished ? undefined : null))));
+      if (walk !== familyWalk) return;
+      // A request that failed (null), as against a relative that is gone: the
+      // chart stays as far as it got, and a wake comes back for the rest.
+      if (answers.includes(null)) familyIncomplete = true;
+      answers.forEach((answer) => {
+        const relative = answer?.properties as CellTrackProperties | undefined;
+        if (relative) known.set(relative.code, relative);
+      });
+      // A code that answers with nothing would be asked for every round; the
+      // walk stops when a round adds nobody rather than spinning on it.
+      if (!answers.some(Boolean)) break;
+      // Reassigned as well as filled, so the chart re-renders on each round.
+      family = new SvelteMap(known);
+    }
+  } finally {
+    if (walk === familyWalk) loadingFamily = false;
+  }
+}
+
+/* Keyed on the code: the panel is reused when a relative is tapped in the
+   chart, and the family has to be rebuilt around whichever cell is open. */
+$: void loadFamily(track);
+
+/* The open cell is already in the family, so walking again from it keeps what
+   arrived and asks only for what did not. Closing the panel supersedes any
+   walk still out, so it stops asking at its next round. */
+const unsubscribeWake = onWake(() => {
+  if (familyIncomplete && !loadingFamily) void loadFamily(track);
+});
+onDestroy(() => {
+  unsubscribeWake();
+  familyWalk += 1;
+});
+
+/* ---- how current any of this is ---------------------------------------- */
+
+$: recency = cellRecency(
+  new Date(track.last_seen).getTime(),
+  tick,
+  $capLatestObservation > 0 ? $capLatestObservation * 1000 : null,
+);
+$: radarOffset = radarOffsetLabel(recency.behindMinutes, $_);
+
+/** Alive, quiet, superseded or gone. See lib/cellStatus.ts for why it is four. */
+$: status = cellStatus({
+  active: track.active,
+  child_codes: track.child_codes,
+  ageMinutes: recency.ageMinutes,
+}, $_);
+$: observedAt = clock(track.last_seen);
+
+/**
+ * Closing leaves the cell's forecast on the map on a phone, and clears it
+ * everywhere else.
+ *
+ * There, closing the panel is how a reader asks to look at the map again --
+ * the panel was covering it -- so taking the forecast away with it would mean
+ * tapping the storm twice over to get back what they were already looking at.
+ * The map background still clears everything, which is where "done with this
+ * storm" belongs. `afterClose` in lib/cellSelection.ts states both.
+ */
+function close() {
+  const next = afterClose({ code: track.code, details: true }, $smallScreen);
+  if (!next.code) selectedCell.set(null);
+  cellDetails.set(next.details);
+}
+</script>
+
+<StormPanel rule={colour} label={$_(`storm.storm_label.${BAND_NAMES[severity]}`)} {place} onClose={close}
+  onShare={(anchor) => share({ subject: shareSubject, anchor })}>
+  <span slot="header" class="headline severity">{$_(`storm.band.${BAND_NAMES[severity]}`)}</span>
+
+  <!-- Whether it is still there, how long it has been, and how old the
+       numbers below are: the three things to know before reading any of
+       them, in a row under the title. -->
+  <dl class="stats">
+    <div>
+      <dt>{$_("storm.stat.status")}</dt>
+      <!-- The dot is the same signal the "Latest" pill uses for the feed, and
+           it means the same thing here: something is still arriving. -->
+      <dd class="status {status.kind}"><span class="dot"></span>{sentence(status.label)}</dd>
+    </div>
+    <div>
+      <dt>{$_("storm.stat.tracked")}</dt>
+      <dd>{age}</dd>
+    </div>
+    <div>
+      <dt>{$_("storm.stat.updated")}</dt>
+      <dd class:behind={radarOffset !== null}>
+        {$_("storm.ago", { values: { duration: duration(recency.ageMinutes, $_) } })}
+      </dd>
+    </div>
+  </dl>
+
+  <div class="signals">
+    {#if track.meso_ever}
+      <span class="signal rotating">
+        {$_("storm.signal.rotating")}{track.meso_minutes ? ` ${duration(track.meso_minutes, $_)}` : ""}
+      </span>
+    {/if}
+    {#if track.hail_ever}
+      <span class="signal hail">
+        {$_("hail")}{track.hail_minutes ? ` ${duration(track.hail_minutes, $_)}` : ""}
+      </span>
+    {/if}
+    {#if track.lightning_jump_recent}<span class="signal jump">{$_("storm.signal.lightning_jump")}</span>{/if}
+    {#if track.intensifying}<span class="signal up">{$_("storm.signal.intensifying")}</span>{/if}
+    {#if track.split_ever}<span class="signal lineage">{$_("storm.signal.split")}</span>{/if}
+    {#if track.merge_ever}<span class="signal lineage">{$_("storm.signal.merged")}</span>{/if}
+    {#if track.deviation_deg !== null && track.deviation_deg !== undefined
+      && track.deviation_deg > DEVIANT_DEGREES}
+      <span class="signal deviant">
+        {$_("storm.signal.deviant", { values: { deg: round(track.deviation_deg) } })}
+      </span>
+    {/if}
+  </div>
+
+  {#if on3d && track.volume && track.volume.tier !== 1}
+    <div class="dial">
+      <SliceDial reference={latest?.heading_deg != null ? "track" : "north"} />
+    </div>
+  {/if}
+
+  <h3 class="section">{$_("storm.section.readings")}</h3>
+  <Readings items={readings} />
+
+  <!-- Numbers before models: the readings are the answer to "how bad is it",
+       which is what a reader wants first, and the 3D shapes are the slower,
+       more exploratory read that can wait until they have scrolled to it. -->
+  {#if shape && !phone3d}
+    <h3 class="section">
+      {$_("storm.section.structure")}<span class="aside">{$_("storm.section.structure_aside")}</span>
+    </h3>
+    <figure class="model">
+      <CellModel3D cell={shape} frame={modelFrame} width={CHART.width} height={200} />
+      <figcaption>{$_("storm.model_at", { values: { time: observedAt } })}</figcaption>
+    </figure>
+  {/if}
+
+  <!-- The measured model above cannot lean: its shells are stacked outlines.
+       The volume is built from the radar's own 3D field, so an overhang -- the
+       core hanging downshear out over the inflow -- is visible where there is
+       one. Offered only for the storms a volume was built for, which is the
+       strongest few and only where the radars sampled the 3 to 8 km layer
+       properly. On the 3D map the map is the vertical cut, and the panel
+       slices the volume by height instead; see `on3d`. -->
+  {#if track.volume && on3d}
+    <!-- Keyed on the volume, as the cutaway is: each storm is its own fetch. -->
+    {#key track.volume.path}
+      <VolumeProvenance volume={track.volume} at={latest ?? null} />
+    {/key}
+  {:else if track.volume}
+    <h3 class="section">
+      {$_("storm.section.inside")}<span class="aside">{$_("storm.section.inside_aside")}</span>
+    </h3>
+    <figure class="model">
+      <!-- Keyed on the volume: the cutaway fetches once, on mount, so walking
+           the family from one cell with a volume to another kept drawing the
+           first storm's insides under the second one's name. -->
+      {#key track.volume.path}
+        <CellCutaway
+          volume={track.volume}
+          headingDeg={latest?.heading_deg ?? null}
+          width={CHART.width}
+          height={200}
+        />
+      {/key}
+    </figure>
+    <!-- The same storm on the 3D map, cut open where it stands among its
+         neighbours rather than alone in a box. -->
+    {#if $open3DAvailable}
+      <button type="button" class="open-3d" on:click={() => openCellIn3D(track)}>
+        {$_("storm.open_3d")}
+      </button>
+    {/if}
+  {/if}
+
+  {#if span && panels.length}
+    <h3 class="section">{$_("storm.section.history")}</h3>
+    <div class="history">
+      {#each panels as panel, panelIndex (panel.key)}
+        <figure>
+          <figcaption>{panel.title}, {panel.unit}</figcaption>
+          <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
+               aria-label={$_("storm.history.aria", { values: { title: panel.title, unit: panel.unit } })}>
+            {#each gridlines[panelIndex] ?? [] as line (line.value)}
+              <line class="grid" x1={plot.x0} x2={plot.x1} y1={line.y} y2={line.y} />
+              <text class="tick left" x={plot.x0 - 5} y={line.y}>{line.value}</text>
+            {/each}
+
+            <!-- The present, dashed, with the gap between it and the last
+                 reading left visible to its right. Behind the traces: it is a
+                 reference line rather than a measurement. -->
+            {#if nowAt !== null}
+              <line class="nowline" x1={nowAt} x2={nowAt} y1={CHART.top} y2={panel.y0} />
+              <!-- Named once, on the upper panel: it has the headroom, and the
+                   lower one's top gridline label sits where this would go. -->
+              {#if panelIndex === 0 && nowLabel}
+                <text class="nowlabel" x={nowLabel.x} y={CHART.top + 7}
+                      text-anchor={nowLabel.anchor}>{$_("now")}</text>
+              {/if}
+            {/if}
+
+            {#each tickMarks as mark, i (mark.t)}
+              <line class="tickmark" x1={mark.x} x2={mark.x}
+                    y1={panel.y0} y2={panel.y0 + (panel.axis ? 3 : 0)} />
+              {#if panel.axis}
+                <!-- Centred, except at the ends. A label centred on the first
+                     tick hangs off the left of the plot and lands under the
+                     value axis; the last one runs out past the direct label on
+                     the right. Anchoring them inwards keeps both inside the
+                     chart without moving the tick they belong to. -->
+                <text class="tick" x={mark.x} y={panel.y0 + 13}
+                      text-anchor={i === 0 ? "start"
+                        : (i === tickMarks.length - 1 ? "end" : "middle")}>
+                  {mark.label}
+                </text>
+              {/if}
+            {/each}
+
+            <line class="axis" x1={plot.x0} x2={plot.x0} y1={panel.y0} y2={CHART.top} />
+            <line class="axis" x1={plot.x0} x2={plot.x1} y1={panel.y0} y2={panel.y0} />
+
+            <!-- The family first, so this cell's line is never crossed by
+                 one of theirs. -->
+            {#each panel.family as d, i (i)}
+              <path class="kin" {d} fill="none" />
+            {/each}
+
+            <path class="trace" class:context={!panel.accent} d={panel.path} fill="none"
+                  stroke={panel.accent ? colour : undefined} />
+            {#if panel.last}
+              <circle class="head" class:context={!panel.accent}
+                      cx={atX(panel.last.t)} cy={panel.scale.at(panel.last.v)} r="2.6"
+                      fill={panel.accent ? colour : undefined} />
+              <text class="direct" x={plot.x1 + 5} y={panel.scale.at(panel.last.v)}>
+                {panel.last.v.toFixed(panel.digits)}
+              </text>
+            {/if}
+          </svg>
+        </figure>
+      {/each}
+    </div>
+  {/if}
+
+  <CellLineage {track} known={family} loading={loadingFamily} now={tick} />
+
+  <h3 class="section">{$_("storm.section.details")}</h3>
+  <dl class="facts">
+    <div>
+      <dt>{$_("storm.fact.observed")}</dt>
+      <dd>{observedAt}</dd>
+    </div>
+    <!-- Everything above is one detection, and the panel used to imply it was
+         current. This is the part that decides whether the numbers can be
+         read against the radar drawn behind them at all, so it is there when
+         the two are out of step and absent when they are not. -->
+    {#if radarOffset}
+      <div>
+        <dt>{$_("storm.fact.radar")}</dt>
+        <dd class="behind">{radarOffset}</dd>
+      </div>
+    {/if}
+    {#if track.active && forecast.length}
+      <div>
+        <dt>{$_("storm.fact.forecast")}</dt>
+        <dd>
+          {$_("storm.fact.forecast_value", {
+            values: {
+              time: clock(forecast[forecast.length - 1].t),
+              km: round(forecast[forecast.length - 1].major_km, 1),
+            },
+          })}
+        </dd>
+      </div>
+    {/if}
+  </dl>
+</StormPanel>
+
+<style>
+  .severity {
+    text-transform: capitalize;
+  }
+
+  /**
+   * Whether the storm is still there, at the top where the question is asked.
+   *
+   * This used to be one grey word -- "dissipated" -- in the same style as the
+   * age beside it, which made the single most important fact about a cell the
+   * quietest thing in its header, and said nothing at all when a cell was
+   * still flagged active but had stopped being detected. Four states now, and
+   * the live one carries the pulsing dot from the "Latest" pill, because it is
+   * the same claim about the same thing: something is still arriving.
+   */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+  }
+  .status.live {
+    color: var(--mc-red);
+  }
+  .status.live .dot {
+    animation: cell-alive 2s ease-in-out infinite;
+  }
+  /* Not an error, and not nothing: the numbers above are older than they look. */
+  .status.stale {
+    color: var(--mc-orange-ink);
+  }
+  /* Ended is a fact, not a warning, so it recedes to the secondary ink. */
+  .status.superseded,
+  .status.ended {
+    color: var(--mc-text-2);
+  }
+  @keyframes cell-alive {
+    50% { opacity: 0.25; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status.live .dot { animation: none; }
+  }
+  /* The readings are older than the radar drawn behind them. */
+  .behind {
+    color: var(--mc-orange-ink);
+  }
+
+  .dial { margin: 2px 0 8px; }
+  /* The signatures, as tinted capsules with the ink in the hue: the place
+     cards' own buttons, at the size of a tag. */
+  .signals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .signals:empty { display: none; }
+  .signal {
+    padding: 5px 11px;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+    font: 600 13px/1.2 var(--mc-font);
+    white-space: nowrap;
+  }
+  .rotating { background: rgba(175, 82, 222, 0.18); color: #8944ab; }
+  .hail { background: var(--mc-red-tint); color: var(--mc-red-ink); }
+  .jump { background: var(--mc-orange-tint); color: var(--mc-orange-ink); }
+  .deviant { background: var(--mc-accent-tint); color: var(--mc-accent); }
+  :global(html[data-theme="dark"]) .rotating { background: rgba(191, 90, 242, 0.24); color: #da8fff; }
+
+  figure { margin: 0 0 6px; }
+  /* A picture on the drawer, as the place cards' photos sit: a rounded pane
+     of its own, a tint darker than the glass around it. */
+  .model {
+    border-radius: 14px;
+    background: var(--mc-tint);
+    overflow: hidden;
+  }
+  figcaption {
+    font: 400 12px/1.3 var(--mc-font);
+    color: var(--mc-text-2);
+    margin-bottom: 4px;
+  }
+  .model figcaption {
+    margin: 0 0 8px 12px;
+  }
+  /* A pill in the accent, as the place cards set a secondary action: tinted,
+     full width, the ink in the accent. One more way to look at the model
+     directly above it, so it sits under it rather than beside the close disc. */
+  .open-3d {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin: 10px 0 0;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-accent-tint);
+    color: var(--mc-accent);
+    font: 600 15px/1.2 var(--mc-font);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
+  }
+  .open-3d:hover { background: color-mix(in srgb, var(--mc-accent) 22%, transparent); }
+  .open-3d:active { transform: scale(var(--mc-press)); }
+  .open-3d:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .history figcaption {
+    display: flex;
+    gap: 10px;
+  }
+  /* The present. Dashed and light, because it is a reference the readings are
+     placed against rather than one of them -- the same reason a gridline is
+     lighter than a trace. */
+  .nowline {
+    stroke: currentColor;
+    stroke-opacity: 0.45;
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+  .nowlabel {
+    font-size: 8px;
+    fill: currentColor;
+    fill-opacity: 0.55;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* The rest of the family: context rather than a reading, so no head, no
+     label and no colour of its own. Dashed, because a faint solid line at this
+     size is just a thin line and reads as another measurement. */
+  .kin {
+    stroke: currentColor;
+    stroke-opacity: 0.3;
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .grid {
+    stroke: currentColor;
+    stroke-opacity: 0.12;
+    stroke-width: 1;
+  }
+  .axis {
+    stroke: currentColor;
+    stroke-opacity: 0.35;
+    stroke-width: 1;
+  }
+  .tickmark {
+    stroke: currentColor;
+    stroke-opacity: 0.35;
+    stroke-width: 1;
+  }
+  .tick {
+    font-size: 9px;
+    fill: currentColor;
+    fill-opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+  }
+  .left { text-anchor: end; dominant-baseline: middle; }
+
+  /* The cell's own line. The accent panel's stroke and head are set in the
+     markup, from the severity; the other one is plain ink, as context. Without
+     these the context trace fell back to SVG's own defaults -- no stroke at
+     all, a black head -- and the latest-value labels were black on the dark
+     sheet. */
+  .trace {
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .trace.context {
+    stroke: currentColor;
+    stroke-opacity: 0.7;
+  }
+  .head.context {
+    fill: currentColor;
+  }
+  .direct {
+    font: 600 11px/1 var(--mc-font);
+    fill: currentColor;
+    dominant-baseline: middle;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

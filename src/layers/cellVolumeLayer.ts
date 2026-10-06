@@ -1,0 +1,981 @@
+/**
+ * Every storm's volume, drawn into the 3D map, with the one a reader opened cut.
+ *
+ * `CellCutaway` renders one volume in a panel with a camera of its own, which
+ * is the right place to study a storm and the wrong place to see where it is.
+ * This puts them all on the map at once: the same field and the same shader,
+ * standing on the ground each storm is over, at the scale of the terrain, as
+ * a sky of clouds. The one being inspected is sliced along its track, as the
+ * panel cuts it; every other one that could be opened peels, over and over:
+ * its faint envelope thins away shell by shell until only the strongest echo
+ * is left standing, then grows back. A cut shows a storm's core from one
+ * side; the peel shows where in the cloud the intensity actually sits, which
+ * is the question a map full of storms is asking. One the radars did not see
+ * well enough to open is held whole: its inside is interpolation.
+ *
+ * ## How a raymarcher gets onto a MapLibre map
+ *
+ * MapLibre has no volume primitive and never will. What it has is
+ * `CustomLayerInterface`, which hands over the GL context and the
+ * `modelViewProjectionMatrix` for the frame and gets out of the way -- and a
+ * matrix is all a raymarcher needs, because the march happens in the box's own
+ * space and the matrix is only used to work out where each ray enters it.
+ *
+ * ## Why the box is a unit cube
+ *
+ * The obvious model matrix leaves the box in Mercator units, where the whole
+ * world is 0 to 1 and a 40 km storm is about a thousandth of that. Marching a
+ * ray through numbers that small in `highp float` bands visibly. So the model
+ * matrix maps the unit cube onto the box instead: the shader marches [0,1] in
+ * each axis, the texture lookup is the position itself, and the precision
+ * problem never arises.
+ *
+ * Mercator's y runs south, which is why the scale below is negative on that
+ * axis -- without it the storm is mirrored north to south, which looks almost
+ * right and is completely wrong.
+ *
+ * ## Depth
+ *
+ * The volume is depth-*tested* but does not depth-*write*: terrain and other
+ * storms occlude it, and it does not carve holes in whatever is drawn after
+ * it. `gl_FragDepth` comes from the point where the ray enters the storm
+ * rather than from the fullscreen triangle, or the whole box would sit at one
+ * depth and either float in front of everything or vanish behind it.
+ *
+ * And it is put into the depth range MapLibre is drawing with, by hand.
+ * MapLibre draws its 3D layers -- the terrain, the extrusions, this -- into
+ * `[0, 0.995]` or so, not `[0, 1]`, and `glDepthRange` maps only the depth a
+ * triangle interpolates: a depth written to `gl_FragDepth` is taken as it is.
+ * Written as `[0, 1]`, every storm stood half a percent behind its true depth,
+ * which close up is nothing -- and zoomed out, where every depth on screen
+ * crowds up against 1, is more than the gap between a storm and the ground
+ * behind it: over the Alps with terrain on, the clouds vanished.
+ */
+import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
+import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
+import type { Cutaway } from "../lib/cellCutaway";
+import { dbzColour } from "../lib/cellVolume";
+import { VERTICAL_SCALE } from "./terrain";
+
+/** Reflectivity below this is drizzle or the fringe of the anvil. */
+const DBZ_LOW = 20;
+/** Where the echo is as opaque as it gets; see `CellCutaway` for the reasoning. */
+const DBZ_HIGH = 34;
+/** Seconds for one peel: whole storm, down to its core, and back. */
+const PEEL_SECONDS = 10;
+/**
+ * How much storm the peel stops at, in voxels: the strongest this many are
+ * what is left standing. A threshold taken from the single strongest voxel
+ * peels down to nothing -- one bright pixel of clutter, or a core too small to
+ * see from a map -- so the stopping point is where this much echo remains.
+ * At 250 by 250 by 500 m a voxel, this is about 9 km3 of storm.
+ */
+const PEEL_CORE_VOXELS = 300;
+/** The softness of the peel's edge, in dBZ: as wide as the unpeeled ramp. */
+const PEEL_BAND = DBZ_HIGH - DBZ_LOW;
+/** Opacity per kilometre of fully dense storm; see the shader's march. */
+const OPACITY_PER_KM = 0.62;
+/**
+ * The least a storm has to show to be drawn: this much of its silhouette, in
+ * km2, at least half opaque at the map's tilt; see `solidKm2`. A 2 by 2 km
+ * core stands clear of the basemap at the zoom a region is looked at; below
+ * it, what is drawn is a wisp or a tint.
+ */
+const SOLID_KM2_MIN = 4;
+/** The tilt a storm's silhouette is measured at: the one the 3D map opens at. */
+const VIEW_PITCH_DEG = 55;
+/**
+ * Samples along a ray across the whole width of a 160-voxel box: fewer than
+ * the panel uses, since this shares a frame. A smaller box gets
+ * proportionally fewer, so a ray samples the same distance per step whatever
+ * box it crosses: a tile of 104 voxels takes 83. A ray that crosses less of
+ * the box takes fewer still; see the shader.
+ */
+const STEPS = 128;
+/** The box `STEPS` is counted for, in voxels across: the 40 km box before tiles. */
+const STEPS_VOXELS = 160;
+/**
+ * How often the peel asks for a frame.
+ *
+ * The peel is ten seconds of slow easing; it does not need the display's
+ * refresh rate, and asking for one repaint per frame kept MapLibre drawing
+ * the whole map -- basemap, extrusions, radar drape and a raymarch per storm
+ * -- at 60 to 120 Hz for as long as the 3D view was open. A dozen frames a
+ * second is enough that it still reads as a motion rather than a flicker.
+ */
+const PEEL_FPS = 12;
+/**
+ * How long the peel keeps running after the reader last did anything.
+ *
+ * Long enough for a few whole peels after a pan lands, so what the reader was
+ * looking at finishes; short enough that a map left open on a desk stops
+ * animating. It picks up again on the next touch of the map, and the peel
+ * resumes from where it stopped rather than jumping.
+ */
+const PEEL_IDLE_SECONDS = 3 * PEEL_SECONDS;
+/**
+ * How far from an opened storm the cut reaches, in km: every cloud whose box
+ * comes this close to where the cut passes through is cut by the same plane.
+ *
+ * Whatever storm or scan it is from. Cut by storm, a neighbour that the
+ * backend counts as a storm of its own -- its peak a few dBZ apart, one tile
+ * over -- stood whole beside the face and hid it, and so did the newer scan's
+ * tiles around a storm kept open past its scan. Not every cloud on the map:
+ * the cut-away side is half the map, gone. At the tilt a storm opens at the
+ * camera stands about 30 km off, so this clears the ground between the two,
+ * and puts the edge of what is cut past the sides of the screen.
+ */
+const CUT_REACH_KM = 40;
+
+const VERTEX = `#version 300 es
+void main() {
+  vec2 corner = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
+  gl_Position = vec4(corner * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+const FRAGMENT = `#version 300 es
+precision highp float;
+precision highp sampler3D;
+
+uniform sampler3D uVolume;
+uniform sampler2D uRamp;
+uniform mat4 uInverse;     // clip space back to the unit cube
+uniform mat4 uForward;     // and out again, for the depth of the entry point
+uniform vec2 uViewport;
+uniform vec3 uExtentKm;    // what one unit of the cube is worth, per axis
+uniform vec3 uPlaneNormal;
+uniform vec3 uPlanePoint;
+uniform float uDbzFloor;
+uniform float uDbzScale;
+uniform float uSteps;
+uniform float uCut;        // 1 for the storm being inspected and the clouds near it, 0 for every other
+uniform float uLow;        // where the echo starts to show, which the peel raises
+uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
+uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
+uniform vec3 uBoxMin;      // the part of the cube that is drawn: all of it, bar a tile's apron
+uniform vec3 uBoxMax;
+
+out vec4 fragColour;
+
+vec3 unproject(vec2 ndc, float z) {
+  vec4 p = uInverse * vec4(ndc, z, 1.0);
+  return p.xyz / p.w;
+}
+
+/**
+ * Where a ray enters and leaves the drawn part of the unit cube.
+ *
+ * The drawn part, not the cube: a tile's texture runs a voxel into each
+ * neighbour so the field interpolates across the seam, and that voxel is the
+ * neighbour's to draw. Marching it here too would draw the seam twice.
+ */
+bool hitBox(vec3 origin, vec3 direction, out float near, out float far) {
+  vec3 inverse = 1.0 / direction;
+  vec3 a = (uBoxMin - origin) * inverse;
+  vec3 b = (uBoxMax - origin) * inverse;
+  vec3 low = min(a, b), high = max(a, b);
+  near = max(max(low.x, low.y), low.z);
+  far = min(min(high.x, high.y), high.z);
+  return far > max(near, 0.0);
+}
+
+vec2 sampleField(vec3 p) {
+  vec2 raw = texture(uVolume, p).rg;
+  return vec2(raw.r * 255.0 / uDbzScale + uDbzFloor, raw.g);
+}
+
+/**
+ * The gradient, corrected for the box not being a cube in the world.
+ *
+ * A step of 1/160 along x is 250 m and the same step along z is 500 m, so a
+ * gradient taken in cube units lights the storm as though it were twice as
+ * tall as it is.
+ */
+vec3 fieldNormal(vec3 p, float step) {
+  vec3 d = vec3(step, 0.0, 0.0);
+  float dx = dot(sampleField(p + d.xyz) - sampleField(p - d.xyz), vec2(0.02, 1.0)) / uExtentKm.x;
+  float dy = dot(sampleField(p + d.zxy) - sampleField(p - d.zxy), vec2(0.02, 1.0)) / uExtentKm.y;
+  float dz = dot(sampleField(p + d.yzx) - sampleField(p - d.yzx), vec2(0.02, 1.0)) / uExtentKm.z;
+  vec3 g = vec3(dx, dy, dz);
+  return length(g) > 1e-6 ? normalize(-g) : vec3(0.0, 0.0, 1.0);
+}
+
+void main() {
+  vec2 ndc = (gl_FragCoord.xy / uViewport) * 2.0 - 1.0;
+  vec3 origin = unproject(ndc, -1.0);
+  vec3 direction = normalize(unproject(ndc, 1.0) - origin);
+
+  float near, far;
+  if (!hitBox(origin, direction, near, far)) discard;
+  near = max(near, 0.0);
+
+  // The cut, trimmed off the ray rather than tested per sample, so the exposed
+  // face lands exactly on the plane instead of on whichever step came first.
+  // Only the storm a reader has opened is cut, and the clouds around it.
+  bool cutFace = false;
+  if (uCut > 0.5) {
+    float facing = dot(direction, uPlaneNormal);
+    float atPlane = dot(uPlanePoint - origin, uPlaneNormal);
+    if (abs(facing) < 1e-6) {
+      if (atPlane < 0.0) discard;
+    } else {
+      float t = atPlane / facing;
+      if (facing > 0.0) far = min(far, t);
+      else if (t > near) { near = t; cutFace = true; }
+    }
+    if (far <= near) discard;
+  }
+
+  // Steps in proportion to the length of the ray inside the box: uSteps for
+  // one whole width of it, fewer for a ray that only clips an edge or a
+  // corner, and never more than uSteps. Every step then covers about the
+  // same distance, so a storm boxed by many tiles costs what its own length
+  // of ray does, not a full march per tile it brushes.
+  float count = clamp(ceil((far - near) * uSteps), 4.0, uSteps);
+  float dt = (far - near) / count;
+  vec3 light = normalize(vec3(-0.45, -0.7, 0.75));
+  vec4 accumulated = vec4(0.0);
+  float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+  bool wrote = false;
+
+  for (float i = 0.0; i < uSteps; i += 1.0) {
+    if (i >= count) break;
+    vec3 p = origin + direction * (near + dt * (i + dither));
+    vec2 field = sampleField(p);
+    float density = smoothstep(uLow, uLow + ${PEEL_BAND}.0, field.x) * field.y;
+    if (density <= 0.002) continue;
+
+    if (!wrote) {
+      // The first sample that is actually storm is what this pixel's depth is,
+      // so the map's own geometry occludes it in the right order.
+      vec4 clip = uForward * vec4(p, 1.0);
+      gl_FragDepth = mix(uDepthRange.x, uDepthRange.y, clamp(0.5 + 0.5 * clip.z / clip.w, 0.0, 1.0));
+      wrote = true;
+    }
+
+    vec3 colour = texture(uRamp, vec2(clamp((field.x + 32.0) / 96.0, 0.0, 1.0), 0.5)).rgb;
+    float alpha;
+    if (cutFace && i < 1.0) {
+      vec2 behind = sampleField(p + direction * dt * 0.5);
+      float smoothed = 0.5 * (density + smoothstep(uLow, uLow + ${PEEL_BAND}.0, behind.x) * behind.y);
+      alpha = clamp(smoothed * 2.1, 0.0, 1.0);
+      colour *= 1.12;
+    } else {
+      float lambert = 0.42 + 0.58 * max(dot(fieldNormal(p, dt), light), 0.0);
+      // Opacity per kilometre of storm, not per step. A step in the unit cube
+      // is a different distance along every direction -- the box is 40 by 40
+      // by 16 km -- so the step has to be measured in the world before it can
+      // mean anything, and measured this way the storm is exactly as opaque
+      // here as in the panel.
+      float stepKm = dt * length(direction * uExtentKm);
+      alpha = clamp(density * stepKm * ${OPACITY_PER_KM}, 0.0, 1.0);
+      colour *= lambert;
+    }
+    accumulated.rgb += (1.0 - accumulated.a) * colour * alpha;
+    accumulated.a += (1.0 - accumulated.a) * alpha;
+    if (accumulated.a > 0.985) break;
+  }
+
+  if (!wrote) discard;
+  // Premultiplied: a storm the radars did not see well enough to
+  // open is drawn fainter whole, so the map says which storms have a picture.
+  fragColour = accumulated * uDim;
+}`;
+
+/** How much of its opacity a storm keeps when its coverage is below the floor for opening. */
+export const DIM_UNOPENABLE = 0.45;
+
+/* Column-major 4x4 helpers, in the layout WebGL and MapLibre both use.
+   Written here rather than pulled from gl-matrix: it is two functions, and
+   gl-matrix reaches this project only as one of MapLibre's own dependencies,
+   which is not something to start importing from. */
+/** Anything indexable by 16 numbers: MapLibre hands over gl-matrix's own type. */
+type Mat4 = ArrayLike<number>;
+
+function multiply(a: Mat4, b: Mat4): Float64Array {
+  const out = new Float64Array(16);
+  for (let c = 0; c < 4; c += 1) {
+    for (let r = 0; r < 4; r += 1) {
+      out[c * 4 + r] = a[r] * b[c * 4]
+        + a[4 + r] * b[c * 4 + 1]
+        + a[8 + r] * b[c * 4 + 2]
+        + a[12 + r] * b[c * 4 + 3];
+    }
+  }
+  return out;
+}
+
+function invert(m: Mat4): Float64Array | null {
+  const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
+  const a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7];
+  const a20 = m[8], a21 = m[9], a22 = m[10], a23 = m[11];
+  const a30 = m[12], a31 = m[13], a32 = m[14], a33 = m[15];
+  const b00 = a00 * a11 - a01 * a10, b01 = a00 * a12 - a02 * a10;
+  const b02 = a00 * a13 - a03 * a10, b03 = a01 * a12 - a02 * a11;
+  const b04 = a01 * a13 - a03 * a11, b05 = a02 * a13 - a03 * a12;
+  const b06 = a20 * a31 - a21 * a30, b07 = a20 * a32 - a22 * a30;
+  const b08 = a20 * a33 - a23 * a30, b09 = a21 * a32 - a22 * a31;
+  const b10 = a21 * a33 - a23 * a31, b11 = a22 * a33 - a23 * a32;
+  const det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+  if (!det) return null;
+  const d = 1 / det;
+  return new Float64Array([
+    (a11 * b11 - a12 * b10 + a13 * b09) * d, (a02 * b10 - a01 * b11 - a03 * b09) * d,
+    (a31 * b05 - a32 * b04 + a33 * b03) * d, (a22 * b04 - a21 * b05 - a23 * b03) * d,
+    (a12 * b08 - a10 * b11 - a13 * b07) * d, (a00 * b11 - a02 * b08 + a03 * b07) * d,
+    (a32 * b02 - a30 * b05 - a33 * b01) * d, (a20 * b05 - a22 * b02 + a23 * b01) * d,
+    (a10 * b10 - a11 * b08 + a13 * b06) * d, (a01 * b08 - a00 * b10 - a03 * b06) * d,
+    (a30 * b04 - a31 * b02 + a33 * b00) * d, (a21 * b02 - a20 * b04 - a23 * b00) * d,
+    (a11 * b07 - a10 * b09 - a12 * b06) * d, (a00 * b09 - a01 * b07 + a02 * b06) * d,
+    (a31 * b01 - a30 * b03 - a32 * b00) * d, (a20 * b03 - a21 * b01 + a22 * b00) * d,
+  ]);
+}
+
+function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
+  const shader = gl.createShader(type)!;
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    throw new Error(gl.getShaderInfoLog(shader) ?? "volume shader would not compile");
+  }
+  return shader;
+}
+
+/** A column-major 4x4 applied to a point, returning clip-space x, y, z, w. */
+function apply(m: Mat4, x: number, y: number, z: number): [number, number, number, number] {
+  return [
+    m[0] * x + m[4] * y + m[8] * z + m[12],
+    m[1] * x + m[5] * y + m[9] * z + m[13],
+    m[2] * x + m[6] * y + m[10] * z + m[14],
+    m[3] * x + m[7] * y + m[11] * z + m[15],
+  ];
+}
+
+const CORNERS: Array<[number, number, number]> = [
+  [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1],
+];
+
+/** The corners of the drawn part of a box, in its unit cube. */
+function cornersOf(box: { min: [number, number, number]; max: [number, number, number] }): Array<[number, number, number]> {
+  return CORNERS.map(([x, y, z]) => [
+    x ? box.max[0] : box.min[0], y ? box.max[1] : box.min[1], z ? box.max[2] : box.min[2],
+  ]);
+}
+
+/**
+ * The part of the screen a box can cover, in pixels, or null if none of it.
+ *
+ * Every cloud is a fullscreen triangle whose fragments march only where the
+ * ray meets the box -- and with one cloud that was fine, but a dozen is a
+ * dozen fullscreen raymarches a frame. Scissoring each to the rectangle its
+ * eight corners project to keeps the cost to the pixels the storm is actually
+ * on, which at the zoom a whole region is looked at is a small fraction of
+ * the screen. A corner behind the camera makes the projection meaningless,
+ * so that case falls back to the whole viewport rather than guessing.
+ */
+function screenRect(
+  forward: Mat4, corners: ReadonlyArray<[number, number, number]>, width: number, height: number,
+): [number, number, number, number] | "all" | null {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y, z] of corners) {
+    const [cx, cy, , cw] = apply(forward, x, y, z);
+    if (cw <= 0) return "all";
+    const px = (cx / cw * 0.5 + 0.5) * width;
+    const py = (cy / cw * 0.5 + 0.5) * height;
+    x0 = Math.min(x0, px); x1 = Math.max(x1, px);
+    y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+  }
+  const left = Math.max(0, Math.floor(x0) - 2), bottom = Math.max(0, Math.floor(y0) - 2);
+  const right = Math.min(width, Math.ceil(x1) + 2), top = Math.min(height, Math.ceil(y1) + 2);
+  return right > left && top > bottom ? [left, bottom, right - left, top - bottom] : null;
+}
+
+/**
+ * The reflectivity that only a storm's strongest `PEEL_CORE_VOXELS` reach.
+ *
+ * Counted down a histogram of the stored bytes rather than sorted: a volume
+ * is a few million voxels and this runs once per storm. Voxels the radars saw
+ * poorly are left out, or a smear of interpolated echo at the edge of
+ * coverage can be what the peel stops at. Never below the unpeeled floor, so
+ * a weak storm simply does not peel.
+ */
+function coreDbz(cutaway: Cutaway): number {
+  const { voxels, header } = cutaway;
+  const counts = new Uint32Array(256);
+  for (let i = 0; i < voxels.length; i += 2) {
+    if (voxels[i + 1] >= 128) counts[voxels[i]] += 1;
+  }
+  let remaining = PEEL_CORE_VOXELS;
+  let byte = 255;
+  for (; byte > 0; byte -= 1) {
+    remaining -= counts[byte];
+    if (remaining <= 0) break;
+  }
+  return Math.max(DBZ_LOW, byte / header.dbz_scale + header.dbz_floor - PEEL_BAND);
+}
+
+/**
+ * How much of a storm would read as cloud: the area of its silhouette that is
+ * at least half opaque, in km2, seen at the tilt the 3D map opens at, from
+ * the south or from the west -- whichever shows more of it.
+ *
+ * The list's peak is the composite's, not the box's, and the two can disagree
+ * completely: a box filled from sweeps an hour newer than the composite that
+ * seeded it, or a shower that is all drizzle, holds a few hundred voxels just
+ * over `DBZ_LOW` -- where the shader's opacity is still zero. Measured the
+ * way the shader draws it -- the same ramp, the same confidence, the same
+ * opacity per kilometre -- so what this calls faint is what the map would
+ * have drawn faint.
+ *
+ * At the map's tilt rather than straight from the side: looked at along the
+ * ground, the 40 km of box a wide, thin shield lies across adds up to a solid
+ * wall that no camera on the map ever sees. Each voxel's opacity is spread
+ * over the bin of the view plane it lands in; from the north or the east the
+ * same rays run the other way, and opacity summed along a ray does not care
+ * which way.
+ */
+export function solidKm2(cutaway: Cutaway): number {
+  const { voxels, header } = cutaway;
+  const { nx, ny, nz } = header;
+  const [sx, sy, sz] = header.step_m.map((metres) => metres / 1000);
+  const tilt = (VIEW_PITCH_DEG * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(tilt), Math.sin(tilt)];
+  // Square bins as fine as the grid across, which is what a reader sees.
+  const bin = Math.min(sx, sy);
+  // Opacity for each stored reflectivity byte, per voxel and per bin, with
+  // the confidence byte's scale folded in, so a voxel costs one multiply.
+  const perVoxel = new Float32Array(256);
+  for (let byte = 0; byte < 256; byte += 1) {
+    const t = Math.min(Math.max((byte / header.dbz_scale + header.dbz_floor - DBZ_LOW) / PEEL_BAND, 0), 1);
+    perVoxel[byte] = (t * t * (3 - 2 * t) * OPACITY_PER_KM * sx * sy * sz) / (bin * bin * 255);
+  }
+  // Optical depth through each bin of the two views: x across and y running
+  // up the screen, then y across and x up it.
+  const [wideX, wideY] = [Math.ceil((nx * sx) / bin), Math.ceil((ny * sy) / bin)];
+  const fromSouth = new Float32Array(wideX * (Math.ceil((ny * sy * cos + nz * sz * sin) / bin) + 1));
+  const fromWest = new Float32Array(wideY * (Math.ceil((nx * sx * cos + nz * sz * sin) / bin) + 1));
+  let at = 0;
+  for (let z = 0; z < nz; z += 1) {
+    const up = (z + 0.5) * sz * sin;
+    for (let y = 0; y < ny; y += 1) {
+      const rowY = Math.floor(((y + 0.5) * sy * cos + up) / bin);
+      const acrossY = Math.floor(((y + 0.5) * sy) / bin);
+      for (let x = 0; x < nx; x += 1, at += 2) {
+        const depth = perVoxel[voxels[at]] * voxels[at + 1];
+        if (!depth) continue;
+        fromSouth[rowY * wideX + Math.floor(((x + 0.5) * sx) / bin)] += depth;
+        fromWest[Math.floor(((x + 0.5) * sx * cos + up) / bin) * wideY + acrossY] += depth;
+      }
+    }
+  }
+  // Half opaque is a transmittance of a half, exp(-depth) = 0.5.
+  const solid = (depths: Float32Array) => (
+    depths.reduce((count, depth) => (depth >= Math.LN2 ? count + 1 : count), 0) * bin * bin
+  );
+  return Math.max(solid(fromSouth), solid(fromWest));
+}
+
+/** Whether a storm would be drawn too faint to make out; see `solidKm2`. */
+export const isFaint = (cutaway: Cutaway): boolean => solidKm2(cutaway) < SOLID_KM2_MIN;
+
+/**
+ * How far through its peel a storm is, 0 whole to 1 down to the core.
+ *
+ * Eased, and held at both ends: a peel that never stops is only ever halfway
+ * between two pictures, and the two worth looking at are the whole storm and
+ * what is left of it.
+ */
+function peelAt(seconds: number): number {
+  const t = (seconds / PEEL_SECONDS) % 1;
+  const rise = Math.min(Math.max((t - 0.1) / 0.35, 0), 1);
+  const fall = Math.min(Math.max((t - 0.6) / 0.35, 0), 1);
+  const eased = (x: number) => x * x * (3 - 2 * x);
+  return eased(rise) - eased(fall);
+}
+
+/**
+ * Each storm's peel floor, by the key each of its tiles is held under: the
+ * strongest `coreDbz` among the tiles of one storm that peel, so they peel as
+ * one cloud (see `Cloud.peelFloor`). A storm from before tiles, with no
+ * `system`, is a storm of its own; one that does not peel stays at `DBZ_LOW`.
+ */
+export function peelFloors(
+  clouds: Iterable<[string, { system: string | null; coreDbz: number; peels: boolean }]>,
+): Map<string, number> {
+  const held = [...clouds];
+  const storms = new Map<string, number>();
+  const storm = (key: string, system: string | null) => system ?? key;
+  for (const [key, { system, coreDbz, peels }] of held) {
+    if (peels) storms.set(storm(key, system), Math.max(storms.get(storm(key, system)) ?? DBZ_LOW, coreDbz));
+  }
+  return new Map(held.map(([key, { system, peels }]) => [key, peels ? storms.get(storm(key, system))! : DBZ_LOW]));
+}
+
+/**
+ * Where the cut passes through the opened tile, on the map: through the
+ * storm, not the middle of the box (see `locateStorm`), as Mercator x and y
+ * and a height in the tile's cube scaled to the map.
+ */
+export function cutPointOf(model: Mat4, cutaway: Pick<Cutaway, "extentM" | "centreKm">): [number, number, number] {
+  const { extentM, centreKm } = cutaway;
+  const u = 0.5 + centreKm[0] / (extentM[0] / 1000);
+  const v = 0.5 + centreKm[1] / (extentM[1] / 1000);
+  return [model[12] + model[0] * u, model[13] + model[5] * v, (centreKm[2] / (extentM[2] / 1000)) * model[10]];
+}
+
+/**
+ * The cut in one cloud's own cube: the opened tile's plane, carried over.
+ *
+ * Along the heading, so the normal lies across it. The model matrices only
+ * scale and translate, so a point maps across by undoing one and doing the
+ * other, and the normal by the ratio of the scales: tiles of one storm differ
+ * in scale by the cosine of a few kilometres of latitude.
+ */
+export function carryCut(
+  model: Mat4, opened: Mat4, point: readonly [number, number, number], along: number,
+): { normal: [number, number, number]; point: [number, number, number] } {
+  return {
+    normal: [(Math.cos(along) * model[0]) / opened[0], (-Math.sin(along) * model[5]) / opened[5], 0],
+    point: [(point[0] - model[12]) / model[0], (point[1] - model[13]) / model[5], point[2] / model[10]],
+  };
+}
+
+/**
+ * How far a cloud's drawn box stands from the cut, on the ground, in km: from
+ * the point the cut passes through to the nearest edge of the box, nothing if
+ * the point is inside it. `metre` is Mercator units to the metre, at the
+ * opened tile.
+ */
+export function kmFromCut(
+  model: Mat4, box: { min: readonly number[]; max: readonly number[] }, point: readonly [number, number, number],
+  metre: number,
+): number {
+  const xs = [model[12] + model[0] * box.min[0], model[12] + model[0] * box.max[0]];
+  // Mercator's y runs south, so the cube's y = 1 is the box's smaller y.
+  const ys = [model[13] + model[5] * box.min[1], model[13] + model[5] * box.max[1]];
+  const dx = Math.max(Math.min(...xs) - point[0], 0, point[0] - Math.max(...xs));
+  const dy = Math.max(Math.min(...ys) - point[1], 0, point[1] - Math.max(...ys));
+  return Math.hypot(dx, dy) / metre / 1000;
+}
+
+/** Whether every corner of a box is on the side of a cut that is gone: then there is nothing of it to draw. */
+export function cutAway(
+  corners: ReadonlyArray<readonly [number, number, number]>,
+  cut: { normal: readonly [number, number, number]; point: readonly [number, number, number] },
+): boolean {
+  return corners.every((corner) => (
+    corner.reduce((sum, value, axis) => sum + cut.normal[axis] * (value - cut.point[axis]), 0) > 0
+  ));
+}
+
+/** One storm on the map: its field, where its box stands, and its texture once uploaded. */
+interface Cloud {
+  cutaway: Cutaway;
+  model: Float64Array;
+  /**
+   * The part of its unit cube that is marched, and its corners: the tile,
+   * bar its apron, cut down to where it holds any echo (`echoPart`).
+   */
+  box: { min: [number, number, number]; max: [number, number, number] };
+  corners: Array<[number, number, number]>;
+  /** Samples along a ray through it; see `STEPS`. */
+  steps: number;
+  /** Where its own peel would stop: the reflectivity only its core reaches. */
+  coreDbz: number;
+  /**
+   * Where its peel stops: the strongest `coreDbz` among the tiles of its
+   * storm, so one storm's tiles peel as one cloud. Each to its own floor,
+   * a weak tile beside a strong one emptied while its neighbour still stood,
+   * and the seam between them flickered through every peel.
+   */
+  peelFloor: number;
+  /** The storm it is a tile of, by the code of the tile holding the storm's peak; null before tiles. */
+  system: string | null;
+  /** How much of its opacity it keeps; see `DIM_UNOPENABLE`. */
+  dim: number;
+  /** Whether it peels when not cut; see `setClouds`. */
+  peels: boolean;
+  texture: WebGLTexture | null;
+}
+
+export interface CloudsLayer extends CustomLayerInterface {
+  /**
+   * Replace the set of storms drawn; ones already uploaded are kept, not reloaded.
+   *
+   * Keyed by the volume's path, not the core's code: a code is a grid
+   * position, unique only within one scan, so the same code can name two
+   * different storms -- or two scans of one -- at the same time.
+   *
+   * `peels: false` holds a storm whole: one the radars did not see well
+   * enough to open, whose layers are interpolation, so peeling them shows
+   * nothing about where the intensity sits -- and costs a frame every
+   * twelfth of a second for as long as one is on screen.
+   */
+  setClouds(clouds: ReadonlyArray<{
+    key: string; cutaway: Cutaway; dim?: number; peels?: boolean; system?: string | null;
+  }>): void;
+  /**
+   * Open one storm, by the key it was handed over under, with a cut at this
+   * heading. Every cloud near it is cut by the same plane (`CUT_REACH_KM`),
+   * so the cut runs across the storm rather than stopping at the tile's
+   * edge, and nothing stands whole in front of the face.
+   */
+  setCut(key: string | null, headingDeg: number): void;
+  /** Paint the storms in this radar palette, by the name the settings store it under. */
+  setColormap(name: string): void;
+  /**
+   * Hold every storm at this peel, 0 whole to 1 down to its core, instead of
+   * peeling on its own; null lets it run again.
+   */
+  setPeel(peel: number | null): void;
+}
+
+/**
+ * Every storm with a volume, drawn at once: the one a reader opened cut, the rest peeling.
+ *
+ * One layer rather than one per storm, so they share a program and are drawn
+ * in a single pass sorted far to near: they are translucent, and translucent
+ * things composite correctly only drawn back to front. Boxes of neighbouring
+ * cores can overlap, where the order is only approximately right; the clouds
+ * are soft enough there that it does not show.
+ */
+export function makeCloudsLayer(
+  id: string,
+  MercatorCoordinate: typeof import("maplibre-gl").MercatorCoordinate,
+  initialColormap: string,
+  /** Told where the running peel is, each frame it moves, for a slider to follow. */
+  onPeel: (peel: number) => void = () => {},
+): CloudsLayer {
+  let gl: WebGL2RenderingContext | null = null;
+  let map: GlMap | null = null;
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let program: WebGLProgram | null = null;
+  let rampTexture: WebGLTexture | null = null;
+  const clouds = new Map<string, Cloud>();
+  let cutKey: string | null = null;
+  let cutHeading = 0;
+  let colormap = initialColormap;
+  /** Uniform locations, looked up once per program rather than a dozen times a frame. */
+  let uniforms = new Map<string, WebGLUniformLocation | null>();
+  /** The pending peel frame, if one has been asked for. */
+  let peelTimer: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * The peel's own clock, in seconds. It advances only while the peel is
+   * being drawn, so a peel that stopped for idleness resumes from the same
+   * shell rather than jumping to wherever the wall clock has got to.
+   */
+  let peelTime = 0;
+  let lastFrameAt: number | null = null;
+  /** The peel the reader set by hand, which stops the running one; see `setPeel`. */
+  let manualPeel: number | null = null;
+  /** When the reader last touched the map, or the storms changed. */
+  let activeSince = performance.now();
+  const wake = () => { activeSince = performance.now(); schedulePeel(); };
+  const mapEvents = ["movestart", "move", "mousedown", "touchstart", "wheel"] as const;
+
+  const peelActive = (): boolean => (
+    !still && performance.now() - activeSince < PEEL_IDLE_SECONDS * 1000
+  );
+
+  /** Ask for the next peel frame, once, a twelfth of a second from now. */
+  function schedulePeel(): void {
+    if (peelTimer !== null || !peelActive()) return;
+    peelTimer = setTimeout(() => {
+      peelTimer = null;
+      // Only while the map is on the page: switched away from, its element
+      // is taken out and the map is meant to sleep, and a repaint asked for
+      // would keep it raymarching into a canvas nobody can see. Coming back
+      // repaints it, and `render` picks the loop up again.
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    }, 1000 / PEEL_FPS);
+  }
+
+  /** The palette as a texture the shader looks reflectivity up in, -32 to +64 dBZ. */
+  function paintRamp(context: WebGL2RenderingContext): void {
+    const ramp = new Uint8Array(256 * 4);
+    for (let i = 0; i < 256; i += 1) {
+      const [r, g, b] = dbzColour(-32 + (i / 255) * 96, colormap);
+      ramp.set([r, g, b, 255], i * 4);
+    }
+    rampTexture ??= context.createTexture();
+    context.bindTexture(context.TEXTURE_2D, rampTexture);
+    context.texImage2D(context.TEXTURE_2D, 0, context.RGBA, 256, 1, 0, context.RGBA, context.UNSIGNED_BYTE, ramp);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.LINEAR);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.LINEAR);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+  }
+
+  /**
+   * The unit cube, onto the ground the storm is actually over.
+   *
+   * The scale is negative on y because Mercator's y runs south and the box's
+   * does not; the box sits on the ground, so z starts at zero. Upwards it is
+   * stretched as the terrain is, by `VERTICAL_SCALE` -- in the matrix only:
+   * the shader's kilometres stay true, so a storm is as opaque as it is.
+   */
+  function modelFor(cutaway: Cutaway): Float64Array {
+    const { header, extentM } = cutaway;
+    const centre = MercatorCoordinate.fromLngLat({ lng: header.lon, lat: header.lat }, 0);
+    const metre = centre.meterInMercatorCoordinateUnits();
+    const [sx, sy, sz] = [extentM[0] * metre, extentM[1] * metre, extentM[2] * metre * VERTICAL_SCALE];
+    return new Float64Array([
+      sx, 0, 0, 0,
+      0, -sy, 0, 0,
+      0, 0, sz, 0,
+      centre.x - sx / 2, centre.y + sy / 2, 0, 1,
+    ]);
+  }
+
+  function upload(context: WebGL2RenderingContext, cutaway: Cutaway): WebGLTexture {
+    const { header } = cutaway;
+    const texture = context.createTexture()!;
+    context.bindTexture(context.TEXTURE_3D, texture);
+    context.pixelStorei(context.UNPACK_ALIGNMENT, 1);
+    context.texImage3D(context.TEXTURE_3D, 0, context.RG8, header.nx, header.ny, header.nz, 0,
+      context.RG, context.UNSIGNED_BYTE, cutaway.voxels);
+    for (const axis of [context.TEXTURE_WRAP_S, context.TEXTURE_WRAP_T, context.TEXTURE_WRAP_R]) {
+      context.texParameteri(context.TEXTURE_3D, axis, context.CLAMP_TO_EDGE);
+    }
+    context.texParameteri(context.TEXTURE_3D, context.TEXTURE_MIN_FILTER, context.LINEAR);
+    context.texParameteri(context.TEXTURE_3D, context.TEXTURE_MAG_FILTER, context.LINEAR);
+    return texture;
+  }
+
+  return {
+    id,
+    type: "custom",
+    renderingMode: "3d",
+
+    setClouds(next) {
+      const wanted = new Set(next.map((cloud) => cloud.key));
+      for (const [key, cloud] of clouds) {
+        if (wanted.has(key)) continue;
+        if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
+        clouds.delete(key);
+      }
+      for (const { key, cutaway, dim = 1, peels = true, system = null } of next) {
+        const kept = clouds.get(key);
+        if (kept?.cutaway === cutaway) {
+          if (peels && !kept.peels) kept.coreDbz = coreDbz(cutaway);
+          kept.dim = dim;
+          kept.peels = peels;
+          kept.system = system;
+          continue;
+        }
+        if (kept?.texture && gl) gl.deleteTexture(kept.texture);
+        // Steps are counted on the tile, so a step is the same length in every box.
+        const tile = drawnPart(cutaway.header);
+        const across = Math.max(
+          cutaway.header.nx * (tile.max[0] - tile.min[0]), cutaway.header.ny * (tile.max[1] - tile.min[1]),
+        );
+        // Marched only where there is echo to draw: not the air above the
+        // storm's top, nor the empty part of a tile at the storm's edge.
+        const echo = echoPart(cutaway, DBZ_LOW);
+        const box = echo ? overlap(tile, echo) : tile;
+        const own = peels ? coreDbz(cutaway) : DBZ_LOW;
+        clouds.set(key, {
+          cutaway,
+          model: modelFor(cutaway),
+          box,
+          corners: cornersOf(box),
+          steps: Math.max(16, Math.round((STEPS * across) / STEPS_VOXELS)),
+          // A pass over every voxel, so only for a storm that will use it.
+          coreDbz: own,
+          peelFloor: own,
+          system,
+          dim,
+          peels,
+          texture: gl ? upload(gl, cutaway) : null,
+        });
+      }
+      for (const [key, floor] of peelFloors(clouds)) clouds.get(key)!.peelFloor = floor;
+      // New storms are worth peeling for a while, whatever the reader was doing.
+      wake();
+    },
+
+    setCut(key, headingDeg) {
+      // Opened or closed, the peel starts again from the whole storm: it is
+      // held while one is open (see render), and resuming mid-peel would
+      // jump every other storm to a different shell the moment it closed.
+      if (key !== cutKey) peelTime = 0;
+      cutKey = key;
+      cutHeading = headingDeg;
+      wake();
+    },
+
+    setColormap(name) {
+      colormap = name;
+      if (gl) paintRamp(gl);
+    },
+
+    setPeel(peel) {
+      manualPeel = peel;
+      if (peel === null) wake();
+      else if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
+
+    onAdd(added: GlMap, context: WebGL2RenderingContext) {
+      map = added;
+      gl = context;
+      program = context.createProgram()!;
+      context.attachShader(program, compile(context, context.VERTEX_SHADER, VERTEX));
+      context.attachShader(program, compile(context, context.FRAGMENT_SHADER, FRAGMENT));
+      context.linkProgram(program);
+      if (!context.getProgramParameter(program, context.LINK_STATUS)) {
+        throw new Error(context.getProgramInfoLog(program) ?? "volume shader would not link");
+      }
+
+      paintRamp(context);
+      uniforms = new Map();
+
+      // Storms handed over before the layer existed get their textures now.
+      for (const cloud of clouds.values()) cloud.texture ??= upload(context, cloud.cutaway);
+
+      // Touching the map restarts the peel where it left off.
+      for (const event of mapEvents) added.on(event, wake);
+      wake();
+    },
+
+    render(context: WebGL2RenderingContext, options: CustomRenderMethodInput) {
+      if (!program || !clouds.size) return;
+      // `mainMatrix`, the one documented to take spherical mercator; see the
+      // model matrix above for the space the boxes are built in.
+      const main = options.defaultProjectionData.mainMatrix;
+      // One phase for every unopened storm, off a clock of the peel's own that
+      // runs only while it is drawing, so the peel keeps its pace however fast
+      // the map draws and resumes where it paused. Held whole for anyone who
+      // has asked for less motion.
+      const now = performance.now() / 1000;
+      // Held whole while a storm is cut open: the reader is reading that one,
+      // and a dozen others peeling around it kept the map redrawing at the
+      // peel's pace under the sweep and the detail panel, which made the open
+      // storm the laggiest thing on screen.
+      // A peel set by hand stands, reduced motion or not, until a storm is cut.
+      const manual = manualPeel !== null && cutKey === null;
+      const holding = still || cutKey !== null;
+      const active = peelActive() && !holding && manualPeel === null;
+      if (active && lastFrameAt !== null) peelTime += Math.min(now - lastFrameAt, 1 / PEEL_FPS);
+      lastFrameAt = now;
+      const peel = manual ? manualPeel! : holding ? 0 : peelAt(peelTime);
+      if (active) onPeel(peel);
+      const width = context.drawingBufferWidth;
+      const height = context.drawingBufferHeight;
+      /** Whether any storm that peels is on screen, which is what a peel frame is for. */
+      let peeling = false;
+
+      // Far to near, by where each box's middle lands in clip space.
+      const ordered = [...clouds.entries()]
+        .filter(([, cloud]) => cloud.texture)
+        .map(([key, cloud]) => {
+          const forward = multiply(main, cloud.model);
+          const [, , z, w] = apply(forward, 0.5, 0.5, 0.25);
+          return { key, cloud, forward, depth: w > 0 ? z / w : Infinity };
+        })
+        .sort((a, b) => b.depth - a.depth);
+
+      context.useProgram(program);
+      const at = (name: string) => {
+        let location = uniforms.get(name);
+        if (location === undefined) {
+          location = context.getUniformLocation(program!, name);
+          uniforms.set(name, location);
+        }
+        return location;
+      };
+      context.activeTexture(context.TEXTURE1);
+      context.bindTexture(context.TEXTURE_2D, rampTexture);
+      context.uniform1i(at("uRamp"), 1);
+      context.uniform1i(at("uVolume"), 0);
+      context.uniform2f(at("uViewport"), width, height);
+      // Whatever MapLibre has set for this layer; see "Depth" above.
+      const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
+      context.uniform2f(at("uDepthRange"), depthNear, depthFar);
+
+      context.enable(context.BLEND);
+      context.blendFunc(context.ONE, context.ONE_MINUS_SRC_ALPHA);
+      context.enable(context.DEPTH_TEST);
+      context.depthFunc(context.LESS);
+      // Tested but not written: translucent storms that wrote depth would erase
+      // whatever is drawn behind them, including each other.
+      context.depthMask(false);
+      context.disable(context.CULL_FACE);
+
+      // The cut, on the map, carried into each cut tile's cube; see `carryCut`.
+      const opened = cutKey !== null ? clouds.get(cutKey) : undefined;
+      const along = (cutHeading * Math.PI) / 180;
+      const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
+      const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
+
+      for (const { key, cloud, forward } of ordered) {
+        const rect = screenRect(forward, cloud.corners, width, height);
+        if (rect === null) continue;
+        const inverse = invert(forward);
+        if (!inverse) continue;
+        const { header, extentM } = cloud.cutaway;
+
+        // The opened tile, and every cloud near enough to stand in front of
+        // its face; see `CUT_REACH_KM`. One wholly on the side that is gone
+        // is not drawn at all.
+        const plane = opened !== undefined && cutPoint !== null
+          && (key === cutKey || kmFromCut(cloud.model, cloud.box, cutPoint, metre) <= CUT_REACH_KM)
+          ? carryCut(cloud.model, opened.model, cutPoint, along)
+          : null;
+        if (plane && cutAway(cloud.corners, plane)) continue;
+
+        if (rect === "all") {
+          context.disable(context.SCISSOR_TEST);
+        } else {
+          context.enable(context.SCISSOR_TEST);
+          context.scissor(rect[0], rect[1], rect[2], rect[3]);
+        }
+
+        context.activeTexture(context.TEXTURE0);
+        context.bindTexture(context.TEXTURE_3D, cloud.texture);
+        context.uniformMatrix4fv(at("uForward"), false, new Float32Array(forward));
+        context.uniformMatrix4fv(at("uInverse"), false, new Float32Array(inverse));
+        context.uniform3f(at("uExtentKm"), extentM[0] / 1000, extentM[1] / 1000, extentM[2] / 1000);
+        context.uniform3f(at("uBoxMin"), ...cloud.box.min);
+        context.uniform3f(at("uBoxMax"), ...cloud.box.max);
+        context.uniform1f(at("uSteps"), cloud.steps);
+        context.uniform1f(at("uDbzFloor"), header.dbz_floor);
+        context.uniform1f(at("uDbzScale"), header.dbz_scale);
+
+        const peelsNow = !plane && cloud.peels && (manual || !holding);
+        if (peelsNow) peeling = true;
+        context.uniform1f(at("uCut"), plane ? 1 : 0);
+        context.uniform1f(at("uDim"), cloud.dim);
+        context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.peelFloor - DBZ_LOW) * peel : DBZ_LOW);
+        if (plane) {
+          context.uniform3f(at("uPlaneNormal"), ...plane.normal);
+          context.uniform3f(at("uPlanePoint"), ...plane.point);
+        }
+        context.drawArrays(context.TRIANGLES, 0, 3);
+      }
+
+      context.disable(context.SCISSOR_TEST);
+      context.depthMask(true);
+      // The peel moves on its own, so the map has to keep drawing while any
+      // storm but the open one is on screen and the reader is still about --
+      // at the peel's own pace, not the display's. See `schedulePeel`.
+      if (active && peeling) schedulePeel();
+    },
+
+    onRemove(removed: GlMap, context: WebGL2RenderingContext) {
+      for (const event of mapEvents) removed.off(event, wake);
+      if (peelTimer !== null) clearTimeout(peelTimer);
+      peelTimer = null;
+      lastFrameAt = null;
+      for (const cloud of clouds.values()) {
+        if (cloud.texture) context.deleteTexture(cloud.texture);
+        cloud.texture = null;
+      }
+      if (rampTexture) context.deleteTexture(rampTexture);
+      if (program) context.deleteProgram(program);
+      program = null;
+      rampTexture = null;
+      gl = null;
+      map = null;
+    },
+  };
+}

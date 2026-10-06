@@ -1,0 +1,48 @@
+#!/bin/sh
+# commit-msg hook: terse Conventional Commits, no AI attribution.
+# Install: cp scripts/commit-msg "$(git rev-parse --git-common-dir)/hooks/commit-msg"
+msg="$1"
+
+# Drop AI attribution trailers and footers.
+tmp="$msg.$$"
+grep -v -i -E '^(co-authored-by:.*(claude|anthropic)|.*generated with \[?claude)' "$msg" >"$tmp"
+mv "$tmp" "$msg"
+
+awk '
+function err(s) { errs = errs "  - " s "\n" }
+/^# -+ >8 -+$/ { exit }
+/^#/ { next }
+{ lines[++n] = $0 }
+END {
+  while (n > 0 && lines[n] ~ /^[ \t]*$/) n--
+  s = 1
+  while (s <= n && lines[s] ~ /^[ \t]*$/) s++
+  if (s > n) exit 0
+
+  subj = lines[s]
+  if (subj !~ /^(Merge |Revert "|fixup! |squash! |amend! )/) {
+    if (subj !~ /^(feat|fix|perf|refactor|build|ci|docs|test|chore|style|revert)(\([a-z0-9._\/-]+\))?!?: [^ ]/)
+      err("subject must be type(scope): summary; type is feat fix perf refactor build ci docs test chore style revert")
+    if (length(subj) > 72) err("subject is " length(subj) " chars, max 72")
+    if (subj ~ /\.$/) err("subject ends with a period")
+  }
+  if (s < n && lines[s + 1] !~ /^[ \t]*$/) err("blank line after the subject")
+
+  bullets = 0
+  for (i = s + 2; i <= n; i++) {
+    l = lines[i]
+    if (l ~ /^[ \t]*$/ || l ~ /^(Refs|Closes|Fixes|BREAKING CHANGE): / || l ~ /^This reverts commit [0-9a-f]+\.$/) continue
+    if (l ~ /^- [^ ]/) {
+      bullets++
+      if (length(l) > 120) err("bullet is " length(l) " chars, max 120: " substr(l, 1, 50) "...")
+      continue
+    }
+    err("body lines must be one-line \"- \" bullets, no prose: " substr(l, 1, 60))
+  }
+  if (bullets > 6) err(bullets " bullets, max 6")
+
+  if (errs != "") {
+    printf "commit-msg: rejected\n%s\nExpected:\n\n  feat(worker): serve the apps API on app.meteocool.com\n\n  - New custom domain on the staging Worker\n  - Production has no API_ORIGIN yet, so nothing is forwarded there\n", errs > "/dev/stderr"
+    exit 1
+  }
+}' "$msg"

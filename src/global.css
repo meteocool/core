@@ -1,0 +1,125 @@
+html,
+body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  color: var(--mc-text, #1c1c1e);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--mc-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Link colour follows --mc-accent, which follows html[data-theme]. The old
+   prefers-color-scheme override here disagreed with the store the native
+   apps drive dark mode through. */
+a {
+  color: var(--mc-accent, #007aff);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+a:visited {
+  color: var(--mc-accent, #007aff);
+}
+
+label {
+  display: block;
+}
+
+/* Neutral reset: every real control is styled by the surface it sits on. */
+input,
+button,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: 0;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+button:focus {
+  outline: none;
+}
+button:focus-visible {
+  outline: 2px solid var(--mc-accent, #007aff);
+  outline-offset: 2px;
+}
+input:disabled,
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+input[type="range"] {
+  height: 0;
+}
+
+/* The live-cell rings: DOM placed by src/layers/cellPulse.ts, turned by the
+   compositor. The duration, step count, phase and turn are set inline from
+   the constants in src/lib/cellPulse.ts, so the cycle is stated once.
+   Transform only: anything else in the keyframes takes the animation off the
+   compositor and back to a repaint every frame. */
+.mc-cell-pulse {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* The pane a pan slides (see `render` in cellPulse.ts), and the rings on it. */
+.mc-cell-pulse > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+.mc-cell-pulse > div > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.mc-cell-pulse svg {
+  display: block;
+  animation-name: mc-cell-pulse;
+  animation-iteration-count: infinite;
+}
+.mc-cell-pulse circle {
+  fill: none;
+  stroke: var(--mc-pulse-ink);
+  stroke-width: var(--mc-pulse-width);
+}
+@keyframes mc-cell-pulse {
+  /* Clockwise, so the dashes travel the way the pattern is read. */
+  to { transform: rotate(var(--mc-pulse-turn)); }
+}
+/* Held on their notch while the map moves; see cellPulse.ts for why. */
+.mc-cell-pulse.mc-still svg {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-cell-pulse svg { animation: none; }
+}
+
+/* Screenshot mode (src/lib/screenshot.ts): nothing over the map but its
+   credits. The controls and the trays are never made there; these are what
+   can still turn up -- the progress bar while the picture loads, a notice --
+   and the controls once more, should a map be made with its defaults. */
+html.screenshot .nanobar,
+html.screenshot .sl-toast-stack,
+html.screenshot .ol-zoom,
+html.screenshot .ol-rotate,
+html.screenshot .ol-geolocate,
+html.screenshot .maplibregl-ctrl-top-right {
+  display: none !important;
+}

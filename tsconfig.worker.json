@@ -1,0 +1,20 @@
+{
+  // The Worker runs on workerd, not in a browser: its globals (HTMLRewriter,
+  // Fetcher) and its Response/ReadableStream differ from the DOM's. Pulling
+  // @cloudflare/workers-types into the app's tsconfig makes those globals win
+  // everywhere and breaks the frontend's own DOM types, so the Worker is
+  // checked separately and lives outside src/.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "strict": true
+  },
+  "include": ["worker/**/*.ts"]
+}

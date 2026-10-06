@@ -1,0 +1,165 @@
+/**
+ * The Worker in front of the static build.
+ *
+ * Its one job is OpenGraph: a shared meteocool link should preview as the map
+ * at the shared location, in the sharer's language, and those tags have to be
+ * in the HTML when a crawler fetches it -- no scraper runs the app to find out
+ * where it was pointed. So the tags are injected per request from `latLonZ` and
+ * `share_lang` rather than baked into index.html.
+ *
+ * Replaces functions/_middleware.js, which did the same thing as a Cloudflare
+ * Pages Function. Two things changed in the move: the meta-tag HTML is built as
+ * a local rather than held in module scope -- the Pages version wrote to a
+ * module-level `ogtag` on every request, so two overlapping requests could swap
+ * each other's language -- and the rewriter only runs when the response is
+ * actually HTML.
+ *
+ * It also forwards the native apps' API calls to this environment's backend
+ * (api.ts), and answers the files that open shared links in the apps
+ * (appLinks.ts).
+ */
+
+import { appApiRequest, isAppApiPath, isAppDataPath, isVolumePath, volumeRedirect } from "./api";
+import { appLinksResponse } from "./appLinks";
+
+interface Env {
+  ASSETS: Fetcher;
+  /**
+   * Origin serving `/v3/preview/og.png`, set per environment in
+   * wrangler.jsonc. The Worker is bundled by wrangler rather than Vite, so
+   * `--mode staging` does not reach it and a hardcoded default would have the
+   * staging deployment advertising production's preview image in its OpenGraph
+   * tags -- the one thing about a shared staging link that would still point at
+   * prod. Falls back to production so a deploy that forgets the var behaves as
+   * it always did.
+   */
+  PREVIEW_ORIGIN?: string;
+  /**
+   * Origin of the API this environment's build talks to, set per environment
+   * in wrangler.jsonc. The apps' API calls are forwarded there (api.ts).
+   * Unset, nothing is forwarded and those paths 404, so a missing var shows up
+   * as failed registrations rather than registrations on the wrong backend.
+   */
+  API_ORIGIN?: string;
+  /**
+   * Origin of this environment's data service, which the iOS app's AR view
+   * reads through this hostname (api.ts). Unset, those paths 404.
+   */
+  DATA_ORIGIN?: string;
+  /** Origin of this environment's asset host, where storm volumes live. */
+  ASSET_ORIGIN?: string;
+}
+
+const DEFAULT_PREVIEW_ORIGIN = "https://api.meteocool.com";
+
+const COPY = {
+  de: {
+    locale: "de_DE",
+    alternate: "en_US",
+    title: "meteocool Regenradar & Lightning Tracking",
+    description:
+      "Kostenfreie Open-Source Echtzeit Regenradar & Storm Tracking App für iOS, Android und das Web.",
+  },
+  en: {
+    locale: "en_US",
+    alternate: "de_DE",
+    title: "meteocool Open Radar & Lightning Tracking",
+    description:
+      "Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD).",
+  },
+} as const;
+
+function escapeAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
+}
+
+function metaTags(
+  url: string,
+  latLonZ: string | null,
+  lang: string | null,
+  previewOrigin: string,
+): string {
+  const copy = lang === "de" ? COPY.de : COPY.en;
+  // latLonZ lands in a URL the crawler fetches and in an attribute in our own
+  // markup, so it is encoded for both rather than interpolated raw.
+  // Commas are left literal: latLonZ is "lat,lon,zoom" and that is the exact
+  // shape the preview endpoint has always been sent. encodeURIComponent would
+  // turn them into %2C, which is a change to a URL nothing here can test.
+  const encoded = latLonZ ? encodeURIComponent(latLonZ).replaceAll("%2C", ",") : null;
+  const preview = `${previewOrigin}/v3/preview/og.png?aspectRatio=wide&frame=true&${
+    encoded ? `latLonZ=${encoded}` : "default"
+  }`;
+
+  return `
+      <meta property="og:title" content="${escapeAttribute(copy.title)}" />
+      <meta property="og:description" content="${escapeAttribute(copy.description)}" />
+      <meta property="og:locale" content="${copy.locale}" />
+      <meta property="og:locale:alternate" content="${copy.alternate}" />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="${escapeAttribute(url)}" />
+      <meta property="og:image" content="${escapeAttribute(preview)}" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:width" content="1200" />
+
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="${escapeAttribute(copy.title)}" />
+      <meta name="twitter:description" content="${escapeAttribute(copy.description)}" />
+
+      <meta name="description" content="${escapeAttribute(copy.description)}" />
+    `;
+}
+
+class MetaTagHandler {
+  constructor(private readonly tags: string) {}
+
+  element(element: Element) {
+    element.append(this.tags, { html: true });
+  }
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const { searchParams, pathname } = new URL(request.url);
+
+    const appLinks = appLinksResponse(pathname);
+    if (appLinks) return appLinks;
+
+    if (env.API_ORIGIN && isAppApiPath(pathname)) {
+      return fetch(appApiRequest(request, env.API_ORIGIN));
+    }
+    if (env.DATA_ORIGIN && isAppDataPath(pathname)) {
+      return fetch(appApiRequest(request, env.DATA_ORIGIN));
+    }
+    if (env.ASSET_ORIGIN && isVolumePath(pathname)) {
+      return volumeRedirect(request, env.ASSET_ORIGIN);
+    }
+
+    if (pathname !== "/" && pathname !== "/index.html") {
+      return env.ASSETS.fetch(request);
+    }
+
+    // `html_handling: "none"` in wrangler.jsonc keeps /ios.html and
+    // /android.html resolving as themselves, which the native wrappers need --
+    // the default would 307 them to /ios and /android. The cost is that "/" no
+    // longer maps to index.html on its own, so do it here.
+    const assetUrl = new URL(request.url);
+    assetUrl.pathname = "/index.html";
+    const response = await env.ASSETS.fetch(new Request(assetUrl, request));
+    const contentType = response.headers.get("Content-Type") ?? "";
+    if (!contentType.includes("text/html")) {
+      return response;
+    }
+
+    const tags = metaTags(
+      request.url,
+      searchParams.get("latLonZ"),
+      searchParams.get("share_lang"),
+      env.PREVIEW_ORIGIN ?? DEFAULT_PREVIEW_ORIGIN,
+    );
+    return new HTMLRewriter().on("head", new MetaTagHandler(tags)).transform(response);
+  },
+};

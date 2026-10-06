@@ -1,12 +1,14 @@
 import { Map, View } from "ol";
 import {
   fromLonLat,
-  getTransformFromProjections,
-  get as getProjection, toLonLat,
+  toLonLat,
+  transformExtent,
 } from "ol/proj";
-import Collection from "ol/Collection";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
+import { orderAttributions } from "../layers/attributions";
+import GeolocateControl from "./GeolocateControl";
+import { haptic } from "./haptics";
 import { circular as circularPolygon } from "ol/geom/Polygon";
 
 import VectorLayer from "ol/layer/Vector";
@@ -19,78 +21,162 @@ import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
 import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
-import { latLon, mapBaseLayer, radarColorScheme, sharedActiveCap, zoomlevel } from "../stores";
+import {
+  inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, mapView, pointMenuAt, sharedActiveCap,
+  zoomlevel,
+} from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { satelliteCombo } from "../layers/satellite";
 import Capability from "../caps/Capability";
+import type Polygon from "ol/geom/Polygon";
+import type BaseLayer from "ol/layer/Base";
+import LayerGroup from "ol/layer/Group";
+import type Settings from "./Settings";
+import type NanobarWrapper from "./NanobarWrapper";
+import type { CapabilityOptions } from "../caps/options";
+import { elementCentre } from "./viewCentre";
+import { isScreenshot } from "./screenshot";
+import { reportMapMotion } from "./mapMotion";
+import { releaseWhileHidden } from "./hiddenMaps";
 
-let shouldUpdate = true;
+/** One entry of the capability list App.svelte builds. */
+export interface CapabilityDescriptor {
+  /**
+   * The capability's name, which each subclass also passes to super(). Named
+   * here too so registration can be gated without constructing the capability
+   * first -- see src/caps/enabled.ts.
+   */
+  name: string;
+  capability: new (map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) => Capability;
+  additionalLayers?: BaseLayer[];
+  options: CapabilityOptions;
+}
+
+export interface LayerManagerOptions {
+  settings: Settings;
+  nanobar?: NanobarWrapper;
+  capabilities: CapabilityDescriptor[];
+  /**
+   * The capability a link asked for, which beats the stored one for this page
+   * load -- and only this one: nothing writes it back. See lib/urlState.ts.
+   */
+  initialCapability?: string;
+}
+
+/**
+ * How long a press has to be held before it counts as asking about a point,
+ * and how far it may wander while being held.
+ *
+ * 450ms is the platform's own long-press dwell, give or take; the slop is
+ * deliberately generous, because a finger resting on glass drifts a few pixels
+ * without anyone meaning to move it.
+ */
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP = 10;
 
 /**
  * Manages the reflectivity + forecast layers shown on the map. should be called MapManager XXX
  */
-// eslint-disable-next-line import/prefer-default-export
 interface CapabilityMap {
     [name: string]: Capability;
 }
 
-export class LayerManager {
-  options: object;
+// How far the map may be panned. Exported because rebuilding the View -- which
+// the mapRotation setting does -- has to reapply it: OpenLayers keeps the
+// configured extent private, so it cannot be read back off an existing View.
+export const VIEW_EXTENT = [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])];
 
-  settings: any;
+/**
+ * An attribution control that lists its credits in ATTRIBUTION_ORDER rather
+ * than in the order their layers happened to be added. OpenLayers offers no
+ * option for it, so the one method that collects them is wrapped.
+ */
+function inOrder(control: Attribution): Attribution {
+  type Collecting = { collectSourceAttributions_(frameState: unknown): string[] };
+  const target = control as unknown as Collecting;
+  const collect = target.collectSourceAttributions_.bind(control);
+  target.collectSourceAttributions_ = (frameState) => orderAttributions(collect(frameState));
+  return control;
+}
+
+export class LayerManager {
+  options: LayerManagerOptions;
+
+  settings: Settings;
 
   capabilities: CapabilityMap;
 
-  maps: Array<any>;
+  maps: Map[];
 
-  accuracyFeatures: Array<any>;
+  accuracyFeatures: Feature[];
 
-  positionFeatures: Array<any>;
+  positionFeatures: Feature[];
 
-  currentCap: string;
+  /** One per map: the ring marking the point the forecast strip is sampling. */
+  inspectFeatures: Feature[];
 
-  mapCount: number;
+  /** The capability currently attached to the main map. */
+  currentCap: string | null;
 
-  constructor(options) {
+  constructor(options: LayerManagerOptions) {
     this.options = options;
     this.settings = options.settings;
     this.capabilities = {};
     this.maps = [];
     this.accuracyFeatures = [];
     this.positionFeatures = [];
+    this.inspectFeatures = [];
     this.currentCap = null;
-    this.mapCount = 0;
 
     options.capabilities.forEach((capability) => {
       const newMap = this.mapFactory(capability.options.hasBaseLayer);
-      // eslint-disable-next-line new-cap
-      const newCap = new capability.capability(newMap, capability.additionalLayers || [], capability.options);
+       
+      const newCap = new capability.capability(newMap, capability.additionalLayers || [], {
+        ...capability.options,
+        locate: () => this.locate(),
+      });
       this.capabilities[newCap.getName()] = newCap;
       newMap.set("capability", newCap.getName());
       this.maps.push(newMap);
     });
 
-    const active = this.settings.get("capability");
-    this.capabilities[active].setTarget(document.getElementById("map"));
+    this.capabilities[this.startingCapability()].setTarget(document.getElementById("map") ?? undefined);
 
     mapBaseLayer.subscribe((newBaseLayer) => {
       this.switchBaseLayer(newBaseLayer);
     });
+
+    inspectLatLon.subscribe((point) => {
+      const geometry = point ? new Point(fromLonLat([point[1], point[0]])) : undefined;
+      this.inspectFeatures.forEach((feature) => feature.setGeometry(geometry));
+      this.forEachMap((map) => map.render());
+    });
+  }
+
+  /**
+   * Ask the browser where the reader is and centre on it: the flat map's
+   * locate disc and the 3D map's. Through `updateLocation`, the path the apps'
+   * positions take as well, so the blue dot, `latLon` and whichever map is
+   * showing move together.
+   */
+  locate() {
+    // Asking to be located is asking about yourself again.
+    inspectLatLon.set(null);
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      this.updateLocation(coords.latitude, coords.longitude, coords.accuracy, true, true);
+    });
   }
 
   // XXX move somewhere else
-  updateLocation(lat, lon, accuracy, zoom = false, focus = true) {
-    let accuracyPoly = null;
+  updateLocation(lat: number, lon: number, accuracy: number, zoom: boolean | number = false, focus = true) {
+    let accuracyPoly: Polygon | null = null;
     if (accuracy >= 0) {
       accuracyPoly = circularPolygon([lon, lat], accuracy, 64);
-      accuracyPoly.applyTransform(
-        getTransformFromProjections(
-          getProjection("EPSG:4326"),
-          getProjection("EPSG:3857"),
-        ),
-      );
+      // OL 10 types getTransformFromProjections as nullable; Geometry.transform
+      // looks the pair up itself and says the same thing in one call.
+      accuracyPoly.transform("EPSG:4326", "EPSG:3857");
     }
-    this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly));
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(accuracyPoly ?? undefined));
     let centerPoint;
     const center = fromLonLat([lon, lat]);
     if (lat === -1 && lon === -1 && accuracy === -1) {
@@ -101,6 +187,8 @@ export class LayerManager {
       latLon.set([lat, lon]);
     }
     this.positionFeatures.forEach((feature) => feature.setGeometry(centerPoint));
+    const location = centerPoint === null ? null : { lat, lon, accuracy };
+    Object.values(this.capabilities).forEach((capability) => capability.showLocation?.(location));
 
     if (centerPoint === null) return;
 
@@ -123,23 +211,34 @@ export class LayerManager {
       newCenter = oldCenter;
     }
     if (zoom || focus) {
-      view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
+      // The 3D map's camera only reports to the View, so animating the View
+      // left it where it was -- and the apps' follow mode with it.
+      const showing = this.currentCap ? this.capabilities[this.currentCap] : undefined;
+      const looked = showing?.lookAt?.(focus ? [lon, lat] : null, zoom ? zoomLevel ?? null : null);
+      if (!looked) view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
     }
     this.forEachMap((map) => map.render());
   }
 
   resetLocation() {
-    this.positionFeatures.forEach((feature) => feature.setGeometry(null));
-    this.accuracyFeatures.forEach((feature) => feature.setGeometry(null));
+    this.positionFeatures.forEach((feature) => feature.setGeometry(undefined));
+    this.accuracyFeatures.forEach((feature) => feature.setGeometry(undefined));
+    Object.values(this.capabilities).forEach((capability) => capability.showLocation?.(null));
   }
 
-  mapFactory(baselayer = true) {
+  mapFactory(baselayer: boolean | undefined = true) {
     let controls;
-    if (!dd.isApp()) {
+    const attribution = () => inOrder(new Attribution({
+      collapsible: false,
+    }));
+    if (isScreenshot(this.settings.get("screenshot"))) {
+      // Nothing to press in a picture, and the basemap's licence still has
+      // to be on it.
+      controls = [attribution()];
+    } else if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
-        new Attribution({
-          collapsible: false,
-        }),
+        attribution(),
+        new GeolocateControl({ onLocate: () => this.locate() }),
       ]);
     }
 
@@ -175,20 +274,55 @@ export class LayerManager {
     });
     geolocationAccuracyLayer.set("kind", "geolocationPositionLayer");
 
+    /* The point the forecast strip is sampling, when that is not the client's
+       own. A ring rather than a pin: the reading belongs to the point at its
+       centre, not to a tip somewhere below it, and it stays legible with the
+       radar's own colours underneath. Deliberately nothing like the solid blue
+       dot -- the two mean different things and can be on screen together. */
+    const inspectFeature = new Feature();
+    this.inspectFeatures.push(inspectFeature);
+    const inspectLayer = new VectorLayer({
+      source: new VectorSource({ features: [inspectFeature] }),
+      style: [
+        // A dark halo first, so the white ring holds up over a light basemap.
+        new Style({
+          image: new CircleStyle({
+            radius: 11,
+            stroke: new Stroke({ color: "rgba(0, 0, 0, 0.35)", width: 5 }),
+          }),
+        }),
+        new Style({
+          image: new CircleStyle({
+            radius: 11,
+            stroke: new Stroke({ color: "#fff", width: 2.5 }),
+          }),
+        }),
+        new Style({
+          image: new CircleStyle({
+            radius: 2.5,
+            fill: new Fill({ color: "#fff" }),
+            stroke: new Stroke({ color: "rgba(0, 0, 0, 0.35)", width: 1 }),
+          }),
+        }),
+      ],
+      zIndex: 99997,
+    });
+    inspectLayer.set("kind", "geolocationPositionLayer");
+
     let lat = 51.0;
     let lon = 11.0;
     let z = 6;
 
-    const parts = this.settings.get("latLonZ").split(",");
+    const parts = String(this.settings.get("latLonZ") ?? "").split(",");
     if (parts.length === 3) {
       [lat, lon, z] = parts.map(parseFloat);
     }
 
-    let layers = [];
+    let layers: BaseLayer[] = [];
     if (baselayer) {
-      layers = [this.baseLayerFactory(this.settings.get("mapBaseLayer"))];
+      layers = [this.baseLayerFactory(get(mapBaseLayer))];
     }
-    layers = [...layers, geolocationAccuracyLayer, geolocationPositionLayer];
+    layers = [...layers, inspectLayer, geolocationAccuracyLayer, geolocationPositionLayer];
 
     const newMap = new Map({
       layers,
@@ -197,52 +331,145 @@ export class LayerManager {
         new View({
           zoom: z,
           center: fromLonLat([lon, lat]),
-          enableRotation: this.settings.get("mapRotation"),
+          enableRotation: Boolean(this.settings.get("mapRotation")),
           constrainResolution: false,
-          extent: [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])],
+          extent: VIEW_EXTENT,
           minZoom: 3,
         }),
       controls,
     });
-    const isApp = dd.isApp();
+    /* Pressing and holding the map asks what the weather is doing there.
+       Deliberately not a tap: a tap is how you dismiss things, re-centre and
+       generally poke at a map, and every one of those threw the forecast strip
+       up over the view. A hold is a decision, and it is the gesture the
+       platform already uses everywhere else to mean "tell me about this".
+
+       On the viewport's own pointer events rather than OpenLayers' map events,
+       because OL only types a subset of them; the map coordinate still comes
+       from the map, through getEventCoordinate(). */
+    const viewport = newMap.getViewport();
+    let pressTimer: number | null = null;
+    let pressOrigin: [number, number] | null = null;
+    /** What the last press was made with, for a `contextmenu` that does not say. */
+    let lastPointerType = "";
+
+    /** A held point -- or a right-clicked one -- asks about the weather there. */
+    const askAbout = (coordinate: number[]) => {
+      const capability = newMap.get("capability");
+      // A held finger is still a tap as far as the strips are concerned:
+      // every layer hears it, only radar samples a point from it, because
+      // only radar has a reading that belongs to one.
+      mapTapped.update((n) => n + 1);
+      // Confirmation that the hold took, before the strip animates in.
+      haptic("bump");
+      if (capability !== "radar") return;
+      const [clickedLon, clickedLat] = toLonLat(coordinate);
+      // Not straight to the strip any more: a held point has two questions
+      // it can be asking -- what is falling there, and what the weather
+      // models say -- so the hold offers both (PointMenu), and the choice
+      // sets `inspectLatLon` or opens the comparison.
+      pointMenuAt.set([clickedLat, clickedLon]);
+    };
+
+    const cancelPress = () => {
+      if (pressTimer !== null) window.clearTimeout(pressTimer);
+      pressTimer = null;
+      pressOrigin = null;
+    };
+
+    viewport.addEventListener("pointerdown", (event: PointerEvent) => {
+      cancelPress();
+      lastPointerType = event.pointerType;
+      // Secondary buttons are the context menu's; see below. A second finger
+      // means a pinch, which is a zoom and never a question.
+      if (event.button > 0 || !event.isPrimary) return;
+      if (get(sharedActiveCap) !== newMap.get("capability")) return;
+      pressOrigin = [event.clientX, event.clientY];
+      const coordinate = newMap.getEventCoordinate(event);
+      pressTimer = window.setTimeout(() => {
+        pressTimer = null;
+        pressOrigin = null;
+        askAbout(coordinate);
+      }, LONG_PRESS_MS);
+    });
+
+    /* A hold that wanders is a pan the finger started slowly. The threshold is
+       in screen pixels rather than map units, so it does not change meaning
+       with the zoom level. */
+    viewport.addEventListener("pointermove", (event: PointerEvent) => {
+      if (!pressOrigin) return;
+      const dx = event.clientX - pressOrigin[0];
+      const dy = event.clientY - pressOrigin[1];
+      if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) cancelPress();
+    });
+    viewport.addEventListener("pointerup", cancelPress);
+    viewport.addEventListener("pointercancel", cancelPress);
+    /* The map can also be moved without the pointer moving -- a wheel, a
+       keyboard pan, a double-tap zoom -- and a coordinate sampled before that
+       is no longer under the finger. */
+    newMap.on("movestart", cancelPress);
+    /* Some things are done differently while the map on screen moves; see
+       lib/mapMotion.ts. Only the full-size map: the switcher's thumbnails
+       share its View, so they move with it anyway. */
+    newMap.on("movestart", () => {
+      if (newMap.getTargetElement()?.id === "map") reportMapMotion(true);
+    });
+    newMap.on("moveend", () => {
+      if (newMap.getTargetElement()?.id === "map") reportMapMotion(false);
+    });
+    /* Otherwise a hold on a touch device races the platform's own selection
+       callout, which pops up over the map just as the strip arrives. There is
+       no selectable content under it to lose.
+
+       And a right-click is a desktop's long press: the browser's own menu has
+       nothing to offer on a map, and the hold's is what a right-click on one
+       means everywhere else. Not for touch, whose long press fires this event
+       too and already has its timer; nor on the menu itself, which sits in
+       the map's overlays. */
+    viewport.addEventListener("contextmenu", (event) => {
+      if (get(sharedActiveCap) !== newMap.get("capability")) return;
+      event.preventDefault();
+      const pointerType = (event as PointerEvent).pointerType || lastPointerType;
+      if (pointerType !== "mouse" && pointerType !== "pen") return;
+      if ((event.target as HTMLElement | null)?.closest(".ol-overlay-container")) return;
+      cancelPress();
+      askAbout(newMap.getEventCoordinate(event));
+    });
+
     newMap.on("moveend", () => {
       if (get(sharedActiveCap) !== newMap.get("capability")) {
         return;
       }
-      zoomlevel.set(newMap.getView().getZoom());
-      if (isApp) return;
-      if (!shouldUpdate) {
-        // do not update the URL when the view was changed in the 'popstate' handler
-        shouldUpdate = true;
-        return;
+      zoomlevel.set(newMap.getView().getZoom() ?? 0);
+      const size = newMap.getSize();
+      if (size) {
+        mapExtent4326.set(transformExtent(
+          newMap.getView().calculateExtent(size),
+          "EPSG:3857",
+          "EPSG:4326",
+        ) as [number, number, number, number]);
       }
-
-      const center = newMap.getView().getCenter();
-      const center4326 = toLonLat(center);
-      const url = new URL(window.location.href);
-      url.searchParams.set(
-        "latLonZ",
-        `${center4326[1].toFixed(6)},${center4326[0].toFixed(6)},${newMap.getView().getZoom().toFixed(2)}`,
-      );
-      window.history.pushState({ location: url.toString() }, `meteocool 2.0 ${window.location.toString()}`, url.toString());
+      // Published rather than written into the URL from here: the address bar
+      // records the whole state, not only the view, and the 3D map publishes
+      // its camera to the same store. lib/urlState.ts does the writing -- and
+      // the restoring on Back, which used to live here too.
+      //
+      // Only from the full-size map. The layer switcher points every map at a
+      // thumbnail of its own, the active one included, and a thumbnail coming
+      // to rest is not the reader moving the map: it recorded the tile's
+      // unpadded centre, and for the 3D map -- whose OpenLayers half only ever
+      // draws in a tile -- a view with no tilt, which dropped it from the link.
+      if (newMap.getTargetElement()?.id !== "map") return;
+      // The element's middle rather than the View's centre, which moves with
+      // the tray; see lib/viewCentre.ts. Recorded as the centre, a link came
+      // back half a tray further on every reload.
+      const center = elementCentre(newMap.getView());
+      if (!center) return;
+      const [lon, lat] = toLonLat(center);
+      mapView.set({ lat, lon, zoom: newMap.getView().getZoom() ?? 0 });
     });
-
-    if (this.mapCount === 0) {
-      // restore the view state when navigating through the history, see
-      // https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onpopstate
-      window.addEventListener("popstate", (event) => {
-        if (event.state === null) {
-          return;
-        }
-        shouldUpdate = false;
-        const url = new URL(event.state.location);
-        if (url.searchParams.has("latLonZ")) {
-          this.settings.cb("latLonZ");
-        }
-      });
-    }
-    this.mapCount += 1;
     newMap.set("baselayer", baselayer);
+    releaseWhileHidden(newMap);
     return newMap;
   }
 
@@ -263,7 +490,7 @@ export class LayerManager {
     }
   }
 
-  switchBaseLayer(newBaseLayer) {
+  switchBaseLayer(newBaseLayer: string) {
     this.forEachMap((map) => {
       if (map.get("baselayer") === false) return;
       map
@@ -275,31 +502,123 @@ export class LayerManager {
     });
   }
 
-  forEachMap(cb) {
+  forEachMap(cb: (map: Map, capability: string) => void) {
     this.maps.forEach((map) => cb(map, map.get("capability")));
   }
 
-  getCurrentMap() {
-    return this.capabilities[this.currentCap].map;
+  /**
+   * The map of whichever capability is showing, or undefined before one is.
+   *
+   * It used to index `capabilities` with a `currentCap` asserted non-null and
+   * read `.map` off the result, so anything asking during startup got a
+   * TypeError out of a getter rather than a falsy answer.
+   */
+  getCurrentMap(): Map | undefined {
+    return this.currentCap ? this.capabilities[this.currentCap]?.map : undefined;
   }
 
-  getCapability(name) {
+  /** Catch up the map on screen after a wake; see `Capability.resync`. */
+  resync() {
+    if (this.currentCap) this.capabilities[this.currentCap]?.resync?.();
+  }
+
+  getCapability(name: string) {
     return this.capabilities[name];
   }
 
-  setTarget(cap, target) {
-    console.log(cap);
-    if (this.currentCap && this.capabilities[this.currentCap].willLoseFocus && cap !== this.currentCap) {
+  setTarget(cap: string, target: string | HTMLElement | undefined) {
+    if (this.currentCap && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
+      // Off the element as well as out of focus. OpenLayers appends its
+      // viewport to a target and leaves the ones already there, so which map
+      // shows comes down to DOM order -- and a map pointed at the element it
+      // already has appends nothing. The layer switcher clears every map
+      // before switching; Back and Forward switch without it.
+      this.capabilities[this.currentCap].getMap().setTarget(undefined);
+      // A map taken off the screen mid-move never reports its moveend.
+      reportMapMotion(false);
     }
     this.capabilities[cap].setTarget(target);
     sharedActiveCap.set(cap);
-    (this as any).currentCap = cap;
+    this.currentCap = cap;
+    // A switch moves no map, so no moveend says where the new one is looking,
+    // and the URL went on describing the last one's camera until a pan: the
+    // 3D map's centre as the flat map's, which is half a tray off.
+    const view = this.capabilities[cap].currentView();
+    if (view) mapView.set(view);
   }
 
-  setDefaultTarget(target) {
-    console.log(`Starting with default cap ${(this as any).settings.get("capability")}`);
-    this.setTarget((this as any).settings.get("capability"), target);
+  /**
+   * Draw a capability into a thumbnail, without handing it the map.
+   *
+   * The layer switcher's tiles are live previews, so opening it points each
+   * capability's map at a small element. That used to go through `setTarget`,
+   * which also moves focus -- so simply mounting the switcher told every
+   * capability in turn that it now owned the main map, and told the one that
+   * actually did that it had lost it. Nothing depended on the
+   * difference while every capability was an OpenLayers map drawing into
+   * whatever element it was given; the 3D map, which has to take its canvas
+   * down when it loses focus, made it matter.
+   */
+  setPreviewTarget(cap: string, target: string | HTMLElement | undefined) {
+    this.capabilities[cap]?.setPreviewTarget(target);
+  }
+
+  setDefaultTarget(target: string | HTMLElement | undefined) {
+    const capability = this.startingCapability();
+    console.log(`Starting with default cap ${capability}`);
+    this.setTarget(capability, target);
+  }
+
+  /**
+   * The capability to open with: the one the link names, else the stored
+   * one, unless it is not registered. A setting persisted while a capability
+   * was still offered outlives it being withdrawn, and a link can name
+   * anything; indexing capabilities with either would throw on startup.
+   */
+  startingCapability(): string {
+    const linked = this.options.initialCapability;
+    if (linked && linked in this.capabilities) return linked;
+    const stored = String(this.settings.get("capability"));
+    if (stored in this.capabilities) return stored;
+    const fallback = Object.keys(this.capabilities)[0];
+    console.warn(`Capability ${stored} is not registered; starting with ${fallback}`);
+    return fallback;
+  }
+
+  /**
+   * Re-request every tile in every map.
+   *
+   * Wired to the connection banner's retry button: coming back online does not
+   * by itself make OpenLayers retry the tiles that failed while it was down.
+   */
+  refreshTiles() {
+    const refreshLayer = (layer: BaseLayer) => {
+      if (layer instanceof LayerGroup) {
+        layer.getLayers().forEach((inner: BaseLayer) => refreshLayer(inner));
+        return;
+      }
+      const source = (layer as BaseLayer & { getSource?: () => unknown }).getSource?.();
+      const refreshable = source as { refresh?: () => void; changed?: () => void } | undefined;
+      if (refreshable?.refresh) {
+        refreshable.refresh();
+      } else if (refreshable?.changed) {
+        refreshable.changed();
+      }
+    };
+
+    this.forEachMap((map) => {
+      map.getLayers().forEach((layer) => refreshLayer(layer as BaseLayer));
+    });
+  }
+
+  /**
+   * Release everything that outlives the maps. Capabilities hold socket.io
+   * handlers and timers that the map itself knows nothing about, so they have
+   * to be told; destroy() is optional on Capability and most do not define it.
+   */
+  destroy() {
+    Object.values(this.capabilities).forEach((cap) => cap.destroy?.());
   }
 }
 

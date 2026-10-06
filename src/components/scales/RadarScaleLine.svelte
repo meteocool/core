@@ -1,10 +1,12 @@
-<script>
+<script lang="ts">
   import { _ } from "svelte-i18n";
   import ScaleLine from "./ScaleLine.svelte";
-  import legendClouds from "../../../public/assets/legend_clouds.svg";
-  import legendRain from "../../../public/assets/legend_rain.svg";
-  import legendHail from "../../../public/assets/legend_hail.svg";
-  import legendThunderstorm from "../../../public/assets/legend_thunderstorm.svg";
+  import RadarProductPicker from "../RadarProductPicker.svelte";
+  import legendClouds from "../../assets/legend_clouds.svg";
+  import legendRain from "../../assets/legend_rain.svg";
+  import legendHail from "../../assets/legend_hail.svg";
+  import legendThunderstorm from "../../assets/legend_thunderstorm.svg";
+  import { onDestroy } from "svelte";
   import { radarColormap, unit } from "../../stores";
   import { getPalette } from "../../lib/cmap_utils";
 
@@ -14,12 +16,12 @@
     unique = {}; // every {} is unique, {} === {} evaluates to false
   }
 
-  unit.subscribe(() => {
-    restart();
-  });
-  radarColormap.subscribe(() => {
-    restart();
-  });
+  // Rebuilt whenever the toolbar swaps capability or mode, so both go back.
+  const subscriptions = [
+    unit.subscribe(() => restart()),
+    radarColormap.subscribe(() => restart()),
+  ];
+  onDestroy(() => subscriptions.forEach((unsubscribe) => unsubscribe()));
 
   function valueFormatter(fmt) {
     if ($unit === "dbz") {
@@ -47,13 +49,18 @@
 
 
 <style>
+    /* Muted rather than half-transparent, so it stays legible on glass. */
     :global(.dbz) {
-        font-size: 50%;
-        opacity: 0.5;
+        font-size: 70%;
+        font-weight: 500;
+        color: var(--mc-text-2);
+        margin-left: 1px;
     }
-
 </style>
 
 {#key unique}
-        <ScaleLine valueFormat={valueFormatter} palette="{getPalette($radarColormap)}" prettyName="{$radarColormap}" title="Radarkomposit<br />(DWD 1km)"/>
+        <!-- The caption is the product picker: what the colours are a picture of. -->
+        <ScaleLine valueFormat={valueFormatter} palette="{getPalette($radarColormap)}" prettyName="{$radarColormap}" titleOnPhone>
+            <RadarProductPicker slot="title" variant="adaptive" />
+        </ScaleLine>
 {/key}

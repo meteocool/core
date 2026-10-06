@@ -1,155 +1,149 @@
-<script>
-  import cssVars from "svelte-css-vars";
-  import mapBg from "../../../public/assets/map-bg.png";
-  import { DeviceDetect as dd } from '../../lib/DeviceDetect';
+<script lang="ts">
+  import { _ } from "svelte-i18n";
+  import mapBg from "../../assets/map-bg.webp";
 
-  export let palette;
-  export let valueFormat;
-  export let prettyName;
+  export let palette: string;
+  export let valueFormat: ((value: string, index: number) => string) | null = null;
+  export let prettyName: string;
   export let title = "";
+  /** Keep the title on a phone, where it is otherwise dropped for the strip's room. */
+  export let titleOnPhone = false;
 
-  let minDbz;
-  let maxDbz;
+  let className = "";
+  export { className as class };
 
-  function colorMap() {
-    if (!palette) {
-      return "#ffffff";
-    }
-    return palette.split(";")
-      .map((c) => c.split(":"));
+  /**
+   * The palette as [value, hexColour] pairs.
+   *
+   * Takes the palette as an argument rather than closing over the prop, so the
+   * reactive statements below actually depend on it -- otherwise a palette
+   * change leaves the scale line showing the previous colours.
+   */
+  function colorMap(source: string): string[][] {
+    if (!source) return [];
+    return source.split(";").map((c) => c.split(":"));
   }
 
-  function capitalizeFirst(string) {
+  function capitalizeFirst(string: string) {
     return string.charAt(0)
       .toUpperCase() + string.slice(1);
   }
 
-  $ : vs = colorMap()
+  $: vs = colorMap(palette)
     .map((c, index) => (valueFormat ? valueFormat(c[0], index) : c[0]))
     .filter((e) => e !== "");
   // if (dd.isApp()) {
   //   $ : vs = vs.filter((element, index) => index % 2 === 0);
   // }
 
-  $ : [minDbz] = colorMap(palette)[0];
-  $ : [maxDbz] = colorMap(palette)
-    .pop();
-  $ : colors = colorMap()
+  $: [minDbz] = colorMap(palette)[0] ?? [""];
+  $: [maxDbz] = colorMap(palette).pop() ?? [""];
+  $: colors = colorMap(palette)
     .map((c) => `#${c[1]}`);
 
-  $: scaleStyle = {
-    backgroundImage: `linear-gradient(to right, ${colors.join(",")})`,
-    backgroundUrl: `url(${mapBg})`,
-  };
+  $: backgroundImage = `linear-gradient(to right, ${colors.join(",")})`;
+  const backgroundUrl = `url(${mapBg})`;
 </script>
 
-<style lang="less">
-  .scale-dividers {
+<style>
+  /* A legend inside the glass tray: the colour strip is the one place
+     saturated colour is allowed in the chrome. No material of its own. */
+  .wrapper {
     display: flex;
-    justify-content: space-between;
-    padding-top: 0.3em;
-    padding-left: 5%;
-    padding-right: 5%;
-    font-size: 92%;
-    position: relative;
-    top: 0.5em;
-    color: var(--sl-color-black);
+    gap: 10px;
+    align-items: center;
+    justify-content: space-around;
+  }
+
+  .legend-label {
+    height: auto;
+    color: var(--mc-text-2);
+    font: 600 10px/1.2 var(--mc-font);
+    text-align: right;
+    word-break: break-word;
+  }
+
+  /* As tall as the ink, not a form control.
+     .scale-dividers is shifted out of flow inside the 10px .scale-line, so this
+     box has to state the height the two of them actually occupy: 2px of margin
+     above the strip, the strip, and the dividers' 12px offset plus their line.
+     At the Shoelace input height it was 40px with the ink in the top 26, so
+     align-items:center in .wrapper centred the title on 14px of empty space
+     below the strip -- and the row overflowed the tray it sits in. */
+  .scale {
+    width: 100%;
+    flex: 1;
+    float: none;
+    margin-bottom: 0;
+    height: 28px;
   }
 
   .scale-line {
     width: 100%;
-    border-radius: var(--sl-border-radius-pill);
-    border: 0.5px solid var(--sl-color-info-200);
+    height: 10px;
+    margin-top: 2px;
+    border-radius: var(--mc-radius-pill);
+    border: 1px solid var(--mc-hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
     background-image: var(--backgroundImage), var(--backgroundUrl);
-    height: 25%;
     background-repeat: repeat;
     background-size: contain;
     background-position: left;
-    margin-top: 1px;
   }
 
-  @media only screen and (max-width: 990px) {
-    .scale-dividers {
-      font-size: 60%;
-      top: 1.1em;
-    }
-
-    .scale-line {
-      height: 20%;
-    }
-  }
-
-  .scale {
-    width: 100%;
-    float: left;
-    /*margin-right: 2em;*/
-    margin-bottom: 2px;
-    height: var(--sl-input-height-medium);
-    flex: 1;
-  }
-
-  .legend-label {
-    height: 100%;
-    color: var(--sl-color-gray-600);
-    line-height: 1.21;
-    font-size: 80%;
-    text-align: right;
-    word-break: break-word;
-  }
-  .scale {
-    flex: 1;
-  }
-  .wrapper {
+  .scale-dividers {
     display: flex;
-    gap: 0.75em;
-    justify-content: space-around;
+    justify-content: space-between;
+    position: relative;
+    top: 12px;
+    padding: 0 5%;
+    color: var(--mc-text);
+    font: 600 11px/1 var(--mc-font);
+    font-variant-numeric: tabular-nums;
   }
 
   :global(.legendLabel) {
-    font-size: 80%;
     padding-left: 0.15em;
-    color: var(--sl-color-black);
-    /*text-shadow: 0 0 1px rgba(0,0,0,0.6),
-            -1px -1px 1px rgba(0,0,0,0.6),
-            -1px 1px 1px  rgba(0,0,0,0.6),
-            1px 1px 1px   rgba(0,0,0,0.6),
-            1px -1px 1px  rgba(0,0,0,0.6);*/
-  }
-
-  @media only screen and (max-width: 620px) {
-    .legend-label {
-      display: none;
-    }
-  }
-
-  @media only screen and (max-width: 990px) {
-    :global(.legendLabel) {
-      display: none;
-    }
-
-    :global(.legend-icon) {
-      height: 1.4em !important;
-    }
+    color: var(--mc-text);
+    font-size: 10px;
+    font-weight: 600;
   }
 
   :global(.legend-icon) {
     filter: var(--svg-dark-to-light);
     height: 1em;
     vertical-align: bottom;
-    /*filter: drop-shadow(0px 0px 1px #000000) drop-shadow(0px 0px 1px #000000);*/
   }
 
-  :root {
-    --svg-dark-to-light: "";
+  @media only screen and (max-width: 990px) {
+    .scale-dividers {
+      font-size: 10px;
+      top: 11px;
+    }
+    .scale-line {
+      height: 8px;
+    }
+    :global(.legendLabel) {
+      display: none;
+    }
+    :global(.legend-icon) {
+      height: 1.4em !important;
+    }
+  }
+
+  @media only screen and (max-width: 620px) {
+    .legend-label:not(.keep) {
+      display: none;
+    }
   }
 </style>
 
 <div class="wrapper">
-    <div class="legend-label">{@html title}</div>
-    <div class="scale" title="Colormap: {capitalizeFirst(prettyName)} ({minDbz} - {maxDbz} dBZ)">
-        <div class="scale-line" use:cssVars="{scaleStyle}">
+    <div class="legend-label" class:keep={titleOnPhone}><slot name="title">{@html title}</slot></div>
+    <div class="scale" title={$_("chrome.scales.colormap", { values: { name: capitalizeFirst(prettyName), min: minDbz, max: maxDbz } })}>
+        <div class="scale-line" style:--backgroundImage={backgroundImage} style:--backgroundUrl={backgroundUrl}>
             <div class="scale-dividers">
-                {#each vs as value}
+                {#each vs as value, i (i)}
                     <div class="scale-divider">
                         {@html value}
                     </div>

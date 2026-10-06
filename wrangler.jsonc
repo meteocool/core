@@ -1,0 +1,107 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Not `meteocool`: that is the account's existing production Worker, and a
+  // bare `wrangler deploy` with this name would overwrite it. Every env below
+  // names itself.
+  "name": "meteocool-web",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-09-01",
+
+  // `dist` is the Vite build; run `npm run build` before deploying.
+  //
+  // `run_worker_first` is what makes the OpenGraph injection possible at all:
+  // without it Cloudflare serves index.html straight from the asset store and
+  // the Worker never sees the request.
+  //
+  // No `not_found_handling`: this is a multi-page build (index, ios, android,
+  // imprint, privacy), not an SPA, so a missing asset should 404 rather than be
+  // rewritten to index.html.
+  //
+  // `html_handling: "none"`: by default Cloudflare 307s /ios.html to /ios. The
+  // iOS and Android wrappers load ios.html and android.html by name, so those
+  // URLs have to keep resolving directly.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none",
+  },
+
+  "env": {
+    "staging": {
+      "name": "meteocool-staging",
+      "compatibility_date": "2026-09-20",
+      "workers_dev": true,
+      // next.meteocool.com is the staging web address; web.staging stays as
+      // an alias so nothing that learned the old name breaks.
+      //
+      // app.meteocool.com is where the iOS app loads its map and sends its
+      // push registrations (the Worker forwards them to API_ORIGIN). It is
+      // attached to whichever environment the app should use. To move the app,
+      // move this line to that environment and deploy both: a custom domain
+      // belongs to one Worker at a time. Move the push registrations in the
+      // same step, or the old cluster goes on notifying the phones as well.
+      "routes": [
+        { "pattern": "next.meteocool.com", "custom_domain": true },
+        { "pattern": "web.staging.meteocool.com", "custom_domain": true },
+        { "pattern": "app.meteocool.com", "custom_domain": true },
+      ],
+      "observability": {
+        "enabled": true,
+        "logs": { "enabled": true },
+        "traces": { "enabled": true },
+      },
+      // Without this the staging Worker advertises production's preview image
+      // in its OpenGraph tags: the Worker is bundled by wrangler, so Vite's
+      // `--mode staging` never reaches it.
+      "vars": {
+        "PREVIEW_ORIGIN": "https://api-next.meteocool.com",
+        "API_ORIGIN": "https://api-next.meteocool.com",
+        // The iOS app's AR storm view reads these through app.meteocool.com
+        // (worker/api.ts).
+        "DATA_ORIGIN": "https://data-staging.meteocool.com",
+        "ASSET_ORIGIN": "https://assets-staging.meteocool.com",
+      },
+    },
+    // The demo environment beside staging on the same cluster, replaying a
+    // recorded storm. Built with `--mode demo`, which points it at demo's
+    // hostnames (src/urls.ts); the preview origin is demo's API,
+    // api-demo.meteocool.com, for the same reason staging's is staging's. The
+    // Worker has demo.meteocool.com itself.
+    "demo": {
+      "name": "meteocool-demo",
+      "compatibility_date": "2026-09-20",
+      "workers_dev": true,
+      "routes": [
+        { "pattern": "demo.meteocool.com", "custom_domain": true },
+      ],
+      "observability": {
+        "enabled": true,
+        "logs": { "enabled": true },
+        "traces": { "enabled": true },
+      },
+      "vars": {
+        "PREVIEW_ORIGIN": "https://api-demo.meteocool.com",
+        "API_ORIGIN": "https://api-demo.meteocool.com",
+        "DATA_ORIGIN": "https://data-demo.meteocool.com",
+        "ASSET_ORIGIN": "https://assets-demo.meteocool.com",
+      },
+    },
+    // Not production. meteocool.com is the old frontend on the old backend,
+    // served by the Cloudflare Pages project `core`, and the apps in the
+    // stores still depend on it (see the guard in vite.config.ts). This env
+    // used to be named `meteocool` -- the account's existing production Worker
+    // -- with custom-domain routes for meteocool.com and www, so one
+    // `npm run deploy:production` would have overwritten that Worker and taken
+    // the hostnames. It is a build against the production API that publishes
+    // nowhere: no routes, no workers.dev, its own name. The cutover, when it
+    // comes, is a deliberate change here and in the Pages project together.
+    "production": {
+      "name": "meteocool-web-production",
+      "workers_dev": false,
+      // No API_ORIGIN yet: production's v4 API has no hostname. Set it before
+      // app.meteocool.com moves here.
+      "vars": { "PREVIEW_ORIGIN": "https://api.meteocool.com" },
+    },
+  },
+}

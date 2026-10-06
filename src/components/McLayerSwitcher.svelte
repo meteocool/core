@@ -1,48 +1,91 @@
-<script>
-  import Icon from "fa-svelte";
+<script lang="ts">
+  import Icon from "./Icon.svelte";
   import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
+  import { postToNative } from "../lib/nativeBridge";
   import { _ } from "svelte-i18n";
+  import { capabilityEnabled } from "../caps/enabled";
+  import { toolbarTransitionEnd } from "../lib/toolbarTransition";
+  import { selectedCell, selectedVolume } from "../stores";
 
   export let layerManager;
+
+  // Driven by the capability registry rather than fixed markup, so a
+  // capability withdrawn in src/caps/enabled.ts takes its tile with it and the
+  // rest close the gap.
+  $: tiles = [
+    { layer: "radar", label: `🌧 ${$_("rain_and_thunderstorms")}` },
+    // The only tile whose map is not the layer it stands for: see MiniMap.
+    { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}`, preview: true },
+    { layer: "satellite", label: `🛰️ ${$_("nrt_satellite")}` },
+    { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
+    { layer: "aerosols", label: `💨 ${$_("aerosols")}` },
+    { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
+  ].filter((tile) => capabilityEnabled(tile.layer));
+
+  // Rain & thunderstorms is what this app is for, so it leads: a wide hero
+  // across the top, the rest paired two across beneath it. An odd tile out in
+  // that remainder spans its row rather than leaving a hole: the first of
+  // them, so the 3D map, next in line, sits wide under the hero.
+  $: secondSpans = tiles.length > 1 && (tiles.length - 1) % 2 === 1;
+
   const childCanvases = {};
+
+  /** Whether the panel is up; the tiles attach their maps only while it is. */
+  let isOpen = false;
 
   const allAttributionsArray = Object.entries(attributions)
     .filter((k) => k[0] !== "imprintAttribution")
     .map((k) => k[1]);
   allAttributionsArray.sort();
-  const allAttributions = allAttributionsArray.join(" ");
+  // Built but never rendered; kept so the attribution list stays derived.
+  const _allAttributions = allAttributionsArray.join(" ");
 
   window.openLayerswitcher = () => {
     const ls = document.getElementById("ls");
+    if (!ls) return;
+    // The detail popup is anchored above everything, including this panel.
+    // Opening the switcher means the reader is done with that cell -- or with
+    // that storm core, whose popup otherwise stayed up over the switcher and
+    // then over whichever flat map was picked, where nothing draws it. Here
+    // rather than in open(), because the apps' own switcher buttons call this
+    // directly and never pass through open().
+    selectedCell.set(null);
+    selectedVolume.set(null);
     ls.style.display = "block";
+    // Here rather than in open(), so the apps' own buttons are covered too:
+    // they hide their chrome while the switcher is up.
+    postToNative("layerSwitcherOpened");
+    // The View is shared with the main map, which carries bottom padding for
+    // the glass tray; the tiles are not under it.
+    layerManager.maps[0]?.getView().setProperties({ padding: [0, 0, 0, 0] });
     layerManager.forEachMap((map, cap) => {
       const target = childCanvases[cap];
-      console.log(`set ${cap} -> ${target}`);
-      map.setTarget(target);
+      // A preview, not a handover: see LayerManager.setPreviewTarget.
+      layerManager.setPreviewTarget(cap, target);
       map.updateSize();
     });
+    isOpen = true;
   };
 
-  function open(elem) {
-    window.openLayerswitcher();
+  function open() {
+    window.openLayerswitcher?.();
   }
 
   function close() {
-    document.getElementById("ls").style.display = "none";
-    layerManager.forEachMap((map, cap) => {
-      console.log(`set ${cap} -> null`);
+    const ls = document.getElementById("ls");
+    if (ls) ls.style.display = "none";
+    layerManager.forEachMap((map) => {
       map.setTarget(null);
       map.updateSize();
     });
-    if (dd.isIos()) {
-      window.webkit.messageHandlers.scriptHandler.postMessage(
-        "layerSwitcherClosed",
-      );
-    }
+    isOpen = false;
+    postToNative("layerSwitcherClosed");
+    // Map.svelte re-measures the tray and restores the view padding.
+    toolbarTransitionEnd();
   }
 
   function childMounted(data) {
@@ -58,141 +101,154 @@
 </script>
 
 <style>
+  /* A 44px glass disc on the top line at right, in the discs' own material
+     (.glass/.glass-pill), with their hover, press and focus. Web only. */
   .lsToggle {
-    width: 74px;
-    height: 74px;
-    background-color: var(--sl-color-white);
-    border: 3px solid var(--sl-color-gray-700);
-    border-radius: 40px;
     position: absolute;
-    top: 1vh;
-    right: 1vh;
-    text-align: center;
-    vertical-align: center;
-    color: var(--sl-color-gray-700);
-  }
-
-  .lsToggle:hover {
-    background-color: var(--sl-color-gray-700);
-    color: var(--sl-color-white);
-    border: 3px solid var(--sl-color-white);
+    top: var(--mc-top-stack);
+    right: var(--mc-gutter);
+    z-index: var(--mc-z-chrome);
+    width: var(--mc-control-lg);
+    height: var(--mc-control-lg);
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding: 0;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
+  }
+  .lsToggle:hover {
+    background: var(--mc-glass-fill-strong);
+    color: var(--mc-accent);
+  }
+  .lsToggle:active {
+    transform: scale(var(--mc-press));
+  }
+  .lsToggle:focus-visible {
+    outline: 2px solid var(--mc-accent);
+    outline-offset: 2px;
   }
 
-  div :global(.lsIcon) {
-    font-size: 40px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    -ms-transform: translate(-50%, -50%);
-    transform: translate(-50%, -50%);
-    stroke: white;
+  .lsToggle :global(.lsIcon) {
+    position: static;
+    transform: none;
+    font-size: 20px;
+    stroke: none;
   }
 
+  /* Full-screen sheet: solid material, no blur -- three live canvases sit on
+     it and blurring the whole viewport is blurring the whole map. display is
+     toggled inline by JS. */
   .ls {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    position: absolute;
-    top: 0px;
-    left: 0px;
     display: none;
-    background-color: var(--sl-color-white);
+    box-sizing: border-box;
+    padding: calc(var(--mc-safe-top) + var(--mc-gutter)) var(--mc-gutter) calc(var(--mc-safe-bottom) + var(--mc-gutter));
+    background: var(--mc-sheet);
+    color: var(--mc-text);
+    font-family: var(--mc-font);
     overflow-y: hidden;
-    z-index: 10000000;
+    z-index: var(--mc-z-sheet);
   }
 
   .gridContainer {
-    height: 99.5%;
-    width: 99.5%;
-    text-align: center;
+    height: 100%;
+    width: 100%;
+    margin: 0;
     display: block;
-    margin: 0.1em auto 0;
+    text-align: center;
   }
 
   .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-    gap: 0.15em 0.15em;
-    grid-template-areas: "reflectivity satellite" "precip-types aerosols" "lightning lightning";
     height: 100%;
   }
 
-  .reflectivity {
-    grid-area: reflectivity;
-  }
-  .satellite {
-    grid-area: satellite;
-  }
-  .precip-types {
-    grid-area: precip-types;
-    position: relative;
-  }
-  .aerosols {
-    grid-area: aerosols;
-    position: relative;
-  }
-
-  .lightning {
-    grid-area: lightning;
+  /* A definite height, not a flex share: the overlay toggles that shared the
+     column with it are gone, and as a flex item of auto basis Safari took its
+     height for indefinite, sized the fr rows to their (empty) content, and
+     left the tiles short of the bottom, each row a different height. */
+  .maps {
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.4fr;         /* the hero row; the pairs below are 1fr */
+    grid-auto-rows: 1fr;
+    gap: var(--mc-gutter);
   }
 
   .cell {
-    height: 100%;
+    position: relative;
+    min-height: 0;
     cursor: pointer;
-    color: white;
+    color: #fff;
+    border-radius: var(--mc-radius-card);
+    overflow: hidden;                    /* clips the canvas to the card; the label is absolute inside */
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--mc-motion-fast) var(--mc-ease);
+  }
+  .cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px var(--mc-separator), var(--mc-glass-highlight);
+    pointer-events: none;
+    z-index: 101;                        /* over the OL viewport and the .label (100) */
+  }
+  .cell:active {
+    transform: scale(0.985);
+  }
+  .cell.wide {
+    grid-column: span 2;
+  }
+
+  /* The hero is the primary layer, so its caption is scaled with the card
+     rather than left at the secondary tiles' size. */
+  .cell.hero :global(.label) {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    font-size: 16px;
   }
 </style>
 
 {#if !dd.isApp()}
-  <div class="lsToggle" on:click={open}>
+  <button
+    type="button"
+    class="lsToggle glass glass-pill"
+    aria-label={$_("chrome.layer_switcher")}
+    title={$_("chrome.layer_switcher")}
+    on:click={open}>
     <Icon icon={faLayerGroup} class="lsIcon" />
-  </div>
+  </button>
 {/if}
 
 <div class="ls" id="ls">
   <div class="gridContainer">
     <div class="grid">
-      <div class="reflectivity cell">
-        <MiniMap
-          {layerManager}
-          layer={"radar"}
-          label={`🌧 ${$_("rain_and_thunderstorms")}`}
-          on:mount={childMounted}
-          on:changeLayer={changeLayer} />
-      </div>
-      <div class="satellite cell">
-        <MiniMap
-          {layerManager}
-          layer={"satellite"}
-          label={`🛰️ ${$_("nrt_satellite")}`}
-          on:mount={childMounted}
-          on:changeLayer={changeLayer} />
-      </div>
-      <div class="precip-types cell">
-          <MiniMap
-                  {layerManager}
-                  layer={"precipTypes"}
-                  label={`💧 ${$_("precpitation_types")}`}
-                  on:mount={childMounted}
-                  on:changeLayer={changeLayer}
-                  class="hidden" />
-      </div>
-      <div class="aerosols cell">
-        <MiniMap
-                {layerManager}
-                layer={"aerosols"}
-                label={`💨 ${$_("aerosols")}`}
-                on:mount={childMounted}
-                on:changeLayer={changeLayer} />
-      </div>
-      <div class="lightning cell">
-        <MiniMap
-                {layerManager}
-                layer={"lightning"}
-                label={`⚡️ ${$_("lightning")}`}
-                on:mount={childMounted}
-                on:changeLayer={changeLayer} />
+      <div class="maps">
+        {#each tiles as tile, index (tile.layer)}
+          <div
+            class="cell"
+            class:hero={index === 0}
+            class:wide={index === 0 || (secondSpans && index === 1)}>
+            <MiniMap
+              {layerManager}
+              layer={tile.layer}
+              label={tile.label}
+              preview={tile.preview ?? false}
+              open={isOpen}
+              on:mount={childMounted}
+              on:changeLayer={changeLayer} />
+          </div>
+        {/each}
       </div>
     </div>
   </div>

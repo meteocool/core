@@ -1,14 +1,16 @@
-<script>
+<script lang="ts">
   import McLayerSwitcher from "./McLayerSwitcher.svelte";
   import "ol/ol.css";
-  import { layerswitcherVisible, bottomToolbarMode } from "../stores";
+  import { layerswitcherVisible, bottomToolbarMode, sharedActiveCap } from "../stores";
   import { tick } from "svelte";
+  import { get } from "svelte/store";
+  import { DeviceDetect as dd } from "../lib/DeviceDetect";
 
   export let layerManager;
   let mapID;
 
   let visible;
-  layerswitcherVisible.subscribe((value) => {
+  const unsubscribeVisible = layerswitcherVisible.subscribe((value) => {
     visible = value;
   });
 
@@ -16,66 +18,331 @@
     layerManager.setTarget(newLayer.detail, mapID);
   }
 
-  function updateMapSize() {
-    layerManager.forEachMap((map) => map.updateSize());
+  /**
+   * Upper bound on how long to keep re-measuring after a toolbar transition.
+   *
+   * The bars animate with `fly`, which is a transform: their box never changes,
+   * so a ResizeObserver on them sees nothing, and a height measured when the
+   * animation starts is wrong for the 200-400ms it runs. So re-measure each
+   * frame until the answer stops moving.
+   *
+   * Settling is the real stop condition; this is only a ceiling, so a
+   * transition that never reports its end -- Svelte does not always deliver
+   * `outroend` for an element it is destroying -- cannot leave a frame loop
+   * running forever.
+   */
+  const TRANSITION_POLL_MAX_FRAMES = 90;
+
+  /** Identical measurements in a row before the layout counts as settled. */
+  const SETTLED_FRAMES = 3;
+
+  let resizeFrame: number | undefined;
+  let transitionFrame: number | undefined;
+  let transitionFramesLeft = 0;
+  let lastOccluded = -1;
+  let stableFrames = 0;
+  let toolbarObserver: ResizeObserver | undefined;
+
+  /** Coalesce several triggers in one frame into a single measurement. */
+  function scheduleMapResize() {
+    if (resizeFrame !== undefined) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = undefined;
+      applyMapHeight();
+    });
   }
 
-  function mapInit(node) {
-    mapID = node.id;
-    layerManager.setDefaultTarget(mapID);
-    bottomToolbarMode.subscribe((val) => {
-      if (val === "player") {
-        document.getElementById(mapID).style.height =
-                "calc(100% - 88px)";
-      } else if (val === "collapsed") {
-        document.getElementById(mapID).style.height =
-                "calc(100% - calc(env(safe-area-inset-bottom) + 41px))";
-      } else {
-        document.getElementById(mapID).style.height = "100%";
+  /**
+   * Size the map to the space the bottom bars leave it.
+   *
+   * Measured rather than hardcoded. The old fixed `calc(100% - 88px)` was only
+   * ever right for the desktop player: below 620px the player is 120px, in the
+   * wrappers the bar grows to swallow `env(safe-area-inset-bottom)`, and that
+   * inset differs per device. Anything fixed is wrong for two of those three.
+   *
+   * `innerHeight - rect.top` rather than `rect.height`, so a bar that is itself
+   * offset by a safe-area inset still yields the space it actually occludes.
+   */
+  function applyMapHeight(padView = true) {
+    const mapElement = document.getElementById(mapID);
+    if (!mapElement) return;
+    const mode = get(bottomToolbarMode);
+
+    let occluded = 0;
+    if (mode !== "hidden") {
+      const toolbar = document.querySelector<HTMLElement>(".bottomToolbar.lastUpdatedBottom");
+      const player = document.querySelector<HTMLElement>(".timeslider");
+      const bar = mode === "player" ? (player ?? toolbar) : toolbar;
+      // A tray with no box occludes nothing. The cell sheet hides both trays
+      // with display:none, and a hidden one measures top 0 -- which read as
+      // the whole screen covered: the View padded by its full height, and the
+      // credits parked above the top edge or squeezed into nothing.
+      if (bar && bar.getClientRects().length > 0) {
+        const rect = bar.getBoundingClientRect();
+        occluded = Math.max(0, Math.round(window.innerHeight - rect.top));
       }
-      layerManager.forEachMap((m) => {
-        m.updateSize();
-      });
-    });
-    setTimeout(updateMapSize, 300);
+    }
+
+    if (occluded !== appliedHeight) {
+      document.documentElement.style.setProperty("--bottom-toolbar-height", `${occluded}px`);
+      appliedHeight = occluded;
+    }
+    mapElement.style.height = "100%";
+    // No updateSize(): the map is full-bleed, so its element keeps its size
+    // whatever the bars do, and OpenLayers watches the element for the times
+    // it does change. Calling it here read the layout back out of all four
+    // maps on every frame of every toolbar transition.
+    if (padView) applyPadding(occluded);
+    return occluded;
+  }
+
+  /** The height the stylesheet was last told about. */
+  let appliedHeight = -1;
+
+  /** The padding last handed to the View, and which View it went to. */
+  let appliedPadding = -1;
+  let paddedView: unknown;
+
+  /**
+   * Full-bleed map: the tray is glass and needs the map beneath it. The strip
+   * it covers becomes view padding, so centring, fit() and the geolocation
+   * marker land in the visible part rather than under the bar. The View is
+   * shared by every map, hence maps[0] rather than the current capability,
+   * which is not set yet on the first measurement.
+   *
+   * Only on a change: OpenLayers' padding setter moves the centre whether or
+   * not the padding did, and a moved centre is every map drawn again. Nothing
+   * on screen moves with it either -- the setter compensates -- so during a
+   * transition it waits for the bar to settle rather than redrawing the map
+   * under each frame of it.
+   */
+  function applyPadding(occluded: number) {
+    const view = layerManager.maps[0]?.getView();
+    if (!view || (occluded === appliedPadding && view === paddedView)) return;
+    view.padding = [0, 0, occluded, 0];
+    appliedPadding = occluded;
+    paddedView = view;
+  }
+
+  /** Re-measure every frame until the height stops changing, or we run out. */
+  function pollUntilSettled() {
+    if (transitionFrame !== undefined) return;
+    const step = () => {
+      const occluded = applyMapHeight(false);
+      transitionFramesLeft -= 1;
+
+      if (occluded === lastOccluded) {
+        stableFrames += 1;
+      } else {
+        stableFrames = 0;
+        lastOccluded = occluded ?? -1;
+      }
+
+      if (stableFrames >= SETTLED_FRAMES || transitionFramesLeft <= 0) {
+        transitionFrame = undefined;
+        if (occluded !== undefined) applyPadding(occluded);
+        return;
+      }
+      transitionFrame = requestAnimationFrame(step);
+    };
+    transitionFrame = requestAnimationFrame(step);
+  }
+
+  function startTransitionPoll() {
+    transitionFramesLeft = TRANSITION_POLL_MAX_FRAMES;
+    stableFrames = 0;
+    lastOccluded = -1;
+    pollUntilSettled();
+  }
+
+  /**
+   * Both phases restart the poll. `end` is not a signal that measuring can
+   * stop: Svelte fires it as the animation finishes and the box is only final a
+   * frame or two later, and for an element it is destroying `outroend` may not
+   * arrive at all. Settling, not the event, is what ends the loop.
+   */
+  function onToolbarTransition() {
+    startTransitionPoll();
+  }
+
+  function mapInit(node: HTMLElement) {
+    mapID = node.id;
+    // Every MiniMap's action claims its capability's map as a preview, and an
+    // OpenLayers Map has exactly one target -- so the default has to be applied
+    // once they have all run, or the main map is left empty and whichever
+    // MiniMap initialised last becomes the active capability. Svelte 3 ran
+    // child actions first and this happened to hold; Svelte 5 runs the parent's
+    // first, so wait for the mount flush rather than relying on the order.
+    tick().then(() => layerManager.setDefaultTarget(mapID));
+
+    const unsubscribeMode = bottomToolbarMode.subscribe(() => startTransitionPoll());
+    // The tray comes and goes with the capability as well -- the 3D map has
+    // none -- so the same re-measure, and the observer moved onto whichever
+    // bar now exists.
+    const unsubscribeCap = sharedActiveCap.subscribe(() => tick().then(() => {
+      syncToolbarObserver();
+      startTransitionPoll();
+    }));
+
+    // Catches the toolbar's own content changing height (a scale line swapping,
+    // the lightning chart appearing). Transform-only motion is handled by the
+    // transition events above, which ResizeObserver cannot see.
+    if (typeof ResizeObserver !== "undefined") {
+      toolbarObserver = new ResizeObserver(() => scheduleMapResize());
+      syncToolbarObserver();
+    }
+
+    window.addEventListener("mc:toolbar-transition", onToolbarTransition);
+    window.addEventListener("resize", scheduleMapResize);
+    scheduleMapResize();
+
     return {
       destroy() {
-        console.log("destroy");
+        unsubscribeMode();
+        unsubscribeCap();
+        unsubscribeVisible();
+        window.removeEventListener("mc:toolbar-transition", onToolbarTransition);
+        window.removeEventListener("resize", scheduleMapResize);
+        toolbarObserver?.disconnect();
+        if (resizeFrame !== undefined) cancelAnimationFrame(resizeFrame);
+        if (transitionFrame !== undefined) cancelAnimationFrame(transitionFrame);
       },
     };
   }
 
+  /**
+   * Re-attach the observer to whatever bars exist now.
+   *
+   * Svelte destroys and recreates the toolbar as `bottomToolbarMode` changes,
+   * so an observer wired up once is observing detached nodes by the second
+   * toggle.
+   */
+  let observed = new Set<Element>();
+  function syncToolbarObserver() {
+    if (!toolbarObserver) return;
+    const nodes = new Set<Element>(document.querySelectorAll(".bottomToolbar, .timeslider"));
+    observed.forEach((node) => {
+      if (!nodes.has(node)) toolbarObserver!.unobserve(node);
+    });
+    nodes.forEach((node) => {
+      if (!observed.has(node)) toolbarObserver!.observe(node);
+    });
+    observed = nodes;
+  }
+
+  // The bars come and go with the mode, so re-attach whenever it changes.
+  bottomToolbarMode.subscribe(() => tick().then(syncToolbarObserver));
+
 </script>
 
 <style>
+  /* Full-bleed: the tray floats over live map pixels. The strip it covers is
+     handed to OpenLayers as View.padding in applyMapHeight(). */
   #map {
     width: 100%;
     height: 100%;
     padding: 0;
     margin: 0;
-    z-index: 0;
-  }
-
-  :global(.ol-zoom) {
-    display: none;
-    /* XXX */
+    z-index: var(--mc-z-map);
+    /* The containing block for the 3D map's canvas, which lays itself over
+       this element rather than replacing it. Without a positioned ancestor it
+       resolves against the viewport and covers the bottom tray as well. */
+    position: relative;
   }
 
   :global(:root) {
+    /* still written by App.svelte for ?toolbar=no; no longer read */
     --attributions-bottom-padding: 0.9em;
+    /* under the 44px switcher disc, on the same top line */
+    --ol-controls-top: calc(var(--mc-top-stack) + var(--mc-control-lg) + var(--mc-gutter));
   }
 
-  :global(.ol-attribution) {
-    height: 1.2em;
-    padding-bottom: calc(0.25em + var(--attributions-bottom-padding));
-    font-size: 6pt;
+  /* Material for the controls lives in src/glass.css; only positions here. */
+  :global(.ol-zoom) {
+    top: var(--ol-controls-top);
+    right: var(--mc-gutter);
+    left: auto;
+    bottom: auto;
   }
-  :global(.ol-attribution ul) {
-    font-size: 6pt;
+
+  :global(.ol-geolocate) {
+    /* The zoom capsule's height: two buttons of (module - 2px) and the
+       control's own 2px of border -- two modules less two. The separator
+       between the buttons is one of their borders, inside their box-sizing,
+       and this used to count it a second time, which left the locate disc a
+       gutter and a pixel below the capsule; the 3D map's compass, stacked by
+       the browser rather than by arithmetic, came out a pixel higher. */
+    top: calc(var(--ol-controls-top) + 2 * var(--mc-control-lg) - 2px + var(--mc-gutter));
+    right: var(--mc-gutter);
+    left: auto;
+    bottom: auto;
+    border-radius: 50%;
+  }
+  :global(.ol-geolocate button) {
+    font-size: 22px;
+  }
+
+  /* North-up reset, shown only once the map is turned (the Map Rotation
+     setting). One more disc down the column; OpenLayers' own position is the
+     top-right corner, underneath the switcher disc. */
+  :global(.ol-rotate) {
+    top: calc(var(--ol-controls-top) + 3 * var(--mc-control-lg) - 2px + 2 * var(--mc-gutter));
+    right: var(--mc-gutter);
+    left: auto;
+    bottom: auto;
+    border-radius: 50%;
+  }
+
+  /* The 3D map's controls in the same column: under the switcher disc, a
+     gutter apart, the zoom capsule, the locate disc, and the compass where
+     the flat map's north-up disc is. MapLibre floats its controls in a
+     corner box of its own, so the box is moved rather than each control. The
+     material is in src/glass.css. */
+  :global(.maplibre-host .maplibregl-ctrl-top-right) {
+    top: var(--ol-controls-top);
+    right: var(--mc-gutter);
+  }
+  :global(.maplibre-host .maplibregl-ctrl-top-right .maplibregl-ctrl) {
+    margin: 0 0 var(--mc-gutter);
+  }
+  /* And the attribution where the flat map keeps its own -- beside the 3D
+     map's guide in the bottom-left corner (Guide3D.svelte), which publishes
+     how much of the edge it takes, so a wrapped line of credits never runs
+     under it. */
+  :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
+    right: 2px;
+    /* Above the peel slider while it is up (PeelSlider). */
+    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + var(--mc-peel-h, 0px) + 1px);
+    max-width: calc(100% - 4px - var(--mc-guide-3d-inset, 0px));
+  }
+  /* Up the right edge on a phone, as the flat map's (src/glass.css). The
+     corner box already lets touches through; its float would put the text at
+     the top of the strip once the box is turned. */
+  @media only screen and (max-width: 620px) {
+    :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
+      top: calc(var(--ol-controls-top) + 4 * var(--mc-control-lg) + 3 * var(--mc-gutter));
+      max-width: none;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      text-align: start;
+    }
+    :global(.maplibre-host .maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
+      float: none;
+      padding: 2px 0;
+    }
+  }
+
+  /* The wrappers ship their own zoom and locate controls. */
+  :global(.is-app .ol-zoom),
+  :global(.is-app .ol-rotate) {
+    display: none;
   }
 </style>
 
 <div id="map" use:mapInit />
-{#if visible === "yes"}
+<!-- The component still mounts in the wrappers even though layerswitcherVisible
+     is forced to "no" there: it is what defines window.openLayerswitcher, which
+     the native buttons call. Its own toggle button is hidden inside. -->
+{#if visible === "yes" || dd.isApp()}
   <McLayerSwitcher {layerManager} on:changeLayer={changeLayer} />
 {/if}

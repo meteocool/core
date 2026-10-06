@@ -1,0 +1,1587 @@
+{
+  "components": {
+    "schemas": {
+      "CellsRefresh": {
+        "description": "A nudge that a new KONRAD3D reference time is available.\n\nDeliberately not a `Poke`: the frontend's only `poke` handler reloads every\nradar tile, and deliberately not the cells themselves, which run to hundreds\nof kilobytes on a severe day. Clients refetch `/cells/*` from the data\nservice, scoped to their viewport.",
+        "properties": {
+          "count": {
+            "description": "Convective cells detected in that run",
+            "title": "Count",
+            "type": "integer"
+          },
+          "max_severity": {
+            "description": "Highest DWD severity class in the run",
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Max Severity",
+            "type": "integer"
+          },
+          "reference_time": {
+            "description": "Reference time of the run, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time",
+          "count",
+          "max_severity"
+        ],
+        "title": "CellsRefresh",
+        "type": "object"
+      },
+      "ClassTiles": {
+        "description": "What a precipitation-type tile set holds: a byte per HG class, not colours.",
+        "properties": {
+          "encoding": {
+            "const": "hg-class-u8",
+            "description": "Single-band 8-bit greyscale PNG; pixel = HG class as a byte: 1 not classifiable, 2 drizzle, 3 rain, 4 snow, 5 sleet, 6 graupel, 7 hail; 0 draws nothing. A byte keeps its class; a new class takes a new byte.",
+            "title": "Encoding",
+            "type": "string"
+          },
+          "tile_id": {
+            "description": "The tile set, at the same place as `tile_id`'s.",
+            "title": "Tile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tile_id",
+          "encoding"
+        ],
+        "title": "ClassTiles",
+        "type": "object"
+      },
+      "ClearNotification": {
+        "description": "An acknowledgement that a delivered notification was seen.",
+        "properties": {
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "token": {
+            "maxLength": 192,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "ClearNotification",
+        "type": "object"
+      },
+      "Coverages": {
+        "description": "Which domain answers for which ground: the map draws by this, and the server decides by it.",
+        "properties": {
+          "crs": {
+            "description": "The rings' projection: EPSG:3857, the map's own.",
+            "title": "Crs",
+            "type": "string"
+          },
+          "domains": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/NetworkCoverage"
+            },
+            "description": "Each EUMETNET network, by domain. DWD's (`de`) is wherever its grid reaches and none of these.",
+            "title": "Domains",
+            "type": "object"
+          },
+          "priority": {
+            "description": "Who wins outside every network's own borders where several reach, first to last.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Priority",
+            "type": "array"
+          }
+        },
+        "required": [
+          "crs",
+          "priority",
+          "domains"
+        ],
+        "title": "Coverages",
+        "type": "object"
+      },
+      "FrameSource": {
+        "description": "Where a timestep's values came from.\n\nDeclared as an enum so it reaches the exported OpenAPI schema as one, and\nthe frontend's generated client types `source` as a union rather than a bare\nstring. It was a plain `str`, which is how the two deployments came to emit\ndifferent words for a forecast -- `nowcast_phys` in production, `forecast`\nhere -- without the contract, the generated client or any test noticing.\n\nThe values are production's, because shipped clients already read them:\n`precacheAllForecasts()` matches `nowcast_phys` literally.",
+        "enum": [
+          "observation",
+          "nowcast_phys"
+        ],
+        "title": "FrameSource",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Language": {
+        "description": "Languages notifications are written in.",
+        "enum": [
+          "de",
+          "en"
+        ],
+        "title": "Language",
+        "type": "string"
+      },
+      "LightningCollection": {
+        "description": "Strikes since a baseline.",
+        "properties": {
+          "baseline": {
+            "title": "Baseline",
+            "type": "integer"
+          },
+          "strikes": {
+            "items": {
+              "$ref": "#/components/schemas/LightningStrike"
+            },
+            "title": "Strikes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "strikes",
+          "baseline"
+        ],
+        "title": "LightningCollection",
+        "type": "object"
+      },
+      "LightningLayerMetadata": {
+        "description": "Metadata for the lightning vector tile layer.",
+        "properties": {
+          "most_recent_strike": {
+            "title": "Most Recent Strike",
+            "type": "integer"
+          },
+          "num_strikes": {
+            "title": "Num Strikes",
+            "type": "integer"
+          },
+          "processed_time": {
+            "title": "Processed Time",
+            "type": "integer"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "processed_time",
+          "tile_id",
+          "most_recent_strike",
+          "num_strikes"
+        ],
+        "title": "LightningLayerMetadata",
+        "type": "object"
+      },
+      "LightningStats": {
+        "description": "Strike counts per time bin for an area.",
+        "properties": {
+          "bin_size_min": {
+            "title": "Bin Size Min",
+            "type": "integer"
+          },
+          "bins": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Bins",
+            "type": "array"
+          },
+          "time": {
+            "title": "Time",
+            "type": "number"
+          }
+        },
+        "required": [
+          "time",
+          "bins",
+          "bin_size_min"
+        ],
+        "title": "LightningStats",
+        "type": "object"
+      },
+      "LightningStrike": {
+        "description": "One strike, in projected metres, as the frontend expects.",
+        "properties": {
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "time_wall": {
+            "title": "Time Wall",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "time_wall"
+        ],
+        "title": "LightningStrike",
+        "type": "object"
+      },
+      "LocationUpdate": {
+        "description": "A push client's location and notification preferences.",
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "ahead": {
+            "description": "Notify this many minutes ahead",
+            "exclusiveMinimum": 0.0,
+            "maximum": 60.0,
+            "title": "Ahead",
+            "type": "integer"
+          },
+          "intensity": {
+            "description": "Threshold in dbZ",
+            "maximum": 130.0,
+            "minimum": 0.0,
+            "title": "Intensity",
+            "type": "integer"
+          },
+          "lang": {
+            "$ref": "#/components/schemas/Language",
+            "default": "en"
+          },
+          "lat": {
+            "description": "EPSG:4326 latitude",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:4326 longitude",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Platform"
+          },
+          "speed": {
+            "default": 0.0,
+            "title": "Speed",
+            "type": "number"
+          },
+          "token": {
+            "maxLength": 192,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          },
+          "withDBZ": {
+            "default": false,
+            "title": "Withdbz",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "source",
+          "token",
+          "ahead",
+          "intensity",
+          "accuracy"
+        ],
+        "title": "LocationUpdate",
+        "type": "object"
+      },
+      "Mesocyclone": {
+        "description": "One DWD mesocyclone detection. The `mesocyclones` event carries a list.",
+        "properties": {
+          "diameter": {
+            "description": "Major axis of the detection ellipse, in metres",
+            "title": "Diameter",
+            "type": "number"
+          },
+          "intensity": {
+            "description": "DWD mesocyclone intensity class",
+            "title": "Intensity",
+            "type": "integer"
+          },
+          "lat": {
+            "description": "EPSG:3857 northing, in metres",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:3857 easting, in metres",
+            "title": "Lon",
+            "type": "number"
+          },
+          "time": {
+            "description": "Detection id: milliseconds since the epoch, plus an index",
+            "title": "Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "diameter",
+          "time",
+          "intensity"
+        ],
+        "title": "Mesocyclone",
+        "type": "object"
+      },
+      "NetworkCoverage": {
+        "description": "Where one network answers, and what of its country is cut out of DWD's tiles.",
+        "properties": {
+          "dwd_hole": {
+            "$ref": "#/components/schemas/Rings",
+            "description": "The part of its country cut out of DWD's observation tiles."
+          },
+          "exclusive": {
+            "$ref": "#/components/schemas/Rings",
+            "description": "Where this network's composite alone is drawn."
+          }
+        },
+        "required": [
+          "exclusive",
+          "dwd_hole"
+        ],
+        "title": "NetworkCoverage",
+        "type": "object"
+      },
+      "NetworkRefresh": {
+        "description": "A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\none frame, and ignore a value they do not know.",
+        "properties": {
+          "network": {
+            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network",
+            "enum": [
+              "ch",
+              "fr",
+              "cz",
+              "pl",
+              "eu",
+              "dmax",
+              "colmax"
+            ],
+            "title": "Network",
+            "type": "string"
+          }
+        },
+        "required": [
+          "network"
+        ],
+        "title": "NetworkRefresh",
+        "type": "object"
+      },
+      "Platform": {
+        "description": "Which push provider a client is registered with.",
+        "enum": [
+          "ios",
+          "android"
+        ],
+        "title": "Platform",
+        "type": "string"
+      },
+      "Poke": {
+        "description": "A nudge that a tile product has been re-rendered, and should be refetched.",
+        "properties": {
+          "refresh": {
+            "enum": [
+              "radar",
+              "nowcast",
+              "precipitation_types",
+              "lightning_mvt"
+            ],
+            "title": "Refresh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh"
+        ],
+        "title": "Poke",
+        "type": "object"
+      },
+      "PrecipitationTypes": {
+        "description": "Metadata for the precipitation-type raster overlay.",
+        "properties": {
+          "processed_time": {
+            "title": "Processed Time",
+            "type": "integer"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          },
+          "upstream_time": {
+            "title": "Upstream Time",
+            "type": "integer"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassTiles"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the tile set's bytes mean: HG classes. Absent on frames rendered in RGBA."
+          }
+        },
+        "required": [
+          "tile_id",
+          "upstream_time",
+          "processed_time"
+        ],
+        "title": "PrecipitationTypes",
+        "type": "object"
+      },
+      "RadarFrame": {
+        "description": "One timestep of the radar/nowcast series.",
+        "properties": {
+          "dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dbz"
+          },
+          "dbzMax": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dbzmax"
+          },
+          "dbzMin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dbzmin"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "processed_time": {
+            "title": "Processed Time",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/FrameSource"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          },
+          "tiles": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/TileRows"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Which tiles exist, by zoom level. Tiles that would be fully transparent are not rendered, so a client asking for every tile in the grid is refused most of them on a dry day; with this it need not ask. Absent on frames rendered before the index existed, which means every tile may exist.",
+            "title": "Tiles"
+          },
+          "upstream_time": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the radars measured what this frame shows, unix seconds: for a network's composite, its newest scan. The cutaway volumes carry the same time as `reference_time`, so a client can tell a volume from an older scan than the frame under it. Absent on frames recorded without one.",
+            "title": "Upstream Time"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValueTiles"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the tile set's bytes mean: single-band RVP6. Absent on frames rendered in RGBA."
+          }
+        },
+        "required": [
+          "processed_time",
+          "tile_id",
+          "source",
+          "filename"
+        ],
+        "title": "RadarFrame",
+        "type": "object"
+      },
+      "RadarFrames": {
+        "description": "A series of radar timesteps, keyed by unix time.",
+        "properties": {
+          "frames": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RadarFrame"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Frames",
+            "type": "object"
+          },
+          "networks": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/RadarFrame"
+              },
+              "type": "object"
+            },
+            "description": "meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.",
+            "title": "Networks",
+            "type": "object"
+          },
+          "products": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/RadarFrame"
+              },
+              "type": "object"
+            },
+            "description": "The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, and `colmax`, its column maximum of every network -- keyed like `networks`: the frame measured nearest each observed step (`dmax` and `colmax` only on their own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.",
+            "title": "Products",
+            "type": "object"
+          },
+          "replay": {
+            "default": false,
+            "description": "Whether this stack is replaying a recorded window rather than ingesting live weather. Every timestamp is rewritten to the present, so nothing else in this response distinguishes the two -- which is the point, and the reason a client has to be told rather than left to work it out.",
+            "title": "Replay",
+            "type": "boolean"
+          },
+          "server_time": {
+            "title": "Server Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "frames",
+          "server_time"
+        ],
+        "title": "RadarFrames",
+        "type": "object"
+      },
+      "Rings": {
+        "items": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "type": "array"
+      },
+      "SnowRefresh": {
+        "description": "A nudge that the snowfield overlay has been re-rendered.",
+        "properties": {
+          "refresh": {
+            "const": "overlay",
+            "title": "Refresh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh"
+        ],
+        "title": "SnowRefresh",
+        "type": "object"
+      },
+      "StatusResponse": {
+        "description": "A plain success acknowledgement.",
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "StatusResponse",
+        "type": "object"
+      },
+      "Strike": {
+        "description": "One lightning strike, broadcast as the `lightning` event.",
+        "properties": {
+          "lat": {
+            "description": "EPSG:3857 northing, in metres",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "EPSG:3857 easting, in metres",
+            "title": "Lon",
+            "type": "number"
+          },
+          "time": {
+            "description": "Strike time, milliseconds since the epoch",
+            "title": "Time",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "time"
+        ],
+        "title": "Strike",
+        "type": "object"
+      },
+      "TelemetryReading": {
+        "description": "A barometric reading submitted alongside a location.",
+        "properties": {
+          "accuracy": {
+            "default": 0.0,
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "altitude": {
+            "title": "Altitude",
+            "type": "number"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          },
+          "pressure": {
+            "title": "Pressure",
+            "type": "number"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "number"
+          },
+          "verticalAccuracy": {
+            "title": "Verticalaccuracy",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "altitude",
+          "verticalAccuracy",
+          "pressure",
+          "timestamp"
+        ],
+        "title": "TelemetryReading",
+        "type": "object"
+      },
+      "TileRows": {
+        "description": "Which tiles of one zoom level exist, as a bitmap over a rectangle.\n\n`x` and `y` are the rectangle's corner in the numbering the tile URL uses\n(XYZ x, TMS y), `w` and `h` its size in tiles, and `bits` one bit per tile\nof it, row major from that corner, most significant bit first, base64.",
+        "properties": {
+          "bits": {
+            "title": "Bits",
+            "type": "string"
+          },
+          "h": {
+            "title": "H",
+            "type": "integer"
+          },
+          "w": {
+            "title": "W",
+            "type": "integer"
+          },
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h",
+          "bits"
+        ],
+        "title": "TileRows",
+        "type": "object"
+      },
+      "Unregister": {
+        "description": "A request to forget a push client.",
+        "properties": {
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "token": {
+            "maxLength": 192,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "Unregister",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "ValueTiles": {
+        "description": "What a frame's tile set holds when it is values, not colours.",
+        "properties": {
+          "encoding": {
+            "const": "rvp6-u8",
+            "description": "Single-band 8-bit greyscale PNG; pixel = RVP6 = (dBZ + 32.5) * 2, clipped to 0..255; 0 draws nothing.",
+            "title": "Encoding",
+            "type": "string"
+          },
+          "tile_id": {
+            "description": "The tile set, at the same place as `tile_id`'s.",
+            "title": "Tile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tile_id",
+          "encoding"
+        ],
+        "title": "ValueTiles",
+        "type": "object"
+      },
+      "VectorOverlay": {
+        "description": "Metadata for a vector tile overlay.",
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          },
+          "upstream_time": {
+            "title": "Upstream Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "tile_id",
+          "upstream_time"
+        ],
+        "title": "VectorOverlay",
+        "type": "object"
+      },
+      "VolumesRefresh": {
+        "description": "A nudge that one composite scan's radar volumes have been built.\n\nDeliberately not a third `cells`, though `/cells/volumes` serves them: that\nevent has the frontend refetch the flat map's tracks and the 3D map's cells\ntoo, and the volumes do not follow KONRAD3D. They are built from the DMAX\ncomposite and land tens of seconds after `data` announced the same scan's\ncells -- and a scan in which KONRAD3D warned about nothing can still have\nsome. Clients refetch `/cells/volumes`.",
+        "properties": {
+          "reference_time": {
+            "description": "Time of the composite scan the volumes were built from, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time"
+        ],
+        "title": "VolumesRefresh",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "email": "valentin@meteocool.com"
+    },
+    "description": "\nWelcome to the meteocool backend. You are free to use our raw and aggregated\ndata for your private and server applications. If you are planning on releasing\na publicly available application, please cache these endpoints on your side\nrather than having your users hit them directly.\n\n## Compatibility\n\nWe cannot guarantee consistency or availability of these endpoints, but `/v3/`\nendpoints will not introduce breaking changes soon. Most are rate limited,\nespecially on error responses.\n\n## Attributions\n\nAlways attribute the original data sources. You, not us, are responsible to the\ncopyright holders if you fail to.\n\n* Radar, precipitation types and nowcast data: **DWD**\n* Lightning data: **blitzortung.org**\n\nWe would appreciate an attribution to meteocool too.\n\n## Mobile endpoints\n\nEndpoints tagged `mobile` are documented for completeness; they need a valid\nAPNS or Firebase push token and are write-only, because the read channel is the\nnotification delivered to the device.\n",
+    "title": "meteocool Severe Weather API",
+    "version": "4.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/dl": {
+      "get": {
+        "operationId": "download_dl_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "user-agent",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "User-Agent",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Redirect to the app store for the visitor's platform."
+      }
+    },
+    "/v3/lightning/baseline": {
+      "get": {
+        "description": "Every strike recorded since `baseline`, as a unix timestamp.",
+        "operationId": "since_baseline_v3_lightning_baseline_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "baseline",
+            "required": true,
+            "schema": {
+              "title": "Baseline",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LightningCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Strikes since a baseline.",
+        "tags": [
+          "lightning"
+        ]
+      }
+    },
+    "/v3/lightning/layer": {
+      "get": {
+        "description": "The most recent lightning vector tile set.",
+        "operationId": "layer_v3_lightning_layer_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LightningLayerMetadata"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Vector tile layer metadata.",
+        "tags": [
+          "lightning"
+        ]
+      }
+    },
+    "/v3/lightning/stats": {
+      "get": {
+        "description": "Per-minute strike counts inside a polygon, for the last half hour.",
+        "operationId": "stats_v3_lightning_stats_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "bbox",
+            "required": true,
+            "schema": {
+              "title": "Bbox",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LightningStats"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Strike counts for an area.",
+        "tags": [
+          "lightning"
+        ]
+      }
+    },
+    "/v3/mobile/clear": {
+      "post": {
+        "description": "Mark a client's notification as seen, so the next one can be sent.",
+        "operationId": "clear_notification_v3_mobile_clear_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClearNotification"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge a delivered notification.",
+        "tags": [
+          "mobile"
+        ]
+      }
+    },
+    "/v3/mobile/location": {
+      "delete": {
+        "description": "Remove a push client's registration.",
+        "operationId": "unregister_v3_mobile_location_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Unregister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forget a push client.",
+        "tags": [
+          "mobile"
+        ]
+      },
+      "post": {
+        "description": "Upsert a push client's location and notification preferences.",
+        "operationId": "post_location_v3_mobile_location_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register or refresh a push client.",
+        "tags": [
+          "mobile"
+        ]
+      }
+    },
+    "/v3/radar/classification": {
+      "get": {
+        "description": "The most recent precipitation-type tile set.\n\nServed at /api/precip_types/ by the old Flask service, which this replaces.",
+        "operationId": "classification_v3_radar_classification_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrecipitationTypes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Precipitation-type overlay metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/colmax": {
+      "get": {
+        "description": "The newest column maximum of every network -- one frame, not a timeseries.\n\nDMAX's picture over all five networks: the strongest echo above each cell\nfrom every tilt of every radar, composited by meteocool once a cycle on a\nbackground worker, with the networks evened out where they can be -- one\nfive-minute cycle, 180 km from any radar, up to 12 km, nothing under 12\ndBZ. Stamped with its cycle, as DMAX is, and about seven minutes behind\nit. Refetched on the `network` socket event (`colmax`); its past is in\n`/timeseries` when asked for (`products=colmax`).",
+        "operationId": "colmax_v3_radar_colmax_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Column-maximum reflectivity of every network tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/coverage": {
+      "get": {
+        "description": "Each EUMETNET network's exclusive coverage, and the part of its country cut out of DWD's tiles.\n\nThe map clips each network's layer to its coverage and holes DWD's tiles\nwith the rest, and the server decides by the same shapes which domain a\npoint belongs to (ADR 0012), so the two cannot disagree. They change only\nwith a release.",
+        "operationId": "coverage_v3_radar_coverage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coverages"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Which network's composite is drawn where.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/czechia": {
+      "get": {
+        "description": "The newest Czech reflectivity composite -- one frame, not a timeseries.\n\nCHMI's two radars, composited by meteocool from the lowest tilt of each\nvolume; see `/switzerland` for why this is a route of its own.",
+        "operationId": "czechia_v3_radar_czechia_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Czech reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/dmax": {
+      "get": {
+        "description": "The newest column maximum DWD has published -- one frame, not a timeseries.\n\nThe strongest echo above each 250 m pixel over every tilt of DWD's volume\nscan, on HX's grid: what a storm's core looks like, not the rain at the\nground. A product the reader picks instead of HX, and a cycle behind it,\nsince it needs the whole volume. Refetched on the `network` socket event\n(`dmax`); its past is in `/timeseries` when asked for (`products=dmax`).",
+        "operationId": "dmax_v3_radar_dmax_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "DWD column-maximum reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/europe": {
+      "get": {
+        "description": "The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.\n\nDWD's, MeteoSwiss's, Meteo-France's, CHMI's and IMGW's radars on one grid,\ncomposited by meteocool every few minutes on a background worker. A\nproduct the reader picks: the map's own arrangement of five products\nstays the default, and this is offered beside it. Its past is in\n`/timeseries` only when asked for (`products=merged`): every client would\ncarry it otherwise.",
+        "operationId": "europe_v3_radar_europe_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Merged European reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/france": {
+      "get": {
+        "description": "The newest French reflectivity composite -- one frame, not a timeseries.\n\nMeteo-France's twenty-three radars, composited by meteocool from their\nlowest tilts; see `/switzerland` for why this is a route of its own.",
+        "operationId": "france_v3_radar_france_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "French reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/poland": {
+      "get": {
+        "description": "The newest Polish reflectivity composite -- one frame, not a timeseries.\n\nIMGW's ten radars, composited by meteocool from the lowest tilt of each\nvolume; see `/switzerland` for why this is a route of its own.",
+        "operationId": "poland_v3_radar_poland_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Polish reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/snow": {
+      "get": {
+        "description": "The most recent snowfield vector tile set.",
+        "operationId": "snow_v3_radar_snow_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VectorOverlay"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Snowfield overlay metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/switzerland": {
+      "get": {
+        "description": "The newest Swiss reflectivity composite -- one frame, not a timeseries.\n\nA route of its own beside `/timeseries`, which carries this network's\npast too (`networks.ch`): a client refetches this whenever a radar reports\n-- every minute or two, on the `network` socket event -- and the whole\ntimeseries only when DWD publishes. Same `RadarFrame` shape as every other\nframe here, so the client needs one type and one tile-URL builder for\nevery network.",
+        "operationId": "switzerland_v3_radar_switzerland_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Swiss reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/timeseries": {
+      "get": {
+        "description": "Tile metadata for each timestep in a window, past and forecast.\n\nWith `lat` and `lon`, each frame also carries the dBZ at that point. With\n`network` as well, it is that network's reading wherever it has a composite\nfor the step -- which is every observed step, while its ingest is running\n-- and DWD's everywhere else, the forecast included. The client names the\nnetwork because it is the one that knows which draws where: the borders are\n`extents.ts`'s, and a point sampled from a network the map is not showing\nthere would put bars under the chart that nothing on the map agrees with.\n\n`products` adds another observed product's frames for the same steps, for\na client drawing that one instead: DWD's column maximum, `dmax`, or the\nmerged composite, `merged`. Asked for rather than always sent, since each\nframe carries its tile index and most clients draw neither. The chart is\nstill read from HX and the networks, whichever is drawn.",
+        "operationId": "timeseries_v3_radar_timeseries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Start",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "End",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "default": 0.0,
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": false,
+            "schema": {
+              "default": 0.0,
+              "title": "Lon",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "network",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ch",
+                    "fr",
+                    "cz",
+                    "pl"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Network"
+            }
+          },
+          {
+            "in": "query",
+            "name": "products",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "dmax",
+                      "merged",
+                      "colmax"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Products"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrames"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Radar and nowcast tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/telemetry/pressure": {
+      "post": {
+        "description": "Accept a barometric reading, and keep nothing of it.",
+        "operationId": "post_pressure_v3_telemetry_pressure_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelemetryReading"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit a barometric reading.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    }
+  }
+}

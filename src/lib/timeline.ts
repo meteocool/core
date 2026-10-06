@@ -1,0 +1,200 @@
+/**
+ * The playback timeline, as numbers: which five-minute steps it holds, where
+ * its labels go, and how a flicked needle slows down and comes to rest.
+ *
+ * Everything the Timeline component draws is derived here, so it can be
+ * checked without a DOM. The grid is RadarCapability's: a step every five
+ * minutes from two hours back to as far forward as the nowcast reaches, each
+ * carrying the reflectivity at the point being asked about -- or nothing, when
+ * no point has been shared.
+ */
+import type { GridConfig } from "../caps/RadarCapability";
+
+/** One bar of the strip, in the order the scrubber plays them. */
+export interface TimelineStep {
+  /** The step, unix seconds. */
+  t: number;
+  /** Reflectivity at the point, or null where the grid has no reading. */
+  dbz: number | null;
+  /** A nowcast rather than an observation: drawn fainter. */
+  forecast: boolean;
+  /**
+   * Whether the map can show it. The grid runs to +2h but the tail of the
+   * nowcast is published behind it; those steps are on the axis, so the strip
+   * is always the same two hours each way, but the needle cannot reach them.
+   */
+  playable: boolean;
+}
+
+/**
+ * The whole grid, oldest first, each step marked playable or not.
+ *
+ * The strip spans the grid rather than stopping at the last published frame,
+ * so its right-hand end always reads +2h and the axis never shifts as the
+ * tail fills in. Numeric sort -- the keys are 10-digit timestamps, so a
+ * lexicographic one would merely happen to agree.
+ */
+export function timelineSteps(config: GridConfig, lastPlayable: number): TimelineStep[] {
+  return Object.keys(config.grid)
+    .map((key) => parseInt(key, 10))
+    .sort((a, b) => a - b)
+    .map((t) => {
+      const step = config.grid[t];
+      const dbz = step?.dbz;
+      return {
+        t,
+        dbz: dbz == null || Number.isNaN(dbz) ? null : Math.max(0, dbz),
+        forecast: step != null && step.source !== "observation",
+        playable: t <= lastPlayable,
+      };
+    });
+}
+
+/** The index of the last step the needle may reach. */
+export function lastPlayableIndex(steps: TimelineStep[]): number {
+  let index = 0;
+  steps.forEach((step, i) => { if (step.playable) index = i; });
+  return index;
+}
+
+/**
+ * Where the forecast starts, as a fraction of the strip, when there is none
+ * at the point asked about -- and null whenever there is one, or nothing at
+ * all. Outside DWD's grid the past comes from meteocool's own composites of
+ * the neighbouring networks, which have no forecast, so the right half of
+ * the strip is empty for a reason rather than because it will stay dry.
+ */
+export function forecastGapFrom(steps: TimelineStep[]): number | null {
+  const first = steps.findIndex((step) => step.forecast);
+  if (first <= 0) return null;
+  const unknown = (step: TimelineStep) => step.dbz === null;
+  // Only the published forecast can say it has nothing; the unpublished
+  // tail has nothing because it is not here yet.
+  const published = steps.filter((step) => step.playable);
+  if (!published.slice(first).every(unknown)) return null;
+  if (published.slice(0, first).every(unknown)) return null;
+  return first / steps.length;
+}
+
+/** Whether any step has measurable echo: the strip is worth bars at all. */
+export function hasEcho(steps: TimelineStep[]): boolean {
+  return steps.some((step) => step.dbz !== null && step.dbz > 0);
+}
+
+/**
+ * The ceiling the bars are drawn against. 95 dBZ is the top of the colour
+ * table, not a rainfall anyone sees: a typical shower peaks around 20, and
+ * 45 is heavy rain. Taking the max with the peak means hail never clips.
+ */
+export function barCeiling(steps: TimelineStep[]): number {
+  const peak = Math.max(0, ...steps.map((step) => step.dbz ?? 0));
+  return Math.max(45, Math.ceil(peak));
+}
+
+/** A label on the axis under the strip. */
+export interface AxisTick {
+  /** Position along the strip, 0..1, centred on the step's bar. */
+  at: number;
+  /** Offset from now, in minutes. */
+  minutes: number;
+  /** The two ends are anchored flush rather than centred. */
+  anchor: "start" | "end" | null;
+}
+
+/** How close to an end a regular label may sit before the end label wins. */
+const AXIS_EDGE_CLEAR = 0.09;
+
+/**
+ * Where the axis is labelled.
+ *
+ * The ends are always labelled, whatever they land on: the right-hand one is
+ * how far the forecast actually reaches, which is the nowcast's published
+ * horizon rather than a round +2h. Between them, every `every` minutes,
+ * skipping any that would collide with an end label.
+ */
+export function axisTicks(steps: TimelineStep[], now: number, every: number): AxisTick[] {
+  const n = steps.length;
+  if (n === 0) return [];
+  const minutesAt = (index: number) => Math.round((steps[index].t - now) / 60);
+  const ticks: AxisTick[] = [{ at: 0, minutes: minutesAt(0), anchor: "start" }];
+  for (let i = 1; i < n - 1; i += 1) {
+    const minutes = minutesAt(i);
+    if (minutes % every !== 0) continue;
+    const at = (i + 0.5) / n;
+    if (at < AXIS_EDGE_CLEAR || at > 1 - AXIS_EDGE_CLEAR) continue;
+    ticks.push({ at, minutes, anchor: null });
+  }
+  if (n > 1) ticks.push({ at: 1, minutes: minutesAt(n - 1), anchor: "end" });
+  return ticks;
+}
+
+/** The index of the step at or just before `t`, clamped into the strip. */
+export function indexOf(steps: TimelineStep[], t: number): number {
+  if (steps.length === 0) return 0;
+  let index = 0;
+  for (let i = 0; i < steps.length; i += 1) {
+    if (steps[i].t <= t) index = i;
+    else break;
+  }
+  return index;
+}
+
+/**
+ * The needle's physics: a position in steps (fractional while moving), a
+ * velocity in steps per millisecond, and the strip's two ends.
+ *
+ * A flick carries on past the finger and slows; the ends give way a little
+ * and spring back, so running into one reads as the strip ending rather than
+ * the drag failing. At rest the needle sits on a whole step, because that is
+ * what the map can show.
+ */
+export interface Needle {
+  pos: number;
+  velocity: number;
+}
+
+/** Momentum's decay per millisecond: a flick glides about a quarter of the strip. */
+export const FRICTION = 0.006;
+/** How far past an end a drag may pull, in steps, before it stops giving. */
+export const OVERSHOOT = 1.5;
+/** Below this speed a glide is over, in steps per millisecond. */
+export const AT_REST = 0.0005;
+/** How close to the detent a released needle has to come to be caught by it, in steps. */
+export const DETENT_STEPS = 0.9;
+/** A glide slower than this is caught by the detent as it crosses it, in steps per millisecond. */
+export const DETENT_CATCH = 0.012;
+
+/** Clamp into the strip, with rubber-banding past the ends. */
+export function rubberBand(pos: number, last: number): number {
+  if (pos < 0) return -OVERSHOOT * (1 - 1 / (1 + -pos / OVERSHOOT));
+  if (pos > last) return last + OVERSHOOT * (1 - 1 / (1 + (pos - last) / OVERSHOOT));
+  return pos;
+}
+
+/**
+ * One frame of a glide: slow down, move, and stop dead at an end -- or at the
+ * detent, when the glide has slowed enough for it to catch. A fast flick
+ * passes straight through, so the strip can still be thrown from end to end.
+ */
+export function glideStep(needle: Needle, dt: number, last: number, detent: number | null = null): Needle {
+  const velocity = needle.velocity * Math.exp(-FRICTION * dt);
+  let pos = needle.pos + velocity * dt;
+  if (pos <= 0 || pos >= last) {
+    pos = Math.min(Math.max(pos, 0), last);
+    return { pos, velocity: 0 };
+  }
+  if (detent !== null && Math.abs(velocity) < DETENT_CATCH
+    && (needle.pos - detent) * (pos - detent) <= 0 && needle.pos !== pos) {
+    return { pos: detent, velocity: 0 };
+  }
+  return { pos, velocity: Math.abs(velocity) < AT_REST ? 0 : velocity };
+}
+
+/**
+ * Where a released needle comes to rest: the detent if it is close, otherwise
+ * the nearest whole step inside the strip.
+ */
+export function restingStep(pos: number, last: number, detent: number | null = null): number {
+  if (detent !== null && Math.abs(pos - detent) <= DETENT_STEPS) return detent;
+  return Math.min(Math.max(Math.round(pos), 0), last);
+}

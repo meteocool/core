@@ -1,0 +1,23 @@
+import type { Socket } from "socket.io-client";
+import type NanobarWrapper from "../lib/NanobarWrapper";
+import type { ServerToClientEvents, ClientToServerEvents } from "../api/events";
+
+/** The live-update channel every capability that refreshes tiles listens on. */
+export type RadarSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+
+/**
+ * What App.svelte hands each capability. Every field is optional because the
+ * five capabilities take different subsets. LayerManager passes the object
+ * through, adding `locate`.
+ */
+export interface CapabilityOptions {
+  nanobar?: NanobarWrapper;
+  socket?: RadarSocket;
+  socket_io?: RadarSocket;
+  cmap?: string;
+  hasBaseLayer?: boolean;
+  /** A screenshot's map (lib/screenshot.ts): fetched once, never refreshed. */
+  screenshot?: boolean;
+  /** Ask where the reader is and centre on it: `LayerManager.locate`. */
+  locate?: () => void;
+}

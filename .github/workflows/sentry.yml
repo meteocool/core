@@ -1,26 +1,30 @@
 name: SentryRelease
 
+# A production release, so only for what production runs: `main`. `develop`
+# goes to staging and demo (deploy.yml), and a release cut from each push there
+# would claim to be production.
 on:
   push:
     branches:
       - main
-      - develop
-  pull_request:
-    branches:
-      - main
-      - develop
+
+# Read-only, whatever the repository default is: this is a public repository
+# and nothing here needs to write to it.
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: '15.x'
-      - run: npm install
-      - run: GIT_COMMIT_HASH=${{github.sha}} npm run build-nocrossenv
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - name: Create a Sentry.io release
         uses: tclindner/sentry-releases-action@v1.2.0
         env:

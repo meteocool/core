@@ -1,0 +1,102 @@
+/* eslint no-use-before-define: 0 */
+/// <reference lib="webworker" />
+
+declare const self: ServiceWorkerGlobalScope & {
+  /** Injected at build time by vite-plugin-pwa's injectManifest. */
+  __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
+};
+import { clientsClaim } from "workbox-core";
+import { registerRoute } from "workbox-routing";
+import { CacheFirst } from "workbox-strategies";
+import { ExpirationPlugin } from "workbox-expiration";
+import { CacheableResponsePlugin } from "workbox-cacheable-response";
+import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
+import {
+  BASEMAP_CACHE, BASEMAP_ROUTE, TERRAIN_CACHE, TERRAIN_ROUTE, WEATHER_TILE_CACHE, WEATHER_TILE_ROUTE,
+} from "./lib/tileCacheRoutes";
+
+// The precache first: workbox routes a request to the first route that
+// matches, and the /assets/ route below matches every chunk in the manifest.
+// Registered after it, as it was, the precache answered nothing -- a chunk it
+// held was fetched from the network all the same on first use, so a storm
+// panel opened offline failed to load although its code was on disk.
+cleanupOutdatedCaches();
+precacheAndRoute(self.__WB_MANIFEST);
+
+// Two caches, because the two tilesets have opposite needs.
+//
+// The basemap is versioned into its own path (map.meteocool.com/<version>/),
+// so a given URL never changes content and can be served from cache
+// indefinitely. The previous pattern here listed cartodb, nextzen, cyclosm and
+// openstreetmap.org -- none of which the app requests any more.
+registerRoute(
+  BASEMAP_ROUTE,
+  new CacheFirst({
+    cacheName: BASEMAP_CACHE,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 20000,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// Terrain is versioned the same way, but each tile is a large image: capped at
+// a few hundred megabytes, which is the ground under a good many storms.
+registerRoute(
+  TERRAIN_ROUTE,
+  new CacheFirst({
+    cacheName: TERRAIN_CACHE,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 2000,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// Weather tiles are immutable too, per URL: each frame is rendered once under
+// its own tile_id, and the timeseries says which id is current. This used to
+// be network-first on the theory that a cached radar frame is worse than
+// none, but a frame's URL never serves a different frame -- so every loop of
+// the player after OpenLayers had evicted a tile, and every reload, went to
+// the network for bytes already on disk. The expiry bounds the storage; the
+// grid moves on from an id within hours anyway.
+registerRoute(
+  WEATHER_TILE_ROUTE,
+  new CacheFirst({
+    cacheName: WEATHER_TILE_CACHE,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 4000,
+        maxAgeSeconds: 2 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// Everything Vite emits under /assets/ carries a content hash in its name, so
+// a URL never changes meaning: cache-first, for as long as the browser keeps
+// it. This is what serves the chunks left out of the precache -- MapLibre --
+// on their second use, in place of precaching them for everyone.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.startsWith("/assets/"),
+  new CacheFirst({
+    cacheName: "assets-cache",
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true }),
+    ],
+  }),
+);
+
+self.skipWaiting();
+clientsClaim();

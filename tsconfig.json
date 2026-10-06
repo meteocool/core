@@ -1,9 +1,20 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
-    "module": "es6",
-    "target": "es6",
-    "moduleResolution": "node",
-    "allowJs": true,
-  }
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "types": ["node", "vite/client", "vite-plugin-pwa/client"],
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    // OpenLayers' own types are partial enough that noImplicitAny across the
+    // layer code costs more than it catches; the rest of strict is on.
+    "strict": true,
+    "noImplicitAny": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts"]
 }
