@@ -946,6 +946,17 @@ onDestroy(() => {
     :global(.bottomToolbar.lastUpdatedBottom.player-open) {
       display: none;
     }
+    /* The bar is two rows tall here, room for both discs in one column: the
+       unfold disc on top, play below, flush with the bar's top and bottom
+       edges, so the bar takes the right-hand disc's width as well. */
+    .buttonBar {
+      bottom: var(--mc-collapsed-bottom);
+    }
+    .buttonBar.right {
+      left: var(--mc-gutter);
+      right: unset;
+      bottom: calc(var(--mc-collapsed-bottom) + var(--mc-bar-h) - var(--mc-control));
+    }
   }
 </style>
 

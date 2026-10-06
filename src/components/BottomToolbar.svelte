@@ -215,6 +215,10 @@
         .lastUpdatedBottom {
             padding: 6px 10px;
         }
+        /* Both discs stand in one column at the left (NowcastPlayback). */
+        .lastUpdatedBottom.has-discs {
+            right: var(--mc-gutter);
+        }
         .parentz {
             flex-wrap: wrap;
             /* The scale and the "last updated" line are two short rows in a
