@@ -1,4 +1,5 @@
 import Control from "ol/control/Control";
+import type { IControl } from "maplibre-gl";
 import { t } from "../locale/t";
 
 /**
@@ -46,6 +47,24 @@ export interface GeolocateControlOptions {
   title?: string;
 }
 
+/** The locate button itself, for either map's control stack. */
+function locateButton(title: string, onLocate: LocateHandler): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.title = title;
+  button.setAttribute("aria-label", title);
+  button.innerHTML = LOCATION_ARROW;
+  // A browser with geolocation switched off would otherwise offer a button
+  // whose only outcome is a permission error.
+  button.disabled = !("geolocation" in navigator);
+  // A <button> already fires click on Enter and Space, so there is no
+  // separate key handler here.
+  button.addEventListener("click", () => {
+    if (!button.disabled) onLocate();
+  });
+  return button;
+}
+
 /**
  * A "locate me" button in the map's own control stack.
  *
@@ -54,36 +73,24 @@ export interface GeolocateControlOptions {
  * away. In the native wrappers this stays unused: they have their own control.
  */
 export default class GeolocateControl extends Control {
-  private button: HTMLButtonElement;
-
-  private locateHandler: LocateHandler;
-
   constructor(options: GeolocateControlOptions) {
-    const title = options.title ?? t("chrome.locate_me");
     const element = document.createElement("div");
     element.className = `ol-unselectable ol-control ${options.className ?? "ol-geolocate"}`;
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.title = title;
-    button.setAttribute("aria-label", title);
-    button.innerHTML = LOCATION_ARROW;
-    // A browser with geolocation switched off would otherwise offer a button
-    // whose only outcome is a permission error.
-    button.disabled = !("geolocation" in navigator);
-
-    element.appendChild(button);
+    element.appendChild(locateButton(options.title ?? t("chrome.locate_me"), options.onLocate));
     super({ element });
-
-    this.button = button;
-    this.locateHandler = options.onLocate;
-    // A <button> already fires click on Enter and Space, so there is no
-    // separate key handler here.
-    this.button.addEventListener("click", () => this.handleClick());
   }
+}
 
-  private handleClick() {
-    if (this.button.disabled) return;
-    this.locateHandler();
-  }
+/**
+ * The same button on the 3D map, as a MapLibre control: a one-button group,
+ * which glass.css draws as the disc the compass is.
+ */
+export function maplibreLocateControl(onLocate: LocateHandler): IControl {
+  const element = document.createElement("div");
+  element.className = "maplibregl-ctrl maplibregl-ctrl-group mc-locate";
+  element.appendChild(locateButton(t("chrome.locate_me"), onLocate));
+  return {
+    onAdd: () => element,
+    onRemove: () => element.remove(),
+  };
 }
