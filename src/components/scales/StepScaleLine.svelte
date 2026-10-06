@@ -34,7 +34,11 @@
     float: none;
     margin-right: 0;
     padding-bottom: 0;
-    height: calc(var(--sl-input-height-medium) * 0.8);
+    /* As tall as the ink, as ScaleLine's: 2px above the strip, the strip, and
+       the labels hanging 14px below its top. At the Shoelace input height the
+       box was twice that on a phone, and the phone's tray, which centres its
+       two rows, pushed the freshness line down to its bottom edge. */
+    height: 28px;
   }
 
   .scale-line {
@@ -61,10 +65,6 @@
   @media only screen and (max-width: 990px) {
     .scale-divider {
       font-size: 10px;
-    }
-    .scale {
-      height: calc(var(--sl-input-height-medium) * 1.2);
-      padding-bottom: 0.25em;
     }
   }
 
