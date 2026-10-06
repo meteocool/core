@@ -42,9 +42,13 @@ export function isHandheld(): boolean {
   return Boolean(window.matchMedia?.("(pointer: coarse)").matches && !window.matchMedia?.("(hover: hover)").matches);
 }
 
-/** The pixel ratio to draw the 3D map at. */
-export function mapPixelRatio(devicePixelRatio: number, handheld: boolean): number {
-  return handheld ? Math.min(devicePixelRatio, HANDHELD_PIXEL_RATIO) : devicePixelRatio;
+/**
+ * The pixel ratio to draw the 3D map at: the screen's own, except on a
+ * handheld device whose reader has not asked for full resolution
+ * (`fullResolution3d`).
+ */
+export function mapPixelRatio(devicePixelRatio: number, handheld: boolean, fullResolution = false): number {
+  return handheld && !fullResolution ? Math.min(devicePixelRatio, HANDHELD_PIXEL_RATIO) : devicePixelRatio;
 }
 
 /**
