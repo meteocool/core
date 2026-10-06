@@ -18,19 +18,19 @@
   // rest close the gap.
   $: tiles = [
     { layer: "radar", label: `🌧 ${$_("rain_and_thunderstorms")}` },
+    // The only tile whose map is not the layer it stands for: see MiniMap.
+    { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}`, preview: true },
     { layer: "satellite", label: `🛰️ ${$_("nrt_satellite")}` },
     { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
     { layer: "aerosols", label: `💨 ${$_("aerosols")}` },
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
-    // The only tile whose map is not the layer it stands for: see MiniMap.
-    { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}`, preview: true },
   ].filter((tile) => capabilityEnabled(tile.layer));
 
   // Rain & thunderstorms is what this app is for, so it leads: a wide hero
   // across the top, the rest paired two across beneath it. An odd tile out in
-  // that remainder spans its row rather than leaving a hole -- which is how
-  // lightning sat when there were five of these.
-  $: tailSpans = tiles.length > 1 && (tiles.length - 1) % 2 === 1;
+  // that remainder spans its row rather than leaving a hole: the first of
+  // them, so the 3D map, next in line, sits wide under the hero.
+  $: secondSpans = tiles.length > 1 && (tiles.length - 1) % 2 === 1;
 
   const childCanvases = {};
 
@@ -165,15 +165,15 @@
   }
 
   .grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mc-gutter);
     height: 100%;
   }
 
+  /* A definite height, not a flex share: the overlay toggles that shared the
+     column with it are gone, and as a flex item of auto basis Safari took its
+     height for indefinite, sized the fr rows to their (empty) content, and
+     left the tiles short of the bottom, each row a different height. */
   .maps {
-    flex: 1 1 auto;
-    min-height: 0;
+    height: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1.4fr;         /* the hero row; the pairs below are 1fr */
@@ -238,7 +238,7 @@
           <div
             class="cell"
             class:hero={index === 0}
-            class:wide={index === 0 || (tailSpans && index === tiles.length - 1)}>
+            class:wide={index === 0 || (secondSpans && index === 1)}>
             <MiniMap
               {layerManager}
               layer={tile.layer}
