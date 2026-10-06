@@ -189,6 +189,8 @@
     "map_3d": "Carte 3D",
     "konrad_cells": "Cellules KONRAD3D",
     "konrad_cells_hint": "KONRAD3D est la détection et le suivi des cellules orageuses dans le réseau radar du service météorologique allemand (DWD). Ce qui est dessiné n'est pas un volume nuageux réaliste : chaque cellule est son contour au sol, empilé en paliers dont la taille et la hauteur découlent de quelques valeurs que KONRAD3D fournit par niveau d'intensité. Elles se marient mal avec les volumes radar de la carte 3D et arrivent quelques minutes après le radar ; nous vous conseillons de laisser cette option désactivée.",
+    "full_resolution": "Pleine résolution",
+    "full_resolution_hint": "Affiche la carte 3D à la pleine résolution de l'écran. Plus net, mais utilise plus du double de mémoire graphique : sur certains téléphones, la carte peut planter et se recharger.",
     "terrain": "Relief",
     "terrain_hint": "Élève la carte 3D selon le relief du terrain et ombre les reliefs, à l'échelle réelle. Télécharge des tuiles d'altitude au fil des déplacements.",
     "performance": "Performances",

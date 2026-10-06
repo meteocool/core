@@ -208,6 +208,13 @@ export const cells3dVisible = writable<boolean>(false);
  */
 export const terrain3dVisible = writable<boolean>(true);
 /**
+ * Whether a phone or tablet draws the 3D map at its screen's full pixel
+ * ratio rather than at 2x at most (lib/gpuBudget.ts). Off unless the reader
+ * turns it on: a phone's 3x is 2.25 times the pixels, and the memory that
+ * costs is what made the 3D map crash on iPhones.
+ */
+export const fullResolution3d = writable<boolean>(false);
+/**
  * The 3D map's peel, 0 every storm whole to 1 down to its core. The clouds
  * write it as they peel on their own, so the slider follows them; the slider
  * writes it and sets `peelManual`, which stops them peeling on their own for

@@ -37,7 +37,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
-  toolbarVisible,
+  toolbarVisible, fullResolution3d,
 } from "./stores";
 
 import "./global.css";
@@ -246,6 +246,13 @@ window.settings = new Settings({
     default: true,
     cb: (value) => {
       terrain3dVisible.set(Boolean(value));
+    },
+  },
+  layer3dFullResolution: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      fullResolution3d.set(Boolean(value));
     },
   },
   radarProduct: {

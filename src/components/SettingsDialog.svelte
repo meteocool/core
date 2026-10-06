@@ -3,9 +3,10 @@ import { createEventDispatcher } from "svelte";
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
-  cells3dVisible, cellLayerVisible, cycloneLayerVisible, lightningLayerVisible, mapBaseLayer, radarColormap,
-  terrain3dVisible,
+  cells3dVisible, cellLayerVisible, cycloneLayerVisible, fullResolution3d, lightningLayerVisible, mapBaseLayer,
+  radarColormap, terrain3dVisible,
 } from "../stores";
+import { isHandheld } from "../lib/gpuBudget";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
 
@@ -116,6 +117,13 @@ function setCells3d(value: boolean) {
 
 function setTerrain3d(value: boolean) {
   window.settings.set("layer3dTerrain", value);
+}
+
+/* Only where there is a cap to lift: a desktop always draws at full resolution. */
+const handheld = isHandheld();
+
+function setFullResolution3d(value: boolean) {
+  window.settings.set("layer3dFullResolution", value);
 }
 
 </script>
@@ -348,6 +356,20 @@ function setTerrain3d(value: boolean) {
       </label>
     </div>
     <p class="hint">{$_("settings.konrad_cells_hint")}</p>
+    {#if handheld}
+      <div class="group">
+        <label class="row">
+          <span class="label">{$_("settings.full_resolution")}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={$fullResolution3d}
+            on:change={(event) => setFullResolution3d(event.currentTarget.checked)} />
+        </label>
+      </div>
+      <p class="hint">{$_("settings.full_resolution_hint")}</p>
+    {/if}
   {/if}
 
   <!-- What costs frames or bandwidth, and can be traded away for them. -->

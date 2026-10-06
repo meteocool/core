@@ -44,7 +44,7 @@ import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
 import {
   capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, cloudsTime, colorSchemeDark, cutRotationDeg,
   cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedVolume, sharedActiveCap,
-  showForecastPlaybutton, smallScreen, terrain3dVisible,
+  showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d,
 } from "../stores";
 import { derived, get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
@@ -484,6 +484,7 @@ export default class Cells3DCapability extends Capability {
   private terrainWanted = get(terrain3dVisible);
 
   private unsubscribeTerrain: (() => void) | null = null;
+  private unsubscribeResolution: (() => void) | null = null;
 
   /** The scan the cells were found in; null before the first run, and while they are off. */
   private cellsScan: Scan | null = null;
@@ -787,6 +788,10 @@ export default class Cells3DCapability extends Capability {
       // Before the style is up, `applyData` adds it once it is.
       if (this.gl && this.styleReady) applyTerrain(this.gl, wanted, this.dark, this.drapeSize());
     });
+    // Settings: full resolution or the handheld cap, redrawn at once.
+    this.unsubscribeResolution = fullResolution3d.subscribe((full) => {
+      this.gl?.setPixelRatio(mapPixelRatio(window.devicePixelRatio, isHandheld(), full));
+    });
     // An app tells the page its language after the map is up.
     this.unsubscribeLocale = locale.subscribe((tag) => {
       if (!tag) return;
@@ -955,7 +960,7 @@ export default class Cells3DCapability extends Capability {
           // attribution rules in glass.css.
           attributionControl: { compact: false },
           // A phone's memory: see gpuBudget.ts.
-          pixelRatio: mapPixelRatio(window.devicePixelRatio, isHandheld()),
+          pixelRatio: mapPixelRatio(window.devicePixelRatio, isHandheld(), get(fullResolution3d)),
           ...(isHandheld() ? { maxTileCacheZoomLevels: HANDHELD_TILE_CACHE_ZOOM_LEVELS } : {}),
         });
       } catch (error) {
@@ -2976,6 +2981,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeCellsWanted = null;
     this.unsubscribeTerrain?.();
     this.unsubscribeTerrain = null;
+    this.unsubscribeResolution?.();
+    this.unsubscribeResolution = null;
     this.unsubscribeSweep?.();
     this.unsubscribeSweep = null;
     this.unsubscribeLocale?.();
