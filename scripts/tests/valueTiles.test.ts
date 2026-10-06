@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { TestContext } from "node:test";
 import { blankTile, fillTemplate, present } from "../../src/layers/indexedTiles.ts";
-import { loadValueTile } from "../../src/layers/valueTiles.ts";
+import { frameOnStep, loadValueTile, templateOf } from "../../src/layers/valueTiles.ts";
 import { sourceTile } from "../../src/lib/tileIndex.ts";
 import { maskPath, tileExtent } from "../../src/layers/tileMask.ts";
 
@@ -82,4 +82,20 @@ test("a tile outside the ground a network keeps to is a blank, and nothing is fe
   const keep = maskPath([[[west, south], [east, south], [east, north], [west, north]]]);
   assert.equal(await loadValueTile(TEMPLATE, index, 5, 16, 11, [], keep), blankTile());
   assert.deepEqual(fetched, []);
+});
+
+const DMAX = "/tiles/meteoradar/dmax-1/{z}/{x}/{-y}.png";
+
+test("a frame on its own step is named by its tiles", () => {
+  assert.equal(frameOnStep(DMAX, 1_000_200, 1_000_200), DMAX);
+  assert.equal(frameOnStep(DMAX, null, 1_000_200), DMAX, "a frame with no scan time is taken as its step's");
+});
+
+test("a frame standing on another step is named apart, so each step keeps its own holes", () => {
+  // DMAX's newest, a cycle behind, on the live step: holed for every network
+  // there, and for only those with a composite on its own step.
+  const live = frameOnStep(DMAX, 1_000_200, 1_000_500);
+  assert.notEqual(live, frameOnStep(DMAX, 1_000_200, 1_000_200));
+  assert.equal(templateOf(live), DMAX, "the same tiles are fetched");
+  assert.equal(templateOf(DMAX), DMAX);
 });

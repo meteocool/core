@@ -60,6 +60,26 @@ export async function loadValueTile(
 }
 
 /**
+ * A frame's name on a step it is drawn on: its tiles' template, or, where it
+ * stands on a step other than the one it was measured for, the template and
+ * that step.
+ *
+ * The source keys a frame's holes by its name, and one frame can be drawn on
+ * two steps cut two ways: DMAX's newest stands on the live step, holed for
+ * every network, a cycle after its own, holed only for the networks that have
+ * a composite there. Under one name, the one step's cut was the other's too.
+ */
+export function frameOnStep(template: string, measuredAt: number | null | undefined, step: number): string {
+  return measuredAt === null || measuredAt === undefined || measuredAt === step ? template : `${template}#${step}`;
+}
+
+/** The tile template a frame's name points at: `frameOnStep`'s suffix is not fetched. */
+export function templateOf(name: string): string {
+  const at = name.indexOf("#");
+  return at < 0 ? name : name.slice(0, at);
+}
+
+/**
  * A `DataTile` source re-pointed at one value frame after another.
  *
  * `DataTile` has no URL: the frame is the template the loader reads, and the
@@ -149,9 +169,10 @@ export default class ValueTileSource extends DataTileSource {
     const codes = this.holes.get(url) ?? [];
     const holes = HOLES.filter((hole) => codes.includes(hole.code));
     const keep = this.keep;
+    const template = templateOf(url);
     this.setLoader((z, x, y, options) => {
       const size = this.getTileGrid()!.getTileSize(z);
-      return loadValueTile(url, gate, z, x, y, holes, keep, options.signal, typeof size === "number" ? size : size[0]);
+      return loadValueTile(template, gate, z, x, y, holes, keep, options.signal, typeof size === "number" ? size : size[0]);
     });
     // What the renderer caches tiles by: a frame whose holes changed (the live
     // frame becoming history, a network's composite arriving for a step) has
