@@ -1945,7 +1945,7 @@ export default class Cells3DCapability extends Capability {
    *
    * Each network's runs land on their own clock and a run in parts, so the
    * ones that land between two KONRAD3D runs were otherwise not seen until
-   * the next -- by when its radar had moved on and they were drawn grey. A
+   * the next -- by when its radar had moved on and they were a scan behind. A
    * moment's wait first, so a run's parts landing together are one fetch.
    */
   newVolumes(): void {

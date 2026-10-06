@@ -437,8 +437,7 @@ derived(
 /* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the
    way there -- see layers/cloudHints.ts. Only where that map is offered, and,
    like the cells, only on the newest observation, which is the scan the cores
-   were found in -- and only for the cores as new as that radar, which the 3D
-   map draws in colour rather than grey. */
+   were found in -- and only for the cores as new as that radar. */
 const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
 const hints = makeCloudHints();
 const cloudHintLayer = hints.layer;
@@ -621,8 +620,8 @@ window.lm = lm;
 /* The 3D map drapes the same radar frame the flat map is showing, so the two
    never disagree about what the weather is. RadarCapability already resolves
    which frame is current and what its tiles are; this just forwards it rather
-   than working it out a second time -- with its scan, against which the 3D map
-   greys out storms from an older one; see lib/scans.ts. */
+   than working it out a second time -- with its scan, which the 3D map waits
+   for the storms' volumes to reach; see lib/scans.ts. */
 const cells3d = lm.getCapability("cells3d") as Cells3DCapability | undefined;
 const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {

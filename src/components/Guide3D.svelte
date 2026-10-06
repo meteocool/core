@@ -5,7 +5,7 @@
  *
  * The 3D map is the one map here a reader cannot read by having seen a radar
  * map before: clouds that peel away and grow back, boxes on the ground, some
- * storms grey and some faint, and a mouse that needs its right button to tilt.
+ * storms faint, and a mouse that needs its right button to tilt.
  * Nothing on screen said what any of it was. The card says, once, beside the
  * map rather than over the storms; closed, it stays closed across visits, and
  * the pill is the way back to it.
