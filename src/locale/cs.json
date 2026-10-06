@@ -167,17 +167,23 @@
     "color_map_hint": "Mění barvy, ve kterých se vykreslují srážky.",
     "map": "Mapa",
     "rotation": "Otáčení mapy dvěma prsty",
+    "rotation_hint": "Platí jen pro 2D mapu. 3D mapa vždy používá všechna dotyková gesta, včetně otáčení a naklánění.",
     "map_3d": "3D mapa",
     "konrad_cells": "Buňky KONRAD3D",
-    "konrad_cells_hint": "Vykresluje bouřkové buňky sledované DWD jako vrstvené stupně. Přicházejí několik minut po radaru a do té doby jsou šedé.",
+    "konrad_cells_hint": "KONRAD3D je detekce a sledování bouřkových buněk v radarové síti Německé meteorologické služby (DWD). Nejde o realistické objemy oblaků: každá buňka je její obrys na zemi, poskládaný do stupňů, jejichž velikost a výška vychází z několika hodnot, které KONRAD3D hlásí pro každou úroveň intenzity. Nehodí se k radarovým objemům 3D mapy a přicházejí až minuty po radaru, proto doporučujeme nechat je vypnuté.",
     "terrain": "Terén",
     "terrain_hint": "Zvedne 3D mapu podle reliéfu terénu a vystínuje kopce, ve skutečném měřítku. Při posouvání mapy stahuje výškové dlaždice.",
     "performance": "Výkon",
-    "environment": "Náhled",
-    "staging": "Otevřít Staging",
-    "staging_hint": "Na Staging běží příští verze meteocool ještě před vydáním. Očekávej nové funkce a občas i chybu; tvá nastavení se sem nepřenášejí.",
-    "production": "Otevřít meteocool.com",
-    "production_hint": "Jsi na Staging. Tohle otevře vydanou verzi."
+    "mode": "Režim",
+    "modes": {
+      "production": "Produkce",
+      "production_detail": "Aktuální počasí. Doporučeno.",
+      "experimental": "Experimentální funkce",
+      "experimental_detail": "Aktuální počasí s funkcemi, které jsou ještě ve vývoji. Může se chovat neočekávaně. 🐛",
+      "demo": "Demo",
+      "demo_detail": "Zaznamenaná bouřka přehrávaná, jako by probíhala právě teď. Není to aktuální počasí."
+    },
+    "mode_hint": "Znovu načte mapu ve zvoleném režimu se stejným výřezem. Každý režim má vlastní nastavení."
   },
   "storm": {
     "band": {
