@@ -34,11 +34,12 @@
     float: none;
     margin-right: 0;
     padding-bottom: 0;
-    /* As tall as the ink, as ScaleLine's: 2px above the strip, the strip, and
-       the labels hanging 14px below its top. At the Shoelace input height the
-       box was twice that on a phone, and the phone's tray, which centres its
-       two rows, pushed the freshness line down to its bottom edge. */
-    height: 28px;
+    /* The ink -- 2px above the strip, the strip, and the labels hanging 14px
+       below its top, 28px in all -- and 6px of air under the labels before
+       the freshness line. At the Shoelace input height the box was twice
+       that on a phone, and the phone's tray, which centres its two rows,
+       pushed the freshness line down to its bottom edge. */
+    height: 34px;
   }
 
   .scale-line {
