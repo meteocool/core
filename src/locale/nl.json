@@ -189,6 +189,8 @@
     "map_3d": "3D-kaart",
     "konrad_cells": "KONRAD3D-cellen",
     "konrad_cells_hint": "KONRAD3D is de detectie en tracking van onweerscellen in het radarnetwerk van de Duitse weerdienst (DWD). Wat getekend wordt, zijn geen realistische wolkenvolumes: elke cel is haar omtrek op de grond, gestapeld in lagen waarvan grootte en hoogte volgen uit enkele waarden die KONRAD3D per intensiteitsniveau levert. Ze gaan slecht samen met de radarvolumes van de 3D-kaart en komen minuten na de radar binnen; we raden aan dit uit te laten.",
+    "full_resolution": "Volledige resolutie",
+    "full_resolution_hint": "Tekent de 3D-kaart op de volle resolutie van het scherm. Scherper, maar gebruikt meer dan twee keer zoveel grafisch geheugen, waardoor de kaart op sommige telefoons kan vastlopen en opnieuw laden.",
     "terrain": "Terrein",
     "terrain_hint": "Tilt de 3D-kaart op het reliëf van het terrein en schaduwt de heuvels, op ware schaal. Laadt hoogtetegels terwijl je de kaart beweegt.",
     "performance": "Prestaties",

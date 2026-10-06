@@ -189,6 +189,8 @@
     "map_3d": "3D mapa",
     "konrad_cells": "Buňky KONRAD3D",
     "konrad_cells_hint": "KONRAD3D je detekce a sledování bouřkových buněk v radarové síti Německé meteorologické služby (DWD). Nejde o realistické objemy oblaků: každá buňka je její obrys na zemi, poskládaný do stupňů, jejichž velikost a výška vychází z několika hodnot, které KONRAD3D hlásí pro každou úroveň intenzity. Nehodí se k radarovým objemům 3D mapy a přicházejí až minuty po radaru, proto doporučujeme nechat je vypnuté.",
+    "full_resolution": "Plné rozlišení",
+    "full_resolution_hint": "Vykreslí 3D mapu v plném rozlišení displeje. Ostřejší, ale spotřebuje víc než dvojnásobek grafické paměti, takže se na některých telefonech může mapa zhroutit a znovu načíst.",
     "terrain": "Terén",
     "terrain_hint": "Zvedne 3D mapu podle reliéfu terénu a vystínuje kopce, ve skutečném měřítku. Při posouvání mapy stahuje výškové dlaždice.",
     "performance": "Výkon",

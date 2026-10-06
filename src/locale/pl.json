@@ -189,6 +189,8 @@
     "map_3d": "Mapa 3D",
     "konrad_cells": "Komórki KONRAD3D",
     "konrad_cells_hint": "KONRAD3D to wykrywanie i śledzenie komórek burzowych w sieci radarowej Niemieckiej Służby Meteorologicznej (DWD). To, co jest rysowane, nie jest realistyczną objętością chmur: każda komórka to jej obrys na ziemi, ułożony w warstwy, których rozmiar i wysokość wynikają z kilku wartości podawanych przez KONRAD3D dla każdego poziomu intensywności. Źle współgrają z wolumenami radarowymi mapy 3D i docierają kilka minut po radarze, dlatego zalecamy pozostawić tę opcję wyłączoną.",
+    "full_resolution": "Pełna rozdzielczość",
+    "full_resolution_hint": "Rysuje mapę 3D w pełnej rozdzielczości ekranu. Ostrzej, ale zużywa ponad dwa razy więcej pamięci graficznej, więc na niektórych telefonach mapa może się zawiesić i przeładować.",
     "terrain": "Ukształtowanie terenu",
     "terrain_hint": "Unosi mapę 3D zgodnie z rzeźbą terenu i cieniuje wzniesienia, w rzeczywistej skali. Pobiera kafelki wysokości podczas przesuwania mapy.",
     "performance": "Wydajność",
