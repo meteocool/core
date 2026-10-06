@@ -39,10 +39,10 @@ import type { RadarScans } from "../lib/scans";
  * covers, and a squall line would otherwise carry a pill on each. The pill
  * goes on the strongest of its tiles, which opens there.
  *
- * Only for a core as new as the radar under it. The 3D map draws one from an
- * older scan grey, a scan upwind of the echo, which is no place to send
- * anyone: the tag is taken off when the radar moves on and put back when that
- * scan's volumes land. See lib/scans.ts.
+ * Only for a core as new as the radar under it. One from an older scan stands
+ * a scan upwind of the echo, which is no place to send anyone: the tag is
+ * taken off when the radar moves on and put back when that scan's volumes
+ * land. See lib/scans.ts.
  */
 
 /** Where the pill sits relative to the core, in pixels right and up. */
