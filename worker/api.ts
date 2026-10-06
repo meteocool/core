@@ -1,12 +1,6 @@
 /**
  * Forwarding the native apps' API calls to this environment's backend.
  *
- * The same holds for the iOS app's AR storm view, which reads the data
- * service (storms, cells, tracks, lightning) and fetches storm volumes from
- * the asset host: both go through this hostname too, so the AR view moves
- * with the map when the domain does. Data paths are forwarded; a volume is a
- * redirect, so its bytes do not pass through the Worker.
- *
  * The apps load their map from an app-specific hostname (app.meteocool.com),
  * which is this Worker's custom domain, and send their push registrations to
  * the same hostname. Moving that one custom domain to another environment's
@@ -14,6 +8,21 @@
  * hostnames, one for the map and one for the API, there would be a window in
  * which the map talks to one backend and the registrations go to another, and
  * a registration on the wrong cluster never produces a notification.
+ *
+ * The same holds for the iOS app's AR storm view, which reads the data
+ * service (storms, cells, tracks, lightning) and fetches storm volumes from
+ * the asset host: both go through this hostname too, so the AR view moves
+ * with the map when the domain does. Data paths are forwarded; a volume is a
+ * redirect, so its bytes do not pass through the Worker.
+ *
+ * And for the iOS app's Live Activity, which reads the API's radar time series
+ * and a square preview card of the user's location through this hostname.
+ * Those are reads, forwarded for GET alone. The preview is not the cluster's
+ * to answer: ng's preview-edge Worker takes `/v3/preview/*` on each API
+ * hostname, and a fetch from this Worker to a hostname in its own zone goes
+ * straight to the origin, past any Worker routed there. So the preview goes
+ * over a service binding instead, addressed to this environment's preview
+ * origin, whose hostname is how preview-edge picks the frontend it renders.
  *
  * Kept free of Worker globals beyond fetch/Request, so the tests can run it
  * under Node.
@@ -27,6 +36,18 @@ const PREFIXES = ["/v3/mobile/", "/v3/telemetry/"];
 
 export function isAppApiPath(pathname: string): boolean {
   return LEGACY_PATHS.has(pathname) || PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+/** The API's read-only routes the apps call, forwarded for GET only. */
+const API_READ_PATHS = new Set(["/v3/radar/timeseries"]);
+
+export function isAppApiRead(method: string, pathname: string): boolean {
+  return method === "GET" && API_READ_PATHS.has(pathname);
+}
+
+/** A preview card, served by ng's preview-edge Worker. */
+export function isPreviewRead(method: string, pathname: string): boolean {
+  return method === "GET" && pathname.startsWith("/v3/preview/");
 }
 
 /** The data service's routes the AR view reads; see ng's services/data. */
