@@ -1,6 +1,9 @@
 {
   "about": "O aplikacji",
   "url": "meteocool.com",
+  "main_map": "Główna mapa",
+  "main_map_hint_tap": "Dotknij tutaj, aby wrócić do głównej mapy",
+  "main_map_hint_click": "Kliknij tutaj, aby wrócić do głównej mapy",
   "last_updated": "Ostatnia aktualizacja",
   "downloading_nowcast": "Prognozowanie",
   "last_radar": "Dane radarowe z",
@@ -64,6 +67,8 @@
     "title": "Mapa 3D",
     "open": "Sterowanie i legenda",
     "pill": "Legenda",
+    "peel": "Obieranie",
+    "peel_aria": "Obierz burze aż do ich rdzenia",
     "controls": "Sterowanie",
     "drag": "Przeciągnij",
     "move": "Przesuń mapę",
@@ -148,6 +153,7 @@
   "compass_NW": "NW",
   "settings": {
     "title": "Ustawienia",
+    "about": "O aplikacji meteocool",
     "base_layer": "Warstwa mapy bazowej",
     "base_layers": {
       "system": "Zgodnie z systemem",

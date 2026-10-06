@@ -623,6 +623,11 @@ export interface CloudsLayer extends CustomLayerInterface {
   setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
+  /**
+   * Hold every storm at this peel, 0 whole to 1 down to its core, instead of
+   * peeling on its own; null lets it run again.
+   */
+  setPeel(peel: number | null): void;
 }
 
 /**
@@ -638,6 +643,8 @@ export function makeCloudsLayer(
   id: string,
   MercatorCoordinate: typeof import("maplibre-gl").MercatorCoordinate,
   initialColormap: string,
+  /** Told where the running peel is, each frame it moves, for a slider to follow. */
+  onPeel: (peel: number) => void = () => {},
 ): CloudsLayer {
   let gl: WebGL2RenderingContext | null = null;
   let map: GlMap | null = null;
@@ -659,6 +666,8 @@ export function makeCloudsLayer(
    */
   let peelTime = 0;
   let lastFrameAt: number | null = null;
+  /** The peel the reader set by hand, which stops the running one; see `setPeel`. */
+  let manualPeel: number | null = null;
   /** When the reader last touched the map, or the storms changed. */
   let activeSince = performance.now();
   const wake = () => { activeSince = performance.now(); schedulePeel(); };
@@ -799,6 +808,12 @@ export function makeCloudsLayer(
       if (gl) paintRamp(gl);
     },
 
+    setPeel(peel) {
+      manualPeel = peel;
+      if (peel === null) wake();
+      else if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
 
     onAdd(added: GlMap, context: WebGL2RenderingContext) {
       map = added;
@@ -836,11 +851,14 @@ export function makeCloudsLayer(
       // and a dozen others peeling around it kept the map redrawing at the
       // peel's pace under the sweep and the detail panel, which made the open
       // storm the laggiest thing on screen.
+      // A peel set by hand stands, reduced motion or not, until a storm is cut.
+      const manual = manualPeel !== null && cutKey === null;
       const holding = still || cutKey !== null;
-      const active = peelActive() && !holding;
+      const active = peelActive() && !holding && manualPeel === null;
       if (active && lastFrameAt !== null) peelTime += Math.min(now - lastFrameAt, 1 / PEEL_FPS);
       lastFrameAt = now;
-      const peel = holding ? 0 : peelAt(peelTime);
+      const peel = manual ? manualPeel! : holding ? 0 : peelAt(peelTime);
+      if (active) onPeel(peel);
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
       /** Whether any storm that peels is on screen, which is what a peel frame is for. */
@@ -923,7 +941,7 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
-        const peelsNow = !plane && cloud.peels && !holding;
+        const peelsNow = !plane && cloud.peels && (manual || !holding);
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), plane ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);

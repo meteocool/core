@@ -1,6 +1,9 @@
 {
   "about": "About",
   "url": "meteocool.com",
+  "main_map": "Main map",
+  "main_map_hint_tap": "Tap here to go back to the main map",
+  "main_map_hint_click": "Click here to go back to the main map",
   "last_updated": "Last updated",
   "downloading_nowcast": "Forecasting",
   "last_radar": "Radar data from",
@@ -64,6 +67,8 @@
     "title": "3D map",
     "open": "Controls and legend",
     "pill": "Legend",
+    "peel": "Peel",
+    "peel_aria": "Peel the storms down to their cores",
     "controls": "Controls",
     "drag": "Drag",
     "move": "Move the map",
@@ -150,6 +155,7 @@
   "compass_NW": "NW",
   "settings": {
     "title": "Settings",
+    "about": "About meteocool",
     "base_layer": "Base Map Layer",
     "base_layers": {
       "system": "Match System",
