@@ -1,6 +1,9 @@
 {
   "about": "O aplikaci",
   "url": "meteocool.com",
+  "main_map": "Hlavní mapa",
+  "main_map_hint_tap": "Klepnutím sem se vrátíte na hlavní mapu",
+  "main_map_hint_click": "Kliknutím sem se vrátíte na hlavní mapu",
   "last_updated": "Naposledy aktualizováno",
   "downloading_nowcast": "Předpovídání",
   "last_radar": "Radarová data z",
@@ -64,6 +67,8 @@
     "title": "3D mapa",
     "open": "Ovládání a legenda",
     "pill": "Legenda",
+    "peel": "Loupat",
+    "peel_aria": "Oloupat bouřky až na jejich jádro",
     "controls": "Ovládání",
     "drag": "Táhnout",
     "move": "Posunout mapu",
@@ -148,6 +153,7 @@
   "compass_NW": "SZ",
   "settings": {
     "title": "Nastavení",
+    "about": "O aplikaci meteocool",
     "base_layer": "Podkladová vrstva mapy",
     "base_layers": {
       "system": "Podle systému",

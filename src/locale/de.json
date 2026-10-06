@@ -1,6 +1,9 @@
 {
   "about": "Über",
   "url": "meteocool.com",
+  "main_map": "Hauptkarte",
+  "main_map_hint_tap": "Hier tippen, um zur Hauptkarte zurückzukehren",
+  "main_map_hint_click": "Hier klicken, um zur Hauptkarte zurückzukehren",
   "last_updated": "Aktualisiert",
   "downloading_nowcast": "Berechnet",
   "last_radar": "Letzte Radardaten von",
@@ -64,6 +67,8 @@
     "title": "3D-Karte",
     "open": "Bedienung und Legende",
     "pill": "Legende",
+    "peel": "Schälen",
+    "peel_aria": "Gewitter bis auf ihren Kern abschälen",
     "controls": "Bedienung",
     "drag": "Ziehen",
     "move": "Karte verschieben",
@@ -150,6 +155,7 @@
   "compass_NW": "NW",
   "settings": {
     "title": "Einstellungen",
+    "about": "Über meteocool",
     "base_layer": "Basiskarte",
     "base_layers": {
       "system": "Wie System",
