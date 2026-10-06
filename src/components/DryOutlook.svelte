@@ -14,8 +14,9 @@
  * squash it into a sliver at the left edge and the next 24 hours are the
  * answer instead. See lib/compare/outlook.ts for where that line is.
  *
- * The title says how far off that rain is -- "Rain likely in 5 hours", "in
- * 3 days" -- and "No rain in sight" only over a week the models agree is dry.
+ * The title says how far off that rain is -- "Rain likely in 5 hours",
+ * "tomorrow", "on Friday" -- and "No rain in sight" only over a week the
+ * models agree is dry.
  * It used to say "Dry for now" over the day the models had just agreed it
  * would rain in, which is true of the radar and the opposite of the chart.
  *
@@ -34,7 +35,7 @@ import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
 import DismissableStrip from "./DismissableStrip.svelte";
 import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
 import { drawSpread, RAINFALL } from "../lib/compare/spreadChart";
-import { rainIn, stepAt } from "../lib/compare/outlook";
+import { daysAhead, rainIn, stepAt } from "../lib/compare/outlook";
 import { openModelCompare } from "../lib/modelCompare";
 import { onWake } from "../lib/wakeup";
 
@@ -67,7 +68,22 @@ $: title = !data
   ? $_("dry_outlook_title_week")
   : soon
     ? $_("dry_outlook_title_hours", { values: { hours: wetIn } })
-    : $_("dry_outlook_title_days", { values: { days: Math.max(1, Math.round(wetIn / DAY)) } });
+    : beyondADay(wetIn);
+
+/*
+ * A day or more off, by the day it falls on -- "tomorrow", "on Friday" -- which
+ * is how a forecast is talked about, where "in 2 days" left the reader to
+ * count. By calendar day, so rain at dawn seen the evening before is
+ * tomorrow. A week out the weekday would be today's again, so that keeps the
+ * count.
+ */
+function beyondADay(hoursAway: number): string {
+  const at = data!.times[from + hoursAway] ?? now + hoursAway * 3_600_000;
+  const days = daysAhead(at, now);
+  if (days <= 1) return $_("dry_outlook_title_tomorrow");
+  if (days >= 7) return $_("dry_outlook_title_days", { values: { days } });
+  return $_("dry_outlook_title_weekday", { values: { day: String(new Date(at).getDay()) } });
+}
 
 async function load() {
   try {

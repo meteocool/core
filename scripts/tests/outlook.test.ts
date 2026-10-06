@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { envelope, rainIn, rainWithin, stepAt } from "../../src/lib/compare/outlook.ts";
+import { daysAhead, envelope, rainIn, rainWithin, stepAt } from "../../src/lib/compare/outlook.ts";
 import type { HourlySeries } from "../../src/lib/compare/openMeteo.ts";
 
 /**
@@ -69,4 +69,13 @@ test("a week the median never reaches has no rain to count down to", () => {
   assert.equal(rainIn(series({ a: drizzle, b: drizzle }), 0, 168), null);
   // Nor does one wet model among dry ones.
   assert.equal(rainIn(series({ a: new Array(168).fill(4), b: drizzle, c: drizzle }), 0, 168), null);
+});
+
+test("daysAhead counts calendar days, not 24-hour spans", () => {
+  const evening = new Date(2026, 9, 6, 23, 0).getTime();
+  assert.equal(daysAhead(new Date(2026, 9, 7, 6, 0).getTime(), evening), 1);
+  assert.equal(daysAhead(new Date(2026, 9, 6, 23, 30).getTime(), evening), 0);
+  assert.equal(daysAhead(new Date(2026, 9, 9, 0, 30).getTime(), evening), 3);
+  // Across the end of summer time, still one day a night.
+  assert.equal(daysAhead(new Date(2026, 9, 26, 12).getTime(), new Date(2026, 9, 24, 12).getTime()), 2);
 });

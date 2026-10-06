@@ -85,3 +85,17 @@ export function rainIn(series: HourlySeries, from: number, hours: number): numbe
 export function rainWithin(series: HourlySeries, from: number, hours: number): boolean {
   return rainIn(series, from, hours) !== null;
 }
+
+/**
+ * How many calendar days from `now` to `at`, in the reader's own time zone:
+ * 0 today, 1 tomorrow. Counted on the dates rather than as hours over 24, so
+ * rain at 06:00 seen at 23:00 the evening before is tomorrow, and a DST night
+ * is still one day.
+ */
+export function daysAhead(at: number, now: number): number {
+  const day = (t: number) => {
+    const d = new Date(t);
+    return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+  return Math.round((day(at) - day(now)) / 86_400_000);
+}
