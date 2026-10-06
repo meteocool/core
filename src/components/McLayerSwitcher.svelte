@@ -1,8 +1,6 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
   import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
-  import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons/faCircleQuestion";
-  import Lazy from "./Lazy.svelte";
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
@@ -95,11 +93,6 @@
   }
 
   const dispatch = createEventDispatcher();
-
-  /* How the radar works, over the switcher: a chunk of its own, loaded only
-     when asked for. */
-  const loadExplainer = () => import("./RadarExplainer.svelte");
-  let explainerOpen = false;
 
   function changeLayer(event) {
     close();
@@ -214,30 +207,6 @@
     grid-column: span 2;
   }
 
-  /* Under the tiles, out of their way: the one thing on this sheet that is
-     not a map to pick. */
-  .help {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: center;
-  }
-  .help button {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 14px;
-    border: 0;
-    border-radius: var(--mc-radius-pill);
-    background: var(--mc-accent-tint);
-    color: var(--mc-accent);
-    font: 600 14px/1.2 var(--mc-font);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform var(--mc-motion-fast) var(--mc-ease);
-  }
-  .help button:active { transform: scale(var(--mc-press)); }
-  .help button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-
   /* The hero is the primary layer, so its caption is scaled with the card
      rather than left at the secondary tiles' size. */
   .cell.hero :global(.label) {
@@ -281,18 +250,6 @@
           </div>
         {/each}
       </div>
-      <div class="help">
-        <button type="button" on:click={() => { explainerOpen = true; }}>
-          <Icon icon={faCircleQuestion} />
-          <span>{$_("radar_help.open")}</span>
-        </button>
-      </div>
     </div>
   </div>
 </div>
-
-{#if explainerOpen}
-  <Lazy load={loadExplainer} floating let:module>
-    <svelte:component this={module.default} on:close={() => { explainerOpen = false; }} />
-  </Lazy>
-{/if}

@@ -12,13 +12,16 @@
  *
  * The menu is moved to <body>: the tray clips what overflows it, and a
  * backdrop filter on any ancestor would position a fixed child against that
- * ancestor rather than the window.
+ * ancestor rather than the window. So is the explainer its "?" opens
+ * (RadarExplainer.svelte), a panel of the same fixed kind.
  */
 import { onDestroy, tick } from "svelte";
 import { _ } from "svelte-i18n";
 import { faChevronUp } from "@fortawesome/free-solid-svg-icons/faChevronUp";
+import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons/faCircleQuestion";
 import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDish";
 import Icon from "./Icon.svelte";
+import Lazy from "./Lazy.svelte";
 import { radarProducts, smallScreen } from "../stores";
 import { OBSERVED_PRODUCTS, ageMinutes, fallsBehind } from "../lib/observedProduct";
 import type { NewestScans, ObservedProduct } from "../lib/observedProduct";
@@ -31,6 +34,9 @@ const MARGIN = 8;
 
 let open = false;
 let trigger: HTMLButtonElement;
+/* How the radar works: a chunk of its own, loaded only when asked for. */
+const loadExplainer = () => import("./RadarExplainer.svelte");
+let explaining = false;
 let menu: HTMLDivElement | undefined;
 let left = 0;
 let bottom = 0;
@@ -73,6 +79,12 @@ async function show() {
 function close(refocus = false) {
   open = false;
   if (refocus) trigger?.focus();
+}
+
+/** The menu gives way to the explainer, which has its own close. */
+function explain() {
+  close();
+  explaining = true;
 }
 
 function choose(product: ObservedProduct) {
@@ -139,7 +151,17 @@ function portal(node: HTMLElement) {
     aria-label={$_("chrome.radar_product.title")}
     style:left={`${left}px`}
     style:bottom={`${bottom}px`}>
-    <div class="heading">{$_("chrome.radar_product.title")}</div>
+    <div class="heading">
+      <span>{$_("chrome.radar_product.title")}</span>
+      <button
+        type="button"
+        class="help"
+        title={$_("radar_help.open")}
+        aria-label={$_("radar_help.open")}
+        on:click={explain}>
+        <Icon icon={faCircleQuestion} />
+      </button>
+    </div>
     {#each OBSERVED_PRODUCTS as product (product)}
       <button
         type="button"
@@ -160,6 +182,14 @@ function portal(node: HTMLElement) {
     {#if fellBack}
       <p class="note">{fellBackNote}</p>
     {/if}
+  </div>
+{/if}
+
+{#if explaining}
+  <div use:portal>
+    <Lazy load={loadExplainer} floating let:module>
+      <svelte:component this={module.default} on:close={() => { explaining = false; }} />
+    </Lazy>
   </div>
 {/if}
 
@@ -233,10 +263,29 @@ function portal(node: HTMLElement) {
     font-family: var(--mc-font);
   }
   .heading {
-    padding: 6px 10px 4px;
-    color: var(--mc-text-2);
-    font: 600 12px/1.3 var(--mc-font);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 4px 4px 10px;
+    color: var(--mc-text);
+    font: 700 15px/1.3 var(--mc-font);
   }
+  /* "How the radar works", in the corner: a tap target of its own size. */
+  .help {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--mc-text-2);
+    transition: background-color var(--mc-motion-fast), color var(--mc-motion-fast);
+  }
+  .help:hover { background: var(--mc-tint-hover); color: var(--mc-accent); }
+  .help:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -2px; }
+  .help :global(svg) { width: 17px; height: 17px; }
   .option {
     display: grid;
     grid-template-columns: 16px 1fr auto;

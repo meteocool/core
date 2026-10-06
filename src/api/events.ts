@@ -19,10 +19,13 @@ export type PokeEvent = Schemas["Poke"];
 export type SnowEvent = Schemas["SnowRefresh"];
 /** A new KONRAD3D run landed; the payload is a nudge, not the cells. */
 export type CellsEvent = Schemas["CellsRefresh"];
-/** One EUMETNET network's composite, the merged one (`eu`) or DWD's DMAX (`dmax`) was re-rendered; refetch only that frame. */
+/**
+ * One EUMETNET network's composite was re-rendered, or the merged one (`eu`), the column maximum of every
+ * network (`colmax`) or DWD's DMAX (`dmax`); refetch only that frame.
+ */
 export type NetworkEvent = Schemas["NetworkRefresh"];
-/** One of the four national networks with a composite of their own: not `eu` or `dmax`, which share their event. */
-export type CountryNetwork = Exclude<NetworkEvent["network"], "eu" | "dmax">;
+/** One of the four national networks with a composite of their own: not `eu`, `colmax` or `dmax`, which share their event. */
+export type CountryNetwork = Exclude<NetworkEvent["network"], "eu" | "colmax" | "dmax">;
 /** One run's volumes, or one part of a run's, are built; refetch `/cells/volumes`. */
 export type VolumesEvent = Schemas["VolumesRefresh"];
 

@@ -24,7 +24,9 @@ import { maskPath } from "./tileMask";
 import { drawnTileId, rvp6Style } from "../lib/rvp6";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
-import { fetchCzechRadar, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar } from "../api";
+import {
+  fetchCzechRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar,
+} from "../api";
 import type { Progress, RadarFrame } from "../api";
 import type { NetworkCode } from "./networkHoles";
 
@@ -88,6 +90,17 @@ export const EUROPE: Network = {
     (whole, one) => extend(whole, one), createEmpty(),
   ),
   coverage: null,
+};
+
+/**
+ * The column maximum of every network, on the merged composite's kind of
+ * grid: every tilt of every radar rather than the lowest (ng ADR 0019). Drawn
+ * like `EUROPE`, whole and in place of the others, when the reader asks.
+ */
+export const EUROPE_COLUMN_MAXIMUM: Network = {
+  ...EUROPE,
+  code: "colmax",
+  fetch: fetchEuropeColumnMaximum,
 };
 
 /**

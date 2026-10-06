@@ -147,6 +147,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/radar/colmax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Column-maximum reflectivity of every network tile metadata.
+         * @description The newest column maximum of every network -- one frame, not a timeseries.
+         *
+         *     DMAX's picture over all five networks: the strongest echo above each cell
+         *     from every tilt of every radar, composited by meteocool once a cycle on a
+         *     background worker, with the networks evened out where they can be -- one
+         *     five-minute cycle, 180 km from any radar, up to 12 km, nothing under 12
+         *     dBZ. Stamped with its cycle, as DMAX is, and about seven minutes behind
+         *     it. Refetched on the `network` socket event (`colmax`); its past is in
+         *     `/timeseries` when asked for (`products=colmax`).
+         */
+        get: operations["colmax_v3_radar_colmax_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/radar/coverage": {
         parameters: {
             query?: never;
@@ -645,10 +673,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax";
+            network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax" | "colmax";
         };
         /**
          * Platform
@@ -734,7 +762,7 @@ export interface components {
             };
             /**
              * Products
-             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, and `merged`, meteocool's composite of every network -- keyed like `networks`: the frame measured nearest each observed step (DMAX only on its own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.
+             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, and `colmax`, its column maximum of every network -- keyed like `networks`: the frame measured nearest each observed step (`dmax` and `colmax` only on their own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.
              */
             products?: {
                 [key: string]: {
@@ -1149,6 +1177,26 @@ export interface operations {
             };
         };
     };
+    colmax_v3_radar_colmax_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     coverage_v3_radar_coverage_get: {
         parameters: {
             query?: never;
@@ -1317,7 +1365,7 @@ export interface operations {
                 lat?: number;
                 lon?: number;
                 network?: ("ch" | "fr" | "cz" | "pl") | null;
-                products?: ("dmax" | "merged")[] | null;
+                products?: ("dmax" | "merged" | "colmax")[] | null;
             };
             header?: never;
             path?: never;
