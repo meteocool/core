@@ -1,7 +1,8 @@
 import { hasTile, sourceTile } from "../lib/tileIndex";
-import { VALUE_DECODE, fillTemplate, magnify } from "./indexedTiles";
-import { maskTile, overlaps, tileExtent } from "./tileMask";
-import { paintValuePixels, rvp6Table } from "../lib/rvp6";
+import { fillTemplate } from "./indexedTiles";
+import { overlaps, tileExtent } from "./tileMask";
+import { pageCanvas, tileValues } from "./tileValues";
+import { paintValues, rvp6Table } from "../lib/rvp6";
 import type { MaskPath } from "./tileMask";
 import type { TileIndex } from "../lib/tileIndex";
 import { timedFetch } from "../lib/timedFetch";
@@ -22,8 +23,9 @@ import { timedFetch } from "../lib/timedFetch";
  * a tile the frame does not have is answered as empty without a request.
  *
  * The tiles carry values (lib/rvp6.ts) and MapLibre has no single-band
- * palette, so each is decoded as its bytes, cut, and painted in the
- * palette here: the one place a tile's pixels still pass through the CPU.
+ * palette, so each is decoded to its bytes (lib/valuePng.ts), cut, and
+ * painted in the palette here: the one place a tile's colours are made on
+ * the CPU.
  */
 
 export const MASKED_SCHEME = "masked";
@@ -69,19 +71,6 @@ const REQUEST = new RegExp(`^${MASKED_SCHEME}://(\\d+)/(\\d+)/(\\d+)/(\\d+)$`);
 /** A tile with nothing in it, which MapLibre draws as nothing. */
 const EMPTY = { data: null };
 
-/** A decoded value tile, or a canvas it was drawn on, painted in a palette onto a canvas of its own. */
-export function paintValueImage(image: ImageBitmap | HTMLCanvasElement, palette: string): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const context = canvas.getContext("2d", { willReadFrequently: true })!;
-  context.drawImage(image, 0, 0);
-  const data = context.getImageData(0, 0, canvas.width, canvas.height);
-  paintValuePixels(data.data, rvp6Table(palette));
-  context.putImageData(data, 0, 0);
-  return canvas;
-}
-
 /**
  * Answer one tile request. Exported for the protocol and for the test.
  *
@@ -117,12 +106,11 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
      tile, and MapLibre kept it as one -- a hole in the radar until the frame
      changed. A failure now fails, and the 3D map asks for it again when the
      network is back (Cells3DCapability.resync). */
-  const bitmap = await createImageBitmap(await response.blob(), VALUE_DECODE);
-  const image = magnify(bitmap, from);
-  const cut = erase.length || keep ? maskTile(image, extent, erase, keep) : image;
-  const painted = paintValueImage(cut, spec.palette ?? "classic");
-  bitmap.close();
-  return { data: await createImageBitmap(painted) };
+  const tile = await tileValues(await response.arrayBuffer(), from, extent, erase, keep, pageCanvas);
+  if (!tile) throw new Error("no canvas to cut a tile on");
+  const { size, values, coverage } = tile;
+  const painted = paintValues(values, coverage, rvp6Table(spec.palette ?? "classic"));
+  return { data: await createImageBitmap(new ImageData(painted, size, size)) };
 }
 
 /** What MapLibre's `addProtocol` takes, narrowed to what is used. */

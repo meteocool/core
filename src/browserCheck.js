@@ -5,7 +5,8 @@
  * and in ES5 on purpose: it is for exactly the browsers the bundle fails in,
  * often before a line of the app's own code has run. Two things decide it:
  *
- * - createImageBitmap, which decodes every radar tile (layers/indexedTiles.ts).
+ * - createImageBitmap, which decodes every radar tile in a browser too old to
+ *   inflate one itself (lib/valuePng.ts), and hands the 3D map its tiles.
  *   Without it the map came up with no rain on it: Safari and iOS before 15.
  * - The 2020 syntax the bundle is built to (Vite's default target). An engine
  *   older than that cannot parse it, and the page stayed blank. Asked through
