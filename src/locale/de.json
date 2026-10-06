@@ -193,6 +193,8 @@
     "map_3d": "3D-Karte",
     "konrad_cells": "KONRAD3D-Zellen",
     "konrad_cells_hint": "KONRAD3D ist die Erkennung und Verfolgung von Gewitterzellen im Radarverbund des Deutschen Wetterdienstes (DWD). Gezeichnet werden keine realistischen Wolkenvolumen: Jede Zelle ist ihr Umriss am Boden, zu Stufen gestapelt, deren Größe und Höhe aus wenigen Kennzahlen folgen, die KONRAD3D je Intensitätsstufe meldet. Sie vertragen sich schlecht mit den Radarvolumen der 3D-Karte und kommen erst Minuten nach dem Radar, daher lässt du sie besser aus.",
+    "full_resolution": "Volle Auflösung",
+    "full_resolution_hint": "Zeichnet die 3D-Karte in der vollen Auflösung des Bildschirms. Schärfer, braucht aber mehr als doppelt so viel Grafikspeicher, sodass die Karte auf manchen Handys abstürzen und neu laden kann.",
     "terrain": "Gelände",
     "terrain_hint": "Hebt die 3D-Karte ins Relief des Geländes und schattiert die Hügel, in echtem Maßstab. Lädt beim Bewegen der Karte Höhendaten nach.",
     "performance": "Leistung",

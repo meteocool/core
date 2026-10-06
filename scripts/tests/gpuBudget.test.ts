@@ -8,6 +8,11 @@ test("a phone's 3x is drawn at 2x, a desktop's ratio as it is", () => {
   assert.equal(mapPixelRatio(3, false), 3);
 });
 
+test("a phone asked for full resolution draws at its own ratio", () => {
+  assert.equal(mapPixelRatio(3, true, true), 3);
+  assert.equal(mapPixelRatio(3, true, false), 2);
+});
+
 test("a layer on the ground goes before the first layer that stands up", () => {
   const layers = [
     { id: "background", type: "background" },
