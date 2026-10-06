@@ -1,7 +1,10 @@
 <script lang="ts">
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
-import { cells3dVisible, mapBaseLayer, radarColormap, terrain3dVisible } from "../stores";
+import {
+  cells3dVisible, cellLayerVisible, cycloneLayerVisible, lightningLayerVisible, mapBaseLayer, radarColormap,
+  terrain3dVisible,
+} from "../stores";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
 
@@ -16,9 +19,9 @@ import { capabilityEnabled } from "../caps/enabled";
  * the setting's callback, exactly as an injection from an app does.
  *
  * Three differences from the apps. The basemap can follow the system scheme,
- * which is the default and what "system" stores. There is no Experimental
- * Features switch -- nothing in the web app reads it -- but a link to staging,
- * which is where the web's unreleased features actually are. And the 3D map's
+ * which is the default and what "system" stores. The Mode picker cannot switch
+ * the backend in place, so it opens the deployment that is the chosen mode,
+ * where the apps reload against it. And the 3D map's
  * KONRAD3D cells can be turned on, which the apps have no screen for: there
  * they stay off, as they are by default.
  */
@@ -36,18 +39,27 @@ function swatch(cmap: string): string {
   return `linear-gradient(90deg, ${stops.join(", ")})`;
 }
 
-const STAGING = "https://next.meteocool.com";
-/** The older staging name, still served; a page opened on it is on staging too. */
-const STAGING_ALIAS = "https://web.staging.meteocool.com";
-const PRODUCTION = "https://meteocool.com";
-
 /**
- * The other environment, opening on the same view: the query carries the
- * layer, the camera and whatever is selected (lib/urlState.ts). From staging
- * itself the link leads back to production.
+ * The deployments, as the apps' Mode picker names them
+ * (ios/meteocool/EnvironmentPickerViewController.swift). Choosing one opens it
+ * on the same view: the query carries the layer, the camera and whatever is
+ * selected (lib/urlState.ts).
  */
-const onStaging = window.location.origin === STAGING || window.location.origin === STAGING_ALIAS;
-const otherEnvironment = `${onStaging ? PRODUCTION : STAGING}/${window.location.search}${window.location.hash}`;
+const MODES = [
+  { id: "production", origin: "https://meteocool.com", aliases: ["https://www.meteocool.com"] },
+  { id: "experimental", origin: "https://next.meteocool.com", aliases: ["https://web.staging.meteocool.com", "https://app.meteocool.com"] },
+  { id: "demo", origin: "https://demo.meteocool.com", aliases: [] },
+] as const;
+
+/** By origin; a dev server or preview by what its build points at (urls.ts). */
+const currentMode = MODES.find((m) => m.origin === window.location.origin
+  || (m.aliases as readonly string[]).includes(window.location.origin))?.id
+  ?? (import.meta.env.MODE === "demo" ? "demo" : import.meta.env.PROD && import.meta.env.MODE !== "staging" ? "production" : "experimental");
+
+function setMode(mode: (typeof MODES)[number]) {
+  if (mode.id === currentMode) return;
+  window.location.assign(`${mode.origin}/${window.location.search}${window.location.hash}`);
+}
 
 // Neither has a store: read once, and kept in step by whatever this sets. The
 // basemap's store holds the resolved basemap, never "system", so the choice
@@ -81,6 +93,16 @@ function setSolidGlass(value: boolean) {
   window.settings.set("solidGlassWhileMoving", value);
   solidGlass = value;
 }
+
+/* The radar map's overlays, named as its layer-switcher tile is. They were
+   toggles under the switcher's tiles; a layer kept on or off is a preference.
+   Each store persists itself (App.svelte). */
+const offersRadar = capabilityEnabled("radar");
+$: overlays = [
+  { store: lightningLayerVisible, on: $lightningLayerVisible, label: $_("chrome.playback.lightning") },
+  { store: cycloneLayerVisible, on: $cycloneLayerVisible, label: $_("chrome.playback.mesocyclones") },
+  { store: cellLayerVisible, on: $cellLayerVisible, label: $_("chrome.playback.cells") },
+];
 
 /** Only where the 3D map is offered at all. */
 const offers3d = capabilityEnabled("cells3d");
@@ -155,15 +177,17 @@ function setTerrain3d(value: boolean) {
     flex: 1 1 auto;
   }
 
+  /* A second line under the label, as the apps' subtitle cells have. */
+  .sublabel {
+    display: block;
+    margin-top: 2px;
+    color: var(--mc-text-2);
+    font-size: 13px;
+  }
+
   .detail {
     flex: none;
     color: var(--mc-text-2);
-  }
-
-  a.row,
-  a.row:visited {
-    color: var(--mc-text);
-    text-decoration: none;
   }
 
   .check {
@@ -265,6 +289,23 @@ function setTerrain3d(value: boolean) {
   </div>
   <p class="hint">{$_("settings.color_map_hint")}</p>
 
+  {#if offersRadar}
+    <h2>{$_("rain_and_thunderstorms")}</h2>
+    <div class="group">
+      {#each overlays as overlay (overlay.store)}
+        <label class="row">
+          <span class="label">{overlay.label}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={overlay.on}
+            on:change={(event) => overlay.store.set(event.currentTarget.checked)} />
+        </label>
+      {/each}
+    </div>
+  {/if}
+
   <!-- Rotation is all the section holds, so without a multitouch screen it goes. -->
   {#if multitouch}
     <h2>{$_("settings.map")}</h2>
@@ -279,6 +320,7 @@ function setTerrain3d(value: boolean) {
           on:change={(event) => setRotation(event.currentTarget.checked)} />
       </label>
     </div>
+    <p class="hint">{$_("settings.rotation_hint")}</p>
   {/if}
 
   {#if offers3d}
@@ -326,12 +368,22 @@ function setTerrain3d(value: boolean) {
     <p class="hint">{$_("settings.terrain_hint")}</p>
   {/if}
 
-  <h2>{$_("settings.environment")}</h2>
-  <div class="group">
-    <a class="row" href={otherEnvironment} target="_blank" rel="noopener">
-      <span class="label">{$_(onStaging ? "settings.production" : "settings.staging")}</span>
-      <span class="detail" aria-hidden="true">↗</span>
-    </a>
+  <h2 id="settings-mode">{$_("settings.mode")}</h2>
+  <div class="group" role="radiogroup" aria-labelledby="settings-mode">
+    {#each MODES as mode (mode.id)}
+      <button
+        type="button"
+        class="row"
+        role="radio"
+        aria-checked={currentMode === mode.id}
+        on:click={() => setMode(mode)}>
+        <span class="label">
+          {$_(`settings.modes.${mode.id}`)}
+          <span class="sublabel">{$_(`settings.modes.${mode.id}_detail`)}</span>
+        </span>
+        <span class="check" aria-hidden="true">{currentMode === mode.id ? "✓" : ""}</span>
+      </button>
+    {/each}
   </div>
-  <p class="hint">{$_(onStaging ? "settings.production_hint" : "settings.staging_hint")}</p>
+  <p class="hint">{$_("settings.mode_hint")}</p>
 </GlassPanel>

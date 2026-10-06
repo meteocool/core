@@ -167,17 +167,23 @@
     "color_map_hint": "Zmení farby, v ktorých sú zrážky zobrazené.",
     "map": "Mapa",
     "rotation": "Otáčanie mapy dvomi prstami",
+    "rotation_hint": "Platí len pre 2D mapu. 3D mapa vždy používa všetky dotykové gestá vrátane otáčania a nakláňania.",
     "map_3d": "3D mapa",
     "konrad_cells": "Bunky KONRAD3D",
-    "konrad_cells_hint": "Vykresľuje búrkové bunky sledované DWD ako vrstvené stupne. Prichádzajú niekoľko minút po radare a dovtedy sú sivé.",
+    "konrad_cells_hint": "KONRAD3D je detekcia a sledovanie búrkových buniek v radarovej sieti Nemeckej meteorologickej služby (DWD). Nejde o realistické objemy oblakov: každá bunka je jej obrys na zemi, poskladaný do stupňov, ktorých veľkosť a výška vychádza z niekoľkých hodnôt, ktoré KONRAD3D hlási pre každú úroveň intenzity. Nehodia sa k radarovým objemom 3D mapy a prichádzajú až minúty po radare, preto odporúčame nechať ich vypnuté.",
     "terrain": "Terén",
     "terrain_hint": "Zdvihne 3D mapu podľa reliéfu terénu a vytieňuje kopce, v skutočnej mierke. Pri posúvaní mapy sťahuje výškové dlaždice.",
     "performance": "Výkon",
-    "environment": "Náhľad",
-    "staging": "Otvoriť Staging",
-    "staging_hint": "Staging beží na ďalšej verzii meteocool ešte pred jej vydaním. Očakávaj nové funkcie a občas aj chybu; tvoje nastavenia sa sem neprenášajú.",
-    "production": "Otvoriť meteocool.com",
-    "production_hint": "Si na staging. Toto otvorí vydanú verziu."
+    "mode": "Režim",
+    "modes": {
+      "production": "Produkcia",
+      "production_detail": "Aktuálne počasie. Odporúčané.",
+      "experimental": "Experimentálne funkcie",
+      "experimental_detail": "Aktuálne počasie s funkciami, ktoré sú ešte vo vývoji. Môže sa správať neočakávane. 🐛",
+      "demo": "Demo",
+      "demo_detail": "Zaznamenaná búrka prehrávaná, akoby prebiehala práve teraz. Nie je to aktuálne počasie."
+    },
+    "mode_hint": "Znovu načíta mapu vo zvolenom režime s rovnakým výrezom. Každý režim má vlastné nastavenia."
   },
   "storm": {
     "band": {

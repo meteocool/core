@@ -167,17 +167,23 @@
     "color_map_hint": "Wijzigt de kleuren waarin de neerslag wordt getekend.",
     "map": "Kaart",
     "rotation": "Kaart draaien met twee vingers",
+    "rotation_hint": "Alleen op de 2D-kaart. De 3D-kaart gebruikt altijd alle aanraakgebaren, ook draaien en kantelen.",
     "map_3d": "3D-kaart",
     "konrad_cells": "KONRAD3D-cellen",
-    "konrad_cells_hint": "Tekent de door de DWD gevolgde onweerscellen als gestapelde lagen. Ze komen enkele minuten na de radar binnen en zijn tot dan grijs.",
+    "konrad_cells_hint": "KONRAD3D is de detectie en tracking van onweerscellen in het radarnetwerk van de Duitse weerdienst (DWD). Wat getekend wordt, zijn geen realistische wolkenvolumes: elke cel is haar omtrek op de grond, gestapeld in lagen waarvan grootte en hoogte volgen uit enkele waarden die KONRAD3D per intensiteitsniveau levert. Ze gaan slecht samen met de radarvolumes van de 3D-kaart en komen minuten na de radar binnen; we raden aan dit uit te laten.",
     "terrain": "Terrein",
     "terrain_hint": "Tilt de 3D-kaart op het reliëf van het terrein en schaduwt de heuvels, op ware schaal. Laadt hoogtetegels terwijl je de kaart beweegt.",
     "performance": "Prestaties",
-    "environment": "Voorbeeld",
-    "staging": "Staging openen",
-    "staging_hint": "Staging draait de volgende versie van meteocool, nog voor de release. Verwacht nieuwe functies en af en toe iets dat stuk is; je instellingen hier worden niet overgenomen.",
-    "production": "meteocool.com openen",
-    "production_hint": "Je zit op staging. Dit opent de uitgebrachte versie."
+    "mode": "Modus",
+    "modes": {
+      "production": "Productie",
+      "production_detail": "Actueel weer. Aanbevolen.",
+      "experimental": "Experimentele functies",
+      "experimental_detail": "Actueel weer, met functies die nog in ontwikkeling zijn. Kan zich onverwacht gedragen. 🐛",
+      "demo": "Demo",
+      "demo_detail": "Een opgenomen onweer, afgespeeld alsof het nu gebeurt. Geen actueel weer."
+    },
+    "mode_hint": "Laadt de kaart opnieuw in de gekozen modus, met hetzelfde beeld. Elke modus heeft zijn eigen instellingen."
   },
   "storm": {
     "band": {

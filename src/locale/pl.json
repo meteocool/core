@@ -167,17 +167,23 @@
     "color_map_hint": "Zmienia kolory, w jakich rysowane są opady.",
     "map": "Mapa",
     "rotation": "Obracanie mapy dwoma palcami",
+    "rotation_hint": "Dotyczy tylko mapy 2D. Mapa 3D zawsze używa wszystkich gestów dotykowych, także do obracania i pochylania.",
     "map_3d": "Mapa 3D",
     "konrad_cells": "Komórki KONRAD3D",
-    "konrad_cells_hint": "Rysuje śledzone przez DWD komórki burzowe jako nakładające się warstwy. Docierają kilka minut po radarze i do tego czasu są wyszarzone.",
+    "konrad_cells_hint": "KONRAD3D to wykrywanie i śledzenie komórek burzowych w sieci radarowej Niemieckiej Służby Meteorologicznej (DWD). To, co jest rysowane, nie jest realistyczną objętością chmur: każda komórka to jej obrys na ziemi, ułożony w warstwy, których rozmiar i wysokość wynikają z kilku wartości podawanych przez KONRAD3D dla każdego poziomu intensywności. Źle współgrają z wolumenami radarowymi mapy 3D i docierają kilka minut po radarze, dlatego zalecamy pozostawić tę opcję wyłączoną.",
     "terrain": "Ukształtowanie terenu",
     "terrain_hint": "Unosi mapę 3D zgodnie z rzeźbą terenu i cieniuje wzniesienia, w rzeczywistej skali. Pobiera kafelki wysokości podczas przesuwania mapy.",
     "performance": "Wydajność",
-    "environment": "Podgląd",
-    "staging": "Otwórz Staging",
-    "staging_hint": "Staging uruchamia kolejną wersję meteocool przed jej wydaniem. Spodziewaj się nowych funkcji i sporadycznych błędów; twoje ustawienia stąd się nie przenoszą.",
-    "production": "Otwórz meteocool.com",
-    "production_hint": "Jesteś na Staging. To otwiera wydaną wersję."
+    "mode": "Tryb",
+    "modes": {
+      "production": "Produkcja",
+      "production_detail": "Aktualna pogoda. Zalecane.",
+      "experimental": "Funkcje eksperymentalne",
+      "experimental_detail": "Aktualna pogoda z funkcjami, które są jeszcze w fazie rozwoju. Może działać nieoczekiwanie. 🐛",
+      "demo": "Demo",
+      "demo_detail": "Nagrana burza odtwarzana tak, jakby działa się teraz. To nie jest aktualna pogoda."
+    },
+    "mode_hint": "Ponownie wczytuje mapę w wybranym trybie, z tym samym widokiem. Każdy tryb ma własne ustawienia."
   },
   "storm": {
     "band": {
