@@ -1100,10 +1100,10 @@ if (postInitCb) postInitCb(lm);
 {#if ($cells3dLoading || $cells3dFailed) && $sharedActiveCap === "cells3d"}
   <MapLoading failed={$cells3dFailed} onretry={() => cells3d?.retry()} />
 {/if}
-<!-- The 3D map's controls and legend, once it is up. A desktop's: the apps
+<!-- The 3D map's controls and legend, once it is up. Not in the apps, which
      draw their own chrome, and a toolbar asked away is a display that wants
      none of this either. -->
-{#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && !$smallScreen && !dd.isApp() && $toolbarVisible === "yes"}
+{#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && !dd.isApp() && $toolbarVisible === "yes"}
   <Guide3D />
 {/if}
 <PointMenu layerManager={lm} />
