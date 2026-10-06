@@ -6,7 +6,7 @@ import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
 import { frameOnStep, templateOf } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
-import NetworkRadarLayer, { EUROPE, NETWORKS } from "../layers/network";
+import NetworkRadarLayer, { EUROPE, EUROPE_COLUMN_MAXIMUM, NETWORKS } from "../layers/network";
 import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
@@ -89,6 +89,10 @@ const STALE_OPACITY = NOWCAST_OPACITY * 0.45;
  */
 const INSPECT_OPACITY = 0.55;
 
+/** The products of every network at once, each drawn whole in place of the six; see `showNetworks`. */
+const WHOLE_PRODUCTS = ["merged", "colmax"] as const satisfies readonly AlternativeProduct[];
+type WholeProduct = (typeof WHOLE_PRODUCTS)[number];
+
 function setPattern(style) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -166,12 +170,13 @@ export default class RadarCapability extends Capability {
   private networks: NetworkRadarLayer[];
 
   /**
-   * The merged European composite, drawn whole in place of DWD's frame and
-   * the networks' on every observed step while it is the drawn product; see
-   * `showNetworks`. Its newest frame is fetched whatever is drawn, for the
-   * picker's age.
+   * The two products of every network at once -- the merged composite of
+   * their lowest tilts and their column maximum -- each drawn whole in place
+   * of DWD's frame and the networks' on every observed step while it is the
+   * drawn product; see `showNetworks`. Their newest frames are fetched
+   * whatever is drawn, for the picker's age.
    */
-  private europe: NetworkRadarLayer;
+  private wholes: Record<WholeProduct, NetworkRadarLayer>;
 
   /**
    * DWD's column maximum, newest frame: drawn through DWD's own layer, on
@@ -274,8 +279,11 @@ export default class RadarCapability extends Capability {
     ));
     // Not an observer's business: the 3D map drapes HX and the networks
     // whatever the flat map draws.
-    this.europe = new NetworkRadarLayer(map, EUROPE, () => this.productsChanged());
-    this.latest = { merged: this.europe, dmax: this.dmax };
+    this.wholes = {
+      merged: new NetworkRadarLayer(map, EUROPE, () => this.productsChanged()),
+      colmax: new NetworkRadarLayer(map, EUROPE_COLUMN_MAXIMUM, () => this.productsChanged()),
+    };
+    this.latest = { ...this.wholes, dmax: this.dmax };
     this.unsubscribeProduct = observedProduct.subscribe((product) => {
       this.chosen = product;
       // Its past comes with the grid, asked for by name. Before the first
@@ -302,7 +310,7 @@ export default class RadarCapability extends Capability {
       // place, with nothing reloaded and the grid neither refetched nor
       // re-announced.
       setDwdCmap(colorScheme);
-      for (const network of [...this.networks, this.europe]) network.setPalette(colorScheme);
+      for (const network of [...this.networks, ...Object.values(this.wholes)]) network.setPalette(colorScheme);
     });
 
     latLon.subscribe((latlonUpdate) => {
@@ -403,13 +411,14 @@ export default class RadarCapability extends Capability {
           this.downloadSnowOverlay();
         });
       };
-      // One network's composite, the merged one or DMAX, re-rendered:
-      // refetch that one frame only. Not `poke`, which reloads DWD's whole
-      // timeseries, and these land every minute or two.
+      // One network's composite, one of every network's, or DMAX,
+      // re-rendered: refetch that one frame only. Not `poke`, which reloads
+      // DWD's whole timeseries, and these land every minute or two.
       this.networkHandler = ({ network }) => {
         whenVisible(`radar:network:${network}`, () => {
-          if (network === EUROPE.code) {
-            this.europe.refresh(this.nanobar);
+          const whole = Object.values(this.wholes).find((layer) => layer.network.code === network);
+          if (whole) {
+            whole.refresh(this.nanobar);
             return;
           }
           if (network === "dmax") {
@@ -425,7 +434,7 @@ export default class RadarCapability extends Capability {
       this.loaded = Promise.allSettled([
         this.downloadCurrentRadar(),
         ...this.networks.map((network) => network.refresh(this.nanobar)),
-        this.europe.refresh(this.nanobar),
+        ...Object.values(this.wholes).map((whole) => whole.refresh(this.nanobar)),
         this.refreshColumnMaximum(),
         this.snowRequest,
       ]);
@@ -538,17 +547,19 @@ export default class RadarCapability extends Capability {
 
     // The networks' frames for the same steps: over their countries DWD's
     // tiles are holes, so without these playback there is half-loaded anyway.
-    // Or the merged composite's, on the steps it stands in for all of them.
-    const merged = ahead.map((step) => this.alternativeFrame("merged", step));
+    // Or a product of every network's, on the steps it stands in for them all.
+    const wholes = ahead.map((step) => this.wholeFrame(step));
     for (const network of this.networks) {
       const frames = ahead
-        .filter((_step, i) => !merged[i])
+        .filter((_step, i) => !wholes[i])
         .map((step) => this.networkGrid[network.network.code]?.[step])
         .filter((frame): frame is RadarFrame => Boolean(frame));
       if (frames.length) urls.push(...network.tileUrls(frames, PREFETCH_MAX_TILES));
     }
-    const europe = merged.filter((frame): frame is RadarFrame => frame !== null);
-    if (europe.length) urls.push(...this.europe.tileUrls(europe, PREFETCH_MAX_TILES));
+    for (const [product, layer] of Object.entries(this.wholes) as [WholeProduct, NetworkRadarLayer][]) {
+      const frames = wholes.filter((whole) => whole?.product === product).map((whole) => whole!.frame);
+      if (frames.length) urls.push(...layer.tileUrls(frames, PREFETCH_MAX_TILES));
+    }
 
     if (this.prefetched.size > PREFETCH_REMEMBERED) this.prefetched.clear();
     for (const url of urls) {
@@ -675,7 +686,7 @@ export default class RadarCapability extends Capability {
     console.log("reloadAll");
     this.reloadRadar();
     for (const network of this.networks) network.refresh(this.nanobar);
-    this.europe.refresh(this.nanobar);
+    for (const whole of Object.values(this.wholes)) whole.refresh(this.nanobar);
     this.refreshColumnMaximum();
   }
 
@@ -692,6 +703,7 @@ export default class RadarCapability extends Capability {
     return {
       hx: newest?.url && newest.source === "observation" ? (newest.upstream_time ?? step) : null,
       merged: this.latest.merged.current()?.upstream_time ?? null,
+      colmax: this.latest.colmax.current()?.upstream_time ?? null,
       dmax: this.latest.dmax.current()?.upstream_time ?? null,
     };
   }
@@ -786,24 +798,35 @@ export default class RadarCapability extends Capability {
     return holes;
   }
 
+  /** The frame of every network's product drawn on a step, and which it is; null where none is. */
+  private wholeFrame(step: number): { product: WholeProduct; frame: RadarFrame } | null {
+    for (const product of WHOLE_PRODUCTS) {
+      const frame = this.alternativeFrame(product, step);
+      if (frame) return { product, frame };
+    }
+    return null;
+  }
+
   /**
    * Point every network layer at the step on screen.
    *
-   * On an observed step the merged composite is drawn on, while it is the
-   * drawn product, that one frame stands in for all five products: DWD's
-   * layer and the networks' are hidden under it rather than blended with it,
-   * since every palette is part transparent and two drawn together read as a
-   * third intensity.
+   * On an observed step a product of every network's is drawn on, while it
+   * is the drawn product, that one frame stands in for all five networks:
+   * DWD's layer and the networks' are hidden under it rather than blended
+   * with it, since every palette is part transparent and two drawn together
+   * read as a third intensity.
    */
   private showNetworks(shown: number, live: boolean) {
-    const europe = this.alternativeFrame("merged", shown);
+    const whole = this.wholeFrame(shown);
     for (const network of this.networks) {
-      network.show(live && !europe, europe ? null : this.networkGrid[network.network.code]?.[shown] ?? null);
+      network.show(live && !whole, whole ? null : this.networkGrid[network.network.code]?.[shown] ?? null);
     }
     // The frame itself, the live one included: `alternativeFrame` has
     // already judged the newest fresh.
-    this.europe.show(false, europe);
-    this.layer?.setVisible(!europe);
+    for (const product of WHOLE_PRODUCTS) {
+      this.wholes[product].show(false, whole?.product === product ? whole.frame : null);
+    }
+    this.layer?.setVisible(!whole);
   }
 
   /**
@@ -846,7 +869,15 @@ export default class RadarCapability extends Capability {
     this.gridRequests += 1;
     const request = this.gridRequests;
     const product = this.wantedProduct();
-    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), product).catch(() => null);
+    // Asked again without the product when that fails: an API that does not
+    // know it yet (a client deployed before its backend) answers 422, and the
+    // map would otherwise have no radar at all rather than HX without it.
+    let asked = product;
+    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), product).catch(() => {
+      if (!product) return null;
+      asked = null;
+      return fetchRadarTimeseries(this.nanobar, this.getPosition(), null).catch(() => null);
+    });
     if (!data) {
       live.set(false);
       return;
@@ -858,10 +889,12 @@ export default class RadarCapability extends Capability {
     if (request < this.gridApplied) return;
     this.gridApplied = request;
     this.gridSampledAt = at;
-    this.gridProduct = product;
+    this.gridProduct = asked;
     this.processRadar(data);
     if (forUser) dryAtUser.set(isDry(data.frames));
-    // Picked while this was out: its past is still to be asked for.
+    // Picked while this was out: its past is still to be asked for. Against
+    // what was asked for first, so a product the API refused is not asked
+    // for again and again.
     const wanted = this.wantedProduct();
     if (wanted && wanted !== product) this.reloadRadar();
   }
@@ -1090,7 +1123,7 @@ export default class RadarCapability extends Capability {
 
   destroy() {
     for (const network of this.networks) network.destroy();
-    this.europe.destroy();
+    for (const whole of Object.values(this.wholes)) whole.destroy();
     this.unsubscribeProduct?.();
     this.unsubscribeProduct = null;
     this.unsubscribeLiveFrame?.();

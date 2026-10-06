@@ -5,9 +5,9 @@
  * the same time as another. Live, DWD's composite for a scan is out about
  * four minutes after the scan starts; KONRAD3D's cells for that same scan come
  * about two minutes later; the volumes are built by a slower job of our own,
- * from every radar's sweeps around storms found in DWD's column maximum or,
- * outside Germany, in each network's lowest-tilt composite, and land half a
- * minute after the cells. So the older ones stand a scan upwind of the echo
+ * from every radar's sweeps around storms found in a column maximum -- DWD's
+ * DMAX in Germany, ng's own of each network elsewhere (ng ADR 0019) -- and
+ * land half a minute after the cells. So the older ones stand a scan upwind of the echo
  * under them for part of every cycle.
  *
  * It is only lateness. In data time they agree: checked against 486 KONRAD3D
