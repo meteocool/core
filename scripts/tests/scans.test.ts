@@ -143,7 +143,7 @@ test("a storm is judged against its own network's radar, not DWD's", () => {
 });
 
 test("a network with no frame under it has no scan to be judged against", () => {
-  // The 3D map drapes HX and the networks whatever the flat map draws (ng ADR 0015).
+  // The 3D map drapes HX and the networks whatever the flat map draws (ng ADR 0016).
   assert.equal(radarScanOf("fr", radar("00:05")), null);
 });
 

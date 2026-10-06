@@ -1909,7 +1909,7 @@ export default class Cells3DCapability extends Capability {
 
   /**
    * Point the draped radar at a frame, and say which scan it is. Called with
-   * DWD's newest frame, HX, whichever product the 2D map draws (ng ADR 0015).
+   * DWD's newest frame, HX, whichever product the 2D map draws (ng ADR 0016).
    */
   setRadarFrame(url: string | null, scan: Scan, index?: TileIndex | null): void {
     this.radarUrl = url;

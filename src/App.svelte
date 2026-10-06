@@ -627,7 +627,7 @@ const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
   // HX and the networks, whichever product the flat map draws: the storms on
   // the 3D map are the column already, and are judged against these scans
-  // (ng ADR 0015).
+  // (ng ADR 0016).
   const forwardRadarFrame = () => {
     const step = radarCap.getMostRecentObservation();
     const frame = radarCap.clientGrid?.[step];
