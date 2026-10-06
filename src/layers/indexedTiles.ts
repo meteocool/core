@@ -34,18 +34,16 @@ export function fillTemplate(template: string, z: number, x: number, y: number):
  */
 export const TILE_TIMEOUT_MS = 30_000;
 
-/** How a value tile is decoded: its bytes as they are, no colour management, no premultiplying. */
-export const VALUE_DECODE: ImageBitmapOptions = { colorSpaceConversion: "none", premultiplyAlpha: "none" };
-
 /**
- * A value tile (lib/rvp6.ts), fetched and decoded as its bytes; null where
- * the frame has no such tile (404).
+ * A value tile (lib/rvp6.ts), fetched as its PNG; null where the frame has
+ * no such tile (404).
  *
- * Not an `<img>`, which may colour-manage a greyscale PNG on its way to the
- * screen -- Safari does -- and a value one off is another class. Under the
- * same ceiling as `loadImage`, and `timedFetch`'s stall besides.
+ * Fetched rather than loaded as an `<img>`, and left to lib/valuePng.ts to
+ * decode: a browser's decoder may colour-manage a greyscale PNG -- WebKit
+ * does, whatever it is asked -- and a value one off is another class. Under
+ * the same ceiling as `loadImage`, and `timedFetch`'s stall besides.
  */
-export async function fetchValueTile(url: string, signal?: AbortSignal): Promise<ImageBitmap | null> {
+export async function fetchValueTile(url: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {
   const controller = new AbortController();
   let late = false;
   const timer = setTimeout(() => { late = true; controller.abort(); }, TILE_TIMEOUT_MS);
@@ -56,7 +54,7 @@ export async function fetchValueTile(url: string, signal?: AbortSignal): Promise
     const response = await timedFetch(url, { signal: controller.signal });
     if (response.status === 404) return null;
     if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${url}`);
-    return await createImageBitmap(await response.blob(), VALUE_DECODE);
+    return await response.arrayBuffer();
   } catch (error) {
     throw late ? new RequestStalled(url, TILE_TIMEOUT_MS) : error;
   } finally {
@@ -83,30 +81,7 @@ export function present(index: TileIndex | null | undefined, z: number, x: numbe
 }
 
 /**
- * One part of a tile, drawn at the tile's full size pixel for pixel.
- *
- * Nearest-neighbour, as every radar layer here draws: a 1 km pixel magnified
- * stays a square of its own colour rather than a blur into its neighbours.
- */
-export function magnify(
-  image: ImageBitmap,
-  { scale, column, row }: Pick<SourceTile, "scale" | "column" | "row">,
-): ImageBitmap | HTMLCanvasElement {
-  if (scale === 1) return image;
-  const size = image.width;
-  const part = size / scale;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const context = canvas.getContext("2d");
-  if (!context) return image;
-  context.imageSmoothingEnabled = false;
-  context.drawImage(image, column * part, row * part, part, part, 0, 0, size, size);
-  return canvas;
-}
-
-/**
- * What a frame has for tile `z`/`x`/`y`: the bitmap it comes out of -- its
+ * What a frame has for tile `z`/`x`/`y`: the PNG it comes out of -- its
  * own, or its ancestor's past the frame's deepest zoom -- and which part of
  * that it is (`sourceTile`), or null where the frame has nothing.
  */
@@ -117,9 +92,9 @@ export async function fetchFrameTile(
   x: number,
   y: number,
   signal?: AbortSignal,
-): Promise<{ bitmap: ImageBitmap; from: SourceTile } | null> {
+): Promise<{ png: ArrayBuffer; from: SourceTile } | null> {
   const from = sourceTile(index, z, x, y);
   if (index && !present(index, from.z, from.x, from.y)) return null;
-  const bitmap = await fetchValueTile(fillTemplate(template, from.z, from.x, from.y), signal);
-  return bitmap ? { bitmap, from } : null;
+  const png = await fetchValueTile(fillTemplate(template, from.z, from.x, from.y), signal);
+  return png ? { png, from } : null;
 }
