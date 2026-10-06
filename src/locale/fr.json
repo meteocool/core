@@ -424,6 +424,23 @@
       "clouds": "Nuages",
       "labels_borders": "Étiquettes et frontières"
     },
+    "radar_product": {
+      "title": "Produit radar",
+      "choose": "Choisir le produit radar",
+      "hx": "Balayage le plus bas",
+      "hx_short": "Bas",
+      "hx_hint": "Balayages les plus bas du DWD et des voisins : la pluie près du sol",
+      "merged": "Composite UE",
+      "merged_short": "UE",
+      "merged_hint": "Les radars de tous les réseaux sur une seule grille",
+      "dmax": "DMAX",
+      "dmax_short": "DMAX",
+      "dmax_hint": "Écho le plus fort à toute altitude, Allemagne seulement ; un balayage plus tard",
+      "age": "{minutes} min",
+      "unavailable": "indisponible",
+      "fell_back_short": "en retard",
+      "fell_back": "{product} est en retard ou indisponible ; {fallback} est affiché jusqu'à ce qu'il rattrape."
+    },
     "scales": {
       "precipitation_types": "Types de<br />précipitations",
       "colormap": "Palette : {name} ({min} - {max} dBZ)",

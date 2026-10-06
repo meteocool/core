@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import ScaleLine from "./ScaleLine.svelte";
+  import RadarProductPicker from "../RadarProductPicker.svelte";
   import legendClouds from "../../assets/legend_clouds.svg";
   import legendRain from "../../assets/legend_rain.svg";
   import legendHail from "../../assets/legend_hail.svg";
@@ -58,5 +59,8 @@
 </style>
 
 {#key unique}
-        <ScaleLine valueFormat={valueFormatter} palette="{getPalette($radarColormap)}" prettyName="{$radarColormap}" title="Radarkomposit<br />(DWD 1km)"/>
+        <!-- The caption is the product picker: what the colours are a picture of. -->
+        <ScaleLine valueFormat={valueFormatter} palette="{getPalette($radarColormap)}" prettyName="{$radarColormap}" titleOnPhone>
+            <RadarProductPicker slot="title" variant="adaptive" />
+        </ScaleLine>
 {/key}

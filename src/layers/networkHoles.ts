@@ -2,8 +2,11 @@ import { chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd } from 
 import { maskPath } from "./tileMask";
 import type { NetworkEvent } from "../api/events";
 
-/** A network, by the code the backend files it under. */
-export type NetworkCode = NetworkEvent["network"];
+/**
+ * A network, by the code the backend files it under. Not `dmax`, which is
+ * DWD's and shares only the socket event.
+ */
+export type NetworkCode = Exclude<NetworkEvent["network"], "dmax">;
 
 /**
  * DWD tiles with the EUMETNET networks' countries cut out of them.

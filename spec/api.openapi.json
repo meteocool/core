@@ -375,16 +375,17 @@
         "type": "object"
       },
       "NetworkRefresh": {
-        "description": "A nudge that one EUMETNET network's composite has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\nnetwork's frame.",
+        "description": "A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\none frame, and ignore a value they do not know.",
         "properties": {
           "network": {
-            "description": "Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network",
+            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum",
             "enum": [
               "ch",
               "fr",
               "cz",
               "pl",
-              "eu"
+              "eu",
+              "dmax"
             ],
             "title": "Network",
             "type": "string"
@@ -585,6 +586,17 @@
             },
             "description": "meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.",
             "title": "Networks",
+            "type": "object"
+          },
+          "products": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/RadarFrame"
+              },
+              "type": "object"
+            },
+            "description": "The observed products asked for with `products` -- `dmax`, DWD's column maximum, and `merged`, meteocool's composite of every network -- keyed like `networks`: the frame measured nearest each observed step (DMAX only on its own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.",
+            "title": "Products",
             "type": "object"
           },
           "replay": {
@@ -1254,9 +1266,31 @@
         ]
       }
     },
+    "/v3/radar/dmax": {
+      "get": {
+        "description": "The newest column maximum DWD has published -- one frame, not a timeseries.\n\nThe strongest echo above each 250 m pixel over every tilt of DWD's volume\nscan, on HX's grid: what a storm's core looks like, not the rain at the\nground. A product the reader picks instead of HX, and a cycle behind it,\nsince it needs the whole volume. Refetched on the `network` socket event\n(`dmax`); its past is in `/timeseries` when asked for (`products=dmax`).",
+        "operationId": "dmax_v3_radar_dmax_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "DWD column-maximum reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v3/radar/europe": {
       "get": {
-        "description": "The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.\n\nDWD's, MeteoSwiss's, Meteo-France's, CHMI's and IMGW's radars on one grid,\ncomposited by meteocool every few minutes on a background worker. A\nproduct behind a setting: the map's own arrangement of five products\nstays, and this is offered beside it. Not in `/timeseries`: it keeps no\nhistory, and every client would carry it otherwise.",
+        "description": "The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.\n\nDWD's, MeteoSwiss's, Meteo-France's, CHMI's and IMGW's radars on one grid,\ncomposited by meteocool every few minutes on a background worker. A\nproduct the reader picks: the map's own arrangement of five products\nstays the default, and this is offered beside it. Its past is in\n`/timeseries` only when asked for (`products=merged`): every client would\ncarry it otherwise.",
         "operationId": "europe_v3_radar_europe_get",
         "responses": {
           "200": {
@@ -1366,7 +1400,7 @@
     },
     "/v3/radar/timeseries": {
       "get": {
-        "description": "Tile metadata for each timestep in a window, past and forecast.\n\nWith `lat` and `lon`, each frame also carries the dBZ at that point. With\n`network` as well, it is that network's reading wherever it has a composite\nfor the step -- which is every observed step, while its ingest is running\n-- and DWD's everywhere else, the forecast included. The client names the\nnetwork because it is the one that knows which draws where: the borders are\n`extents.ts`'s, and a point sampled from a network the map is not showing\nthere would put bars under the chart that nothing on the map agrees with.",
+        "description": "Tile metadata for each timestep in a window, past and forecast.\n\nWith `lat` and `lon`, each frame also carries the dBZ at that point. With\n`network` as well, it is that network's reading wherever it has a composite\nfor the step -- which is every observed step, while its ingest is running\n-- and DWD's everywhere else, the forecast included. The client names the\nnetwork because it is the one that knows which draws where: the borders are\n`extents.ts`'s, and a point sampled from a network the map is not showing\nthere would put bars under the chart that nothing on the map agrees with.\n\n`products` adds another observed product's frames for the same steps, for\na client drawing that one instead: DWD's column maximum, `dmax`, or the\nmerged composite, `merged`. Asked for rather than always sent, since each\nframe carries its tile index and most clients draw neither. The chart is\nstill read from HX and the networks, whichever is drawn.",
         "operationId": "timeseries_v3_radar_timeseries_get",
         "parameters": [
           {
@@ -1429,6 +1463,29 @@
                 }
               ],
               "title": "Network"
+            }
+          },
+          {
+            "in": "query",
+            "name": "products",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "dmax",
+                      "merged"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Products"
             }
           }
         ],

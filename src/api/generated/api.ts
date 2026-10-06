@@ -195,6 +195,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/radar/dmax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * DWD column-maximum reflectivity tile metadata.
+         * @description The newest column maximum DWD has published -- one frame, not a timeseries.
+         *
+         *     The strongest echo above each 250 m pixel over every tilt of DWD's volume
+         *     scan, on HX's grid: what a storm's core looks like, not the rain at the
+         *     ground. A product the reader picks instead of HX, and a cycle behind it,
+         *     since it needs the whole volume. Refetched on the `network` socket event
+         *     (`dmax`); its past is in `/timeseries` when asked for (`products=dmax`).
+         */
+        get: operations["dmax_v3_radar_dmax_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/radar/europe": {
         parameters: {
             query?: never;
@@ -208,9 +234,10 @@ export interface paths {
          *
          *     DWD's, MeteoSwiss's, Meteo-France's, CHMI's and IMGW's radars on one grid,
          *     composited by meteocool every few minutes on a background worker. A
-         *     product behind a setting: the map's own arrangement of five products
-         *     stays, and this is offered beside it. Not in `/timeseries`: it keeps no
-         *     history, and every client would carry it otherwise.
+         *     product the reader picks: the map's own arrangement of five products
+         *     stays the default, and this is offered beside it. Its past is in
+         *     `/timeseries` only when asked for (`products=merged`): every client would
+         *     carry it otherwise.
          */
         get: operations["europe_v3_radar_europe_get"];
         put?: never;
@@ -332,6 +359,12 @@ export interface paths {
          *     network because it is the one that knows which draws where: the borders are
          *     `extents.ts`'s, and a point sampled from a network the map is not showing
          *     there would put bars under the chart that nothing on the map agrees with.
+         *
+         *     `products` adds another observed product's frames for the same steps, for
+         *     a client drawing that one instead: DWD's column maximum, `dmax`, or the
+         *     merged composite, `merged`. Asked for rather than always sent, since each
+         *     frame carries its tile index and most clients draw neither. The chart is
+         *     still read from HX and the networks, whichever is drawn.
          */
         get: operations["timeseries_v3_radar_timeseries_get"];
         put?: never;
@@ -602,20 +635,20 @@ export interface components {
         };
         /**
          * NetworkRefresh
-         * @description A nudge that one EUMETNET network's composite has been re-rendered.
+         * @description A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.
          *
          *     Deliberately not a `Poke`, for the reason `CellsRefresh` is not one: the
          *     frontend's `poke` handler reloads DWD's whole radar timeseries, and a
          *     network composite lands every minute or two. Clients refetch only that
-         *     network's frame.
+         *     one frame, and ignore a value they do not know.
          */
         NetworkRefresh: {
             /**
              * Network
-             * @description Which network: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "eu";
+            network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax";
         };
         /**
          * Platform
@@ -695,6 +728,15 @@ export interface components {
              * @description meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.
              */
             networks?: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["RadarFrame"];
+                };
+            };
+            /**
+             * Products
+             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, and `merged`, meteocool's composite of every network -- keyed like `networks`: the frame measured nearest each observed step (DMAX only on its own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.
+             */
+            products?: {
                 [key: string]: {
                     [key: string]: components["schemas"]["RadarFrame"];
                 };
@@ -1147,6 +1189,26 @@ export interface operations {
             };
         };
     };
+    dmax_v3_radar_dmax_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     europe_v3_radar_europe_get: {
         parameters: {
             query?: never;
@@ -1255,6 +1317,7 @@ export interface operations {
                 lat?: number;
                 lon?: number;
                 network?: ("ch" | "fr" | "cz" | "pl") | null;
+                products?: ("dmax" | "merged")[] | null;
             };
             header?: never;
             path?: never;
