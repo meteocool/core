@@ -335,6 +335,20 @@ export function fetchColumnMaximum(nanobar?: Progress) {
   );
 }
 
+/**
+ * The most recent column maximum of every network -- meteocool's, from every
+ * tilt of every radar -- a product the reader can draw; `optional` for the
+ * reason Switzerland's is, and because a replay builds none.
+ */
+export function fetchEuropeColumnMaximum(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/colmax",
+    () => apiClient.GET("/v3/radar/colmax", {}),
+    { optional: true },
+  );
+}
+
 /** The most recent precipitation-type tile set, absent until one has rendered. */
 export function fetchPrecipitationTypes(nanobar?: Progress) {
   return request(

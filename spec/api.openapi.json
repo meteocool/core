@@ -378,14 +378,15 @@
         "description": "A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\none frame, and ignore a value they do not know.",
         "properties": {
           "network": {
-            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum",
+            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network",
             "enum": [
               "ch",
               "fr",
               "cz",
               "pl",
               "eu",
-              "dmax"
+              "dmax",
+              "colmax"
             ],
             "title": "Network",
             "type": "string"
@@ -595,7 +596,7 @@
               },
               "type": "object"
             },
-            "description": "The observed products asked for with `products` -- `dmax`, DWD's column maximum, and `merged`, meteocool's composite of every network -- keyed like `networks`: the frame measured nearest each observed step (DMAX only on its own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.",
+            "description": "The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, and `colmax`, its column maximum of every network -- keyed like `networks`: the frame measured nearest each observed step (`dmax` and `colmax` only on their own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.",
             "title": "Products",
             "type": "object"
           },
@@ -1222,6 +1223,28 @@
         ]
       }
     },
+    "/v3/radar/colmax": {
+      "get": {
+        "description": "The newest column maximum of every network -- one frame, not a timeseries.\n\nDMAX's picture over all five networks: the strongest echo above each cell\nfrom every tilt of every radar, composited by meteocool once a cycle on a\nbackground worker, with the networks evened out where they can be -- one\nfive-minute cycle, 180 km from any radar, up to 12 km, nothing under 12\ndBZ. Stamped with its cycle, as DMAX is, and about seven minutes behind\nit. Refetched on the `network` socket event (`colmax`); its past is in\n`/timeseries` when asked for (`products=colmax`).",
+        "operationId": "colmax_v3_radar_colmax_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Column-maximum reflectivity of every network tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v3/radar/coverage": {
       "get": {
         "description": "Each EUMETNET network's exclusive coverage, and the part of its country cut out of DWD's tiles.\n\nThe map clips each network's layer to its coverage and holes DWD's tiles\nwith the rest, and the server decides by the same shapes which domain a\npoint belongs to (ADR 0012), so the two cannot disagree. They change only\nwith a release.",
@@ -1475,7 +1498,8 @@
                   "items": {
                     "enum": [
                       "dmax",
-                      "merged"
+                      "merged",
+                      "colmax"
                     ],
                     "type": "string"
                   },

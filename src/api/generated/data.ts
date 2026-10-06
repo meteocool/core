@@ -666,10 +666,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax";
+            network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax" | "colmax";
         };
         /**
          * PointGeometry
