@@ -101,6 +101,16 @@
     "cells_body": "Vom DWD verfolgte Zellen in Stufen, umrandet nach Unwetterstufe:",
     "heights": "Höhen {scale}-fach überhöht."
   },
+  "time_3d": {
+    "choose": "Gewitter zu einer früheren Zeit zeigen",
+    "title": "Gewitter um",
+    "latest": "Neueste",
+    "latest_aria": "Gewitter: neuester Scan",
+    "past_aria": "Gewitter um {time}, nicht live",
+    "loading": "Suche die Gewitter um {time}…",
+    "nothing": "Hier keine Gewitter um {time} aufgezeichnet",
+    "failed": "Die Gewitter um {time} konnten nicht geladen werden"
+  },
   "layer_switcher_placeholder": "Wenn du dankbar für meteocool bist, gib jemand Bedürftigem etwas dafür.",
   "snow": "Schnee",
   "graupel": "Graupel",

@@ -101,6 +101,16 @@
     "cells_body": "Cellules suivies par le DWD, en paliers, bordées selon leur sévérité :",
     "heights": "Hauteurs exagérées {scale} fois."
   },
+  "time_3d": {
+    "choose": "Afficher les orages à une heure antérieure",
+    "title": "Orages à",
+    "latest": "Dernier",
+    "latest_aria": "Orages : dernier balayage",
+    "past_aria": "Orages à {time}, pas en direct",
+    "loading": "Recherche des orages à {time}…",
+    "nothing": "Aucun orage enregistré ici à {time}",
+    "failed": "Impossible de charger les orages à {time}"
+  },
   "layer_switcher_placeholder": "Si vous êtes reconnaissant envers meteocool, rendez quelque chose à une personne dans le besoin.",
   "snow": "Neige",
   "graupel": "Graupel",
