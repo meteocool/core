@@ -1,0 +1,25 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { drapeAnchor, mapPixelRatio } from "../../src/lib/gpuBudget.ts";
+
+test("a phone's 3x is drawn at 2x, a desktop's ratio as it is", () => {
+  assert.equal(mapPixelRatio(3, true), 2);
+  assert.equal(mapPixelRatio(1.5, true), 1.5);
+  assert.equal(mapPixelRatio(3, false), 3);
+});
+
+test("a layer on the ground goes before the first layer that stands up", () => {
+  const layers = [
+    { id: "background", type: "background" },
+    { id: "hillshade", type: "hillshade" },
+    { id: "radar", type: "raster" },
+    { id: "cell-footprint", type: "line" },
+    { id: "cell-volume-0", type: "fill-extrusion" },
+    { id: "cell-volume-raymarched", type: "custom" },
+    { id: "place-labels", type: "symbol" },
+  ];
+  assert.equal(drapeAnchor(layers), "cell-volume-0");
+  // Before the storms are in, the first thing standing is whatever comes next.
+  assert.equal(drapeAnchor(layers.filter((layer) => layer.type !== "fill-extrusion")), "cell-volume-raymarched");
+  assert.equal(drapeAnchor(layers.slice(0, 4)), undefined);
+});
