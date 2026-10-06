@@ -75,8 +75,11 @@ function hillshade(dark: boolean): HillshadeLayerSpecification {
  * Idempotent, so it is safe from `applyData`, which runs again after every
  * `setStyle` -- and that throws the source, the layer and the terrain away
  * with everything else added on top of the basemap.
+ *
+ * `drapeSize`, when given, is the side in pixels of the texture each terrain
+ * tile is draped with, in place of MapLibre's own; see `gpuBudget.ts`.
  */
-export function applyTerrain(gl: GlMap, wanted: boolean, dark: boolean): void {
+export function applyTerrain(gl: GlMap, wanted: boolean, dark: boolean, drapeSize?: number): void {
   const present = Boolean(gl.getSource(TERRAIN_SOURCE));
   if (!wanted) {
     if (!present) return;
@@ -96,4 +99,16 @@ export function applyTerrain(gl: GlMap, wanted: boolean, dark: boolean): void {
   });
   gl.addLayer(hillshade(dark), gl.getLayer(HILLSHADE_BEFORE) ? HILLSHADE_BEFORE : undefined);
   gl.setTerrain({ source: TERRAIN_SOURCE, exaggeration: VERTICAL_SCALE });
+  if (drapeSize) setDrapeSize(gl, drapeSize);
+}
+
+/**
+ * MapLibre has no option for it: the size is read off the terrain's
+ * `RenderToTexture`, made anew by every `setTerrain`, each time a tile's
+ * drape is allocated. A MapLibre without that field is left as it is.
+ */
+function setDrapeSize(gl: GlMap, size: number): void {
+  const drapes = (gl as unknown as { painter?: { renderToTexture?: { rttSize?: number } | null } })
+    .painter?.renderToTexture;
+  if (drapes && typeof drapes.rttSize === "number") drapes.rttSize = size;
 }

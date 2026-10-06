@@ -29,6 +29,9 @@ import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway, VolumeGone } from "../lib/cellCutaway";
+import {
+  drapeAnchor, HANDHELD_DRAPE_SIZE, HANDHELD_TILE_CACHE_ZOOM_LEVELS, isHandheld, mapPixelRatio,
+} from "../lib/gpuBudget";
 import { drawnExtentM, tileBounds, tileCentre, tileCode } from "../lib/volumeBox";
 import { atLevel, COARSE_ZOOM, fineAt } from "../lib/volumeLevels";
 import { framingCamera } from "../lib/stormFrame";
@@ -642,6 +645,13 @@ export default class Cells3DCapability extends Capability {
   /** The newest load, so a slow one finishing late cannot undo a newer list. */
   private loadToken: symbol | null = null;
 
+  /**
+   * The volumes being downloaded for the map, by path: a load that wants one
+   * already on its way waits for it rather than fetching it again, and one no
+   * longer wanted is called off (`loadClouds`).
+   */
+  private fetching = new Map<string, { volume: Promise<Cutaway>; abort: AbortController }>();
+
   /** When a link or a history step last pointed the camera; see `frameOpened`. */
   private cameraSetAt = -Infinity;
 
@@ -775,7 +785,7 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeTerrain = terrain3dVisible.subscribe((wanted) => {
       this.terrainWanted = wanted;
       // Before the style is up, `applyData` adds it once it is.
-      if (this.gl && this.styleReady) applyTerrain(this.gl, wanted, this.dark);
+      if (this.gl && this.styleReady) applyTerrain(this.gl, wanted, this.dark, this.drapeSize());
     });
     // An app tells the page its language after the map is up.
     this.unsubscribeLocale = locale.subscribe((tag) => {
@@ -944,6 +954,9 @@ export default class Cells3DCapability extends Capability {
           // Spelled out rather than behind an (i), like the flat map's; see the
           // attribution rules in glass.css.
           attributionControl: { compact: false },
+          // A phone's memory: see gpuBudget.ts.
+          pixelRatio: mapPixelRatio(window.devicePixelRatio, isHandheld()),
+          ...(isHandheld() ? { maxTileCacheZoomLevels: HANDHELD_TILE_CACHE_ZOOM_LEVELS } : {}),
         });
       } catch (error) {
         // No WebGL, most likely. The veil has nothing to wait for.
@@ -1607,6 +1620,14 @@ export default class Cells3DCapability extends Capability {
     this.dropUnlisted();
     this.pushClouds();
 
+    // A fast pan or zoom moves on before the last place's volumes are in:
+    // stop downloading the ones no longer wanted, which an earlier load,
+    // already overtaken, would only throw away.
+    const wanted = new Set(this.wanted().map((cloud) => cloud.path));
+    for (const [path, { abort }] of this.fetching) {
+      if (!wanted.has(path)) abort.abort();
+    }
+
     const tried = new Set<string>();
     const missing = () => this.wanted().filter((cloud) => !this.cutaways.has(cloud.path) && !tried.has(cloud.path));
     for (let pass = missing(); pass.length; pass = missing()) {
@@ -1617,7 +1638,7 @@ export default class Cells3DCapability extends Capability {
         for (const cloud of batch) tried.add(cloud.path);
         const loaded = await Promise.all(batch.map(async (cloud) => {
           try {
-            return { cloud, cutaway: await loadCutaway(cloud) };
+            return { cloud, cutaway: await this.fetchVolume(cloud) };
           } catch {
             return null;
           }
@@ -1643,6 +1664,21 @@ export default class Cells3DCapability extends Capability {
       }
       if (this.faint.size === faintBefore) return;
     }
+  }
+
+  /** One storm's volume, shared with any other load that asked for it meanwhile. */
+  private fetchVolume(cloud: RadarVolume): Promise<Cutaway> {
+    const pending = this.fetching.get(cloud.path);
+    if (pending && !pending.abort.signal.aborted) return pending.volume;
+    const abort = new AbortController();
+    const volume = loadCutaway(cloud, abort.signal);
+    const entry = { volume, abort };
+    this.fetching.set(cloud.path, entry);
+    const done = () => {
+      if (this.fetching.get(cloud.path) === entry) this.fetching.delete(cloud.path);
+    };
+    volume.then(done, done);
+    return volume;
   }
 
   /**
@@ -1875,6 +1911,8 @@ export default class Cells3DCapability extends Capability {
     gl.addSource(CLOUD_SOURCE, { type: "geojson", data, attribution: dwdAttribution });
     // Fainter for a storm that does not open, as the storm itself is.
     const unopenable: ExpressionSpecification = ["==", ["get", "tier"], TIER_UNOPENABLE];
+    // On the ground with the radar, under the storms: see `drapeAnchor`.
+    const under = drapeAnchor(gl.getStyle().layers);
     gl.addLayer({
       id: CLOUD_BOX,
       type: "line",
@@ -1885,14 +1923,14 @@ export default class Cells3DCapability extends Capability {
         "line-width": 1.5,
         "line-opacity": ["case", unopenable, RING_OPACITY.unopenable, RING_OPACITY.openable],
       },
-    });
+    }, under);
     // Not drawn, only hit: a fill at no opacity is still queried.
     gl.addLayer({
       id: CLOUD_HIT,
       type: "fill",
       source: CLOUD_SOURCE,
       paint: { "fill-opacity": 0 },
-    });
+    }, under);
   }
 
   private async select(code: string, details: boolean): Promise<void> {
@@ -2546,7 +2584,7 @@ export default class Cells3DCapability extends Capability {
     // Nothing to do yet: `style.load` calls this again once there is.
     if (!gl || !this.styleReady) return;
 
-    applyTerrain(gl, this.terrainWanted, this.dark);
+    applyTerrain(gl, this.terrainWanted, this.dark, this.drapeSize());
     this.ensureRadar(gl);
     this.ensureNetworks(gl);
     this.ensureCells(gl);
@@ -2697,6 +2735,11 @@ export default class Cells3DCapability extends Capability {
    * rasters, but a frame can arrive later than the storms did, and a raster
    * appended then would paint over them.
    */
+  /** The terrain's drape size on a handheld device; MapLibre's own elsewhere. See gpuBudget.ts. */
+  private drapeSize(): number | undefined {
+    return isHandheld() ? HANDHELD_DRAPE_SIZE : undefined;
+  }
+
   private rasterAnchor(gl: GlMap): string | undefined {
     return gl.getStyle().layers.find((layer) => /^(cell|cloud|strike|place|location)-/.test(layer.id))?.id;
   }
@@ -2759,7 +2802,7 @@ export default class Cells3DCapability extends Capability {
     ] as unknown as DataDrivenPropertyValueSpecification<number>;
     // Under the place names and the position, which can be on the map before
     // the first strike is.
-    const below = [PLACE_LABELS, LOCATION_ACCURACY].find((id) => gl.getLayer(id));
+    const below = [PLACE_LABELS, LOCATION_DOT].find((id) => gl.getLayer(id));
     gl.addLayer({
       id: "strike-glow",
       type: "circle",
@@ -2800,17 +2843,18 @@ export default class Cells3DCapability extends Capability {
       gl.setLayoutProperty(PLACE_LABELS, "text-field", layer.layout?.["text-field"]);
       return;
     }
-    gl.addLayer(layer, gl.getLayer(LOCATION_ACCURACY) ? LOCATION_ACCURACY : undefined);
+    gl.addLayer(layer, gl.getLayer(LOCATION_DOT) ? LOCATION_DOT : undefined);
   }
 
   /**
    * The client's position: the flat map's blue dot and its accuracy circle,
    * drawn the same way so the two maps agree on what it looks like.
    *
-   * Last on the style, over the storms, strikes and place names, as the flat map's
-   * sits over every layer. The dot faces the screen at a fixed size however
-   * the map is tilted -- it marks a place, it is not a thing on the ground --
-   * while the circle lies on the ground, because it is an area of it.
+   * The dot last on the style, over the storms, strikes and place names, as
+   * the flat map's sits over every layer. It faces the screen at a fixed size
+   * however the map is tilted -- it marks a place, it is not a thing on the
+   * ground -- while the circle lies on the ground, because it is an area of
+   * it, and is drawn with the ground under the storms.
    */
   private ensureLocation(gl: GlMap): void {
     const at = this.location;
@@ -2836,13 +2880,15 @@ export default class Cells3DCapability extends Capability {
 
     gl.addSource(LOCATION_SOURCE, { type: "geojson", data });
     // OpenLayers' default polygon style, which is what the flat map's circle is drawn in.
+    // On the ground under the storms, which last over it cost a third drape
+    // of every terrain tile: see `drapeAnchor`.
     gl.addLayer({
       id: LOCATION_ACCURACY,
       type: "fill",
       source: LOCATION_SOURCE,
       filter: ["==", ["geometry-type"], "Polygon"],
       paint: { "fill-color": "rgba(255, 255, 255, 0.4)", "fill-outline-color": "#3399cc" },
-    });
+    }, drapeAnchor(gl.getStyle().layers));
     gl.addLayer({
       id: LOCATION_DOT,
       type: "circle",
