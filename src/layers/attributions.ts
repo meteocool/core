@@ -6,7 +6,7 @@
  * 4.0 wants the licence named and linked and the changes indicated, Licence
  * Ouverte the source, IMGW that its data "has been processed by" whoever shows
  * it -- and all of that lives in imprint.html#data, which the imprint credit
- * links as "Data licences" beside the base map's credit on every map. Spelled
+ * links as "Licences" beside the base map's credit on every map. Spelled
  * out per provider on the map it ran three lines deep on a phone.
  */
 const link = (href: string, text: string) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
@@ -23,7 +23,7 @@ export const noaaAttribution = link("https://www.weather.gov/disclaimer", "NOAA/
 export const blitzortungAttribution = `© ${link("https://www.blitzortung.org/", "Blitzortung.org")}`;
 export const mapterhornAttribution = `© ${link("https://mapterhorn.com/attribution", "Mapterhorn")}`;
 export const protomapsAttribution = `© ${link("https://protomaps.com", "Protomaps")}`;
-export const imprintAttribution = "| <a href=\"/imprint.html\">Imprint</a> · <a href=\"/imprint.html#data\">Data licences</a>";
+export const imprintAttribution = "| <a href=\"/imprint.html\">Imprint</a> · <a href=\"/imprint.html#data\">Licences</a>";
 
 /**
  * The order the corner reads in: the base map's credits, the data's, and the

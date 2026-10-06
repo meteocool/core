@@ -57,6 +57,7 @@ import { isPastItsScan, scanTime, VolumeFeed } from "../lib/scans";
 import type { Scan } from "../lib/scans";
 
 import { trimToLastRun } from "../lib/cellTrack";
+import { maplibreLocateControl } from "../lib/GeolocateControl";
 import type {
   CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarFrame, RadarVolume,
 } from "../api";
@@ -638,6 +639,8 @@ export default class Cells3DCapability extends Capability {
   private strikeTimer: ReturnType<typeof setTimeout> | null = null;
 
 
+  /** The locate disc's action; see `CapabilityOptions.locate`. */
+  private readonly locate: (() => void) | null;
   /** Takes back the ⌃-click correction, where one was needed; see lib/ctrlDrag.ts. */
   private uncorrectCtrlClicks: (() => void) | null = null;
   /** Takes back the middle drag's turning and tilting; see lib/middleDrag.ts. */
@@ -647,6 +650,7 @@ export default class Cells3DCapability extends Capability {
     super(map, "cells3d", () => Cells3DCapability.announce(), additionalLayers);
 
     this.nanobar = options.nanobar;
+    this.locate = options.locate ?? null;
     // A cell tapped on the flat map is not opened here until this map is
     // shown: opening fetches its volume, and `attach` opens whatever is
     // selected by then.
@@ -846,10 +850,12 @@ export default class Cells3DCapability extends Capability {
         throw error;
       }
       /*
-       * Two controls where one would do, so they can be drawn as the flat
-       * map's are: a zoom capsule, and below it a disc -- there the locate
-       * button, here the compass, which also shows the tilt and resets both.
-       * Under the layer-switcher disc, in glass; see glass.css and Map.svelte.
+       * Two navigation controls where one would do, so they can be drawn as
+       * the flat map's are: a zoom capsule, the locate disc, and the compass
+       * where the flat map's north-up disc is -- it also shows the tilt and
+       * resets both. Under the layer-switcher disc, in glass; see glass.css
+       * and Map.svelte. Locating goes through LayerManager like the flat
+       * map's, which flies this camera (`lookAt`) and marks the position.
        *
        * Not in the apps, which draw their own controls over the webview. The
        * flat map leaves its zoom and locate out there for the same reason, and
@@ -857,6 +863,7 @@ export default class Cells3DCapability extends Capability {
        */
       if (!dd.isApp()) {
         gl.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
+        if (this.locate) gl.addControl(maplibreLocateControl(this.locate), "top-right");
         gl.addControl(new maplibre.NavigationControl({ showZoom: false, visualizePitch: true }), "top-right");
       }
       // ⌃-drag turns and tilts in a Mac's Firefox as well; see lib/ctrlDrag.ts.

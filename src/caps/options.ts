@@ -7,8 +7,8 @@ export type RadarSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 /**
  * What App.svelte hands each capability. Every field is optional because the
- * five capabilities take different subsets, and LayerManager passes the object
- * through unchanged.
+ * five capabilities take different subsets. LayerManager passes the object
+ * through, adding `locate`.
  */
 export interface CapabilityOptions {
   nanobar?: NanobarWrapper;
@@ -18,4 +18,6 @@ export interface CapabilityOptions {
   hasBaseLayer?: boolean;
   /** A screenshot's map (lib/screenshot.ts): fetched once, never refreshed. */
   screenshot?: boolean;
+  /** Ask where the reader is and centre on it: `LayerManager.locate`. */
+  locate?: () => void;
 }

@@ -294,8 +294,8 @@
   }
 
   /* The 3D map's controls in the same column: under the switcher disc, a
-     gutter apart, the zoom capsule first and the compass disc below it where
-     the locate disc is on the flat map. MapLibre floats its controls in a
+     gutter apart, the zoom capsule, the locate disc, and the compass where
+     the flat map's north-up disc is. MapLibre floats its controls in a
      corner box of its own, so the box is moved rather than each control. The
      material is in src/glass.css. */
   :global(.maplibre-host .maplibregl-ctrl-top-right) {
