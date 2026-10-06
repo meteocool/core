@@ -8,6 +8,9 @@ import getDfnLocale from "../locale/locale";
 
 let lastUpdated;
 let lastUpdatedStr;
+/* "Last updated", when the age is short enough to carry it; a separate span so
+   a tight layout can drop it and keep the age. */
+let prefix = "";
 let slPercent = 75;
 let updateTimeout: ReturnType<typeof setTimeout> | null = null;
 let loading = false;
@@ -28,9 +31,7 @@ const updateTime = () => {
     locale: getDfnLocale(),
     addSuffix: true,
   });
-  if (lastUpdatedStr.length < 22) {
-    lastUpdatedStr = `${$_("last_updated")} ${lastUpdatedStr}`;
-  }
+  prefix = lastUpdatedStr.length < 22 ? `${$_("last_updated")} ` : "";
   updateTimeout = setTimeout(updateTime, 10000);
   loading = false;
 };
@@ -109,6 +110,11 @@ onDestroy(() => {
     white-space: nowrap;
     flex-shrink: 0;
 }
+
+.text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 </style>
 
 <div class="info">
@@ -122,7 +128,7 @@ onDestroy(() => {
                     stroke-width="1.5"
                     class="progress-ring"></sl-progress-ring>
         {/if}
-        {lastUpdatedStr}
+        <span class="text">{#if prefix}<span class="prefix">{prefix}</span>{/if}{lastUpdatedStr}</span>
     {:else}
         <sl-spinner class="spinner"></sl-spinner> {$_("loading")}...
     {/if}
