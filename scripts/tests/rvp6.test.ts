@@ -3,7 +3,7 @@ import test from "node:test";
 import { RVP6_CLASSIC, RVP6_CLASSIC_LEFTPAD } from "../../src/colormaps.ts";
 import { dbz2color } from "../../src/lib/cmap_utils.ts";
 import {
-  RVP6_ENTRIES, carriesValues, drawnTileId, paintValuePixels, rvp6Style, rvp6Table,
+  RVP6_ENTRIES, carriesValues, drawnTileId, paintValues, rvp6Style, rvp6Table,
 } from "../../src/lib/rvp6.ts";
 
 test("the classic table is the classic palette, byte for byte, where it has colours", () => {
@@ -45,20 +45,15 @@ test("the style is a palette lookup over band 1 with every index, faded by band 
   assert.deepEqual(colours[150], [r, g, b, a / 255]);
 });
 
-test("pixels holding values are painted; an erased pixel stays transparent, a cut edge fades", () => {
+test("values are painted; an erased pixel stays transparent, a cut edge fades", () => {
   const table = rvp6Table("classic");
-  const pixels = new Uint8ClampedArray([
-    150, 150, 150, 255,
-    0, 0, 0, 255,
-    150, 150, 150, 0,
-    150, 150, 150, 51,
-  ]);
-  paintValuePixels(pixels, table);
+  const pixels = paintValues(new Uint8Array([150, 0, 150, 150]), new Uint8Array([255, 255, 0, 51]), table);
   assert.deepEqual([...pixels.slice(0, 4)], table[150]);
   assert.deepEqual([...pixels.slice(4, 8)], [0, 0, 0, 0]);
   assert.deepEqual([...pixels.slice(8, 12)], [0, 0, 0, 0]);
   const [r, g, b, a] = table[150];
   assert.deepEqual([...pixels.slice(12)], [r, g, b, Math.round(a / 5)]);
+  assert.deepEqual([...paintValues(new Uint8Array([150]), null, table)], table[150], "uncut, every pixel is whole");
 });
 
 test("a frame carries values only when it says so in the encoding the client reads", () => {

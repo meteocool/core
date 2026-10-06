@@ -1,23 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { packPixels } from "../../src/lib/packPixels.ts";
+import { magnifyValues, packValues } from "../../src/lib/packPixels.ts";
 
-/** RGBA pixels the way a decoded value tile reads back: R = G = B = the value. */
-const tile = (...pixels: [value: number, alpha: number][]) =>
-  new Uint8ClampedArray(pixels.flatMap(([value, alpha]) => [value, value, value, alpha]));
-
-test("an opaque tile packs to its values, one byte a pixel", () => {
-  assert.deepEqual(packPixels(tile([12, 255], [200, 255], [0, 255])), new Uint8Array([12, 200, 0]));
+test("an uncut tile packs to its values, one byte a pixel", () => {
+  assert.deepEqual(packValues(new Uint8Array([12, 200, 0]), null), new Uint8Array([12, 200, 0]));
 });
 
-test("a transparent pixel packs as 0, which every value palette draws as nothing", () => {
-  // Whatever its colour bytes say: transparency is what it means.
-  assert.deepEqual(packPixels(tile([90, 255], [37, 0])), new Uint8Array([90, 0]));
+test("a pixel cut away packs as 0, which every value palette draws as nothing", () => {
+  // Whatever its value: being cut away is what it means.
+  assert.deepEqual(packValues(new Uint8Array([90, 37]), new Uint8Array([255, 0])), new Uint8Array([90, 0]));
 });
 
-test("a tile with partial coverage keeps its alpha, as a second byte a pixel", () => {
+test("a tile with partial coverage keeps it, as a second byte a pixel", () => {
   assert.deepEqual(
-    packPixels(tile([90, 255], [37, 128], [5, 0])),
+    packValues(new Uint8Array([90, 37, 5]), new Uint8Array([255, 128, 0])),
     new Uint8Array([90, 255, 37, 128, 5, 0]),
   );
+});
+
+test("a tile past the frame's depth is its part of the ancestor, each pixel a square of its own value", () => {
+  // A 4 px tile, its bottom-right quarter magnified twice.
+  const ancestor = new Uint8Array([
+    1, 2, 3, 4,
+    5, 6, 7, 8,
+    9, 10, 11, 12,
+    13, 14, 15, 16,
+  ]);
+  assert.deepEqual(magnifyValues(ancestor, 4, { scale: 2, column: 1, row: 1 }), new Uint8Array([
+    11, 11, 12, 12,
+    11, 11, 12, 12,
+    15, 15, 16, 16,
+    15, 15, 16, 16,
+  ]));
+  assert.equal(magnifyValues(ancestor, 4, { scale: 1, column: 0, row: 0 }), ancestor);
 });
