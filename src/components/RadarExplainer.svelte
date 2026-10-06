@@ -2,7 +2,7 @@
 /**
  * How the radar works: how the radars scan, when what they measured is
  * published, and which part of meteocool is made from which. Opened from the
- * help button in the layer switcher.
+ * "?" in the radar product picker's menu.
  *
  * The diagrams are drawn here from the geometry rather than shipped as
  * pictures, so they take the app's own palette, theme and language: the side
