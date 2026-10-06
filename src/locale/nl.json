@@ -128,6 +128,8 @@
   "dry_outlook_title_week": "Geen regen in zicht · komende 7 dagen",
   "dry_outlook_title_hours": "{hours, plural, =0 {Regen waarschijnlijk binnen het uur} other {Regen waarschijnlijk over # uur}}",
   "dry_outlook_title_days": "{days, plural, one {Regen waarschijnlijk over # dag} other {Regen waarschijnlijk over # dagen}}",
+  "dry_outlook_title_tomorrow": "Regen waarschijnlijk morgen",
+  "dry_outlook_title_weekday": "{day, select, 0 {Regen waarschijnlijk op zondag} 1 {Regen waarschijnlijk op maandag} 2 {Regen waarschijnlijk op dinsdag} 3 {Regen waarschijnlijk op woensdag} 4 {Regen waarschijnlijk op donderdag} 5 {Regen waarschijnlijk op vrijdag} 6 {Regen waarschijnlijk op zaterdag} other {Regen waarschijnlijk deze week}}",
   "dry_outlook_link": "Alle modellen",
   "dry_outlook_label": "Neerslag volgens de weermodellen",
   "dry_outlook_loading": "Weermodellen raadplegen…",
