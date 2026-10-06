@@ -855,7 +855,7 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   -webkit-tap-highlight-color: transparent;
 }
 .maplibre-host .maplibregl-ctrl-group button + button { border-top: 1px solid var(--mc-separator); }
-/* The compass disc presses like the locate disc above it; see .ol-geolocate. */
+/* The locate and compass discs press like the flat map's; see .ol-geolocate. */
 .maplibre-host .maplibregl-ctrl-group:has(> button:only-child) {
   transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
 }
@@ -873,6 +873,18 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 .maplibre-host .maplibregl-ctrl-group button:focus,
 .maplibre-host .maplibregl-ctrl-group button:focus:focus-visible { box-shadow: none; }
 .maplibre-host .maplibregl-ctrl-group button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -3px; }
+
+/* The locate disc, drawn as the flat map's: the inline arrow centred as a
+   box and tipped the same 2deg; see .ol-geolocate. */
+.maplibre-host .mc-locate button {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+.maplibre-host .mc-locate svg {
+  transform: rotate(-2deg);
+}
+.maplibre-host .mc-locate button:disabled { opacity: 0.4; cursor: default; }
 
 /* The + and - as the flat map draws them: text in the system face, so they
    take the button's colour and its accent on hover, where MapLibre's are

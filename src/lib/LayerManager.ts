@@ -131,7 +131,10 @@ export class LayerManager {
     options.capabilities.forEach((capability) => {
       const newMap = this.mapFactory(capability.options.hasBaseLayer);
        
-      const newCap = new capability.capability(newMap, capability.additionalLayers || [], capability.options);
+      const newCap = new capability.capability(newMap, capability.additionalLayers || [], {
+        ...capability.options,
+        locate: () => this.locate(),
+      });
       this.capabilities[newCap.getName()] = newCap;
       newMap.set("capability", newCap.getName());
       this.maps.push(newMap);
@@ -147,6 +150,20 @@ export class LayerManager {
       const geometry = point ? new Point(fromLonLat([point[1], point[0]])) : undefined;
       this.inspectFeatures.forEach((feature) => feature.setGeometry(geometry));
       this.forEachMap((map) => map.render());
+    });
+  }
+
+  /**
+   * Ask the browser where the reader is and centre on it: the flat map's
+   * locate disc and the 3D map's. Through `updateLocation`, the path the apps'
+   * positions take as well, so the blue dot, `latLon` and whichever map is
+   * showing move together.
+   */
+  locate() {
+    // Asking to be located is asking about yourself again.
+    inspectLatLon.set(null);
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      this.updateLocation(coords.latitude, coords.longitude, coords.accuracy, true, true);
     });
   }
 
@@ -221,15 +238,7 @@ export class LayerManager {
     } else if (!dd.isApp()) {
       controls = defaults({ attribution: false }).extend([
         attribution(),
-        new GeolocateControl({
-          onLocate: () => {
-            // Asking to be located is asking about yourself again.
-            inspectLatLon.set(null);
-            navigator.geolocation.getCurrentPosition(({ coords }) => {
-              this.updateLocation(coords.latitude, coords.longitude, coords.accuracy, true, true);
-            });
-          },
-        }),
+        new GeolocateControl({ onLocate: () => this.locate() }),
       ]);
     }
 
