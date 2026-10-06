@@ -128,6 +128,8 @@
   "dry_outlook_title_week": "Pas de pluie en vue · 7 prochains jours",
   "dry_outlook_title_hours": "{hours, plural, =0 {Pluie probable d’ici une heure} one {Pluie probable dans # heure} other {Pluie probable dans # heures}}",
   "dry_outlook_title_days": "{days, plural, one {Pluie probable dans # jour} other {Pluie probable dans # jours}}",
+  "dry_outlook_title_tomorrow": "Pluie probable demain",
+  "dry_outlook_title_weekday": "{day, select, 0 {Pluie probable dimanche} 1 {Pluie probable lundi} 2 {Pluie probable mardi} 3 {Pluie probable mercredi} 4 {Pluie probable jeudi} 5 {Pluie probable vendredi} 6 {Pluie probable samedi} other {Pluie probable cette semaine}}",
   "dry_outlook_link": "Tous les modèles",
   "dry_outlook_label": "Précipitations selon les modèles météo",
   "dry_outlook_loading": "Interrogation des modèles météo…",

@@ -128,6 +128,8 @@
   "dry_outlook_title_week": "Nie widać deszczu · najbliższe 7 dni",
   "dry_outlook_title_hours": "{hours, plural, =0 {Deszcz prawdopodobny w ciągu godziny} one {Deszcz prawdopodobny za # godzinę} few {Deszcz prawdopodobny za # godziny} other {Deszcz prawdopodobny za # godzin}}",
   "dry_outlook_title_days": "{days, plural, one {Deszcz prawdopodobny za # dzień} other {Deszcz prawdopodobny za # dni}}",
+  "dry_outlook_title_tomorrow": "Deszcz prawdopodobny jutro",
+  "dry_outlook_title_weekday": "{day, select, 0 {Deszcz prawdopodobny w niedzielę} 1 {Deszcz prawdopodobny w poniedziałek} 2 {Deszcz prawdopodobny we wtorek} 3 {Deszcz prawdopodobny w środę} 4 {Deszcz prawdopodobny w czwartek} 5 {Deszcz prawdopodobny w piątek} 6 {Deszcz prawdopodobny w sobotę} other {Deszcz prawdopodobny w tym tygodniu}}",
   "dry_outlook_link": "Wszystkie modele",
   "dry_outlook_label": "Opady według modeli pogodowych",
   "dry_outlook_loading": "Pytam modele pogodowe…",
