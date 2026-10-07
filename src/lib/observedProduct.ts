@@ -27,8 +27,20 @@ export type ObservedProduct = "hx" | "merged" | "colmax" | "dmax";
 /** The products other than the default, as `/v3/radar/timeseries?products=` names them. */
 export type AlternativeProduct = Exclude<ObservedProduct, "hx">;
 
+/**
+ * The picker's two kinds of picture, each with DWD's own first and meteocool's
+ * merge of all five networks second: the lowest scans, the rain nearest the
+ * ground, and the column maxima, the strongest echo at any height.
+ */
+export type ProductGroup = "lowest" | "column";
+
+export const PRODUCT_GROUPS: readonly { group: ProductGroup; products: readonly ObservedProduct[] }[] = [
+  { group: "lowest", products: ["hx", "merged"] },
+  { group: "column", products: ["dmax", "colmax"] },
+];
+
 /** In the order the picker lists them. */
-export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = ["hx", "merged", "colmax", "dmax"];
+export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = PRODUCT_GROUPS.flatMap(({ products }) => products);
 
 export const DEFAULT_PRODUCT: ObservedProduct = "hx";
 

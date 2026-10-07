@@ -23,7 +23,7 @@ import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDi
 import Icon from "./Icon.svelte";
 import Lazy from "./Lazy.svelte";
 import { radarProducts, smallScreen } from "../stores";
-import { OBSERVED_PRODUCTS, ageMinutes, fallsBehind } from "../lib/observedProduct";
+import { PRODUCT_GROUPS, ageMinutes, fallsBehind } from "../lib/observedProduct";
 import type { NewestScans, ObservedProduct } from "../lib/observedProduct";
 
 /** `adaptive`: the caption, but the pill on a phone. */
@@ -162,22 +162,36 @@ function portal(node: HTMLElement) {
         <Icon icon={faCircleQuestion} />
       </button>
     </div>
-    {#each OBSERVED_PRODUCTS as product (product)}
-      <button
-        type="button"
-        role="menuitemradio"
-        class="option"
-        class:behind={fallsBehind(product, scans)}
-        aria-checked={product === chosen}
-        on:click={() => choose(product)}>
-        <span class="check" aria-hidden="true">{product === chosen ? "✓" : ""}</span>
-        <span class="text">
-          <span class="name">{$_(`chrome.radar_product.${product}`)}</span>
-          <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
-          <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
-        </span>
-        <span class="age">{age(product, scans, nowS)}</span>
-      </button>
+    {#each PRODUCT_GROUPS as { group, products }, i (group)}
+      <div class="group" role="group" aria-labelledby={`radar-product-${group}`}>
+        <div class="group-heading">
+          <span class="group-text">
+            <span class="group-name" id={`radar-product-${group}`}>{$_(`chrome.radar_product.group_${group}`)}</span>
+            <span class="group-hint">{$_(`chrome.radar_product.group_${group}_hint`)}</span>
+          </span>
+          <!-- The ages' column heading, once, over the first group. -->
+          {#if i === 0}
+            <span class="column" title={$_("chrome.radar_product.age_hint")}>{$_("chrome.radar_product.age_heading")}</span>
+          {/if}
+        </div>
+        {#each products as product (product)}
+          <button
+            type="button"
+            role="menuitemradio"
+            class="option"
+            class:behind={fallsBehind(product, scans)}
+            aria-checked={product === chosen}
+            on:click={() => choose(product)}>
+            <span class="check" aria-hidden="true">{product === chosen ? "✓" : ""}</span>
+            <span class="text">
+              <span class="name">{$_(`chrome.radar_product.${product}_option`)}</span>
+              <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
+              <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
+            </span>
+            <span class="age" title={$_("chrome.radar_product.age_hint")}>{age(product, scans, nowS)}</span>
+          </button>
+        {/each}
+      </div>
     {/each}
     {#if fellBack}
       <p class="note">{fellBackNote}</p>
@@ -286,6 +300,32 @@ function portal(node: HTMLElement) {
   .help:hover { background: var(--mc-tint-hover); color: var(--mc-accent); }
   .help:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -2px; }
   .help :global(svg) { width: 17px; height: 17px; }
+  .group + .group { margin-top: 4px; }
+  /* A section of the menu: what its pictures have in common, and over the
+     first, what the minutes on the right are. Inset as the options' text is. */
+  .group-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px 2px 34px;
+  }
+  .group-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .group-name {
+    color: var(--mc-text-2);
+    font: 700 11px/1.3 var(--mc-font);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .group-hint { color: var(--mc-text-3); font: 500 11px/1.3 var(--mc-font); }
+  .column {
+    flex: 0 0 auto;
+    max-width: 64px;
+    color: var(--mc-text-3);
+    font: 600 10px/1.2 var(--mc-font);
+    text-align: right;
+    cursor: help;
+  }
   .option {
     display: grid;
     grid-template-columns: 16px 1fr auto;
