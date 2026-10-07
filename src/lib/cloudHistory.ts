@@ -326,6 +326,8 @@ export interface ScanFinds {
    * be told from one that could not look.
    */
   failed: number;
+  /** Why the latest of those failed, for reporting a scan that could not look. */
+  lastError?: unknown;
 }
 
 export const noFinds = (): ScanFinds => ({ coarse: new Map(), fine: new Map(), failed: 0 });
@@ -380,8 +382,9 @@ export async function askScan(ask: ScanAsk, finds: ScanFinds): Promise<void> {
     let cutaway: Cutaway | null;
     try {
       cutaway = await ask.fetch(path);
-    } catch {
+    } catch (error) {
       finds.failed += 1;
+      finds.lastError = error;
       return "failed";
     }
     if (!cutaway) return "none";

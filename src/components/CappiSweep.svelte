@@ -26,6 +26,7 @@ import type { Cutaway } from "../lib/cellCutaway";
 import { createRaymarcher, type Raymarcher } from "../lib/volumeRaymarch";
 import { radarColormap } from "../stores";
 import { isAbort } from "../lib/timedFetch";
+import { reportShown } from "../lib/sentry";
 import { onWake } from "../lib/wakeup";
 import type { CellVolume } from "../api";
 
@@ -88,7 +89,11 @@ const clamp = (value: number) => Math.min(highKm, Math.max(lowKm, value));
 
 function start(loaded: Cutaway): void {
   const made = createRaymarcher(canvas, loaded, $radarColormap);
-  if (typeof made === "string") { failed = made; return; }
+  if (typeof made === "string") {
+    failed = made;
+    reportShown("cappi", new Error(made), { path: volume.path });
+    return;
+  }
   raymarcher = made;
 
   const halfBox = loaded.extentM[2] / 2000;
@@ -229,6 +234,7 @@ function load(): void {
       if (isAbort(error)) return;
       failed = error.message;
       retryable = true;
+      reportShown("cappi", error, { path: volume.path, tier: volume.tier });
     });
 }
 
