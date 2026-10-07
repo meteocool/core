@@ -22,6 +22,7 @@ import { onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
 import { onWake } from "../lib/wakeup";
+import { reportShown } from "../lib/sentry";
 
 export let load: () => Promise<T>;
 export let floating = false;
@@ -45,8 +46,9 @@ function start(loader: () => Promise<T>, _attempt: number): Promise<T> {
   return loader().then(
     (module) => module,
     (error) => {
-      console.warn(error);
       failed = true;
+      // Which panel is in the error: the chunk's own URL, for one that would not load.
+      reportShown("panel", error);
       throw error;
     },
   ).finally(() => {

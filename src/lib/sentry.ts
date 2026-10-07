@@ -13,12 +13,15 @@
  */
 import type { BrowserOptions } from "@sentry/browser";
 import { unsupportedBrowser } from "./browserSupport";
+import { failureKind } from "./shownFailure";
+import { isAbort } from "./timedFetch";
 
 // The `v4-web` project, which only staging and demo report to: the old
 // production build still reports to `web`, and its issues are not ours.
 const DSN = "https://9527d5ff2482249661ee40aa73c7c7e7@o347743.ingest.us.sentry.io/4512206228750336";
 
-type Early = { kind: "error"; error: unknown } | { kind: "rejection"; reason: unknown };
+type Shown = { surface: string; error: unknown; context: Record<string, unknown> };
+type Early = { kind: "error"; error: unknown } | { kind: "rejection"; reason: unknown } | ({ kind: "shown" } & Shown);
 const early: Early[] = [];
 /** Held at most, for a page that cannot fetch the SDK for a while: the first ones are the telling ones. */
 const EARLY_KEPT = 50;
@@ -56,6 +59,51 @@ export function startSentry(): void {
 }
 
 let started = false;
+let sentry: typeof import("@sentry/browser") | null = null;
+
+/**
+ * A failure the reader was shown -- "The 3D map could not be loaded", "Volume
+ * unavailable", a Retry button -- reported under the surface it was shown on.
+ *
+ * Grouped by surface and kind of failure (lib/shownFailure.ts) rather than by
+ * message, and a warning rather than an error: the page coped, but a reader
+ * saw it fail, and that is worth finding out about. Not reported: a request
+ * called off on purpose, and a failure while the browser knows it is offline,
+ * which no change of ours would have prevented. A few of each kind a page,
+ * since a Retry or a wake asks again and fails the same way. Where reporting
+ * is off -- a local build, a test run -- it goes to the console instead.
+ *
+ * Only for what a reader sees fail and we could fix: not the status pill,
+ * whose offline and degraded are the network's and the backend's weather
+ * rather than a bug, and which the API client already reports where it is one.
+ */
+export function reportShown(surface: string, error: unknown, context: Record<string, unknown> = {}): void {
+  if (isAbort(error)) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  const kind = failureKind(error);
+  const key = `${surface}/${kind}`;
+  const count = (reported.get(key) ?? 0) + 1;
+  reported.set(key, count);
+  if (count > SHOWN_KEPT) return;
+  const shown = { surface, error, context };
+  if (sentry) sendShown(sentry, shown);
+  else if (started) keep({ kind: "shown", ...shown });
+  else console.warn(`Shown to the reader (${surface}, ${kind}):`, error, context);
+}
+
+/** Reports a page of each surface and kind: the first say what it is, the rest how often, which the counts below do not need. */
+const SHOWN_KEPT = 3;
+const reported = new Map<string, number>();
+
+function sendShown(client: typeof import("@sentry/browser"), { surface, error, context }: Shown): void {
+  const kind = failureKind(error);
+  client.captureException(error instanceof Error ? error : new Error(String(error)), {
+    level: "warning",
+    tags: { shown: surface, failure: kind },
+    fingerprint: ["shown", surface, kind],
+    contexts: { shown: { surface, kind, ...context } },
+  });
+}
 
 async function init(): Promise<void> {
   let Sentry: typeof import("@sentry/browser");
@@ -90,9 +138,11 @@ async function init(): Promise<void> {
     release: __GIT_COMMIT_HASH__ || undefined,
   };
   Sentry.init(options);
+  sentry = Sentry;
   window.removeEventListener("error", onError);
   window.removeEventListener("unhandledrejection", onRejection);
   for (const item of early.splice(0)) {
-    Sentry.captureException(item.kind === "error" ? item.error : item.reason);
+    if (item.kind === "shown") sendShown(Sentry, item);
+    else Sentry.captureException(item.kind === "error" ? item.error : item.reason);
   }
 }
