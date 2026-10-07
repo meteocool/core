@@ -19,7 +19,7 @@
   import { consensusOf, tierFor, type Consensus } from "../lib/compare/consensus";
   import { modelById } from "../lib/compare/models";
   import { weatherCode } from "../lib/compare/weatherCodes";
-  import { reportError } from "../lib/Toast";
+  import { reportShown } from "../lib/sentry";
   import ModelSpread from "./ModelSpread.svelte";
   import { reverseGeocode } from "../lib/reverseGeocode";
   import { _, locale } from "svelte-i18n";
@@ -65,7 +65,7 @@
       // Our own abort is the panel closing, not open-meteo failing.
       if (isAbort(e)) return;
       error = e instanceof Error ? e.message : String(e);
-      reportError(e);
+      reportShown("compare", e);
     } finally {
       loading = false;
     }

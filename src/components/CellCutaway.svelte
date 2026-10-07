@@ -49,6 +49,7 @@ import { cutRotationDeg, cutSweepDeg, radarColormap } from "../stores";
 import { stopSweep } from "../lib/cutSweep";
 import { cutLabel, cutSnapLabels, normaliseCut } from "../lib/cutAngle";
 import { isAbort } from "../lib/timedFetch";
+import { reportShown } from "../lib/sentry";
 import { onWake } from "../lib/wakeup";
 import type { CellVolume } from "../api";
 
@@ -120,7 +121,11 @@ let visible = true;
 
 function start(loaded: Cutaway): void {
   const made = createRaymarcher(canvas, loaded, $radarColormap);
-  if (typeof made === "string") { failed = made; return; }
+  if (typeof made === "string") {
+    failed = made;
+    reportShown("cutaway", new Error(made), { path: volume.path });
+    return;
+  }
   raymarcher = made;
 
   render = () => {
@@ -256,6 +261,7 @@ function load(): void {
       if (isAbort(error)) return;
       failed = error.message;
       retryable = true;
+      reportShown("cutaway", error, { path: volume.path, tier: volume.tier });
     });
 }
 

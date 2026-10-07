@@ -22,6 +22,7 @@ import { fetchHourlySeries, type HourlySeries } from "../lib/compare/openMeteo";
 import { drawSpread, RAINFALL, type SpreadSpec } from "../lib/compare/spreadChart";
 import { stepAt } from "../lib/compare/outlook";
 import { onWake } from "../lib/wakeup";
+import { reportShown } from "../lib/sentry";
 import Segmented from "./Segmented.svelte";
 
 export let lat: number;
@@ -121,7 +122,10 @@ async function load(which: Variable) {
     error = null;
   } catch (e) {
     // Nor may its failure: the error used to replace a plot that had loaded.
-    if (which === variable) error = e instanceof Error ? e.message : String(e);
+    if (which === variable) {
+      error = e instanceof Error ? e.message : String(e);
+      reportShown("compare-spread", e, { variable: which });
+    }
   } finally {
     if (which === variable) loading = false;
     draw();

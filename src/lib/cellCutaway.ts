@@ -140,9 +140,24 @@ function cutawayOf(header: CutawayHeader, voxels: Uint8Array, stormDbz = STORM_D
  * allowed, so both mean this.
  */
 export class VolumeGone extends Error {
+  /** Carried for the reports, which group by it (lib/shownFailure.ts). */
+  readonly status: number;
+
   constructor(path: string, status: number) {
     super(`volume ${path}: ${status}`);
     this.name = "VolumeGone";
+    this.status = status;
+  }
+}
+
+/** Any other answer that was not the volume. */
+class VolumeRefused extends Error {
+  readonly status: number;
+
+  constructor(path: string, status: number) {
+    super(`volume ${path}: ${status}`);
+    this.name = "VolumeRefused";
+    this.status = status;
   }
 }
 
@@ -160,7 +175,7 @@ export function loadCutaway(
   return tracked(volume.path, async () => {
     const response = await timedFetch(`${tileBaseUrl}/${volume.path}`, { signal });
     if (response.status === 403 || response.status === 404) throw new VolumeGone(volume.path, response.status);
-    if (!response.ok) throw new Error(`volume ${volume.path}: ${response.status}`);
+    if (!response.ok) throw new VolumeRefused(volume.path, response.status);
     // The threshold the list measured the storm at, so the framing finds the
     // same storm; a cell's volume does not carry one.
     return decodeCutaway(await response.arrayBuffer(), volume.seed_dbz ?? STORM_DBZ);
