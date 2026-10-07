@@ -6,13 +6,15 @@
  * Mostly a picture: the CAPPI sweeping through it, which shows the storm's
  * structure by height in a way the vertical cut on the map does not. Then
  * which radars it was built from, from how far, and how well their beams
- * covered it -- enough to judge it by, and no more reading.
+ * covered it -- enough to judge it by, and no more reading. A sketch of where
+ * they stand round the storm heads the list, a row picking out its radar.
  *
  * Shared by both kinds of storm, a tracked cell's and a core found only in
  * the composite, and headed in `StormPanel`'s sections.
  */
 import { _ } from "svelte-i18n";
 import CappiSweep from "./CappiSweep.svelte";
+import RadarMinimap from "./RadarMinimap.svelte";
 import { contributions } from "../lib/radarSites";
 import type { CellVolume } from "../api";
 
@@ -21,10 +23,18 @@ export let volume: CellVolume;
 export let at: { lat: number; lon: number } | null = null;
 
 let width = 300;
+/** The radar a row is pointing at, picked out on the minimap. */
+let highlight: string | null = null;
+
+/* A mouse picks by hovering; a finger has no hover, so a tap toggles. */
+function pick(event: MouseEvent, code: string) {
+  if ((event as PointerEvent).pointerType === "mouse") return;
+  highlight = highlight === code ? null : code;
+}
 
 $: radars = at
   ? contributions(volume.sites ?? [], at.lat, at.lon)
-  : (volume.sites ?? []).map((code) => ({ code, name: code.toUpperCase(), distanceKm: null }));
+  : (volume.sites ?? []).map((code) => ({ code, name: code.toUpperCase(), distanceKm: null, lowestBeamKm: null, site: null }));
 $: coverage = volume.coverage != null
   ? $_("storm.volume.coverage", { values: { pct: Math.round(volume.coverage * 100) } })
   : null;
@@ -42,9 +52,18 @@ $: unopenable = volume.tier === 1;
 
   {#if radars.length}
     <h3 class="section">{$_("storm.volume.radars")}{#if coverage}<span class="aside">{coverage}</span>{/if}</h3>
+    {#if at}
+      <RadarMinimap {radars} {at} {width} height={Math.round(Math.min(180, width * 0.5))} {highlight} />
+    {/if}
     <ul class="radars">
       {#each radars as radar (radar.code)}
-        <li>
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
+        <li
+          class:picked={radar.code === highlight}
+          on:pointerenter={(e) => { if (e.pointerType === "mouse") highlight = radar.code; }}
+          on:pointerleave={(e) => { if (e.pointerType === "mouse") highlight = null; }}
+          on:click={(e) => pick(e, radar.code)}
+        >
           <span>{radar.name}</span>
           {#if radar.distanceKm != null}<span class="detail">{Math.round(radar.distanceKm)} km</span>{/if}
         </li>
@@ -60,6 +79,7 @@ $: unopenable = volume.tier === 1;
 .radars li { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; padding: 10px 0; }
 .radars li + li { border-top: 0.5px solid var(--mc-separator); }
 .radars li:first-child { padding-top: 0; }
+.radars li.picked span:first-child { color: var(--mc-accent); }
 .detail { color: var(--mc-text-2); font-variant-numeric: tabular-nums; }
 .unopenable { margin: 0 0 12px; color: var(--mc-text-2); font-size: 13px; line-height: 1.4; }
 </style>
