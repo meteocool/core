@@ -53,6 +53,7 @@
  */
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
 import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
+import { stormsOf, tileEdges, type TileEdges } from "../lib/tileStorms";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
 import { VERTICAL_SCALE } from "./terrain";
@@ -589,8 +590,13 @@ interface Cloud {
    * and the seam between them flickered through every peel.
    */
   peelFloor: number;
-  /** The storm it is a tile of, by the code of the tile holding the storm's peak; null before tiles. */
+  /**
+   * The storm it is a tile of, by the code of the tile holding the storm's
+   * peak; null where the list does not say, which `stormsOf` then works out.
+   */
   system: string | null;
+  /** Where its echo reaches its sides, for `stormsOf`; null before tiles. */
+  edges: TileEdges | null;
   /** How much of its opacity it keeps; see `DIM_UNOPENABLE`. */
   dim: number;
   /** Whether it peels when not cut; see `setClouds`. */
@@ -783,12 +789,17 @@ export function makeCloudsLayer(
           coreDbz: own,
           peelFloor: own,
           system,
+          edges: tileEdges(cutaway),
           dim,
           peels,
           texture: gl ? upload(gl, cutaway) : null,
         });
       }
-      for (const [key, floor] of peelFloors(clouds)) clouds.get(key)!.peelFloor = floor;
+      const storms = stormsOf([...clouds].map(([key, { cutaway: { header }, system, edges }]) => [
+        key, { network: header.network ?? null, tile: header.tile ?? null, system, edges },
+      ]));
+      const floors = peelFloors([...clouds].map(([key, cloud]) => [key, { ...cloud, system: storms.get(key)! }]));
+      for (const [key, floor] of floors) clouds.get(key)!.peelFloor = floor;
       // New storms are worth peeling for a while, whatever the reader was doing.
       wake();
     },
