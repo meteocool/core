@@ -22,6 +22,13 @@ registerHooks({
     // OpenLayers' modules are imported by path the same way (`ol/proj`), and
     // the package has no exports map to resolve them, so they get `.js`.
     if (/^ol\/[^.]+$/.test(specifier)) return nextResolve(`${specifier}.js`, context);
+    // Vite imports JSON as a module with no attribute, and serves it as one in
+    // development, where an attribute would make the browser refuse it. Node
+    // insists on `type: "json"`, so it is supplied here.
+    if (specifier.endsWith(".json") && !context.importAttributes?.type) {
+      const importAttributes = { ...context.importAttributes, type: "json" };
+      return { ...nextResolve(specifier, { ...context, importAttributes }), importAttributes };
+    }
     return nextResolve(specifier, context);
   },
 });

@@ -3,7 +3,7 @@
  *
  * The minimap is a sketch, but a sketch with no ground under it leaves a
  * reader guessing which way the sea is. The flat map's Protomaps tiles carry
- * exactly the lines it needs -- the water, country and region borders -- and
+ * exactly the lines it needs -- the coast, country and region borders -- and
  * at zoom 5 one tile spans most of a radar network, so two to four of them
  * cover any storm's radars. They are the tiles the basemap itself asks for
  * zoomed out, so they usually come from the browser's cache.
@@ -17,9 +17,7 @@ import { mapEndpoint } from "../layers/protomaps";
 export type Line = number[];
 
 export interface Outlines {
-  /** Ocean, sea and lake polygons' rings, for filling: holes wind the other way, so a nonzero fill leaves islands out. */
-  water: Line[];
-  /** The water's edge: the same rings, less where a tile cut them. */
+  /** The water's edge: ocean, sea and lake rings, less where a tile cut them. */
   coast: Line[];
   country: Line[];
   /** States, regions and the like, `region` and `macroregion` in Protomaps. */
@@ -48,9 +46,8 @@ const latOf = (my: number) => (2 * Math.atan(Math.exp(my / EARTH_RADIUS_M)) - Ma
 
 /**
  * A tile's lines run on into a buffer round it, where they are clipped to the
- * buffer's edge. Filled, the overlap is harmless; stroked, the clip shows as a
- * square round every tile and the buffer is drawn twice. So for lines only
- * the stretches that touch the tile itself are kept: a neighbour has the rest.
+ * buffer's edge. Stroked, the clip shows as a square round every tile and the
+ * buffer is drawn twice. So only the stretches that touch the tile itself are kept: a neighbour has the rest.
  */
 function insideRuns(flat: number[], from: number, to: number, extent: number[], out: Line[]) {
   const [w, s, e, n] = extent;
@@ -69,7 +66,7 @@ function insideRuns(flat: number[], from: number, to: number, extent: number[], 
 }
 
 function decode(buffer: ArrayBuffer, extent: [number, number, number, number]): Outlines {
-  const outlines: Outlines = { water: [], coast: [], country: [], region: [] };
+  const outlines: Outlines = { coast: [], country: [], region: [] };
   for (const feature of format.readFeatures(buffer, { extent })) {
     const type = feature.getType();
     const flat = feature.getFlatCoordinates();
@@ -79,9 +76,6 @@ function decode(buffer: ArrayBuffer, extent: [number, number, number, number]): 
     if (layer === "water" && type === "Polygon") {
       let start = 0;
       for (const end of ends) {
-        const ring: Line = [];
-        for (let i = start; i < end; i += 2) ring.push(lonOf(flat[i]), latOf(flat[i + 1]));
-        outlines.water.push(ring);
         insideRuns(flat, start, end, extent, outlines.coast);
         start = end;
       }
@@ -138,7 +132,6 @@ export async function outlinesWithin(
   }
   const tiles = await Promise.all(jobs);
   return {
-    water: tiles.flatMap((t) => t.water),
     coast: tiles.flatMap((t) => t.coast),
     country: tiles.flatMap((t) => t.country),
     region: tiles.flatMap((t) => t.region),

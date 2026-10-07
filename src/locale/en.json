@@ -340,6 +340,7 @@
       "cappi_aside": "slice at constant altitude",
       "radars": "Radars",
       "coverage": "{pct}% beam coverage 3–8 km",
+      "minimap_legend": "Shaded: where each radar sees down to {km} km, mountains in the way included. Dashed: as far as it scans.",
       "unavailable": "Volume unavailable",
       "not_openable": "Not seen well enough to cut open: the radars' beams cover too little of the 3–8 km layer. Drawn on the map, but no cutaway.",
       "cappi_height": "Height of the slice",

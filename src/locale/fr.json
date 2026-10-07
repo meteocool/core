@@ -336,6 +336,7 @@
       "cappi_aside": "coupe à altitude constante",
       "radars": "Radars",
       "coverage": "{pct} % de couverture du faisceau 3–8 km",
+      "minimap_legend": "Ombré : là où chaque radar voit dès {km} km d'altitude, relief compris. En pointillé : jusqu'où il mesure.",
       "unavailable": "Volume indisponible",
       "cappi_height": "Hauteur de la coupe",
       "cappi_caption": "Tout ce qui dépasse {km} km est coupé. Glissez vers le haut ou le bas pour fixer une hauteur."
