@@ -123,6 +123,8 @@ export default defineConfig(({ mode }) => {
             "**/maplibre-gl*",
             "**/volunteers.png",
             "**/imprint.html",
+            // scripts/licences.mjs writes it for the apps; the page never reads it.
+            "third-party-licences.json",
             "**/_headers",
             "**/_redirects",
             "**/*.map",
