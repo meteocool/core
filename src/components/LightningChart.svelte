@@ -29,6 +29,7 @@ import { LightningColors } from "../colormaps";
 import { mapTapped, sharedActiveCap } from "../stores";
 import { reverseGeocode, scaleForZoom } from "../lib/reverseGeocode";
 import { onWake } from "../lib/wakeup";
+import { reportShown } from "../lib/sentry";
 import DismissableStrip from "./DismissableStrip.svelte";
 import ChartSkeleton from "./ChartSkeleton.svelte";
 
@@ -163,10 +164,11 @@ async function update() {
     unavailable = false;
     noLightning = data.bins.reduce((total, bin) => total + bin, 0) === 0;
     if (!noLightning) redraw(data.bins);
-  } catch {
+  } catch (error) {
     if (token !== statsToken) return;
     noLightning = true;
     unavailable = true;
+    reportShown("lightning-stats", error);
   } finally {
     if (token === statsToken) loading = false;
   }
@@ -192,6 +194,7 @@ function canvasInit(elem: HTMLCanvasElement) {
   const context = elem.getContext("2d");
   if (!context) {
     cannotDraw = true;
+    reportShown("lightning-stats", new Error("No 2D canvas context for the lightning chart"));
     update();
     return undefined;
   }

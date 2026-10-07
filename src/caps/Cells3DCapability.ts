@@ -68,6 +68,7 @@ import { networkAt } from "../layers/networkAt";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import { maplibreLocateControl } from "../lib/GeolocateControl";
+import { reportShown } from "../lib/sentry";
 import type {
   CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarFrame, RadarVolume,
 } from "../api";
@@ -921,7 +922,7 @@ export default class Cells3DCapability extends Capability {
            chunks it asks for. Uncaught, this left the veil spinning over an
            empty map for good; it now says so and offers `retry`, which a
            wake also tries. */
-        console.warn(error);
+        reportShown("3d-map", error);
         if (this.gl) return;
         cells3dLoading.set(false);
         if (this.shown) cells3dFailed.set(true);
@@ -2318,7 +2319,13 @@ export default class Cells3DCapability extends Capability {
     this.pastLoading = null;
     if (!listOf(finds).length) {
       // Nothing to show: the map stays as it was, and the picker says so.
-      this.publishTime({ missed: { scan, failed: !plan || finds.failed > failedBefore } });
+      const failed = !plan || finds.failed > failedBefore;
+      this.publishTime({ missed: { scan, failed } });
+      if (failed) {
+        reportShown("past-scan", plan ? finds.lastError : new Error("No 3D map to look an earlier scan up on"), {
+          scan, failedTiles: finds.failed - failedBefore,
+        });
+      }
       return;
     }
     this.past = { scan, finds };
