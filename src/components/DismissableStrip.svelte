@@ -104,7 +104,7 @@ function dismiss(leaving: Leaving) {
 
   /* Its own dismissal affordance for anyone who does not swipe -- and nothing
      says a strip can be swiped, so it is there for a thumb too. A touch-sized
-     hit area around a small glyph, tucked into the panel's corner radius;
+     transparent hit area around a small glyph, tucked into the panel's corner radius;
      tighter where there is a cursor to find it with, so it does not crowd the
      title row. */
   .strip-close {
@@ -124,13 +124,15 @@ function dismiss(leaving: Leaving) {
     line-height: 1;
     cursor: pointer;
     pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
     transition: color var(--mc-motion-fast) var(--mc-ease),
                 background var(--mc-motion-fast) var(--mc-ease);
   }
-  .strip-close:hover,
   .strip-close:focus-visible {
     color: var(--mc-text);
-    background: var(--mc-tint-hover);
+    /* The hit area overhangs the tray; keep the visible ring inside it. */
+    outline: 2px solid var(--mc-accent);
+    outline-offset: -8px;
   }
   @media (hover: hover) and (pointer: fine) {
     .strip-close {
@@ -139,6 +141,11 @@ function dismiss(leaving: Leaving) {
       width: 28px;
       height: 28px;
     }
+    .strip-close:hover {
+      color: var(--mc-text);
+      background: var(--mc-tint-hover);
+    }
+    .strip-close:focus-visible { outline-offset: -2px; }
   }
 
   .strip-head {
