@@ -509,7 +509,7 @@ export interface components {
             scanned_at?: string | null;
             /**
              * Sites
-             * @description Radars that contributed, by EUMETNET node code (deisn, frnan)
+             * @description Radars that saw the storm in the box, by EUMETNET node code (deisn, frnan)
              */
             sites?: string[];
             /**
@@ -782,7 +782,7 @@ export interface components {
             seed_dbz?: number | null;
             /**
              * Sites
-             * @description Radars that contributed, by EUMETNET node code (deisn, frnan)
+             * @description Radars that saw the storm in the box, by EUMETNET node code (deisn, frnan)
              */
             sites?: string[];
             /**
