@@ -1,20 +1,24 @@
 <script lang="ts">
 /**
  * Where a volume's radars stand around the storm, as a sketch: the storm in
- * the middle, each radar a dot, and the ground its lowest sweep reaches a
- * circle round it. Where the circles pile up the storm was seen from many
- * sides; a storm near the rim of the only circle was seen from one, far off
- * and high up.
+ * the middle, each radar a dot, a dashed circle as far as it scans, and
+ * shaded inside that the ground over which it sees down to 3 km -- smaller,
+ * since the beam climbs as the earth curves away, and cut short behind the
+ * mountains in its way (`lib/radarHorizons.ts`). Where the shading piles up
+ * the storm was seen from many sides, low down; a storm only inside dashed
+ * circles was seen by beams already high above its base.
  *
- * Under it only the water, the coast and the borders, out of the basemap's
+ * Under it only the coast and the borders, out of the basemap's
  * own tiles (`lib/minimapBasemap.ts`), and no projection worth the name:
  * kilometres east and north of the storm, which is true enough over the few
  * hundred a radar reaches. North is up. The list below it names the radars,
  * and `highlight` ties a row to its dot.
  */
 import { onDestroy } from "svelte";
+import { _ } from "svelte-i18n";
 import type { Contribution } from "../lib/radarSites";
 import { outlinesWithin, type Line, type Outlines } from "../lib/minimapBasemap";
+import { loadHorizons, type Horizons } from "../lib/radarHorizons";
 
 export let radars: Contribution[];
 export let at: { lat: number; lon: number };
@@ -33,6 +37,10 @@ const ZOOM_OUT = 1.4;
 const THIN_PX = 1.5;
 const KM_PER_DEG_LAT = 110.57;
 
+let horizons: Horizons | null = null;
+// Without them each radar is its circle, filled instead.
+loadHorizons().then((loaded) => (horizons = loaded), () => {});
+
 $: kmPerDegLon = 111.32 * Math.cos((at.lat * Math.PI) / 180);
 $: placed = radars
   .filter((radar) => radar.site)
@@ -42,7 +50,21 @@ $: placed = radars
     x: (radar.site!.lon - at.lon) * kmPerDegLon,
     y: (radar.site!.lat - at.lat) * KM_PER_DEG_LAT,
     rangeKm: radar.site!.rangeKm,
+    horizon: horizons?.of(radar.code) ?? null,
   }));
+
+/** A radar's horizon as a closed path: one vertex a degree, kilometres flat round the antenna. */
+function horizonPath(x: number, y: number, horizon: readonly number[], k: number, ox: number, oy: number): string {
+  const step = 360 / horizon.length;
+  let d = "";
+  horizon.forEach((km, i) => {
+    const bearing = (i * step * Math.PI) / 180;
+    const px = ox + (x + km * Math.sin(bearing)) * k;
+    const py = oy - (y + km * Math.cos(bearing)) * k;
+    d += `${i ? "L" : "M"}${px.toFixed(1)} ${py.toFixed(1)}`;
+  });
+  return d + "Z";
+}
 /* Fit the radars, not their circles: every circle covers the storm, so the
    overlap that matters is round the middle, and the rims can run off. */
 $: halfX = ZOOM_OUT * Math.max(MIN_HALF_KM, ...placed.map((p) => Math.abs(p.x)));
@@ -80,7 +102,7 @@ function load(key: string) {
 onDestroy(() => (destroyed = true));
 
 /** Lines as one SVG path, thinned to what shows at this scale. */
-function path(lines: Line[], closed: boolean, lon0: number, lat0: number, k: number, kLon: number): string {
+function path(lines: Line[], lon0: number, lat0: number, k: number, kLon: number): string {
   let d = "";
   for (const line of lines) {
     let lastX = NaN;
@@ -96,17 +118,15 @@ function path(lines: Line[], closed: boolean, lon0: number, lat0: number, k: num
       lastY = y;
       points++;
     }
-    if (closed && points) d += "Z";
   }
   return d;
 }
 
 $: ground = outlines
   ? {
-    water: path(outlines.water, true, at.lon, at.lat, scale, kmPerDegLon),
-    coast: path(outlines.coast, false, at.lon, at.lat, scale, kmPerDegLon),
-    country: path(outlines.country, false, at.lon, at.lat, scale, kmPerDegLon),
-    region: path(outlines.region, false, at.lon, at.lat, scale, kmPerDegLon),
+    coast: path(outlines.coast, at.lon, at.lat, scale, kmPerDegLon),
+    country: path(outlines.country, at.lon, at.lat, scale, kmPerDegLon),
+    region: path(outlines.region, at.lon, at.lat, scale, kmPerDegLon),
   }
   : null;
 </script>
@@ -115,7 +135,6 @@ $: ground = outlines
   <svg class="minimap" {width} {height} viewBox="0 0 {width} {height}" aria-hidden="true">
     {#if ground}
       <g class="ground">
-        <path class="water" d={ground.water} />
         <path class="region" d={ground.region} />
         <path class="coast" d={ground.coast} />
         <path class="country" d={ground.country} />
@@ -124,11 +143,16 @@ $: ground = outlines
     <g class="sweeps">
       {#each placed as p (p.code)}
         <circle
+          class="range"
           class:picked={p.code === highlight}
+          class:alone={!p.horizon}
           cx={cx + p.x * scale}
           cy={cy - p.y * scale}
           r={p.rangeKm * scale}
         />
+        {#if p.horizon}
+          <path class="horizon" class:picked={p.code === highlight} d={horizonPath(p.x, p.y, p.horizon, scale, cx, cy)} />
+        {/if}
       {/each}
     </g>
     {#if picked}
@@ -143,38 +167,48 @@ $: ground = outlines
     <circle class="storm-ring" {cx} {cy} r="6" />
     <circle class="storm" {cx} {cy} r="3" />
   </svg>
+  {#if horizons}
+    <p class="legend">{$_("storm.volume.minimap_legend", { values: { km: horizons.heightKm } })}</p>
+  {/if}
 {/if}
 
 <style>
+/* No card behind it: the lines on the sheet itself, faded out towards the
+   edges rather than cut off square there. */
 .minimap {
   display: block;
-  margin: 0 0 12px;
-  border-radius: var(--mc-radius-inner, 10px);
-  background: var(--mc-tint);
+  margin: 0 0 4px;
   overflow: hidden;
+  --fade-x: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+  --fade-y: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: var(--fade-x), var(--fade-y);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fade-x), var(--fade-y);
+  mask-composite: intersect;
 }
-/* Faint enough that the overlap reads as density: three circles over the
-   storm are visibly darker there than one. */
-.sweeps circle {
-  fill: var(--mc-accent);
-  fill-opacity: 0.05;
+/* Faint enough that the overlap reads as density: three horizons over the
+   storm are visibly darker there than one. The range circles only outline. */
+.sweeps .range, .sweeps .horizon {
   stroke: var(--mc-accent);
-  stroke-opacity: 0.35;
   stroke-width: 0.75;
+  stroke-linejoin: round;
   transition: fill-opacity var(--mc-motion-fast) var(--mc-ease), stroke-opacity var(--mc-motion-fast) var(--mc-ease);
 }
-.sweeps circle.picked { fill-opacity: 0.18; stroke-opacity: 0.9; stroke-width: 1.25; }
+.sweeps .range { fill: none; stroke-opacity: 0.22; stroke-dasharray: 2 3; }
+.sweeps .range.picked { stroke-opacity: 0.7; }
+.sweeps .horizon, .sweeps .range.alone { fill: var(--mc-accent); fill-opacity: 0.06; stroke-opacity: 0.35; }
+.sweeps .range.alone { stroke-dasharray: none; }
+.sweeps .horizon.picked, .sweeps .range.alone.picked { fill-opacity: 0.2; stroke-opacity: 0.9; stroke-width: 1.25; }
 .ray { stroke: var(--mc-accent); stroke-width: 1; stroke-dasharray: 2 3; }
 .radar .dot { fill: var(--mc-text-2); }
 .radar.picked .dot { fill: var(--mc-accent); r: 3.5; }
-/* The ground stays under everything else, in the inks of the text: a coast
-   and a border to place the storm by, never louder than the circles. */
+/* The ground stays under everything else, in the faintest ink: a coast and
+   a border to place the storm by, never louder than the circles. */
 .ground path { fill: none; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.ground .water { fill: rgba(0, 0, 0, 0.07); stroke: none; }
-:global(html[data-theme="dark"]) .ground .water { fill: rgba(0, 0, 0, 0.3); }
-.ground .coast { stroke: var(--mc-text-3); stroke-width: 0.75; }
-.ground .country { stroke: var(--mc-text-2); stroke-width: 0.9; stroke-dasharray: 3 2; }
-.ground .region { stroke: var(--mc-text-3); stroke-width: 0.5; stroke-opacity: 0.6; }
+.ground .coast { stroke: var(--mc-text-3); stroke-width: 0.75; stroke-opacity: 0.8; }
+.ground .country { stroke: var(--mc-text-3); stroke-width: 0.75; stroke-opacity: 0.7; stroke-dasharray: 3 2; }
+.ground .region { stroke: var(--mc-text-3); stroke-width: 0.5; stroke-opacity: 0.3; }
+.legend { margin: 0 0 12px; color: var(--mc-text-3); font-size: 12px; line-height: 1.35; }
 .storm { fill: var(--mc-orange); }
 .storm-ring { fill: none; stroke: var(--mc-orange); stroke-width: 1; stroke-opacity: 0.6; }
 </style>

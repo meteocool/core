@@ -340,6 +340,7 @@
       "cappi_aside": "Schnitt in konstanter Höhe",
       "radars": "Radare",
       "coverage": "{pct} % Strahlabdeckung 3–8 km",
+      "minimap_legend": "Schattiert: wo ein Radar bis auf {km} km hinunter sieht, Berge im Weg eingerechnet. Gestrichelt: so weit es misst.",
       "unavailable": "Volumen nicht verfügbar",
       "not_openable": "Nicht gut genug erfasst, um es aufzuschneiden: Die Radarstrahlen decken die 3–8-km-Schicht zu wenig ab. Auf der Karte gezeichnet, aber kein Schnitt.",
       "cappi_height": "Höhe des Schnitts",
