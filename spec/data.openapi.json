@@ -719,7 +719,7 @@
             "title": "Scanned At"
           },
           "sites": {
-            "description": "Radars that contributed, by EUMETNET node code (deisn, frnan)",
+            "description": "Radars that saw the storm in the box, by EUMETNET node code (deisn, frnan)",
             "items": {
               "type": "string"
             },
@@ -1151,7 +1151,7 @@
             "title": "Seed Dbz"
           },
           "sites": {
-            "description": "Radars that contributed, by EUMETNET node code (deisn, frnan)",
+            "description": "Radars that saw the storm in the box, by EUMETNET node code (deisn, frnan)",
             "items": {
               "type": "string"
             },
