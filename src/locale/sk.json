@@ -336,6 +336,7 @@
       "cappi_aside": "rez v konštantnej výške",
       "radars": "Radary",
       "coverage": "{pct} % pokrytie lúčom 3–8 km",
+      "minimap_legend": "Tieňované: kde radar vidí nadol až do {km} km, vrátane hôr v ceste. Čiarkované: kam až meria.",
       "unavailable": "Objem nie je dostupný",
       "cappi_height": "Výška rezu",
       "cappi_caption": "Všetko nad {km} km je odrezané. Ťahaním nahor alebo nadol podrž výšku."

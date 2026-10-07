@@ -336,6 +336,7 @@
       "cappi_aside": "przekrój na stałej wysokości",
       "radars": "Radary",
       "coverage": "{pct}% pokrycia wiązką 3–8 km",
+      "minimap_legend": "Zacieniowane: gdzie radar widzi w dół do {km} km, z uwzględnieniem gór na drodze. Przerywane: jak daleko mierzy.",
       "unavailable": "Wolumen niedostępny",
       "cappi_height": "Wysokość przekroju",
       "cappi_caption": "Wszystko powyżej {km} km jest odcięte. Przeciągnij w górę lub w dół, aby ustalić wysokość."

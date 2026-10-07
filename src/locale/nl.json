@@ -336,6 +336,7 @@
       "cappi_aside": "doorsnede op constante hoogte",
       "radars": "Radars",
       "coverage": "{pct}% bundeldekking 3–8 km",
+      "minimap_legend": "Gearceerd: waar elke radar tot {km} km omlaag kijkt, bergen in de weg meegerekend. Gestippeld: zo ver als hij meet.",
       "unavailable": "Volume niet beschikbaar",
       "cappi_height": "Hoogte van de doorsnede",
       "cappi_caption": "Alles boven {km} km is weggesneden. Sleep omhoog of omlaag om een hoogte vast te houden."

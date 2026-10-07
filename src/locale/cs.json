@@ -336,6 +336,7 @@
       "cappi_aside": "řez v konstantní výšce",
       "radars": "Radary",
       "coverage": "{pct} % pokrytí paprskem 3–8 km",
+      "minimap_legend": "Stínované: kde radar vidí dolů až do {km} km, včetně hor v cestě. Čárkované: kam až měří.",
       "unavailable": "Objem není k dispozici",
       "cappi_height": "Výška řezu",
       "cappi_caption": "Vše nad {km} km je odříznuto. Tažením nahoru nebo dolů nastavíš výšku."
