@@ -192,15 +192,13 @@ function npmEntry(dir) {
 }
 
 /**
- * Packages compiled into a dependency's own files and so not installed here:
- * Sentry's replay carries rrweb, its feedback widget Preact. Their texts are
- * kept in scripts/licences/, named after the package.
+ * Packages compiled into a dependency's own files and so not installed here,
+ * by name, with their SPDX licence; their texts go in scripts/licences/,
+ * named after the package (`@scope/name` as `scope-name.txt`). None ship at
+ * the moment: Sentry's replay carried rrweb and its feedback widget Preact
+ * until src/lib/sentryClient.ts stopped shipping both.
  */
-const BUNDLED_LICENSES = {
-  preact: "MIT",
-  "@sentry-internal/rrweb": "MIT",
-  "@sentry-internal/rrweb-snapshot": "MIT",
-};
+const BUNDLED_LICENSES = {};
 
 function bundledEntry(name, carrier) {
   const pkg = readPackage(carrier);
