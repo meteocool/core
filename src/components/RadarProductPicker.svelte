@@ -41,6 +41,19 @@ let explaining = false;
 let menu: HTMLDivElement | undefined;
 let left = 0;
 let bottom = 0;
+/** Set on a phone (`show`); else the stylesheet's. */
+let width: number | null = null;
+let maxHeight: number | null = null;
+
+/** Narrower than this, the menu takes the width beside the map's buttons rather than its own. */
+const PHONE_WIDTH = 520;
+
+/** Where the map's own buttons are -- zoom, locate, rotate, layers: what the menu must not run under. */
+function mapButtons(): DOMRect[] {
+  return [...document.querySelectorAll<HTMLElement>(".ol-control:not(.ol-attribution):not(.ol-hidden), .lsToggle")]
+    .map((element) => element.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0);
+}
 
 /** The ages are minutes: a tick a quarter of one keeps them honest. */
 let nowS = Date.now() / 1000;
@@ -60,9 +73,12 @@ function age(product: ObservedProduct, scanRanges: Record<ObservedProduct, ScanR
   const span = ageSpan(scanRanges[product], now);
   if (span === null) return $_("chrome.radar_product.unavailable");
   const [from, to] = span;
-  return from === to
+  const text = from === to
     ? $_("chrome.radar_product.age", { values: { minutes: from } })
     : $_("chrome.radar_product.age_span", { values: { from, to } });
+  // The menu wraps an age onto two lines: a number keeps its dash and its
+  // unit, so it is "6–11 min" over "ago" rather than "6–" over "11 min".
+  return text.replace(/–/g, "–\u2060").replace(/(\d) /g, "$1\u00a0");
 }
 
 async function show() {
@@ -70,13 +86,27 @@ async function show() {
   const rect = trigger.getBoundingClientRect();
   bottom = window.innerHeight - rect.top + MARGIN;
   left = rect.left;
+  const buttons = mapButtons();
+  // On a phone, all the width left of the buttons down the right edge: wider
+  // than its own, so shorter, and beside them rather than under them.
+  const rightColumn = Math.min(window.innerWidth, ...buttons.filter((b) => b.left > window.innerWidth / 2).map((b) => b.left));
+  const phone = window.innerWidth < PHONE_WIDTH;
+  width = phone ? rightColumn - 2 * MARGIN : null;
+  maxHeight = null;
   open = true;
   await tick();
   if (!menu) return;
-  // Centred on the control, kept on screen.
-  const width = menu.offsetWidth;
-  const centred = rect.left + rect.width / 2 - width / 2;
-  left = Math.max(MARGIN, Math.min(centred, window.innerWidth - width - MARGIN));
+  // Centred on the control, kept on screen -- and on a phone, left of the buttons.
+  const menuWidth = menu.offsetWidth;
+  const centred = rect.left + rect.width / 2 - menuWidth / 2;
+  const rightEdge = phone ? rightColumn : window.innerWidth;
+  left = Math.max(MARGIN, Math.min(centred, rightEdge - menuWidth - MARGIN));
+  // Still under a button, and it stops short of it and scrolls.
+  const ceiling = Math.max(
+    MARGIN,
+    ...buttons.filter((b) => b.left < left + menuWidth && b.right > left).map((b) => b.bottom + MARGIN),
+  );
+  if (window.innerHeight - bottom - menu.offsetHeight < ceiling) maxHeight = window.innerHeight - bottom - ceiling;
   menu.querySelector<HTMLElement>("[aria-checked='true']")?.focus();
 }
 
@@ -155,7 +185,9 @@ function portal(node: HTMLElement) {
     role="menu"
     aria-label={$_("chrome.radar_product.title")}
     style:left={`${left}px`}
-    style:bottom={`${bottom}px`}>
+    style:bottom={`${bottom}px`}
+    style:width={width === null ? undefined : `${width}px`}
+    style:max-height={maxHeight === null ? undefined : `${maxHeight}px`}>
     <div class="heading">
       <span>{$_("chrome.radar_product.title")}</span>
       <button
@@ -281,6 +313,8 @@ function portal(node: HTMLElement) {
     z-index: var(--mc-z-dialog);
     width: min(300px, calc(100vw - 16px));
     box-sizing: border-box;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 6px;
     border-radius: var(--mc-radius-card);
     box-shadow: var(--mc-glass-ring-lg);
@@ -362,11 +396,14 @@ function portal(node: HTMLElement) {
     font: 500 11px/1.3 var(--mc-font);
     font-variant-numeric: tabular-nums;
   }
+  /* Wrapped at its words, "1–9 min" over "ago", so the column stays narrow
+     and the text beside it gets the width. */
   .option .age {
+    max-width: 4.6em;
     color: var(--mc-text-2);
-    font: 600 12px/1 var(--mc-font);
+    font: 600 12px/1.25 var(--mc-font);
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    text-align: right;
   }
   .option.behind .age { color: var(--mc-orange-ink); }
   .note {

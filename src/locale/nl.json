@@ -463,7 +463,7 @@
       "merged": "EU-composiet",
       "merged_short": "Scan (EU)",
       "merged_option": "EU-composiet",
-      "merged_hint": "Alle nationale netwerken samengevoegd tot één kaart; handig in grensgebieden, waar de nationale composieten bij de grens stoppen",
+      "merged_hint": "Alle nationale netwerken samengevoegd; handig in grensgebieden, maar nooit zo actueel",
       "merged_grid": "Raster: ~180 × 280 m",
       "colmax": "EU-kolommaximum",
       "colmax_short": "EU-max",
@@ -486,7 +486,9 @@
     },
     "scales": {
       "precipitation_types": "Neerslag<br />typen",
-      "colormap": "Kleurenschaal: {name} ({min} - {max} dBZ)",
+      "colormap": "Kleurenschaal: {name} ({min} – {max} dBZ)",
+      "show_dbz": "dBZ-waarden tonen",
+      "show_pictograms": "Pictogrammen tonen",
       "minutes": "{count, plural, one {Minuut} other {Minuten}}"
     },
     "alt": {

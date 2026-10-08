@@ -463,7 +463,7 @@
       "merged": "Kompozit EU",
       "merged_short": "Sken (EU)",
       "merged_option": "Kompozit EU",
-      "merged_hint": "Všechny národní sítě sloučené do jedné mapy; užitečné v příhraničí, kde národní kompozity končí na hranici",
+      "merged_hint": "Všechny národní sítě sloučené; užitečné v příhraničí, ale nikdy tak aktuální",
       "merged_grid": "Mřížka: ~180 × 280 m",
       "colmax": "Maximum sloupce EU",
       "colmax_short": "EU max",
@@ -486,7 +486,9 @@
     },
     "scales": {
       "precipitation_types": "Typy<br />srážek",
-      "colormap": "Barevná škála: {name} ({min} - {max} dBZ)",
+      "colormap": "Barevná škála: {name} ({min} – {max} dBZ)",
+      "show_dbz": "Zobrazit hodnoty dBZ",
+      "show_pictograms": "Zobrazit piktogramy",
       "minutes": "{count, plural, one {minuta} few {minuty} many {minuty} other {minut}}"
     },
     "alt": {
