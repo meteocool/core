@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  isScreenshot, screenshotRequested, SCREENSHOT_FALLBACK_MS, whenDrawn,
+  isScreenshot, screenshotLook, screenshotRequested, SCREENSHOT_FALLBACK_MS, whenDrawn,
 } from "../../src/lib/screenshot.ts";
 import type { DrawnMap, ReadyReason } from "../../src/lib/screenshot.ts";
 
@@ -49,6 +49,28 @@ test("the entrypoint reads the same switch off the address", () => {
   assert.equal(screenshotRequested("https://meteocool.com/?latLonZ=50.96%2C10.9%2C8.0&screenshot=yes"), true);
   assert.equal(screenshotRequested("https://meteocool.com/?screenshot=no"), false);
   assert.equal(screenshotRequested("https://meteocool.com/?toolbar=no&logo=none"), false);
+});
+
+test("a picture may be asked for a basemap and a palette", () => {
+  assert.deepEqual(
+    screenshotLook("?latLonZ=48.1%2C11.5%2C9.5&screenshot=yes&baseLayer=dark&colormap=viridis"),
+    { baseLayer: "dark", colormap: "viridis" },
+  );
+  assert.deepEqual(screenshotLook("?baseLayer=cyclosm"), { baseLayer: "cyclosm" });
+  assert.deepEqual(screenshotLook("?colormap=pyart_stepseq"), { colormap: "pyart_stepseq" });
+  // The old name the factory still draws as the light basemap.
+  assert.deepEqual(screenshotLook("?baseLayer=topographic"), { baseLayer: "topographic" });
+});
+
+test("without either, or with one it does not know, a picture keeps the defaults", () => {
+  assert.deepEqual(screenshotLook("?latLonZ=48.1%2C11.5%2C9.5&screenshot=yes"), {});
+  // "system" is the caller's to resolve: a renderer's colour scheme is nobody's.
+  for (const value of ["system", "satellite", "Dark", "", "dark,osm"]) {
+    assert.deepEqual(screenshotLook(`?baseLayer=${encodeURIComponent(value)}`), {}, value);
+  }
+  for (const value of ["rainbow", "NWS", "", "classic "]) {
+    assert.deepEqual(screenshotLook(`?colormap=${encodeURIComponent(value)}`), {}, value);
+  }
 });
 
 test("a map complete before its radar arrived is not the picture", async () => {

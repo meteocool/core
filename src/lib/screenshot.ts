@@ -12,7 +12,12 @@
  * to inject to hide the buttons, for want of a switch.
  *
  * The setting is URL-sourced (App.svelte), so nothing about it is stored.
+ *
+ * A picture may also be asked for a basemap and a radar palette, as
+ * `baseLayer` and `colormap` on its address: the apps' widgets show the map
+ * the way the reader set it in the app. See `applyScreenshotLook`.
  */
+import type Settings from "./Settings";
 
 /** The attribute on <html> that says the picture is finished, and why. */
 export const SCREENSHOT_READY_ATTRIBUTE = "data-screenshot-ready";
@@ -86,4 +91,52 @@ export function whenDrawn(
 /** Say on <html> that the picture is finished. */
 export function markScreenshotReady(reason: ReadyReason): void {
   document.documentElement.setAttribute(SCREENSHOT_READY_ATTRIBUTE, reason);
+}
+
+/**
+ * The basemaps a picture may be asked for: those LayerManager.baseLayerFactory
+ * draws. "topographic" is an old name it answers with the light one. Not
+ * "system": a renderer's colour scheme is nobody's, so the caller resolves it.
+ */
+export const SCREENSHOT_BASE_LAYERS: readonly string[] = ["light", "dark", "osm", "cyclosm", "topographic"];
+
+/** The radar palettes a picture may be asked for: those lib/cmap_utils.ts paints. */
+export const SCREENSHOT_COLOR_MAPS: readonly string[] = ["classic", "nws", "viridis", "pyart_stepseq", "homeyer", "lang"];
+
+/** How a picture is asked to look; a key left out is the page's own default. */
+export interface ScreenshotLook {
+  baseLayer?: string;
+  colormap?: string;
+}
+
+/**
+ * The look an address asks for. A value outside the lists above is dropped,
+ * as if absent, so a typo draws the default map rather than a broken one.
+ */
+export function screenshotLook(search: string): ScreenshotLook {
+  const params = new URLSearchParams(search);
+  const look: ScreenshotLook = {};
+  const baseLayer = params.get("baseLayer");
+  if (baseLayer !== null && SCREENSHOT_BASE_LAYERS.includes(baseLayer)) look.baseLayer = baseLayer;
+  const colormap = params.get("colormap");
+  if (colormap !== null && SCREENSHOT_COLOR_MAPS.includes(colormap)) look.colormap = colormap;
+  return look;
+}
+
+/**
+ * Put the page in the look its address asks for, for this page load only.
+ *
+ * Held as overrides, like a link's overlays: the setting's callback drives
+ * the same stores choosing it in Settings does, so a dark basemap brings its
+ * labels, casings and chrome with it, while nothing is written to storage.
+ * That matters because a renderer reuses its browser between pictures, and
+ * one picture's basemap must not become the next one's default. Called before
+ * the maps are built, so they are drawn in the look from the start and the
+ * ready signal (`whenDrawn`) covers it.
+ */
+export function applyScreenshotLook(settings: Pick<Settings, "override">, search: string): ScreenshotLook {
+  const look = screenshotLook(search);
+  if (look.baseLayer) settings.override("mapBaseLayer", look.baseLayer);
+  if (look.colormap) settings.override("radarColorMapping", look.colormap);
+  return look;
 }
