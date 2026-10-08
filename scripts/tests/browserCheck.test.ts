@@ -67,14 +67,14 @@ test("without createImageBitmap, which every radar tile needs, the page says so"
   const page = run({ bitmaps: false });
   assert.equal(page.flagged, true);
   assert.equal(page.notice.attributes.role, "alert");
-  assert.match(page.text, /too old for meteocool/);
+  assert.match(page.text, /too old for meteocool/i);
   assert.match(page.text, /iOS 15/);
 });
 
 test("an engine older than the bundle's syntax is told the same", () => {
   const page = run({ modern: false, bitmaps: true });
   assert.equal(page.flagged, true);
-  assert.match(page.text, /too old/);
+  assert.match(page.text, /too old/i);
 });
 
 test("in the reader's language, ?lang= first, as the app chooses it", () => {
@@ -82,5 +82,5 @@ test("in the reader's language, ?lang= first, as the app chooses it", () => {
   assert.equal(run({ bitmaps: false, languages: ["de-AT"] }).lang, "de");
   assert.match(run({ bitmaps: false, languages: ["ja", "fr-CA"] }).text, /trop ancien/);
   assert.match(run({ bitmaps: false, search: "?lang=cs", languages: ["de"] }).text, /příliš starý/);
-  assert.match(run({ bitmaps: false, languages: ["ja"] }).text, /too old/);
+  assert.match(run({ bitmaps: false, languages: ["ja"] }).text, /too old/i);
 });

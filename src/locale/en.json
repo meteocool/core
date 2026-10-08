@@ -15,37 +15,37 @@
   "precipitation_here": "Precipitation at Your Location",
   "connection_details": "Connection Details",
   "title": "About meteocool",
-  "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
-  "text2": "meteocool currently uses radar data provided by DWD and realtime lightning information from the awesome blitzortung.org project.",
+  "text1": "meteocool is a free GIS platform that aggregates and visualises weather data, with a focus on severe weather. It is optimized for mobile devices, and you can use it to chase upcoming weather or to avoid it.",
+  "text2": "meteocool uses radar data from the weather services of Germany (DWD), Switzerland, France, Czechia and Poland, and real-time lightning from the blitzortung.org project.",
   "features": {
     "header": "Features",
     "list_title0": "Privacy:",
-    "list0": "No user accounts are required to use the application, no location data will be recorded or used for other purposes. See also our Privacy Policy.",
+    "list0": "You do not need a user account to use the application, and no location data is recorded or used for other purposes. See also our Privacy Policy.",
     "list_title1": "Automatic Map Updates:",
-    "list1": "The biggest inconvenience with most weather radar visualizations is out-of-date data. meteocool notifies its clients as soon as new radar data becomes available and is always ready for you with up-to-date data.",
+    "list1": "meteocool notifies its clients as soon as new radar data is available, so the map is always up to date.",
     "list_title2": "Live Lightning Strikes:",
-    "list2": "New lightning strikes are displayed instantly, giving you an even better feeling for the cloud formation's intensity, trajectory and speed.",
+    "list2": "New lightning strikes appear instantly and help you judge a storm's intensity, trajectory and speed.",
     "list_title3": "Push Notifications:",
-    "list3": "Get notified about incoming rain and severe weather up to 60 minutes in advance. This works on the web and is available for iOS and Android as well. You can even set the notification level to your liking to only get notified if there's heavy rain for example.",
+    "list3": "Get notified about incoming rain and severe weather up to 60 minutes in advance, on the web and in the iOS and Android apps. You can set the notification level, for example to be notified only about heavy rain.",
     "list_title4": "iOS & Android Apps:",
-    "list4": "Native iOS and Android apps provide battery-efficient background location services to allow for accurate weather notifications everywhere you go",
-    "list_title5": "Dark & Light mode:",
-    "list5": "meteocool offers a dark and light theme to adapt to your preferences."
+    "list4": "The native iOS and Android apps track your location in the background with little battery use, so the weather notifications are accurate wherever you go.",
+    "list_title5": "Dark & Light Mode:",
+    "list5": "meteocool has a dark and a light theme."
   },
   "credits_help": {
     "header": "Credits & Help",
     "text1": "meteocool is brought to you by <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> and <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "This project would not have been possible without the help from a few great people: <a href=\"https://github.com/Flowm\">Florian Mauracher</a> and NessArt.",
+    "text3": "This project would not have been possible without help from <a href=\"https://github.com/Flowm\">Florian Mauracher</a> and NessArt.",
     "list4": {
       "text1": "Icons and adapted artwork made by <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
       "text2": "(Logo, iOS Onboarding) and <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
       "text3": "(licensed by <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
     },
     "text4": "Want to help as well? Check out <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool on GitHub</a>,",
-    "text5": "especially our <a href=\"https://github.com/meteocool/core\">web frontend</a>, <a href=\"https://github.com/meteocool/ios\">iOS App</a> and <a href=\"https://github.com/meteocool/android\">Android App</a> repositories."
+    "text5": "especially our <a href=\"https://github.com/meteocool/core\">web frontend</a>, <a href=\"https://github.com/meteocool/ios\">iOS app</a> and <a href=\"https://github.com/meteocool/android\">Android app</a> repositories."
   },
   "other_things": {
-    "header": "other things",
+    "header": "Other Things",
     "list1": "<a href=\"mailto:support@meteocool.com\">contact us</a> for questions or if you want to send money our way",
     "list2": "<a href=\"/privacy.html\">privacy policy</a>"
   },
@@ -63,7 +63,7 @@
   "loading_3d_words": ["Scanning", "Sweeping", "Pinging", "Pulsing", "Beaming", "Echoing", "Ranging", "Tilting", "Rotating", "Backscattering", "Polarizing", "Doppler-shifting", "Dealiasing", "Decluttering", "Calibrating", "Gridding", "Compositing", "Interpolating", "Voxelizing", "Raymarching", "Nowcasting", "Draining battery"],
   "failed_3d": "The 3D map could not be loaded.",
   "guide_3d": {
-    "title": "3D map",
+    "title": "3D Map",
     "open": "Controls and legend",
     "pill": "Legend",
     "peel": "Peel",
@@ -102,7 +102,7 @@
   },
   "time_3d": {
     "choose": "Show the storms at an earlier time",
-    "title": "Storms at",
+    "title": "Scan Time",
     "latest": "Latest",
     "latest_aria": "Storms: latest scan",
     "past_aria": "Storms at {time}, not live",
@@ -116,20 +116,20 @@
   "sleet": "Sleet",
   "lightning": "Lightning Strikes",
   "n/a": "n/a",
-  "point_menu_title": "At this location",
+  "point_menu_title": "At This Location",
   "point_menu_precipitation": "Precipitation",
   "point_menu_precipitation_sub": "Radar and nowcast",
   "point_menu_forecast": "Forecast",
   "point_menu_forecast_sub": "21 weather models compared",
   "point_menu_share": "Share",
   "point_menu_share_sub": "Send a link to this place",
-  "dry_outlook_title_week": "No rain in sight · next 7 days",
-  "dry_outlook_title_hours": "{hours, plural, =0 {Rain likely within the hour} one {Rain likely in # hour} other {Rain likely in # hours}}",
-  "dry_outlook_title_days": "{days, plural, one {Rain likely in # day} other {Rain likely in # days}}",
-  "dry_outlook_title_tomorrow": "Rain likely tomorrow",
-  "dry_outlook_title_weekday": "{day, select, 0 {Rain likely on Sunday} 1 {Rain likely on Monday} 2 {Rain likely on Tuesday} 3 {Rain likely on Wednesday} 4 {Rain likely on Thursday} 5 {Rain likely on Friday} 6 {Rain likely on Saturday} other {Rain likely this week}}",
+  "dry_outlook_title_week": "No Rain in Sight · Next 7 Days",
+  "dry_outlook_title_hours": "{hours, plural, =0 {Rain Likely Within the Hour} one {Rain Likely in # Hour} other {Rain Likely in # Hours}}",
+  "dry_outlook_title_days": "{days, plural, one {Rain Likely in # Day} other {Rain Likely in # Days}}",
+  "dry_outlook_title_tomorrow": "Rain Likely Tomorrow",
+  "dry_outlook_title_weekday": "{day, select, 0 {Rain Likely on Sunday} 1 {Rain Likely on Monday} 2 {Rain Likely on Tuesday} 3 {Rain Likely on Wednesday} 4 {Rain Likely on Thursday} 5 {Rain Likely on Friday} 6 {Rain Likely on Saturday} other {Rain Likely This Week}}",
   "dry_outlook_link": "All models",
-  "dry_outlook_label": "Rainfall across the weather models",
+  "dry_outlook_label": "Rainfall Across the Weather Models",
   "dry_outlook_loading": "Asking the weather models…",
   "offline": "Offline",
   "catching_up": "Catching up",
@@ -141,14 +141,14 @@
   "lightning_none": "No recent lightning in this area. ⚡️",
   "lightning_unavailable": "Statistics currently unavailable.",
   "radar_no_coverage": "No Radar Here Yet",
-  "radar_no_coverage_body": "Live radar comes from the German weather service, which only publishes it for Germany and its neighbours. Lightning and the forecast models work worldwide.",
+  "radar_no_coverage_body": "Live radar comes from the weather services of Germany, Switzerland, France, Czechia and Poland, so it only covers those countries. Lightning and the forecast models work worldwide.",
   "outdated": "Out of date",
   "degraded": "Degraded",
-  "show_for_my_location": "Show for My Location",
+  "show_for_my_location": "Show for my location",
   "precipitation_at_point": "Precipitation Here",
-  "precipitation_none": "No precipitation in the past two hours — and none forecast for the next two.",
+  "precipitation_none": "No precipitation in the past two hours, and none forecast for the next two.",
   "forecast_none_here": "No forecast here",
-  "precipitation_none_past": "No precipitation in the past two hours — and no forecast reaches here.",
+  "precipitation_none_past": "No precipitation in the past two hours, and no forecast reaches here.",
   "hide": "Hide",
   "last_success": "Last update",
   "preview": "Preview",
@@ -257,7 +257,7 @@
     },
     "signal": {
       "rotating": "Rotating",
-      "lightning_jump": "Lightning Jump",
+      "lightning_jump": "Lightning jump",
       "intensifying": "Intensifying",
       "split": "Split",
       "merged": "Merged",
@@ -330,7 +330,7 @@
       "grip": "Resize or close details"
     },
     "cloud": {
-      "unnamed": "3D radar view",
+      "unnamed": "3D Radar View",
       "label": "3D radar view: {place}",
       "more": "Slice by height, radars"
     },
@@ -375,7 +375,7 @@
     "error": "Could not reach open-meteo.",
     "today": "Today",
     "tomorrow": "Tomorrow",
-    "days_heading": "Next 7 days",
+    "days_heading": "Next 7 Days",
     "days_aside": "tap a day for every model",
     "models": "{count, plural, one {# model} other {# models}}",
     "tier": {
@@ -395,16 +395,16 @@
     },
     "range": {
       "day": "24 h",
-      "week": "7 Days"
+      "week": "7 days"
     },
     "spread": {
-      "heading": "{variable}, all models",
+      "heading": "{variable}, All Models",
       "sub": "Where they agree the band is narrow. Where it widens, the forecast is a guess. Tap or hover over a line to see which model it is.",
       "variable_group": "Variable",
       "range_group": "Range",
       "error": "Could not load the model spread.",
       "median": "Median",
-      "range": "Range Across Models",
+      "range": "Range across models",
       "tooltip": "median {median} · spread {spread} · {count, plural, one {# model} other {# models}}"
     },
     "weather": {
@@ -457,11 +457,11 @@
       "from_start": "Loop from two hours back"
     },
     "radar_product": {
-      "title": "Radar product",
+      "title": "Radar Product",
       "choose": "Choose the radar product",
-      "group_lowest": "Lowest scan",
+      "group_lowest": "Lowest Scan",
       "group_lowest_hint": "The rain nearest the ground",
-      "group_column": "Column maximum",
+      "group_column": "Column Maximum",
       "group_column_hint": "Strongest echo at any height, not necessarily rain on the ground",
       "hx": "Lowest scan",
       "hx_short": "Scan",
@@ -485,7 +485,7 @@
       "dmax_grid": "Grid: 250 × 250 m (Germany), ~180 × 280 m (elsewhere)",
       "age": "{minutes} min ago",
       "age_span": "{from}–{to} min ago",
-      "age_heading": "Newest scan",
+      "age_heading": "Newest Scan",
       "age_hint": "How long ago the newest scan was taken; it counts up until the next one arrives. A span means the countries on the map differ, from the freshest to the stalest: each network runs on its own clock. An EU composite is one map, dated by the newest radar in it. The column maxima wait for the whole volume scan, so they start further back.",
       "unavailable": "unavailable",
       "gave_up": "{product} is unavailable, so the map has switched to {fallback}.",
@@ -517,7 +517,7 @@
       "observation": "Observation",
       "forecast": "Forecast",
       "missing": "Missing",
-      "latency_by_service": "Latency by service",
+      "latency_by_service": "Latency by Service",
       "col": {
         "service": "Service",
         "median": "Median",
@@ -529,13 +529,13 @@
       "section": {
         "connection": "Connection",
         "freshness": "Freshness",
-        "forecast_grid": "Forecast grid",
-        "all_traffic": "All traffic",
-        "degraded": "Degraded state",
-        "api_errors": "API errors",
+        "forecast_grid": "Forecast Grid",
+        "all_traffic": "All Traffic",
+        "degraded": "Degraded State",
+        "api_errors": "API Errors",
         "endpoints": "Endpoints",
         "context": "Context",
-        "tile_cache": "Tile cache",
+        "tile_cache": "Tile Cache",
         "storage": "Storage"
       },
       "service": {
@@ -598,8 +598,8 @@
       "server_clock": "server clock vs ours",
       "tracking_mode": "tracking mode",
       "next_update": "next update expected",
-      "learning_intervals": "learning — {seen} of {needed} intervals seen",
-      "learning_no_frames": "learning — no frames observed yet",
+      "learning_intervals": "learning: {seen} of {needed} intervals seen",
+      "learning_no_frames": "learning: no frames observed yet",
       "overdue_by": "overdue by {duration}",
       "due_in": "in {duration}",
       "observed_cadence": "observed cadence",
@@ -614,7 +614,7 @@
       "filled": "filled",
       "filled_value": "{filled} ({obs} observation, {forecast} forecast)",
       "with_reflectivity": "with reflectivity",
-      "with_reflectivity_none": "{count} — no position shared?",
+      "with_reflectivity_none": "{count} (no position shared?)",
       "playable_to": "playable to",
       "unpublished_tail": "unpublished tail",
       "pipeline_lag": "pipeline lag",
@@ -630,7 +630,7 @@
       "tiles_routed": "tiles routed",
       "yes": "yes",
       "no": "no",
-      "no_not_cached": "no — not cached",
+      "no_not_cached": "no, not cached",
       "tile_origin": "tile origin",
       "basemap_routed": "basemap routed",
       "cached_tiles": "cached tiles",
@@ -640,7 +640,7 @@
       "no_tilesets": "no tilesets yet",
       "basemap_tiles": "basemap tiles",
       "forecast_preload": "forecast preload",
-      "preload_on": "on — next frames fetched ahead of playback",
+      "preload_on": "on: next frames fetched ahead of playback",
       "off": "off",
       "used": "used",
       "quota": "quota",
@@ -669,11 +669,11 @@
   },
   "radar_help": {
     "open": "How the radar works",
-    "title": "How the radar works",
+    "title": "How the Radar Works",
     "lede": "How the weather radars scan the sky, when they publish what they measured, and which part of meteocool is made from which data.",
     "measured": "Times are for a German radar cycle, measured on 5 October 2026.",
     "turn": {
-      "title": "One radar, one turn",
+      "title": "One Radar, One Turn",
       "p1": "A weather radar sends a short pulse of microwaves along a narrow beam and then listens. Rain, snow and hail send a small part of it back. The time until the echo returns gives the distance. The strength of the echo gives the reflectivity, measured in dBZ. Stronger echo means heavier rain or hail.",
       "p2": "The antenna turns once all the way around. One full turn at one tilt is called a sweep. A German radar cuts each turn into 360 rays, one per degree, and each ray into short pieces of 250 m called bins. Every bin gets one value.",
       "caption": "Top view of one sweep. The blue line is the beam as the antenna turns. The coloured areas are echoes, that is water in the air, as rain, snow or hail, sending part of the pulse back. The dashed rings show the distance from the radar. This sweep is one of the low tilts, so it reaches 180 km.",
@@ -696,7 +696,7 @@
       "ours": "shown on meteocool"
     },
     "tilts": {
-      "title": "Ten tilts make one volume",
+      "title": "Ten Tilts Make One Volume",
       "p1": "After each turn the antenna tilts up or down and turns again. DWD's radars use ten tilts: 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 8, 12, 17 and 25 degrees. Together they are the volume scan. Only with all ten can you see how high a storm reaches and whether its core leans.",
       "reach": "How far a sweep reaches depends on its tilt. The low tilts, up to 5.5°, reach 180 km. The 8° tilt reaches 124 km, and the steep tilts only 60 km.",
       "p2": "The earth curves away under the beam. Even the lowest tilt is 3.5 km above the ground at 180 km, so far from a radar it misses rain that falls from low clouds. The beam also gets wider: it is 1° wide, which is 3 km at 180 km. And right above the radar there is a cone where no tilt looks.",
@@ -710,13 +710,13 @@
       "above_2": "no tilt looks"
     },
     "products": {
-      "title": "Lowest scan or column maximum",
+      "title": "Lowest Scan or Column Maximum",
       "p1": "The radar map can show two kinds of picture. A lowest scan shows each radar's lowest sweep: the echo closest to the ground, and so the nearest thing to the rain you will actually feel. Far from a radar even that sweep is high up, as the side view above shows, so rain from low clouds can be missed.",
       "p2": "A column maximum shows, for each spot on the map, the strongest echo in any tilt above it, up to 12 km. That marks where the storm cores are, including rain and hail still high in the cloud that has not come down yet, or that evaporates on the way down. So it is not necessarily rain on the ground: it usually looks stronger and wider than the lowest scan, and can show rain where it stays dry below.",
       "p3": "A column maximum needs the whole volume scan, so it is a scan or more behind. DMAX is DWD's column maximum for Germany; meteocool builds its own from all five networks. The storm cells and the 3D clouds are found in a column maximum."
     },
     "cycle": {
-      "title": "Five minutes, minute by minute",
+      "title": "Five Minutes, Minute by Minute",
       "p1": "Every German radar starts a new cycle every five minutes, at :00, :05, :10 and so on. A cycle is named after the minute it starts. Inside a cycle the order is always the same.",
       "p2": "First comes the precipitation scan. It is one low sweep that follows the terrain, and it takes about 30 seconds. DWD makes the flat radar map from this scan, which is why the map is out early.",
       "p3": "Then come the ten tilts of the volume scan, in this order: 5.5, 4.5, 3.5, 2.5, 1.5 and 0.5, then 8, 12, 17 and 25. The 0.5° sweep is done about three minutes into the cycle. The 25° sweep ends at about five minutes, just as the next cycle starts. Each sweep file reaches EUMETNET's public bucket of raw radar data about two minutes after it is scanned.",
@@ -742,8 +742,8 @@
       "gap": "about 4 minutes between the frame and its clouds"
     },
     "times": {
-      "what": "What happens",
-      "when": "Minutes after T",
+      "what": "What Happens",
+      "when": "Minutes After T",
       "pcp_done": "Precipitation scan done",
       "pcp_done_at": "0.5",
       "hx": "DWD publishes HX",
@@ -767,13 +767,13 @@
       "note": "meteocool times are medians over a day. DWD times are when its files appeared, over several cycles."
     },
     "made": {
-      "title": "What meteocool makes from which",
+      "title": "What meteocool Makes from Which",
       "caption": "The orange lines are the 3D clouds. A column maximum says where the storms are: DMAX for Germany, meteocool's own for the other countries. The raw sweeps fill each storm's box.",
       "col_measured": "Measured",
       "col_published": "Published",
       "col_shown": "Shown on meteocool",
       "on": "On meteocool",
-      "from": "Made from",
+      "from": "Made From",
       "how": "How",
       "de": "Radar map, Germany",
       "de_from": "HX",
@@ -852,7 +852,7 @@
       "m_lt_sub": "live and as tiles"
     },
     "why": {
-      "title": "Why the 3D clouds trail the flat radar",
+      "title": "Why the 3D Clouds Trail the Flat Radar",
       "p1": "The flat map comes from the precipitation scan, which is done half a minute into the cycle. A 3D cloud needs all ten tilts, and the last one ends five minutes into the cycle. So the clouds for a cycle cannot appear before about six minutes, while that cycle's flat frame is out after less than three."
     }
   }
