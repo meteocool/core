@@ -16,7 +16,7 @@
   "connection_details": "Connection Details",
   "title": "About meteocool",
   "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
-  "text2": "meteocool currently uses radar data provided by DWD, realtime lightning information from the awesome blitzortung.org project and satellite imagery from the EC/ESA Copernicus Programme.",
+  "text2": "meteocool currently uses radar data provided by DWD and realtime lightning information from the awesome blitzortung.org project.",
   "features": {
     "header": "Features",
     "list_title0": "Privacy:",
@@ -57,7 +57,6 @@
   "latest": "Latest",
   "demo": "Demo",
   "rain_and_thunderstorms": "Rain & Thunderstorms",
-  "nrt_satellite": "Near Real-Time Satellite",
   "precipitation_types": "Precipitation Types",
   "storm_cells_3d": "Storm Cells 3D",
   "preparing_3d": "Preparing the 3D map…",
@@ -117,7 +116,6 @@
   "sleet": "Sleet",
   "lightning": "Lightning Strikes",
   "n/a": "n/a",
-  "aerosols": "Aerosol Index",
   "point_menu_title": "At this location",
   "point_menu_precipitation": "Precipitation",
   "point_menu_precipitation_sub": "Radar and nowcast",
@@ -143,7 +141,7 @@
   "lightning_none": "No recent lightning in this area. ⚡️",
   "lightning_unavailable": "Statistics currently unavailable.",
   "radar_no_coverage": "No Radar Here Yet",
-  "radar_no_coverage_body": "Live radar comes from the German weather service, which only publishes it for Germany and its neighbours. Lightning, satellite and the forecast models work worldwide.",
+  "radar_no_coverage_body": "Live radar comes from the German weather service, which only publishes it for Germany and its neighbours. Lightning and the forecast models work worldwide.",
   "outdated": "Out of date",
   "degraded": "Degraded",
   "show_for_my_location": "Show for My Location",
@@ -457,10 +455,6 @@
       "loop": "Loop",
       "from_start": "Loop from two hours back"
     },
-    "satellite": {
-      "clouds": "Clouds",
-      "labels_borders": "Labels & Borders"
-    },
     "radar_product": {
       "title": "Radar product",
       "choose": "Choose the radar product",
@@ -488,8 +482,6 @@
     "scales": {
       "precipitation_types": "Precipitation<br />Types",
       "colormap": "Colormap: {name} ({min} - {max} dBZ)",
-      "aerosol_low": "Low Aerosol Depth",
-      "aerosol_high": "High Aerosol Depth",
       "minutes": "{count, plural, one {Minute} other {Minutes}}"
     },
     "alt": {

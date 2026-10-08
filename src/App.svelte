@@ -19,13 +19,13 @@ import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
 
 import RadarCapability from "./caps/RadarCapability";
-import SatelliteCapability from "./caps/SatelliteCapability";
 
 import { LayerManager, VIEW_EXTENT } from "./lib/LayerManager";
 import { capabilityEnabled } from "./caps/enabled";
 import { progress } from "./lib/progress";
 import Settings from "./lib/Settings";
 import type { SettingValue } from "./lib/Settings";
+import { resolveBaseLayer as resolveSettingBaseLayer } from "./lib/baseLayers";
 
 import { tileRefreshSignal } from "./stores";
 import {
@@ -88,14 +88,13 @@ const loadCompare = (sheet: boolean) => () => Promise.all([loadModelCompare(), s
 import CellSelectionHint from "./components/CellSelectionHint.svelte";
 import PointMenu from "./components/PointMenu.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
-import { bordersAndWays, labelsOnly } from "./layers/vector";
+import { labelsOnly } from "./layers/vector";
 import PrecipitationTypesCapability from "./caps/PrecipitationTypesCapability";
 import Cells3DCapability from "./caps/Cells3DCapability";
 import { radolanOverlay } from "./layers/dwd";
 import { webglSupported } from "./layers/webglTile";
 import { reportNotice } from "./lib/Toast";
 import { forgetEarlierFrames } from "./layers/valueTiles";
-import AerosolsCapability from "./caps/AerosolsCapability";
 import LightningCapability from "./caps/LightningCapability";
 
 export let device;
@@ -127,17 +126,9 @@ function systemBaseLayer() {
   return get(colorSchemeDark) ? "dark" : "light";
 }
 
-/**
- * The basemap a `mapBaseLayer` setting means.
- *
- * "system", the default, follows the colour scheme; anything else is a basemap
- * the reader picked. A value of its own rather than "nothing stored", because
- * Settings.set() stores nothing for a value equal to the default -- so with a
- * default that changed with the scheme, picking Dark in dark mode stored
- * nothing, and the map quietly went light again with the system.
- */
+/** The basemap a `mapBaseLayer` setting means; see lib/baseLayers.ts. */
 function resolveBaseLayer(value: SettingValue): string {
-  return value === "system" || !value ? systemBaseLayer() : String(value);
+  return resolveSettingBaseLayer(value, get(colorSchemeDark));
 }
 
 /**
@@ -573,24 +564,6 @@ const lm = new LayerManager({
         nanobar: nb,
         socket_io: radarSocketIO,
         screenshot,
-      },
-    },
-    {
-      name: "satellite",
-      capability: SatelliteCapability,
-      additionalLayers: [bordersAndWays()],
-      options: {
-        nanobar: nb,
-        hasBaseLayer: false,
-      },
-    },
-    {
-      name: "aerosols",
-      capability: AerosolsCapability,
-      additionalLayers: [bordersAndWays()],
-      options: {
-        nanobar: nb,
-        hasBaseLayer: false,
       },
     },
     {

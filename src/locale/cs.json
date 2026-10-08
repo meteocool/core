@@ -16,7 +16,7 @@
   "connection_details": "Podrobnosti připojení",
   "title": "O aplikaci meteocool",
   "text1": "meteocool je bezplatná GIS platforma pro vizualizaci a agregaci dat se zaměřením na nebezpečné počasí. Optimalizovaná pro mobilní zařízení, ji můžeš použít jak k honbě za blížícím se počasím, tak k jeho vyhýbání se - to je na tobě.",
-  "text2": "meteocool v současnosti využívá radarová data od DWD, bleskové informace v reálném čase ze skvělého projektu blitzortung.org a satelitní snímky z programu EC/ESA Copernicus.",
+  "text2": "meteocool v současnosti využívá radarová data od DWD a bleskové informace v reálném čase ze skvělého projektu blitzortung.org.",
   "features": {
     "header": "Vlastnosti",
     "list_title0": "Soukromí:",
@@ -57,7 +57,6 @@
   "latest": "Nejnovější",
   "demo": "Demo",
   "rain_and_thunderstorms": "Déšť a bouřky",
-  "nrt_satellite": "Satelit v téměř reálném čase",
   "precipitation_types": "Typy srážek",
   "storm_cells_3d": "Bouřkové buňky 3D",
   "preparing_3d": "Připravuje se 3D mapa…",
@@ -117,7 +116,6 @@
   "sleet": "Plískanice",
   "lightning": "Blesky",
   "n/a": "n/a",
-  "aerosols": "Index aerosolů",
   "point_menu_title": "Na tomto místě",
   "point_menu_precipitation": "Srážky",
   "point_menu_precipitation_sub": "Radar a nowcasting",
@@ -143,7 +141,7 @@
   "lightning_none": "V této oblasti žádné nedávné blesky. ⚡️",
   "lightning_unavailable": "Statistiky momentálně nejsou k dispozici.",
   "radar_no_coverage": "Zde zatím není radar",
-  "radar_no_coverage_body": "Radar v reálném čase pochází od německé meteorologické služby, která ho zveřejňuje jen pro Německo a jeho sousední země. Blesky, satelit a předpovědní modely fungují po celém světě.",
+  "radar_no_coverage_body": "Radar v reálném čase pochází od německé meteorologické služby, která ho zveřejňuje jen pro Německo a jeho sousední země. Blesky a předpovědní modely fungují po celém světě.",
   "outdated": "Zastaralé",
   "degraded": "Omezeno",
   "show_for_my_location": "Zobrazit pro mou polohu",
@@ -449,10 +447,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min"
     },
-    "satellite": {
-      "clouds": "Mraky",
-      "labels_borders": "Popisky a hranice"
-    },
     "radar_product": {
       "title": "Radarový produkt",
       "choose": "Vyberte radarový produkt",
@@ -480,8 +474,6 @@
     "scales": {
       "precipitation_types": "Typy<br />srážek",
       "colormap": "Barevná škála: {name} ({min} - {max} dBZ)",
-      "aerosol_low": "Nízká hodnota aerosolu",
-      "aerosol_high": "Vysoká hodnota aerosolu",
       "minutes": "{count, plural, one {minuta} few {minuty} many {minuty} other {minut}}"
     },
     "alt": {

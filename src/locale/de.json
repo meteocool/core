@@ -16,7 +16,7 @@
   "connection_details": "Verbindungsdetails",
   "title": "Über meteocool",
   "text1": "meteocool ist eine kostenlose GIS-Plattform zur Visualisierung und Aggregation von Wetterdaten mit Fokus auf Unwetter. Optimiert für Mobilgeräte, damit du anrückendem Wetter hinterherjagen oder ausweichen kannst – ganz wie du willst.",
-  "text2": "meteocool nutzt Daten vom DWD, Echtzeit Blitzinformationen von blitzortung.org und Satellitenbilder vom EC/ESA Copernicus Erdbeobachtungsprogramm.",
+  "text2": "meteocool nutzt Daten vom DWD und Echtzeit Blitzinformationen von blitzortung.org.",
   "features": {
     "header": "Eigenschaften",
     "list_title0": "Datenschutz:",
@@ -57,7 +57,6 @@
   "latest": "Aktuell",
   "demo": "Demo",
   "rain_and_thunderstorms": "Regen & Gewitter",
-  "nrt_satellite": "Satellit",
   "precipitation_types": "Niederschlagsarten",
   "storm_cells_3d": "Gewitterzellen 3D",
   "preparing_3d": "3D-Karte wird vorbereitet…",
@@ -115,7 +114,6 @@
   "snow": "Schnee",
   "graupel": "Graupel",
   "sleet": "Schnee&shy;regen",
-  "aerosols": "Aerosol-Index",
   "lightning": "Live Blitze",
   "n/a": "Unbekannt",
   "point_menu_title": "An diesem Ort",
@@ -143,7 +141,7 @@
   "lightning_none": "Keine Blitze in diesem Gebiet. ⚡️",
   "lightning_unavailable": "Statistik momentan nicht verfügbar.",
   "radar_no_coverage": "Hier noch kein Radar",
-  "radar_no_coverage_body": "Das Live-Radar stammt vom Deutschen Wetterdienst und deckt nur Deutschland und die Nachbarländer ab. Blitze, Satellit und die Wettermodelle funktionieren weltweit.",
+  "radar_no_coverage_body": "Das Live-Radar stammt vom Deutschen Wetterdienst und deckt nur Deutschland und die Nachbarländer ab. Blitze und die Wettermodelle funktionieren weltweit.",
   "outdated": "Veraltet",
   "degraded": "Eingeschränkt",
   "show_for_my_location": "Für meinen Standort",
@@ -457,10 +455,6 @@
       "loop": "Schleife",
       "from_start": "Schleife ab zwei Stunden zurück"
     },
-    "satellite": {
-      "clouds": "Wolken",
-      "labels_borders": "Beschriftungen & Grenzen"
-    },
     "radar_product": {
       "title": "Radarprodukt",
       "choose": "Radarprodukt wählen",
@@ -488,8 +482,6 @@
     "scales": {
       "precipitation_types": "Niederschlags-<br />arten",
       "colormap": "Farbskala: {name} ({min} - {max} dBZ)",
-      "aerosol_low": "Geringe Aerosoldichte",
-      "aerosol_high": "Hohe Aerosoldichte",
       "minutes": "{count, plural, one {Minute} other {Minuten}}"
     },
     "alt": {

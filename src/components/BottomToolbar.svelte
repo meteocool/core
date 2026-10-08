@@ -2,7 +2,6 @@
   import { onDestroy } from "svelte";
   import { fly } from "svelte/transition";
   import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
-  import { get } from "svelte/store";
   import { _ } from "svelte-i18n";
   import {
     BarController, BarElement, CategoryScale, Chart, LinearScale,
@@ -11,18 +10,14 @@
   import { DeviceDetect as dd } from "../lib/DeviceDetect";
   import {
     capDescription,
-    satelliteLayer,
     sharedActiveCap,
     bottomToolbarMode,
-    zoomlevel,
-    satelliteLayerCloudy, satelliteLayerLabels,
   } from "../stores";
   import StepScaleLine from "./scales/StepScaleLine.svelte";
   import Appendix from "./Appendix.svelte";
   import RadarScaleLine from "./scales/RadarScaleLine.svelte";
   import LightningScaleLine from "./scales/LightningScaleLine.svelte";
   import LightningChart from "./LightningChart.svelte";
-  import AerosolScaleLine from "./scales/AerosolScaleLine.svelte";
   import { precipTypeNames } from "../colormaps";
 
   Chart.defaults.font.size = 10;
@@ -40,39 +35,9 @@
   // been constructed already.
   Chart.register(BarController, BarElement, CategoryScale, LinearScale);
 
-  let s3Disabled = false;
-  let e;
   /* Handed back in onDestroy: the toolbar is torn down when the URL hides it
      and rebuilt when it comes back. */
   const subscriptions: (() => void)[] = [];
-  subscriptions.push(zoomlevel.subscribe((z) => {
-    if (z > 12) {
-      satelliteLayer.set("sentinel2");
-      if (e) e.checked = true;
-      s3Disabled = true;
-    } else {
-      s3Disabled = false;
-    }
-  }));
-
-  function cloudmask(elem) {
-    elem.addEventListener("sl-change", (_event) => {
-      satelliteLayerCloudy.set(!get(satelliteLayerCloudy));
-    });
-  }
-
-  function labelsBorders(elem) {
-    elem.addEventListener("sl-change", (event: Event) => {
-      satelliteLayerLabels.set((event.target as HTMLInputElement).checked);
-    });
-  }
-
-  function sentinel2(elem) {
-    elem.addEventListener("sl-change", (event: Event) => {
-      const satellite = (event.target as HTMLInputElement).checked ? "sentinel2" : "sentinel3";
-      satelliteLayer.set(satellite);
-    });
-  }
 
   subscriptions.push(capDescription.subscribe((desc) => {
     _description = desc;
@@ -201,12 +166,6 @@
         text-align: center;
     }
 
-    .float {
-        display: inline-flex;
-        align-items: center;
-        margin: 0 16px 0 0;
-    }
-
     /* Phone. Last in the sheet on purpose: these rules share their specificity
        with the base ones above, so declared any earlier they lose to them and
        the whole block goes quietly inert -- which is what had happened to it,
@@ -315,35 +274,17 @@
                 <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title={$_("chrome.scales.precipitation_types")} />
             </div>
         {/if}
-        {#if activeCap === "aerosols"}
-            <div class="palette">
-                <AerosolScaleLine />
-            </div>
-        {/if}
         {#if activeCap === "lightning" && $bottomToolbarMode === "collapsed"}
             <div class="palette">
                 <LightningScaleLine/>
             </div>
         {/if}
         <div class="break"></div>
-        {#if activeCap !== "aerosols"}
-            <div class="center">
-                {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
-                    <LastUpdated/>
-                {/if}
-                {#if activeCap === "satellite"}
-                    <div class="float">
-                        <sl-checkbox checked="true" use:sentinel2 disabled={s3Disabled}>Sentinel-2</sl-checkbox>
-                    </div>
-                    <div class="float">
-                        <sl-checkbox use:cloudmask disabled="{$satelliteLayer !== "sentinel2"}">{$_("chrome.satellite.clouds")}</sl-checkbox>
-                    </div>
-                    <div class="float">
-                        <sl-checkbox use:labelsBorders checked="true">{$_("chrome.satellite.labels_borders")}</sl-checkbox>
-                    </div>
-                {/if}
-            </div>
-        {/if}
+        <div class="center">
+            {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
+                <LastUpdated/>
+            {/if}
+        </div>
         {#if !dd.isApp()}
             <div class="right app-logos">
                 <Appendix/>
