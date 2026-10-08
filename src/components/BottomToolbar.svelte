@@ -252,11 +252,10 @@
             margin-right: 0 !important;
         }
 
-        /* Radar: the colour strip gets the whole first row; the freshness
-           line and the product picker (ScaleLine's title) share the second,
-           the age at the left and the picker at the right.
-           The two wrappers between them step aside so the picker and the
-           status line are items of this one flex row. */
+        /* Radar: the colour strip gets the whole first row, and the product
+           picker (ScaleLine's title, which carries the age) the second, on
+           its own and centred. The two wrappers between them step aside so
+           the picker is an item of this one flex row. */
         .parentz.stacked .palette,
         .parentz.stacked .palette :global(.wrapper) {
             display: contents;
@@ -267,24 +266,11 @@
         }
         .parentz.stacked .palette :global(.legend-label) {
             order: 2;
+            flex: 1 1 100%;
+            text-align: center;
         }
-        .parentz.stacked .break {
-            display: none;
-        }
-        /* The rest of the row, whatever the chip leaves. Basis 0 so the row
-           never wraps it onto a third line; the age is what has to fit, so
-           "Last updated" goes, and the age ellipsises before it overflows. */
+        .parentz.stacked .break,
         .parentz.stacked .center {
-            order: 1;
-            flex: 1 1 0;
-            min-width: 0;
-            justify-content: flex-start;
-        }
-        .parentz.stacked .center :global(.info) {
-            min-width: 0;
-            flex-shrink: 1;
-        }
-        .parentz.stacked .center :global(.prefix) {
             display: none;
         }
     }
