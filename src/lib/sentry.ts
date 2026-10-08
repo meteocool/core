@@ -59,7 +59,7 @@ export function startSentry(): void {
 }
 
 let started = false;
-let sentry: typeof import("@sentry/browser") | null = null;
+let sentry: typeof import("./sentryClient") | null = null;
 
 /**
  * A failure the reader was shown -- "The 3D map could not be loaded", "Volume
@@ -95,7 +95,7 @@ export function reportShown(surface: string, error: unknown, context: Record<str
 const SHOWN_KEPT = 3;
 const reported = new Map<string, number>();
 
-function sendShown(client: typeof import("@sentry/browser"), { surface, error, context }: Shown): void {
+function sendShown(client: typeof import("./sentryClient"), { surface, error, context }: Shown): void {
   const kind = failureKind(error);
   client.captureException(error instanceof Error ? error : new Error(String(error)), {
     level: "warning",
