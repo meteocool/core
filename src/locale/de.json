@@ -492,7 +492,7 @@
       "age": "vor {minutes} Min.",
       "age_span": "vor {from}–{to} Min.",
       "age_heading": "Neuester Scan",
-      "age_hint": "Wie lange der neueste Scan her ist; zählt hoch, bis der nächste eintrifft. Eine Spanne heißt, die Länder auf der Karte sind verschieden alt, vom aktuellsten bis zum ältesten: Jedes Netz läuft im eigenen Takt. Die Säulenmaxima warten auf den ganzen Volumenscan und beginnen daher weiter zurück.",
+      "age_hint": "Wie lange der neueste Scan her ist; zählt hoch, bis der nächste eintrifft. Eine Spanne heißt, die Länder auf der Karte sind verschieden alt, vom aktuellsten bis zum ältesten: Jedes Netz läuft im eigenen Takt. Ein EU-Komposit ist eine Karte, datiert nach dem neuesten Radar darin. Die Säulenmaxima warten auf den ganzen Volumenscan und beginnen daher weiter zurück.",
       "unavailable": "nicht verfügbar",
       "gave_up": "{product} ist nicht verfügbar, die Karte zeigt daher {fallback}.",
       "fell_back_short": "verzögert",

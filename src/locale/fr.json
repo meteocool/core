@@ -484,7 +484,7 @@
       "age": "il y a {minutes} min",
       "age_span": "il y a {from} à {to} min",
       "age_heading": "Dernier balayage",
-      "age_hint": "Depuis combien de temps le dernier balayage a été fait ; le compte augmente jusqu'au suivant. Un écart signifie que les pays sur la carte diffèrent, du plus frais au plus ancien : chaque réseau suit sa propre cadence. Les maxima de colonne attendent le balayage volumique complet et partent donc de plus loin.",
+      "age_hint": "Depuis combien de temps le dernier balayage a été fait ; le compte augmente jusqu'au suivant. Un écart signifie que les pays sur la carte diffèrent, du plus frais au plus ancien : chaque réseau suit sa propre cadence. Un composite UE est une seule carte, datée par le radar le plus récent qu'elle contient. Les maxima de colonne attendent le balayage volumique complet et partent donc de plus loin.",
       "unavailable": "indisponible",
       "gave_up": "{product} est indisponible ; la carte affiche donc {fallback}.",
       "fell_back_short": "en retard",

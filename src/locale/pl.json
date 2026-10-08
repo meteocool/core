@@ -484,7 +484,7 @@
       "age": "{minutes} min temu",
       "age_span": "{from}–{to} min temu",
       "age_heading": "Najnowszy skan",
-      "age_hint": "Ile czasu minęło od najnowszego skanu; rośnie, aż nadejdzie następny. Zakres oznacza, że kraje na mapie się różnią, od najświeższego do najstarszego: każda sieć działa we własnym rytmie. Maksima kolumny czekają na cały skan objętościowy, więc zaczynają od wyższej wartości.",
+      "age_hint": "Ile czasu minęło od najnowszego skanu; rośnie, aż nadejdzie następny. Zakres oznacza, że kraje na mapie się różnią, od najświeższego do najstarszego: każda sieć działa we własnym rytmie. Kompozyt UE to jedna mapa, datowana według najnowszego radaru w niej. Maksima kolumny czekają na cały skan objętościowy, więc zaczynają od wyższej wartości.",
       "unavailable": "niedostępny",
       "gave_up": "{product} jest niedostępny, więc mapa pokazuje teraz {fallback}.",
       "fell_back_short": "opóźniony",

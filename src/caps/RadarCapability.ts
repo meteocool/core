@@ -48,9 +48,9 @@ import { fetchColumnMaximum, fetchRadarTimeseries, fetchSnowOverlay } from "../a
 import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
 import {
-  DEFAULT_PRODUCT, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, oldestScan, stepFrame, timeseriesProducts,
+  DEFAULT_PRODUCT, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, scanRange, stepFrame, timeseriesProducts,
 } from "../lib/observedProduct";
-import type { AlternativeProduct, NewestScans, ObservedProduct } from "../lib/observedProduct";
+import type { AlternativeProduct, NewestScans, ObservedProduct, ScanRange } from "../lib/observedProduct";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
 import { timedFetch } from "../lib/timedFetch";
@@ -292,7 +292,7 @@ export default class RadarCapability extends Capability {
       map, network, () => {
         this.notify("networks", this.liveNetworkFrames());
         // A country's new frame changes how old the products around it are.
-        radarProducts.update((products) => ({ ...products, oldest: this.oldestScans(products.scans) }));
+        radarProducts.update((products) => ({ ...products, ranges: this.scanRanges(products.scans) }));
       },
     ));
     // Not an observer's business: the 3D map drapes HX and the networks
@@ -738,8 +738,8 @@ export default class RadarCapability extends Capability {
     };
   }
 
-  /** Each product's stalest country's scan, for the picker (`oldestScan`). */
-  private oldestScans(scans: NewestScans): NewestScans {
+  /** The scans each product's picture is made of, for the picker (`scanRange`). */
+  private scanRanges(scans: NewestScans): Record<ObservedProduct, ScanRange | null> {
     const networks = Object.values(this.liveNetworkFrames())
       .map((frame) => frame?.upstream_time)
       .filter((scan): scan is number => typeof scan === "number");
@@ -747,10 +747,10 @@ export default class RadarCapability extends Capability {
     // picker ages the option before it is picked.
     const around = fallsBehind("colmax", scans) ? null : scans.colmax;
     return {
-      hx: oldestScan("hx", scans.hx, networks, null),
-      merged: oldestScan("merged", scans.merged, networks, null),
-      colmax: oldestScan("colmax", scans.colmax, networks, null),
-      dmax: oldestScan("dmax", scans.dmax, networks, around),
+      hx: scanRange("hx", scans.hx, networks, null),
+      merged: scanRange("merged", scans.merged, networks, null),
+      colmax: scanRange("colmax", scans.colmax, networks, null),
+      dmax: scanRange("dmax", scans.dmax, networks, around),
     };
   }
 
@@ -768,7 +768,7 @@ export default class RadarCapability extends Capability {
       }
     }
     this.drawn = drawnProduct(this.chosen, scans);
-    radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans, oldest: this.oldestScans(scans) });
+    radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans, ranges: this.scanRanges(scans) });
     const shown = get(capTimeIndicator);
     const url = this.dwdFrame(shown)?.url;
     if (this.source && url) {

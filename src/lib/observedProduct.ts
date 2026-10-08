@@ -126,25 +126,31 @@ export function ageMinutes(scan: number | null, nowS: number): number | null {
   return Math.max(0, Math.floor((nowS - scan) / 60));
 }
 
+/** The freshest and the stalest scan in what a product draws, unix seconds. */
+export type ScanRange = readonly [freshest: number, stalest: number];
+
 /**
- * The stalest scan in what a product draws, given its own newest, the newest
- * of each network's composite, and the scan of the `colmax` frame drawn
- * around DMAX (null where the networks' are drawn there instead).
+ * The scans a product's picture is made of, freshest to stalest, given its
+ * own newest, the newest of each network's composite, and the scan of the
+ * `colmax` frame drawn around DMAX (null where the networks' are drawn there
+ * instead). Null where the product has nothing fresh of its own.
  *
  * HX and DMAX cover Germany only, and the map draws every other country
- * beside them on its own clock: the picture is as old as its stalest part,
- * not as DWD's. The merged composite and the column maximum of every network
- * are one frame each, and as old as their own stamp.
+ * beside them on its own clock: the picture runs from its freshest part to
+ * its stalest, either of which may be a neighbour's -- Czechia's composite is
+ * often out before HX. The merged composite and the column maximum of every
+ * network are one frame each, stamped with their own newest scan.
  */
-export function oldestScan(
+export function scanRange(
   product: ObservedProduct,
-  newest: number | null,
+  own: number | null,
   networks: readonly number[],
   around: number | null,
-): number | null {
-  if (newest === null || product === "merged" || product === "colmax") return newest;
-  if (product === "dmax" && around !== null) return Math.min(newest, around);
-  return Math.min(newest, ...networks);
+): ScanRange | null {
+  if (own === null) return null;
+  if (product === "merged" || product === "colmax") return [own, own];
+  const parts = product === "dmax" && around !== null ? [own, around] : [own, ...networks];
+  return [Math.max(...parts), Math.min(...parts)];
 }
 
 /** The products whose past the timeseries is asked for with: the choice's own, and for DMAX what is drawn around it. */
@@ -183,9 +189,8 @@ export function givesUpChoice(chosen: ObservedProduct, scans: NewestScans, answe
   return (chosen === "merged" || chosen === "colmax") && answered && scans[chosen] === null;
 }
 
-/** From the freshest part to the stalest, in whole minutes; one number where they agree. */
-export function ageSpan(newest: number | null, oldest: number | null, nowS: number): readonly [number, number] | null {
-  const from = ageMinutes(newest, nowS);
-  if (from === null) return null;
-  return [from, Math.max(from, ageMinutes(oldest ?? newest, nowS) ?? from)];
+/** How long ago a product's freshest and stalest scans were, in whole minutes; null where it has none. */
+export function ageSpan(range: ScanRange | null, nowS: number): readonly [number, number] | null {
+  if (range === null) return null;
+  return [ageMinutes(range[0], nowS)!, ageMinutes(range[1], nowS)!];
 }
