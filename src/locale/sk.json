@@ -484,7 +484,7 @@
       "age": "pred {minutes} min",
       "age_span": "pred {from}–{to} min",
       "age_heading": "Najnovší sken",
-      "age_hint": "Ako dávno bol urobený najnovší sken; rastie, kým nepríde ďalší. Rozpätie znamená, že krajiny na mape sa líšia, od najčerstvejšej po najstaršiu: každá sieť beží vo vlastnom rytme. Maximá stĺpca čakajú na celý objemový sken, a preto začínajú vyššie.",
+      "age_hint": "Ako dávno bol urobený najnovší sken; rastie, kým nepríde ďalší. Rozpätie znamená, že krajiny na mape sa líšia, od najčerstvejšej po najstaršiu: každá sieť beží vo vlastnom rytme. Kompozit EÚ je jedna mapa, datovaná podľa najnovšieho radaru v nej. Maximá stĺpca čakajú na celý objemový sken, a preto začínajú vyššie.",
       "unavailable": "nedostupné",
       "gave_up": "{product} nie je dostupný, mapa preto zobrazuje {fallback}.",
       "fell_back_short": "oneskorené",

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, ageMinutes, ageSpan, aroundFrame, drawnProduct, givesUpChoice, fallsBehind, oldestScan, parseObservedProduct,
+  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, ageMinutes, ageSpan, aroundFrame, drawnProduct, givesUpChoice, fallsBehind, scanRange, parseObservedProduct,
   stepFrame, timeseriesProducts,
 } from "../../src/lib/observedProduct.ts";
 import type { NewestScans } from "../../src/lib/observedProduct.ts";
@@ -97,29 +97,30 @@ test("an age is whole minutes, never negative", () => {
   assert.equal(ageMinutes(null, T), null);
 });
 
-test("HX and DMAX are as old as the stalest country around them", () => {
-  assert.equal(oldestScan("hx", 1_000, [940, 700], null), 700);
-  assert.equal(oldestScan("dmax", 1_000, [1_060], null), 1_000);
-  assert.equal(oldestScan("hx", null, [700], null), null);
+test("HX and DMAX run from their freshest country to their stalest", () => {
+  assert.deepEqual(scanRange("hx", 1_000, [940, 700], null), [1_000, 700]);
+  // A neighbour out before HX is the fresh end.
+  assert.deepEqual(scanRange("hx", 1_000, [1_060, 700], null), [1_060, 700]);
+  assert.deepEqual(scanRange("dmax", 1_000, [1_060], null), [1_060, 1_000]);
+  assert.equal(scanRange("hx", null, [700], null), null);
 });
 
-test("DMAX with the column maximum around it is as old as the older of the two, not the networks", () => {
-  assert.equal(oldestScan("dmax", 1_000, [400], 700), 700);
-  assert.equal(oldestScan("dmax", 1_000, [400], 1_100), 1_000);
+test("DMAX with the column maximum around it spans the two, not the networks", () => {
+  assert.deepEqual(scanRange("dmax", 1_000, [400], 700), [1_000, 700]);
+  assert.deepEqual(scanRange("dmax", 1_000, [400], 1_100), [1_100, 1_000]);
   // HX keeps its networks whatever is passed for DMAX.
-  assert.equal(oldestScan("hx", 1_000, [400], 700), 400);
+  assert.deepEqual(scanRange("hx", 1_000, [400], 700), [1_000, 400]);
 });
 
-test("the merged products are one frame, as old as their own stamp", () => {
-  assert.equal(oldestScan("merged", 1_000, [700], null), 1_000);
-  assert.equal(oldestScan("colmax", 1_000, [700], 600), 1_000);
+test("the merged products are one frame, stamped with their own newest scan", () => {
+  assert.deepEqual(scanRange("merged", 1_000, [1_200, 700], null), [1_000, 1_000]);
+  assert.deepEqual(scanRange("colmax", 1_000, [700], 600), [1_000, 1_000]);
 });
 
 test("an age span runs from the freshest part to the stalest", () => {
-  assert.deepEqual(ageSpan(1_000, 700, 1_200), [3, 8]);
-  assert.deepEqual(ageSpan(1_000, 1_000, 1_200), [3, 3]);
-  assert.deepEqual(ageSpan(1_000, null, 1_200), [3, 3]);
-  assert.equal(ageSpan(null, 700, 1_200), null);
+  assert.deepEqual(ageSpan([1_000, 700], 1_200), [3, 8]);
+  assert.deepEqual(ageSpan([1_000, 1_000], 1_200), [3, 3]);
+  assert.equal(ageSpan(null, 1_200), null);
 });
 
 test("DMAX asks for the column maximum's past too, to draw around it", () => {
