@@ -47,6 +47,7 @@ import { tileBaseUrl } from "../urls";
 import { fetchColumnMaximum, fetchRadarTimeseries, fetchSnowOverlay } from "../api";
 import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
+import { lastPublishedStep, newestObservation } from "../lib/timeline";
 import {
   DEFAULT_PRODUCT, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, scanRange, stepFrame, timeseriesProducts,
 } from "../lib/observedProduct";
@@ -548,7 +549,8 @@ export default class RadarCapability extends Capability {
     const urls: string[] = [];
     for (const step of ahead) {
       const frame = this.dwdFrame(step);
-      if (!frame) break;
+      // A missed scan: nothing to fetch, but the frames after it still play.
+      if (!frame) continue;
       const { tiles: index } = frame;
       const template = templateOf(frame.url);
       tileGrid.forEachTileCoord(extent, z, ([tz, tx, ty]) => {
@@ -1044,22 +1046,11 @@ export default class RadarCapability extends Capability {
    * looks the result up in the grid (resetToLatest, processRadar's first
    * layer, the scrubber's initial value) needs it to be a real step.
    *
-   * Preference order: the newest observation; failing that the newest step at
-   * or before the server's clock that has a frame; failing that the clock
-   * itself, which is all there is left when the grid is empty.
+   * Preference order, and the missed scans it skips: `newestObservation` in
+   * lib/timeline.ts.
    */
   getMostRecentObservation(): number {
-    let newestObservation = 0;
-    let newestBeforeNow = 0;
-    for (const [key, frame] of Object.entries(this.clientGrid ?? {})) {
-      // No url means the step is not published yet, and the rest of the grid
-      // behind it is not either: same prefix rule as getLastPlayableStep().
-      if (!frame || !frame.url) break;
-      const step = parseInt(key, 10);
-      if (frame.source === "observation") newestObservation = step;
-      if (step <= this.serverTime) newestBeforeNow = step;
-    }
-    return newestObservation || newestBeforeNow || this.serverTime;
+    return newestObservation(this.clientGrid, this.serverTime);
   }
 
   /**
@@ -1071,16 +1062,11 @@ export default class RadarCapability extends Capability {
    * no url to hand the layer and leaves the previous tile on the map, so the
    * clock advances while the radar does not, which looks like a freeze.
    *
-   * Stops at the first hole instead of skipping it, like
-   * getMostRecentObservation(): the published steps are a prefix of the grid.
+   * A missed scan before it is played through on the frame before it: see
+   * `lastPublishedStep` in lib/timeline.ts.
    */
   getLastPlayableStep(): number {
-    let last = 0;
-    for (const [step, frame] of Object.entries(this.clientGrid ?? {})) {
-      if (!frame || !frame.url) break;
-      last = parseInt(step, 10);
-    }
-    return last || this.gridconfig.end;
+    return lastPublishedStep(this.clientGrid, this.gridconfig.end);
   }
 
   processRadar(obj) {

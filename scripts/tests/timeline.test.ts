@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  axisTicks, barCeiling, forecastGapFrom, glideStep, hasEcho, indexOf, lastPlayableIndex, restingStep,
-  rubberBand, timelineSteps,
+  axisTicks, barCeiling, forecastGapFrom, glideStep, hasEcho, indexOf, lastPlayableIndex, lastPublishedStep,
+  newestObservation, restingStep, rubberBand, timelineSteps,
 } from "../../src/lib/timeline.ts";
 import type { GridConfig } from "../../src/caps/RadarCapability.ts";
 
@@ -128,4 +128,42 @@ test("a slow glide is caught crossing now; a fast one passes through", () => {
   // Not crossing it: nothing to catch.
   const away = glideStep({ pos: 30, velocity: 0.005 }, 16, 47, 24);
   assert.ok(away.pos > 30 && away.velocity > 0);
+});
+
+/** Observations to NOW, a nowcast published to `published`, unpublished to +2h, `holes` missed. */
+function published(holes: number[], publishedTo = NOW + 6 * STEP): GridConfig["grid"] {
+  const out: GridConfig["grid"] = {};
+  for (let t = NOW - 6 * STEP; t <= NOW + 24 * STEP; t += STEP) {
+    const missing = holes.includes(t) || t > publishedTo;
+    out[t] = {
+      dbz: 0,
+      url: missing ? null : "x",
+      tile_id: missing ? "" : "x",
+      source: t <= NOW ? "observation" : "nowcast_phys",
+    };
+  }
+  return out;
+}
+
+test("a missed scan does not pin now to the frame before it", () => {
+  const grid = published([NOW - 3 * STEP]);
+  assert.equal(newestObservation(grid, NOW), NOW);
+  assert.equal(lastPublishedStep(grid, 0), NOW + 6 * STEP);
+});
+
+test("the unpublished nowcast tail still ends what can be played", () => {
+  assert.equal(lastPublishedStep(published([], NOW + 2 * STEP), 0), NOW + 2 * STEP);
+  assert.equal(lastPublishedStep(published([NOW + 2 * STEP], NOW + 2 * STEP), 0), NOW + STEP);
+});
+
+test("with no observation, now is the newest frame at or before the clock, then the clock", () => {
+  const forecastOnly: GridConfig["grid"] = {
+    [NOW - STEP]: { dbz: 0, url: "x", tile_id: "x", source: "nowcast_phys" },
+    [NOW]: { dbz: 0, url: null, tile_id: "", source: "nowcast_phys" },
+    [NOW + STEP]: { dbz: 0, url: "x", tile_id: "x", source: "nowcast_phys" },
+  };
+  assert.equal(newestObservation(forecastOnly, NOW), NOW - STEP);
+  assert.equal(newestObservation({}, NOW), NOW);
+  assert.equal(newestObservation(null, NOW), NOW);
+  assert.equal(lastPublishedStep(null, 42), 42);
 });
