@@ -35,6 +35,17 @@
         "--strictPort"
       ],
       "port": 8097
+    },
+    {
+      "name": "meteocool-staging-8098",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "8098",
+        "--strictPort"
+      ],
+      "port": 8098
     }
   ]
 }
