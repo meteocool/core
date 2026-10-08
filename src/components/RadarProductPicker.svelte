@@ -6,7 +6,8 @@
  * Two faces of one control. In the scale line it is the caption the legend
  * always had -- "Radarkomposit (DWD 1km)", until this -- now the chosen
  * product and its age; on a phone, where that caption has no room, a pill
- * with a radar dish in its place. Where there is no scale line at all, the
+ * with a radar dish, the product's short name and its age in its place. The
+ * age is the radar's "last updated": there is no other. Where there is no scale line at all, the
  * player below the desktop's width and the apps', it is the pill on its own.
  * Either opens the same menu above the tray.
  *
@@ -139,6 +140,7 @@ function portal(node: HTMLElement) {
   {#if face === "pill"}
     <Icon icon={faSatelliteDish} />
     <span>{$_(`chrome.radar_product.${chosen}_short`)}</span>
+    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, scans, oldest, nowS)}</span>
   {:else}
     <span class="name">{$_(`chrome.radar_product.${chosen}`)}<Icon icon={faChevronUp} class="chevron" /></span>
     <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, scans, oldest, nowS)}</span>
@@ -267,7 +269,12 @@ function portal(node: HTMLElement) {
   .pill:active { transform: scale(var(--mc-press)); }
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .pill :global(svg) { width: 12px; height: 12px; }
-  .pill.fellBack { color: var(--mc-orange-ink); }
+  .pill .age {
+    color: var(--mc-text-2);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill.fellBack .age { color: var(--mc-orange-ink); }
 
   .menu {
     position: fixed;

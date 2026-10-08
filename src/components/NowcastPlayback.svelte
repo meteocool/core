@@ -23,7 +23,6 @@ import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import type RadarCapability from "../caps/RadarCapability";
 import type { GridConfig } from "../caps/RadarCapability";
 
-import LastUpdated from "./LastUpdated.svelte";
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import RadarProductPicker from "./RadarProductPicker.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
@@ -754,12 +753,6 @@ onDestroy(() => {
     min-width: 0;
   }
   .spacer { flex: 1 1 auto; min-width: 0; }
-  .status {
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-  }
   .legend { display: none; min-width: 0; }
   .product-pill {
     flex: 0 0 auto;
@@ -1098,9 +1091,6 @@ onDestroy(() => {
             <RadarScaleLine />
           </div>
         {/if}
-        <div class="status">
-          <LastUpdated />
-        </div>
       </div>
     </div>
   </div>
