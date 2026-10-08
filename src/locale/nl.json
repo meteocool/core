@@ -492,7 +492,9 @@
     },
     "scales": {
       "precipitation_types": "Neerslag<br />typen",
-      "colormap": "Kleurenschaal: {name} ({min} - {max} dBZ)",
+      "colormap": "Kleurenschaal: {name} ({min} – {max} dBZ)",
+      "show_dbz": "dBZ-waarden tonen",
+      "show_pictograms": "Pictogrammen tonen",
       "aerosol_low": "Lage aerosoldiepte",
       "aerosol_high": "Hoge aerosoldiepte",
       "minutes": "{count, plural, one {Minuut} other {Minuten}}"

@@ -492,7 +492,9 @@
     },
     "scales": {
       "precipitation_types": "Rodzaje<br />opadów",
-      "colormap": "Paleta kolorów: {name} ({min} - {max} dBZ)",
+      "colormap": "Paleta kolorów: {name} ({min} – {max} dBZ)",
+      "show_dbz": "Pokaż wartości dBZ",
+      "show_pictograms": "Pokaż piktogramy",
       "aerosol_low": "Niski poziom aerozolu",
       "aerosol_high": "Wysoki poziom aerozolu",
       "minutes": "{count, plural, one {Minuta} few {Minuty} many {Minut} other {Minut}}"
