@@ -475,7 +475,7 @@
       "hx_hint": "Eines je Land, jeweils an der Grenze abgeschnitten",
       "hx_grid": "Raster: 250 × 250 m (Deutschland), ~180 × 280 m (sonst)",
       "merged": "EU-Komposit",
-      "merged_short": "EU",
+      "merged_short": "Scan (EU)",
       "merged_option": "EU-Komposit",
       "merged_hint": "Alle Ländernetze zu einer Karte vereint; nützlich in Grenzgebieten, wo die nationalen Komposite an der Grenze enden",
       "merged_grid": "Raster: ~180 × 280 m",
