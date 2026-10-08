@@ -8,7 +8,7 @@
  * carrying the reflectivity at the point being asked about, or nothing when
  * no point has been shared.
  */
-import type { GridConfig } from "../caps/RadarCapability";
+import type { GridConfig, GridStep } from "../caps/RadarCapability";
 
 /** One bar of the strip, in the order the scrubber plays them. */
 export interface TimelineStep {
@@ -48,6 +48,43 @@ export function timelineSteps(config: GridConfig, lastPlayable: number): Timelin
         playable: t <= lastPlayable,
       };
     });
+}
+
+/**
+ * The newest step the map can show as "now".
+ *
+ * The newest observation; failing that the newest published step at or
+ * before the server's clock; failing that the clock itself, all there is
+ * when nothing is published. A step with no url is skipped, not an end:
+ * the backend can miss a scan (DWD replaced its LATEST file before it was
+ * fetched), and stopping at that hole pinned "now" to the frame before it
+ * until the hole left the two-hour window.
+ */
+export function newestObservation(grid: Record<number, GridStep> | null, serverTime: number): number {
+  let observed = 0;
+  let beforeNow = 0;
+  for (const [key, frame] of Object.entries(grid ?? {})) {
+    if (!frame?.url) continue;
+    const step = parseInt(key, 10);
+    if (frame.source === "observation") observed = Math.max(observed, step);
+    if (step <= serverTime) beforeNow = Math.max(beforeNow, step);
+  }
+  return observed || beforeNow || serverTime;
+}
+
+/**
+ * The newest step that has a frame behind it, or `fallback` when none has.
+ *
+ * The grid runs to +2h but the nowcast's tail is published behind it, so
+ * the steps after this one are not here yet. A hole before it is a missed
+ * scan, played through on the frame before it.
+ */
+export function lastPublishedStep(grid: Record<number, GridStep> | null, fallback: number): number {
+  let last = 0;
+  for (const [key, frame] of Object.entries(grid ?? {})) {
+    if (frame?.url) last = Math.max(last, parseInt(key, 10));
+  }
+  return last || fallback;
 }
 
 /** The index of the last step the needle may reach. */
