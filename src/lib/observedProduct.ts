@@ -123,3 +123,25 @@ export function ageMinutes(scan: number | null, nowS: number): number | null {
   if (scan === null) return null;
   return Math.max(0, Math.floor((nowS - scan) / 60));
 }
+
+/**
+ * The stalest scan in what a product draws, given its own newest and the
+ * newest of each network's composite around it.
+ *
+ * HX and DMAX cover Germany only, and the map draws every other country from
+ * that network's own composite beside them, each on its own clock: the
+ * picture is as old as its stalest country, not as DWD's part of it. The
+ * merged composite and the column maximum of every network are one frame
+ * each, and as old as their own stamp.
+ */
+export function oldestScan(product: ObservedProduct, newest: number | null, networks: readonly number[]): number | null {
+  if (newest === null || product === "merged" || product === "colmax") return newest;
+  return Math.min(newest, ...networks);
+}
+
+/** From the freshest part to the stalest, in whole minutes; one number where they agree. */
+export function ageSpan(newest: number | null, oldest: number | null, nowS: number): readonly [number, number] | null {
+  const from = ageMinutes(newest, nowS);
+  if (from === null) return null;
+  return [from, Math.max(from, ageMinutes(oldest ?? newest, nowS) ?? from)];
+}

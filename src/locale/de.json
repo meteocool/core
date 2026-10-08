@@ -489,9 +489,10 @@
       "dmax_option": "DMAX",
       "dmax_hint": "Vom DWD, nur Deutschland, ringsum die untersten Scans der Nachbarn; einen Scan später",
       "dmax_grid": "Raster: 250 m",
-      "age": "{minutes} Min.",
-      "age_heading": "Scan-Alter",
-      "age_hint": "Minuten seit dem neuesten Scan: wie lange er bis zur Karte brauchte, plus die Zeit seither. Zählt hoch, bis der nächste Scan eintrifft; die Säulenmaxima warten auf den ganzen Volumenscan und beginnen daher höher.",
+      "age": "vor {minutes} Min.",
+      "age_span": "vor {from}–{to} Min.",
+      "age_heading": "Neuester Scan",
+      "age_hint": "Wie lange der neueste Scan her ist; zählt hoch, bis der nächste eintrifft. Eine Spanne heißt, die Länder auf der Karte sind verschieden alt, vom aktuellsten bis zum ältesten: Jedes Netz läuft im eigenen Takt. Die Säulenmaxima warten auf den ganzen Volumenscan und beginnen daher weiter zurück.",
       "unavailable": "nicht verfügbar",
       "fell_back_short": "verzögert",
       "fell_back": "{product} ist verzögert oder nicht verfügbar; bis es aufholt, wird {fallback} gezeigt."

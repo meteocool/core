@@ -481,9 +481,10 @@
       "dmax_option": "DMAX",
       "dmax_hint": "Z DWD, tylko Niemcy, otoczony najniższymi skanami sąsiadów; skan później",
       "dmax_grid": "Siatka: 250 m",
-      "age": "{minutes} min",
-      "age_heading": "Wiek skanu",
-      "age_hint": "Minuty od najnowszego skanu: ile trwała jego droga na mapę plus czas od tamtej pory. Rośnie, aż nadejdzie następny skan; maksima kolumny czekają na cały skan objętościowy, więc zaczynają od wyższej wartości.",
+      "age": "{minutes} min temu",
+      "age_span": "{from}–{to} min temu",
+      "age_heading": "Najnowszy skan",
+      "age_hint": "Ile czasu minęło od najnowszego skanu; rośnie, aż nadejdzie następny. Zakres oznacza, że kraje na mapie się różnią, od najświeższego do najstarszego: każda sieć działa we własnym rytmie. Maksima kolumny czekają na cały skan objętościowy, więc zaczynają od wyższej wartości.",
       "unavailable": "niedostępny",
       "fell_back_short": "opóźniony",
       "fell_back": "{product} jest opóźniony lub niedostępny; do czasu nadrobienia pokazywany jest {fallback}."

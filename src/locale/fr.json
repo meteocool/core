@@ -481,9 +481,10 @@
       "dmax_option": "DMAX",
       "dmax_hint": "Du DWD, Allemagne seulement, entouré des balayages les plus bas des voisins ; un balayage plus tard",
       "dmax_grid": "Grille : 250 m",
-      "age": "{minutes} min",
-      "age_heading": "Âge du balayage",
-      "age_hint": "Minutes depuis le balayage le plus récent : le temps qu'il a mis à atteindre la carte, plus le temps écoulé depuis. Le compte augmente jusqu'au balayage suivant ; les maxima de colonne attendent le balayage volumique complet et partent donc plus haut.",
+      "age": "il y a {minutes} min",
+      "age_span": "il y a {from} à {to} min",
+      "age_heading": "Dernier balayage",
+      "age_hint": "Depuis combien de temps le dernier balayage a été fait ; le compte augmente jusqu'au suivant. Un écart signifie que les pays sur la carte diffèrent, du plus frais au plus ancien : chaque réseau suit sa propre cadence. Les maxima de colonne attendent le balayage volumique complet et partent donc de plus loin.",
       "unavailable": "indisponible",
       "fell_back_short": "en retard",
       "fell_back": "{product} est en retard ou indisponible ; {fallback} est affiché jusqu'à ce qu'il rattrape."

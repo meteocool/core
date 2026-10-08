@@ -47,7 +47,7 @@ import { tileBaseUrl } from "../urls";
 import { fetchColumnMaximum, fetchRadarTimeseries, fetchSnowOverlay } from "../api";
 import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
-import { DEFAULT_PRODUCT, drawnProduct, stepFrame } from "../lib/observedProduct";
+import { DEFAULT_PRODUCT, drawnProduct, oldestScan, stepFrame } from "../lib/observedProduct";
 import type { AlternativeProduct, NewestScans, ObservedProduct } from "../lib/observedProduct";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
@@ -275,7 +275,11 @@ export default class RadarCapability extends Capability {
     // Observers hear of every network's new live frame: the 3D map drapes
     // the same one, forwarded from App.svelte like DWD's grid is.
     this.networks = NETWORKS.map((network) => new NetworkRadarLayer(
-      map, network, () => this.notify("networks", this.liveNetworkFrames()),
+      map, network, () => {
+        this.notify("networks", this.liveNetworkFrames());
+        // A country's new frame changes how old the products around it are.
+        radarProducts.update((products) => ({ ...products, oldest: this.oldestScans(products.scans) }));
+      },
     ));
     // Not an observer's business: the 3D map drapes HX and the networks
     // whatever the flat map draws.
@@ -708,6 +712,19 @@ export default class RadarCapability extends Capability {
     };
   }
 
+  /** Each product's stalest country's scan, for the picker (`oldestScan`). */
+  private oldestScans(scans: NewestScans): NewestScans {
+    const networks = Object.values(this.liveNetworkFrames())
+      .map((frame) => frame?.upstream_time)
+      .filter((scan): scan is number => typeof scan === "number");
+    return {
+      hx: oldestScan("hx", scans.hx, networks),
+      merged: oldestScan("merged", scans.merged, networks),
+      colmax: oldestScan("colmax", scans.colmax, networks),
+      dmax: oldestScan("dmax", scans.dmax, networks),
+    };
+  }
+
   /**
    * Re-decide what the map draws, after anything that can change it -- the
    * reader's choice, or a new frame of any of the three products -- say so to
@@ -716,7 +733,7 @@ export default class RadarCapability extends Capability {
   private productsChanged() {
     const scans = this.newestScans();
     this.drawn = drawnProduct(this.chosen, scans);
-    radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans });
+    radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans, oldest: this.oldestScans(scans) });
     const shown = get(capTimeIndicator);
     const url = this.dwdFrame(shown)?.url;
     if (this.source && url) {
