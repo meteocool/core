@@ -305,13 +305,14 @@ function portal(node: HTMLElement) {
   .help :global(svg) { width: 17px; height: 17px; }
   .group + .group { margin-top: 4px; }
   /* A section of the menu: what its pictures have in common, and over the
-     first, what the minutes on the right are. Inset as the options' text is. */
+     first, what the minutes on the right are. Out at the title's edge rather
+     than the options' text, so it reads as a new section. */
   .group-heading {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 8px;
-    padding: 8px 10px 2px 34px;
+    padding: 8px 10px 2px;
   }
   .group-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .group-name {

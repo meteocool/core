@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, ageMinutes, ageSpan, drawnProduct, fallsBehind, oldestScan, parseObservedProduct,
-  stepFrame,
+  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, ageMinutes, ageSpan, aroundFrame, drawnProduct, givesUpChoice, fallsBehind, oldestScan, parseObservedProduct,
+  stepFrame, timeseriesProducts,
 } from "../../src/lib/observedProduct.ts";
 import type { NewestScans } from "../../src/lib/observedProduct.ts";
 
@@ -98,14 +98,21 @@ test("an age is whole minutes, never negative", () => {
 });
 
 test("HX and DMAX are as old as the stalest country around them", () => {
-  assert.equal(oldestScan("hx", 1_000, [940, 700]), 700);
-  assert.equal(oldestScan("dmax", 1_000, [1_060]), 1_000);
-  assert.equal(oldestScan("hx", null, [700]), null);
+  assert.equal(oldestScan("hx", 1_000, [940, 700], null), 700);
+  assert.equal(oldestScan("dmax", 1_000, [1_060], null), 1_000);
+  assert.equal(oldestScan("hx", null, [700], null), null);
+});
+
+test("DMAX with the column maximum around it is as old as the older of the two, not the networks", () => {
+  assert.equal(oldestScan("dmax", 1_000, [400], 700), 700);
+  assert.equal(oldestScan("dmax", 1_000, [400], 1_100), 1_000);
+  // HX keeps its networks whatever is passed for DMAX.
+  assert.equal(oldestScan("hx", 1_000, [400], 700), 400);
 });
 
 test("the merged products are one frame, as old as their own stamp", () => {
-  assert.equal(oldestScan("merged", 1_000, [700]), 1_000);
-  assert.equal(oldestScan("colmax", 1_000, [700]), 1_000);
+  assert.equal(oldestScan("merged", 1_000, [700], null), 1_000);
+  assert.equal(oldestScan("colmax", 1_000, [700], 600), 1_000);
 });
 
 test("an age span runs from the freshest part to the stalest", () => {
@@ -113,4 +120,38 @@ test("an age span runs from the freshest part to the stalest", () => {
   assert.deepEqual(ageSpan(1_000, 1_000, 1_200), [3, 3]);
   assert.deepEqual(ageSpan(1_000, null, 1_200), [3, 3]);
   assert.equal(ageSpan(null, 700, 1_200), null);
+});
+
+test("DMAX asks for the column maximum's past too, to draw around it", () => {
+  assert.deepEqual(timeseriesProducts("hx"), []);
+  assert.deepEqual(timeseriesProducts("dmax"), ["dmax", "colmax"]);
+  assert.deepEqual(timeseriesProducts("merged"), ["merged"]);
+  assert.deepEqual(timeseriesProducts("colmax"), ["colmax"]);
+});
+
+test("the column maximum is drawn around DMAX only, and only where it has a frame", () => {
+  const fresh: NewestScans = { hx: 1_000, merged: 1_000, colmax: 700, dmax: 900 };
+  const live = { observed: true, live: true, key: 1_000 };
+  const past = { observed: true, live: false, key: 400 };
+  assert.equal(aroundFrame("dmax", live, {}, "newest", fresh), "newest");
+  assert.equal(aroundFrame("hx", live, {}, "newest", fresh), null);
+  assert.equal(aroundFrame("colmax", live, {}, "newest", fresh), null);
+  assert.equal(aroundFrame("dmax", past, { 400: "then" }, "newest", fresh), "then");
+  // A step it has no frame for has the networks around DMAX instead.
+  assert.equal(aroundFrame("dmax", past, {}, "newest", fresh), null);
+  // Too far behind on the live step, and the networks stand in there too.
+  assert.equal(aroundFrame("dmax", live, {}, "newest", { ...fresh, colmax: 1_000 - 30 * 60 }), null);
+});
+
+test("an EU product with no frame at all is given up, once its feed has answered", () => {
+  const none: NewestScans = { hx: 1_000, merged: null, colmax: null, dmax: null };
+  assert.ok(givesUpChoice("merged", none, true));
+  assert.ok(givesUpChoice("colmax", none, true));
+  // Not before the answer: every product has nothing while the page loads.
+  assert.ok(!givesUpChoice("merged", none, false));
+  // Not DMAX, and not the default.
+  assert.ok(!givesUpChoice("dmax", none, true));
+  assert.ok(!givesUpChoice("hx", none, true));
+  // Merely behind is the default standing in, not a choice given up.
+  assert.ok(!givesUpChoice("merged", { ...none, merged: 1_000 - 60 * 60 }, true));
 });
