@@ -8,9 +8,9 @@ import { showsLatestFrame } from "../../src/lib/freshness.ts";
  * The frame pair, as the cell layer's gate in App.svelte reads it.
  *
  * The gate decides whether a layer that has only a present tense is drawn, and
- * on the way down it drops the open selection -- which closes the storm detail
- * panel. So a single tick in which the pair disagrees is not a flicker that
- * nobody sees: it is a panel that closes itself under the reader. Hence these
+ * on the way down it drops the open selection, which closes the storm detail
+ * panel. So a single tick in which the pair disagrees is a panel closing
+ * itself under the reader. Hence these
  * tests watch every value the gate is handed, not just where it ends up.
  */
 

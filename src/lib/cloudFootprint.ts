@@ -12,8 +12,8 @@
  * The spin axis is the vertical through the storm, not the box's centre: the
  * cut is laid through `Cutaway.centreKm` (see `locateStorm`), and turning it
  * turns the plane about that point. Until the volume has loaded it is not
- * known, and the box's centre -- the core's peak, which the box is centred on
- * -- stands in for it.
+ * known, and the box's centre (the core's peak, which the box is centred on)
+ * stands in for it.
  */
 
 /** The width of a box from before tiles, east to west and north to south. */

@@ -63,7 +63,7 @@ let oldTimeStep = 0;
  * live edge, or null once the user has moved away from it.
  *
  * A new grid lands every few minutes. If the scrubber is sitting on what was
- * the newest observation, it should ride forward onto the new one -- that is
+ * the newest observation, it should ride forward onto the new one: that is
  * the "following live" case, and the map is showing that frame anyway. If the
  * user has dragged to an older frame, or out into the forecast, that position
  * is theirs and a refresh must leave it alone.
@@ -76,7 +76,7 @@ let playTimeout;
 /**
  * A frame the player was opened to show, rather than the live edge.
  *
- * Set from `frameRequest` -- a link naming a frame, or Back returning to one --
+ * Set from `frameRequest` (a link naming a frame, or Back returning to one)
  * and read by the parking in onShowScrollbar, which otherwise puts the
  * scrubber on the newest observation, twice, the second time 200ms later.
  * Held until that second park has run, or it would drag the scrubber back to
@@ -119,28 +119,28 @@ $: steps = gridConfig && lastPlayableStep !== undefined ? timelineSteps(gridConf
 /**
  * Whether there is anything worth plotting: a step with measurable echo at the
  * client's position. Every dbz is null until a position has been shared, so
- * this keeps the strip away when there is no location either -- it used to
- * render a full-width row of zero-height bars over the map instead.
+ * this also keeps the strip away when there is no location, instead of a
+ * full-width row of zero-height bars over the map.
  */
 $: hasPrecipitation = hasEcho(steps);
 
 /**
  * Where along the track the forecast starts, as a fraction, when there is none
- * at the point being asked about -- and null whenever there is one, or nothing
- * at all. Flat bars there would say "dry" when the truth is "no forecast".
+ * at the point being asked about; null whenever there is one, or nothing at
+ * all. Flat bars there would say "dry" when the truth is "no forecast".
  */
 $: noForecastFrom = forecastGapFrom(steps);
 
 /**
  * Whether the forecast strip is on screen.
  *
- * The strip itself -- glass dock, swipe-to-clear, Hide button, title row -- is
+ * The strip itself (glass dock, swipe-to-clear, Hide button, title row) is
  * DismissableStrip, shared with the lightning histogram. What stays here is
  * which layer's question it is answering and when it is worth asking.
  *
  * Dismissal is not permanent. It lasts as long as the thing it was about: once
  * there is nothing to plot, or the player is opened again, the strip is
- * re-armed -- otherwise flicking it away once would hide every later shower for
+ * re-armed. Otherwise flicking it away once would hide every later shower for
  * the rest of the session, with no control anywhere to bring it back.
  */
 let chartDismissed = false;
@@ -153,9 +153,9 @@ let chartDismissed = false;
  * around them; every other layer is global. Someone opening the app on holiday
  * sees an empty map and no reason for it, which reads as the app being broken
  * rather than as a coverage boundary. Answered from the layers' own extents, so
- * it cannot drift from what actually gets drawn.
+ * it cannot drift from what gets drawn.
  *
- * Only when the viewport misses the box entirely -- half a screen of coverage
+ * Only when the viewport misses the box entirely: half a screen of coverage
  * is still coverage, and a notice over it would be wrong.
  */
 function overlaps(
@@ -198,15 +198,15 @@ $: if ($bottomToolbarMode === "player") chartDismissed = false;
  * The same slot on a dry day: what the weather models say for the client's
  * own position, when the radar has nothing for it (see DryOutlook).
  *
- * Only when the rain chart has nothing to say -- which it cannot, over a dry
- * position with no tapped point -- and only for a position the radar covers:
+ * Only when the rain chart has nothing to say (which it cannot, over a dry
+ * position with no tapped point), and only for a position the radar covers:
  * outside every network "nothing on the radar" is no data, not no rain.
  * Dismissal lasts as long as the dry spell does, as the chart's lasts as long
  * as there is something to plot. It stands aside while the player is open,
  * and comes back when it closes unless it was dismissed. A failed forecast
- * fetch takes it down until the page next wakes -- the network back, the
- * page looked at again -- and at most once a minute: for the session, as it
- * was, one dropped request on a train lost the strip until a reload.
+ * fetch takes it down until the page next wakes (the network back, the page
+ * looked at again), at most once a minute. Taken down for the session, one
+ * dropped request on a train would lose the strip until a reload.
  */
 const covers = (point: [number, number] | null): boolean => point !== null
   && radarExtents4326.some(([minLon, minLat, maxLon, maxLat]) => (
@@ -237,13 +237,13 @@ $: if (!$dryAtUser) outlookDismissed = false;
 
 /* Between a tap and the grid that answers it, the strip is up with the last
    point's bars still in it. Flagged here rather than read off the capability,
-   because what matters is that the numbers on screen are about somewhere else
-   -- not that a request happens to be open. */
+   because what matters is that the numbers on screen are about somewhere
+   else, not that a request happens to be open. */
 let gridLoading = false;
 
 function dismissChart() {
   chartDismissed = true;
-  // The marker exists to feed this strip, so it goes with it -- which is also
+  // The marker exists to feed this strip, so it goes with it, which is also
   // the way back to sampling the client's own position.
   inspectLatLon.set(null);
 }
@@ -252,7 +252,7 @@ function dismissChart() {
  * The tapped point's name for the title, once it comes back.
  *
  * The token guards against a slow lookup for an abandoned point landing after
- * a fast one for the current point -- the request is aborted too, but an abort
+ * a fast one for the current point: the request is aborted too, but an abort
  * that arrives late still resolves.
  */
 let placeName: string | null = null;
@@ -283,7 +283,7 @@ function returnToCurrentPosition() {
   inspectLatLon.set(null);
 }
 
-/* Tapping the map brings a cleared strip back -- otherwise the tap sets a
+/* Tapping the map brings a cleared strip back. Otherwise the tap sets a
    marker, refetches the grid and shows nothing for it. LayerManager publishes
    the tap, because only the map can tell a tap from a pan.
 
@@ -299,7 +299,7 @@ subscriptions.push(inspectLatLon.subscribe(() => { gridLoading = true; }));
 /* Same reason as a tap: the bars on screen are about a different moment. The
    whole strip is laid out around "now", so once the clock has moved past the
    grid's own the axis under those bars is wrong and not just their age. Only
-   the rising edge -- the grid that clears radarStale also clears this. */
+   the rising edge: the grid that clears radarStale also clears this. */
 subscriptions.push(radarStale.subscribe((value) => { if (value) gridLoading = true; }));
 
 function updateSliderToLatest(_config) {
@@ -347,7 +347,7 @@ const fsm = new StateMachine({
       bottomToolbarMode.set("player");
       playPauseButton = faPlay;
       // Opening parks the scrubber on the live edge, so it tracks refreshes
-      // until the user drags it somewhere else -- unless it was opened to show
+      // until the user drags it somewhere else, unless it was opened to show
       // one frame in particular, which is then where it parks.
       const park = () => {
         if (seekTo !== null) {
@@ -411,7 +411,7 @@ const fsm = new StateMachine({
         sliderChangedHandler(shown);
         // The next frames' tiles, asked for before the player reaches them,
         // so each frame is whole when it is shown. The setting is the
-        // "preload forecast" switch, which used to be wired to nothing.
+        // "preload forecast" switch.
         if ($precacheForecast) cap.prefetchFrames(shown, PREFETCH_FRAMES);
         if (shown !== gridConfig.now || loop) {
           playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
@@ -422,11 +422,11 @@ const fsm = new StateMachine({
         }
       };
       // From a timer rather than from here. A first tick that lands on the
-      // live frame pauses -- play pressed on the last step, or on the one
-      // before now, without the loop -- and a pause inside this transition
-      // threw, leaving the machine mid-transition for good: from then on
-      // pause, play and close all threw, and the player stayed open until
-      // the page was reloaded.
+      // live frame pauses (play pressed on the last step, or on the one
+      // before now, without the loop), and a pause inside this transition
+      // throws, leaving the machine mid-transition for good: from then on
+      // pause, play and close all throw, and the player stays open until
+      // the page is reloaded.
       playTimeout = window.setTimeout(playTick, 0);
       playPauseButton = faPause;
     },
@@ -441,8 +441,8 @@ const fsm = new StateMachine({
     onLeavePlaying: () => playbackRunning.set(false),
     onHideScrollbar: (transition) => {
       // Set unconditionally, before the early return. A hide() that arrives
-      // while the machine is already in followLatest -- the idle-refocus
-      // handler below, or the capability's loseFocus event -- would otherwise
+      // while the machine is already in followLatest (the idle-refocus
+      // handler below, or the capability's loseFocus event) would otherwise
       // leave bottomToolbarMode on "player" with nothing left that can move it
       // back: the tray stays open and its close button does nothing, because
       // every later hide() takes this same early return.
@@ -467,7 +467,7 @@ function show() {
  * Waits for a grid, because only the grid can say whether the frame exists: a
  * link names an absolute time, and one opened hours later names a frame the
  * window has moved past. That, the live frame itself, and anything with no
- * tiles behind it all leave the player where it is -- following live -- which
+ * tiles behind it all leave the player where it is (following live), which
  * is the honest answer to "show me a moment we no longer have".
  */
 function takeFrameRequest() {
@@ -600,7 +600,7 @@ function sliderChangedHandler(value, userInteraction = false) {
     fsm.pressPause();
   }
 
-  // Both callers land here -- a drag and a playback tick -- so this is the one
+  // Both callers land here (a drag and a playback tick), so this is the one
   // place that has to re-decide whether the scrubber is still on the live
   // edge. Dragging back onto the newest observation resumes tracking.
   liveEdge = value === cap.getMostRecentObservation() ? value : null;
@@ -844,7 +844,7 @@ onDestroy(() => {
   .chip :global(svg) { width: 14px; height: 14px; }
 
   /* The two collapsed-state controls: standalone discs at the bottom corners,
-     flanking the tray rather than sitting on it -- the same kind of control as
+     flanking the tray rather than sitting on it: the same kind of control as
      the zoom capsule and the locate disc at the top right, and disjunct from
      the bar that carries the legend. BottomToolbar insets .lastUpdatedBottom by
      exactly this much so the two never overlap.

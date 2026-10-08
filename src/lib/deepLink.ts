@@ -1,23 +1,22 @@
 /**
  * What a link to the map says.
  *
- * A link carries what the sender was looking at -- which map, where, which
- * storm, how it was cut open -- and nothing about how they like to look at
+ * A link carries what the sender was looking at (which map, where, which
+ * storm, how it was cut open) and nothing about how they like to look at
  * things. The basemap, the colour scheme, dark mode and units belong to
  * whoever opens the link, so they are never written here and a receiver keeps
  * their own. The line runs between content and presentation: two people
  * looking at the same link see the same weather, each in their own colours.
  *
  * Pure, and separate from the wiring in `urlState.ts`, because the rules are
- * all string handling and small invariants -- what a malformed value falls back
- * to, which parameters only mean something together -- and those are what a
+ * all string handling and small invariants (what a malformed value falls back
+ * to, which parameters only mean something together), and those are what a
  * test should hold down.
  *
  * Every parameter is optional and every value is validated on the way in: a
  * link is text anyone can edit, and a value that does not parse is dropped
  * rather than half-applied. Parameters this module does not own (`logo`,
- * `toolbar` and `layerswitcher`, which embeds set) are left exactly where they
- * are.
+ * `toolbar` and `layerswitcher`, which embeds set) are left where they are.
  */
 import { normaliseCut } from "./cutAngle";
 
@@ -44,7 +43,7 @@ export interface LinkState {
   cell?: string;
   /**
    * Whether the cell's detail panel is open, as opposed to only its forecast
-   * being drawn -- the two steps a phone separates; see lib/cellSelection.ts.
+   * being drawn: the two steps a phone separates; see lib/cellSelection.ts.
    * Only ever false in a link: open is what a link to a cell means otherwise.
    */
   details?: boolean;
@@ -124,8 +123,8 @@ const CELL = /^[A-Za-z0-9_-]{1,64}$/;
  * A volume as a link names it: the scan and the core, `20260924T194500/R39853139`.
  *
  * The object's path with the constant parts taken off, which is shorter and
- * reads as an identifier -- and, because it is rebuilt from two validated
- * pieces, a link can only ever point the client at a volume, never at some
+ * reads as an identifier. Because it is rebuilt from two validated pieces,
+ * a link can only ever point the client at a volume, never at some
  * other object on the tile host. The layout is the worker's, in meteocool/ng
  * services/worker-analysis/src/clouds.py `_key`; a core's code is its grid
  * position, which is only unique within one scan, hence the scan in front.
@@ -157,7 +156,7 @@ export function cloudPath(link: string): string | null {
  *
  * Absolute rather than an offset from now, because a link is opened later than
  * it was sent, and "the 30-minute forecast" by then is a different frame. A
- * frame the receiver's grid no longer holds is simply not restored.
+ * frame the receiver's grid no longer holds is not restored.
  */
 const FRAME = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/;
 
@@ -203,8 +202,8 @@ function parseFlag(text: string | null): boolean | undefined {
  * Also settles the combinations a link cannot mean, so a hand-edited one is
  * read the way the app could have written it:
  *
- * - a cell and a cloud are one selection, and the cell wins -- it has a track
- *   and a history, the cloud only a volume;
+ * - a cell and a cloud are one selection, and the cell wins, since it has a
+ *   track and a history and the cloud only a volume;
  * - a cell is only drawn on the newest frame (see the gate in App.svelte), so
  *   a frame off the live edge beside one is dropped rather than the cell;
  * - the panel and the slice both belong to a selection, and mean nothing
@@ -315,7 +314,7 @@ function encodeValue(value: string): string {
  * caller can tell "nothing changed" by comparing two of them.
  *
  * `keep` names owned parameters to carry over from `search` unchanged rather
- * than rewrite from `state` -- for a value the page does not know yet, such as
+ * than rewrite from `state`: for a value the page does not know yet, such as
  * a view before the first map has rendered.
  */
 export function linkSearch(search: string, state: LinkState, keep: readonly string[] = []): string {
@@ -337,9 +336,9 @@ export function linkSearch(search: string, state: LinkState, keep: readonly stri
  * be able to undo.
  *
  * Switching map, or opening, changing or closing a storm, is navigation: it is
- * what a reader would expect Back to take them out of. Everything else --
- * panning, zooming, tilting, turning the slice, scrubbing, toggling an overlay
- * -- is adjusting the view they are in, and a history entry per pan would make
+ * what a reader would expect Back to take them out of. Everything else
+ * (panning, zooming, tilting, turning the slice, scrubbing, toggling an
+ * overlay) is adjusting the view they are in, and a history entry per pan would make
  * Back unusable for leaving the page at all.
  *
  * A link that names no layer is not a different layer: it is an older link, or

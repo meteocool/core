@@ -13,9 +13,9 @@ import { capabilityEnabled } from "../caps/enabled";
 /**
  * The web's settings: the ones the apps push in through
  * `window.settings.injectSettings()` from their own settings screens, which a
- * browser has no screen for. Same keys, same values, same option lists -- see
+ * browser has no screen for. Same keys, same values, same option lists (see
  * ios/meteocool/lib/WebSettings.swift and its Base Map and Radar Color Map
- * pickers -- so the three platforms describe one set of preferences.
+ * pickers), so the three platforms describe one set of preferences.
  *
  * Everything goes through `window.settings.set()`, which persists it and fires
  * the setting's callback, exactly as an injection from an app does.
@@ -23,9 +23,9 @@ import { capabilityEnabled } from "../caps/enabled";
  * Three differences from the apps. The basemap can follow the system scheme,
  * which is the default and what "system" stores. The Mode picker cannot switch
  * the backend in place, so it opens the deployment that is the chosen mode,
- * where the apps reload against it. And the 3D map's
- * KONRAD3D cells can be turned on, which the apps have no screen for: there
- * they stay off, as they are by default.
+ * where the apps reload against it. And the 3D map's KONRAD3D cells can be
+ * turned on, which the apps have no screen for: there they stay off, as they
+ * are by default.
  */
 
 const BASE_LAYERS = ["system", "light", "dark", "osm", "cyclosm"];
@@ -98,9 +98,9 @@ function setSolidGlass(value: boolean) {
   solidGlass = value;
 }
 
-/* The radar map's overlays, named as its layer-switcher tile is. They were
-   toggles under the switcher's tiles; a layer kept on or off is a preference.
-   Each store persists itself (App.svelte). */
+/* The radar map's overlays, named as its layer-switcher tile is. A layer
+   kept on or off is a preference, so they are settings. Each store persists
+   itself (App.svelte). */
 const offersRadar = capabilityEnabled("radar");
 $: overlays = [
   { store: lightningLayerVisible, on: $lightningLayerVisible, label: $_("chrome.playback.lightning") },
@@ -264,7 +264,7 @@ function setFullResolution3d(value: boolean) {
 </style>
 
 <GlassPanel title={$_("settings.title")} on:close>
-  <!-- First, where the logo used to lead; Logo swaps this sheet for About's. -->
+  <!-- About comes first; Logo swaps this sheet for About's. -->
   <div class="group">
     <button type="button" class="row" on:click={() => dispatch("about")}>
       <span class="label">{$_("settings.about")}</span>

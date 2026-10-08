@@ -29,15 +29,15 @@ $: frameTime = $capTimeIndicator
  *
  * Connectivity outranks freshness: "Latest" over a dead connection is a lie,
  * and two stacked bubbles saying different things about the same data read
- * worse than one saying the more important of them. The dot carries the state
- * -- blinking red for live, orange for a slow connection, solid red offline,
- * a pulsing accent while catching up.
+ * worse than one saying the more important of them. The dot carries the
+ * state: blinking red for live, orange for a slow connection, solid red
+ * offline, a pulsing accent while catching up.
  *
  * The frame clock sits here too, and outranks "Latest": with the player open,
  * which frame you are looking at is the thing worth a pill, and "Latest" stops
- * being true the moment the scrubber moves. It used to have a capsule of its
- * own down in the tray, which cost that row a column to say something the top
- * line could say for free.
+ * being true the moment the scrubber moves. A capsule of its own down in the
+ * tray would cost that row a column to say something the top line can say
+ * for free.
  */
 $: state = (() => {
   // Offline, catching up and degraded are one state machine's, and only one of
@@ -51,15 +51,14 @@ $: state = (() => {
   // Knowing the frames are out of date beats showing their clock or calling
   // them the latest, and beats a connection that only measures as slow: this
   // one is not an estimate either, and it is about the picture on the map.
-  // Normally it lasts as long as one refetch, which is the point -- coming back
-  // to a phone should say "catching up" rather than quietly lie for a second.
+  // Normally it lasts as long as one refetch: coming back to a phone should
+  // say "catching up" instead of lying for a second.
   if ($radarStale) return "stale";
   if (shouldShowNetworkBanner($networkStatus)) return "slow";
   if ($bottomToolbarMode === "player" && frameTime) return "time";
-  // A replay is as current as live data -- every timestamp is rewritten to
-  // now -- but it is not the weather, so it takes the live pill's place
-  // rather than a warning's: the connectivity states above still outrank it.
-  // It used to be a toast that sat over the map until dismissed.
+  // A replay is as current as live data (every timestamp is rewritten to
+  // now) but it is not the weather, so it takes the live pill's place and
+  // not a warning's: the connectivity states above still outrank it.
   if ($live && $replay) return "demo";
   return $live ? "live" : "none";
 })();
@@ -113,9 +112,9 @@ function blink(elem) {
 
 /**
  * The live pill dims itself a few seconds after it appears, and again whenever
- * the tab is refocused -- coming back is the moment the freshness claim is
- * worth reading again. Opacity through a class rather than an inline style
- * stepped 20 times by a timer, which is what this used to be.
+ * the tab is refocused: coming back is the moment the freshness claim is
+ * worth reading again. The opacity goes through a class and a CSS
+ * transition.
  */
 let dim = false;
 let dimTimer: ReturnType<typeof setTimeout> | null = null;
@@ -154,8 +153,8 @@ onDestroy(() => {
 
   /* The line's full 44px as the hit area, around a 28px pill: the pill is a
      status line rather than a disc, and a 44px capsule saying "Latest" is
-     heavier than its news -- but it is centred on the line the discs stand
-     on, not hung from its top edge, and a thumb gets the line's full height.
+     heavier than its news. It is centred on the line the discs stand on, not
+     hung from its top edge, and a thumb gets the line's full height.
      The button is the target; the pill inside it is the control everyone
      sees, in the same glass as the discs (.glass/.glass-pill), with their
      hover, press and focus. */
@@ -179,8 +178,8 @@ onDestroy(() => {
     outline: none;
   }
 
-  /* Neutral glass capsule with a coloured dot: the red-50 tag fill this was
-     built on stayed pink in dark mode. */
+  /* Neutral glass capsule with a coloured dot: a red-50 tag fill stays pink
+     in dark mode. */
   .pill {
     box-sizing: border-box;
     display: inline-flex;
@@ -217,7 +216,7 @@ onDestroy(() => {
     transition: color 300ms ease;   /* colour only: no layout, no backdrop re-read */
   }
 
-  /* toggled every second by use:blink -- name and !important must survive */
+  /* toggled every second by use:blink; name and !important must survive */
   .circle-container-light-red {
     color: var(--mc-red-dim) !important;
   }

@@ -14,7 +14,7 @@ import { timedFetch } from "../lib/timedFetch";
  * erased (`networkHoles.ts`) and each network's layer is clipped to the
  * ground `extents.ts` gives it (`network.ts`), so exactly one radar colours
  * any pixel. MapLibre has no canvas clip and no loader hook on a raster
- * source; what it has is `addProtocol`, which lets a URL scheme answer a
+ * source, but it has `addProtocol`, which lets a URL scheme answer a
  * tile request with an image of its own making. So the 3D map's radar
  * sources point at `masked://`, and each request here fetches the real tile,
  * makes the cut on a canvas, and hands the result back.
@@ -103,9 +103,9 @@ export async function loadMaskedTile(url: string, signal?: AbortSignal): Promise
 
   /* Fetched rather than loaded as an <img>, which could not tell a 404 from
      a network that dropped the request: every failure came back as an empty
-     tile, and MapLibre kept it as one -- a hole in the radar until the frame
-     changed. A failure now fails, and the 3D map asks for it again when the
-     network is back (Cells3DCapability.resync). */
+     tile, and MapLibre kept it as one, leaving a hole in the radar until the
+     frame changed. Here a failure throws, and the 3D map asks for the tile
+     again when the network is back (Cells3DCapability.resync). */
   const tile = await tileValues(await response.arrayBuffer(), from, extent, erase, keep, pageCanvas);
   if (!tile) throw new Error("no canvas to cut a tile on");
   const { size, values, coverage } = tile;

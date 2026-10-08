@@ -5,13 +5,13 @@ import { RequestStalled, timedFetch } from "../lib/timedFetch";
 /**
  * Loading a frame's tiles: consulting its tile index before asking the network.
  *
- * The renderer writes no tile that would draw nothing, so a frame is missing
- * most of its grid on a dry day and every one of those tiles was a request
- * answered 404 -- per frame, per loop, never cached. Each frame now says
- * which tiles it has (lib/tileIndex.ts), and a tile it lacks is answered
- * here with a blank that OpenLayers draws as nothing.
+ * The renderer writes no tile that would draw nothing, so on a dry day a frame
+ * is missing most of its grid. Without an index each of those tiles is a
+ * request answered 404, per frame and per loop, never cached. Each frame says
+ * which tiles it has (lib/tileIndex.ts), and a tile it lacks is answered here
+ * with a blank that OpenLayers draws as nothing.
  *
- * A frame from before the index existed has none, and loads as it always did.
+ * A frame from before the index existed has none and requests every tile.
  * The sources are `valueTiles.ts`; the 3D map's are `maskedTiles.ts`.
  */
 
@@ -30,7 +30,7 @@ export function fillTemplate(template: string, z: number, x: number, y: number):
  * A ceiling on top of timedFetch's stall: generous enough for a tile on a slow link, short
  * enough that a tile sent into a dead connection gives back its place in
  * OpenLayers' queue. That queue loads sixteen at a time, and sixteen tiles
- * that never answer were a map that never loaded another one.
+ * that never answer would keep the map from loading any other.
  */
 export const TILE_TIMEOUT_MS = 30_000;
 
@@ -39,9 +39,9 @@ export const TILE_TIMEOUT_MS = 30_000;
  * no such tile (404).
  *
  * Fetched rather than loaded as an `<img>`, and left to lib/valuePng.ts to
- * decode: a browser's decoder may colour-manage a greyscale PNG -- WebKit
- * does, whatever it is asked -- and a value one off is another class. Under
- * the same ceiling as `loadImage`, and `timedFetch`'s stall besides.
+ * decode: a browser's decoder may colour-manage a greyscale PNG (WebKit
+ * does, whatever it is asked), and a value one off is another class. Under
+ * the same ceiling as `loadImage`, plus `timedFetch`'s stall.
  */
 export async function fetchValueTile(url: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {
   const controller = new AbortController();
@@ -81,9 +81,9 @@ export function present(index: TileIndex | null | undefined, z: number, x: numbe
 }
 
 /**
- * What a frame has for tile `z`/`x`/`y`: the PNG it comes out of -- its
- * own, or its ancestor's past the frame's deepest zoom -- and which part of
- * that it is (`sourceTile`), or null where the frame has nothing.
+ * What a frame has for tile `z`/`x`/`y`: the PNG it comes out of (its own,
+ * or its ancestor's past the frame's deepest zoom) and which part of that it
+ * is (`sourceTile`), or null where the frame has nothing.
  */
 export async function fetchFrameTile(
   template: string,

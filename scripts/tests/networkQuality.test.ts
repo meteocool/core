@@ -5,7 +5,7 @@ import { readNetworkStatus, type NavigatorLike } from "../../src/lib/networkQual
 /**
  * How isSlow is decided was the part nobody covered: the banner's own predicate
  * had tests, but they were handed an isSlow that had already been worked out,
- * so the thresholds that actually kept the banner up were never exercised.
+ * so the thresholds that kept the banner up were never exercised.
  */
 const nav = (connection: Record<string, unknown> | null, onLine = true): NavigatorLike => ({
   onLine,

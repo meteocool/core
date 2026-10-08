@@ -3,20 +3,18 @@
  * A placeholder bar chart for a strip that is on screen before its data is.
  *
  * The strips appear as soon as the layer does, and the query behind them takes
- * a moment -- longer on a slow connection, which is exactly when someone is
- * watching. An empty panel reads as "nothing here"; this reads as "not yet",
- * which is the truth.
+ * a moment, longer on a slow connection, which is when someone is watching.
+ * An empty panel reads as "nothing here"; this reads as "not yet".
  *
- * Deliberately not the real chart with fake numbers: the bars here are a fixed
- * arbitrary shape and must never be mistaken for a reading.
+ * The bars are a fixed, arbitrary shape with no numbers behind them, so they
+ * can never be mistaken for a reading.
  *
- * The waiting signal is a crest of brightness travelling along the bars. It
- * used to be one gradient element sweeping across the whole row, which lit up
- * the gaps between the bars and the axis reserve below them as well -- a band
- * of glow crossing empty background, over and over with no pause, next to a
- * map someone is trying to read. Modulating each bar's own opacity keeps the
- * light inside the bars, and it is still one property the compositor animates
- * without repainting anything.
+ * The waiting signal is a crest of brightness travelling along the bars. One
+ * gradient sweeping across the whole row would also light up the gaps between
+ * the bars and the axis reserve below them: a band of glow crossing empty
+ * background, over and over with no pause, next to a map someone is trying to
+ * read. Modulating each bar's own opacity keeps the light inside the bars, and
+ * opacity is one property the compositor animates without repainting.
  */
 
 /** How many placeholder bars. Matched to whatever the strip usually plots. */
@@ -35,8 +33,8 @@ const HEIGHTS = Array.from(
  *
  * Times the bar count this is how long the crest takes to cross the row; the
  * rest of the period is the row sitting still. Scaled so a 25-bar strip and a
- * 48-bar one take about the same time to cross rather than the wide one
- * looking twice as frantic.
+ * 48-bar one take about the same time to cross, and the wide one does not
+ * look twice as frantic.
  */
 $: stagger = Math.round(900 / Math.max(bars, 1));
 </script>
@@ -66,7 +64,7 @@ $: stagger = Math.round(900 / Math.max(bars, 1));
   }
 
   /* The crest occupies the first third of the period and the row rests for the
-     other two -- a pulse every couple of seconds rather than a strobe. */
+     other two: a pulse every couple of seconds. */
   @keyframes wave {
     0%, 34%, 100% { opacity: 0.55; }
     14% { opacity: 1; }

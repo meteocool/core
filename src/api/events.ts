@@ -2,11 +2,11 @@
  * The Socket.IO events browsers receive on the `/radar` namespace.
  *
  * OpenAPI cannot describe an event stream, so the map from event name to
- * payload is written by hand -- but the payload *types* are not: ng exports the
+ * payload is written by hand. The payload types are generated: ng exports the
  * producers' pydantic models into both schemas (see scripts/export_openapi.py),
- * so a field that changes on the publishing side lands here as a type error
- * rather than as silently missing data. There is no request/response round trip
- * on this channel to notice it any other way.
+ * so a field that changes on the publishing side shows up here as a type error
+ * instead of as silently missing data. This channel has no request/response
+ * round trip that would catch it otherwise.
  */
 import type { components } from "./generated/api";
 
@@ -17,7 +17,7 @@ export type LightningEvent = Schemas["Strike"];
 export type MesocycloneEvent = Schemas["Mesocyclone"];
 export type PokeEvent = Schemas["Poke"];
 export type SnowEvent = Schemas["SnowRefresh"];
-/** A new KONRAD3D run landed; the payload is a nudge, not the cells. */
+/** A new KONRAD3D run landed. The payload carries no cells; it only says to refetch them. */
 export type CellsEvent = Schemas["CellsRefresh"];
 /**
  * One EUMETNET network's composite was re-rendered, or the merged one (`eu`), the column maximum of every

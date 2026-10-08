@@ -8,9 +8,8 @@
    * same public API rather than a server of ours.
    *
    * Drawn in the drawers' frame (StormPanel): the phone's sheet and the
-   * desktop's corner panel, as a storm's details are -- App.svelte picks the
-   * surface. It used to be a solid screen of its own over the whole map, with
-   * its own title and close, which read as a different app.
+   * desktop's corner panel, as a storm's details are (App.svelte picks the
+   * surface), so it does not read as a different app.
    */
   import { onDestroy, onMount } from "svelte";
   import { fetchForecast, type Forecast } from "../lib/compare/openMeteo";
@@ -46,15 +45,15 @@
   let expanded: string | null = null;
 
   /**
-   * Called off when the panel closes. Twenty-one models' worth of forecast
-   * went on downloading for a panel nobody had open any more, and held the
-   * loading bar up until it was done -- on a slow link, a long time.
+   * Called off when the panel closes, so twenty-one models' worth of forecast
+   * does not go on downloading for a panel nobody has open any more, holding
+   * the loading bar up until it is done (on a slow link, a long time).
    */
   const controller = new AbortController();
 
   /**
-   * Ask, and again on a retry or a wake: the error used to be where the panel
-   * stayed until it was closed, however long ago the network had come back.
+   * Ask, and again on a retry or a wake, so an error does not stay up until
+   * the panel is closed, however long ago the network came back.
    */
   async function load() {
     loading = true;
@@ -73,7 +72,7 @@
 
   onMount(() => {
     /* Resolved once: the panel is built with the map centre it was opened on,
-       so the point never moves underneath it. Not a reactive statement -- the
+       so the point never moves underneath it. Not a reactive statement: the
        assignment happens in an async callback, which as a `$:` is the shape of
        an infinite loop even when it is not one. */
     reverseGeocode(lat, lon, get(locale) ?? "en", "local", "compare").then((name) => { placeName = name; });
@@ -157,7 +156,7 @@
 
 <style>
   /* The seven days as rows, as the drawers set label-and-value rows: a
-     hairline between them and no card around them -- the drawer is the card. */
+     hairline between them and no card around them; the drawer is the card. */
   .days {
     margin: 0;
     padding: 0;
@@ -166,8 +165,8 @@
   .day {
     display: grid;
     /* The name takes what is left; everything else is as wide as it needs.
-       Two lines per row -- high and low over their spread, the amount over
-       its chance -- so no figure has to wrap on a phone. */
+       Two lines per row (high and low over their spread, the amount over
+       its chance), so no figure has to wrap on a phone. */
     grid-template-columns: minmax(4.4em, 1fr) 1.6em auto 4.4em auto;
     align-items: center;
     gap: 0.5em;
@@ -203,7 +202,7 @@
     white-space: nowrap;
   }
 
-  /* Scoped to the figures, so it no longer dims the "uncertain" badge too. */
+  /* Scoped to the figures, so it does not dim the "uncertain" badge too. */
   .temps .low,
   .precip .low {
     color: var(--mc-text-2);

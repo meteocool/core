@@ -1,19 +1,19 @@
 /**
  * What kind of failure a reader was shown, for grouping them in Sentry.
  *
- * The "could not be loaded" lines and their Retry buttons were each a dead
- * end for whoever wanted to know why: the component noted the error on the
- * console, at most, and nothing left the reader's browser. Now each is
- * reported (`reportShown` in lib/sentry.ts) under the surface it was shown on
- * and one of these kinds, so an issue reads "the CAPPI, a chunk that would not
- * load" rather than one issue per error message, URL and browser wording.
+ * Each "could not be loaded" line with a Retry button is reported
+ * (`reportShown` in lib/sentry.ts) under the surface it was shown on and one of
+ * these kinds. Without that, the component logged the error to the console at
+ * most, and nothing left the reader's browser. Grouping by kind makes an issue
+ * read "the CAPPI, a chunk that would not load" instead of one issue per error
+ * message, URL and browser wording.
  */
 
 export type FailureKind = "chunk" | "network" | "stalled" | "webgl" | `http-${number}` | "other";
 
 /* Every browser words the same failure its own way: Chrome's "Failed to
    fetch", Firefox's "NetworkError when attempting to fetch resource", Safari's
-   "Load failed" -- the bubble that says nothing in particular. */
+   "Load failed", none of which says anything in particular. */
 const NETWORK = /failed to fetch|networkerror|load failed|network connection was lost|internet connection appears to be offline/i;
 /* A chunk of the app's own: what a tab that outlived the deploy it came from
    asks for, or a first open on a network that is down. */

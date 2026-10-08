@@ -8,8 +8,8 @@ let supported: boolean | undefined;
 /**
  * Whether this browser hands out a WebGL context at all.
  *
- * Asked once, of a canvas of its own, which is let go at once: a context is a
- * scarce thing on a phone, and this one was only a question.
+ * Asked once, on a canvas of its own whose context is released right away,
+ * since contexts are scarce on a phone.
  */
 export function webglSupported(): boolean {
   if (supported === undefined) {
@@ -51,12 +51,12 @@ function aContextIsLost(): boolean {
  * `ol/layer/WebGLTile`, kept out of a browser that has no WebGL to give it,
  * and drawing nothing while its context is lost.
  *
- * Without a context -- iOS in Lockdown Mode, a GPU the browser has blocked, a
- * headless browser -- OpenLayers throws on every frame trying to set the layer
- * up, and the throw takes the whole frame with it: the basemap went undrawn
- * too, and the map stayed blank. Such a layer is out of view at every
- * resolution instead, so it is never rendered and never asks; the rest of the
- * map draws without it.
+ * Without a context (iOS in Lockdown Mode, a GPU the browser has blocked, a
+ * headless browser), OpenLayers throws on every frame trying to set the layer
+ * up, and the throw takes the whole frame with it: the basemap goes undrawn
+ * too, and the map stays blank. So such a layer is out of view at every
+ * resolution, is never rendered and never asks; the rest of the map draws
+ * without it.
  */
 export default class TileLayer extends WebGLTileLayer {
   private contextRetry: ReturnType<typeof setTimeout> | null = null;
@@ -67,16 +67,16 @@ export default class TileLayer extends WebGLTileLayer {
   }
 
   /**
-   * A layer set up while its context is lost -- a new frame's layer, or one
+   * A layer set up while its context is lost (a new frame's layer, or one
    * rebuilt after its map was hidden, while the GPU is being reset or the
-   * phone has taken the context back -- cannot compile its shaders, and
-   * OpenLayers threw on every frame until the context returned: "shader
+   * phone has taken the context back) cannot compile its shaders, and
+   * OpenLayers throws on every frame until the context returns: "shader
    * compilation failed", then `ol_uid` of the program it never made, or on
    * Safari `shaderSource` given the null `createShader` hands back. Every
-   * throw took the rest of the frame down too.
+   * throw takes the rest of the frame down too.
    *
-   * Such a layer draws nothing for the moment instead, the rest of the map
-   * draws, and it asks again shortly: once the browser restores the context,
+   * So such a layer draws nothing for the moment, the rest of the map draws,
+   * and it asks again shortly: once the browser restores the context,
    * OpenLayers builds the layer afresh. Anything else thrown is still thrown.
    */
   override render(frameState: FrameState | null, target: HTMLElement): HTMLElement {

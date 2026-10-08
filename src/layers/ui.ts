@@ -29,7 +29,7 @@ import { onMapMotion } from "../lib/mapMotion";
  * Shoelace's gray scale, which themes/dark.css maps its neutral-* tokens onto,
  * tuned so its internals land on the same dark material as the --mc-* tokens
  * in src/glass.css: sheets equal the dark basemap earth, so the switcher feels
- * like the map went to sleep rather than like a different app.
+ * like the map went to sleep.
  */
 const darkmodeConstants = {
   "sl-color-gray-50": "#262a30",
@@ -57,7 +57,7 @@ export function setGlassMode(mode: GlassMode) {
 let solidWhileMoving = false;
 
 /**
- * Drop the backdrop blur while the flat map moves -- or not. Every blurred
+ * Whether to drop the backdrop blur while the flat map moves. Every blurred
  * surface over the map is blurred again on every frame of a pan or zoom, and
  * profiling put that at about two thirds of the GPU's work per frame; with
  * this on, src/glass.css swaps in the solid fallback for as long as
@@ -95,8 +95,8 @@ export function initUIConstants() {
 
   if (window.matchMedia) {
     // One query for both the initial read and the subscription. The old code
-    // built two -- one of them with a stray space in "(prefers-color-scheme:
-    // dark )" -- and subscribed through the deprecated addListener, which
+    // built two (one of them with a stray space in "(prefers-color-scheme:
+    // dark )") and subscribed through the deprecated addListener, which
     // nothing ever detached.
     darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
     colorSchemeDark.set(darkModeQuery.matches);
@@ -145,8 +145,8 @@ colorSchemeDark.subscribe((isDark) => {
   // src/glass.css keys every --mc-* token on this attribute rather than on a
   // media query, so the wrappers' writes to the store flip the whole system.
   root.dataset.theme = isDark ? "dark" : "light";
-  // Shoelace's own internals -- neutral-0, panel, overlay, danger-* -- follow
-  // themes/dark.css, which no --sl-color-gray-* remap could ever reach.
+  // Shoelace's own internals (neutral-0, panel, overlay, danger-*) follow
+  // themes/dark.css, which no --sl-color-gray-* remap reaches.
   root.classList.toggle(SHOELACE_DARK_CLASS, isDark);
   Object.keys(darkmodeConstants).forEach((key) => {
     if (isDark) {

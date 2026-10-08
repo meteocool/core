@@ -2,8 +2,8 @@
 /**
  * How many sheets are up. The bottom toolbar and the collapsed player's discs
  * hide while any are: see `body.cell-details-open` in App.svelte. Counted
- * here rather than derived from the stores in App.svelte, so every sheet --
- * a storm's, the model comparison's, a reading panel's -- hides them the
+ * here rather than derived from the stores in App.svelte, so every sheet
+ * (a storm's, the model comparison's, a reading panel's) hides them the
  * same way, and they come back after the last one's outro rather than under
  * it.
  */
@@ -16,19 +16,18 @@ let openSheets = 0;
  *
  * A card floating in the corner is a desktop idea: it assumes a map big enough
  * that something can sit on top of it without being in the way. On a phone
- * there is no such corner, so the panel comes up from the bottom edge instead
- * -- anchored to the thumb, over a map that stays visible above it, dismissed
- * by pulling it back down. That is the shape every modern phone UI uses for
- * exactly this, which is the argument for it: a reader already knows what to
- * do with a sheet without being told.
+ * there is no such corner, so the panel comes up from the bottom edge instead:
+ * anchored to the thumb, over a map that stays visible above it, dismissed by
+ * pulling it back down. Phone UIs use that shape for this, so a reader already
+ * knows what to do with a sheet without being told.
  *
  * Glass rather than the desktop panel's solid fill, so the map keeps showing
  * through the edges and the sheet reads as floating over it rather than as a
  * second screen that replaced it.
  *
  * The one surface a phone has for anything that opens over the map: the
- * storm panels take it through App.svelte, and the reading panels -- About,
- * Settings, Connection Details -- through GlassPanel, in the reading
+ * storm panels take it through App.svelte, and the reading panels (About,
+ * Settings, Connection Details) through GlassPanel, in the reading
  * material and opened at full height, since they are read rather than
  * navigated with.
  */
@@ -48,7 +47,7 @@ import CloseDisc from "./CloseDisc.svelte";
 import ShareDisc from "./ShareDisc.svelte";
 
 /**
- * The cell whose details fill the sheet -- or none, when something else is
+ * The cell whose details fill the sheet, or none when something else is
  * given as its content: a storm core on the 3D map takes the same sheet, so a
  * phone has one surface for "the storm you tapped", whatever kind it is.
  */
@@ -57,7 +56,7 @@ export let track: import("../api").CellTrackProperties | null = null;
 export let onClose: (() => void) | null = null;
 /**
  * Whether it pulls up to full height. Not for content that already fits at
- * rest -- and a sheet that does not is as tall as what it holds, so a few
+ * rest; a sheet that does not pull up is as tall as what it holds, so a few
  * facts and a dial are neither clipped nor floating in a half-empty panel.
  */
 export let expandable = true;
@@ -65,7 +64,7 @@ export let expandable = true;
  * As tall as what it holds at rest, and pulled up to full height for more.
  *
  * For content whose resting form is short and whose long form is reading
- * nobody needs every time -- a storm on the 3D map is a few facts and the
+ * nobody needs every time: a storm on the 3D map is a few facts and the
  * dial, and how its volume was built comes only when asked for. The slot is
  * told which it is showing, and is handed a way to pull the sheet up itself,
  * because a grabber alone does not say there is anything above it.
@@ -80,7 +79,7 @@ export let fitAtRest = false;
 export let full = false;
 /**
  * Whether the sheet has a half-height stop at all. Not for a page that is read
- * rather than navigated with -- About, Settings, Connection Details: a third
+ * rather than navigated with (About, Settings, Connection Details): a third
  * of a page of prose over a strip of map is neither, so pulling one down
  * closes it rather than parking it half open.
  */
@@ -88,14 +87,14 @@ export let halfway = true;
 /**
  * The glass it is made of. The drawer's by default (see src/glass.css): the
  * storm panels' material, which keeps some of the map's colour. "reading"
- * for a wall of text, which takes the reading material instead -- the same
+ * for a wall of text, which takes the reading material instead: the same
  * glass the floating panel uses on a desktop, so a panel reads the same on
  * both.
  */
 export let material: "drawer" | "reading" = "drawer";
 /**
  * The id of the title that names the sheet, for a sheet that is a modal
- * dialog -- the reading panels. On the sheet itself rather than on the panel
+ * dialog (the reading panels). On the sheet itself rather than on the panel
  * inside it, so the close disc, which is the sheet's, is inside the dialog: a
  * modal tells a screen reader that everything outside it is out of reach.
  */
@@ -125,12 +124,11 @@ const close = () => {
 /**
  * Two heights, not one.
  *
- * At one height the sheet had to pick between being readable and leaving the
- * map visible, and it picked readable: 82% of the screen, with the family
- * graph below the fold. That is the wrong trade for the graph in particular,
- * because the graph is a thing you navigate *with* -- tapping a node moves the
- * selection on the map, and if the map is a strip at the top there is nothing
- * to see it move on.
+ * At one height the sheet has to pick between being readable and leaving the
+ * map visible, and readable (82% of the screen, with the family graph below
+ * the fold) is the wrong trade for the graph in particular. The graph is a
+ * thing you navigate *with*: tapping a node moves the selection on the map,
+ * and if the map is a strip at the top there is nothing to see it move on.
  *
  * So the sheet opens half height, which leaves the map the other half, and
  * goes full when there is reading to do. Dragging the grabber moves between
@@ -141,16 +139,15 @@ const close = () => {
  * The short one is sized to the family chart, which is what the reader is
  * usually here for when they want the map too.
  *
- * It was 52%, from when the chart was laid out downwards and ran to 500px.
- * Sideways it is about 170 tall, and the section around it -- heading, chart,
- * the recency line under it -- comes to roughly 300 including the grabber and
- * the sheet's own padding. 40% of a 812pt phone is 325, which holds that with
+ * Laid out sideways the chart is about 170 tall, and the section around it
+ * (heading, chart, the recency line under it) comes to roughly 300 including
+ * the grabber and the sheet's own padding. 40% of a 812pt phone is 325, which holds that with
  * a little over, and hands the other 60% back to the map.
  */
 /*
  * Shorter on the 3D map, where the storm the reader opened stands on the map
  * itself, cut open, and the sheet's job is the readings and the dial that
- * turns the cut -- neither of which needs the family chart's room. A third of
+ * turns the cut, neither of which needs the family chart's room. A third of
  * the screen holds the header, the dial and the first readings, and leaves
  * the storm the rest. Read once: a sheet lives for one selection, and the map
  * does not change under an open one.
@@ -160,17 +157,17 @@ const HALF = get(sharedActiveCap) === "cells3d" ? 0.32 : 0.4;
 // sheet so it reads as a drawer sitting over the map rather than a second
 // screen, and there is something to see the grip is still draggable toward.
 // A bare vh fraction cannot know how tall the status bar or a dynamic island
-// is, and that varies by device -- so this is deliberately higher than the
-// sheet is ever meant to render at; the .sheet CSS clamps the real height
-// against --mc-safe-top instead, which is what actually keeps the grip clear
-// of that chrome on every phone rather than on the one this was tuned on.
+// is, and that varies by device, so this is deliberately higher than the
+// sheet is ever meant to render at. The .sheet CSS clamps the real height
+// against --mc-safe-top instead, which keeps the grip clear of that chrome on
+// every phone and not only on the one this was tuned on.
 const FULL = 0.95;
 
 let detent = full ? FULL : HALF;
 
 /**
  * At FULL the sheet covers the native buttons floating on top of the
- * webview (layer switcher, settings, location, logo) -- CSS can hide the
+ * webview (layer switcher, settings, location, logo). CSS can hide the
  * web toolbar underneath but has no reach into that native layer, so the
  * host app is told directly. Tapping a different cell can drop straight
  * from FULL to unmounted (nextSelection closes the panel instead of
@@ -209,8 +206,8 @@ onMount(() => {
  * A sheet with a handle that does not move is a worse lie than no handle: the
  * shape promises the gesture, and a reader who tries it and gets nothing
  * learns the UI is fake rather than that they were wrong. So the drag is real,
- * and it follows the finger -- upward as well now, because there is somewhere
- * above to go.
+ * and it follows the finger, upward as well, because there is somewhere above
+ * to go.
  */
 let dragY = 0;
 let dragging = false;
@@ -220,7 +217,7 @@ let sheetEl: HTMLElement;
 let restPx = 0;
 /**
  * A sheet fitted to its content has no lower part parked below the edge to
- * slide in -- it is only as tall as what it holds -- so pulling one up grows
+ * slide in (it is only as tall as what it holds), so pulling one up grows
  * it from its resting height instead, and this is that height.
  */
 let fitPx = 0;
@@ -256,8 +253,8 @@ function move(event: PointerEvent) {
   const delta = event.clientY - startY;
   // Upward only as far as the full detent is from here, so the sheet cannot be
   // dragged off the top of the screen and left there.
-  // A fitted sheet grows up to the full detent's height -- the CSS clamp on
-  // `--full-h`, near enough, which only bounds the drag.
+  // A fitted sheet grows up to the full detent's height (the CSS clamp on
+  // `--full-h`, near enough), which only bounds the drag.
   const fullPx = Math.min(FULL * window.innerHeight, window.innerHeight - 60);
   const reach = fitAtRest ? Math.max(0, fullPx - fitPx) : restPx;
   const headroom = detent === HALF && expandable ? -reach : 0;
@@ -283,8 +280,8 @@ function release() {
 /**
  * A grip 44px tall is still a small target on a panel most of which is this.
  * When the content fits without scrolling there is nothing for a vertical
- * drag here to do *but* move the sheet, so it gets to -- the same detent
- * snapping as the grip, from wherever the thumb actually lands.
+ * drag here to do *but* move the sheet, so it gets to, with the same detent
+ * snapping as the grip, from wherever the thumb lands.
  *
  * Two things stay out of that: a drag that turns out to be a tap on a control
  * in here (the close button, a link), and the 3D model, which already owns
@@ -294,9 +291,9 @@ function release() {
  * deciding with the same rule as below, so the sheet takes it from there.
  *
  * The axis decision is the same slop-then-commit rule swipeAway.ts uses for
- * the strips' swipe-to-clear -- proven here at working out "tap or gesture"
- * without it, a plain tap on anything in the body would start a drag before
- * the tap underneath it ever got the event.
+ * the strips' swipe-to-clear, which tells a tap from a gesture. Without it, a
+ * plain tap on anything in the body would start a drag before the tap
+ * underneath it ever got the event.
  */
 /**
  * Whether the body has been scrolled off its top. At rest the header sits
@@ -312,7 +309,7 @@ let scrolled = false;
  * The sheet's own scroll indicator, in place of the platform's.
  *
  * The platform draws its indicator down the scroller's whole right edge, and
- * the scroller starts at the sheet's top -- so on a phone it ran from under
+ * the scroller starts at the sheet's top, so on a phone it runs from under
  * the grip, behind the close disc in the corner, which nothing in CSS moves.
  * This one keeps to a track from below the disc to the screen's edge (the
  * sheet's lower part is parked off it; see --rest), shows while the body
@@ -404,18 +401,18 @@ function bodyUp(event: PointerEvent) {
     z-index: var(--mc-z-details);
     display: flex;
     flex-direction: column;
-    /* Set from the detent, so the map above always has the rest -- except at
+    /* Set from the detent, so the map above always has the rest, except at
        FULL, where the detent alone is not trusted: env(safe-area-inset-top)
-       is the one number that actually knows the status bar / dynamic island
-       height on this device, so the real cap is measured from that rather
-       than a vh guess that put the grip behind it on some phones. The 60px
-       past that clears the status bar with real room to spare -- 28px read as
-       "no map visible" since it barely cleared the chrome at all. */
+       is the one number that knows the status bar / dynamic island height on
+       this device, so the real cap is measured from that instead of a vh
+       guess that can put the grip behind it. The 60px past that clears the
+       status bar with room to spare; 28px reads as "no map visible", since it
+       barely clears the chrome. */
     --full-h: min(95vh, calc(100vh - var(--mc-safe-top) - 60px));
     height: var(--full-h);
     /* Always that tall, and slid down by however much the detent leaves off,
        so the part below the fold is laid out and waiting under the screen's
-       edge. Sized to the detent instead, pulling it up dragged a half-height
+       edge. Sized to the detent instead, pulling it up would drag a half-height
        panel into the air with bare map underneath until the finger let go. */
     --rest: max(0px, calc(var(--full-h) - var(--sheet-h)));
     transform: translateY(calc(var(--rest) + var(--drag, 0px)));
@@ -452,9 +449,9 @@ function bodyUp(event: PointerEvent) {
 
   /* The grab area, not just the bar: a 6px line is not a thumb target, so the
      row around it takes the gesture and the bar only shows where. 44px is
-     Apple's own minimum tap target -- at the previous 28px a drag started a
-     few pixels low landed on .body instead and scrolled the content rather
-     than resizing the sheet. */
+     Apple's own minimum tap target; at 28px a drag started a few pixels low
+     lands on .body instead and scrolls the content rather than resizing the
+     sheet. */
   .grip {
     flex: 0 0 auto;
     display: flex;
@@ -489,10 +486,10 @@ function bodyUp(event: PointerEvent) {
 
   /*
    * The sheet that expands keeps its 44px of grip, but laid over the top of
-   * the body rather than stacked above it, so the header -- and the close disc
-   * in it -- can come up to where the 3D sheet has them: the disc 12px from the
+   * the body rather than stacked above it, so the header (and the close disc
+   * in it) can come up to where the 3D sheet has them: the disc 12px from the
    * top and 12px from the right, the title level with it, the bar in the strip
-   * above. Stacked, the disc hung 45px down under a 12px right margin.
+   * above. Stacked, the disc would hang 45px down under a 12px right margin.
    *
    * Held clear of the disc's column on both sides (12 + 44 + 12), so the disc
    * stays the thing a tap in the corner reaches and the bar stays centred.
@@ -517,7 +514,7 @@ function bodyUp(event: PointerEvent) {
      so the reading runs off into the glass rather than being guillotined by
      it. That edge is not the body's: the sheet is laid out full height and
      parked with its lower part below the screen (see --rest), so the fade
-     ends that far up from the body's own bottom, less the sheet's padding --
+     ends that far up from the body's own bottom, less the sheet's padding,
      and follows a drag, which moves the edge. The scroll range is padded by
      the fade's length, so the last line still scrolls clear of it. */
   .sheet:not(.fit) .body {
@@ -541,15 +538,14 @@ function bodyUp(event: PointerEvent) {
   .body {
     flex: 1 1 auto;
     overflow-y: auto;
-    /* The platform's indicator ran behind the close disc; the sheet draws its
+    /* The platform's indicator runs behind the close disc; the sheet draws its
        own (.indicator). */
     scrollbar-width: none;
     /* Momentum scrolling, and a scroll that does not drag the map behind. */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     /* 8px in on the right, past the sheet's own 12: what is written here
-       ends 20px from the sheet's edge, as it did when the close disc sat in
-       the panels' headers and overhung this padding. */
+       ends 20px from the sheet's edge. */
     padding: 10px 8px 0 0;
     /* How far a panel's header keeps in from the right for the sheet's own
        close disc in the corner (.corner): the disc's 44px and its 12px from
@@ -565,7 +561,7 @@ function bodyUp(event: PointerEvent) {
   .body.shares {
     --mc-sheet-corner: 98px;
   }
-  /* Nothing in here to scroll -- it is as tall as what it holds -- so a drag
+  /* Nothing in here to scroll (it is as tall as what it holds), so a drag
      is the sheet's from the first pixel, rather than the browser's to claim as
      a pan and cancel before the axis is decided. */
   /* And nothing to clip. The 1px top border, the 18px grip and this 3px put

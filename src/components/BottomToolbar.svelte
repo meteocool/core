@@ -29,10 +29,9 @@
   // Assigned when a capability changes; not rendered today.
   let _description: string;
 
-  // This chart is a bar chart. It previously registered the line controller and
-  // element -- which it does not use -- and relied on NowcastPlayback having
-  // registered the bar ones first, so it only rendered if that component had
-  // been constructed already.
+  // This chart is a bar chart. It registers the bar controller and element
+  // itself, so it renders whether or not NowcastPlayback has been constructed
+  // first.
   Chart.register(BarController, BarElement, CategoryScale, LinearScale);
 
   /* Handed back in onDestroy: the toolbar is torn down when the URL hides it
@@ -51,8 +50,8 @@
   /*
    * No tray on the 3D map. It shows one timestep, so there is no player to
    * collapse into this bar, no scale it draws, and no "last updated" line of
-   * its own -- which left a full-width strip of glass with a GitHub icon in
-   * it, over the part of the map the storms stand on.
+   * its own. The tray would be a full-width strip of glass with a GitHub icon
+   * in it, over the part of the map the storms stand on.
    *
    * Before the first capability is attached the store is still empty, so the
    * one that is about to be is asked instead; otherwise a link that opens on
@@ -67,7 +66,7 @@
 <style>
     /* The tray material, shared with NowcastPlayback's .timeslider: a floating
        glass tray 8px off the edges, 8px above the safe-area inset. The blur
-       must sit on this element -- it is the one carrying transition:fly, and a
+       must sit on this element: it is the one carrying transition:fly, and a
        blurred child of a fading parent samples a blank backdrop. */
     :global(.bottomToolbar) {
         position: absolute;
@@ -107,15 +106,15 @@
         transition: visibility 0s linear 250ms;
     }
 
-    /* The wrappers get the identical floating tray: the map showing under the
-       bar is now the intent, not a strip to swallow. */
+    /* The wrappers get the identical floating tray: the map is meant to show
+       under the bar. */
     :global(.is-app .bottomToolbar) {
         margin-bottom: 0;
     }
 
     /* Only a wrap point, and only on a phone. Left in the row on desktop it is a
-       zero-width flex item that still collects the gap on both sides, which is
-       what made the space between the legend and the status line twice every
+       zero-width flex item that still collects the gap on both sides, which
+       makes the space between the legend and the status line twice every
        other gap in the row. */
     .break {
         display: none;
@@ -168,8 +167,8 @@
 
     /* Phone. Last in the sheet on purpose: these rules share their specificity
        with the base ones above, so declared any earlier they lose to them and
-       the whole block goes quietly inert -- which is what had happened to it,
-       leaving the collapsed bar unwrapped and its freshness line overflowing. */
+       the whole block goes inert, leaving the collapsed bar unwrapped and its
+       freshness line overflowing. */
     @media only screen and (max-width: 620px) {
         .lastUpdatedBottom {
             padding: 6px 10px;
@@ -185,9 +184,9 @@
             flex-wrap: wrap;
             /* The scale and the "last updated" line are two short rows in a
                bar with a fixed height (shared with NowcastPlayback's flanking
-               discs, which centre on it) -- space-between was pinning them to
-               the top of that height rather than centring the pair, leaving
-               dead air below. */
+               discs, which centre on it). space-between would pin them to the
+               top of that height instead of centring the pair, leaving dead
+               air below. */
             align-content: center;
         }
         .palette {

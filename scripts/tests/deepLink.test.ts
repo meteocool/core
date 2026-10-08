@@ -9,8 +9,8 @@ import type { LinkState } from "../../src/lib/deepLink.ts";
  * What a link to the map carries, and what it refuses to.
  *
  * A link is text anyone can edit and anyone can be sent, so the rules worth
- * holding down are the ones about bad input -- a value that does not parse is
- * dropped, never half-applied -- and about round trips: whatever the app
+ * holding down are the ones about bad input (a value that does not parse is
+ * dropped, never half-applied) and about round trips: whatever the app
  * writes, it has to read back as the same state, or a reload lands somewhere
  * other than where the reader was.
  */

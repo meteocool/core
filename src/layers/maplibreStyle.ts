@@ -13,7 +13,7 @@ import type {
  * Both renderers read meteocool's own Protomaps tiles, and both take their
  * colours from the same `BasemapTheme` objects, so the 3D map is the flat map
  * seen from a different angle rather than a second basemap that drifts away
- * from it. What differs is only the dialect: OpenLayers calls a style function
+ * from it. Only the dialect differs: OpenLayers calls a style function
  * per feature, MapLibre wants the whole thing declared up front.
  */
 
@@ -32,10 +32,10 @@ const hex = (rgb: number[]): string => (
 /**
  * One colour, drained towards a backdrop.
  *
- * Desaturated first, then mixed towards `into`. Doing both matters: mixing
- * alone leaves a pale version of the same hue, and the hues are the problem --
- * the 3D map's storms are green through magenta and so is a basemap with
- * forests, farmland and motorways on it.
+ * Desaturated first, then mixed towards `into`. Both steps are needed: mixing
+ * alone leaves a pale version of the same hue, and the hues are the problem,
+ * since the 3D map's storms are green through magenta and so is a basemap
+ * with forests, farmland and motorways on it.
  */
 function drain(colour: string, into: [number, number, number], amount: number): string {
   if (!colour.startsWith("#") || colour.length !== 7) return colour;
@@ -63,10 +63,10 @@ const DESATURATE = 0.35;
  * The same theme with some of the life drained out of it.
  *
  * The 3D map is the one view where the basemap is not the subject. Its storms
- * are coloured by reflectivity -- a ramp that runs green, yellow, orange, red
- * -- and they stand on a map whose forests are green, whose farmland is
- * yellow, and whose motorways are orange. At a tilt, with a translucent
- * envelope over it, the two are genuinely hard to tell apart.
+ * are coloured by reflectivity (a ramp that runs green, yellow, orange, red),
+ * and they stand on a map whose forests are green, whose farmland is yellow,
+ * and whose motorways are orange. At a tilt, with a translucent envelope over
+ * it, the two are hard to tell apart.
  *
  * Draining the theme rather than dropping the basemap's opacity, because the
  * fills overlap: landcover over earth over background, all semi-transparent,
@@ -74,13 +74,13 @@ const DESATURATE = 0.35;
  * not. Mixing the colours leaves every surface opaque and evenly quiet.
  *
  * The first version of this drained 0.55 of every surface into the earth
- * colour and went too far in the wrong place. What actually competes with the
- * storms there is the flat reflectivity raster under them, which covers the
- * same ground in the same ramp; the basemap was being quietened to make room
- * for a layer that was itself the problem. With the raster down to
+ * colour, which was too much and aimed at the wrong layer. What competes with
+ * the storms there is the flat reflectivity raster under them, which covers
+ * the same ground in the same ramp; the basemap was being quietened to make
+ * room for a layer that was itself the problem. With the raster down to
  * RADAR_OPACITY in Cells3DCapability the extrusions are the only saturated
- * thing left, and the map can be a map again -- towns, water and roads legible
- * enough to say where a storm actually is, which is what the view is for.
+ * thing left, and the basemap can keep towns, water and roads legible enough
+ * to say where a storm is.
  */
 export function muteTheme(theme: BasemapTheme, amount = 0.2): BasemapTheme {
   const into = channels(theme.earth);
@@ -319,12 +319,12 @@ const LABEL_FLOOR: ExpressionSpecification = [
  * family, inks and halos, out of the same tiles, in the same language order.
  *
  * Drawn locally rather than from a glyphs server: the style has no `glyphs`,
- * so MapLibre rasterises every letter from the browser's own fonts -- the
+ * so MapLibre rasterises every letter from the browser's own fonts: the
  * same `Calibri, sans-serif` the flat map's canvas falls back through, with
  * the weight read off the font name.
  *
- * Shown from the zoom the flat map shows them at -- Protomaps' `min_zoom` is
- * in the flat map's levels, one above MapLibre's for the same view -- and no
+ * Shown from the zoom the flat map shows them at (Protomaps' `min_zoom` is
+ * in the flat map's levels, one above MapLibre's for the same view), and no
  * sooner than `LABEL_FLOOR` lets the smaller places in.
  */
 export function placeLabels(palette: LabelPalette, nameKeys: string[]): SymbolLayerSpecification {

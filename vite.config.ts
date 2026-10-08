@@ -14,10 +14,10 @@ const here = (file: string) => fileURLToPath(new URL(file, import.meta.url));
  * Everything the page talks to goes through the dev server's own origin, so
  * the browser only ever makes same-origin requests and there is no CORS to
  * configure. src/urls.ts emits relative bases for every dev run to match.
- * That is not a convenience: api.meteocool.com stalls on any cross-origin
- * browser request -- it answers a plain curl in 65ms and times out once an
- * `Origin` header is present -- so a dev server talking to it directly cannot
- * load radar at all.
+ * The proxy is required: api.meteocool.com stalls on any cross-origin browser
+ * request (it answers a plain curl in 65ms and times out once an `Origin`
+ * header is present), so a dev server talking to it directly cannot load
+ * radar at all.
  *
  * `npm run dev` proxies to the staging cluster. `npm run dev-local`
  * (`--mode localstack`) proxies to the stack `make up` publishes on 127.0.0.1
@@ -77,7 +77,7 @@ const commit = process.env.COMMIT_REF ?? process.env.GITHUB_SHA ?? process.env.G
  * production branch, so on 2026-09-25 every push to develop built this Vite
  * app and put it on meteocool.com, in front of an API it was not written for.
  * Pages builds run with CF_PAGES=1, and a build that fails leaves the live
- * deployment alone -- so this refuses. Staging and demo deploy as Workers from
+ * deployment alone, so this config refuses to build there. Staging and demo deploy as Workers from
  * .github/workflows/deploy.yml, which never sets this. Production's cutover,
  * when it comes, is a deliberate change to the Pages project, not a push.
  */

@@ -9,19 +9,20 @@
  * panel cuts it; every other one that could be opened peels, over and over:
  * its faint envelope thins away shell by shell until only the strongest echo
  * is left standing, then grows back. A cut shows a storm's core from one
- * side; the peel shows where in the cloud the intensity actually sits, which
- * is the question a map full of storms is asking. One the radars did not see
+ * side; the peel shows where in the cloud the intensity sits, which is the
+ * question a map full of storms is asking. One the radars did not see
  * well enough to open is held whole: its inside is interpolation.
  *
- * ## How a raymarcher gets onto a MapLibre map
+ * ## How a Raymarcher Gets onto a MapLibre Map
  *
- * MapLibre has no volume primitive and never will. What it has is
+ * MapLibre has no volume primitive and never will. It has
  * `CustomLayerInterface`, which hands over the GL context and the
- * `modelViewProjectionMatrix` for the frame and gets out of the way -- and a
- * matrix is all a raymarcher needs, because the march happens in the box's own
- * space and the matrix is only used to work out where each ray enters it.
+ * `modelViewProjectionMatrix` for the frame and leaves the drawing to the
+ * layer. A matrix is all a raymarcher needs, because the march happens in the
+ * box's own space and the matrix is only used to work out where each ray
+ * enters it.
  *
- * ## Why the box is a unit cube
+ * ## Why the Box Is a Unit Cube
  *
  * The obvious model matrix leaves the box in Mercator units, where the whole
  * world is 0 to 1 and a 40 km storm is about a thousandth of that. Marching a
@@ -31,7 +32,7 @@
  * problem never arises.
  *
  * Mercator's y runs south, which is why the scale below is negative on that
- * axis -- without it the storm is mirrored north to south, which looks almost
+ * axis. Without it the storm is mirrored north to south, which looks almost
  * right and is completely wrong.
  *
  * ## Depth
@@ -43,13 +44,13 @@
  * depth and either float in front of everything or vanish behind it.
  *
  * And it is put into the depth range MapLibre is drawing with, by hand.
- * MapLibre draws its 3D layers -- the terrain, the extrusions, this -- into
+ * MapLibre draws its 3D layers (the terrain, the extrusions, this) into
  * `[0, 0.995]` or so, not `[0, 1]`, and `glDepthRange` maps only the depth a
  * triangle interpolates: a depth written to `gl_FragDepth` is taken as it is.
- * Written as `[0, 1]`, every storm stood half a percent behind its true depth,
- * which close up is nothing -- and zoomed out, where every depth on screen
- * crowds up against 1, is more than the gap between a storm and the ground
- * behind it: over the Alps with terrain on, the clouds vanished.
+ * Written as `[0, 1]`, every storm stood half a percent behind its true depth.
+ * Close up that is nothing. Zoomed out, where every depth on screen crowds up
+ * against 1, it is more than the gap between a storm and the ground behind
+ * it: over the Alps with terrain on, the clouds vanished.
  */
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
 import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
@@ -67,8 +68,8 @@ const PEEL_SECONDS = 10;
 /**
  * How much storm the peel stops at, in voxels: the strongest this many are
  * what is left standing. A threshold taken from the single strongest voxel
- * peels down to nothing -- one bright pixel of clutter, or a core too small to
- * see from a map -- so the stopping point is where this much echo remains.
+ * peels down to nothing (one bright pixel of clutter, or a core too small to
+ * see from a map), so the stopping point is where this much echo remains.
  * At 250 by 250 by 500 m a voxel, this is about 9 km3 of storm.
  */
 const PEEL_CORE_VOXELS = 300;
@@ -100,8 +101,8 @@ const STEPS_VOXELS = 160;
  *
  * The peel is ten seconds of slow easing; it does not need the display's
  * refresh rate, and asking for one repaint per frame kept MapLibre drawing
- * the whole map -- basemap, extrusions, radar drape and a raymarch per storm
- * -- at 60 to 120 Hz for as long as the 3D view was open. A dozen frames a
+ * the whole map (basemap, extrusions, radar drape and a raymarch per storm)
+ * at 60 to 120 Hz for as long as the 3D view was open. A dozen frames a
  * second is enough that it still reads as a motion rather than a flicker.
  */
 const PEEL_FPS = 12;
@@ -119,8 +120,8 @@ const PEEL_IDLE_SECONDS = 3 * PEEL_SECONDS;
  * comes this close to where the cut passes through is cut by the same plane.
  *
  * Whatever storm or scan it is from. Cut by storm, a neighbour that the
- * backend counts as a storm of its own -- its peak a few dBZ apart, one tile
- * over -- stood whole beside the face and hid it, and so did the newer scan's
+ * backend counts as a storm of its own (its peak a few dBZ apart, one tile
+ * over) stood whole beside the face and hid it, and so did the newer scan's
  * tiles around a storm kept open past its scan. Not every cloud on the map:
  * the cut-away side is half the map, gone. At the tilt a storm opens at the
  * camera stands about 30 km off, so this clears the ground between the two,
@@ -264,8 +265,8 @@ void main() {
     } else {
       float lambert = 0.42 + 0.58 * max(dot(fieldNormal(p, dt), light), 0.0);
       // Opacity per kilometre of storm, not per step. A step in the unit cube
-      // is a different distance along every direction -- the box is 40 by 40
-      // by 16 km -- so the step has to be measured in the world before it can
+      // is a different distance along every direction (the box is 40 by 40
+      // by 16 km), so the step has to be measured in the world before it can
       // mean anything, and measured this way the storm is exactly as opaque
       // here as in the panel.
       float stepKm = dt * length(direction * uExtentKm);
@@ -367,10 +368,9 @@ function cornersOf(box: { min: [number, number, number]; max: [number, number, n
  * The part of the screen a box can cover, in pixels, or null if none of it.
  *
  * Every cloud is a fullscreen triangle whose fragments march only where the
- * ray meets the box -- and with one cloud that was fine, but a dozen is a
- * dozen fullscreen raymarches a frame. Scissoring each to the rectangle its
- * eight corners project to keeps the cost to the pixels the storm is actually
- * on, which at the zoom a whole region is looked at is a small fraction of
+ * ray meets the box. With one cloud that was fine, but a dozen is a dozen
+ * fullscreen raymarches a frame. Scissoring each to the rectangle its eight
+ * corners project to keeps the cost to the pixels the storm is on, which at the zoom a whole region is looked at is a small fraction of
  * the screen. A corner behind the camera makes the projection meaningless,
  * so that case falls back to the whole viewport rather than guessing.
  */
@@ -418,15 +418,15 @@ function coreDbz(cutaway: Cutaway): number {
 /**
  * How much of a storm would read as cloud: the area of its silhouette that is
  * at least half opaque, in km2, seen at the tilt the 3D map opens at, from
- * the south or from the west -- whichever shows more of it.
+ * the south or from the west, whichever shows more of it.
  *
  * The list's peak is the composite's, not the box's, and the two can disagree
  * completely: a box filled from sweeps an hour newer than the composite that
  * seeded it, or a shower that is all drizzle, holds a few hundred voxels just
- * over `DBZ_LOW` -- where the shader's opacity is still zero. Measured the
- * way the shader draws it -- the same ramp, the same confidence, the same
- * opacity per kilometre -- so what this calls faint is what the map would
- * have drawn faint.
+ * over `DBZ_LOW`, where the shader's opacity is still zero. Measured the way
+ * the shader draws it (the same ramp, the same confidence, the same opacity
+ * per kilometre), so what this calls faint is what the map would have drawn
+ * faint.
  *
  * At the map's tilt rather than straight from the side: looked at along the
  * ground, the 40 km of box a wide, thin shield lies across adds up to a solid
@@ -610,11 +610,11 @@ export interface CloudsLayer extends CustomLayerInterface {
    *
    * Keyed by the volume's path, not the core's code: a code is a grid
    * position, unique only within one scan, so the same code can name two
-   * different storms -- or two scans of one -- at the same time.
+   * different storms (or two scans of one) at the same time.
    *
    * `peels: false` holds a storm whole: one the radars did not see well
    * enough to open, whose layers are interpolation, so peeling them shows
-   * nothing about where the intensity sits -- and costs a frame every
+   * nothing about where the intensity sits, and costs a frame every
    * twelfth of a second for as long as one is on screen.
    */
   setClouds(clouds: ReadonlyArray<{
@@ -716,7 +716,7 @@ export function makeCloudsLayer(
    *
    * The scale is negative on y because Mercator's y runs south and the box's
    * does not; the box sits on the ground, so z starts at zero. Upwards it is
-   * stretched as the terrain is, by `VERTICAL_SCALE` -- in the matrix only:
+   * stretched as the terrain is, by `VERTICAL_SCALE`, in the matrix only:
    * the shader's kilometres stay true, so a storm is as opaque as it is.
    */
   function modelFor(cutaway: Cutaway): Float64Array {
@@ -967,8 +967,8 @@ export function makeCloudsLayer(
       context.disable(context.SCISSOR_TEST);
       context.depthMask(true);
       // The peel moves on its own, so the map has to keep drawing while any
-      // storm but the open one is on screen and the reader is still about --
-      // at the peel's own pace, not the display's. See `schedulePeel`.
+      // storm but the open one is on screen and the reader is still about,
+      // at the peel's own pace instead of the display's. See `schedulePeel`.
       if (active && peeling) schedulePeel();
     },
 

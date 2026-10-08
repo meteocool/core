@@ -2,18 +2,18 @@
  * What "Degraded" means, in one place.
  *
  * The pill used to ask `isDegraded(apiHealth)` directly, so the state was
- * whatever that one function happened to cover -- failed API calls, and nothing
+ * whatever that one function happened to cover: failed API calls, and nothing
  * else. Latency, a backend that had stopped publishing, and every later
  * criterion had nowhere to go but another condition bolted onto another
- * component. This module is the answer to "what puts the map in that state",
- * and it is the only answer: the pill and the diagnostics both read it.
+ * component. This module answers "what puts the map in that state", and
+ * nothing else does: the pill and the diagnostics both read it.
  *
  * Every criterion is written to be *self-clearing*. None of them latch, none of
  * them count events that already happened, and none of them need anything to
  * decide an incident is over: each one reads a signal that is true now and
- * false again the moment the backend recovers. That is the property to preserve
- * when adding one -- a criterion that can only be switched off by something
- * remembering to switch it off will eventually stay on forever.
+ * false again the moment the backend recovers. Keep that property when adding
+ * one: a criterion that can only be switched off by something remembering to
+ * switch it off will eventually stay on forever.
  *
  * Pure, with no store and no clock of its own. The wiring that samples the
  * signals and publishes the verdict is lib/degradedStatus.ts.
@@ -25,7 +25,7 @@ import type { Translate } from "../locale/t";
  * Everything the criteria are allowed to look at, sampled at one instant.
  *
  * Passed in rather than read, so the rules can be exercised directly and so it
- * is obvious what the state actually depends on.
+ * is obvious what the state depends on.
  */
 export interface DegradedSignals {
   /** Which endpoints are failing, and when they last did. */
@@ -58,8 +58,8 @@ export const EMPTY_SIGNALS: DegradedSignals = {
  * A route only leaves `failing` when a later call to it succeeds, and nothing
  * calls a layer you have switched away from. Without this the pill would warn
  * for the rest of the session about an endpoint nobody is using. Anything still
- * being retried keeps refreshing lastFailureAt, so a backend that is genuinely
- * down stays flagged for as long as it is down.
+ * being retried keeps refreshing lastFailureAt, so a backend that is down
+ * stays flagged for as long as it is down.
  */
 export const DEGRADED_TTL_MS = 5 * 60 * 1000;
 
@@ -74,7 +74,7 @@ export function isApiDegraded(health: ApiHealth, now: number = Date.now()): bool
  * recent window rather than on any one request: a single four-second tile on a
  * train is not a degraded backend, and flagging it would make the pill mean
  * nothing. Well above the panel's own LATENCY_BAD_MS, which marks a row amber
- * for someone already reading diagnostics -- a different, cheaper claim.
+ * for someone already reading diagnostics, which is a different, cheaper claim.
  */
 export const SLOW_P95_MS = 4000;
 
@@ -91,8 +91,8 @@ export const QUICK_RUN = 3;
  * The window is two minutes long so it holds enough responses to mean
  * something, and that made the criterion two minutes slow to clear: a
  * backend answering quickly again went on being called slow on the strength
- * of what it did before. Three quick answers in a row -- which the resync
- * after a network comes back is many times over -- now put everything sent
+ * of what it did before. Three quick answers in a row (the resync after a
+ * network comes back gives many times that) now put everything sent
  * before them behind it, and the warning goes at the next recheck rather
  * than when the old answers age out. Slow answers sent after the run count
  * as before.
@@ -116,7 +116,7 @@ export function sinceRecovery(durations: number[]): number[] {
  *
  * A whole extra cycle on top of the prediction, so an ordinary few seconds of
  * pipeline jitter is not an incident. The cadence is learned, so this scales
- * with whatever the backend is actually doing.
+ * with whatever the backend is doing.
  */
 export const PUBLISH_OVERDUE_S = 300;
 

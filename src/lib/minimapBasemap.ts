@@ -3,8 +3,8 @@
  *
  * The minimap is a sketch, but a sketch with no ground under it leaves a
  * reader guessing which way the sea is. The flat map's Protomaps tiles carry
- * exactly the lines it needs -- the coast, country and region borders -- and
- * at zoom 5 one tile spans most of a radar network, so two to four of them
+ * the lines it needs (the coast, country and region borders), and at zoom 5
+ * one tile spans most of a radar network, so two to four of them
  * cover any storm's radars. They are the tiles the basemap itself asks for
  * zoomed out, so they usually come from the browser's cache.
  *

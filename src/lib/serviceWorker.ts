@@ -4,11 +4,11 @@ import { unsupportedBrowser } from "./browserSupport";
 /**
  * Install the service worker, and reload onto a new one once it takes over.
  *
- * A registration that fails is not the page failing: the network dropping
- * the fetch of sw.js, a browser or an extension that refuses service workers,
- * an automated browser that blocks them -- Workbox then throws reading the
- * registration it never got. The page works without one, so that is a
- * warning, where each entry point used to leave it an unhandled rejection.
+ * Registration can fail while the page is fine: the network drops the fetch
+ * of sw.js, a browser or an extension refuses service workers, or an automated
+ * browser blocks them. Workbox then throws reading the registration it never
+ * got. The page works without one, so the failure is logged as a warning, not
+ * left as an unhandled rejection.
  */
 export function registerServiceWorker(): void {
   if (!("serviceWorker" in navigator) || unsupportedBrowser) return;

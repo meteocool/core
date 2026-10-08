@@ -4,9 +4,9 @@
  * Every value tile is an 8-bit greyscale PNG (meteocool/ng's worker-radar,
  * `encode_value_tile`), and a byte one off is another value: half a dBZ in
  * reflectivity, another class in precipitation types. WebKit colour-manages
- * greyscale PNGs on every way in -- `createImageBitmap` even with
+ * greyscale PNGs on every way in (`createImageBitmap` even with
  * `colorSpaceConversion: "none"`, an `<img>`, a WebGL upload, with or without
- * an sRGB chunk -- and gives back about a quarter of a tile's bytes one off
+ * an sRGB chunk) and gives back about a quarter of a tile's bytes one off
  * (measured on iOS 18.4): rain read as snow, drizzle as unclassifiable, and
  * nothing as unclassifiable, which strewed grey over every tile's whole square.
  * Chrome gives them back exactly; nothing guarantees either.

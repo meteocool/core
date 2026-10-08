@@ -46,10 +46,10 @@
     const ls = document.getElementById("ls");
     if (!ls) return;
     // The detail popup is anchored above everything, including this panel.
-    // Opening the switcher means the reader is done with that cell -- or with
-    // that storm core, whose popup otherwise stayed up over the switcher and
-    // then over whichever flat map was picked, where nothing draws it. Here
-    // rather than in open(), because the apps' own switcher buttons call this
+    // Opening the switcher means the reader is done with that cell, or with
+    // that storm core, whose popup would otherwise stay up over the switcher
+    // and then over whichever flat map was picked, where nothing draws it. Here
+    // and not in open(), because the apps' own switcher buttons call this
     // directly and never pass through open().
     selectedCell.set(null);
     selectedVolume.set(null);
@@ -135,9 +135,9 @@
     stroke: none;
   }
 
-  /* Full-screen sheet: solid material, no blur -- three live canvases sit on
-     it and blurring the whole viewport is blurring the whole map. display is
-     toggled inline by JS. */
+  /* Full-screen sheet: solid material, no blur. Three live canvases sit on
+     it, and blurring the whole viewport means blurring the whole map. display
+     is toggled inline by JS. */
   .ls {
     position: absolute;
     top: 0;
@@ -166,10 +166,10 @@
     height: 100%;
   }
 
-  /* A definite height, not a flex share: the overlay toggles that shared the
-     column with it are gone, and as a flex item of auto basis Safari took its
-     height for indefinite, sized the fr rows to their (empty) content, and
-     left the tiles short of the bottom, each row a different height. */
+  /* A definite height, not a flex share: as a flex item of auto basis Safari
+     takes its height for indefinite, sizes the fr rows to their (empty)
+     content, and leaves the tiles short of the bottom, each row a different
+     height. */
   .maps {
     height: 100%;
     display: grid;

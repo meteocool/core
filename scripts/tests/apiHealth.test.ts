@@ -87,7 +87,7 @@ test("the previous state is never mutated", () => {
  * Some of what the map draws is published on a timer of its own and answers
  * 404 until its first capture lands. Counted as a failed call it put the map
  * in its degraded state and raised "Something went wrong" over a layer working
- * exactly as designed -- on a backend with no Swiss capture at all, for the
+ * exactly as designed, on a backend with no Swiss capture at all, for the
  * whole session. So it is recorded, and recorded where the degraded criteria
  * do not look.
  */

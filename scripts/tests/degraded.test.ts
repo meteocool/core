@@ -7,8 +7,8 @@ import {
 import { EMPTY_HEALTH, markAbsent, nextHealth } from "../../src/lib/apiHealth.ts";
 
 /**
- * What puts the map in its degraded state, and -- the half that actually goes
- * wrong -- what takes it back out. A warning that cannot clear itself trains
+ * What puts the map in its degraded state, and what takes it back out, which
+ * is the half that goes wrong. A warning that cannot clear itself trains
  * people to ignore the pill, so every criterion here is tested in both
  * directions from the same starting point.
  */
@@ -82,7 +82,7 @@ test("a slow p95 degrades only once there are enough responses behind it", () =>
 test("latency recovers on its own as the window fills with fast responses", () => {
   const before = signals({ recentP95Ms: SLOW_P95_MS + 500, recentSamples: 20 });
   assert.deepEqual(ids(before), ["slow-responses"]);
-  // Nothing reset: the window simply moved on.
+  // Nothing reset: the window moved on.
   const after = signals({ recentP95Ms: 250, recentSamples: 20 });
   assert.deepEqual(ids(after), []);
 });

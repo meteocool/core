@@ -34,8 +34,8 @@
     float: none;
     margin-right: 0;
     padding-bottom: 0;
-    /* The ink -- 2px above the strip, the strip, and the labels hanging 14px
-       below its top, 28px in all -- and 6px of air under the labels before
+    /* The ink (2px above the strip, the strip, and the labels hanging 14px
+       below its top: 28px in all) and 6px of air under the labels before
        the freshness line. At the Shoelace input height the box was twice
        that on a phone, and the phone's tray, which centres its two rows,
        pushed the freshness line down to its bottom edge. */

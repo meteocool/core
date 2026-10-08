@@ -20,7 +20,7 @@ import { showsEnded } from "../lib/cellPulse";
  * position, its outline, and the forecast centroids with the uncertainty
  * ellipse around each.
  *
- * ## What is drawn, and when
+ * ## What Is Drawn, and When
  *
  * The forecast is the loudest thing a cell owns and the least often wanted.
  * Each one carries a dozen predicted centroids and a nested ellipse per step,
@@ -29,10 +29,10 @@ import { showsEnded } from "../lib/cellPulse";
  * dashed ellipses laid over each other, which buried the radar the tracks are
  * there to be compared against.
  *
- * So a cell at rest draws only what it has actually done -- where it has been,
- * where it is, and its outline -- and the whole predicted sequence appears for
- * the one cell whose popup is open. The map stays readable, and the detail is
- * a tap away rather than permanently spread across every storm at once.
+ * So a cell at rest draws only what it has done (where it has been, where it
+ * is, and its outline), and the whole predicted sequence appears only for the
+ * one cell whose popup is open. The map stays readable, and the detail is a
+ * tap away.
  */
 
 /** DWD's severity classes, in the colours their own charts use; the 3D map and its legend take them from here. */
@@ -79,7 +79,7 @@ const styleCache = new Map<string, Style | Style[]>();
  *
  * Held here rather than passed in because OpenLayers calls a style function
  * per feature per frame and has nowhere to thread state through it. The
- * subscription that maintains it also has to tell the layer to redraw --
+ * subscription that maintains it also has to tell the layer to redraw:
  * nothing else changes when a selection does, so without that the map keeps
  * the styles it last worked out.
  */
@@ -122,12 +122,12 @@ function pathStyle(feature: FeatureLike): Style {
  * The join is a real continuation and has to read as one, or the map is back
  * to two unrelated lines; it is also the one segment of a track that was never
  * observed. DWD ends a code and starts another, and nothing was detected in
- * between -- the line only says which detections belong to the same storm.
+ * between; the line only says which detections belong to the same storm.
  *
- * So: the colour and the fade of the track it leads into, which is what makes
- * it read as the same storm carrying on, and dotted rather than drawn, which
- * is what keeps it from being read as a fifth of an hour of positions nobody
- * ever measured. Thinner than a path for the same reason.
+ * So it takes the colour and the fade of the track it leads into, which makes
+ * it read as the same storm carrying on. It is dotted instead of solid so it
+ * is not read as a fifth of an hour of positions nobody measured, and thinner
+ * than a path for the same reason.
  *
  * Lit from either end. The joins belong as much to the cell that ended as to
  * the one that carries on, and a reader who opens the parent is asking
@@ -192,8 +192,8 @@ const isSelected = (feature: FeatureLike): boolean => (
  * and back within the span of a single ellipse, and the radar's own greens and
  * yellows sit on top of that; a thin orange dash crosses all of it and is
  * legible against roughly none of it. A casing underneath gives it one
- * background instead of a dozen, which is what makes the line readable
- * wherever it happens to fall rather than only over the pale parts.
+ * background instead of a dozen, so the line is readable wherever it falls,
+ * not only over the pale parts.
  *
  * The colour follows the basemap; the rule, and why it has to, is in
  * layers/casing.ts, which the live-cell ring shares.
@@ -203,11 +203,10 @@ let casing = LIGHT_CASING;
 /**
  * The dash the cone is drawn with.
  *
- * Shared by the casing so the two line up exactly -- a casing drawn solid
- * would put a continuous white ring on the map and lose the dashes entirely,
- * which is the opposite of the point. Longer than the 4/4 it replaces, too:
- * at that length and one pixel wide the ring read as a row of dots, and dots
- * are what the forecast centroids are.
+ * Shared by the casing so the two line up exactly: a casing drawn solid
+ * would put a continuous white ring on the map and hide the dashes. Longer
+ * than the earlier 4/4, too: at that length and one pixel wide the ring read
+ * as a row of dots, and dots are what the forecast centroids are.
  */
 const ELLIPSE_DASH = [7, 5];
 
@@ -243,9 +242,9 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * casing under each dash rather than any weight added to the ring itself.
  *
  * Two styles, drawn in order: the wider light line first, the severity colour
- * over it. The colour is also close to opaque now. At 0.45 it was being asked
- * to carry the mark on its own and could not -- a translucent thin line takes
- * whatever is beneath it, which is the problem rather than the solution.
+ * over it. The colour is also close to opaque. At 0.45 it had to carry the
+ * mark on its own and could not: a thin translucent line takes on whatever is
+ * beneath it.
  */
 /**
  * How long until the storm gets here, written on the ring's leading edge.
@@ -253,10 +252,10 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * Without it the cone is a dozen rings that plainly mean something about time
  * and do not say what: whether the outermost is ten minutes out or three hours
  * is the difference between watching a storm and having somewhere to be. The
- * label is the ring's own answer, placed where `leadingTip` put it -- the far
+ * label is the ring's own answer, placed where `leadingTip` put it: the far
  * end of the major axis, where consecutive rings are furthest apart.
  *
- * ## Counted from now, not from the scan
+ * ## Counted from Now, Not from the Scan
  *
  * The number used to be the ring's lead over the last detection, which is the
  * forecast's own frame and the wrong one to put in front of a reader. Nothing
@@ -267,8 +266,8 @@ function forecastStyle(feature: FeatureLike): Style | undefined {
  * pipeline.
  *
  * So the label counts down from the viewer's own clock. The cost is that the
- * sequence is no longer round -- +8, +23, +38 rather than +15, +30, +45 --
- * which looks like a bug and is the correction. Rings whose moment has already
+ * sequence is no longer round (+8, +23, +38 instead of +15, +30, +45), which
+ * looks like a bug but is the correction. Rings whose moment has already
  * passed lose their label and keep their outline: the cone is one shape and
  * punching holes in it would say the forecast had gaps.
  *
@@ -321,15 +320,15 @@ function ellipseStyle(feature: FeatureLike, resolution: number): Style[] | undef
  * The core, and only while it still describes something.
  *
  * Two things made this the most misread mark on the map. It fades now, like
- * the path and the centroid do -- it was the one feature drawn at full
+ * the path and the centroid do; it was the one feature drawn at full
  * strength however old it was, so a cell that dissipated an hour ago kept a
  * confident ring over empty radar while everything else about it had gone
  * pale. And past `OUTLINE_MAX_MINUTES` it is dropped outright.
  *
  * What remains is still not the edge of what the radar layer paints, and
- * cannot be: DWD contours the cell at its own detection threshold -- the
+ * cannot be: DWD contours the cell at its own detection threshold (the
  * structure that comes with it bottoms out at 30 dBZ, and in practice the
- * footprint there is the same one as at 40 -- while the reflectivity layer
+ * footprint there is the same one as at 40), while the reflectivity layer
  * colours everything from -32.5 dBZ up. So a correct outline is a small ring
  * around the core, well inside the visible blob, never around it.
  */
@@ -374,7 +373,7 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
 
   /*
    * The lead labels count down from the viewer's clock, so they go stale on
-   * their own -- OpenLayers keeps a layer's rendered output until something
+   * their own: OpenLayers keeps a layer's rendered output until something
    * invalidates it, and panning the map is not something a reader does while
    * reading a number off it.
    *

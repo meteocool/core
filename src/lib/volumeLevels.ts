@@ -6,7 +6,7 @@
  * texture. Where a coarse tile is small on screen the map draws it in place
  * of the tiles in it, so a whole outbreak fits the textures a few dozen tiles
  * would take, and the voxels it skips are finer than the screen there
- * anyway. Where it is large -- close to the camera -- the map draws the
+ * anyway. Where it is large (close to the camera), the map draws the
  * tiles. Never both over the same ground.
  */
 import type { RadarVolume } from "../api";
@@ -25,8 +25,8 @@ function coarseKey(tile: readonly number[]): string | null {
  * The volumes to draw, with each coarse tile drawn where `coarse` says so.
  *
  * A coarse tile drawn stands in for the tiles in it; one not drawn leaves
- * them to be. A tile whose coarse tile was not built -- the run was cut short
- * before it -- is drawn itself. A volume from before tiles is drawn either
+ * them to be. A tile whose coarse tile was not built (the run was cut short
+ * before it) is drawn itself. A volume from before tiles is drawn either
  * way. The open volume is always drawn, and the coarse tile over it is not:
  * an open storm keeps its own picture while the reader zooms out.
  */

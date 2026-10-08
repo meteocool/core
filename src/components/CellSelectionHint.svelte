@@ -5,7 +5,7 @@
  * The first tap draws the cell's forecast on the map and nothing else, which
  * is a state a reader has no way to recognise on its own: marks appeared, and
  * whether that is all there is or whether something more is a tap away is not
- * something a map can say. So this says it, and is the thing to tap -- the
+ * something a map can say. So this says it, and is the thing to tap: the
  * hint and the affordance are the same object, because a hint that only tells
  * you to tap somewhere else costs a second reach at the point the reader has
  * already got what they wanted. The whole bar opens the details, as tapping
@@ -17,8 +17,7 @@
  *
  * One of the bars above the tray, in the same dock as the chart strips
  * (SwipeDock): it fades in, swipes aside to a Clear action, and leaves the
- * way they do. It used to leave on any pull, with no detent and no action,
- * beside strips that parked on one.
+ * way they do.
  */
 import { fly, fade } from "svelte/transition";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
@@ -55,8 +54,8 @@ function clear(leaving: Leaving) {
      mangled next to the trays above and below it, which are full-width and
      squared off to the same gutters.
 
-     Stacked above whichever strips are up -- a strip's dock is a fixed height
-     plus the tray gap it floats above -- so clearing a strip below reads as
+     Stacked above whichever strips are up (a strip's dock is a fixed height
+     plus the tray gap it floats above), so clearing a strip below reads as
      this bar settling down into its place, the way a cleared notification
      lets the ones above it drop, rather than an abrupt jump once the strip's
      own exit finishes. */
@@ -109,8 +108,8 @@ function clear(leaving: Leaving) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Heading style: both the band name and "Cell" capitalise, not just the
-       first word -- capitalize on the <b> alone left "cell" lowercase. */
+    /* Heading style: both the band name and "Cell" capitalise. Capitalize on
+       the <b> alone would leave "cell" lowercase. */
     text-transform: capitalize;
   }
 
@@ -124,12 +123,12 @@ function clear(leaving: Leaving) {
     white-space: nowrap;
   }
 
-  /* Tinted rather than filled.
-     Solid in the cell's own severity colour was the loudest thing in the bar
-     and competed with the map behind it -- on a red cell it read as a warning
-     rather than as a way in. A wash of the same hue behind coloured text keeps
-     it obviously a control, which was the point of making it a button at all,
-     without it shouting. The chevron does most of the work. */
+  /* Tinted, not filled.
+     A solid fill in the cell's own severity colour is the loudest thing in the
+     bar and competes with the map behind it; on a red cell it reads as a
+     warning instead of a way in. A wash of the same hue behind coloured text
+     keeps it obviously a control without it shouting. The chevron does most
+     of the work. */
   .go {
     flex: 0 0 auto;
     display: inline-flex;

@@ -42,9 +42,9 @@ const commonDWDParameters = {
 /**
  * The tile URL for a `RadarFrame`-shaped `{tile_id}` in one bucket.
  *
- * Shared by every network's reflectivity layer -- DWD's and the EUMETNET ones alike
- * hand the client the same `RadarFrame` shape, so this is the one place that
- * turns it into a tile source URL rather than each layer hand-rolling its own.
+ * Shared by every network's reflectivity layer: DWD's and the EUMETNET ones
+ * alike hand the client the same `RadarFrame` shape, so this is the one place
+ * that turns it into a tile source URL.
  * A frame's value tiles are at the same place, under `values.tile_id`.
  */
 export const tileSourceUrl = (bucket: string, tileId: string) =>
@@ -95,14 +95,14 @@ export function setDwdCmap(colorMapString: string) {
  *
  * It is a black wash, so its strength has to follow the basemap: a tenth of
  * black over the light earth (#f6f4f0) is an obvious step down, and the same
- * tenth over the dark one (#1c1f24) is almost nothing -- which left the
- * boundary between "no radar" and "no rain" invisible on exactly the basemap
- * where the distinction matters most, because both read as dark.
+ * tenth over the dark one (#1c1f24) is almost nothing. That left the boundary
+ * between "no radar" and "no rain" invisible on exactly the basemap where the
+ * distinction matters most, because both read as dark.
  *
- * Nearly a quarter in the dark, rather than a tenth. That is a much bigger
- * jump than it looks: against a near-black ground an absolute step of a few
+ * Nearly a quarter in the dark, against a tenth in the light. The jump is
+ * bigger than it looks: against a near-black ground an absolute step of a few
  * levels is a large relative one, and going further turns unsupported regions
- * into holes in the page rather than into quieter map.
+ * into holes in the page instead of quieter map.
  */
 const WASH_LIGHT = "rgba(0, 0, 0, 0.1)";
 const WASH_DARK = "rgba(0, 0, 0, 0.24)";

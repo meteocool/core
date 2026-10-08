@@ -8,20 +8,19 @@ export type Leaving = { x?: number; y?: number; duration: number };
  * A glass panel that swipes aside to show one action under it, the way a
  * notification does on the lock screen.
  *
- * Every bar above the bottom tray -- the rain chart, the dry outlook, the
- * lightning histogram, the coverage notice, the cell hint -- is one of these,
+ * Every bar above the bottom tray (the rain chart, the dry outlook, the
+ * lightning histogram, the coverage notice, the cell hint) is one of these,
  * so they all answer a thumb the same way: a short pull parks the panel at a
  * detent with the action showing, a long one throws it off the edge, and a
- * touch anywhere else closes the detent again. The hint bar used to leave on
- * any pull with no detent and no action, beside strips that had both; same
- * bar, same gesture, different result, which is the kind of thing a thumb
- * notices before an eye does.
+ * touch anywhere else closes the detent again. Two bars that look alike and
+ * answer the same gesture differently are the kind of thing a thumb notices
+ * before an eye does.
  *
  * This is the mechanism, not the slot on the map: the caller positions and
  * sizes it (the dock fills whatever box it is given), and plays the arrival
  * and the exit, because where it stands and how it leaves differ per bar.
- * What is the same -- the pull, the detent, the resistance past it, the
- * commit, the action's glass and its colour -- is here, once.
+ * What is the same (the pull, the detent, the resistance past it, the
+ * commit, the action's glass and its colour) is here, once.
  *
  * `dismiss` carries how the panel should leave: on out past the leading edge
  * when it was swiped, so the caller's exit transition continues the gesture.
@@ -32,7 +31,7 @@ import { pullTo, swipeAway, SWIPE_COMMIT, SWIPE_DETENT } from "../lib/swipeAway"
 /** What the action under the panel says: Hide, Clear. */
 export let action: string;
 /**
- * Whether a tap on the panel itself -- anywhere but its buttons -- raises
+ * Whether a tap on the panel itself (anywhere but its buttons) raises
  * `tap`, the way tapping a notification opens what it is about. Off for the
  * charts, whose taps are reading the plot.
  */
@@ -62,7 +61,7 @@ function onTap(event: MouseEvent) {
   dispatch("tap");
 }
 
-/** Animate to a resting position -- 0, the detent, or off the edge. */
+/** Animate to a resting position: 0, the detent, or off the edge. */
 function settleTo(px: number) {
   settling = true;
   reveal = px;
@@ -125,9 +124,9 @@ const onDown = () => { swiped = false; };
 
 /*
  * The click a swipe ends with goes nowhere. A swipe that starts on a control
- * -- the hint's Details button sits in the middle of the bar -- ends with the
+ * (the hint's Details button sits in the middle of the bar) ends with the
  * browser's click on that control, iOS's included whatever has captured the
- * pointer, so the slide opened the details instead. Caught on the way down,
+ * pointer, so the slide would open the details. Caught on the way down,
  * before the control's own handler.
  */
 function swallowAfterSwipe(event: MouseEvent) {
@@ -142,7 +141,7 @@ function swallowAfterSwipe(event: MouseEvent) {
 <style>
   /* The dock fills its slot and does not move: the panel slides inside it
      and the action is simply what is underneath, so the action needs no
-     animation of its own -- its width is whatever the panel has vacated.
+     animation of its own: its width is whatever the panel has vacated.
      Clipped to the tray radius so the colour follows the same corner. */
   .dock {
     position: absolute;
@@ -150,9 +149,9 @@ function swallowAfterSwipe(event: MouseEvent) {
     border-radius: var(--mc-radius-tray);
     overflow: hidden;
     /* The dock owns every gesture that starts on it, the way a notification
-       does -- which does mean the map cannot be panned from it. There is no
-       splitting it: the dock is a child of <body>, outside the map's
-       viewport, so anything it does not take the map never sees at all. */
+       does, so the map cannot be panned from it. The gestures cannot be
+       split: the dock is a child of <body>, outside the map's viewport, so
+       anything it does not take the map never sees at all. */
     pointer-events: auto;
     touch-action: none;                   /* the swipe owns the horizontal drag */
     user-select: none;                    /* a mouse drag must not select the title */
@@ -166,10 +165,10 @@ function swallowAfterSwipe(event: MouseEvent) {
      of it. Full height, so what the swipe uncovers reads as one panel rather
      than a button floating in a gap.
 
-     The same glass as everything else, tinted rather than filled: a slab of
-     solid red is the one thing on this map that is louder than the weather.
-     The red is carried by the label and a wash over the backdrop, and deepens
-     at the commit rather than turning opaque. */
+     The same glass as everything else, tinted, not filled: a slab of solid
+     red would be louder than the weather on this map. The red is carried by
+     the label and a wash over the backdrop, and deepens at the commit without
+     turning opaque. */
   .action {
     position: absolute;
     top: 0;
@@ -182,8 +181,8 @@ function swallowAfterSwipe(event: MouseEvent) {
     place-items: center;
     overflow: hidden;
     /* The dock clips to the tray radius, but a backdrop-filter escapes an
-       ancestor's *rounded* clip in both WebKit and Chromium -- only the square
-       border box survives, which is what left a hard corner beside the panel.
+       ancestor's *rounded* clip in both WebKit and Chromium: only the square
+       border box survives, which would leave a hard corner beside the panel.
        So the button carries the trailing corners itself. The leading pair stay
        square while the panel is still over them: rounding an edge that another
        rounded edge is sitting against opens a lens of bare map between the
@@ -201,20 +200,20 @@ function swallowAfterSwipe(event: MouseEvent) {
   }
   /* Committed: deeper, but still a veil. A solid slab at full width is a
      bigger event than clearing a chart, and the map going quiet behind it is
-     the signal -- it does not need to disappear. */
+     the signal; it does not need to disappear. */
   .action.committed {
     background: var(--mc-red-veil-strong);
     color: #fff;
   }
-  /* Full width -- on the commit, or on the way out after the action was
+  /* Full width: on the commit, or on the way out after the action was
      tapped. Keyed off the width rather than off `committed`, because the tap
      takes the same path to full width without ever committing. */
   .action.filled {
     border-radius: var(--mc-radius-tray);
   }
   /* The colour shift runs in both states: a commit happens mid-drag, where the
-     width is deliberately not transitioned. Both rules therefore have to spell
-     out the whole shorthand -- the specific one replaces it, not adds to it.
+     width is deliberately not transitioned. Both rules therefore spell out the
+     whole shorthand, since the specific one replaces it instead of adding to it.
      The corners ride along with it, so the leading pair open as the colour
      takes the dock rather than snapping square-to-round on one frame. */
   .action {
@@ -255,7 +254,7 @@ function swallowAfterSwipe(event: MouseEvent) {
     box-sizing: border-box;
     pointer-events: none;
   }
-  /* Only the transform is held back during the drag -- it has to land on the
+  /* Only the transform is held back during the drag: it has to land on the
      frame the finger is on, or the panel trails behind it. The corners are free
      to ease in both states, so both rules spell out the whole shorthand. */
   .panel {
@@ -268,10 +267,9 @@ function swallowAfterSwipe(event: MouseEvent) {
   /* Squared off against the action for as long as one is open, the way a
      grouped row's trailing corners square up on iOS.
 
-     This is the seam the corner artefact actually came from: the panel's curve
-     cuts a wedge out of its own trailing corners, and the action starts at the
-     panel's edge, so the wedge is bare map with the action's straight edge
-     beside it -- a hard corner against a curve. Neither piece can fill it
+     Otherwise the panel's curve cuts a wedge out of its own trailing corners,
+     and the action starts at the panel's edge, so the wedge is bare map with
+     the action's straight edge beside it: a hard corner against a curve. Neither piece can fill it
      (the panel is translucent glass, so an action reaching under it would tint
      the whole edge red), so the curve is the thing to drop. What is left is
      two straight edges meeting, with the dock's own corners carried by the

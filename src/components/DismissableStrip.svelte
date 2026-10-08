@@ -8,7 +8,7 @@
  * Hide action, the close button and the title row. The swipe itself is
  * SwipeDock's, shared with the cell hint bar, so every bar above the tray
  * answers a pull the same way. What goes in the strip is the caller's,
- * through the slot -- including the plot's own insets, which differ per layer
+ * through the slot, including the plot's own insets, which differ per layer
  * and which the caller's scoped CSS reaches because slot content is compiled
  * in the caller's scope.
  *
@@ -51,7 +51,7 @@ export let linkIcon: IconDefinition | null = null;
 export let collapsed = true;
 
 /**
- * Whether a tap on the strip itself -- anywhere but its buttons -- raises
+ * Whether a tap on the strip itself (anywhere but its buttons) raises
  * `tap`, the way tapping a notification opens what it is about. Off for the
  * charts, whose taps are reading the plot.
  */
@@ -86,7 +86,7 @@ function dismiss(leaving: Leaving) {
   /* Over the short bar, from wherever the bar stands: its own
      --mc-collapsed-bottom, which in the iOS app is closer to the edge than the
      safe-area inset (glass.css). Measured from the inset instead, the strip
-     stood 28px above the iOS bar rather than a tray gap. */
+     would stand 28px above the iOS bar instead of a tray gap. */
   .strip-dock.collapsed {
     bottom: calc(var(--mc-collapsed-bottom) + var(--mc-bar-h) + var(--mc-tray-gap));
   }
@@ -102,8 +102,8 @@ function dismiss(leaving: Leaving) {
     color: var(--mc-text-2);              /* the axis ink, read off the canvas */
   }
 
-  /* Its own dismissal affordance for anyone who does not swipe -- and nothing
-     says a strip can be swiped, so it is there for a thumb too. A touch-sized
+  /* Its own dismissal affordance for anyone who does not swipe; nothing says
+     a strip can be swiped, so it is there for a thumb too. A touch-sized
      transparent hit area around a small glyph, tucked into the panel's corner radius;
      tighter where there is a cursor to find it with, so it does not crowd the
      title row. */
@@ -163,7 +163,7 @@ function dismiss(leaving: Leaving) {
 
   /* Set the way the system sets a title: primary ink at full weight, in the
      text's own case with the slight negative tracking SF Pro display sizes
-     take -- not the small tracked caps of an older grouped-table header. */
+     take, instead of the small tracked caps of an older grouped-table header. */
   .strip-title {
     /* The one thing that gives way when the row is tight: the link is short,
        fixed, and useless truncated, whereas a clipped place name still reads. */
@@ -177,11 +177,10 @@ function dismiss(leaving: Leaving) {
     text-overflow: ellipsis;
   }
 
-  /* The action, set as a tinted chip rather than as bare accent-coloured text.
-     Flat text in a title row reads as a subtitle -- especially here, where the
-     thing beside it is a place name and "My Location" looks like more of the
-     same. The chip gives it an edge, a press state and a hit area, which is
-     what says it is a control. */
+  /* The action, set as a tinted chip. Bare accent-coloured text in a title row
+     reads as a subtitle, especially here, where the thing beside it is a place
+     name and "My Location" looks like more of the same. The chip gives it an
+     edge, a press state and a hit area, which says it is a control. */
   .strip-link {
     flex: 0 0 auto;
     display: inline-flex;
@@ -202,7 +201,7 @@ function dismiss(leaving: Leaving) {
                 opacity var(--mc-motion-fast) var(--mc-ease);
   }
   /* Dropped whole where color-mix is not understood, which leaves the resting
-     tint -- a chip that does not brighten still works. */
+     tint; a chip that does not brighten still works. */
   .strip-link:hover {
     background: color-mix(in srgb, var(--mc-accent) 26%, transparent);
   }

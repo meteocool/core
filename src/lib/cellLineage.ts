@@ -3,17 +3,17 @@ import type { CellTrackProperties } from "../api";
 /**
  * A storm's family: what it split from, what it merged with, what it became.
  *
- * DWD's tracker records both directions -- `parent_codes` and `child_codes` --
+ * DWD's tracker records both directions (`parent_codes` and `child_codes`),
  * and the two agree, so the family is a DAG rather than a tree: a cell can
  * have several parents (a merge) and several children (a split), and the same
  * lineage can do both within an hour. In one sampled run the largest family
  * was seven cells over three generations with a merge and a split in it.
  *
  * Two thirds of what this has to handle is a single cell with no relatives at
- * all -- 145 of 200 tracks in that run -- so the caller checks for that and
+ * all (145 of 200 tracks in that run), so the caller checks for that and
  * draws nothing. It is the severe ones that have families: 8% of weak cells
- * carried lineage edges against 72% of the strong ones, which is the argument
- * for the chart existing at all.
+ * carried lineage edges against 72% of the strong ones, which is why the
+ * chart exists.
  *
  * Assembly is here, free of both OpenLayers and the layout library, because
  * the fiddly parts are graph bookkeeping rather than drawing: an edge is
@@ -50,7 +50,7 @@ export const EMPTY_LINEAGE: Lineage = { nodes: [], edges: [] };
 /**
  * As far as the walk will go.
  *
- * Nothing observed comes close -- the largest family seen was seven -- but
+ * Nothing observed comes close (the largest family seen was seven), but
  * this walks a graph built from an upstream identifier that is documented as
  * being reused across unrelated cells, and a chart is not the place to find
  * out what that does to a traversal.
@@ -142,7 +142,7 @@ export function buildLineage(
    *
    * The tie-break is not cosmetic. `reachable` walks outwards from whichever
    * cell is open, so it returns the same family in a different order depending
-   * on which node you are standing on -- and a family really does contain
+   * on which node you are standing on, and a family does contain
    * cells that start in the same minute, two of them reading 16:45 in the run
    * this was built against. Sorting on the timestamp alone leaves those two in
    * traversal order, which the layout then reflects: walk to a relative and
@@ -186,7 +186,7 @@ export function nodeRole(lineage: Lineage, code: string): "split" | "merge" | ""
  *
  * The chart is laid out by `dagre`, which ranks nodes by depth in the graph
  * and knows nothing about when anything happened. That is fine for deciding
- * which node goes beside which -- and wrong for the time axis, because a rank
+ * which node goes beside which, and wrong for the time axis, because a rank
  * is not a time: in one real family the first rank held a cell from 16:10 and
  * one from 15:35, so labelling ranks with clock times would have been
  * inventing a reading the layout could not support.
@@ -195,11 +195,11 @@ export function nodeRole(lineage: Lineage, code: string): "split" | "merge" | ""
  * handed back to the layout, which keeps only dagre's answer for the other
  * axis. Proportional to elapsed time, with a floor: cells five minutes apart
  * would otherwise be drawn closer together than a node is wide, and the two
- * 16:45 cells in that same family -- one the parent of the other -- would land
+ * 16:45 cells in that same family (one the parent of the other) would land
  * exactly on top of each other.
  *
- * Where the floor bites, the spacing understates the gap. That is visible
- * rather than hidden: every position carries its own clock label on the axis,
+ * Where the floor bites, the spacing understates the gap, but visibly: every
+ * position carries its own clock label on the axis,
  * so a reader who cares about the exact interval reads it off rather than
  * measuring it, and the one thing the position always gets right is the order.
  *

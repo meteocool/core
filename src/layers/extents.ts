@@ -16,9 +16,9 @@ export const centralEuropeExtent = transformExtent(
 /**
  * Where live radar exists at all.
  *
- * The bounds of the DWD composite's tile pyramid -- the radar layer already
- * clips itself to exactly this, so it is the honest answer to "is there radar
- * here", and it lives here now rather than being written out twice in dwd.ts.
+ * The bounds of the DWD composite's tile pyramid. The radar layer clips itself
+ * to exactly this, so it is the honest answer to "is there radar here", and
+ * dwd.ts reads it from here instead of writing it out twice.
  *
  * Rectangular on purpose. The real coverage is the shape radarCoverageInv
  * masks, which is smaller; a viewport inside this box but outside that shape
@@ -32,7 +32,7 @@ export const dwdRadarExtent = transformExtent(dwdRadarExtent4326, "EPSG:4326", "
 /**
  * Where the Swiss reflectivity composite exists at all.
  *
- * Matches `openradar.SWITZERLAND.bbox` on the backend exactly -- the grid
+ * Matches `openradar.SWITZERLAND.bbox` on the backend exactly: the grid
  * that composite builds and this extent clips to are the same rectangle, so
  * moving one without the other would either clip real tiles or claim
  * coverage the composite never renders.
@@ -71,15 +71,15 @@ export const plRadarExtent = transformExtent(plRadarExtent4326, "EPSG:4326", "EP
  * DWD's part is its published outline, which measures as a union of 150 km
  * circles around its seventeen sites. MeteoSwiss's is 246 km circles around
  * its five, Meteo-France's 256 km around its twenty-three, CHMI's 260 km
- * around its two and IMGW's 250 km around its ten -- each the range the
+ * around its two and IMGW's 250 km around its ten; each is the range the
  * network's own files carry as `nbins * rscale` on their lowest tilt.
  *
- * **Merged rather than one hole per network.** The shapes overlap, and
- * overlapping interior rings do not punch several holes: under the nonzero
- * winding rule the overlap counts back to filled, so exactly the ground
- * covered twice would have been shaded as having none.
+ * The networks are merged into one hole instead of one hole each. The shapes
+ * overlap, and overlapping interior rings do not punch several holes: under
+ * the nonzero winding rule the overlap counts back to filled, so exactly the
+ * ground covered twice would have been shaded as having none.
  *
- * Generated offline with shapely, simplified to 200 m -- far under a pixel at
+ * Generated offline with shapely, simplified to 200 m, far under a pixel at
  * the zooms this is drawn at. Regenerate the same way if any network moves.
  */
 export const radarCoverageInv = fromExtent(
@@ -787,15 +787,15 @@ radarCoverageInv.appendLinearRing(
  *   - Elsewhere the first network by priority that reaches wins: DWD, then
  *     MeteoSwiss, then Meteo-France, then CHMI, then IMGW.
  *
- * The EUMETNET layers are canvas tile layers clipped to their `*ExclusiveCoverage`
- * (`network.ts`). DWD's are WebGL and cannot be clipped, so the other
- * networks' borders are erased from its observation tiles instead
- * (`networkHoles.ts`). Every ring is wound so the nonzero rule treats holes as
- * holes, in EPSG:3857, the projection the map renders in.
+ * Every layer is WebGL and cannot be clipped, so the cuts are made in the
+ * tile images: each EUMETNET layer's tiles are cut to its `*ExclusiveCoverage`
+ * (`network.ts`), and the other networks' borders are erased from DWD's
+ * observation tiles (`networkHoles.ts`). Every ring is wound so the nonzero
+ * rule treats holes as holes, in EPSG:3857, the projection the map renders in.
  *
  * The shapes are the server's: meteocool/ng decides by them which domain a
- * point belongs to -- a phone's alerts, once there is more than DWD's
- * forecast -- and serves them at `/v3/radar/coverage` (its ADR 0012).
+ * point belongs to (a phone's alerts, once there is more than DWD's
+ * forecast) and serves them at `/v3/radar/coverage` (its ADR 0012).
  * `spec/coverage.json` is that document, copied here as `spec/`'s API
  * schemas are, so the map and the server draw the same lines.
  */
@@ -815,7 +815,7 @@ export const plExclusiveCoverage: Rings = coverage.domains.pl.exclusive;
 /** Switzerland itself, as a hole in DWD's observation tiles. */
 export const chBorders: Rings = coverage.domains.ch.dwd_hole;
 /**
- * France, as a hole in DWD's observation tiles -- only the part DWD's tiles can
+ * France, as a hole in DWD's observation tiles: only the part DWD's tiles can
  * carry data over at all (its outline, widened by 30 km), since erasing the
  * rest of France from them would cost thousands of vertices and erase nothing.
  */

@@ -19,8 +19,8 @@ import type WebGLTileLayer from "ol/layer/WebGLTile";
  * band 1 and colours it on the GPU, so a palette change is a style change,
  * not a reload.
  *
- * The frame's tile index gates every request (lib/tileIndex.ts), and past a
- * frame's deepest zoom a tile is cut out of its ancestor's. Two cuts make
+ * Every request is checked against the frame's tile index (lib/tileIndex.ts),
+ * and past a frame's deepest zoom a tile is cut out of its ancestor's. Two cuts make
  * exactly one radar colour any pixel, as WebGL layers cannot be clipped:
  * DWD's tiles have the EUMETNET networks' countries erased on the steps
  * those have frames for (`setHoles`), and each network's are kept to the
@@ -148,10 +148,10 @@ export default class ValueTileSource extends DataTileSource {
    * Which frames to cut which networks out of.
    *
    * `showing` is the URL the caller is about to put on screen, when it is not
-   * the one there now. Re-deciding for the frame being left -- which is what
-   * happened on every new observation while following live -- gave that frame
-   * a fresh key for the instant before the newest replaced it, and a
-   * viewport of its tiles was requested to be thrown away.
+   * the one there now. Re-deciding for the frame being left (which happened
+   * on every new observation while following live) gave that frame a fresh
+   * key for the instant before the newest replaced it, and a viewport of its
+   * tiles was requested only to be thrown away.
    */
   setHoles(holes: Map<string, NetworkCode[]>, showing: string = this.url): void {
     const next = holesSignature(holes);
@@ -189,8 +189,8 @@ let forgetting = 0;
  * Let every value layer drop the tiles of every frame but the one it shows.
  *
  * Playback keeps each step's tiles, so a loop never fetches or decodes them
- * twice -- up to 512 tiles a layer, for DWD and every network, most of the
- * radar's memory. Once the player is closed nothing steps through them any
+ * twice. That is up to 512 tiles a layer, for DWD and every network, and most
+ * of the radar's memory. Once the player is closed nothing steps through them any
  * more. Each layer lets them go the next time its own frame is fully drawn,
  * which is after the switch back to the newest: dropped at once, they could
  * not stand in while it loads, and the radar would blink empty.
@@ -212,7 +212,7 @@ interface FrameCache {
 /**
  * Let an older frame stand in only while the frame on screen loads.
  *
- * When a source changes key -- a new frame, a step of playback -- OpenLayers
+ * When a source changes key (a new frame, a step of playback), OpenLayers
  * draws a tile it has not loaded yet from the same tile of an earlier key, so
  * the radar never flashes empty between frames. It keeps that up for half the
  * layer's cache in keys, which for these layers is hundreds of frames, and it

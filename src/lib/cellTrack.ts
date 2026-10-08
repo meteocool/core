@@ -8,13 +8,13 @@ import type { CellStep, CellTrack } from "../api";
  * is DWD's cell number, which is reused, so a stale detection occasionally
  * ends up glued to an unrelated new cell. Everything the UI reads off a track
  * is derived from its series, so the cut has to be applied to all of it at
- * once -- the drawn path, the history plot, the age in the popup -- or the
- * line stops lying while the numbers beside it carry on.
+ * once (the drawn path, the history plot, the age in the popup), or the line
+ * stops lying while the numbers beside it carry on.
  *
  * The maxima are recomputed rather than trusted: the backend took them over
  * the glued history, so a storm can inherit the peak reflectivity of one it
- * never had anything to do with. `first_seen` likewise -- one of these in a
- * real run claimed forty minutes of age that belonged to another cell.
+ * never had anything to do with. `first_seen` too: one of these in a real
+ * run claimed forty minutes of age that belonged to another cell.
  *
  * The lineage flags are left as they came. A `hail_ever` inherited across a
  * bad join is a false positive and this could clear it, but the flags carry

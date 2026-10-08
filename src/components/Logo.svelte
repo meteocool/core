@@ -37,7 +37,7 @@ function goToMainMap() {
 /*
  * The maps a reader may not know how to leave: neither has the radar's tray
  * or player to say where they are. Under the logo, as the logo is what the
- * hint is about -- so only where there is a logo, which $logoStyle already
+ * hint is about, so only where there is a logo, which $logoStyle already
  * decides (not in the apps, not in a screenshot).
  */
 $: hinted = $sharedActiveCap === "precipTypes" || $sharedActiveCap === "lightning";
@@ -52,7 +52,7 @@ function toggleSettings() {
 <style>
   /* Top-left glass capsule, on the same top line as the Live pill and the
      switcher disc, and the same 44px height as that disc. The material itself
-     comes from .glass/.glass-pill in src/glass.css -- this is shape, layout and
+     comes from .glass/.glass-pill in src/glass.css; this is shape, layout and
      the press response.
 
      The capsule is one control with one job: it goes back to the main map.
@@ -81,14 +81,14 @@ function toggleSettings() {
       color var(--mc-motion-fast),
       transform var(--mc-motion-fast) var(--mc-ease);
   }
-  /* The discs' hover: the fill strengthens and the ink goes accent -- here
-     the wordmark, there the glyph. */
+  /* The discs' hover: the fill strengthens and the ink goes accent (here
+     the wordmark, there the glyph). */
   .logo-pill:hover { background: var(--mc-glass-fill-strong); color: var(--mc-accent); }
   .logo-pill:active { transform: scale(var(--mc-press)); }
   .logo-pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
 
   /* Settings, beside it: a disc like the switcher's on the right. Only the
-     web gets one -- in the apps these settings live in the native settings
+     web gets one: in the apps these settings live in the native settings
      screen, which pushes them in through window.settings.injectSettings(). */
   .settings-disc {
     box-sizing: border-box;

@@ -4,16 +4,16 @@
  * Three jobs:
  *
  * - on load, put the page in the state its link describes. What is known
- *   before anything is built -- which map, where, which overlays -- goes in
- *   through App.svelte and LayerManager at construction; what needs data -- a
- *   storm, its slice, a frame of the player -- is restored here once it can be;
+ *   before anything is built (which map, where, which overlays) goes in
+ *   through App.svelte and LayerManager at construction; what needs data (a
+ *   storm, its slice, a frame of the player) is restored here once it can be;
  * - while the page runs, keep the URL describing what is on screen, so the
  *   address bar, and the share sheet that shares it, always hold a link back;
  * - on Back and Forward, restore whatever the entry describes.
  *
  * What goes into a link, and what deliberately stays out of it, is
- * lib/deepLink.ts. Presentation -- basemap, colours, dark mode, units -- is
- * the receiver's own and is never written.
+ * lib/deepLink.ts. Presentation (basemap, colours, dark mode, units) is the
+ * receiver's own and is never written.
  *
  * The writing is web only. The apps' webviews have no address bar, and on
  * Android the history is what the hardware Back button walks: entries pushed
@@ -242,7 +242,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
    * Whether the next write is the page catching up with a state it was put
    * in, rather than the reader doing something: the first write after load,
    * and the first after Back. Those replace the entry they describe. A push
-   * there would stack a copy of the entry on itself -- and after Back, throw
+   * there would stack a copy of the entry on itself and, after Back, throw
    * away every entry Forward could have gone to.
    */
   let settling = true;
@@ -357,8 +357,8 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
   /**
    * Put the page in the state `link` describes.
    *
-   * On load the map, the view and the overlays are already in place -- they
-   * were read at construction -- so only what needs data is left. From the
+   * On load the map, the view and the overlays are already in place (they
+   * were read at construction), so only what needs data is left. From the
    * history everything is applied, the view first, so a switch to the 3D map
    * builds its camera where the entry was.
    */
@@ -378,7 +378,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
         lm.setTarget(link.layer, MAP_TARGET);
       }
       // An entry the page wrote itself leaves the overlays out when all of
-      // them are on, so on the way back that is what their absence means --
+      // them are on, so on the way back that is what their absence means,
       // not "whatever the reader has", which is only true of a link someone
       // else wrote. Held rather than stored, like a link's: Back is not the
       // reader choosing.
@@ -410,7 +410,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
 
     if (layer === "radar") {
       // Only when it moves. The strip shows its loading state on every write
-      // to the point and clears it when the next grid lands -- and the radar
+      // to the point and clears it when the next grid lands, and the radar
       // does not refetch for a point it already has, so the same point written
       // again left the strip loading for good.
       const point = link.point ?? null;
@@ -429,7 +429,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
     timer = null;
     // A restore in flight means the page has not caught up with its own URL
     // yet: written now, the link would lose the storm it is still fetching,
-    // and the difference would read as the reader closing it -- a push.
+    // and the difference would read as the reader closing it: a push.
     if (!writes || pending > 0) return;
     const state = currentState();
     if (!state) return;

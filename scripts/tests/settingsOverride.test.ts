@@ -6,7 +6,7 @@ import test from "node:test";
  *
  * The trap this guards is the stores that mirror a setting: App.svelte writes
  * every change of `lightningLayerVisible` back through `settings.set`, so the
- * moment a link switches lightning off, the store echoes that straight back --
+ * moment a link switches lightning off, the store echoes that straight back,
  * and a naive override would then store it, and the reader's own preference
  * would be gone the next time they opened the site without the link.
  */
@@ -100,7 +100,7 @@ test("screenshot mode is read off the address, and nothing it does is stored", (
 /**
  * A widget's picture in the reader's basemap and palette. A renderer reuses
  * its browser, so whatever one picture stored would be the next one's
- * default -- and a notification's map would come out in someone's dark mode.
+ * default, and a notification's map would come out in someone's dark mode.
  */
 test("a picture's basemap and palette drive the settings without being stored", () => {
   store.clear();

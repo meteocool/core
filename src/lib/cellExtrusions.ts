@@ -32,8 +32,8 @@ const MIN_SCALE = 0.02;
  *
  * MapLibre's tiler is forgiving about the exterior but not about the hole: a
  * hole wound the same way as its exterior is triangulated as part of the fill,
- * and the ring comes out solid -- which looks exactly like the model having no
- * core in it, rather than like a winding bug.
+ * and the ring comes out solid, which looks like the model having no core in
+ * it, not like a winding bug.
  */
 function wind(ring: [number, number][], counterClockwise: boolean): [number, number][] {
   const positive = shoelace(ring) > 0;
@@ -41,7 +41,7 @@ function wind(ring: [number, number][], counterClockwise: boolean): [number, num
 }
 
 /**
- * A measured ring, resized to the area this band actually has.
+ * A measured ring, resized to the area this band has.
  *
  * The shape is measured at the ground; the area at this height comes from the
  * volume profile. Each ring is scaled about *its own* centroid rather than the
@@ -90,9 +90,8 @@ function ringFeatures(
   const outer = wind(scaleRing(model.outline, model.centre, ring.outer ** 2), true);
   const coordinates = [closeRing(outer)];
   if (coreShapes?.length) {
-    // The glass is cut to the core's real shape, which is the whole point: the
-    // hole is where the reader sees that the core is not a lozenge in the
-    // middle. Several holes are fine; GeoJSON allows any number of them.
+    // The glass is cut to the core's real shape: the hole is where the reader
+    // sees that the core is not a lozenge in the middle. Several holes are fine; GeoJSON allows any number of them.
     coreShapes.forEach((shape) => coordinates.push(closeRing(wind(shape, false))));
   } else if (ring.inner >= MIN_SCALE && ring.inner < ring.outer) {
     coordinates.push(closeRing(wind(scaleRing(model.outline, model.centre, ring.inner ** 2), false)));
@@ -111,12 +110,12 @@ function feature(
   return {
     type: "Feature",
     // No `id`. MapLibre 6 encodes a GeoJSON source's tiles as MVT in its
-    // worker, and MVT feature ids are uint64 varints -- so the writer coerces
+    // worker, and MVT feature ids are uint64 varints, so the writer coerces
     // whatever is here to a number. A KONRAD3D code is 22 digits, about 2e21,
     // which overflows: every tile of the source throws "Given varint doesn't
     // fit into 10 bytes", the source is marked errored, and not one ring is
     // drawn. It fails as an `error` event with nothing on the console, so the
-    // map simply comes up empty. The code travels in `properties` instead,
+    // map comes up empty. The code travels in `properties` instead,
     // which is where everything reads it anyway.
     geometry: { type: "Polygon", coordinates },
     properties: {
@@ -164,7 +163,7 @@ export function footprintCollection(
       .filter((cell) => cell.polygon && cell.polygon.length >= 3)
       .map((cell) => ({
         type: "Feature" as const,
-        // No `id`, for the reason spelled out in `ringFeature` above: a
+        // No `id`, for the reason spelled out in `feature` above: a
         // 22-digit code does not fit the uint64 varint MapLibre writes it as.
         geometry: {
           type: "Polygon" as const,

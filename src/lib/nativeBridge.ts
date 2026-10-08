@@ -2,9 +2,9 @@
  * The interface the native apps drive the web app through.
  *
  * These globals are a public API: shipped iOS and Android builds call them by
- * name, so a rename here breaks installs already in the wild. Declaring them
- * in one place replaces the `(window as any)` casts that used to hide the
- * contract, and makes it checkable.
+ * name, so a rename here breaks installs already in the wild. Declared in one
+ * place, the contract is type-checked instead of hidden behind
+ * `(window as any)` casts.
  *
  * Callers, for reference:
  *   ios/meteocool/ViewController.swift, lib/WebSettings.swift
@@ -79,7 +79,7 @@ declare global {
     /**
      * Called by iOS when the app leaves the foreground. Defined inside
      * NowcastPlayback's onMount, so it does not exist until that component
-     * mounts -- an early call from the host is a no-op.
+     * mounts; an early call from the host is a no-op.
      */
     leaveForeground?: () => void;
 

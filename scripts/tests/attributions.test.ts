@@ -7,7 +7,7 @@ import {
 } from "../../src/layers/attributions.ts";
 
 /**
- * The corner's credits read base map, data, imprint -- whatever order the
+ * The corner's credits read base map, data, imprint, whatever order the
  * layers that carry them were added to the map in.
  */
 

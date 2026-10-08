@@ -13,32 +13,32 @@ import type { CellTrackProperties, RadarVolume } from "./api";
 export const bottomToolbarMode = writable<"collapsed" | "player" | "hidden">("collapsed");
 /**
  * How many DismissableStrips (the radar/lightning strip above the toolbar)
- * are currently mounted -- each is a fixed 104px tall. CellSelectionHint reads
- * this to stack itself above them instead of on top of them: both float at
- * roughly the same height above the toolbar on their own, so without this they
- * land on each other rather than in a notification-style stack.
+ * are currently mounted; each is a fixed 104px tall. CellSelectionHint reads
+ * this to stack itself above them: both float at roughly the same height above
+ * the toolbar on their own, so without this they land on each other instead of
+ * forming a notification-style stack.
  */
 export const openStripCount = writable(0);
 export const capDescription = writable<string>("Meteorology for everyone");
 export const capLastUpdated = writable<Date | null>(null);
 /**
  * The frame on screen, and the newest observation the radar grid holds, as the
- * same unix-second steps the grid keys them by -- or 0 before any grid has
+ * same unix-second steps the grid keys them by, or 0 before any grid has
  * arrived.
  *
  * The pair answers "is the map showing now?", which `live` cannot: that one is
  * cleared at the start of every grid refetch and set again when the grid lands,
  * so anything keyed to it blinks once every few minutes. These two only move
- * when a frame actually changes, and both being 0 means there is no player to
- * be off the live edge of rather than that we are.
+ * when a frame changes, and both being 0 means there is no player yet, not
+ * that the player is off the live edge.
  *
- * Held in one store and published through `setFrames` rather than written
+ * Held in one store and published through `setFrames` instead of written
  * separately, because a live grid refresh moves both halves at once and a
  * reader of the pair must never see half the move. As two stores it did: the
  * new observation landed while the indicator was still on the previous frame,
  * and for that one tick the map read as parked behind the live edge. That is
  * all the cell layer's gate in App.svelte needs to hide itself and drop the
- * selection with it -- so the storm detail panel closed itself every few
+ * selection with it, so the storm detail panel closed itself every few
  * minutes, under a reader who was in the middle of using it.
  */
 const capFrames = writable<{ shown: number; newest: number }>({ shown: 0, newest: 0 });
@@ -75,7 +75,7 @@ export const inspectLatLon = writable<[number, number] | null>(null);
 /**
  * Whether the radar has nothing for the client's own position: no echo at it
  * in any step of the grid, the two hours behind or the nowcast ahead. The
- * forecast strip's `hasPrecipitation` turned around -- the strip shows when
+ * forecast strip's `hasPrecipitation` turned around: the strip shows when
  * there is rain to plot, and this is the moment it has nothing to say.
  *
  * Only ever answered from a grid sampled at `latLon`, never one sampled at a
@@ -85,13 +85,13 @@ export const inspectLatLon = writable<[number, number] | null>(null);
 export const dryAtUser = writable<boolean>(false);
 /**
  * A point the map was held down on, as [lat, lon], while the choice of what
- * to ask about it is up -- the precipitation there, or the forecast. Null
+ * to ask about it is up (the precipitation there, or the forecast). Null
  * when no choice is being offered. See PointMenu.
  */
 export const pointMenuAt = writable<[number, number] | null>(null);
 /**
  * Where the model comparison is open for, or null when it is shut. A store
- * rather than one component's state: the dry-weather strip over the tray opens
+ * instead of one component's state: the dry-weather strip over the tray opens
  * it, on the range it was showing, and so does a long press on the map. Open
  * it through `openModelCompare` in lib/modelCompare.ts.
  */
@@ -99,8 +99,8 @@ export const modelCompareAt = writable<{ lat: number; lon: number; hours?: numbe
 /**
  * Bumped on every tap on the map, whichever layer is showing. Separate from
  * inspectLatLon because a tap means "I am asking about the map" to strips that
- * have nothing to do with a point -- the lightning histogram covers the whole
- * viewport -- while only the radar strip wants the coordinate and the marker.
+ * have nothing to do with a point (the lightning histogram covers the whole
+ * viewport), while only the radar strip wants the coordinate and the marker.
  */
 export const mapTapped = writable<number>(0);
 /**
@@ -125,8 +125,8 @@ export interface MapView {
 /**
  * The camera of whichever map is showing, published when it comes to rest.
  *
- * Both kinds of map write it -- LayerManager for the OpenLayers ones, the 3D
- * capability for MapLibre -- so the one reader, the URL (lib/urlState.ts),
+ * Both kinds of map write it (LayerManager for the OpenLayers ones, the 3D
+ * capability for MapLibre), so the one reader, the URL (lib/urlState.ts),
  * does not have to know which is on screen or reach into either. Null until
  * the first map has settled.
  */
@@ -141,10 +141,10 @@ export const apiHealth = writable<ApiHealth>(EMPTY_HEALTH);
  *
  * Failed calls are only one of those criteria; what the whole set is lives in
  * lib/degraded.ts, and this store is written from there by lib/degradedStatus.ts
- * on a timer. The timer is the point: every criterion is self-clearing, but
- * only if something keeps asking, and before this the pill re-evaluated when
- * apiHealth happened to change -- so a state nothing was touching any more
- * could sit on the map indefinitely.
+ * on a timer. Every criterion clears itself, but only if something keeps
+ * asking. Before the timer the pill re-evaluated only when apiHealth happened
+ * to change, so a state nothing was touching any more could sit on the map
+ * indefinitely.
  */
 export const degradedStatus = writable<DegradedState>(NOT_DEGRADED);
 
@@ -155,8 +155,8 @@ export const degradedStatus = writable<DegradedState>(NOT_DEGRADED);
 export const reachability = writable<Reachability>(REACHABLE);
 
 /**
- * Where the connection's state machine is -- online, degraded, offline or
- * catching up -- and since when. The machine is lib/connectionState.ts, and
+ * Where the connection's state machine is (online, degraded, offline or
+ * catching up), and since when. The machine is lib/connectionState.ts, and
  * lib/connectionStatus.ts runs it; the pill and the diagnostics read this.
  */
 export const connectionStatus = writable<Connection>(INITIAL_CONNECTION);
@@ -180,8 +180,8 @@ export const radarCadence = writable<Cadence>(EMPTY_CADENCE);
  */
 export const radarStale = writable<boolean>(false);
 /**
- * Whether the backend is replaying a recorded storm rather than serving live
- * weather -- the demo environment always is. Replay rewrites every timestamp
+ * Whether the backend is replaying a recorded storm instead of serving live
+ * weather, as the demo environment always is. Replay rewrites every timestamp
  * to the present, so nothing on the map can tell; the backend says so on the
  * radar timeseries, and the top pill says "Demo" where it would say "Latest".
  */
@@ -197,19 +197,19 @@ export const cellLayerVisible = writable<boolean>(true);
 /**
  * Whether the 3D map draws KONRAD3D's cells as extruded tiers. Off unless the
  * reader turns it on: the radar volumes are the storms there, and the cells
- * land minutes after the radar under them -- see lib/scans.ts.
+ * land minutes after the radar under them (see lib/scans.ts).
  */
 export const cells3dVisible = writable<boolean>(false);
 /**
- * Whether the 3D map stands on the ground's relief -- elevation at true scale,
- * and a faint hillshade -- or on a flat sea-level plane. On unless the reader
+ * Whether the 3D map stands on the ground's relief (elevation at true scale,
+ * and a faint hillshade) or on a flat sea-level plane. On unless the reader
  * turns it off (since 2026-10-01): the storms stand on z = 0 and are stretched
  * with the ground, so over the Alps they read only with the mountains under them.
  */
 export const terrain3dVisible = writable<boolean>(true);
 /**
  * Whether a phone or tablet draws the 3D map at its screen's full pixel
- * ratio rather than at 2x at most (lib/gpuBudget.ts). Off unless the reader
+ * ratio instead of at 2x at most (lib/gpuBudget.ts). Off unless the reader
  * turns it on: a phone's 3x is 2.25 times the pixels, and the memory that
  * costs is what made the 3D map crash on iPhones.
  */
@@ -244,15 +244,14 @@ export const cloudsTime = writable<CloudsTime>({ shown: null, loading: null, pro
  * Which product the radar map's observed frames are drawn from, as the reader
  * picked it in the tray: HX with the networks around it, the merged
  * composite, the column maximum of every network, or DMAX; see
- * lib/observedProduct.ts. Mirrors the `radarProduct`
- * setting.
+ * lib/observedProduct.ts. Mirrors the `radarProduct` setting.
  */
 export const observedProduct = writable<ObservedProduct>(DEFAULT_PRODUCT);
 /**
- * What the radar map does with that choice, for the picker: what it draws --
- * the choice, or the default while the choice falls behind -- and how old
- * each product's newest scan is, and the range of scans its picture is made
- * of (`scanRange`), which the picker shows. Published by RadarCapability.
+ * What the radar map does with that choice, for the picker: what it draws
+ * (the choice, or the default while the choice falls behind), how old each
+ * product's newest scan is, and the range of scans its picture is made of
+ * (`scanRange`), which the picker shows. Published by RadarCapability.
  */
 export const radarProducts = writable<{
   chosen: ObservedProduct;
@@ -269,7 +268,7 @@ export const radarProducts = writable<{
  * Whether the 3D map is still being brought up for the first time.
  *
  * MapLibre is fetched on first use, then compiles its shaders, parses the
- * style and pulls the basemap, radar and storm volumes -- several seconds on
+ * style and pulls the basemap, radar and storm volumes: several seconds on
  * a phone, with the main thread pegged for much of it. Set by
  * Cells3DCapability from the switch to that map until its first settled
  * frame; App draws a glass veil over the map while it is true, so the
@@ -280,8 +279,8 @@ export const cells3dLoading = writable<boolean>(false);
  * Whether bringing the 3D map up failed: MapLibre itself could not be
  * fetched, which is the first open of the 3D map on a network that is down,
  * or a tab that has outlived the deploy whose chunks it was asking for. The
- * veil says so, with a way to try again, rather than spinning over a blank
- * map for as long as anyone looks at it.
+ * veil says so and offers a way to try again, instead of spinning over a
+ * blank map for as long as anyone looks at it.
  */
 export const cells3dFailed = writable<boolean>(false);
 /** The cell the detail popup is showing, or null when it is closed. */
@@ -290,11 +289,11 @@ export const selectedCell = writable<CellTrackProperties | null>(null);
  * How far the cutaway's slice is turned away from the storm's own track, in
  * degrees clockwise.
  *
- * Relative to the track rather than to north, because the track is what makes
+ * Relative to the track instead of to north, because the track is what makes
  * a cut meaningful: along it is where an overhang shows, across it is where
  * the storm's width does. Zero is the along-track cut every storm opens with.
  * One value shared by the panel and the 3D map, so turning the slice in one
- * turns it in both -- two views of one storm cut two different ways would be
+ * turns it in both. Two views of one storm cut two different ways would be
  * two different claims about it.
  */
 export const cutRotationDeg = writable<number>(0);
@@ -303,7 +302,7 @@ export const cutRotationDeg = writable<number>(0);
  *
  * Apart from it because it changes every frame and is nobody's choice: the
  * angle a reader set belongs in a link, a moment of an idle sweep does not,
- * and the URL is written from `cutRotationDeg` at most four times a second --
+ * and the URL is written from `cutRotationDeg` at most four times a second,
  * a rate Safari starts refusing if it goes on. See `lib/cutSweep.ts`.
  */
 export const cutSweepDeg = writable<number>(0);
@@ -312,8 +311,8 @@ export const cutSweepDeg = writable<number>(0);
  *
  * Most clouds with a volume are showers KONRAD3D never reports, so there is no
  * history to show and no track for `selectedCell` to hold; this is what they
- * are selected as instead. The two are exclusive -- opening one closes the
- * other -- because there is one cutaway on screen at a time.
+ * are selected as instead. The two are exclusive (opening one closes the
+ * other) because there is one cutaway on screen at a time.
  */
 export const selectedVolume = writable<RadarVolume | null>(null);
 
@@ -331,10 +330,10 @@ export const cellDetails = writable<boolean>(false);
  * Whether the viewport is phone-sized, at the 620px the stylesheets already
  * use for it.
  *
- * A store rather than a call, because this decides what is rendered and not
- * just how it is painted: a component that read `window.innerWidth` once would
+ * A store instead of a call, because this decides what is rendered as well as
+ * how it is painted: a component that read `window.innerWidth` once would
  * keep whatever the page loaded at through a rotation or a resized window.
- * Readable rather than writable so the media query stays the only writer.
+ * Readable, not writable, so the media query stays the only writer.
  */
 export const smallScreen = readable(
   typeof window !== "undefined" && window.matchMedia("(max-width: 620px)").matches,
@@ -367,7 +366,7 @@ export const frameRequest = writable<number | "live" | null>(null);
 
 /**
  * Whether the player is animating. The URL leaves the frame out while it is,
- * rather than rewriting the address bar twice a second.
+ * so the address bar is not rewritten twice a second.
  */
 export const playbackRunning = writable<boolean>(false);
 export const unit = writable<string>("pictogram");
@@ -385,14 +384,13 @@ export const tileCachePending = writable<number | Date>(0);
 /**
  * Connection state, as the browser reports it.
  *
- * `isSlow` is a hint, not a measurement: it comes from the Network Information
- * API, which Safari does not implement, so it stays false there rather than
- * pretending to know.
+ * `isSlow` is a hint: it comes from the Network Information API, which Safari
+ * does not implement, so it stays false there.
  *
- * The shape lives here rather than beside the code that fills it in
- * (src/lib/networkStatus.ts), because that module imports this one -- defining
- * the initial value there too makes the cycle a real one and the store reads as
- * undefined at load.
+ * The shape lives here instead of beside the code that fills it in
+ * (src/lib/networkStatus.ts), because that module imports this one. Defining
+ * the initial value there too makes the cycle a real one, and the store reads
+ * as undefined at load.
  */
 export interface NetworkStatus {
   online: boolean;
@@ -411,7 +409,7 @@ export const networkStatus = writable<NetworkStatus>({
 /**
  * When map tiles last arrived, written by src/lib/tileStatus.ts.
  *
- * Only `lastSuccessAt` is here because only `lastSuccessAt` is rendered -- the
+ * Only `lastSuccessAt` is here because only `lastSuccessAt` is rendered: the
  * banner says how stale the map is. An in-flight counter and the last error
  * would both be cheap to add and neither would be read.
  */

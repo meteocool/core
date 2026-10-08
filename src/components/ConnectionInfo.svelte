@@ -2,8 +2,8 @@
 /**
  * The diagnostics behind the status pill.
  *
- * Everything here is read from something the app already has -- stores,
- * PerformanceResourceTiming, the Storage and Cache APIs, the radar grid -- so
+ * Everything here is read from something the app already has (stores,
+ * PerformanceResourceTiming, the Storage and Cache APIs, the radar grid), so
  * opening it costs no requests and cannot itself change what it is measuring.
  * Written for someone trying to work out why the map looks wrong: the point is
  * to make "slow connection" or "stale tiles" answerable without a debugger.
@@ -35,7 +35,7 @@ const REFRESH_MS = 2000;
 /**
  * A reading, and how bad it is.
  *
- * "bad" is reserved for something that is actually stopping the map working
+ * "bad" is reserved for something that is stopping the map working
  * right now; "warn" is for a reading that explains a degraded experience
  * without being broken. Everything else is unmarked, which matters more than
  * the colours do: a panel where half the rows are amber is a panel nobody
@@ -125,9 +125,8 @@ function quantile(sorted: number[], q: number): number | undefined {
 /**
  * The services worth timing separately.
  *
- * Two lists of key/value rows could not answer "is it the API or the tiles",
- * let alone "is it this one endpoint": every request the page makes went into
- * one of two buckets. One row per service makes the slow one obvious by
+ * Two buckets of key/value rows cannot answer "is it the API or the tiles",
+ * let alone "is it this one endpoint". One row per service makes the slow one obvious by
  * sitting next to the others.
  *
  * Ordered roughly by how much a stall in each one hurts. The patterns are
@@ -262,7 +261,7 @@ function connectionRows(): Row[] {
       net.effectiveType && SLOW_EFFECTIVE_TYPES.includes(net.effectiveType) ? "warn" : undefined,
     ],
     [tr("downlink"), c?.downlink != null ? tr("estimate", { value: `${c.downlink} Mbit/s` }) : "—"],
-    // The estimate, not a measurement -- flagged only when it is bad enough to
+    // The estimate, not a measurement: flagged only when it is bad enough to
     // explain something, never as the reason on its own.
     [tr("round_trip"), c?.rtt != null ? tr("estimate", { value: `${c.rtt} ms` }) : "—", worseOf(c?.rtt ?? null)],
     [tr("save_data"), c?.saveData != null ? bool(c.saveData) : "—", c?.saveData ? "warn" : undefined],
@@ -316,7 +315,7 @@ function freshnessRows(): Row[] {
  * When the next set of tiles is due, from the rhythm of the ones that arrived.
  *
  * Not "five minutes after the last one": that is the nominal cycle, and the
- * useful question is when a frame will actually land, which slips with the
+ * useful question is when a frame will land, which slips with the
  * pipeline's lag and is different again on staging. The period is the median
  * gap between the observations this session has seen published, so the answer
  * is about this backend on this day. lib/updateCadence.ts does the measuring;
@@ -359,9 +358,9 @@ function cadenceRows(): Row[] {
  * is tripped right now.
  *
  * Read straight off lib/degraded.ts rather than restated here, so the panel
- * cannot end up describing a set of rules the pill no longer uses -- and so a
- * criterion that has cleared is visibly listed as clear, which is the question
- * someone watching a recovery actually has.
+ * cannot end up describing a set of rules the pill no longer uses, and so a
+ * criterion that has cleared is visibly listed as clear, which is what someone
+ * watching a recovery wants to know.
  */
 function degradedRows(): Row[] {
   const now = Date.now();
@@ -436,14 +435,15 @@ function contextRows(): Row[] {
 }
 
 /**
- * Whether the tiles on screen are actually being cached.
+ * Whether the tiles on screen are being cached.
  *
  * Worth its own section because the answer is not obvious and is usually no:
  * the service worker only routes tiles-a.meteocool.com, so a staging build
  * (assets-staging) or a dev build (the vite proxy) requests tiles the worker
  * never sees, and nothing is cached however healthy the panel otherwise looks.
- * That is what "routed" reports -- against the worker's own patterns, imported
- * rather than restated, so this cannot go on claiming a route that moved.
+ * That is what "routed" reports, tested against the worker's own patterns,
+ * imported rather than restated, so this cannot go on claiming a route that
+ * moved.
  *
  * "frames warmed" then counts how many of the grid's tilesets have at least one
  * tile in the cache, which is the closest thing to "could this play offline".
@@ -499,10 +499,9 @@ async function readTileCache(): Promise<Row[]> {
 
   /* The "preload forecast" setting drives RadarCapability.prefetchFrames,
      which asks for the next frames' tiles ahead of playback through the HTTP
-     cache. MeteoTileCache, the IndexedDB precache it used to name, is still
-     inert -- every call site is commented out -- and reported as such
-     because "why is nothing precached" is exactly the sort of question this
-     panel exists to answer. */
+     cache. MeteoTileCache, the IndexedDB precache, is inert (every call site
+     is commented out) and reported as such, because "why is nothing
+     precached" is the sort of question this panel exists to answer. */
   out.push([tr("forecast_preload"), tr(get(precacheForecast) ? "preload_on" : "off")]);
   try {
     const dbs = await indexedDB.databases?.();
@@ -518,9 +517,9 @@ async function readTileCache(): Promise<Row[]> {
  * Workbox names its precache after the page it belongs to and writes the whole
  * origin into it: `workbox-precache-v2-https://next.meteocool.com/` is
  * fifty-two characters, of which the useful part is the first twenty and the
- * rest says where we already are. Only our own origin is stripped -- a cache
+ * rest says where we already are. Only our own origin is stripped: a cache
  * belonging to somewhere else keeps its suffix, because there the origin is
- * the whole point.
+ * the point.
  */
 function cacheLabel(name: string): string {
   const own = `-${window.location.origin}`;
@@ -603,7 +602,7 @@ onDestroy(() => {
 </script>
 
 <style>
-  /* The panel -- material, header, scrolling -- is GlassPanel's, shared with
+  /* The panel (material, header, scrolling) is GlassPanel's, shared with
      About and Settings. The readings inside are laid out as a grid: */
   .grid {
     display: grid;
@@ -639,14 +638,13 @@ onDestroy(() => {
      * `auto` is max-content, and a track sized to max-content does not care
      * that the label in it is set to ellipsize: it grows to whatever the
      * longest one wants and the `1fr` beside it takes what is left. One
-     * fifty-two character cache name -- `workbox-precache-v2-` with the page's
-     * own origin glued onto it -- was enough to leave the values four
-     * characters wide, where `overflow-wrap: anywhere` then chopped them
-     * mid-number: a quota of 10.00 GiB read as three lines saying "10.0", "0"
-     * and "GiB".
+     * fifty-two character cache name (`workbox-precache-v2-` with the page's
+     * own origin glued onto it) is enough to leave the values four characters
+     * wide, where `overflow-wrap: anywhere` then chops them mid-number: a
+     * quota of 10.00 GiB reads as three lines saying "10.0", "0" and "GiB".
      *
-     * `fit-content(12em)` is the obvious way to cap a track and does nothing
-     * here -- measured in the panel itself, the limit is ignored and the track
+     * `fit-content(12em)` is the usual way to cap a track and does nothing
+     * here: measured in the panel itself, the limit is ignored and the track
      * still comes out at the full width of the longest label. A `max-width` on
      * the label does work, because what an `auto` track measures is the item's
      * max-content contribution and that honours the item's own maximum. Every
@@ -674,7 +672,7 @@ onDestroy(() => {
   }
 
   /* Severity, on the reading and its label together so the pair reads as one
-     flagged row. Ink only -- a filled chip per bad row would turn a dense panel
+     flagged row. Ink only: a filled chip per bad row would turn a dense panel
      into a traffic light, and these are numbers to be read, not alerts to be
      acknowledged. The label stays lighter than the value, as it does unflagged. */
   dd.bad, td.bad { color: var(--mc-red); font-weight: 600; }

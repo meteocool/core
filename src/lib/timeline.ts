@@ -5,7 +5,7 @@
  * Everything the Timeline component draws is derived here, so it can be
  * checked without a DOM. The grid is RadarCapability's: a step every five
  * minutes from two hours back to as far forward as the nowcast reaches, each
- * carrying the reflectivity at the point being asked about -- or nothing, when
+ * carrying the reflectivity at the point being asked about, or nothing when
  * no point has been shared.
  */
 import type { GridConfig } from "../caps/RadarCapability";
@@ -31,8 +31,8 @@ export interface TimelineStep {
  *
  * The strip spans the grid rather than stopping at the last published frame,
  * so its right-hand end always reads +2h and the axis never shifts as the
- * tail fills in. Numeric sort -- the keys are 10-digit timestamps, so a
- * lexicographic one would merely happen to agree.
+ * tail fills in. Numeric sort: the keys are 10-digit timestamps, so a
+ * lexicographic one would only agree by chance.
  */
 export function timelineSteps(config: GridConfig, lastPlayable: number): TimelineStep[] {
   return Object.keys(config.grid)
@@ -59,7 +59,7 @@ export function lastPlayableIndex(steps: TimelineStep[]): number {
 
 /**
  * Where the forecast starts, as a fraction of the strip, when there is none
- * at the point asked about -- and null whenever there is one, or nothing at
+ * at the point asked about, and null whenever there is one, or nothing at
  * all. Outside DWD's grid the past comes from meteocool's own composites of
  * the neighbouring networks, which have no forecast, so the right half of
  * the strip is empty for a reason rather than because it will stay dry.
@@ -108,7 +108,7 @@ const AXIS_EDGE_CLEAR = 0.09;
  * Where the axis is labelled.
  *
  * The ends are always labelled, whatever they land on: the right-hand one is
- * how far the forecast actually reaches, which is the nowcast's published
+ * how far the forecast reaches, which is the nowcast's published
  * horizon rather than a round +2h. Between them, every `every` minutes,
  * skipping any that would collide with an end label.
  */
@@ -172,8 +172,8 @@ export function rubberBand(pos: number, last: number): number {
 }
 
 /**
- * One frame of a glide: slow down, move, and stop dead at an end -- or at the
- * detent, when the glide has slowed enough for it to catch. A fast flick
+ * One frame of a glide: slow down, move, and stop dead at an end, or at the
+ * detent when the glide has slowed enough for it to catch. A fast flick
  * passes straight through, so the strip can still be thrown from end to end.
  */
 export function glideStep(needle: Needle, dt: number, last: number, detent: number | null = null): Needle {

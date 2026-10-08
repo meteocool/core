@@ -8,10 +8,10 @@ export const BASE_LAYERS: readonly string[] = ["light", "dark", "osm", "cyclosm"
  * The basemap a `mapBaseLayer` setting means.
  *
  * "system", the default, follows the colour scheme; anything else is a basemap
- * the reader picked. A value of its own rather than "nothing stored", because
- * Settings.set() stores nothing for a value equal to the default -- so with a
- * default that changed with the scheme, picking Dark in dark mode stored
- * nothing, and the map quietly went light again with the system.
+ * the reader picked. It needs a value of its own because Settings.set() stores
+ * nothing for a value equal to the default: with a default that changed with
+ * the scheme, picking Dark in dark mode stored nothing, and the map went light
+ * again with the system.
  *
  * A basemap no longer drawn follows the scheme too: "satellite", withdrawn
  * with the satellite map, would otherwise have the label, casing and chrome

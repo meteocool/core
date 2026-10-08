@@ -43,7 +43,7 @@ export interface CapabilityDescriptor {
   /**
    * The capability's name, which each subclass also passes to super(). Named
    * here too so registration can be gated without constructing the capability
-   * first -- see src/caps/enabled.ts.
+   * first; see src/caps/enabled.ts.
    */
   name: string;
   capability: new (map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) => Capability;
@@ -57,7 +57,7 @@ export interface LayerManagerOptions {
   capabilities: CapabilityDescriptor[];
   /**
    * The capability a link asked for, which beats the stored one for this page
-   * load -- and only this one: nothing writes it back. See lib/urlState.ts.
+   * load, and only this one: nothing writes it back. See lib/urlState.ts.
    */
   initialCapability?: string;
 }
@@ -67,7 +67,7 @@ export interface LayerManagerOptions {
  * and how far it may wander while being held.
  *
  * 450ms is the platform's own long-press dwell, give or take; the slop is
- * deliberately generous, because a finger resting on glass drifts a few pixels
+ * generous, because a finger resting on glass drifts a few pixels
  * without anyone meaning to move it.
  */
 const LONG_PRESS_MS = 450;
@@ -80,8 +80,8 @@ interface CapabilityMap {
     [name: string]: Capability;
 }
 
-// How far the map may be panned. Exported because rebuilding the View -- which
-// the mapRotation setting does -- has to reapply it: OpenLayers keeps the
+// How far the map may be panned. Exported because rebuilding the View (which
+// the mapRotation setting does) has to reapply it: OpenLayers keeps the
 // configured extent private, so it cannot be read back off an existing View.
 export const VIEW_EXTENT = [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])];
 
@@ -211,7 +211,7 @@ export class LayerManager {
     }
     if (zoom || focus) {
       // The 3D map's camera only reports to the View, so animating the View
-      // left it where it was -- and the apps' follow mode with it.
+      // left it where it was, and the apps' follow mode with it.
       const showing = this.currentCap ? this.capabilities[this.currentCap] : undefined;
       const looked = showing?.lookAt?.(focus ? [lon, lat] : null, zoom ? zoomLevel ?? null : null);
       if (!looked) view.animate({ center: newCenter, zoom: zoomLevel, duration: 500 });
@@ -276,8 +276,8 @@ export class LayerManager {
     /* The point the forecast strip is sampling, when that is not the client's
        own. A ring rather than a pin: the reading belongs to the point at its
        centre, not to a tip somewhere below it, and it stays legible with the
-       radar's own colours underneath. Deliberately nothing like the solid blue
-       dot -- the two mean different things and can be on screen together. */
+       radar's own colours underneath. Unlike the solid blue dot on purpose:
+       the two mean different things and can be on screen together. */
     const inspectFeature = new Feature();
     this.inspectFeatures.push(inspectFeature);
     const inspectLayer = new VectorLayer({
@@ -338,8 +338,8 @@ export class LayerManager {
       controls,
     });
     /* Pressing and holding the map asks what the weather is doing there.
-       Deliberately not a tap: a tap is how you dismiss things, re-centre and
-       generally poke at a map, and every one of those threw the forecast strip
+       Not a tap: a tap is how you dismiss things, re-centre and poke at a
+       map, and every one of those threw the forecast strip
        up over the view. A hold is a decision, and it is the gesture the
        platform already uses everywhere else to mean "tell me about this".
 
@@ -352,7 +352,7 @@ export class LayerManager {
     /** What the last press was made with, for a `contextmenu` that does not say. */
     let lastPointerType = "";
 
-    /** A held point -- or a right-clicked one -- asks about the weather there. */
+    /** A held point (or a right-clicked one) asks about the weather there. */
     const askAbout = (coordinate: number[]) => {
       const capability = newMap.get("capability");
       // A held finger is still a tap as far as the strips are concerned:
@@ -364,8 +364,8 @@ export class LayerManager {
       if (capability !== "radar") return;
       const [clickedLon, clickedLat] = toLonLat(coordinate);
       // Not straight to the strip any more: a held point has two questions
-      // it can be asking -- what is falling there, and what the weather
-      // models say -- so the hold offers both (PointMenu), and the choice
+      // it can be asking (what is falling there, and what the weather
+      // models say), so the hold offers both (PointMenu), and the choice
       // sets `inspectLatLon` or opens the comparison.
       pointMenuAt.set([clickedLat, clickedLon]);
     };
@@ -403,8 +403,8 @@ export class LayerManager {
     });
     viewport.addEventListener("pointerup", cancelPress);
     viewport.addEventListener("pointercancel", cancelPress);
-    /* The map can also be moved without the pointer moving -- a wheel, a
-       keyboard pan, a double-tap zoom -- and a coordinate sampled before that
+    /* The map can also be moved without the pointer moving (a wheel, a
+       keyboard pan, a double-tap zoom), and a coordinate sampled before that
        is no longer under the finger. */
     newMap.on("movestart", cancelPress);
     /* Some things are done differently while the map on screen moves; see
@@ -450,14 +450,14 @@ export class LayerManager {
       }
       // Published rather than written into the URL from here: the address bar
       // records the whole state, not only the view, and the 3D map publishes
-      // its camera to the same store. lib/urlState.ts does the writing -- and
+      // its camera to the same store. lib/urlState.ts does the writing, and
       // the restoring on Back, which used to live here too.
       //
       // Only from the full-size map. The layer switcher points every map at a
       // thumbnail of its own, the active one included, and a thumbnail coming
       // to rest is not the reader moving the map: it recorded the tile's
-      // unpadded centre, and for the 3D map -- whose OpenLayers half only ever
-      // draws in a tile -- a view with no tilt, which dropped it from the link.
+      // unpadded centre, and for the 3D map (whose OpenLayers half only ever
+      // draws in a tile) a view with no tilt, which dropped it from the link.
       if (newMap.getTargetElement()?.id !== "map") return;
       // The element's middle rather than the View's centre, which moves with
       // the tray; see lib/viewCentre.ts. Recorded as the centre, a link came
@@ -534,7 +534,7 @@ export class LayerManager {
       this.capabilities[this.currentCap].willLoseFocus();
       // Off the element as well as out of focus. OpenLayers appends its
       // viewport to a target and leaves the ones already there, so which map
-      // shows comes down to DOM order -- and a map pointed at the element it
+      // shows comes down to DOM order, and a map pointed at the element it
       // already has appends nothing. The layer switcher clears every map
       // before switching; Back and Forward switch without it.
       this.capabilities[this.currentCap].getMap().setTarget(undefined);
@@ -556,9 +556,9 @@ export class LayerManager {
    *
    * The layer switcher's tiles are live previews, so opening it points each
    * capability's map at a small element. That used to go through `setTarget`,
-   * which also moves focus -- so simply mounting the switcher told every
-   * capability in turn that it now owned the main map, and told the one that
-   * actually did that it had lost it. Nothing depended on the
+   * which also moves focus, so mounting the switcher told every capability
+   * in turn that it now owned the main map, and told the one that did own it
+   * that it had lost it. Nothing depended on the
    * difference while every capability was an OpenLayers map drawing into
    * whatever element it was given; the 3D map, which has to take its canvas
    * down when it loses focus, made it matter.

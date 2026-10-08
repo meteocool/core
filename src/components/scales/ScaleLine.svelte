@@ -23,9 +23,9 @@
   /**
    * The palette as [value, hexColour] pairs.
    *
-   * Takes the palette as an argument rather than closing over the prop, so the
-   * reactive statements below actually depend on it -- otherwise a palette
-   * change leaves the scale line showing the previous colours.
+   * Takes the palette as an argument instead of closing over the prop, so the
+   * reactive statements below depend on it. Otherwise a palette change leaves
+   * the scale line showing the previous colours.
    */
   function colorMap(source: string): string[][] {
     if (!source) return [];
@@ -68,9 +68,9 @@
      .scale-dividers is shifted out of flow inside the 10px .scale-line, so this
      box has to state the height the two of them actually occupy: 2px of margin
      above the strip, the strip, and the dividers' 12px offset plus their line.
-     At the Shoelace input height it was 40px with the ink in the top 26, so
-     align-items:center in .wrapper centred the title on 14px of empty space
-     below the strip -- and the row overflowed the tray it sits in. */
+     At the Shoelace input height of 40px, with the ink in the top 26,
+     align-items:center in .wrapper would centre the title on 14px of empty
+     space below the strip, and the row would overflow the tray it sits in. */
   .scale {
     width: 100%;
     flex: 1;
@@ -81,7 +81,7 @@
 
   /* The strip as a button: no chrome of its own, a pointer, and a ring for
      the keyboard. A flex column, because a button centres its content in its
-     height, which put the strip and its labels lower than the div's. */
+     height, which would put the strip and its labels lower than the div's. */
   .scale.toggle {
     display: flex;
     flex-direction: column;

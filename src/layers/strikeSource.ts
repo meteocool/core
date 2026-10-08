@@ -9,11 +9,11 @@ import VectorSource from "ol/source/Vector";
  * thousand reclusterings of a growing set: a third of a second of main thread
  * on every page load, and every wake.
  *
- * Not `addFeatures`: that bulk-loads the spatial index, which then hands the
- * features to the Cluster in another order, and greedy clustering groups by
- * order -- the same strikes came out as different clusters. Inside `batch`
- * every add and remove happens one by one exactly as before; only the change
- * events are held back, and sent as one at the end.
+ * `addFeatures` won't do: it bulk-loads the spatial index, which then hands
+ * the features to the Cluster in another order, and greedy clustering groups
+ * by order, so the same strikes came out as different clusters. Inside
+ * `batch` features are still added and removed one by one; only the change
+ * events are held back and sent as one at the end.
  */
 export default class StrikeSource extends VectorSource {
   private batching = false;

@@ -1,14 +1,14 @@
 /**
  * How often the backend publishes, learned from when it last did.
  *
- * The radar composite is nominally on a five-minute cycle, but the number that
- * matters to someone staring at a map is not the nominal one: it is when the
- * next frame will actually land, which slips with the pipeline's own lag and is
- * different on staging. So nothing here assumes five minutes. The rhythm is
+ * The radar composite is nominally on a five-minute cycle. Someone looking at
+ * the map wants to know when the next frame will land, which slips with the
+ * pipeline's own lag and is different on staging, so nothing here assumes five
+ * minutes. The rhythm is
  * measured from the publish times the grid already carries, and the prediction
  * is the last one plus that rhythm.
  *
- * Pure, with no store and no clock of its own -- same arrangement as
+ * Pure, with no store and no clock of its own, the same arrangement as
  * apiHealth.ts and networkQuality.ts. The wiring lives in RadarCapability,
  * which is where the grid is.
  */
@@ -30,8 +30,8 @@ export const EMPTY_CADENCE: Cadence = {
 };
 
 /**
- * A gap longer than this is a hole in the record rather than the rhythm --
- * a tab that was asleep, a backend that was restarted, a grid stitched across
+ * A gap longer than this is a hole in the record, not part of the rhythm: a
+ * tab that was asleep, a backend that was restarted, a grid stitched across
  * an outage. Included in the median it would drag the prediction minutes out.
  */
 export const MAX_GAP_S = 30 * 60;

@@ -1,14 +1,13 @@
 import { mapBaseLayer } from "../stores";
 
 /**
- * The colour a mark is outlined in so it survives whatever it lands on.
+ * The colour a mark is outlined in so it stays visible on whatever it lands on.
  *
- * Shared by the storm layer's forecast cone and the live-cell ring, which had
- * the same rule written out twice. Light over a dark map and dark over a light
- * one: the casing is meant to be the background the mark sits on, and a white
- * one over the dark basemap inverts that -- the outline becomes the loudest
- * thing on screen and whatever it was drawn around is reduced to a core inside
- * it.
+ * Shared by the storm layer's forecast cone and the live-cell ring. The casing
+ * stands in for the background the mark sits on, so it is dark on the dark
+ * basemap and light elsewhere. A white casing over the dark basemap would
+ * invert that: the outline becomes the loudest thing on screen and whatever it
+ * was drawn around shrinks to a core inside it.
  */
 export const LIGHT_CASING = "rgba(255, 255, 255, 0.75)";
 export const DARK_CASING = "rgba(12, 16, 22, 0.75)";
@@ -19,10 +18,9 @@ const DARK_BASEMAPS = new Set(["dark"]);
 /**
  * Whether what is drawn underneath is dark, so anything laid over it inverts.
  *
- * Exported because three places need the same answer and each used to carry
- * its own copy of the set: the casings and inks here, the place labels in
- * layers/vector.ts, and the floating chrome's data-chrome attribute in
- * layers/ui.ts. Three copies is two that can drift.
+ * Exported so the three places that need the answer share one set: the
+ * casings and inks here, the place labels in layers/vector.ts, and the
+ * floating chrome's data-chrome attribute in layers/ui.ts.
  */
 export const isDarkBasemap = (basemap: string): boolean => DARK_BASEMAPS.has(basemap);
 
@@ -31,13 +29,14 @@ export const casingFor = (basemap: string): string => (
 );
 
 /**
- * The opposite choice, for a mark that is the line rather than the backing.
+ * The opposite choice, for a mark that is itself the line instead of its
+ * backing.
  *
- * A casing matches the map because it is standing in for the background. A
- * mark drawn on its own -- the ring around a live cell, which has no coloured
- * line inside it to protect -- has to do the reverse and contrast, or it is a
- * dark ring on a dark map. Same two colours, picked the other way round, and
- * opaque: nothing is showing through this one on purpose.
+ * A casing matches the map because it stands in for the background. A mark
+ * drawn on its own, such as the ring around a live cell (which has no coloured
+ * line inside it to protect), has to contrast instead, or it is a dark ring on
+ * a dark map. Same two colours, picked the other way round, and opaque, since
+ * nothing is meant to show through.
  */
 export const LIGHT_INK = "rgba(255, 255, 255, 0.95)";
 export const DARK_INK = "rgba(17, 20, 26, 0.9)";
@@ -50,10 +49,10 @@ export const inkFor = (basemap: string): string => (
  * Follow the basemap, calling `onChange` when the picked value actually
  * changes.
  *
- * A layer cannot read this per feature -- OpenLayers calls a style function
- * with nowhere to thread state through -- so each one holds the current value
+ * A layer cannot read this per feature (OpenLayers calls a style function
+ * with nowhere to thread state through), so each one holds the current value
  * and redraws itself when told. Generic over what is picked so the label
- * palettes in layers/vector.ts can ride it too; values are compared by
+ * palettes in layers/vector.ts can use it too; values are compared by
  * identity, so a `pick` returning objects has to return shared ones. Returns
  * the unsubscriber.
  */

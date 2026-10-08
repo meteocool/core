@@ -6,19 +6,18 @@
  * ringed centroid, which appear on the map for the selected cell only. The
  * other is the detail panel, which on a phone is most of the screen.
  *
- * On a desktop that distinction does not matter -- the panel takes a corner of
- * a large map and the storm stays visible beside it -- so a tap does both at
- * once, as it always has. On a phone the panel covers the thing it is
+ * On a desktop the panel takes a corner of a large map and the storm stays
+ * visible beside it, so a tap does both at once, as it always has. On a phone the panel covers the thing it is
  * describing, and a reader who wants to see where the storm is going has no
  * way to ask for that without also being handed a screen of numbers on top of
  * it. So the two steps separate: the first tap draws the forecast and says how
  * to get the rest, the second opens it.
  *
  * Pure, and separate from the click handler, because the rules are small and
- * fiddly -- what a tap on the *already* selected cell does, what a tap on a
- * different one does, what closing the panel leaves behind -- and each of them
- * is a sentence that is easy to get backwards and impossible to see backwards
- * once it is spread across a component.
+ * fiddly: what a tap on the *already* selected cell does, what a tap on a
+ * different one does, what closing the panel leaves behind. Each is easy to
+ * get backwards and impossible to see backwards once it is spread across a
+ * component.
  */
 
 export interface CellSelection {

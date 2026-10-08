@@ -2,12 +2,12 @@
  * Swipe left to clear, as an action everything that does it shares.
  *
  * The strips at the bottom of the map clear this way, and so does the cell
- * hint bar -- through the same dock (components/SwipeDock.svelte), which
+ * hint bar, through the same dock (components/SwipeDock.svelte), which
  * parks the panel at a detent to show the action under it and takes it off
- * the edge past the commit point. What has to match between them is not the
- * look but the feel, and the feel is almost all in one rule -- when a drag
- * stops being a tap and which way it counts as going -- so that rule lives
- * here rather than being written out twice and drifting.
+ * the edge past the commit point. What has to match between them is the
+ * feel, and the feel is almost all in one rule (when a drag stops being a
+ * tap and which way it counts as going), so that rule lives here instead of
+ * being written out twice and drifting.
  *
  * This reports the travel and leaves the meaning to the caller: the dock
  * turns it into a reveal, and anything else is free to turn it into
@@ -17,8 +17,8 @@
 /**
  * How far a pointer moves before it is a swipe rather than a press.
  *
- * Small enough not to feel laggy, large enough that a tap with a thumb -- which
- * always moves a pixel or two -- still reaches the button under it. Every
+ * Small enough not to feel laggy, large enough that a tap with a thumb (which
+ * always moves a pixel or two) still reaches the button under it. Every
  * control inside a swipeable thing depends on this: below it, nothing is
  * swallowed.
  */
@@ -44,7 +44,7 @@ export function decideAxis(dx: number, dy: number, slop = SWIPE_SLOP): SwipeAxis
 /** Where a pull parks the panel with its action showing, in px. */
 export const SWIPE_DETENT = 96;
 
-/** How much of the finger's travel past the detent the panel actually takes. */
+/** How much of the finger's travel past the detent the panel takes. */
 export const SWIPE_GIVE = 0.7;
 
 /**
@@ -53,7 +53,7 @@ export const SWIPE_GIVE = 0.7;
  *
  * Up to the detent the panel tracks the finger exactly; past it only part of
  * the travel is taken, which is the resistance felt before it gives. A
- * rightward drag takes back what a leftward one opened, down to shut -- which
+ * rightward drag takes back what a leftward one opened, down to shut, which
  * is how a parked panel is pushed closed again with the finger that opened it.
  */
 export function pullTo(from: number, dx: number, width: number): number {
@@ -86,13 +86,13 @@ export interface SwipeAwayOptions {
  * Only horizontal gestures are captured, and only after the axis is settled, so
  * a vertical drag inside a scrolling sheet is left alone rather than swallowed
  * half way through. `lostpointercapture` is handled as an end because capture
- * can be taken away without a `pointerup` ever arriving -- a system gesture
- * claiming the touch, the node being re-laid-out under it -- and without it the
+ * can be taken away without a `pointerup` ever arriving (a system gesture
+ * claiming the touch, the node being re-laid-out under it), and without it the
  * element stays parked mid-drag and ignores every later touch.
  *
  * Only the node's own loss, though. A touch is captured by whatever it lands
- * on, and taking it for the node makes that child -- the cell hint's Details
- * button -- lose it, an event that bubbles up here. Read as the swipe ending,
+ * on, and taking it for the node makes that child (the cell hint's Details
+ * button) lose it, an event that bubbles up here. Read as the swipe ending,
  * it stopped every swipe that began on a button dead.
  */
 export function swipeAway(node: HTMLElement, options: SwipeAwayOptions) {

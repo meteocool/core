@@ -12,7 +12,7 @@ const { default: StrikeManagerV2 } = await import("../../src/lib/StrikeManagerV2
 /**
  * The flat map draws strikes through a Cluster, which reclusters everything
  * on each change of the source under it. The cache's thousand strikes added
- * one at a time were a thousand reclusterings; they have to be one -- and
+ * one at a time were a thousand reclusterings; they have to be one, and
  * come out as the same clusters, since greedy clustering depends on the
  * order the features are handed over in.
  */

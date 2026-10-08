@@ -8,7 +8,7 @@ import {
  *
  * The first estimates after a cold load are made from a handful of requests and
  * swing about; without this the banner flashes on almost every page load.
- * Offline is not debounced -- that reading is not an estimate.
+ * Offline is not debounced, because that reading is not an estimate.
  */
 export const SLOW_SETTLE_MS = 5000;
 

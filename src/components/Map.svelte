@@ -27,8 +27,8 @@
    * frame until the answer stops moving.
    *
    * Settling is the real stop condition; this is only a ceiling, so a
-   * transition that never reports its end -- Svelte does not always deliver
-   * `outroend` for an element it is destroying -- cannot leave a frame loop
+   * transition that never reports its end (Svelte does not always deliver
+   * `outroend` for an element it is destroying) cannot leave a frame loop
    * running forever.
    */
   const TRANSITION_POLL_MAX_FRAMES = 90;
@@ -55,13 +55,13 @@
   /**
    * Size the map to the space the bottom bars leave it.
    *
-   * Measured rather than hardcoded. The old fixed `calc(100% - 88px)` was only
-   * ever right for the desktop player: below 620px the player is 120px, in the
+   * Measured, not hardcoded. A fixed `calc(100% - 88px)` is only right for
+   * the desktop player: below 620px the player is 120px, in the
    * wrappers the bar grows to swallow `env(safe-area-inset-bottom)`, and that
    * inset differs per device. Anything fixed is wrong for two of those three.
    *
    * `innerHeight - rect.top` rather than `rect.height`, so a bar that is itself
-   * offset by a safe-area inset still yields the space it actually occludes.
+   * offset by a safe-area inset still yields the space it occludes.
    */
   function applyMapHeight(padView = true) {
     const mapElement = document.getElementById(mapID);
@@ -74,7 +74,7 @@
       const player = document.querySelector<HTMLElement>(".timeslider");
       const bar = mode === "player" ? (player ?? toolbar) : toolbar;
       // A tray with no box occludes nothing. The cell sheet hides both trays
-      // with display:none, and a hidden one measures top 0 -- which read as
+      // with display:none, and a hidden one measures top 0, which would read as
       // the whole screen covered: the View padded by its full height, and the
       // credits parked above the top edge or squeezed into nothing.
       if (bar && bar.getClientRects().length > 0) {
@@ -90,7 +90,7 @@
     mapElement.style.height = "100%";
     // No updateSize(): the map is full-bleed, so its element keeps its size
     // whatever the bars do, and OpenLayers watches the element for the times
-    // it does change. Calling it here read the layout back out of all four
+    // it does change. Calling it here would read the layout back out of all four
     // maps on every frame of every toolbar transition.
     if (padView) applyPadding(occluded);
     return occluded;
@@ -116,14 +116,14 @@
    *
    * Only on a change: OpenLayers' padding setter moves the centre whether or
    * not the padding did, and a moved centre is every map drawn again. Nothing
-   * on screen moves with it either -- the setter compensates -- so during a
+   * on screen moves with it either (the setter compensates), so during a
    * transition it waits for the bar to settle rather than redrawing the map
    * under each frame of it.
    *
    * Nor while the View is animating: moving the centre cancels the
    * animation. The apps' first position zooms in on the reader, and the
-   * outlook that position brings into the tray padded the View 10 ms into
-   * that zoom, so Auto Zoom never zoomed. The padding waits for it instead.
+   * outlook that position brings into the tray would pad the View 10 ms into
+   * that zoom, so Auto Zoom would never zoom. The padding waits for it instead.
    */
   function applyPadding(occluded: number) {
     const view = layerManager.maps[0]?.getView();
@@ -192,16 +192,16 @@
   function mapInit(node: HTMLElement) {
     mapID = node.id;
     // Every MiniMap's action claims its capability's map as a preview, and an
-    // OpenLayers Map has exactly one target -- so the default has to be applied
+    // OpenLayers Map has exactly one target, so the default has to be applied
     // once they have all run, or the main map is left empty and whichever
-    // MiniMap initialised last becomes the active capability. Svelte 3 ran
-    // child actions first and this happened to hold; Svelte 5 runs the parent's
-    // first, so wait for the mount flush rather than relying on the order.
+    // MiniMap initialised last becomes the active capability. Svelte 5 runs
+    // the parent's action before its children's, so wait for the mount flush
+    // instead of relying on the order.
     tick().then(() => layerManager.setDefaultTarget(mapID));
 
     const unsubscribeMode = bottomToolbarMode.subscribe(() => startTransitionPoll());
-    // The tray comes and goes with the capability as well -- the 3D map has
-    // none -- so the same re-measure, and the observer moved onto whichever
+    // The tray comes and goes with the capability as well (the 3D map has
+    // none), so the same re-measure, and the observer moved onto whichever
     // bar now exists.
     const unsubscribeCap = sharedActiveCap.subscribe(() => tick().then(() => {
       syncToolbarObserver();
@@ -292,11 +292,11 @@
 
   :global(.ol-geolocate) {
     /* The zoom capsule's height: two buttons of (module - 2px) and the
-       control's own 2px of border -- two modules less two. The separator
+       control's own 2px of border: two modules less two. The separator
        between the buttons is one of their borders, inside their box-sizing,
-       and this used to count it a second time, which left the locate disc a
-       gutter and a pixel below the capsule; the 3D map's compass, stacked by
-       the browser rather than by arithmetic, came out a pixel higher. */
+       so it counts once. Counted twice, it would put the locate disc a pixel
+       lower than the 3D map's compass, which the browser stacks without
+       arithmetic. */
     top: calc(var(--ol-controls-top) + 2 * var(--mc-control-lg) - 2px + var(--mc-gutter));
     right: var(--mc-gutter);
     left: auto;
@@ -330,7 +330,7 @@
   :global(.maplibre-host .maplibregl-ctrl-top-right .maplibregl-ctrl) {
     margin: 0 0 var(--mc-gutter);
   }
-  /* And the attribution where the flat map keeps its own -- beside the 3D
+  /* And the attribution where the flat map keeps its own: beside the 3D
      map's guide in the bottom-left corner (Guide3D.svelte), which publishes
      how much of the edge it takes, so a wrapped line of credits never runs
      under it. */

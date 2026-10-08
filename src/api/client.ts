@@ -8,8 +8,8 @@ import { timedFetch } from "../lib/timedFetch";
 // the origin rather than v3APIBaseUrl itself.
 const apiOrigin = v3APIBaseUrl.replace(/\/v3$/, "");
 
-// Through timedFetch, so a call into a network that has gone quiet fails
-// rather than holding the loading bar, and every later refresh, forever.
+// Both go through timedFetch, so a call into a network that has gone quiet
+// fails instead of holding up the loading bar and every later refresh.
 
 /** The `api` service: radar, lightning, mobile, telemetry and preview. */
 export const apiClient = createClient<ApiPaths>({ baseUrl: apiOrigin, fetch: timedFetch });

@@ -2,7 +2,7 @@
  * Which tiles a frame has, so the ones it lacks are never asked for.
  *
  * The renderer writes no tile that would be fully transparent, and the
- * composite is a tilted grid inside a rectangular extent -- so on a dry
+ * composite is a tilted grid inside a rectangular extent, so on a dry
  * afternoon most tiles inside the layer's extent do not exist, and every
  * frame of a loop asked for all of them and was refused. The frame now
  * carries an index: per zoom level, the rectangle its tiles fall in and one
@@ -43,8 +43,8 @@ function bitsOf(rows: TileRows): Uint8Array {
 /**
  * Whether the frame has a tile at `z`/`x`/`tmsY`.
  *
- * True when the index says nothing about that zoom -- a frame from before the
- * index existed, or a zoom the renderer does not produce -- because then the
+ * True when the index says nothing about that zoom (a frame from before the
+ * index existed, or a zoom the renderer does not produce), because then the
  * only way to know is to ask.
  */
 export function hasTile(index: TileIndex | null | undefined, z: number, x: number, tmsY: number): boolean {

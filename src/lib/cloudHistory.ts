@@ -3,8 +3,8 @@
  *
  * `/cells/volumes` lists the newest scan's volumes and nothing older. Each
  * one stays in the bucket for about a day, though, under a key that says
- * when and where -- worker-analysis's `_key`,
- * `volumes/<scan>/<network>-<tile>.mcvx` -- so an older scan's storms can be
+ * when and where (worker-analysis's `_key`,
+ * `volumes/<scan>/<network>-<tile>.mcvx`), so an older scan's storms can be
  * found by asking for tiles under an older scan, with no list of them.
  *
  * Asked tile by tile, most answers would be misses. So the scan's coarse
@@ -49,7 +49,7 @@ export function earlierScans(newest: Scan, count = HISTORY_SCANS): Scan[] {
 /**
  * A network's scan nearest a picked one, on that network's own clock: whole
  * scans from one it is known to have had. Each network's runs land on a
- * clock of their own -- France's at :29 and :34 -- and its volumes are filed
+ * clock of their own (France's at :29 and :34), and its volumes are filed
  * under its own scans. Forward as well as back, for a network known only
  * from an older list, which has had nothing to list since.
  */
@@ -65,7 +65,7 @@ export function scanStamp(scan: Scan): string {
 /**
  * Where the worker files the volumes, as the API's own example of a path
  * spells it (`CellVolume.path`): for `pathAt` when no list has named one
- * yet -- a quiet hour, with the storms an hour ago.
+ * yet (a quiet hour, with the storms an hour ago).
  */
 export const FALLBACK_TEMPLATE = "meteoradar/volumes/20260922T011500/de-T00.mcvx";
 
@@ -260,8 +260,8 @@ export function coarseTilesIn(
 }
 
 /**
- * Which coarse tiles to ask a scan for, in order: where storms were -- in a
- * newer scan, or already found in this one -- then the tiles around them,
+ * Which coarse tiles to ask a scan for, in order: where storms were (in a
+ * newer scan, or already found in this one), then the tiles around them,
  * then the rest of `view`, each nearest the middle of the screen first.
  * Only those `inView` keeps, and of them at most `count` not `asked` before,
  * `viewCount` of them from the view: the storms are followed first, and the

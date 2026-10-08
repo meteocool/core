@@ -3,7 +3,7 @@
  *
  * Everything the detail panel shows is one detection: the peak, the VIL, the
  * echo top, the 3D model of the storm's anatomy. The panel used to caption
- * that model "structure now", which is a claim rather than a reading -- these
+ * that model "structure now", which claims more than a reading can: these
  * arrive on DWD's own cadence and the newest one is always some minutes old.
  *
  * The second half matters more than the first. A reader comparing the panel's
@@ -27,7 +27,7 @@ export interface Recency {
   ageMinutes: number;
   /**
    * Minutes the detection trails the newest radar frame by, or null when there
-   * is no frame to compare against -- no grid yet, or a view without radar.
+   * is no frame to compare against: no grid yet, or a view without radar.
    */
   behindMinutes: number | null;
 }
@@ -53,7 +53,7 @@ export function cellRecency(
  * The clause about the radar, or null when there is nothing to say.
  *
  * Null covers both no grid and the ordinary case of the two being on the same
- * step, which needs no sentence -- the panel is busy enough without a line
+ * step, which needs no sentence: the panel is busy enough without a line
  * confirming that nothing is wrong.
  */
 export function radarOffsetLabel(behindMinutes: number | null, t: Translate): string | null {

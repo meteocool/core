@@ -2,7 +2,7 @@ import type { NetworkStatus } from "../stores";
 
 /**
  * Reading the connection, with no store and no browser globals of its own, so
- * it can be exercised directly -- same arrangement as networkBanner.ts. The
+ * it can be exercised directly, the same arrangement as networkBanner.ts. The
  * wiring that publishes this lives in networkStatus.ts.
  */
 
@@ -23,17 +23,17 @@ export interface NavigatorLike {
 /**
  * The effective types worth warning about.
  *
- * Deliberately not "3g". effectiveType is a coarse bucket driven mostly by
+ * Not "3g". effectiveType is a coarse bucket driven mostly by
  * round-trip time, and anything past roughly 270ms lands in 3g: an ordinary
  * mobile connection, a VPN, a dev server proxying to a remote backend. Warning
  * on it meant the banner was up permanently, which teaches people to ignore it.
- * slow-2g and 2g are the buckets that actually mean degraded.
+ * slow-2g and 2g are the buckets that mean degraded.
  *
  * `downlink` used to be tested here too, below 1.5 Mbit/s. That reads what the
- * page recently *used*, not what is available -- it is a smoothed estimate over
- * observed transfers, rounded to 25 kbps and capped at 10 -- so an app that
- * fetches small JSON and cached tiles measures as slow on a gigabit line. It is
- * replaced by saveData, which is the user saying so rather than us guessing.
+ * page recently *used*, not what is available (a smoothed estimate over
+ * observed transfers, rounded to 25 kbps and capped at 10), so an app that
+ * fetches small JSON and cached tiles measures as slow on a gigabit line.
+ * saveData replaced it: there the user says so, and nothing is guessed.
  */
 const SLOW_TYPES = new Set(["slow-2g", "2g"]);
 

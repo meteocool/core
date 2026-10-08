@@ -4,21 +4,21 @@
  * Two providers, tried in that order.
  *
  * First, meteocool's own Nominatim (see urls.ts). It holds the OSM planet
- * imported at Nominatim's `admin` style -- administrative boundaries and places,
- * no streets and no addresses -- which is all a panel title ever wanted, and
+ * imported at Nominatim's `admin` style (administrative boundaries and places,
+ * no streets and no addresses), which is all a panel title ever wanted, and
  * self-hosting it means no key, no rate limit and no third party watching where
  * people tap.
  *
- * Second, BigDataCloud, which is what this file used to be and still is
- * wherever ours has no answer. That is not a hedge: Nominatim returns nothing
- * at all a few kilometres offshore, which on a rain radar is an ordinary place
+ * Second, BigDataCloud, which this file used to call alone and still calls
+ * wherever ours has no answer: Nominatim returns nothing at all a few
+ * kilometres offshore, which on a rain radar is an ordinary place
  * to tap, and it returns nothing for a point outside whatever extract the
  * instance imported. BigDataCloud answers both, needs no key, and is CORS-open
  * to any origin because it is the endpoint they publish for browser calls.
  *
  * Not Open-Meteo, which was the original ask: their geocoding API only goes
  * forwards. /v1/search wants a `name` and refuses coordinates, /v1/get wants an
- * id, and there is no /v1/reverse -- all three answer 404 or "No value found at
+ * id, and there is no /v1/reverse. All three answer 404 or "No value found at
  * 'name'". The proximity search exists in their source and is commented out.
  *
  * Everything provider-shaped is still in this file: the endpoints, the two
@@ -63,8 +63,8 @@ const CACHE_MAX = 200;
  * The one request that matters is the latest one; the rest are stale taps.
  *
  * Per caller, not one for the whole app: the forecast strip, the lightning
- * chart and a storm's panel all look places up, often in the same second --
- * opening a storm moves the camera, which re-titles the lightning chart -- and
+ * chart and a storm's panel all look places up, often in the same second
+ * (opening a storm moves the camera, which re-titles the lightning chart), and
  * with a single slot each new lookup aborted whichever other panel's was still
  * on its way, and that panel was left without its name.
  */
@@ -73,12 +73,12 @@ const inFlight = new Map<string, AbortController>();
 /**
  * How much ground the label has to cover.
  *
- * "local" is a point: the city is what someone reading a weather panel wants --
- * "Hanover", not "Mitte, Hanover, Lower Saxony, Germany".
+ * "local" is a point: the city is what someone reading a weather panel wants
+ * ("Hanover", not "Mitte, Hanover, Lower Saxony, Germany").
  *
  * The others are for a viewport, where the city under the centre pixel is a
  * poor name for everything on screen. Zoomed out far enough that the box spans
- * a state, the state is the honest answer, and further out still, the country.
+ * a state, the state is the right answer, and further out still, the country.
  */
 export type GeocodeScale = "local" | "regional" | "country";
 
@@ -92,7 +92,7 @@ const ORDER: Record<GeocodeScale, Array<keyof Place>> = {
 /**
  * Nominatim answers at whatever level its `zoom` asks for, so asking for the
  * street level it does not have wastes the lookup. These are the three levels
- * ORDER above actually reads: a settlement, a state, a country.
+ * ORDER above reads: a settlement, a state, a country.
  */
 const NOMINATIM_ZOOM: Record<GeocodeScale, number> = {
   local: 12,
@@ -120,7 +120,7 @@ interface BigDataCloudResponse extends Place {
  * The flat fields, plus the county and the sea from the lists behind them.
  *
  * At sea every flat field is empty but `locality`, which is then the name of
- * an exclusive economic zone -- a true answer, and no name for where a shower
+ * an exclusive economic zone: a true answer, and no name for where a shower
  * is. The sea itself is the first informative entry that describes something:
  * the ones without a description are zones of the same kind, and a name with
  * a slash in it is a time zone.
@@ -189,7 +189,7 @@ async function fromNominatim(
   });
   const response = await timedFetch(`${geocodingUrl}/reverse?${query}`, { signal });
   // Thrown, not null: a null answer is cached as "nothing here", and a 502 or
-  // a 429 is not that -- the place would have stayed nameless all session.
+  // a 429 is not that, and the place would have stayed nameless all session.
   if (!response.ok) throw new Error(`nominatim ${response.status}`);
   // A point with nothing around it is a 200 carrying `{"error": "Unable to
   // geocode"}`, not a 404, so the body has to be read to know there was a miss.
@@ -212,7 +212,7 @@ async function fromBigDataCloud(
  * One lookup, cached, on its caller's own slot, never rejecting.
  *
  * `read` turns a provider's place into the answer, or null when that place
- * does not hold what the caller wants -- which sends the lookup on to the
+ * does not hold what the caller wants, which sends the lookup on to the
  * next provider rather than settling for it.
  */
 async function lookUp<T>(
@@ -256,7 +256,7 @@ async function lookUp<T>(
       cache.set(key, answer);
       return answer;
     } catch {
-      // Aborted, offline, rate-limited, malformed -- all the same to the caller.
+      // Aborted, offline, rate-limited, malformed: all the same to the caller.
       return null;
     } finally {
       if (inFlight.get(channel) === controller) inFlight.delete(channel);
@@ -267,7 +267,7 @@ async function lookUp<T>(
 /**
  * The place at these coordinates, or null when there is no answer worth
  * showing. Never throws and never rejects: a missing label is a cosmetic loss,
- * and the strip has a perfectly good title without one.
+ * and the strip has a title without one.
  *
  * `channel` names the caller: a newer lookup cancels an older one on the same
  * channel only.
@@ -293,7 +293,7 @@ export interface StormPlace {
  * The name for a storm, which is not the name for a tapped point.
  *
  * A storm is tens of kilometres across, so the town under its peak alone
- * undersells it and the state alone says nothing -- the Landkreis is the
+ * undersells it and the state alone says nothing; the Landkreis is the
  * scale a reader places a storm by, and it goes under the town. Offshore,
  * where most of a coastal radar's storms are, it is the sea's name.
  */
@@ -311,7 +311,7 @@ export function stormPlace(lat: number, lon: number, language = "en"): Promise<S
   });
 }
 
-/** The scale a map at this zoom is really showing. */
+/** The scale a map at this zoom is showing. */
 export function scaleForZoom(zoom: number): GeocodeScale {
   if (zoom >= 9) return "local";
   if (zoom >= 6) return "regional";

@@ -5,8 +5,8 @@
  * MapLibre's mouse handlers know the left button and the right one and nothing
  * else: a middle press starts no gesture at all, and on Windows and Linux the
  * browser takes it for autoscroll or a paste instead. So a middle drag on the
- * map is told, before MapLibre reads it, that it is a right drag -- which
- * turns and tilts already -- in all three places MapLibre looks: the press's
+ * map is told, before MapLibre reads it, that it is a right drag (which
+ * turns and tilts already) in all three places MapLibre looks: the press's
  * `button`, every move's `buttons`, which it checks to notice a release
  * outside the window, and the release's `button`, which has to match the
  * press's for the drag to end.

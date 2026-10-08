@@ -6,9 +6,9 @@ import type { Cutaway } from "./cellCutaway";
  * A volume is one core in one scan, and nothing links it to the next scan's:
  * a core's code is its peak's grid position, so it changes whenever the peak
  * moves a pixel, and stays the same when a different storm's peak lands on
- * that pixel. Where two volumes have to be recognised as one storm -- the 3D
+ * that pixel. Where two volumes have to be recognised as one storm (the 3D
  * map keeps an open storm past its scan, and must then not draw the newer
- * scan of it as well -- all there is to go on is where their echo is.
+ * scan of it as well), all there is to go on is where their echo is.
  */
 
 const KM_PER_DEGREE = 111.32;

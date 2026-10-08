@@ -1,9 +1,9 @@
 /**
  * Capabilities that are built but not currently offered.
  *
- * The code, layers and scale lines stay in the tree and keep type-checking --
- * this is the only thing standing between them and the UI, so re-enabling one
- * is deleting a line here rather than reconstructing it from a commented-out
+ * The code, layers and scale lines stay in the tree and keep type-checking.
+ * This set is all that keeps them out of the UI, so re-enabling one means
+ * deleting a line here instead of reconstructing it from a commented-out
  * block that has since rotted. None is withdrawn at the moment: the satellite
  * and aerosol maps, the last two, were removed outright.
  */

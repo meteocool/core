@@ -3,7 +3,7 @@
  *
  * Components read `$_`, which re-renders them when the language changes. Code
  * in src/lib and src/layers has no `$`, so it reads the store once per call
- * through `t()` -- and a lib function whose output a component renders takes
+ * through `t()`. A lib function whose output a component renders takes
  * the component's `$_` as an argument instead (see cellPlacement.ts), so the
  * component's reactivity covers it.
  */

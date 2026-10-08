@@ -3,8 +3,8 @@
  * The veil over the map while the 3D map is brought up for the first time.
  *
  * The first switch to 3D fetches MapLibre, compiles its shaders, parses the
- * style and pulls tiles and storm volumes -- seconds, with the main thread
- * pegged for much of it, during which the map element shows the half-built
+ * style and pulls tiles and storm volumes. That takes seconds, with the main
+ * thread pegged for much of it, during which the map element shows the half-built
  * result: an empty box, then a basemap with no storms, then a storm easing
  * into view in stutters. The veil blurs whatever is underneath and says what
  * is happening; the capability takes it down on the map's first settled
@@ -17,17 +17,17 @@
  * soft wash of colour. The capsule in the middle is the ordinary glass pill,
  * with the spinner and a line of text.
  *
- * The line is one word of what a radar does -- "Scanning…", "Backscattering…"
- * -- a different one from the last time, rather than the same "Preparing the
- * 3D map…" on every visit; the sentence is still what a screen reader hears.
+ * The line is one word of what a radar does ("Scanning…", "Backscattering…"),
+ * a different one from the last time; the sentence "Preparing the 3D map…" is
+ * what a screen reader hears.
  * Each language has its own list (`loading_3d_words`), not a translation of
  * the English one: a word that is fun in one language is a mouthful in another.
  * A bring-up held up by a slow network moves on to another word every few
- * seconds, so a long wait reads as the app still working rather than stuck.
+ * seconds, so a long wait reads as the app still working.
  *
- * And one that failed -- MapLibre could not be fetched -- says so, with a
- * way to try again, instead: a word cycling every second and a half over a map
- * that will never come is the one thing worse than a spinner that stops.
+ * A bring-up that failed (MapLibre could not be fetched) says so instead, with
+ * a way to try again: a word cycling every second and a half over a map that
+ * will never come is worse than a spinner that stops.
  */
 import { onDestroy, onMount } from "svelte";
 import { fade } from "svelte/transition";

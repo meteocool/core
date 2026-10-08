@@ -1,12 +1,12 @@
 <script lang="ts">
 /**
  * Every model's hourly temperature in one plot, which is the comparison
- * meteocompare is for: not what any single model says, but how far apart they
- * are and when they start to disagree.
+ * meteocompare is for: how far apart the models are and when they start to
+ * disagree.
  *
- * Deliberately NOT twenty-one coloured lines. A categorical palette runs out at
- * about eight hues before adjacent pairs stop being separable -- at twenty-one
- * the colours would be decoration that actively lies about which line is which.
+ * No twenty-one coloured lines: a categorical palette runs out at about eight
+ * hues before adjacent pairs stop being separable, and at twenty-one the
+ * colours would mislead about which line is which.
  * So the models are drawn as one recessive thicket, their min-max range as a
  * band behind it, and the median on top in the accent. You read the spread,
  * which is the question; a specific model you read from the table below, or by
@@ -34,10 +34,10 @@ export let initialHours = 24;
  * Rainfall leads, temperature is a tap away.
  *
  * "Will it rain" is the question people open a weather app with, and it is also
- * the one the models disagree about most -- one model's dry hour against
+ * the one the models disagree about most: one model's dry hour against
  * another's downpour is a real disagreement, where two degrees of temperature
- * is noise. Temperature is the calmer, prettier curve, which is exactly why it
- * should not be the one on screen by default.
+ * is noise. Temperature is the calmer, prettier curve, which is why it should
+ * not be the one on screen by default.
  *
  * The amount, not the chance: nearly every model publishes it, where about
  * half publish a chance, and it says how much as well as whether.
@@ -86,9 +86,9 @@ function draw() {
   if (!canvas || !data) return;
   chart?.destroy();
   // The window, not the whole download: the range toggle slices what is here.
-  // From the present hour, not from index 0: open-meteo's series start at
-  // local midnight, so "24 h" used to spend the morning's first hours on the
-  // past and stop short of this time tomorrow.
+  // From the present hour: open-meteo's series start at local midnight, so
+  // from index 0 "24 h" would spend the morning's first hours on the past and
+  // stop short of this time tomorrow.
   chart = drawSpread(canvas, data, { from: stepAt(data.times, Date.now()), steps: hours, spec });
 }
 
@@ -121,7 +121,7 @@ async function load(which: Variable) {
     data = series;
     error = null;
   } catch (e) {
-    // Nor may its failure: the error used to replace a plot that had loaded.
+    // Nor may its failure replace a plot that has loaded.
     if (which === variable) {
       error = e instanceof Error ? e.message : String(e);
       reportShown("compare-spread", e, { variable: which });
@@ -134,12 +134,12 @@ async function load(which: Variable) {
 
 $: load(variable);
 
-/* Failed, it used to stay failed until the panel was closed; a wake asks again. */
+/* A failed load asks again on a wake instead of staying failed until the panel closes. */
 const unsubscribeWake = onWake(() => { if (error) load(variable); });
 
 /* Redrawing on a range change is a slice, not a fetch. Named so the reactive
-   block has something to depend on without re-running for anything else --
-   the language included, since the axis labels are baked in at draw time. */
+   block has something to depend on without re-running for anything else.
+   The language is included, since the axis labels are baked in at draw time. */
 $: if (data && hours && $locale) draw();
 
 onDestroy(() => {
@@ -164,7 +164,7 @@ $: modelCount = data ? Object.keys(data.series).length : 0;
   }
 
   /* Two segmented controls on one line: what is plotted, and over how long.
-     Both are small closed sets, which is what a segmented control is for --
+     Both are small closed sets, which is what a segmented control is for:
      the options stay visible, so the alternative is readable without opening
      anything. */
   .controls {

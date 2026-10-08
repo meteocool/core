@@ -3,7 +3,7 @@ const GROW_MS = 200;
 
 /**
  * How long the strip waits, after the last download lands, before running
- * out to the end. Downloads come in chains -- a list, then what is in it --
+ * out to the end. Downloads come in chains (a list, then what is in it),
  * and the next one starting just after went back to the left edge; inside
  * this, it carries on from where the strip is.
  */
@@ -25,15 +25,15 @@ const CEILING = 95;
  * It used to wrap nanobar, which starts a new bar every time one reaches the
  * end and leaves the finished one to run out and fade over it. Downloads here
  * start and finish all the time, so the top of the page routinely carried two
- * or three bars at once -- one running out to the edge across another
- * starting from the left -- and the last download landing began a fresh one
+ * or three bars at once (one running out to the edge across another
+ * starting from the left), and the last download landing began a fresh one
  * that swept the whole width over nothing. This is a single strip: it only
  * grows while anything is loading, runs out to the end when the last of it
  * lands, fades, and starts from the left again for whatever comes next.
  *
  * Reference-counted by id: a finish only counts against a start under the
  * same id. Built on first use, not on construction, so a module that imports
- * this without a page -- the tests -- builds nothing.
+ * this without a page (the tests) builds nothing.
  */
 export default class NanobarWrapper {
   /** Outstanding downloads, by the id passed to start(). */

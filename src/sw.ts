@@ -17,8 +17,8 @@ import {
 
 // The precache first: workbox routes a request to the first route that
 // matches, and the /assets/ route below matches every chunk in the manifest.
-// Registered after it, as it was, the precache answered nothing -- a chunk it
-// held was fetched from the network all the same on first use, so a storm
+// Registered after it, as it used to be, the precache answered nothing: a chunk
+// it held was fetched from the network all the same on first use, so a storm
 // panel opened offline failed to load although its code was on disk.
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
@@ -28,7 +28,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 // The basemap is versioned into its own path (map.meteocool.com/<version>/),
 // so a given URL never changes content and can be served from cache
 // indefinitely. The previous pattern here listed cartodb, nextzen, cyclosm and
-// openstreetmap.org -- none of which the app requests any more.
+// openstreetmap.org, none of which the app requests any more.
 registerRoute(
   BASEMAP_ROUTE,
   new CacheFirst({
@@ -64,7 +64,7 @@ registerRoute(
 // Weather tiles are immutable too, per URL: each frame is rendered once under
 // its own tile_id, and the timeseries says which id is current. This used to
 // be network-first on the theory that a cached radar frame is worse than
-// none, but a frame's URL never serves a different frame -- so every loop of
+// none. A frame's URL never serves a different frame, though, so every loop of
 // the player after OpenLayers had evicted a tile, and every reload, went to
 // the network for bytes already on disk. The expiry bounds the storage; the
 // grid moves on from an id within hours anyway.
@@ -85,8 +85,8 @@ registerRoute(
 
 // Everything Vite emits under /assets/ carries a content hash in its name, so
 // a URL never changes meaning: cache-first, for as long as the browser keeps
-// it. This is what serves the chunks left out of the precache -- MapLibre --
-// on their second use, in place of precaching them for everyone.
+// it. This is what serves the chunks left out of the precache (MapLibre) on
+// their second use, in place of precaching them for everyone.
 registerRoute(
   ({ url }) => url.origin === self.location.origin && url.pathname.startsWith("/assets/"),
   new CacheFirst({

@@ -11,7 +11,7 @@
  * LayerManager reports the main map's movestart and moveend. Listeners hear
  * `true` at once and `false` only once the map has been still for
  * `SETTLE_MS`, so the gap between two wheel notches, or a pinch lifted and
- * put down again, is not a stop and a start -- each of which costs a full
+ * put down again, is not a stop and a start, each of which costs a full
  * redraw of what changed.
  */
 

@@ -3,7 +3,7 @@
  *
  * Kept free of OpenLayers so it can be tested directly, the way `apiHealth` and
  * `degraded` are: the projection is applied by the caller, at the edge. Two
- * things here are easy to get wrong and impossible to see wrong -- a bearing
+ * things here are easy to get wrong and impossible to see wrong: a bearing
  * read as a maths angle still draws a plausible ellipse pointing the wrong way,
  * and the viewport padding decides how often a pan costs a request.
  */
@@ -17,8 +17,8 @@ export type Extent = [number, number, number, number];
 /**
  * A ring approximating one uncertainty ellipse, as [lon, lat] pairs.
  *
- * DWD gives the axes in kilometres and the angle as a bearing -- clockwise from
- * north -- rather than the counter-clockwise-from-east convention the maths
+ * DWD gives the axes in kilometres and the angle as a bearing (clockwise from
+ * north) rather than the counter-clockwise-from-east convention the maths
  * wants, which is why north and east are built from cos and sin the way round
  * they are. A degree of longitude also shrinks with latitude, so the east
  * offset is scaled by the cosine; without that an ellipse over Hamburg comes
@@ -51,11 +51,11 @@ export function ellipseRing4326(
  * `ellipseRing4326` starts at one end of the major axis and reaches the other
  * half a turn later, so the two ends are the ring's first and middle points.
  * Which of them is the far one depends on the bearing DWD reports, and that is
- * a compass bearing rather than a direction of travel -- an ellipse pointing
+ * a compass bearing rather than a direction of travel: an ellipse pointing
  * 294 degrees and one pointing 114 are the same ellipse, and the ring is built
  * from whichever the feed happened to send.
  *
- * That matters because this is where a lead-time label goes. The near end is
+ * This is where a lead-time label goes. The near end is
  * the side the storm has come from, where every ring is bunched on top of the
  * cell and its own history; the far end is the leading edge, where successive
  * rings are furthest apart and a row of labels reads as a sequence.
@@ -83,7 +83,7 @@ export function distanceKm(a: [number, number], b: [number, number]): number {
  * The quickest convective systems on record move at something like
  * 110-130 km/h; in a real run the 99th percentile step is around 90 and the
  * fastest genuine one seen is 144. The errors this separates out are not near
- * that line -- they imply 430 to 2300 km/h -- so the ceiling is set high enough
+ * that line (they imply 430 to 2300 km/h), so the ceiling is set high enough
  * that no real storm can reach it and a mis-stitched track cannot miss it.
  */
 export const MAX_STORM_KMH = 200;
@@ -91,14 +91,14 @@ export const MAX_STORM_KMH = 200;
 /**
  * Where the track stops being one storm.
  *
- * DWD's cell number is reused across unrelated cells -- the schema says so --
+ * DWD's cell number is reused across unrelated cells (the schema says so),
  * and the stitcher upstream sometimes glues a stale detection onto a new cell
  * that happens to inherit its number. The result is a track whose first step
  * teleports: 12:10 near Stuttgart, 13:10 near Dresden, with the identifier
  * changing across the jump. Drawn as a path it is a line hundreds of
  * kilometres long joining two storms that have nothing to do with each other,
- * and everything derived from the glued history -- how old the cell is, what
- * its reflectivity has been doing -- is wrong with it.
+ * and everything derived from the glued history (how old the cell is, what
+ * its reflectivity has been doing) is wrong with it.
  *
  * So the track is cut at any step a storm could not physically have made, and
  * only the run of steps after the last such cut is treated as this cell. An
@@ -134,11 +134,11 @@ export function lastRunStart(
  * motion has spread them out. Zoomed out they converge on the cell and a
  * complete set is a stack of overlapping text.
  *
- * Deciding it from the resolution -- metres per pixel -- rather than leaving
+ * Deciding it from the resolution (metres per pixel) rather than leaving
  * it to OpenLayers' declutter: declutter is a layer-wide setting, and this
  * layer also draws the rotation and hail badges, which are the marks least
  * worth dropping to make room for a number. Thinning by a fixed step also
- * keeps the labels a sequence -- +15, +30, +45, +60 -- rather than whichever
+ * keeps the labels a sequence (+15, +30, +45, +60) rather than whichever
  * ones happened to survive a collision pass, which changes as the map moves.
  *
  * Every step divides the full hour, so the outermost ring is labelled at every
@@ -154,7 +154,7 @@ export function labelStepMinutes(resolution: number): number {
 /**
  * What a forecast ring's label says, or null when it should not carry one.
  *
- * Two clocks meet here, and keeping them apart is the whole of it.
+ * Two clocks meet here, and this keeps them apart.
  *
  * `leadMinutes` is the ring's lead over the detection it was forecast from.
  * That is the forecast's own frame: the rings are five minutes apart in it,
@@ -163,15 +163,15 @@ export function labelStepMinutes(resolution: number): number {
  *
  * `forecastAt` is the moment the ring is for. That is what the label says,
  * because a reader is asking how long they have and the answer has to count
- * down while they watch. Nothing reaches the map when it happens -- the scan,
- * DWD's run behind it, the ingest behind that, then however long the popup has
- * been open -- so a ring forecast fifteen minutes past the scan is routinely
- * eight minutes from the reader.
+ * down while they watch. Nothing reaches the map the moment it happens (the
+ * scan, DWD's run behind it, the ingest behind that, then however long the
+ * popup has been open), so a ring forecast fifteen minutes past the scan is
+ * routinely eight minutes from the reader.
  *
- * The consequence is that the sequence stops being round: +8, +23, +38 rather
- * than +15, +30, +45. That looks like a bug and is the correction.
+ * So the sequence stops being round: +8, +23, +38 rather than +15, +30, +45.
+ * That looks like a bug but is correct.
  *
- * Null once the moment has passed. The ring keeps its outline -- the cone is
+ * Null once the moment has passed. The ring keeps its outline: the cone is
  * one shape, and punching holes in it would say the forecast had gaps.
  */
 export function leadLabel(
@@ -200,7 +200,7 @@ export function ageMinutes(lastSeen: string, now = Date.now()): number {
  * left open through an afternoon still filled up with pale paths and dots for
  * cells that dissipated hours ago, and read as weather that was not there.
  * Half an hour keeps a storm that has just been missed for a scan or two, and
- * lets one that has really gone out disappear.
+ * lets one that has gone for good disappear.
  */
 export const TRACK_MAX_MINUTES = 30;
 
@@ -268,8 +268,8 @@ export function worldExtent(extent: Extent): Extent {
  * Scale a ring about a point so it encloses `ratio` times the area.
  *
  * Area grows with the square of a linear factor, so the factor is its root.
- * Getting that wrong does not throw and does not look obviously broken -- every
- * storm core just comes out far too small, which reads as a weak storm.
+ * Getting that wrong does not throw and does not look obviously broken: every
+ * storm core comes out far too small, which reads as a weak storm.
  */
 export function scaleRing(
   ring: number[][],

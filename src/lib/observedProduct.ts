@@ -105,7 +105,7 @@ export function drawnProduct(chosen: ObservedProduct, scans: NewestScans): Obser
  * Only on an observed step: none of them forecasts. On the live step, its own
  * newest frame, which its socket event keeps current between two timeseries;
  * elsewhere the one the timeseries matched onto the step. A step it has no
- * frame for -- a gap in its ingest -- shows the default, as a gap in a
+ * frame for (a gap in its ingest) shows the default, as a gap in a
  * network's history does.
  */
 export function stepFrame<F>(
@@ -137,8 +137,8 @@ export type ScanRange = readonly [freshest: number, stalest: number];
  *
  * HX and DMAX cover Germany only, and the map draws every other country
  * beside them on its own clock: the picture runs from its freshest part to
- * its stalest, either of which may be a neighbour's -- Czechia's composite is
- * often out before HX. The merged composite and the column maximum of every
+ * its stalest, either of which may be a neighbour's (Czechia's composite is
+ * often out before HX). The merged composite and the column maximum of every
  * network are one frame each, stamped with their own newest scan.
  */
 export function scanRange(
@@ -162,7 +162,7 @@ export function timeseriesProducts(chosen: ObservedProduct): AlternativeProduct[
 /**
  * The `colmax` frame drawn around DMAX on a step, where the networks'
  * composites otherwise are; null where DMAX is not drawn, or `colmax` has no
- * frame for the step -- the networks' are drawn around it then, as for HX.
+ * frame for the step; the networks' are drawn around it then, as for HX.
  * On the live step, its own newest only while that is not too far behind
  * (`fallsBehind`), as when it is chosen.
  */

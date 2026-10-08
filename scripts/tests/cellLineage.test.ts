@@ -9,7 +9,7 @@ import {
  *
  * Shaped on a real run: one cell split into two, three cells merged into one,
  * and a seven-node family that did both across three generations. The awkward
- * parts are all bookkeeping -- an edge is named by both of its endpoints, a
+ * parts are all bookkeeping: an edge is named by both of its endpoints, a
  * relative may not have been fetched yet, and the identifier the graph is
  * built from is documented as being reused across unrelated cells.
  */
@@ -170,8 +170,8 @@ test("cells that start in the same minute keep a stable order", () => {
 /**
  * The family chart's time axis.
  *
- * dagre ranks by depth in the graph, not by time -- in one real family the
- * first rank held a cell from 16:10 and one from 15:35 -- so the positions
+ * dagre ranks by depth in the graph, not by time (in one real family the
+ * first rank held a cell from 16:10 and one from 15:35), so the positions
  * along the clock have to come from the timestamps, or the axis labels a
  * reading the layout cannot support.
  */

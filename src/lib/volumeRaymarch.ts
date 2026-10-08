@@ -3,7 +3,7 @@
  *
  * Moved out of `CellCutaway` when a second picture wanted it: the CAPPI in
  * `CappiSweep` is the same volume, the same transfer function and the same
- * cut -- only the plane lies flat and moves up and down instead of standing
+ * cut; only the plane lies flat and moves up and down instead of standing
  * and turning. See `CellCutaway` for why this is raymarched rather than
  * meshed, and written against WebGL2 directly.
  *
@@ -83,7 +83,7 @@ bool hitBox(vec3 origin, vec3 direction, out float near, out float far) {
 
 vec3 toTexture(vec3 p) { return (p + uHalf) / (2.0 * uHalf); }
 
-/** Reflectivity in dBZ, and how well that voxel was actually seen. */
+/** Reflectivity in dBZ, and how well that voxel was seen. */
 vec2 sampleField(vec3 p) {
   vec2 raw = texture(uVolume, toTexture(p)).rg;
   return vec2(raw.r * 255.0 / uDbzScale + uDbzFloor, raw.g);
@@ -93,7 +93,7 @@ vec2 sampleField(vec3 p) {
  * The gradient of what is drawn, which is what gives the cloud its shape.
  *
  * Taken over reflectivity weighted by confidence rather than over reflectivity
- * alone: at the edge of coverage the field simply stops, and lighting that
+ * alone: at the edge of coverage the field stops, and lighting that
  * boundary would carve a bright rim onto the place where the radar ran out.
  */
 vec3 fieldNormal(vec3 p, float step) {
@@ -109,8 +109,8 @@ void main() {
   vec2 ndc = (gl_FragCoord.xy / uViewport) * 2.0 - 1.0;
   ndc.x *= uViewport.x / uViewport.y;
   // A narrow field of view, about 42 degrees across the short side. Wider
-  // looks like a fisheye at this distance and, more to the point, leaves the
-  // storm small in a panel that is only two hundred pixels tall.
+  // looks like a fisheye at this distance and leaves the storm small in a
+  // panel that is only two hundred pixels tall.
   vec3 direction = normalize(uForward + (uRight * ndc.x + uUp * ndc.y) * 0.38);
 
   float near, far;
@@ -148,7 +148,7 @@ void main() {
   // Start each ray a random fraction of a step in.
   //
   // Neighbouring rays otherwise sample at the same depths, so a sharp boundary
-  // in the field -- the edge of a radar's coverage, say -- lands between the
+  // in the field (the edge of a radar's coverage, say) lands between the
   // same two steps all the way along it and comes out as a staircase. Jittered,
   // the same error becomes fine noise, which the eye reads as texture rather
   // than as a feature of the storm.
@@ -164,9 +164,9 @@ void main() {
 
     float alpha;
     if (cutFace && i < 1.0) {
-      // The sliced surface itself, drawn flat and solid: the whole point of
-      // cutting the storm open is that this face shows structure the outside
-      // hides, and shading it like more cloud would throw that away.
+      // The sliced surface itself, drawn flat and solid: the storm is cut open
+      // so this face can show the structure the outside hides, and shading it
+      // like more cloud would throw that away.
       //
       // Averaged over a second tap just behind it, because one opaque sample
       // of a trilinearly filtered texture facets along the voxel grid, and on
@@ -263,7 +263,7 @@ export interface Raymarcher {
  *
  * Kilometres, and the same on every axis: a kilometre up is a kilometre
  * across, so a storm that looks tall and narrow is tall and narrow. The box
- * is centred on the origin, so its floor -- the ground -- is at minus half
+ * is centred on the origin, so its floor (the ground) is at minus half
  * its height.
  */
 export function createRaymarcher(canvas: HTMLCanvasElement, loaded: Cutaway, colormap: string): Raymarcher | string {

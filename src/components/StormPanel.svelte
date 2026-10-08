@@ -3,14 +3,11 @@
  * The frame every "storm you tapped" is drawn in: a tracked cell's details
  * and a storm core's alike, in the desktop popup and in the phone's sheet.
  *
- * The two used to be laid out separately, and drifted: the core had a bare
- * close glyph where the cell had the glass disc, its own heading sizes in rem
- * beside the cell's in px, a 12-hour clock beside a 24-hour one, and no
- * Escape. Opened one after the other on the 3D map they read as two different
- * apps. This holds what is the same about both -- the header ruled in the
- * storm's colour with the way out in its corner, the line saying where it is,
- * the section headings, the footer, the key that closes it -- so the panels
- * only differ in what they have to say.
+ * This holds what is the same about both (the header ruled in the storm's
+ * colour with the way out in its corner, the line saying where it is, the
+ * section headings, the footer, the key that closes it), so the panels only
+ * differ in what they have to say, and opened one after the other on the 3D
+ * map they do not read as two different apps.
  *
  * Section headings are `h3.section` with an optional `span.aside`, set from
  * here for whatever is inside, `CellLineage` and `VolumeProvenance` included.
@@ -33,7 +30,7 @@ import type { SheetShare } from "../lib/sheetContext";
 
 /**
  * The storm's own colour, for the rule down the header. None for a panel that
- * is not about one storm -- the model comparison takes this frame too, so every
+ * is not about one storm: the model comparison takes this frame too, so every
  * drawer reads as the same kind of thing.
  */
 export let rule: string | null = null;
@@ -65,10 +62,10 @@ onDestroy(() => {
  * Escape closes the panel, which is what every other dismissable surface on a
  * desktop does.
  *
- * Three things are deliberately left alone. A panel above this one owns the
- * key first -- About, Settings and Connection Details (GlassPanel) close on
- * Escape themselves, and can be open over this -- so an open one means the
- * key was not aimed here. A handler that already called `preventDefault`
+ * Three cases are left alone. A panel above this one owns the key first
+ * (About, Settings and Connection Details, in GlassPanel, close on Escape
+ * themselves and can be open over this), so an open one means the key was
+ * not aimed here. A handler that already called `preventDefault`
  * means the same; GlassPanel does, from the capture phase, so it always runs
  * first. And Escape in a field means "cancel what I am typing", never "close
  * the panel behind it".
@@ -186,10 +183,10 @@ onMount(holdNativeChrome);
 
   /**
    * A section heading, on the footing the place cards give one: bold, in the
-   * primary ink, a clear step above the body -- it names the group, and the
+   * primary ink, a clear step above the body. It names the group, and the
    * air above it is what separates the groups, so there are no rules.
    *
-   * `h3` because these are real headings -- the panel is a section of the page
+   * `h3` because these are real headings: the panel is a section of the page
    * and each block is a section of the panel, so a screen reader can jump
    * between them.
    */
@@ -204,16 +201,16 @@ onMount(holdNativeChrome);
   }
   /* The first heading follows the stats or the dial, which carry a gap. Only
      the panel's own: `:first-of-type` counts per parent, so unqualified it
-     also caught the first heading inside VolumeProvenance and CellLineage,
+     would also catch the first heading inside VolumeProvenance and CellLineage,
      which come after whole sections and need the full gap. */
   .storm-panel > :global(h3.section:first-of-type) {
     margin-top: 18px;
   }
   /**
-   * The aside is the hint that used to live in the caption ("drag to turn",
-   * "tap to follow"), set at the far end of the heading's line where the
-   * place cards put their "Edit": a different kind of thing from the heading,
-   * so it is somewhere else rather than just quieter.
+   * The aside is a hint ("drag to turn", "tap to follow"), set at the far end
+   * of the heading's line where the place cards put their "Edit": a different
+   * kind of thing from the heading, so it sits somewhere else as well as
+   * being quieter.
    */
   .storm-panel :global(.section .aside) {
     margin-left: auto;

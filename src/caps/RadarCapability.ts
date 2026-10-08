@@ -71,8 +71,8 @@ const PREFETCH_REMEMBERED = 3000;
 /**
  * What the radar layer fades to while it is known to be out of date.
  *
- * Enough that the map reads as "not the current picture" at a glance, not so
- * little that the frames stop being legible -- old radar is still the best
+ * Faint enough that the map reads as "not the current picture" at a glance,
+ * strong enough that the frames stay legible. Old radar is still the best
  * answer available until the new one lands a moment later.
  */
 const STALE_OPACITY = NOWCAST_OPACITY * 0.45;
@@ -80,16 +80,16 @@ const STALE_OPACITY = NOWCAST_OPACITY * 0.45;
 /**
  * How far the radar steps back while a cell's popup is open.
  *
- * Opening a cell puts its whole forecast on the map -- a dozen centroids and a
- * nest of dashed uncertainty ellipses, all of it thin one-pixel work in the
- * cell's own severity colour. Over a mature storm that lands on the loudest
- * pixels the radar has, reds and oranges at full strength, and the dashes
- * simply disappear into them.
+ * Opening a cell puts its whole forecast on the map: a dozen centroids and a
+ * nest of dashed uncertainty ellipses, all thin one-pixel lines in the cell's
+ * own severity colour. Over a mature storm they land on the radar's strongest
+ * pixels, reds and oranges at full strength, and the dashes disappear into
+ * them.
  *
- * So the reflectivity drops back for as long as the popup is up. Not far: the
- * echo is the thing the track is being read *against*, and a comparison needs
- * both halves. A little over half strength is enough to let a one-pixel dash
- * win without the storm underneath it going away.
+ * So the reflectivity drops back while the popup is up, but only a little: the
+ * track is read *against* the echo, so both have to show. A little over
+ * half strength lets a one-pixel dash stand out while the storm underneath
+ * stays visible.
  */
 const INSPECT_OPACITY = 0.55;
 
@@ -170,15 +170,15 @@ export default class RadarCapability extends Capability {
   snowOverlay: VectorTileLayer | null;
 
   /**
-   * The EUMETNET networks' composites -- tile layers of their own beside the
+   * The EUMETNET networks' composites: tile layers of their own beside the
    * DWD grid/GridStep this class otherwise manages, each keeping its own live
    * frame. See `layers/network.ts` for why they stay separate.
    */
   private networks: NetworkRadarLayer[];
 
   /**
-   * The two products of every network at once -- the merged composite of
-   * their lowest tilts and their column maximum -- each drawn whole in place
+   * The two products of every network at once (the merged composite of
+   * their lowest tilts, and their column maximum), each drawn whole in place
    * of DWD's frame and the networks' on every observed step while it is the
    * drawn product; see `showNetworks`. Their newest frames are fetched
    * whatever is drawn, for the picker's age.
@@ -297,8 +297,8 @@ export default class RadarCapability extends Capability {
     ));
     // Not an observer's business: the 3D map drapes HX and the networks
     // whatever the flat map draws.
-    // Told by `refreshWhole` rather than on a new frame: an answer of none
-    // is news too, the kind that gives a choice up (`givesUpChoice`).
+    // Told by `refreshWhole` instead of on a new frame, because an answer of
+    // none is news too: it can give a choice up (`givesUpChoice`).
     this.wholes = {
       merged: new NetworkRadarLayer(map, EUROPE),
       colmax: new NetworkRadarLayer(map, EUROPE_COLUMN_MAXIMUM),
@@ -417,9 +417,9 @@ export default class RadarCapability extends Capability {
        until the page is looked at, and collapsed to the newest of its kind
        while it waits (lib/wakeup.ts). */
     if (this.socket_io) {
-      // DWD's grid only. The networks have their own event below, and reloading
-      // all four with every poke was four requests every five minutes to
-      // learn nothing.
+      // DWD's grid only. The networks have their own event below; reloading
+      // all four on every poke cost four requests every five minutes and
+      // brought nothing new.
       this.pokeHandler = () => {
         whenVisible("radar:poke", () => {
           console.log("received websocket poke, refreshing tiles + forecasts");
@@ -432,9 +432,9 @@ export default class RadarCapability extends Capability {
           this.downloadSnowOverlay();
         });
       };
-      // One network's composite, one of every network's, or DMAX,
-      // re-rendered: refetch that one frame only. Not `poke`, which reloads
-      // DWD's whole timeseries, and these land every minute or two.
+      // One network's composite, one of every network's, or DMAX was
+      // re-rendered: refetch only that frame. These land every minute or two,
+      // so they don't go through `poke`, which reloads DWD's whole timeseries.
       this.networkHandler = ({ network }) => {
         whenVisible(`radar:network:${network}`, () => {
           const whole = Object.values(this.wholes).find((layer) => layer.network.code === network);
@@ -493,8 +493,8 @@ export default class RadarCapability extends Capability {
       }
 
       const bucket = layerAttributes.source === "observation" ? "meteoradar" : "meteonowcast";
-      // The frame's value tiles. Everything keyed by URL -- indices, holes,
-      // prefetch -- follows.
+      // The frame's value tiles. Everything keyed by URL (indices, holes,
+      // prefetch) follows.
       const sourceUrl = tileSourceUrl(bucket, drawnTileId(layerAttributes));
 
       body[step] = layerAttributes;
@@ -522,11 +522,11 @@ export default class RadarCapability extends Capability {
    * shows each frame half-loaded for the first few hundred milliseconds. This
    * asks for the next `count` frames' tiles for the current viewport and
    * zoom before the player gets there, through `fetch`, so they are in the
-   * HTTP cache -- and the service worker's -- when OpenLayers asks.
+   * HTTP cache (and the service worker's) when OpenLayers asks.
    *
-   * Only worth it when the tiles are cacheable at all, which they are by URL
-   * (a tile_id names one rendering). The bytes are the same either way; what
-   * moves is when they are asked for.
+   * This only helps because the tiles are cacheable by URL (a tile_id names
+   * one rendering). The bytes are the same either way; only the time they are
+   * asked for changes.
    */
   prefetchFrames(fromStep: number, count: number) {
     const { source } = this;
@@ -589,8 +589,8 @@ export default class RadarCapability extends Capability {
     for (const url of urls) {
       if (this.prefetched.has(url)) continue;
       this.prefetched.add(url);
-      // Same request the tile loader makes -- a CORS one, no credentials --
-      // so the cache entry is the one it will look for. The body is read to
+      // Same request the tile loader makes (CORS, no credentials), so the
+      // cache entry is the one it will look for. The body is read to
       // the end: a response left unread is not stored.
       timedFetch(url, { mode: "cors", credentials: "same-origin", priority: "low" } as RequestInit)
         .then((response) => (response.ok ? response.arrayBuffer() : undefined))
@@ -636,9 +636,9 @@ export default class RadarCapability extends Capability {
    *
    * Called when the page wakes, which is the moment it can be true without
    * anything having happened: no frame changed, the clock did. Only ever turns
-   * it *on* -- the grid that answers the refetch turns it off, so a slow
-   * response cannot clear the warning before the data it is warning about has
-   * actually been replaced.
+   * it *on*. The grid that answers the refetch turns it off, so a slow
+   * response cannot clear the warning before the data it warns about has
+   * been replaced.
    */
   refreshStaleness() {
     if (!this.clientGrid) return;
@@ -648,14 +648,14 @@ export default class RadarCapability extends Capability {
   }
 
   /**
-   * The radar layer's opacity, as one sum rather than two writers.
+   * The radar layer's opacity, computed in one place from both reasons to dim.
    *
-   * Staleness and the open popup both want to dim it and neither knows about
-   * the other, so each one setting it directly would mean whichever fired last
-   * won: closing a popup over stale radar would quietly restore it to full
-   * strength and drop the outdated warning with it. Both are flags here and
-   * the opacity is computed from them, so they compose -- stale radar being
-   * inspected is dimmer still, and each one is undone only by its own cause.
+   * Staleness and the open popup both dim it and neither knows about the
+   * other. If each set it directly, whichever fired last would win: closing a
+   * popup over stale radar would restore it to full strength and drop the
+   * outdated warning with it. Here both are flags and the opacity is computed
+   * from them, so they combine. Stale radar being inspected is dimmer still,
+   * and each is undone only by its own cause.
    */
   private applyRadarOpacity() {
     const base = this.stale ? STALE_OPACITY : NOWCAST_OPACITY;
@@ -676,7 +676,7 @@ export default class RadarCapability extends Capability {
    * The radar of one observed step, for the 3D map to drape under that
    * scan's storms when the reader picks an earlier one: HX's frame, as the
    * live drape is (App.svelte), and each network's composite for the step
-   * where the grid has one -- whose `upstream_time` is that network's own
+   * where the grid has one, whose `upstream_time` is that network's own
    * scan. Null for a step the grid has no observation for, which is any
    * older than its two hours.
    */
@@ -714,7 +714,7 @@ export default class RadarCapability extends Capability {
     this.refreshColumnMaximum();
   }
 
-  /** One of every network's products, newest frame, and whatever that changes -- a frame or none. */
+  /** One of every network's products, newest frame, and whatever that changes (a frame or none). */
   private async refreshWhole(whole: NetworkRadarLayer) {
     await whole.refresh(this.nanobar);
     this.productsChanged();
@@ -755,9 +755,9 @@ export default class RadarCapability extends Capability {
   }
 
   /**
-   * Re-decide what the map draws, after anything that can change it -- the
-   * reader's choice, or a new frame of any of the three products -- say so to
-   * the picker, and put it on the step on screen.
+   * Re-decide what the map draws after anything that can change it (the
+   * reader's choice, or a new frame of any of the three products), tell the
+   * picker, and put it on the step on screen.
    */
   private productsChanged() {
     const scans = this.newestScans();
@@ -826,7 +826,7 @@ export default class RadarCapability extends Capability {
   /**
    * What DWD's layer draws on a step, by the name its holes are keyed by,
    * and which tiles that frame has: DMAX's frame there while it is the drawn
-   * product and has one, else the grid's -- HX's, or WN's on a forecast step.
+   * product and has one, else the grid's: HX's, or WN's on a forecast step.
    * Null where the grid has nothing yet.
    */
   private dwdFrame(step: number): { url: string; tiles?: TileIndex | null } | null {
@@ -841,8 +841,8 @@ export default class RadarCapability extends Capability {
 
   /**
    * DWD's grid alone. The networks are on their own cadence with their own
-   * socket event, and nothing that changes the grid -- a poke, a new sample
-   * position, a palette -- changes them.
+   * socket event, and nothing that changes the grid (a poke, a new sample
+   * position, a palette) changes them.
    */
   reloadRadar() {
     this.downloadCurrentRadar();
@@ -860,8 +860,9 @@ export default class RadarCapability extends Capability {
 
   /**
    * Which networks to cut out of which of DWD's frames: on each observed step,
-   * those the grid has a composite for, and on the live one all of them --
-   * those layers bring their own newest frame there, whatever the grid says.
+   * those the grid has a composite for, and on the live one all of them,
+   * since those layers bring their own newest frame there whatever the grid
+   * says.
    */
   private holes(): globalThis.Map<string, NetworkCode[]> {
     const holes = new globalThis.Map<string, NetworkCode[]>();
@@ -892,11 +893,11 @@ export default class RadarCapability extends Capability {
   /**
    * Point every network layer at the step on screen.
    *
-   * On an observed step a product of every network's is drawn on, while it
-   * is the drawn product, that one frame stands in for all five networks:
-   * DWD's layer and the networks' are hidden under it rather than blended
-   * with it, since every palette is part transparent and two drawn together
-   * read as a third intensity.
+   * On an observed step where a product of every network's is drawn, that
+   * one frame stands in for all five networks while it is the drawn product.
+   * DWD's layer and the networks' are hidden under it instead of blended with
+   * it: every palette is partly transparent, and two drawn together read as a
+   * third intensity.
    */
   private showNetworks(shown: number, live: boolean) {
     const whole = this.wholeFrame(shown);
@@ -915,9 +916,9 @@ export default class RadarCapability extends Capability {
   }
 
   /**
-   * Where the forecast is sampled: a tapped point, else the client's own --
-   * with the network the map draws there, whose composites the past half of
-   * the strip is then read from.
+   * Where the forecast is sampled: a tapped point, else the client's own,
+   * along with the network the map draws there. The past half of the strip
+   * is read from that network's composites.
    */
   getPosition() {
     const at = this.inspectLatlon ?? this.latlon;
@@ -955,8 +956,9 @@ export default class RadarCapability extends Capability {
     const request = this.gridRequests;
     const products = timeseriesProducts(this.chosen);
     // Asked again without the products when that fails: an API that does not
-    // know one yet (a client deployed before its backend) answers 422, and the
-    // map would otherwise have no radar at all rather than HX without it.
+    // know one yet (a client deployed before its backend) answers 422, and
+    // without the retry the map would have no radar at all instead of HX
+    // without that product.
     let asked = products;
     const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), products).catch(() => {
       if (!products.length) return null;
@@ -968,9 +970,9 @@ export default class RadarCapability extends Capability {
       return;
     }
     /* A poke, a wake, a tap and the retries a bad network brings all send
-       one of these, and they need not answer in order. Older than one
-       already applied, this one would put the previous grid -- or another
-       point's forecast -- back. */
+       one of these, and they need not answer in order. A response older
+       than one already applied would put the previous grid (or another
+       point's forecast) back. */
     if (request < this.gridApplied) return;
     this.gridApplied = request;
     this.gridSampledAt = at;
@@ -1034,13 +1036,13 @@ export default class RadarCapability extends Capability {
    * The newest step the map can show as "now".
    *
    * This used to seed with serverTime and only ever raise it to an observation
-   * newer than that -- which no observation ever is, so the loop was dead and
-   * the function returned the server's clock under an observation's name. That
-   * held together only because on production the step at server_time happens to
-   * BE the newest observation. On a backend that publishes no observations at
-   * all it silently returned a forecast step instead, and any caller that looks
-   * the result up in the grid (resetToLatest, processRadar's first layer,
-   * the scrubber's initial value) depends on it being a real step.
+   * newer than that. No observation ever is, so the loop was dead and the
+   * function returned the server's clock under an observation's name. That
+   * only worked because on production the step at server_time happens to BE
+   * the newest observation. On a backend that publishes no observations at
+   * all it silently returned a forecast step instead, and every caller that
+   * looks the result up in the grid (resetToLatest, processRadar's first
+   * layer, the scrubber's initial value) needs it to be a real step.
    *
    * Preference order: the newest observation; failing that the newest step at
    * or before the server's clock that has a frame; failing that the clock
@@ -1051,7 +1053,7 @@ export default class RadarCapability extends Capability {
     let newestBeforeNow = 0;
     for (const [key, frame] of Object.entries(this.clientGrid ?? {})) {
       // No url means the step is not published yet, and the rest of the grid
-      // behind it is not either -- same prefix rule as getLastPlayableStep().
+      // behind it is not either: same prefix rule as getLastPlayableStep().
       if (!frame || !frame.url) break;
       const step = parseInt(key, 10);
       if (frame.source === "observation") newestObservation = step;
@@ -1067,9 +1069,9 @@ export default class RadarCapability extends Capability {
    * published a few steps behind that: those entries come back null, or stay
    * the empty placeholder regenerateGridConfig() seeded. setSource() then has
    * no url to hand the layer and leaves the previous tile on the map, so the
-   * clock advances while the radar does not -- which reads as a freeze.
+   * clock advances while the radar does not, which looks like a freeze.
    *
-   * Stops at the first hole rather than skipping it, like
+   * Stops at the first hole instead of skipping it, like
    * getMostRecentObservation(): the published steps are a prefix of the grid.
    */
   getLastPlayableStep(): number {
@@ -1088,9 +1090,8 @@ export default class RadarCapability extends Capability {
     this.networkGrid = obj.networks ?? {};
     this.productGrid = obj.products ?? {};
     this.serverTime = obj.server_time;
-    // The backend is the only thing that knows: a replay is built to be
-    // indistinguishable from here, so there is nothing in the frames to infer
-    // it from.
+    // Only the backend knows: a replay is built to look identical from here,
+    // so nothing in the frames gives it away.
     replay.set(Boolean(obj.replay));
     this.gridconfig = this.regenerateGridConfig();
     const latestRadar = this.updateClientGridFromServerGrid(this.serverGrid);
@@ -1133,15 +1134,15 @@ export default class RadarCapability extends Capability {
         break;
     }
     // Whatever the mode, the grid's newest step is on record: layers that only
-    // make sense on the live frame read it against the indicator -- see the
-    // cell layer's gate in App.svelte. On the live path `resetToLatest` has
+    // make sense on the live frame read it against the indicator (see the
+    // cell layer's gate in App.svelte). On the live path `resetToLatest` has
     // already said this and the write is a no-op; on a manual scrubber it is
     // the one that matters, and it leaves the indicator where the reader put
     // it, now measurably behind.
     setFrames({ newest: this.getMostRecentObservation() });
     // A new grid can carry composites for the step on screen that the last
-    // one did not, and the indicator has not moved to say so -- and HX's
-    // newest scan, which the other products are measured against.
+    // one did not, without the indicator moving to say so. It also carries
+    // HX's newest scan, which the other products are measured against.
     this.productsChanged();
     capLastUpdated.set(latestRadar);
     this.publishCadenceFromGrid();
@@ -1158,9 +1159,9 @@ export default class RadarCapability extends Capability {
    * report a cadence of nothing at all; the observations are the ones that
    * appear one at a time, on the backend's actual rhythm.
    *
-   * Cheap enough to do on every grid -- a couple of dozen numbers -- and doing
-   * it here rather than in the panel means the prediction exists whether or not
-   * anyone has the diagnostics open, which is what the degraded criteria need.
+   * Cheap enough to do on every grid (a couple of dozen numbers). Doing it
+   * here instead of in the panel means the prediction exists whether or not
+   * anyone has the diagnostics open, which the degraded criteria need.
    */
   private publishCadenceFromGrid() {
     const published = Object.values(this.clientGrid ?? {})

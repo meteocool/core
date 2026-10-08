@@ -3,12 +3,12 @@
  * Which product the radar map's observed frames are drawn from, picked here,
  * with how old each one's newest scan is (lib/observedProduct.ts).
  *
- * Two faces of one control. In the scale line it is the caption the legend
- * always had -- "Radarkomposit (DWD 1km)", until this -- now the chosen
- * product and its age; on a phone, where that caption has no room, a pill
- * with a radar dish, the product's short name and its age in its place. The
- * age is the radar's "last updated": there is no other. Where there is no scale line at all, the
- * player below the desktop's width and the apps', it is the pill on its own.
+ * Two faces of one control. In the scale line it is the legend's caption: the
+ * chosen product and its age. On a phone, where that caption has no room, it
+ * is a pill with a radar dish, the product's short name and its age. The age
+ * is the radar's "last updated": there is no other. Where there is no scale
+ * line at all (the player below the desktop's width, and the apps'), it is
+ * the pill on its own.
  * Either opens the same menu above the tray.
  *
  * The menu is moved to <body>: the tray clips what overflows it, and a
@@ -48,7 +48,7 @@ let maxHeight: number | null = null;
 /** Narrower than this, the menu takes the width beside the map's buttons rather than its own. */
 const PHONE_WIDTH = 520;
 
-/** Where the map's own buttons are -- zoom, locate, rotate, layers: what the menu must not run under. */
+/** Where the map's own buttons are (zoom, locate, rotate, layers): what the menu must not run under. */
 function mapButtons(): DOMRect[] {
   return [...document.querySelectorAll<HTMLElement>(".ol-control:not(.ol-attribution):not(.ol-hidden), .lsToggle")]
     .map((element) => element.getBoundingClientRect())
@@ -96,7 +96,7 @@ async function show() {
   open = true;
   await tick();
   if (!menu) return;
-  // Centred on the control, kept on screen -- and on a phone, left of the buttons.
+  // Centred on the control, kept on screen, and on a phone left of the buttons.
   const menuWidth = menu.offsetWidth;
   const centred = rect.left + rect.width / 2 - menuWidth / 2;
   const rightEdge = phone ? rightColumn : window.innerWidth;

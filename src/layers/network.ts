@@ -122,7 +122,7 @@ export const AROUND_DMAX: Network = {
  *
  * Two frames, from two places. The live frame is its own: fetched here and
  * replaced whenever a radar reports, on the network's own socket event, which
- * lands every minute or two -- far more often than DWD's grid is refetched.
+ * lands every minute or two, far more often than DWD's grid is refetched.
  * Every other past step shows the composite the grid carries for it
  * (`RadarFrames.networks`), which `RadarCapability` hands over as the
  * scrubber moves. The networks have no forecast, so on a forecast step this
@@ -189,8 +189,8 @@ export default class NetworkRadarLayer {
 
   /**
    * What the map is showing: the live frame, or another step and this
-   * network's composite for it -- null when the grid has none, which is every
-   * forecast step and any gap in the network's ingest.
+   * network's composite for it (null when the grid has none, which is every
+   * forecast step and any gap in the network's ingest).
    *
    * Without one the layer steps aside and DWD, whole on that step (see
    * `networkHoles.ts`), is the radar there. Drawing the nearest frame instead
@@ -265,9 +265,9 @@ export default class NetworkRadarLayer {
    * transparent, so wherever two are drawn over each other the result is a
    * blend that reads as a third intensity neither measured. So each tile is
    * cut to `coverage` as it loads (`valueTiles.ts`), which keeps exactly one
-   * network's colours on any pixel -- the other half of that bargain is the
-   * holes cut into DWD's tiles (`networkHoles.ts`). A WebGL layer cannot be
-   * clipped at render time, and nothing outside the coverage is even fetched.
+   * network's colours on any pixel; the holes cut into DWD's tiles
+   * (`networkHoles.ts`) are the other half. A WebGL layer cannot be clipped
+   * at render time, and nothing outside the coverage is even fetched.
    */
   private createLayer(url: string, frame: RadarFrame) {
     const source = trackTileLoads(new ValueTileSource({

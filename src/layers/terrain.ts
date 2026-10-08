@@ -9,7 +9,7 @@
  * layer, which is why the storm layer applies it itself.
  *
  * Served beside the basemap from map.meteocool.com, out of our own copy of
- * Mapterhorn's archive -- the same bytes as their public tiles, versioned by
+ * Mapterhorn's archive: the same bytes as their public tiles, versioned by
  * build date like the basemap so a URL never changes content.
  */
 import type { HillshadeLayerSpecification, Map as GlMap } from "maplibre-gl";
@@ -72,9 +72,9 @@ function hillshade(dark: boolean): HillshadeLayerSpecification {
 /**
  * Put the relief on the map, or take it off.
  *
- * Idempotent, so it is safe from `applyData`, which runs again after every
- * `setStyle` -- and that throws the source, the layer and the terrain away
- * with everything else added on top of the basemap.
+ * Idempotent, so it is safe to call from `applyData`, which runs again after
+ * every `setStyle`. `setStyle` throws the source, the layer and the terrain
+ * away with everything else added on top of the basemap.
  *
  * `drapeSize`, when given, is the side in pixels of the texture each terrain
  * tile is draped with, in place of MapLibre's own; see `gpuBudget.ts`.

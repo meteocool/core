@@ -21,8 +21,8 @@ Non-existent, but here's a few pointers:
   progress bar and error reporting cannot be forgotten. Socket.IO cannot be
   described by OpenAPI, so `src/api/events.ts` maps event names to payload
   types that the same generator produces.
-* The globals the native apps call -- `window.lm`, `window.settings`,
-  `window.enterForeground` and the rest -- are declared in
+* The globals the native apps call (`window.lm`, `window.settings`,
+  `window.enterForeground` and the rest) are declared in
   `src/lib/nativeBridge.ts`. They are a public API: shipped app versions
   depend on these names.
 * Most interactions between the native applications and the web

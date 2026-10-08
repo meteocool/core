@@ -10,8 +10,8 @@ import type { CellCurrent } from "../../src/api/index.ts";
  *
  * Almost nothing here fails loudly. A profile whose mean does not match the
  * reported volume still draws a plausible storm, a core placed at the wrong
- * height still looks like a core, and rings that overlap still render -- they
- * just flicker on someone else's GPU. So the properties are asserted directly.
+ * height still looks like a core, and rings that overlap still render, only to
+ * flicker on someone else's GPU. So the properties are asserted directly.
  */
 
 /** Shoelace area of a ring, in squared degrees; only ratios matter here. */
@@ -81,7 +81,7 @@ test("a ring that already closes is not closed twice", () => {
  * The exponent is solved for, so the one thing worth checking is that the
  * answer round-trips: a body shaped by it really does average the fill its
  * reported volume asks for. Get this wrong and every storm still draws, just
- * consistently too fat or too thin -- which reads as the radar being wrong.
+ * consistently too fat or too thin, which reads as the radar being wrong.
  */
 test("the solved exponent gives a profile of the mean it was asked for", () => {
   [0.12, 0.25, 0.4, 0.55, 0.7, 0.9].forEach((wanted) => {
@@ -119,9 +119,8 @@ test("a storm with volume to spare stands on its echo base", () => {
 
 /**
  * The case the extruded-shell model could not express: reflectivity aloft with
- * clear air underneath. It is not a rendering nicety -- a cloud holding its
- * water and a storm already raining it out look identical from above, and the
- * difference is the whole reason for drawing this in three dimensions.
+ * clear air underneath. A cloud holding its water and a storm already raining
+ * it out look identical from above, and that difference is the whole reason for drawing this in three dimensions.
  */
 test("a body too thin for its column hangs under its own top", () => {
   const wispy = {
@@ -221,7 +220,7 @@ test("a centroid that has drifted off its outline does not drag the model with i
 
 /**
  * MapLibre 6 encodes a GeoJSON source's tiles as MVT inside its worker, and an
- * MVT feature id is a uint64 varint -- so whatever sits in `id` is coerced to a
+ * MVT feature id is a uint64 varint, so whatever sits in `id` is coerced to a
  * number. A KONRAD3D code is 22 digits, around 2e21, well past the 10-byte
  * ceiling: every tile of the source throws, the source is marked errored, and
  * the map comes up with a basemap and no storms on it. It surfaces only as an
@@ -267,8 +266,8 @@ test("every drawn ring has somewhere to stand", () => {
  * express at all: shrinking the cell's one polygon puts a single lozenge
  * between them, where the radar saw two.
  *
- * 45 rather than 55 because that is the threshold this cell's model actually
- * makes a core of -- 55 covers 4 km2 of a 95 km2 storm, under the share a band
+ * 45 rather than 55 because that is the threshold this cell's model
+ * makes a core of: 55 covers 4 km2 of a 95 km2 storm, under the share a band
  * needs before it is worth drawing as a column rather than left inside the
  * glass.
  */
@@ -304,7 +303,7 @@ test("the measured cores stay where they were measured", () => {
     return ring.reduce((sum, [lon]) => sum + lon, 0) / ring.length;
   });
 
-  // One around 9.4, one around 10.6 -- not one in the middle at 10.
+  // One around 9.4, one around 10.6, and none in the middle at 10.
   assert.ok(Math.min(...centres) < 9.8);
   assert.ok(Math.max(...centres) > 10.2);
 });

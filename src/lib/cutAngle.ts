@@ -2,9 +2,9 @@
  * The cutaway's slice angle, as a reader turns it.
  *
  * Kept apart from `cellCutaway.ts`, which fetches and so imports the URL
- * configuration -- and that reads Vite's `import.meta.env`, which does not
- * exist under the test runner. Arithmetic about angles has no business
- * depending on the bundler.
+ * configuration. That reads Vite's `import.meta.env`, which does not exist
+ * under the test runner, and arithmetic about angles should not depend on the
+ * bundler.
  */
 import type { Translate } from "../locale/t";
 
@@ -13,8 +13,8 @@ import type { Translate } from "../locale/t";
  *
  * A full turn and not a half, although a vertical plane turned by 180 degrees
  * is the same plane: the cut keeps one side of it, so turning it half way
- * round keeps the other half of the storm -- the view from ahead of it rather
- * than from behind.
+ * round keeps the other half of the storm: the view from ahead of it instead
+ * of from behind.
  */
 export function normaliseCut(degrees: number): number {
   const folded = ((degrees + 180) % 360 + 360) % 360 - 180;
@@ -27,8 +27,8 @@ export function normaliseCut(degrees: number): number {
  * A KONRAD3D cell has a track, and the track is what makes an angle mean
  * something: along it is where an overhang shows. A storm core found only in
  * the radar composite has no track at all, so its slice is measured from north
- * instead -- and saying "along the track" about it would be claiming a
- * direction of travel nobody measured.
+ * instead. Saying "along the track" about it would claim a direction of travel
+ * nobody measured.
  */
 export type CutReference = "track" | "north";
 

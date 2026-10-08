@@ -2,12 +2,12 @@ import { onMapMotion } from "./mapMotion";
 import type Settings from "./Settings";
 
 /**
- * Whether this device struggles to move the map, decided once from how it
- * actually moves it.
+ * Whether this device struggles to move the map, decided once by timing it
+ * moving the map.
  *
  * The glass over the map can go solid while the map moves
  * (`solidGlassWhileMoving`), which takes most of the GPU's work off every
- * frame of a pan -- but the switch from frosted to solid and back is visible
+ * frame of a pan, but the switch from frosted to solid and back is visible
  * every time, so it is off unless a device needs it. Which devices those are
  * is not something the browser says: core counts and memory are capped,
  * rounded or absent depending on the engine, and a fast phone and a slow one
