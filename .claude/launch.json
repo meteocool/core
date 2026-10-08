@@ -20,6 +20,21 @@
         "--strictPort"
       ],
       "port": 8091
+    },
+    {
+      "name": "meteocool-demo",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "MC_API=https://api-demo.meteocool.com",
+        "MC_DATA=https://data-demo.meteocool.com",
+        "MC_TILES=https://assets-demo.meteocool.com",
+        "npx",
+        "vite",
+        "--port",
+        "8097",
+        "--strictPort"
+      ],
+      "port": 8097
     }
   ]
 }
