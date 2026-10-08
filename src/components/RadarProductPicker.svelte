@@ -73,9 +73,12 @@ function age(product: ObservedProduct, scanRanges: Record<ObservedProduct, ScanR
   const span = ageSpan(scanRanges[product], now);
   if (span === null) return $_("chrome.radar_product.unavailable");
   const [from, to] = span;
-  return from === to
+  const text = from === to
     ? $_("chrome.radar_product.age", { values: { minutes: from } })
     : $_("chrome.radar_product.age_span", { values: { from, to } });
+  // The menu wraps an age onto two lines: a number keeps its dash and its
+  // unit, so it is "6–11 min" over "ago" rather than "6–" over "11 min".
+  return text.replace(/–/g, "–\u2060").replace(/(\d) /g, "$1\u00a0");
 }
 
 async function show() {
@@ -393,11 +396,14 @@ function portal(node: HTMLElement) {
     font: 500 11px/1.3 var(--mc-font);
     font-variant-numeric: tabular-nums;
   }
+  /* Wrapped at its words, "1–9 min" over "ago", so the column stays narrow
+     and the text beside it gets the width. */
   .option .age {
+    max-width: 4.6em;
     color: var(--mc-text-2);
-    font: 600 12px/1 var(--mc-font);
+    font: 600 12px/1.25 var(--mc-font);
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    text-align: right;
   }
   .option.behind .age { color: var(--mc-orange-ink); }
   .note {
