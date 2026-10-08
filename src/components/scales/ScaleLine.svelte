@@ -79,9 +79,14 @@
     height: 28px;
   }
 
-  /* The strip as a button: no chrome of its own, a pointer, and a ring for the keyboard. */
+  /* The strip as a button: no chrome of its own, a pointer, and a ring for
+     the keyboard. A flex column, because a button centres its content in its
+     height, which put the strip and its labels lower than the div's. */
   .scale.toggle {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
     padding: 0;
     border: 0;
     background: none;
