@@ -25,6 +25,7 @@ Object.assign(globalThis, {
 });
 
 const { default: Settings } = await import("../../src/lib/Settings.ts");
+const { applyScreenshotLook } = await import("../../src/lib/screenshot.ts");
 
 function lightning(seen: boolean[] = []) {
   store.clear();
@@ -94,6 +95,43 @@ test("screenshot mode is read off the address, and nothing it does is stored", (
   settings.override("layerCells", false);
   settings.set("layerCells", false);
   assert.equal(store.size, 0);
+});
+
+/**
+ * A widget's picture in the reader's basemap and palette. A renderer reuses
+ * its browser, so whatever one picture stored would be the next one's
+ * default -- and a notification's map would come out in someone's dark mode.
+ */
+test("a picture's basemap and palette drive the settings without being stored", () => {
+  store.clear();
+  const seen: string[] = [];
+  const settings = new Settings({
+    mapBaseLayer: { type: "string", default: "system", cb: (value) => seen.push(`base:${value}`) },
+    radarColorMapping: { type: "string", default: "classic", cb: (value) => seen.push(`cmap:${value}`) },
+  });
+  applyScreenshotLook(settings, "?screenshot=yes&baseLayer=dark&colormap=homeyer");
+  assert.deepEqual(seen, ["base:dark", "cmap:homeyer"]);
+  assert.equal(settings.get("mapBaseLayer"), "dark");
+  assert.equal(settings.get("radarColorMapping"), "homeyer");
+  // The stores mirroring them echo the values back; still nothing is stored.
+  settings.set("mapBaseLayer", "dark");
+  settings.set("radarColorMapping", "homeyer");
+  assert.equal(store.size, 0);
+});
+
+test("a picture asked for nothing, or for something unknown, leaves the settings alone", () => {
+  store.clear();
+  store.set("mapBaseLayer", "osm");
+  const seen: string[] = [];
+  const settings = new Settings({
+    mapBaseLayer: { type: "string", default: "system", cb: (value) => seen.push(String(value)) },
+    radarColorMapping: { type: "string", default: "classic", cb: (value) => seen.push(String(value)) },
+  });
+  seen.length = 0;
+  applyScreenshotLook(settings, "?screenshot=yes&baseLayer=system&colormap=rainbow");
+  assert.deepEqual(seen, []);
+  assert.equal(settings.get("mapBaseLayer"), "osm");
+  assert.equal(settings.get("radarColorMapping"), "classic");
 });
 
 /**
