@@ -492,7 +492,9 @@
     },
     "scales": {
       "precipitation_types": "Typy<br />srážek",
-      "colormap": "Barevná škála: {name} ({min} - {max} dBZ)",
+      "colormap": "Barevná škála: {name} ({min} – {max} dBZ)",
+      "show_dbz": "Zobrazit hodnoty dBZ",
+      "show_pictograms": "Zobrazit piktogramy",
       "aerosol_low": "Nízká hodnota aerosolu",
       "aerosol_high": "Vysoká hodnota aerosolu",
       "minutes": "{count, plural, one {minuta} few {minuty} many {minuty} other {minut}}"

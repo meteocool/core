@@ -500,7 +500,9 @@
     },
     "scales": {
       "precipitation_types": "Niederschlags-<br />arten",
-      "colormap": "Farbskala: {name} ({min} - {max} dBZ)",
+      "colormap": "Farbskala: {name} ({min} – {max} dBZ)",
+      "show_dbz": "dBZ-Werte zeigen",
+      "show_pictograms": "Symbole zeigen",
       "aerosol_low": "Geringe Aerosoldichte",
       "aerosol_high": "Hohe Aerosoldichte",
       "minutes": "{count, plural, one {Minute} other {Minuten}}"

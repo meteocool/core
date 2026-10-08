@@ -500,7 +500,9 @@
     },
     "scales": {
       "precipitation_types": "Precipitation<br />Types",
-      "colormap": "Colormap: {name} ({min} - {max} dBZ)",
+      "colormap": "Colormap: {name} ({min} – {max} dBZ)",
+      "show_dbz": "Show dBZ values",
+      "show_pictograms": "Show pictograms",
       "aerosol_low": "Low Aerosol Depth",
       "aerosol_high": "High Aerosol Depth",
       "minutes": "{count, plural, one {Minute} other {Minutes}}"

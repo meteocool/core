@@ -20,4 +20,4 @@
 <style>
 </style>
 
-<ScaleLine class="scale" valueFormat={valueFormat($_)} palette="{palette}" prettyName="" title="Sentinel-5P<br />Aerosols 354nm"/>
+<ScaleLine class="scale" valueFormat={valueFormat($_)} palette="{palette}" title="Sentinel-5P<br />Aerosols 354nm"/>

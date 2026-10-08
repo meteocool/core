@@ -37,7 +37,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
-  toolbarVisible, fullResolution3d,
+  toolbarVisible, fullResolution3d, unit,
 } from "./stores";
 
 import "./global.css";
@@ -253,6 +253,13 @@ window.settings = new Settings({
     default: false,
     cb: (value) => {
       fullResolution3d.set(Boolean(value));
+    },
+  },
+  radarLegendUnit: {
+    type: "string",
+    default: "pictogram",
+    cb: (value) => {
+      unit.set(value === "dbz" ? "dbz" : "pictogram");
     },
   },
   radarProduct: {

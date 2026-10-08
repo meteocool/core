@@ -492,7 +492,9 @@
     },
     "scales": {
       "precipitation_types": "Types de<br />précipitations",
-      "colormap": "Palette : {name} ({min} - {max} dBZ)",
+      "colormap": "Palette : {name} ({min} – {max} dBZ)",
+      "show_dbz": "Afficher les valeurs dBZ",
+      "show_pictograms": "Afficher les pictogrammes",
       "aerosol_low": "Faible épaisseur d'aérosols",
       "aerosol_high": "Forte épaisseur d'aérosols",
       "minutes": "{count, plural, one {Minute} other {Minutes}}"
