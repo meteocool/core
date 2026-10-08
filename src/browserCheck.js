@@ -24,32 +24,32 @@
 
   var MESSAGES = {
     en: [
-      "This browser is too old for meteocool",
-      "It cannot draw the rain radar. Please update it – on an iPhone or iPad, meteocool needs iOS 15 or later.",
+      "This Browser Is Too Old for meteocool",
+      "It cannot draw the rain radar. Please update it. On an iPhone or iPad, meteocool needs iOS 15 or later.",
     ],
     de: [
       "Dieser Browser ist zu alt für meteocool",
-      "Er kann das Regenradar nicht anzeigen. Bitte aktualisiere ihn – auf iPhone und iPad braucht meteocool iOS 15 oder neuer.",
+      "Er kann das Regenradar nicht anzeigen. Bitte aktualisiere ihn. Auf iPhone und iPad braucht meteocool iOS 15 oder neuer.",
     ],
     fr: [
       "Ce navigateur est trop ancien pour meteocool",
-      "Il ne peut pas afficher le radar de pluie. Veuillez le mettre à jour – sur iPhone et iPad, meteocool nécessite iOS 15 ou ultérieur.",
+      "Il ne peut pas afficher le radar de pluie. Veuillez le mettre à jour. Sur iPhone et iPad, meteocool nécessite iOS 15 ou ultérieur.",
     ],
     pl: [
       "Ta przeglądarka jest zbyt stara dla meteocool",
-      "Nie może wyświetlić radaru opadów. Zaktualizuj ją – na iPhonie i iPadzie meteocool wymaga iOS 15 lub nowszego.",
+      "Nie może wyświetlić radaru opadów. Zaktualizuj ją. Na iPhonie i iPadzie meteocool wymaga iOS 15 lub nowszego.",
     ],
     nl: [
       "Deze browser is te oud voor meteocool",
-      "Hij kan de regenradar niet tonen. Werk hem bij – op een iPhone of iPad heeft meteocool iOS 15 of nieuwer nodig.",
+      "Hij kan de regenradar niet tonen. Werk hem bij. Op een iPhone of iPad heeft meteocool iOS 15 of nieuwer nodig.",
     ],
     cs: [
       "Tento prohlížeč je pro meteocool příliš starý",
-      "Neumí zobrazit srážkový radar. Aktualizuj ho – na iPhonu a iPadu potřebuje meteocool iOS 15 nebo novější.",
+      "Neumí zobrazit srážkový radar. Aktualizuj ho. Na iPhonu a iPadu potřebuje meteocool iOS 15 nebo novější.",
     ],
     sk: [
       "Tento prehliadač je pre meteocool príliš starý",
-      "Nedokáže zobraziť zrážkový radar. Aktualizuj ho – na iPhone a iPade potrebuje meteocool iOS 15 alebo novší.",
+      "Nedokáže zobraziť zrážkový radar. Aktualizuj ho. Na iPhone a iPade potrebuje meteocool iOS 15 alebo novší.",
     ],
   };
 
