@@ -8,7 +8,7 @@
   import legendThunderstorm from "../../assets/legend_thunderstorm.svg";
   import { onDestroy } from "svelte";
   import { radarColormap, unit } from "../../stores";
-  import { getPalette } from "../../lib/cmap_utils";
+  import { dbzTicks, getPalette, rvp6ToDbz } from "../../lib/cmap_utils";
 
   let unique = {};
 
@@ -23,13 +23,24 @@
   ];
   onDestroy(() => subscriptions.forEach((unsubscribe) => unsubscribe()));
 
+  /* The strip says what the colours are in pictograms, or in dBZ: a click
+     on it switches, and the choice is kept (`radarLegendUnit`). */
+  const toggle = () => window.settings.set("radarLegendUnit", $unit === "dbz" ? "pictogram" : "dbz");
+
+  $: palette = getPalette($radarColormap);
+  $: ticks = $unit === "dbz"
+    ? dbzTicks(palette).map(({ dbz, at }, i, all) => ({
+      at,
+      html: i === all.length - 1 ? `${dbz}<span class="dbz"> dBZ</span>` : String(dbz),
+    }))
+    : null;
+  $: range = palette.split(";").map((entry) => rvp6ToDbz(Number(entry.split(":")[0])));
+  $: toggleLabel = $_($unit === "dbz" ? "chrome.scales.show_pictograms" : "chrome.scales.show_dbz");
+  $: hint = `${$_("chrome.scales.colormap", {
+    values: { name: $radarColormap.charAt(0).toUpperCase() + $radarColormap.slice(1), min: range[0], max: range[range.length - 1] },
+  })}. ${toggleLabel}`;
+
   function valueFormatter(fmt) {
-    if ($unit === "dbz") {
-      if (fmt % 10 === 0) {
-        return `${Math.round(fmt / 2 - 32.5)}<span class="dbz"> dBZ</span>`;
-      }
-      return "";
-    }
     switch (fmt) {
       case "64":
         return " ";
@@ -60,7 +71,7 @@
 
 {#key unique}
         <!-- The caption is the product picker: what the colours are a picture of. -->
-        <ScaleLine valueFormat={valueFormatter} palette="{getPalette($radarColormap)}" prettyName="{$radarColormap}" titleOnPhone>
+        <ScaleLine valueFormat={valueFormatter} {palette} {ticks} {hint} {toggleLabel} onToggle={toggle} titleOnPhone>
             <RadarProductPicker slot="title" variant="adaptive" />
         </ScaleLine>
 {/key}

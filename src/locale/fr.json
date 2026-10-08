@@ -463,7 +463,7 @@
       "merged": "Composite UE",
       "merged_short": "Bas (UE)",
       "merged_option": "Composite UE",
-      "merged_hint": "Tous les réseaux nationaux réunis en une carte ; utile près des frontières, où les composites nationaux s'arrêtent",
+      "merged_hint": "Tous les réseaux nationaux réunis ; utile près des frontières, mais jamais aussi récent",
       "merged_grid": "Grille : ~180 × 280 m",
       "colmax": "Maximum colonne UE",
       "colmax_short": "UE max",
@@ -486,7 +486,9 @@
     },
     "scales": {
       "precipitation_types": "Types de<br />précipitations",
-      "colormap": "Palette : {name} ({min} - {max} dBZ)",
+      "colormap": "Palette : {name} ({min} – {max} dBZ)",
+      "show_dbz": "Afficher les valeurs dBZ",
+      "show_pictograms": "Afficher les pictogrammes",
       "minutes": "{count, plural, one {Minute} other {Minutes}}"
     },
     "alt": {

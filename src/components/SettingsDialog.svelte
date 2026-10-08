@@ -356,6 +356,18 @@ function setFullResolution3d(value: boolean) {
       </label>
     </div>
     <p class="hint">{$_("settings.konrad_cells_hint")}</p>
+    <div class="group">
+      <label class="row">
+        <span class="label">{$_("settings.terrain")}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          class="switch"
+          checked={$terrain3dVisible}
+          on:change={(event) => setTerrain3d(event.currentTarget.checked)} />
+      </label>
+    </div>
+    <p class="hint">{$_("settings.terrain_hint")}</p>
     {#if handheld}
       <div class="group">
         <label class="row">
@@ -386,20 +398,6 @@ function setFullResolution3d(value: boolean) {
     </label>
   </div>
   <p class="hint">{$_("settings.solid_glass_hint")}</p>
-  {#if offers3d}
-    <div class="group">
-      <label class="row">
-        <span class="label">{$_("settings.terrain")}</span>
-        <input
-          type="checkbox"
-          role="switch"
-          class="switch"
-          checked={$terrain3dVisible}
-          on:change={(event) => setTerrain3d(event.currentTarget.checked)} />
-      </label>
-    </div>
-    <p class="hint">{$_("settings.terrain_hint")}</p>
-  {/if}
 
   <h2 id="settings-mode">{$_("settings.mode")}</h2>
   <div class="group" role="radiogroup" aria-labelledby="settings-mode">

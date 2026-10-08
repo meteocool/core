@@ -55,6 +55,26 @@ export function getPalette(cmapStr: string) {
   return rvp6ToPalette(cmap, offset);
 }
 
+/** An RVP6 byte as dBZ: half a dBZ a step, 0 at -32.5. */
+export const rvp6ToDbz = (value: number): number => value / 2 - 32.5;
+
+/**
+ * Where round dBZ values fall on a palette's colour strip, 0 at its left end
+ * and 1 at its right: every `step` dBZ the palette covers. Where they fall,
+ * not spread evenly, since a palette need not start on a round value.
+ */
+export function dbzTicks(palette: string, step = 10): { dbz: number; at: number }[] {
+  const values = palette.split(";").filter(Boolean).map((entry) => Number(entry.split(":")[0]));
+  if (values.length < 2) return [];
+  const [low, high] = [rvp6ToDbz(values[0]), rvp6ToDbz(values[values.length - 1])];
+  const ticks: { dbz: number; at: number }[] = [];
+  // `|| 0`: ceil of a small negative is -0.
+  for (let dbz = Math.ceil(low / step) * step || 0; dbz <= high; dbz += step) {
+    ticks.push({ dbz, at: (dbz - low) / (high - low) });
+  }
+  return ticks;
+}
+
 export function dbz2color(dbz: number, cmapStr: string): Rgba {
   const index = Math.round((dbz + 32.5) * 2);
   const [cmap, lpad] = cmapFromString(cmapStr);
