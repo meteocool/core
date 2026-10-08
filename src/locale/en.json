@@ -489,9 +489,10 @@
       "dmax_option": "DMAX",
       "dmax_hint": "DWD's, Germany only, with the neighbours' lowest scans around it; a scan behind",
       "dmax_grid": "Grid: 250 m",
-      "age": "{minutes} min",
-      "age_heading": "Scan age",
-      "age_hint": "Minutes since the newest scan: how long it took to reach the map, plus the time since. It counts up until the next scan arrives; the column maxima wait for the whole volume scan, so they start higher.",
+      "age": "{minutes} min ago",
+      "age_span": "{from}–{to} min ago",
+      "age_heading": "Newest scan",
+      "age_hint": "How long ago the newest scan was taken; it counts up until the next one arrives. A span means the countries on the map differ, from the freshest to the stalest: each network runs on its own clock. The column maxima wait for the whole volume scan, so they start further back.",
       "unavailable": "unavailable",
       "fell_back_short": "behind",
       "fell_back": "{product} is behind or unavailable; {fallback} is shown until it catches up."

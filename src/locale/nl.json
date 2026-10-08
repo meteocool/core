@@ -481,9 +481,10 @@
       "dmax_option": "DMAX",
       "dmax_hint": "Van de DWD, alleen Duitsland, met daaromheen de laagste scans van de buren; een scan later",
       "dmax_grid": "Raster: 250 m",
-      "age": "{minutes} min",
-      "age_heading": "Leeftijd scan",
-      "age_hint": "Minuten sinds de nieuwste scan: hoe lang hij over de weg naar de kaart deed, plus de tijd sindsdien. Telt op tot de volgende scan binnenkomt; de kolommaxima wachten op de hele volumescan en beginnen daarom hoger.",
+      "age": "{minutes} min geleden",
+      "age_span": "{from}–{to} min geleden",
+      "age_heading": "Nieuwste scan",
+      "age_hint": "Hoe lang geleden de nieuwste scan is gemaakt; telt op tot de volgende binnenkomt. Een bereik betekent dat de landen op de kaart verschillen, van het meest actuele tot het oudste: elk netwerk loopt op zijn eigen klok. De kolommaxima wachten op de hele volumescan en beginnen daarom verder terug.",
       "unavailable": "niet beschikbaar",
       "fell_back_short": "achter",
       "fell_back": "{product} loopt achter of is niet beschikbaar; tot het bijloopt wordt {fallback} getoond."

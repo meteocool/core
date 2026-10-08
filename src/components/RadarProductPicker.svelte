@@ -23,7 +23,7 @@ import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDi
 import Icon from "./Icon.svelte";
 import Lazy from "./Lazy.svelte";
 import { radarProducts, smallScreen } from "../stores";
-import { PRODUCT_GROUPS, ageMinutes, fallsBehind } from "../lib/observedProduct";
+import { PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
 import type { NewestScans, ObservedProduct } from "../lib/observedProduct";
 
 /** `adaptive`: the caption, but the pill on a phone. */
@@ -47,18 +47,21 @@ const clock = setInterval(() => { nowS = Date.now() / 1000; }, 15_000);
 onDestroy(() => clearInterval(clock));
 
 $: face = variant === "adaptive" ? ($smallScreen ? "pill" : "caption") : variant;
-$: ({ chosen, drawn, scans } = $radarProducts);
+$: ({ chosen, drawn, scans, oldest } = $radarProducts);
 /** The choice has fallen behind, and the default is drawn in its place. */
 $: fellBack = chosen !== drawn;
 $: fellBackNote = $_("chrome.radar_product.fell_back", {
   values: { product: $_(`chrome.radar_product.${chosen}`), fallback: $_(`chrome.radar_product.${drawn}`) },
 });
 
-function age(product: ObservedProduct, newest: NewestScans, now: number): string {
-  const minutes = ageMinutes(newest[product], now);
-  return minutes === null
-    ? $_("chrome.radar_product.unavailable")
-    : $_("chrome.radar_product.age", { values: { minutes } });
+/** How long ago its newest scan was; a span where its countries differ. */
+function age(product: ObservedProduct, newest: NewestScans, stalest: NewestScans, now: number): string {
+  const span = ageSpan(newest[product], stalest[product], now);
+  if (span === null) return $_("chrome.radar_product.unavailable");
+  const [from, to] = span;
+  return from === to
+    ? $_("chrome.radar_product.age", { values: { minutes: from } })
+    : $_("chrome.radar_product.age_span", { values: { from, to } });
 }
 
 async function show() {
@@ -138,7 +141,7 @@ function portal(node: HTMLElement) {
     <span>{$_(`chrome.radar_product.${chosen}_short`)}</span>
   {:else}
     <span class="name">{$_(`chrome.radar_product.${chosen}`)}<Icon icon={faChevronUp} class="chevron" /></span>
-    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, scans, nowS)}</span>
+    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, scans, oldest, nowS)}</span>
   {/if}
 </button>
 
@@ -188,7 +191,7 @@ function portal(node: HTMLElement) {
               <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
               <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
             </span>
-            <span class="age" title={$_("chrome.radar_product.age_hint")}>{age(product, scans, nowS)}</span>
+            <span class="age" title={$_("chrome.radar_product.age_hint")}>{age(product, scans, oldest, nowS)}</span>
           </button>
         {/each}
       </div>

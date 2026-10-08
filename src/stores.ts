@@ -251,12 +251,19 @@ export const observedProduct = writable<ObservedProduct>(DEFAULT_PRODUCT);
 /**
  * What the radar map does with that choice, for the picker: what it draws --
  * the choice, or the default while the choice falls behind -- and how old
- * each product's newest scan is. Published by RadarCapability.
+ * each product's newest scan is, and the stalest country's in it
+ * (`oldestScan`). Published by RadarCapability.
  */
-export const radarProducts = writable<{ chosen: ObservedProduct; drawn: ObservedProduct; scans: NewestScans }>({
+export const radarProducts = writable<{
+  chosen: ObservedProduct;
+  drawn: ObservedProduct;
+  scans: NewestScans;
+  oldest: NewestScans;
+}>({
   chosen: DEFAULT_PRODUCT,
   drawn: DEFAULT_PRODUCT,
   scans: { hx: null, merged: null, colmax: null, dmax: null },
+  oldest: { hx: null, merged: null, colmax: null, dmax: null },
 });
 /**
  * Whether the 3D map is still being brought up for the first time.

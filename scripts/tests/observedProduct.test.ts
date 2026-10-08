@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, ageMinutes, drawnProduct, fallsBehind, parseObservedProduct, stepFrame,
+  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, ageMinutes, ageSpan, drawnProduct, fallsBehind, oldestScan, parseObservedProduct,
+  stepFrame,
 } from "../../src/lib/observedProduct.ts";
 import type { NewestScans } from "../../src/lib/observedProduct.ts";
 
@@ -94,4 +95,22 @@ test("an age is whole minutes, never negative", () => {
   assert.equal(ageMinutes(T - 7 * MIN - 59, T), 7);
   assert.equal(ageMinutes(T + 30, T), 0);
   assert.equal(ageMinutes(null, T), null);
+});
+
+test("HX and DMAX are as old as the stalest country around them", () => {
+  assert.equal(oldestScan("hx", 1_000, [940, 700]), 700);
+  assert.equal(oldestScan("dmax", 1_000, [1_060]), 1_000);
+  assert.equal(oldestScan("hx", null, [700]), null);
+});
+
+test("the merged products are one frame, as old as their own stamp", () => {
+  assert.equal(oldestScan("merged", 1_000, [700]), 1_000);
+  assert.equal(oldestScan("colmax", 1_000, [700]), 1_000);
+});
+
+test("an age span runs from the freshest part to the stalest", () => {
+  assert.deepEqual(ageSpan(1_000, 700, 1_200), [3, 8]);
+  assert.deepEqual(ageSpan(1_000, 1_000, 1_200), [3, 3]);
+  assert.deepEqual(ageSpan(1_000, null, 1_200), [3, 3]);
+  assert.equal(ageSpan(null, 700, 1_200), null);
 });

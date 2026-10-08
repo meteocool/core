@@ -481,9 +481,10 @@
       "dmax_option": "DMAX",
       "dmax_hint": "Od DWD, jen Německo, obklopený nejnižšími skeny sousedů; o sken později",
       "dmax_grid": "Mřížka: 250 m",
-      "age": "{minutes} min",
-      "age_heading": "Stáří skenu",
-      "age_hint": "Minuty od nejnovějšího skenu: jak dlouho trvalo, než se dostal na mapu, plus čas od té doby. Roste, dokud nedorazí další sken; maxima sloupce čekají na celý objemový sken, a proto začínají výš.",
+      "age": "před {minutes} min",
+      "age_span": "před {from}–{to} min",
+      "age_heading": "Nejnovější sken",
+      "age_hint": "Jak dávno byl pořízen nejnovější sken; roste, dokud nedorazí další. Rozpětí znamená, že se země na mapě liší, od nejčerstvější po nejstarší: každá síť běží ve vlastním rytmu. Maxima sloupce čekají na celý objemový sken, a proto začínají výš.",
       "unavailable": "nedostupné",
       "fell_back_short": "zpožděno",
       "fell_back": "{product} je zpožděný nebo nedostupný; dokud se nedorovná, zobrazuje se {fallback}."
