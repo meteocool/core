@@ -57,7 +57,7 @@ import { DEFAULT_PRODUCT, parseObservedProduct } from "./lib/observedProduct";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
 import { exposeShareLink } from "./lib/share";
-import { isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
+import { applyScreenshotLook, isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
 import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants, setSolidGlassWhileMoving } from "./layers/ui";
@@ -347,6 +347,9 @@ if (!screenshot) watchForSlowDevice(window.settings);
 // The tracks are only asked for once the map has drawn, so they would land
 // on the picture after it was declared finished.
 if (screenshot) window.settings.override("layerCells", false);
+// The basemap and palette a picture was asked for, held the same way. Before
+// the maps are built, so they come up in that look; see lib/screenshot.ts.
+if (screenshot) applyScreenshotLook(window.settings, window.location.search);
 
 const [lightningSource, lightningLayer] = makeLightningLayer();
 lightningLayerVisible.subscribe((value) => {
