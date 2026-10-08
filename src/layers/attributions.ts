@@ -11,8 +11,6 @@
  */
 const link = (href: string, text: string) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
 
-export const copernicusAttribution = "Contains modified Copernicus Sentinel data";
-export const ororatechAttribution = "© OroraTech";
 export const osmAttribution = `© ${link("https://www.openstreetmap.org/copyright", "OpenStreetMap")} contributors`;
 export const dwdAttribution = `© ${link("https://www.dwd.de/", "DWD")}`;
 export const meteoSwissAttribution = `© ${link("https://www.meteoswiss.admin.ch/", "MeteoSwiss")}`;
@@ -45,8 +43,6 @@ export const ATTRIBUTION_ORDER = [
   chmiAttribution,
   imgwAttribution,
   noaaAttribution,
-  copernicusAttribution,
-  ororatechAttribution,
   blitzortungAttribution,
   imprintAttribution,
 ];

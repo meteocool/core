@@ -16,7 +16,7 @@
   "connection_details": "Szczegóły połączenia",
   "title": "O meteocool",
   "text1": "meteocool to bezpłatna platforma GIS do wizualizacji i agregacji danych, skupiona na groźnych zjawiskach pogodowych. Zoptymalizowana pod urządzenia mobilne, pozwala zarówno gonić nadciągającą pogodę, jak i jej unikać - wybór należy do ciebie.",
-  "text2": "meteocool korzysta obecnie z danych radarowych dostarczanych przez DWD, informacji o wyładowaniach atmosferycznych w czasie rzeczywistym z projektu blitzortung.org oraz zdjęć satelitarnych z programu EC/ESA Copernicus.",
+  "text2": "meteocool korzysta obecnie z danych radarowych dostarczanych przez DWD oraz informacji o wyładowaniach atmosferycznych w czasie rzeczywistym z projektu blitzortung.org.",
   "features": {
     "header": "Funkcje",
     "list_title0": "Prywatność:",
@@ -57,7 +57,6 @@
   "latest": "Najnowsze",
   "demo": "Demo",
   "rain_and_thunderstorms": "Deszcz i burze",
-  "nrt_satellite": "Satelita (niemal na żywo)",
   "precipitation_types": "Rodzaje opadów",
   "storm_cells_3d": "Komórki burzowe 3D",
   "preparing_3d": "Przygotowywanie mapy 3D…",
@@ -117,7 +116,6 @@
   "sleet": "Śnieg z deszczem",
   "lightning": "Wyładowania",
   "n/a": "n/d",
-  "aerosols": "Indeks aerozolu",
   "point_menu_title": "W tym miejscu",
   "point_menu_precipitation": "Opady",
   "point_menu_precipitation_sub": "Radar i nowcasting",
@@ -143,7 +141,7 @@
   "lightning_none": "Brak niedawnych wyładowań w tym rejonie. ⚡️",
   "lightning_unavailable": "Statystyki obecnie niedostępne.",
   "radar_no_coverage": "Tu jeszcze nie ma radaru",
-  "radar_no_coverage_body": "Radar na żywo pochodzi z niemieckiej służby meteorologicznej, która udostępnia go tylko dla Niemiec i krajów sąsiednich. Wyładowania, satelita i modele prognostyczne działają na całym świecie.",
+  "radar_no_coverage_body": "Radar na żywo pochodzi z niemieckiej służby meteorologicznej, która udostępnia go tylko dla Niemiec i krajów sąsiednich. Wyładowania i modele prognostyczne działają na całym świecie.",
   "outdated": "Nieaktualne",
   "degraded": "Ograniczone",
   "show_for_my_location": "Pokaż dla mojej lokalizacji",
@@ -450,10 +448,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min"
     },
-    "satellite": {
-      "clouds": "Chmury",
-      "labels_borders": "Etykiety i granice"
-    },
     "radar_product": {
       "title": "Produkt radarowy",
       "choose": "Wybierz produkt radarowy",
@@ -493,8 +487,6 @@
     "scales": {
       "precipitation_types": "Rodzaje<br />opadów",
       "colormap": "Paleta kolorów: {name} ({min} - {max} dBZ)",
-      "aerosol_low": "Niski poziom aerozolu",
-      "aerosol_high": "Wysoki poziom aerozolu",
       "minutes": "{count, plural, one {Minuta} few {Minuty} many {Minut} other {Minut}}"
     },
     "alt": {

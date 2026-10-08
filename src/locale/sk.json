@@ -16,7 +16,7 @@
   "connection_details": "Podrobnosti pripojenia",
   "title": "O meteocool",
   "text1": "meteocool is a free GIS visualisation & aggregation platform with focus on severe weather. Optimized for mobile devices, you can use it to both chase or avoid upcoming weather - that's up to you.",
-  "text2": "meteocool momentálne používa radarové dáta od DWD, informácie o bleskoch v reálnom čase z úžasného projektu blitzortung.org a satelitné snímky z programu EC/ESA Copernicus.",
+  "text2": "meteocool momentálne používa radarové dáta od DWD a informácie o bleskoch v reálnom čase z úžasného projektu blitzortung.org.",
   "features": {
     "header": "Vlastnosti",
     "list_title0": "Súkromie:",
@@ -57,7 +57,6 @@
   "latest": "Najnovšie",
   "demo": "Demo",
   "rain_and_thunderstorms": "Dážď a búrky",
-  "nrt_satellite": "Satelit takmer v reálnom čase",
   "precipitation_types": "Typy zrážok",
   "storm_cells_3d": "Búrkové bunky 3D",
   "preparing_3d": "Pripravuje sa 3D mapa…",
@@ -117,7 +116,6 @@
   "sleet": "Snehový dážď",
   "lightning": "Blesky",
   "n/a": "n/a",
-  "aerosols": "Index aerosólov",
   "point_menu_title": "Na tomto mieste",
   "point_menu_precipitation": "Zrážky",
   "point_menu_precipitation_sub": "Radar a nowcasting",
@@ -143,7 +141,7 @@
   "lightning_none": "V tejto oblasti neboli nedávno zaznamenané žiadne blesky. ⚡️",
   "lightning_unavailable": "Štatistiky momentálne nie sú dostupné.",
   "radar_no_coverage": "Tu zatiaľ nie je radar",
-  "radar_no_coverage_body": "Radar naživo pochádza od nemeckej meteorologickej služby, ktorá ho zverejňuje len pre Nemecko a susedné krajiny. Blesky, satelit a predpovedné modely fungujú celosvetovo.",
+  "radar_no_coverage_body": "Radar naživo pochádza od nemeckej meteorologickej služby, ktorá ho zverejňuje len pre Nemecko a susedné krajiny. Blesky a predpovedné modely fungujú celosvetovo.",
   "outdated": "Zastarané",
   "degraded": "Obmedzené",
   "show_for_my_location": "Zobraziť pre moju polohu",
@@ -450,10 +448,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min"
     },
-    "satellite": {
-      "clouds": "Oblaky",
-      "labels_borders": "Popisky a hranice"
-    },
     "radar_product": {
       "title": "Radarový produkt",
       "choose": "Vyberte radarový produkt",
@@ -493,8 +487,6 @@
     "scales": {
       "precipitation_types": "Typy<br />zrážok",
       "colormap": "Farebná škála: {name} ({min} - {max} dBZ)",
-      "aerosol_low": "Nízka hustota aerosólu",
-      "aerosol_high": "Vysoká hustota aerosólu",
       "minutes": "{count, plural, one {minúta} few {minúty} many {minúty} other {minút}}"
     },
     "alt": {

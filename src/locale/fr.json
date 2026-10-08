@@ -16,7 +16,7 @@
   "connection_details": "Détails de la connexion",
   "title": "À propos de meteocool",
   "text1": "meteocool est une plateforme de visualisation et d'agrégation SIG gratuite, axée sur les phénomènes météorologiques violents. Optimisée pour les appareils mobiles, elle vous permet aussi bien de suivre que d'éviter les intempéries à venir, à vous de choisir.",
-  "text2": "meteocool utilise actuellement les données radar fournies par le DWD, les informations de foudre en temps réel de l'excellent projet blitzortung.org, ainsi que l'imagerie satellite du programme Copernicus de la CE/ESA.",
+  "text2": "meteocool utilise actuellement les données radar fournies par le DWD et les informations de foudre en temps réel de l'excellent projet blitzortung.org.",
   "features": {
     "header": "Fonctionnalités",
     "list_title0": "Confidentialité :",
@@ -57,7 +57,6 @@
   "latest": "Dernier",
   "demo": "Démo",
   "rain_and_thunderstorms": "Pluie et orages",
-  "nrt_satellite": "Satellite quasi temps réel",
   "precipitation_types": "Types de précipitations",
   "storm_cells_3d": "Cellules orageuses 3D",
   "preparing_3d": "Préparation de la carte 3D…",
@@ -117,7 +116,6 @@
   "sleet": "Neige fondue",
   "lightning": "Impacts de foudre",
   "n/a": "n/d",
-  "aerosols": "Indice d'aérosols",
   "point_menu_title": "À cet endroit",
   "point_menu_precipitation": "Précipitations",
   "point_menu_precipitation_sub": "Radar et prévision immédiate",
@@ -143,7 +141,7 @@
   "lightning_none": "Aucun impact de foudre récent dans cette zone. ⚡️",
   "lightning_unavailable": "Statistiques actuellement indisponibles.",
   "radar_no_coverage": "Pas encore de radar ici",
-  "radar_no_coverage_body": "Le radar en direct provient du service météorologique allemand, qui ne le publie que pour l'Allemagne et ses voisins. La foudre, le satellite et les modèles de prévision fonctionnent dans le monde entier.",
+  "radar_no_coverage_body": "Le radar en direct provient du service météorologique allemand, qui ne le publie que pour l'Allemagne et ses voisins. La foudre et les modèles de prévision fonctionnent dans le monde entier.",
   "outdated": "Obsolète",
   "degraded": "Dégradé",
   "show_for_my_location": "Afficher pour ma position",
@@ -450,10 +448,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min"
     },
-    "satellite": {
-      "clouds": "Nuages",
-      "labels_borders": "Étiquettes et frontières"
-    },
     "radar_product": {
       "title": "Produit radar",
       "choose": "Choisir le produit radar",
@@ -493,8 +487,6 @@
     "scales": {
       "precipitation_types": "Types de<br />précipitations",
       "colormap": "Palette : {name} ({min} - {max} dBZ)",
-      "aerosol_low": "Faible épaisseur d'aérosols",
-      "aerosol_high": "Forte épaisseur d'aérosols",
       "minutes": "{count, plural, one {Minute} other {Minutes}}"
     },
     "alt": {

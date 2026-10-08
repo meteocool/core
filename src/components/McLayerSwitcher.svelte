@@ -20,9 +20,7 @@
     { layer: "radar", label: `🌧 ${$_("rain_and_thunderstorms")}` },
     // The only tile whose map is not the layer it stands for: see MiniMap.
     { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}`, preview: true },
-    { layer: "satellite", label: `🛰️ ${$_("nrt_satellite")}` },
     { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
-    { layer: "aerosols", label: `💨 ${$_("aerosols")}` },
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
   ].filter((tile) => capabilityEnabled(tile.layer));
 

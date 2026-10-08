@@ -15,6 +15,7 @@
     "worker:tail": "wrangler tail",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json && eslint .",
     "test": "node --test --import ./scripts/tests/register.mjs \"scripts/tests/**/*.test.ts\"",
+    "licences": "node scripts/licences.mjs",
     "generate:api": "openapi-typescript spec/api.openapi.json -o src/api/generated/api.ts && openapi-typescript spec/data.openapi.json -o src/api/generated/data.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
