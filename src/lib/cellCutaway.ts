@@ -5,29 +5,29 @@
  * numbers of vertical structure: `cellVolume.ts` reuses one measured outline at
  * every height and fits a profile to it, which is honest about what it knows
  * and cannot, by construction, lean. This is the other kind of picture. The
- * bytes here are a real 3D field -- the polar sweeps, resampled onto one map
- * tile of sky, about 26 by 26 by 16 km -- so a core hanging downshear out over
+ * bytes here are a real 3D field (the polar sweeps, resampled onto one map
+ * tile of sky, about 26 by 26 by 16 km), so a core hanging downshear out over
  * its own inflow is in the data rather than in the renderer's imagination.
  *
- * ## Two channels, and why the second one matters more than it looks
+ * ## Two Channels, and Why the Second One Matters
  *
  * Each voxel is two bytes: reflectivity and confidence. Confidence is how well
- * the radar network actually illuminated that voxel -- one minus the product of
+ * the radar network illuminated that voxel: one minus the product of
  * the misses over every sweep of every site that could reach it. It is zero
  * where no beam went: past the last range bin, and in the cone of silence
  * directly above each radar, where the antenna cannot tilt steeply enough.
  *
- * The renderer multiplies opacity by it. That is the whole mechanism by which
- * this view stays honest: unsampled air fades out instead of ending in a crisp
+ * The renderer multiplies opacity by it, which keeps this view honest:
+ * unsampled air fades out instead of ending in a crisp
  * surface, and the column over a radar dissolves rather than appearing as a
  * hole punched through the storm. A caption saying "coverage is worse at range"
  * under a confident-looking cloud would not do the same job, because nobody
  * reads the caption over the render.
  *
- * ## The wire format
+ * ## The Wire Format
  *
  * `MCVX`, a version, a JSON header and then the voxels as interleaved bytes,
- * gzipped whole and served with `Content-Encoding: gzip` -- so the browser has
+ * gzipped whole and served with `Content-Encoding: gzip`, so the browser has
  * already unwrapped it by the time this sees it and the page ships no
  * decompressor of its own.
  */
@@ -85,10 +85,10 @@ export interface Cutaway {
   /** The box's size in metres, which is what the ray marches through. */
   extentM: [number, number, number];
   /**
-   * Where the storm actually is inside the box, in kilometres from its centre.
+   * Where the storm is inside the box, in kilometres from its centre.
    *
    * The box is a fixed 40 by 40 by 16 km around the cell's centroid, and a
-   * storm rarely fills it -- a camera framed on the box draws most cells as a
+   * storm rarely fills it: a camera framed on the box draws most cells as a
    * speck in a lot of empty air. These two put the camera on the weather
    * instead, which is the same problem `CellModel3D` solves with its frame.
    * See `locateStorm`.
@@ -165,7 +165,7 @@ class VolumeRefused extends Error {
  * Pull one cell's volume down.
  *
  * The path comes from the API, bucket included, and the base is the one the
- * rendered tiles already use -- so nothing here guesses a URL. A cell whose
+ * rendered tiles already use, so nothing here guesses a URL. A cell whose
  * volume was never built carries no path, and the caller never gets this far.
  */
 export function loadCutaway(

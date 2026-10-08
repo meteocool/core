@@ -5,7 +5,7 @@
  * The 3D map shows the same solid but never on its own: it is one storm among
  * several, at whatever angle the camera happens to be, behind a basemap and a
  * radar drape. Here it is lifted out and rotated slowly, which is the only way
- * to read a shape from a screen -- a still of a translucent 3D object is
+ * to read a shape from a screen: a still of a translucent 3D object is
  * ambiguous no matter how well it is lit, and the parallax as it turns is what
  * says whether the core is centred, leaning, or hanging in the air.
  *
@@ -34,22 +34,22 @@ export let height = 210;
  *
  * Without it every cell is normalised to fill the canvas, so a 4 km shower and
  * a 40 km supercell come out the same size and the only thing that says
- * otherwise is the ruler -- which makes walking a family actively misleading,
- * because the one quantity the eye reads first is the one that carries no
- * information. Passing the family's envelope in means a cell that is half the
+ * otherwise is the ruler. That makes walking a family misleading, because the
+ * quantity the eye reads first is the one that carries no information.
+ * Passing the family's envelope in means a cell that is half the
  * size of its parent is drawn half the size of its parent.
  *
- * Null falls back to this cell's own extent, i.e. the old behaviour, which is
- * what a cell with no known relatives gets.
+ * Null falls back to this cell's own extent, which is what a cell with no
+ * known relatives gets.
  */
 export let frame: ModelFrame | null = null;
 
 /**
  * How fast the frame catches up when it changes, per second of easing.
  *
- * The frame moves for two reasons -- a hop to another cell, and the family
- * arriving in rounds behind the first paint -- and both used to be an
- * instantaneous jump in a picture that is otherwise always moving smoothly.
+ * The frame moves for two reasons (a hop to another cell, and the family
+ * arriving in rounds behind the first paint), and an instantaneous jump stands
+ * out in a picture that is otherwise always moving smoothly.
  * Easing it reads as the camera pulling back rather than as the model being
  * replaced. Snapped below a thousandth so it settles rather than creeping.
  */
@@ -74,8 +74,8 @@ const SPIN = 0.32;
  * How far the model turns on its own before it comes to rest.
  *
  * One turn shows every side, which is what the turning is for. Turning for as
- * long as the popup was open kept a phone's GPU awake for the whole of a
- * reading -- and, with the cutaway beside it, two canvases redrawing at the
+ * long as the popup is open would keep a phone's GPU awake for the whole of a
+ * reading and, with the cutaway beside it, two canvases redrawing at the
  * display's rate under a panel of numbers. After the turn the model rests
  * and is drawn again only when something changes: a drag, a hop to another
  * cell, the frame easing, the theme.
@@ -173,7 +173,7 @@ function build(volume: CellVolumeModel): Mesh {
         wall(piece.inner, false).forEach((idx) => faces.push({ idx, rgb, alpha, cullable }));
       }
 
-      // The roof, as a fan of quads across the annulus -- or a single cap when
+      // The roof, as a fan of quads across the annulus, or a single cap when
       // this ring is the solid core. Split rather than drawn as one path with
       // a hole, because painter's algorithm sorts by depth and a ring-shaped
       // face has no single depth worth sorting by.
@@ -237,7 +237,7 @@ function draw(): void {
    * What the picture is scaled to fit: the family's envelope when the panel
    * knows one, this cell's own extent otherwise. Everything below reads the
    * frame rather than the model, so the ground line and the ruler stay put
-   * across a hop too -- a shared scale with a baseline that still moves would
+   * across a hop too; a shared scale with a baseline that still moves would
    * only trade one misreading for another.
    */
   const fit = approach(frame ?? frameOf(model));
@@ -280,7 +280,7 @@ function draw(): void {
   mesh.faces.forEach((face, index) => {
     // Back-face culling by the sign of the projected area: a face wound
     // counter-clockwise on screen is pointing at the camera. Only opaque rings
-    // are culled -- through the see-through shell the far wall is part of what
+    // are culled: through the see-through shell the far wall is part of what
     // gives the object its depth.
     if (face.cullable && signedArea(face.idx, sx, sy) >= 0) return;
     let sum = 0;
@@ -413,14 +413,13 @@ function drawRuler(
   /*
    * The step comes from the room there is, not from how tall the storm is.
    *
-   * It used to be `highKm > 12 ? 4 : 2`, which was safe only while every cell
-   * was normalised to fill the canvas -- the scale was then roughly the same
-   * every time, so a height alone predicted the spacing. Now that a cell is
-   * drawn on its family's scale a small one can be at a quarter of that, and a
-   * 2 km step that used to be 25px apart lands at six: the labels collide into
-   * an unreadable column. Picking the first step on the ladder that clears a
-   * legible gap holds at any scale, and keeps the familiar 2 km ticks wherever
-   * they still fit.
+   * A step chosen by height alone (`highKm > 12 ? 4 : 2`) is safe only while
+   * every cell is normalised to fill the canvas, so that the scale is roughly
+   * the same every time. Drawn on its family's scale a small cell can be at a
+   * quarter of that, and a 2 km step that would be 25px apart lands at six:
+   * the labels collide into an unreadable column. Picking the first step on
+   * the ladder that clears a legible gap holds at any scale, and keeps the
+   * familiar 2 km ticks wherever they still fit.
    */
   const step = RULER_STEPS_KM.find((km) => km * cosE * scale >= MIN_TICK_PX)
     ?? RULER_STEPS_KM[RULER_STEPS_KM.length - 1];

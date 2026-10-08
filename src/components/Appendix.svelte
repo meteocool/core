@@ -55,7 +55,7 @@ function init(_node: HTMLElement) {
 
     /* The two badges are ~190px of the block's 236px. Below this the tray has
        to truncate "Last updated ..." to fit them, so they go and the repo mark
-       -- the one link with nowhere else to live -- stays. BottomToolbar drops
+       (the one link with nowhere else to live) stays. BottomToolbar drops
        the whole block at 650px. */
     @media only screen and (max-width: 800px) {
         .appstoreLogo.store-badge {

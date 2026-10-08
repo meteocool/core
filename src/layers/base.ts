@@ -5,17 +5,17 @@ import { basemapLayer } from "./protomaps";
  * The four basemaps, all drawn from meteocool's own Protomaps tiles.
  *
  * They are deliberately low-contrast: everything here sits under radar
- * reflectivity, lightning and the label overlay, so a basemap that competes
- * with the weather is a basemap that is in the way. The differences between
- * them are about which features earn ink, not about saturation:
+ * reflectivity, lightning and the label overlay, and a basemap that competes
+ * with the weather gets in the way. They differ in which features get ink,
+ * not in saturation:
  *
- *   light  -- the default. Land, water, motorways, country borders. Almost
- *             nothing else, because the radar covers most of the frame.
- *   dark   -- the same restraint, inverted for dark mode.
- *   osm    -- closer to standard OSM carto: landuse, the full road hierarchy
- *             down to minor roads, buildings, region borders.
- *   cyclosm -- an outdoors read: forests and parks carry the colour, tracks
- *             and paths are drawn, motorways are pushed back.
+ *   light:   the default. Land, water, motorways, country borders. Almost
+ *            nothing else, because the radar covers most of the frame.
+ *   dark:    the same restraint, inverted for dark mode.
+ *   osm:     closer to standard OSM carto, with landuse, the full road
+ *            hierarchy down to minor roads, buildings and region borders.
+ *   cyclosm: an outdoors read. Forests and parks carry the colour, tracks
+ *            and paths are drawn, motorways are pushed back.
  */
 
 /** Shared road colours so a theme only has to say which classes it draws. */
@@ -189,8 +189,8 @@ export const cyclosm = () => basemapLayer(cyclosmTheme);
 /**
  * Whether the separate label overlay should be drawn over this basemap.
  *
- * Every basemap here is label-free by design -- place names belong above the
- * radar, not under it -- so the overlay is wanted over all of them. It stays
+ * Every basemap here is label-free by design (place names belong above the
+ * radar, not under it), so the overlay is wanted over all of them. It stays
  * a function, and stays called from layers/vector.ts, so that adding a
  * basemap that carries its own labels is a one-line change rather than a
  * re-wiring.

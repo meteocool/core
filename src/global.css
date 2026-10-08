@@ -113,7 +113,7 @@ input[type="range"] {
 
 /* Screenshot mode (src/lib/screenshot.ts): nothing over the map but its
    credits. The controls and the trays are never made there; these are what
-   can still turn up -- the progress bar while the picture loads, a notice --
+   can still turn up (the progress bar while the picture loads, a notice),
    and the controls once more, should a map be made with its defaults. */
 html.screenshot .nanobar,
 html.screenshot .sl-toast-stack,

@@ -13,9 +13,9 @@ import { imprintAttribution, osmAttribution, protomapsAttribution } from "./attr
  * Cloudflare at map.meteocool.com, versioned by build date.
  *
  * It replaces the third-party raster CDNs (CARTO, OSM, CyclOSM) the basemaps
- * used to come from, and the Nextzen tiles the label overlay used to come from
- * -- Nextzen now answers every request with "An API key is required" and no
- * longer issues keys, so that overlay had gone blank.
+ * used to come from, and the Nextzen tiles the label overlay used to come
+ * from. Nextzen now answers every request with "An API key is required" and
+ * no longer issues keys, so that overlay had gone blank.
  */
 const MAP_VERSION = import.meta.env?.VITE_MAP_VERSION ?? "20260104";
 
@@ -26,8 +26,8 @@ export const mapEndpoint = `https://map.meteocool.com/${MAP_VERSION}`;
 
 /**
  * One source per layer set. Everything else is cut out of the tile before it
- * is read (./trimmedMVT), which matters: a basemap that never draws place
- * labels should not be decoding them either.
+ * is read (./trimmedMVT), so a basemap that never draws place labels does not
+ * decode them either.
  */
 export function protomapsSource(layers: string[], attributions: string[]) {
   return new VectorTileSource({
@@ -73,8 +73,8 @@ export interface BasemapTheme {
   boundaryRegion: string | null;
   waterway: string;
   /**
-   * The theme's lines -- roads, borders, rivers and the coast -- drawn over
-   * the weather rather than under it with the fills, in these colours; see
+   * The theme's lines (roads, borders, rivers and the coast) drawn over
+   * the weather instead of under it with the fills, in these colours; see
    * `basemapLayer`. The colours above are then the 3D map's alone.
    */
   raised?: RaisedLines;
@@ -108,8 +108,8 @@ export type BasemapPart = "all" | "fills" | "lines";
 const RAISED_Z_INDEX = 85;
 
 /**
- * Road widths grow with zoom rather than staying pinned to one pixel value,
- * which is what made the first pass look like a wireframe at z12.
+ * Road widths grow with zoom. Pinned to one pixel value, they looked like a
+ * wireframe at z12.
  */
 function roadWidth(base: number, zoom: number): number {
   if (zoom <= 6) return base * 0.5;
@@ -120,8 +120,7 @@ function roadWidth(base: number, zoom: number): number {
 /**
  * Builds a style function for one theme. Styles are memoised per
  * (layer, kind, zoom bucket): OpenLayers calls this once per feature per frame,
- * and allocating a Style each time is the difference between a smooth pan and a
- * stuttering one.
+ * and allocating a Style each time makes a pan stutter.
  */
 export function themeStyleFunction(theme: BasemapTheme, part: BasemapPart = "all") {
   const cache = new Map<string, unknown>();
@@ -214,9 +213,9 @@ export function themeStyleFunction(theme: BasemapTheme, part: BasemapPart = "all
 }
 
 /**
- * The tile layers a theme draws from. Landuse is the heavy one -- 1,400 to
+ * The tile layers a theme draws from. Landuse is the heavy one (1,400 to
  * 2,600 features a tile from z7 to z10, several times the cost of decoding
- * everything else in it -- and light and dark draw none of it, so a theme
+ * everything else in it), and light and dark draw none of it, so a theme
  * with no landuse colours does not decode it at all.
  */
 export function themeLayers(theme: BasemapTheme): string[] {
@@ -260,7 +259,7 @@ export function basemapLayer(theme: BasemapTheme) {
   return layer;
 }
 
-/* -- style constructors, kept out of the hot path by the memo above -- */
+/* Style constructors, kept out of the hot path by the memo above. */
 
 function fillStyle(color: string, zIndex: number, strokeColor?: string) {
   return new Style({

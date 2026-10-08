@@ -47,7 +47,7 @@ export default class StrikeManager {
    * arrived.
    *
    * Keyed on arrival, it never matched anything: the same strike sent again a
-   * few hundred milliseconds later -- upstream repeats about one in ten --
+   * few hundred milliseconds later (upstream repeats about one in ten)
    * was drawn twice, as was a strike the cache already held, and its age ran
    * from when it reached the page rather than from when it struck. Under its
    * own time it rounds to the id the cache gives it (App.svelte), and the
@@ -75,12 +75,12 @@ export default class StrikeManager {
   // Coordinates arrive already projected. Both the `lightning` websocket event
   // and /lightning_cache document lat/lon as "EPSG:3857 northing/easting, in
   // metres" (src/api/generated/data.ts), so they are used as they are. Passing
-  // them through fromLonLat reads as the obvious fix -- it is what the
-  // vibeocool branch does -- but it multiplies them by ~111319 and throws every
+  // them through fromLonLat reads as the obvious fix (it is what the
+  // vibeocool branch does), but it multiplies them by ~111319 and throws every
   // strike off the map.
   addStrikeWithTime(lon: number, lat: number, time: number, addCb: ((feature: Feature) => void) | null = null) {
     if (!this.enabled) return false;
-    // A repeat -- the feed sends about one strike in ten twice -- would take
+    // A repeat (the feed sends about one strike in ten twice) would take
     // a slot in the ring buffer for a feature the source refuses, and evicting
     // that slot later took the one real feature with it, early.
     if (this.vs.getFeatureById(time)) return false;

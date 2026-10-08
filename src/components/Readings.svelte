@@ -34,13 +34,12 @@ export let items: Array<Omit<Reading, "fill"> & { fill: number | null }>;
    * The four DWD severity classes, as a fill for the meter and a darker step
    * of the same hue for the figure beside it.
    *
-   * Two steps per band rather than one because the fill and the figure are
-   * held to different bars: a bar of colour needs to be seen, a numeral needs
-   * to be read. Amber at the weight that reads correctly as a fill sits near
-   * 1.9:1 against white -- fine behind a bar, illegible as a digit -- so the
-   * figures wear steps measured to clear 4.5:1 against each of the two
-   * surfaces this panel actually uses, rather than one compromise step that is
-   * wrong on both.
+   * Two steps per band, because the fill and the figure are held to different
+   * bars: a bar of colour needs to be seen, a numeral needs to be read. Amber
+   * at the weight that reads correctly as a fill sits near 1.9:1 against
+   * white, fine behind a bar and illegible as a digit, so the figures wear
+   * steps measured to clear 4.5:1 against each of the two surfaces this panel
+   * uses. A single compromise step would be wrong on both.
    */
   .metric[data-band="0"] { --band: #2f9e44; --band-ink: #1b7a31; }
   .metric[data-band="1"] { --band: #f0b429; --band-ink: #8a5e05; }
@@ -70,10 +69,10 @@ export let items: Array<Omit<Reading, "fill"> & { fill: number | null }>;
     align-content: start;
     gap: 0 6px;
   }
-  /* The label in the secondary ink at the body's own size, rather than
-     shrunk: colour says which is the label, and a label too small to read at
-     a glance is one the reader has to stop for. Capitalised as a label is,
-     whatever case the metric came in -- "VIL" stays "VIL". */
+  /* The label in the secondary ink at the body's own size: colour says which
+     is the label, and a label too small to read at a glance is one the reader
+     has to stop for. Capitalised as a label is, whatever case the metric came
+     in ("VIL" stays "VIL"). */
   .name {
     display: inline-block;
     white-space: nowrap;
@@ -92,8 +91,8 @@ export let items: Array<Omit<Reading, "fill"> & { fill: number | null }>;
     white-space: nowrap;
   }
   /* A step under the stats' values on a phone: two readings and their labels
-     share a half-width column there, and at the full step the longest pair --
-     "Area >30 dBZ" beside "8311 km²" -- broke the label onto two lines. */
+     share a half-width column there, and at the full step the longest pair
+     ("Area >30 dBZ" beside "8311 km²") breaks the label onto two lines. */
   @media only screen and (max-width: 620px) {
     .metrics { column-gap: 16px; }
     .value { font-size: 16px; }

@@ -8,8 +8,8 @@ import type { PackJob, PackReply } from "./packTiles.worker";
  * Value tiles decoded and packed to their meaningful bytes, in workers; see
  * lib/valuePng.ts and lib/packPixels.ts.
  *
- * The radar layers keep hundreds of tiles -- a frame's worth for every step
- * of playback, for each network -- and each was an RGBA bitmap or canvas of a
+ * The radar layers keep hundreds of tiles (a frame's worth for every step
+ * of playback, for each network), and each was an RGBA bitmap or canvas of a
  * megabyte, with a megabyte texture on the GPU beside it. On a phone that
  * was most of the page's memory after a few loops of playback. The network
  * tiles were canvases too, cut to their ground, and iOS caps what a page may
@@ -21,7 +21,7 @@ import type { PackJob, PackReply } from "./packTiles.worker";
  * worker cannot, the page does the same.
  */
 
-/** Two, so a burst of tiles -- a pan into new ground -- is not one queue. */
+/** Two, so a burst of tiles (a pan into new ground) is not one queue. */
 const WORKERS = 2;
 
 interface Packer {

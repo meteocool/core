@@ -2,41 +2,41 @@
 /**
  * The storm as a real surface, cut open, with the core inside it showing.
  *
- * The sibling picture -- `CellModel3D` -- is the honest diagram: every number
+ * The sibling picture, `CellModel3D`, is the honest diagram: every number
  * in it is one DWD publishes, and its shells are stacked outlines, vertical by
  * construction. That is also its limit. A supercell's core leans downshear and
  * hangs out over its own inflow, and a model built from per-threshold areas
  * cannot lean: it draws the core sitting neatly in the middle of the footprint
- * whatever the storm is actually doing.
+ * whatever the storm is doing.
  *
  * This is built from the radar's own three-dimensional field instead, so the
  * lean is in the data. It is the reason this view exists, and the reason it is
  * offered for a handful of storms rather than all of them.
  *
- * ## Raymarched, not meshed
+ * ## Raymarched, Not Meshed
  *
- * The obvious build is isosurfaces: march a few shells, smooth them, decimate
+ * The usual build is isosurfaces: march a few shells, smooth them, decimate
  * them, ship a mesh. Raymarching the field directly is less code and a better
  * picture. A cloud reads as a cloud largely because its boundary is soft, and a
  * triangle mesh has no soft boundary; a transfer function does, for free. And
- * the cut is a plane test in the fragment shader rather than a capping problem
- * -- there is no hollow shell to expose, because the volume is solid all the
- * way through, so slicing it simply reveals what is inside.
+ * the cut is a plane test in the fragment shader instead of a capping problem:
+ * there is no hollow shell to expose, because the volume is solid all the way
+ * through, so slicing it reveals what is inside.
  *
- * ## Written against WebGL2 directly
+ * ## Written Against WebGL2 Directly
  *
  * For the same reason `CellModel3D` is drawn by hand into a 2D canvas: this is
  * one quad, one shader and one texture, and a 3D engine would cost more bytes
  * than everything else in the popup for a picture the size of a postcard. The
- * only thing wanted from WebGL here is `sampler3D`, which is exactly what
- * WebGL2 adds.
+ * only thing wanted from WebGL here is `sampler3D`, which is what WebGL2
+ * adds.
  *
- * ## What is stylised and what is measured
+ * ## What Is Stylised and What Is Measured
  *
  * The lighting, the opacity ramp and the choice of where to cut are all chosen
  * to look right. The field is not: reflectivity is the strongest radar's
- * reading, and opacity is multiplied by how well the beams actually reached
- * each voxel, so unsampled air fades out rather than ending in a crisp
+ * reading, and opacity is multiplied by how well the beams reached each
+ * voxel, so unsampled air fades out rather than ending in a crisp
  * surface. The label under the canvas says so, because a reader who cannot
  * tell this from the measured view will over-read it.
  */
@@ -58,7 +58,7 @@ export let volume: CellVolume;
  * Where the storm is going, degrees clockwise from north.
  *
  * The cut is taken along it. A cross-section across the direction of travel
- * shows the storm's width and hides the overhang, which lies downshear -- and
+ * shows the storm's width and hides the overhang, which lies downshear, and
  * downshear is, near enough, where the storm is heading. Null falls back to a
  * north-south cut, which is arbitrary and says so by being the same for every
  * storm.
@@ -71,7 +71,7 @@ let canvas: HTMLCanvasElement;
 let cutaway: Cutaway | null = null;
 let failed: string | null = null;
 /**
- * Whether what failed was the download, which a better network can fix -- as
+ * Whether what failed was the download, which a better network can fix, as
  * against the GPU, which no number of retries will give WebGL2.
  */
 let retryable = false;
@@ -103,8 +103,8 @@ let still = false;
 const TURN_SECONDS = 24;
 /**
  * How far the camera circles on its own before it rests. One turn shows every
- * side; after that the picture is drawn only when something changes -- the
- * slice turning, a drag -- rather than raymarching at the display's rate for
+ * side; after that the picture is drawn only when something changes (the
+ * slice turning, a drag) instead of raymarching at the display's rate for
  * as long as the popup is open. See `CellModel3D` for the same rule.
  */
 const TURNS = 1;
@@ -236,9 +236,9 @@ function onKey(event: KeyboardEvent): void {
 /**
  * Fetch the volume, and draw it once the canvas is there to draw into.
  *
- * Again on a retry. A volume that did not come down on a train used to leave
- * "unavailable" in the panel until it was closed and opened again, long after
- * the network had come back. The button is the reader's way to ask again; a
+ * Again on a retry, so a volume that did not come down on a train does not
+ * leave "unavailable" in the panel until it is closed and opened again, long
+ * after the network has come back. The button is the reader's way to ask again; a
  * wake (lib/wakeup.ts) is the app's, so a panel left open through the tunnel
  * has the storm in it by the time anyone looks.
  */
@@ -270,9 +270,9 @@ const unsubscribeWake = onWake(() => { if (retryable) load(); });
 onMount(() => {
   still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (still) spin = Math.PI * 0.25;
-  // Not reset to zero here any more: the slice follows the selection rather
-  // than this component's lifetime -- see the rule beside the other selection
-  // rules in App.svelte -- so a link that opens a storm cut at 40 degrees is
+  // Not reset to zero here: the slice follows the selection, not this
+  // component's lifetime (see the rule beside the other selection rules in
+  // App.svelte), so a link that opens a storm cut at 40 degrees is
   // not undone by the panel mounting a moment later.
   // Not seen well enough to open: the panel says so rather than drawing a
   // cut through interpolation that looks as convincing as a real one.
@@ -343,8 +343,8 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
   </figure>
 {:else}
   <!-- The volume on its way down, in the space it will take. Nothing there at
-       all read as a storm with nothing inside it, and everything under the
-       panel moved down when the picture arrived. -->
+       all would read as a storm with nothing inside it, and everything under
+       the panel would move down when the picture arrived. -->
   <div class="waiting" style="width: {width}px; height: {height}px;">
     <sl-spinner></sl-spinner>
   </div>

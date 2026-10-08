@@ -1,10 +1,9 @@
 /**
  * The URL patterns the service worker caches tiles for.
  *
- * Shared rather than written twice: the diagnostics panel reports whether the
- * tiles this build actually requests are covered by these routes, and a panel
- * that keeps its own copy of the patterns would go on saying "cached" long
- * after the worker stopped matching.
+ * Shared with the diagnostics panel, which reports whether the tiles this build
+ * requests are covered by these routes. A panel with its own copy of the
+ * patterns would go on saying "cached" long after the worker stopped matching.
  *
  * Kept free of workbox imports so the app bundle can read it without pulling
  * the worker's dependencies in.
@@ -25,8 +24,8 @@ export const TERRAIN_ROUTE = /^https:\/\/map\.meteocool\.com\/mapterhorn-[^/]+\/
  * Radar frames: cache-first.
  *
  * Every frame's tiles live under a `tile_id` that names that one rendering,
- * so a URL never changes content -- which frame is current is decided by the
- * timeseries, not by re-asking for the tile. Matched on production's tile
+ * so a URL never changes content: the timeseries decides which frame is
+ * current, without asking for the tile again. Matched on production's tile
  * host and the cluster's `assets-<environment>` ones alike, so a staging or
  * demo build is cached the same way.
  */

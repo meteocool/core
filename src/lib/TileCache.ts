@@ -155,15 +155,15 @@ export class MeteoTileCache {
    * Fetch a tile, preferring the network over the cache.
    *
    * Radar is the one thing here that must not be stale: a cached frame from ten
-   * minutes ago looks exactly like a current one and is worse than a gap. So
-   * the cache is a fallback for being offline or for the request failing, not
-   * the first thing consulted -- which is what this used to do, returning any
-   * cached blob without ever asking the network.
+   * minutes ago looks like a current one and is worse than a gap. So the
+   * cache is a fallback for being offline or for the request failing, not the
+   * first thing consulted. This used to return any cached blob without ever
+   * asking the network.
    *
    * `successCb`'s second argument says whether the blob came from the cache, so
    * callers can tell a hit from a download.
    *
-   * Note this whole class is currently inert: every call site in
+   * This whole class is currently inert: every call site in
    * RadarCapability is commented out.
    */
   static async fetchAndCache(idb, url, successCb, expiryMin = 5) {

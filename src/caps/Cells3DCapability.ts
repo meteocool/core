@@ -79,8 +79,8 @@ import type VectorSource from "ol/source/Vector";
  * The storms in three dimensions.
  *
  * Every other capability draws a map from above, where a thunderstorm is a
- * coloured blob and its most important property -- whether the intense core is
- * deep or shallow -- is invisible. Radar measures that: for each reflectivity
+ * coloured blob and its most important property (whether the intense core is
+ * deep or shallow) is invisible. Radar measures that: for each reflectivity
  * threshold it reports the ground area exceeding it, the height it reaches and
  * the volume it encloses, and `cellVolume` turns those numbers into a solid.
  *
@@ -95,8 +95,8 @@ import type VectorSource from "ol/source/Vector";
 /**
  * MapLibre is about a megabyte, and most sessions never open this map.
  *
- * Loading it on first attach rather than at import time keeps that weight off
- * everyone who only ever looks at the flat radar -- it is also precached by the
+ * Loading it on first attach instead of at import time keeps that weight off
+ * everyone who only ever looks at the flat radar. It is also precached by the
  * service worker, so a static import would put it in every install.
  */
 async function loadMapLibre() {
@@ -110,7 +110,7 @@ async function loadMapLibre() {
    * Tell MapLibre where its worker is.
    *
    * v6 ships ESM only and works the worker's URL out from its own
-   * `import.meta.url`, which a bundler rewrites -- leaving it pointing at a
+   * `import.meta.url`, which a bundler rewrites, leaving it pointing at a
    * path with no worker beside it.
    *
    * `?worker&url` rather than plain `?url`, because the worker file imports
@@ -118,8 +118,8 @@ async function loadMapLibre() {
    * that in. Served as a bare module it has to fetch and evaluate that chunk
    * itself, which under Vite means a multi-megabyte transformed module; the
    * worker then misses the first messages MapLibre sends it. The symptom is
-   * maddening rather than obvious: it works on one load and on the next the
-   * map answers a single message and then sits there, with no error anywhere.
+   * hard to pin down: it works on one load, and on the next the map answers a
+   * single message and then sits there, with no error anywhere.
    */
   lib.config.WORKER_URL = worker.default;
   return lib;
@@ -140,14 +140,13 @@ function painted(): Promise<void> {
 /**
  * How long the first bring-up may take before the veil comes down regardless.
  *
- * MapLibre's `idle` is the signal; this stands in if it never comes -- a
- * WebGL context that failed, a tile server that answers nothing -- so a
+ * MapLibre's `idle` is the signal; this stands in if it never comes (a
+ * WebGL context that failed, a tile server that answers nothing), so a
  * map that will never settle is at least a map the reader can see.
  */
 const SETTLE_CEILING_MS = 15000;
 
 const CELL_SOURCE = "cells";
-/** The raymarched volume, which replaces the selected storm's extruded tiers. */
 /** Every storm's raymarched volume, in the one layer that draws them all. */
 const VOLUME_LAYER = "cell-volume-raymarched";
 
@@ -217,11 +216,11 @@ const RADAR_SOURCE = "radar";
  * Lower than the 2D map's, and for a reason that only applies here: this view
  * already draws the same storms a second time, as extrusions coloured by the
  * same reflectivity ramp. At the 2D map's opacity the raster reads as a
- * competing copy of them -- same colours, same footprint, no height -- and the
+ * competing copy of them (same colours, same footprint, no height), and the
  * volumes it is meant to sit under get lost in it.
  *
- * Kept rather than removed, because it is the only thing on this map showing
- * the rain that is not a detected cell: the broad stratiform shield around a
+ * It stays because it is the only thing on this map showing the rain that is
+ * not a detected cell: the broad stratiform shield around a
  * line of storms has no volume drawn for it, and without the raster the map
  * says nothing is there.
  */
@@ -266,8 +265,8 @@ interface VolumeTarget {
  *
  * The flat map's own buffer fades them over thirty minutes. Here they are
  * shown only as a recent-activity halo around the cells that are producing
- * them, and half an hour of accumulation over a squall line is a solid smear
- * -- ten minutes keeps it to what is happening now.
+ * them, and half an hour of accumulation over a squall line is a solid smear.
+ * Ten minutes keeps it to what is happening now.
  */
 export const STRIKE_MINUTES = 10;
 
@@ -283,7 +282,7 @@ const STRIKE_REDRAW_MS = 1000;
 /** The id of the one full-size map element; minimaps carry generated ids. */
 const MAIN_MAP_ID = "map";
 
-/** Opening tilted is the whole point; flat, this is just a slower 2D map. */
+/** Opens tilted: flat, this is just a slower 2D map. */
 const INITIAL_PITCH = 55;
 
 /**
@@ -317,7 +316,7 @@ interface Camera {
  * When a drag or an ease ends over terrain, MapLibre finds the centre again
  * where the line of sight meets the ground. Steeper than acos(0.1), about
  * 84.26 degrees, it gives that up and puts the centre 10 km in front of the
- * camera instead -- which, from the camera's height at a regional zoom, is
+ * camera instead. From the camera's height at a regional zoom, that is
  * hundreds of kilometres back from where the reader was looking. A tilt into
  * the old limit of 85 flung the map from Bavaria to the Atlantic and to a
  * street-level zoom.
@@ -374,10 +373,10 @@ export interface CameraRequest {
 /**
  * Severity class to colour.
  *
- * A `match` rather than indexing into a literal array with `at`: MapLibre types
+ * A `match` instead of indexing into a literal array with `at`: MapLibre types
  * `at` as returning the array's element type, so a colour looked up that way
- * fails paint-property validation -- and validation drops the whole layer
- * without throwing, which is a footprint that silently never draws. The
+ * fails paint-property validation. Validation drops the whole layer without
+ * throwing, so the footprint silently never draws. The
  * built-at-runtime shape cannot be checked against the spec's fixed-arity
  * tuple, hence the assertion.
  */
@@ -395,7 +394,7 @@ function severityColour(): DataDrivenPropertyValueSpecification<string> {
  *
  * Built at runtime from the palette the flat map is drawn in, so the 3D map,
  * the popup's model and the radar underneath agree on what 55 dBZ looks like.
- * The assertion is the same story as `severityColour`: a run-length shape
+ * The assertion is there for the same reason as in `severityColour`: a run-length shape
  * cannot be checked against the spec's fixed-arity tuple.
  */
 function dbzRamp(colormap: string): DataDrivenPropertyValueSpecification<string> {
@@ -576,9 +575,9 @@ export default class Cells3DCapability extends Capability {
    *
    * The strikes arrive over one socket and one ring buffer already holds them,
    * evicts them and fades them; a second copy here would be a second thing to
-   * keep in step for no gain. The coordinates in it are EPSG:3857 metres --
-   * the `lightning` event documents them that way and `StrikeManager` stores
-   * them untouched -- so they are projected back on the way out.
+   * keep in step for no gain. The coordinates in it are EPSG:3857 metres
+   * (the `lightning` event documents them that way and `StrikeManager` stores
+   * them untouched), so they are projected back on the way out.
    */
   private strikes: VectorSource | null = null;
 
@@ -600,9 +599,9 @@ export default class Cells3DCapability extends Capability {
   /**
    * Whether the style will accept sources and layers.
    *
-   * Deliberately not `isStyleLoaded()`, which also reports false while any
-   * source still has tiles in flight -- over a slow connection that is never,
-   * and gating on it left the map showing a basemap and no storms.
+   * Not `isStyleLoaded()`, which also reports false while any source still
+   * has tiles in flight. Over a slow connection that can be all the time, and
+   * waiting on it left the map showing a basemap and no storms.
    */
   private styleReady = false;
 
@@ -632,8 +631,8 @@ export default class Cells3DCapability extends Capability {
    * Neither drawn nor ringed, and not held: a volume is immutable, so one
    * found faint stays faint, and remembering it by path keeps it from being
    * fetched again and from taking a place another storm in view could have.
-   * Opened anyway -- a KONRAD3D cell tapped inside one, a link to one -- it is
-   * drawn, because then a reader asked for exactly that storm.
+   * Opened anyway (a KONRAD3D cell tapped inside one, a link to one), it is
+   * drawn, because then the reader asked for exactly that storm.
    */
   private faint = new Set<string>();
 
@@ -733,8 +732,8 @@ export default class Cells3DCapability extends Capability {
    * Whether this map owns the main map element right now.
    *
    * The MapLibre map is kept when another capability takes over, so coming
-   * back is instant -- but kept alive, it went on doing everything a shown map
-   * does: every new radar frame reloaded its tiles, every new run re-fetched
+   * back is instant. Kept alive, though, it went on doing everything a shown
+   * map does: every new radar frame reloaded its tiles, every new run re-fetched
    * the cells and several megabytes of volumes, and every strike rebuilt the
    * strike source and raymarched every storm again, all into a canvas nobody
    * could see. On a stormy day that is a browser pegged on a map that is not
@@ -836,9 +835,9 @@ export default class Cells3DCapability extends Capability {
   /**
    * Attach or detach.
    *
-   * On the main map MapLibre takes the element; anywhere else -- the layer
-   * switcher's previews -- the ordinary OpenLayers map draws, which is both
-   * cheaper and a truthful thumbnail of where the storms are.
+   * On the main map MapLibre takes the element. Anywhere else (the layer
+   * switcher's previews) the ordinary OpenLayers map draws, which is cheaper
+   * and a truthful thumbnail of where the storms are.
    */
   setTarget(target: string | HTMLElement | undefined): void {
     const element = typeof target === "string" ? document.getElementById(target) : target;
@@ -851,7 +850,7 @@ export default class Cells3DCapability extends Capability {
       return;
     }
 
-    // Deliberately not `super.setTarget(target)`: the base class would point
+    // Not `super.setTarget(target)`: the base class would point
     // the OpenLayers map at this same element, leaving two maps stacked in one
     // container with OL painting over the WebGL canvas. Only the announcement
     // side of it is wanted here.
@@ -863,9 +862,9 @@ export default class Cells3DCapability extends Capability {
 
   /*
    * No `setPreviewTarget` override: the base class points only the OpenLayers
-   * map at the switcher's tile, which is what this one wants too -- cheaper
-   * than a second WebGL context, a truthful picture of where the storms are,
-   * and it leaves the MapLibre canvas alone. The tiles are live while the
+   * map at the switcher's tile, which is what this one wants too. That is
+   * cheaper than a second WebGL context, shows truthfully where the storms
+   * are, and leaves the MapLibre canvas alone. The tiles are live while the
    * switcher is open, and if this capability is the one currently showing,
    * its map is still underneath and has to be there when the switcher closes
    * again. Only `willLoseFocus` detaches.
@@ -879,11 +878,11 @@ export default class Cells3DCapability extends Capability {
        * Positioned inline, not from the stylesheet.
        *
        * MapLibre puts `maplibregl-map` on whatever element it is given, and
-       * its own CSS declares that class `position: relative` -- same
+       * its own CSS declares that class `position: relative`, with the same
        * specificity as the app's `.maplibre-host` rule and loaded after it,
-       * so it wins. In flow rather than layered, the canvas took its own
+       * so it wins. In flow instead of layered, the canvas took its own
        * 100%-height box *below* the OpenLayers viewport already sitting in
-       * `#map`, which reads as the 3D map simply not being there: the flat
+       * `#map`, which looks as if the 3D map is not there at all: the flat
        * map is on screen and the storms are a screen further down the page.
        * An inline style outranks both stylesheets and settles it.
        */
@@ -894,13 +893,13 @@ export default class Cells3DCapability extends Capability {
     /*
      * Appended every time, not only when it is somewhere else.
      *
-     * Capabilities do not take `#map` from each other -- OpenLayers appends
-     * its viewport to the target and leaves any earlier one in place -- so
+     * Capabilities do not take `#map` from each other (OpenLayers appends
+     * its viewport to the target and leaves any earlier one in place), so
      * which map is visible comes down to which element is last in the DOM.
      * Coming back to this capability, the flat map's viewport had been
      * appended after this container, so the 3D map was being drawn correctly
      * underneath an opaque OpenLayers canvas. `appendChild` on a node that is
-     * already a child moves it to the end, which is exactly what is wanted.
+     * already a child moves it to the end, which is what is wanted.
      */
     host.appendChild(this.container);
     this.host = host;
@@ -955,7 +954,7 @@ export default class Cells3DCapability extends Capability {
           minZoom: MIN_ZOOM,
           maxZoom: 13,
           // MapLibre stops at 60 unless told otherwise, which is a view from a
-          // hilltop; an opened storm is looked at from lower -- see frameOpened.
+          // hilltop; an opened storm is looked at from lower (see frameOpened).
           maxPitch: MAX_PITCH,
           // Spelled out rather than behind an (i), like the flat map's; see the
           // attribution rules in glass.css.
@@ -973,8 +972,8 @@ export default class Cells3DCapability extends Capability {
       /*
        * Two navigation controls where one would do, so they can be drawn as
        * the flat map's are: a zoom capsule, the locate disc, and the compass
-       * where the flat map's north-up disc is -- it also shows the tilt and
-       * resets both. Under the layer-switcher disc, in glass; see glass.css
+       * where the flat map's north-up disc is (it also shows the tilt and
+       * resets both). Under the layer-switcher disc, in glass; see glass.css
        * and Map.svelte. Locating goes through LayerManager like the flat
        * map's, which flies this camera (`lookAt`) and marks the position.
        *
@@ -996,8 +995,8 @@ export default class Cells3DCapability extends Capability {
       this.unmiddleDrag?.();
       this.unmiddleDrag = middleDragTurnsAndTilts(gl.getCanvasContainer());
       // Fires on the first style and again after every `setStyle`, which is
-      // what a light/dark switch does -- and that discards everything added on
-      // top of it, so this is also how the storms get put back.
+      // what a light/dark switch does. That discards everything added on top
+      // of it, so this is also how the storms get put back.
       let firstStyle = true;
       gl.on("style.load", () => {
         this.styleReady = true;
@@ -1013,7 +1012,7 @@ export default class Cells3DCapability extends Capability {
         // without fetching them again, and the open one is cut again.
         // Except when it diffs the two styles, which is how a light/dark
         // switch goes: a custom layer is not in the diff, so it stays, and
-        // adding it again failed -- leaving the volumes on screen frozen,
+        // adding it again failed, leaving the volumes on screen frozen,
         // with every later update going to a layer that was never added.
         // Taken off here, so it goes back above the layers added before it.
         if (gl.getLayer(VOLUME_LAYER)) gl.removeLayer(VOLUME_LAYER);
@@ -1024,8 +1023,8 @@ export default class Cells3DCapability extends Capability {
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
       // The tilt and heading only this map has go out with it, for the URL.
-      // A camera move the reader made -- drag, wheel, pinch, tilt, turn, the
-      // zoom buttons -- carries the DOM event that caused it; one from code
+      // A camera move the reader made (drag, wheel, pinch, tilt, turn, the
+      // zoom buttons) carries the DOM event that caused it; one from code
       // (a storm being framed, the camera settling back) does not. Only the
       // reader's own change where the way back to the flat map lands; see
       // open3d.ts.
@@ -1045,7 +1044,7 @@ export default class Cells3DCapability extends Capability {
         else if (this.past) void this.lookAgain();
       });
       // Tapping a storm opens the same popup the flat map opens, and tapping
-      // past one closes it -- the panel is rendered above whichever map is
+      // past one closes it. The panel is rendered above whichever map is
       // showing, so it needs no separate plumbing here.
       gl.on("click", (event) => {
         const hits = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) });
@@ -1065,7 +1064,7 @@ export default class Cells3DCapability extends Capability {
           ), undefined);
         if (cell?.properties?.code) {
           selectedVolume.set(null);
-          // The same two steps the flat map takes -- panel at once on a
+          // The same two steps the flat map takes: panel at once on a
           // desktop, forecast first on a phone. Setting the cell alone left a
           // desktop with nothing on screen but the cut: the panel is drawn only
           // for a selection whose details are open.
@@ -1143,10 +1142,10 @@ export default class Cells3DCapability extends Capability {
     const cloud = get(selectedVolume);
     const opening = this.open(track ? this.targetOfTrack(track) : cloud ? this.targetOfCloud(cloud) : null);
     void this.refresh();
-    // The veil lifts on the first settled frame -- and not before the storm
-    // the reader came for has its volume loaded and uploaded, which is the
-    // other stall of a first bring-up; `open` has framed it by then, so the
-    // map comes into view already easing onto the storm.
+    // The veil lifts on the first settled frame, and not before the storm
+    // the reader came for has its volume loaded and uploaded (the other stall
+    // of a first bring-up). `open` has framed it by then, so the map comes
+    // into view already easing onto the storm.
     if (built) void Promise.all([this.settled, opening]).finally(() => cells3dLoading.set(false));
   }
 
@@ -1155,7 +1154,7 @@ export default class Cells3DCapability extends Capability {
    *
    * `queryRenderedFeatures` throws on a layer id it does not know, and these
    * are added after the style loads and thrown away again by every light/dark
-   * switch -- so a tap landing in the gap would take the map down with it.
+   * switch, so a tap landing in the gap would take the map down with it.
    */
   private pickable(gl: GlMap): string[] {
     return PICKABLE.filter((id) => gl.getLayer(id));
@@ -1194,8 +1193,8 @@ export default class Cells3DCapability extends Capability {
    * Opening a storm flies in close, low and square to its cut. Closing the
    * one storm that was opened, with the camera still where that left it, is
    * a step back out: position, zoom, heading and tilt all go back to the
-   * reader's own. Otherwise the reader has made the view theirs -- moved it,
-   * or walked on to another storm -- and only the tilt goes back, and only if
+   * reader's own. Otherwise the reader has made the view theirs (moved it,
+   * or walked on to another storm), and only the tilt goes back, and only if
    * it is still the one the opening set: looking at a cut from low down is
    * right while it is open and wrong for a map, where the far half of the
    * screen is horizon.
@@ -1252,8 +1251,8 @@ export default class Cells3DCapability extends Capability {
    * The way out of a detour (lib/open3d.ts): the storm the reader came to see
    * has closed, and the flat map they left is about to take the element. Cut
    * straight to it and the picture snaps from a low, tilted look at one storm
-   * to a map of the whole sky. So the camera first eases up and back -- nadir,
-   * north up, the centre and zoom the flat map was left at -- and the switch
+   * to a map of the whole sky. So the camera first eases up and back (nadir,
+   * north up, the centre and zoom the flat map was left at), and the switch
    * happens once it has landed, on a view the flat map draws identically.
    * The sweep stops on the way, or the slice would go on turning under a
    * camera that is leaving it.
@@ -1276,8 +1275,8 @@ export default class Cells3DCapability extends Capability {
         resolve();
       };
       gl.once("moveend", done);
-      // A ceiling rather than the way it usually ends: the ease's own moveend
-      // is the signal, and this only stands in if it never comes.
+      // A fallback: the ease's own moveend is the signal, and this only
+      // stands in if it never comes.
       setTimeout(done, LEAVE_MS + 500);
       gl.easeTo({
         pitch: 0,
@@ -1332,21 +1331,11 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * Open the detail popup for a tapped storm.
-   *
-   * This map is drawn from `/cells/current`, which is one timestep: it knows
-   * a cell's structure but not its history, and the popup is mostly history.
-   * So the tap fetches the track the flat map would already have had, and
-   * trims it the same way -- otherwise the same mis-stitched track that the
-   * flat map now refuses to draw a line for would still report its borrowed
-   * age and peak here.
-   */
-  /**
    * Which tiers a storm still draws as extrusions.
    *
    * Every cell but those standing inside a drawn volume. The volume is the
    * same weather measured another way, and `fill-extrusion` writes depth even
-   * when it is translucent -- so a cell left extruded inside one punches its
+   * when it is translucent, so a cell left extruded inside one punches its
    * tier boundaries straight through the cloud around it.
    */
   private tierFilter(tier: number): ExpressionSpecification {
@@ -1402,8 +1391,8 @@ export default class Cells3DCapability extends Capability {
    *
    * Every storm is already on the map, whole; opening one only slices it. A
    * KONRAD3D cell's volume is one of the storms already drawn, found by its
-   * path -- and if it somehow is not (the list failed to load, say), it is
-   * fetched and added so that tapping a cell never opens nothing.
+   * path. If it somehow is not (the list failed to load, say), it is fetched
+   * and added so that tapping a cell never opens nothing.
    */
   private async open(target: VolumeTarget | null): Promise<void> {
     const token = Symbol("open");
@@ -1447,8 +1436,8 @@ export default class Cells3DCapability extends Capability {
     // other, but cutting it now would open the storm the reader has left.
     if (this.openToken !== token) return;
     // Not seen well enough to open: the panel says so, the storm stays whole
-    // on the map, and nothing is cut -- a cut through interpolation between
-    // two sweeps kilometres apart looks exactly as convincing as a real one.
+    // on the map, and nothing is cut: a cut through interpolation between
+    // two sweeps kilometres apart looks just as convincing as a real one.
     if (entry.tier === TIER_UNOPENABLE) {
       this.opened = null;
       stopSweep(false);
@@ -1472,8 +1461,8 @@ export default class Cells3DCapability extends Capability {
     this.pushClouds();
     this.applyCut();
     // A frame later, so the slice has already been reset for the new
-    // selection -- App.svelte does that from its own subscription to the same
-    // stores, which can run after this one -- or set by the link that opened it.
+    // selection or set by the link that opened it. App.svelte resets it from
+    // its own subscription to the same stores, which can run after this one.
     const { cutaway } = entry;
     requestAnimationFrame(() => {
       if (this.openToken !== token) return;
@@ -1490,10 +1479,10 @@ export default class Cells3DCapability extends Capability {
    * Stand the camera in front of an opened storm's cut.
    *
    * Close enough that the cross-section spans the room, from low down, so the
-   * cut stands up as a wall of weather rather than lying flat as a map, and
-   * square on to it, so what is shown is the face and not its edge. It is
-   * placed in the part of the screen the panel leaves -- above the sheet on a
-   * phone, left of it on a desktop -- with room for its top.
+   * cut stands up as a wall of weather instead of lying flat like a map, and
+   * square on to it, so the face is shown and not the edge. It is placed in
+   * the part of the screen the panel leaves (above the sheet on a phone, left
+   * of it on a desktop), with room for its top.
    *
    * The half kept is whichever faces the camera: a vertical plane turned half
    * way round is the same cut, and the caption reads the same. That keeps the
@@ -1532,8 +1521,9 @@ export default class Cells3DCapability extends Capability {
     if (this.cameraBeforeOpen) this.walked = true;
     else this.cameraBeforeOpen = this.cameraOf(gl);
     // Where it lands, which closing compares the camera with: the ease's own
-    // moveend, told from any other by the token it carries. Landed early --
-    // the reader took hold of the map -- it is where they took over.
+    // moveend, told from any other by the token it carries. If it landed
+    // early because the reader took hold of the map, it is where they took
+    // over.
     this.unwatchFraming?.();
     this.framedCamera = null;
     const framing = Symbol("framing");
@@ -1614,7 +1604,7 @@ export default class Cells3DCapability extends Capability {
    * off the map meanwhile.
    *
    * A volume that turns out faint is set aside instead, its ring taken off,
-   * and its place goes to the next storm in view -- so this asks `wanted`
+   * and its place goes to the next storm in view, so this asks `wanted`
    * again after a pass that found one, until a pass finds none. A volume that
    * would not load is not asked for again in the same call.
    */
@@ -1815,8 +1805,8 @@ export default class Cells3DCapability extends Capability {
    *
    * Bar the newer scans of an open storm that is older than the list. A
    * storm open when a new scan lands is kept as it was, and the new scan
-   * brings the same storm again under a new path -- and usually a new code,
-   * its peak having moved a pixel -- so both were drawn, one volume over the
+   * brings the same storm again under a new path (and usually a new code,
+   * its peak having moved a pixel), so both were drawn, one volume over the
    * other a few kilometres apart. The same happens opening a link to an old
    * scan. Its successor comes back when the storm is closed.
    */
@@ -1848,8 +1838,8 @@ export default class Cells3DCapability extends Capability {
   /**
    * Whether the open storm is only still on the map because it is open: a
    * newer scan of its network was listed without it while it was open, or
-   * it was opened from an older list than this one -- the flat map's, a
-   * link. See `isPastItsScan`.
+   * it was opened from an older list than this one (the flat map's, a
+   * link). See `isPastItsScan`.
    */
   private heldOpen(): boolean {
     const path = this.opened?.path;
@@ -1883,7 +1873,7 @@ export default class Cells3DCapability extends Capability {
    * already stands in 3D, and a tag over each one only covered the clouds it
    * pointed at. A tap anywhere in a box opens it instead; where boxes from
    * before tiles overlap, the nearest by its spin axis
-   * (`lib/cloudFootprint.ts`) -- the storm's own centre once its volume is
+   * (`lib/cloudFootprint.ts`): the storm's own centre once its volume is
    * in, the box's until then.
    */
   private ensureClouds(gl: GlMap): void {
@@ -1939,6 +1929,16 @@ export default class Cells3DCapability extends Capability {
     }, under);
   }
 
+  /**
+   * Open the detail popup for a tapped storm.
+   *
+   * This map is drawn from `/cells/current`, which is one timestep: it knows
+   * a cell's structure but not its history, and the popup is mostly history.
+   * So the tap fetches the track the flat map would already have had, and
+   * trims it the same way. Otherwise the same mis-stitched track that the
+   * flat map now refuses to draw a line for would still report its borrowed
+   * age and peak here.
+   */
   private async select(code: string, details: boolean): Promise<void> {
     const token = Symbol("pick");
     this.picking = token;
@@ -1993,8 +1993,8 @@ export default class Cells3DCapability extends Capability {
    *
    * Usually one of the newest scan's, and then it is the listed one, with the
    * peak and the area the popup shows. A link opened later names a scan that
-   * has since been replaced -- a core's code is its grid position, so there is
-   * no following it into the next scan -- but its volume is immutable and
+   * has since been replaced. A core's code is its grid position, so it cannot
+   * be followed into the next scan, but its volume is immutable and
    * still there, and the file's own header says where it stands and when it
    * was measured. That is enough to open it where it was, as it was.
    *
@@ -2087,7 +2087,7 @@ export default class Cells3DCapability extends Capability {
    * The buffer fires `change` for every strike, and each redraw re-serialises
    * the whole buffer for MapLibre's worker and raymarches every storm again.
    * A squall line sends several a second; once a second is plenty for a
-   * recent-activity glow. Nothing at all while hidden -- `attach` redraws.
+   * recent-activity glow. Nothing at all while hidden; `attach` redraws.
    */
   private scheduleStrikes(): void {
     // Put away while an earlier scan is on the map; going back redraws them.
@@ -2134,7 +2134,7 @@ export default class Cells3DCapability extends Capability {
    *
    * Each network's runs land on their own clock and a run in parts, so the
    * ones that land between two KONRAD3D runs were otherwise not seen until
-   * the next -- by when its radar had moved on and they were a scan behind. A
+   * the next, by when its radar had moved on and they were a scan behind. A
    * moment's wait first, so a run's parts landing together are one fetch.
    */
   newVolumes(): void {
@@ -2198,7 +2198,7 @@ export default class Cells3DCapability extends Capability {
    *
    * On, they are fetched now if the map is showing, and otherwise by the
    * refresh `attach` does. Off, they go at once, and their layers stay on
-   * the style empty -- nothing to tap, nothing to hide a tier of.
+   * the style empty, with nothing to tap and no tier to hide.
    */
   private applyCellsWanted(wanted: boolean): void {
     if (wanted === this.cellsWanted) return;
@@ -2275,9 +2275,9 @@ export default class Cells3DCapability extends Capability {
    * of the screen, a few dozen requests the first time and none the next.
    * Until they are, the map stays as it was; a scan with nothing here leaves
    * it so, and the picker says why. Shown, it is the list the map is drawn
-   * from -- boxes, peel and taps as ever, a tap opening the storm as it was
-   * -- with the radar of the same scan draped under it, and the newest
-   * scan's own cells and strikes put away.
+   * from (boxes, peel and taps as ever, a tap opening the storm as it was),
+   * with the radar of the same scan draped under it and the newest scan's
+   * own cells and strikes put away.
    */
   showScan(scan: Scan | null): void {
     const latest = this.latestScan();
@@ -2618,7 +2618,7 @@ export default class Cells3DCapability extends Capability {
    * (`ensureNetworks`), every palette is part transparent, and DWD showing
    * through underneath would blend into colours neither radar measured. The
    * holes are cut whether or not a network has a frame to fill them, as the
-   * flat map does -- a country whose radar is down shows nothing rather than
+   * flat map does: a country whose radar is down shows nothing instead of
    * DWD's long-range view of it alone.
    *
    * MapLibre cannot clip a raster, so the tiles go through `maskedTiles.ts`.
@@ -2680,7 +2680,7 @@ export default class Cells3DCapability extends Capability {
 
   /**
    * Each network's newest composite, draped over the ground `extents.ts`
-   * gives it and nowhere else -- the other half of the cut `ensureRadar`
+   * gives it and nowhere else. This is the other half of the cut `ensureRadar`
    * makes, so exactly one radar colours any pixel, as on the flat map.
    *
    * One source and one layer per network, kept and re-pointed rather than
@@ -2741,40 +2741,29 @@ export default class Cells3DCapability extends Capability {
     }
   }
 
+  /** The terrain's drape size on a handheld device; MapLibre's own elsewhere. See gpuBudget.ts. */
+  private drapeSize(): number | undefined {
+    return isHandheld() ? HANDHELD_DRAPE_SIZE : undefined;
+  }
+
   /**
    * Where a radar raster goes in the style: under everything this map draws
    * on top of the ground. The storms are added in `applyData` after the
    * rasters, but a frame can arrive later than the storms did, and a raster
    * appended then would paint over them.
    */
-  /** The terrain's drape size on a handheld device; MapLibre's own elsewhere. See gpuBudget.ts. */
-  private drapeSize(): number | undefined {
-    return isHandheld() ? HANDHELD_DRAPE_SIZE : undefined;
-  }
-
   private rasterAnchor(gl: GlMap): string | undefined {
     return gl.getStyle().layers.find((layer) => /^(cell|cloud|strike|place|location)-/.test(layer.id))?.id;
   }
 
   /**
-   * The cell layers, added once and fed new data thereafter.
-   *
-   * Two `fill-extrusion` layers over one source, and the order they are added
-   * in is the whole trick. `fill-extrusion` writes depth even when it is
-   * translucent, so anything drawn behind a see-through surface that went down
-   * first is simply erased. The opaque interior therefore goes first and the
-   * see-through outer shell second, where it depth-tests against the interior
-   * and blends over it correctly. Swap them and every storm becomes a hollow
-   * bag with nothing inside.
-   */
-  /**
    * Recent strikes, on the deck under the storms.
    *
-   * Flat circles at ground level rather than anything raised: a strike is a
-   * channel from cloud to ground and drawing it as a mark on the ground is
-   * both true and the one place it cannot be confused with the volume above
-   * it. Two circles per strike -- a soft wide one and a small bright core --
-   * so a cluster reads as a glow rather than as gravel.
+   * Flat circles at ground level, not raised: a strike is a channel from
+   * cloud to ground, so a mark on the ground is accurate, and it is the one
+   * place it cannot be confused with the volume above it. Two circles per
+   * strike (a soft wide one and a small bright core), so a cluster reads as a
+   * glow instead of as gravel.
    *
    * Newer strikes are brighter. `fill-extrusion` writes depth, so anything
    * drawn flat has to come after the storms to survive them, which is where
@@ -2864,9 +2853,9 @@ export default class Cells3DCapability extends Capability {
    *
    * The dot last on the style, over the storms, strikes and place names, as
    * the flat map's sits over every layer. It faces the screen at a fixed size
-   * however the map is tilted -- it marks a place, it is not a thing on the
-   * ground -- while the circle lies on the ground, because it is an area of
-   * it, and is drawn with the ground under the storms.
+   * however the map is tilted, since it marks a place and is not a thing on
+   * the ground. The circle lies on the ground, because it is an area of it,
+   * and is drawn with the ground under the storms.
    */
   private ensureLocation(gl: GlMap): void {
     const at = this.location;
@@ -2892,8 +2881,8 @@ export default class Cells3DCapability extends Capability {
 
     gl.addSource(LOCATION_SOURCE, { type: "geojson", data });
     // OpenLayers' default polygon style, which is what the flat map's circle is drawn in.
-    // On the ground under the storms, which last over it cost a third drape
-    // of every terrain tile: see `drapeAnchor`.
+    // On the ground under the storms: drawn last, over them, it cost a third
+    // drape of every terrain tile. See `drapeAnchor`.
     gl.addLayer({
       id: LOCATION_ACCURACY,
       type: "fill",
@@ -2918,6 +2907,17 @@ export default class Cells3DCapability extends Capability {
     });
   }
 
+  /**
+   * The cell layers, added once and fed new data thereafter.
+   *
+   * One `fill-extrusion` layer per `RING_ALPHAS` tier over one source, and the order they are added
+   * in is what makes them work. `fill-extrusion` writes depth even when it is
+   * translucent, so anything drawn behind a see-through surface that went down
+   * first is erased. The opaque interior therefore goes first and the
+   * see-through outer shell second, where it depth-tests against the interior
+   * and blends over it correctly. Swap them and every storm becomes a hollow
+   * bag with nothing inside.
+   */
   private ensureCells(gl: GlMap): void {
     const volume = volumeCollection(this.cells);
     const footprints = footprintCollection(this.cells);
@@ -2935,10 +2935,10 @@ export default class Cells3DCapability extends Capability {
       type: "line",
       source: FOOTPRINT_SOURCE,
       paint: {
-        // A `match` rather than indexing into a literal array: MapLibre types
+        // A `match` instead of indexing into a literal array: MapLibre types
         // `at` as returning the array's element type, so a colour looked up
-        // that way fails paint-property validation -- and validation drops the
-        // layer without throwing, which is a footprint that silently never draws.
+        // that way fails paint-property validation. Validation drops the layer
+        // without throwing, so the footprint silently never draws.
         "line-color": severityColour(),
         "line-width": 1.2,
         "line-opacity": 0.7,

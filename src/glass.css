@@ -1,14 +1,14 @@
 /* ============================================================================
-   src/glass.css -- meteocool's Liquid Glass token layer.
+   src/glass.css: meteocool's Liquid Glass token layer.
 
    Import order in App.svelte is load-bearing:
      ./global.css -> shoelace themes/light.css -> themes/dark.css -> ./glass.css
    This file re-points Shoelace's panel/overlay/primary tokens, so it goes last.
 
-   TWO schemes, and they are not the same one:
+   TWO separate schemes:
 
      html[data-theme]   the OS/app colour scheme, from the colorSchemeDark
-                        store. Drives the sheets -- #ls, dialogs -- plus
+                        store. Drives the sheets (#ls, dialogs), plus
                         html.sl-theme-dark for Shoelace's own internals.
      html[data-chrome]  the BASEMAP's brightness, from the mapBaseLayer store.
                         Drives the glass material and the ink on it.
@@ -23,10 +23,10 @@
    wrappers drive dark mode through the store, and a media query would disagree
    with them.
 
-   Two materials, and only two:
-     glass  -- translucent, blurred, floats over the map (pills, discs, trays)
-     sheet  -- solid, for anything that covers most of the viewport (#ls, the
-               forecast panel). Blurring the whole viewport is blurring the
+   Two materials:
+     glass  translucent, blurred, floats over the map (pills, discs, trays)
+     sheet  solid, for anything that covers most of the viewport (#ls, the
+            forecast panel). Blurring the whole viewport is blurring the
                whole map, on a phone, every frame.
    Anything sitting ON glass is a flat tint, never a second blur.
    ============================================================================ */
@@ -36,7 +36,7 @@
 
      The neutral fill carries legibility regardless of the radar beneath it.
      Blur softens cell edges and reduced saturation leaves a quiet hint of the
-     map's colours. Neither filter is a substitute for text contrast. */
+     map's colours. Neither filter replaces text contrast. */
   --mc-glass-blur: 20px;                              /* phone; desktop below */
   --mc-glass-saturate: 70%;
   --mc-glass-brightness: 1;
@@ -51,38 +51,38 @@
   --mc-glass-edge-outer: rgba(0, 0, 0, 0.14);         /* so white glass still reads on a pale map */
 
   /* The reading material: glass under text. About, Settings, Connection
-     Details -- paragraphs and tables, not a label on a pill.
+     Details: paragraphs and tables, not a label on a pill.
 
      A wider kernel softens the map further under paragraphs, with the backdrop
-     tone-mapped away from the ink -- lifted and whitened under dark text,
+     tone-mapped away from the ink: lifted and whitened under dark text,
      dimmed under light text.
 
      Worked through over every backdrop colour (the filters, then the fill,
      then the ink, in sRGB): the primary ink holds at least 9.7:1, the
      secondary 4.9:1 and the tertiary 3:1, whatever the radar is doing. The
-     map is still there; it is just out of focus and quiet. */
+     map stays visible, out of focus and quiet. */
   --mc-reading-backdrop: blur(40px) saturate(70%) brightness(1.25);
   --mc-reading-fill: rgba(255, 255, 255, 0.82);
   --mc-reading-text-2: rgba(60, 60, 67, 0.84);
   --mc-reading-text-3: rgba(60, 60, 67, 0.62);
 
   /* The drawer: the storm's panel and sheet, which follow the OS scheme
-     ([data-theme]) like the other sheets do, but are glass rather than solid.
+     ([data-theme]) like the other sheets do, but are glass instead of solid.
 
      Modelled on the system's own place cards: a wide kernel so the map comes
      through as soft washes of colour rather than shapes, a little of that
      colour kept (saturate above 100%, where the reading material pulls it
-     down) and the backdrop tone-mapped away from the ink -- dimmed under light
-     text, lifted under dark. The fill then only has to finish the job, so it
+     down) and the backdrop tone-mapped away from the ink (dimmed under light
+     text, lifted under dark). The fill then only has to finish the job, so it
      can stay thin enough that the drawer reads as a pane over the map rather
      than a slab in front of it.
 
-     Worked through as the reading material was -- every backdrop from black
+     Worked through as the reading material was (every backdrop from black
      through the radar's loudest hues to white, filtered, then filled, then
-     inked, in sRGB -- the primary ink holds 8:1 and the secondary 4.5:1 in
-     both schemes. The worst case is the one that looks least likely and is
-     not: a light drawer over the dark basemap, where there is nothing for the
-     brightness step to lift, and which is why the light fill is the thicker. */
+     inked, in sRGB), the primary ink holds 8:1 and the secondary 4.5:1 in
+     both schemes. The worst case is the one that looks least likely: a light
+     drawer over the dark basemap, where there is nothing for the brightness
+     step to lift. That is why the light fill is the thicker one. */
   --mc-drawer-backdrop: blur(40px) saturate(150%) brightness(1.2);
   --mc-drawer-fill: rgba(250, 250, 252, 0.8);
   --mc-drawer-text-2: rgba(60, 60, 67, 0.84);
@@ -100,8 +100,8 @@
   --mc-fade-bottom: 28px;
 
   /* The drawer's type ramp. Heavier and larger at the top than a panel of
-     footnotes -- a bold title, bold section headings a step above the body --
-     with the secondary ink carrying the labels rather than a smaller size. */
+     footnotes (a bold title, bold section headings a step above the body),
+     with the secondary ink carrying the labels instead of a smaller size. */
   --mc-type-title: 700 22px/1.18 var(--mc-font);
   --mc-type-subtitle: 500 14px/1.3 var(--mc-font);
   --mc-type-heading: 700 17px/1.25 var(--mc-font);
@@ -169,13 +169,13 @@
   --mc-red: #ff3b30;
   --mc-red-dim: rgba(255, 59, 48, 0.45);
   /* One strand of a spread plot. Low enough that fifteen of them overlaid
-     read as a cloud with visible density rather than a black mass -- the
+     read as a cloud with visible density instead of a black mass; the
      ordinary secondary-ink alpha saturates after about four. */
   --mc-plot-thicket: rgba(60, 60, 67, 0.16);
   --mc-red-tint: rgba(255, 59, 48, 0.16);
   /* A destructive surface at rest: a wash over the glass rather than a slab of
      colour, so it sits in the chrome with everything else. The solid red is
-     kept for the instant before the thing is actually destroyed. */
+     kept for the instant before the thing is destroyed. */
   --mc-red-veil: rgba(255, 59, 48, 0.28);
   --mc-red-veil-strong: rgba(255, 59, 48, 0.62);
   --mc-red-ink: #b3261e;
@@ -366,7 +366,7 @@
   }
 }
 
-/* Desktop can afford a wider kernel -- and the player grows a legend row. */
+/* Desktop can afford a wider kernel, and the player grows a legend row. */
 @media (min-width: 621px) {
   :root {
     --mc-glass-blur: 28px;
@@ -439,7 +439,7 @@
    The chrome roots: everything that floats over the map.
 
    Each one re-points --mc-text and friends at the [data-chrome] values, and
-   custom properties cascade -- through shadow boundaries too, which is how the
+   custom properties cascade through shadow boundaries too, which is how the
    Shoelace ::part rules and every component's own scoped CSS follow along
    without a single edit. Anything NOT in this list (the #ls sheet, dialogs)
    keeps the [data-theme] values it already had.
@@ -522,11 +522,11 @@
    --------------------------------------------------------------------------- */
 
 /* The page is not zoomable, and the rule that says so (App.svelte's `:global(*)`)
-   stops at a shadow boundary: what a finger actually lands on inside an
+   stops at a shadow boundary: what a finger lands on inside an
    <sl-button> is shadow content, and it comes back as `touch-action: auto`.
    The host's restriction is meant to carry across the flat tree, but this is
    the exact element that was under the double tap that zoomed the page, so it
-   says so for itself rather than inheriting the claim. Every part named here is
+   says so for itself instead of inheriting the rule. Every part named here is
    the component's outermost one, so nothing inside it is left out. */
 sl-button::part(base),
 sl-button-group::part(base),
@@ -616,9 +616,9 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
  * Top centre, under the logo/pill/switcher line.
  *
  * These used to sit at the bottom, above whichever tray was showing. That put
- * them at z 60 directly over the busiest part of the map chrome -- the colour
+ * them at z 60 directly over the busiest part of the map chrome (the colour
  * scale, the forecast strip, the player discs and the attribution all live in
- * that band and all sit below 60 -- and the replay notice had no duration, so
+ * that band and all sit below 60), and the replay notice had no duration, so
  * on staging it covered them indefinitely. The top band holds three things,
  * all on one 44px line and all hugging an edge, so the line below it is the
  * one place a card can stand without burying a control.
@@ -663,9 +663,9 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    The module is --mc-control-lg, the same 44px as the layer-switcher disc, so
    the whole top-right column is one size: border-box on the control, and the
    button inside it sized to fill. They used to be built from --mc-control plus
-   a 1px border, which made them 42px -- close enough to look like a mistake
-   rather than a decision. Hover behaviour matches that disc too: the glyph
-   goes accent, and the fill strengthens.
+   a 1px border, which made them 42px: close enough to look like a mistake.
+   Hover behaviour matches that disc too: the glyph goes accent, and the fill
+   strengthens.
    --------------------------------------------------------------------------- */
 .ol-control {
   box-sizing: border-box;
@@ -781,13 +781,13 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 .ol-attribution a { pointer-events: auto; }
 /* The collapse toggle. Two selectors, because this file's own
    `.ol-touch .ol-control button { display: block }` out-specifies a plain
-   `.ol-attribution button` -- so on a touch device the OpenLayers (i) came
+   `.ol-attribution button`, so on a touch device the OpenLayers (i) came
    back and sat on top of the corner control. */
 .ol-attribution button,
 .ol-touch .ol-attribution button { display: none; }
 
 /* On a phone the small print ran three lines deep across the whole width,
-   right above the tray, over the part of the map people actually look at. It
+   right above the tray, over the part of the map people look at. It
    stands up the right edge instead, reading bottom to top, in the strip
    between the control column (switcher, zoom, locate, and the north-up disc
    when it shows) and the tray. The box spans that whole strip so a long list
@@ -813,8 +813,8 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 /* ---------------------------------------------------------------------------
    MapLibre's controls, on the 3D map: the same capsule and disc as the
    OpenLayers ones above, so the right-hand column is one set whichever map is
-   showing. Every rule is qualified with .maplibre-host -- the element MapLibre
-   is handed -- because maplibre-gl.css arrives with MapLibre, after this file,
+   showing. Every rule is qualified with .maplibre-host (the element MapLibre
+   is handed) because maplibre-gl.css arrives with MapLibre, after this file,
    and would win every tie. Positions live in Map.svelte, beside the others.
    --------------------------------------------------------------------------- */
 .maplibre-host .maplibregl-ctrl-group {
@@ -881,8 +881,8 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 .maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon::before { content: "+"; }
 .maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon::before { content: "\2013"; }
 
-/* The compass keeps its needle, which is a picture that has to stay one --
-   MapLibre turns it with the bearing and tips it with the pitch -- but in
+/* The compass keeps its needle, which is a picture that has to stay one
+   (MapLibre turns it with the bearing and tips it with the pitch), but in
    colours that read on either glass: the system red for north, the system
    grey for south, where MapLibre's charcoal disappears on the dark one. */
 .maplibre-host .maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon {
@@ -909,7 +909,7 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 
 /* Scrollbars as a phone draws them: a few pixels of thumb, there while the
    reader scrolls and gone a moment after. With a mouse, a desktop browser
-   draws the classic kind -- a grey gutter and thumb down the side of every
+   draws the classic kind: a grey gutter and thumb down the side of every
    drawer and popup, scrolling or not. Here the strip is narrow and clear, and
    the thumb is drawn only on what lib/scrollbars.ts marks as scrolling, or
    under the pointer, so it can still be grabbed.
@@ -941,8 +941,8 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
     background-color: color-mix(in srgb, currentColor 38%, transparent);
   }
 
-  /* Firefox has no pseudo-elements for this, only the standard properties --
-     which Chromium honours too, and then ignores the rules above, so they are
+  /* Firefox has no pseudo-elements for this, only the standard properties.
+     Chromium honours those too and then ignores the rules above, so they are
      kept to the browser that needs them. */
   @supports not selector(::-webkit-scrollbar) {
     * {

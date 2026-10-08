@@ -2,7 +2,7 @@
  * Which part of a volume's box is drawn.
  *
  * Since storms are boxed by map tile, each box's texture runs one voxel into
- * each neighbouring tile -- the header's `apron` -- so the field interpolates
+ * each neighbouring tile (the header's `apron`), so the field interpolates
  * across a seam instead of clamping at it. That voxel is the neighbour's to
  * draw: marched by both, the seam would be drawn twice, and outlined by both,
  * two outlines would overlap. Everything that draws or outlines a box asks
@@ -41,7 +41,7 @@ export interface BoxPart {
  *
  * Nothing outside it can be drawn: below `dbzLow` the shader's opacity is
  * zero, and a voxel's echo reaches its neighbour only by interpolation, which
- * the margin covers. So a ray need not march there -- the air above the
+ * the margin covers. So a ray need not march there: the air above the
  * storm's top, and the empty part of a tile at the edge of a storm.
  */
 export function echoPart(cutaway: Pick<Cutaway, "header" | "voxels">, dbzLow: number): BoxPart | null {
@@ -107,7 +107,7 @@ const EARTH_CIRCUMFERENCE_M = 2 * Math.PI * 6371008.8;
  * the panel's cut and sweep need the weather around the core too. The four
  * share their step and their voxel count, so their parent is their inner
  * voxels side by side, with the outer ring of their aprons as its apron. A
- * child that was not built -- too little echo, or past a cap -- is empty air.
+ * child that was not built (too little echo, or past a cap) is empty air.
  *
  * `children` holds the north-west, north-east, south-west and south-east
  * tiles in that order, null where one is missing; `own` is the one opened,

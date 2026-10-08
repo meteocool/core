@@ -1,11 +1,10 @@
 /**
  * The backend, as typed calls generated from ng's OpenAPI schemas.
  *
- * Each wrapper keeps the two things every hand-written fetch here used to do
- * around the request -- drive the loading bar, and report a failure: to Sentry, and
- * to apiHealth, which is what the status pill reads -- so a caller cannot forget
- * either, and throws on a non-2xx rather than handing back an error body that
- * reads as a successful response.
+ * Each wrapper drives the loading bar and reports a failure (to Sentry, and to
+ * apiHealth, which the status pill reads), so a caller cannot forget either.
+ * It throws on a non-2xx instead of handing back an error body that reads as
+ * a successful response.
  */
 import { apiClient, dataClient } from "./client";
 import { reportError } from "../lib/Toast";
@@ -68,14 +67,14 @@ interface Answer<T> {
  * with this app, and answers 404 until its first capture lands. That is the
  * layer working as designed with nothing yet to show, and it was being counted
  * as a failed API call: the map went degraded, "Something went wrong" came up
- * over it, and both stayed for as long as the upstream had nothing -- which
- * for the Swiss composite is every restart of its ingest, and on a backend
+ * over it, and both stayed for as long as the upstream had nothing. For the
+ * Swiss composite that is every restart of its ingest, and on a backend
  * without it at all, forever.
  *
- * `optional` only licenses the one answer that means absence. Anything else
- * from the same endpoint -- a 500, a timeout, a body that will not parse -- is
- * a failure and is reported as one, so switching this on cannot quietly hide a
- * route that is genuinely broken.
+ * `optional` only accepts the one answer that means absence. Anything else
+ * from the same endpoint (a 500, a timeout, a body that will not parse) is a
+ * failure and is reported as one, so switching this on cannot hide a route
+ * that is broken.
  */
 interface RequestOptions {
   optional?: boolean;
@@ -88,7 +87,7 @@ const isAbsence = (response: Response | undefined): boolean => response?.status 
  * An `optional` endpoint with nothing published yet.
  *
  * Still thrown, because the caller asked for something that is not there and
- * has nothing to draw either way -- every one of these call sites already
+ * has nothing to draw either way; every one of these call sites already
  * catches. A class rather than a message, so the wrapper's own handler can
  * tell it apart from a failure without reading strings, and so a caller that
  * wants to say "not captured yet" in its own words can too.
@@ -105,8 +104,8 @@ export class NothingPublished extends Error {
 
 /**
  * How long to wait before each retry of a call that failed for the network's
- * sake. Two, so a blip -- a dropped connection, one stalled request, a
- * gateway that hiccupped -- is ridden out with the loading bar still moving
+ * sake. Two, so a blip (a dropped connection, one stalled request, a
+ * gateway that hiccupped) is ridden out with the loading bar still moving
  * and nothing else to see. Anything longer is an outage, and lib/recovery.ts
  * is what comes back for it.
  */
@@ -132,7 +131,7 @@ const offline = (): boolean => typeof navigator !== "undefined" && navigator.onL
 /**
  * Send once, and say whether the backend was there: anything that came back
  * with a response was answered, a 500 included. Only a call that got nothing
- * at all -- refused by the network, or stalled -- counts against it, and only
+ * at all (refused by the network, or stalled) counts against it, and only
  * when its caller has given up on it (`noAnswer`): a retry may yet get through.
  */
 async function sendOnce<T>(send: () => Promise<Answer<T>>): Promise<Answer<T>> {
@@ -260,13 +259,13 @@ export function fetchSnowOverlay(nanobar?: Progress) {
 }
 
 /**
- * The most recent Swiss reflectivity composite -- one frame, not a timeseries.
+ * The most recent Swiss reflectivity composite: one frame, not a timeseries.
  *
  * 404s until the first composite lands, same as `fetchPrecipitationTypes`
  * before anything has rendered; callers catch that the same way. `optional`,
  * because that 404 is the ingest's schedule rather than a broken backend and
- * has no business putting the map in its degraded state -- a backend with no
- * Swiss capture at all was otherwise reporting a permanent fault.
+ * has no business putting the map in its degraded state. Without it, a
+ * backend with no Swiss capture at all reported a permanent fault.
  */
 export function fetchSwissRadar(nanobar?: Progress) {
   return request(
@@ -308,8 +307,8 @@ export function fetchPolishRadar(nanobar?: Progress) {
 }
 
 /**
- * The most recent merged European composite -- every network's lowest tilts
- * on one grid, a product behind a setting; `optional` for the reason
+ * The most recent merged European composite (every network's lowest tilts
+ * on one grid, a product behind a setting); `optional` for the reason
  * Switzerland's is, and because an environment may not build it at all.
  */
 export function fetchEuropeRadar(nanobar?: Progress) {
@@ -336,8 +335,8 @@ export function fetchColumnMaximum(nanobar?: Progress) {
 }
 
 /**
- * The most recent column maximum of every network -- meteocool's, from every
- * tilt of every radar -- a product the reader can draw; `optional` for the
+ * The most recent column maximum of every network (meteocool's, from every
+ * tilt of every radar), a product the reader can draw; `optional` for the
  * reason Switzerland's is, and because a replay builds none.
  */
 export function fetchEuropeColumnMaximum(nanobar?: Progress) {
@@ -406,7 +405,7 @@ export function fetchMesocyclones(nanobar?: Progress) {
  *
  * Both bounds are sent every time. The window keeps a severe afternoon from
  * returning every storm of the day, and the viewport keeps it from returning
- * every storm in the country -- either alone leaves a response that a phone on
+ * every storm in the country. Either alone leaves a response that a phone on
  * a mobile connection would rather not have.
  */
 export function fetchCellTracks(
@@ -430,8 +429,8 @@ export function fetchCurrentCells(nanobar?: Progress) {
  * Every storm with a radar volume, from the newest composite scan.
  *
  * Found in the radar composite rather than in KONRAD3D, so most of these are
- * showers `/cells/current` never mentions -- which is the point of them: they
- * are the clouds a reader can cut open that no warning product would list.
+ * showers `/cells/current` never mentions. They are the clouds a reader can
+ * cut open that no warning product would list.
  */
 export function fetchCurrentVolumes(nanobar?: Progress, { coarse = false }: { coarse?: boolean } = {}) {
   // Coarse tiles only for the 3D map, which draws them in place of the tiles

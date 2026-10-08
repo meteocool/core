@@ -6,7 +6,7 @@
  * is all the worker needs and means nothing to a reader. Coordinates and
  * antenna heights are ng's `openradar.py` network tables, which read them off
  * the sites' own files, so the distances here are the ones the volume was
- * actually georeferenced with. Volumes from before every network joined name
+ * georeferenced with. Volumes from before every network joined name
  * DWD's radars by their bare three-letter code; those resolve too.
  */
 

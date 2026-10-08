@@ -3,7 +3,7 @@
  *
  * MapLibre turns the map on a drag with the right button, or with ctrl and the
  * left, and tilts it on either. Firefox on a Mac reports a ⌃-click as the
- * right button -- `button` 2, ctrl still down -- while the drag that follows
+ * right button (`button` 2, ctrl still down) while the drag that follows
  * holds the left one, and so neither takes: the turn wants ctrl with the left
  * button, and the tilt, which does start, checks on every move that the right
  * button is still held, finds the left one, and drops the drag. The gesture

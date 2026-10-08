@@ -1,7 +1,7 @@
 <script lang="ts">
 /**
  * What the weather models say, in the strip the rain chart takes when there
- * is rain -- for the reader's own position, on a day the radar has nothing
+ * is rain: for the reader's own position, on a day the radar has nothing
  * for it.
  *
  * On a dry day the radar map is an empty map and the rain chart has nothing to
@@ -14,18 +14,17 @@
  * squash it into a sliver at the left edge and the next 24 hours are the
  * answer instead. See lib/compare/outlook.ts for where that line is.
  *
- * The title says how far off that rain is -- "Rain likely in 5 hours",
- * "tomorrow", "on Friday" -- and "No rain in sight" only over a week the
- * models agree is dry.
- * It used to say "Dry for now" over the day the models had just agreed it
- * would rain in, which is true of the radar and the opposite of the chart.
+ * The title says how far off that rain is ("Rain likely in 5 hours",
+ * "tomorrow", "on Friday"), and "No rain in sight" only over a week the
+ * models agree is dry. "Dry for now" over a day the models agree it will rain
+ * in would be true of the radar and the opposite of the chart.
  *
  * Tapping it, or its "All models" chip, opens the whole comparison in the
  * drawer (see App.svelte), on the range the strip was showing.
  *
  * The strip is the same one the rain chart and the lightning histogram use,
  * swipe-to-clear included; the caller owns whether it is up. A first fetch
- * that fails says "unavailable" and the caller takes it down -- this is a
+ * that fails says "unavailable" and the caller takes it down: this is a
  * hint, and an error in its place is noise.
  */
 import { createEventDispatcher, onDestroy, onMount } from "svelte";
@@ -61,7 +60,7 @@ $: wetIn = data ? rainIn(data, from, WEEK) : null;
 $: soon = wetIn !== null && wetIn < DAY;
 $: hours = soon ? DAY : WEEK;
 // Neutral until the models answer: "No rain in sight" before they have is a
-// claim nobody made, and it flashed before every "Rain likely in …".
+// claim nobody made, and it would flash before every "Rain likely in …".
 $: title = !data
   ? $_("dry_outlook_label")
   : wetIn === null
@@ -71,8 +70,8 @@ $: title = !data
     : beyondADay(wetIn);
 
 /*
- * A day or more off, by the day it falls on -- "tomorrow", "on Friday" -- which
- * is how a forecast is talked about, where "in 2 days" left the reader to
+ * A day or more off, by the day it falls on ("tomorrow", "on Friday"), which
+ * is how people talk about a forecast; "in 2 days" leaves the reader to
  * count. By calendar day, so rain at dawn seen the evening before is
  * tomorrow. A week out the weekday would be today's again, so that keeps the
  * count.
@@ -101,10 +100,10 @@ onMount(load);
 
 /*
  * Brought up to date on a wake. The strip stays up for as long as the dry
- * spell does, and it counted "Rain likely in 5 hours" from when it was put
- * up: a phone back from an afternoon in a pocket was told the same five
- * hours. Asked again -- from the cache while that answer is under ten
- * minutes old, see fetchHourlySeries -- and counted from now either way.
+ * spell does, and counting "Rain likely in 5 hours" from when it was put up
+ * would tell a phone back from an afternoon in a pocket the same five hours.
+ * So it asks again (from the cache while that answer is under ten minutes
+ * old; see fetchHourlySeries) and counts from now either way.
  */
 const unsubscribeWake = onWake(() => { void load(); });
 

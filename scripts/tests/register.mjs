@@ -5,8 +5,8 @@ import { registerHooks } from "node:module";
  *
  * Vite resolves `./cellGeometry` to `cellGeometry.ts`; Node's ESM resolver
  * does not, and it is Node that runs these tests. Without this hook the suite
- * can only ever import leaf modules -- anything that imports a sibling throws
- * ERR_MODULE_NOT_FOUND before a single assertion runs, which quietly limits
+ * can only ever import leaf modules: anything that imports a sibling throws
+ * ERR_MODULE_NOT_FOUND before a single assertion runs, which limits
  * what is testable to whatever happens to have no dependencies.
  */
 registerHooks({

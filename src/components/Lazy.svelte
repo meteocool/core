@@ -4,18 +4,18 @@
  * and when it does not.
  *
  * The storm panels, the model comparison and the dialogs are chunks of their
- * own, loaded when they are opened (see App.svelte). Each was an `{#await}`
- * with nothing in the pending branch and no `{:catch}`: on a slow network the
- * tap did nothing for seconds, and on a failed one -- offline before the
- * service worker had the chunk, or a tab outliving the deploy that named it
- * -- it did nothing at all, the desktop's drawer standing open and empty.
+ * own, loaded when they are opened (see App.svelte). A bare `{#await}` with
+ * nothing in the pending branch and no `{:catch}` leaves the tap doing nothing
+ * for seconds on a slow network, and nothing at all on a failed one (offline
+ * before the service worker had the chunk, or a tab outliving the deploy that
+ * named it), the desktop's drawer standing open and empty.
  *
- * Now the wait shows a spinner, once it has lasted long enough to notice, and
+ * Here the wait shows a spinner once it has lasted long enough to notice, and
  * a failure says so with a way to try again; coming back online tries again
  * by itself (lib/wakeup.ts).
  *
- * `floating` is for a chunk with no container of its own on screen yet -- a
- * phone's sheet, a dialog -- where the spinner and the failure stand in a
+ * `floating` is for a chunk with no container of its own on screen yet (a
+ * phone's sheet, a dialog), where the spinner and the failure stand in a
  * pill at the foot of the screen instead.
  */
 import { onDestroy, onMount } from "svelte";

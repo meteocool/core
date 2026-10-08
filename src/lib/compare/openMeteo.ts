@@ -107,8 +107,8 @@ function shape(raw: ForecastResponse, models: string[]): Forecast {
         const column = raw.daily[`${variable}_${id}`];
         const value = column?.[index];
         // A model that does not cover this point returns nulls throughout;
-        // dropping it here is what keeps it out of the consensus and out of
-        // the effective model count.
+        // dropping it here keeps it out of the consensus and out of the
+        // effective model count.
         if (typeof value === "number" && Number.isFinite(value)) {
           perModel[id] = value;
           responding.add(id);

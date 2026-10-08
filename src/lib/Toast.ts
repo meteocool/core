@@ -14,7 +14,7 @@ const LEDGER = "dismissedNotices";
  * Both of these are wrapped: Toast.ts is imported by the API client, which can
  * report a failure before App.svelte has built `window.settings` at all, and
  * Settings' own localStorage access can throw in a private window. A notice
- * that cannot read the ledger is simply shown.
+ * that cannot read the ledger is shown.
  */
 function dismissedBefore(message: string): boolean {
   try {
@@ -41,7 +41,7 @@ function rememberDismissal(message: string): void {
  *
  * Offered only to notices with no duration. `sl-after-hide` cannot say why an
  * alert closed, so on one that dismisses itself a timeout would be recorded as
- * a decision -- and a reader who simply looked away would never be told again.
+ * a decision, and a reader who looked away would never be told again.
  */
 function toast(
   message: string,
@@ -69,11 +69,11 @@ function toast(
  * Record a failure, without putting anything over the map.
  *
  * This used to raise a "Something went wrong" toast, once a session. The status
- * pill says the same thing better: it is always on screen, it says which kind
- * of trouble it is, the diagnostics behind it name the failing endpoint, and it
- * clears itself when the backend recovers -- where the toast said nothing the
- * pill did not, sat over the map until it was closed, and told the reader to
- * reload a page that would recover without it. The model comparison, which
+ * pill covers it: it is always on screen, it says which kind of trouble it is,
+ * the diagnostics behind it name the failing endpoint, and it clears itself
+ * when the backend recovers. The toast said nothing the pill did not, sat over
+ * the map until it was closed, and told the reader to reload a page that would
+ * recover without it. The model comparison, which
  * reports open-meteo failing through here, shows its own error in its panel.
  *
  * console.error, not log: the Sentry CaptureConsole integration is configured

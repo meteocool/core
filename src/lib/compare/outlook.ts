@@ -63,9 +63,9 @@ export function stepAt(times: number[], now: number): number {
 
 /**
  * Median hourly rainfall at or above this, at any hour of the window, is "rain
- * coming": half the models or more put light rain on that hour. The median
- * rather than the wettest model: one outlier calling for a shower is exactly
- * the disagreement the plot exists to show, not a verdict. Above the 0.1 mm
+ * coming": half the models or more put light rain on that hour. The median,
+ * not the wettest model, because one outlier calling for a shower is the
+ * disagreement the plot is there to show, not a verdict. Above the 0.1 mm
  * models report as trace, which some put on every cloudy hour.
  */
 export const RAIN_LIKELY_MM = 0.2;

@@ -1,11 +1,11 @@
 /**
  * Erasing part of a tile image, or keeping only part of it, by polygon.
  *
- * The flat map and the 3D map draw the same radar in two renderers --
- * OpenLayers and MapLibre -- and neither can clip a raster layer to a polygon
- * on the GPU. What both can do is cut a tile's values before the renderer
- * sees them, by how much of each pixel a polygon drawn on a 2D canvas
- * leaves. This is that step, free of either renderer so `networkHoles.ts`
+ * The flat map and the 3D map draw the same radar in two renderers
+ * (OpenLayers and MapLibre), and neither can clip a raster layer to a polygon
+ * on the GPU. Both can cut a tile's values before the renderer sees them, by
+ * how much of each pixel a polygon drawn on a 2D canvas leaves. This module
+ * makes that cut without depending on either renderer, so `networkHoles.ts`
  * (OpenLayers) and `maskedTiles.ts` (MapLibre) make the same cut from the
  * same rings.
  *

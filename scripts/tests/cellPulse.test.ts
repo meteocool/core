@@ -54,7 +54,7 @@ test("every live cell steps together, off one clock", () => {
 /**
  * Which cells the ping marks.
  *
- * The obvious candidate was the schema's own `active` -- "whether the cell was
+ * The obvious candidate was the schema's own `active`: "whether the cell was
  * still being detected recently". On the live backend it is true for every
  * track returned: 200 of 200 in one response, 147 of those last detected more
  * than fifteen minutes before the run's own reference time. It does not
@@ -66,7 +66,7 @@ test("a cell detected in the newest run is live", () => {
 
 test("one missed detection does not take a live storm off the map", () => {
   // DWD's cadence is five-minutely, so a cell seen two runs ago is a cell that
-  // missed one -- common, and not the same as a storm that has stopped.
+  // missed one. That is common, and not the same as a storm that has stopped.
   assert.equal(isLive(5), true);
   assert.equal(isLive(LIVE_MINUTES), true);
 });

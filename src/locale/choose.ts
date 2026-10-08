@@ -1,6 +1,6 @@
 /**
- * Which language the frontend speaks: the browser's -- in the apps, the web
- * view's, which is the phone's system language.
+ * Which language the frontend speaks: the browser's (in the apps, the web
+ * view's, which is the phone's system language).
  *
  * Its preference list is read in order and the first language we have wins,
  * so a reader with de-AT ahead of en-GB gets German. English otherwise.

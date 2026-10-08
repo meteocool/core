@@ -4,8 +4,8 @@
  * The SDK is a tenth of the app's JavaScript, and it used to be parsed and
  * initialised before the map could start. Now it is a chunk of its own,
  * fetched after `load` when the browser is idle. Errors thrown before then are
- * kept and handed to it, so nothing from the startup path is lost -- which is
- * where most of the interesting ones happen.
+ * kept and handed to it, so nothing from the startup path is lost, and that
+ * is where most of the interesting ones happen.
  *
  * Tracing is sampled at one visit in twenty. At 1.0 every visit uploaded a
  * page-load transaction with a span per tile request, tens of kilobytes on a
@@ -33,8 +33,8 @@ const onRejection = (event: PromiseRejectionEvent) => { keep({ kind: "rejection"
  * Whether this is somebody's test rather than a reader's visit: a build served
  * from a machine of our own (an emulator reaches it as 10.0.2.2), or a browser
  * driven by automation, the profiling and screenshot harnesses among them.
- * What goes wrong there is about the harness -- a service worker it blocks, no
- * GPU, a backend the build was never pointed at -- and it was a quarter of
+ * What goes wrong there is about the harness (a service worker it blocks, no
+ * GPU, a backend the build was never pointed at), and it was a quarter of
  * the issues the current code raised.
  */
 function testRun(): boolean {
@@ -62,8 +62,8 @@ let started = false;
 let sentry: typeof import("./sentryClient") | null = null;
 
 /**
- * A failure the reader was shown -- "The 3D map could not be loaded", "Volume
- * unavailable", a Retry button -- reported under the surface it was shown on.
+ * A failure the reader was shown ("The 3D map could not be loaded", "Volume
+ * unavailable", a Retry button), reported under the surface it was shown on.
  *
  * Grouped by surface and kind of failure (lib/shownFailure.ts) rather than by
  * message, and a warning rather than an error: the page coped, but a reader
@@ -71,7 +71,7 @@ let sentry: typeof import("./sentryClient") | null = null;
  * called off on purpose, and a failure while the browser knows it is offline,
  * which no change of ours would have prevented. A few of each kind a page,
  * since a Retry or a wake asks again and fails the same way. Where reporting
- * is off -- a local build, a test run -- it goes to the console instead.
+ * is off (a local build, a test run), it goes to the console instead.
  *
  * Only for what a reader sees fail and we could fix: not the status pill,
  * whose offline and degraded are the network's and the backend's weather

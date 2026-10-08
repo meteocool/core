@@ -3,7 +3,7 @@
  *
  * On the 3D map a storm opens cut square to the camera, and a still cut shows
  * one plane through it. Swinging the plane shows the storm's inside as a
- * sequence of slices -- where the core leans, where it is widest -- without
+ * sequence of slices (where the core leans, where it is widest) without
  * the reader having to find the dial first.
  *
  * A swing to either side of where it opened rather than a full turn. The

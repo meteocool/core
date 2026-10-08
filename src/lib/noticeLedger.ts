@@ -2,12 +2,11 @@
  * Which standing notices a reader has closed for good.
  *
  * A notice is identified by its own text, not by a name the call site picks.
- * That is the whole design: reword a warning and it becomes a different
- * notice, so the reader is told again and no call site has to remember to bump
- * a version when the copy changes. For a standing condition it is also the
- * right failure mode -- a genuinely new problem always gets through, and the
- * only thing a reader can silence is the exact sentence they read and
- * dismissed.
+ * Reword a warning and it becomes a different notice, so the reader is told
+ * again and no call site has to remember to bump a version when the copy
+ * changes. For a standing condition that is the right failure mode: a new
+ * problem always gets through, and the only thing a reader can silence is the
+ * exact sentence they read and dismissed.
  *
  * Kept as pure string functions, away from `lib/Toast.ts`, so the rule can be
  * tested without a DOM or a Settings instance.

@@ -118,7 +118,7 @@ if (dd.isApp()) {
  * The basemap the system colour scheme asks for.
  *
  * Dark chrome over the light basemap is the one combination the glass cannot
- * look right in -- see the header of src/glass.css -- and it is exactly where a
+ * look right in (see the header of src/glass.css), and it is exactly where a
  * dark-mode browser used to land, because the scheme and the basemap were
  * independent settings with independent defaults.
  */
@@ -179,7 +179,7 @@ window.settings = new Settings({
   /**
    * Standing notices the reader has closed, as a comma-separated list of
    * message hashes. Written by lib/Toast.ts, which explains the keying; no
-   * `cb`, because nothing reacts to it -- it is read when a notice is raised.
+   * `cb`, because nothing reacts to it; it is read when a notice is raised.
    */
   dismissedNotices: {
     type: "string",
@@ -361,8 +361,8 @@ const nb = progress();
 const SOCKET_RESYNC_QUIET_MS = 15_000;
 // WebSocket first: socket.io's default opens a long-polling transport and
 // upgrades it, which is three requests and a sticky-session hazard before the
-// first poke. Polling is the fallback for a network that blocks it -- only
-// with `tryAllTransports`, without which engine.io opens the first transport
+// first poke. Polling is the fallback for a network that blocks it, but only
+// with `tryAllTransports`: without it engine.io opens the first transport
 // on every attempt and a network that blocks WebSockets never gets a poke.
 const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${websocketBaseUrl}/radar`, {
   transports: ["websocket", "polling"],
@@ -372,7 +372,7 @@ const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${
 /* A socket that comes back has missed whatever was poked while it was gone,
    and nothing else says so: the map would keep the frames it had until the
    next poke, minutes away. So a reconnect resyncs, unless a wake has just
-   done that -- coming back to the page reconnects the socket too. */
+   done that (coming back to the page reconnects the socket too). */
 let socketConnectedBefore = false;
 radarSocketIO.on("connect", () => {
   console.log("radar/forecast websocket connected!");
@@ -407,8 +407,8 @@ cellLayerVisible.set(window.settings.getBoolean("layerCells"));
 /**
  * Cells are drawn on the newest observation and nowhere else.
  *
- * The tracks endpoint answers with one state -- where every storm is now, the
- * outline of its latest detection, and where it is going -- and nothing here
+ * The tracks endpoint answers with one state (where every storm is now, the
+ * outline of its latest detection, and where it is going), and nothing here
  * rewinds it. Scrub the radar back an hour, or out into the nowcast, and the
  * map underneath moves while every dot, path and outline stays parked at the
  * present: the marks then sit beside echoes they have nothing to do with, and
@@ -418,14 +418,14 @@ cellLayerVisible.set(window.settings.getBoolean("layerCells"));
  * The test is the frame on screen against the newest one the grid holds, not
  * the `live` store the pill uses: that is cleared at the top of every grid
  * refetch and set again when the grid lands, so a layer keyed to it would
- * blink off and back every few minutes. It is also a deliberate one-way test
- * -- both stores at 0 means no grid has arrived, which is a page that has not
+ * blink off and back every few minutes. The test is also one-way on purpose:
+ * both stores at 0 means no grid has arrived, which is a page that has not
  * loaded its radar or is not showing radar at all, and there is no frame there
  * for the cells to disagree with. Hiding is for the case we can positively
  * see, where the player is parked somewhere the storms are not.
  *
- * The manager keeps running throughout: this hides the drawing, it does not
- * drop the data, so coming back to the live edge costs no refetch.
+ * The manager keeps running throughout: this hides the drawing and keeps the
+ * data, so coming back to the live edge costs no refetch.
  */
 derived(
   [cellLayerVisible, capTimeIndicator, capLatestObservation],
@@ -444,9 +444,9 @@ derived(
 });
 
 /* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the
-   way there -- see layers/cloudHints.ts. Only where that map is offered, and,
+   way there (see layers/cloudHints.ts). Only where that map is offered, and,
    like the cells, only on the newest observation, which is the scan the cores
-   were found in -- and only for the cores as new as that radar. */
+   were found in. Only for the cores as new as that radar, too. */
 const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
 const hints = makeCloudHints();
 const cloudHintLayer = hints.layer;
@@ -462,7 +462,7 @@ const cloudHints = new VolumeFeed<CurrentVolumes>(
 
 /* `run` is the scan of a KONRAD3D run that has just landed. Its cores are
    usually not built yet, and fetched only now the tags stood a scan behind
-   until the next run; they are waited for -- see lib/scans.ts. Without one, a
+   until the next run; they are waited for (see lib/scans.ts). Without one, a
    wait already under way goes on: a network's run landing says nothing of
    whether DWD's cores are built yet. */
 async function reloadCloudHints(run?: number) {
@@ -473,16 +473,16 @@ async function reloadCloudHints(run?: number) {
 }
 
 /* The panel is a property of a selection and cannot outlive one. Anything that
-   drops the selection -- the map background, the layer switcher, the scrubber
-   leaving the live edge -- therefore closes it without having to remember to. */
+   drops the selection (the map background, the layer switcher, the scrubber
+   leaving the live edge) therefore closes it without having to remember to. */
 selectedCell.subscribe((track) => {
   if (!track) cellDetails.set(false);
 });
 
 /* So is the slice. Every storm opens cut along its own track: an angle turned
    for the last one means nothing for this one, whose track points somewhere
-   else. On the selection rather than on the cutaway mounting, which is where
-   it was -- so walking the family re-cuts each cell it lands on, and a link
+   else. Reset on the selection instead of on the cutaway mounting, where it
+   used to be, so walking the family re-cuts each cell it lands on, and a link
    restoring a storm cut at some angle can set the angle after the storm
    without the panel's mount undoing it. Keyed on the storm, not on the
    object: a refresh hands the same cell over as a fresh copy every few
@@ -523,9 +523,9 @@ mapExtent4326.subscribe((extent) => {
   cellmgr.reload(extent, { nanobar: nb });
 });
 
-// The event is a nudge rather than the cells: a severe afternoon is hundreds of
-// kilobytes of tracks, and only the ones in view are worth asking for -- and
-// only once someone is looking; a hidden tab takes the newest run when it
+// The event is a nudge, not the cells: a severe afternoon is hundreds of
+// kilobytes of tracks, and only the ones in view are worth asking for, and
+// only once someone is looking. A hidden tab takes the newest run when it
 // comes back.
 radarSocketIO.on("cells", () => {
   whenVisible("cells", () => cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb }));
@@ -610,9 +610,9 @@ window.lm = lm;
 
 /* The 3D map drapes the same radar frame the flat map is showing, so the two
    never disagree about what the weather is. RadarCapability already resolves
-   which frame is current and what its tiles are; this just forwards it rather
-   than working it out a second time -- with its scan, which the 3D map waits
-   for the storms' volumes to reach; see lib/scans.ts. */
+   which frame is current and what its tiles are; this forwards it, with its
+   scan, instead of working it out a second time. The 3D map waits for the
+   storms' volumes to reach that scan; see lib/scans.ts. */
 const cells3d = lm.getCapability("cells3d") as Cells3DCapability | undefined;
 const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
@@ -642,7 +642,7 @@ if (cells3d && radarCap) {
   // run is fetched on the way back.
   radarSocketIO.on("cells", () => whenVisible("cells3d", () => cells3d.newRun()));
   // And every network's runs, which have no KONRAD3D run to follow, as they
-  // are built -- in a hidden tab, once, on the way back.
+  // are built; in a hidden tab, once, on the way back.
   radarSocketIO.on("volumes", () => whenVisible("cells3dVolumes", () => cells3d.newVolumes()));
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
@@ -653,8 +653,8 @@ if (cells3d && radarCap) {
 }
 
 /* The tags are judged against the same radar: a frame landing ahead of its
-   scan's cores takes their tags off, and the cores landing -- the nudges
-   below -- put them back. */
+   scan's cores takes their tags off, and the cores landing (the nudges
+   below) put them back. */
 if (radarCap && hintsWanted) {
   const forwardHintRadar = () => hints.setRadar(radarCap.liveRadarScans());
   radarCap.addObserver((subject) => {
@@ -677,7 +677,7 @@ void reloadCloudHints();
 installScrollbars();
 
 // The panels' "open in 3D" links and the tags above all switch through this,
-// and the way back -- see below -- through the same manager.
+// and the way back (see below) through the same manager.
 if (cells3d) registerOpen3D(() => lm.setTarget("cells3d", "map"), (cap) => lm.setTarget(cap, "map"));
 
 /*
@@ -732,8 +732,8 @@ const finePointer = typeof window === "undefined" || !window.matchMedia
  * The long press is already the radar's "what is falling here" gesture, and it
  * asks about a point rather than about an object, so cells take the plain tap
  * instead. `forEachFeatureAtPixel` stops at the first cell feature under the
- * finger, which may be the path or the forecast dots as easily as the centroid
- * -- they all carry their track's code.
+ * finger, which may be the path or the forecast dots as easily as the centroid;
+ * they all carry their track's code.
  *
  * A cell before a "3D" tag, when the finger is on both: the tag sits beside
  * its core, which is usually inside a cell, so it caught taps aimed at the
@@ -745,9 +745,9 @@ const finePointer = typeof window === "undefined" || !window.matchMedia
  * times canvas readback three ways, 50 ms each, to choose how to read its
  * hit-detection canvas, and only then answers. That was the first hover over
  * the map, or the first tap on a storm, freezing the map. Asking any question
- * once the map is drawn and the page is idle pays it while nobody is waiting
- * -- the benchmark is OpenLayers' own and runs once for the page, and any
- * drawn vector layer gets it there.
+ * once the map is drawn and the page is idle pays it while nobody is waiting.
+ * The benchmark is OpenLayers' own and runs once for the page, and any drawn
+ * vector layer gets it there.
  */
 function whenIdle(task: () => void) {
   // Missing from older Safari, whatever the DOM types say.
@@ -756,8 +756,8 @@ function whenIdle(task: () => void) {
 }
 
 lm.forEachMap((map) => {
-  /* `mapExtent4326` is published on moveend, so on a cold load -- where the
-     view comes from the URL before the map has a target -- it stays null until
+  /* `mapExtent4326` is published on moveend, so on a cold load (where the
+     view comes from the URL before the map has a target) it stays null until
      the user pans, and the layer would sit empty behind a map full of storms.
      The first completed render is when there is a viewport to ask about. */
   map.once("rendercomplete", () => {
@@ -1004,19 +1004,19 @@ if (postInitCb) postInitCb(lm);
   /* The page itself is never zoomable.
      `manipulation` was not enough: it only turns off double-tap-to-zoom and
      still permits pinch, and the platforms treat a double-tap that turns into a
-     drag as a pinch -- which is how a double tap on the loop button in the
+     drag as a pinch, which is how a double tap on the loop button in the
      player ended up zooming the whole page. `pan-x pan-y` allows scrolling and
      nothing else, so the diagnostics panel still scrolls, the map still pans,
      and the only zoom left anywhere is the map's own.
      Not `none`: that would take scrolling with it. Elements that want the whole
-     gesture -- the strip's swipe, the pill -- still set `none` for themselves. */
+     gesture (the strip's swipe, the pill) still set `none` for themselves. */
   /* Anchored rather than floating over the tap: the map animates under a
      popup, and a panel that chases the storm is harder to read than one that
      stays put. Above the toolbar, clear of the bottom tray. */
   /* The drawer material (src/glass.css) supplies the fill, blur, shadow and
      ink; this is the frame. It does not scroll itself: the content scrolls
      inside it, so what runs past the top and bottom can fade out into the
-     glass -- a mask on the frame would fade the glass along with it. */
+     glass. A mask on the frame would fade the glass along with it. */
   .cell-details-panel {
     position: absolute;
     top: 12px;
@@ -1047,7 +1047,7 @@ if (postInitCb) postInitCb(lm);
   /* The bottom trays step aside for a sheet on a phone.
 
      The sheet is most of the screen there, and what is left of the map is the
-     strip below it -- which is exactly where the scale, the clock and the
+     strip below it, which is exactly where the scale, the clock and the
      playback controls sit. Hidden through a class on <body>, which CellSheet
      sets while any sheet is up, rather than by not rendering them: the player
      owns subscriptions to the radar grid and its own playback state, and
@@ -1128,8 +1128,8 @@ if (postInitCb) postInitCb(lm);
 {:else if $selectedVolume && $smallScreen}
   <!-- A phone's storm core takes the cell's glass sheet: the same surface for
        whichever kind of storm was tapped. On the 3D map the storm is cut open
-       on the map itself, so the sheet is only as tall as what it holds -- a
-       few facts and the dial that turns the cut -- until it is pulled up for
+       on the map itself, so the sheet is only as tall as what it holds (a
+       few facts and the dial that turns the cut) until it is pulled up for
        how the volume was built. A volume is only ever selected for that map
        (see lib/open3d.ts), so the flat map holds one just for the moment a
        tapped tag takes to switch: one sheet, which takes its resting shape

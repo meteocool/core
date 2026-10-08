@@ -3,8 +3,8 @@
  * them can re-measure while they move.
  *
  * A transform-based transition never changes the element's box, so a
- * ResizeObserver on the bar sees nothing and anything sized against it -- the
- * map's height, the playback button alignment -- is measured once at the start
+ * ResizeObserver on the bar sees nothing, and anything sized against it (the
+ * map's height, the playback button alignment) is measured once at the start
  * of the animation and left stale for the 200-400ms it runs.
  *
  * Dispatched on `window` rather than passed as props because the listeners
@@ -32,7 +32,7 @@ function emit(phase: ToolbarTransitionPhase) {
  *   on:outrostart={toolbarTransitionStart} on:outroend={toolbarTransitionEnd}
  *
  * Spreading an object of `onintrostart`-style keys does not work in these
- * components -- they are still in Svelte 5's legacy event mode, where a spread
+ * components: they are still in Svelte 5's legacy event mode, where a spread
  * of `on*` properties is applied as plain attributes and never fires.
  */
 export const toolbarTransitionStart = () => emit("start");

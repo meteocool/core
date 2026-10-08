@@ -20,9 +20,8 @@
    *
    * The 3D cell view is a MapLibre map; every tile here is an OpenLayers one,
    * built by the same factory. So the tile for it shows the flat basemap and no
-   * storms at all -- a black rectangle with a border on it -- and the reader has
-   * no way to know that is the preview being approximate rather than the layer
-   * being empty. Frosted and labelled, it stops making a claim it cannot keep:
+   * storms at all (a black rectangle with a border on it), and the reader has
+   * no way to tell an approximate preview from an empty layer. Frosted and labelled, it stops making a claim it cannot keep:
    * the real map is built when the tile is tapped.
    */
   export let preview = false;
@@ -52,7 +51,7 @@
    * A capability's own map is pointed at its tile by the switcher as it opens
    * (McLayerSwitcher.openLayerswitcher), not here at mount: attached to a
    * hidden tile for the whole session, the lightning and precipitation maps
-   * drew two empty frames for every frame of the real map. Only the tile
+   * would draw two empty frames for every frame of the real map. Only the tile
    * that has no capability map to borrow builds one, and attaches it while
    * the switcher is open.
    */
@@ -65,22 +64,23 @@
    * A throwaway map for a tile whose capability cannot draw one.
    *
    * The switcher hands a capability's single map to a single element, so
-   * two tiles cannot both show the radar -- and the 3D one has no OpenLayers
-   * map of its own to hand over at all. Rather than leave it blank behind the
-   * frosting, it gets its own map built here: the basemap the app is on, the
-   * newest radar frame over it, and the place names over that -- the rain
-   * and thunderstorms tile's map, as near as OpenLayers can draw the 3D one.
+   * two tiles cannot both show the radar, and the 3D one has no OpenLayers
+   * map of its own to hand over at all. So it gets its own map built here
+   * instead of a blank behind the frosting: the basemap the app is on, the
+   * newest radar frame over it, and the place names over that. That is the
+   * rain and thunderstorms tile's map, as near as OpenLayers can draw the 3D
+   * one.
    *
    * Decoration, and treated as such: no interactions and no controls. It
    * exists so the tile reads as a map rather than as a hole. If the radar has
    * not loaded yet it simply shows the basemap, which is what the other tiles
    * do too.
    *
-   * It does follow the map, though, as every other tile does. Those draw
-   * through the one View the app's maps share, so a pan moves all of them;
-   * this one was built on a View of its own, copied once at mount -- with the
-   * app, before the reader had moved anything -- and then sat still on the
-   * opening view while the tiles around it panned.
+   * It does follow the map, as every other tile does. Those draw through the
+   * one View the app's maps share, so a pan moves all of them. A View of its
+   * own copied once at mount (with the app, before the reader has moved
+   * anything) would sit still on the opening view while the tiles around it
+   * pan.
    *
    * Following rather than sharing: a map writes its own size into its View
    * (`setViewportSize`) whenever it is resized or handed the View, and this
@@ -103,7 +103,7 @@
     });
 
     // Wherever the reader is looking, so the tile shows their weather rather
-    // than a fixed corner of the country -- and wherever they look next.
+    // than a fixed corner of the country, and wherever they look next.
     const source: Map | undefined = layerManager.maps[0];
     let viewKeys: EventsKey[] = [];
     let visible = false;
@@ -134,8 +134,8 @@
     /*
      * The radar goes on when there is radar, which is not now.
      *
-     * These tiles mount with the app rather than when the switcher opens -- the
-     * panel is built hidden -- so at this point the grid has not been fetched
+     * These tiles mount with the app, not when the switcher opens (the panel
+     * is built hidden), so at this point the grid has not been fetched
      * and there is no frame to draw. Built once and left alone, the tile would
      * be a basemap for the rest of the session. Following the clock instead
      * puts the radar on as soon as it lands, and keeps it roughly current
@@ -212,13 +212,13 @@
     inset: 0;
     z-index: 90;
     /* The tile clips to its card radius, but a backdrop-filter escapes an
-       ancestor's *rounded* clip in both WebKit and Chromium -- only the square
-       border box survives, so the frost poked out at the corners. It carries
+       ancestor's *rounded* clip in both WebKit and Chromium: only the square
+       border box survives, so the frost would poke out at the corners. It carries
        the radius itself; `inherit` keeps it tied to the card's. */
     border-radius: inherit;
     -webkit-backdrop-filter: blur(6px) saturate(1.2);
     backdrop-filter: blur(6px) saturate(1.2);
-    /* A tint, not the panels' glass: at their 82% the map under it was a
+    /* A tint, not the panels' glass: at their 82% the map under it would be a
        black card, and the blur alone already says "stand-in". */
     background: color-mix(in srgb, var(--mc-glass-fill) 35%, transparent);
     pointer-events: none;

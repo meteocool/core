@@ -5,15 +5,15 @@ import { wake } from "./wakeup";
  * Coming back for what a flaky network took away.
  *
  * A call that fails for the network's sake is retried twice on the spot (see
- * RETRY_DELAYS_MS in api/index.ts), and after that it is simply failed: the
- * radar grid, the lightning backfill, the cells in view all stay whatever they
- * were, and nothing asked for them again until the next socket poke -- which a
- * socket on the same bad network may never deliver -- or until the page was
+ * RETRY_DELAYS_MS in api/index.ts), and after that it fails: the radar grid,
+ * the lightning backfill, the cells in view all stay whatever they were, and
+ * nothing asked for them again until the next socket poke (which a socket on
+ * the same bad network may never deliver) or until the page was
  * hidden and shown again. A map that loaded while a train was in a tunnel sat
  * there without radar, and "Degraded", for as long as the reader looked at it.
  *
  * So a failure that outlives its retries leaves a probe behind: the same
- * request, sent again on its own -- no loading bar, no retries -- every
+ * request, sent again on its own (no loading bar, no retries) every
  * PROBE_MS while it keeps failing. One probe at a time, taking the failing
  * endpoints in turn, so a backend that is down is asked one small question
  * every ten seconds per reader rather than all of them. The first answer
@@ -23,11 +23,11 @@ import { wake } from "./wakeup";
  * answers. Nothing is probed once nothing is failing.
  *
  * That puts the map back within PROBE_MS and the stall timeout of the
- * network returning -- under thirty seconds even when the probe out at that
+ * network returning: under thirty seconds even when the probe out at that
  * moment was one sent into the stall.
  *
- * The other signs that the network is back -- the browser's `online`, the
- * socket reconnecting -- resync on their own, and do not wait for this.
+ * The other signs that the network is back (the browser's `online`, the
+ * socket reconnecting) resync on their own, and do not wait for this.
  */
 
 /** From a failure to the first probe: long enough for a blip to have passed. */
@@ -84,8 +84,8 @@ export function noteTransientFailure(id: string, ask: Probe): void {
 }
 
 /**
- * Start watching for endpoints that recover some other way -- a poke, a
- * resync -- and stop probing them. Idempotent, like the other init
+ * Start watching for endpoints that recover some other way (a poke, a
+ * resync) and stop probing them. Idempotent, like the other init
  * functions: the entrypoints and a hot reload both reach it.
  */
 export function initRecovery(): void {

@@ -2,7 +2,7 @@
  * Where the storm is inside its volume, and where to stand to look at it.
  *
  * A volume is a fixed 40 by 40 by 16 km box around the cell's centroid, and a
- * storm rarely fills it -- a camera framed on the box draws most storms as a
+ * storm rarely fills it: a camera framed on the box draws most storms as a
  * speck in a lot of empty air. Both pictures of a storm, the panel's own and
  * the 3D map's on a phone, are framed on what this finds instead.
  *
@@ -45,12 +45,12 @@ export interface StormExtent {
  * above `stormDbz` in the column maximum, that reaches nearest the box's
  * centre. Not everything in the box above `FRAMING_DBZ`: a weak shower stands
  * in a field of other weak echo, and the bounding box of all of it is the
- * whole box -- the camera then frames 40 km and the storm is a speck again.
+ * whole box, and the camera then frames 40 km and the storm is a speck again.
  * Its height is the echo above `FRAMING_DBZ` over that footprint, which is
  * how high it is drawn.
  *
  * With nothing above `stormDbz`, everything above `FRAMING_DBZ`; with nothing
- * above that either -- a storm that collapsed between the run and the build --
+ * above that either (a storm that collapsed between the run and the build),
  * the whole box.
  *
  * One pass over 819k voxels and a flood over the 26k columns, which is a few
@@ -213,7 +213,7 @@ export interface FramingCamera {
 
 /**
  * Where to stand for a storm's cut to fill the room, square on to it and from
- * low down -- the 3D map's picture of an opened storm.
+ * low down: the 3D map's picture of an opened storm.
  *
  * `directionDeg` is the compass direction the cut runs along. The storm's
  * width is what the cut shows of it, its extent along the plane, and its

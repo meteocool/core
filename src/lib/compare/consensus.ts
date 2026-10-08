@@ -59,7 +59,7 @@ function typicalSpread(variable: DailyVar, leadHours: number): number {
 
 /**
  * Base weight per model kind. Convection-allowing regional models get a boost
- * on precipitation, where their resolution actually tells.
+ * on precipitation, where their resolution makes a difference.
  */
 function weightFor(id: string, variable: DailyVar): number {
   const model = modelById(id);

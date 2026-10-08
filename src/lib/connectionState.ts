@@ -16,12 +16,12 @@
  * - **degraded**: the backend answers, badly; lib/degraded.ts says how.
  * - **offline**: nothing can be refreshed. The browser knows it has no
  *   network, or nothing the app sent has been answered since it went out
- *   (lib/reachability.ts) -- which the browser does not know about a tunnel
- *   or a captive portal. Outranks everything: from any state, cut off is
+ *   (lib/reachability.ts); the browser does not know that about a tunnel or
+ *   a captive portal. Outranks everything: from any state, cut off is
  *   offline.
  * - **catching-up**: on the way back out of either. What the outage took
- *   away is being fetched again -- the wake that a recovery sets off
- *   (lib/recovery.ts) refetches everything -- and until it has landed, the map
+ *   away is being fetched again (the wake that a recovery sets off,
+ *   lib/recovery.ts, refetches everything), and until it has landed, the map
  *   still shows what it showed before. It holds while calls are under way or
  *   the radar is behind the clock, for at least CATCH_UP_MIN_MS and at most
  *   CATCH_UP_MAX_MS, and then settles on what the signals say: online, or

@@ -11,8 +11,8 @@ import {
  *
  * The upstream identity is DWD's cell number, which is reused across unrelated
  * cells, so a stale detection is sometimes glued onto a new cell that inherits
- * it. Nothing about the result looks broken in the data -- every field is
- * populated and plausible on its own -- and on the map it is a straight line a
+ * it. Nothing about the result looks broken in the data (every field is
+ * populated and plausible on its own), but on the map it is a straight line a
  * few hundred kilometres long joining two storms with nothing to do with each
  * other. These are the four real cases from one run, with their own numbers.
  */
@@ -38,7 +38,7 @@ test("an ordinary track is not cut anywhere", () => {
 });
 
 /**
- * The fastest genuine step in a real run implied 144 km/h -- a single cell
+ * The fastest genuine step in a real run implied 144 km/h: a single cell
  * covering 12 km in five minutes. The ceiling has to sit above that or the
  * quickest real storms lose their history.
  */
@@ -78,7 +78,7 @@ test("a later jump wins over an earlier one", () => {
 
 /**
  * A long gap is not by itself a jump. A cell can go undetected for a few scans
- * -- hidden behind a stronger echo, or below the threshold -- and come back
+ * (hidden behind a stronger echo, or below the threshold) and come back
  * where it should be, and that history is real.
  */
 test("a gap in detection is not a jump if the cell is where it should be", () => {
@@ -129,7 +129,7 @@ test("a cell that went out more than half an hour ago is gone", () => {
  *
  * The tracks endpoint answers with a three-hour window, so most of what comes
  * back has stopped being detected. The path and the centroid fade over that;
- * the outline did not, and it does not move either -- it is the shape DWD
+ * the outline did not, and it does not move either: it is the shape DWD
  * contoured at one detection, pinned where that detection was. A cell that
  * dissipated an hour ago therefore kept a full-strength ring over radar with
  * nothing in it, which reads as the tracker having lost its storm.
@@ -185,7 +185,7 @@ test("every step divides the hour, so the outermost ring is always labelled", ()
 });
 
 /**
- * What the label actually says, which is a different clock from the one that
+ * What the label says, which is a different clock from the one that
  * decides which rings carry one.
  */
 const AT = Date.UTC(2026, 8, 22, 12, 0, 0);

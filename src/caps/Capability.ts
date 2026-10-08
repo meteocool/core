@@ -17,10 +17,9 @@ export interface UserLocation {
 }
 
 /**
- * A Capability implements map-related functionality (controller) on an OpenLayers map (view).
- * It has a 1-to-1 relationship to an @OL.Map Object, which must be valid during the entire lifetime
- * of the Capability.
- *
+ * A Capability implements map functionality (controller) on an OpenLayers map (view).
+ * Each Capability owns exactly one @OL.Map object, which must stay valid for the
+ * Capability's whole lifetime.
  */
 export default class Capability extends Observable {
   map: Map;
@@ -58,12 +57,12 @@ export default class Capability extends Observable {
   /**
    * Draw into a thumbnail rather than take the map.
    *
-   * Only the OpenLayers map is pointed at the element. Not `setTarget`: that
-   * runs `targetCb`, which is what a capability does on being *shown* --
-   * announce itself as the current layer, fetch what it draws -- and the
-   * switcher's thumbnails mount hidden with the app, so every capability was
-   * doing all of that on every page load. The lightning view fetched an
-   * hour of strikes for a tile nobody had opened.
+   * Only the OpenLayers map is pointed at the element. `setTarget` would also
+   * run `targetCb`, which is what a capability does when it is *shown*: it
+   * announces itself as the current layer and fetches what it draws. The
+   * switcher's thumbnails mount hidden with the app, so every capability would
+   * do all of that on every page load. The lightning view fetched an hour of
+   * strikes for a tile nobody had opened.
    */
   setPreviewTarget(target: string | HTMLElement | undefined) {
     this.map?.setTarget(target);
@@ -101,7 +100,7 @@ export default class Capability extends Observable {
 
   /**
    * Release anything that outlives the map: socket.io handlers, timers.
-   * Optional -- most capabilities hold nothing that needs it. LayerManager
+   * Optional; most capabilities hold nothing that needs it. LayerManager
    * calls it on every registered capability when it tears down.
    */
   destroy?(): void;
@@ -110,7 +109,7 @@ export default class Capability extends Observable {
    * Catch up after the page or the network has been away (lib/wakeup.ts):
    * refetch whatever the socket would have announced meanwhile, and whatever
    * failed while the network was down. LayerManager calls it on the
-   * capability showing. Optional -- the radar keeps itself current from
+   * capability showing. Optional; the radar keeps itself current from
    * `lastFocus` whether it is showing or not.
    */
   resync?(): void;
@@ -118,7 +117,7 @@ export default class Capability extends Observable {
   /**
    * Mark the client's own position, or take the mark down for null.
    * LayerManager calls it on every capability with whatever the apps or the
-   * browser last reported. Optional -- every OpenLayers map already carries
+   * browser last reported. Optional, since every OpenLayers map already carries
    * LayerManager's blue dot; only a capability drawing a map of its own needs
    * to draw it again.
    */
@@ -128,7 +127,7 @@ export default class Capability extends Observable {
    * Move this capability's own camera to `centre` ([lon, lat]) and `zoom`, in
    * the flat map's zoom levels, either left as it is for null. True when it
    * did; false leaves LayerManager to animate the shared View instead.
-   * Optional -- for a map whose camera the View follows rather than leads.
+   * Optional; only a map whose camera leads the View needs it.
    */
   lookAt?(centre: [number, number] | null, zoom: number | null): boolean;
 }

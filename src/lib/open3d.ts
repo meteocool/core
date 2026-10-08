@@ -4,7 +4,7 @@ import type { MapView } from "../stores";
 import type { CellTrackProperties, RadarVolume } from "../api";
 
 /**
- * Opening a storm on the 3D map, from anywhere that shows one -- and the way
+ * Opening a storm on the 3D map from anywhere that shows one, and the way
  * back.
  *
  * Switching maps is the layer manager's, and the layer manager is App's; the
@@ -17,12 +17,12 @@ import type { CellTrackProperties, RadarVolume } from "../api";
  * so the volume is fetched once. Set the other way round, the store's own
  * subscriber and the attach each started a fetch of it.
  *
- * ## The way back
+ * ## The Way Back
  *
  * A storm opened this way was a detour: the reader was on the flat map, saw
  * a tag, and went to look at one storm. Closing that storm on the 3D map is
- * the end of the detour, and the map they were on is where they expect to be
- * -- not a tilted 3D map they never asked for, with a layer switcher between
+ * the end of the detour, and they expect to be back on the map they were on,
+ * not on a tilted 3D map they never asked for, with a layer switcher between
  * them and the radar. So the map and the view they came from are kept here,
  * for as long as they stay on the 3D map, and App takes them back when the
  * storm closes (with the camera settling to nadir first; see
@@ -31,7 +31,7 @@ import type { CellTrackProperties, RadarVolume } from "../api";
  *
  * Moving the 3D map or picking another storm on it does not cancel the way
  * back. It used to: a reader who had looked around was taken to be using the
- * 3D map and was left on it -- tilted, with no storm open and no obvious way
+ * 3D map and was left on it, tilted, with no storm open and no obvious way
  * to the radar. Closing the storm always goes back now. A move only changes
  * where to: from where the reader is (Cells3DCapability reports it through
  * `moved3D`), not the view they left, which may be far away by then.
@@ -84,8 +84,8 @@ export function openCloudIn3D(cloud: RadarVolume): void {
  * Open a tracked cell on the 3D map, cut open through the volume paired with it.
  *
  * The cell stays the selection rather than being traded for its volume: on
- * the 3D map a cell is cut along its own heading, and its details -- the
- * readings, the history -- come with it.
+ * the 3D map a cell is cut along its own heading, and its details (the
+ * readings, the history) come with it.
  */
 export function openCellIn3D(track: CellTrackProperties): void {
   if (!switchTo3D || !track.volume) return;

@@ -6,8 +6,8 @@ import { tileStatus } from "../stores";
 
 /**
  * When tiles last arrived, so the connection banner can say how stale the map
- * is rather than only that the network is down -- and which ones did not, so
- * they can be asked for again.
+ * is and not only that the network is down, and which tiles failed, so they
+ * can be asked for again.
  *
  * This hangs off OpenLayers' own source events rather than a custom
  * `tileLoadFunction`. A custom loader would have to be threaded through every
@@ -42,7 +42,7 @@ export function trackTileLoads<T extends TileSource>(source: T): T {
  *
  * Made idle rather than loaded here: the renderer queues an idle tile it is
  * drawing and loads it with the map watching, so it is drawn when it lands,
- * and one it is no longer drawing is simply never asked for. The caller
+ * and one it is no longer drawing is never asked for. The caller
  * renders the maps, which is what has the renderer look.
  */
 export function retryFailedTiles(): boolean {

@@ -9,8 +9,8 @@ import type { NewestScans } from "../../src/lib/observedProduct.ts";
 /**
  * Which picture the radar map draws, and when it quietly draws the default
  * instead. What the reader picked has to hold as long as it is worth looking
- * at -- DMAX is always a cycle behind HX, and that alone must not undo the
- * choice -- and give way once its feed has stalled.
+ * at (DMAX is always a cycle behind HX, and that alone must not undo the
+ * choice) and give way once its feed has stalled.
  */
 
 const T = 1_791_240_000;

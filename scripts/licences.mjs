@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The third-party notices for what the site actually ships.
+ * The third-party notices for what the site ships.
  *
  *   node scripts/licences.mjs              # builds into a temporary directory first
  *   node scripts/licences.mjs --dist dist  # reads an existing build (needs its source maps)

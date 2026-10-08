@@ -7,7 +7,7 @@
  * That is what gives it the system's feel: picking another option sends the
  * lens sliding, and on the way it stretches toward where it is going and
  * then draws back in, settling with the small overshoot of a spring. It can
- * also be dragged -- a finger on the chosen option carries the lens with it,
+ * also be dragged: a finger on the chosen option carries the lens with it,
  * and it snaps to whichever option it is nearest when let go. Everything
  * under the lens is still a button, so a tap on the far option works as it
  * always did and so does a keyboard.

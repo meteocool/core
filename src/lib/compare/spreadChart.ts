@@ -51,7 +51,7 @@ const token = (element: Element, name: string, fallback: string) => (
  * Which x positions are worth a label, at this range.
  *
  * Over a week that is the midnights, one per day. Over a day the midnights are
- * one tick, so the axis marks every six hours instead -- the same rule at both
+ * one tick, so the axis marks every six hours instead; the same rule at both
  * ranges would leave a 24h chart with a single label on it.
  */
 function labels(times: number[], span: number): string[] {

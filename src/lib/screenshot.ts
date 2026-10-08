@@ -1,6 +1,6 @@
 /**
  * Screenshot mode: the map as a picture, for a renderer that loads the page
- * headless and photographs it -- the Open Graph cards, and the square images
+ * headless and photographs it: the Open Graph cards, and the square images
  * the apps attach to rain notifications.
  *
  * `?screenshot=yes` takes everything off the map but its credits, fetches
@@ -56,11 +56,11 @@ export type ReadyReason = "rendered" | "timeout";
 /**
  * Call `ready` once, when the map has drawn everything `data` brought it.
  *
- * `rendercomplete` alone is the trap. The basemap finishes long before the
+ * `rendercomplete` alone is not enough. The basemap finishes long before the
  * radar's frame list arrives, and a map with no radar layer yet is a map with
  * nothing left to load, so the first one says complete over an empty sky.
- * It is only listened for once `data` -- the requests whose answers add the
- * radar's layers and the strikes -- has settled, either way, and only from
+ * It is only listened for once `data` (the requests whose answers add the
+ * radar's layers and the strikes) has settled, either way, and only from
  * the first frame drawn after that: a verdict on an earlier frame can still
  * be on its way out, and would call complete a map that has not yet asked for
  * the new layers' tiles. A failed or empty radar settles too, and the picture
@@ -128,9 +128,9 @@ export function screenshotLook(search: string): ScreenshotLook {
  *
  * Held as overrides, like a link's overlays: the setting's callback drives
  * the same stores choosing it in Settings does, so a dark basemap brings its
- * labels, casings and chrome with it, while nothing is written to storage.
- * That matters because a renderer reuses its browser between pictures, and
- * one picture's basemap must not become the next one's default. Called before
+ * labels, casings and chrome with it, while nothing is written to storage:
+ * a renderer reuses its browser between pictures, and one picture's basemap
+ * must not become the next one's default. Called before
  * the maps are built, so they are drawn in the look from the start and the
  * ready signal (`whenDrawn`) covers it.
  */

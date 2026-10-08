@@ -5,7 +5,7 @@ import { unByKey } from "ol/Observable";
  * Let a map that has been off screen a while give back what it drew with.
  *
  * Every capability has an OpenLayers map of its own, and taking one off the
- * screen -- switching layers, closing the switcher's thumbnails -- leaves
+ * screen (switching layers, closing the switcher's thumbnails) leaves
  * everything it drew with in place: a map-sized canvas per group of layers, a
  * WebGL context, a cache of drawn basemap tiles, and for the radar every
  * frame of playback for every network. After a look at each layer that was

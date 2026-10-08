@@ -7,15 +7,15 @@
 /**
  * A label's colours, picked to match whatever is drawn underneath it.
  *
- * The halo is always the basemap's own colour, softened -- never a contrasting
+ * The halo is always the basemap's own colour, softened, never a contrasting
  * one. Labels crowd, and at 11px the halo of one glyph merges into its
  * neighbours and into the counters of a, e and o. A halo in the basemap's
  * colour that merges just disappears back into the map; a contrasting one
- * merges into a plate. That is what the old black-on-opaque-white labels did
- * over the dark basemap: the white halo was the only part of the label with
- * any contrast against #1c1f24, so a cluster of village names read as a bright
- * smear with black holes punched in it rather than as type. Same rule the
- * casings follow in ./casing -- match the background, don't fight it.
+ * merges into a plate. The old black-on-opaque-white labels did that over the
+ * dark basemap: the white halo was the only part of the label with any
+ * contrast against #1c1f24, so a cluster of village names read as a bright
+ * smear with black holes punched in it. The casings in ./casing follow the
+ * same rule and match the background.
  */
 export interface LabelPalette {
   /** Country, region and city. */
@@ -32,9 +32,9 @@ export interface LabelPalette {
  * or #fff on #1c1f24, is more contrast than small type wants and makes it buzz.
  *
  * The muted step is deliberately small. These labels sit over *radar*, not
- * over the basemap, and reflectivity runs the whole luminance range -- so a
- * muted ink picked as a step back from the earth colour collapses the moment
- * the town lands on a green or yellow cell, which at this zoom is most of the
+ * over the basemap, and reflectivity runs the whole luminance range. A muted
+ * ink picked as a step back from the earth colour collapses as soon as the
+ * town lands on a green or yellow cell, which at this zoom is most of the
  * interesting ones. Size and weight carry the hierarchy; the ink only has to
  * hint at it.
  */
@@ -74,13 +74,13 @@ export interface LabelTier {
 /**
  * The tiers, country down to hamlet.
  *
- * The halos ran 4 / 3 / 3 / 2 / 1.5, which made halo thickness part of the
- * hierarchy -- widest on the largest type, thinnest on the smallest. That was
- * backwards twice over: size and weight already carry the hierarchy, and it is
- * the small labels that most need lifting off a busy cell. They are uniform
- * now bar the country tier. Thinning them at 11px was only ever a defence
+ * The halos used to run 4 / 3 / 3 / 2 / 1.5, widest on the largest type and
+ * thinnest on the smallest, which made halo thickness part of the hierarchy.
+ * Size and weight already carry the hierarchy, though, and the small labels
+ * are the ones that most need lifting off a busy cell, so the halos are now
+ * uniform except for the country tier. Thinning them at 11px only guarded
  * against the halo merging across letterforms, and a halo the colour of what
- * is behind it can merge all it likes.
+ * is behind it can merge freely.
  */
 export const LABEL_TIERS = {
   country: { size: 18, bold: true, halo: 2.6, rank: 100, muted: false },

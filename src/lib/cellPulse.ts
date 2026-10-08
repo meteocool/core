@@ -5,9 +5,9 @@
  * It replaced an expanding-and-fading ping, which read well but cost too much
  * to draw: that one changed the ring's radius and opacity every frame, so
  * every live cell's style had to be rebuilt twenty times a second, and on a
- * viewport with a hundred of them the animation was visibly not keeping up --
- * an animation that stutters says "this page is struggling", which is the
- * opposite of "this storm is live".
+ * viewport with a hundred of them the animation was visibly not keeping up.
+ * An animation that stutters says "this page is struggling", the opposite of
+ * "this storm is live".
  *
  * Stepping costs a fraction of that. The ring never changes shape; it turns
  * one dash-width per tick, and a turn of one whole dash and gap looks the
@@ -15,9 +15,9 @@
  * which the compositor animates without the page: no style, layout or paint
  * per tick, where the dash offset it replaced repainted every frame.
  *
- * The step is also the point rather than a compromise. Smooth rotation at this
- * size reads as a shimmer; a notch reads as a mechanism running -- a second
- * hand rather than a sweep -- which is the claim being made.
+ * The step is wanted for its own sake too. Smooth rotation at this size reads
+ * as a shimmer; a notch reads as a mechanism running (a second hand, not a
+ * sweep), which is what the ring is there to say.
  *
  * Kept free of OpenLayers, like cellGeometry.ts, so the cycle can be stated in
  * a test rather than watched.
@@ -26,16 +26,16 @@
 /**
  * How recently a cell must have been detected to count as live.
  *
- * Not `active`, although the schema has exactly that field and describes it as
+ * Not `active`, although the schema has that field and describes it as
  * "whether the cell was still being detected recently". On the live backend it
- * is true for every track returned -- 200 of 200 in one response, 147 of them
+ * is true for every track returned: 200 of 200 in one response, 147 of them
  * last detected more than fifteen minutes before the run's own reference time,
  * one of them eighty-five minutes before it. Whatever it means upstream, it
  * does not separate the storms still being seen from the ones that have
  * stopped, which is the only thing this needs.
  *
  * So the rule is the timestamp, measured against the cell feed's own newest
- * run rather than the clock -- the feed trails the radar by a frame, and
+ * run rather than the clock. The feed trails the radar by a frame, and
  * counting that lag against the budget would leave a cell that was detected in
  * the newest run available already half spent. Two runs at DWD's five-minute
  * cadence, which lets one missed detection pass without a live storm going
@@ -52,8 +52,8 @@ export function isLive(minutesSinceDetection: number): boolean {
  * The zoom from which a cell that is not live is drawn at all: its dot, its
  * path, its outline and the joins into it.
  *
- * Close in, an ended cell next to a live one is the storm's story -- where it
- * came from, what it split off. From a country away the two dots are a few
+ * Close in, an ended cell next to a live one tells the storm's story: where
+ * it came from, what it split off. From a country away the two dots are a few
  * pixels apart and read as two storms, one of them with no ring and nothing
  * under it. The open cell is drawn whatever the zoom.
  */
@@ -76,7 +76,7 @@ export const RING_WIDTH = 2;
  * Dash and gap.
  *
  * Their sum is the distance the pattern has to travel to look the same again,
- * so it is also the number of notches in a full turn -- nine, at five a
+ * so it is also the number of notches in a full turn: nine, at five a
  * second, is a turn every 1.8 seconds.
  */
 export const DASH: [number, number] = [5, 4];
@@ -98,8 +98,8 @@ export const RING_PATH_LENGTH = Math.round((2 * Math.PI * RING_RADIUS) / DASH_PE
 export const NOTCH_DEGREES = 360 / RING_PATH_LENGTH;
 
 /**
- * How far round the ring is turned at a given moment, in degrees clockwise --
- * the way the pattern is read, rather than appearing to slide backwards.
+ * How far round the ring is turned at a given moment, in degrees clockwise:
+ * the way the pattern is read, so it does not appear to slide backwards.
  *
  * Driven off the wall clock rather than a per-cell counter, so every live cell
  * steps together: a map where each one runs its own cycle shimmers, where one

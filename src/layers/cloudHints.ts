@@ -18,14 +18,15 @@ import type { RadarScans } from "../lib/scans";
  *
  * The flat map gives no sign that a shower has a volume behind it: the 3D map
  * is a tile in the layer switcher, and nothing on the radar says which of the
- * blobs on screen it could show standing up. This is that sign, and tapping it
- * is the way there -- App.svelte switches to the 3D map with the core open.
+ * blobs on screen it could show standing up. The tag is that sign, and
+ * tapping it opens the core: App.svelte switches to the 3D map with the core
+ * open.
  *
- * ## What it looks like
+ * ## What It Looks Like
  *
  * A small pill rather than a ring or a dot, because the flat map is already
- * full of dots and rings -- cell centroids, the live pulse, mesocyclones --
- * and a mark in the same language would read as one more of them. Beside the
+ * full of dots and rings (cell centroids, the live pulse, mesocyclones), and
+ * a mark in the same language would read as one more of them. Beside the
  * core rather than on it, so it never covers the centroid a cell tap is aimed
  * at, and with a cube coloured by the core's peak on the radar's own ramp, so
  * a strong core stands out before it is opened.

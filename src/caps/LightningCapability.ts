@@ -23,8 +23,8 @@ import type { NetworkEvent } from "../api/events";
 const BASELINE_MAX_SECONDS = 60 * 60 - 120;
 
 /**
- * How strongly the rain is laid under the strikes: enough to say which
- * strikes are in which storm, faint enough that the strikes are the map.
+ * Opacity of the rain under the strikes: strong enough to show which storm
+ * each strike belongs to, faint enough to keep the strikes in front.
  */
 const RAIN_UNDERLAY_OPACITY = 0.3;
 
@@ -48,9 +48,9 @@ export default class LightningCapability extends Capability {
   private liveStrikes: Coalescer<{ lon: number; lat: number; time: number }> | null = null;
 
   /**
-   * The merged European composite, faint under the strikes: a strike reads
-   * as a storm's when the storm is there to see. Its newest frame only, as
-   * the radar map's live step draws it, in the reader's palette.
+   * The merged European composite, drawn faintly under the strikes so each
+   * strike shows up inside its storm. Only the newest frame, as the radar
+   * map's live step draws it, in the reader's palette.
    */
   private readonly rain: NetworkRadarLayer;
 
@@ -85,9 +85,9 @@ export default class LightningCapability extends Capability {
   }
 
   /**
-   * Only ever fetched on being shown, so a first fetch that failed left the
-   * map without strikes -- and without the socket's live ones, which hang off
-   * the first success -- until the reader switched away and back.
+   * Without this it only fetches when shown, so a failed first fetch left the
+   * map without strikes until the reader switched away and back. That included
+   * the socket's live strikes, which only start after the first success.
    */
   resync() {
     void this.fetchLightning(true);
@@ -132,7 +132,7 @@ export default class LightningCapability extends Capability {
       this.sm = sm;
       // Strikes newer than the published tile set arrive here; the tile set
       // itself covers everything older than the baseline.
-      // Gathered for a moment, for one change on the source; see lib/coalesce.ts.
+      // Batched briefly into one change on the source; see lib/coalesce.ts.
       this.liveStrikes = coalesce<{ lon: number; lat: number; time: number }>(
         (strikes) => sm.addStrikes(strikes.map(({ lon, lat, time }) => ({ lon, lat, timestamp: time / 10e5 }))),
         LIVE_STRIKE_BATCH_MS,

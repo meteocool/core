@@ -3,19 +3,18 @@
  * What a long press on the radar map offers: the precipitation at that point,
  * the forecast for it, or a link to it to send someone.
  *
- * The hold used to go straight to the precipitation strip. The model
- * comparison asks about a point too, and the hold is the map's one "tell me
- * about here" gesture, so rather than a second gesture for it the hold now
- * asks which question was meant -- a context menu, the way a long press works
- * everywhere else on the platform.
+ * The model comparison asks about a point too, and the hold is the map's one
+ * "tell me about here" gesture, so the hold asks which question was meant: a
+ * context menu, the way a long press works everywhere else on the platform.
  *
  * Headed with the place's name, looked up as it opens, and "At this
  * location" until that answer lands or when there is none.
  *
  * Pinned to the point with an OpenLayers overlay, over a dot marking it, with
  * a notch pointing at the dot, and placed so it stays on screen: above the
- * point, or below it near the top, leaning inwards near either side. Anything else the reader does closes it
- * -- a tap elsewhere, Escape, the map moving, another layer, a storm tapped.
+ * point, or below it near the top, leaning inwards near either side. Anything
+ * else the reader does closes it: a tap elsewhere, Escape, the map moving,
+ * another layer, a storm tapped.
  */
 import { onDestroy, onMount } from "svelte";
 import { _, locale } from "svelte-i18n";
@@ -103,7 +102,7 @@ function place(point: [number, number] | null) {
     : pixel[0] < NEEDS_SIDE ? "left"
       : pixel[0] > width - NEEDS_SIDE ? "right" : "center";
   // The menu's edge goes LEAN past the point, so the notch has straight edge
-  // to come off -- short of the screen's own edge, though, by a gutter.
+  // to come off, though short of the screen's own edge by a gutter.
   const room = !pixel ? 0 : side === "left" ? pixel[0] - 8 : width - pixel[0] - 8;
   lean = side === "center" ? 0 : Math.max(0, Math.min(LEAN, room));
   overlay.setPositioning(`${below ? "top" : "bottom"}-${side}` as Positioning);
@@ -119,7 +118,7 @@ function close() {
 }
 
 /* Placed to stay on screen, the menu can still open under the apps' buttons
-   in the top corner, which nothing here can move -- so they go while it is up. */
+   in the top corner, which nothing here can move, so they go while it is up. */
 let releaseChrome: (() => void) | null = null;
 function holdChrome(open: boolean) {
   if (open && !releaseChrome) releaseChrome = holdNativeChrome();
@@ -229,7 +228,7 @@ onDestroy(() => {
 
   /* The menu and the dot under it, placed as one. The dot is the point, so
      the column's far end is it: the bottom when the menu is above, the top
-     when it has flipped below. No material here -- a backdrop filter on this
+     when it has flipped below. No material here: a backdrop filter on this
      would leave the menu's own blurring nothing. */
   .point {
     display: flex;
@@ -263,8 +262,8 @@ onDestroy(() => {
 
   /* The notch, from the menu to the dot: the menu's fill and blur, so it reads
      as part of the bubble. A sibling rather than a pseudo-element of the menu,
-     whose own backdrop filter would leave it blurring nothing -- a backdrop
-     sees only as far as the nearest ancestor with one. Tucked a pixel under
+     whose own backdrop filter would leave it blurring nothing (a backdrop
+     sees only as far as the nearest ancestor with one). Tucked a pixel under
      the menu's rim so no seam shows, and turned over when the menu is below. */
   .notch {
     flex: none;

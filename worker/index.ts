@@ -3,16 +3,15 @@
  *
  * Its one job is OpenGraph: a shared meteocool link should preview as the map
  * at the shared location, in the sharer's language, and those tags have to be
- * in the HTML when a crawler fetches it -- no scraper runs the app to find out
- * where it was pointed. So the tags are injected per request from `latLonZ` and
+ * in the HTML when a crawler fetches it, since no scraper runs the app to find
+ * out where it was pointed. So the tags are injected per request from `latLonZ` and
  * `share_lang` rather than baked into index.html.
  *
  * Replaces functions/_middleware.js, which did the same thing as a Cloudflare
  * Pages Function. Two things changed in the move: the meta-tag HTML is built as
- * a local rather than held in module scope -- the Pages version wrote to a
+ * a local instead of held in module scope (the Pages version wrote to a
  * module-level `ogtag` on every request, so two overlapping requests could swap
- * each other's language -- and the rewriter only runs when the response is
- * actually HTML.
+ * each other's language), and the rewriter only runs when the response is HTML.
  *
  * It also forwards the native apps' API calls to this environment's backend
  * (api.ts), and answers the files that open shared links in the apps
@@ -37,7 +36,7 @@ interface Env {
    * wrangler.jsonc. The Worker is bundled by wrangler rather than Vite, so
    * `--mode staging` does not reach it and a hardcoded default would have the
    * staging deployment advertising production's preview image in its OpenGraph
-   * tags -- the one thing about a shared staging link that would still point at
+   * tags, the one thing about a shared staging link that would still point at
    * prod. Falls back to production so a deploy that forgets the var behaves as
    * it always did.
    */
@@ -159,8 +158,8 @@ export default {
     }
 
     // `html_handling: "none"` in wrangler.jsonc keeps /ios.html and
-    // /android.html resolving as themselves, which the native wrappers need --
-    // the default would 307 them to /ios and /android. The cost is that "/" no
+    // /android.html resolving as themselves, which the native wrappers need
+    // (the default would 307 them to /ios and /android). The cost is that "/" no
     // longer maps to index.html on its own, so do it here.
     const assetUrl = new URL(request.url);
     assetUrl.pathname = "/index.html";

@@ -3,7 +3,7 @@
  *
  * English is bundled: it is the fallback for any key a translation lacks, so
  * it has to be there before anything renders. Every other language is its own
- * chunk, fetched only when it is the one chosen (choose.ts) -- a reader in
+ * chunk, fetched only when it is the one chosen (choose.ts). A reader in
  * English downloads none of them, and a reader in Czech only Czech. The
  * service worker precaches the chunks with the rest of the build, so an
  * installed app does not wait on the network for them.
@@ -43,12 +43,12 @@ const READY_WAIT_MS = 1500;
 /**
  * Settles when the chosen language's strings are in, or after READY_WAIT_MS:
  * a slow or failed chunk must never hold the map back. The page then renders
- * in English and switches over when the strings land -- svelte-i18n re-renders
- * everything reading `$_` once they do.
+ * in English and switches over when the strings land, since svelte-i18n
+ * re-renders everything reading `$_` once they do.
  *
- * English is set for that wait in so many words. svelte-i18n has no locale at
- * all until the chosen catalogue is in, and formats nothing without one: every
- * `$_` threw, the mount with it, and the page stayed blank.
+ * English is set explicitly for that wait. svelte-i18n has no locale at all
+ * until the chosen catalogue is in, and formats nothing without one: every
+ * `$_` would throw, the mount with it, and the page would stay blank.
  */
 export const i18nReady: Promise<void> = Promise.race([
   waitLocale().then(() => undefined, () => undefined),

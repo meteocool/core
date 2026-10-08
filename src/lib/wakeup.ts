@@ -1,8 +1,8 @@
 /**
  * Noticing that the page has come back after not running.
  *
- * Everything in the app that keeps itself current -- the grid refresh, the
- * "last updated" tick, socket.io's own reconnect backoff -- is a timer, and a
+ * Everything in the app that keeps itself current (the grid refresh, the
+ * "last updated" tick, socket.io's own reconnect backoff) is a timer, and a
  * suspended tab's timers do not run. A phone that has been in a pocket for
  * twenty minutes comes back to a map drawn from frames that expired nineteen
  * minutes ago, with nothing scheduled to notice: the poke that would have
@@ -10,8 +10,8 @@
  * up to a publish cycle away.
  *
  * The native apps have always called window.enterForeground() for this. The web
- * had the same hook and nothing wired to it, so the browser -- which is where
- * most of the backgrounding happens -- was the one case that never resynced.
+ * had the same hook and nothing wired to it, so the browser, where most of
+ * the backgrounding happens, was the one case that never resynced.
  *
  * No single browser signal covers it. visibilitychange is the main one but does
  * not fire for every lock-screen transition on iOS; a bfcache restore fires only
@@ -49,8 +49,8 @@ export const CLOCK_JUMP_MS = 20_000;
  *
  * Below this nothing has expired: the radar publishes every five minutes and
  * the socket is still up, so a resync would refetch every endpoint to learn
- * nothing. Alt-tabbing between windows used to do exactly that, eight
- * requests a time, and so did the page's own first paint -- the browser fires
+ * nothing. Alt-tabbing between windows used to do that, eight requests a
+ * time, and so did the page's own first paint: the browser fires
  * visibilitychange as it comes up, and that was read as a return from
  * somewhere.
  */
@@ -67,8 +67,8 @@ const deferred = new Map<string, () => void>();
 /**
  * Run `work` now if the page is showing, otherwise once it shows again.
  *
- * For the socket's nudges. Each one is a fetch -- the radar grid, the cells
- * in view, a network's frame -- that a hidden tab has no use for until it is
+ * For the socket's nudges. Each one is a fetch (the radar grid, the cells
+ * in view, a network's frame) that a hidden tab has no use for until it is
  * looked at, by which time several have usually arrived and only the newest
  * matters: keyed, so the last poke of a kind is the one that runs. This is
  * separate from `wake`, which is gated on how long the page was away; a poke
@@ -107,8 +107,8 @@ export function onWake(listener: WakeListener): () => void {
  * visibilitychange arriving together still only resync once.
  */
 export function wake(reason: string) {
-  // A wake nobody is looking at -- the watchdog noticing a throttled tab's
-  // clock jump, the network coming back to a hidden page -- is put off like a
+  // A wake nobody is looking at (the watchdog noticing a throttled tab's
+  // clock jump, the network coming back to a hidden page) is put off like a
   // poke. It runs, once, when the page shows again.
   if (typeof document !== "undefined" && document.visibilityState === "hidden") {
     deferred.set("wake", () => wake(reason));
@@ -141,7 +141,7 @@ export function initWakeup() {
   if (typeof window === "undefined") return;
 
   /* Only a return from a real absence is a wake; see MIN_HIDDEN_MS. The
-     deferred pokes run on any return, however short -- they were put off, not
+     deferred pokes run on any return, however short: they were put off, not
      judged unnecessary. */
   const back = (reason: string) => {
     const away = hiddenFor();

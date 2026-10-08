@@ -5,10 +5,10 @@
  * the same time as another. Live, DWD's composite for a scan is out about
  * four minutes after the scan starts; KONRAD3D's cells for that same scan come
  * about two minutes later; the volumes are built by a slower job of our own,
- * from every radar's sweeps around storms found in a column maximum -- DWD's
- * DMAX in Germany, ng's own of each network elsewhere (ng ADR 0019) -- and
- * land half a minute after the cells. So the older ones stand a scan upwind of the echo
- * under them for part of every cycle.
+ * from every radar's sweeps around storms found in a column maximum (DWD's
+ * DMAX in Germany, ng's own of each network elsewhere; ng ADR 0019), and
+ * land half a minute after the cells. So the older ones stand a scan upwind
+ * of the echo under them for part of every cycle.
  *
  * It is only lateness. In data time they agree: checked against 486 KONRAD3D
  * cells from two convective days in September 2026, 355 overlapped the
@@ -19,7 +19,7 @@
  *
  * Against its own network's radar, not DWD's. A storm from France's run is
  * stamped with the newest scan in France's composite, which is on France's
- * clock -- 15:29, 15:34 -- and the frame draped over France carries the same
+ * clock (15:29, 15:34), and the frame draped over France carries the same
  * stamp (`RadarFrame.upstream_time`). Judged against DWD's five-minute frame
  * instead, every one of them was a minute or more behind the moment DWD's next
  * scan landed, built in time or not.
@@ -96,7 +96,7 @@ export function isPastItsScan(volume: Listed, listed: ReadonlyArray<Listed>): bo
 /** Between two asks for a scan's volumes that are not built yet. */
 export const VOLUME_RETRY_MS = 20_000;
 
-/** Asks at most -- two minutes of them -- after which that scan has none coming. */
+/** Asks at most (two minutes of them), after which that scan has none coming. */
 export const VOLUME_RETRIES = 6;
 
 /** What `/cells/volumes` answers, as far as following it goes. */
@@ -138,7 +138,7 @@ export class VolumeFeed<T extends Scanned> {
    *
    * One as new is passed on too. `reference_time` is the newest of every
    * network's runs, so Germany's run landing after Switzerland's newer one
-   * leaves it where it was -- and a run is built in parts, each listed as it
+   * leaves it where it was, and a run is built in parts, each listed as it
    * lands, under the same scan.
    */
   offer(answer: T): boolean {

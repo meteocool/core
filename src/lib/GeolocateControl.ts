@@ -11,16 +11,16 @@ import { t } from "../locale/t";
  * looks like everything else on the map while behaving differently is worse
  * than one that borrows a familiar shape.
  *
- * Outlined rather than filled because this is a one-shot recentre, not a
- * tracking toggle -- filled is what the system uses for "following you".
+ * Outlined because this is a one-shot recentre, not a tracking toggle: filled
+ * is what the system uses for "following you".
  *
  * Drawn inline rather than pulled from the icon set: this control builds plain
  * DOM for OpenLayers, outside Svelte, so it has no component to render one in.
  */
 /**
- * Nudged down and left, which is what makes it look centred.
+ * Nudged down and left so it looks centred.
  *
- * The path is already centred as a box -- it runs 3 to 21 on both axes inside
+ * The path is already centred as a box: it runs 3 to 21 on both axes inside
  * a 24 viewBox, and the button centres that box exactly. It still read as
  * sitting high and to one side, because a dart is not its bounding box: most
  * of its area is in the head, and the tail that reaches the opposite corner
@@ -68,8 +68,8 @@ function locateButton(title: string, onLocate: LocateHandler): HTMLButtonElement
 /**
  * A "locate me" button in the map's own control stack.
  *
- * The app has always been able to centre on the user -- the entrypoints ask for
- * a position once at startup -- but there was no way to ask again after panning
+ * The app has always been able to centre on the user (the entrypoints ask for
+ * a position once at startup), but there was no way to ask again after panning
  * away. In the native wrappers this stays unused: they have their own control.
  */
 export default class GeolocateControl extends Control {

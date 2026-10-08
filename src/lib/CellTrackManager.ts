@@ -21,7 +21,7 @@ import type { Extent } from "./cellGeometry";
  *
  * Unlike the strike and mesocyclone managers this holds no ring buffer. Those
  * receive individual events and have to decide what to forget; a track response
- * is the whole answer for a viewport, so the previous one is simply discarded.
+ * is the whole answer for a viewport, so the previous one is discarded.
  */
 
 /** How far back to ask for. Long enough to show where a storm came from. */
@@ -58,14 +58,14 @@ export default class CellTrackManager {
    * The open cell's last full track, kept so a refetch cannot take it away.
    *
    * Tracks are fetched for the viewport, and a cell's forecast reaches an hour
-   * ahead -- tens of kilometres past its centroid. Zoom in on the cone to read
+   * ahead, tens of kilometres past its centroid. Zoom in on the cone to read
    * the lead times on it and the centroid leaves the viewport, the next fetch
    * comes back without that cell, and the marks vanish while the panel
    * describing them stays open. The one cell the reader has asked about is
    * therefore redrawn from this whether or not the answer mentions it.
    *
    * The raw track rather than the drawn features, so it goes through
-   * `trimToLastRun` and the age fading exactly as a fetched one does: a pinned
+   * `trimToLastRun` and the age fading as a fetched one does: a pinned
    * cell that has stopped being detected fades and drops its outline on the
    * same schedule as any other. Cleared as soon as the selection changes, so
    * this holds at most one stale track and only while it is being looked at.
@@ -213,7 +213,7 @@ export default class CellTrackManager {
         if (!taken) add("cell", p.code, new Point(fromLonLat([last.lon, last.lat])));
         // Only what the ping needs: where, and what colour. It never hit-tests
         // and never opens a popup, so it carries no code. Superseded the same
-        // way the dot above is -- without `!taken` a storm that DWD had
+        // way the dot above is: without `!taken`, a storm that DWD had
         // renamed kept its ping alive on the old code's last position, which
         // reads as a dashed ring with nothing in it once the dot it used to
         // sit under is gone.
@@ -238,7 +238,7 @@ export default class CellTrackManager {
         add("forecast", `${p.code}:fc:${index}`, new Point(fromLonLat([point.lon, point.lat])));
         // Every step's ellipse is built, where once only the outermost was.
         // They nest, so a dozen of them per cell over a screen full of storms
-        // is a wash that hides the radar underneath -- which is why only one
+        // is a wash that hides the radar underneath, which is why only one
         // used to be drawn. What decides it now is selection rather than
         // index: `cells.ts` draws none of this for an unselected cell and all
         // of it for the one whose popup is open, so the sequence is there to
@@ -260,7 +260,7 @@ export default class CellTrackManager {
             // `forecast_at` is the absolute moment, and it is what the label
             // is written from: a reader looking at a ring wants to know how
             // long they have, and the answer has to count down as they watch.
-            // Measured from the last detection it would not -- DWD publishes
+            // Measured from the last detection it would not: DWD publishes
             // KONRAD3D a few minutes behind the scan and the scan is a few
             // minutes behind the sky, so a ring labelled "+15 min" is already
             // eight or nine minutes away by the time anybody reads it.
@@ -269,7 +269,7 @@ export default class CellTrackManager {
             // because it is what decides *which* rings are labelled. The steps
             // divide the hour evenly (see `labelStepMinutes`), and selecting
             // on a clock-relative value instead would leave the set changing
-            // every minute and mostly empty -- the rings are five minutes
+            // every minute and mostly empty; the rings are five minutes
             // apart in forecast time, not in time-from-now.
             forecast_at: new Date(point.t).getTime(),
             lead_minutes: Math.round(
@@ -323,8 +323,8 @@ export default class CellTrackManager {
 
     if (answered && open) {
       this.pinned = tracks.find((raw) => raw.properties.code === open) ?? null;
-      // The open panel is written in the present tense -- how long ago the cell
-      // was last seen, whether it is still growing, where it is going next --
+      // The open panel is written in the present tense (how long ago the cell
+      // was last seen, whether it is still growing, where it is going next),
       // and the selection is the snapshot taken when it was tapped. Handed the
       // answer's copy, so a panel left open across a few refreshes describes
       // the storm as it is rather than as it was when it was opened.
@@ -341,7 +341,7 @@ export default class CellTrackManager {
    *
    * What a link to a cell does: the track comes from `/cells/tracks/{code}`
    * rather than from a viewport answer, and the next answer need not mention
-   * it -- the cell may be out of view, or have dissipated past the window --
+   * it (the cell may be out of view, or have dissipated past the window),
    * so without this the panel would open over a map that never draws it.
    * Pinned first and selected second, so the selection subscription above
    * finds the same code and keeps it.

@@ -10,7 +10,7 @@ import { normaliseLocale, type AppLocale } from "./choose";
  * English is in the bundle; every other one is fetched when it is the one
  * chosen, as the message catalogues are (i18n.ts), so a reader in English
  * downloads none of them. Until it lands the English one answers, and the
- * next render -- LastUpdated re-formats every ten seconds -- picks it up.
+ * next render (LastUpdated re-formats every ten seconds) picks it up.
  */
 const LOADERS: Record<Exclude<AppLocale, "en">, () => Promise<Locale>> = {
   de: () => import("date-fns/locale/de").then((m) => m.de),

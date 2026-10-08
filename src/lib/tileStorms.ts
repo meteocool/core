@@ -3,13 +3,13 @@
  *
  * The list names each tile's storm (`RadarVolume.system`), so its tiles can
  * peel as one cloud. An earlier scan's tiles are found in the bucket, whose
- * headers do not carry it, and coarse tiles are never given one -- each was
+ * headers do not carry it, and coarse tiles are never given one. Each was
  * a storm of its own, peeled to its own floor: a weak tile beside its
  * storm's core kept its own small core standing while the core's tile
  * emptied, and a slider at its end no longer peeled the storm down to its core.
  *
- * Found here as the worker finds it -- echo at or above `SEED_DBZ` in the
- * column, joined -- but from the tiles' own voxels: two tiles that abut are
+ * Found here as the worker finds it (echo at or above `SEED_DBZ` in the
+ * column, joined), but from the tiles' own voxels: two tiles that abut are
  * one storm where the storms of their peaks meet across the seam.
  */
 import type { Cutaway } from "./cellCutaway";
@@ -122,8 +122,8 @@ function joined(a: StormTile, b: StormTile): boolean {
 
 /**
  * Each tile's storm, by its key: the list's `system` where it has one, and
- * where it has none the storm of the tiles its echo runs into across a seam
- * -- or, joined to none of those, a storm named after one of its own tiles.
+ * where it has none the storm of the tiles its echo runs into across a seam,
+ * or, joined to none of those, a storm named after one of its own tiles.
  * Two storms the list tells apart are never joined, only tiles it says
  * nothing of joined to them.
  */

@@ -6,7 +6,7 @@
  * codes; three of them merge and the survivor keeps one. Everything else in
  * this panel describes the cell as it is now, and none of it can say that the
  * 67 dBZ core you are reading was one of three that ran together twenty
- * minutes ago -- which is often the thing that explains it.
+ * minutes ago, which often explains it.
  *
  * Drawn only when there is something to draw. Two thirds of tracks in a real
  * run have no relatives at all; it is the severe ones that have families, 72%
@@ -14,29 +14,23 @@
  *
  * ## Layout
  *
- * `dagre` places the nodes. It lays out by graph structure rather than by
- * time, so unlike the two charts above this one it does not share their clock
- * -- a node's position says where it sits in the family, not when it was.
- * Ranks still run in chronological order, because every edge goes from a
- * parent to a child and so always points forwards in time; what is lost is the
- * spacing, where two ranks a minute apart and two an hour apart look the same.
- * Each node carries its own clock underneath to cover that.
+ * `dagre` places the nodes. It lays out by graph structure, not by time, so
+ * only its lanes are kept: how far along a node sits comes from when it was
+ * first detected (see `layout`), and the axis under the chart is a clock.
  *
  * Left to right, and it scrolls sideways.
  *
- * Downwards was tried first, on the reasoning that a phone scrolls that way
- * anyway and a sideways scrollbar is a gesture that fights the sheet's own.
- * That is true and it cost more than it saved: a family is deeper in
- * generations than it is wide in concurrent cells, so laid out downwards it is
- * tall -- and every pixel it is tall is a pixel of map the sheet has to take
- * to show it. Sideways the height is set by the widest rank instead, which is
- * the number of cells that merged at once: three in the largest case seen. The
- * graph is short, the map keeps its half of the screen, and the length goes
- * into an axis the reader can push along.
+ * A phone scrolls downwards, and a sideways scroll is a gesture that fights
+ * the sheet's own. But a family is deeper in generations than it is wide in
+ * concurrent cells, so laid out downwards it is tall, and every pixel it is
+ * tall is a pixel of map the sheet has to take to show it. Sideways the height
+ * is set by the widest rank instead, which is the number of cells that merged
+ * at once: three in the largest case seen. The graph is short, the map keeps
+ * its half of the screen, and the length goes into an axis the reader can
+ * push along.
  *
- * Which suits the axis too. Time runs left to right in the two charts above
- * this one and in every other chart in the panel; running it downwards here
- * made this the only one that did not.
+ * Time also runs left to right in the two charts above this one and in every
+ * other chart in the panel.
  */
 import { onDestroy, tick } from "svelte";
 import { _ } from "svelte-i18n";
@@ -74,9 +68,9 @@ const COL_MIN = NODE_W + 12;
  *
  * Set against the floor rather than in the abstract. `COL_MIN` cannot go below
  * a node's own width, so any gap shorter than `COL_MIN / PX_PER_MINUTE` is
- * drawn at the floor and reads as "the next step" -- at five pixels a minute
- * that is anything under about fifteen, which at DWD's five-minute cadence is
- * two or three runs, and "the next step" is what those are.
+ * drawn at the floor and reads as "the next step". At five pixels a minute
+ * that is anything under about fifteen minutes, which at DWD's five-minute
+ * cadence is two or three runs, and "the next step" is what those are.
  *
  * Above that it is proportional and the distinction worth having survives: a
  * cell that split off a quarter of an hour ago sits close, one that split off
@@ -87,10 +81,10 @@ const PX_PER_MINUTE = 5;
 /**
  * How far past the last detection the `now` rule may sit.
  *
- * The two charts above carry their axis to the present for a good reason -- a
- * trace that stops at the right-hand edge quietly implies the record is
- * current -- and this one should say the same thing. But those have a fixed
- * width and this one is as long as it needs to be, so an un-capped gap would
+ * The two charts above carry their axis to the present, because a trace that
+ * stops at the right-hand edge implies the record is current, and this one
+ * should say the same. Those have a fixed width, though, and this one is as
+ * long as it needs to be, so an un-capped gap would
  * mean a family last seen two hours ago dragging six hundred pixels of empty
  * chart behind it. Past the cap the rule stops moving and the gap is
  * understated; the axis clocks underneath still say when the last one was.
@@ -146,7 +140,7 @@ interface Laid {
  * One layout pass, redone whenever the family changes.
  *
  * dagre mutates the graph it is given, so the graph is built fresh each time
- * rather than kept and updated -- these are a handful of nodes and the cost of
+ * rather than kept and updated; these are a handful of nodes, and the cost of
  * a rebuild is nothing next to the cost of a stale one.
  */
 function layout(graph: ReturnType<typeof buildLineage>, nowMs: number, t: Translate): Laid | null {
@@ -163,8 +157,8 @@ function layout(graph: ReturnType<typeof buildLineage>, nowMs: number, t: Transl
   /*
    * dagre decides which lane a node goes in; the clock decides how far along.
    *
-   * Its ranks are graph depth, not time -- a rank can hold a cell from 16:10
-   * beside one from 15:35 -- so only the vertical half of its answer is kept.
+   * Its ranks are graph depth, not time (a rank can hold a cell from 16:10
+   * beside one from 15:35), so only the vertical half of its answer is kept.
    * The horizontal half comes from `axisOffsets`, which is what lets the axis
    * be a real time axis rather than a list of rank numbers with clocks written
    * against them.
@@ -185,7 +179,7 @@ function layout(graph: ReturnType<typeof buildLineage>, nowMs: number, t: Transl
       badge: node.meso ? "↻" : (node.hail ? "✦" : ""),
       at: clock(node.firstSeen),
       // The peak, not the role. Which node is a merge is already on the chart
-      // -- three lines arrive at it -- and the time alone left two nodes
+      // (three lines arrive at it), and the time alone would leave two nodes
       // reading "16:45" with nothing to tell them apart. This is also what a
       // reader is scanning the family for: which of these was the big one.
       peak: node.peakDbz === null ? "" : `${Math.round(node.peakDbz)} dBZ`,
@@ -201,9 +195,9 @@ function layout(graph: ReturnType<typeof buildLineage>, nowMs: number, t: Transl
   });
 
   /*
-   * Drawn between the nodes rather than along dagre's routes, which were
-   * computed for its own horizontal positions and no longer land anywhere near
-   * the ones above. A cubic with horizontal handles keeps a merge arriving as
+   * Drawn between the nodes rather than along dagre's routes, which are
+   * computed for its own horizontal positions and do not land near the ones
+   * above. A cubic with horizontal handles keeps a merge arriving as
    * three separable curves rather than three lines crossing at a point.
    */
   const at = new Map(nodes.map((node) => [node.code, node]));
@@ -255,10 +249,9 @@ let scroller: HTMLElement;
  * stack, and a horizontal scrollbar is a poor way to say so: on a trackpad and
  * on a phone it is not drawn at all until the moment it is already being used,
  * which is after the reader has had to guess. Fading the content out towards
- * whichever side has more says it without a control -- the graph visibly runs
- * under the edge -- and it says it continuously, shrinking to nothing as the
- * end is reached. The bar itself is hidden, so the fade is the only signal
- * rather than a second one.
+ * whichever side has more says it without a control (the graph visibly runs
+ * under the edge), and continuously, shrinking to nothing as the end is
+ * reached. The bar itself is hidden, so the fade is the only signal.
  */
 let fadeStart = 0;
 let fadeEnd = 0;
@@ -292,11 +285,11 @@ onDestroy(() => observer?.disconnect());
  * Walking the family: the tapped relative becomes the open cell.
  *
  * The chart is scrolled back into view afterwards. Everything above it in the
- * panel is rebuilt for the new cell -- a different 3D model, different charts,
- * a different number of signal tags -- and the panel's own height changes with
- * it, so a reader who had scrolled down to the family found it had moved out
- * from under the finger that just tapped it. The graph stays put now, which
- * for a thing you navigate by is the whole point.
+ * panel is rebuilt for the new cell (a different 3D model, different charts,
+ * a different number of signal tags) and the panel's own height changes with
+ * it, so a reader who had scrolled down to the family would find it moved out
+ * from under the finger that just tapped it. A thing you navigate by has to
+ * stay put.
  */
 function go(code: string) {
   const next = known.get(code);
@@ -316,8 +309,8 @@ function go(code: string) {
  * The chart is wider than the panel, and the node just tapped is usually the
  * reason to scroll: walking towards the end of a family means each tap lands
  * further right, so without this the newly selected cell is off the edge and
- * the highlight moves somewhere the reader cannot see -- which was measurable,
- * a selected node at x 852 in a 351-wide window still scrolled to 0.
+ * the highlight moves somewhere the reader cannot see (a selected node at
+ * x 852 in a 351-wide window, still scrolled to 0).
  *
  * Centred, because that also brings its parents and children into view, and
  * they are what the next tap needs. Nothing happens when the chart already
@@ -342,9 +335,8 @@ function showNode(code: string) {
  *
  * The scroll is keyed on the code, not on `laid`. The layout is rebuilt every
  * time the clock ticks, because the "now" mark moves with it, and re-centring
- * on each of those took the chart back from wherever the reader had scrolled
- * it every fifteen seconds -- a graph you navigate by that will not stay where
- * it is put. The fade still follows every relayout, because the widths do.
+ * on each of those would take the chart back from wherever the reader had
+ * scrolled it every fifteen seconds. The fade still follows every relayout, because the widths do.
  */
 let centred: string | null = null;
 $: if (laid && track) {
@@ -378,8 +370,8 @@ function activate(event: KeyboardEvent, code: string) {
     stroke-opacity: 0.25;
     stroke-width: 1;
   }
-  /* The present, dashed and light, exactly as the two charts above draw it --
-     it is the same claim about the same clock, and drawing it differently here
+  /* The present, dashed and light, as the two charts above draw it: it is
+     the same claim about the same clock, and drawing it differently here
      would make a reader work out twice that it is not a measurement. */
   .nowline {
     stroke: currentColor;
@@ -409,14 +401,14 @@ function activate(event: KeyboardEvent, code: string) {
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
-    /* The bar is hidden so the fade is the only thing saying "there is more",
-       rather than a second, uglier one. Firefox and WebKit spell it
+    /* The bar is hidden so the fade is the only thing saying "there is more".
+       Firefox and WebKit spell it
        differently and neither understands the other. */
     scrollbar-width: none;
     /* Masked rather than overlaid with a gradient: the panel behind this is a
        different colour in each scheme and on the sheet it is translucent over
        the map, so anything painted on top would have to guess what it is
-       covering. A mask fades the chart into whatever is actually there. */
+       covering. A mask fades the chart into whatever is there. */
     -webkit-mask-image: var(--lineage-fade);
     mask-image: var(--lineage-fade);
     transition: -webkit-mask-image var(--mc-motion-fast, 120ms) linear,
@@ -429,7 +421,7 @@ function activate(event: KeyboardEvent, code: string) {
     display: block;
   }
   /* The lines are the chart. A merge is three of them arriving at one node
-     and a split is two leaving, which is the only place that reads -- so they
+     and a split is two leaving, which is the only place that reads, so they
      are drawn to be followed rather than to stay out of the way. */
   .edge {
     fill: none;
@@ -445,7 +437,7 @@ function activate(event: KeyboardEvent, code: string) {
 
   /* The clicked node keeps the browser's focus ring, which on a chart where
      one node is already outlined to say "you are here" reads as a second,
-     contradictory highlight -- and lands on every hop. Dropped for the
+     contradictory highlight, and lands on every hop. Dropped for the
      pointer, kept for the keyboard, which is the one case it is for. */
   .node:focus {
     outline: none;
@@ -494,9 +486,9 @@ function activate(event: KeyboardEvent, code: string) {
       <svg width={laid.width} height={laid.height} viewBox="0 0 {laid.width} {laid.height}"
         role="group" aria-label={$_("storm.lineage.aria")}>
         <!-- The clock, and a rule down the chart at every moment a cell in
-             this family was first detected. Before this the columns were
-             dagre's ranks, which are depth in the graph rather than time: one
-             of them held cells from 16:05, 16:20 and 16:45 together. -->
+             this family was first detected. dagre's ranks are depth in the
+             graph rather than time (one can hold cells from 16:05, 16:20 and
+             16:45 together), so the columns come from the clock. -->
         {#each laid.marks as mark (mark.x)}
           <line class="rule" x1={mark.x} x2={mark.x} y1="0" y2={laid.height - AXIS_H} />
           <text class="axistime" x={mark.x} y={laid.height - 4}>{mark.label}</text>
@@ -527,9 +519,8 @@ function activate(event: KeyboardEvent, code: string) {
               x={node.x - NODE_W / 2} y={node.y - NODE_H / 2}
               width={NODE_W} height={NODE_H} rx="7"
               style="stroke: {severityColour(node.severity)}" />
-            <!-- No clock on the node any more: the row it sits on says when,
-                 and repeating it in every box was the only thing the chart had
-                 before there was an axis to put it on. -->
+            <!-- The peak on the node, and its clock only when there is no
+                 peak: the axis under its column says when. -->
             <text class="at" x={node.x} y={node.y + 4}>{node.peak || node.at}</text>
             {#if node.badge}
               <text class="badge" x={node.x + NODE_W / 2 - 7} y={node.y - NODE_H / 2 + 10}

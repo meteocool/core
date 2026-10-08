@@ -6,8 +6,8 @@
  * The 3D map is the one map here a reader cannot read by having seen a radar
  * map before: clouds that peel away and grow back, boxes on the ground, some
  * storms faint, and a mouse that needs its right button to tilt.
- * Nothing on screen said what any of it was. The card says, once, beside the
- * map rather than over the storms; closed, it stays closed across visits, and
+ * Without the card nothing on screen says what any of it is. It says so once,
+ * beside the map rather than over the storms; closed, it stays closed across visits, and
  * the pill is the way back to it.
  *
  * The swatches are drawn from the same constants and the same palette the map
@@ -62,7 +62,7 @@ function show() {
 /*
  * A storm opening puts the card away: the storm is framed in the room the
  * panel leaves, the card's corner included, and the panel is where it is
- * explained. Not remembered -- the reader did not close it -- and not undone
+ * explained. Not remembered (the reader did not close it), and not undone
  * when the storm closes, which would be the card jumping back unasked.
  */
 $: storm = Boolean($selectedCell || $selectedVolume);
@@ -86,7 +86,7 @@ $: ringColour = rgb(40, $radarColormap);
 /*
  * How much of the bottom edge the card or the pill takes, for the
  * attribution beside it (Map.svelte): narrow, the credits wrap into a strip
- * the width of the map, and the card stood over the start of it.
+ * the width of the map, and the card would stand over the start of it.
  */
 let cardWidth = 0;
 let pillWidth = 0;

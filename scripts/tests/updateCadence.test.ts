@@ -74,7 +74,7 @@ test("overdue is negative while the next publish is still due", () => {
 
 test("a publish that lands clears the overdue reading on its own", () => {
   // The criterion measures from the newest publish, not from when we noticed,
-  // so the next frame is all it takes -- nothing has to reset anything.
+  // so the next frame is all it takes and nothing has to reset anything.
   let cadence = publishCadence(series(10_000, 300, 12));
   assert.ok((overdueBy(cadence, 10_900) ?? 0) > 0);
   cadence = publishCadence(series(10_900, 300, 12));

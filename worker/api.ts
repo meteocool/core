@@ -59,7 +59,7 @@ export function isAppDataPath(pathname: string): boolean {
 
 /**
  * A storm's volume file, as the data service names it: bucket first, then
- * the scan and the box -- a map tile (`T` + zoom + x + y) since tiles, a
+ * the scan and the box: a map tile (`T` + zoom + x + y) since tiles, a
  * storm's peak (`G`) or a cell (`R`) before them, as `lib/deepLink.ts` reads
  * them. Nothing else under the asset host is redirected.
  */

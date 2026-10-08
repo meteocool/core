@@ -38,15 +38,14 @@ export let material: "drawer" | "chrome" = "drawer";
 /**
  * The close button (and its neighbours), as a disc of the drawer's own glass.
  *
- * It was a bare glyph at half opacity, which is the weakest thing the panel
- * could have made of the one control that gets you out of it -- and on the
- * sheet, where the panel is most of the screen, the way out is the control a
- * reader looks for first. A disc gives it an edge to aim at and says, in the
- * app's own visual language, that it is a button.
+ * A bare glyph at half opacity is too weak for the one control that gets you
+ * out of the panel, and on the sheet, where the panel is most of the screen,
+ * the way out is the control a reader looks for first. A disc gives it an
+ * edge to aim at and says, in the app's own visual language, that it is a
+ * button.
  *
- * A flat tint with a specular rim rather than a second blur: it sits on the
- * drawer, which is glass already, and glass on glass is the one thing the
- * material rules out. The tint and the ink are the drawer's, so the disc
+ * A flat tint with a specular rim and no second blur: it sits on the drawer,
+ * which is glass already, and the material rules out glass on glass. The tint and the ink are the drawer's, so the disc
  * follows it between schemes. The glyph is the icon GlassPanel's close uses,
  * not a multiplication sign, whose weight and centring change with the font.
  */
@@ -88,8 +87,8 @@ button.chrome {
     width: 44px;
     height: 44px;
     /* Pulled up and right, into the sheet's own corner. The sheet reserves
-       matching padding on .body for this overhang (see CellSheet.svelte) --
-       without it the overhang gave the sheet a horizontal scrollbar, on a
+       matching padding on .body for this overhang (see CellSheet.svelte).
+       Without it the overhang gives the sheet a horizontal scrollbar, on a
        panel with nothing to scroll sideways. */
     margin: -10px 0 -10px auto;
     font-size: 18px;

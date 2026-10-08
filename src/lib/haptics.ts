@@ -5,7 +5,7 @@
  * Engine is the native host: the apps listen for `impactLight` and
  * `impactMedium` on the script handler. The web gets the Vibration API where
  * it exists, which is Android browsers. Three strengths, named for what they
- * mark rather than for a motor:
+ * mark:
  *
  *   tick    one step among many: a picker's notch, a strip's five minutes
  *   detent  a step that means something: now, a named direction, an option

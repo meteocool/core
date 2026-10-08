@@ -1,13 +1,13 @@
 /**
  * Whether the frames the client is holding have been overtaken by the clock.
  *
- * This is not the same question as lib/degraded.ts's "stale-publish", and the
- * two must not be conflated. That one asks whether the *backend* has stopped
+ * This is a different question from lib/degraded.ts's "stale-publish". That
+ * one asks whether the *backend* has stopped
  * producing, measured against its own history, and it is a claim about the
  * service. This one asks whether *we* are behind: the newest frame we hold is
  * older than one publish cycle, so something newer almost certainly exists and
- * we have not fetched it. The usual cause is that we were not running -- a tab
- * in the background, a phone with the screen locked -- and nothing was there to
+ * we have not fetched it. The usual cause is that we were not running (a tab
+ * in the background, a phone with the screen locked), and nothing was there to
  * receive the websocket poke that would normally have refreshed us.
  *
  * Self-clearing in the same sense as the degraded criteria: it is a function of
@@ -24,16 +24,16 @@ import type { Cadence } from "./updateCadence";
  *
  * The composite is nominally five-minutely, and on a cold start there is no
  * observed rhythm to use instead. Only a fallback: once publishCadence() has
- * enough samples, the measured period wins, which is what makes this work on a
- * staging backend running at some other rate.
+ * enough samples, the measured period wins, so this also works on a staging
+ * backend running at some other rate.
  */
 export const ASSUMED_PERIOD_S = 300;
 
 /**
  * How far past a full cycle the newest frame has to be.
  *
- * A frame is expected to be up to one cycle old -- that is what it means to be
- * the newest one. Only past that is it evidence of a frame we are missing, and
+ * The newest frame can be up to one cycle old. Only past that is it evidence
+ * of a frame we are missing, and
  * the grace absorbs the ordinary few seconds of pipeline lag on top so an
  * ordinary foreground moment does not flash the map as outdated.
  */
@@ -48,8 +48,8 @@ export function expectedPeriodS(cadence: Cadence): number {
  * Whether the newest frame held is old enough that a newer one must exist.
  *
  * Times are epoch seconds, like the grid's own. A null or non-positive newest
- * means there is no grid yet, which is a different state -- still loading, not
- * outdated -- and reports false.
+ * means there is no grid yet, which is a different state (still loading, not
+ * outdated) and reports false.
  */
 export function isOutdated(
   newestFrameS: number | null,
@@ -67,8 +67,8 @@ export function isOutdated(
  * side: that one asks whether the newest frame we hold is behind the clock,
  * this one whether the frame we are *showing* is behind the newest we hold.
  * The cause is the scrubber rather than a sleeping tab, and what it decides is
- * whether a layer with only a present tense -- the storm cells, which arrive
- * as one current state and are not rewound -- has any business being drawn.
+ * whether a layer with only a present tense (the storm cells, which arrive
+ * as one current state and are not rewound) should be drawn at all.
  *
  * Both are epoch seconds, as the grid keys them. A zero on either side means
  * no grid has arrived: a page still loading, or one not showing radar at all.

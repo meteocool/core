@@ -5,7 +5,7 @@ import { isAbort, isTransient, RequestStalled, timedFetch } from "../../src/lib/
 /**
  * A request that has stopped moving has to fail, or everything waiting on it
  * waits for good: the loading bar, "Refreshing…", the next refresh. One that
- * is merely slow must not -- a storm's volume on a 2G link is still coming.
+ * is merely slow must not: a storm's volume on a 2G link is still coming.
  */
 
 const STALL = 40;

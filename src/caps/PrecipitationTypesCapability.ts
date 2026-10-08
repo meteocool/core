@@ -26,7 +26,7 @@ export default class PrecipitationTypesCapability extends Capability {
     this.nb = args.nanobar;
   }
 
-  /** Only fetched on being shown otherwise, so a failed first fetch stayed failed. */
+  /** Without this it only fetches when shown, so a failed first fetch would stay failed. */
   resync() {
     void this.fetchPrecipTypes();
   }

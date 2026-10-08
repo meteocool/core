@@ -2,12 +2,12 @@
  * What the map's corner credits, per source. OpenLayers shows a source's
  * credit only while a layer drawing it is in view, and drops duplicates.
  *
- * Names only. The radar networks' licences ask for more than a name -- CC BY
+ * Names only. The radar networks' licences ask for more than a name (CC BY
  * 4.0 wants the licence named and linked and the changes indicated, Licence
  * Ouverte the source, IMGW that its data "has been processed by" whoever shows
- * it -- and all of that lives in imprint.html#data, which the imprint credit
- * links as "Licences" beside the base map's credit on every map. Spelled
- * out per provider on the map it ran three lines deep on a phone.
+ * it). All of that lives in imprint.html#data, which the imprint credit links
+ * as "Licences" beside the base map's credit on every map. Spelled out per
+ * provider on the map, it ran three lines deep on a phone.
  */
 const link = (href: string, text: string) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
 
@@ -25,7 +25,7 @@ export const imprintAttribution = "| <a href=\"/imprint.html\">Imprint</a> · <a
 
 /**
  * The order the corner reads in: the base map's credits, the data's, and the
- * imprint last -- its leading "|" is written to close the line.
+ * imprint last, since its leading "|" is written to close the line.
  *
  * OpenLayers lists credits in the order their layers were added to the map,
  * which is no order at all here: the lightning layer is built with the page

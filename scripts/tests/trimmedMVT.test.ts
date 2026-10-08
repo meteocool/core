@@ -11,7 +11,7 @@ const { default: TrimmedMVT, trimTile } = await import("../../src/layers/trimmed
  * be what OpenLayers' own layer filter would have kept.
  */
 
-/* -- a minimal MVT encoder: varints, length-delimited fields, point features -- */
+/* ---- a minimal MVT encoder: varints, length-delimited fields, point features ---- */
 const varint = (n: number): number[] => { const out = []; while (n > 127) { out.push((n & 127) | 128); n = Math.floor(n / 128); } out.push(n); return out; };
 const field = (tag: number, payload: number[]) => [...varint((tag << 3) | 2), ...varint(payload.length), ...payload];
 const uint = (tag: number, n: number) => [...varint(tag << 3), ...varint(n)];

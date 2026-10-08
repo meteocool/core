@@ -1,15 +1,15 @@
 <script lang="ts">
 /**
- * Which scan the 3D map's storms are from: "Latest", kept up as runs land,
- * or one of the last two hours' -- picked here, at the end of the peel's
- * tray along the bottom edge (PeelSlider).
+ * Which scan the 3D map's storms are from ("Latest", kept up as runs land,
+ * or one of the last two hours'), picked here at the end of the peel's tray
+ * along the bottom edge (PeelSlider).
  *
  * No playback. There is no list of an earlier scan's storms, so they are
  * found in the bucket, a few dozen requests a scan (lib/cloudHistory.ts):
  * a short wait for one, far too long a wait for an hour of them. So one is
- * picked, the pill shows how the looking goes, and the map stays on it --
- * the pill filled, with its time, so it is plainly not live -- until
- * "Latest" is picked again. A scan with nothing here leaves the map as it
+ * picked, the pill shows how the looking goes, and the map stays on it (the
+ * pill filled, with its time, so it is plainly not live) until "Latest" is
+ * picked again. A scan with nothing here leaves the map as it
  * was, and a note over the pill says so.
  *
  * The menu is moved to <body>, as the radar product picker's is: the tray's

@@ -9,9 +9,9 @@ import type { CellLayer } from "../api";
  * the ground area exceeding it, the height the echo reaches, and the volume
  * enclosed. The first two alone can only describe a column rooted at the
  * surface, which is why the earlier extruded-shell model drew every threshold
- * from the echo base upwards -- and so could not tell a storm already raining
- * out apart from a cloud holding its water several kilometres up, which is
- * exactly the difference worth seeing.
+ * from the echo base upwards, and so could not tell a storm already raining
+ * out apart from a cloud holding its water several kilometres up, the
+ * difference most worth seeing.
  *
  * The volume closes that gap. km3 over km2 is a thickness: the mean depth of
  * that threshold's echo over the ground it covers. A 55 dBZ core of 4 km2 and
@@ -19,7 +19,7 @@ import type { CellLayer } from "../api";
  * between roughly 3 and 6 km with clear air beneath it. The same area reaching
  * the same height with a third of the volume is a thin sheet near the top.
  *
- * What is still not measured is the outline at any given height -- only the
+ * What is still not measured is the outline at any given height, only the
  * area. Two assumptions bridge that, and both are worth knowing before reading
  * detail into a shape:
  *
@@ -31,15 +31,15 @@ import type { CellLayer } from "../api";
  *     fat column, one carrying little comes out a tapering spire, and that
  *     difference is measured even though the profile it is applied to is not.
  *
- * ## Why two rings a band, and not nested solids
+ * ## Why Two Rings a Band, and Not Nested Solids
  *
  * The obvious rendering is one solid per threshold, nested like an onion, the
  * outer ones translucent so the core shows through. That is what the previous
  * model did and it fights with itself: coincident walls wherever two
  * thresholds report the same area, coincident floors because every solid
- * started at the same base, and -- the real killer -- `fill-extrusion` writes
- * depth even when it is translucent, so an outer shell drawn first simply
- * erases the core inside it. The result flickers with the camera and hides the
+ * started at the same base, and, worst of all, `fill-extrusion` writes depth
+ * even when it is translucent, so an outer shell drawn first erases the core
+ * inside it. The result flickers with the camera and hides the
  * one thing the map exists to show.
  *
  * Nor does more glass fix it. Seven nested shells at any opacity that still
@@ -50,7 +50,7 @@ import type { CellLayer } from "../api";
  *
  * So the cell is decomposed into pieces that do not overlap at all, and into
  * as few as will carry the reading. Horizontal bands stack up its depth, and
- * each band holds at most two: an opaque column of whatever intensity actually
+ * each band holds at most two: an opaque column of whatever intensity
  * dominates at that height, and one sheet of glass around it for the rest of
  * the echo. Every piece is disjoint from every other in all three dimensions,
  * nothing is coplanar with anything (a hair of radial clearance separates the
@@ -62,7 +62,8 @@ import type { CellLayer } from "../api";
  * glass around it is how far the weaker echo spreads. A column that stops well
  * below the top is a core capped by an anvil; one that starts well above the
  * ground is a storm that has not yet rained out.
- *
+ */
+
 /** One concentric piece of a band: the storm between two radii at one height. */
 export interface VolumeRing {
   /** The threshold this piece is at or above. */
@@ -123,7 +124,7 @@ export interface CellVolumeModel {
  * A box to draw a storm inside: half-width and the height band, both in km.
  *
  * Separated from the model because a picture is not always framed on the cell
- * in it -- the detail view frames every member of a family on the same box, so
+ * in it: the detail view frames every member of a family on the same box, so
  * that a cell half the size of its parent is drawn half the size of its
  * parent. Lives here rather than in the component that draws it because the
  * component that *computes* it is a different one again.
@@ -253,15 +254,15 @@ const smoothstep = (t: number): number => t * t * (3 - 2 * t);
  * The cross-section at a height, as a fraction of the body's widest.
  *
  * Widest at the base and tapering to almost nothing at the top: a dome, not a
- * box. `exponent` decides how sharply -- see `exponentForMean`.
+ * box. `exponent` decides how sharply; see `exponentForMean`.
  *
  * Monotonic on purpose. An earlier version bulged a third of the way up, which
  * is a fair description of a cumulonimbus but reads as a brim once the solid is
  * cut into bands: each band above the base juts out past the one below it, and
  * with the outermost ring drawn see-through the storm ends up wearing a stack
  * of pale flying saucers. A body that really is widest aloft shows that by
- * floating -- its base is above the ground -- which is the honest signal and
- * the one the data actually carries.
+ * floating (its base is above the ground), which is the signal the data
+ * carries.
  */
 const TOP_FRACTION = 0.05;
 
@@ -284,10 +285,10 @@ const meanFor = (exponent: number): number => (
 );
 
 /**
- * The fills the profile can actually reach.
+ * The fills the profile can reach.
  *
  * A dome tapering to a point cannot average less than about a twelfth of its
- * widest however hard it is sharpened -- past `MAX_EXPONENT` it is a needle
+ * widest however hard it is sharpened: past `MAX_EXPONENT` it is a needle
  * and the mean stops falling. Asking for less than it can reach silently
  * returns the needle, so `LIFT_FILL` has to stay comfortably above this or
  * bodies lifted off the base would be drawn fuller than their volume allows.
@@ -299,9 +300,9 @@ const MAX_EXPONENT = 40;
 /**
  * The thinnest a body can be spread over its column before it must be floating.
  *
- * A threshold whose volume would leave its column this empty is not a wispy
- * pillar standing on the deck -- it is a sheet or a lump somewhere up inside
- * the storm, and drawing it from the echo base upwards is exactly the lie the
+ * A threshold whose volume would leave its column this empty is a sheet or a
+ * lump somewhere up inside the storm, not a wispy pillar standing on the
+ * deck, and drawing it from the echo base upwards is the lie the
  * extruded-shell model told.
  */
 const LIFT_FILL = 0.14;
@@ -312,7 +313,7 @@ const exponentCache = new Map<number, number>();
  * The exponent whose profile averages `wanted` over its height.
  *
  * This is where the reported volume enters the shape. Mean fill falls
- * monotonically as the exponent rises -- the profile is everywhere at most 1 --
+ * monotonically as the exponent rises (the profile is everywhere at most 1),
  * so a bisection finds it, and the answers are cached because a few hundred
  * bodies per run mostly want the same handful of values.
  */
@@ -402,8 +403,8 @@ function bodies(cell: VolumeInput): Body[] {
      * case, and then its volume is spent entirely on the taper: `depthM` over
      * the height of that column is the fill the profile has to average, and
      * `exponentForMean` finds the shape that does. Only when that fill comes
-     * out implausibly low -- there is nowhere near enough echo to fill the
-     * column even as a spire -- is the body lifted off the base and hung under
+     * out implausibly low (there is nowhere near enough echo to fill the
+     * column even as a spire) is the body lifted off the base and hung under
      * its own top instead.
      *
      * Deriving the extent from the volume in every case, which is what this
@@ -432,7 +433,7 @@ function bodies(cell: VolumeInput): Body[] {
 /**
  * The outline to slice.
  *
- * A cell always has a centroid and an area, but only sometimes a polygon -- one
+ * A cell always has a centroid and an area, but only sometimes a polygon: one
  * detected at the edge of radar coverage can arrive without one. Falling back
  * to a circle of the right area keeps it on the map as a plain shape rather
  * than dropping a storm because its outline was missing.
@@ -487,7 +488,7 @@ export function toLocalKm(
  *
  * The cell's own centroid, normally: a storm's core sits where the tracker says
  * the cell is, not at the centre of a polygon that may be lopsided. But the two
- * are separate fields and nothing guarantees they agree -- a centroid that has
+ * are separate fields and nothing guarantees they agree: a centroid that has
  * drifted outside its own outline would send every inner ring off the edge of
  * the storm and, at the limit, collapse the model into a sliver pointing at
  * empty air. When they disagree that badly the outline is the one to trust.

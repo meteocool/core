@@ -17,10 +17,9 @@ let loading = false;
 
 /* Self-rescheduling, so it first cancels whatever it scheduled last time.
    Without that, the subscription below (which fires synchronously on subscribe
-   and calls this) and the trailing call that used to sit at the bottom of this
-   script each started a chain, and only the last id written to updateTimeout
-   could ever be cleared -- the other one ticked for the life of the page, once
-   per mounted-and-discarded toolbar. */
+   and calls this) and any other caller would each start a chain, and only the
+   last id written to updateTimeout could ever be cleared. The other would tick
+   for the life of the page, once per mounted-and-discarded toolbar. */
 const updateTime = () => {
   if (updateTimeout) clearTimeout(updateTimeout);
   updateTimeout = null;
@@ -37,8 +36,8 @@ const updateTime = () => {
 };
 
 /* This component is created and destroyed with the toolbar mode, so both
-   subscriptions and the self-rescheduling timer have to be handed back --
-   otherwise every open/close leaves another live 10s tick behind, formatting
+   subscriptions and the self-rescheduling timer have to be handed back.
+   Otherwise every open/close leaves another live 10s tick behind, formatting
    a timestamp for a component that is no longer on the page. */
 const subscriptions: (() => void)[] = [];
 

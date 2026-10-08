@@ -1,4 +1,4 @@
-// XXX this thing has a problem where the datatypes are lost when stuff is saved to localstroage.
+// XXX this thing has a problem where the datatypes are lost when stuff is saved to localStorage.
 
 
 /** One setting's declaration, as App.svelte writes it. */
@@ -24,15 +24,15 @@ export default class Settings {
    * Values held for this page load only, ahead of whatever is stored.
    *
    * What a link does: it says which overlays the sender had on, and the reader
-   * should see those -- without the link quietly rewriting the preferences
-   * they had before they clicked it. So these win in get() and are never
+   * should see those without the link rewriting the preferences they had
+   * before they clicked it. So these win in get() and are never
    * written anywhere; see override().
    */
   private overrides = new Map<string, SettingValue>();
 
   /**
-   * Values set where localStorage would not take them -- blocked, or a webview
-   * without it, where `localStorage` is null -- kept for this page load
+   * Values set where localStorage would not take them (blocked, or a webview
+   * without it, where `localStorage` is null), kept for this page load
    * instead. Writing to it threw, so a switch did nothing but report an error.
    */
   private unsaved = new Map<string, SettingValue>();
@@ -190,8 +190,8 @@ export default class Settings {
    * Hold a value for this page load without storing it.
    *
    * Fires the setting's callback when the effective value changes, like set(),
-   * so the store it drives follows. Anything set() is then handed -- including
-   * the same value echoed back by that store's own subscription -- is judged
+   * so the store it drives follows. Anything set() is then handed (including
+   * the same value echoed back by that store's own subscription) is judged
    * against the override first; see there.
    */
   override(key: string, value: SettingValue) {

@@ -23,9 +23,9 @@ import type { LabelPalette, LabelTier, LabelTierName } from "./labels";
  * readable through radar reflectivity.
  *
  * These used to come from Nextzen, which now answers every tile request with
- * "An API key is required" and no longer issues keys -- so both overlays had
- * gone blank. They read meteocool's own Protomaps tiles instead, the same
- * tileset the basemaps come from.
+ * "An API key is required" and no longer issues keys, so both overlays went
+ * blank. They now read meteocool's own Protomaps tiles, the same tileset the
+ * basemaps come from.
  */
 
 const overlayAttributions = [osmAttribution, protomapsAttribution, imprintAttribution];
@@ -42,7 +42,7 @@ function paletteFor(basemap: string): LabelPalette {
  * One Text style per tier: labels are decluttered against each other, so the
  * style is mutated per feature and consumed straight away. The Fill and Stroke
  * are held alongside it because the palette is applied by mutating them in
- * place -- every layer holds a reference to the same Style, so rebuilding it
+ * place: every layer holds a reference to the same Style, so rebuilding it
  * would leave them all pointing at the old one.
  */
 interface TierPaint {

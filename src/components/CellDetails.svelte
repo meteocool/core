@@ -4,9 +4,9 @@
  *
  * A cell's current reflectivity says very little on its own: a 55 dBZ core that
  * has been weakening for twenty minutes and one that has doubled its VIL in ten
- * are the same number and completely different storms. So this leads with the
- * signatures that separate a severe storm from a heavy shower -- rotation,
- * hail, a lightning jump, motion that departs from everything nearby -- shows
+ * are the same number and different storms. So this leads with the
+ * signatures that separate a severe storm from a heavy shower (rotation,
+ * hail, a lightning jump, motion that departs from everything nearby), shows
  * the storm's own shape as a turning 3D model, and plots the history behind the
  * current reading.
  *
@@ -75,18 +75,16 @@ const compass = (deg: number | null | undefined, t: Translate): string => (
 /**
  * Two charts, not one with two scales.
  *
- * The first version of this drew reflectivity against a left axis and echo top
- * against a right one. That is the oldest bad habit in charting: where the two
- * scales line up is a choice, so the crossing point where the lines meet is
- * something the chart invents rather than something the storm did. Stacked as
- * small multiples over one shared clock they answer the same question -- is the
- * core strengthening while the cloud collapses? -- without either line being
- * able to lie about the other.
+ * Reflectivity against a left axis and echo top against a right one is the
+ * oldest bad habit in charting: where the two scales line up is a choice, so
+ * the crossing point where the lines meet is something the chart invents
+ * rather than something the storm did. Stacked as small multiples over one
+ * shared clock they answer the same question (is the core strengthening while
+ * the cloud collapses?) without either line being able to lie about the other.
  *
- * The earlier version before that was a bare sparkline with no scale at all,
- * which can say "went up a bit" and nothing more: a rise from 48 to 52 dBZ and
- * one from 30 to 62 drew the identical line, because both were normalised to
- * the box.
+ * A bare sparkline with no scale can say "went up a bit" and nothing more: a
+ * rise from 48 to 52 dBZ and one from 30 to 62 draw the identical line,
+ * because both are normalised to the box.
  *
  * Still hand-drawn rather than handed to a chart library. This is one popup
  * with two dozen points in it, and the app already pays for one map renderer.
@@ -173,7 +171,7 @@ $: latest = series[series.length - 1];
 /**
  * On the 3D map the storm stands behind the panel, cut open when it has a
  * volume, so the panel's own raymarched cutaway would be a second, smaller
- * copy of it -- one more GPU raymarch every frame for a picture already on
+ * copy of it: one more GPU raymarch every frame for a picture already on
  * screen. It turns the cut on the map with the dial instead, and shows the
  * CAPPI, which is the one view of the volume the map does not give.
  *
@@ -190,7 +188,7 @@ $: forecast = track.forecast ?? [];
  *
  * Every quarter minute: the readings are five-minutely, so a slower tick would
  * let "4 min ago" sit there while it became six, and a faster one would redraw
- * the panel to change nothing. Cleared on destroy -- this component is created
+ * the panel to change nothing. Cleared on destroy: this component is created
  * and thrown away on every tap.
  */
 let tick = Date.now();
@@ -214,10 +212,10 @@ $: relatives = [...family.values()]
 /**
  * The window the charts cover: the family's, not just this cell's.
  *
- * It used to run past the last detection to a shaded lead time. That band is
- * gone -- radar forecasts a cell's position and not its intensity, so there
- * was never a trace to mark the start of, and an empty third of the chart was
- * paying for a distinction the axis labels can make on their own.
+ * It stops at the present, with no shaded lead time past it: radar forecasts
+ * a cell's position and not its intensity, so there is no trace to mark the
+ * start of, and an empty third of the chart would pay for a distinction the
+ * axis labels can make on their own.
  *
  * What the window covers instead is every cell drawn on it. A merge is two
  * traces ending where a third takes over, and it only reads that way if all of
@@ -228,10 +226,9 @@ $: familyTimes = relatives.flatMap((other) => (other.series ?? [])
 /**
  * The window runs to now, not to the last reading.
  *
- * Which is the whole point of marking it. A cell's readings stop when DWD
- * stopped detecting it, and a chart that ends there quietly implies the record
- * is current -- the trace runs to the right-hand edge whether it was measured
- * a minute ago or an hour. Carrying the axis to the present puts the gap on
+ * That is why it is marked. A cell's readings stop when DWD stopped detecting
+ * it, and a chart that ends there implies the record is current: the trace
+ * runs to the right-hand edge whether it was measured a minute ago or an hour. Carrying the axis to the present puts the gap on
  * the page, where the `now` line then says what it is.
  *
  * `tick` rather than `Date.now()` so the line moves: it is the same
@@ -244,8 +241,8 @@ $: span = (() => {
   const end = Math.max(times[times.length - 1], ...familyTimes, tick);
   // A little past the end, so `now` lands inside the plot with a gap after it
   // rather than on the axis line. Without this the marker is always exactly on
-  // the right-hand edge -- carrying the window to now makes now the edge by
-  // construction -- and an invisible line is not a mark.
+  // the right-hand edge (carrying the window to now makes now the edge by
+  // construction), and an invisible line is not a mark.
   return { from, to: end + (end - from) * 0.05 };
 })();
 
@@ -266,7 +263,7 @@ function atX(t: number): number {
  * Reflectivity leads in the cell's own severity colour, echo top follows in
  * plain ink: one series is the point and the other is context, which is
  * emphasis rather than two colours competing. Each panel is a single series,
- * so it needs no legend -- its caption names it -- and the latest value is
+ * so it needs no legend (its caption names it), and the latest value is
  * labelled on the line instead of every point carrying a number.
  */
 $: panels = [
@@ -299,7 +296,7 @@ $: panels = [
    * A merge is the thing this makes visible: two traces running until they
    * stop, and a third carrying on from where their values were. The panel can
    * say "merged" in a tag and the family chart can say which cells, but only
-   * this says what the merge did to the storm -- whether the survivor took the
+   * this says what the merge did to the storm: whether the survivor took the
    * strongest of them or came out above all three.
    *
    * Dashed and unlabelled, because they are context: the reader asked about
@@ -342,9 +339,9 @@ $: panels = [
 /**
  * Whole minutes at a step that fits, from lib/timeTicks.ts.
  *
- * The old axis labelled three moments taken from the data -- first reading,
- * last reading, end of the forecast -- which moved with the cell and left a
- * track running 16:07 to 16:52 with nothing between its two ends. Ticks on the
+ * Three moments taken from the data (first reading, last reading, end of the
+ * forecast) would move with the cell and leave a track running 16:07 to 16:52
+ * with nothing between its two ends. Ticks on the
  * clock read the same way as every other time in this panel, and two charts
  * stacked over one window line up with each other.
  */
@@ -353,11 +350,11 @@ $: ticks = span ? timeTicks(span.from, span.to, 4) : [];
 /**
  * The ticks with their positions already worked out.
  *
- * Not `x={atX(t)}` in the markup, which is what this was. The block is keyed
- * on the tick's timestamp so that a tick surviving a change of cell is not
- * torn down and rebuilt -- and Svelte has no way to know `atX` reads `span`,
- * so a surviving tick kept the x it had been given under the old window.
- * Walking the family put 16:00 and 16:30 at the same pixel.
+ * Not `x={atX(t)}` in the markup. The block is keyed on the tick's timestamp
+ * so that a tick surviving a change of cell is not torn down and rebuilt, and
+ * Svelte has no way to know `atX` reads `span`, so a surviving tick would keep
+ * the x it had been given under the old window. Walking the family would put
+ * 16:00 and 16:30 at the same pixel.
  *
  * Computed in a reactive statement that names `span` outright, so it is redone
  * whenever the window moves and every tick in it is a new object.
@@ -377,7 +374,7 @@ $: nowAt = span && tick > span.from ? atX(tick) : null;
 /**
  * Which side of the line the label sits on.
  *
- * To the right where there is room, which reads better -- the label follows
+ * To the right where there is room, which reads better: the label follows
  * the line the way a caption follows what it names. Where there is not, it
  * goes to the left rather than the axis being padded out to make room: a
  * tenth of the chart left empty to seat one eight-pixel word is a bad trade
@@ -417,7 +414,7 @@ $: shape = latest && (track.structure ?? []).length
  * problem: a 2 km cell that has just split off a 30 km supercell would be
  * drawn at a fifteenth of the canvas, which is a dot rather than a shape, and
  * a shape is what the picture is for. Past this ratio the shared scale is
- * abandoned for that one cell rather than rendering something unreadable --
+ * abandoned for that one cell rather than rendering something unreadable;
  * the ruler beside it still says what it is.
  */
 const MAX_FRAME_RATIO = 4;
@@ -426,7 +423,7 @@ const MAX_FRAME_RATIO = 4;
  * Each cell's own extent, worked out once.
  *
  * `cellVolume` rebuilds a solid from the threshold stack, and the family runs
- * to MAX_FAMILY members -- doing that on every frame of a turning model, or on
+ * to MAX_FAMILY members; doing that on every frame of a turning model, or on
  * every clock tick, would be absurd for a number that cannot change while the
  * panel is open.
  */
@@ -461,11 +458,11 @@ function extentOf(cell: CellTrackProperties): ModelFrame | null {
 /**
  * One frame for the whole family, so size means something across a hop.
  *
- * Every model used to be normalised to fill its canvas, which made the most
- * legible quantity in the picture -- how big the storm looks -- carry no
- * information at all: walking from a cell to the parent it split from showed
- * two storms the same size. Framing them all on the family's envelope is what
- * makes the comparison the panel invites an honest one.
+ * Normalising every model to fill its canvas would make the most legible
+ * quantity in the picture (how big the storm looks) carry no information at
+ * all: walking from a cell to the parent it split from would show two storms
+ * the same size. Framing them all on the family's envelope makes the
+ * comparison the panel invites an honest one.
  *
  * It only ever grows: the family arrives in rounds behind the first paint, so
  * a frame that tracked the set exactly would shrink the model a step at a time
@@ -501,8 +498,8 @@ $: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, 
  * The relatives of the open cell, fetched one at a time until the family closes.
  *
  * They cannot come from the map's own data. Tracks are fetched for the
- * viewport, and a storm's parent may have been detected well outside it -- or
- * before the window the map asked for -- so a family assembled from what is on
+ * viewport, and a storm's parent may have been detected well outside it (or
+ * before the window the map asked for), so a family assembled from what is on
  * screen is arbitrarily truncated. `/cells/tracks/{code}` answers for any code,
  * which is what closes it.
  *
@@ -516,11 +513,11 @@ let loadingFamily = false;
 /**
  * Which walk is the current one.
  *
- * A hop starts a new walk while the last may still be waiting on a round, and
- * the old one used to carry on regardless. Landing late, it put the family it
- * had been walking back over the new one -- the storm just left, charted under
- * the one now open -- and its `finally` cleared "loading" while the new walk
- * was still out. A walk that is no longer the newest stops at its next await
+ * A hop starts a new walk while the last may still be waiting on a round. Left
+ * to carry on and landing late, the old one would put the family it had been
+ * walking back over the new one (the storm just left, charted under the one
+ * now open), and its `finally` would clear "loading" while the new walk was
+ * still out. A walk that is no longer the newest stops at its next await
  * and touches nothing.
  */
 let familyWalk = 0;
@@ -533,11 +530,10 @@ async function loadFamily(root: CellTrackProperties) {
    * Kept when the new cell is one this family already holds.
    *
    * Walking the chart re-roots the panel on a relative, and rebuilding from
-   * that relative meant starting again from a map of one: the chart fell below
-   * the two nodes it needs to draw anything, vanished, and grew back a round
-   * at a time as the fetches landed. Every hop was a graph that disappeared and
-   * relaid itself under a cursor that had not moved, which is the opposite of
-   * what a thing you navigate by should do. Within one lineage the family is
+   * that relative would start again from a map of one: the chart would fall
+   * below the two nodes it needs to draw anything, vanish, and grow back a
+   * round at a time as the fetches landed, under a cursor that had not moved.
+   * Within one lineage the family is
    * the same family, so it survives the hop and only the highlight moves.
    */
   const known = family.has(root.code)
@@ -562,8 +558,8 @@ async function loadFamily(root: CellTrackProperties) {
       if (!wanted.length) break;
       /* `optional`: a relative the backend has since forgotten answers 404,
          which is the lineage outliving its oldest members, not the backend
-         failing -- counted as a failure, it put the map in its degraded state
-         for every old family opened. Such a one comes back undefined. */
+         failing. Counted as a failure, it would put the map in its degraded
+         state for every old family opened. Such a one comes back undefined. */
       const answers = await Promise.all(wanted.map((code) => fetchCellTrack(code, undefined, { optional: true })
         .catch((error) => (error instanceof NothingPublished ? undefined : null))));
       if (walk !== familyWalk) return;
@@ -621,8 +617,8 @@ $: observedAt = clock(track.last_seen);
  * Closing leaves the cell's forecast on the map on a phone, and clears it
  * everywhere else.
  *
- * There, closing the panel is how a reader asks to look at the map again --
- * the panel was covering it -- so taking the forecast away with it would mean
+ * There, closing the panel is how a reader asks to look at the map again
+ * (the panel was covering it), so taking the forecast away with it would mean
  * tapping the storm twice over to get back what they were already looking at.
  * The map background still clears everything, which is where "done with this
  * storm" belongs. `afterClose` in lib/cellSelection.ts states both.
@@ -706,8 +702,8 @@ function close() {
   {/if}
 
   <!-- The measured model above cannot lean: its shells are stacked outlines.
-       The volume is built from the radar's own 3D field, so an overhang -- the
-       core hanging downshear out over the inflow -- is visible where there is
+       The volume is built from the radar's own 3D field, so an overhang (the
+       core hanging downshear out over the inflow) is visible where there is
        one. Offered only for the storms a volume was built for, which is the
        strongest few and only where the radars sampled the 3 to 8 km layer
        properly. On the 3D map the map is the vertical cut, and the panel
@@ -723,8 +719,8 @@ function close() {
     </h3>
     <figure class="model">
       <!-- Keyed on the volume: the cutaway fetches once, on mount, so walking
-           the family from one cell with a volume to another kept drawing the
-           first storm's insides under the second one's name. -->
+           the family from one cell with a volume to another would keep drawing
+           the first storm's insides under the second one's name. -->
       {#key track.volume.path}
         <CellCutaway
           volume={track.volume}
@@ -819,8 +815,8 @@ function close() {
       <dt>{$_("storm.fact.observed")}</dt>
       <dd>{observedAt}</dd>
     </div>
-    <!-- Everything above is one detection, and the panel used to imply it was
-         current. This is the part that decides whether the numbers can be
+    <!-- Everything above is one detection, which can read as current. This
+         is the part that decides whether the numbers can be
          read against the radar drawn behind them at all, so it is there when
          the two are out of step and absent when they are not. -->
     {#if radarOffset}
@@ -853,11 +849,10 @@ function close() {
   /**
    * Whether the storm is still there, at the top where the question is asked.
    *
-   * This used to be one grey word -- "dissipated" -- in the same style as the
-   * age beside it, which made the single most important fact about a cell the
-   * quietest thing in its header, and said nothing at all when a cell was
-   * still flagged active but had stopped being detected. Four states now, and
-   * the live one carries the pulsing dot from the "Latest" pill, because it is
+   * One grey word ("dissipated") in the same style as the age beside it would
+   * make the most important fact about a cell the quietest thing in its
+   * header, and would say nothing when a cell is still flagged active but has
+   * stopped being detected. So there are four states, and the live one carries the pulsing dot from the "Latest" pill, because it is
    * the same claim about the same thing: something is still arriving.
    */
   .status {
@@ -963,7 +958,7 @@ function close() {
     gap: 10px;
   }
   /* The present. Dashed and light, because it is a reference the readings are
-     placed against rather than one of them -- the same reason a gridline is
+     placed against rather than one of them, for the same reason a gridline is
      lighter than a trace. */
   .nowline {
     stroke: currentColor;
@@ -1015,8 +1010,8 @@ function close() {
 
   /* The cell's own line. The accent panel's stroke and head are set in the
      markup, from the severity; the other one is plain ink, as context. Without
-     these the context trace fell back to SVG's own defaults -- no stroke at
-     all, a black head -- and the latest-value labels were black on the dark
+     these the context trace falls back to SVG's own defaults (no stroke at
+     all, a black head), and the latest-value labels are black on the dark
      sheet. */
   .trace {
     stroke-width: 2;

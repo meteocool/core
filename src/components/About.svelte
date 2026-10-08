@@ -4,7 +4,7 @@ import GlassPanel from "./GlassPanel.svelte";
 </script>
 
 <style>
-  /* The panel -- material, header, scrolling -- is GlassPanel's, shared with
+  /* The panel (material, header, scrolling) is GlassPanel's, shared with
      Settings and Connection Details; this is the text inside it. */
   .about-text {
     font-size: 14px;

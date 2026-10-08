@@ -3,8 +3,8 @@ import type { SourceTile } from "./tileIndex";
 /**
  * A value tile's bytes, cut down to what the GPU needs.
  *
- * The radar layers keep hundreds of tiles -- a frame's worth for every step
- * of playback, for each network -- so a tile is handed to the GPU as its
+ * The radar layers keep hundreds of tiles (a frame's worth for every step
+ * of playback, for each network), so a tile is handed to the GPU as its
  * values alone (lib/valuePng.ts), a one-channel texture whose band 4 reads
  * as opaque, rather than as four bytes a pixel.
  *

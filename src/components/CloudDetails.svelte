@@ -3,23 +3,22 @@
  * A storm opened for its volume alone.
  *
  * Most clouds with a volume are cores found in the radar composite that
- * KONRAD3D never reports -- it is a warning product, and a shower with a
- * respectable core is not something it warns about. So there is no track, no
- * forecast and no history for `CellDetails` to draw, and this is the whole of
- * what can honestly be said: where the core is, how strong it is, and what is
- * inside it.
+ * KONRAD3D never reports: it is a warning product, and it does not warn about
+ * a shower with a respectable core. So there is no track, no forecast and no
+ * history for `CellDetails` to draw, and this is all that can be said: where
+ * the core is, how strong it is, and what is inside it.
  *
- * Titled by where it is, not by what it is. It used to say "Storm core", and
- * most of these are showers: the composite is searched for anything above
- * 30 dBZ, and calling every one a storm oversold all but a few. A place is
- * true of every one of them, and is what a reader tells two apart by.
+ * Titled by where it is. Most of these are showers: the composite is searched
+ * for anything above 30 dBZ, and calling every one a "Storm core" would
+ * oversell all but a few. A place is true of every one of them, and is what a
+ * reader tells two apart by.
  *
  * Laid out as a cell's details are, in the same `StormPanel`, and in the same
  * order where the two have the same things to say: the dial that turns the
  * cut on the map, the readings, then the volume by height and the radars it
- * came from -- see `VolumeProvenance`. No cutaway of its own: these open on the
+ * came from (see `VolumeProvenance`). No cutaway of its own: these open on the
  * 3D map, where the storm already stands cut open behind the panel, and a
- * second raymarched copy of it cost the GPU a frame for nothing.
+ * second raymarched copy of it would cost the GPU a frame for nothing.
  */
 import { get } from "svelte/store";
 import { onDestroy } from "svelte";
@@ -134,8 +133,8 @@ $: showVolume = !compact || expanded;
 
 <style>
 .dial { margin: 2px 0 8px; }
-/* A quiet line, not a button that competes with the dial: it is there to say
-   the sheet goes up, for the few who want what is above. */
+/* A quiet line that does not compete with the dial: it says the sheet goes
+   up, for the few who want what is above. */
 .how {
   display: block;
   margin: 0 auto;

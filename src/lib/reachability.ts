@@ -4,13 +4,13 @@
  * The browser's `navigator.onLine` is the only other word on this, and it
  * only knows about the link it is on: a train in a tunnel, a captive portal,
  * a café's Wi-Fi with nothing behind it are all "online" to it, while every
- * request goes out and nothing comes back. Degraded is no name for that
- * either -- it is a claim about a backend that answers badly, and this one
- * does not answer.
+ * request goes out and nothing comes back. Degraded is the wrong name for it
+ * too: that describes a backend that answers badly, and this one does not
+ * answer.
  *
  * So the calls keep score. Any answer, a 500 included, says the backend is
- * there. A call that got no answer at all -- the network refused it, or it
- * stalled -- says it is not, but only if nothing else has answered since that
+ * there. A call that got no answer at all (the network refused it, or it
+ * stalled) says it is not, but only if nothing else has answered since that
  * call was sent: one stalled request among others that came back is a slow
  * request, not a dead connection.
  *

@@ -1,13 +1,12 @@
 # Deploys the frontend to staging and demo on every push to `develop`, the
-# default branch that feature branches merge into -- the frontend's counterpart
-# of meteocool/ng's `v4`. Both are Cloudflare Workers (wrangler.jsonc, envs
+# default branch that feature branches merge into (the frontend's counterpart
+# of meteocool/ng's `v4`). Both are Cloudflare Workers (wrangler.jsonc, envs
 # `staging` and `demo`) in front of the staging cluster. `main` is production
 # and is not deployed from here.
 #
 # This repository is public, and this is the only workflow that runs on
-# `develop` holding a secret -- a Cloudflare API token that can publish
-# Workers. It is written so that the token is reachable from as little as
-# possible:
+# `develop` holding a secret: a Cloudflare API token that can publish
+# Workers. It keeps the token reachable from as little as possible:
 #
 # - Push only. No `pull_request`, and never `pull_request_target`: a fork's
 #   pull request must not be able to run anything next to the token. Adding
@@ -16,7 +15,7 @@
 #   repository's secrets, and both Environments only admit `develop`. A
 #   workflow on any other ref cannot read it even if it names the Environment.
 # - The job that holds it installs nothing from package-lock.json. The app's
-#   dependency tree -- a thousand packages, some with install scripts -- is
+#   dependency tree (a thousand packages, some with install scripts) is
 #   installed and built in `build`, which has no secrets, and the Worker imports
 #   nothing, so `deploy` needs only the built `dist/` and a pinned wrangler.
 # - GitHub-hosted runners only. The self-hosted meteocloud runner sits inside a

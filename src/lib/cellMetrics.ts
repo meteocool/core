@@ -4,17 +4,18 @@ import type { Translate } from "../locale/t";
 /**
  * A storm's numbers, banded so they can be read without knowing radar.
  *
- * "34 kg/m2" and "61 dBZ" are precise and, to almost everyone, meaningless --
+ * "34 kg/m2" and "61 dBZ" are precise and, to almost everyone, meaningless:
  * there is no way to tell from the figures alone whether that is an ordinary
- * shower or the worst cell of the afternoon. Every reading here therefore
- * carries the band it falls in as well as the number, and the popup draws the
+ * shower or the worst cell of the afternoon. So every reading here carries
+ * the band it falls in as well as the number, and the popup draws the
  * band as a colour and as a filled meter: colour for the glance, length for
  * anyone who cannot use the colour, and the figure itself for anyone who can
  * read it directly.
  *
- * The bands are the DWD severity classes the rest of the app already speaks --
+ * The bands are the DWD severity classes the rest of the app already uses:
  * the word in the popup header, the colour of the marker on the map, the ring
- * around a footprint. One scale, four steps, the same meaning everywhere.
+ * around a footprint. It is one four-step scale with the same meaning
+ * everywhere.
  *
  * Cut points are the operational ones rather than anything derived: 55 dBZ is
  * where large hail becomes likely, 12 km puts an echo top through the

@@ -7,7 +7,7 @@ import type { DrawnMap, ReadyReason } from "../../src/lib/screenshot.ts";
 
 /**
  * A renderer photographs the page the moment it says it is finished, so a
- * signal that comes early is a card with an empty sky -- and one that never
+ * signal that comes early is a card with an empty sky, and one that never
  * comes is a card that times out.
  */
 

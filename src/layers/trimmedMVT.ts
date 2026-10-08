@@ -10,11 +10,11 @@ import type RenderFeature from "ol/render/Feature";
  * OpenLayers' `layers` option filters features, not bytes: it reads every
  * layer's key and value tables first and only then drops the layers it was not
  * asked for. Protomaps' `landuse` is most of a mid-zoom tile, and neither the
- * light nor the dark basemap draws any of it, so that was most of the parse
- * spent on nothing -- and the label layer, which wants `places` alone, paid it
- * for every other layer too. Here the tile is copied without them first, which
- * only skips over their bytes; what OpenLayers reads after that is exactly the
- * same.
+ * light nor the dark basemap draws any of it, so most of the parse went to
+ * nothing. The label layer, which wants `places` alone, paid that cost for
+ * every other layer too. Here the tile is first copied without the unwanted
+ * layers, which only skips over their bytes; what OpenLayers reads after that
+ * is exactly the same.
  *
  * Tiles arrive on the main thread, so the parse is time out of a frame: a
  * tile landing during a pan was the longest frame left in it.
@@ -66,12 +66,12 @@ export function trimTile(tile: ArrayBuffer, keep: Set<string>): ArrayBuffer {
       kept.push(bytes.subarray(start, pos));
     }
   } catch {
-    // A tile that cannot be walked goes to OpenLayers whole, to fail or not
-    // there exactly as it always did.
+    // A tile that cannot be walked goes to OpenLayers whole, which then fails
+    // on it or not, the same as without trimming.
     return tile;
   }
   // Copying most of a tile to save reading a sliver of it costs more than it
-  // saves -- the OSM theme keeps nearly everything.
+  // saves. The OSM theme keeps nearly everything.
   if (dropped < bytes.length / 8) return tile;
   const out = new Uint8Array(kept.reduce((total, part) => total + part.length, 0));
   let offset = 0;

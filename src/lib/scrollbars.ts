@@ -3,7 +3,7 @@
  *
  * A phone's are like that already: a few pixels of thumb, over the content,
  * gone a moment after the scroll stops. A desktop browser with a mouse draws
- * the classic kind instead -- a grey gutter and thumb down the side of every
+ * the classic kind instead: a grey gutter and thumb down the side of every
  * drawer and popup, whether or not anyone is scrolling it. glass.css narrows
  * those to a thin, transparent strip; this marks whichever element is being
  * scrolled, and the thumb is drawn only on that one, until it settles.

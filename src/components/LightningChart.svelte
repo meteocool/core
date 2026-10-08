@@ -3,15 +3,15 @@
  * The lightning histogram: strikes per minute over the last half hour, for
  * whatever the map is currently showing.
  *
- * Moved out of the bottom bar into its own glass strip, the same one the radar
- * forecast uses, so the two layers read as the same app. It was sharing a row
- * with the colour scale and the repo links, which left it about 45px tall and
- * its axis labels overlapping the legend beside it.
+ * In its own glass strip, the same one the radar forecast uses, so the two
+ * layers read as the same app. In a row with the colour scale and the repo
+ * links it would be about 45px tall, its axis labels overlapping the legend
+ * beside it.
  *
- * The one real difference from the radar strip: this covers the viewport's
- * bounding box, not a point. So the title names the area at whatever scale the
- * zoom is actually showing -- a city close in, a state or a country further
- * out -- and there is no "My Location" action, because a viewport is not
+ * The difference from the radar strip: this covers the viewport's bounding
+ * box, not a point. So the title names the area at whatever scale the zoom is
+ * showing (a city close in, a state or a country further out), and there is
+ * no "My Location" action, because a viewport is not
  * somewhere you can return from.
  */
 import { onDestroy } from "svelte";
@@ -62,13 +62,13 @@ onDestroy(() => {
 /**
  * The current map's bounding box as a ring, in lat/lon.
  *
- * Null unless the map has actually been laid out. A map exists before it has a
- * size -- it is created up front and only gets a target when its layer comes on
- * screen -- and calculateExtent() with no size returns a zero-area extent
- * around the centre, which fromExtent() happily turns into a degenerate ring: a
- * point, sent to the backend as the area to count strikes in. The answer comes
- * back empty, and the strip draws it as "no lightning in this area" when the
- * truth is that nobody has asked about an area yet.
+ * Null unless the map has been laid out. A map exists before it has a size
+ * (it is created up front and only gets a target when its layer comes on
+ * screen), and calculateExtent() with no size returns a zero-area extent
+ * around the centre, which fromExtent() turns into a degenerate ring: a point,
+ * sent to the backend as the area to count strikes in. The answer comes back
+ * empty, and the strip would draw it as "no lightning in this area" when
+ * nobody has asked about an area yet.
  *
  * update() already bails on null, so refusing here stops the request at source.
  */
@@ -86,7 +86,7 @@ function viewportRing() {
 }
 
 /* The name of what is on screen. Geocoded from the centre of the view, at the
-   granularity the zoom justifies -- naming a whole country after the village
+   granularity the zoom justifies: naming a whole country after the village
    under the middle pixel would be worse than not naming it at all. */
 let placeName: string | null = null;
 let placeToken = 0;
@@ -127,9 +127,8 @@ const LAYOUT_RETRY_MS = 250;
  * Which request the strip is waiting for.
  *
  * A pan that settles while the last box's counts are still on their way asks
- * for the new box alongside, and nothing said which answer had to land last:
- * on a slow link the old box's could, and the strip drew them under the new
- * one's name. Each request takes a number, and only the newest is drawn. A
+ * for the new box alongside, and on a slow link the old box's answer can land
+ * last and be drawn under the new one's name. So each request takes a number, and only the newest is drawn. A
  * movestart takes one as well, because whatever was out then was asked about
  * a view that is going away.
  */
@@ -149,9 +148,8 @@ async function update() {
   if (!polygon) {
     /* Not an error and not an empty result: the map is on its way onto the
        page. Come back for it, because the moveend that would otherwise be the
-       next prompt may never fire -- nothing has to move for a map to finish
-       being laid out. The skeleton stays up in the meantime, which is the
-       honest reading. */
+       next prompt may never fire: nothing has to move for a map to finish
+       being laid out. The skeleton stays up in the meantime. */
     if (delayedLoader) clearTimeout(delayedLoader);
     delayedLoader = setTimeout(() => { delayedLoader = null; update(); }, LAYOUT_RETRY_MS);
     return;
@@ -188,9 +186,9 @@ $: if (chart) {
 
 function canvasInit(elem: HTMLCanvasElement) {
   /* iOS stops handing out 2D contexts once the page's canvases have used up
-     its canvas memory. Chart.js then reported "can't acquire context" as an
-     error and left a chart that could not draw; the strip says the counts are
-     unavailable instead. */
+     its canvas memory. Chart.js would then report "can't acquire context" as
+     an error and leave a chart that cannot draw; the strip says the counts
+     are unavailable instead. */
   const context = elem.getContext("2d");
   if (!context) {
     cannotDraw = true;
@@ -222,8 +220,8 @@ function canvasInit(elem: HTMLCanvasElement) {
       scales: {
         x: {
           grid: { display: false, tickLength: 1 },
-          // Chart.js 4 split the axis rule out of `grid`; left on, it drew a
-          // fixed hairline across the glass that did not move with the map.
+          // Chart.js 4 split the axis rule out of `grid`; left on, it draws a
+          // fixed hairline across the glass that does not move with the map.
           border: { display: false },
           ticks: { padding: 0, maxRotation: 0, minRotation: 0, autoSkipPadding: 24 },
         },
@@ -262,8 +260,7 @@ function canvasInit(elem: HTMLCanvasElement) {
  * Attached when the lightning layer becomes the one on screen rather than on
  * mount: this component exists for the whole session, and at mount there is no
  * current capability for LayerManager to hand back a map for. Detached again on
- * the way out, because OpenLayers listeners outlive whatever added them -- the
- * version in the bottom bar added a pair per canvas mount and removed neither.
+ * the way out, because OpenLayers listeners outlive whatever added them.
  */
 let attachedMap: Map | null = null;
 let moveKeys: EventsKey[] = [];
@@ -296,11 +293,11 @@ function attachMap(map: Map) {
       loading = true;
     }),
     map.on("moveend", () => {
-      /* Forgotten as soon as it fires. It used to be held until the request it
-         started had come back, so the handle meant two things: a moveend in
-         that window was dropped as though a load were already pending, and the
-         request's `finally` cleared whatever timer was pending by then, which
-         the next movestart could no longer cancel. */
+      /* Forgotten as soon as it fires. Held until the request it started came
+         back, the handle would mean two things: a moveend in that window would
+         be dropped as though a load were already pending, and the request's
+         `finally` would clear whatever timer was pending by then, which the
+         next movestart could no longer cancel. */
       if (delayedLoader) clearTimeout(delayedLoader);
       delayedLoader = setTimeout(() => { delayedLoader = null; update(); }, 650);
     }),
@@ -309,12 +306,12 @@ function attachMap(map: Map) {
 }
 
 /*
- * Asked again on a wake. A failed count stayed "unavailable" until the map was
- * moved, and a good one stayed whatever the half hour had been when it was
- * asked: the axis says "the last 30 minutes", and after a phone has been in a
+ * Asked again on a wake. Otherwise a failed count would stay "unavailable"
+ * until the map was moved, and a good one would show whatever the half hour
+ * had been when it was asked: the axis says "the last 30 minutes", and after a phone has been in a
  * pocket those are other minutes. A failed strip goes back to the skeleton
  * while it asks; a good one stays up until the newer answer replaces it.
- * Only while attached -- without the layer up there is no view to ask about.
+ * Only while attached: without the layer up there is no view to ask about.
  */
 subscriptions.push(onWake(() => {
   if (!attachedMap) return;
@@ -351,7 +348,7 @@ $: {
   .dim {
     opacity: 0.4;
   }
-  /* The canvas keeps its box while the skeleton is up -- Chart.js sizes itself
+  /* The canvas keeps its box while the skeleton is up: Chart.js sizes itself
      from the element, and a display:none parent would measure it at zero and
      draw the first frame into a 0x0 canvas. */
   .canvas-wrap.hidden {

@@ -20,7 +20,7 @@ test("a phone that keeps up is fine, at 60 Hz or at 120", () => {
 });
 
 test("the odd long frame does not make a phone slow", () => {
-  // One hitch a gesture -- a tile landing, the labels placed again.
+  // One hitch a gesture: a tile landing, the labels placed again.
   const intervals = [...frames(16.7, FRAMES_NEEDED), 120, 120, 120];
   assert.equal(verdictFor(intervals), "fine");
 });

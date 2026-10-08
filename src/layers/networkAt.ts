@@ -13,7 +13,7 @@ const COVERAGE: [CountryNetwork, number[][][]][] = [
 /**
  * Whether a point lies inside a set of rings, under the nonzero rule.
  *
- * The rule the coverage is wound for and the canvas clip fills with, so a
+ * The coverage is wound for this rule and the canvas clip fills with it, so a
  * point counts as a network's exactly where that network's pixels are drawn.
  */
 export function insideRings(rings: number[][][], [x, y]: number[]): boolean {
@@ -33,8 +33,8 @@ export function insideRings(rings: number[][][], [x, y]: number[]): boolean {
 /**
  * Which network the map draws at a point, if any draws there but DWD.
  *
- * What the forecast strip asks the backend to sample its past from: the bars
- * have to be the reading of the radar the map is showing under the finger.
+ * The forecast strip asks the backend to sample its past from this network,
+ * since the bars have to show the radar the map draws under the finger.
  * The coverages overlap by nothing, so at most one matches.
  */
 export function networkAt(lat: number, lon: number): CountryNetwork | undefined {

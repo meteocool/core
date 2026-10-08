@@ -36,8 +36,8 @@ test("what is left out is what the theme would not have drawn", () => {
 
 /**
  * A theme that raises its lines splits in two: everything is drawn once,
- * fills under the weather and lines over it, and the water's edge -- which
- * the fills draw on their own underneath -- becomes a line on top.
+ * fills under the weather and lines over it, and the water's edge (which
+ * the fills draw on their own underneath) becomes a line on top.
  */
 test("raised lines and fills split light and dark between them", () => {
   for (const theme of [lightTheme, darkTheme]) splitsBetweenThem(theme);

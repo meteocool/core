@@ -16,37 +16,36 @@ import { onMapMotion } from "../lib/mapMotion";
  * A ring of dashes around every cell still being detected, stepping round it.
  *
  * The tracks layer draws a three-hour window, so most of what is on the map at
- * any moment is a storm that has stopped being detected -- fading, but fading
- * is a comparison: it tells you one mark is older than another and never tells
- * you which ones are live. This is the positive signal.
+ * any moment is a storm that has stopped being detected. Those fade, but
+ * fading only tells you one mark is older than another, never which ones are
+ * live. The ring marks the live ones.
  *
- * ## Why this is not a vector layer
+ * ## Why This Is Not a Vector Layer
  *
  * It was one, restyled by a timer five times a second. OpenLayers has no
- * partial redraw: a layer asking to be drawn again is the whole map drawn
- * again -- the WebGL radar, the four clipped network layers, the decluttered
- * labels, the thousands of track features -- and every sheet of glass over it
- * re-blurred, five times a second, for as long as a live cell was in view.
- * That is the one thing a storm map does all afternoon.
+ * partial redraw: a layer asking to be drawn again means the whole map is
+ * drawn again (the WebGL radar, the four clipped network layers, the
+ * decluttered labels, the thousands of track features) and every sheet of
+ * glass over it re-blurred, five times a second, for as long as a live cell
+ * was in view. On a storm afternoon that is all afternoon.
  *
  * So the rings are DOM: one small SVG per live cell, placed by this layer's
  * render function whenever the map itself draws (see `render` for how a pan
- * moves them all at once), and stepped by a CSS
- * animation in between. The animation turns the SVG rather than moving its
+ * moves them all at once), and stepped by a CSS animation in between. The animation turns the SVG rather than moving its
  * dashes, because a transform is the one thing the compositor animates on its
  * own: the page does no style, layout or paint per tick, the map is not
  * involved, and the browser pauses it while the tab is hidden. The dash
  * offset it used to animate cannot be composited, and repainted every ring on
  * the main thread every frame, map at rest or not.
  *
- * ## Why it steps rather than sweeps
+ * ## Why It Steps Rather Than Sweeps
  *
  * See lib/cellPulse.ts. The ring never changes shape; it turns one dash-width
  * per tick. Here that is a `steps()` timing function over a turn of one dash
  * period, which is the same cycle the tests describe.
  * Every ring is started at the same phase of the wall clock, so they step
- * together: a map where each one runs its own cycle shimmers, where one
- * shared beat reads as the map itself being live.
+ * together. A map where each ring runs its own cycle shimmers; one shared
+ * beat reads as the map itself being live.
  */
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -162,11 +161,11 @@ export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Lay
     /*
      * Every frame of a pan used to write a new position onto every ring: a
      * style change per ring per frame, each ring its own compositor layer, so
-     * the page restyled and rebuilt its layers on every frame -- about a
-     * millisecond a frame on a mid-range phone with three rings, and a storm
-     * afternoon has dozens. A pan moves every ring by the same amount, so
-     * then only the pane moves; the rings are laid out afresh when the zoom,
-     * the rotation or the set of cells changes.
+     * the page restyled and rebuilt its layers on every frame. That was about
+     * a millisecond a frame on a mid-range phone with three rings, and a storm
+     * afternoon has dozens. A pan moves every ring by the same amount, so now
+     * only the pane moves; the rings are laid out afresh when the zoom, the
+     * rotation or the set of cells changes.
      */
     render(frameState: FrameState) {
       const { resolution, rotation } = frameState.viewState;
@@ -193,8 +192,8 @@ export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Lay
 
   /*
    * The rings hold still while the map moves. They step on the compositor and
-   * cost nothing at rest, but whenever the page draws a frame -- every frame
-   * of a pan, as the map redraws -- the browser restyles every running
+   * cost nothing at rest, but whenever the page draws a frame (every frame
+   * of a pan, as the map redraws) the browser restyles every running
    * animation: with sixty live cells that was most of the styling in a pan.
    * Paused on the notch they are at, and on the way back each one is put on
    * the notch the clock is at, as a new ring would be, so the map keeps one

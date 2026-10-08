@@ -3,7 +3,7 @@
  *
  * The browser never does. A request on a train, a captive portal or a mobile
  * link that has gone quiet without dropping waits for the operating system's
- * TCP timeout -- minutes -- and everything that awaits it waits too: the
+ * TCP timeout, which takes minutes, and everything that awaits it waits too: the
  * loading bar stays pinned, "Refreshing…" stays up, and the next refresh
  * either queues behind it or is never asked for. The network coming back does
  * not help a request that was sent into the hole before it did.
@@ -19,7 +19,7 @@
 
 import { noteAbandoned } from "./requestTiming";
 
-/** How long without a byte -- before the headers, or between chunks -- is a stall. */
+/** How long without a byte (before the headers, or between chunks) is a stall. */
 export const STALL_MS = 15_000;
 
 export class RequestStalled extends Error {

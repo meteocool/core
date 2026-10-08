@@ -6,7 +6,7 @@
  * Mostly a picture: the CAPPI sweeping through it, which shows the storm's
  * structure by height in a way the vertical cut on the map does not. Then
  * which radars it was built from, from how far, and how well their beams
- * covered it -- enough to judge it by, and no more reading. A sketch of where
+ * covered it: enough to judge it by, and no more. A sketch of where
  * they stand round the storm heads the list, a row picking out its radar.
  *
  * Shared by both kinds of storm, a tracked cell's and a core found only in

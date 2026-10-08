@@ -2,9 +2,9 @@
 /**
  * Where a volume's radars stand around the storm, as a sketch: the storm in
  * the middle, each radar a dot, a dashed circle as far as it scans, and
- * shaded inside that the ground over which it sees down to 3 km -- smaller,
- * since the beam climbs as the earth curves away, and cut short behind the
- * mountains in its way (`lib/radarHorizons.ts`). Where the shading piles up
+ * shaded inside that the ground over which it sees down to 3 km. That ground
+ * is smaller, since the beam climbs as the earth curves away, and cut short
+ * behind the mountains in its way (`lib/radarHorizons.ts`). Where the shading piles up
  * the storm was seen from many sides, low down; a storm only inside dashed
  * circles was seen by beams already high above its base.
  *

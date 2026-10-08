@@ -2,7 +2,7 @@
 /**
  * The storm as a CAPPI that climbs and sinks through it.
  *
- * A CAPPI -- constant altitude plan position indicator -- is the radar
+ * A CAPPI (constant altitude plan position indicator) is the radar
  * meteorologist's horizontal slice: the reflectivity at one height,
  * everywhere. Here it is drawn in 3D, as the flat top of the volume with
  * everything above the height cut away, and the height moves slowly up and
@@ -11,13 +11,13 @@
  * leaves low down, the anvil spreading out at the top.
  *
  * The same raymarcher as the vertical cross-section, with the plane lying
- * flat -- see `volumeRaymarch.ts`. The ruler beside it is the height, because
+ * flat (see `volumeRaymarch.ts`). The ruler beside it is the height, because
  * a slice with no height on it is a colour field and nothing more.
  *
  * It draws at a capped rate, only while on screen, and rests after a couple
  * of sweeps: it opens beside the 3D map, which is raymarching the same storm
- * every frame already, and it used to go on marching at the display's rate
- * for as long as the panel stayed open -- scrolled out of view included.
+ * every frame already, so it does not also march at the display's rate for
+ * as long as the panel stays open, scrolled out of view included.
  */
 import { onDestroy, onMount, tick } from "svelte";
 import { _ } from "svelte-i18n";
@@ -110,7 +110,7 @@ function start(loaded: Cutaway): void {
   render = () => {
     // Looking at what is left of the storm, not at its middle: cut low, all
     // that remains is a slab near the ground, and a camera aimed at the
-    // storm's centre put it at the bottom of the picture.
+    // storm's centre would put it at the bottom of the picture.
     const target: [number, number, number] = [
       loaded.centreKm[0], loaded.centreKm[1], (lowKm + heightKm) / 2 - halfBox,
     ];

@@ -4,7 +4,7 @@
  *
  * The strip is two hours back to as far forward as the nowcast reaches, a
  * bar per five-minute step coloured by the reflectivity at the point being
- * asked about -- the client's position, or a tapped one -- with the forecast
+ * asked about (the client's position, or a tapped one), with the forecast
  * half drawn fainter. Where there is nothing to plot the same strip is a
  * plain ruler of ticks, so the thing you drag looks the same whether or not
  * it is raining, and the bars read as the ruler's ticks grown by the rain.
@@ -14,8 +14,8 @@
  * settles on a whole step because that is what the map can show. The ends
  * give way a little and spring back. It borrows that feel from the storm
  * cutaway's dial (SliceDial) but keeps the strip still under a moving
- * needle, because for weather the whole window matters -- when the rain
- * starts is read off the strip, not off the number under the needle.
+ * needle, because for weather the whole window matters: when the rain starts
+ * is read off the strip, not off the number under the needle.
  *
  * The component only draws and reports: `seek` says which step the finger
  * has reached and `grab` that a hand is on it. Which frame the map shows,
@@ -62,7 +62,7 @@ $: slot = n > 0 ? width / n : 0;
 $: ceiling = barCeiling(steps);
 $: nowIndex = indexOf(steps, latest);
 
-/** "-2h", "+45m", "+1h30m" -- and "now" for the zero mark. */
+/** "-2h", "+45m", "+1h30m", and "now" for the zero mark. */
 function formatOffset(minutes: number, t: Translate): string {
   if (minutes === 0) return t("now");
   const sign = minutes < 0 ? "-" : "+";
@@ -96,8 +96,8 @@ $: bars = steps.map((step, i) => {
 
 /*
  * The first time the player opens in a session, the knob gives one small
- * nudge, so a thumb knows the strip is there to be dragged -- a touch screen
- * has no hover and no cursor to say so. Once per session, and never under
+ * nudge, so a thumb knows the strip is there to be dragged (a touch screen
+ * has no hover and no cursor to say so). Once per session, and never under
  * reduced motion.
  */
 const HINTED = "mc-timeline-hinted";
@@ -129,7 +129,7 @@ $: readout = n > 0 ? formatOffset(Math.round((steps[shownIndex].t - now) / 60), 
 let reported = -1;
 /**
  * Tell the player when the needle crosses onto another step. A tick of
- * haptics per step, and a firmer one on now and at the ends -- the detents.
+ * haptics per step, and a firmer one on now and at the ends: the detents.
  */
 function report(): void {
   const index = Math.min(Math.max(Math.round(pos), 0), last);
@@ -145,7 +145,7 @@ function stop(): void {
   frame = 0;
 }
 
-/** Ease onto the nearest whole step -- or onto now, when it is close. */
+/** Ease onto the nearest whole step, or onto now when it is close. */
 function settle(): void {
   const target = restingStep(pos, last, nowIndex);
   const from = pos;
@@ -196,7 +196,7 @@ let lastX = 0;
 let lastT = 0;
 /**
  * The strip scrubs sideways only. A drag that sets off vertically is let go,
- * uncaptured, for whatever holds the tray to take -- and a press that never
+ * uncaptured, for whatever holds the tray to take, and a press that never
  * moves is a tap, which goes straight to the step under it.
  */
 let axis: SwipeAxis = "undecided";

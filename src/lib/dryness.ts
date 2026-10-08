@@ -3,8 +3,8 @@
  *
  * The same line the forecast strip draws: above 0 dBZ is something to plot.
  * Dry steps come back at the scale's floor (-32.5). A grid with no reading at
- * all -- every dbz null, which is what a request without a position gets, or
- * a point outside every network -- is not dry but unknown, and says false.
+ * all (every dbz null, which is what a request without a position gets, or
+ * a point outside every network) is unknown, not dry, and says false.
  */
 export function isDry(frames: Record<string, { dbz?: number | null } | null> | null | undefined): boolean {
   const readings = Object.values(frames ?? {})

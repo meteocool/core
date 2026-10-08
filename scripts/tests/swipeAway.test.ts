@@ -88,7 +88,7 @@ function pointer(type: string, x: number, target?: EventTarget): Event {
 }
 
 test("a swipe begun on a button inside keeps going when the button loses the pointer", () => {
-  // A touch is captured by what it lands on -- the hint's Details button --
+  // A touch is captured by what it lands on (the hint's Details button),
   // and taking it for the dock makes the button lose it. That loss bubbles
   // up to the dock, and was read as the swipe ending: it stopped dead.
   const node = fakeNode();

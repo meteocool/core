@@ -3,19 +3,19 @@
  * Turning the cut, on a phone, with the storm itself as the picture.
  *
  * On the 3D map the storm a reader opened is already drawn cut, where it
- * stands, at the size of the map -- so the panel's own rendering of it is a
- * second, smaller copy of what is behind the sheet, and it costs half the
+ * stands, at the size of the map, so the panel's own rendering of it would be
+ * a second, smaller copy of what is behind the sheet, at the cost of half the
  * screen. What the reader still needs from the panel is a way to turn the
  * slice, and that needs no picture: this is a ruler to drag, with the angle
  * under a fixed needle, the way a photo editor's straighten dial works.
  *
- * Why a ruler and not a slider. A slider has ends, and an angle has none: a
- * cut turned past 180 degrees is simply the other half of the storm, so the
- * ruler scrolls round for ever. It also moves under the thumb rather than the
- * thumb moving along it, so the whole width is always grab-able and a flick
- * carries on with momentum, and it settles into the two directions that mean
- * something -- along and across the track, or north-south and east-west for a
- * core with none -- with a tick of haptics where the device has them.
+ * A ruler, because a slider has ends and an angle has none: a cut turned past
+ * 180 degrees is simply the other half of the storm, so the ruler scrolls
+ * round for ever. It also moves under the thumb rather than the thumb moving
+ * along it, so the whole width is always grab-able and a flick carries on
+ * with momentum, and it settles into the two directions that mean something
+ * (along and across the track, or north-south and east-west for a core with
+ * none) with a tick of haptics where the device has them.
  */
 import { onDestroy } from "svelte";
 import { _ } from "svelte-i18n";
@@ -47,7 +47,7 @@ let downX = 0;
 let downY = 0;
 /**
  * The ruler turns sideways only. A drag that sets off vertically is let go,
- * uncaptured, for the sheet around it to take -- so pulling the sheet down to
+ * uncaptured, for the sheet around it to take, so pulling the sheet down to
  * close works from anywhere on it, the dial included, and the slop-then-commit
  * rule is the one the sheet decides with, so the two never both move.
  */
@@ -57,7 +57,7 @@ let velocity = 0;
 let frame = 0;
 
 /*
- * The dial's own angle is unwrapped -- it can run past 180 -- so the ruler
+ * The dial's own angle is unwrapped (it can run past 180), so the ruler
  * scrolls smoothly through the seam; the store gets it folded. Kept in step
  * with the store when something else turns the cut, such as a link, and with
  * the slow swing an opened storm starts with, which the ruler follows.

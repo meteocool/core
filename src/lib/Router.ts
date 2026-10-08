@@ -3,7 +3,7 @@
  *
  * Effectively dead: ParseURL tested `.length` on a URLSearchParams, which has
  * no such property, so the condition was always false and parseFragment was
- * never reached. URL state is actually handled in Settings.set() and in
+ * never reached. URL state is handled in Settings.set() and in
  * LayerManager's moveend handler. Kept because window.pu is a debugging handle.
  */
 export default class Router {

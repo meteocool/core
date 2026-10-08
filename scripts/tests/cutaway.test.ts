@@ -19,7 +19,7 @@ test("a slice angle folds into a single turn", () => {
 });
 
 test("half a turn is a different slice, not the same one", () => {
-  // Same plane, other half of the storm kept -- the view from ahead of it.
+  // Same plane, other half of the storm kept: the view from ahead of it.
   assert.notEqual(normaliseCut(0), normaliseCut(180));
 });
 

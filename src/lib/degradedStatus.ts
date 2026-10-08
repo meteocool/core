@@ -12,9 +12,9 @@ import { t } from "../locale/t";
  * everything here touches a store, a clock or the performance timeline, and
  * everything there is a pure function of what this hands it.
  *
- * The re-check timer is the thing that makes the state recover on its own. The
- * criteria are all written to stop being true once the backend is healthy, but
- * two of them -- an ageing-out failure and an overdue publish -- change with
+ * The re-check timer lets the state recover on its own. The criteria are all
+ * written to stop being true once the backend is healthy, but two of them (an
+ * ageing-out failure and an overdue publish) change with
  * nothing but the passage of time, and the third only moves as requests land.
  * Re-evaluating only when apiHealth changed meant a state that had become false
  * could stay on the map until the next call happened to fail or succeed.

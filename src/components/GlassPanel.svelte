@@ -8,24 +8,22 @@ import { holdNativeChrome } from "../lib/nativeBridge";
 /**
  * A panel of text over the map: About, Settings, Connection Details.
  *
- * One component, two frames, chosen by the screen -- the same split the storm
+ * One component, two frames, chosen by the screen: the same split the storm
  * panels make in App.svelte, so everything that opens over the map takes the
  * same two shapes. On a desktop it is a panel floating over the map; on a
  * phone it is the sheet (CellSheet) a storm's details come up in, at full
- * height, pulled down to dismiss. The reading panels used to float on a
- * phone too, as a card the size of the screen with no grip and no slide,
- * beside storm sheets that had both.
+ * height, pulled down to dismiss. A floating card the size of a phone's
+ * screen would have no grip and no slide, beside storm sheets that have both.
  *
- * Glass rather than a solid sheet, so the map stays in view behind whatever is
- * being read -- but in the reading material (`.glass-reading` in
- * src/glass.css), not the chrome's. The chrome's glass boosts saturation and
- * lifts the backdrop, which is what makes a pill look like a lens and is
- * exactly wrong under a paragraph over a squall line: the radar comes through
- * brighter than it is on the map. See the material for how it holds up. The
+ * Glass, so the map stays in view behind whatever is being read, in the
+ * reading material (`.glass-reading` in src/glass.css) and not the chrome's.
+ * The chrome's glass boosts saturation and lifts the backdrop, which makes a
+ * pill look like a lens and is wrong under a paragraph over a squall line:
+ * the radar comes through brighter than it is on the map. See the material for how it holds up. The
  * sheet takes the same material, so the panel reads the same on both.
  *
  * No backdrop dim: the map stays at full strength around the panel, and a tap
- * on it -- anywhere outside the floating panel -- closes it, as does Escape.
+ * on it (anywhere outside the floating panel) closes it, as does Escape.
  *
  * Close is the panels' glass disc in the top-right corner, in the chrome's
  * tints; see CloseDisc. On a phone the sheet draws it, out of the scroll.
@@ -54,8 +52,8 @@ function autofocus(node: HTMLElement) {
 }
 
 /*
- * Capture phase, so this runs before anything else listening on the window --
- * the storm popup behind it closes on Escape too -- and marks the key as
+ * Capture phase, so this runs before anything else listening on the window
+ * (the storm popup behind it closes on Escape too) and marks the key as
  * taken, which that handler checks for.
  */
 function onKeydown(event: KeyboardEvent) {
@@ -83,8 +81,8 @@ onMount(() => {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    /* Clears the top line of chrome -- its tallest members, the 44px discs,
-       not just the Live pill -- so the control it was opened from stays in
+    /* Clears the top line of chrome (its tallest members, the 44px discs, as
+       well as the Live pill) so the control it was opened from stays in
        view. The side insets are the notch's, which in landscape is on a side
        rather than the top. */
     padding:
@@ -134,9 +132,9 @@ onMount(() => {
   }
 
   /* The only scroller: the panel stops at the bottom of the screen, so a long
-     body scrolls inside it rather than running off the map -- and fades out
-     at both ends into the glass, rather than being cut off under the header
-     and at the rim. The padding is the fade's length, so the first and last
+     body scrolls inside it instead of running off the map, and fades out at
+     both ends into the glass instead of being cut off under the header and
+     at the rim. The padding is the fade's length, so the first and last
      lines rest clear of it. */
   .body {
     flex: 1 1 auto;

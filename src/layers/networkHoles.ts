@@ -11,20 +11,19 @@ export type NetworkCode = Exclude<NetworkEvent["network"], "dmax">;
 /**
  * DWD tiles with the EUMETNET networks' countries cut out of them.
  *
- * Inside those networks' borders their own layers are the ones that
- * should be on screen, and they cannot simply be stacked on top: every palette
- * here is part transparent, so DWD underneath would blend through into colours
- * neither radar measured. The overlap has to actually go away, and it cannot
- * go away by clipping the DWD layer: it is an `ol/layer/WebGLTile`, whose
- * render events carry a `WebGLRenderingContext` and no 2D context to call
- * `clip()` on.
+ * Inside those networks' borders their own layers should be on screen.
+ * Stacking them on top of DWD is not enough: every palette here is partly
+ * transparent, so DWD underneath would blend through into colours neither
+ * radar measured. Clipping the DWD layer is not possible either: it is an
+ * `ol/layer/WebGLTile`, whose render events carry a `WebGLRenderingContext`
+ * and no 2D context to call `clip()` on.
  *
  * So the holes are punched into the tile images themselves, before OpenLayers
- * ever sees them (`valueTiles.ts`, through `tileMask.ts`, which the 3D map
- * cuts with too). That works whichever renderer draws them.
+ * sees them (`valueTiles.ts`, through `tileMask.ts`, which the 3D map cuts
+ * with too). That works with either renderer.
  *
- * Only tiles that actually meet a hole are touched; the rest are handed back
- * exactly as loaded, so this costs nothing for the vast majority of the grid.
+ * Only tiles that meet a hole are touched; the rest are returned exactly as
+ * loaded, so most of the grid costs nothing.
  */
 
 /** Every network's hole, with its bounding box for a cheap first test. Shared with the 3D map. */

@@ -6,7 +6,7 @@ import svelteConfig from "./svelte.config.js";
 
 // Replaces the airbnb-base setup, which has no flat-config support and is
 // unmaintained, and eslint-plugin-svelte3, which does not understand Svelte 5.
-// Only the rules that were actually customised before are carried over.
+// Only the rules that were customised before are carried over.
 export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,

@@ -6,8 +6,8 @@
  * the map fills it within the first minute. A PerformanceObserver is not capped,
  * so this keeps its own window of the most recent entries instead.
  *
- * Deliberately just a ring buffer of what the browser already measured -- it
- * issues no requests of its own, so opening the panel cannot change the numbers
+ * Only a ring buffer of what the browser already measured: it issues no
+ * requests of its own, so opening the panel cannot change the numbers
  * it is reporting.
  */
 
@@ -65,7 +65,7 @@ let abandoned: Array<{ url: string; startTime: number }> = [];
  * A request that was given up on as stalled (lib/timedFetch.ts).
  *
  * The browser still records it, with the fifteen seconds it was waited for
- * as its duration -- and the slow-responses criterion read that as the
+ * as its duration, and the slow-responses criterion read that as the
  * backend taking fifteen seconds to answer, and went on saying so for the
  * whole latency window after the network was back. It did not answer at all:
  * that is a failure, which the api-errors criterion counts, and which clears
@@ -104,7 +104,7 @@ export function requestDurations(match: RegExp, sinceMs?: number): number[] {
  * `sinceMs` narrows the window to the requests that started that recently,
  * which is what a criterion watching for recovery needs: a summary over the
  * whole ring buffer still carries an outage that ended ten minutes ago, so
- * nothing computed from it can ever clear. Omitted, the whole window is used --
+ * nothing computed from it can ever clear. Omitted, the whole window is used,
  * which is what the diagnostics panel's own rows want.
  */
 export function summariseRequests(match: RegExp, sinceMs?: number): TimingSummary {
