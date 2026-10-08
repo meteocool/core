@@ -10,6 +10,7 @@ import type { FeatureLike } from "ol/Feature";
 import { selectedCell } from "../stores";
 import { LIGHT_CASING, watchCasing } from "./casing";
 import { leadLabel, outlineIsCurrent } from "../lib/cellGeometry";
+import { showsEnded } from "../lib/cellPulse";
 
 /**
  * Tracked thunderstorm cells: where each one has been, and where it is going.
@@ -363,6 +364,9 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
     // rotation information with the storm's history attached.
     zIndex: 202,
     style: (feature: FeatureLike, resolution: number) => {
+      // A cell no longer detected, only close in; see `ENDED_MIN_ZOOM`.
+      if (feature.get("live") === false && !showsEnded(resolution) && !isSelected(feature)
+        && feature.get("from_code") !== selectedCode) return undefined;
       const style = STYLES[feature.get("kind") as CellFeatureKind];
       return style ? style(feature, resolution) : undefined;
     },

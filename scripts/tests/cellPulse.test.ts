@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DASH, DASH_PERIOD, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, TICK_MS, onlySlid, ringAngle,
+  DASH, DASH_PERIOD, ENDED_MIN_ZOOM, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, TICK_MS, onlySlid,
+  ringAngle, showsEnded,
 } from "../../src/lib/cellPulse.ts";
 
 /**
@@ -87,4 +88,13 @@ test("a pan slides the rings together; anything else lays them out again", () =>
   assert.equal(onlySlid(laid, { ...laid, rotation: 0.1 }), false, "a turn");
   assert.equal(onlySlid(laid, { ...laid, revision: 8 }), false, "a cell added, removed or moved");
   assert.equal(onlySlid(null, laid), false, "nothing laid out yet");
+});
+
+test("cells no longer detected are drawn from zoom 10 in, not from a country away", () => {
+  const atZoom = (zoom: number) => 156_543.033_928_041 / 2 ** zoom;
+  assert.equal(ENDED_MIN_ZOOM, 10);
+  assert.ok(showsEnded(atZoom(11)));
+  assert.ok(showsEnded(atZoom(10)));
+  assert.ok(!showsEnded(atZoom(9.5)));
+  assert.ok(!showsEnded(atZoom(6)));
 });
