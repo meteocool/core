@@ -468,7 +468,7 @@
       "group_lowest": "Unterster Scan",
       "group_lowest_hint": "Der Regen am nächsten am Boden",
       "group_column": "Säulenmaximum",
-      "group_column_hint": "Stärkstes Echo in jeder Höhe, nicht der Regen am Boden",
+      "group_column_hint": "Stärkstes Echo in jeder Höhe, nicht unbedingt Regen am Boden",
       "hx": "Unterster Scan",
       "hx_short": "Scan",
       "hx_option": "Nationale Komposite",
@@ -714,6 +714,12 @@
       "width": "der 0,5°-Strahl ist 1° breit: 3 km bei 180 km",
       "above_1": "direkt über dem Radar",
       "above_2": "schaut kein Winkel hin"
+    },
+    "products": {
+      "title": "Unterster Scan oder Säulenmaximum",
+      "p1": "Die Radarkarte kann zwei Arten von Bild zeigen. Ein unterster Scan zeigt den niedrigsten Sweep jedes Radars: das Echo nächst am Boden, also das, was dem Regen, den man spürt, am nächsten kommt. Weit weg von einem Radar ist auch dieser Sweep hoch oben, wie die Seitenansicht oben zeigt, und Regen aus tiefen Wolken kann fehlen.",
+      "p2": "Ein Säulenmaximum zeigt für jeden Punkt der Karte das stärkste Echo aller Tilts darüber, bis 12 km Höhe. Es zeigt, wo die Kerne der Gewitter sind, auch Regen und Hagel, die noch hoch in der Wolke hängen oder auf dem Weg nach unten verdunsten. Es ist also nicht unbedingt Regen am Boden: Meist wirkt es stärker und größer als der unterste Scan und kann Regen zeigen, wo es unten trocken bleibt.",
+      "p3": "Ein Säulenmaximum braucht den ganzen Volumenscan und ist daher einen Scan oder mehr später dran. DMAX ist das Säulenmaximum des DWD für Deutschland; meteocool baut ein eigenes aus allen fünf Netzen. Gewitterzellen und 3D-Wolken werden in einem Säulenmaximum gefunden."
     },
     "cycle": {
       "title": "Fünf Minuten, Minute für Minute",

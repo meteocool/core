@@ -468,7 +468,7 @@
       "group_lowest": "Lowest scan",
       "group_lowest_hint": "The rain nearest the ground",
       "group_column": "Column maximum",
-      "group_column_hint": "Strongest echo at any height, not the rain at the ground",
+      "group_column_hint": "Strongest echo at any height, not necessarily rain on the ground",
       "hx": "Lowest scan",
       "hx_short": "Scan",
       "hx_option": "National composites",
@@ -714,6 +714,12 @@
       "width": "the 0.5° beam is 1° wide: 3 km wide at 180 km",
       "above_1": "right above the radar",
       "above_2": "no tilt looks"
+    },
+    "products": {
+      "title": "Lowest scan or column maximum",
+      "p1": "The radar map can show two kinds of picture. A lowest scan shows each radar's lowest sweep: the echo closest to the ground, and so the nearest thing to the rain you will actually feel. Far from a radar even that sweep is high up, as the side view above shows, so rain from low clouds can be missed.",
+      "p2": "A column maximum shows, for each spot on the map, the strongest echo in any tilt above it, up to 12 km. That marks where the storm cores are, including rain and hail still high in the cloud that has not come down yet, or that evaporates on the way down. So it is not necessarily rain on the ground: it usually looks stronger and wider than the lowest scan, and can show rain where it stays dry below.",
+      "p3": "A column maximum needs the whole volume scan, so it is a scan or more behind. DMAX is DWD's column maximum for Germany; meteocool builds its own from all five networks. The storm cells and the 3D clouds are found in a column maximum."
     },
     "cycle": {
       "title": "Five minutes, minute by minute",

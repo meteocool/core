@@ -460,7 +460,7 @@
       "group_lowest": "Laagste scan",
       "group_lowest_hint": "De regen het dichtst bij de grond",
       "group_column": "Kolommaximum",
-      "group_column_hint": "Sterkste echo op elke hoogte, niet de regen aan de grond",
+      "group_column_hint": "Sterkste echo op elke hoogte, niet per se regen aan de grond",
       "hx": "Laagste scan",
       "hx_short": "Scan",
       "hx_option": "Nationale composieten",
@@ -706,6 +706,12 @@
       "width": "de bundel van 0,5° is 1° breed: 3 km op 180 km",
       "above_1": "recht boven de radar",
       "above_2": "kijkt geen hoek"
+    },
+    "products": {
+      "title": "Laagste scan of kolommaximum",
+      "p1": "De radarkaart kan twee soorten beeld tonen. Een laagste scan toont de laagste sweep van elke radar: de echo het dichtst bij de grond, en dus het dichtst bij de regen die je echt voelt. Ver van een radar zit zelfs die sweep hoog, zoals het zijaanzicht hierboven laat zien, en kan regen uit lage wolken ontbreken.",
+      "p2": "Een kolommaximum toont voor elk punt op de kaart de sterkste echo van alle tilts erboven, tot 12 km. Zo zie je waar de kernen van de buien zitten, ook regen en hagel die nog hoog in de wolk hangen of onderweg naar beneden verdampen. Het is dus niet per se regen aan de grond: het lijkt meestal sterker en groter dan de laagste scan en kan regen tonen waar het beneden droog blijft.",
+      "p3": "Een kolommaximum wacht op de hele volumescan en loopt daarom een scan of meer achter. DMAX is het kolommaximum van de DWD voor Duitsland; meteocool bouwt een eigen uit alle vijf netwerken. De onweerscellen en de 3D-wolken worden in een kolommaximum gevonden."
     },
     "cycle": {
       "title": "Vijf minuten, minuut voor minuut",
