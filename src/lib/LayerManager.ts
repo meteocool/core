@@ -26,7 +26,6 @@ import {
   zoomlevel,
 } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
-import { satelliteCombo } from "../layers/satellite";
 import Capability from "../caps/Capability";
 import type Polygon from "ol/geom/Polygon";
 import type BaseLayer from "ol/layer/Base";
@@ -479,8 +478,6 @@ export class LayerManager {
         return osm();
       case "dark":
         return cartoDark();
-      case "satellite":
-        return satelliteCombo();
       case "cyclosm":
         return cyclosm();
       case "light":
@@ -527,6 +524,12 @@ export class LayerManager {
   }
 
   setTarget(cap: string, target: string | HTMLElement | undefined) {
+    // The apps call this through window.lm with names of their own; one for a
+    // map since removed (satellite, aerosols) leaves the current one up.
+    if (!(cap in this.capabilities)) {
+      console.warn(`Capability ${cap} is not registered; staying on ${this.currentCap}`);
+      return;
+    }
     if (this.currentCap && cap !== this.currentCap) {
       this.capabilities[this.currentCap].willLoseFocus();
       // Off the element as well as out of focus. OpenLayers appends its

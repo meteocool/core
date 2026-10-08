@@ -106,9 +106,9 @@ function sendShown(client: typeof import("@sentry/browser"), { surface, error, c
 }
 
 async function init(): Promise<void> {
-  let Sentry: typeof import("@sentry/browser");
+  let Sentry: typeof import("./sentryClient");
   try {
-    Sentry = await import("@sentry/browser");
+    Sentry = await import("./sentryClient");
   } catch {
     // Offline at load, most likely: the errors are kept, and handed over once
     // the network is back and the chunk with it.

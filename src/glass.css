@@ -530,7 +530,6 @@
    the component's outermost one, so nothing inside it is left out. */
 sl-button::part(base),
 sl-button-group::part(base),
-sl-checkbox::part(base),
 sl-menu-item::part(base),
 sl-range::part(base),
 sl-tag::part(base) {
@@ -554,22 +553,6 @@ sl-progress-ring {
 sl-spinner {
   --indicator-color: var(--mc-accent);
   --track-color: var(--mc-separator);
-}
-
-/* sl-checkbox parts: base control control--checked control--indeterminate checked-icon indeterminate-icon label */
-sl-checkbox::part(control) {
-  border-radius: 6px;
-  border: 1px solid var(--mc-hairline);
-  background: var(--mc-tint);
-}
-sl-checkbox::part(control--checked) {
-  background: var(--mc-accent);
-  border-color: var(--mc-accent);
-  color: #fff;
-}
-sl-checkbox::part(label) {
-  color: var(--mc-text);
-  font: 500 13px/1 var(--mc-font);
 }
 
 /* sl-dialog parts: base overlay panel header header-actions title close-button body footer (+ close-button__base) */

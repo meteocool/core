@@ -16,7 +16,7 @@
   "connection_details": "Verbindingsdetails",
   "title": "Over meteocool",
   "text1": "meteocool is een gratis GIS-visualisatie- en aggregatieplatform met focus op zwaar weer. Geoptimaliseerd voor mobiele apparaten, gebruik je het om naderend weer op te zoeken of juist te vermijden - dat is aan jou.",
-  "text2": "meteocool gebruikt momenteel radargegevens van de DWD, realtime blikseminformatie van het geweldige blitzortung.org-project en satellietbeelden van het EC/ESA Copernicusprogramma.",
+  "text2": "meteocool gebruikt momenteel radargegevens van de DWD en realtime blikseminformatie van het geweldige blitzortung.org-project.",
   "features": {
     "header": "Functies",
     "list_title0": "Privacy:",
@@ -57,7 +57,6 @@
   "latest": "Nieuwste",
   "demo": "Demo",
   "rain_and_thunderstorms": "Regen & onweer",
-  "nrt_satellite": "Bijna realtime satelliet",
   "precipitation_types": "Neerslagtypen",
   "storm_cells_3d": "Onweerscellen 3D",
   "preparing_3d": "3D-kaart wordt voorbereid…",
@@ -117,7 +116,6 @@
   "sleet": "Natte sneeuw",
   "lightning": "Blikseminslagen",
   "n/a": "Onbekend",
-  "aerosols": "Aerosolindex",
   "point_menu_title": "Op deze locatie",
   "point_menu_precipitation": "Neerslag",
   "point_menu_precipitation_sub": "Radar en nowcast",
@@ -143,7 +141,7 @@
   "lightning_none": "Geen recente bliksem in dit gebied. ⚡️",
   "lightning_unavailable": "Statistieken momenteel niet beschikbaar.",
   "radar_no_coverage": "Hier nog geen radar",
-  "radar_no_coverage_body": "Live radar komt van de Duitse weerdienst, die deze alleen publiceert voor Duitsland en de buurlanden. Bliksem, satelliet en de voorspellingsmodellen werken wereldwijd.",
+  "radar_no_coverage_body": "Live radar komt van de Duitse weerdienst, die deze alleen publiceert voor Duitsland en de buurlanden. Bliksem en de voorspellingsmodellen werken wereldwijd.",
   "outdated": "Verouderd",
   "degraded": "Beperkt",
   "show_for_my_location": "Toon voor mijn locatie",
@@ -450,10 +448,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min"
     },
-    "satellite": {
-      "clouds": "Wolken",
-      "labels_borders": "Labels & grenzen"
-    },
     "radar_product": {
       "title": "Radarproduct",
       "choose": "Kies het radarproduct",
@@ -493,8 +487,6 @@
     "scales": {
       "precipitation_types": "Neerslag<br />typen",
       "colormap": "Kleurenschaal: {name} ({min} - {max} dBZ)",
-      "aerosol_low": "Lage aerosoldiepte",
-      "aerosol_high": "Hoge aerosoldiepte",
       "minutes": "{count, plural, one {Minuut} other {Minuten}}"
     },
     "alt": {

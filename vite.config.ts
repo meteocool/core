@@ -123,6 +123,8 @@ export default defineConfig(({ mode }) => {
             "**/maplibre-gl*",
             "**/volunteers.png",
             "**/imprint.html",
+            // scripts/licences.mjs writes it for the apps; the page never reads it.
+            "third-party-licences.json",
             "**/_headers",
             "**/_redirects",
             "**/*.map",
@@ -141,6 +143,10 @@ export default defineConfig(({ mode }) => {
           // only the app leaves them cached: they are most of the bytes and
           // change least often.
           manualChunks(id) {
+            // Loaded on demand by src/lib/sentry.ts. Left to itself, Rollup
+            // folded this re-export into the app's chunk, which then imported
+            // the SDK at startup.
+            if (id.endsWith("/src/lib/sentryClient.ts")) return "sentry";
             if (!id.includes("node_modules")) return undefined;
             if (id.includes("/node_modules/ol/")) return "ol";
             if (id.includes("@shoelace-style") || id.includes("/node_modules/lit") || id.includes("@lit/")) return "shoelace";

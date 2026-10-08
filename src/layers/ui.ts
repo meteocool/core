@@ -3,7 +3,6 @@
 import SlAlert from "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import SlButtonGroup from "@shoelace-style/shoelace/dist/components/button-group/button-group.js";
-import SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
 import SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.js";
 import SlDrodown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.js";

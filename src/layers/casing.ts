@@ -14,7 +14,7 @@ export const LIGHT_CASING = "rgba(255, 255, 255, 0.75)";
 export const DARK_CASING = "rgba(12, 16, 22, 0.75)";
 
 /** The basemaps a light casing would be the loudest thing on. */
-const DARK_BASEMAPS = new Set(["dark", "satellite"]);
+const DARK_BASEMAPS = new Set(["dark"]);
 
 /**
  * Whether what is drawn underneath is dark, so anything laid over it inverts.

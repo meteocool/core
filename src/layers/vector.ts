@@ -14,7 +14,7 @@ import { supportsVectorLabels } from "./base";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { belowMinZoom, protomapsSource, zoomFromResolution } from "./protomaps";
 import {
-  darkLabels, LABEL_FAMILY, LABEL_TIERS, lightLabels, satelliteLabels, tierOfPlace,
+  darkLabels, LABEL_FAMILY, LABEL_TIERS, lightLabels, tierOfPlace,
 } from "./labels";
 import type { LabelPalette, LabelTier, LabelTierName } from "./labels";
 
@@ -35,7 +35,6 @@ const overlayAttributions = [osmAttribution, protomapsAttribution, imprintAttrib
 let placeName = placeNameForLocale(chooseLocale());
 
 function paletteFor(basemap: string): LabelPalette {
-  if (basemap === "satellite") return satelliteLabels;
   return isDarkBasemap(basemap) ? darkLabels : lightLabels;
 }
 
@@ -131,11 +130,6 @@ function trackLabels(layer: VectorTileLayer, followsBasemapVisibility = false): 
   return layer;
 }
 
-const boundaryStyle = new Style({
-  stroke: new Stroke({ color: "#454542", width: 2 }),
-  zIndex: 1,
-});
-
 /** Which label tier a place gets; see `tierOfPlace`. */
 function styleForPlace(feature: FeatureLike): Style {
   return tierStyles[tierOfPlace(feature.get("kind"), feature.get("kind_detail"))];
@@ -152,23 +146,6 @@ function placeStyle(feature: FeatureLike, resolution: number): Style | undefined
   style.getText()!.setText(String(name));
   return style;
 }
-
-/** Country borders plus place labels: used where there is no basemap underneath. */
-export const bordersAndWays = () => trackLabels(new VectorTileLayer({
-  zIndex: 99,
-  declutter: true,
-  source: protomapsSource(["boundaries", "places"], overlayAttributions),
-  style(feature, resolution) {
-    switch (feature.get("layer")) {
-      case "places":
-        return placeStyle(feature, resolution);
-      case "boundaries":
-        return feature.get("kind") === "country" ? boundaryStyle : undefined;
-      default:
-        return undefined;
-    }
-  },
-}));
 
 /** Place labels only: the basemap already draws its own borders. */
 export const labelsOnly = () => trackLabels(new VectorTileLayer({

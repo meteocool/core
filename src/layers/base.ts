@@ -190,10 +190,10 @@ export const cyclosm = () => basemapLayer(cyclosmTheme);
  * Whether the separate label overlay should be drawn over this basemap.
  *
  * Every basemap here is label-free by design -- place names belong above the
- * radar, not under it -- so the overlay is wanted over all of them, and over
- * satellite imagery too. It stays a function, and stays called from
- * layers/vector.ts, so that adding a basemap that carries its own labels is a
- * one-line change rather than a re-wiring.
+ * radar, not under it -- so the overlay is wanted over all of them. It stays
+ * a function, and stays called from layers/vector.ts, so that adding a
+ * basemap that carries its own labels is a one-line change rather than a
+ * re-wiring.
  */
 export function supportsVectorLabels(_layer: string): boolean {
   return true;
