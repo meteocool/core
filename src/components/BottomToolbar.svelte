@@ -328,7 +328,8 @@
         <div class="break"></div>
         {#if activeCap !== "aerosols"}
             <div class="center">
-                {#if (activeCap === "radar" || activeCap === "precipTypes") && $bottomToolbarMode === "collapsed" }
+                <!-- Not the radar's: its product picker says how old each product is. -->
+                {#if activeCap === "precipTypes" && $bottomToolbarMode === "collapsed" }
                     <LastUpdated/>
                 {/if}
                 {#if activeCap === "satellite"}

@@ -12,8 +12,10 @@
  *   a cycle when the slowest network's volume is in, so a cycle or two
  *   behind HX.
  * - `dmax`: DWD's column maximum over Germany, the strongest echo over every
- *   tilt, with the networks' composites around it as for HX. A cycle behind
- *   HX, because it needs the whole volume scan.
+ *   tilt, with `colmax` around it where the other networks draw, so the
+ *   picture is a column maximum throughout; the networks' composites stand
+ *   in on a step `colmax` has no frame for. A cycle behind HX, because it
+ *   needs the whole volume scan.
  *
  * The choice holds on every observed step. A forecast step is WN's whatever
  * was chosen: none of the others forecasts.
@@ -27,8 +29,20 @@ export type ObservedProduct = "hx" | "merged" | "colmax" | "dmax";
 /** The products other than the default, as `/v3/radar/timeseries?products=` names them. */
 export type AlternativeProduct = Exclude<ObservedProduct, "hx">;
 
+/**
+ * The picker's two kinds of picture, each with DWD's own first and meteocool's
+ * merge of all five networks second: the lowest scans, the rain nearest the
+ * ground, and the column maxima, the strongest echo at any height.
+ */
+export type ProductGroup = "lowest" | "column";
+
+export const PRODUCT_GROUPS: readonly { group: ProductGroup; products: readonly ObservedProduct[] }[] = [
+  { group: "lowest", products: ["hx", "merged"] },
+  { group: "column", products: ["dmax", "colmax"] },
+];
+
 /** In the order the picker lists them. */
-export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = ["hx", "merged", "colmax", "dmax"];
+export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = PRODUCT_GROUPS.flatMap(({ products }) => products);
 
 export const DEFAULT_PRODUCT: ObservedProduct = "hx";
 
@@ -110,4 +124,73 @@ export function stepFrame<F>(
 export function ageMinutes(scan: number | null, nowS: number): number | null {
   if (scan === null) return null;
   return Math.max(0, Math.floor((nowS - scan) / 60));
+}
+
+/** The freshest and the stalest scan in what a product draws, unix seconds. */
+export type ScanRange = readonly [freshest: number, stalest: number];
+
+/**
+ * The scans a product's picture is made of, freshest to stalest, given its
+ * own newest, the newest of each network's composite, and the scan of the
+ * `colmax` frame drawn around DMAX (null where the networks' are drawn there
+ * instead). Null where the product has nothing fresh of its own.
+ *
+ * HX and DMAX cover Germany only, and the map draws every other country
+ * beside them on its own clock: the picture runs from its freshest part to
+ * its stalest, either of which may be a neighbour's -- Czechia's composite is
+ * often out before HX. The merged composite and the column maximum of every
+ * network are one frame each, stamped with their own newest scan.
+ */
+export function scanRange(
+  product: ObservedProduct,
+  own: number | null,
+  networks: readonly number[],
+  around: number | null,
+): ScanRange | null {
+  if (own === null) return null;
+  if (product === "merged" || product === "colmax") return [own, own];
+  const parts = product === "dmax" && around !== null ? [own, around] : [own, ...networks];
+  return [Math.max(...parts), Math.min(...parts)];
+}
+
+/** The products whose past the timeseries is asked for with: the choice's own, and for DMAX what is drawn around it. */
+export function timeseriesProducts(chosen: ObservedProduct): AlternativeProduct[] {
+  if (chosen === "hx") return [];
+  return chosen === "dmax" ? ["dmax", "colmax"] : [chosen];
+}
+
+/**
+ * The `colmax` frame drawn around DMAX on a step, where the networks'
+ * composites otherwise are; null where DMAX is not drawn, or `colmax` has no
+ * frame for the step -- the networks' are drawn around it then, as for HX.
+ * On the live step, its own newest only while that is not too far behind
+ * (`fallsBehind`), as when it is chosen.
+ */
+export function aroundFrame<F>(
+  drawn: ObservedProduct,
+  step: { observed: boolean; live: boolean; key: number },
+  history: Record<number, F> | undefined,
+  liveFrame: F | null,
+  scans: NewestScans,
+): F | null {
+  if (drawn !== "dmax") return null;
+  if (step.live && fallsBehind("colmax", scans)) return null;
+  return stepFrame("colmax", "colmax", step, history, liveFrame);
+}
+
+/**
+ * Whether the reader's choice is to be given up for the default: one of the
+ * EU products, which stand in for every network at once, with no fresh frame
+ * at all once its feed has answered. Not DMAX, which keeps Germany's own
+ * radar under it, and not one merely behind, which the default only stands
+ * in for until it catches up (`drawnProduct`).
+ */
+export function givesUpChoice(chosen: ObservedProduct, scans: NewestScans, answered: boolean): boolean {
+  return (chosen === "merged" || chosen === "colmax") && answered && scans[chosen] === null;
+}
+
+/** How long ago a product's freshest and stalest scans were, in whole minutes; null where it has none. */
+export function ageSpan(range: ScanRange | null, nowS: number): readonly [number, number] | null {
+  if (range === null) return null;
+  return [ageMinutes(range[0], nowS)!, ageMinutes(range[1], nowS)!];
 }

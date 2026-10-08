@@ -3,7 +3,7 @@ import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
 import { REACHABLE, type Reachability } from "./lib/reachability";
 import { INITIAL_CONNECTION, type Connection } from "./lib/connectionState";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
-import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct } from "./lib/observedProduct";
+import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange } from "./lib/observedProduct";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties, RadarVolume } from "./api";
 
@@ -251,12 +251,19 @@ export const observedProduct = writable<ObservedProduct>(DEFAULT_PRODUCT);
 /**
  * What the radar map does with that choice, for the picker: what it draws --
  * the choice, or the default while the choice falls behind -- and how old
- * each product's newest scan is. Published by RadarCapability.
+ * each product's newest scan is, and the range of scans its picture is made
+ * of (`scanRange`), which the picker shows. Published by RadarCapability.
  */
-export const radarProducts = writable<{ chosen: ObservedProduct; drawn: ObservedProduct; scans: NewestScans }>({
+export const radarProducts = writable<{
+  chosen: ObservedProduct;
+  drawn: ObservedProduct;
+  scans: NewestScans;
+  ranges: Record<ObservedProduct, ScanRange | null>;
+}>({
   chosen: DEFAULT_PRODUCT,
   drawn: DEFAULT_PRODUCT,
   scans: { hx: null, merged: null, colmax: null, dmax: null },
+  ranges: { hx: null, merged: null, colmax: null, dmax: null },
 });
 /**
  * Whether the 3D map is still being brought up for the first time.
