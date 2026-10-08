@@ -371,6 +371,14 @@ const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "colmax", "ce
       <figcaption>{$_("radar_help.tilts.caption")}</figcaption>
     </figure>
 
+    <!-- Lowest scan or column maximum: the radar product picker's two groups -->
+    <div class="col">
+      <h3>{$_("radar_help.products.title")}</h3>
+      <p>{$_("radar_help.products.p1")}</p>
+      <p>{$_("radar_help.products.p2")}</p>
+      <p>{$_("radar_help.products.p3")}</p>
+    </div>
+
     <!-- Five minutes, minute by minute -->
     <div class="col">
       <h3>{$_("radar_help.cycle.title")}</h3>

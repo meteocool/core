@@ -460,7 +460,7 @@
       "group_lowest": "Najniższy skan",
       "group_lowest_hint": "Deszcz najbliżej ziemi",
       "group_column": "Maksimum kolumny",
-      "group_column_hint": "Najsilniejsze echo na dowolnej wysokości, nie deszcz przy ziemi",
+      "group_column_hint": "Najsilniejsze echo na dowolnej wysokości, niekoniecznie deszcz przy ziemi",
       "hx": "Najniższy skan",
       "hx_short": "Skan",
       "hx_option": "Kompozyty krajowe",
@@ -706,6 +706,12 @@
       "width": "wiązka 0,5° ma 1° szerokości: 3 km na 180 km",
       "above_1": "tuż nad radarem",
       "above_2": "nie patrzy żaden kąt"
+    },
+    "products": {
+      "title": "Najniższy skan czy maksimum kolumny",
+      "p1": "Mapa radarowa może pokazywać dwa rodzaje obrazu. Najniższy skan pokazuje najniższy sweep każdego radaru: echo najbliżej ziemi, czyli to, co najbardziej przypomina deszcz, który faktycznie pada na nas. Daleko od radaru nawet ten sweep jest wysoko, jak pokazuje widok z boku powyżej, więc deszcz z niskich chmur może umknąć.",
+      "p2": "Maksimum kolumny pokazuje dla każdego punktu mapy najsilniejsze echo ze wszystkich nachyleń nad nim, do 12 km. Wskazuje, gdzie są rdzenie burz, także deszcz i grad, które są jeszcze wysoko w chmurze albo parują w drodze w dół. To więc niekoniecznie deszcz przy ziemi: zwykle wygląda na silniejszy i rozleglejszy niż najniższy skan i może pokazywać deszcz tam, gdzie na dole jest sucho.",
+      "p3": "Maksimum kolumny czeka na cały skan objętościowy, więc jest o skan lub więcej opóźnione. DMAX to maksimum kolumny DWD dla Niemiec; meteocool buduje własne z pięciu sieci. Komórki burzowe i chmury 3D są wyznaczane z maksimum kolumny."
     },
     "cycle": {
       "title": "Pięć minut, minuta po minucie",

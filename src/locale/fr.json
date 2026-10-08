@@ -460,7 +460,7 @@
       "group_lowest": "Balayage le plus bas",
       "group_lowest_hint": "La pluie au plus près du sol",
       "group_column": "Maximum de colonne",
-      "group_column_hint": "Écho le plus fort à toute altitude, pas la pluie au sol",
+      "group_column_hint": "Écho le plus fort à toute altitude, pas forcément de la pluie au sol",
       "hx": "Balayage le plus bas",
       "hx_short": "Bas",
       "hx_option": "Composites nationaux",
@@ -706,6 +706,12 @@
       "width": "le faisceau de 0,5° fait 1° de large : 3 km à 180 km",
       "above_1": "juste au-dessus du radar,",
       "above_2": "aucun angle ne regarde"
+    },
+    "products": {
+      "title": "Balayage le plus bas ou maximum de colonne",
+      "p1": "La carte radar peut montrer deux sortes d'image. Le balayage le plus bas montre le balayage le plus bas de chaque radar : l'écho le plus proche du sol, donc ce qui ressemble le plus à la pluie qu'on reçoit. Loin d'un radar, même ce balayage passe haut, comme le montre la vue de côté ci-dessus, et la pluie de nuages bas peut manquer.",
+      "p2": "Un maximum de colonne montre, pour chaque point de la carte, l'écho le plus fort de toutes les inclinaisons au-dessus, jusqu'à 12 km. Il indique où sont les cœurs des orages, y compris la pluie et la grêle encore haut dans le nuage, ou qui s'évaporent en descendant. Ce n'est donc pas forcément de la pluie au sol : il paraît en général plus fort et plus étendu que le balayage le plus bas, et peut montrer de la pluie là où il reste sec en dessous.",
+      "p3": "Un maximum de colonne attend le balayage volumique complet, il a donc un balayage ou plus de retard. DMAX est le maximum de colonne du DWD pour l'Allemagne ; meteocool construit le sien à partir des cinq réseaux. Les cellules orageuses et les nuages 3D sont trouvés dans un maximum de colonne."
     },
     "cycle": {
       "title": "Cinq minutes, minute par minute",
