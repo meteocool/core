@@ -6,7 +6,8 @@
  * Two faces of one control. In the scale line it is the caption the legend
  * always had -- "Radarkomposit (DWD 1km)", until this -- now the chosen
  * product and its age; on a phone, where that caption has no room, a pill
- * with a radar dish in its place. Where there is no scale line at all, the
+ * with a radar dish, the product's short name and its age in its place. The
+ * age is the radar's "last updated": there is no other. Where there is no scale line at all, the
  * player below the desktop's width and the apps', it is the pill on its own.
  * Either opens the same menu above the tray.
  *
@@ -23,8 +24,8 @@ import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDi
 import Icon from "./Icon.svelte";
 import Lazy from "./Lazy.svelte";
 import { radarProducts, smallScreen } from "../stores";
-import { OBSERVED_PRODUCTS, ageMinutes, fallsBehind } from "../lib/observedProduct";
-import type { NewestScans, ObservedProduct } from "../lib/observedProduct";
+import { PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
+import type { ObservedProduct, ScanRange } from "../lib/observedProduct";
 
 /** `adaptive`: the caption, but the pill on a phone. */
 export let variant: "caption" | "pill" | "adaptive" = "caption";
@@ -47,18 +48,21 @@ const clock = setInterval(() => { nowS = Date.now() / 1000; }, 15_000);
 onDestroy(() => clearInterval(clock));
 
 $: face = variant === "adaptive" ? ($smallScreen ? "pill" : "caption") : variant;
-$: ({ chosen, drawn, scans } = $radarProducts);
+$: ({ chosen, drawn, scans, ranges } = $radarProducts);
 /** The choice has fallen behind, and the default is drawn in its place. */
 $: fellBack = chosen !== drawn;
 $: fellBackNote = $_("chrome.radar_product.fell_back", {
   values: { product: $_(`chrome.radar_product.${chosen}`), fallback: $_(`chrome.radar_product.${drawn}`) },
 });
 
-function age(product: ObservedProduct, newest: NewestScans, now: number): string {
-  const minutes = ageMinutes(newest[product], now);
-  return minutes === null
-    ? $_("chrome.radar_product.unavailable")
-    : $_("chrome.radar_product.age", { values: { minutes } });
+/** How long ago its scans were: one age, or a span where its countries differ. */
+function age(product: ObservedProduct, scanRanges: Record<ObservedProduct, ScanRange | null>, now: number): string {
+  const span = ageSpan(scanRanges[product], now);
+  if (span === null) return $_("chrome.radar_product.unavailable");
+  const [from, to] = span;
+  return from === to
+    ? $_("chrome.radar_product.age", { values: { minutes: from } })
+    : $_("chrome.radar_product.age_span", { values: { from, to } });
 }
 
 async function show() {
@@ -136,9 +140,10 @@ function portal(node: HTMLElement) {
   {#if face === "pill"}
     <Icon icon={faSatelliteDish} />
     <span>{$_(`chrome.radar_product.${chosen}_short`)}</span>
+    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
   {:else}
     <span class="name">{$_(`chrome.radar_product.${chosen}`)}<Icon icon={faChevronUp} class="chevron" /></span>
-    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, scans, nowS)}</span>
+    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
   {/if}
 </button>
 
@@ -162,22 +167,36 @@ function portal(node: HTMLElement) {
         <Icon icon={faCircleQuestion} />
       </button>
     </div>
-    {#each OBSERVED_PRODUCTS as product (product)}
-      <button
-        type="button"
-        role="menuitemradio"
-        class="option"
-        class:behind={fallsBehind(product, scans)}
-        aria-checked={product === chosen}
-        on:click={() => choose(product)}>
-        <span class="check" aria-hidden="true">{product === chosen ? "✓" : ""}</span>
-        <span class="text">
-          <span class="name">{$_(`chrome.radar_product.${product}`)}</span>
-          <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
-          <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
-        </span>
-        <span class="age">{age(product, scans, nowS)}</span>
-      </button>
+    {#each PRODUCT_GROUPS as { group, products }, i (group)}
+      <div class="group" role="group" aria-labelledby={`radar-product-${group}`}>
+        <div class="group-heading">
+          <span class="group-text">
+            <span class="group-name" id={`radar-product-${group}`}>{$_(`chrome.radar_product.group_${group}`)}</span>
+            <span class="group-hint">{$_(`chrome.radar_product.group_${group}_hint`)}</span>
+          </span>
+          <!-- The ages' column heading, once, over the first group. -->
+          {#if i === 0}
+            <span class="column" title={$_("chrome.radar_product.age_hint")}>{$_("chrome.radar_product.age_heading")}</span>
+          {/if}
+        </div>
+        {#each products as product (product)}
+          <button
+            type="button"
+            role="menuitemradio"
+            class="option"
+            class:behind={fallsBehind(product, scans)}
+            aria-checked={product === chosen}
+            on:click={() => choose(product)}>
+            <span class="check" aria-hidden="true">{product === chosen ? "✓" : ""}</span>
+            <span class="text">
+              <span class="name">{$_(`chrome.radar_product.${product}_option`)}</span>
+              <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
+              <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
+            </span>
+            <span class="age" title={$_("chrome.radar_product.age_hint")}>{age(product, ranges, nowS)}</span>
+          </button>
+        {/each}
+      </div>
     {/each}
     {#if fellBack}
       <p class="note">{fellBackNote}</p>
@@ -250,7 +269,12 @@ function portal(node: HTMLElement) {
   .pill:active { transform: scale(var(--mc-press)); }
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .pill :global(svg) { width: 12px; height: 12px; }
-  .pill.fellBack { color: var(--mc-orange-ink); }
+  .pill .age {
+    color: var(--mc-text-2);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill.fellBack .age { color: var(--mc-orange-ink); }
 
   .menu {
     position: fixed;
@@ -286,6 +310,33 @@ function portal(node: HTMLElement) {
   .help:hover { background: var(--mc-tint-hover); color: var(--mc-accent); }
   .help:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -2px; }
   .help :global(svg) { width: 17px; height: 17px; }
+  .group + .group { margin-top: 4px; }
+  /* A section of the menu: what its pictures have in common, and over the
+     first, what the minutes on the right are. Out at the title's edge rather
+     than the options' text, so it reads as a new section. */
+  .group-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px 2px;
+  }
+  .group-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .group-name {
+    color: var(--mc-text-2);
+    font: 700 11px/1.3 var(--mc-font);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .group-hint { color: var(--mc-text-3); font: 500 11px/1.3 var(--mc-font); }
+  .column {
+    flex: 0 0 auto;
+    max-width: 64px;
+    color: var(--mc-text-3);
+    font: 600 10px/1.2 var(--mc-font);
+    text-align: right;
+    cursor: help;
+  }
   .option {
     display: grid;
     grid-template-columns: 16px 1fr auto;

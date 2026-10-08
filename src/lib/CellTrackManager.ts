@@ -135,13 +135,16 @@ export default class CellTrackManager {
     const features: Feature[] = [];
     /** The lineage joins, kept apart only so they can be drawn underneath. */
     const joins: Feature[] = [];
-    const live: Feature[] = [];
+    const pings: Feature[] = [];
     this.tracks = new Map();
 
     // The feed's own newest run, so "how recently was this detected" is asked
     // of the data rather than of the clock; see `LIVE_MINUTES`. Falling back to
     // the clock only matters on a backend that sends no reference time.
     const reference = referenceTime ? new Date(referenceTime).getTime() : now;
+    const isLiveTrack = (track: CellTrackProperties): boolean => (
+      track.active && isLive(ageMinutes(track.last_seen, reference))
+    );
 
     const open = this.openCode();
     const answered = tracks.some((raw) => raw.properties.code === open);
@@ -175,12 +178,15 @@ export default class CellTrackManager {
       /** Replaced by something else that is on the map; see `supersededCodes`. */
       const taken = superseded.has(p.code);
 
+      /** Still being detected: the ring goes round it, and it is drawn at every zoom (`showsEnded`). */
+      const live = isLiveTrack(p);
       const shared = {
         code: p.code,
         max_severity: p.max_severity,
         hail_ever: p.hail_ever,
         meso_ever: p.meso_ever,
         age_minutes: ageMinutes(p.last_seen, now),
+        live,
       };
 
       const add = (kind: CellFeatureKind, id: string, geometry: Point | LineString | Polygon) => {
@@ -211,8 +217,8 @@ export default class CellTrackManager {
         // renamed kept its ping alive on the old code's last position, which
         // reads as a dashed ring with nothing in it once the dot it used to
         // sit under is gone.
-        if (!taken && p.active && isLive(ageMinutes(p.last_seen, reference))) {
-          live.push(new Feature({
+        if (!taken && live) {
+          pings.push(new Feature({
             max_severity: p.max_severity,
             geometry: new Point(fromLonLat([last.lon, last.lat])),
           }));
@@ -294,6 +300,8 @@ export default class CellTrackManager {
         from_code: link.from,
         max_severity: child.max_severity,
         age_minutes: ageMinutes(child.last_seen, now),
+        // Drawn from afar while it leads into a live cell, as that cell is.
+        live: isLiveTrack(child),
         geometry: new LineString([fromLonLat(link.start), fromLonLat(link.end)]),
       });
       feature.setId(`${link.from}>${link.to}`);
@@ -309,7 +317,7 @@ export default class CellTrackManager {
       // Not silent: the ping's timer starts and stops on this source changing,
       // so a quiet swap would leave it animating an empty layer or not
       // animating a full one.
-      if (live.length) this.pulse.addFeatures(live);
+      if (pings.length) this.pulse.addFeatures(pings);
       else this.pulse.changed();
     }
 
