@@ -104,6 +104,20 @@ export const EUROPE_COLUMN_MAXIMUM: Network = {
 };
 
 /**
+ * The column maximum of every network, cut to the ground the networks draw
+ * on: what surrounds DMAX, Germany's own column maximum, in place of the
+ * networks' lowest scans. Each network's coverage is one polygon wound to
+ * nest and the four only touch, so their rings traced as one path are their
+ * union. Its frames are handed to it (`show`), never fetched: they are the
+ * whole column maximum's.
+ */
+export const AROUND_DMAX: Network = {
+  ...EUROPE_COLUMN_MAXIMUM,
+  extent: NETWORKS.map((network) => network.extent).reduce((whole, one) => extend(whole, one), createEmpty()),
+  coverage: NETWORKS.flatMap((network) => network.coverage ?? []),
+};
+
+/**
  * An independent tile layer for one EUMETNET network's composite.
  *
  * Two frames, from two places. The live frame is its own: fetched here and
@@ -166,6 +180,11 @@ export default class NetworkRadarLayer {
    */
   current(): RadarFrame | null {
     return this.latest.current();
+  }
+
+  /** Whether the backend has answered for this product yet, with a frame or with none. */
+  answered(): boolean {
+    return this.latest.answered;
   }
 
   /**

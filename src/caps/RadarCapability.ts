@@ -6,7 +6,7 @@ import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
 import { frameOnStep, templateOf } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
-import NetworkRadarLayer, { EUROPE, EUROPE_COLUMN_MAXIMUM, NETWORKS } from "../layers/network";
+import NetworkRadarLayer, { AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, NETWORKS } from "../layers/network";
 import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
@@ -47,12 +47,16 @@ import { tileBaseUrl } from "../urls";
 import { fetchColumnMaximum, fetchRadarTimeseries, fetchSnowOverlay } from "../api";
 import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
-import { DEFAULT_PRODUCT, drawnProduct, oldestScan, stepFrame } from "../lib/observedProduct";
+import {
+  DEFAULT_PRODUCT, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, oldestScan, stepFrame, timeseriesProducts,
+} from "../lib/observedProduct";
 import type { AlternativeProduct, NewestScans, ObservedProduct } from "../lib/observedProduct";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
 import { timedFetch } from "../lib/timedFetch";
 import { derived, get } from "svelte/store";
+import { _ } from "svelte-i18n";
+import { reportToast } from "../lib/Toast";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
@@ -88,6 +92,9 @@ const STALE_OPACITY = NOWCAST_OPACITY * 0.45;
  * win without the storm underneath it going away.
  */
 const INSPECT_OPACITY = 0.55;
+
+/** A list of products as one string, to tell two requests' apart. */
+const productsKey = (products: readonly AlternativeProduct[]): string => products.join(",");
 
 /** The products of every network at once, each drawn whole in place of the six; see `showNetworks`. */
 const WHOLE_PRODUCTS = ["merged", "colmax"] as const satisfies readonly AlternativeProduct[];
@@ -185,6 +192,13 @@ export default class RadarCapability extends Capability {
    */
   private dmax = new LatestFrame(fetchColumnMaximum);
 
+  /**
+   * The column maximum of every network around DMAX while DMAX is drawn, cut
+   * to the networks' own ground; see `aroundFrame`. Handed the whole column
+   * maximum's frames, never fetching its own.
+   */
+  private around: NetworkRadarLayer;
+
   /** The product the reader picked; see lib/observedProduct.ts. */
   private chosen: ObservedProduct = DEFAULT_PRODUCT;
 
@@ -194,8 +208,8 @@ export default class RadarCapability extends Capability {
   /** Each product besides the default, by the newest frame it keeps. */
   private latest: Record<AlternativeProduct, { current(): RadarFrame | null }>;
 
-  /** Which product's past the grid in hand was asked for with; see `downloadCurrentRadar`. */
-  private gridProduct: AlternativeProduct | null = null;
+  /** Which products' past the grid in hand was asked for with, as `productsKey` puts it; see `downloadCurrentRadar`. */
+  private gridProducts = "";
 
   private unsubscribeProduct: (() => void) | null = null;
 
@@ -283,17 +297,20 @@ export default class RadarCapability extends Capability {
     ));
     // Not an observer's business: the 3D map drapes HX and the networks
     // whatever the flat map draws.
+    // Told by `refreshWhole` rather than on a new frame: an answer of none
+    // is news too, the kind that gives a choice up (`givesUpChoice`).
     this.wholes = {
-      merged: new NetworkRadarLayer(map, EUROPE, () => this.productsChanged()),
-      colmax: new NetworkRadarLayer(map, EUROPE_COLUMN_MAXIMUM, () => this.productsChanged()),
+      merged: new NetworkRadarLayer(map, EUROPE),
+      colmax: new NetworkRadarLayer(map, EUROPE_COLUMN_MAXIMUM),
     };
+    this.around = new NetworkRadarLayer(map, AROUND_DMAX);
     this.latest = { ...this.wholes, dmax: this.dmax };
     this.unsubscribeProduct = observedProduct.subscribe((product) => {
       this.chosen = product;
       // Its past comes with the grid, asked for by name. Before the first
       // grid, the request in flight is checked when it lands instead.
-      const wanted = this.wantedProduct();
-      if (this.serverGrid && wanted && wanted !== this.gridProduct) this.reloadRadar();
+      const wanted = productsKey(timeseriesProducts(this.chosen));
+      if (this.serverGrid && wanted && wanted !== this.gridProducts) this.reloadRadar();
       this.productsChanged();
     });
 
@@ -314,7 +331,7 @@ export default class RadarCapability extends Capability {
       // place, with nothing reloaded and the grid neither refetched nor
       // re-announced.
       setDwdCmap(colorScheme);
-      for (const network of [...this.networks, ...Object.values(this.wholes)]) network.setPalette(colorScheme);
+      for (const network of [...this.networks, ...Object.values(this.wholes), this.around]) network.setPalette(colorScheme);
     });
 
     latLon.subscribe((latlonUpdate) => {
@@ -422,7 +439,7 @@ export default class RadarCapability extends Capability {
         whenVisible(`radar:network:${network}`, () => {
           const whole = Object.values(this.wholes).find((layer) => layer.network.code === network);
           if (whole) {
-            whole.refresh(this.nanobar);
+            this.refreshWhole(whole);
             return;
           }
           if (network === "dmax") {
@@ -438,7 +455,7 @@ export default class RadarCapability extends Capability {
       this.loaded = Promise.allSettled([
         this.downloadCurrentRadar(),
         ...this.networks.map((network) => network.refresh(this.nanobar)),
-        ...Object.values(this.wholes).map((whole) => whole.refresh(this.nanobar)),
+        ...Object.values(this.wholes).map((whole) => this.refreshWhole(whole)),
         this.refreshColumnMaximum(),
         this.snowRequest,
       ]);
@@ -553,9 +570,10 @@ export default class RadarCapability extends Capability {
     // tiles are holes, so without these playback there is half-loaded anyway.
     // Or a product of every network's, on the steps it stands in for them all.
     const wholes = ahead.map((step) => this.wholeFrame(step));
+    const arounds = ahead.map((step) => this.aroundFrame(step));
     for (const network of this.networks) {
       const frames = ahead
-        .filter((_step, i) => !wholes[i])
+        .filter((_step, i) => !wholes[i] && !arounds[i])
         .map((step) => this.networkGrid[network.network.code]?.[step])
         .filter((frame): frame is RadarFrame => Boolean(frame));
       if (frames.length) urls.push(...network.tileUrls(frames, PREFETCH_MAX_TILES));
@@ -564,6 +582,8 @@ export default class RadarCapability extends Capability {
       const frames = wholes.filter((whole) => whole?.product === product).map((whole) => whole!.frame);
       if (frames.length) urls.push(...layer.tileUrls(frames, PREFETCH_MAX_TILES));
     }
+    const aroundFrames = arounds.filter((frame): frame is RadarFrame => Boolean(frame));
+    if (aroundFrames.length) urls.push(...this.around.tileUrls(aroundFrames, PREFETCH_MAX_TILES));
 
     if (this.prefetched.size > PREFETCH_REMEMBERED) this.prefetched.clear();
     for (const url of urls) {
@@ -690,8 +710,14 @@ export default class RadarCapability extends Capability {
     console.log("reloadAll");
     this.reloadRadar();
     for (const network of this.networks) network.refresh(this.nanobar);
-    for (const whole of Object.values(this.wholes)) whole.refresh(this.nanobar);
+    for (const whole of Object.values(this.wholes)) this.refreshWhole(whole);
     this.refreshColumnMaximum();
+  }
+
+  /** One of every network's products, newest frame, and whatever that changes -- a frame or none. */
+  private async refreshWhole(whole: NetworkRadarLayer) {
+    await whole.refresh(this.nanobar);
+    this.productsChanged();
   }
 
   /** DMAX's newest frame, and whatever that changes on the map. */
@@ -717,11 +743,14 @@ export default class RadarCapability extends Capability {
     const networks = Object.values(this.liveNetworkFrames())
       .map((frame) => frame?.upstream_time)
       .filter((scan): scan is number => typeof scan === "number");
+    // What DMAX would have around it on the live step, drawn or not: the
+    // picker ages the option before it is picked.
+    const around = fallsBehind("colmax", scans) ? null : scans.colmax;
     return {
-      hx: oldestScan("hx", scans.hx, networks),
-      merged: oldestScan("merged", scans.merged, networks),
-      colmax: oldestScan("colmax", scans.colmax, networks),
-      dmax: oldestScan("dmax", scans.dmax, networks),
+      hx: oldestScan("hx", scans.hx, networks, null),
+      merged: oldestScan("merged", scans.merged, networks, null),
+      colmax: oldestScan("colmax", scans.colmax, networks, null),
+      dmax: oldestScan("dmax", scans.dmax, networks, around),
     };
   }
 
@@ -732,6 +761,12 @@ export default class RadarCapability extends Capability {
    */
   private productsChanged() {
     const scans = this.newestScans();
+    if (this.chosen === "merged" || this.chosen === "colmax") {
+      if (givesUpChoice(this.chosen, scans, this.wholes[this.chosen].answered())) {
+        this.giveUpChoice(this.chosen);
+        return;
+      }
+    }
     this.drawn = drawnProduct(this.chosen, scans);
     radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans, oldest: this.oldestScans(scans) });
     const shown = get(capTimeIndicator);
@@ -742,6 +777,35 @@ export default class RadarCapability extends Capability {
       this.source.setHoles(this.holes(), url);
     }
     this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
+  }
+
+  /**
+   * Switch the reader's choice to the default, saying so: one of the EU
+   * products has no frame at all. The setting changes, so the map does not
+   * flip back on the next frame, and the notice is raised this once; picking
+   * the product again is the reader's to do. `productsChanged` runs again
+   * from the setting's own subscription.
+   */
+  private giveUpChoice(product: "merged" | "colmax") {
+    const t = get(_);
+    reportToast(t("chrome.radar_product.gave_up", {
+      values: { product: t(`chrome.radar_product.${product}`), fallback: t(`chrome.radar_product.${DEFAULT_PRODUCT}_option`) },
+    }), "warning", "exclamation-triangle");
+    // Before the setting, so nothing that runs in between gives it up twice.
+    this.chosen = DEFAULT_PRODUCT;
+    window.settings.set("radarProduct", DEFAULT_PRODUCT);
+  }
+
+  /** The `colmax` frame drawn around DMAX on a step, or null; see `aroundFrame`. */
+  private aroundFrame(step: number): RadarFrame | null {
+    const frame = this.clientGrid?.[step];
+    return aroundFrame(
+      this.drawn,
+      { observed: frame?.source === "observation" && Boolean(frame.url), live: step === this.getMostRecentObservation(), key: step },
+      this.productGrid.colmax,
+      this.latest.colmax.current(),
+      this.newestScans(),
+    );
   }
 
   /**
@@ -805,7 +869,8 @@ export default class RadarCapability extends Capability {
     for (const [key, frame] of Object.entries(this.clientGrid ?? {})) {
       if (!frame?.url || frame.source !== "observation") continue;
       const step = parseInt(key, 10);
-      const codes = step === newest
+      // Around DMAX the column maximum stands where every network would.
+      const codes = step === newest || this.aroundFrame(step)
         ? ALL_NETWORKS
         : ALL_NETWORKS.filter((code) => this.networkGrid[code]?.[step]);
       // By the name the step's frame is drawn under, which tells DMAX's
@@ -835,9 +900,12 @@ export default class RadarCapability extends Capability {
    */
   private showNetworks(shown: number, live: boolean) {
     const whole = this.wholeFrame(shown);
+    const around = whole ? null : this.aroundFrame(shown);
+    const own = !whole && !around;
     for (const network of this.networks) {
-      network.show(live && !whole, whole ? null : this.networkGrid[network.network.code]?.[shown] ?? null);
+      network.show(live && own, own ? this.networkGrid[network.network.code]?.[shown] ?? null : null);
     }
+    this.around.show(false, around);
     // The frame itself, the live one included: `alternativeFrame` has
     // already judged the newest fresh.
     for (const product of WHOLE_PRODUCTS) {
@@ -885,15 +953,15 @@ export default class RadarCapability extends Capability {
     const at = this.positionKey();
     this.gridRequests += 1;
     const request = this.gridRequests;
-    const product = this.wantedProduct();
-    // Asked again without the product when that fails: an API that does not
-    // know it yet (a client deployed before its backend) answers 422, and the
+    const products = timeseriesProducts(this.chosen);
+    // Asked again without the products when that fails: an API that does not
+    // know one yet (a client deployed before its backend) answers 422, and the
     // map would otherwise have no radar at all rather than HX without it.
-    let asked = product;
-    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), product).catch(() => {
-      if (!product) return null;
-      asked = null;
-      return fetchRadarTimeseries(this.nanobar, this.getPosition(), null).catch(() => null);
+    let asked = products;
+    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), products).catch(() => {
+      if (!products.length) return null;
+      asked = [];
+      return fetchRadarTimeseries(this.nanobar, this.getPosition(), []).catch(() => null);
     });
     if (!data) {
       live.set(false);
@@ -906,19 +974,14 @@ export default class RadarCapability extends Capability {
     if (request < this.gridApplied) return;
     this.gridApplied = request;
     this.gridSampledAt = at;
-    this.gridProduct = asked;
+    this.gridProducts = productsKey(asked);
     this.processRadar(data);
     if (forUser) dryAtUser.set(isDry(data.frames));
     // Picked while this was out: its past is still to be asked for. Against
     // what was asked for first, so a product the API refused is not asked
     // for again and again.
-    const wanted = this.wantedProduct();
-    if (wanted && wanted !== product) this.reloadRadar();
-  }
-
-  /** The product whose past the timeseries is asked for with: the choice, unless that is the default. */
-  private wantedProduct(): AlternativeProduct | null {
-    return this.chosen === "hx" ? null : this.chosen;
+    const wanted = productsKey(timeseriesProducts(this.chosen));
+    if (wanted && wanted !== productsKey(products)) this.reloadRadar();
   }
 
   async downloadSnowOverlay() {
@@ -1141,6 +1204,7 @@ export default class RadarCapability extends Capability {
   destroy() {
     for (const network of this.networks) network.destroy();
     for (const whole of Object.values(this.wholes)) whole.destroy();
+    this.around.destroy();
     this.unsubscribeProduct?.();
     this.unsubscribeProduct = null;
     this.unsubscribeLiveFrame?.();

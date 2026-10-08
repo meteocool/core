@@ -237,11 +237,11 @@ async function request<T>(
 export function fetchRadarTimeseries(
   nanobar?: Progress,
   position?: { lat: number; lon: number; network?: CountryNetwork },
-  product?: AlternativeProduct | null,
+  products: readonly AlternativeProduct[] = [],
 ) {
   // The chosen product's own past, beside HX's and the networks': asked for,
   // since every frame carries its tile index (lib/observedProduct.ts).
-  const query = { ...position, ...(product ? { products: [product] } : {}) };
+  const query = { ...position, ...(products.length ? { products: [...products] } : {}) };
   return request(nanobar, "/v3/radar/timeseries", () =>
     apiClient.GET("/v3/radar/timeseries", { params: { query } }));
 }
