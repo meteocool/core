@@ -467,7 +467,7 @@
       "hx_hint": "Un par pays, chacun coupé à sa frontière",
       "hx_grid": "Grille : 250 × 250 m (Allemagne), ~180 × 280 m (ailleurs)",
       "merged": "Composite UE",
-      "merged_short": "UE",
+      "merged_short": "Bas (UE)",
       "merged_option": "Composite UE",
       "merged_hint": "Tous les réseaux nationaux réunis en une carte ; utile près des frontières, où les composites nationaux s'arrêtent",
       "merged_grid": "Grille : ~180 × 280 m",

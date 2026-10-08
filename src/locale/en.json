@@ -475,7 +475,7 @@
       "hx_hint": "One per country, each cut at its border",
       "hx_grid": "Grid: 250 × 250 m (Germany), ~180 × 280 m (elsewhere)",
       "merged": "EU composite",
-      "merged_short": "EU",
+      "merged_short": "Scan (EU)",
       "merged_option": "EU composite",
       "merged_hint": "All country networks merged into one map; useful near borders, where the national composites stop at the border",
       "merged_grid": "Grid: ~180 × 280 m",

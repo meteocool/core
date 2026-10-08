@@ -467,7 +467,7 @@
       "hx_hint": "Eén per land, elk afgesneden aan de grens",
       "hx_grid": "Raster: 250 × 250 m (Duitsland), ~180 × 280 m (elders)",
       "merged": "EU-composiet",
-      "merged_short": "EU",
+      "merged_short": "Scan (EU)",
       "merged_option": "EU-composiet",
       "merged_hint": "Alle nationale netwerken samengevoegd tot één kaart; handig in grensgebieden, waar de nationale composieten bij de grens stoppen",
       "merged_grid": "Raster: ~180 × 280 m",
