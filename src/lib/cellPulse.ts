@@ -48,6 +48,26 @@ export function isLive(minutesSinceDetection: number): boolean {
   return minutesSinceDetection <= LIVE_MINUTES;
 }
 
+/**
+ * The zoom from which a cell that is not live is drawn at all: its dot, its
+ * path, its outline and the joins into it.
+ *
+ * Close in, an ended cell next to a live one is the storm's story -- where it
+ * came from, what it split off. From a country away the two dots are a few
+ * pixels apart and read as two storms, one of them with no ring and nothing
+ * under it. The open cell is drawn whatever the zoom.
+ */
+export const ENDED_MIN_ZOOM = 10;
+
+/** Web Mercator's metres per pixel at zoom 0. */
+const RESOLUTION_AT_ZOOM_0 = 156_543.033_928_041;
+
+/** Whether the map, at this resolution, is close enough in to draw cells that are not live. */
+export function showsEnded(resolution: number): boolean {
+  // A hair of slack, so a view resting exactly on the zoom counts as on it.
+  return resolution <= (RESOLUTION_AT_ZOOM_0 / 2 ** ENDED_MIN_ZOOM) * 1.001;
+}
+
 /** The ring, in pixels: clear of the largest centroid marker, which is 12 across. */
 export const RING_RADIUS = 11;
 export const RING_WIDTH = 2;
