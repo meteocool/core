@@ -469,7 +469,7 @@
       "merged": "EU-composiet",
       "merged_short": "Scan (EU)",
       "merged_option": "EU-composiet",
-      "merged_hint": "Alle nationale netwerken samengevoegd tot één kaart; handig in grensgebieden, waar de nationale composieten bij de grens stoppen",
+      "merged_hint": "Alle nationale netwerken samengevoegd; handig in grensgebieden, maar nooit zo actueel",
       "merged_grid": "Raster: ~180 × 280 m",
       "colmax": "EU-kolommaximum",
       "colmax_short": "EU-max",

@@ -469,7 +469,7 @@
       "merged": "Kompozit EÚ",
       "merged_short": "Sken (EÚ)",
       "merged_option": "Kompozit EÚ",
-      "merged_hint": "Všetky národné siete zlúčené do jednej mapy; užitočné v pohraničí, kde národné kompozity končia na hranici",
+      "merged_hint": "Všetky národné siete zlúčené; užitočné v pohraničí, ale nikdy také aktuálne",
       "merged_grid": "Mriežka: ~180 × 280 m",
       "colmax": "Maximum stĺpca EÚ",
       "colmax_short": "EÚ max",

@@ -477,7 +477,7 @@
       "merged": "EU-Komposit",
       "merged_short": "Scan (EU)",
       "merged_option": "EU-Komposit",
-      "merged_hint": "Alle Ländernetze zu einer Karte vereint; nützlich in Grenzgebieten, wo die nationalen Komposite an der Grenze enden",
+      "merged_hint": "Alle Ländernetze vereint; nützlich in Grenzgebieten, aber nie so aktuell",
       "merged_grid": "Raster: ~180 × 280 m",
       "colmax": "EU-Säulenmaximum",
       "colmax_short": "EU-Max",
