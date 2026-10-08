@@ -347,9 +347,6 @@ export const mapBaseLayer = writable<string>("light");
 export const radarColorScheme = writable<string>("classic");
 
 export const showForecastPlaybutton = writable<boolean>(true);
-export const satelliteLayer = writable<string>("sentinel2");
-export const satelliteLayerCloudy = writable<boolean>(false);
-export const satelliteLayerLabels = writable<boolean>(true);
 
 export const live = writable<boolean>(false);
 

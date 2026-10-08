@@ -52,17 +52,6 @@ export const darkLabels: LabelPalette = {
   haloScale: 1,
 };
 
-/**
- * Satellite is the one backdrop no basemap colour stands in for: cloud tops
- * and snow come out brighter than any of the themes, so the halo has to work
- * harder to hold a light label off them.
- */
-export const satelliteLabels: LabelPalette = {
-  ...darkLabels,
-  halo: "rgba(20, 23, 28, 0.92)",
-  haloScale: 1.3,
-};
-
 /** The family the labels are set in. */
 export const LABEL_FAMILY = "Calibri";
 
