@@ -469,7 +469,7 @@
       "merged": "Kompozyt UE",
       "merged_short": "Skan (UE)",
       "merged_option": "Kompozyt UE",
-      "merged_hint": "Wszystkie sieci krajowe połączone w jedną mapę; przydatne przy granicach, gdzie kompozyty krajowe się kończą",
+      "merged_hint": "Wszystkie sieci krajowe połączone; przydatne przy granicach, ale nigdy tak aktualne",
       "merged_grid": "Siatka: ~180 × 280 m",
       "colmax": "Maksimum kolumny UE",
       "colmax_short": "UE max",

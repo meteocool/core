@@ -477,7 +477,7 @@
       "merged": "EU composite",
       "merged_short": "Scan (EU)",
       "merged_option": "EU composite",
-      "merged_hint": "All country networks merged into one map; useful near borders, where the national composites stop at the border",
+      "merged_hint": "All country networks merged; useful near borders, but never as recent",
       "merged_grid": "Grid: ~180 × 280 m",
       "colmax": "EU column max",
       "colmax_short": "EU max",
