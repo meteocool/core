@@ -447,7 +447,7 @@
       "cells": "Bouřkové buňky",
       "controls": "Ovládání přehrávání",
       "map_layers": "Vrstvy mapy",
-      "collapse": "Sbalit ovládání přehrávání",
+      "back_to_latest": "Zpět na nejnovější",
       "play": "Přehrát",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",

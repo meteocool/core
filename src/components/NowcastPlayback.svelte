@@ -3,6 +3,7 @@ import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
   import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
+import { faForwardStep } from "@fortawesome/free-solid-svg-icons/faForwardStep";
 import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
 import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocationCrosshairs";
@@ -15,7 +16,7 @@ import {
   latLon,
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale,
-  frameRequest, playbackRunning, browsingFrames, live,
+  frameRequest, playbackRunning, browsingFrames, live, openStripCount,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -409,6 +410,18 @@ function open() {
 }
 
 subscriptions.push(sharedActiveCap.subscribe(() => open()));
+
+/**
+ * Whether the map is parked on an earlier or later frame than the live one.
+ *
+ * The player is always open, so being in it says nothing; what matters is
+ * that the map shows a frame other than now, and with it none of what only
+ * the live frame carries (the cells, the 3D tags). Not while playing, which
+ * is passing through frames on purpose, nor while stale, where the radar is
+ * behind rather than the reader.
+ */
+$: offLive = $bottomToolbarMode === "player" && $sharedActiveCap === "radar"
+  && !$live && !$playbackRunning && !$radarStale && gridConfig !== null;
 
 /** Back onto the live frame, the player still open. */
 function returnToLive() {
@@ -832,6 +845,47 @@ onDestroy(() => {
     inset: 0 0 16px;
   }
 
+  /* The way back to now, centred a gap above the tray, or above a strip
+     standing there (the coverage notice). A row the width of the screen that
+     lets touches through, so the pill can be centred without a transform the
+     fly transition would overwrite. */
+  .back-to-live {
+    position: absolute;
+    left: var(--mc-gutter);
+    right: var(--mc-gutter);
+    bottom: calc(
+      var(--mc-safe-bottom) + var(--mc-tray-gap) + var(--mc-player-h) + var(--mc-tray-gap)
+    );
+    z-index: var(--mc-z-chart);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .back-to-live.above-strip {
+    bottom: calc(
+      var(--mc-safe-bottom) + var(--mc-tray-gap) + var(--mc-player-h) + var(--mc-tray-gap)
+      + var(--mc-strip-h) + var(--mc-tray-gap)
+    );
+  }
+  .back-to-live button {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 14px;
+    font: 600 13px/1 var(--mc-font);
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--mc-motion-fast), color var(--mc-motion-fast),
+                transform var(--mc-motion-fast) var(--mc-ease);
+  }
+  .back-to-live button:hover { background: var(--mc-glass-fill-strong); color: var(--mc-accent); }
+  .back-to-live button:active { transform: scale(var(--mc-press)); }
+  .back-to-live button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .back-to-live :global(svg) { width: 12px; height: 12px; color: var(--mc-accent); }
+
   @media only screen and (max-width: 620px) {
     .timeslider {
       padding: 6px 8px 4px;
@@ -861,6 +915,16 @@ onDestroy(() => {
     collapsed={$bottomToolbarMode !== "player"}
     on:dismiss={() => { outlookDismissed = true; }}
     on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
+{/if}
+
+{#if offLive}
+  <div class="back-to-live" class:above-strip={$openStripCount > 0}>
+    <button type="button" class="glass glass-pill" on:click={returnToLive}
+      transition:fly={{ y: 12, duration: 200 }}>
+      <span>{$_("chrome.playback.back_to_latest")}</span>
+      <Icon icon={faForwardStep} />
+    </button>
+  </div>
 {/if}
 
 {#if $bottomToolbarMode === "player"}
