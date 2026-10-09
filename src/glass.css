@@ -198,8 +198,8 @@
   --mc-pill-h: 28px;
   --mc-tray-pad: 8px;                                 /* a tray's horizontal padding */
   --mc-rail-gap: 10px;                                /* player grid column gap; the forecast bars key off both */
-  --mc-bar-h: 84px;                                   /* collapsed toolbar; the flanking discs centre on it */
-  --mc-player-h: 168px;                               /* expanded player tray: head row + timeline + transport row */
+  --mc-bar-h: 84px;                                   /* the other maps' bottom bar */
+  --mc-player-h: 168px;                               /* the radar player: head row + timeline + transport and scale row */
   --mc-strip-h: 104px;                                /* a chart strip above the tray (DismissableStrip) */
   --mc-hint-h: 54px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);
@@ -446,7 +446,6 @@
    --------------------------------------------------------------------------- */
 .glass,
 .bottomToolbar,
-.buttonBar,
 .ol-control,
 .ol-attribution,
 .maplibregl-ctrl,
@@ -717,10 +716,12 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    one is a disc, and takes the scale as well as the fill. The 3D map's
    compass is the same disc under MapLibre's markup, further down. */
 .ol-geolocate,
+.ol-share,
 .ol-rotate {
   transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
 }
 .ol-geolocate:active,
+.ol-share:active,
 .ol-rotate:active {
   transform: scale(var(--mc-press));
 }
@@ -728,7 +729,8 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 /* The locate button's glyph is an inline SVG, not a text character: centre it
    as a box rather than leaving it on the text baseline the +/- sit on, and let
    it take the button's colour through currentColor on hover and focus. */
-.ol-geolocate button {
+.ol-geolocate button,
+.ol-share button {
   display: grid;
   place-items: center;
   line-height: 0;
@@ -789,15 +791,15 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 /* On a phone the small print ran three lines deep across the whole width,
    right above the tray, over the part of the map people look at. It
    stands up the right edge instead, reading bottom to top, in the strip
-   between the control column (switcher, zoom, locate, and the north-up disc
-   when it shows) and the tray. The box spans that whole strip so a long list
+   between the control column (switcher, zoom, locate, share, and the
+   north-up disc when it shows) and the tray. The box spans that whole strip so a long list
    wraps into a second column rather than climbing under the controls; it lets
    touches through, and only its links take them (see above). Rotating a vertical-rl
    box half a turn flips its inline direction, so `start` is the bottom. */
 @media only screen and (max-width: 620px) {
   .ol-attribution,
   .ol-attribution.ol-uncollapsible {
-    top: calc(var(--ol-controls-top) + 4 * var(--mc-control-lg) + 3 * var(--mc-gutter));
+    top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
     max-width: none;
     writing-mode: vertical-rl;
     transform: rotate(180deg);
@@ -859,7 +861,8 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 
 /* The locate disc, drawn as the flat map's: the inline arrow centred as a
    box and tipped the same 2deg; see .ol-geolocate. */
-.maplibre-host .mc-locate button {
+.maplibre-host .mc-locate button,
+.maplibre-host .mc-share button {
   display: grid;
   place-items: center;
   line-height: 0;

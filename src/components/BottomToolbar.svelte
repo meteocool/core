@@ -15,7 +15,6 @@
   } from "../stores";
   import StepScaleLine from "./scales/StepScaleLine.svelte";
   import Appendix from "./Appendix.svelte";
-  import RadarScaleLine from "./scales/RadarScaleLine.svelte";
   import LightningScaleLine from "./scales/LightningScaleLine.svelte";
   import LightningChart from "./LightningChart.svelte";
   import { precipTypeNames } from "../colormaps";
@@ -92,13 +91,6 @@
         padding: 0 12px;
     }
 
-    /* NowcastPlayback's play and unfold discs are their own glass controls at
-       the gutter, not items in this row, so the tray ends where they begin. */
-    .lastUpdatedBottom.has-discs {
-        left: calc(var(--mc-gutter) + var(--mc-control) + var(--mc-tray-gap));
-        right: calc(var(--mc-gutter) + var(--mc-control) + var(--mc-tray-gap));
-    }
-
     /* Desktop: fully covered by the open player, so release its blur once the
        player has flown in. Map.svelte measures .timeslider in player mode. */
     :global(.bottomToolbar.lastUpdatedBottom.player-open) {
@@ -173,13 +165,6 @@
         .lastUpdatedBottom {
             padding: 6px 10px;
         }
-        /* Both discs stand in one column at the left (NowcastPlayback). A
-           little more inset than the other maps' trays: the strip, the age and
-           the chip run to both edges here. */
-        .lastUpdatedBottom.has-discs {
-            right: var(--mc-gutter);
-            padding: 6px 14px;
-        }
         .parentz {
             flex-wrap: wrap;
             /* The scale and the "last updated" line are two short rows in a
@@ -209,28 +194,6 @@
             margin-left: 0 !important;
             margin-right: 0 !important;
         }
-
-        /* Radar: the colour strip gets the whole first row, and the product
-           picker (ScaleLine's title, which carries the age) the second, on
-           its own and centred. The two wrappers between them step aside so
-           the picker is an item of this one flex row. */
-        .parentz.stacked .palette,
-        .parentz.stacked .palette :global(.wrapper) {
-            display: contents;
-        }
-        .parentz.stacked .palette :global(.scale) {
-            order: 0;
-            flex: 1 1 100%;
-        }
-        .parentz.stacked .palette :global(.legend-label) {
-            order: 2;
-            flex: 1 1 100%;
-            text-align: center;
-        }
-        .parentz.stacked .break,
-        .parentz.stacked .center {
-            display: none;
-        }
     }
 </style>
 
@@ -241,19 +204,14 @@
 {#if showsBar}
 <div
         class="bottomToolbar lastUpdatedBottom"
-        class:has-discs={activeCap === "radar" && $bottomToolbarMode === "collapsed"}
         class:player-open={$bottomToolbarMode === "player"}
         transition:fly={{ y: 100, duration: 200 }}
         on:introstart={toolbarTransitionStart}
         on:outrostart={toolbarTransitionStart}
         on:introend={toolbarTransitionEnd}
         on:outroend={toolbarTransitionEnd}>
-    <div class="parentz" class:stacked={activeCap === "radar" && $bottomToolbarMode === "collapsed"}>
-        {#if activeCap === "radar" && $bottomToolbarMode === "collapsed"}
-            <div class="palette">
-                <RadarScaleLine/>
-            </div>
-        {/if}
+    <!-- Nothing of the radar's: its scale is in the player, which is its tray. -->
+    <div class="parentz">
         {#if activeCap === "precipTypes"}
             <div class="palette">
                 <StepScaleLine steps="{precipTypeNames}" valueFormat={$_} title={$_("chrome.scales.precipitation_types")} />
