@@ -12,10 +12,8 @@
  *   Safari, Chrome on Windows), and otherwise onto the clipboard with a word
  *   that it is there.
  */
-import { readable } from "svelte/store";
-import { faArrowUpFromBracket } from "@fortawesome/free-solid-svg-icons/faArrowUpFromBracket";
-import { faShareNodes } from "@fortawesome/free-solid-svg-icons/faShareNodes";
 import { DeviceDetect as dd } from "./DeviceDetect";
+import { nativeShare } from "./shareSupport";
 import { postToNative } from "./nativeBridge";
 import type { NativeShare } from "./nativeBridge";
 import type { LinkState } from "./deepLink";
@@ -36,38 +34,7 @@ export interface ShareRequest {
   anchor?: Element | null;
 }
 
-/** Whether the host the page runs in presents a share sheet for it. */
-function nativeShare(): boolean {
-  return typeof window !== "undefined" && window.nativeCapabilities?.share === true;
-}
-
-/** Whether a share can go anywhere from here; see the module comment. */
-export function canShare(): boolean {
-  if (dd.isApp()) return nativeShare();
-  if (typeof navigator === "undefined") return false;
-  return typeof navigator.share === "function" || typeof navigator.clipboard?.writeText === "function";
-}
-
-/**
- * `canShare()` for the share buttons. Asked when the first one renders rather
- * than at import: App.svelte says which host the page runs in during its own
- * setup, after this module has loaded.
- */
-export const shareAvailable = readable(false, (set) => {
-  set(canShare());
-});
-
-/**
- * The share glyph: the three joined dots on Android, the app and its
- * browsers, where that is the system's; the box with an arrow out of it
- * everywhere else, Apple's and the web's alike, as the one people recognise
- * without a label.
- */
-export function shareIcon() {
-  const android = dd.isAndroid()
-    || (typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent));
-  return android ? faShareNodes : faArrowUpFromBracket;
-}
+export { canShare, shareAvailable, shareIcon } from "./shareSupport";
 
 /** The link and title for what is on screen, changed by `request`; null before the map is up. */
 export function shareLink(request: ShareRequest = {}): { url: string; title: string } | null {

@@ -69,7 +69,7 @@ import { networkAt } from "../layers/networkAt";
 import { trimToLastRun } from "../lib/cellTrack";
 import { maplibreLocateControl } from "../lib/GeolocateControl";
 import { maplibreShareControl } from "../lib/ShareControl";
-import { canShare } from "../lib/share";
+import { canShare } from "../lib/shareSupport";
 import { reportShown } from "../lib/sentry";
 import type {
   CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarFrame, RadarVolume,
