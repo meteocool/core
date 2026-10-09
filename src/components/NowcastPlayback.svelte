@@ -423,6 +423,25 @@ subscriptions.push(sharedActiveCap.subscribe(() => open()));
 $: offLive = $bottomToolbarMode === "player" && $sharedActiveCap === "radar"
   && !$live && !$playbackRunning && !$radarStale && gridConfig !== null;
 
+/**
+ * `offLive`, slow to let go: a drag back and forth across now passes the live
+ * frame for a step at a time, and a pill dropped and brought back on each
+ * would jump. Shown at once; hidden only once it has stayed back on live a
+ * moment.
+ */
+const BACK_TO_LIVE_LINGER_MS = 120;
+let showBackToLive = false;
+let backToLiveTimer: number | undefined;
+$: settleBackToLive(offLive);
+function settleBackToLive(off: boolean) {
+  window.clearTimeout(backToLiveTimer);
+  if (off) {
+    showBackToLive = true;
+    return;
+  }
+  backToLiveTimer = window.setTimeout(() => { showBackToLive = false; }, BACK_TO_LIVE_LINGER_MS);
+}
+
 /** Back onto the live frame, the player still open. */
 function returnToLive() {
   hide();
@@ -621,6 +640,7 @@ subscriptions.push(lastFocus.subscribe((focus) => {
 onDestroy(() => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
+  window.clearTimeout(backToLiveTimer);
   playbackRunning.set(false);
   browsingFrames.set(false);
 });
@@ -917,7 +937,7 @@ onDestroy(() => {
     on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
 {/if}
 
-{#if offLive}
+{#if showBackToLive}
   <div class="back-to-live" class:above-strip={$openStripCount > 0}>
     <button type="button" class="glass glass-pill" on:click={returnToLive}
       transition:fly={{ y: 12, duration: 200 }}>
