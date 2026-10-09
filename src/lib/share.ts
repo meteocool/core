@@ -58,14 +58,15 @@ export const shareAvailable = readable(false, (set) => {
 });
 
 /**
- * The share glyph the reader's platform uses: the box with an arrow out of it
- * on Apple's, the three joined dots everywhere else. The one they already know
- * is the one they recognise without a label.
+ * The share glyph: the three joined dots on Android, the app and its
+ * browsers, where that is the system's; the box with an arrow out of it
+ * everywhere else, Apple's and the web's alike, as the one people recognise
+ * without a label.
  */
 export function shareIcon() {
-  const apple = dd.isIos() || dd.isMac()
-    || (typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent));
-  return apple && !dd.isAndroid() ? faArrowUpFromBracket : faShareNodes;
+  const android = dd.isAndroid()
+    || (typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent));
+  return android ? faShareNodes : faArrowUpFromBracket;
 }
 
 /** The link and title for what is on screen, changed by `request`; null before the map is up. */

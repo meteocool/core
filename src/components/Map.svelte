@@ -307,11 +307,20 @@
     font-size: 22px;
   }
 
+  /* Share, one disc down from locate. */
+  :global(.ol-share) {
+    top: calc(var(--ol-controls-top) + 3 * var(--mc-control-lg) - 2px + 2 * var(--mc-gutter));
+    right: var(--mc-gutter);
+    left: auto;
+    bottom: auto;
+    border-radius: 50%;
+  }
+
   /* North-up reset, shown only once the map is turned (the Map Rotation
      setting). One more disc down the column; OpenLayers' own position is the
      top-right corner, underneath the switcher disc. */
   :global(.ol-rotate) {
-    top: calc(var(--ol-controls-top) + 3 * var(--mc-control-lg) - 2px + 2 * var(--mc-gutter));
+    top: calc(var(--ol-controls-top) + 4 * var(--mc-control-lg) - 2px + 3 * var(--mc-gutter));
     right: var(--mc-gutter);
     left: auto;
     bottom: auto;
@@ -345,7 +354,7 @@
      the top of the strip once the box is turned. */
   @media only screen and (max-width: 620px) {
     :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
-      top: calc(var(--ol-controls-top) + 4 * var(--mc-control-lg) + 3 * var(--mc-gutter));
+      top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
       max-width: none;
       writing-mode: vertical-rl;
       transform: rotate(180deg);

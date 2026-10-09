@@ -2,8 +2,7 @@
 import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
   import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
-import { faAngleDoubleDown } from "@fortawesome/free-solid-svg-icons/faAngleDoubleDown";
-import { faAngleDoubleUp } from "@fortawesome/free-solid-svg-icons/faAngleDoubleUp";
+import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
 import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocationCrosshairs";
@@ -15,8 +14,8 @@ import {
   lastFocus, sharedActiveCap,
   latLon,
   bottomToolbarMode, precacheForecast,
-  dryAtUser, inspectLatLon, mapExtent4326, mapTapped, modelCompareAt, radarStale,
-  frameRequest, playbackRunning, capTimeIndicator,
+  dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale,
+  frameRequest, playbackRunning, browsingFrames, live,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -39,7 +38,6 @@ import {
 } from "../layers/extents";
 import { reverseGeocode } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
-import { share, shareAvailable, shareIcon } from "../lib/share";
 import DryOutlook from "./DryOutlook.svelte";
 import { onWake } from "../lib/wakeup";
 import ChartSkeleton from "./ChartSkeleton.svelte";
@@ -53,8 +51,6 @@ const PREFETCH_FRAMES = 3;
 
 /** Manual subscriptions, so they are handed to onDestroy at the bottom. */
 const subscriptions: (() => void)[] = [];
-
-let showOpenControls = false;
 
 let oldTimeStep = 0;
 
@@ -94,8 +90,6 @@ let loop = true;
 let historicActive = true;
 let includeHistoric = false;
 
-let autoPlay = false;
-
 /**
  * How often the time axis is labelled, in minutes. The grid is on a 5-minute
  * step, so every interval here divides it exactly.
@@ -130,20 +124,6 @@ $: hasPrecipitation = hasEcho(steps);
  * all. Flat bars there would say "dry" when the truth is "no forecast".
  */
 $: noForecastFrom = forecastGapFrom(steps);
-
-/**
- * Whether the forecast strip is on screen.
- *
- * The strip itself (glass dock, swipe-to-clear, Hide button, title row) is
- * DismissableStrip, shared with the lightning histogram. What stays here is
- * which layer's question it is answering and when it is worth asking.
- *
- * Dismissal is not permanent. It lasts as long as the thing it was about: once
- * there is nothing to plot, or the player is opened again, the strip is
- * re-armed. Otherwise flicking it away once would hide every later shower for
- * the rest of the session, with no control anywhere to bring it back.
- */
-let chartDismissed = false;
 
 /**
  * Whether any of what is on screen has radar behind it.
@@ -183,16 +163,11 @@ let coverageDismissed = false;
 /* Re-armed on the way back in, so panning out again says so again. */
 $: if (!outOfCoverage) coverageDismissed = false;
 
-/* A tapped point always gets an answer, even a flat one: the tap is a question,
-   and a strip that refuses to appear reads as the tap not having registered.
-   Without one, the strip only turns up when there is something to show. */
+/* Whether the player's strip has something to say: rain at the client's
+   position, or a tapped point, which always gets an answer, even a flat one. */
 $: chartShowable = (hasPrecipitation || $inspectLatLon !== null)
   && $sharedActiveCap === "radar"
-  // The coverage notice takes the slot: they share one position, and a forecast
-  // for somewhere off screen is not the answer to "why is this map empty".
   && !outOfCoverage;
-$: if (!chartShowable) chartDismissed = false;
-$: if ($bottomToolbarMode === "player") chartDismissed = false;
 
 /**
  * The same slot on a dry day: what the weather models say for the client's
@@ -201,9 +176,9 @@ $: if ($bottomToolbarMode === "player") chartDismissed = false;
  * Only when the rain chart has nothing to say (which it cannot, over a dry
  * position with no tapped point), and only for a position the radar covers:
  * outside every network "nothing on the radar" is no data, not no rain.
- * Dismissal lasts as long as the dry spell does, as the chart's lasts as long
- * as there is something to plot. It stands aside while the player is open,
- * and comes back when it closes unless it was dismissed. A failed forecast
+ * Dismissal lasts as long as the dry spell does. It stands aside while the
+ * player is away from the live frame, and comes back on the way back to it
+ * unless it was dismissed. A failed forecast
  * fetch takes it down until the page next wakes (the network back, the page
  * looked at again), at most once a minute. Taken down for the session, one
  * dropped request on a train would lose the strip until a reload.
@@ -229,10 +204,11 @@ $: outlookShowable = $dryAtUser
   && !outlookUnavailable
   // The drawer it opens covers it, and the strip would only restate it.
   && !$modelCompareAt
-  // Nor over the player: the reader is stepping through the radar's frames,
-  // and what the models say about the coming days is not one of them. The
-  // rain chart stays, because it is those frames at the reader's position.
-  && $bottomToolbarMode !== "player";
+  // Nor while the player is off the live frame: the reader is stepping through
+  // the radar's frames, and what the models say about the coming days is not
+  // one of them.
+  && $live
+  && !$playbackRunning;
 $: if (!$dryAtUser) outlookDismissed = false;
 
 /* Between a tap and the grid that answers it, the strip is up with the last
@@ -240,13 +216,6 @@ $: if (!$dryAtUser) outlookDismissed = false;
    because what matters is that the numbers on screen are about somewhere
    else, not that a request happens to be open. */
 let gridLoading = false;
-
-function dismissChart() {
-  chartDismissed = true;
-  // The marker exists to feed this strip, so it goes with it, which is also
-  // the way back to sampling the client's own position.
-  inspectLatLon.set(null);
-}
 
 /**
  * The tapped point's name for the title, once it comes back.
@@ -278,21 +247,13 @@ $: chartTitle = $inspectLatLon
   ? (placeName ?? $_("precipitation_at_point"))
   : $_("precipitation_here");
 
-/** Back to sampling the client's own position, without closing the strip. */
+/**
+ * Back to sampling the client's own position, or to none: the marker exists
+ * to feed the strip, so clearing it is also how a tapped point is let go.
+ */
 function returnToCurrentPosition() {
   inspectLatLon.set(null);
 }
-
-/* Tapping the map brings a cleared strip back. Otherwise the tap sets a
-   marker, refetches the grid and shows nothing for it. LayerManager publishes
-   the tap, because only the map can tell a tap from a pan.
-
-   Component level, not inside an action: the strip mounts and unmounts every
-   time it comes and goes, and a subscription made in there would stack up one
-   live copy per appearance. */
-subscriptions.push(mapTapped.subscribe((n) => {
-  if (n > 0) chartDismissed = false;
-}));
 
 subscriptions.push(inspectLatLon.subscribe(() => { gridLoading = true; }));
 
@@ -362,34 +323,6 @@ const fsm = new StateMachine({
         park();
         seekTo = null;
       }, 200);
-      if (autoPlay) {
-        setTimeout(() => {
-          console.log("Triggering auto-play");
-          if (cap.hasFrameLayer && fsm.state === "manualScrolling") {
-            fsm.pressPlay();
-          } else {
-            setTimeout(() => {
-              // Workaround for #2279954594 (wtf is going on Android people) and #2217587657
-              // pressPlay is only legal from manualScrolling: the player can be
-              // closed, or play pressed by hand, inside this second, and the
-              // state machine throws on an illegal transition.
-              if (fsm.state !== "manualScrolling") return;
-              console.log("Triggering deferred auto-play");
-              fsm.pressPlay();
-            }, 1000);
-          }
-        }, 500);
-        autoPlay = false;
-      }
-    },
-    onEnterWaitingState: (t) => {
-      if (t.from === "playing") {
-        autoPlay = true;
-        // XXX deduplicate with onPressPause:
-        if (playTimeout !== 0) window.clearTimeout(playTimeout);
-        playTimeout = 0;
-        playPauseButton = faPlay;
-      }
     },
     onPressPlay: () => {
       const playTick = () => {
@@ -437,7 +370,10 @@ const fsm = new StateMachine({
     },
     // Entering and leaving the state rather than the transitions into it:
     // playback ends by pause and by close alike, and this cannot miss either.
-    onEnterPlaying: () => playbackRunning.set(true),
+    onEnterPlaying: () => {
+      playbackRunning.set(true);
+      browsingFrames.set(true);
+    },
     onLeavePlaying: () => playbackRunning.set(false),
     onHideScrollbar: (transition) => {
       // Set unconditionally, before the early return. A hide() that arrives
@@ -447,6 +383,7 @@ const fsm = new StateMachine({
       // back: the tray stays open and its close button does nothing, because
       // every later hide() takes this same early return.
       bottomToolbarMode.set("collapsed");
+      browsingFrames.set(false);
       if (transition.from === "followLatest") return;
       oldTimeStep = 0;
       liveEdge = null;
@@ -459,6 +396,25 @@ function show() {
   if (fsm.state === "followLatest") {
     fsm.showScrollbar();
   }
+}
+
+/**
+ * The player is the radar's bottom tray, so it is open whenever the radar is
+ * the map on screen: there is no collapsed bar to fold it into. Not when a
+ * link or a screenshot has hidden the toolbar.
+ */
+function open() {
+  if (get(sharedActiveCap) !== "radar" || get(bottomToolbarMode) === "hidden") return;
+  show();
+}
+
+subscriptions.push(sharedActiveCap.subscribe(() => open()));
+
+/** Back onto the live frame, the player still open. */
+function returnToLive() {
+  hide();
+  cap.resetToLatest();
+  open();
 }
 
 /**
@@ -475,7 +431,7 @@ function takeFrameRequest() {
   if (wanted === null || !gridConfig) return;
   frameRequest.set(null);
   if (wanted === "live") {
-    hide();
+    returnToLive();
     return;
   }
   if (!gridConfig.grid[wanted]?.url || wanted === cap.getMostRecentObservation()) return;
@@ -490,11 +446,6 @@ function takeFrameRequest() {
 }
 
 subscriptions.push(frameRequest.subscribe(() => takeFrameRequest()));
-
-function showAndPlay() {
-  autoPlay = true;
-  show();
-}
 
 function hide() {
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
@@ -520,7 +471,6 @@ onMount(async () => {
       // The minute's re-announcement of a grid sampled before the last tap is
       // not the answer the skeleton is waiting for; see `sampledHere`.
       gridLoading = !cap.sampledHere();
-      showOpenControls = true;
       _latest = cap.getMostRecentObservation();
       takeFrameRequest();
     }
@@ -615,6 +565,7 @@ function sliderChangedHandler(value, userInteraction = false) {
 
 /** A hand on the strip: playback stops where it is, and the hand has it. */
 function grabbed() {
+  browsingFrames.set(true);
   if (fsm.state === "playing") {
     console.log("Pausing due to a grab on the timeline");
     fsm.pressPause();
@@ -649,8 +600,7 @@ function toggleHistoric() {
 let last = new Date();
 subscriptions.push(lastFocus.subscribe((focus) => {
   if (focus.getTime() > (last.getTime() + 2 * 60 * 1000) && cap.trackingMode !== "live") {
-    hide();
-    cap.resetToLatest();
+    returnToLive();
   }
   last = focus;
 }));
@@ -659,6 +609,7 @@ onDestroy(() => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   playbackRunning.set(false);
+  browsingFrames.set(false);
 });
 </script>
 
@@ -674,11 +625,11 @@ onDestroy(() => {
   }
 
   /* ---------------------------------------------------------------------
-     The open player, three rows at every size:
+     The player, three rows at every size:
 
-         head      where the strip's numbers are from, and the way out
+         head      where the strip's numbers are from, and the product picker
          timeline  the strip: forecast bars, needle, axis
-         row       transport on the left, freshness and legend on the right
+         row       transport and the colour scale
      --------------------------------------------------------------------- */
   .player {
     display: flex;
@@ -752,14 +703,18 @@ onDestroy(() => {
     min-height: 0;
     min-width: 0;
   }
-  .spacer { flex: 1 1 auto; min-width: 0; }
-  .legend { display: none; min-width: 0; }
+  /* The colour scale takes what the transport leaves of the row. */
+  .legend {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 4px;
+  }
   .product-pill {
     flex: 0 0 auto;
     display: inline-flex;
   }
 
-  /* A tint on the open tray; collapsed controls add their own glass below. */
+  /* A tint on the tray. */
   .controlButton {
     width: var(--mc-control);
     height: var(--mc-control);
@@ -805,14 +760,14 @@ onDestroy(() => {
     color: #fff;
   }
   .controlButton.on:hover { background: var(--mc-accent-strong); }
-  /* The collapse disc is smaller than the transport, like a close disc. */
-  .controlButton.collapse {
+  /* Letting a tapped point go: smaller than the transport, like a close disc. */
+  .controlButton.clear {
     width: 30px;
     height: 30px;
     font-size: 13px;
     color: var(--mc-text-3);
   }
-  .controlButton.collapse:hover { color: var(--mc-text); }
+  .controlButton.clear:hover { color: var(--mc-text); }
 
   /* "-2h": whether the loop runs from the start of the strip or from now.
      The same height as the play and loop discs beside it, so the three read as
@@ -843,55 +798,6 @@ onDestroy(() => {
   .chip[disabled] { opacity: 0.4; cursor: default; }
   .chip :global(svg) { width: 14px; height: 14px; }
 
-  /* The two collapsed-state controls: standalone discs at the bottom corners,
-     flanking the tray rather than sitting on it: the same kind of control as
-     the zoom capsule and the locate disc at the top right, and disjunct from
-     the bar that carries the legend. BottomToolbar insets .lastUpdatedBottom by
-     exactly this much so the two never overlap.
-
-     Centred on the bar whatever height it is: that differs per breakpoint, so
-     it comes from --mc-bar-h rather than a second copy of the number. */
-  .buttonBar {
-    position: absolute;
-    bottom: calc(
-      var(--mc-collapsed-bottom)
-      + (var(--mc-bar-h) - var(--mc-control)) / 2
-    );
-    left: var(--mc-gutter);
-    z-index: var(--mc-z-tray-buttons);
-  }
-  .buttonBar.right {
-    left: unset;
-    right: var(--mc-gutter);
-  }
-
-  /* These two are over the map, so they are glass rather than a tint. */
-  .buttonBar .controlButton {
-    background: var(--mc-glass-fill);
-    -webkit-backdrop-filter: var(--mc-glass-backdrop);
-    backdrop-filter: var(--mc-glass-backdrop);
-    border: 1px solid var(--mc-glass-edge);
-    box-shadow: var(--mc-glass-ring);
-  }
-  .buttonBar .controlButton:hover,
-  .buttonBar .controlButton:active {
-    background: var(--mc-glass-fill-strong);
-  }
-
-  /* Desktop: the legend joins the row at the right. */
-  @media only screen and (min-width: 1120px) {
-    :global(html:not(.is-ios)) .legend { display: block; }
-    :global(html:not(.is-ios)) .product-pill:not(.always) { display: none; }
-  }
-
-  /* The collapsed strip's plot: the same timeline, read-only, spanning the
-     strip's own inset. */
-  .barChart-plot {
-    position: relative;
-    height: 100%;
-    margin: 0 var(--mc-tray-pad);
-  }
-
   /* Prose in the strip, set like the body text of a system alert: secondary
      ink under the primary-ink title, at the same size as the rest of the tray.
      Same leading inset as the title, so the two read as one block. */
@@ -903,11 +809,10 @@ onDestroy(() => {
     overflow: hidden;
   }
 
-  /* Nothing fell in the window. Sits over the ruler rather than replacing it,
-     so the strip keeps its height and the needle still has a track. Over the
-     forecast half only when that is the half with nothing. */
-  .no-forecast,
-  .empty {
+  /* No forecast at the point being asked about. Sits over the ruler rather
+     than replacing it, so the strip keeps its height and the needle still has
+     a track, and over the forecast half only. */
+  .no-forecast {
     position: absolute;
     top: 0;
     right: 0;
@@ -922,10 +827,6 @@ onDestroy(() => {
     letter-spacing: -0.005em;
     pointer-events: none;
   }
-  .empty {
-    left: 0;
-    padding: 0 16px;
-  }
   .skeleton {
     position: absolute;
     inset: 0 0 16px;
@@ -938,17 +839,6 @@ onDestroy(() => {
     .row { gap: 4px; }
     :global(.bottomToolbar.lastUpdatedBottom.player-open) {
       display: none;
-    }
-    /* The bar is two rows tall here, room for both discs in one column: the
-       unfold disc on top, play below, flush with the bar's top and bottom
-       edges, so the bar takes the right-hand disc's width as well. */
-    .buttonBar {
-      bottom: var(--mc-collapsed-bottom);
-    }
-    .buttonBar.right {
-      left: var(--mc-gutter);
-      right: unset;
-      bottom: calc(var(--mc-collapsed-bottom) + var(--mc-bar-h) - var(--mc-control));
     }
   }
 </style>
@@ -971,40 +861,6 @@ onDestroy(() => {
     collapsed={$bottomToolbarMode !== "player"}
     on:dismiss={() => { outlookDismissed = true; }}
     on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
-{/if}
-
-<!-- Collapsed: the forecast floats above the bar as a strip, the same timeline
-     without a hand on it. Tapping it opens the player, where the strip becomes
-     the scrubber. -->
-{#if $bottomToolbarMode !== "player" && chartShowable && !chartDismissed}
-  <DismissableStrip
-    title={chartTitle}
-    linkLabel={$inspectLatLon && $latLon ? $_("show_for_my_location") : null}
-    linkIcon={faLocationCrosshairs}
-    collapsed
-    tappable
-    on:tap={show}
-    on:dismiss={dismissChart}
-    on:link={returnToCurrentPosition}>
-    <div class="barChart-plot">
-      {#if gridLoading}
-        <div class="skeleton"><ChartSkeleton bars={25} /></div>
-      {:else}
-        <Timeline
-          {steps}
-          now={gridConfig?.now ?? 0}
-          latest={cap.getMostRecentObservation()}
-          value={$capTimeIndicator}
-          interactive={false}
-          {labelEvery} />
-        {#if !hasPrecipitation}
-          <p class="empty">{$_(noForecastFrom === null ? "precipitation_none" : "precipitation_none_past")}</p>
-        {:else if noForecastFrom !== null}
-          <p class="no-forecast" style:left={`${noForecastFrom * 100}%`}>{$_("forecast_none_here")}</p>
-        {/if}
-      {/if}
-    </div>
-  </DismissableStrip>
 {/if}
 
 {#if $bottomToolbarMode === "player"}
@@ -1034,14 +890,15 @@ onDestroy(() => {
         {:else}
           <span class="title quiet">{$_("chrome.playback.controls")}</span>
         {/if}
-        <!-- The product picker is the legend's caption; where the legend is not
-             shown, it is this, up here rather than in the row of controls,
+        <!-- The legend's caption, up here rather than in the row of controls,
              which has no room left on a phone. -->
-        <span class="product-pill" class:always={dd.isApp()}><RadarProductPicker variant="pill" /></span>
-        <button type="button" class="controlButton collapse" on:click={hide}
-          title={$_("chrome.playback.collapse")} aria-label={$_("chrome.playback.collapse")}>
-          <Icon icon={faAngleDoubleDown} />
-        </button>
+        <span class="product-pill"><RadarProductPicker variant="pill" /></span>
+        {#if $inspectLatLon && !$latLon}
+          <button type="button" class="controlButton clear" on:click={returnToCurrentPosition}
+            title={$_("close")} aria-label={$_("close")}>
+            <Icon icon={faXmark} />
+          </button>
+        {/if}
       </div>
 
       <div class="plot">
@@ -1076,39 +933,10 @@ onDestroy(() => {
           <Icon icon={faHistory} />
           <span>-2h</span>
         </button>
-        <!-- The frame on screen, parked or live, and the point the strip is
-             about: what a link from here says (lib/urlState.ts). -->
-        {#if $shareAvailable}
-          <button type="button" class="controlButton"
-            on:click={(event) => share({ subject: $inspectLatLon ? placeName : null, anchor: event.currentTarget })}
-            title={$_("share.share")} aria-label={$_("share.share")}>
-            <Icon icon={shareIcon()} />
-          </button>
-        {/if}
-        <div class="spacer"></div>
-        {#if !dd.isApp()}
-          <div class="legend">
-            <RadarScaleLine />
-          </div>
-        {/if}
+        <div class="legend">
+          <RadarScaleLine />
+        </div>
       </div>
     </div>
   </div>
-{:else}
-  {#if $sharedActiveCap === "radar"}
-    {#if showOpenControls}
-      <div class="buttonBar right">
-        <button type="button" class="controlButton" on:click={show}
-          title={$_("chrome.playback.controls")} aria-label={$_("chrome.playback.controls")}>
-          <Icon icon={faAngleDoubleUp} class="controlIcon" />
-        </button>
-      </div>
-      <div class="buttonBar">
-        <button type="button" class="controlButton" on:click={showAndPlay}
-          title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
-          <Icon icon={faPlay} class="controlIcon" />
-        </button>
-      </div>
-    {/if}
-  {/if}
 {/if}

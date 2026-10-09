@@ -177,7 +177,9 @@
 </style>
 
 <div class="wrapper">
-    <div class="legend-label" class:keep={titleOnPhone}><slot name="title">{@html title}</slot></div>
+    {#if title || $$slots.title}
+        <div class="legend-label" class:keep={titleOnPhone}><slot name="title">{@html title}</slot></div>
+    {/if}
     <svelte:element
         this={onToggle ? "button" : "div"}
         type={onToggle ? "button" : undefined}

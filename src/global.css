@@ -120,6 +120,7 @@ html.screenshot .sl-toast-stack,
 html.screenshot .ol-zoom,
 html.screenshot .ol-rotate,
 html.screenshot .ol-geolocate,
+html.screenshot .ol-share,
 html.screenshot .maplibregl-ctrl-top-right {
   display: none !important;
 }
