@@ -55,7 +55,8 @@ $: state = (() => {
   // say "catching up" instead of lying for a second.
   if ($radarStale) return "stale";
   if (shouldShowNetworkBanner($networkStatus)) return "slow";
-  if ($bottomToolbarMode === "player" && frameTime) return "time";
+  // The player is open whenever the radar is up, so only off the live frame.
+  if ($bottomToolbarMode === "player" && !$live && frameTime) return "time";
   // A replay is as current as live data (every timestamp is rewritten to
   // now) but it is not the weather, so it takes the live pill's place and
   // not a warning's: the connectivity states above still outrank it.

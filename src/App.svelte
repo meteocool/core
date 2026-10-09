@@ -35,7 +35,7 @@ import {
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, precacheForecast, radarColormap,
+  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit,
 } from "./stores";
@@ -500,12 +500,15 @@ derived([selectedCell, selectedVolume], ([cell, cloud]) => Boolean(cell || cloud
   .subscribe((storm) => { if (storm) modelCompareAt.set(null); });
 
 /**
- * And opening the player puts it away: the player is the screen's bottom edge
- * and the frames it steps through, which the comparison's drawer covered.
+ * And playback puts it away: the frames it steps through are the map, which
+ * the comparison's drawer covered.
  */
-bottomToolbarMode.subscribe((mode) => { if (mode === "player") modelCompareAt.set(null); });
+playbackRunning.subscribe((running) => { if (running) modelCompareAt.set(null); });
 
-/** And closing it lets the frames it stepped through go; see `forgetEarlierFrames`. */
+/**
+ * Closing the player, or its return to the live frame, lets the frames it
+ * stepped through go; see `forgetEarlierFrames`.
+ */
 let playerOpen = false;
 bottomToolbarMode.subscribe((mode) => {
   if (playerOpen && mode !== "player") forgetEarlierFrames();
@@ -687,13 +690,15 @@ if (cells3d) registerOpen3D(() => lm.setTarget("cells3d", "map"), (cap) => lm.se
  * The 3D map is kept when the reader leaves it, so coming back is instant,
  * and playback keeps every frame it steps through. Together they passed
  * iOS's 2 GB for a web view on an iPhone 16 Pro, which killed it (October
- * 2026). So starting playback lets the 3D map go, to be built again when it
- * is next opened, and opening the 3D map lets playback's frames go at once:
+ * 2026). So stepping through frames, by Play or by a hand on the strip, lets
+ * the 3D map go, to be built again when it is next opened (the player itself
+ * is always open, so opening it says nothing), and opening the 3D map lets
+ * playback's frames go at once:
  * closing the player only lets them go on the flat map's next drawn frame,
  * which does not come while the 3D map is on screen.
  */
 if (cells3d && isHandheld()) {
-  playbackRunning.subscribe((running) => { if (running) cells3d.unload(); });
+  browsingFrames.subscribe((browsing) => { if (browsing) cells3d.unload(); });
 }
 sharedActiveCap.subscribe((cap) => { if (cap === "cells3d") dropEarlierFrames(); });
 
@@ -1070,10 +1075,8 @@ if (postInitCb) postInitCb(lm);
      owns subscriptions to the radar grid and its own playback state, and
      tearing that down and rebuilding it every time a sheet opens would be a
      lot of machinery moved for a visual answer. Both trays carry
-     .bottomToolbar, and .buttonBar is the pair of discs the collapsed player
-     puts in the bottom corners. */
-  :global(body.cell-details-open .bottomToolbar),
-  :global(body.cell-details-open .buttonBar) {
+     .bottomToolbar. */
+  :global(body.cell-details-open .bottomToolbar) {
     display: none;
   }
 
