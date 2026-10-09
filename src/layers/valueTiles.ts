@@ -199,6 +199,39 @@ export function forgetEarlierFrames(): void {
   forgetting += 1;
 }
 
+/**
+ * Every value layer, for `dropEarlierFrames`.
+ */
+const valueLayers = new Set<WebGLTileLayer>();
+
+/**
+ * Drop the tiles of every frame but the one each value layer shows, now.
+ *
+ * `forgetEarlierFrames` waits for each layer's next fully drawn frame, and a
+ * flat map that is not on screen draws none: with the 3D map up, a playback's
+ * frames stayed held the whole time, beside everything the 3D map holds. On
+ * an iPhone the two together passed the web view's 2 GB, and iOS killed it
+ * (October 2026). For a map nobody sees, a blink on the way back is no cost.
+ */
+export function dropEarlierFrames(): void {
+  forgetting += 1;
+  for (const layer of valueLayers) dropFramesBut(layer);
+}
+
+/** Dispose of every tile a layer holds that is not of the frame it shows. */
+function dropFramesBut(layer: WebGLTileLayer): void {
+  const renderer = layer.getRenderer() as unknown as FrameCache | null;
+  const cache = renderer?.tileRepresentationCache;
+  const shown = layer.getSource()?.getKey();
+  if (!cache || shown === undefined) return;
+  for (const key of cache.getKeys()) {
+    const tile = cache.peek(key);
+    if (tile.tile.key === shown) continue;
+    cache.remove(key);
+    tile.dispose();
+  }
+}
+
 interface FrameCache {
   renderComplete?: boolean;
   getStaleKeys?(): string[];
@@ -230,6 +263,7 @@ interface FrameCache {
  */
 export function staleOnlyWhileLoading<L extends WebGLTileLayer>(layer: L): L {
   let forgot = forgetting;
+  valueLayers.add(layer);
   layer.on("postrender", () => {
     const renderer = layer.getRenderer() as unknown as FrameCache | null;
     if (!renderer?.renderComplete) return;
@@ -237,15 +271,7 @@ export function staleOnlyWhileLoading<L extends WebGLTileLayer>(layer: L): L {
     if (stale?.length) stale.length = 0;
     if (forgot === forgetting) return;
     forgot = forgetting;
-    const cache = renderer.tileRepresentationCache;
-    const shown = layer.getSource()?.getKey();
-    if (!cache || shown === undefined) return;
-    for (const key of cache.getKeys()) {
-      const tile = cache.peek(key);
-      if (tile.tile.key === shown) continue;
-      cache.remove(key);
-      tile.dispose();
-    }
+    dropFramesBut(layer);
   });
   return layer;
 }
