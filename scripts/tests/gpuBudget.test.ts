@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { drapeAnchor, mapPixelRatio } from "../../src/lib/gpuBudget.ts";
+import { drapeAnchor, mapPixelRatio, radarTileCache } from "../../src/lib/gpuBudget.ts";
 
 test("a phone's 3x is drawn at 2x, a desktop's ratio as it is", () => {
   assert.equal(mapPixelRatio(3, true), 2);
@@ -27,4 +27,10 @@ test("a layer on the ground goes before the first layer that stands up", () => {
   // Before the storms are in, the first thing standing is whatever comes next.
   assert.equal(drapeAnchor(layers.filter((layer) => layer.type !== "fill-extrusion")), "cell-volume-raymarched");
   assert.equal(drapeAnchor(layers.slice(0, 4)), undefined);
+});
+
+test("a phone's radar layers keep a quarter of a desktop's tiles, never more than asked", () => {
+  assert.equal(radarTileCache(512, true), 128);
+  assert.equal(radarTileCache(64, true), 64);
+  assert.equal(radarTileCache(512, false), 512);
 });
