@@ -50,8 +50,8 @@ import { websocketBaseUrl } from "./urls";
 import { onWake, wake, whenVisible, wokeWithin } from "./lib/wakeup";
 import { retryFailedTiles } from "./lib/tileStatus";
 import { installScrollbars } from "./lib/scrollbars";
-import { fetchCurrentVolumes, fetchLightningCache, fetchMesocyclones } from "./api";
-import type { CurrentVolumes, RadarVolume } from "./api";
+import { fetchCurrentVolumes, fetchLightningCache, fetchMesocyclones, quietly } from "./api";
+import type { CurrentVolumes, Progress, RadarVolume } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { DEFAULT_PRODUCT, parseObservedProduct } from "./lib/observedProduct";
 import { nextSelection } from "./lib/cellSelection";
@@ -457,7 +457,7 @@ derived(
 ).subscribe((value) => cloudHintLayer.setVisible(value));
 
 const cloudHints = new VolumeFeed<CurrentVolumes>(
-  () => fetchCurrentVolumes().catch(() => null),
+  () => fetchCurrentVolumes(quietly).catch(() => null),
   (answer) => hints.setClouds((answer.volumes ?? []) as RadarVolume[]),
 );
 
@@ -466,9 +466,9 @@ const cloudHints = new VolumeFeed<CurrentVolumes>(
    until the next run; they are waited for (see lib/scans.ts). Without one, a
    wait already under way goes on: a network's run landing says nothing of
    whether DWD's cores are built yet. */
-async function reloadCloudHints(run?: number) {
+async function reloadCloudHints(run?: number, bar: Progress = nb) {
   if (!hintsWanted) return;
-  const answer = await fetchCurrentVolumes(nb).catch(() => null);
+  const answer = await fetchCurrentVolumes(bar).catch(() => null);
   if (answer) cloudHints.offer(answer);
   if (run !== undefined) cloudHints.follow(run);
 }
@@ -668,12 +668,13 @@ if (radarCap && hintsWanted) {
 }
 
 // The cores are rebuilt with each run, so the tags follow the same nudge.
+// Without the loading bar: a refresh of something already on screen.
 radarSocketIO.on("cells", (cells) => {
-  whenVisible("cloudHints", () => void reloadCloudHints(Math.floor(cells.reference_time / 1000)));
+  whenVisible("cloudHints", () => void reloadCloudHints(Math.floor(cells.reference_time / 1000), quietly));
 });
 // And with each network's runs as they are built, which no KONRAD3D run announces.
 radarSocketIO.on("volumes", () => {
-  whenVisible("cloudHints", () => void reloadCloudHints());
+  whenVisible("cloudHints", () => void reloadCloudHints(undefined, quietly));
 });
 void reloadCloudHints();
 
@@ -1008,7 +1009,7 @@ if (postInitCb) postInitCb(lm);
     position: fixed;
     left: 0;
     width: 100%;
-    height: 3px;
+    height: 2px;
     z-index: var(--mc-z-nanobar);
     top: var(--mc-safe-top);
     pointer-events: none;
@@ -1018,7 +1019,8 @@ if (postInitCb) postInitCb(lm);
     height: 2px;
     background: var(--mc-brand);
     border-radius: 0 2px 2px 0;
-    box-shadow: 0 0 3px var(--mc-brand);
+    /* No glow: hard against the top edge, a blur can only spread downwards,
+       and under the line it read as a second, fainter bar. */
   }
 
   /* .sl-toast-stack and the sl-alert parts live in src/glass.css. */

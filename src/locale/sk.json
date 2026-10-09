@@ -447,7 +447,7 @@
       "cells": "Búrkové bunky",
       "controls": "Ovládanie prehrávania",
       "map_layers": "Mapové vrstvy",
-      "collapse": "Zbaliť ovládanie prehrávania",
+      "back_to_latest": "Späť na najnovšie",
       "play": "Prehrať",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",

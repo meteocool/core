@@ -48,6 +48,14 @@ export interface Progress {
   finish(id: string): void;
 }
 
+/**
+ * No bar, for a refresh nobody is waiting on: the volumes re-read as each
+ * network's runs land, and asked for again until a late scan's are built.
+ * Every few seconds on a stormy day, each ran the loading bar across the top
+ * of a map that had nothing to wait for.
+ */
+export const quietly: Progress = { start() {}, finish() {} };
+
 /** Record what an endpoint just did; the rules are in lib/apiHealth.ts. */
 function recordOutcome(id: string, error?: unknown) {
   apiHealth.update((health) => nextHealth(health, id, error));
