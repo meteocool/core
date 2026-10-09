@@ -1,7 +1,7 @@
 import Control from "ol/control/Control";
 import type { IControl } from "maplibre-gl";
 import { t } from "../locale/t";
-import { share, shareIcon } from "./share";
+import { shareIcon } from "./shareSupport";
 
 /**
  * The platform's share glyph (see `shareIcon`), inline for the same reason as
@@ -24,8 +24,12 @@ function shareButton(): HTMLButtonElement {
   button.setAttribute("aria-label", title);
   button.innerHTML = shareGlyph();
   // The frame on screen, parked or live, and any tapped point: what a link
-  // from here says (lib/urlState.ts).
-  button.addEventListener("click", () => share({ anchor: button }));
+  // from here says (lib/urlState.ts). Loaded on the first press: the link
+  // building behind it reaches most of the app, which the map's control
+  // stack has no business importing.
+  button.addEventListener("click", () => {
+    import("./share").then(({ share }) => share({ anchor: button }));
+  });
   return button;
 }
 
