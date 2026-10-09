@@ -40,7 +40,7 @@ import type { CloudsLayer } from "../layers/cellVolumeLayer";
 import type { Cutaway } from "../lib/cellCutaway";
 import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
-import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes } from "../api";
+import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes, quietly } from "../api";
 import {
   capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, cloudsTime, colorSchemeDark, cutRotationDeg,
   cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedVolume, sharedActiveCap,
@@ -552,7 +552,7 @@ export default class Cells3DCapability extends Capability {
    * upwind of the radar under it until the next run. Waits only while shown.
    */
   private readonly volumes = new VolumeFeed<CurrentVolumes>(
-    () => fetchCurrentVolumes(undefined, { coarse: true }).catch(() => null),
+    () => fetchCurrentVolumes(quietly, { coarse: true }).catch(() => null),
     (answer) => this.takeClouds(answer),
   );
 
@@ -2214,7 +2214,8 @@ export default class Cells3DCapability extends Capability {
     this.volumesTimer = setTimeout(() => {
       this.volumesTimer = null;
       if (!this.shown) return;
-      void fetchCurrentVolumes(undefined, { coarse: true }).catch(() => null).then((answer) => {
+      // Quietly, as the flat map's tags are (App.svelte): a refresh.
+      void fetchCurrentVolumes(quietly, { coarse: true }).catch(() => null).then((answer) => {
         if (answer && this.shown) this.volumes.offer(answer);
       });
     }, VOLUMES_SETTLE_MS);

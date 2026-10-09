@@ -447,7 +447,7 @@
       "cells": "Komórki burzowe",
       "controls": "Sterowanie odtwarzaniem",
       "map_layers": "Warstwy mapy",
-      "collapse": "Zwiń sterowanie odtwarzaniem",
+      "back_to_latest": "Wróć do najnowszego",
       "play": "Odtwórz",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",

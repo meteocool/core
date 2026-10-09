@@ -447,7 +447,7 @@
       "cells": "Onweerscellen",
       "controls": "Afspeelbediening",
       "map_layers": "Kaartlagen",
-      "collapse": "Afspeelbediening inklappen",
+      "back_to_latest": "Terug naar nu",
       "play": "Afspelen",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",

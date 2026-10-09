@@ -447,7 +447,7 @@
       "cells": "Gewitterzellen",
       "controls": "Wiedergabe",
       "map_layers": "Kartenebenen",
-      "collapse": "Wiedergabe einklappen",
+      "back_to_latest": "Zurück zu Aktuell",
       "play": "Abspielen",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",
