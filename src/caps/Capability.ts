@@ -130,4 +130,12 @@ export default class Capability extends Observable {
    * Optional; only a map whose camera leads the View needs it.
    */
   lookAt?(centre: [number, number] | null, zoom: number | null): boolean;
+
+  /**
+   * Turn this capability's map by a two-finger rotation, `degrees` clockwise
+   * since the fingers went down, or let go of it for null. True when it
+   * turned. Optional; only a map that turns needs it. See
+   * `LayerManager.turnMap`.
+   */
+  turn?(degrees: number | null): boolean;
 }

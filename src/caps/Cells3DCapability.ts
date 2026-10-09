@@ -466,6 +466,8 @@ interface PastScan {
 
 export default class Cells3DCapability extends Capability {
   private gl: GlMap | null = null;
+  /** The bearing a two-finger turn started from, while one is under way; see `turn`. */
+  private turnFrom: number | null = null;
 
   /** The element MapLibre draws into, parented to whatever target is active. */
   private container: HTMLDivElement | null = null;
@@ -1973,6 +1975,22 @@ export default class Cells3DCapability extends Capability {
    * Only what is given moves, so a link with a tilt and no heading keeps
    * whichever heading the map already has.
    */
+  /**
+   * Turn by a two-finger rotation, as two fingers on glass turn MapLibre's
+   * map: clockwise fingers turn the map clockwise, so the bearing falls.
+   * Absolute from where the turn began, so a late or lost step only delays it.
+   */
+  turn(degrees: number | null): boolean {
+    const gl = this.gl;
+    if (degrees === null || !gl || !this.shown) {
+      this.turnFrom = null;
+      return false;
+    }
+    this.turnFrom ??= gl.getBearing();
+    gl.setBearing(this.turnFrom - degrees);
+    return true;
+  }
+
   setCamera(camera: CameraRequest): void {
     this.cameraSetAt = performance.now();
     if (!this.gl) {
