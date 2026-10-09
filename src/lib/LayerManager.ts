@@ -514,6 +514,19 @@ export class LayerManager {
     return this.currentCap ? this.capabilities[this.currentCap]?.map : undefined;
   }
 
+  /**
+   * Turn the map on screen by a trackpad's two-finger rotation, `degrees`
+   * clockwise since it began, and null when the fingers lift. False when that
+   * map does not turn (the flat one).
+   *
+   * For the iOS app running on a Mac, a public call like `updateLocation`:
+   * WebKit hands the page a trackpad's scroll and, as the app passes it on,
+   * its pinch, but has no event for a rotation, so the app reports it here.
+   */
+  turnMap(degrees: number | null): boolean {
+    return (this.currentCap ? this.capabilities[this.currentCap]?.turn?.(degrees) : undefined) ?? false;
+  }
+
   /** Catch up the map on screen after a wake; see `Capability.resync`. */
   resync() {
     if (this.currentCap) this.capabilities[this.currentCap]?.resync?.();
