@@ -1333,6 +1333,55 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
+   * Let go of the MapLibre map and everything it holds, to be built again
+   * the next time this capability is shown.
+   *
+   * A hidden map is kept so that coming back is instant (see `shown`), and on
+   * a phone it is most of the web view's memory: its canvas, the draped
+   * terrain, the tiles and the storms' volumes. The flat map's playback adds
+   * every frame it steps through, and on an iPhone 16 Pro the two together
+   * passed iOS's 2 GB for a web view, which killed it (October 2026).
+   * App.svelte calls this when playback starts. Nothing happens while shown.
+   */
+  unload(): void {
+    const gl = this.gl;
+    if (this.shown || !gl) return;
+    // The tilt and heading for the way back. Where it looks comes from the
+    // flat map then, as on a first bring-up.
+    this.requestedCamera = { pitch: gl.getPitch(), bearing: gl.getBearing() };
+    // An earlier scan's storms are found where the camera has been, which a
+    // new map has not; it comes back on the newest scan.
+    if (this.past || this.pastLoading !== null) this.showLatest();
+    // Loads, opens and picks still in flight land nowhere.
+    this.loadToken = null;
+    this.openToken = null;
+    this.picking = null;
+    for (const { abort } of this.fetching.values()) abort.abort();
+    this.fetching.clear();
+    this.pastFetches.clear();
+    this.cutaways.clear();
+    this.fineTiles.clear();
+    this.opened = null;
+    this.forgetCameraBeforeOpen();
+    this.cloudsLayer = null;
+    this.styleReady = false;
+    this.styleStale = false;
+    this.failedSources.clear();
+    this.uncorrectCtrlClicks?.();
+    this.uncorrectCtrlClicks = null;
+    this.unmiddleDrag?.();
+    this.unmiddleDrag = null;
+    gl.remove();
+    this.gl = null;
+    forgetMaskedTiles(this.radarMask?.key);
+    this.radarMask = null;
+    for (const mask of Object.values(this.networkMasks)) forgetMaskedTiles(mask?.key);
+    this.networkMasks = {};
+    this.detach();
+    this.container = null;
+  }
+
+  /**
    * Which tiers a storm still draws as extrusions.
    *
    * Every cell but those standing inside a drawn volume. The volume is the
