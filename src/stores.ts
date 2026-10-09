@@ -369,6 +369,14 @@ export const frameRequest = writable<number | "live" | null>(null);
  * so the address bar is not rewritten twice a second.
  */
 export const playbackRunning = writable<boolean>(false);
+
+/**
+ * Whether the player is stepping through frames: from Play, or the first hand
+ * on its strip, until it is back on the live frame. The player is always open
+ * on the radar, so this, not its being open, is what says frames are being
+ * held (see the 3D map's unload in App.svelte).
+ */
+export const browsingFrames = writable<boolean>(false);
 export const unit = writable<string>("pictogram");
 export const precacheForecast = writable<boolean>(true);
 

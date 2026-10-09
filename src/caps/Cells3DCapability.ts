@@ -68,6 +68,8 @@ import { networkAt } from "../layers/networkAt";
 
 import { trimToLastRun } from "../lib/cellTrack";
 import { maplibreLocateControl } from "../lib/GeolocateControl";
+import { maplibreShareControl } from "../lib/ShareControl";
+import { canShare } from "../lib/share";
 import { reportShown } from "../lib/sentry";
 import type {
   CellCurrent, CellTrack, CellTrackProperties, CellVolume, CurrentVolumes, RadarFrame, RadarVolume,
@@ -986,6 +988,9 @@ export default class Cells3DCapability extends Capability {
       if (!dd.isApp()) {
         gl.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
         if (this.locate) gl.addControl(maplibreLocateControl(this.locate), "top-right");
+        // Not in the apps: the iOS app's own share button is in its native
+        // column, beside this one.
+        if (!dd.isApp() && canShare()) gl.addControl(maplibreShareControl(), "top-right");
         gl.addControl(new maplibre.NavigationControl({ showZoom: false, visualizePitch: true }), "top-right");
       }
       // ⌃-drag turns and tilts in a Mac's Firefox as well; see lib/ctrlDrag.ts.
@@ -1341,7 +1346,7 @@ export default class Cells3DCapability extends Capability {
    * terrain, the tiles and the storms' volumes. The flat map's playback adds
    * every frame it steps through, and on an iPhone 16 Pro the two together
    * passed iOS's 2 GB for a web view, which killed it (October 2026).
-   * App.svelte calls this when playback starts. Nothing happens while shown.
+   * App.svelte calls this when the player starts stepping through frames. Nothing happens while shown.
    */
   unload(): void {
     const gl = this.gl;

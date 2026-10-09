@@ -8,6 +8,8 @@ import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
 import { orderAttributions } from "../layers/attributions";
 import GeolocateControl from "./GeolocateControl";
+import ShareControl from "./ShareControl";
+import { canShare } from "./share";
 import { haptic } from "./haptics";
 import { circular as circularPolygon } from "ol/geom/Polygon";
 
@@ -238,6 +240,7 @@ export class LayerManager {
       controls = defaults({ attribution: false }).extend([
         attribution(),
         new GeolocateControl({ onLocate: () => this.locate() }),
+        ...(canShare() ? [new ShareControl()] : []),
       ]);
     }
 

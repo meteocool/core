@@ -1168,6 +1168,9 @@ export default class RadarCapability extends Capability {
       // Both halves: the newest observation is what is being reset onto, so
       // there is no tick in which the two disagree.
       setFrames({ shown: mostRecent, newest: mostRecent });
+      // Following again, or the next grid leaves the map on this frame and the
+      // next scrub, already "manual", never says it has left live.
+      this.trackingMode = "live";
       live.set(true);
     }
   }
