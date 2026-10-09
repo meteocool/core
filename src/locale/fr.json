@@ -447,7 +447,7 @@
       "cells": "Cellules orageuses",
       "controls": "Contrôles de lecture",
       "map_layers": "Couches de la carte",
-      "collapse": "Réduire les contrôles de lecture",
+      "back_to_latest": "Revenir au plus récent",
       "play": "Lecture",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",
