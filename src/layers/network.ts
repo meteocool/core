@@ -24,6 +24,7 @@ import { maskPath } from "./tileMask";
 import { drawnTileId, rvp6Style } from "../lib/rvp6";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
+import { radarTileCache } from "../lib/gpuBudget";
 import {
   fetchCzechRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar,
 } from "../api";
@@ -289,7 +290,7 @@ export default class NetworkRadarLayer {
       // instead, which is hidden while it shows.
       zIndex: this.network.coverage ? 79 : 81,
       opacity: this.opacity,
-      cacheSize: 512,
+      cacheSize: radarTileCache(512),
       // The rectangle is a cheap first pass; `coverage` is the real edge.
       extent: this.network.extent,
     }));
