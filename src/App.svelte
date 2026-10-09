@@ -35,7 +35,7 @@ import {
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, precacheForecast, radarColormap,
+  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit,
 } from "./stores";
@@ -94,7 +94,8 @@ import Cells3DCapability from "./caps/Cells3DCapability";
 import { radolanOverlay } from "./layers/dwd";
 import { webglSupported } from "./layers/webglTile";
 import { reportNotice } from "./lib/Toast";
-import { forgetEarlierFrames } from "./layers/valueTiles";
+import { dropEarlierFrames, forgetEarlierFrames } from "./layers/valueTiles";
+import { isHandheld } from "./lib/gpuBudget";
 import LightningCapability from "./caps/LightningCapability";
 
 export let device;
@@ -679,6 +680,22 @@ installScrollbars();
 // The panels' "open in 3D" links and the tags above all switch through this,
 // and the way back (see below) through the same manager.
 if (cells3d) registerOpen3D(() => lm.setTarget("cells3d", "map"), (cap) => lm.setTarget(cap, "map"));
+
+/*
+ * A phone has room for the 3D map or the flat map's playback, not both.
+ *
+ * The 3D map is kept when the reader leaves it, so coming back is instant,
+ * and playback keeps every frame it steps through. Together they passed
+ * iOS's 2 GB for a web view on an iPhone 16 Pro, which killed it (October
+ * 2026). So starting playback lets the 3D map go, to be built again when it
+ * is next opened, and opening the 3D map lets playback's frames go at once:
+ * closing the player only lets them go on the flat map's next drawn frame,
+ * which does not come while the 3D map is on screen.
+ */
+if (cells3d && isHandheld()) {
+  playbackRunning.subscribe((running) => { if (running) cells3d.unload(); });
+}
+sharedActiveCap.subscribe((cap) => { if (cap === "cells3d") dropEarlierFrames(); });
 
 /*
  * A storm opened on the 3D map from the flat one goes back when it closes.
