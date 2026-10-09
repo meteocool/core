@@ -1,6 +1,6 @@
 /**
- * What the 3D map may spend on the GPU, which on a phone is far less than on
- * a desktop.
+ * What the maps may hold in memory, which on a phone is far less than on a
+ * desktop: mostly the 3D map's GPU textures, and the flat map's radar tiles.
  *
  * iOS kills an app's web content process once it passes 2 GB, WebGL included,
  * and the app reloads the page: on an iPhone 16 Pro that happened every few
@@ -34,6 +34,24 @@ export const HANDHELD_DRAPE_SIZE = 1024;
  * viewport, for each of the basemap, the terrain and every radar network.
  */
 export const HANDHELD_TILE_CACHE_ZOOM_LEVELS = 1;
+
+/**
+ * How many tiles each radar layer of the flat map keeps on a handheld device.
+ *
+ * Playback keeps the tiles of every step it has shown, so a loop never
+ * fetches or decodes them twice. A tile is a quarter of a megabyte of values
+ * in JavaScript and as much again on the GPU, and DWD and every network keep
+ * their own. At 512 a layer, a few loops held over a gigabyte on an iPhone 16
+ * Pro, and opening the 3D map on top of that passed iOS's 2 GB for a web view
+ * (October 2026). 128 is about six frames of a phone's screen; a longer loop
+ * reads the rest again from the HTTP cache.
+ */
+export const HANDHELD_RADAR_TILE_CACHE = 128;
+
+/** The `cacheSize` of a radar layer of the flat map that keeps `desktop` tiles on a desktop. */
+export function radarTileCache(desktop: number, handheld = isHandheld()): number {
+  return handheld ? Math.min(desktop, HANDHELD_RADAR_TILE_CACHE) : desktop;
+}
 
 /** A phone or a tablet: an app's webview, or a browser that is touched and cannot hover. */
 export function isHandheld(): boolean {

@@ -15,6 +15,7 @@ import type { ValueTiles } from "../lib/rvp6";
 import { hgClassStyle } from "../lib/hgClasses";
 import type { ClassTiles } from "../api";
 import { NOWCAST_OPACITY } from "./ui";
+import { radarTileCache } from "../lib/gpuBudget";
 
 /** What a layer is built for: one frame's tile set, and what its bytes mean. */
 export interface TileFrame {
@@ -72,7 +73,7 @@ export function dwdValueLayer(frame: TileFrame): [TileLayer, ValueTileSource, st
     style: rvp6Style(palette),
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
-    cacheSize: 512,
+    cacheSize: radarTileCache(512),
     extent: dwdRadarExtent,
   }));
   layer.set("tile_id", tileId);
@@ -161,5 +162,5 @@ export const dwdPrecipTypes = (frame: { tile_id: string; values?: ClassTiles | n
     // Classes, not intensities: blending snow into hail past zoom 8 draws a colour no class has.
     interpolate: false,
   }));
-  return staleOnlyWhileLoading(new TileLayer({ source, style: hgClassStyle(), zIndex: 3, opacity: NOWCAST_OPACITY, cacheSize: 256 }));
+  return staleOnlyWhileLoading(new TileLayer({ source, style: hgClassStyle(), zIndex: 3, opacity: NOWCAST_OPACITY, cacheSize: radarTileCache(256) }));
 };
