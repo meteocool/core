@@ -988,10 +988,10 @@ export default class Cells3DCapability extends Capability {
       if (!dd.isApp()) {
         gl.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
         if (this.locate) gl.addControl(maplibreLocateControl(this.locate), "top-right");
-        // Not in the apps: the iOS app's own share button is in its native
-        // column, beside this one.
-        if (!dd.isApp() && canShare()) gl.addControl(maplibreShareControl(), "top-right");
         gl.addControl(new maplibre.NavigationControl({ showZoom: false, visualizePitch: true }), "top-right");
+        // Under the compass rather than between it and locate: the compass
+        // belongs with zoom and locate, as how the map is looked at.
+        if (canShare()) gl.addControl(maplibreShareControl(), "top-right");
       }
       // ⌃-drag turns and tilts in a Mac's Firefox as well; see lib/ctrlDrag.ts.
       if (reportsCtrlClickAsRight(navigator.userAgent, dd.isMac())) {
