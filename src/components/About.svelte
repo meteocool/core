@@ -25,13 +25,6 @@ import GlassPanel from "./GlassPanel.svelte";
     color: var(--mc-accent);
   }
 
-  .volunteers {
-    float: right;
-    width: 35%;
-    padding: 1em;
-    border-radius: var(--mc-radius-inner);
-  }
-
   .appstore-logo {
     width: 95%;
   }
@@ -63,52 +56,24 @@ import GlassPanel from "./GlassPanel.svelte";
           class="appstore-logo about"
           alt={$_("chrome.alt.play_store")}
           src="assets/google-play-store.png" /></a>
+      <a href="https://f-droid.org/packages/com.meteocool/"
+        ><img
+          class="appstore-logo about"
+          alt={$_("chrome.alt.fdroid")}
+          src="assets/fdroid-small.png" /></a>
     </div>
-    <h2>{$_("features.header")}</h2>
-    <ul>
-      <li>
-        <strong>{$_("features.list_title1")}</strong>
-        {$_("features.list1")}
-      </li>
-      <li>
-        <strong>{$_("features.list_title2")}</strong>
-        {$_("features.list2")}
-      </li>
-      <li>
-        <strong>{$_("features.list_title3")}</strong>
-        {$_("features.list3")}
-      </li>
-      <li>
-        <strong>{$_("features.list_title4")}</strong>
-        {$_("features.list4")}
-      </li>
-    </ul>
     <h2>{$_("credits_help.header")}</h2>
-    <p>
-      <img
-        src="assets/volunteers.png"
-        class="volunteers"
-        alt={$_("chrome.alt.not_the_volunteers")} />
-    </p>
     <p>
       {@html $_("credits_help.text1")}
     </p>
     <p>
-      {@html $_("credits_help.text3")}
-    </p>
-    <p>
-      {@html $_("credits_help.list4.text1")}
-      {@html $_("credits_help.list4.text2")}
-      {@html $_("credits_help.list4.text3")}
-    </p>
-    <p>
       {@html $_("credits_help.text4")}
-      {@html $_("credits_help.text5")}
     </p>
     <h2>{$_("other_things.header")}</h2>
     <ul>
       <li>{@html $_("other_things.list1")}</li>
       <li>{@html $_("other_things.list2")}</li>
+      <li>{@html $_("other_things.list3")}</li>
     </ul>
   </div>
 </GlassPanel>

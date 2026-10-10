@@ -17,37 +17,16 @@
   "title": "À propos de meteocool",
   "text1": "meteocool est une plateforme SIG gratuite qui rassemble et visualise des données météo, en particulier sur les phénomènes violents. Elle est optimisée pour les appareils mobiles, et vous pouvez l'utiliser pour aller au-devant du mauvais temps qui arrive ou pour l'éviter.",
   "text2": "meteocool utilise les données radar des services météorologiques d'Allemagne (DWD), de Suisse, de France, de Tchéquie et de Pologne, ainsi que la foudre en temps réel du projet blitzortung.org.",
-  "features": {
-    "header": "Fonctionnalités",
-    "list_title0": "Confidentialité :",
-    "list0": "Vous n'avez pas besoin de compte utilisateur pour utiliser l'application, et aucune donnée de localisation n'est enregistrée ni utilisée à d'autres fins. Consultez aussi notre politique de confidentialité.",
-    "list_title1": "Mises à jour automatiques de la carte :",
-    "list1": "meteocool avertit ses clients dès que de nouvelles données radar sont disponibles, la carte est donc toujours à jour.",
-    "list_title2": "Impacts de foudre en direct :",
-    "list2": "Les nouveaux impacts de foudre s'affichent instantanément et vous aident à juger de l'intensité, de la trajectoire et de la vitesse d'un orage.",
-    "list_title3": "Notifications push :",
-    "list3": "Recevez une alerte en cas de pluie ou d'intempéries jusqu'à 60 minutes à l'avance, sur le web et dans les applications iOS et Android. Vous pouvez régler le niveau d'alerte, par exemple pour n'être prévenu qu'en cas de forte pluie.",
-    "list_title4": "Applications iOS et Android :",
-    "list4": "Les applications natives iOS et Android suivent votre position en arrière-plan en consommant peu de batterie, pour que les alertes météo soient précises où que vous alliez.",
-    "list_title5": "Mode sombre et clair :",
-    "list5": "meteocool propose un thème sombre et un thème clair."
-  },
   "credits_help": {
     "header": "Crédits et aide",
-    "text1": "meteocool vous est proposé par <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> et <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "Ce projet n'aurait pas été possible sans l'aide de <a href=\"https://github.com/Flowm\">Florian Mauracher</a> et NessArt.",
-    "list4": {
-      "text1": "Icônes et illustrations adaptées réalisées par <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
-      "text2": "(logo, écrans d'accueil iOS) et <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
-      "text3": "(sous licence <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
-    },
-    "text4": "Vous aussi, vous voulez aider ? Consultez <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool sur GitHub</a>,",
-    "text5": "en particulier nos dépôts <a href=\"https://github.com/meteocool/core\">frontend web</a>, <a href=\"https://github.com/meteocool/ios\">application iOS</a> et <a href=\"https://github.com/meteocool/android\">application Android</a>."
+    "text1": "meteocool vous est proposé par <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> et NessArt.",
+    "text4": "Vous aussi, vous voulez aider ? Consultez <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool sur GitHub</a>."
   },
   "other_things": {
     "header": "Autres choses",
-    "list1": "<a href=\"mailto:support@meteocool.com\">contactez-nous</a> pour toute question, ou si vous souhaitez nous soutenir financièrement",
-    "list2": "<a href=\"/privacy.html\">politique de confidentialité</a>"
+    "list1": "<a href=\"mailto:support@meteocool.com\">contactez-nous</a> pour toute question",
+    "list2": "<a href=\"/privacy.html\">politique de confidentialité</a>",
+    "list3": "<a href=\"/imprint.html#data\">sources des données et licences</a>"
   },
   "close": "Fermer",
   "published": "Publié",
@@ -502,7 +481,7 @@
     "alt": {
       "app_store": "Lien vers l'App Store iOS",
       "play_store": "Lien vers le Google Play Store",
-      "not_the_volunteers": "pas vraiment les bénévoles"
+      "fdroid": "Lien vers F-Droid"
     },
     "degraded": {
       "api_errors": "erreurs backend",
