@@ -12,7 +12,7 @@ import StateMachine from "javascript-state-machine";
 import { fly } from "svelte/transition";
 import { onDestroy, onMount } from "svelte";
 import {
-  lastFocus, sharedActiveCap,
+  sharedActiveCap,
   latLon,
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale,
@@ -490,6 +490,7 @@ let _latest: number;
 
 onMount(async () => {
   window.leaveForeground = () => {
+    awayAt ??= Date.now();
     if (fsm.state === "playing") {
       console.log("Pausing due to window.leaveForeground();");
       fsm.pressPause();
@@ -629,13 +630,31 @@ function toggleHistoric() {
   includeHistoric = !includeHistoric;
 }
 
-let last = new Date();
-subscriptions.push(lastFocus.subscribe((focus) => {
-  if (focus.getTime() > (last.getTime() + 2 * 60 * 1000) && cap.trackingMode !== "live") {
-    returnToLive();
-  }
-  last = focus;
-}));
+/**
+ * Back from five minutes or more away, the map is on now again, whatever frame
+ * it was left on. A frame from before is no longer what anyone opening the app
+ * is asking about, and everything that only the live frame carries (the
+ * cells, the 3D tags) would be missing with no reason given.
+ *
+ * Away is timed from `leaveForeground`, which the native apps and the page's
+ * own hiding both call, because the native foreground does not say how long it
+ * was; and from what the wake itself says, which covers a device that slept
+ * with the page still showing.
+ */
+const RETURN_TO_LIVE_AFTER_MS = 5 * 60 * 1000;
+let awayAt: number | null = null;
+function cameBack(awayMs: number | null) {
+  const away = Math.max(awayAt === null ? 0 : Date.now() - awayAt, awayMs ?? 0);
+  awayAt = null;
+  if (away >= RETURN_TO_LIVE_AFTER_MS && cap.trackingMode !== "live") returnToLive();
+}
+subscriptions.push(onWake((_reason, awayMs) => cameBack(awayMs)));
+/* Every return, not only those long enough to be a wake: one too short for
+   that has to clear the time it left, or the next wake, however unrelated
+   (the network coming back), would count from it. */
+const onVisible = () => { if (document.visibilityState === "visible") cameBack(null); };
+document.addEventListener("visibilitychange", onVisible);
+subscriptions.push(() => document.removeEventListener("visibilitychange", onVisible));
 
 onDestroy(() => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
