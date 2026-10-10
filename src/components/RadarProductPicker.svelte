@@ -96,11 +96,12 @@ async function show() {
   open = true;
   await tick();
   if (!menu) return;
-  // Centred on the control, kept on screen, and on a phone left of the buttons.
+  // Centred on the control and kept left of the buttons, at any width: pushed
+  // to the screen's edge instead, a short window put it under them, where it
+  // stopped short of the lowest and was left a few rows tall.
   const menuWidth = menu.offsetWidth;
   const centred = rect.left + rect.width / 2 - menuWidth / 2;
-  const rightEdge = phone ? rightColumn : window.innerWidth;
-  left = Math.max(MARGIN, Math.min(centred, rightEdge - menuWidth - MARGIN));
+  left = Math.max(MARGIN, Math.min(centred, rightColumn - menuWidth - MARGIN));
   // Still under a button, and it stops short of it and scrolls.
   const ceiling = Math.max(
     MARGIN,
