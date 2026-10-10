@@ -466,7 +466,9 @@
       "unavailable": "unavailable",
       "gave_up": "{product} is unavailable, so the map has switched to {fallback}.",
       "fell_back_short": "behind",
-      "fell_back": "{product} is behind or unavailable; {fallback} is shown until it catches up."
+      "fell_back": "{product} is behind or unavailable; {fallback} is shown until it catches up.",
+      "forecast_short": "forecast",
+      "forecast": "Forecast: {product}, whichever product is chosen. The choice applies again to the present and the past."
     },
     "scales": {
       "precipitation_types": "Precipitation<br />Types",

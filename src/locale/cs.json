@@ -466,7 +466,9 @@
       "unavailable": "nedostupné",
       "gave_up": "{product} není dostupný, mapa proto zobrazuje {fallback}.",
       "fell_back_short": "zpožděno",
-      "fell_back": "{product} je zpožděný nebo nedostupný; dokud se nedorovná, zobrazuje se {fallback}."
+      "fell_back": "{product} je zpožděný nebo nedostupný; dokud se nedorovná, zobrazuje se {fallback}.",
+      "forecast_short": "předpověď",
+      "forecast": "Předpověď: {product} bez ohledu na zvolený produkt. Volba opět platí pro současnost a minulost."
     },
     "scales": {
       "precipitation_types": "Typy<br />srážek",

@@ -11,6 +11,11 @@
  * the pill on its own.
  * Either opens the same menu above the tray.
  *
+ * On a forecast step it shows the forecast's product and opens nothing: WN
+ * is the forecast whatever was picked (FORECAST_PRODUCT). The choice itself
+ * is left as it was, so it is back the moment the player is on the present
+ * or the past again.
+ *
  * The menu is moved to <body>: the tray clips what overflows it, and a
  * backdrop filter on any ancestor would position a fixed child against that
  * ancestor rather than the window. So is the explainer its "?" opens
@@ -23,8 +28,8 @@ import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons/faCircleQues
 import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDish";
 import Icon from "./Icon.svelte";
 import Lazy from "./Lazy.svelte";
-import { radarProducts, smallScreen } from "../stores";
-import { PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
+import { onForecastStep, radarProducts, smallScreen } from "../stores";
+import { FORECAST_PRODUCT, PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
 import type { ObservedProduct, ScanRange } from "../lib/observedProduct";
 
 /** `adaptive`: the caption, but the pill on a phone. */
@@ -62,8 +67,13 @@ onDestroy(() => clearInterval(clock));
 
 $: face = variant === "adaptive" ? ($smallScreen ? "pill" : "caption") : variant;
 $: ({ chosen, drawn, scans, ranges } = $radarProducts);
+$: forecast = $onForecastStep;
+/** What the control names: the choice, or the forecast's product on its steps. */
+$: shown = forecast ? FORECAST_PRODUCT : chosen;
 /** The choice has fallen behind, and the default is drawn in its place. */
-$: fellBack = chosen !== drawn;
+$: fellBack = !forecast && chosen !== drawn;
+$: forecastNote = $_("chrome.radar_product.forecast", { values: { product: $_(`chrome.radar_product.${FORECAST_PRODUCT}`) } });
+$: if (forecast && open) close();
 $: fellBackNote = $_("chrome.radar_product.fell_back", {
   values: { product: $_(`chrome.radar_product.${chosen}`), fallback: $_(`chrome.radar_product.${drawn}`) },
 });
@@ -163,18 +173,20 @@ function portal(node: HTMLElement) {
   type="button"
   class={face}
   class:fellBack
+  class:forecast
   aria-haspopup="menu"
   aria-expanded={open}
-  title={fellBack ? fellBackNote : $_("chrome.radar_product.choose")}
-  aria-label={face === "pill" ? `${$_("chrome.radar_product.choose")}: ${fellBack ? fellBackNote : $_(`chrome.radar_product.${chosen}`)}` : undefined}
-  on:click={() => (open ? close() : show())}>
+  aria-disabled={forecast}
+  title={forecast ? forecastNote : fellBack ? fellBackNote : $_("chrome.radar_product.choose")}
+  aria-label={face === "pill" ? `${$_("chrome.radar_product.choose")}: ${forecast ? forecastNote : fellBack ? fellBackNote : $_(`chrome.radar_product.${chosen}`)}` : undefined}
+  on:click={() => (forecast ? undefined : open ? close() : show())}>
   {#if face === "pill"}
     <Icon icon={faSatelliteDish} />
-    <span>{$_(`chrome.radar_product.${chosen}_short`)}</span>
-    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
+    <span>{$_(`chrome.radar_product.${shown}_short`)}</span>
+    <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
   {:else}
-    <span class="name">{$_(`chrome.radar_product.${chosen}`)}<Icon icon={faChevronUp} class="chevron" /></span>
-    <span class="age">{fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
+    <span class="name">{$_(`chrome.radar_product.${shown}`)}<Icon icon={faChevronUp} class="chevron" /></span>
+    <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
   {/if}
 </button>
 
@@ -308,6 +320,15 @@ function portal(node: HTMLElement) {
     font-variant-numeric: tabular-nums;
   }
   .pill.fellBack .age { color: var(--mc-orange-ink); }
+
+  /* On a forecast step: greyed out, and nothing to open. */
+  .forecast {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .caption.forecast:hover { background: none; }
+  .pill.forecast:hover { background: var(--mc-tint); }
+  .pill.forecast:active { transform: none; }
 
   .menu {
     position: fixed;

@@ -46,6 +46,13 @@ export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = PRODUCT_GROUPS.flat
 
 export const DEFAULT_PRODUCT: ObservedProduct = "hx";
 
+/**
+ * The product a forecast step is, whatever was chosen: WN is DWD's lowest
+ * scan carried forward, the same quantity as HX, so the picker shows HX there
+ * and offers nothing else.
+ */
+export const FORECAST_PRODUCT: ObservedProduct = "hx";
+
 /** Each product's newest scan, unix seconds; null where it has no fresh frame to draw. */
 export type NewestScans = Record<ObservedProduct, number | null>;
 

@@ -575,7 +575,8 @@ const lm = new LayerManager({
       name: "radar",
       capability: RadarCapability,
       additionalLayers: [
-        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, labelsOnly(), radolanOverlay(),
+        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, labelsOnly(),
+        radolanOverlay({ followsForecast: true }),
       ],
       options: {
         nanobar: nb,
