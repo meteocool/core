@@ -125,9 +125,7 @@
   "degraded": "Beperkt",
   "show_for_my_location": "Toon voor mijn locatie",
   "precipitation_at_point": "Neerslag hier",
-  "precipitation_none": "Geen neerslag in de afgelopen twee uur, en voor de komende twee uur ook niets voorspeld.",
   "forecast_none_here": "Hier geen voorspelling",
-  "precipitation_none_past": "Geen neerslag in de afgelopen twee uur, en de voorspelling reikt niet tot hier.",
   "hide": "Verbergen",
   "last_success": "Laatste update",
   "preview": "Voorbeeld",
@@ -432,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Radartijdlijn",
-      "loop": "Herhalen",
       "from_start": "Herhalen vanaf twee uur geleden"
     },
     "radar_product": {

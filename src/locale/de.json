@@ -125,9 +125,7 @@
   "degraded": "Eingeschränkt",
   "show_for_my_location": "Für meinen Standort",
   "precipitation_at_point": "Niederschlag hier",
-  "precipitation_none": "Kein Niederschlag in den letzten zwei Stunden und keiner für die nächsten zwei vorhergesagt.",
   "forecast_none_here": "Hier keine Vorhersage",
-  "precipitation_none_past": "Kein Niederschlag in den letzten zwei Stunden, und hierher reicht keine Vorhersage.",
   "hide": "Ausblenden",
   "last_success": "Letzte Aktualisierung",
   "preview": "Vorschau",
@@ -432,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Radar-Zeitleiste",
-      "loop": "Schleife",
       "from_start": "Schleife ab zwei Stunden zurück"
     },
     "radar_product": {

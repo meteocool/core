@@ -46,7 +46,7 @@ export let interactive = true;
 /** How often the axis is labelled, in minutes. */
 export let labelEvery = 30;
 
-const dispatch = createEventDispatcher<{ seek: number; grab: void }>();
+const dispatch = createEventDispatcher<{ seek: number; grab: void; release: void }>();
 
 /** The height of the plot, in CSS px; the axis row sits under it. */
 const PLOT_H = 56;
@@ -152,6 +152,7 @@ function settle(): void {
   if (Math.abs(target - from) < 0.001) {
     pos = target;
     report();
+    dispatch("release");
     return;
   }
   const start = performance.now();
@@ -160,6 +161,7 @@ function settle(): void {
     pos = from + (target - from) * (1 - (1 - k) ** 3);
     report();
     frame = k < 1 ? requestAnimationFrame(step) : 0;
+    if (frame === 0) dispatch("release");
   };
   frame = requestAnimationFrame(step);
 }
@@ -228,6 +230,7 @@ function onPointerMove(event: PointerEvent): void {
     if (axis === "y") {
       dragging = false;
       pointerId = null;
+      dispatch("release");
       return;
     }
     try { strip.setPointerCapture(event.pointerId); } catch { /* already gone */ }
@@ -249,6 +252,7 @@ function onPointerUp(event: PointerEvent): void {
     // A tap: straight to the step under the finger.
     pos = restingStep(indexAt(event.clientX), last);
     report();
+    dispatch("release");
     return;
   }
   // A finger held still before letting go means "here", not "keep going".
@@ -271,6 +275,7 @@ function onKey(event: KeyboardEvent): void {
   pos = restingStep(target, last);
   reported = -1;
   report();
+  dispatch("release");
 }
 
 onDestroy(stop);
