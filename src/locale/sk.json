@@ -299,6 +299,8 @@
       },
       "cell": "bunka",
       "alive": "aktívna už {duration}",
+      "ended": "zanikla po {duration}",
+      "superseded": "rozdelila sa alebo spojila po {duration}",
       "details": "Podrobnosti",
       "clear": "Zrušiť výber",
       "clear_action": "Zrušiť"

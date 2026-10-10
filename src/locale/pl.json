@@ -299,6 +299,8 @@
       },
       "cell": "komórka",
       "alive": "aktywna od {duration}",
+      "ended": "zanikła po {duration}",
+      "superseded": "podzieliła się lub połączyła po {duration}",
       "details": "Szczegóły",
       "clear": "Wyczyść zaznaczenie",
       "clear_action": "Wyczyść"

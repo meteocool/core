@@ -299,6 +299,8 @@
       },
       "cell": "Zelle",
       "alive": "seit {duration} aktiv",
+      "ended": "nach {duration} aufgelöst",
+      "superseded": "nach {duration} geteilt oder verschmolzen",
       "details": "Details",
       "clear": "Auswahl aufheben",
       "clear_action": "Aufheben"

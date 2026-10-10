@@ -299,6 +299,8 @@
       },
       "cell": "cell",
       "alive": "alive for {duration}",
+      "ended": "dissipated after {duration}",
+      "superseded": "split or merged after {duration}",
       "details": "Details",
       "clear": "Clear selection",
       "clear_action": "Clear"
