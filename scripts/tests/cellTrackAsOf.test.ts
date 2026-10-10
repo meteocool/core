@@ -44,10 +44,15 @@ test("a storm not yet detected at the moment is not drawn", () => {
   assert.equal(trackAsOf(track(), minute(0) - 1), null);
 });
 
-test("a storm already over by the moment is drawn as it ended", () => {
-  const whole = track();
-  assert.equal(trackAsOf(whole, minute(15)), whole);
-  assert.equal(trackAsOf(whole, minute(40)), whole);
+test("a storm detected for the last time by the moment is as it ended", () => {
+  const then = trackAsOf(track(), minute(15))!;
+  assert.equal(then.properties.series!.length, 4);
+  assert.deepEqual(then.properties.child_codes, ["B", "C"]);
+});
+
+test("a storm last seen by the moment is active for the backend's twenty minutes after", () => {
+  assert.equal(trackAsOf(track(), minute(35))!.properties.active, true);
+  assert.equal(trackAsOf(track(), minute(36))!.properties.active, false);
 });
 
 test("a storm still going is cut after the last detection at or before the moment", () => {
