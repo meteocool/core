@@ -1,3 +1,12 @@
+<script module lang="ts">
+/**
+ * How wide the slider grows at most, centred on the bottom edge: the guide in
+ * the corner beside it (Guide3D) stands on that edge too where this leaves it
+ * room.
+ */
+export const PEEL_MAX_WIDTH = 560;
+</script>
+
 <script lang="ts">
 /**
  * The 3D map's peel, by hand: how far every storm is thinned towards its
@@ -45,7 +54,8 @@ $: document.documentElement.style.setProperty("--mc-peel-h", `calc(${height}px +
 onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
 </script>
 
-<div class="peel glass glass-tray" class:picking={pickScan !== null} bind:offsetHeight={height}>
+<div class="peel glass glass-tray" class:picking={pickScan !== null} bind:offsetHeight={height}
+  style:max-width={`${PEEL_MAX_WIDTH}px`}>
   <span class="label" aria-hidden="true">{$_("guide_3d.peel")}</span>
   <input
     type="range"
@@ -74,7 +84,6 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     box-sizing: border-box;
     height: var(--mc-control);
     margin: 0 auto;
-    max-width: 560px;
     padding: 0 16px;
     border-radius: var(--mc-radius-pill);
     color: var(--mc-text);
