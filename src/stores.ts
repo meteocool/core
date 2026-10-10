@@ -20,6 +20,8 @@ export const bottomToolbarMode = writable<"collapsed" | "player" | "hidden">("co
  * forming a notification-style stack.
  */
 export const openStripCount = writable(0);
+/** The cell hint bars mounted above the strips (CellSelectionHint): at most one, but counted, so an outgoing one cannot clear an incoming one's place. */
+export const openHintCount = writable(0);
 export const capDescription = writable<string>("Meteorology for everyone");
 export const capLastUpdated = writable<Date | null>(null);
 /**

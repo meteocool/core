@@ -19,16 +19,22 @@
  * (SwipeDock): it fades in, swipes aside to a Clear action, and leaves the
  * way they do.
  */
+import { onDestroy } from "svelte";
 import { fly, fade } from "svelte/transition";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { _ } from "svelte-i18n";
 import Icon from "./Icon.svelte";
 import SwipeDock, { type Leaving } from "./SwipeDock.svelte";
-import { cellDetails, openStripCount, selectedCell } from "../stores";
+import { cellDetails, openHintCount, openStripCount, selectedCell } from "../stores";
 import { severityColour } from "../layers/cells";
 import { BAND_NAMES, duration } from "../lib/cellMetrics";
 
 export let track: import("../api").CellTrackProperties;
+
+/* Counted while mounted, as the strips are, so the "Back to now" pill stands
+   above this bar for as long as it is on screen, its exit included. */
+openHintCount.update((n) => n + 1);
+onDestroy(() => openHintCount.update((n) => n - 1));
 
 $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
