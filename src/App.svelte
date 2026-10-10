@@ -35,7 +35,7 @@ import {
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
+  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap, scrubbing,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit,
 } from "./stores";
@@ -406,15 +406,16 @@ cellLayerVisible.subscribe((value) => {
 cellLayerVisible.set(window.settings.getBoolean("layerCells"));
 
 /**
- * Cells are drawn on the newest observation and nowhere else.
+ * Cells are drawn on the newest observation, and on an earlier frame the
+ * player has settled on; never on the nowcast.
  *
- * The tracks endpoint answers with one state (where every storm is now, the
- * outline of its latest detection, and where it is going), and nothing here
- * rewinds it. Scrub the radar back an hour, or out into the nowcast, and the
- * map underneath moves while every dot, path and outline stays parked at the
- * present: the marks then sit beside echoes they have nothing to do with, and
- * read as a tracker that has lost its storms rather than as a layer showing a
- * different moment than the frame.
+ * Marks left at the present while the radar under them moves sit beside
+ * echoes they have nothing to do with, and read as a tracker that has lost
+ * its storms. On an earlier frame the manager rewinds every track to that
+ * moment out of the answer it already holds (see `trackAsOf`), but only once
+ * the frame has settled: not during playback, and not while a hand is on the
+ * strip, where it would redraw every storm for a frame shown a fraction of a
+ * second. Hidden meanwhile. The nowcast has no detections to rewind to.
  *
  * The test is the frame on screen against the newest one the grid holds, not
  * the `live` store the pill uses: that is cleared at the top of every grid
@@ -429,9 +430,15 @@ cellLayerVisible.set(window.settings.getBoolean("layerCells"));
  * data, so coming back to the live edge costs no refetch.
  */
 derived(
-  [cellLayerVisible, capTimeIndicator, capLatestObservation],
-  ([wanted, shown, newest]) => Boolean(wanted) && showsLatestFrame(shown, newest),
-).subscribe((value) => {
+  [cellLayerVisible, capTimeIndicator, capLatestObservation, playbackRunning, scrubbing],
+  ([wanted, shown, newest, running, moving]): "hidden" | "now" | number => {
+    if (!wanted) return "hidden";
+    if (showsLatestFrame(shown, newest)) return "now";
+    return shown < newest && !running && !moving ? shown : "hidden";
+  },
+).subscribe((at) => {
+  const value = at !== "hidden";
+  if (value) cellmgr.showAt(at === "now" ? null : at * 1000);
   cellLayer.setVisible(value);
   // The ping only ever marks cells the tracks layer is already drawing, so it
   // appears and disappears with it rather than carrying a rule of its own.
