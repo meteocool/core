@@ -204,7 +204,13 @@
   --mc-hint-h: 54px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);
   --mc-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --mc-collapsed-bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
+  /* A floating tray's distance from the bottom edge: half the inset and the
+     gap together, never less than the gap. On a phone with a home indicator
+     the whole inset is over 30px, and a tray stood that far up reads as
+     floating loose rather than resting in the screen's curved corner; the
+     indicator is a thin line well inside half of it. */
+  --mc-tray-bottom: max(var(--mc-tray-gap), calc((var(--mc-safe-bottom) + var(--mc-tray-gap)) / 2));
+  --mc-collapsed-bottom: var(--mc-tray-bottom);
   --mc-top-stack: calc(var(--mc-safe-top) + var(--mc-gutter));   /* one top line: logo, Latest, switcher */
 
   /* type */
