@@ -64,7 +64,7 @@
 
 <style>
     /* The tray material, shared with NowcastPlayback's .timeslider: a floating
-       glass tray 8px off the edges, 8px above the safe-area inset. The blur
+       glass tray 8px off the edges, --mc-tray-bottom off the bottom one. The blur
        must sit on this element: it is the one carrying transition:fly, and a
        blurred child of a fading parent samples a blank backdrop. */
     :global(.bottomToolbar) {
@@ -72,7 +72,7 @@
         left: var(--mc-gutter);
         right: var(--mc-gutter);
         width: auto;
-        bottom: calc(var(--mc-safe-bottom) + var(--mc-tray-gap));
+        bottom: var(--mc-tray-bottom);
         box-sizing: border-box;
         border: 1px solid var(--mc-glass-edge);
         border-radius: var(--mc-radius-tray);

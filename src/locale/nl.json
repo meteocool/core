@@ -299,6 +299,8 @@
       },
       "cell": "cel",
       "alive": "sinds {duration} actief",
+      "ended": "na {duration} opgelost",
+      "superseded": "na {duration} gesplitst of samengevoegd",
       "details": "Details",
       "clear": "Selectie wissen",
       "clear_action": "Wissen"
