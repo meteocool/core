@@ -299,6 +299,8 @@
       },
       "cell": "cellule",
       "alive": "active depuis {duration}",
+      "ended": "dissipée après {duration}",
+      "superseded": "divisée ou fusionnée après {duration}",
       "details": "Détails",
       "clear": "Effacer la sélection",
       "clear_action": "Effacer"

@@ -299,6 +299,8 @@
       },
       "cell": "buňka",
       "alive": "aktivní {duration}",
+      "ended": "zanikla po {duration}",
+      "superseded": "rozdělila se nebo spojila po {duration}",
       "details": "Podrobnosti",
       "clear": "Zrušit výběr",
       "clear_action": "Zrušit"
