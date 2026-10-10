@@ -339,31 +339,25 @@
   :global(.maplibre-host .maplibregl-ctrl-top-right .maplibregl-ctrl) {
     margin: 0 0 var(--mc-gutter);
   }
-  /* And the attribution where the flat map keeps its own: beside the 3D
-     map's guide in the bottom-left corner (Guide3D.svelte), which publishes
-     how much of the edge it takes, so a wrapped line of credits never runs
-     under it. */
+  /* And the attribution up the right edge, as a phone's flat map keeps it
+     (src/glass.css), at every width: along the bottom it ran between the
+     guide in the corner (Guide3D.svelte) and the peel slider, and wrapped
+     into a strip under both. Under the control column, above the peel
+     slider while it is up (PeelSlider). The corner box already lets touches
+     through; its float would put the text at the top of the strip once the
+     box is turned. */
   :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
     right: 2px;
-    /* Above the peel slider while it is up (PeelSlider). */
+    top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
     bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + var(--mc-peel-h, 0px) + 1px);
-    max-width: calc(100% - 4px - var(--mc-guide-3d-inset, 0px));
+    max-width: none;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: start;
   }
-  /* Up the right edge on a phone, as the flat map's (src/glass.css). The
-     corner box already lets touches through; its float would put the text at
-     the top of the strip once the box is turned. */
-  @media only screen and (max-width: 620px) {
-    :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
-      top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
-      max-width: none;
-      writing-mode: vertical-rl;
-      transform: rotate(180deg);
-      text-align: start;
-    }
-    :global(.maplibre-host .maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
-      float: none;
-      padding: 2px 0;
-    }
+  :global(.maplibre-host .maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
+    float: none;
+    padding: 2px 0;
   }
 
   /* The wrappers ship their own zoom and locate controls. */
