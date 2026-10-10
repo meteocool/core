@@ -143,8 +143,9 @@ export default class CellTrackManager {
    * Draw the storms as they were at `atMs`, or as they are now for null.
    *
    * The past comes out of the answer already held (see `trackAsOf`), so
-   * moving between frames costs no request. Called only once the player has
-   * settled on a frame, so a scrub or a playback does not redraw every step.
+   * moving between frames costs no request, and the rebuild is cheap enough
+   * (a few milliseconds for two hundred tracks) to run on every frame of a
+   * playback or a scrub.
    */
   showAt(atMs: number | null): void {
     if (atMs === this.at) return;

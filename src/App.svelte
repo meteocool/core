@@ -35,7 +35,7 @@ import {
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap, scrubbing,
+  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit,
 } from "./stores";
@@ -406,16 +406,14 @@ cellLayerVisible.subscribe((value) => {
 cellLayerVisible.set(window.settings.getBoolean("layerCells"));
 
 /**
- * Cells are drawn on the newest observation, and on an earlier frame the
- * player has settled on; never on the nowcast.
+ * Cells are drawn on every observed frame, the newest and the earlier ones,
+ * and never on the nowcast, which has no detections to show.
  *
  * Marks left at the present while the radar under them moves sit beside
  * echoes they have nothing to do with, and read as a tracker that has lost
  * its storms. On an earlier frame the manager rewinds every track to that
- * moment out of the answer it already holds (see `trackAsOf`), but only once
- * the frame has settled: not during playback, and not while a hand is on the
- * strip, where it would redraw every storm for a frame shown a fraction of a
- * second. Hidden meanwhile. The nowcast has no detections to rewind to.
+ * moment out of the answer it already holds (see `trackAsOf`): no request,
+ * and cheap enough to follow a playback or a scrub frame by frame.
  *
  * The test is the frame on screen against the newest one the grid holds, not
  * the `live` store the pill uses: that is cleared at the top of every grid
@@ -429,12 +427,14 @@ cellLayerVisible.set(window.settings.getBoolean("layerCells"));
  * The manager keeps running throughout: this hides the drawing and keeps the
  * data, so coming back to the live edge costs no refetch.
  */
+/** The frame the cells were last drawn for, so a move to another one is seen. */
+let cellsAt: "hidden" | "now" | number = "hidden";
 derived(
-  [cellLayerVisible, capTimeIndicator, capLatestObservation, playbackRunning, scrubbing],
-  ([wanted, shown, newest, running, moving]): "hidden" | "now" | number => {
+  [cellLayerVisible, capTimeIndicator, capLatestObservation],
+  ([wanted, shown, newest]): "hidden" | "now" | number => {
     if (!wanted) return "hidden";
     if (showsLatestFrame(shown, newest)) return "now";
-    return shown < newest && !running && !moving ? shown : "hidden";
+    return shown < newest ? shown : "hidden";
   },
 ).subscribe((at) => {
   const value = at !== "hidden";
@@ -447,8 +447,11 @@ derived(
   // the radar underneath for as long as it is up. Leaving it open over a frame
   // its cell is not drawn on would be a panel of present-tense numbers about a
   // storm the map has stopped showing, over a picture darkened to make room
-  // for marks that are not there.
-  if (!value) selectedCell.set(null);
+  // for marks that are not there. Another frame is the same: the storm was
+  // somewhere else then, or not yet there. A grid refresh on the live frame is
+  // not another frame, so a panel open on now stays open across it.
+  if (at !== cellsAt) selectedCell.set(null);
+  cellsAt = at;
 });
 
 /* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the

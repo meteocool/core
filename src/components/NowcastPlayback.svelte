@@ -15,7 +15,7 @@ import {
   latLon,
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale,
-  frameRequest, playbackRunning, browsingFrames, live, openStripCount, scrubbing,
+  frameRequest, playbackRunning, browsingFrames, live, openStripCount,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -512,7 +512,6 @@ subscriptions.push(frameRequest.subscribe(() => takeFrameRequest()));
 
 function hide() {
   resumeOnRelease = false;
-  scrubbing.set(false);
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   playTimeout = 0;
   fsm.hideScrollbar();
@@ -635,7 +634,6 @@ function sliderChangedHandler(value, userInteraction = false) {
  */
 function grabbed() {
   browsingFrames.set(true);
-  scrubbing.set(true);
   if (fsm.state === "playing") {
     console.log("Holding playback for a grab on the timeline");
     resumeOnRelease = true;
@@ -645,7 +643,6 @@ function grabbed() {
 
 /** The needle is at rest again: playback, if a grab held it, goes on from there. */
 function released() {
-  scrubbing.set(false);
   if (!resumeOnRelease) return;
   resumeOnRelease = false;
   if (fsm.state === "manualScrolling") fsm.pressPlay(FRAME_MS);
@@ -704,7 +701,6 @@ onDestroy(() => {
   headObserver?.disconnect();
   playbackRunning.set(false);
   browsingFrames.set(false);
-  scrubbing.set(false);
 });
 </script>
 
