@@ -193,21 +193,14 @@ export function ageMinutes(lastSeen: string, now = Date.now()): number {
 }
 
 /**
- * How long a cell stays on the map once it stops being detected.
+ * How long a cell stays active after its last detection.
  *
- * The tracks endpoint answers with a three-hour window, so most of what comes
- * back is storms that have already gone. Fading them was not enough: a map
- * left open through an afternoon still filled up with pale paths and dots for
- * cells that dissipated hours ago, and read as weather that was not there.
- * Half an hour keeps a storm that has just been missed for a scan or two, and
- * lets one that has gone for good disappear.
+ * The backend's rule (`ACTIVE_WITHIN` in ng's konrad3d/tracks.py), which sets
+ * the `active` flag on every track it sends, and the flag is what the map
+ * draws by. Mirrored here only for an earlier frame, where the flag has to be
+ * worked out for a moment the backend was not asked about.
  */
-export const TRACK_MAX_MINUTES = 30;
-
-/** Whether a cell last detected this many minutes ago is still drawn at all. */
-export function trackIsCurrent(minutes: number): boolean {
-  return minutes <= TRACK_MAX_MINUTES;
-}
+export const ACTIVE_MINUTES = 20;
 
 /**
  * How long an outline keeps describing the storm it was drawn around.

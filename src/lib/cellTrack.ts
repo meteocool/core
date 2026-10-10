@@ -1,4 +1,4 @@
-import { lastRunStart } from "./cellGeometry";
+import { ACTIVE_MINUTES, lastRunStart } from "./cellGeometry";
 import type { CellStep, CellTrack } from "../api";
 
 /** The largest of one field over some steps, or null when none of them has it. */
@@ -68,14 +68,19 @@ export function trimToLastRun(track: CellTrack): CellTrack {
  * then, still active, with no children yet and nothing that only its newest
  * detection had (the outline, the forecast, the 3D volume).
  *
- * A track whose last detection is at or before the moment is returned as it
- * is: by then it was what it still is.
+ * A track whose last detection is at or before the moment is otherwise as it
+ * is now, but for whether it was still active then, which is the backend's
+ * own rule applied at the moment (see `ACTIVE_MINUTES`).
  */
 export function trackAsOf(track: CellTrack, atMs: number): CellTrack | null {
   const p = track.properties;
   const series = p.series ?? [];
   const count = series.findIndex((step) => new Date(step.t).getTime() > atMs);
-  if (count === -1) return new Date(p.first_seen).getTime() <= atMs ? track : null;
+  if (count === -1) {
+    if (new Date(p.first_seen).getTime() > atMs) return null;
+    const active = atMs - new Date(p.last_seen).getTime() <= ACTIVE_MINUTES * 60_000;
+    return active === p.active ? track : { ...track, properties: { ...p, active } } as CellTrack;
+  }
   if (count === 0) return null;
 
   const kept = series.slice(0, count);

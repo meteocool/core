@@ -8,10 +8,9 @@ import { fetchCellTracks } from "../api";
 import type { CellTrack, CellTrackProperties, Progress } from "../api";
 import type { CellFeatureKind } from "../layers/cells";
 import {
-  ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, trackIsCurrent, worldExtent,
+  ACTIVE_MINUTES, ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, worldExtent,
 } from "./cellGeometry";
 import { trackAsOf, trimToLastRun } from "./cellTrack";
-import { STALE_MINUTES } from "./cellStatus";
 import { buildCellLinks, supersededCodes } from "./cellLinks";
 import { selectedCell } from "../stores";
 import { isLive } from "./cellPulse";
@@ -25,8 +24,13 @@ import type { Extent } from "./cellGeometry";
  * is the whole answer for a viewport, so the previous one is discarded.
  */
 
-/** How far back to ask for. Long enough to show where a storm came from. */
-export const WINDOW_MINUTES = 180;
+/**
+ * How far back to ask for: the player's two hours, plus the time a cell stays
+ * active after its last detection, so the earliest frame has every storm it
+ * would have shown then. A track arrives with its whole path whatever this
+ * is, so it decides only which storms come back, not how much of each.
+ */
+export const WINDOW_MINUTES = 120 + ACTIVE_MINUTES;
 
 /** How much larger than the view to fetch, so small pans cost nothing. */
 export const BBOX_PADDING = 0.25;
@@ -197,20 +201,12 @@ export default class CellTrackManager {
     // superseded rule are about one cell's relationship to another, so neither
     // can be decided while walking the answer a cell at a time.
     //
-    // Cells that went out more than `TRACK_MAX_MINUTES` ago are dropped here,
-    // before the index, so nothing about them is drawn: not the path, the dot,
-    // or a lineage join into whatever carried on. The open cell is the one
-    // exception, for the reason `superseded` makes one of it below.
-    //
-    // Nor a cell still flagged active that nothing new has come in for: the
-    // panel calls it "no new data" (see lib/cellStatus.ts), and a mark where
-    // it was a quarter of an hour ago claims a storm there now.
-    const shown = (raw: CellTrack): boolean => {
-      const age = ageMinutes(raw.properties.last_seen, now);
-      return trackIsCurrent(age) && !(raw.properties.active && age >= STALE_MINUTES);
-    };
+    // Only active cells are drawn: one the backend has stopped calling active
+    // is dropped here, before the index, so nothing about it is drawn, not the
+    // path, the dot, or a lineage join into whatever carried on. The open cell
+    // is the one exception, for the reason `superseded` makes one of it below.
     const trimmed = drawing
-      .filter((raw) => raw.properties.code === open || shown(raw))
+      .filter((raw) => raw.properties.code === open || raw.properties.active)
       .map((raw) => trimToLastRun(raw));
     trimmed.forEach((track) => this.tracks.set(track.properties.code, track.properties));
 
