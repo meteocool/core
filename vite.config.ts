@@ -121,7 +121,6 @@ export default defineConfig(({ mode }) => {
             // handed every visitor 445 KB they might never use. The service
             // worker caches it on first use instead (src/sw.ts).
             "**/maplibre-gl*",
-            "**/volunteers.png",
             "**/imprint.html",
             // scripts/licences.mjs writes it for the apps; the page never reads it.
             "third-party-licences.json",

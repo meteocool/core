@@ -15,39 +15,18 @@
   "precipitation_here": "Precipitation at Your Location",
   "connection_details": "Connection Details",
   "title": "About meteocool",
-  "text1": "meteocool is a free GIS platform that aggregates and visualises weather data, with a focus on severe weather. It is optimized for mobile devices, and you can use it to chase upcoming weather or to avoid it.",
+  "text1": "meteocool is a free GIS platform that aggregates and visualises weather data, with a focus on severe weather. It is optimized for mobile devices, and you can use it to chase upcoming weather, or to avoid it.",
   "text2": "meteocool uses radar data from the weather services of Germany (DWD), Switzerland, France, Czechia and Poland, and real-time lightning from the blitzortung.org project.",
-  "features": {
-    "header": "Features",
-    "list_title0": "Privacy:",
-    "list0": "You do not need a user account to use the application, and no location data is recorded or used for other purposes. See also our Privacy Policy.",
-    "list_title1": "Automatic Map Updates:",
-    "list1": "meteocool notifies its clients as soon as new radar data is available, so the map is always up to date.",
-    "list_title2": "Live Lightning Strikes:",
-    "list2": "New lightning strikes appear instantly and help you judge a storm's intensity, trajectory and speed.",
-    "list_title3": "Push Notifications:",
-    "list3": "Get notified about incoming rain and severe weather up to 60 minutes in advance, on the web and in the iOS and Android apps. You can set the notification level, for example to be notified only about heavy rain.",
-    "list_title4": "iOS & Android Apps:",
-    "list4": "The native iOS and Android apps track your location in the background with little battery use, so the weather notifications are accurate wherever you go.",
-    "list_title5": "Dark & Light Mode:",
-    "list5": "meteocool has a dark and a light theme."
-  },
   "credits_help": {
     "header": "Credits & Help",
-    "text1": "meteocool is brought to you by <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> and <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "This project would not have been possible without help from <a href=\"https://github.com/Flowm\">Florian Mauracher</a> and NessArt.",
-    "list4": {
-      "text1": "Icons and adapted artwork made by <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
-      "text2": "(Logo, iOS Onboarding) and <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
-      "text3": "(licensed by <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
-    },
-    "text4": "Want to help as well? Check out <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool on GitHub</a>,",
-    "text5": "especially our <a href=\"https://github.com/meteocool/core\">web frontend</a>, <a href=\"https://github.com/meteocool/ios\">iOS app</a> and <a href=\"https://github.com/meteocool/android\">Android app</a> repositories."
+    "text1": "meteocool is brought to you by <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> and NessArt.",
+    "text4": "Want to help as well? Check out <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool on GitHub</a>."
   },
   "other_things": {
     "header": "Other Things",
-    "list1": "<a href=\"mailto:support@meteocool.com\">contact us</a> for questions or if you want to send money our way",
-    "list2": "<a href=\"/privacy.html\">privacy policy</a>"
+    "list1": "<a href=\"mailto:support@meteocool.com\">contact us</a> for questions",
+    "list2": "<a href=\"/privacy.html\">privacy policy</a>",
+    "list3": "<a href=\"/imprint.html#data\">data sources and licences</a>"
   },
   "close": "Close",
   "published": "Published",
@@ -502,7 +481,7 @@
     "alt": {
       "app_store": "iOS App Store link",
       "play_store": "Google Play Store link",
-      "not_the_volunteers": "not actually the volunteers"
+      "fdroid": "F-Droid link"
     },
     "degraded": {
       "api_errors": "backend errors",
