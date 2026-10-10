@@ -63,6 +63,18 @@ import { VERTICAL_SCALE } from "./terrain";
 const DBZ_LOW = 20;
 /** Where the echo is as opaque as it gets; see `CellCutaway` for the reasoning. */
 const DBZ_HIGH = 34;
+/**
+ * How large a storm has to stand on screen, in CSS pixels across its box,
+ * for the running peel to be worth drawing on it.
+ *
+ * Zoomed out, a storm is a few dozen pixels of soft cloud, and peeling it to
+ * its core changes nothing anyone can see, while the slider following the
+ * peel (PeelSlider) swung back and forth under a map that did not move. A
+ * coarse tile reaches this around zoom 7. Below it a storm is drawn whole,
+ * and with none on screen above it the peel stands still and says so.
+ */
+const PEEL_MIN_PX = 64;
+
 /** Seconds for one peel: whole storm, down to its core, and back. */
 const PEEL_SECONDS = 10;
 /**
@@ -865,15 +877,8 @@ export function makeCloudsLayer(
       // A peel set by hand stands, reduced motion or not, until a storm is cut.
       const manual = manualPeel !== null && cutKey === null;
       const holding = still || cutKey !== null;
-      const active = peelActive() && !holding && manualPeel === null;
-      if (active && lastFrameAt !== null) peelTime += Math.min(now - lastFrameAt, 1 / PEEL_FPS);
-      lastFrameAt = now;
-      const peel = manual ? manualPeel! : holding ? 0 : peelAt(peelTime);
-      if (active) onPeel(peel);
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
-      /** Whether any storm that peels is on screen, which is what a peel frame is for. */
-      let peeling = false;
 
       // Far to near, by where each box's middle lands in clip space.
       const ordered = [...clouds.entries()]
@@ -881,9 +886,32 @@ export function makeCloudsLayer(
         .map(([key, cloud]) => {
           const forward = multiply(main, cloud.model);
           const [, , z, w] = apply(forward, 0.5, 0.5, 0.25);
-          return { key, cloud, forward, depth: w > 0 ? z / w : Infinity };
+          const rect = screenRect(forward, cloud.corners, width, height);
+          return { key, cloud, forward, rect, depth: w > 0 ? z / w : Infinity };
         })
         .sort((a, b) => b.depth - a.depth);
+
+      // Large enough on screen for the running peel to show; see PEEL_MIN_PX.
+      const cssPx = width / Math.max(1, map?.getCanvas().clientWidth ?? width);
+      const peelsHere = (rect: ReturnType<typeof screenRect>) => rect === "all"
+        || (rect !== null && Math.max(rect[2], rect[3]) >= PEEL_MIN_PX * cssPx);
+      const showsPeel = ordered.some(({ cloud, rect }) => cloud.peels && peelsHere(rect));
+
+      const running = peelActive() && !holding && manualPeel === null;
+      const active = running && showsPeel;
+      if (active && lastFrameAt !== null) peelTime += Math.min(now - lastFrameAt, 1 / PEEL_FPS);
+      lastFrameAt = now;
+      // Nothing on screen it would show on: back to whole, once, so the slider
+      // stands at the left rather than wherever the peel was, and the peel
+      // starts from whole on the way back in.
+      if (running && !showsPeel && peelTime !== 0) {
+        peelTime = 0;
+        onPeel(0);
+      }
+      const peel = manual ? manualPeel! : holding ? 0 : peelAt(peelTime);
+      if (active) onPeel(peel);
+      /** Whether any storm that peels is on screen, which is what a peel frame is for. */
+      let peeling = false;
 
       context.useProgram(program);
       const at = (name: string) => {
@@ -918,8 +946,7 @@ export function makeCloudsLayer(
       const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
       const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
 
-      for (const { key, cloud, forward } of ordered) {
-        const rect = screenRect(forward, cloud.corners, width, height);
+      for (const { key, cloud, forward, rect } of ordered) {
         if (rect === null) continue;
         const inverse = invert(forward);
         if (!inverse) continue;
@@ -952,7 +979,7 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
-        const peelsNow = !plane && cloud.peels && (manual || !holding);
+        const peelsNow = !plane && cloud.peels && (manual || (!holding && peelsHere(rect)));
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), plane ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
