@@ -466,7 +466,9 @@
       "unavailable": "indisponible",
       "gave_up": "{product} est indisponible ; la carte affiche donc {fallback}.",
       "fell_back_short": "en retard",
-      "fell_back": "{product} est en retard ou indisponible ; {fallback} est affiché jusqu'à ce qu'il rattrape."
+      "fell_back": "{product} est en retard ou indisponible ; {fallback} est affiché jusqu'à ce qu'il rattrape.",
+      "forecast_short": "prévision",
+      "forecast": "Prévision : {product}, quel que soit le produit choisi. Le choix s'applique de nouveau au présent et au passé."
     },
     "scales": {
       "precipitation_types": "Types de<br />précipitations",
