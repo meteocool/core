@@ -17,37 +17,16 @@
   "title": "O meteocool",
   "text1": "meteocool je bezplatná GIS platforma, ktorá zhromažďuje a vizualizuje údaje o počasí so zameraním na nebezpečné počasie. Je optimalizovaná pre mobilné zariadenia a môžeš s ňou blížiace sa počasie naháňať alebo sa mu vyhnúť.",
   "text2": "meteocool používa radarové dáta od meteorologických služieb Nemecka (DWD), Švajčiarska, Francúzska, Česka a Poľska a blesky v reálnom čase z projektu blitzortung.org.",
-  "features": {
-    "header": "Vlastnosti",
-    "list_title0": "Súkromie:",
-    "list0": "Na používanie aplikácie nepotrebuješ používateľský účet a žiadne údaje o polohe sa nezaznamenávajú ani nepoužívajú na iné účely. Pozri aj naše Zásady ochrany osobných údajov.",
-    "list_title1": "Automatické aktualizácie mapy:",
-    "list1": "meteocool upozorní klientov, hneď ako sú dostupné nové radarové dáta, takže mapa je vždy aktuálna.",
-    "list_title2": "Blesky naživo:",
-    "list2": "Nové údery bleskov sa zobrazia okamžite a pomôžu ti odhadnúť intenzitu, smer a rýchlosť búrky.",
-    "list_title3": "Push notifikácie:",
-    "list3": "Nechaj sa upozorniť na prichádzajúci dážď a nebezpečné počasie až 60 minút vopred, na webe aj v aplikáciách pre iOS a Android. Úroveň upozornení si môžeš nastaviť, napríklad len na silný dážď.",
-    "list_title4": "Aplikácie pre iOS a Android:",
-    "list4": "Natívne aplikácie pre iOS a Android sledujú tvoju polohu na pozadí s nízkou spotrebou batérie, takže upozornenia na počasie sú presné, nech si kdekoľvek.",
-    "list_title5": "Tmavý a svetlý režim:",
-    "list5": "meteocool má tmavú a svetlú tému."
-  },
   "credits_help": {
     "header": "Poďakovanie a pomoc",
-    "text1": "meteocool pre teba vytvorili <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> a <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "Tento projekt by nebol možný bez pomoci, ktorú nám poskytli <a href=\"https://github.com/Flowm\">Florian Mauracher</a> a NessArt.",
-    "list4": {
-      "text1": "Ikony a upravená grafika od <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
-      "text2": "(logo, iOS onboarding) a <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
-      "text3": "(licencované podľa <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
-    },
-    "text4": "Chceš tiež pomôcť? Pozri si <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool na GitHube</a>,",
-    "text5": "najmä repozitáre <a href=\"https://github.com/meteocool/core\">webového frontendu</a>, <a href=\"https://github.com/meteocool/ios\">aplikácie pre iOS</a> a <a href=\"https://github.com/meteocool/android\">aplikácie pre Android</a>."
+    "text1": "meteocool pre teba vytvorili <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> a NessArt.",
+    "text4": "Chceš tiež pomôcť? Pozri si <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool na GitHube</a>."
   },
   "other_things": {
     "header": "Ostatné",
-    "list1": "<a href=\"mailto:support@meteocool.com\">napíš nám</a>, ak máš otázky alebo nám chceš poslať peniaze",
-    "list2": "<a href=\"/privacy.html\">zásady ochrany osobných údajov</a>"
+    "list1": "<a href=\"mailto:support@meteocool.com\">napíš nám</a>, ak máš otázky",
+    "list2": "<a href=\"/privacy.html\">zásady ochrany osobných údajov</a>",
+    "list3": "<a href=\"/imprint.html#data\">zdroje údajov a licencie</a>"
   },
   "close": "Zavrieť",
   "published": "Zverejnené",
@@ -502,7 +481,7 @@
     "alt": {
       "app_store": "Odkaz na iOS App Store",
       "play_store": "Odkaz na Google Play Store",
-      "not_the_volunteers": "v skutočnosti to nie sú dobrovoľníci"
+      "fdroid": "Odkaz na F-Droid"
     },
     "degraded": {
       "api_errors": "chyby backendu",
