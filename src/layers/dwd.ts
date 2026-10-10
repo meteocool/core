@@ -6,7 +6,8 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
-import { dwdRadarExtent, radarCoverageInv } from "./extents";
+import { dwdCoverageInv, dwdRadarExtent, radarCoverageInv } from "./extents";
+import { onForecastStep } from "../stores";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
@@ -129,18 +130,40 @@ watchBasemap(washFor, (colour) => {
   washLayers.forEach((layer) => layer.changed());
 });
 
-export const radolanOverlay = () => {
+/**
+ * The washes that follow the player onto a forecast step, and what they cover.
+ *
+ * The forecast is DWD's alone: on its steps every other network's country
+ * has nothing drawn for that time, so the wash covers all but DWD's reach
+ * (`dwdCoverageInv`), and goes back to every network's as soon as the player
+ * is on the present or the past again. One module-level subscription, as for
+ * the colour above.
+ */
+const forecastWashes = new Set<Feature>();
+let washGeometry = radarCoverageInv;
+
+onForecastStep.subscribe((forecast) => {
+  washGeometry = forecast ? dwdCoverageInv : radarCoverageInv;
+  forecastWashes.forEach((feature) => feature.setGeometry(washGeometry));
+});
+
+/**
+ * The dark wash over everywhere no network reaches.
+ *
+ * `followsForecast` for the radar map's, the one map with a forecast: there
+ * it shrinks to DWD's reach on a forecast step. A map without one keeps the
+ * whole coverage whatever the radar player was last left on.
+ */
+export const radolanOverlay = ({ followsForecast = false } = {}) => {
+  const feature = new Feature({
+    geometry: followsForecast ? washGeometry : radarCoverageInv,
+    name: "DarkOverlay",
+  });
+  if (followsForecast) forecastWashes.add(feature);
   const layer = new VectorLayer({
     zIndex: 1000,
     renderBuffer: 500,
-    source: new VectorSource({
-      features: [
-        new Feature({
-          geometry: radarCoverageInv,
-          name: "DarkOverlay",
-        }),
-      ],
-    }),
+    source: new VectorSource({ features: [feature] }),
     style: new Style({ fill: washFill }),
   });
   washLayers.add(layer);

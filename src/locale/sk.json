@@ -466,7 +466,9 @@
       "unavailable": "nedostupné",
       "gave_up": "{product} nie je dostupný, mapa preto zobrazuje {fallback}.",
       "fell_back_short": "oneskorené",
-      "fell_back": "{product} je oneskorený alebo nedostupný; kým nedobehne, zobrazuje sa {fallback}."
+      "fell_back": "{product} je oneskorený alebo nedostupný; kým nedobehne, zobrazuje sa {fallback}.",
+      "forecast_short": "predpoveď",
+      "forecast": "Predpoveď: {product} bez ohľadu na zvolený produkt. Voľba opäť platí pre súčasnosť a minulosť."
     },
     "scales": {
       "precipitation_types": "Typy<br />zrážok",
