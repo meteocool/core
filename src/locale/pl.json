@@ -17,37 +17,16 @@
   "title": "O meteocool",
   "text1": "meteocool to bezpłatna platforma GIS, która zbiera i wizualizuje dane pogodowe, przede wszystkim o groźnych zjawiskach. Jest zoptymalizowana pod urządzenia mobilne, a ty możesz z niej korzystać, żeby gonić nadciągającą pogodę albo jej unikać.",
   "text2": "meteocool korzysta z danych radarowych służb meteorologicznych Niemiec (DWD), Szwajcarii, Francji, Czech i Polski oraz z danych o wyładowaniach w czasie rzeczywistym z projektu blitzortung.org.",
-  "features": {
-    "header": "Funkcje",
-    "list_title0": "Prywatność:",
-    "list0": "Do korzystania z aplikacji nie potrzebujesz konta użytkownika, a dane o lokalizacji nie są zapisywane ani wykorzystywane do innych celów. Zobacz też naszą Politykę prywatności.",
-    "list_title1": "Automatyczne aktualizacje mapy:",
-    "list1": "meteocool powiadamia swoich klientów, gdy tylko pojawią się nowe dane radarowe, więc mapa jest zawsze aktualna.",
-    "list_title2": "Wyładowania na żywo:",
-    "list2": "Nowe wyładowania pojawiają się natychmiast i pomagają ocenić intensywność, kierunek i prędkość burzy.",
-    "list_title3": "Powiadomienia push:",
-    "list3": "Otrzymuj powiadomienia o nadciągającym deszczu i groźnej pogodzie nawet 60 minut wcześniej, w przeglądarce oraz w aplikacjach na iOS i Androida. Możesz ustawić poziom powiadomień, na przykład tak, żeby dostawać je tylko przy silnym deszczu.",
-    "list_title4": "Aplikacje iOS i Android:",
-    "list4": "Natywne aplikacje na iOS i Androida śledzą twoją lokalizację w tle przy niewielkim zużyciu baterii, więc powiadomienia pogodowe są trafne, gdziekolwiek jesteś.",
-    "list_title5": "Tryb ciemny i jasny:",
-    "list5": "meteocool ma ciemny i jasny motyw."
-  },
   "credits_help": {
     "header": "Podziękowania i pomoc",
-    "text1": "meteocool tworzą dla ciebie <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> i <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "Ten projekt nie powstałby bez pomocy <a href=\"https://github.com/Flowm\">Floriana Maurachera</a> i NessArt.",
-    "list4": {
-      "text1": "Ikony i zaadaptowana grafika autorstwa <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
-      "text2": "(logo, wprowadzenie do iOS) oraz <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
-      "text3": "(na licencji <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
-    },
-    "text4": "Chcesz też pomóc? Zajrzyj na <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool na GitHubie</a>,",
-    "text5": "zwłaszcza do naszych repozytoriów <a href=\"https://github.com/meteocool/core\">frontendu webowego</a>, <a href=\"https://github.com/meteocool/ios\">aplikacji iOS</a> i <a href=\"https://github.com/meteocool/android\">aplikacji Android</a>."
+    "text1": "meteocool tworzą dla ciebie <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> i NessArt.",
+    "text4": "Chcesz też pomóc? Zajrzyj na <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool na GitHubie</a>."
   },
   "other_things": {
     "header": "Inne rzeczy",
-    "list1": "<a href=\"mailto:support@meteocool.com\">napisz do nas</a>, jeśli masz pytania albo chcesz przesłać nam pieniądze",
-    "list2": "<a href=\"/privacy.html\">polityka prywatności</a>"
+    "list1": "<a href=\"mailto:support@meteocool.com\">napisz do nas</a>, jeśli masz pytania",
+    "list2": "<a href=\"/privacy.html\">polityka prywatności</a>",
+    "list3": "<a href=\"/imprint.html#data\">źródła danych i licencje</a>"
   },
   "close": "Zamknij",
   "published": "Opublikowano",
@@ -502,7 +481,7 @@
     "alt": {
       "app_store": "Link do App Store dla iOS",
       "play_store": "Link do Google Play Store",
-      "not_the_volunteers": "to w rzeczywistości nie ci wolontariusze"
+      "fdroid": "Link do F-Droid"
     },
     "degraded": {
       "api_errors": "błędy backendu",
