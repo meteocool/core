@@ -466,7 +466,9 @@
       "unavailable": "niedostępny",
       "gave_up": "{product} jest niedostępny, więc mapa pokazuje teraz {fallback}.",
       "fell_back_short": "opóźniony",
-      "fell_back": "{product} jest opóźniony lub niedostępny; do czasu nadrobienia pokazywany jest {fallback}."
+      "fell_back": "{product} jest opóźniony lub niedostępny; do czasu nadrobienia pokazywany jest {fallback}.",
+      "forecast_short": "prognoza",
+      "forecast": "Prognoza: {product}, niezależnie od wybranego produktu. Wybór znów obowiązuje dla teraźniejszości i przeszłości."
     },
     "scales": {
       "precipitation_types": "Rodzaje<br />opadów",

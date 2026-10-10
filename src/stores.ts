@@ -4,6 +4,7 @@ import { REACHABLE, type Reachability } from "./lib/reachability";
 import { INITIAL_CONNECTION, type Connection } from "./lib/connectionState";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange } from "./lib/observedProduct";
+import { showsForecastStep } from "./lib/freshness";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties, RadarVolume } from "./api";
 
@@ -61,6 +62,8 @@ export function setFrames(next: { shown?: number; newest?: number }): void {
 export const capTimeIndicator = derived(capFrames, (frames) => frames.shown);
 /** The newest observation the grid holds. */
 export const capLatestObservation = derived(capFrames, (frames) => frames.newest);
+/** Whether the player is on a forecast step (`showsForecastStep`). */
+export const onForecastStep = derived(capFrames, (frames) => showsForecastStep(frames.shown, frames.newest));
 export const colorSchemeDark = writable<boolean>(false);
 export const radarColormap = writable<string>("classic");
 

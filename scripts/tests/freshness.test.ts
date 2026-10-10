@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  ASSUMED_PERIOD_S, OUTDATED_GRACE_S, expectedPeriodS, isOutdated, showsLatestFrame,
+  ASSUMED_PERIOD_S, OUTDATED_GRACE_S, expectedPeriodS, isOutdated, showsForecastStep, showsLatestFrame,
 } from "../../src/lib/freshness.ts";
 import { EMPTY_CADENCE, publishCadence } from "../../src/lib/updateCadence.ts";
 
@@ -91,4 +91,18 @@ test("no grid yet is not the same as being off the live edge", () => {
   assert.equal(showsLatestFrame(0, 0), true);
   assert.equal(showsLatestFrame(0, 100_000), true);
   assert.equal(showsLatestFrame(100_000, 0), true);
+});
+
+test("only a step after the newest observation is a forecast step", () => {
+  // It decides that the map claims DWD's reach alone and that the product
+  // picker has nothing to pick, so the present and the past must never pass.
+  assert.equal(showsForecastStep(100_000 + 300, 100_000), true);
+  assert.equal(showsForecastStep(100_000, 100_000), false);
+  assert.equal(showsForecastStep(100_000 - 1800, 100_000), false);
+});
+
+test("no grid yet is no forecast on screen", () => {
+  assert.equal(showsForecastStep(0, 0), false);
+  assert.equal(showsForecastStep(100_000, 0), false);
+  assert.equal(showsForecastStep(0, 100_000), false);
 });

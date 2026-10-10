@@ -466,7 +466,9 @@
       "unavailable": "nicht verfügbar",
       "gave_up": "{product} ist nicht verfügbar, die Karte zeigt daher {fallback}.",
       "fell_back_short": "verzögert",
-      "fell_back": "{product} ist verzögert oder nicht verfügbar; bis es aufholt, wird {fallback} gezeigt."
+      "fell_back": "{product} ist verzögert oder nicht verfügbar; bis es aufholt, wird {fallback} gezeigt.",
+      "forecast_short": "Vorhersage",
+      "forecast": "Vorhersage: {product}, egal welches Produkt gewählt ist. Die Auswahl gilt wieder für Gegenwart und Vergangenheit."
     },
     "scales": {
       "precipitation_types": "Niederschlags-<br />arten",

@@ -80,3 +80,15 @@ export function showsLatestFrame(shownS: number, newestS: number): boolean {
   if (shownS <= 0 || newestS <= 0) return true;
   return shownS === newestS;
 }
+
+/**
+ * Whether the frame on screen is a forecast step: later than the newest
+ * observation the grid holds.
+ *
+ * The forecast is DWD's alone, so this is what decides that the map claims
+ * DWD's reach only and that the product picker has nothing to pick. A zero on
+ * either side is no grid yet, and no forecast on screen.
+ */
+export function showsForecastStep(shownS: number, newestS: number): boolean {
+  return shownS > 0 && newestS > 0 && shownS > newestS;
+}
