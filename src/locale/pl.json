@@ -125,9 +125,7 @@
   "degraded": "Ograniczone",
   "show_for_my_location": "Pokaż dla mojej lokalizacji",
   "precipitation_at_point": "Opady tutaj",
-  "precipitation_none": "Brak opadów w ciągu ostatnich dwóch godzin, a na najbliższe dwie żadnych nie przewidziano.",
   "forecast_none_here": "Brak prognozy dla tego miejsca",
-  "precipitation_none_past": "Brak opadów w ciągu ostatnich dwóch godzin, a prognoza nie obejmuje tego miejsca.",
   "hide": "Ukryj",
   "last_success": "Ostatnia aktualizacja",
   "preview": "Podgląd",
@@ -432,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Oś czasu radaru",
-      "loop": "Pętla",
       "from_start": "Pętla od dwóch godzin wstecz"
     },
     "radar_product": {

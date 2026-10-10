@@ -125,9 +125,7 @@
   "degraded": "Omezeno",
   "show_for_my_location": "Zobrazit pro mou polohu",
   "precipitation_at_point": "Srážky zde",
-  "precipitation_none": "Za poslední dvě hodiny žádné srážky a na příští dvě se žádné nepředpovídají.",
   "forecast_none_here": "Zde není předpověď",
-  "precipitation_none_past": "Za poslední dvě hodiny žádné srážky a předpověď sem nedosahuje.",
   "hide": "Skrýt",
   "last_success": "Poslední aktualizace",
   "preview": "Náhled",
@@ -432,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Časová osa radaru",
-      "loop": "Smyčka",
       "from_start": "Smyčka včetně posledních dvou hodin"
     },
     "radar_product": {

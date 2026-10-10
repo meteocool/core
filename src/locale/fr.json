@@ -125,9 +125,7 @@
   "degraded": "Dégradé",
   "show_for_my_location": "Afficher pour ma position",
   "precipitation_at_point": "Précipitations ici",
-  "precipitation_none": "Aucune précipitation au cours des deux dernières heures, et aucune prévue pour les deux prochaines.",
   "forecast_none_here": "Pas de prévision ici",
-  "precipitation_none_past": "Aucune précipitation au cours des deux dernières heures, et la prévision ne s'étend pas jusqu'ici.",
   "hide": "Masquer",
   "last_success": "Dernière mise à jour",
   "preview": "Aperçu",
@@ -432,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Chronologie radar",
-      "loop": "Boucle",
       "from_start": "Boucle depuis il y a deux heures"
     },
     "radar_product": {
