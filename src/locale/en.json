@@ -447,7 +447,7 @@
       "cells": "Storm Cells",
       "controls": "Playback Controls",
       "map_layers": "Map Layers",
-      "back_to_latest": "Back to latest",
+      "back_to_latest": "Back to now",
       "play": "Play",
       "offset_minutes": "{sign}{minutes}m",
       "offset_hours": "{sign}{hours}h",
