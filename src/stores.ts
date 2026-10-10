@@ -380,6 +380,13 @@ export const playbackRunning = writable<boolean>(false);
  * held (see the 3D map's unload in App.svelte).
  */
 export const browsingFrames = writable<boolean>(false);
+
+/**
+ * Whether a hand is on the player's strip, from the grab until the needle is
+ * at rest again. With `playbackRunning`, what says the frame has settled:
+ * anything costly to redraw per frame (the past cells) waits for both.
+ */
+export const scrubbing = writable<boolean>(false);
 export const unit = writable<string>("pictogram");
 export const precacheForecast = writable<boolean>(true);
 

@@ -10,7 +10,8 @@ import type { CellFeatureKind } from "../layers/cells";
 import {
   ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, trackIsCurrent, worldExtent,
 } from "./cellGeometry";
-import { trimToLastRun } from "./cellTrack";
+import { trackAsOf, trimToLastRun } from "./cellTrack";
+import { STALE_MINUTES } from "./cellStatus";
 import { buildCellLinks, supersededCodes } from "./cellLinks";
 import { selectedCell } from "../stores";
 import { isLive } from "./cellPulse";
@@ -72,6 +73,15 @@ export default class CellTrackManager {
    */
   private pinned: CellTrack | null;
 
+  /** The last answer as it came, so a past frame can be drawn from it. */
+  private answer: { tracks: CellTrack[]; referenceTime: string | null } | null;
+
+  /**
+   * The moment drawn, in ms, when the player is parked on an earlier frame;
+   * null for the present. See `showAt`.
+   */
+  private at: number | null;
+
   constructor(vectorSource: VectorSource, pulseSource: VectorSource | null = null) {
     this.vs = vectorSource;
     this.pulse = pulseSource;
@@ -80,6 +90,8 @@ export default class CellTrackManager {
     this.tracks = new Map();
     this.pending = null;
     this.pinned = null;
+    this.answer = null;
+    this.at = null;
 
     selectedCell.subscribe((track) => {
       if (track?.code !== this.pinned?.properties.code) this.pinned = null;
@@ -116,10 +128,38 @@ export default class CellTrackManager {
     if (this.pending !== token) return;
 
     this.fetched = padded;
+    this.answer = {
+      tracks: (collection.features ?? []) as CellTrack[],
+      referenceTime: collection.reference_time ?? null,
+    };
+    this.draw();
+  }
+
+  /**
+   * Draw the storms as they were at `atMs`, or as they are now for null.
+   *
+   * The past comes out of the answer already held (see `trackAsOf`), so
+   * moving between frames costs no request. Called only once the player has
+   * settled on a frame, so a scrub or a playback does not redraw every step.
+   */
+  showAt(atMs: number | null): void {
+    if (atMs === this.at) return;
+    this.at = atMs;
+    this.draw();
+  }
+
+  private draw(): void {
+    if (!this.answer) return;
+    const { tracks, referenceTime } = this.answer;
+    if (this.at === null) {
+      this.apply(tracks, Date.now(), referenceTime);
+      return;
+    }
+    const at = this.at;
     this.apply(
-      (collection.features ?? []) as CellTrack[],
-      Date.now(),
-      collection.reference_time ?? null,
+      tracks.map((track) => trackAsOf(track, at)).filter((track): track is CellTrack => track !== null),
+      at,
+      new Date(at).toISOString(),
     );
   }
 
@@ -150,7 +190,8 @@ export default class CellTrackManager {
     const answered = tracks.some((raw) => raw.properties.code === open);
     // Order matters only in that the pinned copy goes last: if the answer does
     // carry the open cell, the fresh one is what gets kept and pinned below.
-    const drawing = !answered && this.pinned ? [...tracks, this.pinned] : tracks;
+    const pinned = this.pinned && this.at !== null ? trackAsOf(this.pinned, this.at) : this.pinned;
+    const drawing = !answered && pinned ? [...tracks, pinned] : tracks;
 
     // Trimmed and indexed before anything is drawn. Both the joins and the
     // superseded rule are about one cell's relationship to another, so neither
@@ -160,8 +201,16 @@ export default class CellTrackManager {
     // before the index, so nothing about them is drawn: not the path, the dot,
     // or a lineage join into whatever carried on. The open cell is the one
     // exception, for the reason `superseded` makes one of it below.
+    //
+    // Nor a cell still flagged active that nothing new has come in for: the
+    // panel calls it "no new data" (see lib/cellStatus.ts), and a mark where
+    // it was a quarter of an hour ago claims a storm there now.
+    const shown = (raw: CellTrack): boolean => {
+      const age = ageMinutes(raw.properties.last_seen, now);
+      return trackIsCurrent(age) && !(raw.properties.active && age >= STALE_MINUTES);
+    };
     const trimmed = drawing
-      .filter((raw) => raw.properties.code === open || trackIsCurrent(ageMinutes(raw.properties.last_seen, now)))
+      .filter((raw) => raw.properties.code === open || shown(raw))
       .map((raw) => trimToLastRun(raw));
     trimmed.forEach((track) => this.tracks.set(track.properties.code, track.properties));
 
@@ -321,7 +370,9 @@ export default class CellTrackManager {
       else this.pulse.changed();
     }
 
-    if (answered && open) {
+    // Only for the present: a past frame's copy is cut short, and pinning or
+    // handing the panel that would lose the rest of the storm's story.
+    if (answered && open && this.at === null) {
       this.pinned = tracks.find((raw) => raw.properties.code === open) ?? null;
       // The open panel is written in the present tense (how long ago the cell
       // was last seen, whether it is still growing, where it is going next),
@@ -364,6 +415,7 @@ export default class CellTrackManager {
 
   clearAll(): void {
     this.fetched = null;
+    this.answer = null;
     this.tracks = new Map();
     this.vs.clear();
     this.pulse?.clear();
