@@ -30,6 +30,7 @@ import { VERTICAL_SCALE } from "../layers/terrain";
 import { currentLocale } from "../locale/t";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { RING_OPACITY, STRIKE_COLOURS, STRIKE_MINUTES } from "../caps/Cells3DCapability";
+import { PEEL_MAX_WIDTH } from "./PeelSlider.svelte";
 
 /** Set once the reader closes the card, so it opens only when asked from then on. */
 const CLOSED_KEY = "mc-3d-guide-closed";
@@ -84,12 +85,25 @@ $: shells = [30, 45, 58].map((dbz) => rgb(dbz, $radarColormap));
 $: ringColour = rgb(40, $radarColormap);
 
 /*
- * How much of the bottom edge the card or the pill takes, for the
- * attribution beside it (Map.svelte): narrow, the credits wrap into a strip
- * the width of the map, and the card would stand over the start of it.
+ * How much of the bottom edge the card or the pill takes, for what stands on
+ * that edge beside it: the scan picker's list (ScanPicker).
  */
 let cardWidth = 0;
 let pillWidth = 0;
+
+/*
+ * Whether the peel slider, centred on the bottom edge (PeelSlider), leaves the
+ * corner free: then the pill and the card stand on the edge itself, rather
+ * than a slider's height above a gap. Too narrow, as on a phone, the slider
+ * runs from edge to edge and they stand on it.
+ */
+const GUTTER = 8;
+let viewportWidth = typeof window === "undefined" ? 0 : window.innerWidth;
+/* The card's own width before it has laid out, so it does not open on the
+   edge and then jump up onto the slider. */
+const CARD_MAX_WIDTH = 344;
+$: besidePeel = (viewportWidth - PEEL_MAX_WIDTH) / 2
+  >= (open ? cardWidth || CARD_MAX_WIDTH : pillWidth) + 2 * GUTTER;
 $: document.documentElement.style.setProperty(
   "--mc-guide-3d-inset", `calc(${open ? cardWidth : pillWidth}px + 2 * var(--mc-gutter))`,
 );
@@ -178,9 +192,12 @@ const compass = !dd.isApp();
   </span>
 {/snippet}
 
+<svelte:window bind:innerWidth={viewportWidth} />
+
 {#if open}
   <section
     class="guide glass glass-tray glass-reading"
+    class:beside-peel={besidePeel}
     aria-labelledby="guide-3d-title"
     bind:offsetWidth={cardWidth}
     transition:scale={{ start: 0.96, duration: 160 }}>
@@ -333,6 +350,7 @@ const compass = !dd.isApp();
   <button
     type="button"
     class="pill glass glass-pill"
+    class:beside-peel={besidePeel}
     aria-label={$_("guide_3d.open")}
     title={$_("guide_3d.open")}
     bind:offsetWidth={pillWidth}
@@ -355,11 +373,16 @@ const compass = !dd.isApp();
     bottom: calc(var(--mc-safe-bottom) + var(--mc-gutter) + var(--mc-peel-h, 0px));
     z-index: var(--mc-z-chrome);
   }
+  /* Level with the slider instead, where it leaves the corner free. */
+  .guide.beside-peel,
+  .pill.beside-peel {
+    bottom: calc(var(--mc-safe-bottom) + var(--mc-gutter));
+  }
 
   .guide {
     display: flex;
     flex-direction: column;
-    width: min(344px, calc(100% - 2 * var(--mc-gutter)));
+    width: min(344px, calc(100% - 2 * var(--mc-gutter))); /* CARD_MAX_WIDTH */
     /* Under the top line's chrome, at the shortest. */
     max-height: calc(100% - var(--mc-top-stack) - var(--mc-control-lg) - 2 * var(--mc-gutter) - var(--mc-safe-bottom) - var(--mc-peel-h, 0px));
     box-sizing: border-box;
