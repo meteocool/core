@@ -7,7 +7,7 @@
   import legendThunderstorm from "../../assets/legend_thunderstorm.svg";
   import { onDestroy } from "svelte";
   import { radarColormap, unit } from "../../stores";
-  import { dbzTicks, getPalette, rvp6ToDbz } from "../../lib/cmap_utils";
+  import { dbzTicks, getPalette, paletteFrom, rvp6ToDbz } from "../../lib/cmap_utils";
 
   let unique = {};
 
@@ -26,11 +26,21 @@
      on it switches, and the choice is kept (`radarLegendUnit`). */
   const toggle = () => window.settings.set("radarLegendUnit", $unit === "dbz" ? "pictogram" : "dbz");
 
-  $: palette = getPalette($radarColormap);
+  /* Where the strip starts. Below it every palette only fades in, which spent
+     the first seventh of the classic strip on near-white. The map still draws
+     those values, as faintly as before. */
+  const LEGEND_FROM_DBZ = 5;
+
+  /* A tick this close to the end is right-aligned against it, and with the
+     unit on it ran into the one before: 50 and "60 dBZ" read as bunched up,
+     on a scale that is even. Left off; the unit goes on the last one kept. */
+  const END_CLEARANCE = 0.95;
+
+  $: palette = paletteFrom(getPalette($radarColormap), LEGEND_FROM_DBZ);
   $: ticks = $unit === "dbz"
-    ? dbzTicks(palette).map(({ dbz, at }, i, all) => ({
+    ? dbzTicks(palette).filter(({ at }) => at <= END_CLEARANCE).map(({ dbz, at }, i, all) => ({
       at,
-      html: i === all.length - 1 ? `${dbz}<span class="dbz"> dBZ</span>` : String(dbz),
+      html: i === all.length - 1 ? `${dbz}<span class="dbz">dBZ</span>` : String(dbz),
     }))
     : null;
   $: range = palette.split(";").map((entry) => rvp6ToDbz(Number(entry.split(":")[0])));
@@ -41,9 +51,11 @@
 
   function valueFormatter(fmt) {
     switch (fmt) {
-      case "64":
+      // Selectors, not positions: the pictograms are spread evenly along the
+      // strip, a spacer first, so each only has to be a value the strip holds.
+      case "75":
         return " ";
-      case "74":
+      case "84":
         return `<img src=${legendClouds} alt='${$_("drizzle")}' class="legend-icon" /> <span class='legendLabel'>${$_("drizzle")}</span>`;
       case "94":
         return `<img src=${legendRain} alt='${$_("rain")}' class="legend-icon"/> <span class='legendLabel'>${$_("rain")}</span>`;
@@ -59,12 +71,16 @@
 
 
 <style>
-    /* Muted rather than half-transparent, so it stays legible on glass. */
+    /* Muted rather than half-transparent, so it stays legible on glass.
+       Hung off the number rather than part of it, so the number stays
+       centred on its colour. */
     :global(.dbz) {
+        position: absolute;
+        left: 100%;
         font-size: 70%;
         font-weight: 500;
         color: var(--mc-text-2);
-        margin-left: 1px;
+        margin-left: 2px;
     }
 </style>
 

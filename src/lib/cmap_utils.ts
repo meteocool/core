@@ -59,6 +59,15 @@ export function getPalette(cmapStr: string) {
 export const rvp6ToDbz = (value: number): number => value / 2 - 32.5;
 
 /**
+ * The part of a palette from `dbz` up. Every palette fades in from transparent
+ * over its lowest values, which on the map is drizzle thinning out, and on a
+ * legend is a stretch of near-white at the start of the strip.
+ */
+export function paletteFrom(palette: string, dbz: number): string {
+  return palette.split(";").filter((entry) => rvp6ToDbz(Number(entry.split(":")[0])) >= dbz).join(";");
+}
+
+/**
  * Where round dBZ values fall on a palette's colour strip, 0 at its left end
  * and 1 at its right: every `step` dBZ the palette covers. Where they fall,
  * not spread evenly, since a palette need not start on a round value.
