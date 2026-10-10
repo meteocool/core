@@ -123,7 +123,9 @@
   }
 
   /* dBZ, each value under its own colour: centred on it, but kept inside
-     the strip at either end. */
+     the strip where it stands at either end. By where it stands, not by being
+     first or last: a last label well short of the end, right-aligned, sat
+     off its colour and against the one before it. */
   .scale-ticks {
     position: relative;
     top: 12px;
@@ -193,7 +195,8 @@
             {#if ticks}
                 <div class="scale-ticks">
                     {#each ticks as tick, i (i)}
-                        <span class="scale-tick" class:first={i === 0} class:last={i === ticks.length - 1}
+                        <span class="scale-tick" class:first={i === 0 && tick.at < 0.05}
+                            class:last={i === ticks.length - 1 && tick.at > 0.95}
                             style:left={`${tick.at * 100}%`}>{@html tick.html}</span>
                     {/each}
                 </div>
