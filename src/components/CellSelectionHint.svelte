@@ -32,7 +32,22 @@ export let track: import("../api").CellTrackProperties;
 
 $: severity = Math.min(Math.max(track.max_severity, 0), 3);
 $: colour = severityColour(severity);
-$: alive = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, $_);
+/* A cell the backend no longer calls active has stopped, and says so: a
+   severity-coloured dot and an "alive for" counting on to now would read as a
+   storm still going. Its lifetime is its detections' span, plus the one scan
+   the last of them stands for, so a single detection is not "0 min". */
+$: ended = !track.active;
+$: lived = duration(
+  ended
+    ? (new Date(track.last_seen).getTime() - new Date(track.first_seen).getTime()) / 60_000 + 5
+    : (Date.now() - new Date(track.first_seen).getTime()) / 60_000,
+  $_,
+);
+$: lifeLine = !ended
+  ? $_("storm.hint.alive", { values: { duration: lived } })
+  : $_((track.child_codes?.length ?? 0) > 0 ? "storm.hint.superseded" : "storm.hint.ended", {
+    values: { duration: lived },
+  });
 
 const open = () => cellDetails.set(true);
 
@@ -89,6 +104,9 @@ function clear(leaving: Leaving) {
     height: 10px;
     border-radius: 50%;
     flex: 0 0 auto;
+  }
+  .swatch.ended {
+    background: var(--mc-text-3);
   }
 
   /* Two lines rather than one that wraps. "Strong cell (alive for 49 min)" is
@@ -205,12 +223,12 @@ function clear(leaving: Leaving) {
   in:fade={{ duration: 200 }}>
   <SwipeDock action={$_("storm.hint.clear_action")} tappable strong on:tap={open} on:dismiss={(e) => clear(e.detail)}>
     <div class="hint">
-      <span class="swatch" style="background: {colour}"></span>
+      <span class="swatch" class:ended style:background={ended ? null : colour}></span>
       <span class="what">
         <span class="title">
           <b>{$_(`storm.hint.band.${BAND_NAMES[severity]}`)}</b> {$_("storm.hint.cell")}
         </span>
-        <span class="alive">{$_("storm.hint.alive", { values: { duration: alive } })}</span>
+        <span class="alive">{lifeLine}</span>
       </span>
       <button type="button" class="go" on:click={open}>
         {$_("storm.hint.details")} <span class="chevron" aria-hidden="true">›</span>
