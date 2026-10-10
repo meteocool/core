@@ -926,7 +926,7 @@ onDestroy(() => {
     left: var(--mc-gutter);
     right: var(--mc-gutter);
     bottom: calc(
-      var(--mc-safe-bottom) + var(--mc-tray-gap) + var(--mc-player-h) + var(--mc-tray-gap)
+      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap)
     );
     z-index: var(--mc-z-chart);
     display: flex;
@@ -935,7 +935,7 @@ onDestroy(() => {
   }
   .back-to-live.above-strip {
     bottom: calc(
-      var(--mc-safe-bottom) + var(--mc-tray-gap) + var(--mc-player-h) + var(--mc-tray-gap)
+      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap)
       + var(--mc-strip-h) + var(--mc-tray-gap)
     );
   }
