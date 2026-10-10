@@ -102,18 +102,39 @@ function cached<T extends Style | Style[]>(key: string, build: () => T): T {
 /** Opacity is bucketed so the cache has a handful of entries rather than one per cell. */
 const bucket = (opacity: number): number => Math.round(opacity * 10) / 10;
 
-function pathStyle(feature: FeatureLike): Style {
+/** A casing colour at a fraction of its own alpha, so a faded track's casing fades with it. */
+const fadeCasing = (colour: string, factor: number): string => (
+  colour.replace(/[\d.]+\)$/, (alpha) => `${parseFloat(alpha) * factor})`)
+);
+
+/**
+ * A track, over the casing the forecast marks get. The severity colours are
+ * the radar's own (green, yellow, red), so a track crossing a storm of its
+ * own class vanished into it; the casing keeps an edge on it there.
+ */
+function pathStyle(feature: FeatureLike): Style[] {
   const severity = feature.get("max_severity") ?? 0;
   const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
   const picked = isSelected(feature);
-  return cached(`path:${severity}:${opacity}:${picked}`, () => new Style({
-    stroke: new Stroke({
-      color: rgba(severityColour(severity), picked ? 1 : opacity),
-      width: (picked ? 3 : 2) + Math.min(severity, 3),
-      lineCap: "round",
-      lineJoin: "round",
+  const width = (picked ? 3 : 2) + Math.min(severity, 3);
+  return cached(`path:${severity}:${opacity}:${picked}:${casing}`, () => [
+    new Style({
+      stroke: new Stroke({
+        color: fadeCasing(casing, picked ? 1 : opacity),
+        width: width + 4,
+        lineCap: "round",
+        lineJoin: "round",
+      }),
     }),
-  }));
+    new Style({
+      stroke: new Stroke({
+        color: rgba(severityColour(severity), picked ? 1 : opacity),
+        width,
+        lineCap: "round",
+        lineJoin: "round",
+      }),
+    }),
+  ]);
 }
 
 /**

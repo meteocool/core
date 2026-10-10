@@ -5,12 +5,11 @@ import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faForwardStep } from "@fortawesome/free-solid-svg-icons/faForwardStep";
 import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
-import { faRetweet } from "@fortawesome/free-solid-svg-icons/faRetweet";
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocationCrosshairs";
 import Icon from "./Icon.svelte";
 import StateMachine from "javascript-state-machine";
 import { fly } from "svelte/transition";
-import { onDestroy, onMount } from "svelte";
+import { onDestroy, onMount, tick } from "svelte";
 import {
   sharedActiveCap,
   latLon,
@@ -37,7 +36,7 @@ import {
   frRadarExtent4326,
   plRadarExtent4326,
 } from "../layers/extents";
-import { reverseGeocode } from "../lib/reverseGeocode";
+import { nearPlace, type NearPlace } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
 import DryOutlook from "./DryOutlook.svelte";
 import { onWake } from "../lib/wakeup";
@@ -49,6 +48,9 @@ let gridConfig: GridConfig | null = null;
 
 /** How many frames ahead of playback to ask for tiles: about a second and a half of the loop. */
 const PREFETCH_FRAMES = 3;
+
+/** How long each frame of playback is on screen. */
+const FRAME_MS = 450;
 
 /** Manual subscriptions, so they are handed to onDestroy at the bottom. */
 const subscriptions: (() => void)[] = [];
@@ -87,9 +89,13 @@ let seekTo: number | null = null;
  */
 let shown = 0;
 
-let loop = true;
-let historicActive = true;
 let includeHistoric = false;
+
+/**
+ * Whether playback was running when a hand took the strip, so it carries on
+ * from wherever the needle is let go.
+ */
+let resumeOnRelease = false;
 
 /**
  * How often the time axis is labelled, in minutes. The grid is on a 5-minute
@@ -219,34 +225,65 @@ $: if (!$dryAtUser) outlookDismissed = false;
 let gridLoading = false;
 
 /**
- * The tapped point's name for the title, once it comes back.
+ * The name of where the strip is about, for the title, once it comes back:
+ * the tapped point, or else the client's own position.
  *
  * The token guards against a slow lookup for an abandoned point landing after
  * a fast one for the current point: the request is aborted too, but an abort
  * that arrives late still resolves.
  */
-let placeName: string | null = null;
+let place: NearPlace | null = null;
 let placeToken = 0;
 
 async function resolvePlace(
   point: [number, number] | null,
   language: string | null | undefined,
 ) {
-  placeName = null;
-  if (!point) return;
   const token = ++placeToken;
-  const name = await reverseGeocode(point[0], point[1], language ?? "en", "local", "forecast");
-  if (token === placeToken) placeName = name;
+  if (!point) {
+    place = null;
+    return;
+  }
+  const found = await nearPlace(point[0], point[1], language ?? "en", "forecast");
+  // A position that moves keeps its old name until the new one is in, rather
+  // than blinking back to the generic title on every fix.
+  if (token === placeToken) place = found;
 }
 
-$: resolvePlace($inspectLatLon, $locale);
+$: resolvePlace($inspectLatLon ?? $latLon, $locale);
+/* A tap is somewhere else: its title starts over rather than naming the last place. */
+function forgetPlace(_point: [number, number] | null) { place = null; }
+$: forgetPlace($inspectLatLon);
 
 /* The place name is the title once there is one: a heading that says where, in
-   a panel whose whole subject is already precipitation. Until then, and for the
-   client's own position, the strip says what it is instead. */
-$: chartTitle = $inspectLatLon
-  ? (placeName ?? $_("precipitation_at_point"))
-  : $_("precipitation_here");
+   a panel whose whole subject is already precipitation. Until then the strip
+   says what it is instead. */
+$: placeTitle = place
+  ? (place.district && withDistrict ? `${place.district}, ${place.name}` : place.name)
+  : null;
+$: chartTitle = placeTitle
+  ?? $_($inspectLatLon ? "precipitation_at_point" : "precipitation_here");
+
+/**
+ * Whether the district fits in the head beside the name. Tried whenever the
+ * name or the head's width changes, and dropped for the bare name if the
+ * title would cut it off; before a paint, so the long form never shows cut.
+ */
+let head: HTMLDivElement;
+let titleEl: HTMLSpanElement | undefined;
+let withDistrict = true;
+let headObserver: ResizeObserver | undefined;
+async function fitTitle(_place?: NearPlace | null) {
+  withDistrict = true;
+  await tick();
+  if (titleEl && titleEl.scrollWidth > titleEl.clientWidth) withDistrict = false;
+}
+$: fitTitle(place);
+$: if (head) {
+  headObserver?.disconnect();
+  headObserver = new ResizeObserver(() => fitTitle());
+  headObserver.observe(head);
+}
 
 /**
  * Back to sampling the client's own position, or to none: the marker exists
@@ -325,12 +362,12 @@ const fsm = new StateMachine({
         seekTo = null;
       }, 200);
     },
-    onPressPlay: () => {
+    onPressPlay: (_transition, firstDelayMs = 0) => {
       const playTick = () => {
         // Pause and close both cancel playTimeout; a tick that outlives them
         // would otherwise resume playback on its own.
         if (fsm.state !== "playing") return;
-        let thisFrameDelayMs = 450;
+        let thisFrameDelayMs = FRAME_MS;
         if (!gridConfig) return;
         const sliderValueInt = shown;
         const lastStep = lastPlayableStep ?? gridConfig.end;
@@ -347,21 +384,14 @@ const fsm = new StateMachine({
         // so each frame is whole when it is shown. The setting is the
         // "preload forecast" switch.
         if ($precacheForecast) cap.prefetchFrames(shown, PREFETCH_FRAMES);
-        if (shown !== gridConfig.now || loop) {
-          playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
-        } else {
-          playTimeout = 0;
-          console.log("Pausing due to slider usage");
-          fsm.pressPause();
-        }
+        // Always round again: a loop that stops at the end only ever asked
+        // for another press of play.
+        playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
       };
-      // From a timer rather than from here. A first tick that lands on the
-      // live frame pauses (play pressed on the last step, or on the one
-      // before now, without the loop), and a pause inside this transition
-      // throws, leaving the machine mid-transition for good: from then on
-      // pause, play and close all throw, and the player stays open until
-      // the page is reloaded.
-      playTimeout = window.setTimeout(playTick, 0);
+      // From a timer rather than from here: a pause inside this transition
+      // throws, leaving the machine mid-transition for good. A resume after a
+      // drag waits a frame's length first, so the frame let go on is seen.
+      playTimeout = window.setTimeout(playTick, firstDelayMs);
       playPauseButton = faPause;
     },
     onPressPause: () => {
@@ -467,6 +497,7 @@ function takeFrameRequest() {
     return;
   }
   if (!gridConfig.grid[wanted]?.url || wanted === cap.getMostRecentObservation()) return;
+  resumeOnRelease = false;
   if (fsm.state === "playing") fsm.pressPause();
   if (fsm.state === "followLatest") {
     seekTo = wanted;
@@ -480,6 +511,7 @@ function takeFrameRequest() {
 subscriptions.push(frameRequest.subscribe(() => takeFrameRequest()));
 
 function hide() {
+  resumeOnRelease = false;
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   playTimeout = 0;
   fsm.hideScrollbar();
@@ -596,13 +628,24 @@ function sliderChangedHandler(value, userInteraction = false) {
   oldTimeStep = value;
 }
 
-/** A hand on the strip: playback stops where it is, and the hand has it. */
+/**
+ * A hand on the strip: playback holds while the hand has it, and picks up
+ * again from wherever it is let go (see `released`).
+ */
 function grabbed() {
   browsingFrames.set(true);
   if (fsm.state === "playing") {
-    console.log("Pausing due to a grab on the timeline");
+    console.log("Holding playback for a grab on the timeline");
+    resumeOnRelease = true;
     fsm.pressPause();
   }
+}
+
+/** The needle is at rest again: playback, if a grab held it, goes on from there. */
+function released() {
+  if (!resumeOnRelease) return;
+  resumeOnRelease = false;
+  if (fsm.state === "manualScrolling") fsm.pressPlay(FRAME_MS);
 }
 
 /** The needle has reached another step. */
@@ -612,18 +655,13 @@ function seek(event: CustomEvent<number>) {
 }
 
 function playPause() {
+  resumeOnRelease = false;
   if (fsm.state === "playing") {
     console.log("Pausing due to button");
     fsm.pressPause();
   } else if (fsm.state === "manualScrolling") {
     fsm.pressPlay();
   }
-}
-
-function toggleLoop() {
-  loop = !loop;
-  historicActive = loop;
-  if (!historicActive) includeHistoric = false;
 }
 
 function toggleHistoric() {
@@ -660,6 +698,7 @@ onDestroy(() => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   window.clearTimeout(backToLiveTimer);
+  headObserver?.disconnect();
   playbackRunning.set(false);
   browsingFrames.set(false);
 });
@@ -807,11 +846,6 @@ onDestroy(() => {
   .controlButton.play:hover { background: var(--mc-accent-strong); }
   .controlButton.play :global(svg) { margin-left: 2px; }
   .controlButton.play.playing :global(svg) { margin-left: 0; }
-  .controlButton.on {
-    background: var(--mc-accent);
-    color: #fff;
-  }
-  .controlButton.on:hover { background: var(--mc-accent-strong); }
   /* Letting a tapped point go: smaller than the transport, like a close disc. */
   .controlButton.clear {
     width: 30px;
@@ -822,8 +856,8 @@ onDestroy(() => {
   .controlButton.clear:hover { color: var(--mc-text); }
 
   /* "-2h": whether the loop runs from the start of the strip or from now.
-     The same height as the play and loop discs beside it, so the three read as
-     one row of controls rather than two discs and a smaller tag. */
+     The same height as the play disc beside it, so the two read as one row of
+     controls rather than a disc and a smaller tag. */
   .chip {
     flex: 0 0 auto;
     display: inline-flex;
@@ -847,7 +881,6 @@ onDestroy(() => {
   .chip:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .chip.on { background: var(--mc-accent); color: #fff; }
   .chip.on:hover { background: var(--mc-accent-strong); }
-  .chip[disabled] { opacity: 0.4; cursor: default; }
   .chip :global(svg) { width: 14px; height: 14px; }
 
   /* Prose in the strip, set like the body text of a system alert: secondary
@@ -975,15 +1008,9 @@ onDestroy(() => {
     on:introend={toolbarTransitionEnd}
     on:outroend={toolbarTransitionEnd}>
     <div class="player">
-      <div class="head">
+      <div class="head" bind:this={head}>
         {#if $inspectLatLon || $latLon}
-          <span class="title" class:quiet={!hasPrecipitation && !gridLoading}>
-            {#if !gridLoading && !hasPrecipitation}
-              {$_(noForecastFrom === null ? "precipitation_none" : "precipitation_none_past")}
-            {:else}
-              {chartTitle}
-            {/if}
-          </span>
+          <span class="title" bind:this={titleEl}>{chartTitle}</span>
           {#if $inspectLatLon && $latLon}
             <button type="button" class="link" on:click={returnToCurrentPosition}>
               <Icon icon={faLocationCrosshairs} />
@@ -1015,8 +1042,9 @@ onDestroy(() => {
           value={shown}
           {labelEvery}
           on:grab={grabbed}
+          on:release={released}
           on:seek={seek} />
-        {#if !gridLoading && hasPrecipitation && noForecastFrom !== null}
+        {#if !gridLoading && noForecastFrom !== null}
           <p class="no-forecast" style:left={`${noForecastFrom * 100}%`}>{$_("forecast_none_here")}</p>
         {/if}
       </div>
@@ -1027,11 +1055,7 @@ onDestroy(() => {
           title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
           <Icon icon={playPauseButton} />
         </button>
-        <button type="button" class="controlButton" class:on={loop} on:click={toggleLoop}
-          title={$_("chrome.playback.loop")} aria-label={$_("chrome.playback.loop")} aria-pressed={loop}>
-          <Icon icon={faRetweet} />
-        </button>
-        <button type="button" class="chip" class:on={includeHistoric} disabled={!historicActive} on:click={toggleHistoric}
+        <button type="button" class="chip" class:on={includeHistoric} on:click={toggleHistoric}
           title={$_("chrome.playback.from_start")} aria-label={$_("chrome.playback.from_start")} aria-pressed={includeHistoric}>
           <Icon icon={faHistory} />
           <span>-2h</span>

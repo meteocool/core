@@ -17,37 +17,16 @@
   "title": "Over meteocool",
   "text1": "meteocool is een gratis GIS-platform dat weergegevens verzamelt en visualiseert, met de nadruk op zwaar weer. Het is geoptimaliseerd voor mobiele apparaten, en je kunt het gebruiken om naderend weer op te zoeken of juist te ontwijken.",
   "text2": "meteocool gebruikt radargegevens van de weerdiensten van Duitsland (DWD), Zwitserland, Frankrijk, Tsjechië en Polen, en realtime bliksemgegevens van het blitzortung.org-project.",
-  "features": {
-    "header": "Functies",
-    "list_title0": "Privacy:",
-    "list0": "Je hebt geen account nodig om de app te gebruiken, en er worden geen locatiegegevens vastgelegd of voor andere doeleinden gebruikt. Zie ook ons privacybeleid.",
-    "list_title1": "Automatische kaartupdates:",
-    "list1": "meteocool laat de app weten zodra er nieuwe radargegevens zijn, zodat de kaart altijd actueel is.",
-    "list_title2": "Live blikseminslagen:",
-    "list2": "Nieuwe blikseminslagen verschijnen direct en helpen je de intensiteit, koers en snelheid van een onweersbui in te schatten.",
-    "list_title3": "Pushmeldingen:",
-    "list3": "Krijg tot 60 minuten van tevoren een melding over naderende regen en zwaar weer, op het web en in de iOS- en Android-apps. Je kunt het meldingsniveau instellen, bijvoorbeeld om alleen bij zware regen een melding te krijgen.",
-    "list_title4": "iOS- en Android-apps:",
-    "list4": "De native iOS- en Android-apps volgen je locatie op de achtergrond met weinig batterijverbruik, zodat de weermeldingen nauwkeurig zijn waar je ook bent.",
-    "list_title5": "Donkere en lichte modus:",
-    "list5": "meteocool heeft een donker en een licht thema."
-  },
   "credits_help": {
     "header": "Credits & hulp",
-    "text1": "meteocool is gemaakt door <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> en <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "Dit project was niet mogelijk geweest zonder de hulp van <a href=\"https://github.com/Flowm\">Florian Mauracher</a> en NessArt.",
-    "list4": {
-      "text1": "Iconen en aangepaste illustraties gemaakt door <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
-      "text2": "(logo, iOS-onboarding) en <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
-      "text3": "(gelicentieerd onder <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
-    },
-    "text4": "Wil je ook helpen? Bekijk <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool op GitHub</a>,",
-    "text5": "vooral onze repositories voor de <a href=\"https://github.com/meteocool/core\">webfrontend</a>, de <a href=\"https://github.com/meteocool/ios\">iOS-app</a> en de <a href=\"https://github.com/meteocool/android\">Android-app</a>."
+    "text1": "meteocool is gemaakt door <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> en NessArt.",
+    "text4": "Wil je ook helpen? Bekijk <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool op GitHub</a>."
   },
   "other_things": {
     "header": "Overige zaken",
-    "list1": "<a href=\"mailto:support@meteocool.com\">neem contact met ons op</a> voor vragen of als je ons geld wilt toestoppen",
-    "list2": "<a href=\"/privacy.html\">privacybeleid</a>"
+    "list1": "<a href=\"mailto:support@meteocool.com\">neem contact met ons op</a> voor vragen",
+    "list2": "<a href=\"/privacy.html\">privacybeleid</a>",
+    "list3": "<a href=\"/imprint.html#data\">gegevensbronnen en licenties</a>"
   },
   "close": "Sluiten",
   "published": "Gepubliceerd",
@@ -117,8 +96,8 @@
   "lightning": "Blikseminslagen",
   "n/a": "Onbekend",
   "point_menu_title": "Op deze locatie",
-  "point_menu_precipitation": "Neerslag",
-  "point_menu_precipitation_sub": "Radar en nowcast",
+  "point_menu_precipitation": "Radar",
+  "point_menu_precipitation_sub": "Afgelopen twee uur en nowcast",
   "point_menu_forecast": "Voorspelling",
   "point_menu_forecast_sub": "21 weermodellen vergeleken",
   "point_menu_share": "Delen",
@@ -146,9 +125,7 @@
   "degraded": "Beperkt",
   "show_for_my_location": "Toon voor mijn locatie",
   "precipitation_at_point": "Neerslag hier",
-  "precipitation_none": "Geen neerslag in de afgelopen twee uur, en voor de komende twee uur ook niets voorspeld.",
   "forecast_none_here": "Hier geen voorspelling",
-  "precipitation_none_past": "Geen neerslag in de afgelopen twee uur, en de voorspelling reikt niet tot hier.",
   "hide": "Verbergen",
   "last_success": "Laatste update",
   "preview": "Voorbeeld",
@@ -453,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Radartijdlijn",
-      "loop": "Herhalen",
       "from_start": "Herhalen vanaf twee uur geleden"
     },
     "radar_product": {
@@ -502,7 +478,7 @@
     "alt": {
       "app_store": "Link naar de iOS App Store",
       "play_store": "Link naar de Google Play Store",
-      "not_the_volunteers": "niet echt de vrijwilligers"
+      "fdroid": "Link naar F-Droid"
     },
     "degraded": {
       "api_errors": "backend-fouten",
