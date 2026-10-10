@@ -26,9 +26,12 @@ let width = 300;
 /** The radar a row is pointing at, picked out on the minimap. */
 let highlight: string | null = null;
 
-/* A mouse picks by hovering; a finger has no hover, so a tap toggles. */
-function pick(event: MouseEvent, code: string) {
-  if ((event as PointerEvent).pointerType === "mouse") return;
+/* A mouse picks by hovering; a finger has no hover, so a tap toggles. What
+   pressed is read on the way down: iOS Safari reports a tap's `click` as
+   `pointerType: "mouse"`, so every tap was taken for the mouse and ignored. */
+let pressedBy = "mouse";
+function pick(code: string) {
+  if (pressedBy === "mouse") return;
   highlight = highlight === code ? null : code;
 }
 
@@ -62,7 +65,8 @@ $: unopenable = volume.tier === 1;
           class:picked={radar.code === highlight}
           on:pointerenter={(e) => { if (e.pointerType === "mouse") highlight = radar.code; }}
           on:pointerleave={(e) => { if (e.pointerType === "mouse") highlight = null; }}
-          on:click={(e) => pick(e, radar.code)}
+          on:pointerdown={(e) => { pressedBy = e.pointerType; }}
+          on:click={() => pick(radar.code)}
         >
           <span>{radar.name}</span>
           {#if radar.distanceKm != null}<span class="detail">{Math.round(radar.distanceKm)} km</span>{/if}
