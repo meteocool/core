@@ -15,7 +15,7 @@ import {
   latLon,
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale,
-  frameRequest, playbackRunning, browsingFrames, live, openStripCount,
+  frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -917,27 +917,29 @@ onDestroy(() => {
     inset: 0 0 16px;
   }
 
-  /* The way back to now, centred a gap above the tray, or above a strip
-     standing there (the coverage notice). A row the width of the screen that
-     lets touches through, so the pill can be centred without a transform the
-     fly transition would overwrite. */
+  /* The way back to now, centred a gap above the top of the stack over the
+     tray: the strips (a coverage notice, a chart) and the selected cell's bar,
+     each a fixed height plus the gap it floats above. Never under any of them,
+     so it is always there to tap. Moves with the stack the way the cell's bar
+     does. A row the width of the screen that lets touches through, so the pill
+     can be centred without a transform the fly transition would overwrite. */
   .back-to-live {
     position: absolute;
     left: var(--mc-gutter);
     right: var(--mc-gutter);
     bottom: calc(
       var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap)
+      + var(--open-strips, 0) * (var(--mc-strip-h) + var(--mc-tray-gap))
+      + var(--open-hints, 0) * (var(--mc-hint-h) + var(--mc-tray-gap))
     );
-    z-index: var(--mc-z-chart);
+    z-index: var(--mc-z-pill);
     display: flex;
     justify-content: center;
     pointer-events: none;
+    transition: bottom var(--mc-motion-spring) var(--mc-ease-spring);
   }
-  .back-to-live.above-strip {
-    bottom: calc(
-      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap)
-      + var(--mc-strip-h) + var(--mc-tray-gap)
-    );
+  @media (prefers-reduced-motion: reduce) {
+    .back-to-live { transition: none; }
   }
   .back-to-live button {
     pointer-events: auto;
@@ -990,7 +992,7 @@ onDestroy(() => {
 {/if}
 
 {#if showBackToLive}
-  <div class="back-to-live" class:above-strip={$openStripCount > 0}>
+  <div class="back-to-live" style:--open-strips={$openStripCount} style:--open-hints={$openHintCount}>
     <button type="button" class="glass glass-pill" on:click={returnToLive}
       transition:fly={{ y: 12, duration: 200 }}>
       <span>{$_("chrome.playback.back_to_latest")}</span>
