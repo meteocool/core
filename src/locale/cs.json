@@ -17,37 +17,16 @@
   "title": "O aplikaci meteocool",
   "text1": "meteocool je bezplatná GIS platforma, která shromažďuje a zobrazuje meteorologická data se zaměřením na nebezpečné počasí. Je optimalizovaná pro mobilní zařízení a můžeš s ní blížící se počasí pronásledovat, nebo se mu vyhnout.",
   "text2": "meteocool využívá radarová data meteorologických služeb Německa (DWD), Švýcarska, Francie, Česka a Polska a blesky v reálném čase z projektu blitzortung.org.",
-  "features": {
-    "header": "Vlastnosti",
-    "list_title0": "Soukromí:",
-    "list0": "K používání aplikace nepotřebuješ uživatelský účet a žádná data o poloze se nezaznamenávají ani nevyužívají k jiným účelům. Viz také naše zásady ochrany osobních údajů.",
-    "list_title1": "Automatické aktualizace mapy:",
-    "list1": "meteocool upozorní své klienty, jakmile jsou k dispozici nová radarová data, takže je mapa vždy aktuální.",
-    "list_title2": "Blesky naživo:",
-    "list2": "Nové blesky se zobrazí okamžitě a pomohou ti odhadnout intenzitu, dráhu a rychlost bouřky.",
-    "list_title3": "Push notifikace:",
-    "list3": "Nech si posílat upozornění na blížící se déšť a nebezpečné počasí až 60 minut předem, na webu i v aplikacích pro iOS a Android. Úroveň upozornění si můžeš nastavit, například aby ti chodila upozornění jen na silný déšť.",
-    "list_title4": "Aplikace pro iOS a Android:",
-    "list4": "Nativní aplikace pro iOS a Android sledují tvou polohu na pozadí s malou spotřebou baterie, takže upozornění na počasí jsou přesná, ať jsi kdekoli.",
-    "list_title5": "Tmavý a světlý režim:",
-    "list5": "meteocool má tmavý a světlý motiv."
-  },
   "credits_help": {
     "header": "Poděkování a nápověda",
-    "text1": "meteocool pro tebe vytvořili <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> a <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "Bez pomoci <a href=\"https://github.com/Flowm\">Floriana Maurachera</a> a NessArt by tento projekt nevznikl.",
-    "list4": {
-      "text1": "Ikony a upravená grafika od <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
-      "text2": "(logo, iOS onboarding) a <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>",
-      "text3": "(licencováno pod <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
-    },
-    "text4": "Chceš také pomoct? Podívej se na <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool na GitHubu</a>,",
-    "text5": "zejména naše repozitáře <a href=\"https://github.com/meteocool/core\">webového frontendu</a>, <a href=\"https://github.com/meteocool/ios\">aplikace pro iOS</a> a <a href=\"https://github.com/meteocool/android\">aplikace pro Android</a>."
+    "text1": "meteocool pro tebe vytvořili <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> a NessArt.",
+    "text4": "Chceš také pomoct? Podívej se na <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool na GitHubu</a>."
   },
   "other_things": {
     "header": "Další věci",
-    "list1": "<a href=\"mailto:support@meteocool.com\">napiš nám</a>, pokud máš dotazy nebo nám chceš poslat peníze",
-    "list2": "<a href=\"/privacy.html\">zásady ochrany osobních údajů</a>"
+    "list1": "<a href=\"mailto:support@meteocool.com\">napiš nám</a>, pokud máš dotazy",
+    "list2": "<a href=\"/privacy.html\">zásady ochrany osobních údajů</a>",
+    "list3": "<a href=\"/imprint.html#data\">zdroje dat a licence</a>"
   },
   "close": "Zavřít",
   "published": "Zveřejněno",
@@ -117,8 +96,8 @@
   "lightning": "Blesky",
   "n/a": "n/a",
   "point_menu_title": "Na tomto místě",
-  "point_menu_precipitation": "Srážky",
-  "point_menu_precipitation_sub": "Radar a nowcasting",
+  "point_menu_precipitation": "Radar",
+  "point_menu_precipitation_sub": "Poslední dvě hodiny a nowcasting",
   "point_menu_forecast": "Předpověď",
   "point_menu_forecast_sub": "Srovnání 21 modelů počasí",
   "point_menu_share": "Sdílet",
@@ -146,9 +125,7 @@
   "degraded": "Omezeno",
   "show_for_my_location": "Zobrazit pro mou polohu",
   "precipitation_at_point": "Srážky zde",
-  "precipitation_none": "Za poslední dvě hodiny žádné srážky a na příští dvě se žádné nepředpovídají.",
   "forecast_none_here": "Zde není předpověď",
-  "precipitation_none_past": "Za poslední dvě hodiny žádné srážky a předpověď sem nedosahuje.",
   "hide": "Skrýt",
   "last_success": "Poslední aktualizace",
   "preview": "Náhled",
@@ -453,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Časová osa radaru",
-      "loop": "Smyčka",
       "from_start": "Smyčka včetně posledních dvou hodin"
     },
     "radar_product": {
@@ -502,7 +478,7 @@
     "alt": {
       "app_store": "Odkaz na iOS App Store",
       "play_store": "Odkaz na Google Play Store",
-      "not_the_volunteers": "vlastně ne dobrovolníci"
+      "fdroid": "Odkaz na F-Droid"
     },
     "degraded": {
       "api_errors": "chyby backendu",

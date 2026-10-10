@@ -282,6 +282,32 @@ export function reverseGeocode(
   return lookUp(lat, lon, language, scale, NOMINATIM_ZOOM[scale], channel, (place) => pickLabel(place, scale));
 }
 
+/** Where someone is: the settlement, and the district of it they are in. */
+export interface NearPlace {
+  name: string;
+  /** The suburb or quarter; null in a village, or where there is none to name. */
+  district: string | null;
+}
+
+/**
+ * The player's title: the settlement, and the district under it for a panel
+ * with room to say so. Not the street: neither provider has streets (ours is
+ * imported without them), so the district is as close as a lookup gets.
+ */
+export function nearPlace(
+  lat: number,
+  lon: number,
+  language = "en",
+  channel = "place",
+): Promise<NearPlace | null> {
+  return lookUp(lat, lon, language, "near", NOMINATIM_ZOOM.local, channel, (place) => {
+    const name = pickLabel(place, "local");
+    if (!name) return null;
+    const district = place.locality?.trim();
+    return { name, district: district && district !== name ? district : null };
+  });
+}
+
 /** Where a storm is: the settlement under its peak, and the county and state it is in. */
 export interface StormPlace {
   name: string;

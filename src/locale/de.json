@@ -17,37 +17,16 @@
   "title": "Über meteocool",
   "text1": "meteocool ist eine kostenlose GIS-Plattform, die Wetterdaten sammelt und visualisiert, mit Schwerpunkt auf Unwettern. Sie ist für Mobilgeräte optimiert, und du kannst damit anrückendem Wetter hinterherjagen oder ihm ausweichen.",
   "text2": "meteocool nutzt Radardaten der Wetterdienste von Deutschland (DWD), der Schweiz, Frankreich, Tschechien und Polen sowie Echtzeit-Blitzdaten vom Projekt blitzortung.org.",
-  "features": {
-    "header": "Funktionen",
-    "list_title0": "Datenschutz:",
-    "list0": "Du brauchst kein Benutzerkonto, um die Anwendung zu nutzen, und Standortdaten werden weder gespeichert noch für andere Zwecke verwendet. Mehr dazu in unserer Datenschutzerklärung.",
-    "list_title1": "Automatische Kartenupdates:",
-    "list1": "meteocool benachrichtigt seine Clients, sobald neue Radardaten verfügbar sind, damit die Karte immer aktuell ist.",
-    "list_title2": "Live-Blitzeinschläge:",
-    "list2": "Neue Blitzeinschläge erscheinen sofort und helfen dir, Stärke, Zugrichtung und Geschwindigkeit eines Gewitters einzuschätzen.",
-    "list_title3": "Push-Benachrichtigungen:",
-    "list3": "Lass dich bis zu 60 Minuten im Voraus über aufziehenden Regen und Unwetter benachrichtigen, im Web und in den Apps für iOS und Android. Du kannst die Benachrichtigungsstufe einstellen, etwa um nur bei Starkregen eine Nachricht zu bekommen.",
-    "list_title4": "Apps für iOS & Android:",
-    "list4": "Die nativen Apps für iOS und Android bestimmen deinen Standort im Hintergrund und brauchen dabei wenig Akku, damit die Wetterbenachrichtigungen überall stimmen, wo du gerade bist.",
-    "list_title5": "Dunkler & heller Modus:",
-    "list5": "meteocool hat ein dunkles und ein helles Design."
-  },
   "credits_help": {
     "header": "Danksagung & Hilfe",
-    "text1": "meteocool ist ein Projekt von <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Nina2244\">Nina</a> und <a href=\"https://github.com/Wheedman\">Jeremias</a>.",
-    "text3": "Ohne die Hilfe von <a href=\"https://github.com/Flowm\">Florian Mauracher</a> und NessArt wäre dieses Projekt nicht möglich gewesen.",
-    "list4": {
-      "text1": "Symbole und angepasste Grafiken von <a href=\"http://www.freepik.com\" rel=\"noreferrer\">Freepik</a>",
-      "text2": "(Logo, iOS Onboarding) und <a href=\"https://www.flaticon.com/\">www.flaticon.com</a>.",
-      "text3": "(lizenziert unter <a href=\"http://creativecommons.org/licenses/by/3.0/\" rel=\"noreferrer\">CC 3.0 BY</a>)"
-    },
-    "text4": "Du möchtest auch mitmachen? Du findest <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool bei GitHub</a>,",
-    "text5": "vor allem die Repositories für das <a href=\"https://github.com/meteocool/core\">Web-Frontend</a>, die <a href=\"https://github.com/meteocool/ios\">iOS-App</a> und die <a href=\"https://github.com/meteocool/android\">Android-App</a>."
+    "text1": "meteocool ist ein Projekt von <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> und NessArt.",
+    "text4": "Du möchtest auch mitmachen? Du findest <a href=\"https://github.com/meteocool\" rel=\"noreferrer\">meteocool bei GitHub</a>."
   },
   "other_things": {
     "header": "Sonstiges",
-    "list1": "<a href=\"mailto:support@meteocool.com\">Kontaktiere uns</a> falls du Fragen hast oder uns Geld schicken möchtest",
-    "list2": "<a href=\"/privacy.html\">Datenschutzerklärung</a>"
+    "list1": "<a href=\"mailto:support@meteocool.com\">Kontaktiere uns</a>, falls du Fragen hast",
+    "list2": "<a href=\"/privacy.html\">Datenschutzerklärung</a>",
+    "list3": "<a href=\"/imprint.html#data\">Datenquellen und Lizenzen</a>"
   },
   "close": "Schließen",
   "published": "Veröffentlicht",
@@ -117,8 +96,8 @@
   "lightning": "Live-Blitze",
   "n/a": "Unbekannt",
   "point_menu_title": "An diesem Ort",
-  "point_menu_precipitation": "Niederschlag",
-  "point_menu_precipitation_sub": "Radar und Nowcast",
+  "point_menu_precipitation": "Radar",
+  "point_menu_precipitation_sub": "Letzte zwei Stunden und Nowcast",
   "point_menu_forecast": "Vorhersage",
   "point_menu_forecast_sub": "21 Wettermodelle im Vergleich",
   "point_menu_share": "Teilen",
@@ -146,9 +125,7 @@
   "degraded": "Eingeschränkt",
   "show_for_my_location": "Für meinen Standort",
   "precipitation_at_point": "Niederschlag hier",
-  "precipitation_none": "Kein Niederschlag in den letzten zwei Stunden und keiner für die nächsten zwei vorhergesagt.",
   "forecast_none_here": "Hier keine Vorhersage",
-  "precipitation_none_past": "Kein Niederschlag in den letzten zwei Stunden, und hierher reicht keine Vorhersage.",
   "hide": "Ausblenden",
   "last_success": "Letzte Aktualisierung",
   "preview": "Vorschau",
@@ -453,7 +430,6 @@
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
       "timeline": "Radar-Zeitleiste",
-      "loop": "Schleife",
       "from_start": "Schleife ab zwei Stunden zurück"
     },
     "radar_product": {
@@ -502,7 +478,7 @@
     "alt": {
       "app_store": "Link zum iOS App Store",
       "play_store": "Link zum Google Play Store",
-      "not_the_volunteers": "nicht wirklich die Freiwilligen"
+      "fdroid": "Link zu F-Droid"
     },
     "degraded": {
       "api_errors": "Backend-Fehler",
