@@ -21,7 +21,12 @@
  * and the resulting burst is collapsed into one wake.
  */
 
-export type WakeListener = (reason: string) => void;
+/**
+ * Told why the page woke, and how long it was away when that is known: hidden
+ * for that long, or a clock that jumped by it. Null for the signals that do
+ * not say (a native foreground, a bfcache restore, the network coming back).
+ */
+export type WakeListener = (reason: string, awayMs: number | null) => void;
 
 /**
  * How long after a wake another signal is treated as the same one.
@@ -106,19 +111,19 @@ export function onWake(listener: WakeListener): () => void {
  * window.enterForeground() through here so a native foreground and a browser
  * visibilitychange arriving together still only resync once.
  */
-export function wake(reason: string) {
+export function wake(reason: string, awayMs: number | null = null) {
   // A wake nobody is looking at (the watchdog noticing a throttled tab's
   // clock jump, the network coming back to a hidden page) is put off like a
   // poke. It runs, once, when the page shows again.
   if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-    deferred.set("wake", () => wake(reason));
+    deferred.set("wake", () => wake(reason, awayMs));
     return;
   }
   const now = Date.now();
   if (now - lastWakeAt < WAKE_DEBOUNCE_MS) return;
   lastWakeAt = now;
   console.log(`Foreground: ${reason}`);
-  listeners.forEach((listener) => listener(reason));
+  listeners.forEach((listener) => listener(reason, awayMs));
 }
 
 /**
@@ -147,7 +152,7 @@ export function initWakeup() {
     const away = hiddenFor();
     hiddenAt = null;
     runDeferred();
-    if (away >= MIN_HIDDEN_MS) wake(`${reason} after ${Math.round(away / 1000)}s`);
+    if (away >= MIN_HIDDEN_MS) wake(`${reason} after ${Math.round(away / 1000)}s`, away);
   };
   const onVisibility = () => {
     if (document.visibilityState === "visible") {
@@ -183,7 +188,7 @@ export function initWakeup() {
     const now = Date.now();
     const drift = now - expectedAt;
     expectedAt = now + WATCHDOG_INTERVAL_MS;
-    if (drift > CLOCK_JUMP_MS) wake(`clock jumped ${Math.round(drift / 1000)}s`);
+    if (drift > CLOCK_JUMP_MS) wake(`clock jumped ${Math.round(drift / 1000)}s`, drift);
   }, WATCHDOG_INTERVAL_MS);
   teardown.push(() => window.clearInterval(watchdog));
 }
