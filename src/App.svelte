@@ -545,7 +545,10 @@ const liveStrikes = coalesce<{ lon: number; lat: number; time: number }>(
 radarSocketIO.on("lightning", (data) => liveStrikes.push(data));
 onDestroy(() => liveStrikes.cancel());
 window.ll = lightningLayer;
+// A payload that is not a list (an error body, a half-delivered response) is
+// skipped, keeping the cyclones already shown, rather than thrown on.
 radarSocketIO.on("mesocyclones", (data) => {
+  if (!Array.isArray(data)) return;
   mesocyclonemgr.clearAll();
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
@@ -900,7 +903,7 @@ async function reloadLightning() {
 
 async function reloadCyclones() {
   const detections = await fetchMesocyclones(nb).catch(() => null);
-  if (!detections) return;
+  if (!Array.isArray(detections)) return;
   mesocyclonemgr.clearAll();
   detections.forEach((detection) => mesocyclonemgr.addCyclone(detection));
 }
