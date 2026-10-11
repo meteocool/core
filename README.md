@@ -39,6 +39,11 @@ Non-existent, but here's a few pointers:
   repo). Everything is proxied through the dev server's own origin, so there
   is no CORS to configure.
 - `npm run check` runs svelte-check and eslint; `npm run build` builds.
+- `npm test` runs the unit tests (`scripts/tests`).
+- `npm run test:ui` runs the UI tests (`tests/ui`, Playwright): the app in
+  an iPhone's WebKit and a desktop Chromium, against the demo backend. Run it
+  before pushing develop; it is not in CI yet. Once per machine:
+  `npx playwright install webkit chromium`.
 
 ## Warning: Recreational Programming
 
