@@ -4,7 +4,6 @@ import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faForwardStep } from "@fortawesome/free-solid-svg-icons/faForwardStep";
-import { faHistory } from "@fortawesome/free-solid-svg-icons/faHistory";
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocationCrosshairs";
 import Icon from "./Icon.svelte";
 import StateMachine from "javascript-state-machine";
@@ -15,7 +14,7 @@ import {
   latLon,
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale,
-  frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount,
+  frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -89,8 +88,6 @@ let seekTo: number | null = null;
  */
 let shown = 0;
 
-let includeHistoric = false;
-
 /**
  * Whether playback was running when a hand took the strip, so it carries on
  * from wherever the needle is let go.
@@ -102,7 +99,6 @@ let resumeOnRelease = false;
  * step, so every interval here divides it exactly.
  */
 const labelEvery = dd.breakpoint() === "reduced" || dd.breakpoint() === "small" ? 60 : 30;
-
 
 /**
  * The newest step the scrubber may reach.
@@ -380,7 +376,7 @@ const fsm = new StateMachine({
         const sliderValueInt = shown;
         const lastStep = lastPlayableStep ?? gridConfig.end;
         if (sliderValueInt >= lastStep) {
-          shown = includeHistoric ? gridConfig.start : gridConfig.now;
+          shown = $playbackFromStart ? gridConfig.start : gridConfig.now;
         } else {
           shown = sliderValueInt + 5 * 60;
         }
@@ -668,10 +664,6 @@ function playPause() {
   }
 }
 
-function toggleHistoric() {
-  includeHistoric = !includeHistoric;
-}
-
 /**
  * Back from five minutes or more away, the map is on now again, whatever frame
  * it was left on. A frame from before is no longer what anyone opening the app
@@ -859,34 +851,6 @@ onDestroy(() => {
   }
   .controlButton.clear:hover { color: var(--mc-text); }
 
-  /* "-2h": whether the loop runs from the start of the strip or from now.
-     The same height as the play disc beside it, so the two read as one row of
-     controls rather than a disc and a smaller tag. */
-  .chip {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: var(--mc-control);
-    box-sizing: border-box;
-    padding: 0 14px;
-    border: 0;
-    border-radius: var(--mc-radius-pill);
-    background: var(--mc-tint);
-    color: var(--mc-text);
-    font: 600 14px/1 var(--mc-font);
-    font-variant-numeric: tabular-nums;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), opacity var(--mc-motion-fast);
-  }
-  .chip:hover { background: var(--mc-tint-hover); }
-  .chip:active { transform: scale(var(--mc-press)); }
-  .chip:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-  .chip.on { background: var(--mc-accent); color: #fff; }
-  .chip.on:hover { background: var(--mc-accent-strong); }
-  .chip :global(svg) { width: 14px; height: 14px; }
-
   /* Prose in the strip, set like the body text of a system alert: secondary
      ink under the primary-ink title, at the same size as the rest of the tray.
      Same leading inset as the title, so the two read as one block. */
@@ -1060,11 +1024,6 @@ onDestroy(() => {
           on:click={playPause}
           title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
           <Icon icon={playPauseButton} />
-        </button>
-        <button type="button" class="chip" class:on={includeHistoric} on:click={toggleHistoric}
-          title={$_("chrome.playback.from_start")} aria-label={$_("chrome.playback.from_start")} aria-pressed={includeHistoric}>
-          <Icon icon={faHistory} />
-          <span>-2h</span>
         </button>
         <div class="legend">
           <RadarScaleLine />

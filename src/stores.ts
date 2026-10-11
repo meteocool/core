@@ -213,6 +213,11 @@ export const cells3dVisible = writable<boolean>(false);
  */
 export const terrain3dVisible = writable<boolean>(true);
 /**
+ * Whether the player's loop starts two hours back, at the start of its strip,
+ * rather than at now. The `playbackFromStart` setting; off by default.
+ */
+export const playbackFromStart = writable<boolean>(false);
+/**
  * Whether a phone or tablet draws the 3D map at its screen's full pixel
  * ratio instead of at 2x at most (lib/gpuBudget.ts). Off unless the reader
  * turns it on: a phone's 3x is 2.25 times the pixels, and the memory that
