@@ -445,17 +445,21 @@ function open() {
 
 subscriptions.push(sharedActiveCap.subscribe(() => open()));
 
+/** A hand is on the timeline: from the grab until the needle is at rest. */
+let scrubbing = false;
+
 /**
- * Whether the map is parked on an earlier or later frame than the live one.
+ * Whether the map is away from the live frame, parked on another or playing.
  *
  * The player is always open, so being in it says nothing; what matters is
  * that the map shows a frame other than now, and with it none of what only
- * the live frame carries (the cells, the 3D tags). Not while playing, which
- * is passing through frames on purpose, nor while stale, where the radar is
- * behind rather than the reader.
+ * the live frame carries (the cells, the 3D tags). Playing counts throughout,
+ * the loop's pass over now included, so the way back stays put. Not while
+ * scrubbing, where the hand is choosing a frame and the pill would only
+ * flicker, nor while stale, where the radar is behind rather than the reader.
  */
 $: offLive = $bottomToolbarMode === "player" && $sharedActiveCap === "radar"
-  && !$live && !$playbackRunning && !$radarStale && gridConfig !== null;
+  && ($playbackRunning || !$live) && !scrubbing && !$radarStale && gridConfig !== null;
 
 /**
  * `offLive`, slow to let go: a drag back and forth across now passes the live
@@ -516,6 +520,7 @@ subscriptions.push(frameRequest.subscribe(() => takeFrameRequest()));
 
 function hide() {
   resumeOnRelease = false;
+  scrubbing = false;
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   playTimeout = 0;
   fsm.hideScrollbar();
@@ -633,6 +638,7 @@ function sliderChangedHandler(value, userInteraction = false) {
  * again from wherever it is let go (see `released`).
  */
 function grabbed() {
+  scrubbing = true;
   browsingFrames.set(true);
   if (fsm.state === "playing") {
     console.log("Holding playback for a grab on the timeline");
@@ -643,6 +649,7 @@ function grabbed() {
 
 /** The needle is at rest again: playback, if a grab held it, goes on from there. */
 function released() {
+  scrubbing = false;
   if (!resumeOnRelease) return;
   resumeOnRelease = false;
   if (fsm.state === "manualScrolling") fsm.pressPlay(FRAME_MS);
