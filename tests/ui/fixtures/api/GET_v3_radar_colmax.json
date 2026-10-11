@@ -1,0 +1,62 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "processed_time": 1791682686,
+  "upstream_time": 1791682200,
+  "tile_id": "ce85bc9e-9c14-4d6f-bbec-b6b6c6bdf26a",
+  "source": "observation",
+  "filename": "intermediate;live_composite/colmax/20261011T013733.tif",
+  "tiles": {
+   "3": {
+    "x": 3,
+    "y": 5,
+    "w": 2,
+    "h": 1,
+    "bits": "wA=="
+   },
+   "4": {
+    "x": 7,
+    "y": 10,
+    "w": 3,
+    "h": 2,
+    "bits": "6A=="
+   },
+   "5": {
+    "x": 15,
+    "y": 20,
+    "w": 4,
+    "h": 3,
+    "bits": "/yA="
+   },
+   "6": {
+    "x": 30,
+    "y": 40,
+    "w": 7,
+    "h": 5,
+    "bits": "cf/58MA="
+   },
+   "7": {
+    "x": 61,
+    "y": 80,
+    "w": 12,
+    "h": 9,
+    "bits": "IgPASg/3/3H7D7D/AUA="
+   },
+   "8": {
+    "x": 123,
+    "y": 160,
+    "w": 23,
+    "h": 17,
+    "bits": "ABAAICAAOQAABQAACAAIAwAwJ4B17z7v/n+f/PwP/HAP+OAPEcA/k8A/o4B/4AAE4A=="
+   }
+  },
+  "values": {
+   "tile_id": "ce85bc9e-9c14-4d6f-bbec-b6b6c6bdf26a",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null,
+  "dbzMin": null,
+  "dbzMax": null
+ }
+}

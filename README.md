@@ -41,9 +41,9 @@ Non-existent, but here's a few pointers:
 - `npm run check` runs svelte-check and eslint; `npm run build` builds.
 - `npm test` runs the unit tests (`scripts/tests`).
 - `npm run test:ui` runs the UI tests (`tests/ui`, Playwright): the app in
-  an iPhone's WebKit and a desktop Chromium, against the demo backend. Run it
-  before pushing develop; it is not in CI yet. Once per machine:
-  `npx playwright install webkit chromium`.
+  an iPhone's WebKit and a desktop Chromium, offline on recorded answers.
+  Run it before pushing develop; it is not in CI yet. See
+  [tests/ui/README.md](tests/ui/README.md).
 
 ## Warning: Recreational Programming
 
