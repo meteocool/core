@@ -452,7 +452,9 @@ onDestroy(stop);
     on:keydown={onKey}>
     {#if n > 0 && width > 0}
       <svg viewBox="0 0 {width} {PLOT_H}" preserveAspectRatio="none" aria-hidden="true">
-        <rect class="past" x="0" y="0" width={(nowIndex + 1) * slot} height={PLOT_H} />
+        <!-- The past ends, and the line stands, where the needle rests on now:
+             the middle of its step, like every bar and label. -->
+        <rect class="past" x="0" y="0" width={(nowIndex + 0.5) * slot} height={PLOT_H} />
         {#each bars as bar (bar.i)}
           <rect
             class="tick"
@@ -476,7 +478,7 @@ onDestroy(stop);
               fill={bar.fill} />
           {/if}
         {/each}
-        <line class="now" x1={(nowIndex + 1) * slot} x2={(nowIndex + 1) * slot} y1="0" y2={PLOT_H} />
+        <line class="now" x1={(nowIndex + 0.5) * slot} x2={(nowIndex + 0.5) * slot} y1="0" y2={PLOT_H} />
         <g class="needle-group" class:nudge style:transform="translateX({needleX}px)" on:animationend={() => { nudge = false; }}>
           <rect class="needle" x="-1.5" y="0.5" width="3" height={PLOT_H - 1} rx="1.5" />
           {#if interactive}
