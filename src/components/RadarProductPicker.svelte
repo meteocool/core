@@ -16,16 +16,22 @@
  * is left as it was, so it is back the moment the player is on the present
  * or the past again.
  *
+ * On a phone everything but the menu is blurred while it is open, the
+ * control included: the menu is the one thing to read, and a tap anywhere
+ * else closes it, as does its close disc.
+ *
  * The menu is moved to <body>: the tray clips what overflows it, and a
  * backdrop filter on any ancestor would position a fixed child against that
  * ancestor rather than the window. So is the explainer its "?" opens
  * (RadarExplainer.svelte), a panel of the same fixed kind.
  */
 import { onDestroy, tick } from "svelte";
+import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import { faChevronUp } from "@fortawesome/free-solid-svg-icons/faChevronUp";
 import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons/faCircleQuestion";
 import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDish";
+import CloseDisc from "./CloseDisc.svelte";
 import Icon from "./Icon.svelte";
 import Lazy from "./Lazy.svelte";
 import { onForecastStep, radarProducts, smallScreen } from "../stores";
@@ -110,9 +116,10 @@ async function show() {
   const rect = trigger.getBoundingClientRect();
   bottom = window.innerHeight - rect.top + MARGIN;
   left = rect.left;
-  const buttons = mapButtons();
-  // On a phone, all the width left of the buttons down the right edge: wider
-  // than its own, so shorter, and beside them rather than under them.
+  // On a phone the buttons are blurred behind it, out of its way, and it
+  // takes the window's width: wider than its own, so shorter. Elsewhere it
+  // keeps left of the ones down the right edge.
+  const buttons = $smallScreen ? [] : mapButtons();
   const rightColumn = Math.min(window.innerWidth, ...buttons.filter((b) => b.left > window.innerWidth / 2).map((b) => b.left));
   const phone = window.innerWidth < PHONE_WIDTH;
   width = phone ? rightColumn - 2 * MARGIN : null;
@@ -204,6 +211,10 @@ function portal(node: HTMLElement) {
   {/if}
 </button>
 
+{#if open && $smallScreen}
+  <div use:portal class="blur" aria-hidden="true" transition:fade={{ duration: 150 }}></div>
+{/if}
+
 {#if open}
   <div
     bind:this={menu}
@@ -216,7 +227,7 @@ function portal(node: HTMLElement) {
     style:width={width === null ? undefined : `${width}px`}
     style:max-height={maxHeight === null ? undefined : `${maxHeight}px`}>
     <div class="heading">
-      <span>{$_("chrome.radar_product.title")}</span>
+      <span class="title">{$_("chrome.radar_product.title")}</span>
       <button
         type="button"
         class="help"
@@ -225,6 +236,7 @@ function portal(node: HTMLElement) {
         on:click={explain}>
         <Icon icon={faCircleQuestion} />
       </button>
+      <CloseDisc material="chrome" on:click={() => close(true)} />
     </div>
     {#each PRODUCT_GROUPS as { group, products }, i (group)}
       <div class="group" role="group" aria-labelledby={`radar-product-${group}`}>
@@ -356,16 +368,27 @@ function portal(node: HTMLElement) {
     box-shadow: var(--mc-glass-ring-lg);
     font-family: var(--mc-font);
   }
+  /* Under the menu and over everything else, the tray and its pills too. */
+  .blur {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--mc-z-dialog) - 1);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
   .heading {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     padding: 4px 4px 4px 10px;
     color: var(--mc-text);
     font: 700 15px/1.3 var(--mc-font);
   }
   /* "How the radar works", in the corner: a tap target of its own size. */
+  .heading .title { flex: 1 1 auto; min-width: 0; }
+  /* Inside the menu's corner: a sheet pulls the disc out to its own edge,
+     which on a card this rounded puts it over the curve. */
+  .menu .heading :global(button.edge) { margin: 0; }
   .help {
     display: inline-grid;
     place-items: center;
