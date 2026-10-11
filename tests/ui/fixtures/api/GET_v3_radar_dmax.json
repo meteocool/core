@@ -1,0 +1,69 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "processed_time": 1791682517,
+  "upstream_time": 1791682200,
+  "tile_id": "4b750777-970b-4966-b52f-fbe79ce371c2",
+  "source": "observation",
+  "filename": "intermediate;composite_dmax_LATEST-hd5-20261011T013441Z",
+  "tiles": {
+   "3": {
+    "x": 4,
+    "y": 5,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "4": {
+    "x": 8,
+    "y": 10,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "5": {
+    "x": 16,
+    "y": 20,
+    "w": 2,
+    "h": 3,
+    "bits": "9A=="
+   },
+   "6": {
+    "x": 32,
+    "y": 41,
+    "w": 3,
+    "h": 4,
+    "bits": "/5A="
+   },
+   "7": {
+    "x": 65,
+    "y": 82,
+    "w": 5,
+    "h": 7,
+    "bits": "Z73//EA="
+   },
+   "8": {
+    "x": 130,
+    "y": 165,
+    "w": 9,
+    "h": 12,
+    "bits": "HAefz+fz/f75/3/f4EA="
+   },
+   "9": {
+    "x": 261,
+    "y": 331,
+    "w": 16,
+    "h": 22,
+    "bits": "A8AA/gB+A5wz4Dj4P/wv/Av+P/5/52/Xf7Z/oX+A/+b/8v/7P98//wGOAAg="
+   }
+  },
+  "values": {
+   "tile_id": "4b750777-970b-4966-b52f-fbe79ce371c2",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null,
+  "dbzMin": null,
+  "dbzMax": null
+ }
+}

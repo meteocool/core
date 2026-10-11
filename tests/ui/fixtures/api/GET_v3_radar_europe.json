@@ -1,0 +1,62 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "processed_time": 1791682727,
+  "upstream_time": 1791682560,
+  "tile_id": "5c3658d7-4d94-46f8-81c7-0fa2ce7f55f8",
+  "source": "observation",
+  "filename": "intermediate;live_composite/eu/20261011T013833.tif",
+  "tiles": {
+   "3": {
+    "x": 3,
+    "y": 4,
+    "w": 2,
+    "h": 2,
+    "bits": "cA=="
+   },
+   "4": {
+    "x": 7,
+    "y": 9,
+    "w": 3,
+    "h": 3,
+    "bits": "XQA="
+   },
+   "5": {
+    "x": 15,
+    "y": 19,
+    "w": 4,
+    "h": 4,
+    "bits": "T/I="
+   },
+   "6": {
+    "x": 30,
+    "y": 39,
+    "w": 7,
+    "h": 6,
+    "bits": "EOP/8+GA"
+   },
+   "7": {
+    "x": 61,
+    "y": 79,
+    "w": 12,
+    "h": 10,
+    "bits": "BgMgfA/g////H/D/D/Ae"
+   },
+   "8": {
+    "x": 122,
+    "y": 158,
+    "w": 24,
+    "h": 19,
+    "bits": "ABAAAAwAAAgACQgAD2AAEEAAEOAAecwA4f8w9/9+9///x///Af+vAP+PAHgPAP/fAH/HAH/vAAL8"
+   }
+  },
+  "values": {
+   "tile_id": "5c3658d7-4d94-46f8-81c7-0fa2ce7f55f8",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null,
+  "dbzMin": null,
+  "dbzMax": null
+ }
+}

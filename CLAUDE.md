@@ -28,6 +28,8 @@ Every change comes with tests of both kinds below, written the way the existing 
 
 **UI tests**: `tests/ui/*.spec.ts`, Playwright, run by `npm run test:ui` in an iPhone's WebKit and a desktop Chromium.
 - For what a reader sees and does: a button enabled or not, a notice shown, playback staying within bounds, one part of the screen covering another.
-- The app runs against the demo backend, a replayed storm, so tests never depend on today's weather. Central Germany (`RADAR_VIEW` in `tests/ui/app.ts`, zoom 8 to keep a desktop screen inside DWD's reach) has radar and a forecast. Aquitaine (`44.8, -0.6`) has French radar but no forecast.
+- Offline: the backend's answers are recorded (`tests/ui/fixtures`) and replayed on the recording's clock, tiles are blank, and anything unrecorded is refused. Import `test` and `expect` from `./test`, never from `@playwright/test`, or the spec goes online. Read [tests/ui/README.md](tests/ui/README.md) before adding a spec or re-recording.
+- A test failing on "requests have no recording" means the app asks for something new: add its path to `tests/ui/offline.ts` if it is the backend's, then `npm run test:ui:record` and commit the reviewed fixtures.
+- Central Germany at zoom 8 (`GERMANY_VIEW` in `forecast-coverage.spec.ts`, which keeps a desktop screen inside DWD's reach) has radar and a forecast. Aquitaine (`44.8, -0.6`) has French radar but no forecast.
 - Find elements by role and accessible name, or through the helpers in `tests/ui/app.ts`; add a helper there instead of repeating a selector. Drive the timeline with the arrow keys and read its position from `aria-valuenow`.
 - Both projects must pass. A test that only fails with all workers running is flaky, not done.

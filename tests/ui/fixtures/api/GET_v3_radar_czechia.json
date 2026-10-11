@@ -1,0 +1,62 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "processed_time": 1791682804,
+  "upstream_time": 1791682740,
+  "tile_id": "b95af65c-3496-489c-a6a5-b498358d12ce",
+  "source": "observation",
+  "filename": "intermediate;live_composite/cz/20261011T014003.tif",
+  "tiles": {
+   "3": {
+    "x": 4,
+    "y": 5,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "4": {
+    "x": 8,
+    "y": 10,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "5": {
+    "x": 17,
+    "y": 20,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "6": {
+    "x": 34,
+    "y": 41,
+    "w": 2,
+    "h": 2,
+    "bits": "cA=="
+   },
+   "7": {
+    "x": 68,
+    "y": 83,
+    "w": 4,
+    "h": 2,
+    "bits": "Pw=="
+   },
+   "8": {
+    "x": 136,
+    "y": 166,
+    "w": 7,
+    "h": 4,
+    "bits": "DB/+0A=="
+   }
+  },
+  "values": {
+   "tile_id": "b95af65c-3496-489c-a6a5-b498358d12ce",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null,
+  "dbzMin": null,
+  "dbzMax": null
+ }
+}

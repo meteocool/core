@@ -1,0 +1,8782 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "frames": {
+   "1791675300": {
+    "processed_time": 1791675424,
+    "upstream_time": 1791675300,
+    "tile_id": "901c64ed-83fa-4a78-a680-27b1af1cdc4e",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261010T233631Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 4,
+      "h": 6,
+      "bits": "J///"
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 7,
+      "h": 11,
+      "bits": "EDz/59/////8eA=="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 14,
+      "h": 21,
+      "bits": "AgAP8A/Dvw+DPwf+AHw/8f+P89//f3v5r/G/5v/T/+P3wP8AcA=="
+     }
+    },
+    "values": {
+     "tile_id": "901c64ed-83fa-4a78-a680-27b1af1cdc4e",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791675600": {
+    "processed_time": 1791675722,
+    "upstream_time": 1791675600,
+    "tile_id": "af68f9da-0ca3-43e1-a819-3c8c8deca0bb",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261010T234132Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "Y73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "MB4+/Hz//v7+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "BgAH8APwd+D4Gfwf+AD4P/D/y/77/8f/n80/xn/M/9H/8P3wH+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "af68f9da-0ca3-43e1-a819-3c8c8deca0bb",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791675900": {
+    "processed_time": 1791676024,
+    "upstream_time": 1791675900,
+    "tile_id": "718400bd-57a4-43cf-aa29-bde85b1e176f",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261010T234619Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB4+/Hz//v7+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgAH0APwd2D4GfwP+AD4P/D34/77/8f/n40/wn+M/9D/8PzwH+ADAA=="
+     }
+    },
+    "values": {
+     "tile_id": "718400bd-57a4-43cf-aa29-bde85b1e176f",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791676200": {
+    "processed_time": 1791676326,
+    "upstream_time": 1791676200,
+    "tile_id": "4f6bac92-65b2-4c0a-a8af-604d11813c24",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261010T235132Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB4+/Hz//v7+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgAHwAPwf6D8HPgH+AD4P/D3wf75/8f/n42/wn/E//H/8fzwH+ADAA=="
+     }
+    },
+    "values": {
+     "tile_id": "4f6bac92-65b2-4c0a-a8af-604d11813c24",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791676500": {
+    "processed_time": 1791676626,
+    "upstream_time": 1791676500,
+    "tile_id": "2f3949c5-afef-46cc-9540-6cec56599b20",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261010T235612Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB4+/Hz//v7+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgADwAfwe6D4DPgF+AD4P/D3gf7o/8fvn42/w3+E//H/4fzwH+ABgA=="
+     }
+    },
+    "values": {
+     "tile_id": "2f3949c5-afef-46cc-9540-6cec56599b20",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791676800": {
+    "processed_time": 1791676929,
+    "upstream_time": 1791676800,
+    "tile_id": "656708a8-0808-477a-b685-0a97efeb9430",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T000129Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB4+/Hz//vb+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgAH4APwc6D8DPwF+AD4P/D3wf5o/8fvn4W/w3+E/+H/4fzwHeABgA=="
+     }
+    },
+    "values": {
+     "tile_id": "656708a8-0808-477a-b685-0a97efeb9430",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791677100": {
+    "processed_time": 1791677226,
+    "upstream_time": 1791677100,
+    "tile_id": "3b9683c3-84f7-4aaf-94a3-850378efe416",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T000629Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB4+/Hz//vb+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AwAD4Afwc6D8DPwHuAD4P7D3gf5o/8fnn+S/w3+E/+H/8f7wHeADgA=="
+     }
+    },
+    "values": {
+     "tile_id": "3b9683c3-84f7-4aaf-94a3-850378efe416",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791677400": {
+    "processed_time": 1791677531,
+    "upstream_time": 1791677400,
+    "tile_id": "041b2332-6d4e-4e60-9468-9de4c4d85cd2",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T001121Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB4+/Hz//vb+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AwAD4APwe6D8DPwHuAD4P7D/gf5o/8fnn4S/w3/G/+F/8f7wHeADAA=="
+     }
+    },
+    "values": {
+     "tile_id": "041b2332-6d4e-4e60-9468-9de4c4d85cd2",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791677700": {
+    "processed_time": 1791677826,
+    "upstream_time": 1791677700,
+    "tile_id": "63c54243-7641-4869-aad6-fc850cc05b92",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T001630Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB48/Hz//vr+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AwAD4APQf4D8DPwH/BD4P/D/gd5o/sfn34C/4X/G/+H/8f7wHeABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "63c54243-7641-4869-aad6-fc850cc05b92",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791678000": {
+    "processed_time": 1791678125,
+    "upstream_time": 1791678000,
+    "tile_id": "8e040837-d8a8-442d-828d-555b62ca5e1c",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T002118Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB48/Hz//v7+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AwADYAfQf4D8DPwH/BD4P7D/g95s/sfn34S/4X/G/+H/4f7wH+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "8e040837-d8a8-442d-828d-555b62ca5e1c",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791678300": {
+    "processed_time": 1791678428,
+    "upstream_time": 1791678300,
+    "tile_id": "bfbae0eb-e349-41ff-8b19-6ae283d06972",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T002636Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EBw8/Hz//v7+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AwADYAfAP4B8DPwH/BJ4P7D/g/5s/sfl34S/oX/G/+H/4f7wH+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "bfbae0eb-e349-41ff-8b19-6ae283d06972",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791678600": {
+    "processed_time": 1791678727,
+    "upstream_time": 1791678600,
+    "tile_id": "4964e638-e880-4030-83ff-caa583d5aeaf",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T003144Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "/4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "J73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB7+/Hz//vr+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgAD4AfgO8Z8DHwH/AB4P/D/g95+/sfn38E/oX/G/+H/4f7wH+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "4964e638-e880-4030-83ff-caa583d5aeaf",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791678900": {
+    "processed_time": 1791679027,
+    "upstream_time": 1791678900,
+    "tile_id": "93435d22-6d50-4ec1-be2f-b5664b94a7d4",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T003623Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "/4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 4,
+      "h": 6,
+      "bits": "L///"
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 7,
+      "h": 11,
+      "bits": "ED//59//+f/8eA=="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 14,
+      "h": 21,
+      "bits": "AgAHwA+B3mfBj4HvBHw/8f+Pfff+fl/4D+B/4//j/8f7wP8AGA=="
+     }
+    },
+    "values": {
+     "tile_id": "93435d22-6d50-4ec1-be2f-b5664b94a7d4",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791679200": {
+    "processed_time": 1791679332,
+    "upstream_time": 1791679200,
+    "tile_id": "3f6a9fee-a488-40ed-9745-6d58e6f5184d",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T004136Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 4,
+      "h": 6,
+      "bits": "J///"
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 7,
+      "h": 11,
+      "bits": "ED3/59//+f/8eA=="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 14,
+      "h": 21,
+      "bits": "AgAHwA+B3m/Bj4X/BHw/8/+P/ff/fn/4D+B/4//j/8f7wP8AGA=="
+     }
+    },
+    "values": {
+     "tile_id": "3f6a9fee-a488-40ed-9745-6d58e6f5184d",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791679500": {
+    "processed_time": 1791679635,
+    "upstream_time": 1791679500,
+    "tile_id": "52d84812-c010-408e-99e2-ce9bcd8518d6",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T004620Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 4,
+      "h": 6,
+      "bits": "Z///"
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 7,
+      "h": 11,
+      "bits": "MD3/59//+P/8eA=="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 14,
+      "h": 21,
+      "bits": "BgAGwA+B3ifBz4T/Anw/8/+Pvff/fh/4D+A/4//j/8f7wP8AGA=="
+     }
+    },
+    "values": {
+     "tile_id": "52d84812-c010-408e-99e2-ce9bcd8518d6",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791679800": {
+    "processed_time": 1791679937,
+    "upstream_time": 1791679800,
+    "tile_id": "4a0d02df-d86e-4ec1-b745-e67e73114a4a",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T005141Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "/4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 4,
+      "h": 6,
+      "bits": "b///"
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 7,
+      "h": 11,
+      "bits": "MD//5///+P/8eA=="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 14,
+      "h": 21,
+      "bits": "BgAHwA+B3mfBz4f/Bnw/+f+P/Pf7fj34D+A/4f/n/8f7wP8AGA=="
+     }
+    },
+    "values": {
+     "tile_id": "4a0d02df-d86e-4ec1-b745-e67e73114a4a",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791680100": {
+    "processed_time": 1791680235,
+    "upstream_time": 1791680100,
+    "tile_id": "baf7ca7f-2845-4d5e-8653-3d118ad734e0",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T005616Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "/4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 4,
+      "h": 6,
+      "bits": "L///"
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 7,
+      "h": 11,
+      "bits": "ED//5///+P/8eA=="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 14,
+      "h": 21,
+      "bits": "AgAHwA/B3mfB34b/Bn4/+f+P/Pf7fi/4D+A/4f/n/+P7wP8AGA=="
+     }
+    },
+    "values": {
+     "tile_id": "baf7ca7f-2845-4d5e-8653-3d118ad734e0",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791680400": {
+    "processed_time": 1791680537,
+    "upstream_time": 1791680400,
+    "tile_id": "9bf5b0ab-f510-4305-9260-447ed9ba94dc",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T010135Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "J73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EA7+/H7//vL+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgABYAPgO8Z8Dn4b/Az8P/j/w/8+/2f038A/gX9C/+X/4P7wH+ABgA=="
+     }
+    },
+    "values": {
+     "tile_id": "9bf5b0ab-f510-4305-9260-447ed9ba94dc",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791680700": {
+    "processed_time": 1791680845,
+    "upstream_time": 1791680700,
+    "tile_id": "715a0bb3-c777-4743-aeca-7db29e97312b",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T010617Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EA5+/H7//vL+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgABYAPgO8J8Dv4b/Az8H/n/w/86/2fy38A/gX9C/+X/4f7wH+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "715a0bb3-c777-4743-aeca-7db29e97312b",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791681000": {
+    "processed_time": 1791681141,
+    "upstream_time": 1791681000,
+    "tile_id": "2b5c6d98-943e-40f8-b41d-7012e19b343e",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T011135Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EA5+/v7//vD+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgABYAPgOcJ8Dn4b/iT8H/n/w/8+/2f038A/gH/C/+X/4X7wH+ABgA=="
+     }
+    },
+    "values": {
+     "tile_id": "2b5c6d98-943e-40f8-b41d-7012e19b343e",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791681300": {
+    "processed_time": 1791681442,
+    "upstream_time": 1791681300,
+    "tile_id": "85d8c1c9-3dce-4131-b71f-7ddbd2a78bc3",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T011618Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "/4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "97/vAA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "Dv7+/v/+8v7+Hg=="
+     },
+     "9": {
+      "x": 262,
+      "y": 332,
+      "w": 15,
+      "h": 20,
+      "bits": "ALAB8Bzjvgc/Hf8yfg/sf+H/n3+z+W/gX8A/8X/y//D/eA/wAIA="
+     }
+    },
+    "values": {
+     "tile_id": "85d8c1c9-3dce-4131-b71f-7ddbd2a78bc3",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791681600": {
+    "processed_time": 1791681740,
+    "upstream_time": 1791681600,
+    "tile_id": "12583ef5-9121-46bb-8cb1-db0db53d03d2",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T012138Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "/4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "J73/eA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB7+/v7//vL+/h4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgADYAPgOcf8Dj4e/iT8H9j/w/4+/2fy38A/wX/i/+X/4f7wH+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "12583ef5-9121-46bb-8cb1-db0db53d03d2",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791681900": {
+    "processed_time": 1791682038,
+    "upstream_time": 1791681900,
+    "tile_id": "85daa5c3-92d3-45d4-9b2f-1a9b6a3d7299",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T012634Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "/4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "J73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EA7+/v7//vD+/x4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AgABYAPgOcZ8Dj4e/iR8H9j/w/4+/2fw38A/wH/m/+X/4f74H+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "85daa5c3-92d3-45d4-9b2f-1a9b6a3d7299",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791682200": {
+    "processed_time": 1791682342,
+    "upstream_time": 1791682200,
+    "tile_id": "b980f146-75de-4ab3-a570-f5a2305ff365",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T013120Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5+/v7///D+/x4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AQADYAPwOcJ8Dj4f/iR8F/j/w/4e/Xf03+A/wH/g/+X/6f74H+ABAA=="
+     }
+    },
+    "values": {
+     "tile_id": "b980f146-75de-4ab3-a570-f5a2305ff365",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791682500": {
+    "processed_time": 1791682639,
+    "upstream_time": 1791682500,
+    "tile_id": "c967c51c-ac50-4052-b04a-2d0a3cb355c3",
+    "source": "observation",
+    "filename": "intermediate;composite_hx_LATEST-hd5-20261011T013637Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5+/v7///D8/x4="
+     },
+     "9": {
+      "x": 262,
+      "y": 331,
+      "w": 15,
+      "h": 21,
+      "bits": "AQAD4APwOcJ8Dj4f/iR8F/j/wf4b//fy3+A/wH8g/+H/7f74H+ABgA=="
+     }
+    },
+    "values": {
+     "tile_id": "c967c51c-ac50-4052-b04a-2d0a3cb355c3",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791682800": {
+    "processed_time": 1791682738,
+    "upstream_time": 1791682500,
+    "tile_id": "fde802c5-8621-4772-ac3b-2f256ec4d40e",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_005-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5+/v79//D8/x4="
+     }
+    },
+    "values": {
+     "tile_id": "fde802c5-8621-4772-ac3b-2f256ec4d40e",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791683100": {
+    "processed_time": 1791682738,
+    "upstream_time": 1791682500,
+    "tile_id": "2413e098-3da6-4c7b-a647-44474f751ed8",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_010-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5+/v79//D8/x4="
+     }
+    },
+    "values": {
+     "tile_id": "2413e098-3da6-4c7b-a647-44474f751ed8",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791683400": {
+    "processed_time": 1791682738,
+    "upstream_time": 1791682500,
+    "tile_id": "6d9d1562-f149-4af1-8e94-fab55dc41883",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_015-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5e/v79//D8/x4="
+     }
+    },
+    "values": {
+     "tile_id": "6d9d1562-f149-4af1-8e94-fab55dc41883",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791683700": {
+    "processed_time": 1791682742,
+    "upstream_time": 1791682500,
+    "tile_id": "2eac4bf4-665c-4934-b9a2-5df57a0e970e",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_020-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5e/v79//D8/x4="
+     }
+    },
+    "values": {
+     "tile_id": "2eac4bf4-665c-4934-b9a2-5df57a0e970e",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791684000": {
+    "processed_time": 1791682738,
+    "upstream_time": 1791682500,
+    "tile_id": "2b860911-f01a-4944-9567-cb7231cafafc",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_025-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5e/v79//D8/x4="
+     }
+    },
+    "values": {
+     "tile_id": "2b860911-f01a-4944-9567-cb7231cafafc",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791684300": {
+    "processed_time": 1791682742,
+    "upstream_time": 1791682500,
+    "tile_id": "31a2071c-cfce-4b74-b694-e03b1c193217",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_030-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 82,
+      "w": 5,
+      "h": 6,
+      "bits": "I73/fA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 165,
+      "w": 8,
+      "h": 11,
+      "bits": "EB5e/v79//D8/x4="
+     }
+    },
+    "values": {
+     "tile_id": "31a2071c-cfce-4b74-b694-e03b1c193217",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791684600": {
+    "processed_time": 1791682742,
+    "upstream_time": 1791682500,
+    "tile_id": "d543b682-d6cb-498f-8a90-80731893913c",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_035-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "d7/vgA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "Dl7+/v3/8Pz/Hg=="
+     }
+    },
+    "values": {
+     "tile_id": "d543b682-d6cb-498f-8a90-80731893913c",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791684900": {
+    "processed_time": 1791682742,
+    "upstream_time": 1791682500,
+    "tile_id": "0f9636db-cfb7-4883-9443-f33c38dd0465",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_040-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "f7/vgA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D17+/v//8Pz/Hg=="
+     }
+    },
+    "values": {
+     "tile_id": "0f9636db-cfb7-4883-9443-f33c38dd0465",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791685200": {
+    "processed_time": 1791682745,
+    "upstream_time": 1791682500,
+    "tile_id": "649e940c-a7c2-4b47-89bd-5a5942777307",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_045-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "f7/vgA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D17+/v//+Pz/Hg=="
+     }
+    },
+    "values": {
+     "tile_id": "649e940c-a7c2-4b47-89bd-5a5942777307",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791685500": {
+    "processed_time": 1791682747,
+    "upstream_time": 1791682500,
+    "tile_id": "395a19d6-2b6e-4145-9199-778638fdcbae",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_050-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "f4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "f7/vgA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D17+fv9/+Pz/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "395a19d6-2b6e-4145-9199-778638fdcbae",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791685800": {
+    "processed_time": 1791682749,
+    "upstream_time": 1791682500,
+    "tile_id": "c2cf988a-046c-4c15-b44d-716e36dbb521",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_055-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e5/vgA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D15+fn9/+Pz/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "c2cf988a-046c-4c15-b44d-716e36dbb521",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791686100": {
+    "processed_time": 1791682746,
+    "upstream_time": 1791682500,
+    "tile_id": "a9e95e61-81c0-4f97-9c03-32f454c28641",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_060-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9//gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D15+f39/+fz/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "a9e95e61-81c0-4f97-9c03-32f454c28641",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791686400": {
+    "processed_time": 1791682746,
+    "upstream_time": 1791682500,
+    "tile_id": "a2b7404c-429d-4514-a2e4-ee3ab1e4e70f",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_065-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9//gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D15+f39/+fz/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "a2b7404c-429d-4514-a2e4-ee3ab1e4e70f",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791686700": {
+    "processed_time": 1791682749,
+    "upstream_time": 1791682500,
+    "tile_id": "1ea5e954-70a0-443d-ae18-6dc9f2eeffda",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_070-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9//gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D15+f39/+fz/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "1ea5e954-70a0-443d-ae18-6dc9f2eeffda",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791687000": {
+    "processed_time": 1791682751,
+    "upstream_time": 1791682500,
+    "tile_id": "423fe0cd-8c03-45a0-9ac0-fbe236780dc0",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_075-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9/3gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D15+f31/+fx/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "423fe0cd-8c03-45a0-9ac0-fbe236780dc0",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791687300": {
+    "processed_time": 1791682751,
+    "upstream_time": 1791682500,
+    "tile_id": "982e70ae-2525-4802-9139-d7fcb0c85419",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_080-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9/3gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D39/f31/+fx/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "982e70ae-2525-4802-9139-d7fcb0c85419",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791687600": {
+    "processed_time": 1791682755,
+    "upstream_time": 1791682500,
+    "tile_id": "f944116e-e639-4509-af73-d004f2be16a5",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_085-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9/3gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "D39/f31/+fx/Hw=="
+     }
+    },
+    "values": {
+     "tile_id": "f944116e-e639-4509-af73-d004f2be16a5",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791687900": {
+    "processed_time": 1791682753,
+    "upstream_time": 1791682500,
+    "tile_id": "25f170d2-eddd-4895-b89d-d219ce230df0",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_090-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9/3gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 9,
+      "h": 10,
+      "bits": "Dz+fz+fT/+X4fw+A"
+     }
+    },
+    "values": {
+     "tile_id": "25f170d2-eddd-4895-b89d-d219ce230df0",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791688200": {
+    "processed_time": 1791682753,
+    "upstream_time": 1791682500,
+    "tile_id": "fa160168-befc-4d21-9bf9-e0137ec373c2",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_095-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 32,
+      "y": 41,
+      "w": 3,
+      "h": 3,
+      "bits": "b4A="
+     },
+     "7": {
+      "x": 65,
+      "y": 83,
+      "w": 5,
+      "h": 5,
+      "bits": "e9/3gA=="
+     },
+     "8": {
+      "x": 131,
+      "y": 166,
+      "w": 9,
+      "h": 10,
+      "bits": "Dz+fz+fT/+X4fw+A"
+     }
+    },
+    "values": {
+     "tile_id": "fa160168-befc-4d21-9bf9-e0137ec373c2",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791688500": {
+    "processed_time": 1791682756,
+    "upstream_time": 1791682500,
+    "tile_id": "52613acd-f15b-43e7-8298-59ba333ef966",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_100-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 33,
+      "y": 41,
+      "w": 2,
+      "h": 3,
+      "bits": "/A=="
+     },
+     "7": {
+      "x": 66,
+      "y": 83,
+      "w": 4,
+      "h": 5,
+      "bits": "///w"
+     },
+     "8": {
+      "x": 132,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "Hv7+/v7/8vj+Pg=="
+     }
+    },
+    "values": {
+     "tile_id": "52613acd-f15b-43e7-8298-59ba333ef966",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791688800": {
+    "processed_time": 1791682758,
+    "upstream_time": 1791682500,
+    "tile_id": "cbd5ed1a-5248-4847-81a2-d80bff158bb0",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_105-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 33,
+      "y": 41,
+      "w": 2,
+      "h": 3,
+      "bits": "/A=="
+     },
+     "7": {
+      "x": 66,
+      "y": 83,
+      "w": 4,
+      "h": 5,
+      "bits": "///w"
+     },
+     "8": {
+      "x": 132,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "Hv7+/v7/8vj+Pg=="
+     }
+    },
+    "values": {
+     "tile_id": "cbd5ed1a-5248-4847-81a2-d80bff158bb0",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791689100": {
+    "processed_time": 1791682758,
+    "upstream_time": 1791682500,
+    "tile_id": "8859cfb5-a268-4d4a-b800-cf3e015a9374",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_110-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 33,
+      "y": 41,
+      "w": 2,
+      "h": 3,
+      "bits": "/A=="
+     },
+     "7": {
+      "x": 66,
+      "y": 83,
+      "w": 4,
+      "h": 5,
+      "bits": "///w"
+     },
+     "8": {
+      "x": 132,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "Hv78/v7/8vj+Hg=="
+     }
+    },
+    "values": {
+     "tile_id": "8859cfb5-a268-4d4a-b800-cf3e015a9374",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   },
+   "1791689400": {
+    "processed_time": 1791682759,
+    "upstream_time": 1791682500,
+    "tile_id": "86dc21f6-e570-4bdc-8803-f565afbfb74c",
+    "source": "nowcast_phys",
+    "filename": "intermediate;WN2610110135_115-20261011T013820Z",
+    "tiles": {
+     "3": {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "4": {
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "bits": "gA=="
+     },
+     "5": {
+      "x": 16,
+      "y": 20,
+      "w": 2,
+      "h": 2,
+      "bits": "8A=="
+     },
+     "6": {
+      "x": 33,
+      "y": 41,
+      "w": 2,
+      "h": 3,
+      "bits": "/A=="
+     },
+     "7": {
+      "x": 66,
+      "y": 83,
+      "w": 4,
+      "h": 5,
+      "bits": "///w"
+     },
+     "8": {
+      "x": 132,
+      "y": 166,
+      "w": 8,
+      "h": 10,
+      "bits": "Hv78/v7/8vj+Hg=="
+     }
+    },
+    "values": {
+     "tile_id": "86dc21f6-e570-4bdc-8803-f565afbfb74c",
+     "encoding": "rvp6-u8"
+    },
+    "dbz": null,
+    "dbzMin": null,
+    "dbzMax": null
+   }
+  },
+  "networks": {
+   "ch": {
+    "1791675300": {
+     "processed_time": 1791675498,
+     "upstream_time": 1791675360,
+     "tile_id": "13f12d42-5054-44ed-8ee6-1a53909485c0",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261010T233803.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "8": {
+       "x": 133,
+       "y": 165,
+       "w": 3,
+       "h": 3,
+       "bits": "T4A="
+      }
+     },
+     "values": {
+      "tile_id": "13f12d42-5054-44ed-8ee6-1a53909485c0",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675600": {
+     "processed_time": 1791675784,
+     "upstream_time": 1791675660,
+     "tile_id": "6f6fafb1-b263-489b-8481-ed6d76fb4347",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261010T234303.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gjc="
+      }
+     },
+     "values": {
+      "tile_id": "6f6fafb1-b263-489b-8481-ed6d76fb4347",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675900": {
+     "processed_time": 1791676110,
+     "upstream_time": 1791675960,
+     "tile_id": "6d810a7c-aeed-4f79-9178-dd782ce094d5",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261010T234803.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gjc="
+      }
+     },
+     "values": {
+      "tile_id": "6d810a7c-aeed-4f79-9178-dd782ce094d5",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676200": {
+     "processed_time": 1791676385,
+     "upstream_time": 1791676260,
+     "tile_id": "c49ca089-7564-4f9b-99e9-8ab1f12dc4c9",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261010T235303.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gjc="
+      }
+     },
+     "values": {
+      "tile_id": "c49ca089-7564-4f9b-99e9-8ab1f12dc4c9",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676500": {
+     "processed_time": 1791676684,
+     "upstream_time": 1791676560,
+     "tile_id": "7776d9e0-d8f3-411c-a4db-7a1c60e22c63",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261010T235803.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gjc="
+      }
+     },
+     "values": {
+      "tile_id": "7776d9e0-d8f3-411c-a4db-7a1c60e22c63",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676800": {
+     "processed_time": 1791676985,
+     "upstream_time": 1791676860,
+     "tile_id": "ecf138d2-4b90-4e8f-864e-d0d6c8bd8e65",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T000303.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 3,
+       "bits": "9A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 5,
+       "bits": "gzYg"
+      }
+     },
+     "values": {
+      "tile_id": "ecf138d2-4b90-4e8f-864e-d0d6c8bd8e65",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677100": {
+     "processed_time": 1791677285,
+     "upstream_time": 1791677160,
+     "tile_id": "78ab996c-fbeb-43ad-b733-c9b75ad3e8b6",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T000803.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 3,
+       "bits": "9A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 5,
+       "bits": "gjYg"
+      }
+     },
+     "values": {
+      "tile_id": "78ab996c-fbeb-43ad-b733-c9b75ad3e8b6",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677400": {
+     "processed_time": 1791677585,
+     "upstream_time": 1791677460,
+     "tile_id": "3c9ad33f-e5cb-433a-a83f-839f8502480f",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T001303.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gzY="
+      }
+     },
+     "values": {
+      "tile_id": "3c9ad33f-e5cb-433a-a83f-839f8502480f",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677700": {
+     "processed_time": 1791677885,
+     "upstream_time": 1791677760,
+     "tile_id": "5c036e2f-b3df-4b8d-8ca7-7b69acac323d",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T001803.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gzY="
+      }
+     },
+     "values": {
+      "tile_id": "5c036e2f-b3df-4b8d-8ca7-7b69acac323d",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678000": {
+     "processed_time": 1791678185,
+     "upstream_time": 1791678060,
+     "tile_id": "693ce000-1874-4b42-9e2a-f66d7a1d4e72",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T002303.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gjY="
+      }
+     },
+     "values": {
+      "tile_id": "693ce000-1874-4b42-9e2a-f66d7a1d4e72",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678300": {
+     "processed_time": 1791678484,
+     "upstream_time": 1791678360,
+     "tile_id": "7640be74-7fc6-4c06-957a-0afc0959f797",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T002803.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gzY="
+      }
+     },
+     "values": {
+      "tile_id": "7640be74-7fc6-4c06-957a-0afc0959f797",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678600": {
+     "processed_time": 1791678814,
+     "upstream_time": 1791678660,
+     "tile_id": "78783473-b81d-4629-81e0-a47bc9a224b4",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T003333.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "izY="
+      }
+     },
+     "values": {
+      "tile_id": "78783473-b81d-4629-81e0-a47bc9a224b4",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678900": {
+     "processed_time": 1791679114,
+     "upstream_time": 1791678960,
+     "tile_id": "ad86d1d9-7caa-4716-91d3-e2d308112c75",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T003833.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "8": {
+       "x": 133,
+       "y": 165,
+       "w": 3,
+       "h": 3,
+       "bits": "bwA="
+      }
+     },
+     "values": {
+      "tile_id": "ad86d1d9-7caa-4716-91d3-e2d308112c75",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679200": {
+     "processed_time": 1791679414,
+     "upstream_time": 1791679260,
+     "tile_id": "8c61d57b-77d2-42df-abd9-e11178fdbba0",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T004333.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "8": {
+       "x": 133,
+       "y": 165,
+       "w": 3,
+       "h": 3,
+       "bits": "bwA="
+      }
+     },
+     "values": {
+      "tile_id": "8c61d57b-77d2-42df-abd9-e11178fdbba0",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679500": {
+     "processed_time": 1791679715,
+     "upstream_time": 1791679560,
+     "tile_id": "2305d2fe-982f-4af2-a5ef-2d86ccbf379d",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T004833.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gzY="
+      }
+     },
+     "values": {
+      "tile_id": "2305d2fe-982f-4af2-a5ef-2d86ccbf379d",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679800": {
+     "processed_time": 1791680014,
+     "upstream_time": 1791679860,
+     "tile_id": "96567c56-2a4e-41d6-8463-c72864225545",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T005333.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gzY="
+      }
+     },
+     "values": {
+      "tile_id": "96567c56-2a4e-41d6-8463-c72864225545",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680100": {
+     "processed_time": 1791680323,
+     "upstream_time": 1791680160,
+     "tile_id": "f12ffcdc-0f68-4b4c-8b6a-3809500d1dbe",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T005833.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "8": {
+       "x": 133,
+       "y": 165,
+       "w": 3,
+       "h": 3,
+       "bits": "b4A="
+      }
+     },
+     "values": {
+      "tile_id": "f12ffcdc-0f68-4b4c-8b6a-3809500d1dbe",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680400": {
+     "processed_time": 1791680633,
+     "upstream_time": 1791680460,
+     "tile_id": "d0250073-da46-41be-ab4c-f48f9f7b5e49",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T010333.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 82,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "8": {
+       "x": 134,
+       "y": 165,
+       "w": 2,
+       "h": 3,
+       "bits": "/A=="
+      }
+     },
+     "values": {
+      "tile_id": "d0250073-da46-41be-ab4c-f48f9f7b5e49",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680700": {
+     "processed_time": 1791680940,
+     "upstream_time": 1791680760,
+     "tile_id": "e53d0943-2b81-4fc1-815e-fc60ec3aa4d5",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T010833.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 82,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "8": {
+       "x": 134,
+       "y": 165,
+       "w": 2,
+       "h": 3,
+       "bits": "/A=="
+      }
+     },
+     "values": {
+      "tile_id": "e53d0943-2b81-4fc1-815e-fc60ec3aa4d5",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681000": {
+     "processed_time": 1791681242,
+     "upstream_time": 1791681060,
+     "tile_id": "a55830e7-e83f-4ae2-939c-32c5d9ffa25f",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T011333.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 82,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "8": {
+       "x": 134,
+       "y": 165,
+       "w": 2,
+       "h": 3,
+       "bits": "/A=="
+      }
+     },
+     "values": {
+      "tile_id": "a55830e7-e83f-4ae2-939c-32c5d9ffa25f",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681300": {
+     "processed_time": 1791681544,
+     "upstream_time": 1791681360,
+     "tile_id": "40766914-27f7-4c5c-bbdc-a7b6aae7a736",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T011833.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 82,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "8": {
+       "x": 134,
+       "y": 165,
+       "w": 2,
+       "h": 3,
+       "bits": "/A=="
+      }
+     },
+     "values": {
+      "tile_id": "40766914-27f7-4c5c-bbdc-a7b6aae7a736",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681600": {
+     "processed_time": 1791681814,
+     "upstream_time": 1791681660,
+     "tile_id": "ddf3865a-ab15-416d-a8bf-521c5e1f44cc",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T012333.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "0A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gzM="
+      }
+     },
+     "values": {
+      "tile_id": "ddf3865a-ab15-416d-a8bf-521c5e1f44cc",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681900": {
+     "processed_time": 1791682115,
+     "upstream_time": 1791681960,
+     "tile_id": "41b6a8fe-5315-4b09-9ff3-daadd11a55b2",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T012833.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 66,
+       "y": 82,
+       "w": 2,
+       "h": 2,
+       "bits": "0A=="
+      },
+      "8": {
+       "x": 132,
+       "y": 164,
+       "w": 4,
+       "h": 4,
+       "bits": "gzM="
+      }
+     },
+     "values": {
+      "tile_id": "41b6a8fe-5315-4b09-9ff3-daadd11a55b2",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682200": {
+     "processed_time": 1791682414,
+     "upstream_time": 1791682260,
+     "tile_id": "4651468b-217a-4d0d-b6ac-c91d082e3250",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T013333.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 82,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "8": {
+       "x": 134,
+       "y": 165,
+       "w": 2,
+       "h": 3,
+       "bits": "/A=="
+      }
+     },
+     "values": {
+      "tile_id": "4651468b-217a-4d0d-b6ac-c91d082e3250",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682500": {
+     "processed_time": 1791682684,
+     "upstream_time": 1791682560,
+     "tile_id": "85e802b9-8a4f-4052-a87a-6d7672d6d9ff",
+     "source": "observation",
+     "filename": "intermediate;live_composite/ch/20261011T013803.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 82,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "8": {
+       "x": 134,
+       "y": 165,
+       "w": 2,
+       "h": 3,
+       "bits": "/A=="
+      }
+     },
+     "values": {
+      "tile_id": "85e802b9-8a4f-4052-a87a-6d7672d6d9ff",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    }
+   },
+   "fr": {
+    "1791675300": {
+     "processed_time": 1791675460,
+     "upstream_time": 1791675240,
+     "tile_id": "714700b0-04ea-41ed-8c15-16ec0cde74ee",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261010T233733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "A1c8GP78DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 15,
+       "h": 14,
+       "bits": "AAgAHAA4iWD6ACAAMADgIeHv8//ALAAOABgA"
+      }
+     },
+     "values": {
+      "tile_id": "714700b0-04ea-41ed-8c15-16ec0cde74ee",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675600": {
+     "processed_time": 1791675761,
+     "upstream_time": 1791675540,
+     "tile_id": "7266e4eb-b23c-4e9b-99ab-f494fa209fc3",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261010T234233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "A0M8GP7+CA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 15,
+       "h": 14,
+       "bits": "AAgAHAA4gGD6AIAAMADgLeHv8//gLAAMABgA"
+      }
+     },
+     "values": {
+      "tile_id": "7266e4eb-b23c-4e9b-99ab-f494fa209fc3",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675900": {
+     "processed_time": 1791676060,
+     "upstream_time": 1791675840,
+     "tile_id": "b0dae2e2-b2d0-49f6-9feb-d69127d0da04",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261010T234733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "A1M8GP7+CA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 15,
+       "h": 14,
+       "bits": "AAgADAA4iGD6AAAAMADg6fHv8//kPAAMABgA"
+      }
+     },
+     "values": {
+      "tile_id": "b0dae2e2-b2d0-49f6-9feb-d69127d0da04",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676200": {
+     "processed_time": 1791676361,
+     "upstream_time": 1791676140,
+     "tile_id": "320ff734-a949-4fb2-b4bb-70e22d55e82a",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261010T235233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "A1c8HP7+CA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AA4AHESweQAIABwAcHTw9/n/8xYABgAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "320ff734-a949-4fb2-b4bb-70e22d55e82a",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676500": {
+     "processed_time": 1791676630,
+     "upstream_time": 1791676440,
+     "tile_id": "98a9eec2-dd13-45b4-b5fe-d19b933aaea7",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261010T235703.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B1M03P7+CA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 15,
+       "h": 14,
+       "bits": "AAgAPAA4iGDyAAAAKDDg7eHv8//mLAAMABgA"
+      }
+     },
+     "values": {
+      "tile_id": "98a9eec2-dd13-45b4-b5fe-d19b933aaea7",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676800": {
+     "processed_time": 1791676962,
+     "upstream_time": 1791676740,
+     "tile_id": "afd6cde5-f65e-4ae3-9764-b64b31b6f7f1",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T000233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B3c8nP7+CA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 15,
+       "h": 14,
+       "bits": "ABgAPAA4yWDyAEgAOCDg6eHv8//mLAAMABgA"
+      }
+     },
+     "values": {
+      "tile_id": "afd6cde5-f65e-4ae3-9764-b64b31b6f7f1",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677100": {
+     "processed_time": 1791677261,
+     "upstream_time": 1791677040,
+     "tile_id": "447ae834-4b68-4568-9188-453c2151d134",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T000733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B3c8nP7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHGSwfQAOABwQcHL49/n/8xcABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "447ae834-4b68-4568-9188-453c2151d134",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677400": {
+     "processed_time": 1791677561,
+     "upstream_time": 1791677340,
+     "tile_id": "e6c5a5ad-e0e5-45b6-8205-cbf401dd0768",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T001233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B2M8nP7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHGAwfQAEABwQcHTw9/n/8xcABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "e6c5a5ad-e0e5-45b6-8205-cbf401dd0768",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677700": {
+     "processed_time": 1791677860,
+     "upstream_time": 1791677640,
+     "tile_id": "dae6bdba-9743-4d9b-9f87-bb5c17b03007",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T001733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B2M0nP7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "ABYAHGAweQAAABwQcHz49/n/8xcABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "dae6bdba-9743-4d9b-9f87-bb5c17b03007",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678000": {
+     "processed_time": 1791678162,
+     "upstream_time": 1791677940,
+     "tile_id": "7ceddc2e-b703-4dbb-8d94-8c60d8bd547e",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T002233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B2d+nP7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "ABYAHGCw+UAlABwQcH749/nf8xeABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "7ceddc2e-b703-4dbb-8d94-8c60d8bd547e",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678300": {
+     "processed_time": 1791678461,
+     "upstream_time": 1791678240,
+     "tile_id": "e120f11d-a834-497b-9560-26f5286a4265",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T002733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B2c83P7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHGBwewAAAhwQcHzw9/nf8xeABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "e120f11d-a834-497b-9560-26f5286a4265",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678600": {
+     "processed_time": 1791678761,
+     "upstream_time": 1791678540,
+     "tile_id": "5cac37ab-c1d3-4cbf-82d3-8c5d02f59dc9",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T003233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "B2M83P7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "ABYAHGAw+QAMAhwUcH749/nf8xeABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "5cac37ab-c1d3-4cbf-82d3-8c5d02f59dc9",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678900": {
+     "processed_time": 1791679062,
+     "upstream_time": 1791678840,
+     "tile_id": "657309df-cc8f-445c-8acd-dd2c59e25d53",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T003733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "Bzc83P7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHCTwewAEAhwUcHzw9/nf8x+ABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "657309df-cc8f-445c-8acd-dd2c59e25d53",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679200": {
+     "processed_time": 1791679361,
+     "upstream_time": 1791679140,
+     "tile_id": "2c04168a-f2a1-48c6-9d0e-e643f7be3e2a",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T004233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "Byc8/P7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHCCweQAkAhwVcHzw8/n/8x+ABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "2c04168a-f2a1-48c6-9d0e-e643f7be3e2a",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679500": {
+     "processed_time": 1791679632,
+     "upstream_time": 1791679440,
+     "tile_id": "442c280b-e092-4f87-8dfd-76d408540ba4",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T004703.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "ByM83P7+DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHCAweQAMAhwUUH7w9/n/8x+ABwAMAA=="
+      }
+     },
+     "values": {
+      "tile_id": "442c280b-e092-4f87-8dfd-76d408540ba4",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679800": {
+     "processed_time": 1791679961,
+     "upstream_time": 1791679740,
+     "tile_id": "0422654e-f59b-40df-b88c-e914e69edaee",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T005233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "ByM83P78HA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHCAweQAEAhwQcHz49/n/4x8ADwAEAA=="
+      }
+     },
+     "values": {
+      "tile_id": "0422654e-f59b-40df-b88c-e914e69edaee",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680100": {
+     "processed_time": 1791680261,
+     "upstream_time": 1791680040,
+     "tile_id": "96a0a0fc-544b-4913-ab22-cdbc4ae682b0",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T005733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "ByM83P78DA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHCAwewAMAhwYcHzg9/n/4x8ABwAEAA=="
+      }
+     },
+     "values": {
+      "tile_id": "96a0a0fc-544b-4913-ab22-cdbc4ae682b0",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680400": {
+     "processed_time": 1791680532,
+     "upstream_time": 1791680340,
+     "tile_id": "adc6b92b-84c5-4fbf-b6a1-732b087f51bf",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T010203.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "Byd03P78HA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 159,
+       "w": 15,
+       "h": 13,
+       "bits": "AB4AHCCgeQEAAhwYcHzw9/nv4x/ADwAEAA=="
+      }
+     },
+     "values": {
+      "tile_id": "adc6b92b-84c5-4fbf-b6a1-732b087f51bf",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680700": {
+     "processed_time": 1791680860,
+     "upstream_time": 1791680640,
+     "tile_id": "83e81757-c4f0-40b4-97a8-a0c394c3597b",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T010733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 3,
+       "h": 3,
+       "bits": "fwA="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 5,
+       "h": 4,
+       "bits": "G/3g"
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 8,
+       "h": 7,
+       "bits": "ByN0WP78HA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 15,
+       "h": 14,
+       "bits": "ABAAPAA4QEDyAgAEMBDg+eHv89/GP4AeAAgA"
+      }
+     },
+     "values": {
+      "tile_id": "83e81757-c4f0-40b4-97a8-a0c394c3597b",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681000": {
+     "processed_time": 1791681161,
+     "upstream_time": 1791680940,
+     "tile_id": "3179a177-951a-4daa-a5a4-fc54123a51ca",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T011233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 2,
+       "h": 3,
+       "bits": "fA=="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 4,
+       "h": 4,
+       "bits": "F/8="
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 7,
+       "h": 7,
+       "bits": "Bk3zz/+HAA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 14,
+       "h": 14,
+       "bits": "ABAAcADCCg8gQwGMCHD549/vfzH0AeADAA=="
+      }
+     },
+     "values": {
+      "tile_id": "3179a177-951a-4daa-a5a4-fc54123a51ca",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681300": {
+     "processed_time": 1791681461,
+     "upstream_time": 1791681240,
+     "tile_id": "0df505c7-b101-4987-a6b9-da604a153046",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T011733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 2,
+       "h": 3,
+       "bits": "fA=="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 4,
+       "h": 4,
+       "bits": "F/8="
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 7,
+       "h": 7,
+       "bits": "BuXzz/+GAA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 14,
+       "h": 14,
+       "bits": "ABAAMADGSg8gQQGMDHD949/vfzH0AcADAA=="
+      }
+     },
+     "values": {
+      "tile_id": "0df505c7-b101-4987-a6b9-da604a153046",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681600": {
+     "processed_time": 1791681761,
+     "upstream_time": 1791681540,
+     "tile_id": "8786261d-76d6-41bf-b7c4-cf0a6387a2e7",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T012233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 2,
+       "h": 3,
+       "bits": "fA=="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 4,
+       "h": 4,
+       "bits": "F/8="
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 7,
+       "h": 7,
+       "bits": "BmXzz9+HAA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 14,
+       "h": 14,
+       "bits": "ABAAcACCQg/gQwGMDHD549/PfzH0AeADAA=="
+      }
+     },
+     "values": {
+      "tile_id": "8786261d-76d6-41bf-b7c4-cf0a6387a2e7",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681900": {
+     "processed_time": 1791682060,
+     "upstream_time": 1791681840,
+     "tile_id": "8116ea5d-c306-41d7-a6a9-f62c471ff227",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T012733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 2,
+       "h": 3,
+       "bits": "fA=="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 4,
+       "h": 4,
+       "bits": "F/8="
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 7,
+       "h": 7,
+       "bits": "BmX37/+HAA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 14,
+       "h": 14,
+       "bits": "ABAAcADCQw9gQwGOHHD549/vfzH0AeADAA=="
+      }
+     },
+     "values": {
+      "tile_id": "8116ea5d-c306-41d7-a6a9-f62c471ff227",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682200": {
+     "processed_time": 1791682361,
+     "upstream_time": 1791682140,
+     "tile_id": "9460e6ff-6f7f-4456-8233-e8ea0916062e",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T013233.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 2,
+       "h": 3,
+       "bits": "fA=="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 4,
+       "h": 4,
+       "bits": "F/8="
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 7,
+       "h": 7,
+       "bits": "BmXW7/+HAA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 14,
+       "h": 14,
+       "bits": "ABAAMACCQg8gQAEOHFDx09+vfzH0AeADAA=="
+      }
+     },
+     "values": {
+      "tile_id": "9460e6ff-6f7f-4456-8233-e8ea0916062e",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682500": {
+     "processed_time": 1791682661,
+     "upstream_time": 1791682440,
+     "tile_id": "8a7d4b1d-3727-41b7-a23d-b1c6a26ff372",
+     "source": "observation",
+     "filename": "intermediate;live_composite/fr/20261011T013733.tif",
+     "tiles": {
+      "3": {
+       "x": 3,
+       "y": 4,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "4": {
+       "x": 7,
+       "y": 9,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "5": {
+       "x": 15,
+       "y": 19,
+       "w": 2,
+       "h": 3,
+       "bits": "fA=="
+      },
+      "6": {
+       "x": 30,
+       "y": 39,
+       "w": 4,
+       "h": 4,
+       "bits": "F/8="
+      },
+      "7": {
+       "x": 61,
+       "y": 79,
+       "w": 7,
+       "h": 7,
+       "bits": "BmX37/+HAA=="
+      },
+      "8": {
+       "x": 122,
+       "y": 158,
+       "w": 14,
+       "h": 14,
+       "bits": "ABAAMACCQg9gQQEOHnDh89+vfzH0AeADAA=="
+      }
+     },
+     "values": {
+      "tile_id": "8a7d4b1d-3727-41b7-a23d-b1c6a26ff372",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    }
+   },
+   "cz": {
+    "1791675300": {
+     "processed_time": 1791675305,
+     "upstream_time": 1791675240,
+     "tile_id": "a1e13c6d-3a68-4706-bd3a-ab10e1af6144",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261010T233503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 6,
+       "bits": "Dg//fUJA"
+      }
+     },
+     "values": {
+      "tile_id": "a1e13c6d-3a68-4706-bd3a-ab10e1af6144",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675600": {
+     "processed_time": 1791675605,
+     "upstream_time": 1791675540,
+     "tile_id": "ba94d4ce-8f71-4168-b63b-4e16be3a6c0d",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261010T234003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "f6A="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 6,
+       "bits": "HD//3FAA"
+      }
+     },
+     "values": {
+      "tile_id": "ba94d4ce-8f71-4168-b63b-4e16be3a6c0d",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675900": {
+     "processed_time": 1791675905,
+     "upstream_time": 1791675840,
+     "tile_id": "a6a37682-4e97-440f-93c7-ac30c0456709",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261010T234503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "f6A="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 6,
+       "bits": "HH/+3FAA"
+      }
+     },
+     "values": {
+      "tile_id": "a6a37682-4e97-440f-93c7-ac30c0456709",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676200": {
+     "processed_time": 1791676204,
+     "upstream_time": 1791676140,
+     "tile_id": "29326f90-dc66-42e5-80ae-6798379b7533",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261010T235003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "f6A="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 6,
+       "bits": "HD//3FAA"
+      }
+     },
+     "values": {
+      "tile_id": "29326f90-dc66-42e5-80ae-6798379b7533",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676500": {
+     "processed_time": 1791676505,
+     "upstream_time": 1791676440,
+     "tile_id": "c5a2dbe2-6a7e-4edc-b544-6086037b40b4",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261010T235503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "/6A="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 6,
+       "bits": "HP//3FAA"
+      }
+     },
+     "values": {
+      "tile_id": "c5a2dbe2-6a7e-4edc-b544-6086037b40b4",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676800": {
+     "processed_time": 1791676805,
+     "upstream_time": 1791676740,
+     "tile_id": "38a28f7f-082a-4e55-afff-1ce7eb2f4759",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T000003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 6,
+       "bits": "Dh//fWJg"
+      }
+     },
+     "values": {
+      "tile_id": "38a28f7f-082a-4e55-afff-1ce7eb2f4759",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677100": {
+     "processed_time": 1791677105,
+     "upstream_time": 1791677040,
+     "tile_id": "94f9ec95-de17-43c8-ab18-6d0b37b387e6",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T000503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "f9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 6,
+       "bits": "Di//fSJg"
+      }
+     },
+     "values": {
+      "tile_id": "94f9ec95-de17-43c8-ab18-6d0b37b387e6",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677400": {
+     "processed_time": 1791677405,
+     "upstream_time": 1791677340,
+     "tile_id": "cb0f32a5-223d-46a4-8dff-3f5abe4764f7",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T001003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "f6A="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 6,
+       "bits": "Dg//fSJg"
+      }
+     },
+     "values": {
+      "tile_id": "cb0f32a5-223d-46a4-8dff-3f5abe4764f7",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677700": {
+     "processed_time": 1791677705,
+     "upstream_time": 1791677640,
+     "tile_id": "d6dcf41d-acc2-413e-8773-e24f1b9c8dbf",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T001503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 5,
+       "bits": "Dg//fyI="
+      }
+     },
+     "values": {
+      "tile_id": "d6dcf41d-acc2-413e-8773-e24f1b9c8dbf",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678000": {
+     "processed_time": 1791678005,
+     "upstream_time": 1791677940,
+     "tile_id": "845484dd-93d7-4794-9249-4130ff764e82",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T002003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "/6A="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 5,
+       "bits": "HP//9EA="
+      }
+     },
+     "values": {
+      "tile_id": "845484dd-93d7-4794-9249-4130ff764e82",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678300": {
+     "processed_time": 1791678305,
+     "upstream_time": 1791678240,
+     "tile_id": "49ed1420-73e4-44bf-bfb1-d7f0a558f7bc",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T002503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 5,
+       "bits": "Dg//fyI="
+      }
+     },
+     "values": {
+      "tile_id": "49ed1420-73e4-44bf-bfb1-d7f0a558f7bc",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678600": {
+     "processed_time": 1791678605,
+     "upstream_time": 1791678540,
+     "tile_id": "943ad749-d52d-48a0-9a40-6ee42c0e2c46",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T003003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 5,
+       "bits": "Dg//byI="
+      }
+     },
+     "values": {
+      "tile_id": "943ad749-d52d-48a0-9a40-6ee42c0e2c46",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678900": {
+     "processed_time": 1791678905,
+     "upstream_time": 1791678840,
+     "tile_id": "ea3b3a35-19e7-4cdf-90b0-016e1e982aec",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T003503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 5,
+       "bits": "Dg//byI="
+      }
+     },
+     "values": {
+      "tile_id": "ea3b3a35-19e7-4cdf-90b0-016e1e982aec",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679200": {
+     "processed_time": 1791679205,
+     "upstream_time": 1791679140,
+     "tile_id": "da811c32-d36d-4cdc-b343-a2da647969ae",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T004003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "f9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 5,
+       "bits": "Di//byI="
+      }
+     },
+     "values": {
+      "tile_id": "da811c32-d36d-4cdc-b343-a2da647969ae",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679500": {
+     "processed_time": 1791679504,
+     "upstream_time": 1791679440,
+     "tile_id": "5bf35e19-c55c-43b5-b937-b8b4badd4dc5",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T004503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Q="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 5,
+       "bits": "Dgf/byI="
+      }
+     },
+     "values": {
+      "tile_id": "5bf35e19-c55c-43b5-b937-b8b4badd4dc5",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679800": {
+     "processed_time": 1791679805,
+     "upstream_time": 1791679740,
+     "tile_id": "7c2f8243-bcf7-45d9-a6f3-573afb06d889",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T005003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 16,
+       "y": 20,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "6": {
+       "x": 33,
+       "y": 41,
+       "w": 3,
+       "h": 2,
+       "bits": "fA=="
+      },
+      "7": {
+       "x": 67,
+       "y": 83,
+       "w": 5,
+       "h": 3,
+       "bits": "P9Y="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 6,
+       "bits": "Dg//byMg"
+      }
+     },
+     "values": {
+      "tile_id": "7c2f8243-bcf7-45d9-a6f3-573afb06d889",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680100": {
+     "processed_time": 1791680105,
+     "upstream_time": 1791680040,
+     "tile_id": "80e0fc8b-38c4-4776-825e-4dc68620043f",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T005503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "f6A="
+      },
+      "8": {
+       "x": 135,
+       "y": 166,
+       "w": 8,
+       "h": 5,
+       "bits": "Dgf/fyI="
+      }
+     },
+     "values": {
+      "tile_id": "80e0fc8b-38c4-4776-825e-4dc68620043f",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680400": {
+     "processed_time": 1791680405,
+     "upstream_time": 1791680340,
+     "tile_id": "47a03eec-e4fb-4147-80ed-9e78e8909fa5",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T010003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "f6A="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 5,
+       "bits": "HB/+9EA="
+      }
+     },
+     "values": {
+      "tile_id": "47a03eec-e4fb-4147-80ed-9e78e8909fa5",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680700": {
+     "processed_time": 1791680704,
+     "upstream_time": 1791680640,
+     "tile_id": "0fee389d-2439-4632-ae11-5a082fe1de70",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T010503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 2,
+       "bits": "Pw=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 4,
+       "bits": "DB//8A=="
+      }
+     },
+     "values": {
+      "tile_id": "0fee389d-2439-4632-ae11-5a082fe1de70",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681000": {
+     "processed_time": 1791681005,
+     "upstream_time": 1791680940,
+     "tile_id": "55ad8d88-1e71-4ae1-b1cf-08dba853e14b",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T011003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 2,
+       "bits": "fw=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 4,
+       "bits": "DD//8A=="
+      }
+     },
+     "values": {
+      "tile_id": "55ad8d88-1e71-4ae1-b1cf-08dba853e14b",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681300": {
+     "processed_time": 1791681305,
+     "upstream_time": 1791681240,
+     "tile_id": "63c1e4d5-33b3-46ed-b837-62f3579412e6",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T011503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 2,
+       "bits": "/w=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 4,
+       "bits": "DN/+8A=="
+      }
+     },
+     "values": {
+      "tile_id": "63c1e4d5-33b3-46ed-b837-62f3579412e6",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681600": {
+     "processed_time": 1791681605,
+     "upstream_time": 1791681540,
+     "tile_id": "a3b7c19f-2bd1-4147-a99e-6f1bb40b0526",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T012003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "cA=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 2,
+       "bits": "Pw=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 4,
+       "bits": "DB//8A=="
+      }
+     },
+     "values": {
+      "tile_id": "a3b7c19f-2bd1-4147-a99e-6f1bb40b0526",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681900": {
+     "processed_time": 1791681905,
+     "upstream_time": 1791681840,
+     "tile_id": "044ec9cb-4957-4fc8-82b3-d81b274aaff7",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T012503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 3,
+       "bits": "f4A="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 6,
+       "bits": "DD/+1AgA"
+      }
+     },
+     "values": {
+      "tile_id": "044ec9cb-4957-4fc8-82b3-d81b274aaff7",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682200": {
+     "processed_time": 1791682205,
+     "upstream_time": 1791682140,
+     "tile_id": "ec00cfa9-6f38-41dc-8761-050ee9958843",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T013003.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 2,
+       "bits": "fw=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 4,
+       "bits": "DD/+0A=="
+      }
+     },
+     "values": {
+      "tile_id": "ec00cfa9-6f38-41dc-8761-050ee9958843",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682500": {
+     "processed_time": 1791682504,
+     "upstream_time": 1791682440,
+     "tile_id": "a865fbd1-705f-4d37-ba6f-73cb9516d529",
+     "source": "observation",
+     "filename": "intermediate;live_composite/cz/20261011T013503.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 1,
+       "h": 2,
+       "bits": "wA=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 2,
+       "h": 2,
+       "bits": "8A=="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 4,
+       "h": 2,
+       "bits": "fw=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 7,
+       "h": 4,
+       "bits": "DD//0A=="
+      }
+     },
+     "values": {
+      "tile_id": "a865fbd1-705f-4d37-ba6f-73cb9516d529",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    }
+   },
+   "pl": {
+    "1791675300": {
+     "processed_time": 1791675727,
+     "upstream_time": 1791675360,
+     "tile_id": "5b3ab211-441e-47c6-84a6-4e57d6d6a95f",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261010T234203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 10,
+       "h": 12,
+       "bits": "AwPg/H8bw+R9X9He8/AQ"
+      }
+     },
+     "values": {
+      "tile_id": "5b3ab211-441e-47c6-84a6-4e57d6d6a95f",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675600": {
+     "processed_time": 1791676027,
+     "upstream_time": 1791675660,
+     "tile_id": "3bfa1349-0f89-405c-ace6-000211cf7c48",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261010T234703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 136,
+       "y": 166,
+       "w": 10,
+       "h": 12,
+       "bits": "AQPg/H8fweR9X/He4fAw"
+      }
+     },
+     "values": {
+      "tile_id": "3bfa1349-0f89-405c-ace6-000211cf7c48",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791675900": {
+     "processed_time": 1791676327,
+     "upstream_time": 1791675960,
+     "tile_id": "56c0e737-71db-4500-a9e3-3db970bee5a3",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261010T235203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "Bg+H5/P4ez9fo/vPgwA="
+      }
+     },
+     "values": {
+      "tile_id": "56c0e737-71db-4500-a9e3-3db970bee5a3",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676200": {
+     "processed_time": 1791676627,
+     "upstream_time": 1791676260,
+     "tile_id": "d25b2961-425d-4e4e-8291-321f2eb8f34a",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261010T235703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "Ag+H5/P4fz9fo/vPgwA="
+      }
+     },
+     "values": {
+      "tile_id": "d25b2961-425d-4e4e-8291-321f2eb8f34a",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676500": {
+     "processed_time": 1791676928,
+     "upstream_time": 1791676560,
+     "tile_id": "6621df5d-5d7f-43f7-be9b-eaf3154153f3",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T000203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f6A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//mA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 11,
+       "bits": "Hw/P5/D8fr9H948GAA=="
+      }
+     },
+     "values": {
+      "tile_id": "6621df5d-5d7f-43f7-be9b-eaf3154153f3",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791676800": {
+     "processed_time": 1791677227,
+     "upstream_time": 1791676860,
+     "tile_id": "df1355f6-d7f1-4026-a7e7-bfb287463100",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T000703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f6A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "Od//mA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 11,
+       "bits": "Dw/H5vD4fr9G948GAA=="
+      }
+     },
+     "values": {
+      "tile_id": "df1355f6-d7f1-4026-a7e7-bfb287463100",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677100": {
+     "processed_time": 1791677528,
+     "upstream_time": 1791677160,
+     "tile_id": "ac01d6c1-e87d-4e1f-a913-073d10dd106b",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T001203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f6A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//mA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "BAeH5/P4eD9fo3uHgwA="
+      }
+     },
+     "values": {
+      "tile_id": "ac01d6c1-e87d-4e1f-a913-073d10dd106b",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677400": {
+     "processed_time": 1791677827,
+     "upstream_time": 1791677460,
+     "tile_id": "16defab2-c90c-4161-affa-0addf822fc60",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T001703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "AgeH5/P4+j9fp/uPgwA="
+      }
+     },
+     "values": {
+      "tile_id": "16defab2-c90c-4161-affa-0addf822fc60",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791677700": {
+     "processed_time": 1791678128,
+     "upstream_time": 1791677760,
+     "tile_id": "a8080354-9c07-46cb-86cb-c786238d9a17",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T002203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 11,
+       "bits": "Dw/P5/Dwfr9H978GAA=="
+      }
+     },
+     "values": {
+      "tile_id": "a8080354-9c07-46cb-86cb-c786238d9a17",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678000": {
+     "processed_time": 1791678428,
+     "upstream_time": 1791678060,
+     "tile_id": "ac7f5811-eac3-460d-bc6a-fde8a650ffe1",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T002703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 11,
+       "bits": "Dw/P5/D6fr9H958GAA=="
+      }
+     },
+     "values": {
+      "tile_id": "ac7f5811-eac3-460d-bc6a-fde8a650ffe1",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678300": {
+     "processed_time": 1791678727,
+     "upstream_time": 1791678360,
+     "tile_id": "3bc0272a-4d1b-4b91-8132-fe6c13688b27",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T003203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O///uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 11,
+       "bits": "DwfP9/P4fr/H/58GAA=="
+      }
+     },
+     "values": {
+      "tile_id": "3bc0272a-4d1b-4b91-8132-fe6c13688b27",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678600": {
+     "processed_time": 1791679027,
+     "upstream_time": 1791678660,
+     "tile_id": "ee6564ad-dc73-42aa-94f4-158f08bb92b6",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T003703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O///uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 11,
+       "bits": "Dw/P9/H4fr9H+58CAA=="
+      }
+     },
+     "values": {
+      "tile_id": "ee6564ad-dc73-42aa-94f4-158f08bb92b6",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791678900": {
+     "processed_time": 1791679328,
+     "upstream_time": 1791678960,
+     "tile_id": "bc4d28ab-3e24-4939-8b92-cd8d644c509d",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T004203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 11,
+       "bits": "Dw/P5/D4er9H+58CAA=="
+      }
+     },
+     "values": {
+      "tile_id": "bc4d28ab-3e24-4939-8b92-cd8d644c509d",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679200": {
+     "processed_time": 1791679627,
+     "upstream_time": 1791679260,
+     "tile_id": "f9b4f774-723b-414f-9e84-fd85a79ae808",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T004703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "BgeH5/P4fD9fo/nPgwA="
+      }
+     },
+     "values": {
+      "tile_id": "f9b4f774-723b-414f-9e84-fd85a79ae808",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679500": {
+     "processed_time": 1791679927,
+     "upstream_time": 1791679560,
+     "tile_id": "1900506c-4abb-45f9-98e1-2da4bf56946b",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T005203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "BgeH5/P4fD9fo/3PgQA="
+      }
+     },
+     "values": {
+      "tile_id": "1900506c-4abb-45f9-98e1-2da4bf56946b",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791679800": {
+     "processed_time": 1791680228,
+     "upstream_time": 1791679860,
+     "tile_id": "6741d77f-4188-4aff-9885-71d28b277cee",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T005703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "Bg+H5/P4fD9fo/3PgQA="
+      }
+     },
+     "values": {
+      "tile_id": "6741d77f-4188-4aff-9885-71d28b277cee",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680100": {
+     "processed_time": 1791680529,
+     "upstream_time": 1791680160,
+     "tile_id": "cc84e864-17c6-4332-8b12-68021ed0bf9d",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T010203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "Of//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "BgeH4/P8PD9fo/3fgQA="
+      }
+     },
+     "values": {
+      "tile_id": "cc84e864-17c6-4332-8b12-68021ed0bf9d",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680400": {
+     "processed_time": 1791680828,
+     "upstream_time": 1791680460,
+     "tile_id": "1a52e99b-1380-49a0-8228-a3b0ab6657f4",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T010703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "Dg+H5/N4PT9fo/3PgQA="
+      }
+     },
+     "values": {
+      "tile_id": "1a52e99b-1380-49a0-8228-a3b0ab6657f4",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791680700": {
+     "processed_time": 1791681128,
+     "upstream_time": 1791680760,
+     "tile_id": "d460dd28-b9bf-405b-b633-5fa6f7993de0",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T011203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 12,
+       "bits": "CAeH5/N4PD9fp//fgQA="
+      }
+     },
+     "values": {
+      "tile_id": "d460dd28-b9bf-405b-b633-5fa6f7993de0",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681000": {
+     "processed_time": 1791681428,
+     "upstream_time": 1791681060,
+     "tile_id": "04ef3f50-9016-4f8a-a739-9facd03e904d",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T011703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "Od//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 11,
+       "bits": "CA+H4/N4PD9fo//fgA=="
+      }
+     },
+     "values": {
+      "tile_id": "04ef3f50-9016-4f8a-a739-9facd03e904d",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681300": {
+     "processed_time": 1791681727,
+     "upstream_time": 1791681360,
+     "tile_id": "5cf84a98-405a-430f-ab23-153f0afbdf9e",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T012203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O9//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 10,
+       "bits": "Dw/P5vB4fv/H978A"
+      }
+     },
+     "values": {
+      "tile_id": "5cf84a98-405a-430f-ab23-153f0afbdf9e",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681600": {
+     "processed_time": 1791682027,
+     "upstream_time": 1791681660,
+     "tile_id": "cbc94727-fe87-4428-ab10-d6f90ddc9024",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T012703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O+//uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 166,
+       "w": 9,
+       "h": 11,
+       "bits": "CAeH5/l8PD9f4/vfgA=="
+      }
+     },
+     "values": {
+      "tile_id": "cbc94727-fe87-4428-ab10-d6f90ddc9024",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791681900": {
+     "processed_time": 1791682327,
+     "upstream_time": 1791681960,
+     "tile_id": "c7ff0285-076b-4c7d-aeb9-c6cfd4346c1d",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T013203.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O///uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 10,
+       "bits": "Dw/P+vx4fr/H978A"
+      }
+     },
+     "values": {
+      "tile_id": "c7ff0285-076b-4c7d-aeb9-c6cfd4346c1d",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682200": {
+     "processed_time": 1791682627,
+     "upstream_time": 1791682260,
+     "tile_id": "1aeffc67-af1f-49f3-8b03-d563821eda66",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T013703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O///uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 10,
+       "bits": "Hw/P6vx4P7/H978A"
+      }
+     },
+     "values": {
+      "tile_id": "1aeffc67-af1f-49f3-8b03-d563821eda66",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    },
+    "1791682500": {
+     "processed_time": 1791682627,
+     "upstream_time": 1791682260,
+     "tile_id": "1aeffc67-af1f-49f3-8b03-d563821eda66",
+     "source": "observation",
+     "filename": "intermediate;live_composite/pl/20261011T013703.tif",
+     "tiles": {
+      "3": {
+       "x": 4,
+       "y": 5,
+       "w": 1,
+       "h": 1,
+       "bits": "gA=="
+      },
+      "4": {
+       "x": 8,
+       "y": 10,
+       "w": 2,
+       "h": 2,
+       "bits": "4A=="
+      },
+      "5": {
+       "x": 17,
+       "y": 20,
+       "w": 2,
+       "h": 3,
+       "bits": "+A=="
+      },
+      "6": {
+       "x": 34,
+       "y": 41,
+       "w": 3,
+       "h": 4,
+       "bits": "f+A="
+      },
+      "7": {
+       "x": 68,
+       "y": 83,
+       "w": 5,
+       "h": 6,
+       "bits": "O///uA=="
+      },
+      "8": {
+       "x": 137,
+       "y": 167,
+       "w": 9,
+       "h": 10,
+       "bits": "Hw/P6vx4P7/H978A"
+      }
+     },
+     "values": {
+      "tile_id": "1aeffc67-af1f-49f3-8b03-d563821eda66",
+      "encoding": "rvp6-u8"
+     },
+     "dbz": null,
+     "dbzMin": null,
+     "dbzMax": null
+    }
+   }
+  },
+  "products": {},
+  "headlines": null,
+  "words": null,
+  "server_time": 1791682500,
+  "replay": false
+ }
+}
