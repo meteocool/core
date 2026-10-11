@@ -10,7 +10,7 @@ import type { CellFeatureKind } from "../layers/cells";
 import {
   ACTIVE_MINUTES, ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, worldExtent,
 } from "./cellGeometry";
-import { trackAsOf, trimToLastRun } from "./cellTrack";
+import { trackAsOf, trimToLastRun, withKnownVolume } from "./cellTrack";
 import { buildCellLinks, supersededCodes } from "./cellLinks";
 import { selectedCell } from "../stores";
 import { isLive } from "./cellPulse";
@@ -181,6 +181,7 @@ export default class CellTrackManager {
     /** The lineage joins, kept apart only so they can be drawn underneath. */
     const joins: Feature[] = [];
     const pings: Feature[] = [];
+    const previous = this.tracks;
     this.tracks = new Map();
 
     // The feed's own newest run, so "how recently was this detected" is asked
@@ -191,7 +192,8 @@ export default class CellTrackManager {
       track.active && isLive(ageMinutes(track.last_seen, reference))
     );
 
-    const open = this.openCode();
+    const selected = this.openTrack();
+    const open = selected?.code ?? null;
     const answered = tracks.some((raw) => raw.properties.code === open);
     // Order matters only in that the pinned copy goes last: if the answer does
     // carry the open cell, the fresh one is what gets kept and pinned below.
@@ -209,7 +211,17 @@ export default class CellTrackManager {
     const trimmed = drawing
       .filter((raw) => raw.properties.code === open || raw.properties.active)
       .map((raw) => trimToLastRun(raw));
-    trimmed.forEach((track) => this.tracks.set(track.properties.code, track.properties));
+    // With the volume already known kept: the viewport answer never has one;
+    // see `withKnownVolume`. The open cell's own copies are asked too, which
+    // is where a link's or a 3D tap's volume is before any answer has held it.
+    // Only in the present: a past frame's copy has no volume on purpose, as
+    // it has no outline or forecast (`trackAsOf`).
+    trimmed.forEach((track) => {
+      const next = track.properties;
+      this.tracks.set(next.code, this.at === null
+        ? withKnownVolume(next, previous.get(next.code), this.pinned?.properties, selected)
+        : next);
+    });
 
     const superseded = supersededCodes(this.tracks);
     // Never the open cell. The panel describes it in the present tense and is
@@ -399,10 +411,10 @@ export default class CellTrackManager {
   }
 
   /** The cell whose panel or marks are up, which `apply` will not drop. */
-  private openCode(): string | null {
-    let code: string | null = null;
-    selectedCell.subscribe((track) => { code = track?.code ?? null; })();
-    return code;
+  private openTrack(): CellTrackProperties | null {
+    let open: CellTrackProperties | null = null;
+    selectedCell.subscribe((track) => { open = track ?? null; })();
+    return open;
   }
 
   /** The track behind a drawn feature, for the detail popup. */
