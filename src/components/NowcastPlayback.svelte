@@ -3,7 +3,7 @@ import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
   import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
-import { faForwardStep } from "@fortawesome/free-solid-svg-icons/faForwardStep";
+import { faClockRotateLeft } from "@fortawesome/free-solid-svg-icons/faClockRotateLeft";
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons/faLocationCrosshairs";
 import Icon from "./Icon.svelte";
 import StateMachine from "javascript-state-machine";
@@ -13,7 +13,7 @@ import {
   sharedActiveCap,
   latLon,
   bottomToolbarMode, precacheForecast,
-  dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale,
+  dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
 } from "../stores";
 
@@ -31,10 +31,15 @@ import { forecastGapFrom, hasEcho, timelineSteps } from "../lib/timeline";
 import {
   chRadarExtent4326,
   czRadarExtent4326,
+  dwdCoverageInv,
   dwdRadarExtent4326,
   frRadarExtent4326,
   plRadarExtent4326,
 } from "../layers/extents";
+import { FORECAST_UNCOVERED_SHARE, uncoveredShare } from "../lib/forecastCoverage";
+import { canPlay, nextFrame } from "../lib/playbackLoop";
+import Polygon from "ol/geom/Polygon";
+import { fromLonLat } from "ol/proj";
 import { nearPlace, type NearPlace } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
 import DryOutlook from "./DryOutlook.svelte";
@@ -87,6 +92,8 @@ let seekTo: number | null = null;
  * a playback tick advances. Zero until the player has been opened.
  */
 let shown = 0;
+/** Where playback was started from: where a loop over the past goes back to. */
+let loopFrom = 0;
 
 /**
  * Whether playback was running when a hand took the strip, so it carries on
@@ -173,6 +180,36 @@ $: outOfCoverage = $sharedActiveCap === "radar"
 let coverageDismissed = false;
 /* Re-armed on the way back in, so panning out again says so again. */
 $: if (!outOfCoverage) coverageDismissed = false;
+
+/* DWD's reach, the hole in the wash a forecast step draws (dwd.ts). */
+const forecastReach = new Polygon([dwdCoverageInv.getLinearRing(1)!.getCoordinates()]);
+const forecastCovers = (lon: number, lat: number): boolean => forecastReach.intersectsCoordinate(fromLonLat([lon, lat]));
+
+/**
+ * On a forecast step, whether most of the screen has no forecast behind it.
+ *
+ * The forecast is DWD's alone. Over France or Poland the present has radar and
+ * a forecast step washes it all out, which reads as "no rain coming". Only
+ * past half a screen: a border at the edge of the view is not worth a notice.
+ * The radar's own notice comes first; with no radar there is no forecast either.
+ */
+$: forecastMissing = $sharedActiveCap === "radar" && $mapExtent4326 !== null && !outOfCoverage
+  ? uncoveredShare($mapExtent4326, forecastCovers)
+  : 0;
+$: outOfForecast = $onForecastStep && forecastMissing >= FORECAST_UNCOVERED_SHARE;
+/* None of the screen: playback has nothing to show past now (playbackLoop). */
+$: noForecast = forecastMissing === 1;
+
+$: playable = canPlay({
+  outOfRadar: outOfCoverage,
+  noForecast,
+  // 0 until the scrubber is first moved: the player is following the live frame.
+  shown: shown || latestObservation,
+  latestObservation,
+});
+
+let forecastCoverageDismissed = false;
+$: if (!outOfForecast) forecastCoverageDismissed = false;
 
 /* Whether the player's strip has something to say: rain at the client's
    position, or a tapped point, which always gets an answer, even a flat one. */
@@ -374,12 +411,16 @@ const fsm = new StateMachine({
         let thisFrameDelayMs = FRAME_MS;
         if (!gridConfig) return;
         const sliderValueInt = shown;
-        const lastStep = lastPlayableStep ?? gridConfig.end;
-        if (sliderValueInt >= lastStep) {
-          shown = $playbackFromStart ? gridConfig.start : gridConfig.now;
-        } else {
-          shown = sliderValueInt + 5 * 60;
-        }
+        shown = nextFrame({
+          shown,
+          latestObservation: cap.getMostRecentObservation(),
+          now: gridConfig.now,
+          lastStep: lastPlayableStep ?? gridConfig.end,
+          start: gridConfig.start,
+          loopFrom,
+          fromStart: $playbackFromStart,
+          noForecast,
+        });
         if (sliderValueInt === 0) {
           thisFrameDelayMs = 800;
         }
@@ -395,6 +436,7 @@ const fsm = new StateMachine({
       // From a timer rather than from here: a pause inside this transition
       // throws, leaving the machine mid-transition for good. A resume after a
       // drag waits a frame's length first, so the frame let go on is seen.
+      loopFrom = shown;
       playTimeout = window.setTimeout(playTick, firstDelayMs);
       playPauseButton = faPause;
     },
@@ -652,7 +694,8 @@ function released() {
   scrubbing = false;
   if (!resumeOnRelease) return;
   resumeOnRelease = false;
-  if (fsm.state === "manualScrolling") fsm.pressPlay(FRAME_MS);
+  // Let go on now or after it with no forecast on screen: nothing to play from there.
+  if (fsm.state === "manualScrolling" && playable) fsm.pressPlay(FRAME_MS);
 }
 
 /** The needle has reached another step. */
@@ -666,7 +709,7 @@ function playPause() {
   if (fsm.state === "playing") {
     console.log("Pausing due to button");
     fsm.pressPause();
-  } else if (fsm.state === "manualScrolling") {
+  } else if (fsm.state === "manualScrolling" && playable) {
     fsm.pressPlay();
   }
 }
@@ -847,6 +890,12 @@ onDestroy(() => {
     color: #fff;
   }
   .controlButton.play:hover { background: var(--mc-accent-strong); }
+  .controlButton.play:disabled {
+    background: var(--mc-tint-active);
+    color: var(--mc-text-3);
+    cursor: default;
+    transform: none;
+  }
   .controlButton.play :global(svg) { margin-left: 2px; }
   .controlButton.play.playing :global(svg) { margin-left: 0; }
   /* Letting a tapped point go: smaller than the transport, like a close disc. */
@@ -957,6 +1006,15 @@ onDestroy(() => {
   </DismissableStrip>
 {/if}
 
+{#if outOfForecast && !forecastCoverageDismissed}
+  <DismissableStrip
+    title={$_("forecast_no_coverage")}
+    collapsed={$bottomToolbarMode !== "player"}
+    on:dismiss={() => { forecastCoverageDismissed = true; }}>
+    <p class="notice">{$_("forecast_no_coverage_body")}</p>
+  </DismissableStrip>
+{/if}
+
 {#if outlookShowable && !outlookDismissed && $latLon}
   <DryOutlook
     lat={$latLon[0]}
@@ -971,7 +1029,7 @@ onDestroy(() => {
     <button type="button" class="glass glass-pill" on:click={returnToLive}
       transition:fly={{ y: 12, duration: 200 }}>
       <span>{$_("chrome.playback.back_to_latest")}</span>
-      <Icon icon={faForwardStep} />
+      <Icon icon={faClockRotateLeft} />
     </button>
   </div>
 {/if}
@@ -1027,7 +1085,9 @@ onDestroy(() => {
       </div>
 
       <div class="row">
+        <!-- Nothing on screen to play (playbackLoop); a running playback can still be paused. -->
         <button type="button" class="controlButton play" class:playing={$playbackRunning}
+          disabled={!$playbackRunning && !playable}
           on:click={playPause}
           title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
           <Icon icon={playPauseButton} />
