@@ -57,4 +57,8 @@ export default ts.config(
     // Generated from the backend's OpenAPI schemas; not ours to lint.
     ignores: ["dist/", "src/api/generated/", "functions/", "public/"],
   },
+  {
+    // What a failed UI run leaves behind: Playwright's report and traces.
+    ignores: ["playwright-report/", "test-results/", "blob-report/"],
+  },
 );
