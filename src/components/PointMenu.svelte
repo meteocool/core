@@ -29,7 +29,7 @@ import Icon from "./Icon.svelte";
 import { share, shareAvailable, shareIcon } from "../lib/share";
 import { inspectLatLon, mapView, pointMenuAt, selectedCell, selectedVolume, sharedActiveCap } from "../stores";
 import { openModelCompare } from "../lib/modelCompare";
-import { holdNativeChrome } from "../lib/nativeBridge";
+import { hideNativeControls } from "../lib/nativeBridge";
 import { reverseGeocode } from "../lib/reverseGeocode";
 import type { LayerManager } from "../lib/LayerManager";
 
@@ -121,7 +121,7 @@ function close() {
    in the top corner, which nothing here can move, so they go while it is up. */
 let releaseChrome: (() => void) | null = null;
 function holdChrome(open: boolean) {
-  if (open && !releaseChrome) releaseChrome = holdNativeChrome();
+  if (open && !releaseChrome) releaseChrome = hideNativeControls();
   else if (!open && releaseChrome) {
     releaseChrome();
     releaseChrome = null;

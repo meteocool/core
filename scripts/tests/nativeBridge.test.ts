@@ -8,7 +8,7 @@ import test from "node:test";
  * message there must be dropped rather than throw.
  */
 
-const { holdNativeChrome, postToNative, requestNativeSettings } = await import("../../src/lib/nativeBridge.ts");
+const { hideNativeControls, holdNativeChrome, postToNative, requestNativeSettings } = await import("../../src/lib/nativeBridge.ts");
 
 const globals = globalThis as Record<string, unknown>;
 
@@ -61,6 +61,19 @@ test("the host hears the first drawer open and the last one close", () => {
   assert.deepEqual(seen, ["drawerOpened", "drawerClosed"]);
   holdNativeChrome()();
   assert.deepEqual(seen, ["drawerOpened", "drawerClosed", "drawerOpened", "drawerClosed"]);
+});
+
+test("the controls come back when the last popup hiding them closes, and a drawer is held meanwhile", () => {
+  reset();
+  const seen: string[] = [];
+  globals.window = { webkit: { messageHandlers: { scriptHandler: { postMessage: (m: string) => seen.push(m) } } } };
+  const picker = hideNativeControls();
+  const menu = hideNativeControls();
+  picker();
+  picker();
+  assert.deepEqual(seen, ["drawerOpened", "hideControls"]);
+  menu();
+  assert.deepEqual(seen, ["drawerOpened", "hideControls", "drawerClosed", "showControls"]);
 });
 
 /**

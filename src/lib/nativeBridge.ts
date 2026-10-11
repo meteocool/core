@@ -22,6 +22,8 @@ export type NativeMessage =
   | "detailSheetCollapsed"
   | "drawerOpened"
   | "drawerClosed"
+  | "hideControls"
+  | "showControls"
   | "impactLight"
   | "impactMedium"
   /** A link to send, as `share:` and the JSON of a `NativeShare`; see lib/share.ts. */
@@ -173,7 +175,8 @@ let openDrawers = 0;
  * The native buttons float in the map's top corner, where the corner panel
  * sits on a wide screen and where a sheet pulled up reaches on a phone; CSS
  * cannot move them. Android hides them on this; iOS, which keys off
- * `detailSheetExpanded`, ignores it. Releasing twice is harmless.
+ * `detailSheetExpanded`, ignores it (see `hideNativeControls`). Releasing
+ * twice is harmless.
  */
 export function holdNativeChrome(): () => void {
   openDrawers += 1;
@@ -184,5 +187,31 @@ export function holdNativeChrome(): () => void {
     held = false;
     openDrawers -= 1;
     if (openDrawers === 0) postToNative("drawerClosed");
+  };
+}
+
+let hidingControls = 0;
+
+/**
+ * Hides the apps' floating buttons, and on iOS the logo, until the returned
+ * function is called: for a popup the page places where they float, which
+ * it cannot see (the radar product menu, the long-press menu).
+ *
+ * iOS hears `hideControls` when the first one opens and `showControls` when
+ * the last one goes; builds from before it ignore both. Android hears a
+ * drawer (`holdNativeChrome`), which it already hides its buttons for.
+ * Releasing twice is harmless.
+ */
+export function hideNativeControls(): () => void {
+  const releaseChrome = holdNativeChrome();
+  hidingControls += 1;
+  if (hidingControls === 1) postToNative("hideControls");
+  let held = true;
+  return () => {
+    if (!held) return;
+    held = false;
+    releaseChrome();
+    hidingControls -= 1;
+    if (hidingControls === 0) postToNative("showControls");
   };
 }
