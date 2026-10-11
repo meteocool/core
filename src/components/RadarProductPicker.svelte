@@ -157,7 +157,8 @@ async function show() {
 
 function close(refocus = false) {
   open = false;
-  if (refocus) trigger?.focus();
+  // After the update: until then a phone's control is hidden under its twin.
+  if (refocus) tick().then(() => trigger?.focus());
 }
 
 /** The menu gives way to the explainer, which has its own close. */
@@ -208,6 +209,7 @@ function portal(node: HTMLElement) {
   class={face}
   class:fellBack
   class:forecast
+  class:twinned={open && $smallScreen && twin !== null}
   aria-haspopup="menu"
   aria-expanded={open}
   aria-disabled={forecast}
@@ -405,9 +407,12 @@ function portal(node: HTMLElement) {
     position: fixed;
     inset: 0;
     z-index: calc(var(--mc-z-dialog) - 1);
-    -webkit-backdrop-filter: blur(2px);
-    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
   }
+  /* Its twin is over the blur in its place, and the twin's tint is
+     see-through: the blurred original under it would ghost the label. */
+  .twinned { visibility: hidden; }
   .twin {
     position: fixed;
     z-index: var(--mc-z-dialog);
@@ -423,10 +428,13 @@ function portal(node: HTMLElement) {
     font: 700 15px/1.3 var(--mc-font);
   }
   /* "How the radar works", in the corner: a tap target of its own size. */
-  .heading .title { flex: 1 1 auto; min-width: 0; }
+  /* The title, its "?" beside it, and the close disc pushed to the corner
+     by its own auto margin. */
+  .heading .title { flex: 0 1 auto; min-width: 0; }
+  .heading .help { margin-left: -4px; }
   /* Inside the menu's corner: a sheet pulls the disc out to its own edge,
      which on a card this rounded puts it over the curve. */
-  .menu .heading :global(button.edge) { margin: 0; }
+  .menu .heading :global(button.edge) { margin: 0 0 0 auto; }
   .help {
     display: inline-grid;
     place-items: center;
