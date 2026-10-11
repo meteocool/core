@@ -114,6 +114,14 @@ const labelEvery = dd.breakpoint() === "reduced" || dd.breakpoint() === "small" 
  */
 $: lastPlayableStep = gridConfig ? cap.getLastPlayableStep() : undefined;
 
+/**
+ * The newest observation, where the strip draws "now". Recomputed with each
+ * new grid: read straight off the capability in the markup, it was taken once,
+ * before the first grid had come in, and the line sat on the strip's first
+ * step for good.
+ */
+$: latestObservation = gridConfig ? cap.getMostRecentObservation() : 0;
+
 /** The strip's bars, oldest first, cut where the scrubber stops. */
 $: steps = gridConfig && lastPlayableStep !== undefined ? timelineSteps(gridConfig, lastPlayableStep) : [];
 
@@ -517,9 +525,6 @@ function hide() {
   fsm.hideScrollbar();
 }
 
-// Recorded when the grid updates; not currently rendered.
-let _latest: number;
-
 onMount(async () => {
   window.leaveForeground = () => {
     awayAt ??= Date.now();
@@ -536,7 +541,6 @@ onMount(async () => {
       // The minute's re-announcement of a grid sampled before the last tap is
       // not the answer the skeleton is waiting for; see `sampledHere`.
       gridLoading = !cap.sampledHere();
-      _latest = cap.getMostRecentObservation();
       takeFrameRequest();
     }
     //   // const gridSteps = Object.keys(grid);
@@ -1040,7 +1044,7 @@ onDestroy(() => {
         <Timeline
           {steps}
           now={gridConfig?.now ?? 0}
-          latest={cap.getMostRecentObservation()}
+          latest={latestObservation}
           value={shown}
           {labelEvery}
           on:grab={grabbed}
