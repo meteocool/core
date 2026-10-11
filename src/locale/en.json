@@ -172,6 +172,9 @@
     "full_resolution_hint": "Draws the 3D map at the screen's full resolution. Sharper, but uses more than twice the graphics memory, so on some phones the map may crash and reload.",
     "terrain": "Terrain",
     "terrain_hint": "Raises the 3D map into the ground's relief and shades its hills, at true scale. Downloads elevation tiles as you move the map.",
+    "playback": "Playback",
+    "playback_from_start": "Loop From Two Hours Back",
+    "playback_from_start_hint": "Playback starts two hours before now instead of at now, so it shows how the rain got here before where it goes next.",
     "performance": "Performance",
     "mode": "Mode",
     "modes": {
@@ -431,8 +434,7 @@
       "offset_minutes": "{sign}{minutes}m",
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}m",
-      "timeline": "Radar timeline",
-      "from_start": "Loop from two hours back"
+      "timeline": "Radar timeline"
     },
     "radar_product": {
       "title": "Radar Product",

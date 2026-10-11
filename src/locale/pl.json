@@ -172,6 +172,9 @@
     "full_resolution_hint": "Rysuje mapę 3D w pełnej rozdzielczości ekranu. Ostrzej, ale zużywa ponad dwa razy więcej pamięci graficznej, więc na niektórych telefonach mapa może się zawiesić i przeładować.",
     "terrain": "Ukształtowanie terenu",
     "terrain_hint": "Unosi mapę 3D zgodnie z rzeźbą terenu i cieniuje wzniesienia, w rzeczywistej skali. Pobiera kafelki wysokości podczas przesuwania mapy.",
+    "playback": "Odtwarzanie",
+    "playback_from_start": "Pętla od dwóch godzin wstecz",
+    "playback_from_start_hint": "Odtwarzanie zaczyna się dwie godziny przed chwilą obecną zamiast od teraz, więc najpierw widać, skąd przyszedł deszcz, a potem dokąd zmierza.",
     "performance": "Wydajność",
     "mode": "Tryb",
     "modes": {
@@ -431,8 +434,7 @@
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
-      "timeline": "Oś czasu radaru",
-      "from_start": "Pętla od dwóch godzin wstecz"
+      "timeline": "Oś czasu radaru"
     },
     "radar_product": {
       "title": "Produkt radarowy",
