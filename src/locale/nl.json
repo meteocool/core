@@ -172,6 +172,9 @@
     "full_resolution_hint": "Tekent de 3D-kaart op de volle resolutie van het scherm. Scherper, maar gebruikt meer dan twee keer zoveel grafisch geheugen, waardoor de kaart op sommige telefoons kan vastlopen en opnieuw laden.",
     "terrain": "Terrein",
     "terrain_hint": "Tilt de 3D-kaart op het reliëf van het terrein en schaduwt de heuvels, op ware schaal. Laadt hoogtetegels terwijl je de kaart beweegt.",
+    "playback": "Afspelen",
+    "playback_from_start": "Herhalen vanaf twee uur geleden",
+    "playback_from_start_hint": "Het afspelen begint twee uur voor nu in plaats van bij nu, zodat je eerst ziet waar de regen vandaan kwam en dan waar hij heen gaat.",
     "performance": "Prestaties",
     "mode": "Modus",
     "modes": {
@@ -431,8 +434,7 @@
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
-      "timeline": "Radartijdlijn",
-      "from_start": "Herhalen vanaf twee uur geleden"
+      "timeline": "Radartijdlijn"
     },
     "radar_product": {
       "title": "Radarproduct",
