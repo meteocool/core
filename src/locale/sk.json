@@ -121,6 +121,8 @@
   "lightning_unavailable": "Štatistiky momentálne nie sú dostupné.",
   "radar_no_coverage": "Tu zatiaľ nie je radar",
   "radar_no_coverage_body": "Radar naživo pochádza od meteorologických služieb Nemecka, Švajčiarska, Francúzska, Česka a Poľska, preto pokrýva len tieto krajiny. Blesky a predpovedné modely fungujú celosvetovo.",
+  "forecast_no_coverage": "Tu nie je predpoveď",
+  "forecast_no_coverage_body": "Predpoveď zrážok pochádza od nemeckej meteorologickej služby, preto pokrýva len Nemecko a jeho okolie. Radar inde ukazuje len minulosť a súčasnosť.",
   "outdated": "Zastarané",
   "degraded": "Obmedzené",
   "show_for_my_location": "Zobraziť pre moju polohu",

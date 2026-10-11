@@ -17,3 +17,17 @@ feat(worker): serve the apps' API on app.meteocool.com
 - The message ends on its last bullet: no `Co-Authored-By` or other attribution trailer, overriding Claude Code's default. PR descriptions follow the same style, without attribution.
 
 `scripts/commit-msg`, installed as the shared `.git/hooks/commit-msg`, rejects anything else. On a rejection, rewrite the message and commit again.
+
+## Tests
+
+Every change comes with tests of both kinds below, written the way the existing ones are. Before pushing develop, run `npm run check`, `npm test` and `npm run test:ui`; none of them may fail.
+
+**Unit tests**: `scripts/tests/*.test.ts`, Node's own `node:test` and `node:assert/strict`, run by `npm test`.
+- For decisions: what a control allows, which frame comes next, whether a notice applies. Take the rule out of the component into a pure function in `src/lib/` (no stores, no DOM, no OpenLayers objects; pass predicates or plain values in) and test that function. `src/lib/playbackLoop.ts` and `src/lib/forecastCoverage.ts` are examples.
+- One `test()` per rule, named as a sentence about behaviour. Edge cases get their own test.
+
+**UI tests**: `tests/ui/*.spec.ts`, Playwright, run by `npm run test:ui` in an iPhone's WebKit and a desktop Chromium.
+- For what a reader sees and does: a button enabled or not, a notice shown, playback staying within bounds, one part of the screen covering another.
+- The app runs against the demo backend, a replayed storm, so tests never depend on today's weather. Central Germany (`RADAR_VIEW` in `tests/ui/app.ts`, zoom 8 to keep a desktop screen inside DWD's reach) has radar and a forecast. Aquitaine (`44.8, -0.6`) has French radar but no forecast.
+- Find elements by role and accessible name, or through the helpers in `tests/ui/app.ts`; add a helper there instead of repeating a selector. Drive the timeline with the arrow keys and read its position from `aria-valuenow`.
+- Both projects must pass. A test that only fails with all workers running is flaky, not done.

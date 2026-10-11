@@ -121,6 +121,8 @@
   "lightning_unavailable": "Statistiques actuellement indisponibles.",
   "radar_no_coverage": "Pas encore de radar ici",
   "radar_no_coverage_body": "Le radar en direct provient des services météorologiques d'Allemagne, de Suisse, de France, de Tchéquie et de Pologne, et ne couvre donc que ces pays. La foudre et les modèles de prévision fonctionnent dans le monde entier.",
+  "forecast_no_coverage": "Pas de prévision ici",
+  "forecast_no_coverage_body": "La prévision de pluie vient du service météorologique allemand et ne couvre donc que l'Allemagne et ses environs. Ailleurs, le radar ne montre que le passé et le présent.",
   "outdated": "Obsolète",
   "degraded": "Dégradé",
   "show_for_my_location": "Afficher pour ma position",
