@@ -16,7 +16,14 @@ import { FIXTURES, fixtureFile, fulfilBlankTile, isApi, isTile, type RecordedRes
  * on the map, or the radar has nothing for the player to show.
  */
 
-const VIEWS = ["/?layer=radar&latLonZ=50.50000,9.50000,6.00", "/ios.html?layer=radar&latLonZ=50.50000,9.50000,6.00"];
+/** Every view a spec opens, so each finds its answers: add a spec's view here. */
+const VIEWS = [
+  "/?layer=radar&latLonZ=50.50000,9.50000,6.00",
+  "/?layer=radar&latLonZ=50.50000,10.00000,8.00",
+  "/?layer=radar&latLonZ=44.80000,-0.60000,8.00",
+  "/?layer=cells3d&latLonZ=50.50000,9.50000,7.00",
+  "/ios.html?layer=radar&latLonZ=50.50000,9.50000,6.00",
+];
 const SETTLE_MS = 15_000;
 
 async function visit(browser: Browser, baseURL: string | undefined, device: (typeof devices)[string],
