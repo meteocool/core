@@ -961,8 +961,9 @@ export default class Cells3DCapability extends Capability {
           // hilltop; an opened storm is looked at from lower (see frameOpened).
           maxPitch: MAX_PITCH,
           // Spelled out rather than behind an (i), like the flat map's; see the
-          // attribution rules in glass.css.
-          attributionControl: { compact: false },
+          // attribution rules in glass.css. None in the apps, as on their flat
+          // map: their settings list every source and licence instead.
+          attributionControl: dd.isApp() ? false : { compact: false },
           // A phone's memory: see gpuBudget.ts.
           pixelRatio: mapPixelRatio(window.devicePixelRatio, isHandheld(), get(fullResolution3d)),
           ...(isHandheld() ? { maxTileCacheZoomLevels: HANDHELD_TILE_CACHE_ZOOM_LEVELS } : {}),
