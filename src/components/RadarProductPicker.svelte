@@ -16,9 +16,10 @@
  * is left as it was, so it is back the moment the player is on the present
  * or the past again.
  *
- * On a phone everything but the menu is blurred while it is open, the
- * control included: the menu is the one thing to read, and a tap anywhere
- * else closes it, as does its close disc.
+ * On a phone everything but the menu and its control is blurred while it is
+ * open: the menu is the one thing to read, and a tap anywhere else closes
+ * it, as does its close disc. The control lives in the tray, under the blur
+ * whatever its z-index, so a twin of it is drawn over the blur in its place.
  *
  * The menu is moved to <body>: the tray clips what overflows it, and a
  * backdrop filter on any ancestor would position a fixed child against that
@@ -47,6 +48,7 @@ const MARGIN = 8;
 
 let open = false;
 let trigger: HTMLButtonElement;
+let twinButton: HTMLButtonElement | undefined;
 /* How the radar works: a chunk of its own, loaded only when asked for. */
 const loadExplainer = () => import("./RadarExplainer.svelte");
 let explaining = false;
@@ -56,6 +58,9 @@ let bottom = 0;
 /** Set on a phone (`show`); else the stylesheet's. */
 let width: number | null = null;
 let maxHeight: number | null = null;
+/** Where the control is, and the sizes its placer gave it, for its twin over the blur. */
+let twin: { left: number; top: number; width: number; height: number; vars: string } | null = null;
+const PILL_VARS = ["--picker-pill-h", "--picker-pill-pad", "--picker-pill-font"];
 
 /** Narrower than this, the menu takes the width beside the map's buttons rather than its own. */
 const PHONE_WIDTH = 520;
@@ -114,6 +119,14 @@ function age(product: ObservedProduct, scanRanges: Record<ObservedProduct, ScanR
 async function show() {
   nowS = Date.now() / 1000;
   const rect = trigger.getBoundingClientRect();
+  const style = getComputedStyle(trigger);
+  twin = {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+    vars: PILL_VARS.map((name) => `${name}: ${style.getPropertyValue(name)}`).filter((v) => !v.endsWith(": ")).join("; "),
+  };
   bottom = window.innerHeight - rect.top + MARGIN;
   left = rect.left;
   // On a phone the buttons are blurred behind it, out of its way, and it
@@ -162,7 +175,7 @@ function choose(product: ObservedProduct) {
 function outside(event: PointerEvent) {
   if (!open) return;
   const target = event.target as Node;
-  if (menu?.contains(target) || trigger?.contains(target)) return;
+  if (menu?.contains(target) || trigger?.contains(target) || twinButton?.contains(target)) return;
   close();
 }
 
@@ -201,6 +214,10 @@ function portal(node: HTMLElement) {
   title={forecast ? forecastNote : fellBack ? fellBackNote : $_("chrome.radar_product.choose")}
   aria-label={face === "pill" ? `${$_("chrome.radar_product.choose")}: ${forecast ? forecastNote : fellBack ? fellBackNote : $_(`chrome.radar_product.${chosen}`)}` : undefined}
   on:click={() => (forecast ? undefined : open ? close() : show())}>
+  {@render label()}
+</button>
+
+{#snippet label()}
   {#if face === "pill"}
     <Icon icon={faSatelliteDish} />
     <span>{$_(`chrome.radar_product.${shown}_short`)}</span>
@@ -209,10 +226,25 @@ function portal(node: HTMLElement) {
     <span class="name">{$_(`chrome.radar_product.${shown}`)}<Icon icon={faChevronUp} class="chevron" /></span>
     <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
   {/if}
-</button>
+{/snippet}
 
 {#if open && $smallScreen}
   <div use:portal class="blur" aria-hidden="true" transition:fade={{ duration: 150 }}></div>
+  {#if twin}
+    <!-- The control, over the blur; the real one, under it, keeps the focus. -->
+    <button
+      bind:this={twinButton}
+      use:portal
+      type="button"
+      class="{face} twin"
+      class:fellBack
+      tabindex="-1"
+      aria-hidden="true"
+      style="{twin.vars}; left: {twin.left}px; top: {twin.top}px; width: {twin.width}px; height: {twin.height}px"
+      on:click={() => close(true)}>
+      {@render label()}
+    </button>
+  {/if}
 {/if}
 
 {#if open}
@@ -373,8 +405,14 @@ function portal(node: HTMLElement) {
     position: fixed;
     inset: 0;
     z-index: calc(var(--mc-z-dialog) - 1);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+  .twin {
+    position: fixed;
+    z-index: var(--mc-z-dialog);
+    box-sizing: border-box;
+    margin: 0;
   }
   .heading {
     display: flex;
