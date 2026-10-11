@@ -69,22 +69,18 @@ function browserCheck(): Plugin {
 const commit = process.env.COMMIT_REF ?? process.env.GITHUB_SHA ?? process.env.GIT_COMMIT_HASH ?? "";
 
 /*
- * Production is not built from here.
+ * Pages must keep serving the frontend used by the installed legacy apps.
  *
- * meteocool.com is the old frontend on the old backend, served by the
- * Cloudflare Pages project `core`, and the apps in the stores still depend on
- * it. That project is wired to this GitHub repository with `develop` as its
- * production branch, so on 2026-09-25 every push to develop built this Vite
- * app and put it on meteocool.com, in front of an API it was not written for.
- * Pages builds run with CF_PAGES=1, and a build that fails leaves the live
- * deployment alone, so this config refuses to build there. Staging and demo deploy as Workers from
- * .github/workflows/deploy.yml, which never sets this. Production's cutover,
- * when it comes, is a deliberate change to the Pages project, not a push.
+ * Cloudflare Pages project `core` serves app.ng.meteocool.com. Publishing
+ * this frontend there would replace the legacy app's map. A failed Pages
+ * build leaves its live deployment alone. The public website and new apps
+ * deploy as Workers from .github/workflows/deploy.yml, which never sets
+ * CF_PAGES.
  */
 if (process.env.CF_PAGES && !process.env.MC_ALLOW_PAGES_BUILD) {
   throw new Error(
-    "Refusing to build under Cloudflare Pages: meteocool.com is the old frontend "
-    + "and the store apps depend on it. See vite.config.ts.",
+    "Refusing to build under Cloudflare Pages: app.ng.meteocool.com serves "
+    + "the legacy store apps. See vite.config.ts.",
   );
 }
 

@@ -45,6 +45,18 @@ Non-existent, but here's a few pointers:
   Run it before pushing develop; it is not in CI yet. See
   [tests/ui/README.md](tests/ui/README.md).
 
+## Deployment
+
+The public website and new native apps use the `staging` Worker environment
+in `wrangler.jsonc`. Build with `--mode staging` so the frontend uses the
+same backend as the Worker's native API forwarding. `npm run deploy:staging`
+builds and deploys both the public website and its staging aliases;
+`npm run deploy:demo` publishes only the demo environment.
+
+`npm run build` without a mode targets the old backend. It is not the public
+website's deployment build, and `deploy:production` is intentionally blocked.
+The Pages build guard must stay enabled while legacy apps use that project.
+
 ## Warning: Recreational Programming
 
 I do not consider myself to be a web (nor frontend) developer, and

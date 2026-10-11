@@ -1,8 +1,9 @@
 # Deploys the frontend to staging and demo on every push to `develop`, the
 # default branch that feature branches merge into (the frontend's counterpart
 # of meteocool/ng's `v4`). Both are Cloudflare Workers (wrangler.jsonc, envs
-# `staging` and `demo`) in front of the staging cluster. `main` is production
-# and is not deployed from here.
+# `staging` and `demo`) in front of the staging cluster. The staging Worker
+# also serves meteocool.com and the new native apps, so pushes to develop
+# publish to the public website.
 #
 # This repository is public, and this is the only workflow that runs on
 # `develop` holding a secret: a Cloudflare API token that can publish
