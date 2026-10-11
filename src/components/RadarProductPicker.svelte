@@ -405,8 +405,8 @@ function portal(node: HTMLElement) {
     position: fixed;
     inset: 0;
     z-index: calc(var(--mc-z-dialog) - 1);
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
   }
   .twin {
     position: fixed;
