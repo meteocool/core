@@ -1,0 +1,9 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "active": true,
+  "tile_id": "df68a1fa-6328-45a7-bd31-18b282a988f0",
+  "upstream_time": 1791682500
+ }
+}

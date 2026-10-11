@@ -17,3 +17,10 @@ feat(worker): serve the apps' API on app.meteocool.com
 - The message ends on its last bullet: no `Co-Authored-By` or other attribution trailer, overriding Claude Code's default. PR descriptions follow the same style, without attribution.
 
 `scripts/commit-msg`, installed as the shared `.git/hooks/commit-msg`, rejects anything else. On a rejection, rewrite the message and commit again.
+
+## Tests
+
+- Before pushing develop: `npx svelte-check --threshold error`, `npx eslint .`, `npm test` and `npm run test:ui`. Do not push on a failure.
+- `npm run test:ui` is Playwright (`tests/ui`), offline on recorded backend answers and a recorded clock. Read [tests/ui/README.md](tests/ui/README.md) before adding a spec or re-recording.
+- A UI change that fixes a bug, or that could break another part of the screen, gets a spec in `tests/ui` that fails without the change.
+- A test failing on "requests have no recording" means the app asks for something new: add its path to `tests/ui/offline.ts` if it is the backend's, then `npm run test:ui:record` and commit the reviewed fixtures.

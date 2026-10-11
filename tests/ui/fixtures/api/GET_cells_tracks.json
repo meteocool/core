@@ -1,0 +1,9429 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "type": "FeatureCollection",
+  "reference_time": "2026-10-11T01:35:00Z",
+  "features": [
+   {
+    "type": "Feature",
+    "id": "2026101101250000000001",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       5.51981,
+       53.7524
+      ],
+      [
+       5.58228,
+       53.74058
+      ],
+      [
+       5.63971,
+       53.72421
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101101250000000001",
+     "first_seen": "2026-10-11T01:25:00Z",
+     "last_seen": "2026-10-11T01:35:00Z",
+     "lineage_first_detection": "2026-10-11T01:25:00Z",
+     "n_steps": 3,
+     "active": true,
+     "max_severity": 0,
+     "max_dbz": 53.42,
+     "vil_max": 7.875,
+     "echo_top_max_m": 4157,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": true,
+     "deviation_deg": 6.7,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:25:00Z",
+       "lon": 5.51981,
+       "lat": 53.7524,
+       "identifier": 16,
+       "severity": 0,
+       "severity_decimal": 0.15,
+       "max_dbz": 53.42,
+       "echo_top_m": 3387,
+       "vil": 5.604,
+       "area_km2": 18.875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.355,
+       "lightning_rate": 2,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.355,
+       "heading_deg": 109.01091344259586,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:30:00Z",
+       "lon": 5.58228,
+       "lat": 53.74058,
+       "identifier": 16,
+       "severity": 0,
+       "severity_decimal": 0.15,
+       "max_dbz": 53.35,
+       "echo_top_m": 3104,
+       "vil": 5.139,
+       "area_km2": 15.6875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.464,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.464,
+       "heading_deg": 108.939624681259,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:35:00Z",
+       "lon": 5.63971,
+       "lat": 53.72421,
+       "identifier": 16,
+       "severity": 0,
+       "severity_decimal": 0.18,
+       "max_dbz": 53.16,
+       "echo_top_m": 4157,
+       "vil": 7.875,
+       "area_km2": 20.75,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.867,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.867,
+       "heading_deg": 115.08489927691927,
+       "deviation_deg": 6.7,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [
+      {
+       "t": "2026-10-11T01:40:00Z",
+       "lon": 5.69719,
+       "lat": 53.70827,
+       "major_km": 2.618,
+       "minor_km": 2.038,
+       "angle_deg": 114.16
+      },
+      {
+       "t": "2026-10-11T01:45:00Z",
+       "lon": 5.75471,
+       "lat": 53.69218,
+       "major_km": 4.92,
+       "minor_km": 4.246,
+       "angle_deg": 114.3
+      },
+      {
+       "t": "2026-10-11T01:50:00Z",
+       "lon": 5.81227,
+       "lat": 53.67595,
+       "major_km": 7.715,
+       "minor_km": 6.944,
+       "angle_deg": 114.37
+      },
+      {
+       "t": "2026-10-11T01:55:00Z",
+       "lon": 5.86988,
+       "lat": 53.65957,
+       "major_km": 10.943,
+       "minor_km": 10.075,
+       "angle_deg": 114.39
+      },
+      {
+       "t": "2026-10-11T02:00:00Z",
+       "lon": 5.92753,
+       "lat": 53.64305,
+       "major_km": 14.566,
+       "minor_km": 13.602,
+       "angle_deg": 114.4
+      },
+      {
+       "t": "2026-10-11T02:05:00Z",
+       "lon": 5.98522,
+       "lat": 53.62638,
+       "major_km": 18.559,
+       "minor_km": 17.499,
+       "angle_deg": 114.38
+      },
+      {
+       "t": "2026-10-11T02:10:00Z",
+       "lon": 6.04295,
+       "lat": 53.60957,
+       "major_km": 22.902,
+       "minor_km": 21.748,
+       "angle_deg": 114.36
+      },
+      {
+       "t": "2026-10-11T02:15:00Z",
+       "lon": 6.10072,
+       "lat": 53.59262,
+       "major_km": 27.583,
+       "minor_km": 26.333,
+       "angle_deg": 114.34
+      },
+      {
+       "t": "2026-10-11T02:20:00Z",
+       "lon": 6.15852,
+       "lat": 53.57552,
+       "major_km": 32.588,
+       "minor_km": 31.243,
+       "angle_deg": 114.31
+      },
+      {
+       "t": "2026-10-11T02:25:00Z",
+       "lon": 6.21637,
+       "lat": 53.55828,
+       "major_km": 37.911,
+       "minor_km": 36.468,
+       "angle_deg": 114.27
+      },
+      {
+       "t": "2026-10-11T02:30:00Z",
+       "lon": 6.27425,
+       "lat": 53.5409,
+       "major_km": 43.541,
+       "minor_km": 42.002,
+       "angle_deg": 114.24
+      },
+      {
+       "t": "2026-10-11T02:35:00Z",
+       "lon": 6.33217,
+       "lat": 53.52337,
+       "major_km": 49.475,
+       "minor_km": 47.836,
+       "angle_deg": 114.21
+      }
+     ],
+     "polygon": [
+      [
+       5.61005,
+       53.75157
+      ],
+      [
+       5.59992,
+       53.74457
+      ],
+      [
+       5.58163,
+       53.74373
+      ],
+      [
+       5.57826,
+       53.74139
+      ],
+      [
+       5.57939,
+       53.73272
+      ],
+      [
+       5.58727,
+       53.72872
+      ],
+      [
+       5.5884,
+       53.72005
+      ],
+      [
+       5.59233,
+       53.71805
+      ],
+      [
+       5.59964,
+       53.71838
+      ],
+      [
+       5.60358,
+       53.71638
+      ],
+      [
+       5.61089,
+       53.71671
+      ],
+      [
+       5.61482,
+       53.71471
+      ],
+      [
+       5.62578,
+       53.71521
+      ],
+      [
+       5.62972,
+       53.71321
+      ],
+      [
+       5.63703,
+       53.71354
+      ],
+      [
+       5.64096,
+       53.71154
+      ],
+      [
+       5.65192,
+       53.71203
+      ],
+      [
+       5.65585,
+       53.71003
+      ],
+      [
+       5.65951,
+       53.71019
+      ],
+      [
+       5.66344,
+       53.70819
+      ],
+      [
+       5.6744,
+       53.70868
+      ],
+      [
+       5.67833,
+       53.70668
+      ],
+      [
+       5.68199,
+       53.70684
+      ],
+      [
+       5.68536,
+       53.70918
+      ],
+      [
+       5.68481,
+       53.71351
+      ],
+      [
+       5.68819,
+       53.71584
+      ],
+      [
+       5.68681,
+       53.72668
+      ],
+      [
+       5.68288,
+       53.72869
+      ],
+      [
+       5.67923,
+       53.72852
+      ],
+      [
+       5.67529,
+       53.73053
+      ],
+      [
+       5.66432,
+       53.73004
+      ],
+      [
+       5.66039,
+       53.73204
+      ],
+      [
+       5.65673,
+       53.73187
+      ],
+      [
+       5.6528,
+       53.73388
+      ],
+      [
+       5.64914,
+       53.73371
+      ],
+      [
+       5.64521,
+       53.73572
+      ],
+      [
+       5.63789,
+       53.73539
+      ],
+      [
+       5.63396,
+       53.73739
+      ],
+      [
+       5.62664,
+       53.73706
+      ],
+      [
+       5.61877,
+       53.74106
+      ],
+      [
+       5.61765,
+       53.74973
+      ],
+      [
+       5.61371,
+       53.75174
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 20.75,
+       "top_m": 4157,
+       "volume_km3": 38.34375,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 20.75,
+       "top_m": 4157,
+       "volume_km3": 38.34375,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 20.75,
+       "top_m": 4157,
+       "volume_km3": 38.34375,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 16.3125,
+       "top_m": 4157,
+       "volume_km3": 31.203125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 2.4375,
+       "top_m": 4142,
+       "volume_km3": 5.21875,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 415,
+     "placement": null,
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101250000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.70655,
+       53.71904
+      ],
+      [
+       6.76433,
+       53.70783
+      ],
+      [
+       6.81904,
+       53.69467
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101101250000000000",
+     "first_seen": "2026-10-11T01:25:00Z",
+     "last_seen": "2026-10-11T01:35:00Z",
+     "lineage_first_detection": "2026-10-11T01:25:00Z",
+     "n_steps": 3,
+     "active": true,
+     "max_severity": 1,
+     "max_dbz": 63.47,
+     "vil_max": 9.856,
+     "echo_top_max_m": 4046,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 10,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": 2,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:25:00Z",
+       "lon": 6.70655,
+       "lat": 53.71904,
+       "identifier": 4,
+       "severity": 0,
+       "severity_decimal": 0.27,
+       "max_dbz": 60.56,
+       "echo_top_m": 4046,
+       "vil": 9.216,
+       "area_km2": 17.9375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.267,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.267,
+       "heading_deg": 104.39385002322328,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:30:00Z",
+       "lon": 6.76433,
+       "lat": 53.70783,
+       "identifier": 4,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 63.47,
+       "echo_top_m": 3829,
+       "vil": 9.856,
+       "area_km2": 20.4375,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.645,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.645,
+       "heading_deg": 106.2471657759689,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:35:00Z",
+       "lon": 6.81904,
+       "lat": 53.69467,
+       "identifier": 4,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 59.77,
+       "echo_top_m": 3662,
+       "vil": 6.93,
+       "area_km2": 19.875,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.411,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.411,
+       "heading_deg": 111.97302452843599,
+       "deviation_deg": 2,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [
+      {
+       "t": "2026-10-11T01:40:00Z",
+       "lon": 6.87389,
+       "lat": 53.68155,
+       "major_km": 2.426,
+       "minor_km": 1.862,
+       "angle_deg": 117.76
+      },
+      {
+       "t": "2026-10-11T01:45:00Z",
+       "lon": 6.9286,
+       "lat": 53.66815,
+       "major_km": 4.637,
+       "minor_km": 3.974,
+       "angle_deg": 117.17
+      },
+      {
+       "t": "2026-10-11T01:50:00Z",
+       "lon": 6.98317,
+       "lat": 53.65445,
+       "major_km": 7.33,
+       "minor_km": 6.562,
+       "angle_deg": 116.83
+      },
+      {
+       "t": "2026-10-11T01:55:00Z",
+       "lon": 7.0376,
+       "lat": 53.64047,
+       "major_km": 10.442,
+       "minor_km": 9.572,
+       "angle_deg": 116.61
+      },
+      {
+       "t": "2026-10-11T02:00:00Z",
+       "lon": 7.09188,
+       "lat": 53.6262,
+       "major_km": 13.939,
+       "minor_km": 12.969,
+       "angle_deg": 116.46
+      },
+      {
+       "t": "2026-10-11T02:05:00Z",
+       "lon": 7.14603,
+       "lat": 53.61164,
+       "major_km": 17.796,
+       "minor_km": 16.728,
+       "angle_deg": 116.36
+      },
+      {
+       "t": "2026-10-11T02:10:00Z",
+       "lon": 7.20002,
+       "lat": 53.5968,
+       "major_km": 21.995,
+       "minor_km": 20.83,
+       "angle_deg": 116.28
+      },
+      {
+       "t": "2026-10-11T02:15:00Z",
+       "lon": 7.25387,
+       "lat": 53.58166,
+       "major_km": 26.524,
+       "minor_km": 25.263,
+       "angle_deg": 116.23
+      },
+      {
+       "t": "2026-10-11T02:20:00Z",
+       "lon": 7.30757,
+       "lat": 53.56625,
+       "major_km": 31.37,
+       "minor_km": 30.013,
+       "angle_deg": 116.19
+      },
+      {
+       "t": "2026-10-11T02:25:00Z",
+       "lon": 7.36112,
+       "lat": 53.55054,
+       "major_km": 36.527,
+       "minor_km": 35.074,
+       "angle_deg": 116.16
+      },
+      {
+       "t": "2026-10-11T02:30:00Z",
+       "lon": 7.41453,
+       "lat": 53.53455,
+       "major_km": 41.986,
+       "minor_km": 40.436,
+       "angle_deg": 116.14
+      },
+      {
+       "t": "2026-10-11T02:35:00Z",
+       "lon": 7.46778,
+       "lat": 53.51827,
+       "major_km": 47.742,
+       "minor_km": 46.095,
+       "angle_deg": 116.13
+      }
+     ],
+     "polygon": [
+      [
+       6.79754,
+       53.71548
+      ],
+      [
+       6.79408,
+       53.71319
+      ],
+      [
+       6.75749,
+       53.71196
+      ],
+      [
+       6.74714,
+       53.70508
+      ],
+      [
+       6.74735,
+       53.70291
+      ],
+      [
+       6.75832,
+       53.70328
+      ],
+      [
+       6.76992,
+       53.69714
+      ],
+      [
+       6.78454,
+       53.69763
+      ],
+      [
+       6.78841,
+       53.69558
+      ],
+      [
+       6.79207,
+       53.6957
+      ],
+      [
+       6.81137,
+       53.68545
+      ],
+      [
+       6.81503,
+       53.68557
+      ],
+      [
+       6.82275,
+       53.68147
+      ],
+      [
+       6.8264,
+       53.68159
+      ],
+      [
+       6.83026,
+       53.67954
+      ],
+      [
+       6.84488,
+       53.68002
+      ],
+      [
+       6.84874,
+       53.67797
+      ],
+      [
+       6.8524,
+       53.67809
+      ],
+      [
+       6.85625,
+       53.67604
+      ],
+      [
+       6.86356,
+       53.67628
+      ],
+      [
+       6.86702,
+       53.67857
+      ],
+      [
+       6.87068,
+       53.67869
+      ],
+      [
+       6.87759,
+       53.68327
+      ],
+      [
+       6.87719,
+       53.68761
+      ],
+      [
+       6.87333,
+       53.68966
+      ],
+      [
+       6.86602,
+       53.68942
+      ],
+      [
+       6.86216,
+       53.69147
+      ],
+      [
+       6.8585,
+       53.69135
+      ],
+      [
+       6.85079,
+       53.69546
+      ],
+      [
+       6.84347,
+       53.69522
+      ],
+      [
+       6.83575,
+       53.69932
+      ],
+      [
+       6.83515,
+       53.70583
+      ],
+      [
+       6.82742,
+       53.70993
+      ],
+      [
+       6.81279,
+       53.70945
+      ],
+      [
+       6.8012,
+       53.7156
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 19.875,
+       "top_m": 3662,
+       "volume_km3": 19.96875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 19.875,
+       "top_m": 3662,
+       "volume_km3": 19.96875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 19.875,
+       "top_m": 3662,
+       "volume_km3": 19.96875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 18.75,
+       "top_m": 3554,
+       "volume_km3": 17.671875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 13.625,
+       "top_m": 2253,
+       "volume_km3": 8.5,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 5.75,
+       "top_m": 1635,
+       "volume_km3": 1.953125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 61,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 183.5,
+      "direction": "NW",
+      "bearing_deg": 309.6
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101200000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.77264,
+       53.6618
+      ],
+      [
+       6.85375,
+       53.65877
+      ],
+      [
+       6.91338,
+       53.65098
+      ],
+      [
+       6.97429,
+       53.6415
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101101200000000000",
+     "first_seen": "2026-10-11T01:20:00Z",
+     "last_seen": "2026-10-11T01:35:00Z",
+     "lineage_first_detection": "2026-10-11T01:20:00Z",
+     "n_steps": 4,
+     "active": true,
+     "max_severity": 0,
+     "max_dbz": 62.9,
+     "vil_max": 8.248,
+     "echo_top_max_m": 4315,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": true,
+     "deviation_deg": 8.7,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:20:00Z",
+       "lon": 6.77264,
+       "lat": 53.6618,
+       "identifier": 3,
+       "severity": 0,
+       "severity_decimal": 0.19,
+       "max_dbz": 58.82,
+       "echo_top_m": 2796,
+       "vil": 5.744,
+       "area_km2": 8.75,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 46.633,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 46.633,
+       "heading_deg": 105.93964448882825,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:25:00Z",
+       "lon": 6.85375,
+       "lat": 53.65877,
+       "identifier": 3,
+       "severity": 0,
+       "severity_decimal": 0.26,
+       "max_dbz": 61.06,
+       "echo_top_m": 2737,
+       "vil": 6.367,
+       "area_km2": 29.8125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.205,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.205,
+       "heading_deg": 105.53926759219223,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:30:00Z",
+       "lon": 6.91338,
+       "lat": 53.65098,
+       "identifier": 3,
+       "severity": 0,
+       "severity_decimal": 0.36,
+       "max_dbz": 62.77,
+       "echo_top_m": 2811,
+       "vil": 6.961,
+       "area_km2": 39.625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.759,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.759,
+       "heading_deg": 104.46261893550947,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:35:00Z",
+       "lon": 6.97429,
+       "lat": 53.6415,
+       "identifier": 3,
+       "severity": 0,
+       "severity_decimal": 0.4,
+       "max_dbz": 62.9,
+       "echo_top_m": 4315,
+       "vil": 8.248,
+       "area_km2": 41.4375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.692,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.692,
+       "heading_deg": 104.81427222217344,
+       "deviation_deg": 8.7,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [
+      {
+       "t": "2026-10-11T01:40:00Z",
+       "lon": 7.03407,
+       "lat": 53.63211,
+       "major_km": 2.551,
+       "minor_km": 2.062,
+       "angle_deg": 80.21
+      },
+      {
+       "t": "2026-10-11T01:45:00Z",
+       "lon": 7.09391,
+       "lat": 53.62271,
+       "major_km": 4.677,
+       "minor_km": 4.132,
+       "angle_deg": 80.08
+      },
+      {
+       "t": "2026-10-11T01:50:00Z",
+       "lon": 7.15381,
+       "lat": 53.61328,
+       "major_km": 7.226,
+       "minor_km": 6.621,
+       "angle_deg": 79.97
+      },
+      {
+       "t": "2026-10-11T01:55:00Z",
+       "lon": 7.21376,
+       "lat": 53.60384,
+       "major_km": 10.131,
+       "minor_km": 9.469,
+       "angle_deg": 79.9
+      },
+      {
+       "t": "2026-10-11T02:00:00Z",
+       "lon": 7.27378,
+       "lat": 53.59437,
+       "major_km": 13.354,
+       "minor_km": 12.637,
+       "angle_deg": 79.84
+      },
+      {
+       "t": "2026-10-11T02:05:00Z",
+       "lon": 7.33385,
+       "lat": 53.58489,
+       "major_km": 16.864,
+       "minor_km": 16.097,
+       "angle_deg": 79.8
+      },
+      {
+       "t": "2026-10-11T02:10:00Z",
+       "lon": 7.39398,
+       "lat": 53.57538,
+       "major_km": 20.641,
+       "minor_km": 19.825,
+       "angle_deg": 79.77
+      },
+      {
+       "t": "2026-10-11T02:15:00Z",
+       "lon": 7.45417,
+       "lat": 53.56586,
+       "major_km": 24.667,
+       "minor_km": 23.806,
+       "angle_deg": 79.74
+      },
+      {
+       "t": "2026-10-11T02:20:00Z",
+       "lon": 7.51442,
+       "lat": 53.55632,
+       "major_km": 28.928,
+       "minor_km": 28.023,
+       "angle_deg": 79.72
+      },
+      {
+       "t": "2026-10-11T02:25:00Z",
+       "lon": 7.57473,
+       "lat": 53.54675,
+       "major_km": 33.413,
+       "minor_km": 32.466,
+       "angle_deg": 79.71
+      },
+      {
+       "t": "2026-10-11T02:30:00Z",
+       "lon": 7.6351,
+       "lat": 53.53717,
+       "major_km": 38.111,
+       "minor_km": 37.123,
+       "angle_deg": 79.7
+      },
+      {
+       "t": "2026-10-11T02:35:00Z",
+       "lon": 7.69552,
+       "lat": 53.52756,
+       "major_km": 43.013,
+       "minor_km": 41.986,
+       "angle_deg": 79.68
+      }
+     ],
+     "polygon": [
+      [
+       6.98883,
+       53.66939
+      ],
+      [
+       6.9819,
+       53.66482
+      ],
+      [
+       6.92343,
+       53.66297
+      ],
+      [
+       6.92422,
+       53.65429
+      ],
+      [
+       6.9173,
+       53.64972
+      ],
+      [
+       6.91365,
+       53.6496
+      ],
+      [
+       6.89638,
+       53.63816
+      ],
+      [
+       6.89657,
+       53.63599
+      ],
+      [
+       6.88967,
+       53.63142
+      ],
+      [
+       6.89046,
+       53.62274
+      ],
+      [
+       6.89816,
+       53.61863
+      ],
+      [
+       6.90181,
+       53.61875
+      ],
+      [
+       6.90565,
+       53.6167
+      ],
+      [
+       6.92025,
+       53.61716
+      ],
+      [
+       6.9237,
+       53.61945
+      ],
+      [
+       6.93465,
+       53.6198
+      ],
+      [
+       6.93811,
+       53.62209
+      ],
+      [
+       7.01111,
+       53.62438
+      ],
+      [
+       7.02149,
+       53.63123
+      ],
+      [
+       7.0213,
+       53.6334
+      ],
+      [
+       7.03169,
+       53.64025
+      ],
+      [
+       7.03534,
+       53.64036
+      ],
+      [
+       7.03881,
+       53.64264
+      ],
+      [
+       7.03786,
+       53.6535
+      ],
+      [
+       7.02633,
+       53.65967
+      ],
+      [
+       7.02614,
+       53.66184
+      ],
+      [
+       7.01845,
+       53.66596
+      ],
+      [
+       7.00749,
+       53.66562
+      ],
+      [
+       6.99979,
+       53.66973
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 41.4375,
+       "top_m": 4315,
+       "volume_km3": 41.25,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 41.4375,
+       "top_m": 4315,
+       "volume_km3": 41.25,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 41.4375,
+       "top_m": 4315,
+       "volume_km3": 41.25,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 41.0625,
+       "top_m": 4043,
+       "volume_km3": 37.265625,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 28.8125,
+       "top_m": 1949,
+       "volume_km3": 18.640625,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 10.75,
+       "top_m": 1543,
+       "volume_km3": 5.140625,
+       "rings": null
+      },
+      {
+       "dbz": 60,
+       "area_km2": 1.875,
+       "top_m": 720,
+       "volume_km3": 0.59375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 58,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 171.8,
+      "direction": "NW",
+      "bearing_deg": 310.1
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101150000000001",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       12.89361,
+       54.75971
+      ],
+      [
+       12.93666,
+       54.77749
+      ],
+      [
+       12.97424,
+       54.79028
+      ],
+      [
+       13.01833,
+       54.80582
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101101150000000001",
+     "first_seen": "2026-10-11T01:15:00Z",
+     "last_seen": "2026-10-11T01:30:00Z",
+     "lineage_first_detection": "2026-10-11T01:15:00Z",
+     "n_steps": 4,
+     "active": true,
+     "max_severity": 1,
+     "max_dbz": 58.02,
+     "vil_max": 7.644,
+     "echo_top_max_m": 3721,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 10,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:15:00Z",
+       "lon": 12.89361,
+       "lat": 54.75971,
+       "identifier": 56,
+       "severity": 0,
+       "severity_decimal": 0.31,
+       "max_dbz": 58.02,
+       "echo_top_m": 3441,
+       "vil": 7.234,
+       "area_km2": 9.9375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 39.987,
+       "lightning_rate": 4,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 39.647,
+       "heading_deg": 55.04124534501725,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:20:00Z",
+       "lon": 12.93666,
+       "lat": 54.77749,
+       "identifier": 56,
+       "severity": 0,
+       "severity_decimal": 0.34,
+       "max_dbz": 57.47,
+       "echo_top_m": 3541,
+       "vil": 7.644,
+       "area_km2": 12.75,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 40.93,
+       "lightning_rate": 4,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 39.8,
+       "heading_deg": 54.87474469316229,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:25:00Z",
+       "lon": 12.97424,
+       "lat": 54.79028,
+       "identifier": 56,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 53.88,
+       "echo_top_m": 3721,
+       "vil": 6.879,
+       "area_km2": 11.8125,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 37.193,
+       "lightning_rate": 2,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 35.371,
+       "heading_deg": 58.917244978618655,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:30:00Z",
+       "lon": 13.01833,
+       "lat": 54.80582,
+       "identifier": 56,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 51.13,
+       "echo_top_m": 2655,
+       "vil": 3.32,
+       "area_km2": 14.0625,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 39.482,
+       "lightning_rate": 4,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 39.482,
+       "heading_deg": 58.623632753307035,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [
+      {
+       "t": "2026-10-11T01:35:00Z",
+       "lon": 13.06093,
+       "lat": 54.82078,
+       "major_km": 2.089,
+       "minor_km": 1.669,
+       "angle_deg": 77.08
+      },
+      {
+       "t": "2026-10-11T01:40:00Z",
+       "lon": 13.10365,
+       "lat": 54.83569,
+       "major_km": 3.873,
+       "minor_km": 3.394,
+       "angle_deg": 76.55
+      },
+      {
+       "t": "2026-10-11T01:45:00Z",
+       "lon": 13.14649,
+       "lat": 54.85057,
+       "major_km": 6.007,
+       "minor_km": 5.459,
+       "angle_deg": 76.13
+      },
+      {
+       "t": "2026-10-11T01:50:00Z",
+       "lon": 13.18944,
+       "lat": 54.86539,
+       "major_km": 8.454,
+       "minor_km": 7.838,
+       "angle_deg": 75.82
+      },
+      {
+       "t": "2026-10-11T01:55:00Z",
+       "lon": 13.2325,
+       "lat": 54.88017,
+       "major_km": 11.197,
+       "minor_km": 10.513,
+       "angle_deg": 75.56
+      },
+      {
+       "t": "2026-10-11T02:00:00Z",
+       "lon": 13.27568,
+       "lat": 54.89491,
+       "major_km": 14.224,
+       "minor_km": 13.473,
+       "angle_deg": 75.34
+      },
+      {
+       "t": "2026-10-11T02:05:00Z",
+       "lon": 13.31897,
+       "lat": 54.9096,
+       "major_km": 17.528,
+       "minor_km": 16.71,
+       "angle_deg": 75.15
+      },
+      {
+       "t": "2026-10-11T02:10:00Z",
+       "lon": 13.36237,
+       "lat": 54.92425,
+       "major_km": 21.101,
+       "minor_km": 20.217,
+       "angle_deg": 74.97
+      },
+      {
+       "t": "2026-10-11T02:15:00Z",
+       "lon": 13.4059,
+       "lat": 54.93885,
+       "major_km": 24.939,
+       "minor_km": 23.989,
+       "angle_deg": 74.81
+      },
+      {
+       "t": "2026-10-11T02:20:00Z",
+       "lon": 13.44953,
+       "lat": 54.95341,
+       "major_km": 29.038,
+       "minor_km": 28.021,
+       "angle_deg": 74.65
+      },
+      {
+       "t": "2026-10-11T02:25:00Z",
+       "lon": 13.49328,
+       "lat": 54.96792,
+       "major_km": 33.395,
+       "minor_km": 32.311,
+       "angle_deg": 74.49
+      },
+      {
+       "t": "2026-10-11T02:30:00Z",
+       "lon": 13.53714,
+       "lat": 54.98238,
+       "major_km": 38.007,
+       "minor_km": 36.855,
+       "angle_deg": 74.34
+      }
+     ],
+     "polygon": [
+      [
+       13.00058,
+       54.82261
+      ],
+      [
+       12.9966,
+       54.82054
+      ],
+      [
+       12.9964,
+       54.81835
+      ],
+      [
+       12.98844,
+       54.81421
+      ],
+      [
+       12.98824,
+       54.81203
+      ],
+      [
+       12.97233,
+       54.80375
+      ],
+      [
+       12.97174,
+       54.7972
+      ],
+      [
+       12.97532,
+       54.7949
+      ],
+      [
+       12.9791,
+       54.79478
+      ],
+      [
+       12.98269,
+       54.79249
+      ],
+      [
+       13.02048,
+       54.79134
+      ],
+      [
+       13.02068,
+       54.79353
+      ],
+      [
+       13.03262,
+       54.79973
+      ],
+      [
+       13.06286,
+       54.7988
+      ],
+      [
+       13.06685,
+       54.80087
+      ],
+      [
+       13.07063,
+       54.80075
+      ],
+      [
+       13.07083,
+       54.80293
+      ],
+      [
+       13.07481,
+       54.805
+      ],
+      [
+       13.06766,
+       54.8096
+      ],
+      [
+       13.06388,
+       54.80972
+      ],
+      [
+       13.04597,
+       54.82122
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 14.0625,
+       "top_m": 2655,
+       "volume_km3": 24.59375,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 14.0625,
+       "top_m": 2655,
+       "volume_km3": 24.59375,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 14.0625,
+       "top_m": 2655,
+       "volume_km3": 24.59375,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 10.5,
+       "top_m": 2646,
+       "volume_km3": 18.046875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 0.9375,
+       "top_m": 2605,
+       "volume_km3": 1.4375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 662,
+     "placement": {
+      "place": "Küstengewässer einschließlich Anteil am Festlandsockel",
+      "kind": "city",
+      "distance_km": 75.5,
+      "direction": "NE",
+      "bearing_deg": 46
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101100000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.73488,
+       53.61573
+      ],
+      [
+       6.82428,
+       53.59992
+      ],
+      [
+       6.89249,
+       53.58051
+      ],
+      [
+       6.9473,
+       53.5627
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101101100000000000",
+     "first_seen": "2026-10-11T01:10:00Z",
+     "last_seen": "2026-10-11T01:25:00Z",
+     "lineage_first_detection": "2026-10-11T01:10:00Z",
+     "n_steps": 4,
+     "active": true,
+     "max_severity": 0,
+     "max_dbz": 61.09,
+     "vil_max": 7.121,
+     "echo_top_max_m": 3690,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": true,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:10:00Z",
+       "lon": 6.73488,
+       "lat": 53.61573,
+       "identifier": 54,
+       "severity": 0,
+       "severity_decimal": 0.18,
+       "max_dbz": 55.77,
+       "echo_top_m": 3045,
+       "vil": 5.262,
+       "area_km2": 17.25,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 45.533,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 45.533,
+       "heading_deg": 107.90887668618622,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:15:00Z",
+       "lon": 6.82428,
+       "lat": 53.59992,
+       "identifier": 54,
+       "severity": 0,
+       "severity_decimal": 0.23,
+       "max_dbz": 60.28,
+       "echo_top_m": 3690,
+       "vil": 7.121,
+       "area_km2": 24.5,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 45.776,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 45.776,
+       "heading_deg": 107.47629457244261,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:20:00Z",
+       "lon": 6.89249,
+       "lat": 53.58051,
+       "identifier": 54,
+       "severity": 0,
+       "severity_decimal": 0.23,
+       "max_dbz": 59.76,
+       "echo_top_m": 3013,
+       "vil": 6.41,
+       "area_km2": 32,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 46.867,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 46.867,
+       "heading_deg": 107.8047083586116,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:25:00Z",
+       "lon": 6.9473,
+       "lat": 53.5627,
+       "identifier": 54,
+       "severity": 0,
+       "severity_decimal": 0.28,
+       "max_dbz": 61.09,
+       "echo_top_m": 2550,
+       "vil": 6.161,
+       "area_km2": 33.8125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.841,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.841,
+       "heading_deg": 115.15063007227081,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [
+      {
+       "t": "2026-10-11T01:30:00Z",
+       "lon": 6.99999,
+       "lat": 53.54799,
+       "major_km": 2.197,
+       "minor_km": 1.927,
+       "angle_deg": 323.64
+      },
+      {
+       "t": "2026-10-11T01:35:00Z",
+       "lon": 7.05266,
+       "lat": 53.53325,
+       "major_km": 4.154,
+       "minor_km": 3.907,
+       "angle_deg": 322.78
+      },
+      {
+       "t": "2026-10-11T01:40:00Z",
+       "lon": 7.10529,
+       "lat": 53.51845,
+       "major_km": 6.553,
+       "minor_km": 6.306,
+       "angle_deg": 322.17
+      },
+      {
+       "t": "2026-10-11T01:45:00Z",
+       "lon": 7.1579,
+       "lat": 53.50362,
+       "major_km": 9.317,
+       "minor_km": 9.063,
+       "angle_deg": 321.73
+      },
+      {
+       "t": "2026-10-11T01:50:00Z",
+       "lon": 7.21049,
+       "lat": 53.48874,
+       "major_km": 12.4,
+       "minor_km": 12.135,
+       "angle_deg": 321.42
+      },
+      {
+       "t": "2026-10-11T01:55:00Z",
+       "lon": 7.26304,
+       "lat": 53.47382,
+       "major_km": 15.771,
+       "minor_km": 15.495,
+       "angle_deg": 321.19
+      },
+      {
+       "t": "2026-10-11T02:00:00Z",
+       "lon": 7.31558,
+       "lat": 53.45886,
+       "major_km": 19.407,
+       "minor_km": 19.119,
+       "angle_deg": 321
+      },
+      {
+       "t": "2026-10-11T02:05:00Z",
+       "lon": 7.36808,
+       "lat": 53.44385,
+       "major_km": 23.291,
+       "minor_km": 22.99,
+       "angle_deg": 320.86
+      },
+      {
+       "t": "2026-10-11T02:10:00Z",
+       "lon": 7.42056,
+       "lat": 53.4288,
+       "major_km": 27.406,
+       "minor_km": 27.094,
+       "angle_deg": 320.74
+      },
+      {
+       "t": "2026-10-11T02:15:00Z",
+       "lon": 7.47301,
+       "lat": 53.41371,
+       "major_km": 31.742,
+       "minor_km": 31.418,
+       "angle_deg": 320.64
+      },
+      {
+       "t": "2026-10-11T02:20:00Z",
+       "lon": 7.52543,
+       "lat": 53.39857,
+       "major_km": 36.287,
+       "minor_km": 35.951,
+       "angle_deg": 320.56
+      },
+      {
+       "t": "2026-10-11T02:25:00Z",
+       "lon": 7.57782,
+       "lat": 53.3834,
+       "major_km": 41.032,
+       "minor_km": 40.685,
+       "angle_deg": 320.49
+      }
+     ],
+     "polygon": [
+      [
+       6.89609,
+       53.60116
+      ],
+      [
+       6.89264,
+       53.59887
+      ],
+      [
+       6.88899,
+       53.59875
+      ],
+      [
+       6.88555,
+       53.59646
+      ],
+      [
+       6.88574,
+       53.59429
+      ],
+      [
+       6.88959,
+       53.59224
+      ],
+      [
+       6.89324,
+       53.59236
+      ],
+      [
+       6.90092,
+       53.58826
+      ],
+      [
+       6.90112,
+       53.58609
+      ],
+      [
+       6.90496,
+       53.58403
+      ],
+      [
+       6.90595,
+       53.57319
+      ],
+      [
+       6.91747,
+       53.56703
+      ],
+      [
+       6.91943,
+       53.54534
+      ],
+      [
+       6.93094,
+       53.53918
+      ],
+      [
+       6.93114,
+       53.53701
+      ],
+      [
+       6.93498,
+       53.53496
+      ],
+      [
+       6.95682,
+       53.53566
+      ],
+      [
+       6.96065,
+       53.5336
+      ],
+      [
+       6.96794,
+       53.53383
+      ],
+      [
+       6.9756,
+       53.52972
+      ],
+      [
+       6.97924,
+       53.52984
+      ],
+      [
+       6.98307,
+       53.52778
+      ],
+      [
+       6.98997,
+       53.53235
+      ],
+      [
+       6.98978,
+       53.53452
+      ],
+      [
+       6.99323,
+       53.5368
+      ],
+      [
+       6.99285,
+       53.54114
+      ],
+      [
+       6.9963,
+       53.54342
+      ],
+      [
+       6.99591,
+       53.54776
+      ],
+      [
+       6.99937,
+       53.55004
+      ],
+      [
+       6.99898,
+       53.55438
+      ],
+      [
+       6.99515,
+       53.55644
+      ],
+      [
+       6.99458,
+       53.56295
+      ],
+      [
+       6.99074,
+       53.565
+      ],
+      [
+       6.9871,
+       53.56489
+      ],
+      [
+       6.98326,
+       53.56694
+      ],
+      [
+       6.97597,
+       53.56671
+      ],
+      [
+       6.9683,
+       53.57082
+      ],
+      [
+       6.96753,
+       53.5795
+      ],
+      [
+       6.96369,
+       53.58155
+      ],
+      [
+       6.96349,
+       53.58372
+      ],
+      [
+       6.95965,
+       53.58578
+      ],
+      [
+       6.94872,
+       53.58543
+      ],
+      [
+       6.93719,
+       53.59159
+      ],
+      [
+       6.9299,
+       53.59136
+      ],
+      [
+       6.92606,
+       53.59341
+      ],
+      [
+       6.92241,
+       53.5933
+      ],
+      [
+       6.91088,
+       53.59946
+      ],
+      [
+       6.90723,
+       53.59934
+      ],
+      [
+       6.90339,
+       53.60139
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 33.8125,
+       "top_m": 2550,
+       "volume_km3": 29.25,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 33.8125,
+       "top_m": 2550,
+       "volume_km3": 29.25,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 33.8125,
+       "top_m": 2550,
+       "volume_km3": 29.25,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 33.6875,
+       "top_m": 2476,
+       "volume_km3": 27.875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 24.8125,
+       "top_m": 2327,
+       "volume_km3": 15.6875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 8.875,
+       "top_m": 1447,
+       "volume_km3": 3.125,
+       "rings": null
+      },
+      {
+       "dbz": 60,
+       "area_km2": 0.4375,
+       "top_m": 309,
+       "volume_km3": 0.125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 58,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 168,
+      "direction": "NW",
+      "bearing_deg": 307.4
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101150000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      6.80946,
+      53.57045
+     ]
+    },
+    "properties": {
+     "code": "2026101101150000000000",
+     "first_seen": "2026-10-11T01:15:00Z",
+     "last_seen": "2026-10-11T01:15:00Z",
+     "lineage_first_detection": "2026-10-11T01:15:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 59.78,
+     "vil_max": 5.239,
+     "echo_top_max_m": 2830,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:15:00Z",
+       "lon": 6.80946,
+       "lat": 53.57045,
+       "identifier": 55,
+       "severity": 0,
+       "severity_decimal": 0.2,
+       "max_dbz": 59.78,
+       "echo_top_m": 2830,
+       "vil": 5.239,
+       "area_km2": 15.9375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 46.277,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 46.277,
+       "heading_deg": 106.484468346673,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       6.75083,
+       53.58983
+      ],
+      [
+       6.74739,
+       53.58754
+      ],
+      [
+       6.74781,
+       53.5832
+      ],
+      [
+       6.75145,
+       53.58332
+      ],
+      [
+       6.76686,
+       53.57514
+      ],
+      [
+       6.76706,
+       53.57297
+      ],
+      [
+       6.77861,
+       53.56683
+      ],
+      [
+       6.78225,
+       53.56695
+      ],
+      [
+       6.78995,
+       53.56286
+      ],
+      [
+       6.79077,
+       53.55418
+      ],
+      [
+       6.79461,
+       53.55214
+      ],
+      [
+       6.79825,
+       53.55226
+      ],
+      [
+       6.80169,
+       53.55455
+      ],
+      [
+       6.82719,
+       53.55539
+      ],
+      [
+       6.83063,
+       53.55768
+      ],
+      [
+       6.83427,
+       53.5578
+      ],
+      [
+       6.83407,
+       53.55997
+      ],
+      [
+       6.84095,
+       53.56455
+      ],
+      [
+       6.84075,
+       53.56672
+      ],
+      [
+       6.8442,
+       53.56901
+      ],
+      [
+       6.84399,
+       53.57117
+      ],
+      [
+       6.8363,
+       53.57527
+      ],
+      [
+       6.8361,
+       53.57744
+      ],
+      [
+       6.83246,
+       53.57732
+      ],
+      [
+       6.82861,
+       53.57937
+      ],
+      [
+       6.82132,
+       53.57913
+      ],
+      [
+       6.81363,
+       53.58323
+      ],
+      [
+       6.81342,
+       53.5854
+      ],
+      [
+       6.80957,
+       53.58745
+      ],
+      [
+       6.77676,
+       53.58635
+      ],
+      [
+       6.76906,
+       53.59045
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 15.9375,
+       "top_m": 2830,
+       "volume_km3": 7.96875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 15.9375,
+       "top_m": 2830,
+       "volume_km3": 7.96875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 15.9375,
+       "top_m": 2830,
+       "volume_km3": 7.96875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 14.4375,
+       "top_m": 2722,
+       "volume_km3": 6.828125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 6.875,
+       "top_m": 2507,
+       "volume_km3": 2.609375,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 2.5,
+       "top_m": 846,
+       "volume_km3": 0.640625,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 41,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 175.9,
+      "direction": "NW",
+      "bearing_deg": 305.9
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100400000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       5.5022,
+       53.44159
+      ],
+      [
+       5.57545,
+       53.42568
+      ],
+      [
+       5.63555,
+       53.41582
+      ],
+      [
+       5.70332,
+       53.41159
+      ],
+      [
+       5.76018,
+       53.41433
+      ],
+      [
+       5.80556,
+       53.41415
+      ],
+      [
+       5.8555,
+       53.40441
+      ],
+      [
+       5.91029,
+       53.39423
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101100400000000000",
+     "first_seen": "2026-10-11T00:40:00Z",
+     "last_seen": "2026-10-11T01:15:00Z",
+     "lineage_first_detection": "2026-10-11T00:40:00Z",
+     "n_steps": 8,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 56.16,
+     "vil_max": 10.435,
+     "echo_top_max_m": 4535,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:40:00Z",
+       "lon": 5.5022,
+       "lat": 53.44159,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.19,
+       "max_dbz": 54,
+       "echo_top_m": 3277,
+       "vil": 7.542,
+       "area_km2": 33.25,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.618,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.618,
+       "heading_deg": 107.4439342548679,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:45:00Z",
+       "lon": 5.57545,
+       "lat": 53.42568,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.31,
+       "max_dbz": 56.16,
+       "echo_top_m": 4535,
+       "vil": 10.435,
+       "area_km2": 25.5625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.821,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.821,
+       "heading_deg": 107.61796540932978,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:50:00Z",
+       "lon": 5.63555,
+       "lat": 53.41582,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.16,
+       "max_dbz": 53.3,
+       "echo_top_m": 3028,
+       "vil": 5.051,
+       "area_km2": 33.5625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.452,
+       "lightning_rate": 2,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.452,
+       "heading_deg": 105.7430999688157,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:55:00Z",
+       "lon": 5.70332,
+       "lat": 53.41159,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.15,
+       "max_dbz": 52.98,
+       "echo_top_m": 2013,
+       "vil": 3.544,
+       "area_km2": 38.9375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 55.06,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 55.06,
+       "heading_deg": 97.80701954691251,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:00:00Z",
+       "lon": 5.76018,
+       "lat": 53.41433,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.16,
+       "max_dbz": 53.43,
+       "echo_top_m": 2656,
+       "vil": 4.072,
+       "area_km2": 29.5625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 49.877,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 49.877,
+       "heading_deg": 89.22907293932232,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:05:00Z",
+       "lon": 5.80556,
+       "lat": 53.41415,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.25,
+       "max_dbz": 56.11,
+       "echo_top_m": 2531,
+       "vil": 5.053,
+       "area_km2": 19.0625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.732,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.732,
+       "heading_deg": 105.52750163412321,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:10:00Z",
+       "lon": 5.8555,
+       "lat": 53.40441,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.14,
+       "max_dbz": 52.64,
+       "echo_top_m": 1675,
+       "vil": 3.141,
+       "area_km2": 16.25,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 46.289,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 46.289,
+       "heading_deg": 106.7464857462845,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T01:15:00Z",
+       "lon": 5.91029,
+       "lat": 53.39423,
+       "identifier": 14,
+       "severity": 0,
+       "severity_decimal": 0.1,
+       "max_dbz": 49.48,
+       "echo_top_m": 1248,
+       "vil": 1.971,
+       "area_km2": 5.625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.323,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.323,
+       "heading_deg": 106.76005400960217,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.9089,
+       53.40966
+      ],
+      [
+       5.90554,
+       53.40734
+      ],
+      [
+       5.8983,
+       53.40703
+      ],
+      [
+       5.89493,
+       53.40471
+      ],
+      [
+       5.89779,
+       53.38089
+      ],
+      [
+       5.90943,
+       53.37487
+      ],
+      [
+       5.91305,
+       53.37502
+      ],
+      [
+       5.91149,
+       53.38801
+      ],
+      [
+       5.91822,
+       53.39265
+      ],
+      [
+       5.92184,
+       53.3928
+      ],
+      [
+       5.92521,
+       53.39512
+      ],
+      [
+       5.9234,
+       53.41028
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 5.625,
+       "top_m": 1248,
+       "volume_km3": 7.375,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 5.625,
+       "top_m": 1248,
+       "volume_km3": 7.375,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 5.625,
+       "top_m": 1248,
+       "volume_km3": 7.375,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 4,
+       "top_m": 1242,
+       "volume_km3": 4.9375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 284,
+     "placement": {
+      "place": "Oosterend",
+      "kind": "village",
+      "distance_km": 35.1,
+      "direction": "E",
+      "bearing_deg": 91.6
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101050000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      5.87185,
+      53.38799
+     ]
+    },
+    "properties": {
+     "code": "2026101101050000000000",
+     "first_seen": "2026-10-11T01:05:00Z",
+     "last_seen": "2026-10-11T01:05:00Z",
+     "lineage_first_detection": "2026-10-11T01:05:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 53.11,
+     "vil_max": 3.067,
+     "echo_top_max_m": 1675,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:05:00Z",
+       "lon": 5.87185,
+       "lat": 53.38799,
+       "identifier": 53,
+       "severity": 0,
+       "severity_decimal": 0.13,
+       "max_dbz": 53.11,
+       "echo_top_m": 1675,
+       "vil": 3.067,
+       "area_km2": 13.375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 49.696,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 49.696,
+       "heading_deg": 106.03209713806145,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.88044,
+       53.40408
+      ],
+      [
+       5.87708,
+       53.40176
+      ],
+      [
+       5.86621,
+       53.40129
+      ],
+      [
+       5.86285,
+       53.39897
+      ],
+      [
+       5.85199,
+       53.3985
+      ],
+      [
+       5.84863,
+       53.39618
+      ],
+      [
+       5.83776,
+       53.39571
+      ],
+      [
+       5.83105,
+       53.39106
+      ],
+      [
+       5.83184,
+       53.38457
+      ],
+      [
+       5.83573,
+       53.38256
+      ],
+      [
+       5.83625,
+       53.37824
+      ],
+      [
+       5.8479,
+       53.37221
+      ],
+      [
+       5.84816,
+       53.37005
+      ],
+      [
+       5.8554,
+       53.37036
+      ],
+      [
+       5.85876,
+       53.37269
+      ],
+      [
+       5.87685,
+       53.37347
+      ],
+      [
+       5.88021,
+       53.37579
+      ],
+      [
+       5.89107,
+       53.37625
+      ],
+      [
+       5.89779,
+       53.38089
+      ],
+      [
+       5.89727,
+       53.38522
+      ],
+      [
+       5.90399,
+       53.38986
+      ],
+      [
+       5.90322,
+       53.39636
+      ],
+      [
+       5.88769,
+       53.4044
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 13.375,
+       "top_m": 1675,
+       "volume_km3": 16.84375,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 13.375,
+       "top_m": 1675,
+       "volume_km3": 16.84375,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 13.375,
+       "top_m": 1675,
+       "volume_km3": 16.84375,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 12.5,
+       "top_m": 1675,
+       "volume_km3": 15.84375,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 1.875,
+       "top_m": 1616,
+       "volume_km3": 2.234375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 298,
+     "placement": {
+      "place": "Holwert",
+      "kind": "village",
+      "distance_km": 3.1,
+      "direction": null,
+      "bearing_deg": null
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101000000000001",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      12.79526,
+      54.72141
+     ]
+    },
+    "properties": {
+     "code": "2026101101000000000001",
+     "first_seen": "2026-10-11T01:00:00Z",
+     "last_seen": "2026-10-11T01:00:00Z",
+     "lineage_first_detection": "2026-10-11T01:00:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 57.51,
+     "vil_max": 7.342,
+     "echo_top_max_m": 3088,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:00:00Z",
+       "lon": 12.79526,
+       "lat": 54.72141,
+       "identifier": 52,
+       "severity": 0,
+       "severity_decimal": 0.29,
+       "max_dbz": 57.51,
+       "echo_top_m": 3088,
+       "vil": 7.342,
+       "area_km2": 8.875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 43.388,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 43.388,
+       "heading_deg": 58.07663446041847,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       12.78833,
+       54.73466
+      ],
+      [
+       12.78042,
+       54.7305
+      ],
+      [
+       12.78023,
+       54.72832
+      ],
+      [
+       12.76837,
+       54.72209
+      ],
+      [
+       12.75328,
+       54.72251
+      ],
+      [
+       12.7531,
+       54.72032
+      ],
+      [
+       12.76028,
+       54.71575
+      ],
+      [
+       12.76009,
+       54.71356
+      ],
+      [
+       12.76727,
+       54.70898
+      ],
+      [
+       12.77481,
+       54.70877
+      ],
+      [
+       12.77877,
+       54.71085
+      ],
+      [
+       12.78254,
+       54.71074
+      ],
+      [
+       12.78649,
+       54.71282
+      ],
+      [
+       12.80535,
+       54.71229
+      ],
+      [
+       12.82118,
+       54.72059
+      ],
+      [
+       12.82136,
+       54.72278
+      ],
+      [
+       12.82532,
+       54.72485
+      ],
+      [
+       12.82569,
+       54.72922
+      ],
+      [
+       12.82192,
+       54.72933
+      ],
+      [
+       12.81475,
+       54.73391
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 8.875,
+       "top_m": 3088,
+       "volume_km3": 16.71875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 8.875,
+       "top_m": 3088,
+       "volume_km3": 16.71875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 8.875,
+       "top_m": 3088,
+       "volume_km3": 16.71875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 8.8125,
+       "top_m": 3088,
+       "volume_km3": 15.546875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 5.4375,
+       "top_m": 3056,
+       "volume_km3": 8.46875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 1.1875,
+       "top_m": 1717,
+       "volume_km3": 1.734375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 484,
+     "placement": {
+      "place": "Küstengewässer einschließlich Anteil am Festlandsockel",
+      "kind": "city",
+      "distance_km": 58.7,
+      "direction": "NE",
+      "bearing_deg": 43.1
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101101000000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      6.63983,
+      53.63404
+     ]
+    },
+    "properties": {
+     "code": "2026101101000000000000",
+     "first_seen": "2026-10-11T01:00:00Z",
+     "last_seen": "2026-10-11T01:00:00Z",
+     "lineage_first_detection": "2026-10-11T01:00:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 52.69,
+     "vil_max": 5.272,
+     "echo_top_max_m": 3491,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T01:00:00Z",
+       "lon": 6.63983,
+       "lat": 53.63404,
+       "identifier": 51,
+       "severity": 0,
+       "severity_decimal": 0.13,
+       "max_dbz": 52.69,
+       "echo_top_m": 3491,
+       "vil": 5.272,
+       "area_km2": 7.625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 44.846,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 44.846,
+       "heading_deg": 108.13071589029475,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       6.60625,
+       53.64579
+      ],
+      [
+       6.60282,
+       53.64349
+      ],
+      [
+       6.60304,
+       53.64132
+      ],
+      [
+       6.6069,
+       53.63928
+      ],
+      [
+       6.60712,
+       53.63711
+      ],
+      [
+       6.61099,
+       53.63507
+      ],
+      [
+       6.6112,
+       53.6329
+      ],
+      [
+       6.61893,
+       53.62882
+      ],
+      [
+       6.62988,
+       53.6292
+      ],
+      [
+       6.63375,
+       53.62716
+      ],
+      [
+       6.64105,
+       53.62742
+      ],
+      [
+       6.64491,
+       53.62537
+      ],
+      [
+       6.65221,
+       53.62563
+      ],
+      [
+       6.66252,
+       53.63252
+      ],
+      [
+       6.66231,
+       53.63469
+      ],
+      [
+       6.66574,
+       53.63698
+      ],
+      [
+       6.66532,
+       53.64132
+      ],
+      [
+       6.66167,
+       53.6412
+      ],
+      [
+       6.6578,
+       53.64324
+      ],
+      [
+       6.62859,
+       53.64222
+      ],
+      [
+       6.62473,
+       53.64426
+      ],
+      [
+       6.62108,
+       53.64413
+      ],
+      [
+       6.61721,
+       53.64618
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 7.625,
+       "top_m": 3491,
+       "volume_km3": 4.203125,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 7.625,
+       "top_m": 3491,
+       "volume_km3": 4.203125,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 7.625,
+       "top_m": 3491,
+       "volume_km3": 4.203125,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 7.1875,
+       "top_m": 3341,
+       "volume_km3": 3.296875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 2.125,
+       "top_m": 2468,
+       "volume_km3": 0.328125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 219,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 189.1,
+      "direction": "NW",
+      "bearing_deg": 305.8
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100500000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.74024,
+      54.03535
+     ]
+    },
+    "properties": {
+     "code": "2026101100500000000000",
+     "first_seen": "2026-10-11T00:50:00Z",
+     "last_seen": "2026-10-11T00:50:00Z",
+     "lineage_first_detection": "2026-10-11T00:50:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 65.06,
+     "vil_max": 12.839,
+     "echo_top_max_m": 4273,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 5,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:50:00Z",
+       "lon": 8.74024,
+       "lat": 54.03535,
+       "identifier": 50,
+       "severity": 1,
+       "severity_decimal": 0.64,
+       "max_dbz": 65.06,
+       "echo_top_m": 4273,
+       "vil": 12.839,
+       "area_km2": 31.125,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 54.071,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.954,
+       "heading_deg": 102.57367326855213,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.74672,
+       54.07612
+      ],
+      [
+       8.7468,
+       54.07395
+      ],
+      [
+       8.73955,
+       54.0695
+      ],
+      [
+       8.73585,
+       54.06945
+      ],
+      [
+       8.73223,
+       54.06722
+      ],
+      [
+       8.71372,
+       54.06698
+      ],
+      [
+       8.70648,
+       54.06252
+      ],
+      [
+       8.70656,
+       54.06035
+      ],
+      [
+       8.70294,
+       54.05812
+      ],
+      [
+       8.70303,
+       54.05594
+      ],
+      [
+       8.70681,
+       54.05381
+      ],
+      [
+       8.70698,
+       54.04946
+      ],
+      [
+       8.71076,
+       54.04733
+      ],
+      [
+       8.71193,
+       54.01685
+      ],
+      [
+       8.7047,
+       54.01239
+      ],
+      [
+       8.68252,
+       54.0121
+      ],
+      [
+       8.67891,
+       54.00987
+      ],
+      [
+       8.67925,
+       54.00116
+      ],
+      [
+       8.68303,
+       53.99903
+      ],
+      [
+       8.73846,
+       53.99977
+      ],
+      [
+       8.7493,
+       54.00644
+      ],
+      [
+       8.76039,
+       54.00658
+      ],
+      [
+       8.77124,
+       54.01326
+      ],
+      [
+       8.77864,
+       54.01335
+      ],
+      [
+       8.78225,
+       54.01557
+      ],
+      [
+       8.78202,
+       54.02211
+      ],
+      [
+       8.79288,
+       54.02878
+      ],
+      [
+       8.79264,
+       54.03531
+      ],
+      [
+       8.78887,
+       54.03744
+      ],
+      [
+       8.77407,
+       54.03725
+      ],
+      [
+       8.76651,
+       54.04152
+      ],
+      [
+       8.76635,
+       54.04587
+      ],
+      [
+       8.76257,
+       54.048
+      ],
+      [
+       8.76209,
+       54.06107
+      ],
+      [
+       8.75074,
+       54.06746
+      ],
+      [
+       8.75042,
+       54.07617
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 31.125,
+       "top_m": 4273,
+       "volume_km3": 70.296875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 31.125,
+       "top_m": 4273,
+       "volume_km3": 70.296875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 31.125,
+       "top_m": 4273,
+       "volume_km3": 70.296875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 30.75,
+       "top_m": 4273,
+       "volume_km3": 68.171875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 17.4375,
+       "top_m": 4264,
+       "volume_km3": 35.65625,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 5.75,
+       "top_m": 3620,
+       "volume_km3": 11.921875,
+       "rings": null
+      },
+      {
+       "dbz": 60,
+       "area_km2": 2.125,
+       "top_m": 1961,
+       "volume_km3": 3.5,
+       "rings": null
+      },
+      {
+       "dbz": 65,
+       "area_km2": 0.4375,
+       "top_m": 1948,
+       "volume_km3": 0.65625,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 575,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 53.2,
+      "direction": "SW",
+      "bearing_deg": 246.5
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100400000000001",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.37201,
+       53.61217
+      ],
+      [
+       6.4197,
+       53.60264
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101100400000000001",
+     "first_seen": "2026-10-11T00:40:00Z",
+     "last_seen": "2026-10-11T00:45:00Z",
+     "lineage_first_detection": "2026-10-11T00:40:00Z",
+     "n_steps": 2,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 60.86,
+     "vil_max": 8.47,
+     "echo_top_max_m": 2911,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 5,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:40:00Z",
+       "lon": 6.37201,
+       "lat": 53.61217,
+       "identifier": 49,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 60.86,
+       "echo_top_m": 2911,
+       "vil": 8.47,
+       "area_km2": 9,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.229,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.229,
+       "heading_deg": 109.0452305485673,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:45:00Z",
+       "lon": 6.4197,
+       "lat": 53.60264,
+       "identifier": 49,
+       "severity": 0,
+       "severity_decimal": 0.24,
+       "max_dbz": 59.85,
+       "echo_top_m": 2591,
+       "vil": 5.988,
+       "area_km2": 7.75,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 46.837,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 46.837,
+       "heading_deg": 109.1469218064987,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       6.39318,
+       53.61627
+      ],
+      [
+       6.38976,
+       53.61397
+      ],
+      [
+       6.38247,
+       53.61369
+      ],
+      [
+       6.3827,
+       53.61152
+      ],
+      [
+       6.39433,
+       53.60543
+      ],
+      [
+       6.39456,
+       53.60326
+      ],
+      [
+       6.39843,
+       53.60123
+      ],
+      [
+       6.39866,
+       53.59906
+      ],
+      [
+       6.40231,
+       53.59919
+      ],
+      [
+       6.40618,
+       53.59716
+      ],
+      [
+       6.40983,
+       53.5973
+      ],
+      [
+       6.4137,
+       53.59527
+      ],
+      [
+       6.42464,
+       53.59567
+      ],
+      [
+       6.42851,
+       53.59364
+      ],
+      [
+       6.43215,
+       53.59378
+      ],
+      [
+       6.43557,
+       53.59608
+      ],
+      [
+       6.44286,
+       53.59635
+      ],
+      [
+       6.4497,
+       53.60096
+      ],
+      [
+       6.44583,
+       53.60299
+      ],
+      [
+       6.44218,
+       53.60285
+      ],
+      [
+       6.43444,
+       53.60692
+      ],
+      [
+       6.43079,
+       53.60679
+      ],
+      [
+       6.42692,
+       53.60882
+      ],
+      [
+       6.42327,
+       53.60868
+      ],
+      [
+       6.41164,
+       53.61478
+      ],
+      [
+       6.40435,
+       53.61451
+      ],
+      [
+       6.40047,
+       53.61654
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 7.75,
+       "top_m": 2591,
+       "volume_km3": 10.140625,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 7.75,
+       "top_m": 2591,
+       "volume_km3": 10.140625,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 7.75,
+       "top_m": 2591,
+       "volume_km3": 10.140625,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 7.75,
+       "top_m": 2564,
+       "volume_km3": 9.375,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 5.5,
+       "top_m": 2484,
+       "volume_km3": 4.71875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 2.4375,
+       "top_m": 1141,
+       "volume_km3": 1.421875,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 79,
+     "placement": {
+      "place": "Nederland",
+      "kind": "country",
+      "distance_km": 161.5,
+      "direction": "N",
+      "bearing_deg": 21
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023550000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.58215,
+       53.6105
+      ],
+      [
+       6.64132,
+       53.5896
+      ],
+      [
+       6.69527,
+       53.57584
+      ],
+      [
+       6.74996,
+       53.55776
+      ],
+      [
+       6.79522,
+       53.54022
+      ],
+      [
+       6.8359,
+       53.52178
+      ],
+      [
+       6.88457,
+       53.50745
+      ],
+      [
+       6.94305,
+       53.49612
+      ],
+      [
+       7.01566,
+       53.4869
+      ],
+      [
+       7.07066,
+       53.47781
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101023550000000000",
+     "first_seen": "2026-10-10T23:55:00Z",
+     "last_seen": "2026-10-11T00:40:00Z",
+     "lineage_first_detection": "2026-10-10T23:55:00Z",
+     "n_steps": 10,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 63.46,
+     "vil_max": 7.456,
+     "echo_top_max_m": 3717,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 5,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:55:00Z",
+       "lon": 6.58215,
+       "lat": 53.6105,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.16,
+       "max_dbz": 54.31,
+       "echo_top_m": 3717,
+       "vil": 5.968,
+       "area_km2": 15.9375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.446,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.446,
+       "heading_deg": 113.79945455355696,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:00:00Z",
+       "lon": 6.64132,
+       "lat": 53.5896,
+       "identifier": 40,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 58.17,
+       "echo_top_m": 3260,
+       "vil": 6.321,
+       "area_km2": 31.125,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 45.988,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 45.988,
+       "heading_deg": 114.73463609701516,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:05:00Z",
+       "lon": 6.69527,
+       "lat": 53.57584,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.35,
+       "max_dbz": 63.46,
+       "echo_top_m": 1978,
+       "vil": 6.149,
+       "area_km2": 34.125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 46.427,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 46.427,
+       "heading_deg": 114.84366613079936,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:10:00Z",
+       "lon": 6.74996,
+       "lat": 53.55776,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.31,
+       "max_dbz": 62.51,
+       "echo_top_m": 2077,
+       "vil": 6.244,
+       "area_km2": 42,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.385,
+       "lightning_rate": 5,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.385,
+       "heading_deg": 118.3533208763676,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:15:00Z",
+       "lon": 6.79522,
+       "lat": 53.54022,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.26,
+       "max_dbz": 60.41,
+       "echo_top_m": 3475,
+       "vil": 7.456,
+       "area_km2": 44.25,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 46.176,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 46.176,
+       "heading_deg": 121.4359675479961,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:20:00Z",
+       "lon": 6.8359,
+       "lat": 53.52178,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.22,
+       "max_dbz": 59.28,
+       "echo_top_m": 2470,
+       "vil": 4.885,
+       "area_km2": 28.5,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 49.649,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 49.649,
+       "heading_deg": 114.90184689854605,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:25:00Z",
+       "lon": 6.88457,
+       "lat": 53.50745,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.18,
+       "max_dbz": 57.61,
+       "echo_top_m": 1289,
+       "vil": 2.95,
+       "area_km2": 18.9375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.711,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.711,
+       "heading_deg": 114.11087236562761,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:30:00Z",
+       "lon": 6.94305,
+       "lat": 53.49612,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.19,
+       "max_dbz": 56.82,
+       "echo_top_m": 1764,
+       "vil": 2.942,
+       "area_km2": 22.0625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.016,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.016,
+       "heading_deg": 111.2189938269708,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:35:00Z",
+       "lon": 7.01566,
+       "lat": 53.4869,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.12,
+       "max_dbz": 52.16,
+       "echo_top_m": 1853,
+       "vil": 2.445,
+       "area_km2": 13.4375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.956,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.956,
+       "heading_deg": 112.488712183772,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:40:00Z",
+       "lon": 7.07066,
+       "lat": 53.47781,
+       "identifier": 40,
+       "severity": 0,
+       "severity_decimal": 0.1,
+       "max_dbz": 51.07,
+       "echo_top_m": 1357,
+       "vil": 1.506,
+       "area_km2": 11,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.911,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.911,
+       "heading_deg": 109.4080830809189,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       7.06652,
+       53.49123
+      ],
+      [
+       7.05962,
+       53.48667
+      ],
+      [
+       7.05598,
+       53.48655
+      ],
+      [
+       7.04909,
+       53.48199
+      ],
+      [
+       7.03454,
+       53.48155
+      ],
+      [
+       7.02421,
+       53.4747
+      ],
+      [
+       7.02439,
+       53.47253
+      ],
+      [
+       7.02822,
+       53.47048
+      ],
+      [
+       7.03185,
+       53.47059
+      ],
+      [
+       7.03567,
+       53.46854
+      ],
+      [
+       7.03931,
+       53.46865
+      ],
+      [
+       7.04695,
+       53.46453
+      ],
+      [
+       7.04714,
+       53.46237
+      ],
+      [
+       7.05804,
+       53.4627
+      ],
+      [
+       7.06493,
+       53.46726
+      ],
+      [
+       7.06857,
+       53.46737
+      ],
+      [
+       7.07201,
+       53.46965
+      ],
+      [
+       7.07565,
+       53.46976
+      ],
+      [
+       7.0791,
+       53.47204
+      ],
+      [
+       7.08273,
+       53.47215
+      ],
+      [
+       7.08618,
+       53.47443
+      ],
+      [
+       7.10072,
+       53.47487
+      ],
+      [
+       7.10417,
+       53.47715
+      ],
+      [
+       7.10399,
+       53.47932
+      ],
+      [
+       7.10744,
+       53.4816
+      ],
+      [
+       7.10707,
+       53.48593
+      ],
+      [
+       7.09561,
+       53.49211
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 11,
+       "top_m": 1357,
+       "volume_km3": 8.625,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 11,
+       "top_m": 1357,
+       "volume_km3": 8.625,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 11,
+       "top_m": 1357,
+       "volume_km3": 8.625,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 5.25,
+       "top_m": 1343,
+       "volume_km3": 3.3125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 0.25,
+       "top_m": 588,
+       "volume_km3": 0.109375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 88,
+     "placement": {
+      "place": "Borkum",
+      "kind": "town",
+      "distance_km": 29.4,
+      "direction": "SE",
+      "bearing_deg": 115
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100350000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      5.73964,
+      53.43567
+     ]
+    },
+    "properties": {
+     "code": "2026101100350000000000",
+     "first_seen": "2026-10-11T00:35:00Z",
+     "last_seen": "2026-10-11T00:35:00Z",
+     "lineage_first_detection": "2026-10-11T00:35:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 57.48,
+     "vil_max": 8.791,
+     "echo_top_max_m": 3888,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:35:00Z",
+       "lon": 5.73964,
+       "lat": 53.43567,
+       "identifier": 48,
+       "severity": 0,
+       "severity_decimal": 0.29,
+       "max_dbz": 57.48,
+       "echo_top_m": 3888,
+       "vil": 8.791,
+       "area_km2": 13.9375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 49.426,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 49.426,
+       "heading_deg": 107.96383575012764,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.73216,
+       53.45418
+      ],
+      [
+       5.72881,
+       53.45185
+      ],
+      [
+       5.71067,
+       53.45104
+      ],
+      [
+       5.70732,
+       53.44872
+      ],
+      [
+       5.70786,
+       53.44439
+      ],
+      [
+       5.70451,
+       53.44206
+      ],
+      [
+       5.70478,
+       53.43989
+      ],
+      [
+       5.70143,
+       53.43757
+      ],
+      [
+       5.70224,
+       53.43107
+      ],
+      [
+       5.70614,
+       53.42907
+      ],
+      [
+       5.71701,
+       53.42956
+      ],
+      [
+       5.72481,
+       53.42555
+      ],
+      [
+       5.72508,
+       53.42339
+      ],
+      [
+       5.72897,
+       53.42139
+      ],
+      [
+       5.73259,
+       53.42155
+      ],
+      [
+       5.73595,
+       53.42387
+      ],
+      [
+       5.75769,
+       53.42484
+      ],
+      [
+       5.76105,
+       53.42716
+      ],
+      [
+       5.7683,
+       53.42749
+      ],
+      [
+       5.77165,
+       53.42981
+      ],
+      [
+       5.77058,
+       53.43847
+      ],
+      [
+       5.76669,
+       53.44047
+      ],
+      [
+       5.76615,
+       53.4448
+      ],
+      [
+       5.76226,
+       53.44681
+      ],
+      [
+       5.75138,
+       53.44633
+      ],
+      [
+       5.73579,
+       53.45434
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 13.9375,
+       "top_m": 3888,
+       "volume_km3": 26.8125,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 13.9375,
+       "top_m": 3888,
+       "volume_km3": 26.8125,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 13.9375,
+       "top_m": 3888,
+       "volume_km3": 26.8125,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 13.9375,
+       "top_m": 3888,
+       "volume_km3": 26.8125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 7.75,
+       "top_m": 3844,
+       "volume_km3": 13.609375,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 1.875,
+       "top_m": 1823,
+       "volume_km3": 2.4375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 358,
+     "placement": {
+      "place": "Nes",
+      "kind": "village",
+      "distance_km": 2.3,
+      "direction": null,
+      "bearing_deg": null
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100300000000003",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.31132,
+      54.02155
+     ]
+    },
+    "properties": {
+     "code": "2026101100300000000003",
+     "first_seen": "2026-10-11T00:30:00Z",
+     "last_seen": "2026-10-11T00:30:00Z",
+     "lineage_first_detection": "2026-10-11T00:30:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 55.38,
+     "vil_max": 6.264,
+     "echo_top_max_m": 3499,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:30:00Z",
+       "lon": 8.31132,
+       "lat": 54.02155,
+       "identifier": 44,
+       "severity": 0,
+       "severity_decimal": 0.32,
+       "max_dbz": 55.38,
+       "echo_top_m": 3499,
+       "vil": 6.264,
+       "area_km2": 20.0625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.836,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.836,
+       "heading_deg": 104.89648277208624,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.32207,
+       54.04576
+      ],
+      [
+       8.32218,
+       54.04359
+      ],
+      [
+       8.315,
+       54.0391
+      ],
+      [
+       8.29281,
+       54.03872
+      ],
+      [
+       8.28922,
+       54.03648
+      ],
+      [
+       8.28552,
+       54.03641
+      ],
+      [
+       8.28193,
+       54.03417
+      ],
+      [
+       8.27823,
+       54.0341
+      ],
+      [
+       8.27465,
+       54.03186
+      ],
+      [
+       8.27095,
+       54.03179
+      ],
+      [
+       8.26736,
+       54.02955
+      ],
+      [
+       8.26366,
+       54.02949
+      ],
+      [
+       8.26008,
+       54.02724
+      ],
+      [
+       8.25638,
+       54.02718
+      ],
+      [
+       8.2528,
+       54.02493
+      ],
+      [
+       8.25302,
+       54.02058
+      ],
+      [
+       8.25683,
+       54.01847
+      ],
+      [
+       8.25694,
+       54.01629
+      ],
+      [
+       8.26456,
+       54.01207
+      ],
+      [
+       8.29043,
+       54.01253
+      ],
+      [
+       8.30185,
+       54.00619
+      ],
+      [
+       8.30924,
+       54.00632
+      ],
+      [
+       8.31283,
+       54.00856
+      ],
+      [
+       8.32761,
+       54.00882
+      ],
+      [
+       8.3312,
+       54.01106
+      ],
+      [
+       8.33859,
+       54.01118
+      ],
+      [
+       8.34218,
+       54.01342
+      ],
+      [
+       8.34587,
+       54.01349
+      ],
+      [
+       8.34946,
+       54.01573
+      ],
+      [
+       8.35316,
+       54.01579
+      ],
+      [
+       8.35675,
+       54.01803
+      ],
+      [
+       8.36044,
+       54.01809
+      ],
+      [
+       8.36404,
+       54.02033
+      ],
+      [
+       8.36382,
+       54.02469
+      ],
+      [
+       8.36002,
+       54.0268
+      ],
+      [
+       8.35992,
+       54.02898
+      ],
+      [
+       8.35611,
+       54.03109
+      ],
+      [
+       8.35601,
+       54.03327
+      ],
+      [
+       8.3484,
+       54.0375
+      ],
+      [
+       8.34818,
+       54.04185
+      ],
+      [
+       8.34438,
+       54.04397
+      ],
+      [
+       8.34068,
+       54.0439
+      ],
+      [
+       8.33687,
+       54.04602
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 20.0625,
+       "top_m": 3499,
+       "volume_km3": 42.90625,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 20.0625,
+       "top_m": 3499,
+       "volume_km3": 42.90625,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 20.0625,
+       "top_m": 3499,
+       "volume_km3": 42.90625,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 17.5625,
+       "top_m": 3490,
+       "volume_km3": 36.53125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 5.875,
+       "top_m": 3455,
+       "volume_km3": 12.921875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 0.5625,
+       "top_m": 2703,
+       "volume_km3": 1.125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 924,
+     "placement": {
+      "place": "Hamburg",
+      "kind": "city",
+      "distance_km": 122.8,
+      "direction": "NW",
+      "bearing_deg": 296
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100300000000002",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.17119,
+      54.00691
+     ]
+    },
+    "properties": {
+     "code": "2026101100300000000002",
+     "first_seen": "2026-10-11T00:30:00Z",
+     "last_seen": "2026-10-11T00:30:00Z",
+     "lineage_first_detection": "2026-10-11T00:30:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 54.46,
+     "vil_max": 6.343,
+     "echo_top_max_m": 3050,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:30:00Z",
+       "lon": 8.17119,
+       "lat": 54.00691,
+       "identifier": 42,
+       "severity": 0,
+       "severity_decimal": 0.16,
+       "max_dbz": 54.46,
+       "echo_top_m": 3050,
+       "vil": 6.343,
+       "area_km2": 6.1875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.085,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.085,
+       "heading_deg": 106.17189393249052,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.16371,
+       54.02983
+      ],
+      [
+       8.16014,
+       54.02758
+      ],
+      [
+       8.16192,
+       53.99493
+      ],
+      [
+       8.16573,
+       53.99283
+      ],
+      [
+       8.1842,
+       53.99317
+      ],
+      [
+       8.18326,
+       54.01059
+      ],
+      [
+       8.17944,
+       54.01269
+      ],
+      [
+       8.17933,
+       54.01487
+      ],
+      [
+       8.17551,
+       54.01698
+      ],
+      [
+       8.17528,
+       54.02133
+      ],
+      [
+       8.17146,
+       54.02344
+      ],
+      [
+       8.17123,
+       54.02779
+      ],
+      [
+       8.16741,
+       54.0299
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 6.1875,
+       "top_m": 3050,
+       "volume_km3": 12.578125,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 6.1875,
+       "top_m": 3050,
+       "volume_km3": 12.578125,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 6.1875,
+       "top_m": 3050,
+       "volume_km3": 12.578125,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 5.375,
+       "top_m": 3050,
+       "volume_km3": 11.15625,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 2.875,
+       "top_m": 3043,
+       "volume_km3": 6.390625,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 798,
+     "placement": {
+      "place": "Hamburg",
+      "kind": "city",
+      "distance_km": 130.5,
+      "direction": "NW",
+      "bearing_deg": 293.6
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100300000000001",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      7.84664,
+      53.91742
+     ]
+    },
+    "properties": {
+     "code": "2026101100300000000001",
+     "first_seen": "2026-10-11T00:30:00Z",
+     "last_seen": "2026-10-11T00:30:00Z",
+     "lineage_first_detection": "2026-10-11T00:30:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 56.22,
+     "vil_max": 8.395,
+     "echo_top_max_m": 3775,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:30:00Z",
+       "lon": 7.84664,
+       "lat": 53.91742,
+       "identifier": 15,
+       "severity": 0,
+       "severity_decimal": 0.42,
+       "max_dbz": 56.22,
+       "echo_top_m": 3775,
+       "vil": 8.395,
+       "area_km2": 24.6875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.225,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.225,
+       "heading_deg": 108.33233580317268,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       7.81377,
+       53.94633
+      ],
+      [
+       7.81419,
+       53.9398
+      ],
+      [
+       7.80355,
+       53.93303
+      ],
+      [
+       7.79987,
+       53.93294
+      ],
+      [
+       7.79278,
+       53.92843
+      ],
+      [
+       7.79661,
+       53.92633
+      ],
+      [
+       7.79675,
+       53.92416
+      ],
+      [
+       7.80057,
+       53.92207
+      ],
+      [
+       7.80072,
+       53.91989
+      ],
+      [
+       7.80454,
+       53.9178
+      ],
+      [
+       7.80468,
+       53.91563
+      ],
+      [
+       7.80851,
+       53.91353
+      ],
+      [
+       7.80865,
+       53.91136
+      ],
+      [
+       7.81247,
+       53.90927
+      ],
+      [
+       7.81616,
+       53.90935
+      ],
+      [
+       7.82763,
+       53.90307
+      ],
+      [
+       7.82805,
+       53.89655
+      ],
+      [
+       7.83187,
+       53.89446
+      ],
+      [
+       7.86132,
+       53.89511
+      ],
+      [
+       7.86487,
+       53.89737
+      ],
+      [
+       7.87223,
+       53.89753
+      ],
+      [
+       7.87933,
+       53.90204
+      ],
+      [
+       7.88301,
+       53.90212
+      ],
+      [
+       7.88192,
+       53.91952
+      ],
+      [
+       7.8781,
+       53.92162
+      ],
+      [
+       7.87796,
+       53.92379
+      ],
+      [
+       7.87032,
+       53.92798
+      ],
+      [
+       7.87018,
+       53.93016
+      ],
+      [
+       7.86253,
+       53.93434
+      ],
+      [
+       7.8624,
+       53.93652
+      ],
+      [
+       7.85475,
+       53.94071
+      ],
+      [
+       7.83262,
+       53.94022
+      ],
+      [
+       7.8288,
+       53.94231
+      ],
+      [
+       7.82511,
+       53.94223
+      ],
+      [
+       7.81745,
+       53.94641
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 24.6875,
+       "top_m": 3775,
+       "volume_km3": 63.921875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 24.6875,
+       "top_m": 3775,
+       "volume_km3": 63.921875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 24.6875,
+       "top_m": 3775,
+       "volume_km3": 63.921875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 22.3125,
+       "top_m": 3750,
+       "volume_km3": 53.28125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 9.3125,
+       "top_m": 2230,
+       "volume_km3": 16.046875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 0.625,
+       "top_m": 1844,
+       "volume_km3": 1.4375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 507,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 158.2,
+      "direction": "NW",
+      "bearing_deg": 332.4
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100300000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      5.95793,
+      53.8171
+     ]
+    },
+    "properties": {
+     "code": "2026101100300000000000",
+     "first_seen": "2026-10-11T00:30:00Z",
+     "last_seen": "2026-10-11T00:30:00Z",
+     "lineage_first_detection": "2026-10-11T00:30:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 55.44,
+     "vil_max": 9.569,
+     "echo_top_max_m": 4411,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:30:00Z",
+       "lon": 5.95793,
+       "lat": 53.8171,
+       "identifier": 13,
+       "severity": 0,
+       "severity_decimal": 0.27,
+       "max_dbz": 55.44,
+       "echo_top_m": 4411,
+       "vil": 9.569,
+       "area_km2": 13.75,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.747,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.747,
+       "heading_deg": 107.34801271366788,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.93478,
+       53.83558
+      ],
+      [
+       5.92796,
+       53.83093
+      ],
+      [
+       5.9243,
+       53.83077
+      ],
+      [
+       5.91748,
+       53.82612
+      ],
+      [
+       5.91775,
+       53.82395
+      ],
+      [
+       5.92953,
+       53.81791
+      ],
+      [
+       5.93057,
+       53.80923
+      ],
+      [
+       5.9345,
+       53.80721
+      ],
+      [
+       5.93817,
+       53.80737
+      ],
+      [
+       5.94209,
+       53.80535
+      ],
+      [
+       5.94576,
+       53.8055
+      ],
+      [
+       5.95361,
+       53.80147
+      ],
+      [
+       5.95727,
+       53.80163
+      ],
+      [
+       5.96512,
+       53.79759
+      ],
+      [
+       5.97612,
+       53.79805
+      ],
+      [
+       5.97953,
+       53.80037
+      ],
+      [
+       5.97927,
+       53.80254
+      ],
+      [
+       5.98608,
+       53.80719
+      ],
+      [
+       5.98531,
+       53.8137
+      ],
+      [
+       5.98139,
+       53.81572
+      ],
+      [
+       5.98036,
+       53.8244
+      ],
+      [
+       5.97643,
+       53.82641
+      ],
+      [
+       5.97276,
+       53.82626
+      ],
+      [
+       5.96884,
+       53.82828
+      ],
+      [
+       5.96517,
+       53.82812
+      ],
+      [
+       5.95731,
+       53.83216
+      ],
+      [
+       5.95364,
+       53.83201
+      ],
+      [
+       5.94579,
+       53.83604
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 13.75,
+       "top_m": 4411,
+       "volume_km3": 26.171875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 13.75,
+       "top_m": 4411,
+       "volume_km3": 26.171875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 13.75,
+       "top_m": 4411,
+       "volume_km3": 26.171875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 13.75,
+       "top_m": 4373,
+       "volume_km3": 24.671875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 7.75,
+       "top_m": 4354,
+       "volume_km3": 11.703125,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 0.9375,
+       "top_m": 1558,
+       "volume_km3": 0.9375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 282,
+     "placement": null,
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100150000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       5.13735,
+       53.49453
+      ],
+      [
+       5.19237,
+       53.48548
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101100150000000000",
+     "first_seen": "2026-10-11T00:15:00Z",
+     "last_seen": "2026-10-11T00:20:00Z",
+     "lineage_first_detection": "2026-10-11T00:15:00Z",
+     "n_steps": 2,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 59.01,
+     "vil_max": 10.479,
+     "echo_top_max_m": 4221,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 5,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": true,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:15:00Z",
+       "lon": 5.13735,
+       "lat": 53.49453,
+       "identifier": 12,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 59.01,
+       "echo_top_m": 3106,
+       "vil": 8.13,
+       "area_km2": 12,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 52.699,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 52.699,
+       "heading_deg": 108.00177967152189,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:20:00Z",
+       "lon": 5.19237,
+       "lat": 53.48548,
+       "identifier": 12,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 54.34,
+       "echo_top_m": 4221,
+       "vil": 10.479,
+       "area_km2": 17.6875,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.873,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.873,
+       "heading_deg": 108.35489307331571,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.15571,
+       53.5052
+      ],
+      [
+       5.15239,
+       53.50285
+      ],
+      [
+       5.15639,
+       53.47472
+      ],
+      [
+       5.16032,
+       53.47274
+      ],
+      [
+       5.19659,
+       53.47457
+      ],
+      [
+       5.20052,
+       53.47258
+      ],
+      [
+       5.20777,
+       53.47295
+      ],
+      [
+       5.21109,
+       53.47529
+      ],
+      [
+       5.21472,
+       53.47547
+      ],
+      [
+       5.21804,
+       53.47782
+      ],
+      [
+       5.2141,
+       53.50595
+      ],
+      [
+       5.21016,
+       53.50793
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 17.6875,
+       "top_m": 4221,
+       "volume_km3": 37.4375,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 17.6875,
+       "top_m": 4221,
+       "volume_km3": 37.4375,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 17.6875,
+       "top_m": 4221,
+       "volume_km3": 37.4375,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 17.6875,
+       "top_m": 4221,
+       "volume_km3": 37.4375,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 13.6875,
+       "top_m": 4141,
+       "volume_km3": 22.3125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 742,
+     "placement": {
+      "place": "Nederland",
+      "kind": "country",
+      "distance_km": 139.4,
+      "direction": "N",
+      "bearing_deg": 350.5
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100050000000001",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.59604,
+      54.05962
+     ]
+    },
+    "properties": {
+     "code": "2026101100050000000001",
+     "first_seen": "2026-10-11T00:05:00Z",
+     "last_seen": "2026-10-11T00:05:00Z",
+     "lineage_first_detection": "2026-10-11T00:05:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 56.17,
+     "vil_max": 9.422,
+     "echo_top_max_m": 3989,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:05:00Z",
+       "lon": 8.59604,
+       "lat": 54.05962,
+       "identifier": 47,
+       "severity": 0,
+       "severity_decimal": 0.4,
+       "max_dbz": 56.17,
+       "echo_top_m": 3989,
+       "vil": 9.422,
+       "area_km2": 18.25,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.166,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.166,
+       "heading_deg": 102.19164479833705,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.57174,
+       54.09551
+      ],
+      [
+       8.57201,
+       54.08897
+      ],
+      [
+       8.5684,
+       54.08674
+      ],
+      [
+       8.56886,
+       54.07585
+      ],
+      [
+       8.56525,
+       54.07362
+      ],
+      [
+       8.56535,
+       54.07144
+      ],
+      [
+       8.56174,
+       54.06921
+      ],
+      [
+       8.56211,
+       54.0605
+      ],
+      [
+       8.5659,
+       54.05838
+      ],
+      [
+       8.56599,
+       54.0562
+      ],
+      [
+       8.56979,
+       54.05408
+      ],
+      [
+       8.57016,
+       54.04537
+      ],
+      [
+       8.57395,
+       54.04324
+      ],
+      [
+       8.59245,
+       54.04351
+      ],
+      [
+       8.59624,
+       54.04139
+      ],
+      [
+       8.60364,
+       54.04149
+      ],
+      [
+       8.61122,
+       54.03725
+      ],
+      [
+       8.61158,
+       54.02854
+      ],
+      [
+       8.61536,
+       54.02641
+      ],
+      [
+       8.62258,
+       54.03087
+      ],
+      [
+       8.62222,
+       54.03958
+      ],
+      [
+       8.62584,
+       54.04181
+      ],
+      [
+       8.62575,
+       54.04399
+      ],
+      [
+       8.62936,
+       54.04622
+      ],
+      [
+       8.62927,
+       54.0484
+      ],
+      [
+       8.62548,
+       54.05052
+      ],
+      [
+       8.62539,
+       54.0527
+      ],
+      [
+       8.6216,
+       54.05482
+      ],
+      [
+       8.62142,
+       54.05918
+      ],
+      [
+       8.61763,
+       54.0613
+      ],
+      [
+       8.61754,
+       54.06348
+      ],
+      [
+       8.61375,
+       54.06561
+      ],
+      [
+       8.61357,
+       54.06996
+      ],
+      [
+       8.60978,
+       54.07209
+      ],
+      [
+       8.60969,
+       54.07427
+      ],
+      [
+       8.6059,
+       54.07639
+      ],
+      [
+       8.60581,
+       54.07857
+      ],
+      [
+       8.59442,
+       54.08494
+      ],
+      [
+       8.58701,
+       54.08483
+      ],
+      [
+       8.57942,
+       54.08908
+      ],
+      [
+       8.57933,
+       54.09126
+      ],
+      [
+       8.57553,
+       54.09338
+      ],
+      [
+       8.57544,
+       54.09556
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 18.25,
+       "top_m": 3989,
+       "volume_km3": 45.390625,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 18.25,
+       "top_m": 3989,
+       "volume_km3": 45.390625,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 18.25,
+       "top_m": 3989,
+       "volume_km3": 45.390625,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 18.25,
+       "top_m": 3989,
+       "volume_km3": 45.390625,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 7.75,
+       "top_m": 3970,
+       "volume_km3": 19.203125,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 1.0625,
+       "top_m": 3348,
+       "volume_km3": 2.296875,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 698,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 61,
+      "direction": "W",
+      "bearing_deg": 252.4
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100050000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      5.6031,
+      53.88004
+     ]
+    },
+    "properties": {
+     "code": "2026101100050000000000",
+     "first_seen": "2026-10-11T00:05:00Z",
+     "last_seen": "2026-10-11T00:05:00Z",
+     "lineage_first_detection": "2026-10-11T00:05:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 55.49,
+     "vil_max": 8.181,
+     "echo_top_max_m": 3310,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:05:00Z",
+       "lon": 5.6031,
+       "lat": 53.88004,
+       "identifier": 46,
+       "severity": 0,
+       "severity_decimal": 0.3,
+       "max_dbz": 55.49,
+       "echo_top_m": 3310,
+       "vil": 8.181,
+       "area_km2": 7.625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.139,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.139,
+       "heading_deg": 110.00400223947159,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.58409,
+       53.89439
+      ],
+      [
+       5.57731,
+       53.88972
+      ],
+      [
+       5.5776,
+       53.88755
+      ],
+      [
+       5.57421,
+       53.88521
+      ],
+      [
+       5.57506,
+       53.8787
+      ],
+      [
+       5.57167,
+       53.87636
+      ],
+      [
+       5.57196,
+       53.87419
+      ],
+      [
+       5.56857,
+       53.87186
+      ],
+      [
+       5.57252,
+       53.86986
+      ],
+      [
+       5.58354,
+       53.87036
+      ],
+      [
+       5.5954,
+       53.86435
+      ],
+      [
+       5.60556,
+       53.87136
+      ],
+      [
+       5.62392,
+       53.87219
+      ],
+      [
+       5.62731,
+       53.87453
+      ],
+      [
+       5.62703,
+       53.8767
+      ],
+      [
+       5.63042,
+       53.87903
+      ],
+      [
+       5.63014,
+       53.8812
+      ],
+      [
+       5.62619,
+       53.88321
+      ],
+      [
+       5.62252,
+       53.88304
+      ],
+      [
+       5.61856,
+       53.88505
+      ],
+      [
+       5.61489,
+       53.88488
+      ],
+      [
+       5.61093,
+       53.88688
+      ],
+      [
+       5.60726,
+       53.88672
+      ],
+      [
+       5.60331,
+       53.88872
+      ],
+      [
+       5.59963,
+       53.88855
+      ],
+      [
+       5.59568,
+       53.89056
+      ],
+      [
+       5.592,
+       53.89039
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 7.625,
+       "top_m": 3310,
+       "volume_km3": 16.125,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 7.625,
+       "top_m": 3310,
+       "volume_km3": 16.125,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 7.625,
+       "top_m": 3310,
+       "volume_km3": 16.125,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 7.625,
+       "top_m": 3310,
+       "volume_km3": 16.125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 4.75,
+       "top_m": 3289,
+       "volume_km3": 8.46875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 0.8125,
+       "top_m": 1824,
+       "volume_km3": 1.3125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 505,
+     "placement": null,
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100000000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.78613,
+       53.56161
+      ],
+      [
+       6.82803,
+       53.54836
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101100000000000000",
+     "first_seen": "2026-10-11T00:00:00Z",
+     "last_seen": "2026-10-11T00:05:00Z",
+     "lineage_first_detection": "2026-10-11T00:00:00Z",
+     "n_steps": 2,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 59.28,
+     "vil_max": 5.163,
+     "echo_top_max_m": 2363,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": true,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:00:00Z",
+       "lon": 6.78613,
+       "lat": 53.56161,
+       "identifier": 43,
+       "severity": 0,
+       "severity_decimal": 0.19,
+       "max_dbz": 59.28,
+       "echo_top_m": 1970,
+       "vil": 5.106,
+       "area_km2": 12.3125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.666,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.666,
+       "heading_deg": 115.38472365100107,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-11T00:05:00Z",
+       "lon": 6.82803,
+       "lat": 53.54836,
+       "identifier": 43,
+       "severity": 0,
+       "severity_decimal": 0.18,
+       "max_dbz": 58.78,
+       "echo_top_m": 2363,
+       "vil": 5.163,
+       "area_km2": 18.5625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.664,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.664,
+       "heading_deg": 115.63569635530276,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       6.78184,
+       53.57129
+      ],
+      [
+       6.7784,
+       53.569
+      ],
+      [
+       6.77943,
+       53.55815
+      ],
+      [
+       6.78712,
+       53.55406
+      ],
+      [
+       6.78794,
+       53.54539
+      ],
+      [
+       6.79179,
+       53.54334
+      ],
+      [
+       6.79543,
+       53.54346
+      ],
+      [
+       6.79927,
+       53.54141
+      ],
+      [
+       6.80291,
+       53.54153
+      ],
+      [
+       6.81444,
+       53.53539
+      ],
+      [
+       6.81465,
+       53.53322
+      ],
+      [
+       6.82617,
+       53.52708
+      ],
+      [
+       6.83345,
+       53.52732
+      ],
+      [
+       6.84721,
+       53.53647
+      ],
+      [
+       6.85085,
+       53.53659
+      ],
+      [
+       6.85773,
+       53.54117
+      ],
+      [
+       6.8462,
+       53.54732
+      ],
+      [
+       6.8452,
+       53.55816
+      ],
+      [
+       6.84136,
+       53.56021
+      ],
+      [
+       6.84116,
+       53.56238
+      ],
+      [
+       6.83731,
+       53.56443
+      ],
+      [
+       6.83691,
+       53.56877
+      ],
+      [
+       6.83306,
+       53.57082
+      ],
+      [
+       6.79662,
+       53.56961
+      ],
+      [
+       6.79277,
+       53.57166
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 18.5625,
+       "top_m": 2363,
+       "volume_km3": 7.46875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 18.5625,
+       "top_m": 2363,
+       "volume_km3": 7.46875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 18.5625,
+       "top_m": 2363,
+       "volume_km3": 7.421875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 18.0625,
+       "top_m": 2288,
+       "volume_km3": 7.03125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 13.6875,
+       "top_m": 2062,
+       "volume_km3": 4.5,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 6.875,
+       "top_m": 1441,
+       "volume_km3": 0.953125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 40,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 173.5,
+      "direction": "NW",
+      "bearing_deg": 305.5
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101100000000000001",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      5.85931,
+      53.71158
+     ]
+    },
+    "properties": {
+     "code": "2026101100000000000001",
+     "first_seen": "2026-10-11T00:00:00Z",
+     "last_seen": "2026-10-11T00:00:00Z",
+     "lineage_first_detection": "2026-10-11T00:00:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 56.12,
+     "vil_max": 8.903,
+     "echo_top_max_m": 3460,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 5,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-11T00:00:00Z",
+       "lon": 5.85931,
+       "lat": 53.71158,
+       "identifier": 45,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 56.12,
+       "echo_top_m": 3460,
+       "vil": 8.903,
+       "area_km2": 8.8125,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.399,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.399,
+       "heading_deg": 109.87172940358045,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.83415,
+       53.72444
+      ],
+      [
+       5.83442,
+       53.72227
+      ],
+      [
+       5.83103,
+       53.71994
+      ],
+      [
+       5.83156,
+       53.71561
+      ],
+      [
+       5.82817,
+       53.71328
+      ],
+      [
+       5.82844,
+       53.71111
+      ],
+      [
+       5.83628,
+       53.70709
+      ],
+      [
+       5.83993,
+       53.70725
+      ],
+      [
+       5.84385,
+       53.70524
+      ],
+      [
+       5.85116,
+       53.70555
+      ],
+      [
+       5.85508,
+       53.70354
+      ],
+      [
+       5.86239,
+       53.70386
+      ],
+      [
+       5.86631,
+       53.70184
+      ],
+      [
+       5.87362,
+       53.70216
+      ],
+      [
+       5.87754,
+       53.70015
+      ],
+      [
+       5.88119,
+       53.7003
+      ],
+      [
+       5.88458,
+       53.70263
+      ],
+      [
+       5.88274,
+       53.71781
+      ],
+      [
+       5.87882,
+       53.71982
+      ],
+      [
+       5.87151,
+       53.71951
+      ],
+      [
+       5.86759,
+       53.72152
+      ],
+      [
+       5.86028,
+       53.7212
+      ],
+      [
+       5.85635,
+       53.72322
+      ],
+      [
+       5.84904,
+       53.7229
+      ],
+      [
+       5.84512,
+       53.72491
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 8.8125,
+       "top_m": 3460,
+       "volume_km3": 15.96875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 8.8125,
+       "top_m": 3460,
+       "volume_km3": 15.96875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 8.8125,
+       "top_m": 3460,
+       "volume_km3": 15.96875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 8.8125,
+       "top_m": 3445,
+       "volume_km3": 14.96875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 7.5,
+       "top_m": 3445,
+       "volume_km3": 10.015625,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 0.9375,
+       "top_m": 1619,
+       "volume_km3": 1.03125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 297,
+     "placement": null,
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023550000000001",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.64972,
+      54.08359
+     ]
+    },
+    "properties": {
+     "code": "2026101023550000000001",
+     "first_seen": "2026-10-10T23:55:00Z",
+     "last_seen": "2026-10-10T23:55:00Z",
+     "lineage_first_detection": "2026-10-10T23:55:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 55.8,
+     "vil_max": 8.79,
+     "echo_top_max_m": 3479,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:55:00Z",
+       "lon": 8.64972,
+       "lat": 54.08359,
+       "identifier": 41,
+       "severity": 1,
+       "severity_decimal": 0.54,
+       "max_dbz": 55.8,
+       "echo_top_m": 3479,
+       "vil": 8.79,
+       "area_km2": 5.6875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.514,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.514,
+       "heading_deg": 98.97809834296885,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.63835,
+       54.09864
+      ],
+      [
+       8.63473,
+       54.09641
+      ],
+      [
+       8.6357,
+       54.07245
+      ],
+      [
+       8.63949,
+       54.07033
+      ],
+      [
+       8.6469,
+       54.07043
+      ],
+      [
+       8.65051,
+       54.07266
+      ],
+      [
+       8.65422,
+       54.07271
+      ],
+      [
+       8.66507,
+       54.0794
+      ],
+      [
+       8.66128,
+       54.08153
+      ],
+      [
+       8.66119,
+       54.0837
+      ],
+      [
+       8.6574,
+       54.08583
+      ],
+      [
+       8.65731,
+       54.08801
+      ],
+      [
+       8.65352,
+       54.09014
+      ],
+      [
+       8.65335,
+       54.09449
+      ],
+      [
+       8.64576,
+       54.09874
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 5.6875,
+       "top_m": 3479,
+       "volume_km3": 10.46875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 5.6875,
+       "top_m": 3479,
+       "volume_km3": 10.46875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 5.6875,
+       "top_m": 3479,
+       "volume_km3": 10.46875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 5.1875,
+       "top_m": 3479,
+       "volume_km3": 9.921875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 3.125,
+       "top_m": 3471,
+       "volume_km3": 6.359375,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 0.875,
+       "top_m": 3463,
+       "volume_km3": 2.375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 678,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 56.9,
+      "direction": "W",
+      "bearing_deg": 253.9
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023450000000001",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       8.67857,
+       54.11107
+      ],
+      [
+       8.73257,
+       54.10475
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101023450000000001",
+     "first_seen": "2026-10-10T23:45:00Z",
+     "last_seen": "2026-10-10T23:50:00Z",
+     "lineage_first_detection": "2026-10-10T23:45:00Z",
+     "n_steps": 2,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 59.67,
+     "vil_max": 8.747,
+     "echo_top_max_m": 4428,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 10,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:45:00Z",
+       "lon": 8.67857,
+       "lat": 54.11107,
+       "identifier": 39,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 59.67,
+       "echo_top_m": 3744,
+       "vil": 8.747,
+       "area_km2": 32.75,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.903,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.903,
+       "heading_deg": 99.22522588285004,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:50:00Z",
+       "lon": 8.73257,
+       "lat": 54.10475,
+       "identifier": 39,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 57.57,
+       "echo_top_m": 4428,
+       "vil": 7.838,
+       "area_km2": 25.6875,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.829,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.829,
+       "heading_deg": 99.33205013868258,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.70371,
+       54.13441
+      ],
+      [
+       8.69646,
+       54.12995
+      ],
+      [
+       8.69275,
+       54.1299
+      ],
+      [
+       8.68913,
+       54.12767
+      ],
+      [
+       8.68989,
+       54.10807
+      ],
+      [
+       8.68627,
+       54.10584
+      ],
+      [
+       8.68636,
+       54.10366
+      ],
+      [
+       8.68273,
+       54.10143
+      ],
+      [
+       8.68653,
+       54.0993
+      ],
+      [
+       8.6867,
+       54.09495
+      ],
+      [
+       8.69049,
+       54.09282
+      ],
+      [
+       8.69057,
+       54.09064
+      ],
+      [
+       8.69436,
+       54.08851
+      ],
+      [
+       8.69444,
+       54.08633
+      ],
+      [
+       8.69823,
+       54.08421
+      ],
+      [
+       8.70194,
+       54.08425
+      ],
+      [
+       8.70573,
+       54.08213
+      ],
+      [
+       8.71684,
+       54.08227
+      ],
+      [
+       8.72063,
+       54.08014
+      ],
+      [
+       8.72433,
+       54.08019
+      ],
+      [
+       8.73157,
+       54.08464
+      ],
+      [
+       8.73149,
+       54.08682
+      ],
+      [
+       8.73874,
+       54.09128
+      ],
+      [
+       8.75726,
+       54.09151
+      ],
+      [
+       8.76089,
+       54.09374
+      ],
+      [
+       8.76081,
+       54.09592
+      ],
+      [
+       8.77169,
+       54.10259
+      ],
+      [
+       8.78652,
+       54.10278
+      ],
+      [
+       8.79014,
+       54.105
+      ],
+      [
+       8.79007,
+       54.10718
+      ],
+      [
+       8.79369,
+       54.10941
+      ],
+      [
+       8.7933,
+       54.1203
+      ],
+      [
+       8.79693,
+       54.12252
+      ],
+      [
+       8.79678,
+       54.12688
+      ],
+      [
+       8.79299,
+       54.12901
+      ],
+      [
+       8.76702,
+       54.12869
+      ],
+      [
+       8.75614,
+       54.12201
+      ],
+      [
+       8.71905,
+       54.12153
+      ],
+      [
+       8.71147,
+       54.12579
+      ],
+      [
+       8.71113,
+       54.1345
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 25.6875,
+       "top_m": 4428,
+       "volume_km3": 64.4375,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 25.6875,
+       "top_m": 4428,
+       "volume_km3": 64.4375,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 25.6875,
+       "top_m": 4428,
+       "volume_km3": 64.4375,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 24,
+       "top_m": 4418,
+       "volume_km3": 56.34375,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 10.1875,
+       "top_m": 4350,
+       "volume_km3": 17.71875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 1.25,
+       "top_m": 2551,
+       "volume_km3": 2.1875,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 582,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 51,
+      "direction": "W",
+      "bearing_deg": 254.6
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023300000000001",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       7.26152,
+       54.13292
+      ],
+      [
+       7.36163,
+       54.12297
+      ],
+      [
+       7.42448,
+       54.11157
+      ],
+      [
+       7.48367,
+       54.09691
+      ],
+      [
+       7.51745,
+       54.0815
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101023300000000001",
+     "first_seen": "2026-10-10T23:30:00Z",
+     "last_seen": "2026-10-10T23:50:00Z",
+     "lineage_first_detection": "2026-10-10T23:30:00Z",
+     "n_steps": 5,
+     "active": false,
+     "max_severity": 1,
+     "max_dbz": 59.05,
+     "vil_max": 10.394,
+     "echo_top_max_m": 4399,
+     "hail_ever": true,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 10,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:30:00Z",
+       "lon": 7.26152,
+       "lat": 54.13292,
+       "identifier": 32,
+       "severity": 0,
+       "severity_decimal": 0.3,
+       "max_dbz": 56.48,
+       "echo_top_m": 4128,
+       "vil": 8.076,
+       "area_km2": 11.5625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 53.136,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 53.136,
+       "heading_deg": 114.66284503995026,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:35:00Z",
+       "lon": 7.36163,
+       "lat": 54.12297,
+       "identifier": 32,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 59.05,
+       "echo_top_m": 4248,
+       "vil": 10.394,
+       "area_km2": 39.0625,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 52.276,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 52.276,
+       "heading_deg": 112.36558820924124,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:40:00Z",
+       "lon": 7.42448,
+       "lat": 54.11157,
+       "identifier": 32,
+       "severity": 1,
+       "severity_decimal": 0.5,
+       "max_dbz": 55.11,
+       "echo_top_m": 4338,
+       "vil": 8.644,
+       "area_km2": 36.5,
+       "hail_flag": 1,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 52.243,
+       "lightning_rate": 3,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 52.243,
+       "heading_deg": 112.15749220769665,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:45:00Z",
+       "lon": 7.48367,
+       "lat": 54.09691,
+       "identifier": 32,
+       "severity": 0,
+       "severity_decimal": 0.16,
+       "max_dbz": 52.36,
+       "echo_top_m": 4368,
+       "vil": 6.125,
+       "area_km2": 26.1875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.911,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.911,
+       "heading_deg": 112.37893932331494,
+       "deviation_deg": 2,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:50:00Z",
+       "lon": 7.51745,
+       "lat": 54.0815,
+       "identifier": 32,
+       "severity": 0,
+       "severity_decimal": 0.12,
+       "max_dbz": 49.77,
+       "echo_top_m": 4399,
+       "vil": 4.522,
+       "area_km2": 14.3125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.263,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.263,
+       "heading_deg": 112.41602360997541,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       7.54398,
+       54.10119
+      ],
+      [
+       7.54044,
+       54.09892
+      ],
+      [
+       7.51081,
+       54.09816
+      ],
+      [
+       7.50372,
+       54.09362
+      ],
+      [
+       7.47781,
+       54.09295
+      ],
+      [
+       7.47073,
+       54.08841
+      ],
+      [
+       7.47122,
+       54.08188
+      ],
+      [
+       7.47492,
+       54.08197
+      ],
+      [
+       7.49424,
+       54.07157
+      ],
+      [
+       7.50164,
+       54.07176
+      ],
+      [
+       7.51322,
+       54.06552
+      ],
+      [
+       7.51692,
+       54.06561
+      ],
+      [
+       7.524,
+       54.07015
+      ],
+      [
+       7.5499,
+       54.07081
+      ],
+      [
+       7.55345,
+       54.07308
+      ],
+      [
+       7.55234,
+       54.08831
+      ],
+      [
+       7.55943,
+       54.09285
+      ],
+      [
+       7.55927,
+       54.09503
+      ],
+      [
+       7.54769,
+       54.10128
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 14.3125,
+       "top_m": 4399,
+       "volume_km3": 31.265625,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 14.3125,
+       "top_m": 4399,
+       "volume_km3": 31.265625,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 14.3125,
+       "top_m": 4399,
+       "volume_km3": 31.265625,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 6.3125,
+       "top_m": 4323,
+       "volume_km3": 11.34375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 824,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 184.9,
+      "direction": "NW",
+      "bearing_deg": 329.2
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023450000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      6.57504,
+      53.62444
+     ]
+    },
+    "properties": {
+     "code": "2026101023450000000000",
+     "first_seen": "2026-10-10T23:45:00Z",
+     "last_seen": "2026-10-10T23:45:00Z",
+     "lineage_first_detection": "2026-10-10T23:45:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 57.75,
+     "vil_max": 6.017,
+     "echo_top_max_m": 2850,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:45:00Z",
+       "lon": 6.57504,
+       "lat": 53.62444,
+       "identifier": 11,
+       "severity": 0,
+       "severity_decimal": 0.18,
+       "max_dbz": 57.75,
+       "echo_top_m": 2850,
+       "vil": 6.017,
+       "area_km2": 8,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 47.231,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 47.231,
+       "heading_deg": 115.98055431623587,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       6.55237,
+       53.63517
+      ],
+      [
+       6.54208,
+       53.62827
+      ],
+      [
+       6.5423,
+       53.6261
+      ],
+      [
+       6.55004,
+       53.62202
+      ],
+      [
+       6.55369,
+       53.62215
+      ],
+      [
+       6.55756,
+       53.62011
+      ],
+      [
+       6.5612,
+       53.62024
+      ],
+      [
+       6.56507,
+       53.6182
+      ],
+      [
+       6.57602,
+       53.61859
+      ],
+      [
+       6.58375,
+       53.61452
+      ],
+      [
+       6.59834,
+       53.61503
+      ],
+      [
+       6.6052,
+       53.61963
+      ],
+      [
+       6.60477,
+       53.62397
+      ],
+      [
+       6.59317,
+       53.63009
+      ],
+      [
+       6.58952,
+       53.62996
+      ],
+      [
+       6.57792,
+       53.63608
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 8,
+       "top_m": 2850,
+       "volume_km3": 5.328125,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 8,
+       "top_m": 2850,
+       "volume_km3": 5.328125,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 8,
+       "top_m": 2850,
+       "volume_km3": 5.328125,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 7.6875,
+       "top_m": 2850,
+       "volume_km3": 5.09375,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 4.9375,
+       "top_m": 1845,
+       "volume_km3": 2,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 1.4375,
+       "top_m": 1279,
+       "volume_km3": 0.390625,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 56,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 192.1,
+      "direction": "NW",
+      "bearing_deg": 304.8
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023400000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       8.39545,
+       54.07175
+      ],
+      [
+       8.44306,
+       54.06674
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101023400000000000",
+     "first_seen": "2026-10-10T23:40:00Z",
+     "last_seen": "2026-10-10T23:45:00Z",
+     "lineage_first_detection": "2026-10-10T23:40:00Z",
+     "n_steps": 2,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 58.56,
+     "vil_max": 10.587,
+     "echo_top_max_m": 3657,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": true,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:40:00Z",
+       "lon": 8.39545,
+       "lat": 54.07175,
+       "identifier": 38,
+       "severity": 0,
+       "severity_decimal": 0.41,
+       "max_dbz": 57.03,
+       "echo_top_m": 3304,
+       "vil": 7.664,
+       "area_km2": 14.75,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.651,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.651,
+       "heading_deg": 102.29323334771878,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:45:00Z",
+       "lon": 8.44306,
+       "lat": 54.06674,
+       "identifier": 38,
+       "severity": 0,
+       "severity_decimal": 0.46,
+       "max_dbz": 58.56,
+       "echo_top_m": 3657,
+       "vil": 10.587,
+       "area_km2": 13.125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 49.956,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.545,
+       "heading_deg": 102.25877854188623,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.4014,
+       54.09068
+      ],
+      [
+       8.3978,
+       54.08845
+      ],
+      [
+       8.3979,
+       54.08627
+      ],
+      [
+       8.40171,
+       54.08415
+      ],
+      [
+       8.40181,
+       54.08197
+      ],
+      [
+       8.40562,
+       54.07986
+      ],
+      [
+       8.40717,
+       54.04719
+      ],
+      [
+       8.41097,
+       54.04508
+      ],
+      [
+       8.45536,
+       54.04579
+      ],
+      [
+       8.45896,
+       54.04803
+      ],
+      [
+       8.45857,
+       54.05674
+      ],
+      [
+       8.46937,
+       54.06344
+      ],
+      [
+       8.46927,
+       54.06562
+      ],
+      [
+       8.47288,
+       54.06786
+      ],
+      [
+       8.47258,
+       54.07439
+      ],
+      [
+       8.46878,
+       54.07651
+      ],
+      [
+       8.45026,
+       54.07622
+      ],
+      [
+       8.43885,
+       54.08257
+      ],
+      [
+       8.43144,
+       54.08245
+      ],
+      [
+       8.42383,
+       54.08669
+      ],
+      [
+       8.42363,
+       54.09105
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 13.125,
+       "top_m": 3657,
+       "volume_km3": 27.25,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 13.125,
+       "top_m": 3657,
+       "volume_km3": 27.25,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 13.125,
+       "top_m": 3657,
+       "volume_km3": 27.25,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 13.125,
+       "top_m": 3657,
+       "volume_km3": 27.25,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 7.3125,
+       "top_m": 3638,
+       "volume_km3": 16.375,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 3.375,
+       "top_m": 3161,
+       "volume_km3": 7.625,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 820,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 70.4,
+      "direction": "W",
+      "bearing_deg": 255.6
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023350000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.85702,
+       53.665
+      ],
+      [
+       6.90064,
+       53.642
+      ],
+      [
+       6.95489,
+       53.62701
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101023350000000000",
+     "first_seen": "2026-10-10T23:35:00Z",
+     "last_seen": "2026-10-10T23:45:00Z",
+     "lineage_first_detection": "2026-10-10T23:35:00Z",
+     "n_steps": 3,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 62.46,
+     "vil_max": 7.824,
+     "echo_top_max_m": 3611,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": true,
+     "deviation_deg": 2,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:35:00Z",
+       "lon": 6.85702,
+       "lat": 53.665,
+       "identifier": 10,
+       "severity": 0,
+       "severity_decimal": 0.17,
+       "max_dbz": 56.57,
+       "echo_top_m": 3282,
+       "vil": 5.853,
+       "area_km2": 10.1875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.362,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.362,
+       "heading_deg": 112.99206644960962,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:40:00Z",
+       "lon": 6.90064,
+       "lat": 53.642,
+       "identifier": 10,
+       "severity": 0,
+       "severity_decimal": 0.22,
+       "max_dbz": 59.35,
+       "echo_top_m": 3067,
+       "vil": 6.336,
+       "area_km2": 33.8125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 52.071,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 52.071,
+       "heading_deg": 113.94300905273886,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:45:00Z",
+       "lon": 6.95489,
+       "lat": 53.62701,
+       "identifier": 10,
+       "severity": 0,
+       "severity_decimal": 0.34,
+       "max_dbz": 62.46,
+       "echo_top_m": 3611,
+       "vil": 7.824,
+       "area_km2": 42.625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.71,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.71,
+       "heading_deg": 114.4278574859418,
+       "deviation_deg": 2,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       6.95247,
+       53.66607
+      ],
+      [
+       6.94901,
+       53.66378
+      ],
+      [
+       6.94921,
+       53.66161
+      ],
+      [
+       6.93883,
+       53.65475
+      ],
+      [
+       6.93903,
+       53.65258
+      ],
+      [
+       6.9252,
+       53.64344
+      ],
+      [
+       6.92155,
+       53.64332
+      ],
+      [
+       6.91809,
+       53.64103
+      ],
+      [
+       6.90713,
+       53.64068
+      ],
+      [
+       6.89677,
+       53.63382
+      ],
+      [
+       6.89796,
+       53.6208
+      ],
+      [
+       6.89106,
+       53.61623
+      ],
+      [
+       6.88741,
+       53.61611
+      ],
+      [
+       6.8878,
+       53.61177
+      ],
+      [
+       6.90319,
+       53.60356
+      ],
+      [
+       6.90339,
+       53.60139
+      ],
+      [
+       6.91492,
+       53.59523
+      ],
+      [
+       6.9368,
+       53.59593
+      ],
+      [
+       6.94064,
+       53.59388
+      ],
+      [
+       6.94429,
+       53.594
+      ],
+      [
+       6.94813,
+       53.59194
+      ],
+      [
+       6.95178,
+       53.59206
+      ],
+      [
+       6.95562,
+       53.59
+      ],
+      [
+       6.96291,
+       53.59023
+      ],
+      [
+       6.96637,
+       53.59252
+      ],
+      [
+       6.96598,
+       53.59686
+      ],
+      [
+       6.9798,
+       53.606
+      ],
+      [
+       6.97845,
+       53.62118
+      ],
+      [
+       6.99228,
+       53.63032
+      ],
+      [
+       6.99113,
+       53.64334
+      ],
+      [
+       6.99806,
+       53.64791
+      ],
+      [
+       7.00171,
+       53.64803
+      ],
+      [
+       7.00863,
+       53.65259
+      ],
+      [
+       7.00825,
+       53.65694
+      ],
+      [
+       6.99671,
+       53.66311
+      ],
+      [
+       6.99652,
+       53.66528
+      ],
+      [
+       6.99267,
+       53.66733
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 42.625,
+       "top_m": 3611,
+       "volume_km3": 34.640625,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 42.625,
+       "top_m": 3611,
+       "volume_km3": 34.640625,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 42.625,
+       "top_m": 3611,
+       "volume_km3": 34.640625,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 42.3125,
+       "top_m": 3557,
+       "volume_km3": 33.953125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 31.5,
+       "top_m": 3557,
+       "volume_km3": 17.84375,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 11.8125,
+       "top_m": 1423,
+       "volume_km3": 4.53125,
+       "rings": null
+      },
+      {
+       "dbz": 60,
+       "area_km2": 1.9375,
+       "top_m": 1236,
+       "volume_km3": 0.4375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 55,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 171.8,
+      "direction": "NW",
+      "bearing_deg": 309.5
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023350000000002",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.59508,
+      54.13257
+     ]
+    },
+    "properties": {
+     "code": "2026101023350000000002",
+     "first_seen": "2026-10-10T23:35:00Z",
+     "last_seen": "2026-10-10T23:35:00Z",
+     "lineage_first_detection": "2026-10-10T23:35:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 52.44,
+     "vil_max": 6.02,
+     "echo_top_max_m": 3496,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:35:00Z",
+       "lon": 8.59508,
+       "lat": 54.13257,
+       "identifier": 37,
+       "severity": 0,
+       "severity_decimal": 0.16,
+       "max_dbz": 52.44,
+       "echo_top_m": 3496,
+       "vil": 6.02,
+       "area_km2": 19,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 49.009,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 49.009,
+       "heading_deg": 101.24301911020557,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.60636,
+       54.15486
+      ],
+      [
+       8.60274,
+       54.15263
+      ],
+      [
+       8.59902,
+       54.15258
+      ],
+      [
+       8.5954,
+       54.15035
+      ],
+      [
+       8.562,
+       54.14986
+      ],
+      [
+       8.55838,
+       54.14763
+      ],
+      [
+       8.55857,
+       54.14327
+      ],
+      [
+       8.55495,
+       54.14104
+      ],
+      [
+       8.55542,
+       54.13014
+      ],
+      [
+       8.5518,
+       54.12791
+      ],
+      [
+       8.55199,
+       54.12355
+      ],
+      [
+       8.55959,
+       54.11931
+      ],
+      [
+       8.57813,
+       54.11958
+      ],
+      [
+       8.58193,
+       54.11745
+      ],
+      [
+       8.59677,
+       54.11767
+      ],
+      [
+       8.60436,
+       54.11342
+      ],
+      [
+       8.60445,
+       54.11124
+      ],
+      [
+       8.60825,
+       54.10911
+      ],
+      [
+       8.61196,
+       54.10917
+      ],
+      [
+       8.61558,
+       54.1114
+      ],
+      [
+       8.61928,
+       54.11145
+      ],
+      [
+       8.6229,
+       54.11368
+      ],
+      [
+       8.62228,
+       54.12893
+      ],
+      [
+       8.62952,
+       54.13339
+      ],
+      [
+       8.62916,
+       54.14211
+      ],
+      [
+       8.61396,
+       54.15061
+      ],
+      [
+       8.61387,
+       54.15279
+      ],
+      [
+       8.61007,
+       54.15492
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 19,
+       "top_m": 3496,
+       "volume_km3": 41.484375,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 19,
+       "top_m": 3496,
+       "volume_km3": 41.484375,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 19,
+       "top_m": 3496,
+       "volume_km3": 41.484375,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 15.9375,
+       "top_m": 3471,
+       "volume_km3": 34.859375,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 4.5,
+       "top_m": 3438,
+       "volume_km3": 9.078125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 704,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 59.1,
+      "direction": "W",
+      "bearing_deg": 259.9
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023350000000001",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.49868,
+      54.10254
+     ]
+    },
+    "properties": {
+     "code": "2026101023350000000001",
+     "first_seen": "2026-10-10T23:35:00Z",
+     "last_seen": "2026-10-10T23:35:00Z",
+     "lineage_first_detection": "2026-10-10T23:35:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 51.59,
+     "vil_max": 5.467,
+     "echo_top_max_m": 3243,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:35:00Z",
+       "lon": 8.49868,
+       "lat": 54.10254,
+       "identifier": 36,
+       "severity": 0,
+       "severity_decimal": 0.14,
+       "max_dbz": 51.59,
+       "echo_top_m": 3243,
+       "vil": 5.467,
+       "area_km2": 12.6875,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 49.483,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 49.483,
+       "heading_deg": 102.11286186556723,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.50007,
+       54.12277
+      ],
+      [
+       8.49646,
+       54.12053
+      ],
+      [
+       8.49275,
+       54.12047
+      ],
+      [
+       8.48914,
+       54.11824
+      ],
+      [
+       8.48544,
+       54.11818
+      ],
+      [
+       8.48183,
+       54.11595
+      ],
+      [
+       8.47812,
+       54.11589
+      ],
+      [
+       8.47451,
+       54.11365
+      ],
+      [
+       8.4708,
+       54.11359
+      ],
+      [
+       8.47159,
+       54.09617
+      ],
+      [
+       8.4754,
+       54.09405
+      ],
+      [
+       8.4791,
+       54.09411
+      ],
+      [
+       8.48291,
+       54.09199
+      ],
+      [
+       8.51255,
+       54.09244
+      ],
+      [
+       8.52395,
+       54.08608
+      ],
+      [
+       8.52765,
+       54.08614
+      ],
+      [
+       8.53126,
+       54.08837
+      ],
+      [
+       8.52746,
+       54.09049
+      ],
+      [
+       8.52622,
+       54.11881
+      ],
+      [
+       8.52242,
+       54.12093
+      ],
+      [
+       8.515,
+       54.12082
+      ],
+      [
+       8.5112,
+       54.12294
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 12.6875,
+       "top_m": 3243,
+       "volume_km3": 27.15625,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 12.6875,
+       "top_m": 3243,
+       "volume_km3": 27.15625,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 12.6875,
+       "top_m": 3243,
+       "volume_km3": 27.15625,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 9.75,
+       "top_m": 3219,
+       "volume_km3": 21.25,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 0.9375,
+       "top_m": 2449,
+       "volume_km3": 2,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 782,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 65.9,
+      "direction": "W",
+      "bearing_deg": 258.1
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023300000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.65636,
+      54.01818
+     ]
+    },
+    "properties": {
+     "code": "2026101023300000000000",
+     "first_seen": "2026-10-10T23:30:00Z",
+     "last_seen": "2026-10-10T23:30:00Z",
+     "lineage_first_detection": "2026-10-10T23:30:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 57.06,
+     "vil_max": 9.272,
+     "echo_top_max_m": 3405,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:30:00Z",
+       "lon": 8.65636,
+       "lat": 54.01818,
+       "identifier": 9,
+       "severity": 0,
+       "severity_decimal": 0.38,
+       "max_dbz": 57.06,
+       "echo_top_m": 3405,
+       "vil": 9.272,
+       "area_km2": 9.3125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 48.331,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 48.331,
+       "heading_deg": 99.92867206011519,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       8.63685,
+       54.04414
+      ],
+      [
+       8.63323,
+       54.04191
+      ],
+      [
+       8.63376,
+       54.02885
+      ],
+      [
+       8.63755,
+       54.02672
+      ],
+      [
+       8.63764,
+       54.02455
+      ],
+      [
+       8.64142,
+       54.02242
+      ],
+      [
+       8.64169,
+       54.01589
+      ],
+      [
+       8.65304,
+       54.00951
+      ],
+      [
+       8.65339,
+       54.0008
+      ],
+      [
+       8.65717,
+       53.99868
+      ],
+      [
+       8.67564,
+       53.99893
+      ],
+      [
+       8.67925,
+       54.00116
+      ],
+      [
+       8.67891,
+       54.00987
+      ],
+      [
+       8.67513,
+       54.01199
+      ],
+      [
+       8.67504,
+       54.01417
+      ],
+      [
+       8.66748,
+       54.01843
+      ],
+      [
+       8.66731,
+       54.02278
+      ],
+      [
+       8.65974,
+       54.02703
+      ],
+      [
+       8.65604,
+       54.02698
+      ],
+      [
+       8.64847,
+       54.03123
+      ],
+      [
+       8.64821,
+       54.03777
+      ],
+      [
+       8.64442,
+       54.03989
+      ],
+      [
+       8.64433,
+       54.04207
+      ],
+      [
+       8.64063,
+       54.04202
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 9.3125,
+       "top_m": 3405,
+       "volume_km3": 17.953125,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 9.3125,
+       "top_m": 3405,
+       "volume_km3": 17.953125,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 9.3125,
+       "top_m": 3405,
+       "volume_km3": 17.953125,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 9.3125,
+       "top_m": 3405,
+       "volume_km3": 17.953125,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 5.8125,
+       "top_m": 3389,
+       "volume_km3": 10.71875,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 2,
+       "top_m": 3381,
+       "volume_km3": 4.28125,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 655,
+     "placement": {
+      "place": "Schleswig-Holstein",
+      "kind": "state",
+      "distance_km": 59,
+      "direction": "SW",
+      "bearing_deg": 247
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023200000000000",
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       6.77096,
+       53.63205
+      ],
+      [
+       6.81901,
+       53.61717
+      ],
+      [
+       6.87659,
+       53.59925
+      ]
+     ]
+    },
+    "properties": {
+     "code": "2026101023200000000000",
+     "first_seen": "2026-10-10T23:20:00Z",
+     "last_seen": "2026-10-10T23:30:00Z",
+     "lineage_first_detection": "2026-10-10T23:20:00Z",
+     "n_steps": 3,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 64.15,
+     "vil_max": 7.73,
+     "echo_top_max_m": 3798,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:20:00Z",
+       "lon": 6.77096,
+       "lat": 53.63205,
+       "identifier": 2,
+       "severity": 0,
+       "severity_decimal": 0.2,
+       "max_dbz": 58.96,
+       "echo_top_m": 3798,
+       "vil": 7.503,
+       "area_km2": 11.625,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 50.755,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 50.755,
+       "heading_deg": 113.90275676858015,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:25:00Z",
+       "lon": 6.81901,
+       "lat": 53.61717,
+       "identifier": 2,
+       "severity": 0,
+       "severity_decimal": 0.38,
+       "max_dbz": 64.15,
+       "echo_top_m": 2664,
+       "vil": 7.73,
+       "area_km2": 16.8125,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.216,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.216,
+       "heading_deg": 114.43863336942388,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      },
+      {
+       "t": "2026-10-10T23:30:00Z",
+       "lon": 6.87659,
+       "lat": 53.59925,
+       "identifier": 2,
+       "severity": 0,
+       "severity_decimal": 0.34,
+       "max_dbz": 63.61,
+       "echo_top_m": 2145,
+       "vil": 5.112,
+       "area_km2": 28,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 51.755,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 51.755,
+       "heading_deg": 116.47251172178095,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       6.80976,
+       53.62445
+      ],
+      [
+       6.80632,
+       53.62216
+      ],
+      [
+       6.79902,
+       53.62192
+      ],
+      [
+       6.79213,
+       53.61733
+      ],
+      [
+       6.79254,
+       53.61299
+      ],
+      [
+       6.8041,
+       53.60685
+      ],
+      [
+       6.81139,
+       53.60709
+      ],
+      [
+       6.83064,
+       53.59685
+      ],
+      [
+       6.83429,
+       53.59697
+      ],
+      [
+       6.84198,
+       53.59287
+      ],
+      [
+       6.84563,
+       53.59299
+      ],
+      [
+       6.85717,
+       53.58684
+      ],
+      [
+       6.91186,
+       53.58861
+      ],
+      [
+       6.91571,
+       53.58656
+      ],
+      [
+       6.92664,
+       53.58691
+      ],
+      [
+       6.93049,
+       53.58485
+      ],
+      [
+       6.93413,
+       53.58497
+      ],
+      [
+       6.93797,
+       53.58292
+      ],
+      [
+       6.94526,
+       53.58315
+      ],
+      [
+       6.9491,
+       53.58109
+      ],
+      [
+       6.9564,
+       53.58132
+      ],
+      [
+       6.96023,
+       53.57927
+      ],
+      [
+       6.97117,
+       53.57962
+      ],
+      [
+       6.97462,
+       53.5819
+      ],
+      [
+       6.97079,
+       53.58395
+      ],
+      [
+       6.97059,
+       53.58612
+      ],
+      [
+       6.95523,
+       53.59434
+      ],
+      [
+       6.94429,
+       53.594
+      ],
+      [
+       6.93276,
+       53.60016
+      ],
+      [
+       6.92912,
+       53.60004
+      ],
+      [
+       6.92527,
+       53.60209
+      ],
+      [
+       6.92162,
+       53.60198
+      ],
+      [
+       6.91778,
+       53.60403
+      ],
+      [
+       6.91048,
+       53.6038
+      ],
+      [
+       6.90664,
+       53.60585
+      ],
+      [
+       6.90299,
+       53.60573
+      ],
+      [
+       6.89915,
+       53.60778
+      ],
+      [
+       6.8882,
+       53.60743
+      ],
+      [
+       6.88435,
+       53.60948
+      ],
+      [
+       6.87706,
+       53.60924
+      ],
+      [
+       6.86551,
+       53.6154
+      ],
+      [
+       6.85822,
+       53.61516
+      ],
+      [
+       6.85052,
+       53.61926
+      ],
+      [
+       6.84687,
+       53.61914
+      ],
+      [
+       6.84302,
+       53.62119
+      ],
+      [
+       6.83207,
+       53.62083
+      ],
+      [
+       6.82822,
+       53.62288
+      ],
+      [
+       6.82457,
+       53.62276
+      ],
+      [
+       6.82071,
+       53.62481
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 28,
+       "top_m": 2145,
+       "volume_km3": 15.578125,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 28,
+       "top_m": 2145,
+       "volume_km3": 15.578125,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 28,
+       "top_m": 2145,
+       "volume_km3": 15.578125,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 27.625,
+       "top_m": 2037,
+       "volume_km3": 14.515625,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 18.9375,
+       "top_m": 1423,
+       "volume_km3": 6.984375,
+       "rings": null
+      },
+      {
+       "dbz": 55,
+       "area_km2": 8.1875,
+       "top_m": 1289,
+       "volume_km3": 2.0625,
+       "rings": null
+      },
+      {
+       "dbz": 60,
+       "area_km2": 2.0625,
+       "top_m": 791,
+       "volume_km3": 0.390625,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 45,
+     "placement": {
+      "place": "Niedersachsen",
+      "kind": "state",
+      "distance_km": 174.1,
+      "direction": "NW",
+      "bearing_deg": 307.6
+     },
+     "volume": null
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "2026101023250000000000",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      5.95669,
+      53.35501
+     ]
+    },
+    "properties": {
+     "code": "2026101023250000000000",
+     "first_seen": "2026-10-10T23:25:00Z",
+     "last_seen": "2026-10-10T23:25:00Z",
+     "lineage_first_detection": "2026-10-10T23:25:00Z",
+     "n_steps": 1,
+     "active": false,
+     "max_severity": 0,
+     "max_dbz": 54.48,
+     "vil_max": 6.092,
+     "echo_top_max_m": 3256,
+     "hail_ever": false,
+     "meso_ever": false,
+     "split_ever": false,
+     "merge_ever": false,
+     "hail_minutes": 0,
+     "meso_minutes": 0,
+     "lightning_jump_recent": false,
+     "intensifying": false,
+     "deviation_deg": null,
+     "parent_codes": [],
+     "child_codes": [],
+     "series": [
+      {
+       "t": "2026-10-10T23:25:00Z",
+       "lon": 5.95669,
+       "lat": 53.35501,
+       "identifier": 28,
+       "severity": 0,
+       "severity_decimal": 0.17,
+       "max_dbz": 54.48,
+       "echo_top_m": 3256,
+       "vil": 6.092,
+       "area_km2": 9.4375,
+       "hail_flag": 0,
+       "heavy_rain_flag": 0,
+       "gust_flag": 0,
+       "gust_kmh": 53.015,
+       "lightning_rate": 0,
+       "lightning_jumps": 0,
+       "meso_severity": 0,
+       "meso_rot_ms": null,
+       "speed_kmh": 53.015,
+       "heading_deg": 112.73078332219377,
+       "deviation_deg": null,
+       "split": false,
+       "merge": false
+      }
+     ],
+     "forecast": [],
+     "polygon": [
+      [
+       5.94639,
+       53.36991
+      ],
+      [
+       5.94303,
+       53.3676
+      ],
+      [
+       5.93941,
+       53.36744
+      ],
+      [
+       5.93605,
+       53.36512
+      ],
+      [
+       5.92881,
+       53.36482
+      ],
+      [
+       5.92545,
+       53.3625
+      ],
+      [
+       5.92183,
+       53.36234
+      ],
+      [
+       5.92261,
+       53.35585
+      ],
+      [
+       5.92648,
+       53.35384
+      ],
+      [
+       5.927,
+       53.34951
+      ],
+      [
+       5.93475,
+       53.34549
+      ],
+      [
+       5.96368,
+       53.34672
+      ],
+      [
+       5.96755,
+       53.3447
+      ],
+      [
+       5.98202,
+       53.34531
+      ],
+      [
+       5.98589,
+       53.3433
+      ],
+      [
+       5.98951,
+       53.34345
+      ],
+      [
+       5.989,
+       53.34778
+      ],
+      [
+       5.98513,
+       53.34979
+      ],
+      [
+       5.98462,
+       53.35412
+      ],
+      [
+       5.98075,
+       53.35614
+      ],
+      [
+       5.9805,
+       53.3583
+      ],
+      [
+       5.96888,
+       53.36434
+      ],
+      [
+       5.96164,
+       53.36403
+      ],
+      [
+       5.95001,
+       53.37007
+      ]
+     ],
+     "structure": [
+      {
+       "dbz": 30,
+       "area_km2": 9.4375,
+       "top_m": 3256,
+       "volume_km3": 21.46875,
+       "rings": null
+      },
+      {
+       "dbz": 35,
+       "area_km2": 9.4375,
+       "top_m": 3256,
+       "volume_km3": 21.46875,
+       "rings": null
+      },
+      {
+       "dbz": 40,
+       "area_km2": 9.4375,
+       "top_m": 3256,
+       "volume_km3": 21.46875,
+       "rings": null
+      },
+      {
+       "dbz": 45,
+       "area_km2": 9,
+       "top_m": 3256,
+       "volume_km3": 18.546875,
+       "rings": null
+      },
+      {
+       "dbz": 50,
+       "area_km2": 3.75,
+       "top_m": 2201,
+       "volume_km3": 4.859375,
+       "rings": null
+      }
+     ],
+     "echo_bottom_m": 273,
+     "placement": {
+      "place": "Hiaure",
+      "kind": "village",
+      "distance_km": 1.4,
+      "direction": null,
+      "bearing_deg": null
+     },
+     "volume": null
+    }
+   }
+  ]
+ }
+}

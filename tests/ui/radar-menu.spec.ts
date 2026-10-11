@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { openRadar, productControl, productMenu } from "./app";
 
 /** The radar product menu, opened from the scan pill (phone) or the legend's caption (desktop). */
@@ -29,8 +29,8 @@ test("its \"?\" opens How the Radar Works, which stays open", async ({ page }) =
 });
 
 test("choosing a product closes it and names the product", async ({ page }) => {
-  // DMAX: the demo backend has no EU composites, and a product without
-  // scans is drawn as the default instead.
+  // DMAX, not an EU composite: a product with no scans in the recording is
+  // drawn as the default instead, and staging does not always have them.
   const option = productMenu(page).getByRole("menuitemradio", { name: /DMAX/ });
   await option.click();
   await expect(productMenu(page)).toBeHidden();

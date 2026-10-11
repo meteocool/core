@@ -1,5 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
-import { RADAR_VIEW, productControl, productMenu, timeline } from "./app";
+import { expect, test } from "./test";
+import type { Page } from "@playwright/test";
+import { RADAR_VIEW, openRadar, productControl, productMenu } from "./app";
 
 /**
  * What the page tells the iOS app, on the page the app loads (ios.html),
@@ -19,8 +20,7 @@ test.beforeEach(async ({ page }) => {
       value: { messageHandlers: { scriptHandler: { postMessage: (m: string) => window.sentToNative.push(m) } } },
     });
   });
-  await page.goto(`/ios.html${RADAR_VIEW.slice(1)}`);
-  await expect(timeline(page)).toBeVisible({ timeout: 30_000 });
+  await openRadar(page, `/ios.html${RADAR_VIEW.slice(1)}`);
 });
 
 const sent = (page: Page) => page.evaluate(() => window.sentToNative);
