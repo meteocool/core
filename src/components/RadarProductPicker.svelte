@@ -29,6 +29,7 @@ import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDi
 import Icon from "./Icon.svelte";
 import Lazy from "./Lazy.svelte";
 import { onForecastStep, radarProducts, smallScreen } from "../stores";
+import { hideNativeControls } from "../lib/nativeBridge";
 import { FORECAST_PRODUCT, PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
 import type { ObservedProduct, ScanRange } from "../lib/observedProduct";
 
@@ -59,6 +60,19 @@ function mapButtons(): DOMRect[] {
     .map((element) => element.getBoundingClientRect())
     .filter((rect) => rect.width > 0 && rect.height > 0);
 }
+
+/* The apps' buttons float down the right edge, outside the page, so
+   `mapButtons` cannot keep the menu clear of them: they go while it is up. */
+let releaseControls: (() => void) | null = null;
+function hideControls(hide: boolean) {
+  if (hide && !releaseControls) releaseControls = hideNativeControls();
+  else if (!hide && releaseControls) {
+    releaseControls();
+    releaseControls = null;
+  }
+}
+$: hideControls(open);
+onDestroy(() => hideControls(false));
 
 /** The ages are minutes: a tick a quarter of one keeps them honest. */
 let nowS = Date.now() / 1000;
