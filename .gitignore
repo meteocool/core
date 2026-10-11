@@ -122,3 +122,9 @@ dist
 
 # Cloudflare Wrangler state and build output
 .wrangler/
+
+# Playwright UI tests (playwright.config.ts)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

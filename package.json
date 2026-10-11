@@ -15,6 +15,7 @@
     "worker:tail": "wrangler tail",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json && eslint .",
     "test": "node --test --import ./scripts/tests/register.mjs \"scripts/tests/**/*.test.ts\"",
+    "test:ui": "playwright test",
     "licences": "node scripts/licences.mjs",
     "generate:api": "openapi-typescript spec/api.openapi.json -o src/api/generated/api.ts && openapi-typescript spec/data.openapi.json -o src/api/generated/data.ts",
     "lint": "eslint .",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260911.1",
+    "@playwright/test": "^1.64.0",
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "@types/node": "^26.5.1",
     "eslint": "^9.39.5",
