@@ -37,7 +37,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
-  toolbarVisible, fullResolution3d, unit, playbackFromStart,
+  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen,
 } from "./stores";
 
 import "./global.css";
@@ -79,6 +79,7 @@ import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D }
    third of the app's code, and most sessions never tap a cell. */
 const loadCellDetails = () => import("./components/CellDetails.svelte");
 const loadCellSheet = () => import("./components/CellSheet.svelte");
+const loadRadarExplainer = () => import("./components/RadarExplainer.svelte");
 const loadCloudDetails = () => import("./components/CloudDetails.svelte");
 // The model comparison too: its charts and the forecast fetch are for the
 // few who open it.
@@ -1150,6 +1151,12 @@ if (postInitCb) postInitCb(lm);
   <Guide3D />
 {/if}
 <PointMenu layerManager={lm} />
+
+{#if $radarExplainerOpen}
+  <Lazy load={loadRadarExplainer} floating let:module>
+    <svelte:component this={module.default} on:close={() => radarExplainerOpen.set(false)} />
+  </Lazy>
+{/if}
 
 
 {#if $selectedCell && $cellDetails}
