@@ -101,13 +101,13 @@ export function setDwdCmap(colorMapString: string) {
  * between "no radar" and "no rain" invisible on exactly the basemap where the
  * distinction matters most, because both read as dark.
  *
- * Nearly a quarter in the dark, against a tenth in the light. The jump is
- * bigger than it looks: against a near-black ground an absolute step of a few
- * levels is a large relative one, and going further turns unsupported regions
- * into holes in the page instead of quieter map.
+ * Two fifths in the dark, against a tenth in the light. A quarter was still
+ * too faint to notice there (2026-10-11): against a near-black ground the
+ * same black buys far less, so the dark wash has to be laid on much harder
+ * to read as the same step.
  */
 const WASH_LIGHT = "rgba(0, 0, 0, 0.1)";
-const WASH_DARK = "rgba(0, 0, 0, 0.24)";
+const WASH_DARK = "rgba(0, 0, 0, 0.4)";
 
 const washFor = (basemap: string): string => (isDarkBasemap(basemap) ? WASH_DARK : WASH_LIGHT);
 
