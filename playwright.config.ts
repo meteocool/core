@@ -8,12 +8,25 @@ import { defineConfig, devices } from "@playwright/test";
  * that covers another). Not in CI yet: run `npm run test:ui` before pushing
  * develop.
  *
- * The app is served by Vite against the demo backend, which replays a
- * recorded storm, so there is always radar and the tests do not depend on
- * today's weather. An iPhone in WebKit, the closest a desktop gets to the
- * iOS app's web view, and a desktop Chromium.
+ * Offline: the backend's answers are recorded once and replayed, on the
+ * recording's clock, so a run depends on nothing but the repository
+ * (tests/ui/README.md). An iPhone in WebKit, the closest a desktop gets to
+ * the iOS app's web view, and a desktop Chromium.
+ *
+ * `npm run test:ui:record` (UI_RECORD=1) runs the recorder instead of the
+ * specs, against staging, or demo with UI_RECORD_FROM=demo.
  */
 const PORT = 8130;
+const recording = Boolean(process.env.UI_RECORD);
+
+/** The dev server's proxy targets (vite.config.ts): staging unless told otherwise. Only the recorder reaches them. */
+const backend: Record<string, string> = process.env.UI_RECORD_FROM === "demo"
+  ? {
+    MC_API: "https://api-demo.meteocool.com",
+    MC_DATA: "https://data-demo.meteocool.com",
+    MC_TILES: "https://assets-demo.meteocool.com",
+  }
+  : {};
 
 export default defineConfig({
   testDir: "tests/ui",
@@ -33,19 +46,20 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [
-    { name: "iphone", use: { ...devices["iPhone 15"] } },
-    { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
-  ],
+  projects: recording
+    ? [{ name: "record", testMatch: "record.ts" }]
+    : [
+      { name: "iphone", use: { ...devices["iPhone 15"] } },
+      { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    ],
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    // Always its own: a server already on the port may be another session's,
+    // on another branch, or one proxying to another backend. A taken port
+    // fails the run outright (--strictPort) rather than testing the wrong app.
+    reuseExistingServer: false,
     timeout: 120_000,
-    env: {
-      MC_API: "https://api-demo.meteocool.com",
-      MC_DATA: "https://data-demo.meteocool.com",
-      MC_TILES: "https://assets-demo.meteocool.com",
-    },
+    env: backend,
   },
 });

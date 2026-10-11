@@ -6,7 +6,21 @@ export const RADAR_VIEW = "/?layer=radar&latLonZ=50.50000,9.50000,6.00";
 /** Open the radar map and wait for the player, which opens by itself on it. */
 export async function openRadar(page: Page, path = RADAR_VIEW): Promise<void> {
   await page.goto(path);
-  await expect(timeline(page)).toBeVisible({ timeout: 30_000 });
+  await settled(timeline(page));
+}
+
+/**
+ * Visible, and done moving. The tray flies in for 400 ms after it appears,
+ * and a drag measured from where it was mid-flight starts on whatever has
+ * since slid under that point.
+ */
+export async function settled(locator: Locator): Promise<void> {
+  await expect(locator).toBeVisible({ timeout: 30_000 });
+  await expect.poll(async () => {
+    const before = JSON.stringify(await locator.boundingBox());
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    return before === JSON.stringify(await locator.boundingBox());
+  }, { timeout: 10_000 }).toBe(true);
 }
 
 export const timeline = (page: Page): Locator => page.getByRole("slider", { name: "Radar timeline" });

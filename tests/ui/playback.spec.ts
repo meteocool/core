@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./test";
+import type { Page } from "@playwright/test";
 import { backToNow, openRadar, playButton, timeline } from "./app";
 
 /** The player: its timeline, playback, and the way back to now. */
@@ -41,13 +42,19 @@ test("Back to now shows through playback and stops it on the live frame", async 
 });
 
 test("Back to now goes while a hand is on the timeline, and comes back on release", async ({ page }) => {
+  await expect(timeline(page)).toHaveAttribute("aria-readonly", "false");
+  const live = await timeline(page).getAttribute("aria-valuetext");
   const box = (await timeline(page).boundingBox())!;
   const y = box.y + box.height / 2;
   await page.mouse.move(box.x + box.width / 2, y);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.2, y, { steps: 8 });
+  await expect(timeline(page)).not.toHaveAttribute("aria-valuetext", live!);
   await expect(backToNow(page)).toBeHidden();
+  // Held still before letting go: "here", not a flick that glides on.
+  await page.waitForTimeout(200);
   await page.mouse.up();
+  await expect(timeline(page)).not.toHaveAttribute("aria-valuetext", live!);
   await expect(backToNow(page)).toBeVisible();
   await backToNow(page).click();
   await expect(backToNow(page)).toBeHidden();
