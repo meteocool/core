@@ -121,6 +121,8 @@
   "lightning_unavailable": "Statystyki obecnie niedostępne.",
   "radar_no_coverage": "Tu jeszcze nie ma radaru",
   "radar_no_coverage_body": "Radar na żywo pochodzi ze służb meteorologicznych Niemiec, Szwajcarii, Francji, Czech i Polski, więc obejmuje tylko te kraje. Wyładowania i modele prognostyczne działają na całym świecie.",
+  "forecast_no_coverage": "Brak prognozy w tym miejscu",
+  "forecast_no_coverage_body": "Prognoza opadów pochodzi z niemieckiej służby meteorologicznej, więc obejmuje tylko Niemcy i ich okolice. Radar w innych miejscach pokazuje tylko przeszłość i teraźniejszość.",
   "outdated": "Nieaktualne",
   "degraded": "Ograniczone",
   "show_for_my_location": "Pokaż dla mojej lokalizacji",
