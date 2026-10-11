@@ -23,8 +23,9 @@
  *
  * The menu is moved to <body>: the tray clips what overflows it, and a
  * backdrop filter on any ancestor would position a fixed child against that
- * ancestor rather than the window. So is the explainer its "?" opens
- * (RadarExplainer.svelte), a panel of the same fixed kind.
+ * ancestor rather than the window. The explainer its "?" opens
+ * (RadarExplainer.svelte) is App.svelte's (`radarExplainerOpen`): the
+ * sheet it is on a phone hides the tray, and with it this control.
  */
 import { onDestroy, tick } from "svelte";
 import { fade } from "svelte/transition";
@@ -34,8 +35,7 @@ import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons/faCircleQues
 import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDish";
 import CloseDisc from "./CloseDisc.svelte";
 import Icon from "./Icon.svelte";
-import Lazy from "./Lazy.svelte";
-import { onForecastStep, radarProducts, smallScreen } from "../stores";
+import { onForecastStep, radarExplainerOpen, radarProducts, smallScreen } from "../stores";
 import { hideNativeControls } from "../lib/nativeBridge";
 import { FORECAST_PRODUCT, PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
 import type { ObservedProduct, ScanRange } from "../lib/observedProduct";
@@ -49,9 +49,6 @@ const MARGIN = 8;
 let open = false;
 let trigger: HTMLButtonElement;
 let twinButton: HTMLButtonElement | undefined;
-/* How the radar works: a chunk of its own, loaded only when asked for. */
-const loadExplainer = () => import("./RadarExplainer.svelte");
-let explaining = false;
 let menu: HTMLDivElement | undefined;
 let left = 0;
 let bottom = 0;
@@ -164,7 +161,7 @@ function close(refocus = false) {
 /** The menu gives way to the explainer, which has its own close. */
 function explain() {
   close();
-  explaining = true;
+  radarExplainerOpen.set(true);
 }
 
 function choose(product: ObservedProduct) {
@@ -306,14 +303,6 @@ function portal(node: HTMLElement) {
     {#if fellBack}
       <p class="note">{fellBackNote}</p>
     {/if}
-  </div>
-{/if}
-
-{#if explaining}
-  <div use:portal>
-    <Lazy load={loadExplainer} floating let:module>
-      <svelte:component this={module.default} on:close={() => { explaining = false; }} />
-    </Lazy>
   </div>
 {/if}
 
