@@ -172,6 +172,9 @@
     "full_resolution_hint": "Affiche la carte 3D à la pleine résolution de l'écran. Plus net, mais utilise plus du double de mémoire graphique : sur certains téléphones, la carte peut planter et se recharger.",
     "terrain": "Relief",
     "terrain_hint": "Met la carte 3D en relief selon le terrain et ombre les collines, à l'échelle réelle. Télécharge des tuiles d'altitude au fil des déplacements.",
+    "playback": "Lecture",
+    "playback_from_start": "Boucle depuis il y a deux heures",
+    "playback_from_start_hint": "La lecture commence deux heures avant maintenant plutôt que maintenant : elle montre d'où vient la pluie avant de montrer où elle va.",
     "performance": "Performances",
     "mode": "Mode",
     "modes": {
@@ -431,8 +434,7 @@
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",
       "offset_hours_minutes": "{sign}{hours}h{minutes}min",
-      "timeline": "Chronologie radar",
-      "from_start": "Boucle depuis il y a deux heures"
+      "timeline": "Chronologie radar"
     },
     "radar_product": {
       "title": "Produit radar",

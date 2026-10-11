@@ -4,7 +4,7 @@ import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
   cells3dVisible, cellLayerVisible, cycloneLayerVisible, fullResolution3d, lightningLayerVisible, mapBaseLayer,
-  radarColormap, terrain3dVisible,
+  playbackFromStart, radarColormap, terrain3dVisible,
 } from "../stores";
 import { isHandheld } from "../lib/gpuBudget";
 import { dbz2color } from "../lib/cmap_utils";
@@ -124,6 +124,10 @@ const handheld = isHandheld();
 
 function setFullResolution3d(value: boolean) {
   window.settings.set("layer3dFullResolution", value);
+}
+
+function setPlaybackFromStart(value: boolean) {
+  window.settings.set("playbackFromStart", value);
 }
 
 </script>
@@ -383,6 +387,20 @@ function setFullResolution3d(value: boolean) {
       <p class="hint">{$_("settings.full_resolution_hint")}</p>
     {/if}
   {/if}
+
+  <h2>{$_("settings.playback")}</h2>
+  <div class="group">
+    <label class="row">
+      <span class="label">{$_("settings.playback_from_start")}</span>
+      <input
+        type="checkbox"
+        role="switch"
+        class="switch"
+        checked={$playbackFromStart}
+        on:change={(event) => setPlaybackFromStart(event.currentTarget.checked)} />
+    </label>
+  </div>
+  <p class="hint">{$_("settings.playback_from_start_hint")}</p>
 
   <!-- What costs frames or bandwidth, and can be traded away for them. -->
   <h2>{$_("settings.performance")}</h2>
