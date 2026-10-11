@@ -42,8 +42,9 @@ UI_RECORD_FROM=demo npm run test:ui:record # from demo
 ```
 
 `record.ts` opens the app on a phone and a desktop, lets each settle, and
-replaces `fixtures/api` and `recording.json`. A new endpoint also needs its
-path in `offline.ts`'s `API_PATHS`. Record when there is rain on the map, and
+replaces `fixtures/api` and `recording.json`. It visits the views in its
+`VIEWS`: a spec that opens a new one adds it there. A new endpoint also needs
+its path in `offline.ts`'s `API_PATHS`. Record when there is rain on the map, and
 review the diff before committing it: it is test data from then on.
 
 ## Writing a spec
