@@ -200,7 +200,8 @@
       "weak": "Schwaches Gewitter",
       "moderate": "Mäßiges Gewitter",
       "strong": "Starkes Gewitter",
-      "extreme": "Extremes Gewitter"
+      "extreme": "Extremes Gewitter",
+      "unclassed": "Gewitter"
     },
     "duration": {
       "min": "{m} Min.",
@@ -230,7 +231,8 @@
       "live": "live",
       "stale": "keine neuen Daten",
       "superseded": "abgelöst",
-      "ended": "aufgelöst"
+      "ended": "aufgelöst",
+      "merged": "verschmolzen"
     },
     "stat": {
       "status": "Status",
@@ -253,7 +255,8 @@
       "inside_aside": "ziehen, um den Schnitt zu drehen",
       "history": "Verlauf",
       "family": "Stammbaum",
-      "details": "Details"
+      "details": "Details",
+      "merges": "Verschmelzungen"
     },
     "reading": {
       "peak": "Maximum",
@@ -268,7 +271,8 @@
     "history": {
       "reflectivity": "Reflektivität",
       "echo_top": "Echotop",
-      "aria": "{title} über den verfolgten Zeitraum, in {unit}"
+      "aria": "{title} über den verfolgten Zeitraum, in {unit}",
+      "area": "Fläche"
     },
     "model_at": "um {time}",
     "model_aria": "Dreidimensionales Modell der Reflektivitätsstruktur der Gewitterzelle",
@@ -347,7 +351,16 @@
     },
     "toast": {
       "cell_gone": "Diese Gewitterzelle wird nicht mehr verfolgt.",
-      "volume_gone": "Das Radarvolumen dieses Gewitterkerns ist nicht mehr verfügbar."
+      "volume_gone": "Das Radarvolumen dieses Gewitterkerns ist nicht mehr verfügbar.",
+      "storm_gone": "Dieses Gewitter wird nicht mehr verfolgt."
+    },
+    "unknown": {
+      "untracked_de": "Die Gewitteranalyse des DWD meldet dieses Gewitter nicht, daher gibt es keine Vorhersage und keine Hagel- oder Rotationswarnung dafür. Von meteocool allein aus dem Radar verfolgt.",
+      "outside_de": "Außerhalb der Gewitteranalyse des DWD: hier keine Vorhersage und keine Hagel- oder Rotationswarnung. Von meteocool allein aus dem Radar verfolgt."
+    },
+    "merges": {
+      "into": "In ein anderes Gewitter übergegangen",
+      "from": "Ein Gewitter ging darin auf, zuletzt gesehen {time}"
     }
   },
   "compare": {

@@ -33,10 +33,10 @@ import {
   colorSchemeDark,
   cellLayerVisible, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, lastFocus, observedProduct,
   layerswitcherVisible,
-  capLatestObservation, capTimeIndicator, cellDetails, cutRotationDeg,
+  capLatestObservation, capTimeIndicator, cutRotationDeg, stormDetails,
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
-  radarColorScheme, selectedCell, selectedVolume, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
+  radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen,
 } from "./stores";
 
@@ -66,7 +66,9 @@ import makeLightningLayer from "./layers/lightning";
 import StrikeManager, { LIVE_STRIKE_BATCH_MS } from "./lib/StrikeManager";
 import { coalesce } from "./lib/coalesce";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
-import CellTrackManager from "./lib/CellTrackManager";
+import StormManager from "./lib/StormManager";
+import { offerVolumes, startStormResolver } from "./lib/stormResolver";
+import { isResolution, selectionKey, withStorm } from "./lib/stormSelection";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
@@ -74,19 +76,18 @@ import makeCellPulseLayer from "./layers/cellPulse";
 import makeCloudHints from "./layers/cloudHints";
 import { VolumeFeed } from "./lib/scans";
 import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
-/* The storm panels are loaded when a storm is opened, not with the page: the
+/* The storm panel is loaded when a storm is opened, not with the page: the
    history charts, the lineage graph (dagre) and the two 3D pictures are a
-   third of the app's code, and most sessions never tap a cell. */
-const loadCellDetails = () => import("./components/CellDetails.svelte");
+   third of the app's code, and most sessions never tap a storm. */
+const loadStormDetails = () => import("./components/StormDetails.svelte");
 const loadCellSheet = () => import("./components/CellSheet.svelte");
 const loadRadarExplainer = () => import("./components/RadarExplainer.svelte");
-const loadCloudDetails = () => import("./components/CloudDetails.svelte");
 // The model comparison too: its charts and the forecast fetch are for the
 // few who open it.
 const loadModelCompare = () => import("./components/ModelCompare.svelte");
-const loadCloudSheet = () => Promise.all([loadCellSheet(), loadCloudDetails()]);
+const loadStormSheet = () => Promise.all([loadCellSheet(), loadStormDetails()]);
 const loadCompare = (sheet: boolean) => () => Promise.all([loadModelCompare(), sheet ? loadCellSheet() : null]);
-import CellSelectionHint from "./components/CellSelectionHint.svelte";
+import StormSelectionHint from "./components/StormSelectionHint.svelte";
 import PointMenu from "./components/PointMenu.svelte";
 import { DeviceDetect as dd } from "./lib/DeviceDetect";
 import { labelsOnly } from "./layers/vector";
@@ -404,12 +405,15 @@ cycloneLayerVisible.set(window.settings.getBoolean("layerMesocyclones"));
 
 const [cellSource, cellLayer] = makeCellLayer();
 const [pulseSource, pulseLayer, stopPulse] = makeCellPulseLayer();
-const cellmgr = new CellTrackManager(cellSource, pulseSource);
+const stormmgr = new StormManager(cellSource, pulseSource);
 onDestroy(stopPulse);
+/* From a seed to its storm, and the storm to its detail; see lib/stormResolver.ts. */
+const stormResolver = startStormResolver(nb);
+onDestroy(stormResolver.stop);
 cellLayerVisible.subscribe((value) => {
-  cellmgr.enable(Boolean(value));
+  stormmgr.enable(Boolean(value));
   window.settings.set("layerCells", value);
-  if (value) cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+  if (value) stormmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
 });
 cellLayerVisible.set(window.settings.getBoolean("layerCells"));
 
@@ -420,7 +424,7 @@ cellLayerVisible.set(window.settings.getBoolean("layerCells"));
  * Marks left at the present while the radar under them moves sit beside
  * echoes they have nothing to do with, and read as a tracker that has lost
  * its storms. On an earlier frame the manager rewinds every track to that
- * moment out of the answer it already holds (see `trackAsOf`): no request,
+ * moment out of the answer it already holds (see lib/stormMarks.ts): no request,
  * and cheap enough to follow a playback or a scrub frame by frame.
  *
  * The test is the frame on screen against the newest one the grid holds, not
@@ -446,7 +450,7 @@ derived(
   },
 ).subscribe((at) => {
   const value = at !== "hidden";
-  if (value) cellmgr.showAt(at === "now" ? null : at * 1000);
+  if (value) stormmgr.showAt(at === "now" ? null : at * 1000);
   cellLayer.setVisible(value);
   // The ping only ever marks cells the tracks layer is already drawing, so it
   // appears and disappears with it rather than carrying a rule of its own.
@@ -458,7 +462,7 @@ derived(
   // for marks that are not there. Another frame is the same: the storm was
   // somewhere else then, or not yet there. A grid refresh on the live frame is
   // not another frame, so a panel open on now stays open across it.
-  if (at !== cellsAt) selectedCell.set(null);
+  if (at !== cellsAt) selectedStorm.set(null);
   cellsAt = at;
 });
 
@@ -476,7 +480,12 @@ derived(
 
 const cloudHints = new VolumeFeed<CurrentVolumes>(
   () => fetchCurrentVolumes(quietly).catch(() => null),
-  (answer) => hints.setClouds((answer.volumes ?? []) as RadarVolume[]),
+  (answer) => {
+    const volumes = (answer.volumes ?? []) as RadarVolume[];
+    hints.setClouds(volumes);
+    // And for a storm opened on this map, the box its patch is in.
+    offerVolumes(volumes);
+  },
 );
 
 /* `run` is the scan of a KONRAD3D run that has just landed. Its cores are
@@ -494,8 +503,8 @@ async function reloadCloudHints(run?: number, bar: Progress = nb) {
 /* The panel is a property of a selection and cannot outlive one. Anything that
    drops the selection (the map background, the layer switcher, the scrubber
    leaving the live edge) therefore closes it without having to remember to. */
-selectedCell.subscribe((track) => {
-  if (!track) cellDetails.set(false);
+selectedStorm.subscribe((storm) => {
+  if (!storm) stormDetails.set(false);
 });
 
 /* So is the slice. Every storm opens cut along its own track: an angle turned
@@ -504,17 +513,23 @@ selectedCell.subscribe((track) => {
    used to be, so walking the family re-cuts each cell it lands on, and a link
    restoring a storm cut at some angle can set the angle after the storm
    without the panel's mount undoing it. Keyed on the storm, not on the
-   object: a refresh hands the same cell over as a fresh copy every few
-   minutes, and that is not a new storm. */
-derived([selectedCell, selectedVolume], ([cell, cloud]) => (
-  cell ? `cell:${cell.code}` : cloud ? `cloud:${cloud.path}` : ""
-)).subscribe(() => cutRotationDeg.set(0));
+   object: a refresh hands the same storm over as a fresh copy every few
+   minutes, and that is not a new storm. Nor is finding the storm a tapped
+   cell or box belongs to (`isResolution`). */
+{
+  let cutFor: import("./lib/stormSelection").StormSelection | null = null;
+  selectedStorm.subscribe((storm) => {
+    const same = selectionKey(storm) === selectionKey(cutFor) || isResolution(cutFor, storm);
+    cutFor = storm;
+    if (!same) cutRotationDeg.set(0);
+  });
+}
 
 /**
  * The drawer holds one thing: tapping a storm while the model comparison is
  * open replaces it, as tapping a second storm replaces the first.
  */
-derived([selectedCell, selectedVolume], ([cell, cloud]) => Boolean(cell || cloud))
+derived(selectedStorm, (storm) => Boolean(storm))
   .subscribe((storm) => { if (storm) modelCompareAt.set(null); });
 
 /**
@@ -534,23 +549,38 @@ bottomToolbarMode.subscribe((mode) => {
 });
 
 const closeCompare = () => modelCompareAt.set(null);
-const closeVolume = () => selectedVolume.set(null);
+/** A box of sky's sheet closes the selection: it leaves no marks on the flat map behind it. */
+const closeStorm = () => selectedStorm.set(null);
 /** Whether the selected storm stands cut open on the 3D map behind its sheet. */
 $: cutOpen = $sharedActiveCap === "cells3d";
+/** A storm with no KONRAD3D history to scroll through rests in a short sheet there. */
+$: compactSheet = Boolean($selectedStorm && !$selectedStorm.cell);
+/**
+ * The phone's sheet closing: back to the marks for a storm on the flat map
+ * (lib/cellSelection.ts `afterClose`), the whole selection for a box of sky
+ * with no storm found, which has no marks to go back to.
+ */
+function closeSheet() {
+  const storm = get(selectedStorm);
+  if (storm && !storm.id && !storm.cell) closeStorm();
+  else stormDetails.set(false);
+}
 
-// Cell tracks are fetched for what is on screen, so they follow the map rather
+// Storms are fetched for what is on screen, so they follow the map rather
 // than a timer. The manager ignores a move that stays inside what it already
 // holds, which is most of them.
 mapExtent4326.subscribe((extent) => {
-  cellmgr.reload(extent, { nanobar: nb });
+  stormmgr.reload(extent, { nanobar: nb });
 });
 
-// The event is a nudge, not the cells: a severe afternoon is hundreds of
-// kilobytes of tracks, and only the ones in view are worth asking for, and
-// only once someone is looking. A hidden tab takes the newest run when it
-// comes back.
-radarSocketIO.on("cells", () => {
-  whenVisible("cells", () => cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb }));
+// The event is a nudge, not the storms: only the ones in view are worth
+// asking for, and only once someone is looking. A hidden tab takes the newest
+// on its way back. The open storm's detail is asked for again with them.
+radarSocketIO.on("storms", () => {
+  whenVisible("storms", () => {
+    stormmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+    stormResolver.refresh();
+  });
 });
 
 // Gathered for a moment rather than drawn one by one: each strike on its own
@@ -742,8 +772,8 @@ sharedActiveCap.subscribe((cap) => { if (cap === "cells3d") dropEarlierFrames();
  */
 let leaving3D = false;
 derived(
-  [selectedCell, selectedVolume, cellDetails, sharedActiveCap],
-  ([cell, cloud, details, cap]) => ({ open: Boolean(cloud || (cell && details)), cap }),
+  [selectedStorm, stormDetails, sharedActiveCap],
+  ([storm, details, cap]) => ({ open: Boolean(storm && details), cap }),
 ).subscribe(({ open, cap }) => {
   if (cap !== "cells3d") {
     forget3DOrigin();
@@ -756,7 +786,7 @@ derived(
     leaving3D = false;
     // Something was opened while the camera was on its way: the reader is
     // looking at it, and stays.
-    if (get(selectedVolume) || (get(selectedCell) && get(cellDetails))) return;
+    if (get(selectedStorm) && get(stormDetails)) return;
     returnFrom3D();
   });
 });
@@ -809,7 +839,7 @@ lm.forEachMap((map) => {
     if (!screenshot) whenIdle(() => map.hasFeatureAtPixel([0, 0]));
     const size = map.getSize();
     if (!size) return;
-    cellmgr.reload(transformExtent(
+    stormmgr.reload(transformExtent(
       map.getView().calculateExtent(size),
       "EPSG:3857",
       "EPSG:4326",
@@ -821,7 +851,7 @@ lm.forEachMap((map) => {
     const code = cellsShown
       ? map.forEachFeatureAtPixel(
         event.pixel,
-        (feature) => feature.get("code") as string | undefined,
+        (feature) => feature.get("storm") as string | undefined,
         { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
       )
       : undefined;
@@ -837,13 +867,19 @@ lm.forEachMap((map) => {
       }
     }
     if (!cellsShown) return;
+    const current = get(selectedStorm);
     const next = nextSelection(
-      { code: get(selectedCell)?.code ?? null, details: get(cellDetails) },
+      { code: current?.id ?? (current?.cell ? `cell:${current.cell.code}` : null), details: get(stormDetails) },
       code ?? null,
       get(smallScreen),
     );
-    selectedCell.set(next.code ? cellmgr.trackFor(next.code) ?? null : null);
-    cellDetails.set(next.details);
+    const tapped = next.code ? stormmgr.stormFor(next.code) : undefined;
+    // A storm the map holds, kept with what is known of it if it is the open
+    // one; a mark of the open selection the map does not hold (a cell's
+    // forecast before its storm is found) leaves it as it is.
+    if (tapped) selectedStorm.set(withStorm(current, tapped));
+    else if (!next.code) selectedStorm.set(null);
+    stormDetails.set(next.details);
   });
 
   /*
@@ -960,7 +996,8 @@ const unsubscribeWake = onWake(() => {
   if (radarSocketIO.disconnected) radarSocketIO.connect();
   /* The cells follow the map and the socket, and neither moves for a page
      that was away or a fetch that failed: nothing else would ask again. */
-  cellmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+  stormmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+  stormResolver.refresh();
   /* The map on screen catches up on what only switching to it fetches, and
      the tiles lost while the network was down are asked for again: neither
      OpenLayers nor MapLibre retries a tile that failed. */
@@ -1005,7 +1042,7 @@ onDestroy(cleanupUIConstants);
 /* The URL from here on: the rest of the opening link, once there is data for
    it, then the address bar kept in step with the page, and Back and Forward. */
 onDestroy(startUrlState({
-  lm, settings: window.settings, cellmgr, cells3d, nanobar: nb,
+  lm, settings: window.settings, stormmgr, cells3d, nanobar: nb,
 }));
 onDestroy(exposeShareLink());
 
@@ -1145,7 +1182,7 @@ if (postInitCb) postInitCb(lm);
   <!-- Not while a storm is open: a cut storm does not peel, and its panel
        says when it was seen. With the picker of which scan the storms are
        from, which stays on its choice meanwhile. -->
-  {#if !$selectedCell && !$selectedVolume}
+  {#if !$selectedStorm}
     <PeelSlider pickScan={cells3d ? (scan) => cells3d.showScan(scan) : null} />
   {/if}
   <Guide3D />
@@ -1159,46 +1196,30 @@ if (postInitCb) postInitCb(lm);
 {/if}
 
 
-{#if $selectedCell && $cellDetails}
+{#if $selectedStorm && $stormDetails}
   {#if $smallScreen}
-    <Lazy load={loadCellSheet} floating let:module>
-      <svelte:component this={module.default} track={$selectedCell} />
+    <!-- One glass sheet for whatever storm was tapped. On the 3D map, a storm
+         KONRAD3D does not track is cut open on the map itself, so its sheet
+         is only as tall as what it holds (a few facts and the dial that turns
+         the cut) until it is pulled up for how the volume was built. -->
+    <Lazy load={loadStormSheet} floating let:module>
+      <svelte:component this={module[0].default} fitAtRest={cutOpen && compactSheet} onClose={closeSheet}
+        let:expanded let:expand>
+        <svelte:component this={module[1].default} selection={$selectedStorm}
+          compact={cutOpen && compactSheet} {expanded} {expand} />
+      </svelte:component>
     </Lazy>
   {:else}
     <div class="cell-details-panel mc-drawer">
       <div class="scroll">
-        <Lazy load={loadCellDetails} let:module>
-          <svelte:component this={module.default} track={$selectedCell} />
+        <Lazy load={loadStormDetails} let:module>
+          <svelte:component this={module.default} selection={$selectedStorm} />
         </Lazy>
       </div>
     </div>
   {/if}
-{:else if $selectedCell && $smallScreen}
-  <CellSelectionHint track={$selectedCell} />
-{:else if $selectedVolume && $smallScreen}
-  <!-- A phone's storm core takes the cell's glass sheet: the same surface for
-       whichever kind of storm was tapped. On the 3D map the storm is cut open
-       on the map itself, so the sheet is only as tall as what it holds (a
-       few facts and the dial that turns the cut) until it is pulled up for
-       how the volume was built. A volume is only ever selected for that map
-       (see lib/open3d.ts), so the flat map holds one just for the moment a
-       tapped tag takes to switch: one sheet, which takes its resting shape
-       when the map arrives, rather than a card replaced by a sheet. -->
-  <Lazy load={loadCloudSheet} floating let:module>
-    <svelte:component this={module[0].default} fitAtRest={cutOpen} onClose={closeVolume} let:expanded let:expand>
-      <svelte:component this={module[1].default} cloud={$selectedVolume} compact={cutOpen} {expanded} {expand} />
-    </svelte:component>
-  </Lazy>
-{:else if $selectedVolume}
-  <!-- A storm core with no KONRAD3D track, in the same popup as a cell's
-       details: the same panel, only with less to say. -->
-  <div class="cell-details-panel mc-drawer">
-    <div class="scroll">
-      <Lazy load={loadCloudDetails} let:module>
-        <svelte:component this={module.default} cloud={$selectedVolume} />
-      </Lazy>
-    </div>
-  </div>
+{:else if $selectedStorm && $smallScreen}
+  <StormSelectionHint selection={$selectedStorm} />
 {:else if $modelCompareAt}
   <!-- The model comparison, opened from the dry-weather strip: the same
        drawer a storm's details take, sheet on a phone and corner panel on a

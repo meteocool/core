@@ -101,6 +101,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/mobile/live_activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Store a phone's Live Activity tokens.
+         * @description Replace what is stored of a registered phone's rain Live Activity.
+         *
+         *     Its own route rather than fields on `/location`, whose model forbids
+         *     unknown fields. `la_started` is left alone while the activity stays on:
+         *     a phone that swiped this rain's activity away sends no activity token,
+         *     and must not be sent another start for the same rain. Switching it on
+         *     asks for one, so it is forgotten then.
+         *
+         *     A phone that can start an activity now and could not before is decided
+         *     for at once (worker-radar's `notify_for_client`): rain already due starts
+         *     it without waiting for the next run.
+         */
+        post: operations["post_live_activity_v3_mobile_live_activity_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/mobile/location": {
         parameters: {
             query?: never;
@@ -393,6 +423,11 @@ export interface paths {
          *     merged composite, `merged`. Asked for rather than always sent, since each
          *     frame carries its tile index and most clients draw neither. The chart is
          *     still read from HX and the networks, whichever is drawn.
+         *
+         *     `threshold`, the dBZ the client counts as rain, adds what the chart comes
+         *     to in words, `headlines`, in `lang`, with the peak's dBZ when `details`:
+         *     the same words and rules as the rain alerts and Live Activities, so that
+         *     the apps show text rather than work it out.
          */
         get: operations["timeseries_v3_radar_timeseries_get"];
         put?: never;
@@ -524,6 +559,45 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * Headline
+         * @description What the rain at a place comes to, in words (meteocool-radar's `headline`).
+         *
+         *     The device fills in the times, which it knows how to show: `{at:name}` in a
+         *     text is a clock time, `{in:name}` a countdown, each `times[name]` in unix
+         *     seconds.
+         */
+        Headline: {
+            /**
+             * Detail
+             * @description Such as "Lasting about 30 min · Heavy rain at {at:peak}".
+             */
+            detail: string | null;
+            /**
+             * Intensity
+             * @description The words for the rain the title is about; null when dry.
+             */
+            intensity: string | null;
+            /** Times */
+            times: {
+                [key: string]: number;
+            };
+            /**
+             * Title
+             * @description Such as "Rain until {at:end}" or "Heavy rain {in:arrival}".
+             */
+            title: string;
+        };
+        /**
+         * IntensityWord
+         * @description What the rain alerts call a dBZ above `above`.
+         */
+        IntensityWord: {
+            /** Above */
+            above: number;
+            /** Text */
+            text: string;
+        };
+        /**
          * Language
          * @description Languages notifications are written in.
          * @enum {string}
@@ -578,6 +652,32 @@ export interface components {
             time_wall: number;
         };
         /**
+         * LiveActivityTokens
+         * @description What a phone can do with the rain Live Activity, which replaces what was stored for it.
+         */
+        LiveActivityTokens: {
+            /**
+             * Activitytoken
+             * @description The running activity's update token, null when none runs
+             */
+            activityToken?: string | null;
+            /**
+             * Enabled
+             * @description Whether the user wants the Live Activity during rain
+             */
+            enabled: boolean;
+            /**
+             * Starttoken
+             * @description The push-to-start token, null while `enabled` is false
+             */
+            startToken?: string | null;
+            /**
+             * Token
+             * @description The device's APNs token
+             */
+            token: string;
+        };
+        /**
          * LocationUpdate
          * @description A push client's location and notification preferences.
          */
@@ -601,6 +701,8 @@ export interface components {
              * @description EPSG:4326 latitude
              */
             lat: number;
+            /** Locationpermission */
+            locationPermission?: ("always" | "whenInUse" | "denied") | null;
             /**
              * Lon
              * @description EPSG:4326 longitude
@@ -752,6 +854,13 @@ export interface components {
                 [key: string]: components["schemas"]["RadarFrame"] | null;
             };
             /**
+             * Headlines
+             * @description With `lat`, `lon` and `threshold`: the headline for the rain at that point, keyed by when it applies -- now, the end of the newest observed step, and then each forecast step as it becomes now -- for a client that keeps showing this series for a while. Rain is a step at `threshold` or above until two steps in a row below min(threshold, 14 dBZ), as in the rain alerts.
+             */
+            headlines?: {
+                [key: string]: components["schemas"]["Headline"];
+            } | null;
+            /**
              * Networks
              * @description meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.
              */
@@ -777,6 +886,11 @@ export interface components {
             replay: boolean;
             /** Server Time */
             server_time: number;
+            /**
+             * Words
+             * @description With `threshold`: the rain alerts' words for each dBZ band, heaviest first.
+             */
+            words?: components["schemas"]["IntensityWord"][] | null;
         };
         Rings: number[][][];
         /**
@@ -799,6 +913,27 @@ export interface components {
             message?: string | null;
             /** Success */
             success: boolean;
+        };
+        /**
+         * StormsRefresh
+         * @description Storms have changed; clients refetch `/storms` for their viewport.
+         */
+        StormsRefresh: {
+            /**
+             * Count
+             * @description How many storms are active
+             */
+            count: number;
+            /**
+             * Max Severity
+             * @description The highest severity among them, 0 to 3
+             */
+            max_severity: number;
+            /**
+             * Reference Time
+             * @description The time the storms were updated for, milliseconds since the epoch
+             */
+            reference_time: number;
         };
         /**
          * Strike
@@ -1091,6 +1226,46 @@ export interface operations {
             };
         };
     };
+    post_live_activity_v3_mobile_live_activity_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveActivityTokens"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description No push client has this token; register first. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     post_location_v3_mobile_location_post: {
         parameters: {
             query?: never;
@@ -1366,6 +1541,9 @@ export interface operations {
                 lon?: number;
                 network?: ("ch" | "fr" | "cz" | "pl") | null;
                 products?: ("dmax" | "merged" | "colmax")[] | null;
+                threshold?: number | null;
+                lang?: components["schemas"]["Language"];
+                details?: boolean;
             };
             header?: never;
             path?: never;

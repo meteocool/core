@@ -1,6 +1,35 @@
 {
   "components": {
     "schemas": {
+      "Bounds": {
+        "description": "Scalar bounds, in WGS84 degrees.",
+        "properties": {
+          "east": {
+            "title": "East",
+            "type": "number"
+          },
+          "north": {
+            "title": "North",
+            "type": "number"
+          },
+          "south": {
+            "title": "South",
+            "type": "number"
+          },
+          "west": {
+            "title": "West",
+            "type": "number"
+          }
+        },
+        "required": [
+          "west",
+          "south",
+          "east",
+          "north"
+        ],
+        "title": "Bounds",
+        "type": "object"
+      },
       "CellCurrent": {
         "description": "A cell in the latest run, with its identity and forecast attached.",
         "properties": {
@@ -1030,6 +1059,35 @@
         "title": "Poke",
         "type": "object"
       },
+      "PolygonGeometry": {
+        "description": "A feature's outline: its outer ring, closed.",
+        "properties": {
+          "coordinates": {
+            "items": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "Polygon",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "PolygonGeometry",
+        "type": "object"
+      },
       "RadarVolume": {
         "description": "One tile of a storm that can be cut open, found in the radar composite.\n\nNot necessarily a KONRAD3D cell. These are storms in each network's\ncomposite, so most of them are showers KONRAD3D never reports -- it is a\nwarning product and lists only what might do harm. A storm is boxed by\nevery zoom-10 Web Mercator tile it covers, so the boxes abut and never\noverlap; volumes from before tiles are one box per storm, centred on its\npeak, and carry no `tile`.",
         "properties": {
@@ -1072,6 +1130,18 @@
             "description": "Mean beam coverage through 3-8 km, 0 to 1",
             "title": "Coverage",
             "type": "number"
+          },
+          "feature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The id of the patch this tile was cut from. A storm's cores name it as their parent, so a client can find the storm a box belongs to",
+            "title": "Feature"
           },
           "lat": {
             "description": "Latitude of the box's centre: the tile's middle in Mercator",
@@ -1216,6 +1286,316 @@
           "refresh"
         ],
         "title": "SnowRefresh",
+        "type": "object"
+      },
+      "StormCollection": {
+        "description": "Storms as a GeoJSON feature collection, most recently seen first.",
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/StormFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "StormCollection",
+        "type": "object"
+      },
+      "StormDetail": {
+        "description": "One storm and the tracks it is made of.",
+        "properties": {
+          "konrad3d": {
+            "description": "Its KONRAD3D tracks, as /cells/tracks",
+            "items": {
+              "$ref": "#/components/schemas/TrackFeature"
+            },
+            "title": "Konrad3D",
+            "type": "array"
+          },
+          "storm": {
+            "$ref": "#/components/schemas/StormFeature"
+          },
+          "tracks": {
+            "description": "Its tracks of meteocool's tracker",
+            "items": {
+              "$ref": "#/components/schemas/TrackerTrack"
+            },
+            "title": "Tracks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "storm"
+        ],
+        "title": "StormDetail",
+        "type": "object"
+      },
+      "StormFeature": {
+        "description": "A storm as a GeoJSON feature, at its current centroid.",
+        "properties": {
+          "geometry": {
+            "$ref": "#/components/schemas/PointGeometry"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/StormProperties"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "properties"
+        ],
+        "title": "StormFeature",
+        "type": "object"
+      },
+      "StormProperties": {
+        "description": "A storm's current state, and the tracks it is made of.",
+        "properties": {
+          "bbox": {
+            "$ref": "#/components/schemas/Bounds",
+            "description": "The bounds of its path"
+          },
+          "born_at": {
+            "format": "date-time",
+            "title": "Born At",
+            "type": "string"
+          },
+          "hail": {
+            "default": false,
+            "title": "Hail",
+            "type": "boolean"
+          },
+          "heading_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Direction of travel, clockwise from north",
+            "title": "Heading Deg"
+          },
+          "id": {
+            "description": "The storm's id, stable for its whole life; use it for `/storms/{id}`",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_seen": {
+            "description": "When the storm was last observed",
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "merged_into": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The storm it merged into, when merged",
+            "title": "Merged Into"
+          },
+          "meso": {
+            "default": false,
+            "title": "Meso",
+            "type": "boolean"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineStringGeometry"
+              },
+              {
+                "$ref": "#/components/schemas/PointGeometry"
+              }
+            ],
+            "description": "Its centroids, oldest first",
+            "title": "Path"
+          },
+          "peak_dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Peak reflectivity at the latest observation",
+            "title": "Peak Dbz"
+          },
+          "placement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellPlacement"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A human name for where it is, when known"
+          },
+          "primary_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The domain of the primary track",
+            "title": "Primary Domain"
+          },
+          "primary_product": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The product of the primary track",
+            "title": "Primary Product"
+          },
+          "primary_track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The track whose attributes the storm shows",
+            "title": "Primary Track"
+          },
+          "severity": {
+            "default": 0,
+            "description": "Severity class: 0 weak, 1 moderate, 2 strong, 3 extreme",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Severity",
+            "type": "integer"
+          },
+          "speed_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Kmh"
+          },
+          "status": {
+            "description": "Ended 20 minutes after it was last seen; merged when it ran into another storm",
+            "enum": [
+              "active",
+              "ended",
+              "merged"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tracks": {
+            "description": "The tracks it is made of, oldest first",
+            "items": {
+              "$ref": "#/components/schemas/StormTrack"
+            },
+            "title": "Tracks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "born_at",
+          "last_seen",
+          "status",
+          "bbox",
+          "path"
+        ],
+        "title": "StormProperties",
+        "type": "object"
+      },
+      "StormTrack": {
+        "description": "One track that is part of a storm.",
+        "properties": {
+          "domain": {
+            "description": "The radar network the track was found in: de, ch, fr, cz, pl",
+            "title": "Domain",
+            "type": "string"
+          },
+          "product": {
+            "description": "`dwd/konrad3d` (the track is a cell code) or `meteocool/tracker`",
+            "title": "Product",
+            "type": "string"
+          },
+          "track": {
+            "description": "A KONRAD3D code, for `/cells/tracks/{code}`, or a tracker track's id",
+            "title": "Track",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "domain",
+          "track"
+        ],
+        "title": "StormTrack",
+        "type": "object"
+      },
+      "StormsRefresh": {
+        "description": "Storms have changed; clients refetch `/storms` for their viewport.",
+        "properties": {
+          "count": {
+            "description": "How many storms are active",
+            "title": "Count",
+            "type": "integer"
+          },
+          "max_severity": {
+            "description": "The highest severity among them, 0 to 3",
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Max Severity",
+            "type": "integer"
+          },
+          "reference_time": {
+            "description": "The time the storms were updated for, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time",
+          "count",
+          "max_severity"
+        ],
+        "title": "StormsRefresh",
         "type": "object"
       },
       "Strike": {
@@ -1545,6 +1925,170 @@
         "title": "TrackProperties",
         "type": "object"
       },
+      "TrackerFeature": {
+        "description": "One patch or core of a tracker track at one time.",
+        "properties": {
+          "area_km2": {
+            "title": "Area Km2",
+            "type": "number"
+          },
+          "centroid": {
+            "$ref": "#/components/schemas/PointGeometry"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "patch",
+              "core"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "outline": {
+            "$ref": "#/components/schemas/PolygonGeometry"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a core, the id of the patch it sits in",
+            "title": "Parent"
+          },
+          "peak": {
+            "$ref": "#/components/schemas/PointGeometry"
+          },
+          "peak_dbz": {
+            "title": "Peak Dbz",
+            "type": "number"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "valid_at",
+          "centroid",
+          "peak",
+          "peak_dbz",
+          "area_km2",
+          "outline"
+        ],
+        "title": "TrackerFeature",
+        "type": "object"
+      },
+      "TrackerTrack": {
+        "description": "One of meteocool's tracker's tracks, with its recent features.",
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/Bounds"
+          },
+          "child_tracks": {
+            "description": "Tracks it split or merged into",
+            "items": {
+              "type": "string"
+            },
+            "title": "Child Tracks",
+            "type": "array"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "features": {
+            "description": "Its features of the last hour",
+            "items": {
+              "$ref": "#/components/schemas/TrackerFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "patch",
+              "core"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "max_peak_dbz": {
+            "title": "Max Peak Dbz",
+            "type": "number"
+          },
+          "n_features": {
+            "description": "How many features the track has in all",
+            "title": "N Features",
+            "type": "integer"
+          },
+          "parent_tracks": {
+            "description": "Tracks it split or merged from",
+            "items": {
+              "type": "string"
+            },
+            "title": "Parent Tracks",
+            "type": "array"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineStringGeometry"
+              },
+              {
+                "$ref": "#/components/schemas/PointGeometry"
+              }
+            ],
+            "title": "Path"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "domain",
+          "kind",
+          "first_seen",
+          "last_seen",
+          "active",
+          "max_peak_dbz",
+          "bbox",
+          "path",
+          "n_features"
+        ],
+        "title": "TrackerTrack",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -1606,7 +2150,7 @@
     "contact": {
       "email": "valentin@meteocool.com"
     },
-    "description": "\nLive lightning strikes, DWD mesocyclone detections, and tracked thunderstorm\ncells from DWD's KONRAD3D.\n\nTwo coordinate conventions, for historical reasons. `/lightning_cache` and\n`/mesocyclones` serve projected **EPSG:3857 metres** in fields named `lat` and\n`lon`, kept as-is for existing clients. `/cells` is RFC 7946 GeoJSON:\n**WGS84 degrees**, `[lon, lat]`.\n",
+    "description": "\nLive lightning strikes, DWD mesocyclone detections, tracked thunderstorm\ncells from DWD's KONRAD3D, and the storms fused from every product's tracks.\n\nTwo coordinate conventions, for historical reasons. `/lightning_cache` and\n`/mesocyclones` serve projected **EPSG:3857 metres** in fields named `lat` and\n`lon`, kept as-is for existing clients. `/cells` and `/storms` are RFC 7946 GeoJSON:\n**WGS84 degrees**, `[lon, lat]`.\n",
     "title": "meteocool data",
     "version": "4.0.0"
   },
@@ -1906,6 +2450,150 @@
           }
         },
         "summary": "Extra nowcast parameters for one mesocyclone detection."
+      }
+    },
+    "/storms": {
+      "get": {
+        "operationId": "list_storms_storms_get",
+        "parameters": [
+          {
+            "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+              "examples": [
+                "5,45,20,56"
+              ],
+              "title": "Bbox"
+            }
+          },
+          {
+            "description": "Only storms seen since this time; defaults to the last few hours",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only storms seen since this time; defaults to the last few hours",
+              "title": "Since"
+            }
+          },
+          {
+            "description": "Lowest severity class to return",
+            "in": "query",
+            "name": "min_severity",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Lowest severity class to return",
+              "maximum": 3,
+              "minimum": 0,
+              "title": "Min Severity",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum storms to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Maximum storms to return",
+              "minimum": 0,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StormCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Storms as GeoJSON, filtered by viewport and time.",
+        "tags": [
+          "storms"
+        ]
+      }
+    },
+    "/storms/{storm_id}": {
+      "get": {
+        "operationId": "get_storm_storms__storm_id__get",
+        "parameters": [
+          {
+            "description": "The storm's id",
+            "in": "path",
+            "name": "storm_id",
+            "required": true,
+            "schema": {
+              "description": "The storm's id",
+              "title": "Storm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StormDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One storm and its tracks, with their recent features.",
+        "tags": [
+          "storms"
+        ]
       }
     }
   }

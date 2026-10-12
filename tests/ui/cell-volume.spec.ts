@@ -8,9 +8,10 @@ import { expect, test } from "./test";
  * A linked storm's "Inside" cutaway, across the map's refreshes.
  *
  * The viewport's answer never carries a cell's radar volume; the answer for
- * one cell does. A link fetches the latter and then refreshes the map, whose
- * copy of the same storm comes without one, and that copy used to replace the
- * panel's, cutaway and all.
+ * one cell does. A link fetches the latter, finds the storm the cell belongs
+ * to (whose detail carries the cell without one) and then refreshes the
+ * map, whose copy of the same storm has none either, and either copy used to
+ * replace the panel's, cutaway and all.
  *
  * A recording seldom has a storm with a volume, so the link's answer is put
  * together from what is recorded: a cell of the viewport's answer, given the
@@ -35,7 +36,7 @@ function countViewportAnswers(page: Page): () => number {
   page.on("response", (response) => {
     const url = new URL(response.url());
     if (url.pathname === `/cells/tracks/${cell.properties.code}`) linkAnswered = true;
-    else if (linkAnswered && url.pathname === "/cells/tracks" && url.searchParams.has("bbox")) answers += 1;
+    else if (linkAnswered && url.pathname === "/storms" && url.searchParams.has("bbox")) answers += 1;
   });
   return () => answers;
 }
@@ -43,7 +44,7 @@ function countViewportAnswers(page: Page): () => number {
 /** Long enough for an answer that has come in to have been drawn and handed to the panel. */
 const drawn = (page: Page) => page.waitForTimeout(1000);
 
-test("a linked storm's cutaway stays when the map refreshes its cells", async ({ page }) => {
+test("a linked storm's cutaway stays when the map refreshes its storms", async ({ page }) => {
   await page.route(`**/cells/tracks/${cell.properties.code}`, (route) => route.fulfill({ json: linked }));
   const viewportAnswers = countViewportAnswers(page);
 

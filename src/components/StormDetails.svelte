@@ -1,30 +1,42 @@
 <script lang="ts">
 /**
- * What one tracked thunderstorm has been doing.
+ * What one storm has been doing.
  *
- * A cell's current reflectivity says very little on its own: a 55 dBZ core that
- * has been weakening for twenty minutes and one that has doubled its VIL in ten
- * are the same number and different storms. So this leads with the
+ * A storm's current reflectivity says very little on its own: a 55 dBZ core
+ * that has been weakening for twenty minutes and one that has doubled its VIL
+ * in ten are the same number and different storms. So this leads with the
  * signatures that separate a severe storm from a heavy shower (rotation,
  * hail, a lightning jump, motion that departs from everything nearby), shows
- * the storm's own shape as a turning 3D model, and plots the history behind the
- * current reading.
+ * the storm's own shape as a turning 3D model, and plots the history behind
+ * the current reading.
  *
- * Framed by `StormPanel`, as a storm core's `CloudDetails` is, so the two read
- * as one kind of panel wherever they open.
+ * Those signatures, the model and the forecast are KONRAD3D's, and exist
+ * where its track is one of the storm's (`selection.cell`): over Germany, for
+ * the storms DWD warns about. Anywhere else a storm has meteocool's tracker's
+ * track alone, and the panel says what that cannot tell (no forecast, no hail
+ * or rotation flags) instead of leaving blanks. A storm opened from a box of
+ * sky before its storm is known reads as a storm core did: where it is, how
+ * strong, and what is inside it (CloudDetails was folded in here).
+ *
+ * Framed by `StormPanel`, as every storm panel is.
  */
-import { _ } from "svelte-i18n";
+import { _, locale } from "svelte-i18n";
+import { get } from "svelte/store";
 import { onDestroy } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
-import { capLatestObservation, cellDetails, selectedCell, sharedActiveCap, smallScreen } from "../stores";
+import {
+  capLatestObservation, radarColormap, selectedStorm, sharedActiveCap, smallScreen, stormDetails,
+} from "../stores";
 import { afterClose } from "../lib/cellSelection";
 import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
 import { cellStatus } from "../lib/cellStatus";
+import { stormStatus } from "../lib/stormStatus";
 import { MAX_FAMILY, missingRelatives } from "../lib/cellLineage";
 import { timeTicks } from "../lib/timeTicks";
 import { fetchCellTrack, NothingPublished } from "../api";
 import { onWake } from "../lib/wakeup";
 import CellLineage from "./CellLineage.svelte";
+import StormLineage from "./StormLineage.svelte";
 import { severityColour } from "../layers/cells";
 import CellModel3D from "./CellModel3D.svelte";
 import CellCutaway from "./CellCutaway.svelte";
@@ -32,16 +44,34 @@ import SliceDial from "./SliceDial.svelte";
 import StormPanel from "./StormPanel.svelte";
 import Readings from "./Readings.svelte";
 import VolumeProvenance from "./VolumeProvenance.svelte";
-import { open3DAvailable, openCellIn3D } from "../lib/open3d";
-import { BAND_NAMES, cellReadings, duration } from "../lib/cellMetrics";
+import { open3DAvailable, openStormIn3D } from "../lib/open3d";
+import { BAND_NAMES, cellReadings, duration, reading } from "../lib/cellMetrics";
+import type { Reading } from "../lib/cellMetrics";
 import { placementLabel } from "../lib/cellPlacement";
 import { currentLocale, type Translate } from "../locale/t";
-import { cellVolume, frameOf, unionFrame } from "../lib/cellVolume";
+import { cellVolume, dbzColour, frameOf, unionFrame } from "../lib/cellVolume";
+import { stormPlace, type StormPlace } from "../lib/reverseGeocode";
+import {
+  headingOf, knowsSeverity, positionOf, selectionKey, severityOf, trackerSeries,
+} from "../lib/stormSelection";
+import type { StormSelection } from "../lib/stormSelection";
+import { forecastCell } from "../lib/stormMarks";
 import type { CellStep, CellTrackProperties } from "../api";
 import type { ModelFrame, VolumeInput } from "../lib/cellVolume";
 import { share } from "../lib/share";
 
-export let track: CellTrackProperties;
+export let selection: StormSelection;
+/**
+ * In the phone's sheet over the 3D map, for a storm KONRAD3D does not track,
+ * which rests as tall as what it holds: the header, the dial and the
+ * readings, with the volume by height behind a pull. On a phone every row of
+ * the resting sheet is map the storm behind it does not get.
+ */
+export let compact = false;
+/** In the sheet: whether it has been pulled up, which is when the volume shows. */
+export let expanded = false;
+/** In the sheet: pull it up, for the button that says there is more. */
+export let expand: (() => void) | null = null;
 
 /** Below this, a heading differs from its neighbours by less than the noise. */
 const DEVIANT_DEGREES = 30;
@@ -159,15 +189,69 @@ function path(
     .join("");
 }
 
-$: severity = Math.min(Math.max(track.max_severity, 0), 3);
-$: colour = severityColour(severity);
-// What to call it. Null when the environment has no geocoder or the cell is out
-// at sea, and then the header is just the severity it always was.
-$: place = placementLabel(track.placement, $_, "long");
+/* ---- what is known of this storm ---------------------------------------- */
+
+/** Its KONRAD3D track, where it has one: the signals, the model and the forecast come from it. */
+$: track = selection.cell;
+/** The storm itself, once known. */
+$: storm = selection.summary?.properties ?? null;
+/** The box of sky to cut it open by: the cell's own, else the one picked for the storm. */
+$: volume = track?.volume ?? selection.volume ?? null;
+/** A box of sky with no storm or cell found for it (yet): said as a storm core used to be. */
+$: coreOnly = !track && !storm && Boolean(selection.volume);
+/** Whether the severity is DWD's class, which may be named; otherwise only the peak is. */
+$: classed = knowsSeverity(selection);
+$: severity = severityOf(selection) ?? 0;
+$: peak = storm?.peak_dbz ?? selection.volume?.peak_dbz ?? null;
+$: colour = coreOnly
+  ? (peak != null ? `rgb(${dbzColour(peak, $radarColormap).join(", ")})` : "currentColor")
+  : severityColour(severity);
+
+/**
+ * What to call it: KONRAD3D's anchor where it has one, else a name looked up
+ * for where it is. Null at sea or with no geocoder, and the header is then
+ * the severity (or "Storm") alone.
+ */
+$: placement = track?.placement ?? storm?.placement ?? null;
+let named: StormPlace | null = null;
+let namedFor = "";
+async function name(at: [number, number] | null, key: string) {
+  if (namedFor === key) return;
+  namedFor = key;
+  named = null;
+  if (!at) return;
+  const found = await stormPlace(at[1], at[0], get(locale) ?? "en");
+  if (namedFor === key) named = found;
+}
+// Not for a KONRAD3D track without an anchor: that is a storm at sea, as
+// its panel has always had it, and the header is its severity.
+$: void (placement || track ? null : name(positionOf(selection), selectionKey(selection)));
+$: place = placementLabel(placement, $_, "long") ?? named?.area ?? null;
+$: title = coreOnly
+  ? (named?.name ?? $_("storm.cloud.unnamed"))
+  : classed ? $_(`storm.band.${BAND_NAMES[severity]}`) : (named?.name ?? $_("storm.storm_label.unclassed"));
+$: label = coreOnly
+  ? (named ? $_("storm.cloud.label", { values: { place: named.name } }) : $_("storm.cloud.unnamed"))
+  : classed ? $_(`storm.storm_label.${BAND_NAMES[severity]}`) : $_("storm.storm_label.unclassed");
 // "Strong storm, 3 km west of Holzkirchen": what a shared link is about.
-$: shareSubject = [$_(`storm.storm_label.${BAND_NAMES[severity]}`), place].filter(Boolean).join(", ");
-$: series = track.series ?? [];
-$: latest = series[series.length - 1];
+$: shareSubject = [label, place].filter(Boolean).join(", ");
+
+/**
+ * The history the charts plot: the KONRAD3D track's detections where it has
+ * one, else the tracker's patches, one per frame. The second chart is the
+ * echo top from KONRAD3D, which the tracker does not measure; its patches'
+ * area stands in.
+ */
+interface Step { t: string; dbz: number | null; second: number | null }
+const fromCell = (step: CellStep): Step => ({
+  t: step.t, dbz: step.max_dbz ?? null, second: step.echo_top_m == null ? null : step.echo_top_m / 1000,
+});
+$: cellSeries = track?.series ?? [];
+$: series = track
+  ? cellSeries.map(fromCell)
+  : (selection.detail ? trackerSeries(selection.detail) : [])
+    .map((step) => ({ t: step.t, dbz: step.peak_dbz, second: step.area_km2 }));
+$: latest = cellSeries[cellSeries.length - 1];
 /**
  * On the 3D map the storm stands behind the panel, cut open when it has a
  * volume, so the panel's own raymarched cutaway would be a second, smaller
@@ -180,7 +264,11 @@ $: latest = series[series.length - 1];
  */
 $: on3d = $sharedActiveCap === "cells3d";
 $: phone3d = on3d && $smallScreen;
-$: forecast = track.forecast ?? [];
+/** KONRAD3D's forecast, only where its track is the storm's primary one (`forecastCell`). */
+$: forecast = forecastCell(selection)?.forecast ?? [];
+$: heading = headingOf(selection);
+/** The volume by height and the radars, behind a pull in the compact sheet. */
+$: showVolume = !compact || expanded;
 
 /**
  * A clock of our own, because everything below is relative to now and nothing
@@ -205,8 +293,8 @@ $: times = series.map((step) => new Date(step.t).getTime());
  * open, and a chart whose faint lines reshuffle on every hop is worse than one
  * without them.
  */
-$: relatives = [...family.values()]
-  .filter((other) => other.code !== track.code && (other.series ?? []).length > 1)
+$: relatives = !track ? [] : [...family.values()]
+  .filter((other) => other.code !== track!.code && (other.series ?? []).length > 1)
   .sort((a, b) => a.first_seen.localeCompare(b.first_seen) || a.code.localeCompare(b.code));
 
 /**
@@ -274,19 +362,30 @@ $: panels = [
     height: 62,
     axis: false,
     digits: 0,
-    pick: (step: CellStep) => step.max_dbz ?? null,
+    pick: (step: Step) => step.dbz,
     accent: true,
   },
-  {
-    key: "top",
-    title: $_("storm.history.echo_top"),
-    unit: "km",
-    height: 58,
-    axis: true,
-    digits: 1,
-    pick: (step: CellStep) => (step.echo_top_m == null ? null : step.echo_top_m / 1000),
-    accent: false,
-  },
+  track
+    ? {
+      key: "top",
+      title: $_("storm.history.echo_top"),
+      unit: "km",
+      height: 58,
+      axis: true,
+      digits: 1,
+      pick: (step: Step) => step.second,
+      accent: false,
+    }
+    : {
+      key: "area",
+      title: $_("storm.history.area"),
+      unit: "km²",
+      height: 58,
+      axis: true,
+      digits: 0,
+      pick: (step: Step) => step.second,
+      accent: false,
+    },
 ].map((spec) => ({ ...spec, values: series.map(spec.pick) })).map((panel) => {
   const bottom = panel.axis ? AXIS_ROOM : 5;
   const y0 = panel.height - bottom;
@@ -306,7 +405,7 @@ $: panels = [
    */
   const relativeSeries = relatives.map((other) => (other.series ?? []).map((step) => ({
     t: new Date(step.t).getTime(),
-    v: panel.pick(step),
+    v: panel.pick(fromCell(step)),
   })));
   const scale = verticalScale(
     [
@@ -390,10 +489,36 @@ $: gridlines = panels.map((panel) => panel.scale.ticks.map((value) => ({
   y: panel.scale.at(value),
 })));
 
-$: readings = cellReadings(track, (deg) => compass(deg, $_), $_);
+type Shown = Omit<Reading, "fill"> & { fill: number | null };
+
+/**
+ * The readings of a storm KONRAD3D does not track: the peak, the area of its
+ * newest feature, and the motion, where known. No
+ * meter for the area: there is no class of storm by area to measure against.
+ */
+function trackerReadings(t: Translate): Shown[] {
+  const step = series[series.length - 1];
+  const area = step?.second ?? selection.volume?.area_km2 ?? null;
+  const seed = step ? null : selection.volume?.seed_dbz ?? null;
+  const out: Shown[] = [reading("peak", step?.dbz ?? peak, t)];
+  if (area != null) {
+    out.push({
+      key: "area",
+      label: seed != null ? t("storm.reading.area_above", { values: { dbz: Math.round(seed) } }) : t("storm.reading.area"),
+      text: `${Math.round(area)} km²`,
+      band: null,
+      bandName: null,
+      fill: null,
+    });
+  }
+  if (storm?.speed_kmh != null) out.push(reading("speed", storm.speed_kmh, t, ` ${compass(heading, t)}`));
+  return out;
+}
+
+$: readings = track ? cellReadings(track, (deg) => compass(deg, $_), $_) : trackerReadings($_);
 
 /** The current detection, in the shape the volumetric model reads. */
-$: shape = latest && (track.structure ?? []).length
+$: shape = track && latest && (track.structure ?? []).length
   ? ({
     code: track.code,
     lon: latest.lon,
@@ -468,7 +593,7 @@ function extentOf(cell: CellTrackProperties): ModelFrame | null {
  * a frame that tracked the set exactly would shrink the model a step at a time
  * as relatives landed. Growing is a single settle, and `CellModel3D` eases it.
  */
-$: modelFrame = shape ? frameFor(track, family) : null;
+$: modelFrame = shape && track ? frameFor(track, family) : null;
 
 function frameFor(
   root: CellTrackProperties,
@@ -490,7 +615,9 @@ function frameFor(
   };
 }
 
-$: age = duration((Date.now() - new Date(track.first_seen).getTime()) / 60_000, $_);
+/** Since the storm was born, or its cell first seen. */
+$: since = storm?.born_at ?? track?.first_seen ?? null;
+$: age = since ? duration((Date.now() - new Date(since).getTime()) / 60_000, $_) : null;
 
 /* ---- the family ---------------------------------------------------------- */
 
@@ -581,15 +708,22 @@ async function loadFamily(root: CellTrackProperties) {
   }
 }
 
+/** A storm with no KONRAD3D track has no family; any walk still out stops. */
+function forgetFamily() {
+  familyWalk += 1;
+  family = new SvelteMap();
+  loadingFamily = false;
+}
+
 /* Keyed on the code: the panel is reused when a relative is tapped in the
    chart, and the family has to be rebuilt around whichever cell is open. */
-$: void loadFamily(track);
+$: void (track ? loadFamily(track) : forgetFamily());
 
 /* The open cell is already in the family, so walking again from it keeps what
    arrived and asks only for what did not. Closing the panel supersedes any
    walk still out, so it stops asking at its next round. */
 const unsubscribeWake = onWake(() => {
-  if (familyIncomplete && !loadingFamily) void loadFamily(track);
+  if (track && familyIncomplete && !loadingFamily) void loadFamily(track);
 });
 onDestroy(() => {
   unsubscribeWake();
@@ -598,20 +732,28 @@ onDestroy(() => {
 
 /* ---- how current any of this is ---------------------------------------- */
 
+/** When it was last seen: the storm, its cell, or the scan its box is from. */
+$: lastSeen = storm?.last_seen ?? track?.last_seen ?? selection.volume?.reference_time ?? null;
 $: recency = cellRecency(
-  new Date(track.last_seen).getTime(),
+  lastSeen ? new Date(lastSeen).getTime() : tick,
   tick,
   $capLatestObservation > 0 ? $capLatestObservation * 1000 : null,
 );
 $: radarOffset = radarOffsetLabel(recency.behindMinutes, $_);
 
-/** Alive, quiet, superseded or gone. See lib/cellStatus.ts for why it is four. */
-$: status = cellStatus({
-  active: track.active,
-  child_codes: track.child_codes,
-  ageMinutes: recency.ageMinutes,
-}, $_);
-$: observedAt = clock(track.last_seen);
+/**
+ * Alive, quiet, merged or gone: the storm's, where it is known (see
+ * lib/stormStatus.ts), else its cell's (lib/cellStatus.ts). A box of sky on
+ * its own says only when it was seen.
+ */
+$: status = storm
+  ? stormStatus(storm, recency.ageMinutes, $_)
+  : track
+    ? cellStatus({ active: track.active, child_codes: track.child_codes, ageMinutes: recency.ageMinutes }, $_)
+    : null;
+$: observedAt = lastSeen ? clock(lastSeen) : "–";
+/** Whether DWD's analysis covers it: a KONRAD3D track, or a storm in Germany. */
+$: inGermany = Boolean(track) || storm?.primary_domain === "de";
 
 /**
  * Closing leaves the cell's forecast on the map on a phone, and clears it
@@ -624,69 +766,80 @@ $: observedAt = clock(track.last_seen);
  * storm" belongs. `afterClose` in lib/cellSelection.ts states both.
  */
 function close() {
-  const next = afterClose({ code: track.code, details: true }, $smallScreen);
-  if (!next.code) selectedCell.set(null);
-  cellDetails.set(next.details);
+  // A box of sky has no marks on the flat map to leave behind: it closes.
+  const next = afterClose({ code: selectionKey(selection), details: true }, $smallScreen && !coreOnly);
+  if (!next.code) selectedStorm.set(null);
+  stormDetails.set(next.details);
 }
 </script>
 
-<StormPanel rule={colour} label={$_(`storm.storm_label.${BAND_NAMES[severity]}`)} {place} onClose={close}
+<StormPanel rule={colour} {label} {place} onClose={close}
   onShare={(anchor) => share({ subject: shareSubject, anchor })}>
-  <span slot="header" class="headline severity">{$_(`storm.band.${BAND_NAMES[severity]}`)}</span>
+  <span slot="header" class="headline" class:severity={classed && !coreOnly}>{title}</span>
 
   <!-- Whether it is still there, how long it has been, and how old the
        numbers below are: the three things to know before reading any of
        them, in a row under the title. -->
-  <dl class="stats">
-    <div>
-      <dt>{$_("storm.stat.status")}</dt>
-      <!-- The dot is the same signal the "Latest" pill uses for the feed, and
-           it means the same thing here: something is still arriving. -->
-      <dd class="status {status.kind}"><span class="dot"></span>{sentence(status.label)}</dd>
-    </div>
-    <div>
-      <dt>{$_("storm.stat.tracked")}</dt>
-      <dd>{age}</dd>
-    </div>
-    <div>
-      <dt>{$_("storm.stat.updated")}</dt>
-      <dd class:behind={radarOffset !== null}>
-        {$_("storm.ago", { values: { duration: duration(recency.ageMinutes, $_) } })}
-      </dd>
-    </div>
-  </dl>
+  {#if status}
+    <dl class="stats">
+      <div>
+        <dt>{$_("storm.stat.status")}</dt>
+        <!-- The dot is the same signal the "Latest" pill uses for the feed, and
+             it means the same thing here: something is still arriving. -->
+        <dd class="status {status.kind}"><span class="dot"></span>{sentence(status.label)}</dd>
+      </div>
+      <div>
+        <dt>{$_("storm.stat.tracked")}</dt>
+        <dd>{age ?? "–"}</dd>
+      </div>
+      <div>
+        <dt>{$_("storm.stat.updated")}</dt>
+        <dd class:behind={radarOffset !== null}>
+          {$_("storm.ago", { values: { duration: duration(recency.ageMinutes, $_) } })}
+        </dd>
+      </div>
+    </dl>
+  {/if}
 
-  <div class="signals">
-    {#if track.meso_ever}
-      <span class="signal rotating">
-        {$_("storm.signal.rotating")}{track.meso_minutes ? ` ${duration(track.meso_minutes, $_)}` : ""}
-      </span>
-    {/if}
-    {#if track.hail_ever}
-      <span class="signal hail">
-        {$_("hail")}{track.hail_minutes ? ` ${duration(track.hail_minutes, $_)}` : ""}
-      </span>
-    {/if}
-    {#if track.lightning_jump_recent}<span class="signal jump">{$_("storm.signal.lightning_jump")}</span>{/if}
-    {#if track.intensifying}<span class="signal up">{$_("storm.signal.intensifying")}</span>{/if}
-    {#if track.split_ever}<span class="signal lineage">{$_("storm.signal.split")}</span>{/if}
-    {#if track.merge_ever}<span class="signal lineage">{$_("storm.signal.merged")}</span>{/if}
-    {#if track.deviation_deg !== null && track.deviation_deg !== undefined
-      && track.deviation_deg > DEVIANT_DEGREES}
-      <span class="signal deviant">
-        {$_("storm.signal.deviant", { values: { deg: round(track.deviation_deg) } })}
-      </span>
-    {/if}
-  </div>
+  {#if track}
+    <div class="signals">
+      {#if track.meso_ever}
+        <span class="signal rotating">
+          {$_("storm.signal.rotating")}{track.meso_minutes ? ` ${duration(track.meso_minutes, $_)}` : ""}
+        </span>
+      {/if}
+      {#if track.hail_ever}
+        <span class="signal hail">
+          {$_("hail")}{track.hail_minutes ? ` ${duration(track.hail_minutes, $_)}` : ""}
+        </span>
+      {/if}
+      {#if track.lightning_jump_recent}<span class="signal jump">{$_("storm.signal.lightning_jump")}</span>{/if}
+      {#if track.intensifying}<span class="signal up">{$_("storm.signal.intensifying")}</span>{/if}
+      {#if track.split_ever}<span class="signal lineage">{$_("storm.signal.split")}</span>{/if}
+      {#if track.merge_ever}<span class="signal lineage">{$_("storm.signal.merged")}</span>{/if}
+      {#if track.deviation_deg !== null && track.deviation_deg !== undefined
+        && track.deviation_deg > DEVIANT_DEGREES}
+        <span class="signal deviant">
+          {$_("storm.signal.deviant", { values: { deg: round(track.deviation_deg) } })}
+        </span>
+      {/if}
+    </div>
+  {/if}
 
-  {#if on3d && track.volume && track.volume.tier !== 1}
+  {#if on3d && volume && volume.tier !== 1}
     <div class="dial">
-      <SliceDial reference={latest?.heading_deg != null ? "track" : "north"} />
+      <SliceDial reference={heading != null ? "track" : "north"} />
     </div>
   {/if}
 
   <h3 class="section">{$_("storm.section.readings")}</h3>
   <Readings items={readings} />
+
+  <!-- What the panel cannot say for a storm KONRAD3D does not track, said
+       rather than left as blanks a reader would take for "none". -->
+  {#if !track && !coreOnly}
+    <p class="unknown">{$_(inGermany ? "storm.unknown.untracked_de" : "storm.unknown.outside_de")}</p>
+  {/if}
 
   <!-- Numbers before models: the readings are the answer to "how bad is it",
        which is what a reader wants first, and the 3D shapes are the slower,
@@ -708,12 +861,16 @@ function close() {
        strongest few and only where the radars sampled the 3 to 8 km layer
        properly. On the 3D map the map is the vertical cut, and the panel
        slices the volume by height instead; see `on3d`. -->
-  {#if track.volume && on3d}
-    <!-- Keyed on the volume, as the cutaway is: each storm is its own fetch. -->
-    {#key track.volume.path}
-      <VolumeProvenance volume={track.volume} at={latest ?? null} />
-    {/key}
-  {:else if track.volume}
+  {#if volume && on3d}
+    {#if showVolume}
+      <!-- Keyed on the volume, as the cutaway is: each storm is its own fetch. -->
+      {#key volume.path}
+        <VolumeProvenance {volume} at={latest ?? selection.volume ?? null} />
+      {/key}
+    {:else if expand}
+      <button type="button" class="how" on:click={expand}>{$_("storm.cloud.more")}</button>
+    {/if}
+  {:else if volume}
     <h3 class="section">
       {$_("storm.section.inside")}<span class="aside">{$_("storm.section.inside_aside")}</span>
     </h3>
@@ -721,10 +878,10 @@ function close() {
       <!-- Keyed on the volume: the cutaway fetches once, on mount, so walking
            the family from one cell with a volume to another would keep drawing
            the first storm's insides under the second one's name. -->
-      {#key track.volume.path}
+      {#key volume.path}
         <CellCutaway
-          volume={track.volume}
-          headingDeg={latest?.heading_deg ?? null}
+          {volume}
+          headingDeg={heading}
           width={CHART.width}
           height={200}
         />
@@ -733,7 +890,7 @@ function close() {
     <!-- The same storm on the 3D map, cut open where it stands among its
          neighbours rather than alone in a box. -->
     {#if $open3DAvailable}
-      <button type="button" class="open-3d" on:click={() => openCellIn3D(track)}>
+      <button type="button" class="open-3d" on:click={() => openStormIn3D(selection)}>
         {$_("storm.open_3d")}
       </button>
     {/if}
@@ -807,38 +964,43 @@ function close() {
     </div>
   {/if}
 
-  <CellLineage {track} known={family} loading={loadingFamily} now={tick} />
+  <StormLineage {selection} />
+  {#if track}
+    <CellLineage {track} known={family} loading={loadingFamily} now={tick} />
+  {/if}
 
-  <h3 class="section">{$_("storm.section.details")}</h3>
-  <dl class="facts">
-    <div>
-      <dt>{$_("storm.fact.observed")}</dt>
-      <dd>{observedAt}</dd>
-    </div>
-    <!-- Everything above is one detection, which can read as current. This
-         is the part that decides whether the numbers can be
-         read against the radar drawn behind them at all, so it is there when
-         the two are out of step and absent when they are not. -->
-    {#if radarOffset}
+  {#if showVolume}
+    <h3 class="section">{$_("storm.section.details")}</h3>
+    <dl class="facts">
       <div>
-        <dt>{$_("storm.fact.radar")}</dt>
-        <dd class="behind">{radarOffset}</dd>
+        <dt>{$_("storm.fact.observed")}</dt>
+        <dd>{observedAt}{#if coreOnly} &middot; {$_("storm.ago", { values: { duration: duration(recency.ageMinutes, $_) } })}{/if}</dd>
       </div>
-    {/if}
-    {#if track.active && forecast.length}
-      <div>
-        <dt>{$_("storm.fact.forecast")}</dt>
-        <dd>
-          {$_("storm.fact.forecast_value", {
-            values: {
-              time: clock(forecast[forecast.length - 1].t),
-              km: round(forecast[forecast.length - 1].major_km, 1),
-            },
-          })}
-        </dd>
-      </div>
-    {/if}
-  </dl>
+      <!-- Everything above is one detection, which can read as current. This
+           is the part that decides whether the numbers can be
+           read against the radar drawn behind them at all, so it is there when
+           the two are out of step and absent when they are not. -->
+      {#if radarOffset && !coreOnly}
+        <div>
+          <dt>{$_("storm.fact.radar")}</dt>
+          <dd class="behind">{radarOffset}</dd>
+        </div>
+      {/if}
+      {#if forecast.length}
+        <div>
+          <dt>{$_("storm.fact.forecast")}</dt>
+          <dd>
+            {$_("storm.fact.forecast_value", {
+              values: {
+                time: clock(forecast[forecast.length - 1].t),
+                km: round(forecast[forecast.length - 1].major_km, 1),
+              },
+            })}
+          </dd>
+        </div>
+      {/if}
+    </dl>
+  {/if}
 </StormPanel>
 
 <style>
@@ -879,6 +1041,7 @@ function close() {
   }
   /* Ended is a fact, not a warning, so it recedes to the secondary ink. */
   .status.superseded,
+  .status.merged,
   .status.ended {
     color: var(--mc-text-2);
   }
@@ -894,6 +1057,23 @@ function close() {
   }
 
   .dial { margin: 2px 0 8px; }
+  /* Said once, quietly: a fact about the coverage, not a warning about the storm. */
+  .unknown {
+    margin: 8px 0 4px;
+    font: 400 12px/1.4 var(--mc-font);
+    color: var(--mc-text-2);
+  }
+  /* A quiet line that does not compete with the dial: it says the sheet goes
+     up, for the few who want what is above. */
+  .how {
+    display: block;
+    margin: 0 auto;
+    font: 500 13px/1.3 var(--mc-font);
+    background: none; border: none; color: var(--mc-text-2); cursor: pointer;
+    padding: 2px 12px 10px;
+  }
+  .how::before { content: "\2303"; margin-right: 0.35rem; }
+  .how:hover { color: var(--mc-text); }
   /* The signatures, as tinted capsules with the ink in the hue: the place
      cards' own buttons, at the size of a tag. */
   .signals {

@@ -7,18 +7,21 @@ import Circle from "ol/style/Circle";
 import Text from "ol/style/Text";
 import Point from "ol/geom/Point";
 import type { FeatureLike } from "ol/Feature";
-import { selectedCell } from "../stores";
+import { selectedStorm } from "../stores";
 import { LIGHT_CASING, watchCasing } from "./casing";
 import { leadLabel, outlineIsCurrent } from "../lib/cellGeometry";
 import { showsEnded } from "../lib/cellPulse";
+import { selectedMark, type StormMarkKind } from "../lib/stormMarks";
 
 /**
- * Tracked thunderstorm cells: where each one has been, and where it is going.
+ * Storms: where each one has been, and where it is going.
  *
- * Five kinds of feature make up one cell, drawn from the same source so they
+ * Five kinds of mark make up one storm, drawn from the same source so they
  * share a visibility toggle and a z-order: the path it has taken, its current
- * position, its outline, and the forecast centroids with the uncertainty
- * ellipse around each.
+ * position, its outline, and, where KONRAD3D tracks it, the forecast
+ * centroids with the uncertainty ellipse around each (lib/stormMarks.ts).
+ * A sixth, the join, runs from a storm that merged into the one it merged
+ * into. Until storms these were KONRAD3D's cells; the look is the same.
  *
  * ## What Is Drawn, and When
  *
@@ -38,12 +41,12 @@ import { showsEnded } from "../lib/cellPulse";
 /** DWD's severity classes, in the colours their own charts use; the 3D map and its legend take them from here. */
 export const SEVERITY_COLOURS = ["#2f9e44", "#f0b429", "#e03131", "#9c36b5"];
 
-export type CellFeatureKind = "path" | "link" | "cell" | "outline" | "forecast" | "ellipse";
+export type { StormMarkKind };
 
 const severityColour = (severity: number): string => SEVERITY_COLOURS[Math.min(Math.max(severity, 0), 3)];
 
 /**
- * A track fades once its cell stops being detected.
+ * A track fades once its storm stops being seen.
  *
  * Without this a map left open through an afternoon fills up with storms that
  * dissipated an hour ago, all drawn as confidently as the live ones.
@@ -61,21 +64,21 @@ const rgba = (hex: string, alpha: number): string => {
 };
 
 /**
- * The one thing about a cell worth seeing from across the map.
+ * The one thing about a storm worth seeing from across the map.
  *
  * Rotation first: a mesocyclone is the signature that separates a severe storm
  * from a heavy shower, and it is rarer than hail.
  */
 const badge = (feature: FeatureLike): string => {
-  if (feature.get("meso_ever")) return "↻";
-  if (feature.get("hail_ever")) return "✦";
+  if (feature.get("meso")) return "↻";
+  if (feature.get("hail")) return "✦";
   return "";
 };
 
 const styleCache = new Map<string, Style | Style[]>();
 
 /**
- * The cell whose popup is open, or null.
+ * The storm whose popup is open, or null; see `selectedMark`.
  *
  * Held here rather than passed in because OpenLayers calls a style function
  * per feature per frame and has nowhere to thread state through it. The
@@ -113,7 +116,7 @@ const fadeCasing = (colour: string, factor: number): string => (
  * own class vanished into it; the casing keeps an edge on it there.
  */
 function pathStyle(feature: FeatureLike): Style[] {
-  const severity = feature.get("max_severity") ?? 0;
+  const severity = feature.get("severity") ?? 0;
   const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
   const picked = isSelected(feature);
   const width = (picked ? 3 : 2) + Math.min(severity, 3);
@@ -155,9 +158,9 @@ function pathStyle(feature: FeatureLike): Style[] {
  * exactly what became of it.
  */
 function linkStyle(feature: FeatureLike): Style {
-  const severity = feature.get("max_severity") ?? 0;
+  const severity = feature.get("severity") ?? 0;
   const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
-  const picked = isSelected(feature) || feature.get("from_code") === selectedCode;
+  const picked = isSelected(feature) || feature.get("from_storm") === selectedCode;
   return cached(`link:${severity}:${opacity}:${picked}`, () => new Style({
     stroke: new Stroke({
       color: rgba(severityColour(severity), picked ? 0.95 : 0.7 * opacity),
@@ -171,19 +174,19 @@ function linkStyle(feature: FeatureLike): Style {
   }));
 }
 
-function cellStyle(feature: FeatureLike): Style {
-  const severity = feature.get("max_severity") ?? 0;
+function positionStyle(feature: FeatureLike): Style {
+  const severity = feature.get("severity") ?? 0;
   const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
-  const hail = Boolean(feature.get("hail_ever"));
+  const hail = Boolean(feature.get("hail"));
   const mark = badge(feature);
   const colour = severityColour(severity);
   const picked = isSelected(feature);
-  return cached(`cell:${severity}:${opacity}:${hail}:${mark}:${picked}`, () => new Style({
+  return cached(`position:${severity}:${opacity}:${hail}:${mark}:${picked}`, () => new Style({
     image: new Circle({
       radius: (picked ? 8 : 6) + 2 * Math.min(severity, 3),
       fill: new Fill({ color: rgba(colour, (picked ? 1 : 0.75) * opacity) }),
       stroke: new Stroke({
-        // The open popup's own cell, ringed so it is findable among the rest.
+        // The open popup's own storm, ringed so it is findable among the rest.
         color: hail ? rgba("#e03131", opacity) : rgba("#ffffff", opacity),
         width: picked ? 3.5 : (hail ? 3 : 1.5),
       }),
@@ -200,9 +203,9 @@ function cellStyle(feature: FeatureLike): Style {
   }));
 }
 
-/** Whether this feature belongs to the cell whose popup is open. */
+/** Whether this feature belongs to the storm whose popup is open. */
 const isSelected = (feature: FeatureLike): boolean => (
-  selectedCode !== null && feature.get("code") === selectedCode
+  selectedCode !== null && feature.get("storm") === selectedCode
 );
 
 /**
@@ -232,7 +235,7 @@ let casing = LIGHT_CASING;
 const ELLIPSE_DASH = [7, 5];
 
 /**
- * How often the lead labels are recomputed while a cell is selected.
+ * How often the lead labels are recomputed while a storm is selected.
  *
  * They are rounded to the minute, so this is how wrong one is allowed to be:
  * fifteen seconds, which is under the rounding and far under the minute the
@@ -242,7 +245,7 @@ const LABEL_TICK_MS = 15_000;
 
 function forecastStyle(feature: FeatureLike): Style | undefined {
   if (!isSelected(feature)) return undefined;
-  const severity = feature.get("max_severity") ?? 0;
+  const severity = feature.get("severity") ?? 0;
   return cached(`forecast:${severity}:${casing}`, () => new Style({
     image: new Circle({
       radius: 3,
@@ -303,7 +306,7 @@ function leadLabelStyle(feature: FeatureLike, resolution: number): Style | undef
   if (!tip) return undefined;
   const text = leadLabel(feature.get("forecast_at"), feature.get("lead_minutes"), resolution);
   if (text === null) return undefined;
-  const severity = feature.get("max_severity") ?? 0;
+  const severity = feature.get("severity") ?? 0;
   return cached(`lead:${severity}:${casing}:${text}`, () => new Style({
     text: new Text({
       text,
@@ -319,7 +322,7 @@ function leadLabelStyle(feature: FeatureLike, resolution: number): Style | undef
 
 function ellipseStyle(feature: FeatureLike, resolution: number): Style[] | undefined {
   if (!isSelected(feature)) return undefined;
-  const severity = feature.get("max_severity") ?? 0;
+  const severity = feature.get("severity") ?? 0;
   const label = leadLabelStyle(feature, resolution);
   if (label) label.setGeometry(new Point(feature.get("tip") as number[]));
   const rings = cached(`ellipse:${severity}:${casing}`, () => [
@@ -356,7 +359,7 @@ function ellipseStyle(feature: FeatureLike, resolution: number): Style[] | undef
 function outlineStyle(feature: FeatureLike): Style | undefined {
   const minutes = feature.get("age_minutes") ?? 0;
   if (!outlineIsCurrent(minutes)) return undefined;
-  const severity = feature.get("max_severity") ?? 0;
+  const severity = feature.get("severity") ?? 0;
   const opacity = bucket(ageOpacity(minutes));
   return cached(`outline:${severity}:${opacity}`, () => new Style({
     stroke: new Stroke({ color: rgba(severityColour(severity), 0.6 * opacity), width: 1.5 }),
@@ -364,12 +367,12 @@ function outlineStyle(feature: FeatureLike): Style | undefined {
 }
 
 const STYLES: Record<
-  CellFeatureKind,
+  StormMarkKind,
   (feature: FeatureLike, resolution: number) => Style | Style[] | undefined
 > = {
   path: pathStyle,
   link: linkStyle,
-  cell: cellStyle,
+  position: positionStyle,
   outline: outlineStyle,
   forecast: forecastStyle,
   ellipse: ellipseStyle,
@@ -380,14 +383,14 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
   const source = new VectorSource({ features: [] });
   const layer = new VectorLayer({
     source,
-    // Above the mesocyclone markers at 201: a tracked cell carries the same
+    // Above the mesocyclone markers at 201: a tracked storm carries the same
     // rotation information with the storm's history attached.
     zIndex: 202,
     style: (feature: FeatureLike, resolution: number) => {
-      // A cell no longer detected, only close in; see `ENDED_MIN_ZOOM`.
+      // A storm no longer seen, only close in; see `ENDED_MIN_ZOOM`.
       if (feature.get("live") === false && !showsEnded(resolution) && !isSelected(feature)
-        && feature.get("from_code") !== selectedCode) return undefined;
-      const style = STYLES[feature.get("kind") as CellFeatureKind];
+        && feature.get("from_storm") !== selectedCode) return undefined;
+      const style = STYLES[feature.get("kind") as StormMarkKind];
       return style ? style(feature, resolution) : undefined;
     },
   });
@@ -398,7 +401,7 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
    * invalidates it, and panning the map is not something a reader does while
    * reading a number off it.
    *
-   * Only while a cell is selected, because that is the only time a ring is
+   * Only while a storm is selected, because that is the only time a ring is
    * drawn at all (see `ellipseStyle`), and redrawing this layer is not free:
    * it holds every feature of every track in the viewport. Once a selection is
    * open that is one relayout every fifteen seconds, against the twenty a
@@ -406,8 +409,8 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
    */
   let ticking: ReturnType<typeof setInterval> | null = null;
 
-  selectedCell.subscribe((track) => {
-    const code = track?.code ?? null;
+  selectedStorm.subscribe((selection) => {
+    const code = selectedMark(selection);
     if (code === selectedCode) return;
     selectedCode = code;
 

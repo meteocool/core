@@ -1,7 +1,8 @@
 import { get, writable } from "svelte/store";
-import { mapView, selectedCell, selectedVolume, sharedActiveCap } from "../stores";
+import { mapView, selectedStorm, sharedActiveCap, stormDetails } from "../stores";
 import type { MapView } from "../stores";
-import type { CellTrackProperties, RadarVolume } from "../api";
+import type { RadarVolume } from "../api";
+import { withVolume, type StormSelection } from "./stormSelection";
 
 /**
  * Opening a storm on the 3D map from anywhere that shows one, and the way
@@ -72,25 +73,23 @@ function detour(): void {
   origin = from && from !== "cells3d" ? { cap: from, view } : null;
 }
 
-/** Open a storm core found in the composite: the 3D map's own kind. */
+/** Open a box of sky found in the composite, the 3D map's own kind, as a seed of its storm. */
 export function openCloudIn3D(cloud: RadarVolume): void {
   if (!switchTo3D) return;
-  selectedCell.set(null);
-  selectedVolume.set(cloud);
+  selectedStorm.set(withVolume(get(selectedStorm), cloud));
+  stormDetails.set(true);
   detour();
 }
 
 /**
- * Open a tracked cell on the 3D map, cut open through the volume paired with it.
+ * Open a storm on the 3D map, cut open through its volume.
  *
- * The cell stays the selection rather than being traded for its volume: on
- * the 3D map a cell is cut along its own heading, and its details (the
- * readings, the history) come with it.
+ * The storm stays the selection: on the 3D map it is cut along its own
+ * heading, and its details (the readings, the history) come with it.
  */
-export function openCellIn3D(track: CellTrackProperties): void {
-  if (!switchTo3D || !track.volume) return;
-  selectedVolume.set(null);
-  selectedCell.set(track);
+export function openStormIn3D(selection: StormSelection): void {
+  if (!switchTo3D || !(selection.cell?.volume || selection.volume)) return;
+  selectedStorm.set(selection);
   detour();
 }
 

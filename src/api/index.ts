@@ -39,8 +39,18 @@ export type CellForecastPoint = DataSchemas["schemas"]["ForecastPoint"];
 export type CellCurrent = DataSchemas["schemas"]["CellCurrent"];
 export type CellLayer = DataSchemas["schemas"]["CellLayer"];
 export type CellVolume = DataSchemas["schemas"]["CellVolume"];
+/** A box of sky. Its `feature`, the patch it was cut from, is how it finds its storm. */
 export type RadarVolume = DataSchemas["schemas"]["RadarVolume"];
 export type CurrentVolumes = DataSchemas["schemas"]["CurrentVolumes"];
+/** A storm, as a GeoJSON feature at its current centroid; its path is a property. */
+export type Storm = DataSchemas["schemas"]["StormFeature"];
+export type StormProperties = DataSchemas["schemas"]["StormProperties"];
+export type StormStatus = StormProperties["status"];
+export type StormCollection = DataSchemas["schemas"]["StormCollection"];
+/** One storm with its KONRAD3D tracks and its tracker tracks. */
+export type StormDetail = DataSchemas["schemas"]["StormDetail"];
+export type TrackerTrack = DataSchemas["schemas"]["TrackerTrack"];
+export type TrackerFeature = DataSchemas["schemas"]["TrackerFeature"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
@@ -458,4 +468,33 @@ export function fetchCurrentVolumes(nanobar?: Progress, { coarse = false }: { co
 export function fetchCellTrack(code: string, nanobar?: Progress, options: RequestOptions = {}) {
   return request(nanobar, "/cells/tracks/{code}", () =>
     dataClient.GET("/cells/tracks/{code}", { params: { path: { code } } }), options);
+}
+
+/**
+ * Storms inside a viewport, seen since `sinceMinutes` ago.
+ *
+ * Bounded both ways for the reason `fetchCellTracks` is. `optional`: a
+ * backend that does not serve storms yet answers 404, which is a map with no
+ * storms on it, not a broken backend.
+ */
+export function fetchStorms(
+  bbox: [number, number, number, number],
+  sinceMinutes: number,
+  nanobar?: Progress,
+) {
+  const since = new Date(Date.now() - sinceMinutes * 60_000).toISOString();
+  return request(nanobar, "/storms", () =>
+    dataClient.GET("/storms", {
+      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), since } },
+    }), { optional: true });
+}
+
+/**
+ * One storm with its KONRAD3D tracks and tracker tracks, for
+ * the panel. `optional`: a storm past the working set answers 404, which a
+ * link outliving its storm is, not the backend failing.
+ */
+export function fetchStorm(id: string, nanobar?: Progress) {
+  return request(nanobar, "/storms/{storm_id}", () =>
+    dataClient.GET("/storms/{storm_id}", { params: { path: { storm_id: id } } }), { optional: true });
 }

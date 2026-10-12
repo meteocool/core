@@ -131,10 +131,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/storms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Storms as GeoJSON, filtered by viewport and time. */
+        get: operations["list_storms_storms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storms/{storm_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One storm and its tracks, with their recent features. */
+        get: operations["get_storm_storms__storm_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Bounds
+         * @description Scalar bounds, in WGS84 degrees.
+         */
+        Bounds: {
+            /** East */
+            east: number;
+            /** North */
+            north: number;
+            /** South */
+            south: number;
+            /** West */
+            west: number;
+        };
         /**
          * CellCurrent
          * @description A cell in the latest run, with its identity and forecast attached.
@@ -696,6 +744,19 @@ export interface components {
             refresh: "radar" | "nowcast" | "precipitation_types" | "lightning_mvt";
         };
         /**
+         * PolygonGeometry
+         * @description A feature's outline: its outer ring, closed.
+         */
+        PolygonGeometry: {
+            /** Coordinates */
+            coordinates: number[][][];
+            /**
+             * Type
+             * @constant
+             */
+            type: "Polygon";
+        };
+        /**
          * RadarVolume
          * @description One tile of a storm that can be cut open, found in the radar composite.
          *
@@ -733,6 +794,11 @@ export interface components {
              * @description Mean beam coverage through 3-8 km, 0 to 1
              */
             coverage: number;
+            /**
+             * Feature
+             * @description The id of the patch this tile was cut from. A storm's cores name it as their parent, so a client can find the storm a box belongs to
+             */
+            feature?: string | null;
             /**
              * Lat
              * @description Latitude of the box's centre: the tile's middle in Mercator
@@ -812,6 +878,185 @@ export interface components {
              * @constant
              */
             refresh: "overlay";
+        };
+        /**
+         * StormCollection
+         * @description Storms as a GeoJSON feature collection, most recently seen first.
+         */
+        StormCollection: {
+            /** Features */
+            features?: components["schemas"]["StormFeature"][];
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+        };
+        /**
+         * StormDetail
+         * @description One storm and the tracks it is made of.
+         */
+        StormDetail: {
+            /**
+             * Konrad3D
+             * @description Its KONRAD3D tracks, as /cells/tracks
+             */
+            konrad3d?: components["schemas"]["TrackFeature"][];
+            storm: components["schemas"]["StormFeature"];
+            /**
+             * Tracks
+             * @description Its tracks of meteocool's tracker
+             */
+            tracks?: components["schemas"]["TrackerTrack"][];
+        };
+        /**
+         * StormFeature
+         * @description A storm as a GeoJSON feature, at its current centroid.
+         */
+        StormFeature: {
+            geometry: components["schemas"]["PointGeometry"];
+            /** Id */
+            id: string;
+            properties: components["schemas"]["StormProperties"];
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+        };
+        /**
+         * StormProperties
+         * @description A storm's current state, and the tracks it is made of.
+         */
+        StormProperties: {
+            /** @description The bounds of its path */
+            bbox: components["schemas"]["Bounds"];
+            /**
+             * Born At
+             * Format: date-time
+             */
+            born_at: string;
+            /**
+             * Hail
+             * @default false
+             */
+            hail: boolean;
+            /**
+             * Heading Deg
+             * @description Direction of travel, clockwise from north
+             */
+            heading_deg?: number | null;
+            /**
+             * Id
+             * @description The storm's id, stable for its whole life; use it for `/storms/{id}`
+             */
+            id: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             * @description When the storm was last observed
+             */
+            last_seen: string;
+            /**
+             * Merged Into
+             * @description The storm it merged into, when merged
+             */
+            merged_into?: string | null;
+            /**
+             * Meso
+             * @default false
+             */
+            meso: boolean;
+            /**
+             * Path
+             * @description Its centroids, oldest first
+             */
+            path: components["schemas"]["LineStringGeometry"] | components["schemas"]["PointGeometry"];
+            /**
+             * Peak Dbz
+             * @description Peak reflectivity at the latest observation
+             */
+            peak_dbz?: number | null;
+            /** @description A human name for where it is, when known */
+            placement?: components["schemas"]["CellPlacement"] | null;
+            /**
+             * Primary Domain
+             * @description The domain of the primary track
+             */
+            primary_domain?: string | null;
+            /**
+             * Primary Product
+             * @description The product of the primary track
+             */
+            primary_product?: string | null;
+            /**
+             * Primary Track
+             * @description The track whose attributes the storm shows
+             */
+            primary_track?: string | null;
+            /**
+             * Severity
+             * @description Severity class: 0 weak, 1 moderate, 2 strong, 3 extreme
+             * @default 0
+             */
+            severity: number;
+            /** Speed Kmh */
+            speed_kmh?: number | null;
+            /**
+             * Status
+             * @description Ended 20 minutes after it was last seen; merged when it ran into another storm
+             * @enum {string}
+             */
+            status: "active" | "ended" | "merged";
+            /**
+             * Tracks
+             * @description The tracks it is made of, oldest first
+             */
+            tracks?: components["schemas"]["StormTrack"][];
+        };
+        /**
+         * StormTrack
+         * @description One track that is part of a storm.
+         */
+        StormTrack: {
+            /**
+             * Domain
+             * @description The radar network the track was found in: de, ch, fr, cz, pl
+             */
+            domain: string;
+            /**
+             * Product
+             * @description `dwd/konrad3d` (the track is a cell code) or `meteocool/tracker`
+             */
+            product: string;
+            /**
+             * Track
+             * @description A KONRAD3D code, for `/cells/tracks/{code}`, or a tracker track's id
+             */
+            track: string;
+        };
+        /**
+         * StormsRefresh
+         * @description Storms have changed; clients refetch `/storms` for their viewport.
+         */
+        StormsRefresh: {
+            /**
+             * Count
+             * @description How many storms are active
+             */
+            count: number;
+            /**
+             * Max Severity
+             * @description The highest severity among them, 0 to 3
+             */
+            max_severity: number;
+            /**
+             * Reference Time
+             * @description The time the storms were updated for, milliseconds since the epoch
+             */
+            reference_time: number;
         };
         /**
          * Strike
@@ -978,6 +1223,90 @@ export interface components {
             vil_max?: number | null;
             /** @description Radar volume for the cutaway view, from the newest run in which one was built. Null for most cells, which is the ordinary answer rather than a failure. */
             volume?: components["schemas"]["CellVolume"] | null;
+        };
+        /**
+         * TrackerFeature
+         * @description One patch or core of a tracker track at one time.
+         */
+        TrackerFeature: {
+            /** Area Km2 */
+            area_km2: number;
+            centroid: components["schemas"]["PointGeometry"];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "patch" | "core";
+            outline: components["schemas"]["PolygonGeometry"];
+            /**
+             * Parent
+             * @description For a core, the id of the patch it sits in
+             */
+            parent?: string | null;
+            peak: components["schemas"]["PointGeometry"];
+            /** Peak Dbz */
+            peak_dbz: number;
+            /**
+             * Valid At
+             * Format: date-time
+             */
+            valid_at: string;
+        };
+        /**
+         * TrackerTrack
+         * @description One of meteocool's tracker's tracks, with its recent features.
+         */
+        TrackerTrack: {
+            /** Active */
+            active: boolean;
+            bbox: components["schemas"]["Bounds"];
+            /**
+             * Child Tracks
+             * @description Tracks it split or merged into
+             */
+            child_tracks?: string[];
+            /** Domain */
+            domain: string;
+            /**
+             * Features
+             * @description Its features of the last hour
+             */
+            features?: components["schemas"]["TrackerFeature"][];
+            /**
+             * First Seen
+             * Format: date-time
+             */
+            first_seen: string;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "patch" | "core";
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /** Max Peak Dbz */
+            max_peak_dbz: number;
+            /**
+             * N Features
+             * @description How many features the track has in all
+             */
+            n_features: number;
+            /**
+             * Parent Tracks
+             * @description Tracks it split or merged from
+             */
+            parent_tracks?: string[];
+            /** Path */
+            path: components["schemas"]["LineStringGeometry"] | components["schemas"]["PointGeometry"];
+            /** Product */
+            product: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1200,6 +1529,76 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_storms_storms_get: {
+        parameters: {
+            query?: {
+                /** @description Viewport as `west,south,east,north` in WGS84 degrees */
+                bbox?: string | null;
+                /** @description Only storms seen since this time; defaults to the last few hours */
+                since?: string | null;
+                /** @description Lowest severity class to return */
+                min_severity?: number;
+                /** @description Maximum storms to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StormCollection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_storm_storms__storm_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The storm's id */
+                storm_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StormDetail"];
                 };
             };
             /** @description Validation Error */

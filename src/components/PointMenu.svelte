@@ -27,7 +27,7 @@ import { faDroplet } from "@fortawesome/free-solid-svg-icons/faDroplet";
 import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
 import Icon from "./Icon.svelte";
 import { share, shareAvailable, shareIcon } from "../lib/share";
-import { inspectLatLon, mapView, pointMenuAt, selectedCell, selectedVolume, sharedActiveCap } from "../stores";
+import { inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap } from "../stores";
 import { openModelCompare } from "../lib/modelCompare";
 import { hideNativeControls } from "../lib/nativeBridge";
 import { reverseGeocode } from "../lib/reverseGeocode";
@@ -130,7 +130,7 @@ function holdChrome(open: boolean) {
 $: holdChrome($pointMenuAt !== null);
 
 /* Held on another layer, or a storm tapped: the question is somewhere else. */
-$: if ($sharedActiveCap !== "radar" || $selectedCell || $selectedVolume) close();
+$: if ($sharedActiveCap !== "radar" || $selectedStorm) close();
 
 function precipitation() {
   const point = $pointMenuAt;

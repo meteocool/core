@@ -42,12 +42,15 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes, quietly } from "../api";
 import {
-  capDescription, cellDetails, cells3dFailed, cells3dLoading, cells3dVisible, cloudsTime, colorSchemeDark, cutRotationDeg,
-  cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedVolume, sharedActiveCap,
+  capDescription, cells3dFailed, cells3dLoading, cells3dVisible, cloudsTime, colorSchemeDark, cutRotationDeg,
+  cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedStorm, sharedActiveCap, stormDetails,
   showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d,
 } from "../stores";
 import { derived, get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
+import { headingOf, volumeOfStorm, withVolume } from "../lib/stormSelection";
+import type { StormSelection } from "../lib/stormSelection";
+import { offerVolumes } from "../lib/stormResolver";
 import { moved3D, origin3D } from "../lib/open3d";
 import { normaliseCut } from "../lib/cutAngle";
 import { startSweep, stopSweep } from "../lib/cutSweep";
@@ -763,23 +766,16 @@ export default class Cells3DCapability extends Capability {
 
     this.nanobar = options.nanobar;
     this.locate = options.locate ?? null;
-    // A cell tapped on the flat map is not opened here until this map is
+    // A storm selected on the flat map is not opened here until this map is
     // shown: opening fetches its volume, and `attach` opens whatever is
     // selected by then.
-    this.unsubscribeSelection = selectedCell.subscribe((track) => {
-      if (!this.shown) return;
-      if (track) void this.open(this.targetOfTrack(track));
-      else if (!get(selectedVolume)) void this.open(null);
+    this.unsubscribeSelection = selectedStorm.subscribe((selection) => {
+      if (this.shown) void this.openSelection(selection);
     });
     // The slider's peel, once the reader has moved it; until then, null, and
     // the clouds peel on their own and report where they are (ensureVolumes).
     this.unsubscribePeel = derived([peelManual, peelLevel], ([manual, level]) => (manual ? level : null))
       .subscribe((peel) => this.cloudsLayer?.setPeel(peel));
-    this.unsubscribeVolume = selectedVolume.subscribe((cloud) => {
-      if (!this.shown) return;
-      if (cloud) void this.open(this.targetOfCloud(cloud));
-      else if (!get(selectedCell)) void this.open(null);
-    });
     // Turning the slice in the popup turns it here. Only a uniform changes, so
     // this is a repaint and nothing is rebuilt.
     this.unsubscribeCut = cutRotationDeg.subscribe(() => this.applyCut());
@@ -1070,14 +1066,13 @@ export default class Cells3DCapability extends Capability {
             best && distance(best) <= distance(feature) ? best : feature
           ), undefined);
         if (cell?.properties?.code) {
-          selectedVolume.set(null);
           // The same two steps the flat map takes: panel at once on a
           // desktop, forecast first on a phone. Setting the cell alone left a
           // desktop with nothing on screen but the cut: the panel is drawn only
           // for a selection whose details are open.
           const code = String(cell.properties.code);
           const next = nextSelection(
-            { code: get(selectedCell)?.code ?? null, details: get(cellDetails) },
+            { code: get(selectedCell)?.code ?? null, details: get(stormDetails) },
             code,
             get(smallScreen),
           );
@@ -1087,7 +1082,6 @@ export default class Cells3DCapability extends Capability {
           // open that cell on top of the storm core, or of nothing, after the
           // reader had moved on from it.
           this.picking = null;
-          selectedCell.set(null);
           // By path: a code is a grid position, unique only within one
           // network's scan, and the list holds five networks' scans.
           const listed = cloud?.properties?.path
@@ -1097,7 +1091,10 @@ export default class Cells3DCapability extends Capability {
           // picture of where it rains, not one to cut a storm open by.
           const { lng, lat } = event.lngLat;
           const opened = listed?.coarse ? fineAt(this.clouds, lng, lat) : listed;
-          selectedVolume.set(opened);
+          // A box of sky is a seed of the storm whose patch it was cut from;
+          // the panel opens at once, as a storm core's always did.
+          if (opened) this.selectVolume(opened);
+          else selectedStorm.set(null);
           // An earlier scan's fine tiles are found only where the map has
           // drawn them; under a coarse one drawn whole, they are asked for now.
           if (!opened && listed?.coarse && this.past) void this.openPast(listed, lng, lat);
@@ -1145,9 +1142,7 @@ export default class Cells3DCapability extends Capability {
     }
 
     // Whatever the reader picked on the flat map meanwhile.
-    const track = get(selectedCell);
-    const cloud = get(selectedVolume);
-    const opening = this.open(track ? this.targetOfTrack(track) : cloud ? this.targetOfCloud(cloud) : null);
+    const opening = this.openSelection(get(selectedStorm), true);
     void this.refresh();
     // The veil lifts on the first settled frame, and not before the storm
     // the reader came for has its volume loaded and uploaded (the other stall
@@ -1326,10 +1321,8 @@ export default class Cells3DCapability extends Capability {
     if (this.past) void this.lookAgain();
     // The storm the reader opened, if its volume failed to come down then:
     // the panel retries its own copy, and the cut here would stay unmade.
-    const track = get(selectedCell);
-    const cloud = get(selectedVolume);
-    const target = track ? this.targetOfTrack(track) : cloud ? this.targetOfCloud(cloud) : null;
-    if (target && this.opened?.path !== target.volume.path) void this.open(target);
+    const target = this.targetOf(get(selectedStorm));
+    if (target && this.opened?.path !== target.volume.path) void this.openSelection(get(selectedStorm), true);
   }
 
   private detach(): void {
@@ -1367,6 +1360,7 @@ export default class Cells3DCapability extends Capability {
     this.cutaways.clear();
     this.fineTiles.clear();
     this.opened = null;
+    this.requested = null;
     this.forgetCameraBeforeOpen();
     this.cloudsLayer = null;
     this.styleReady = false;
@@ -1435,11 +1429,50 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
-   * A storm core found in the composite. It has no track and so no heading:
-   * its slice starts north to south, and the reader turns it from there.
+   * What to cut the selected storm open by: the box tapped or linked, else
+   * the box its newest patch is in (`volumeOfStorm`, by the volumes'
+   * `feature`), else its KONRAD3D cell's volume. Along the storm's heading
+   * where it has one; a box with no storm found has none, and its slice
+   * starts north to south.
    */
-  private targetOfCloud(cloud: RadarVolume): VolumeTarget {
-    return { code: cloud.code, volume: cloud, lon: cloud.lon, lat: cloud.lat, heading: null };
+  private targetOf(selection: StormSelection | null): VolumeTarget | null {
+    if (!selection) return null;
+    const volume = selection.volume ?? volumeOfStorm(this.clouds, selection);
+    if (volume) {
+      return { code: volume.code, volume, lon: volume.lon, lat: volume.lat, heading: headingOf(selection) };
+    }
+    return selection.cell ? this.targetOfTrack(selection.cell) : null;
+  }
+
+  /** The volume last asked to be opened, so a selection refreshed in place does not reframe the camera. */
+  private requested: string | null = null;
+
+  /**
+   * Open whatever the selection comes to here, once per volume.
+   *
+   * The selection changes far more often than what it cuts: its detail
+   * lands, its storm is found, a refresh hands over a newer copy. Only a
+   * new volume is a new open; the same one with a heading it did not have
+   * (a box whose storm has been found) turns the slice to it in place.
+   */
+  private openSelection(selection: StormSelection | null, force = false): Promise<void> {
+    const target = this.targetOf(selection);
+    const path = target?.volume.path ?? null;
+    if (!force && path === this.requested) {
+      if (target && this.opened?.path === path && this.opened.heading !== target.heading) {
+        this.opened = { ...this.opened, heading: target.heading };
+        this.applyCut();
+      }
+      return Promise.resolve();
+    }
+    this.requested = path;
+    return this.open(target);
+  }
+
+  /** A box of sky tapped or found: the seed of its storm, its panel open. */
+  private selectVolume(volume: RadarVolume): void {
+    selectedStorm.set(withVolume(get(selectedStorm), volume));
+    stormDetails.set(true);
   }
 
   /**
@@ -2001,7 +2034,7 @@ export default class Cells3DCapability extends Capability {
       const track = answer as unknown as CellTrack | undefined;
       if (track?.properties) {
         selectedCell.set(track.properties);
-        cellDetails.set(details);
+        stormDetails.set(details);
       }
     } catch {
       // Already reported by the API wrapper; a popup that does not open is
@@ -2312,8 +2345,11 @@ export default class Cells3DCapability extends Capability {
       return;
     }
     this.clouds = this.liveClouds;
+    offerVolumes(this.clouds);
     this.forgetFaint();
     void this.loadClouds();
+    // A storm selected before its box was listed can be cut open now.
+    if (this.shown) void this.openSelection(get(selectedStorm));
     // A refresh draws them with everything else; a wait has only these to draw.
     if (!this.gl || !this.styleReady) return;
     this.ensureClouds(this.gl);
@@ -2467,7 +2503,7 @@ export default class Cells3DCapability extends Capability {
     this.picking = null;
     this.takePast(landed);
     const found = fineAt(this.clouds, lng, lat);
-    if (found) selectedVolume.set(found);
+    if (found) this.selectVolume(found);
   }
 
   /** What is known of an earlier scan, kept as the most recently looked at. */

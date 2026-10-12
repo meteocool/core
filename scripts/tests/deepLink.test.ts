@@ -189,3 +189,45 @@ test("a link that names no layer is not a different layer", () => {
   // not something the Back button should step back from.
   assert.equal(isNavigation({}, { layer: "radar" }), false);
 });
+
+/* ---- storms -------------------------------------------------------------- */
+
+const STORM = "01JA4Z9Q2B7XKMN3PDRSTVWXYZ";
+
+test("a storm round-trips through the query string, panel and slice included", () => {
+  const state: LinkState = { layer: "radar", storm: STORM, details: false, cut: 30 };
+  const search = linkSearch("", state);
+  assert.equal(search, `?layer=radar&storm=${STORM}&details=0&cut=30`);
+  assert.deepEqual(parseLink(search), state);
+});
+
+test("a storm wins over a cell and a cloud, and over a frame off the live edge", () => {
+  const state = parseLink(`?storm=${STORM}&cell=${CELL}&cloud=20260924T194500/R39853139&t=20260924T1945Z`);
+  assert.equal(state.storm, STORM);
+  assert.equal(state.cell, undefined);
+  assert.equal(state.cloud, undefined);
+  assert.equal(state.time, undefined);
+});
+
+test("a storm written beside its seed is the only one written", () => {
+  assert.equal(linkSearch("", { storm: STORM, cell: CELL, cloud: PATH }), `?storm=${STORM}`);
+});
+
+test("a malformed storm id is dropped; the cell it came with is kept", () => {
+  assert.equal(parseLink("?storm=not-a-storm").storm, undefined);
+  assert.equal(parseLink(`?storm=${STORM.toLowerCase()}`).storm, undefined);
+  assert.equal(parseLink(`?storm=${STORM.replace("Z", "U")}`).storm, undefined);
+  assert.equal(parseLink(`?storm=bad&cell=${CELL}`).cell, CELL);
+});
+
+test("the old cell and cloud links still parse, to be found in their storms", () => {
+  assert.equal(parseLink(`?cell=${CELL}`).cell, CELL);
+  assert.equal(parseLink("?cloud=20260924T194500/R39853139").cloud, PATH);
+});
+
+test("opening, changing or closing a storm is navigation", () => {
+  const here: LinkState = { layer: "radar" };
+  assert.equal(isNavigation(here, { ...here, storm: STORM }), true);
+  assert.equal(isNavigation({ ...here, storm: STORM }, here), true);
+  assert.equal(isNavigation({ ...here, storm: STORM }, { ...here, storm: STORM, details: false }), false);
+});

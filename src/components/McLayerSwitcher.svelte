@@ -9,7 +9,7 @@
   import { _ } from "svelte-i18n";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
-  import { selectedCell, selectedVolume } from "../stores";
+  import { selectedStorm } from "../stores";
 
   export let layerManager;
 
@@ -51,8 +51,7 @@
     // and then over whichever flat map was picked, where nothing draws it. Here
     // and not in open(), because the apps' own switcher buttons call this
     // directly and never pass through open().
-    selectedCell.set(null);
-    selectedVolume.set(null);
+    selectedStorm.set(null);
     ls.style.display = "block";
     // Here rather than in open(), so the apps' own buttons are covered too:
     // they hide their chrome while the switcher is up.

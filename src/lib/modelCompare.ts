@@ -1,4 +1,4 @@
-import { modelCompareAt, selectedCell, selectedVolume } from "../stores";
+import { modelCompareAt, selectedStorm } from "../stores";
 
 /**
  * Open the model comparison for a point, in the storm drawer's place.
@@ -8,7 +8,6 @@ import { modelCompareAt, selectedCell, selectedVolume } from "../stores";
  * open on (24 or 168) and defaults to the day.
  */
 export function openModelCompare(lat: number, lon: number, hours?: number): void {
-  selectedCell.set(null);
-  selectedVolume.set(null);
+  selectedStorm.set(null);
   modelCompareAt.set({ lat, lon, hours });
 }

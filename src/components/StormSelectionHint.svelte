@@ -2,7 +2,8 @@
 /**
  * The step between tapping a storm and reading about it, on a phone.
  *
- * The first tap draws the cell's forecast on the map and nothing else, which
+ * The first tap draws the storm's marks (and forecast, where KONRAD3D has
+ * one) on the map and nothing else, which
  * is a state a reader has no way to recognise on its own: marks appeared, and
  * whether that is all there is or whether something more is a tap away is not
  * something a map can say. So this says it, and is the thing to tap: the
@@ -25,37 +26,43 @@ import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { _ } from "svelte-i18n";
 import Icon from "./Icon.svelte";
 import SwipeDock, { type Leaving } from "./SwipeDock.svelte";
-import { cellDetails, openHintCount, openStripCount, selectedCell } from "../stores";
+import { openHintCount, openStripCount, selectedStorm, stormDetails } from "../stores";
 import { severityColour } from "../layers/cells";
 import { BAND_NAMES, duration } from "../lib/cellMetrics";
+import { knowsSeverity, severityOf } from "../lib/stormSelection";
+import type { StormSelection } from "../lib/stormSelection";
 
-export let track: import("../api").CellTrackProperties;
+export let selection: StormSelection;
 
 /* Counted while mounted, as the strips are, so the "Back to now" pill stands
    above this bar for as long as it is on screen, its exit included. */
 openHintCount.update((n) => n + 1);
 onDestroy(() => openHintCount.update((n) => n - 1));
 
-$: severity = Math.min(Math.max(track.max_severity, 0), 3);
+$: severity = severityOf(selection) ?? 0;
+$: classed = knowsSeverity(selection);
 $: colour = severityColour(severity);
-/* A cell the backend no longer calls active has stopped, and says so: a
-   severity-coloured dot and an "alive for" counting on to now would read as a
-   storm still going. Its lifetime is its detections' span, plus the one scan
-   the last of them stands for, so a single detection is not "0 min". */
-$: ended = !track.active;
+$: storm = selection.summary?.properties ?? null;
+$: cell = selection.cell;
+/* A storm that has stopped says so: a severity-coloured dot and an "alive
+   for" counting on to now would read as a storm still going. Its lifetime is
+   its span of sightings, plus the one scan the last of them stands for, so a
+   single sighting is not "0 min". */
+$: ended = storm ? storm.status !== "active" : !(cell?.active ?? true);
+$: born = storm?.born_at ?? cell?.first_seen ?? null;
+$: seen = storm?.last_seen ?? cell?.last_seen ?? null;
 $: lived = duration(
-  ended
-    ? (new Date(track.last_seen).getTime() - new Date(track.first_seen).getTime()) / 60_000 + 5
-    : (Date.now() - new Date(track.first_seen).getTime()) / 60_000,
+  !born ? 0 : ended && seen
+    ? (new Date(seen).getTime() - new Date(born).getTime()) / 60_000 + 5
+    : (Date.now() - new Date(born).getTime()) / 60_000,
   $_,
 );
+$: merged = storm ? storm.status === "merged" : (cell?.child_codes?.length ?? 0) > 0;
 $: lifeLine = !ended
   ? $_("storm.hint.alive", { values: { duration: lived } })
-  : $_((track.child_codes?.length ?? 0) > 0 ? "storm.hint.superseded" : "storm.hint.ended", {
-    values: { duration: lived },
-  });
+  : $_(merged ? "storm.hint.superseded" : "storm.hint.ended", { values: { duration: lived } });
 
-const open = () => cellDetails.set(true);
+const open = () => stormDetails.set(true);
 
 /* How the bar leaves: down into the tray when its button sent it there, or
    on out past the leading edge when it was swiped away. */
@@ -65,7 +72,7 @@ let out: Leaving = { y: 60, duration: 200 };
    thing for a thumb that has the bar under it rather than the map. */
 function clear(leaving: Leaving) {
   out = leaving;
-  selectedCell.set(null);
+  selectedStorm.set(null);
 }
 </script>
 
@@ -115,7 +122,7 @@ function clear(leaving: Leaving) {
     background: var(--mc-text-3);
   }
 
-  /* Two lines rather than one that wraps. "Strong cell (alive for 49 min)" is
+  /* Two lines rather than one that wraps. "Strong storm (alive for 49 min)" is
      about thirty characters and there are two controls and a swatch beside it;
      at 375px that reflows mid-parenthesis and the bar grows a ragged second
      line. Stacked, it is the same sentence and always fits. */
@@ -132,8 +139,7 @@ function clear(leaving: Leaving) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Heading style: both the band name and "Cell" capitalise. Capitalize on
-       the <b> alone would leave "cell" lowercase. */
+    /* Heading style: "Strong Storm", as a heading capitalises. */
     text-transform: capitalize;
   }
 
@@ -232,7 +238,7 @@ function clear(leaving: Leaving) {
       <span class="swatch" class:ended style:background={ended ? null : colour}></span>
       <span class="what">
         <span class="title">
-          <b>{$_(`storm.hint.band.${BAND_NAMES[severity]}`)}</b> {$_("storm.hint.cell")}
+          <b>{classed ? $_(`storm.storm_label.${BAND_NAMES[severity]}`) : $_("storm.storm_label.unclassed")}</b>
         </span>
         <span class="alive">{lifeLine}</span>
       </span>

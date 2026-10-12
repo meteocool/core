@@ -134,6 +134,74 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "Headline": {
+        "description": "What the rain at a place comes to, in words (meteocool-radar's `headline`).\n\nThe device fills in the times, which it knows how to show: `{at:name}` in a\ntext is a clock time, `{in:name}` a countdown, each `times[name]` in unix\nseconds.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Such as \"Lasting about 30 min \u00b7 Heavy rain at {at:peak}\".",
+            "title": "Detail"
+          },
+          "intensity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The words for the rain the title is about; null when dry.",
+            "title": "Intensity"
+          },
+          "times": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Times",
+            "type": "object"
+          },
+          "title": {
+            "description": "Such as \"Rain until {at:end}\" or \"Heavy rain {in:arrival}\".",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "detail",
+          "intensity",
+          "times"
+        ],
+        "title": "Headline",
+        "type": "object"
+      },
+      "IntensityWord": {
+        "description": "What the rain alerts call a dBZ above `above`.",
+        "properties": {
+          "above": {
+            "title": "Above",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "above",
+          "text"
+        ],
+        "title": "IntensityWord",
+        "type": "object"
+      },
       "Language": {
         "description": "Languages notifications are written in.",
         "enum": [
@@ -245,6 +313,57 @@
         "title": "LightningStrike",
         "type": "object"
       },
+      "LiveActivityTokens": {
+        "description": "What a phone can do with the rain Live Activity, which replaces what was stored for it.",
+        "properties": {
+          "activityToken": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "pattern": "^[0-9a-fA-F]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The running activity's update token, null when none runs",
+            "title": "Activitytoken"
+          },
+          "enabled": {
+            "description": "Whether the user wants the Live Activity during rain",
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "startToken": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "pattern": "^[0-9a-fA-F]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The push-to-start token, null while `enabled` is false",
+            "title": "Starttoken"
+          },
+          "token": {
+            "description": "The device's APNs token",
+            "maxLength": 192,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "enabled"
+        ],
+        "title": "LiveActivityTokens",
+        "type": "object"
+      },
       "LocationUpdate": {
         "description": "A push client's location and notification preferences.",
         "properties": {
@@ -276,6 +395,22 @@
             "minimum": -90.0,
             "title": "Lat",
             "type": "number"
+          },
+          "locationPermission": {
+            "anyOf": [
+              {
+                "enum": [
+                  "always",
+                  "whenInUse",
+                  "denied"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locationpermission"
           },
           "lon": {
             "description": "EPSG:4326 longitude",
@@ -578,6 +713,21 @@
             "title": "Frames",
             "type": "object"
           },
+          "headlines": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Headline"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With `lat`, `lon` and `threshold`: the headline for the rain at that point, keyed by when it applies -- now, the end of the newest observed step, and then each forecast step as it becomes now -- for a client that keeps showing this series for a while. Rain is a step at `threshold` or above until two steps in a row below min(threshold, 14 dBZ), as in the rain alerts.",
+            "title": "Headlines"
+          },
           "networks": {
             "additionalProperties": {
               "additionalProperties": {
@@ -609,6 +759,21 @@
           "server_time": {
             "title": "Server Time",
             "type": "integer"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/IntensityWord"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With `threshold`: the rain alerts' words for each dBZ band, heaviest first.",
+            "title": "Words"
           }
         },
         "required": [
@@ -668,6 +833,35 @@
           "success"
         ],
         "title": "StatusResponse",
+        "type": "object"
+      },
+      "StormsRefresh": {
+        "description": "Storms have changed; clients refetch `/storms` for their viewport.",
+        "properties": {
+          "count": {
+            "description": "How many storms are active",
+            "title": "Count",
+            "type": "integer"
+          },
+          "max_severity": {
+            "description": "The highest severity among them, 0 to 3",
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Max Severity",
+            "type": "integer"
+          },
+          "reference_time": {
+            "description": "The time the storms were updated for, milliseconds since the epoch",
+            "title": "Reference Time",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference_time",
+          "count",
+          "max_severity"
+        ],
+        "title": "StormsRefresh",
         "type": "object"
       },
       "Strike": {
@@ -1119,6 +1313,51 @@
         ]
       }
     },
+    "/v3/mobile/live_activity": {
+      "post": {
+        "description": "Replace what is stored of a registered phone's rain Live Activity.\n\nIts own route rather than fields on `/location`, whose model forbids\nunknown fields. `la_started` is left alone while the activity stays on:\na phone that swiped this rain's activity away sends no activity token,\nand must not be sent another start for the same rain. Switching it on\nasks for one, so it is forgotten then.\n\nA phone that can start an activity now and could not before is decided\nfor at once (worker-radar's `notify_for_client`): rain already due starts\nit without waiting for the next run.",
+        "operationId": "post_live_activity_v3_mobile_live_activity_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveActivityTokens"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "No push client has this token; register first."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Store a phone's Live Activity tokens.",
+        "tags": [
+          "mobile"
+        ]
+      }
+    },
     "/v3/mobile/location": {
       "delete": {
         "description": "Remove a push client's registration.",
@@ -1423,7 +1662,7 @@
     },
     "/v3/radar/timeseries": {
       "get": {
-        "description": "Tile metadata for each timestep in a window, past and forecast.\n\nWith `lat` and `lon`, each frame also carries the dBZ at that point. With\n`network` as well, it is that network's reading wherever it has a composite\nfor the step -- which is every observed step, while its ingest is running\n-- and DWD's everywhere else, the forecast included. The client names the\nnetwork because it is the one that knows which draws where: the borders are\n`extents.ts`'s, and a point sampled from a network the map is not showing\nthere would put bars under the chart that nothing on the map agrees with.\n\n`products` adds another observed product's frames for the same steps, for\na client drawing that one instead: DWD's column maximum, `dmax`, or the\nmerged composite, `merged`. Asked for rather than always sent, since each\nframe carries its tile index and most clients draw neither. The chart is\nstill read from HX and the networks, whichever is drawn.",
+        "description": "Tile metadata for each timestep in a window, past and forecast.\n\nWith `lat` and `lon`, each frame also carries the dBZ at that point. With\n`network` as well, it is that network's reading wherever it has a composite\nfor the step -- which is every observed step, while its ingest is running\n-- and DWD's everywhere else, the forecast included. The client names the\nnetwork because it is the one that knows which draws where: the borders are\n`extents.ts`'s, and a point sampled from a network the map is not showing\nthere would put bars under the chart that nothing on the map agrees with.\n\n`products` adds another observed product's frames for the same steps, for\na client drawing that one instead: DWD's column maximum, `dmax`, or the\nmerged composite, `merged`. Asked for rather than always sent, since each\nframe carries its tile index and most clients draw neither. The chart is\nstill read from HX and the networks, whichever is drawn.\n\n`threshold`, the dBZ the client counts as rain, adds what the chart comes\nto in words, `headlines`, in `lang`, with the peak's dBZ when `details`:\nthe same words and rules as the rain alerts and Live Activities, so that\nthe apps show text rather than work it out.",
         "operationId": "timeseries_v3_radar_timeseries_get",
         "parameters": [
           {
@@ -1510,6 +1749,43 @@
                 }
               ],
               "title": "Products"
+            }
+          },
+          {
+            "in": "query",
+            "name": "threshold",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 130,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Threshold"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Language",
+              "default": "en"
+            }
+          },
+          {
+            "in": "query",
+            "name": "details",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Details",
+              "type": "boolean"
             }
           }
         ],

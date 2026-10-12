@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { expect, test as base } from "@playwright/test";
+import { answerStorms, recordedStorms } from "./storms";
 import {
   fixtureFile, fulfilBlankTile, isApi, isLocal, isTile, quietLightningSocket, readRecording,
   type RecordedResponse,
@@ -20,6 +21,7 @@ export const test = base.extend<{ unrecorded: string[] }>({
   unrecorded: [async ({ page }, use) => {
     const unrecorded: string[] = [];
     const recording = readRecording();
+    const storms = recordedStorms();
     await page.clock.install({ time: recording.recordedAt });
     await quietLightningSocket(page);
 
@@ -30,6 +32,9 @@ export const test = base.extend<{ unrecorded: string[] }>({
       if (isTile(url)) return fulfilBlankTile(route, url);
       if (isApi(url)) {
         const file = fixtureFile(request.method(), url);
+        // Until a recording has storms (staging does not serve them yet), they
+        // are made from the recorded KONRAD3D tracks; see storms.ts.
+        if (url.pathname.startsWith("/storms") && !recordedOk(file)) return answerStorms(route, url, storms);
         if (!existsSync(file)) {
           unrecorded.push(`${request.method()} ${url.pathname}`);
           return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
@@ -58,6 +63,12 @@ export const test = base.extend<{ unrecorded: string[] }>({
     ].join(" ")).toEqual([]);
   }, { auto: true }],
 });
+
+/** Whether there is a recorded answer, and a successful one, rather than the 404 of a backend without the path. */
+function recordedOk(file: string): boolean {
+  if (!existsSync(file)) return false;
+  return (JSON.parse(readFileSync(file, "utf8")) as RecordedResponse).status === 200;
+}
 
 export { expect };
 

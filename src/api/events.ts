@@ -26,6 +26,8 @@ export type CellsEvent = Schemas["CellsRefresh"];
 export type NetworkEvent = Schemas["NetworkRefresh"];
 /** One of the four national networks with a composite of their own: not `eu`, `colmax` or `dmax`, which share their event. */
 export type CountryNetwork = Exclude<NetworkEvent["network"], "eu" | "colmax" | "dmax">;
+/** Storms have changed; refetch `/storms` for the viewport. */
+export type StormsEvent = Schemas["StormsRefresh"];
 /** One run's volumes, or one part of a run's, are built; refetch `/cells/volumes`. */
 export type VolumesEvent = Schemas["VolumesRefresh"];
 
@@ -36,6 +38,7 @@ export interface ServerToClientEvents {
   network: (network: NetworkEvent) => void;
   poke: (poke: PokeEvent) => void;
   snow: (snow: SnowEvent) => void;
+  storms: (storms: StormsEvent) => void;
   volumes: (volumes: VolumesEvent) => void;
 }
 

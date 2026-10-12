@@ -22,7 +22,7 @@ import { get } from "svelte/store";
 import { fade, scale } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import CloseDisc from "./CloseDisc.svelte";
-import { cells3dVisible, radarColormap, selectedCell, selectedVolume, smallScreen } from "../stores";
+import { cells3dVisible, radarColormap, selectedStorm, smallScreen } from "../stores";
 import { dbzColour, dbzStops } from "../lib/cellVolume";
 import { BAND_NAMES } from "../lib/cellMetrics";
 import { SEVERITY_COLOURS } from "../layers/cells";
@@ -66,7 +66,7 @@ function show() {
  * explained. Not remembered (the reader did not close it), and not undone
  * when the storm closes, which would be the card jumping back unasked.
  */
-$: storm = Boolean($selectedCell || $selectedVolume);
+$: storm = Boolean($selectedStorm);
 $: if (storm) open = false;
 
 /** The reflectivity the scale spans, as `dbzStops` samples it. */

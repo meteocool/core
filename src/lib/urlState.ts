@@ -23,16 +23,20 @@
 import { get } from "svelte/store";
 import type { Readable } from "svelte/store";
 import { fromLonLat } from "ol/proj";
-import { fetchCellTrack, NothingPublished } from "../api";
-import type { CellTrack, Progress } from "../api";
+import { fetchCellTrack, fetchStorm, NothingPublished } from "../api";
+import type { CellTrack, Progress, StormDetail } from "../api";
 import type Cells3DCapability from "../caps/Cells3DCapability";
 import type { CameraRequest } from "../caps/Cells3DCapability";
 import {
-  capLatestObservation, capTimeIndicator, cellDetails, cellLayerVisible, cutRotationDeg, cycloneLayerVisible,
-  frameRequest, inspectLatLon, lightningLayerVisible, mapExtent4326, mapView, playbackRunning, selectedCell,
-  selectedVolume, sharedActiveCap,
+  capLatestObservation, capTimeIndicator, cellLayerVisible, cutRotationDeg, cycloneLayerVisible,
+  frameRequest, inspectLatLon, lightningLayerVisible, mapExtent4326, mapView, playbackRunning, selectedStorm,
+  sharedActiveCap, stormDetails,
 } from "../stores";
-import type CellTrackManager from "./CellTrackManager";
+import type StormManager from "./StormManager";
+import {
+  fromStorm, isResolution, positionOf, selectionKey, withCell, withDetail, withVolume,
+} from "./stormSelection";
+import type { StormSelection } from "./stormSelection";
 import { OVERLAYS, isNavigation, linkSearch, parseLink } from "./deepLink";
 import type { LinkState, Overlay } from "./deepLink";
 import { DeviceDetect as dd } from "./DeviceDetect";
@@ -96,7 +100,7 @@ export const openingLink: LinkState = parseLink(window.location.search);
  * just stays where the link put it.
  */
 export function linkPlacesView(link: LinkState = openingLink): boolean {
-  return Boolean(link.view || link.cell || link.cloud || link.point);
+  return Boolean(link.view || link.storm || link.cell || link.cloud || link.point);
 }
 
 /**
@@ -114,7 +118,7 @@ export function applyLinkedOverlays(settings: Settings, link: LinkState = openin
       settings.override(OVERLAY_SETTINGS[overlay], link.overlays.includes(overlay));
     }
   }
-  if (link.cell) settings.override(OVERLAY_SETTINGS.cells, true);
+  if (link.storm || link.cell) settings.override(OVERLAY_SETTINGS.cells, true);
 }
 
 /** `CameraRequest` without the keys a link left out, so a merge cannot erase them. */
@@ -124,10 +128,7 @@ function defined(camera: CameraRequest): CameraRequest {
 
 /** The storm that is open, as one comparable string; empty for none. */
 function selection(): string {
-  const cell = get(selectedCell);
-  if (cell) return `cell:${cell.code}`;
-  const cloud = get(selectedVolume);
-  return cloud ? `cloud:${cloud.path}` : "";
+  return selectionKey(get(selectedStorm));
 }
 
 /** Whether the player is parked on a frame other than the newest observation. */
@@ -156,17 +157,18 @@ export function currentState(): LinkState | null {
     }
   }
 
-  const cell = get(selectedCell);
-  const cloud = get(selectedVolume);
-  if (cell) {
-    state.cell = cell.code;
-    if (!get(cellDetails)) state.details = false;
-    // Only a cell with a volume has a slice to turn.
-    if (cell.volume) state.cut = get(cutRotationDeg);
-  } else if (cloud && layer === "cells3d") {
-    state.cloud = cloud.path;
-    state.cut = get(cutRotationDeg);
-  }
+  // The storm once found; until then (or if none claims it) the cell or
+  // the box it was opened on, so a link copied meanwhile still opens it.
+  const storm = get(selectedStorm);
+  const cell = storm?.cell ?? null;
+  const cloud = storm?.volume ?? null;
+  const tracked = Boolean(storm?.id || cell);
+  if (storm?.id) state.storm = storm.id;
+  else if (cell) state.cell = cell.code;
+  else if (cloud && layer === "cells3d") state.cloud = cloud.path;
+  if (tracked && !get(stormDetails)) state.details = false;
+  // Only a storm with a volume has a slice to turn.
+  if (storm && (cell?.volume || cloud) && (tracked || layer === "cells3d")) state.cut = get(cutRotationDeg);
 
   // The overlays, the player and the forecast point are all the radar map's.
   if (layer === "radar") {
@@ -177,7 +179,7 @@ export function currentState(): LinkState | null {
     if (on.length !== OVERLAYS.length) state.overlays = on;
     // Not while it plays: that is a new frame twice a second, and a link
     // copied mid-animation would open parked on whichever one it caught.
-    if (!cell && !get(playbackRunning) && offLiveEdge()) state.time = get(capTimeIndicator);
+    if (!tracked && !get(playbackRunning) && offLiveEdge()) state.time = get(capTimeIndicator);
     const point = get(inspectLatLon);
     if (point) state.point = point;
   }
@@ -204,7 +206,7 @@ function noticeAge(link: LinkState) {
 interface Wiring {
   lm: LayerManager;
   settings: Settings;
-  cellmgr: CellTrackManager;
+  stormmgr: StormManager;
   cells3d?: Cells3DCapability;
   nanobar?: Progress;
 }
@@ -213,7 +215,7 @@ interface Wiring {
  * Restore the opening link, then keep the URL and the history in step with
  * the page. Returns the teardown.
  */
-export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wiring): () => void {
+export function startUrlState({ lm, settings, stormmgr, cells3d, nanobar }: Wiring): () => void {
   const writes = !dd.isApp();
 
   /** Restores in flight. Nothing is written while any are: see write(). */
@@ -309,10 +311,10 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
       reportToast(t("storm.toast.cell_gone"));
       return;
     }
-    cellmgr.pin(track);
-    selectedVolume.set(null);
-    selectedCell.set(track.properties);
-    cellDetails.set(link.details !== false);
+    // A seed of its storm, which lib/stormResolver.ts finds; the URL then
+    // says `storm=` instead (see `resolved` below).
+    selectedStorm.set(withCell(null, track.properties));
+    stormDetails.set(link.details !== false);
     // After the cell, which resets the slice for a new storm on its own.
     if (link.cut !== undefined && track.properties.volume) cutRotationDeg.set(link.cut);
     if (opening && !link.view) {
@@ -320,10 +322,42 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
       const last = series[series.length - 1];
       if (last) centreOn(last.lat, last.lon);
     }
-    // Drawn now rather than on the next pan: the tracks the layer holds were
-    // fetched without this cell in them. A no-op before the first render,
-    // whose own fetch then includes the pin.
-    void cellmgr.reload(get(mapExtent4326), { force: true, nanobar });
+    // Drawn now rather than on the next pan: the storms the layer holds
+    // were fetched for another view. A no-op before the first render.
+    void stormmgr.reload(get(mapExtent4326), { force: true, nanobar });
+  }
+
+  /**
+   * Open a linked storm, fetched on its own: it may be nowhere near the
+   * viewport, or ended past the map's window. One the backend has forgotten
+   * is a 404, the link outliving the storm; any other failure is the
+   * network's, tried again once it is back.
+   */
+  async function restoreStorm(link: LinkState, token: number, opening: boolean) {
+    const before = selection();
+    let detail: StormDetail | null = null;
+    let failed = false;
+    try {
+      detail = await fetchStorm(link.storm!, nanobar);
+    } catch (error) {
+      failed = !(error instanceof NothingPublished);
+    }
+    if (token !== generation || selection() !== before) return;
+    if (failed) {
+      againOnWake(token, () => restoreStorm(link, token, opening));
+      return;
+    }
+    if (!detail) {
+      reportToast(t("storm.toast.storm_gone"));
+      return;
+    }
+    const opened: StormSelection | null = withDetail(fromStorm(detail.storm), detail);
+    selectedStorm.set(opened);
+    stormDetails.set(link.details !== false);
+    if (link.cut !== undefined) cutRotationDeg.set(link.cut);
+    const at = opened ? positionOf(opened) : null;
+    if (opening && !link.view && at) centreOn(at[1], at[0]);
+    void stormmgr.reload(get(mapExtent4326), { force: true, nanobar });
   }
 
   /** Open a linked storm core; the finding is Cells3DCapability.restoreCloud's. */
@@ -346,8 +380,8 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
       reportToast(t("storm.toast.volume_gone"));
       return;
     }
-    selectedCell.set(null);
-    selectedVolume.set(cloud);
+    selectedStorm.set(withVolume(null, cloud));
+    stormDetails.set(true);
     if (link.cut !== undefined) cutRotationDeg.set(link.cut);
     if (opening && !link.view) centreOn(cloud.lat, cloud.lon);
   }
@@ -391,19 +425,31 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
     }
 
     const current = selection();
-    if (link.cell && (layer === "radar" || layer === "cells3d")) {
-      if (current !== `cell:${link.cell}`) {
+    const open = get(selectedStorm);
+    if (link.storm && (layer === "radar" || layer === "cells3d")) {
+      if (current !== `storm:${link.storm}`) {
+        holding(restoreStorm(link, token, opening));
+      } else {
+        stormDetails.set(link.details !== false);
+        cutRotationDeg.set(link.cut ?? 0);
+      }
+    } else if (link.cell && (layer === "radar" || layer === "cells3d")) {
+      // Back to an entry written before the cell's storm was found: the
+      // storm it was found in is the same selection.
+      if (current !== `cell:${link.cell}` && open?.cell?.code !== link.cell) {
         holding(restoreCell(link, token, opening));
       } else {
-        cellDetails.set(link.details !== false);
+        stormDetails.set(link.details !== false);
         cutRotationDeg.set(link.cut ?? 0);
       }
     } else if (link.cloud && layer === "cells3d") {
-      if (current !== `cloud:${link.cloud}`) holding(restoreCloud(link, token, opening));
-      else cutRotationDeg.set(link.cut ?? 0);
+      if (current !== `cloud:${link.cloud}` && open?.volume?.path !== link.cloud) {
+        holding(restoreCloud(link, token, opening));
+      } else {
+        cutRotationDeg.set(link.cut ?? 0);
+      }
     } else if (!opening) {
-      selectedCell.set(null);
-      selectedVolume.set(null);
+      selectedStorm.set(null);
     }
 
     if (layer === "radar") {
@@ -416,7 +462,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
       if (point?.[0] !== held?.[0] || point?.[1] !== held?.[1]) {
         if (point || !opening) inspectLatLon.set(point);
       }
-      if (point && opening && !link.view && !link.cell) centreOn(point[0], point[1]);
+      if (point && opening && !link.view && !link.cell && !link.storm) centreOn(point[0], point[1]);
       if (link.time !== undefined) frameRequest.set(link.time);
       else if (!opening && offLiveEdge()) frameRequest.set("live");
     }
@@ -458,8 +504,16 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
   apply(openingLink, true);
   noticeAge(openingLink);
 
+  /* A seed's storm found is the same thing on screen under its proper name:
+     the `cell=` or `cloud=` entry is replaced with `storm=`, not pushed over. */
+  let shown: StormSelection | null = get(selectedStorm);
+  const unsubscribeResolved = selectedStorm.subscribe((next) => {
+    if (isResolution(shown, next)) settling = true;
+    shown = next;
+  });
+
   const watched: Readable<unknown>[] = [
-    sharedActiveCap, mapView, selectedCell, selectedVolume, cellDetails, cutRotationDeg,
+    sharedActiveCap, mapView, selectedStorm, stormDetails, cutRotationDeg,
     lightningLayerVisible, cellLayerVisible, cycloneLayerVisible,
     capTimeIndicator, capLatestObservation, playbackRunning, inspectLatLon,
   ];
@@ -470,6 +524,7 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
 
   return () => {
     unsubscribers.forEach((unsubscribe) => unsubscribe());
+    unsubscribeResolved();
     waiting.forEach((off) => off());
     waiting.clear();
     window.removeEventListener("popstate", onPopState);

@@ -18,9 +18,12 @@ Run them before pushing develop. They are not in CI yet.
 
 A run never reaches a backend. `test.ts` gives every spec a page that:
 
-- answers the backend's requests (`/v3`, `/cells`, `/mesocyclones`,
+- answers the backend's requests (`/v3`, `/cells`, `/storms`, `/mesocyclones`,
   `/lightning_cache`, `/geocoding`, see `offline.ts`) from
   `fixtures/api/*.json`, keyed by method and path (the query is ignored);
+- answers `/storms` from storms made of the recorded KONRAD3D tracks
+  (`storms.ts`) while the recording has no successful answer for it: staging
+  does not serve storms yet;
 - draws every map tile blank: radar, value tiles and the basemap;
 - connects the lightning socket to a stand-in that stays quiet;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it

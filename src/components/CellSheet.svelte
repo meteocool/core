@@ -36,23 +36,20 @@ import { cubicOut } from "svelte/easing";
 import { onDestroy, onMount } from "svelte";
 import { get } from "svelte/store";
 import { _ } from "svelte-i18n";
-import { cellDetails, sharedActiveCap } from "../stores";
-import { afterClose } from "../lib/cellSelection";
+import { sharedActiveCap, stormDetails } from "../stores";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { holdNativeChrome, postToNative } from "../lib/nativeBridge";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import { provideSheet } from "../lib/sheetContext";
-import CellDetails from "./CellDetails.svelte";
 import CloseDisc from "./CloseDisc.svelte";
 import ShareDisc from "./ShareDisc.svelte";
 
 /**
- * The cell whose details fill the sheet, or none when something else is
- * given as its content: a storm core on the 3D map takes the same sheet, so a
- * phone has one surface for "the storm you tapped", whatever kind it is.
+ * What dismissing the sheet does. Without one, it closes a storm's details
+ * and leaves its marks on the map (lib/cellSelection.ts `afterClose`). The
+ * content is the slot: a storm's details (StormDetails), the model
+ * comparison, a reading panel.
  */
-export let track: import("../api").CellTrackProperties | null = null;
-/** What dismissing the sheet does, when it is not a cell's details closing. */
 export let onClose: (() => void) | null = null;
 /**
  * Whether it pulls up to full height. Not for content that already fits at
@@ -116,7 +113,7 @@ const slide = { y: 400, duration: reducedMotion ? 0 : 320, easing: cubicOut };
 
 const close = () => {
   if (onClose) onClose();
-  else if (track) cellDetails.set(afterClose({ code: track.code, details: true }, true).details);
+  else stormDetails.set(false);
 };
 
 /* ---- how much of the screen the sheet takes ----------------------------- */
@@ -659,9 +656,7 @@ function bodyUp(event: PointerEvent) {
     on:pointermove={bodyMove}
     on:pointerup={bodyUp}
     on:pointercancel={bodyUp}>
-    <slot expanded={detent === FULL} expand={() => { if (expandable) detent = FULL; }}>
-      {#if track}<CellDetails {track} />{/if}
-    </slot>
+    <slot expanded={detent === FULL} expand={() => { if (expandable) detent = FULL; }} />
   </div>
   <div
     class="indicator"

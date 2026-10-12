@@ -6,7 +6,8 @@ import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange } from "./lib/observedProduct";
 import { showsForecastStep } from "./lib/freshness";
 import { derived, readable, writable } from "svelte/store";
-import type { CellTrackProperties, RadarVolume } from "./api";
+import type { CellTrackProperties } from "./api";
+import { withCell, type StormSelection } from "./lib/stormSelection";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
 // abstraction.
@@ -298,8 +299,29 @@ export const cells3dLoading = writable<boolean>(false);
  * blank map for as long as anyone looks at it.
  */
 export const cells3dFailed = writable<boolean>(false);
-/** The cell the detail popup is showing, or null when it is closed. */
-export const selectedCell = writable<CellTrackProperties | null>(null);
+/**
+ * The storm selected on either map, or null for none; see lib/stormSelection.ts.
+ *
+ * One selection where there were two (a KONRAD3D cell and a radar volume,
+ * exclusive): whichever of a storm, a cell or a box of sky was tapped, the
+ * storm it belongs to is what is open, found by lib/stormResolver.ts.
+ */
+export const selectedStorm = writable<StormSelection | null>(null);
+
+/**
+ * The selected storm's KONRAD3D track, for what still reads one: the family
+ * chart, the 3D map's tap on an extruded cell, a `cell=` link.
+ *
+ * A compatibility view of `selectedStorm`, not a second selection. Setting a
+ * cell selects it as a seed of its storm (or as another of the open storm's
+ * cells, walking a family); setting null clears the selection.
+ */
+export const selectedCell = {
+  subscribe: derived(selectedStorm, (storm) => storm?.cell ?? null).subscribe,
+  set(cell: CellTrackProperties | null): void {
+    selectedStorm.update((current) => (cell ? withCell(current, cell) : null));
+  },
+};
 /**
  * How far the cutaway's slice is turned away from the storm's own track, in
  * degrees clockwise.
@@ -322,24 +344,19 @@ export const cutRotationDeg = writable<number>(0);
  */
 export const cutSweepDeg = writable<number>(0);
 /**
- * A storm opened for its volume alone, with no KONRAD3D track behind it.
- *
- * Most clouds with a volume are showers KONRAD3D never reports, so there is no
- * history to show and no track for `selectedCell` to hold; this is what they
- * are selected as instead. The two are exclusive (opening one closes the
- * other) because there is one cutaway on screen at a time.
- */
-export const selectedVolume = writable<RadarVolume | null>(null);
-
-/**
- * Whether the selected cell's detail panel is open, as opposed to only its
+ * Whether the selected storm's detail panel is open, as opposed to only its
  * marks being drawn on the map.
  *
  * The two are one step on a desktop and two on a phone, where the panel covers
  * the storm it describes; lib/cellSelection.ts holds the rules and App.svelte
  * wires them to the map's click handler.
  */
-export const cellDetails = writable<boolean>(false);
+export const stormDetails = writable<boolean>(false);
+/**
+ * `stormDetails` under its name from before storms, for the one line that
+ * still says it (the 3D map's `select`, beside a line another branch is
+ * removing); use `stormDetails`.
+ */
 
 /**
  * Whether the viewport is phone-sized, at the 620px the stylesheets already

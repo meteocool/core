@@ -200,7 +200,8 @@
       "weak": "Weak storm",
       "moderate": "Moderate storm",
       "strong": "Strong storm",
-      "extreme": "Extreme storm"
+      "extreme": "Extreme storm",
+      "unclassed": "Storm"
     },
     "duration": {
       "min": "{m} min",
@@ -230,7 +231,8 @@
       "live": "live",
       "stale": "no new data",
       "superseded": "superseded",
-      "ended": "dissipated"
+      "ended": "dissipated",
+      "merged": "merged"
     },
     "stat": {
       "status": "Status",
@@ -253,7 +255,8 @@
       "inside_aside": "drag to turn the cut",
       "history": "History",
       "family": "Family",
-      "details": "Details"
+      "details": "Details",
+      "merges": "Merges"
     },
     "reading": {
       "peak": "peak",
@@ -268,7 +271,8 @@
     "history": {
       "reflectivity": "Reflectivity",
       "echo_top": "Echo top",
-      "aria": "{title} over the tracked period, in {unit}"
+      "aria": "{title} over the tracked period, in {unit}",
+      "area": "Area"
     },
     "model_at": "at {time}",
     "model_aria": "Three-dimensional model of the storm cell's reflectivity structure",
@@ -347,7 +351,16 @@
     },
     "toast": {
       "cell_gone": "That storm is no longer being tracked.",
-      "volume_gone": "That storm core's radar volume is no longer available."
+      "volume_gone": "That storm core's radar volume is no longer available.",
+      "storm_gone": "That storm is no longer being tracked."
+    },
+    "unknown": {
+      "untracked_de": "DWD's storm analysis does not report this storm, so there is no forecast and no hail or rotation flag for it. Tracked by meteocool from the radar alone.",
+      "outside_de": "Outside DWD's storm analysis: no forecast and no hail or rotation flags here. Tracked by meteocool from the radar alone."
+    },
+    "merges": {
+      "into": "Merged into another storm",
+      "from": "A storm merged in, last seen {time}"
     }
   },
   "compare": {

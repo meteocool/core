@@ -39,7 +39,12 @@ export interface LinkState {
   pitch?: number;
   /** The 3D map's heading, degrees clockwise from north, in [-180, 180) as MapLibre keeps it. */
   bearing?: number;
-  /** A KONRAD3D cell, by track code. */
+  /** A storm, by its id: what a link to a storm says since storms. */
+  storm?: string;
+  /**
+   * A KONRAD3D cell, by track code: a link from before storms, or to a cell
+   * no storm has claimed. Opened and redirected to its storm once found.
+   */
   cell?: string;
   /**
    * Whether the cell's detail panel is open, as opposed to only its forecast
@@ -47,7 +52,7 @@ export interface LinkState {
    * Only ever false in a link: open is what a link to a cell means otherwise.
    */
   details?: boolean;
-  /** A storm core found in the composite, by the path of its volume. */
+  /** A box of sky found in the composite, by the path of its volume; redirected to its storm like a cell. */
   cloud?: string;
   /** How far the cutaway's slice is turned, as `cutRotationDeg` holds it. */
   cut?: number;
@@ -73,7 +78,7 @@ export interface LinkState {
  * dashboard URL already in circulation still opens where it used to.
  */
 const OWNED = [
-  "layer", "latLonZ", "pitch", "bearing", "overlays", "t", "point", "cell", "details", "cloud", "cut", "shared",
+  "layer", "latLonZ", "pitch", "bearing", "overlays", "t", "point", "storm", "cell", "details", "cloud", "cut", "shared",
 ] as const;
 type OwnedKey = (typeof OWNED)[number];
 
@@ -119,15 +124,18 @@ const LAYER = /^[A-Za-z0-9]{1,32}$/;
  */
 const CELL = /^[A-Za-z0-9_-]{1,64}$/;
 
+/** A storm id: opaque, in the 26-character shape the backend hands out; anything else is not looked up. */
+const STORM = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+
 /**
  * A volume as a link names it: the scan and the core, `20260924T194500/R39853139`.
  *
  * The object's path with the constant parts taken off, which is shorter and
  * reads as an identifier. Because it is rebuilt from two validated pieces,
  * a link can only ever point the client at a volume, never at some
- * other object on the tile host. The layout is the worker's, in meteocool/ng
- * services/worker-analysis/src/clouds.py `_key`; a core's code is its grid
- * position, which is only unique within one scan, hence the scan in front.
+ * other object on the tile host. The layout is the backend's; a core's code
+ * is its grid position, which is only unique within one scan, hence the scan
+ * in front.
  *
  * Three namings: the network and a tile, `de-T100054400355`, since storms
  * were boxed by map tile; the network and a position, `de-G1401218632`, from
@@ -202,10 +210,10 @@ function parseFlag(text: string | null): boolean | undefined {
  * Also settles the combinations a link cannot mean, so a hand-edited one is
  * read the way the app could have written it:
  *
- * - a cell and a cloud are one selection, and the cell wins, since it has a
- *   track and a history and the cloud only a volume;
- * - a cell is only drawn on the newest frame (see the gate in App.svelte), so
- *   a frame off the live edge beside one is dropped rather than the cell;
+ * - a storm, a cell and a cloud are one selection, and the storm wins, then
+ *   the cell, since it has a track and a history and the cloud only a volume;
+ * - a storm or a cell is only drawn on the newest frame (see the gate in
+ *   App.svelte), so a frame off the live edge beside one is dropped;
  * - the panel and the slice both belong to a selection, and mean nothing
  *   without one.
  */
@@ -225,20 +233,23 @@ export function parseLink(search: string | URLSearchParams): LinkState {
   // Folded the way a slice angle is, and the way MapLibre folds its own.
   if (bearing !== null) state.bearing = normaliseCut(bearing);
 
+  const storm = params.get("storm");
   const cell = params.get("cell");
   const cloud = params.get("cloud");
-  if (cell && CELL.test(cell)) {
+  if (storm && STORM.test(storm)) {
+    state.storm = storm;
+  } else if (cell && CELL.test(cell)) {
     state.cell = cell;
   } else if (cloud) {
     const path = cloudPath(cloud);
     if (path) state.cloud = path;
   }
 
-  if (state.cell) {
+  if (state.storm || state.cell) {
     const details = parseFlag(params.get("details"));
     if (details === false) state.details = false;
   }
-  if (state.cell || state.cloud) {
+  if (state.storm || state.cell || state.cloud) {
     const cut = finite(params.get("cut"));
     if (cut !== null) state.cut = normaliseCut(Math.round(cut));
   }
@@ -248,7 +259,7 @@ export function parseLink(search: string | URLSearchParams): LinkState {
 
   const t = params.get("t");
   const time = t ? frameTime(t) : null;
-  if (time !== null && !state.cell) state.time = time;
+  if (time !== null && !state.cell && !state.storm) state.time = time;
 
   const point = parsePair(params.get("point"));
   if (point) state.point = point;
@@ -272,7 +283,8 @@ const fixed = (value: number, digits: number): string => {
 /** Each owned parameter's value for `state`, or null to leave it out. */
 function values(state: LinkState): Record<OwnedKey, string | null> {
   const { view } = state;
-  const selection = Boolean(state.cell || state.cloud);
+  const selection = Boolean(state.storm || state.cell || state.cloud);
+  const tracked = Boolean(state.storm || state.cell);
   return {
     layer: state.layer ?? null,
     // Five decimals is a metre: already finer than any radar pixel.
@@ -282,11 +294,12 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
     overlays: state.overlays === undefined
       ? null
       : (OVERLAYS.filter((overlay) => state.overlays!.includes(overlay)).join(",") || "none"),
-    t: state.time === undefined || state.cell ? null : frameLink(state.time),
+    t: state.time === undefined || tracked ? null : frameLink(state.time),
     point: state.point ? `${fixed(state.point[0], 5)},${fixed(state.point[1], 5)}` : null,
-    cell: state.cell ?? null,
-    details: state.cell && state.details === false ? "0" : null,
-    cloud: !state.cell && state.cloud ? cloudLink(state.cloud) : null,
+    storm: state.storm ?? null,
+    cell: !state.storm && state.cell ? state.cell : null,
+    details: tracked && state.details === false ? "0" : null,
+    cloud: !tracked && state.cloud ? cloudLink(state.cloud) : null,
     cut: selection && state.cut !== undefined && Math.round(normaliseCut(state.cut)) !== 0
       ? fixed(Math.round(normaliseCut(state.cut)), 0)
       : null,
@@ -346,5 +359,6 @@ export function linkSearch(search: string, state: LinkState, keep: readonly stri
  */
 export function isNavigation(from: LinkState, to: LinkState): boolean {
   if (from.layer !== undefined && from.layer !== to.layer) return true;
-  return (from.cell ?? null) !== (to.cell ?? null) || (from.cloud ?? null) !== (to.cloud ?? null);
+  return (from.storm ?? null) !== (to.storm ?? null)
+    || (from.cell ?? null) !== (to.cell ?? null) || (from.cloud ?? null) !== (to.cloud ?? null);
 }

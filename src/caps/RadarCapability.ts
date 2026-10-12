@@ -31,7 +31,7 @@ import {
   radarColorScheme,
   radarStale,
   replay,
-  selectedCell,
+  selectedStorm,
   setFrames,
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
   observedProduct,
@@ -387,8 +387,8 @@ export default class RadarCapability extends Capability {
 
     /* The popup carries the cell's forecast onto the map with it, which is
        what needs the room; there is nothing to make room for once it closes. */
-    selectedCell.subscribe((track) => {
-      const open = track !== null;
+    selectedStorm.subscribe((storm) => {
+      const open = storm !== null;
       if (open === this.inspecting) return;
       this.inspecting = open;
       this.applyRadarOpacity();
