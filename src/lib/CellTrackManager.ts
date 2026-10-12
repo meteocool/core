@@ -10,7 +10,7 @@ import type { CellFeatureKind } from "../layers/cells";
 import {
   ACTIVE_MINUTES, ageMinutes, covers, ellipseRing4326, leadingTip, padExtent, worldExtent,
 } from "./cellGeometry";
-import { trackAsOf, trimToLastRun, withKnownVolume } from "./cellTrack";
+import { trackAsOf, withKnownVolume } from "./cellTrack";
 import { buildCellLinks, supersededCodes } from "./cellLinks";
 import { selectedCell } from "../stores";
 import { isLive } from "./cellPulse";
@@ -69,11 +69,11 @@ export default class CellTrackManager {
    * describing them stays open. The one cell the reader has asked about is
    * therefore redrawn from this whether or not the answer mentions it.
    *
-   * The raw track rather than the drawn features, so it goes through
-   * `trimToLastRun` and the age fading as a fetched one does: a pinned
-   * cell that has stopped being detected fades and drops its outline on the
-   * same schedule as any other. Cleared as soon as the selection changes, so
-   * this holds at most one stale track and only while it is being looked at.
+   * The raw track rather than the drawn features, so it goes through the
+   * age fading as a fetched one does: a pinned cell that has stopped being
+   * detected fades and drops its outline on the same schedule as any other.
+   * Cleared as soon as the selection changes, so this holds at most one
+   * stale track and only while it is being looked at.
    */
   private pinned: CellTrack | null;
 
@@ -200,7 +200,7 @@ export default class CellTrackManager {
     const pinned = this.pinned && this.at !== null ? trackAsOf(this.pinned, this.at) : this.pinned;
     const drawing = !answered && pinned ? [...tracks, pinned] : tracks;
 
-    // Trimmed and indexed before anything is drawn. Both the joins and the
+    // Filtered and indexed before anything is drawn. Both the joins and the
     // superseded rule are about one cell's relationship to another, so neither
     // can be decided while walking the answer a cell at a time.
     //
@@ -208,15 +208,14 @@ export default class CellTrackManager {
     // is dropped here, before the index, so nothing about it is drawn, not the
     // path, the dot, or a lineage join into whatever carried on. The open cell
     // is the one exception, for the reason `superseded` makes one of it below.
-    const trimmed = drawing
-      .filter((raw) => raw.properties.code === open || raw.properties.active)
-      .map((raw) => trimToLastRun(raw));
+    const drawn = drawing
+      .filter((raw) => raw.properties.code === open || raw.properties.active);
     // With the volume already known kept: the viewport answer never has one;
     // see `withKnownVolume`. The open cell's own copies are asked too, which
     // is where a link's or a 3D tap's volume is before any answer has held it.
     // Only in the present: a past frame's copy has no volume on purpose, as
     // it has no outline or forecast (`trackAsOf`).
-    trimmed.forEach((track) => {
+    drawn.forEach((track) => {
       const next = track.properties;
       this.tracks.set(next.code, this.at === null
         ? withKnownVolume(next, previous.get(next.code), this.pinned?.properties, selected)
@@ -231,7 +230,7 @@ export default class CellTrackManager {
     // still shows you where you have got to.
     if (open) superseded.delete(open);
 
-    trimmed.forEach((track) => {
+    drawn.forEach((track) => {
       const p = track.properties;
       /** Replaced by something else that is on the map; see `supersededCodes`. */
       const taken = superseded.has(p.code);

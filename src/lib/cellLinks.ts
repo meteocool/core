@@ -52,8 +52,9 @@ const timeOf = (step: CellStep): number => new Date(step.t).getTime();
  * parent's last point anyway, because that is when the child starts.
  *
  * The step at or before `when`; the first step if the parent's own history
- * starts later, which `trimToLastRun` can produce by cutting a glued start off
- * a parent whose child was not trimmed the same way.
+ * starts later than the child's, which a cut source track upstream can leave
+ * behind (see ng's storm model: a wrong track is cut by a recorded
+ * association decision on the server, never trimmed in the browser).
  */
 export function anchorAt(series: CellStep[], when: number): LonLat | null {
   if (!series.length) return null;

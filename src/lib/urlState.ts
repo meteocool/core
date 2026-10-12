@@ -32,7 +32,6 @@ import {
   frameRequest, inspectLatLon, lightningLayerVisible, mapExtent4326, mapView, playbackRunning, selectedCell,
   selectedVolume, sharedActiveCap,
 } from "../stores";
-import { trimToLastRun } from "./cellTrack";
 import type CellTrackManager from "./CellTrackManager";
 import { OVERLAYS, isNavigation, linkSearch, parseLink } from "./deepLink";
 import type { LinkState, Overlay } from "./deepLink";
@@ -310,15 +309,14 @@ export function startUrlState({ lm, settings, cellmgr, cells3d, nanobar }: Wirin
       reportToast(t("storm.toast.cell_gone"));
       return;
     }
-    const trimmed = trimToLastRun(track);
     cellmgr.pin(track);
     selectedVolume.set(null);
-    selectedCell.set(trimmed.properties);
+    selectedCell.set(track.properties);
     cellDetails.set(link.details !== false);
     // After the cell, which resets the slice for a new storm on its own.
-    if (link.cut !== undefined && trimmed.properties.volume) cutRotationDeg.set(link.cut);
+    if (link.cut !== undefined && track.properties.volume) cutRotationDeg.set(link.cut);
     if (opening && !link.view) {
-      const series = trimmed.properties.series ?? [];
+      const series = track.properties.series ?? [];
       const last = series[series.length - 1];
       if (last) centreOn(last.lat, last.lon);
     }

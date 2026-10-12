@@ -66,7 +66,6 @@ import {
 import type { Place, Quarter, ScanFinds } from "../lib/cloudHistory";
 import { networkAt } from "../layers/networkAt";
 
-import { trimToLastRun } from "../lib/cellTrack";
 import { maplibreLocateControl } from "../lib/GeolocateControl";
 import { maplibreShareControl } from "../lib/ShareControl";
 import { canShare } from "../lib/shareSupport";
@@ -1991,10 +1990,7 @@ export default class Cells3DCapability extends Capability {
    *
    * This map is drawn from `/cells/current`, which is one timestep: it knows
    * a cell's structure but not its history, and the popup is mostly history.
-   * So the tap fetches the track the flat map would already have had, and
-   * trims it the same way. Otherwise the same mis-stitched track that the
-   * flat map now refuses to draw a line for would still report its borrowed
-   * age and peak here.
+   * So the tap fetches the track the flat map would already have had.
    */
   private async select(code: string, details: boolean): Promise<void> {
     const token = Symbol("pick");
@@ -2004,7 +2000,7 @@ export default class Cells3DCapability extends Capability {
       if (this.picking !== token) return;
       const track = answer as unknown as CellTrack | undefined;
       if (track?.properties) {
-        selectedCell.set(trimToLastRun(track).properties);
+        selectedCell.set(track.properties);
         cellDetails.set(details);
       }
     } catch {

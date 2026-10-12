@@ -71,7 +71,7 @@ test("a child born after the parent ended takes the parent's last position", () 
 });
 
 test("a parent whose own history starts later still anchors somewhere real", () => {
-  // `trimToLastRun` can cut a glued start off a parent and not off its child.
+  // A source track cut upstream can start after its child does.
   const series = [step(20, 14, 48), step(25, 15, 48)];
   assert.deepEqual(anchorAt(series, Date.parse(minute(0))), [14, 48]);
 });
