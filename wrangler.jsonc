@@ -32,6 +32,7 @@
     "staging": {
       "name": "meteocool-staging",
       "compatibility_date": "2026-09-20",
+      "logpush": true,
       "workers_dev": true,
       // next.meteocool.com is the staging web address; web.staging stays as
       // an alias so nothing that learned the old name breaks.
@@ -78,6 +79,7 @@
     "demo": {
       "name": "meteocool-demo",
       "compatibility_date": "2026-09-20",
+      "logpush": true,
       "workers_dev": true,
       "routes": [
         { "pattern": "demo.meteocool.com", "custom_domain": true },
