@@ -59,3 +59,28 @@ test("Back to now goes while a hand is on the timeline, and comes back on releas
   await backToNow(page).click();
   await expect(backToNow(page)).toBeHidden();
 });
+
+test("a quick drag with the mouse stops where it is let go, with no glide after", async ({ page }) => {
+  // Driven in the page, a few milliseconds a move, and let go at once: a
+  // drag from here is too slow between moves, and reads as a hand held still.
+  const atRelease = await timeline(page).evaluate(async (strip) => {
+    const rect = strip.getBoundingClientRect();
+    const y = rect.top + rect.height / 2;
+    const fire = (type: string, share: number) => strip.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, pointerId: 7, pointerType: "mouse", isPrimary: true, clientX: rect.left + rect.width * share, clientY: y,
+    }));
+    fire("pointerdown", 0.5);
+    for (let share = 0.47; share >= 0.2; share -= 0.03) {
+      await new Promise((resolve) => setTimeout(resolve, 8));
+      fire("pointermove", share);
+    }
+    const now = strip.getAttribute("aria-valuenow");
+    fire("pointerup", 0.2);
+    return now;
+  });
+  await page.waitForTimeout(1000);
+  // Settled onto the whole step nearest the release, which may be the next
+  // one over; a glide would have carried it well on, towards -2h.
+  const settled = Number(await timeline(page).getAttribute("aria-valuenow"));
+  expect(Math.abs(settled - Number(atRelease))).toBeLessThanOrEqual(1);
+});

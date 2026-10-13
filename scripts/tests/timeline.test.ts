@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  axisTicks, barCeiling, forecastGapFrom, glideStep, hasEcho, indexOf, lastPlayableIndex,
+  axisTicks, barCeiling, flickGlides, forecastGapFrom, glideStep, hasEcho, indexOf, lastPlayableIndex,
   lastPublishedStep, newestObservation, restingStep, rubberBand, timelineSteps,
 } from "../../src/lib/timeline.ts";
 import type { GridConfig } from "../../src/caps/RadarCapability.ts";
@@ -175,4 +175,13 @@ test("with no observation, now is the newest frame at or before the clock, then 
   assert.equal(newestObservation({}, NOW), NOW);
   assert.equal(newestObservation(null, NOW), NOW);
   assert.equal(lastPublishedStep(null, 42), 42);
+});
+
+test("a thumb's flick carries the needle on", () => {
+  assert.equal(flickGlides("touch"), true);
+});
+
+test("a mouse, trackpad or pen stops where it is let go", () => {
+  assert.equal(flickGlides("mouse"), false);
+  assert.equal(flickGlides("pen"), false);
 });

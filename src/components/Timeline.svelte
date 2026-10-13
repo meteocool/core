@@ -10,8 +10,9 @@
  * it is raining, and the bars read as the ruler's ticks grown by the rain.
  *
  * It is a timeline rather than a slider: tap anywhere to go there, drag and
- * the needle follows the finger, flick and it carries on and slows, and it
- * settles on a whole step because that is what the map can show. The ends
+ * the needle follows the finger, flick and it carries on and slows (a touch
+ * only: a mouse stops where it is let go), and it settles on a whole step
+ * because that is what the map can show. The ends
  * give way a little and spring back. It borrows that feel from the storm
  * cutaway's dial (SliceDial) but keeps the strip still under a moving
  * needle, because for weather the whole window matters: when the rain starts
@@ -34,7 +35,7 @@ import { dbz2color } from "../lib/cmap_utils";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import { haptic } from "../lib/haptics";
 import {
-  AT_REST, axisTicks, barCeiling, glideStep, indexOf, lastPlayableIndex, restingStep, rubberBand,
+  AT_REST, axisTicks, barCeiling, flickGlides, glideStep, indexOf, lastPlayableIndex, restingStep, rubberBand,
   type TimelineStep,
 } from "../lib/timeline";
 import type { Translate } from "../locale/t";
@@ -270,8 +271,9 @@ function onPointerUp(event: PointerEvent): void {
     dispatch("release");
     return;
   }
-  // A finger held still before letting go means "here", not "keep going".
-  if (event.timeStamp - lastT > 80) velocity = 0;
+  // A finger held still before letting go means "here", not "keep going";
+  // so does any mouse, trackpad or pen.
+  if (!flickGlides(event.pointerType) || event.timeStamp - lastT > 80) velocity = 0;
   glide();
 }
 

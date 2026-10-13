@@ -197,6 +197,16 @@ export interface Needle {
   velocity: number;
 }
 
+/**
+ * Whether letting go carries the needle on: a thumb's flick, yes; a mouse,
+ * trackpad or pen, no. On a desktop a drag is aimed, and a needle that slides
+ * on past where the hand let go has to be chased back. Those settle onto the
+ * nearest step where they are released.
+ */
+export function flickGlides(pointerType: string): boolean {
+  return pointerType === "touch";
+}
+
 /** Momentum's decay per millisecond: a flick glides about a quarter of the strip. */
 export const FRICTION = 0.006;
 /** How far past an end a drag may pull, in steps, before it stops giving. */
