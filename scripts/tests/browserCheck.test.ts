@@ -34,23 +34,26 @@ function element(tag: string): Element {
   };
 }
 
-function run({ modern = true, bitmaps = modern, search = "", languages = ["en-GB"] } = {}) {
+/** What a browser lacks, by the name of the function the check asks after. */
+type Missing = "createImageBitmap" | "Object.hasOwn" | "Array#at" | "structuredClone";
+
+function run({ missing = [] as Missing[], search = "", languages = ["en-GB"] } = {}) {
   const body = element("body");
   const root = { lang: "" };
   const window: Record<string, unknown> = {
     location: { search },
     matchMedia: () => ({ matches: false }),
   };
-  if (bitmaps) window.createImageBitmap = () => undefined;
+  if (!missing.includes("createImageBitmap")) window.createImageBitmap = () => undefined;
+  if (!missing.includes("structuredClone")) window.structuredClone = (value: unknown) => value;
   const context = vm.createContext({
     window,
     navigator: { languages, language: languages[0] },
     document: { body, documentElement: root, createElement: element },
   });
-  if (!modern) {
-    // The engine's own String, without the method the check asks after.
-    vm.runInContext("delete String.prototype.replaceAll", context);
-  }
+  // The engine's own builtins, without the ones this browser lacks.
+  if (missing.includes("Object.hasOwn")) vm.runInContext("delete Object.hasOwn", context);
+  if (missing.includes("Array#at")) vm.runInContext("delete Array.prototype.at", context);
   vm.runInContext(source, context);
   const notice = body.children[0];
   const words = (el: Element | undefined): string[] => (el ? [el.textContent, ...el.children.flatMap(words)].filter(Boolean) : []);
@@ -64,23 +67,32 @@ test("a current browser is left alone", () => {
 });
 
 test("without createImageBitmap, which every radar tile needs, the page says so", () => {
-  const page = run({ bitmaps: false });
+  const page = run({ missing: ["createImageBitmap"] });
   assert.equal(page.flagged, true);
   assert.equal(page.notice.attributes.role, "alert");
   assert.match(page.text, /too old for meteocool/i);
-  assert.match(page.text, /iOS 15/);
+  assert.match(page.text, /iOS 15\.4/);
 });
 
-test("an engine older than the bundle's syntax is told the same", () => {
-  const page = run({ modern: false, bitmaps: true });
+test("without Object.hasOwn, which the 3D map calls on every frame, the page says so", () => {
+  const page = run({ missing: ["Object.hasOwn"] });
   assert.equal(page.flagged, true);
   assert.match(page.text, /too old/i);
 });
 
+test("without Array#at, which the 3D map calls, the page says so", () => {
+  assert.equal(run({ missing: ["Array#at"] }).flagged, true);
+});
+
+test("without structuredClone, which a cell's lineage graph needs, the page says so", () => {
+  assert.equal(run({ missing: ["structuredClone"] }).flagged, true);
+});
+
 test("in the reader's language, ?lang= first, as the app chooses it", () => {
-  assert.match(run({ bitmaps: false, languages: ["de-AT", "en"] }).text, /zu alt/);
-  assert.equal(run({ bitmaps: false, languages: ["de-AT"] }).lang, "de");
-  assert.match(run({ bitmaps: false, languages: ["ja", "fr-CA"] }).text, /trop ancien/);
-  assert.match(run({ bitmaps: false, search: "?lang=cs", languages: ["de"] }).text, /příliš starý/);
-  assert.match(run({ bitmaps: false, languages: ["ja"] }).text, /too old/i);
+  const old = (search: string, languages: string[]) => run({ missing: ["Object.hasOwn"], search, languages });
+  assert.match(old("", ["de-AT", "en"]).text, /zu alt/);
+  assert.equal(old("", ["de-AT"]).lang, "de");
+  assert.match(old("", ["ja", "fr-CA"]).text, /trop ancien/);
+  assert.match(old("?lang=cs", ["de"]).text, /příliš starý/);
+  assert.match(old("", ["ja"]).text, /too old/i);
 });

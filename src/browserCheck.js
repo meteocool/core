@@ -8,10 +8,11 @@
  * - createImageBitmap, which decodes every radar tile in a browser too old to
  *   inflate one itself (lib/valuePng.ts), and hands the 3D map its tiles.
  *   Without it the map came up with no rain on it: Safari and iOS before 15.
- * - The 2020 syntax the bundle is built to (Vite's default target). An engine
- *   older than that cannot parse it, and the page stayed blank. Asked through
- *   String#replaceAll, which shipped in the same releases or soon after:
- *   Chrome 85, Firefox 77, Safari 13.1.
+ * - What the bundle calls without asking first: the 3D map (MapLibre) uses
+ *   Object.hasOwn and Array#at, a cell's lineage graph structuredClone. All three came in Chrome 98, Firefox 94 and Safari 15.4
+ *   or earlier, after the 2020 syntax the bundle is built to. An Android
+ *   WebView 91 got past the old test (String#replaceAll) and threw on every
+ *   frame of the map.
  *
  * Lacking either, the page says so, and `window.mcUnsupported` tells the entry
  * points to start nothing behind it (lib/browserSupport.ts). The strings live
@@ -19,37 +20,40 @@
  * the language is picked as locale/choose.ts picks it, `?lang=` first.
  */
 (function () {
-  if (typeof window.createImageBitmap === "function" && typeof "".replaceAll === "function") return;
+  if (typeof window.createImageBitmap === "function"
+    && typeof Object.hasOwn === "function"
+    && typeof [].at === "function"
+    && typeof window.structuredClone === "function") return;
   window.mcUnsupported = true;
 
   var MESSAGES = {
     en: [
       "This Browser Is Too Old for meteocool",
-      "It cannot draw the rain radar. Please update it. On an iPhone or iPad, meteocool needs iOS 15 or later.",
+      "It cannot draw the rain radar. Please update it. On an iPhone or iPad, meteocool needs iOS 15.4 or later.",
     ],
     de: [
       "Dieser Browser ist zu alt für meteocool",
-      "Er kann das Regenradar nicht anzeigen. Bitte aktualisiere ihn. Auf iPhone und iPad braucht meteocool iOS 15 oder neuer.",
+      "Er kann das Regenradar nicht anzeigen. Bitte aktualisiere ihn. Auf iPhone und iPad braucht meteocool iOS 15.4 oder neuer.",
     ],
     fr: [
       "Ce navigateur est trop ancien pour meteocool",
-      "Il ne peut pas afficher le radar de pluie. Veuillez le mettre à jour. Sur iPhone et iPad, meteocool nécessite iOS 15 ou ultérieur.",
+      "Il ne peut pas afficher le radar de pluie. Veuillez le mettre à jour. Sur iPhone et iPad, meteocool nécessite iOS 15.4 ou ultérieur.",
     ],
     pl: [
       "Ta przeglądarka jest zbyt stara dla meteocool",
-      "Nie może wyświetlić radaru opadów. Zaktualizuj ją. Na iPhonie i iPadzie meteocool wymaga iOS 15 lub nowszego.",
+      "Nie może wyświetlić radaru opadów. Zaktualizuj ją. Na iPhonie i iPadzie meteocool wymaga iOS 15.4 lub nowszego.",
     ],
     nl: [
       "Deze browser is te oud voor meteocool",
-      "Hij kan de regenradar niet tonen. Werk hem bij. Op een iPhone of iPad heeft meteocool iOS 15 of nieuwer nodig.",
+      "Hij kan de regenradar niet tonen. Werk hem bij. Op een iPhone of iPad heeft meteocool iOS 15.4 of nieuwer nodig.",
     ],
     cs: [
       "Tento prohlížeč je pro meteocool příliš starý",
-      "Neumí zobrazit srážkový radar. Aktualizuj ho. Na iPhonu a iPadu potřebuje meteocool iOS 15 nebo novější.",
+      "Neumí zobrazit srážkový radar. Aktualizuj ho. Na iPhonu a iPadu potřebuje meteocool iOS 15.4 nebo novější.",
     ],
     sk: [
       "Tento prehliadač je pre meteocool príliš starý",
-      "Nedokáže zobraziť zrážkový radar. Aktualizuj ho. Na iPhone a iPade potrebuje meteocool iOS 15 alebo novší.",
+      "Nedokáže zobraziť zrážkový radar. Aktualizuj ho. Na iPhone a iPade potrebuje meteocool iOS 15.4 alebo novší.",
     ],
   };
 
