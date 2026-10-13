@@ -21,8 +21,20 @@ async function step(page: Page, times: number): Promise<void> {
   for (let i = 0; i < times; i += 1) await page.keyboard.press("ArrowRight");
 }
 
-/** Answer the timeseries with a French run whenever it is asked for; returns each request's `products`. */
-async function answerWithRun(page: Page): Promise<string[][]> {
+/** The recording's forecast steps, oldest first: WN's, which a run's leads line up with. */
+function recordedForecastSteps(): string[] {
+  const url = new URL("http://localhost/v3/radar/timeseries");
+  const frames = (JSON.parse(readFileSync(fixtureFile("GET", url), "utf8")) as RecordedResponse).json as {
+    frames: Record<string, { source: string } | null>;
+  };
+  return Object.keys(frames.frames).filter((key) => frames.frames[key]?.source === "nowcast_phys").sort();
+}
+
+/**
+ * Answer the timeseries with a French run of `leads()` leads from the first
+ * forecast step whenever it is asked for; returns each request's `products`.
+ */
+async function answerWithRun(page: Page, leads = () => RUN_LEADS): Promise<string[][]> {
   const asked: string[][] = [];
   await page.route("**/v3/radar/timeseries*", (route) => {
     const url = new URL(route.request().url());
@@ -37,7 +49,7 @@ async function answerWithRun(page: Page): Promise<string[][]> {
       const forecast = Object.keys(answer.frames)
         .filter((key) => answer.frames[key]?.source === "nowcast_phys")
         .sort()
-        .slice(0, RUN_LEADS);
+        .slice(0, leads());
       answer.products = {
         ...answer.products,
         nowcast_fr: Object.fromEntries(forecast.map((key, i) => [key, {
@@ -61,6 +73,23 @@ test("on by default: it is asked for, and France has a forecast to its run's las
   // Past a run still being made, France is back to having none.
   await step(page, RUN_LEADS);
   await expect(noForecastNotice(page)).toBeVisible();
+});
+
+test("while a run is a step behind WN's last, the player stops where the run does", async ({ page }) => {
+  // On WN's last step the run has no lead yet: France would be washed out
+  // as having no forecast on that one step alone.
+  let leads = recordedForecastSteps().length;
+  await answerWithRun(page, () => leads);
+  await openRadar(page, AQUITAINE_VIEW);
+  const whole = Number(await timeline(page).getAttribute("aria-valuemax"));
+
+  leads -= 1;
+  await page.reload();
+  await expect(timeline(page)).toBeVisible({ timeout: 30_000 });
+  await expect.poll(async () => Number(await timeline(page).getAttribute("aria-valuemax"))).toBe(whole - 1);
+  await timeline(page).focus();
+  await page.keyboard.press("End");
+  await expect(noForecastNotice(page)).toBeHidden();
 });
 
 test("turned off, it is not asked for, remembered, and France has no forecast", async ({ page }) => {

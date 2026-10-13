@@ -59,7 +59,7 @@ import {
 } from "../lib/observedProduct";
 import type { AlternativeProduct, NewestScans, ObservedProduct, ScanRange } from "../lib/observedProduct";
 import {
-  NOWCAST_PRODUCT, chartFrames, domainsAt, domainsWithRun, nowcastRuns,
+  NOWCAST_PRODUCT, chartFrames, domainsAt, domainsWithRun, lastStepWithRuns, nowcastRuns,
 } from "../lib/nowcast";
 import type { NowcastRuns } from "../lib/nowcast";
 import { NOWCAST_OPACITY } from "../layers/ui";
@@ -1197,10 +1197,12 @@ export default class RadarCapability extends Capability {
    * clock advances while the radar does not, which looks like a freeze.
    *
    * A missed scan before it is played through on the frame before it: see
-   * `lastPublishedStep` in lib/timeline.ts.
+   * `lastPublishedStep` in lib/timeline.ts. With meteocool's nowcast on, held
+   * back to where the networks' runs end while they catch up with WN: see
+   * `lastStepWithRuns` in lib/nowcast.ts.
    */
   getLastPlayableStep(): number {
-    return lastPublishedStep(this.clientGrid, this.gridconfig.end);
+    return lastStepWithRuns(lastPublishedStep(this.clientGrid, this.gridconfig.end), this.nowcastGrid);
   }
 
   processRadar(obj) {

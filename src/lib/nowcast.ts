@@ -42,6 +42,37 @@ export function domainsAt<F>(runs: NowcastRuns<F>, step: number): CountryNetwork
   return NOWCAST_DOMAINS.filter((domain) => runs[domain]?.[step] != null);
 }
 
+/**
+ * How many steps WN's last may run past a network's run before the run is
+ * taken to have stalled rather than to be catching up.
+ */
+export const RUN_CATCH_UP_STEPS = 2;
+
+/** The timeline's step, in seconds. */
+const STEP_SECONDS = 5 * 60;
+
+/**
+ * The newest step the player may reach, given WN's `last` and the runs.
+ *
+ * Each network's run is made a few minutes after WN's, so for part of every
+ * cycle WN has a step its runs do not reach yet. On that step every network
+ * with a run was washed out as having no forecast, while the step before had
+ * one for all of them. So the timeline ends where every run ends, for the few
+ * minutes the runs take to catch up. A run further behind than
+ * `RUN_CATCH_UP_STEPS` has stalled and does not hold WN back: past its end
+ * the wash is the truth, that network has no forecast.
+ */
+export function lastStepWithRuns<F>(last: number, runs: NowcastRuns<F>): number {
+  let held = last;
+  for (const domain of NOWCAST_DOMAINS) {
+    const run = runs[domain];
+    if (!run) continue;
+    const end = Math.max(...Object.keys(run).map(Number));
+    if (end < last && last - end <= RUN_CATCH_UP_STEPS * STEP_SECONDS) held = Math.min(held, end);
+  }
+  return held;
+}
+
 /** The networks with a run at all. */
 export function domainsWithRun<F>(runs: NowcastRuns<F>): CountryNetwork[] {
   return NOWCAST_DOMAINS.filter((domain) => runs[domain] !== undefined);

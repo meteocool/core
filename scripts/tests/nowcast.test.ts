@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  NOWCAST_DOMAINS, chartFrames, domainsAt, domainsWithRun, nowcastRuns,
+  NOWCAST_DOMAINS, RUN_CATCH_UP_STEPS, chartFrames, domainsAt, domainsWithRun, lastStepWithRuns, nowcastRuns,
 } from "../../src/lib/nowcast.ts";
 
 /**
@@ -64,4 +64,35 @@ test("the chart's forecast bars come from the point's run, and stop at its last 
 test("without a run for the point, the chart is WN's as ever", () => {
   const frames = { [NOW + STEP]: { source: "nowcast_phys", dbz: 18 } };
   assert.equal(chartFrames(frames, undefined), frames);
+});
+
+/**
+ * Where the player stops: WN's last step, unless a run is still catching up
+ * with it, in which case that step would show the run's network as having no
+ * forecast for the minutes until it lands.
+ */
+const WN_LAST = NOW + 24 * STEP;
+
+test("with every run reaching WN's last step, the player runs to it", () => {
+  const runs = nowcastRuns({ nowcast_fr: run(NOW, 24), nowcast_ch: run(NOW + STEP, 24) });
+  assert.equal(lastStepWithRuns(WN_LAST, runs), WN_LAST);
+});
+
+test("a run a step behind WN holds the player back to the run's last lead", () => {
+  const runs = nowcastRuns({ nowcast_fr: run(NOW - STEP, 24), nowcast_ch: run(NOW, 24) });
+  assert.equal(lastStepWithRuns(WN_LAST, runs), WN_LAST - STEP);
+});
+
+test("the run furthest behind decides, while each is still catching up", () => {
+  const runs = nowcastRuns({ nowcast_fr: run(NOW - STEP, 24), nowcast_pl: run(NOW - RUN_CATCH_UP_STEPS * STEP, 24) });
+  assert.equal(lastStepWithRuns(WN_LAST, runs), WN_LAST - RUN_CATCH_UP_STEPS * STEP);
+});
+
+test("a run that has stalled does not hold WN back", () => {
+  const runs = nowcastRuns({ nowcast_fr: run(NOW - (RUN_CATCH_UP_STEPS + 1) * STEP, 24), nowcast_ch: run(NOW, 24) });
+  assert.equal(lastStepWithRuns(WN_LAST, runs), WN_LAST);
+});
+
+test("without runs, WN's last step is the player's", () => {
+  assert.equal(lastStepWithRuns(WN_LAST, {}), WN_LAST);
 });
