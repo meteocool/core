@@ -250,11 +250,11 @@ window.settings = new Settings({
     },
   },
   /* meteocool's own nowcast outside Germany on the forecast steps, beside WN
-     (lib/nowcast.ts). Experimental, so off unless turned on; nothing about
-     the alerts follows it. */
+     (lib/nowcast.ts). Experimental, but on unless turned off: Germany stays
+     WN's either way. Nothing about the alerts follows it. */
   meteocoolNowcast: {
     type: "boolean",
-    default: false,
+    default: true,
     cb: (value) => {
       meteocoolNowcast.set(Boolean(value));
     },

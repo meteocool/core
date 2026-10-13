@@ -179,7 +179,7 @@
     "playback_from_start": "Schleife ab zwei Stunden zurück",
     "playback_from_start_hint": "Die Wiedergabe beginnt zwei Stunden vor jetzt statt bei jetzt und zeigt so erst, wie der Regen hergekommen ist, und dann, wohin er zieht.",
     "meteocool_nowcast": "meteocool-Nowcast (experimentell)",
-    "meteocool_nowcast_hint": "Sagt die nächste Stunde über der Schweiz, Frankreich, Tschechien und Polen aus deren eigenem Radar voraus, wie meteocool es fortschreibt. Über Deutschland bleibt die Vorhersage des Deutschen Wetterdienstes. Experimentell: kann falsch, spät oder gar nicht da sein.",
+    "meteocool_nowcast_hint": "Sagt die nächsten zwei Stunden über der Schweiz, Frankreich, Tschechien und Polen aus deren eigenem Radar voraus, wie meteocool es fortschreibt. Über Deutschland bleibt die Vorhersage des Deutschen Wetterdienstes. Experimentell: kann falsch, spät oder gar nicht da sein.",
     "performance": "Leistung",
     "mode": "Modus",
     "modes": {
@@ -443,7 +443,6 @@
       "cells": "Gewitterzellen",
       "map_layers": "Kartenebenen",
       "back_to_latest": "Zurück zu Aktuell",
-      "germany_only": "nur DE",
       "play": "Abspielen",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",

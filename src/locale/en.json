@@ -179,7 +179,7 @@
     "playback_from_start": "Loop From Two Hours Back",
     "playback_from_start_hint": "Playback starts two hours before now instead of at now, so it shows how the rain got here before where it goes next.",
     "meteocool_nowcast": "meteocool Nowcast (Experimental)",
-    "meteocool_nowcast_hint": "Forecasts the next hour over Switzerland, France, Czechia and Poland from their own radar, as meteocool extrapolates it. Germany keeps the German Weather Service's forecast. Experimental: it may be wrong, late or missing.",
+    "meteocool_nowcast_hint": "Forecasts the next two hours over Switzerland, France, Czechia and Poland from their own radar, as meteocool extrapolates it. Germany keeps the German Weather Service's forecast. Experimental: it may be wrong, late or missing.",
     "performance": "Performance",
     "mode": "Mode",
     "modes": {
@@ -443,7 +443,6 @@
       "cells": "Storm Cells",
       "map_layers": "Map Layers",
       "back_to_latest": "Back to now",
-      "germany_only": "DE only",
       "play": "Play",
       "offset_minutes": "{sign}{minutes}m",
       "offset_hours": "{sign}{hours}h",

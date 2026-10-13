@@ -28,7 +28,7 @@ import LiveIndicator from "./LiveIndicator.svelte";
 import Timeline from "./Timeline.svelte";
 import { _, locale } from "svelte-i18n";
 import { get } from "svelte/store";
-import { forecastGapFrom, germanyOnlyFrom, hasEcho, timelineSteps } from "../lib/timeline";
+import { forecastGapFrom, hasEcho, timelineSteps } from "../lib/timeline";
 import {
   chRadarExtent4326,
   czRadarExtent4326,
@@ -145,14 +145,6 @@ $: hasPrecipitation = hasEcho(steps);
  * all. Flat bars there would say "dry" when the truth is "no forecast".
  */
 $: noForecastFrom = forecastGapFrom(steps);
-
-/**
- * Where the forecast is Germany's alone: the steps past the last lead of
- * meteocool's nowcast runs, read off the runs the grid came with, while the
- * experimental setting is on and there is a run; null otherwise. The strip
- * hatches them, and says so unless "no forecast here" already stands there.
- */
-$: germanyOnly = gridConfig && $nowcastCoverage ? germanyOnlyFrom(steps, cap.nowcastLastLead()) : null;
 
 /**
  * Whether any of what is on screen has radar behind it.
@@ -1120,8 +1112,6 @@ onDestroy(() => {
           latest={latestObservation}
           value={shown}
           {labelEvery}
-          {germanyOnly}
-          germanyOnlyLabel={noForecastFrom === null}
           on:grab={grabbed}
           on:release={released}
           on:seek={seek} />
