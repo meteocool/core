@@ -71,6 +71,24 @@ test("a join meets the storm it merged into at the vertex nearest its end", () =
   assert.deepEqual(nearestOn([[0, 0], [1, 0], [2, 0]], [1.2, 0.1]), [1, 0]);
 });
 
+test("a branch of a split is joined to where the storm it split from was when it branched off", () => {
+  const parent = storm(A, { born_at: at(-60) }, [[10, 50], [10.1, 50], [10.2, 50], [10.3, 50]]);
+  const branch = storm(B, { born_at: at(-40), split_from: A }, [[10.12, 50.05], [10.2, 50.1]]);
+  const { marks, links } = drawStorms([parent, branch], options);
+  assert.deepEqual(kinds(marks, B), ["path", "position"]);
+  assert.equal(links.length, 1);
+  assert.equal(links[0].storm, B);
+  assert.equal(links[0].from_storm, A);
+  assert.deepEqual(links[0].geometry.coordinates, [[10.1, 50], [10.12, 50.05]]);
+});
+
+test("a branch whose parent is not on the map, or not yet split off, draws no join", () => {
+  const parent = storm(A, { born_at: at(-60) }, [[10, 50], [10.3, 50]]);
+  const branch = storm(B, { born_at: at(-40), split_from: A }, [[10.12, 50.05], [10.2, 50.1]]);
+  assert.deepEqual(drawStorms([branch], options).links, []);
+  assert.deepEqual(drawStorms([parent, branch], { ...options, now: T0 - 50 * 60_000, at: T0 - 50 * 60_000 }).links, []);
+});
+
 test("the selected KONRAD3D storm draws its forecast and ellipses, with labels on the far end", () => {
   const of = storm(A, { primary_product: "dwd/konrad3d", primary_track: "C1" });
   const selection = withDetail(fromStorm(of), detail(of, { konrad3d: [trackFeature(cell("C1", { forecast }))] }));

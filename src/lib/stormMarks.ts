@@ -4,7 +4,7 @@
  * The same visual language KONRAD3D's tracks had (layers/cells.ts): each
  * storm's path, its position now, its outline, and for the selected storm
  * KONRAD3D's forecast centroids and the uncertainty ellipse around each; and a
- * dotted join where one storm merged into another. Over Germany a storm
+ * dotted join where one storm merged into another, or split off one. Over Germany a storm
  * whose primary track is KONRAD3D's looks as its cell did; elsewhere it has
  * meteocool's tracker's track and nothing else: no forecast, no hail or
  * rotation badge, a colour from its peak alone.
@@ -21,7 +21,8 @@ import type { StormSelection } from "./stormSelection";
 
 /**
  * What a mark is: a storm's path, its `position` now, its outline, a forecast
- * centroid and its ellipse, or a join into the storm it merged into.
+ * centroid and its ellipse, or a join: into the storm it merged into, or out
+ * of the storm it split from.
  */
 export type StormMarkKind = "path" | "link" | "position" | "outline" | "forecast" | "ellipse";
 
@@ -38,7 +39,7 @@ export interface StormMark {
   id: string;
   /** The storm it belongs to; a join belongs to the storm it leads into. */
   storm: string;
-  /** For a join: the storm that merged. */
+  /** For a join: the storm it leads out of, the one that merged or the one split from. */
   from_storm?: string;
   geometry: MarkGeometry;
   severity: number;
@@ -233,6 +234,23 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
         meso: false,
         age_minutes: ageMinutes(t.last_seen, now),
         live: liveOf(target),
+      });
+    }
+    // A branch of a split, joined to where the storm it split from was then:
+    // that storm's path cut back to the split, at its vertex nearest the
+    // branch's first point.
+    const parent = p.split_from ? byId.get(p.split_from) : undefined;
+    if (parent) {
+      const start = path[0];
+      const then = stormAsOf(parent, new Date(p.born_at).getTime()) ?? parent;
+      links.push({
+        ...shared,
+        kind: "link",
+        id: `${parent.properties.id}>${p.id}`,
+        from_storm: parent.properties.id,
+        geometry: { type: "LineString", coordinates: [nearestOn(pathOf(then), start), start] },
+        hail: false,
+        meso: false,
       });
     }
   }

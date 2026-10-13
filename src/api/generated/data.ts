@@ -1005,6 +1005,11 @@ export interface components {
             /** Speed Kmh */
             speed_kmh?: number | null;
             /**
+             * Split From
+             * @description The storm it branched off in a split, at `born_at`; null for a storm born on its own
+             */
+            split_from?: string | null;
+            /**
              * Status
              * @description Ended 20 minutes after it was last seen; merged when it ran into another storm
              * @enum {string}
