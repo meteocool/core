@@ -343,7 +343,7 @@
       "reset_track": "podél dráhy",
       "dial_aria": "Otočit řez",
       "cutaway_aria": "Otočit řez bouřkou",
-      "cutaway_caption": "Stylizováno. Radarový objem z {sites}, {cut}."
+      "cutaway_caption": "Stylizováno, {cut}."
     },
     "toast": {
       "cell_gone": "Tato bouřka už se nesleduje.",

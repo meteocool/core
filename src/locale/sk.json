@@ -343,7 +343,7 @@
       "reset_track": "v smere dráhy",
       "dial_aria": "Otoč rez",
       "cutaway_aria": "Otoč rez búrkou",
-      "cutaway_caption": "Štylizované. Radarový objem z {sites}, {cut}."
+      "cutaway_caption": "Štylizované, {cut}."
     },
     "toast": {
       "cell_gone": "Táto búrka sa už nesleduje.",

@@ -343,7 +343,7 @@
       "reset_track": "le long de la trajectoire",
       "dial_aria": "Tourner la coupe",
       "cutaway_aria": "Tourner la coupe à travers l'orage",
-      "cutaway_caption": "Stylisé. Volume radar de {sites}, {cut}."
+      "cutaway_caption": "Stylisé, {cut}."
     },
     "toast": {
       "cell_gone": "Cette cellule orageuse n'est plus suivie.",

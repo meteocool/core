@@ -338,7 +338,7 @@ const ratio = typeof devicePixelRatio === "number" ? Math.min(devicePixelRatio, 
         on:click={() => { stopSweep(false); cutRotationDeg.set(90); }}>{snapB}</button>
     </div>
     <figcaption>
-      {$_("storm.cut.cutaway_caption", { values: { sites: cutaway.header.sites.join(", "), cut } })}
+      {$_("storm.cut.cutaway_caption", { values: { cut } })}
     </figcaption>
   </figure>
 {:else}

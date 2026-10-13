@@ -347,7 +347,7 @@
       "reset_track": "along track",
       "dial_aria": "Turn the cut",
       "cutaway_aria": "Turn the slice through the storm",
-      "cutaway_caption": "Stylised. Radar volume from {sites}, {cut}."
+      "cutaway_caption": "Stylised, {cut}."
     },
     "toast": {
       "cell_gone": "That storm is no longer being tracked.",

@@ -9,6 +9,8 @@
  * covered it: enough to judge it by, and no more. A sketch of where
  * they stand round the storm heads the list, a row picking out its radar.
  *
+ * The flat map's panel takes the radars alone, under its own cutaway.
+ *
  * Shared by both kinds of storm, a tracked cell's and a core found only in
  * the composite, and headed in `StormPanel`'s sections.
  */
@@ -21,6 +23,8 @@ import type { CellVolume } from "../api";
 export let volume: CellVolume;
 /** Where the storm is, for how far each radar was from it; none when unknown. */
 export let at: { lat: number; lon: number } | null = null;
+/** The CAPPI too, on the 3D map; the flat map's panel has its own cutaway and takes the radars alone. */
+export let cappi = true;
 
 let width = 300;
 /** The radar a row is pointing at, picked out on the minimap. */
@@ -47,11 +51,13 @@ $: unopenable = volume.tier === 1;
 </script>
 
 <div class="provenance" bind:clientWidth={width}>
-  {#if unopenable}
-    <p class="unopenable">{$_("storm.volume.not_openable")}</p>
+  {#if cappi}
+    {#if unopenable}
+      <p class="unopenable">{$_("storm.volume.not_openable")}</p>
+    {/if}
+    <h3 class="section">CAPPI<span class="aside">{$_("storm.volume.cappi_aside")}</span></h3>
+    <CappiSweep {volume} {width} height={Math.round(Math.min(240, width * 0.66))} />
   {/if}
-  <h3 class="section">CAPPI<span class="aside">{$_("storm.volume.cappi_aside")}</span></h3>
-  <CappiSweep {volume} {width} height={Math.round(Math.min(240, width * 0.66))} />
 
   {#if radars.length}
     <h3 class="section">{$_("storm.volume.radars")}{#if coverage}<span class="aside">{coverage}</span>{/if}</h3>

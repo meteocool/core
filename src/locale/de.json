@@ -347,7 +347,7 @@
       "reset_track": "entlang der Zugbahn",
       "dial_aria": "Schnitt drehen",
       "cutaway_aria": "Schnitt durch das Gewitter drehen",
-      "cutaway_caption": "Stilisiert. Radarvolumen von {sites}, {cut}."
+      "cutaway_caption": "Stilisiert, {cut}."
     },
     "toast": {
       "cell_gone": "Diese Gewitterzelle wird nicht mehr verfolgt.",

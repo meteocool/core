@@ -886,6 +886,11 @@ function close() {
         {$_("storm.open_3d")}
       </button>
     {/if}
+    {#if showVolume}
+      {#key volume.path}
+        <VolumeProvenance {volume} at={latest ?? selection.volume ?? null} cappi={false} />
+      {/key}
+    {/if}
   {/if}
 
   {#if span && panels.length}

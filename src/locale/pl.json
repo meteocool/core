@@ -343,7 +343,7 @@
       "reset_track": "wzdłuż toru",
       "dial_aria": "Obróć przekrój",
       "cutaway_aria": "Obróć przekrój przez burzę",
-      "cutaway_caption": "Stylizacja. Wolumen radarowy z {sites}, {cut}."
+      "cutaway_caption": "Stylizacja, {cut}."
     },
     "toast": {
       "cell_gone": "Ta burza nie jest już śledzona.",

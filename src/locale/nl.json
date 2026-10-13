@@ -343,7 +343,7 @@
       "reset_track": "langs de baan",
       "dial_aria": "Doorsnede draaien",
       "cutaway_aria": "Doorsnede door de onweerscel draaien",
-      "cutaway_caption": "Gestileerd. Radarvolume van {sites}, {cut}."
+      "cutaway_caption": "Gestileerd, {cut}."
     },
     "toast": {
       "cell_gone": "Die onweerscel wordt niet meer gevolgd.",
