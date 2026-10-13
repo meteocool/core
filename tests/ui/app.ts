@@ -40,3 +40,9 @@ export function overlaps(a: { x: number; y: number; width: number; height: numbe
   b: { x: number; y: number; width: number; height: number }): boolean {
   return a.x < b.x + b.width - 1 && b.x < a.x + a.width - 1 && a.y < b.y + b.height - 1 && b.y < a.y + a.height - 1;
 }
+
+/** No place names offline: what asks for one (a storm's panel, the 3D map) goes without. */
+export async function noGeocoder(page: Page): Promise<void> {
+  await page.route("**/geocoding/**", (route) => route.fulfill({ status: 404, json: {} }));
+  await page.route("https://api.bigdatacloud.net/**", (route) => route.fulfill({ status: 404, json: {} }));
+}

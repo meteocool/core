@@ -12,6 +12,7 @@ import { radarColormap } from "../stores";
 import type { RadarVolume } from "../api";
 import { isVolumeBehind } from "../lib/scans";
 import type { RadarScans } from "../lib/scans";
+import { greyedOut, tagPrecedence } from "../lib/staleTint";
 
 /**
  * A "3D" tag beside every storm core the 3D map can cut open.
@@ -31,7 +32,7 @@ import type { RadarScans } from "../lib/scans";
  * at, and with a cube coloured by the core's peak on the radar's own ramp, so
  * a strong core stands out before it is opened.
  *
- * Decluttered among themselves only, strongest first: a line of showers can
+ * Decluttered among themselves only, current before stale, strongest first: a line of showers can
  * put a dozen cores within a finger's width at a wide zoom, and a stack of
  * overlapping pills is neither readable nor tappable. At a wide zoom they are
  * thinned further, to one per neighbourhood; see `SPACING_PX`.
@@ -40,10 +41,10 @@ import type { RadarScans } from "../lib/scans";
  * covers, and a squall line would otherwise carry a pill on each. The pill
  * goes on the strongest of its tiles, which opens there.
  *
- * Only for a core as new as the radar under it. One from an older scan stands
- * a scan upwind of the echo, which is no place to send anyone: the tag is
- * taken off when the radar moves on and put back when that scan's volumes
- * land. See lib/scans.ts.
+ * A core from an older scan than the radar under it stands a scan upwind of
+ * the echo. Its tag stays, greyed, until that scan's volumes land and take
+ * its place: taken off instead, every tag blinked out for a few minutes of
+ * each scan. See lib/scans.ts and lib/staleTint.ts.
  */
 
 /** Where the pill sits relative to the core, in pixels right and up. */
@@ -80,10 +81,19 @@ interface Palette {
   fill: string;
   edge: string;
   text: string;
+  /** A stale tag's: the grey over its cube, and its "3D". */
+  grey: [number, number, number];
+  staleText: string;
 }
 
-const LIGHT: Palette = { fill: "rgba(255, 255, 255, 0.94)", edge: "rgba(17, 20, 26, 0.18)", text: "#11141a" };
-const DARK: Palette = { fill: "rgba(24, 28, 36, 0.92)", edge: "rgba(255, 255, 255, 0.22)", text: "#f2f4f7" };
+const LIGHT: Palette = {
+  fill: "rgba(255, 255, 255, 0.94)", edge: "rgba(17, 20, 26, 0.18)", text: "#11141a",
+  grey: [158, 162, 168], staleText: "#80858d",
+};
+const DARK: Palette = {
+  fill: "rgba(24, 28, 36, 0.92)", edge: "rgba(255, 255, 255, 0.22)", text: "#f2f4f7",
+  grey: [112, 117, 125], staleText: "#8a9099",
+};
 
 let palette = LIGHT;
 let colormap = "classic";
@@ -96,8 +106,9 @@ const styleCache = new Map<string, Style>();
  * own colour, which reads as a solid block at this size where a wireframe
  * reads as a smudge. The 3D map has none: every storm on it stands in 3D.
  */
-function pillSvg(core: string): string {
-  const { fill, edge, text } = palette;
+function pillSvg(core: string, stale: boolean): string {
+  const { fill, edge } = palette;
+  const text = stale ? palette.staleText : palette.text;
   const s = RENDER_SCALE;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${34 * s}" height="${18 * s}" viewBox="0 0 34 18">`
     + `<rect x="0.5" y="0.5" width="33" height="17" rx="8.5" fill="${fill}" stroke="${edge}"/>`
@@ -110,13 +121,15 @@ function pillSvg(core: string): string {
 
 function hintStyle(feature: FeatureLike): Style {
   const dbz = Math.round((feature.get("peak_dbz") ?? 40) / DBZ_STEP) * DBZ_STEP;
-  const key = `${palette.fill}:${colormap}:${dbz}`;
+  const stale = feature.get("stale") === true;
+  const key = `${palette.fill}:${colormap}:${dbz}:${stale}`;
   let style = styleCache.get(key);
   if (!style) {
-    const [r, g, b] = dbzColour(dbz, colormap);
+    const colour = dbzColour(dbz, colormap);
+    const [r, g, b] = stale ? greyedOut(colour, palette.grey) : colour;
     style = new Style({
       image: new Icon({
-        src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pillSvg(`rgb(${r}, ${g}, ${b})`))}`,
+        src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pillSvg(`rgb(${r}, ${g}, ${b})`, stale))}`,
         scale: 1 / RENDER_SCALE,
         anchor: [0, 1],
         displacement: DISPLACEMENT,
@@ -127,7 +140,11 @@ function hintStyle(feature: FeatureLike): Style {
   return style;
 }
 
-const peakOf = (feature: FeatureLike): number => feature.get("peak_dbz") ?? 0;
+/** Which of two pills gives way to the other; see `tagPrecedence`. */
+const byPrecedence = (a: FeatureLike, b: FeatureLike): number => tagPrecedence(
+  { stale: a.get("stale") === true, peak: a.get("peak_dbz") ?? 0 },
+  { stale: b.get("stale") === true, peak: b.get("peak_dbz") ?? 0 },
+);
 
 /**
  * The strongest tile of each storm, by its `system`; each volume from before
@@ -145,8 +162,9 @@ export function onePerStorm(clouds: RadarVolume[]): RadarVolume[] {
 }
 
 /**
- * The pills a whole zoom level keeps: strongest first, each one at least that
- * level's spacing from every stronger one kept. Null where every pill is kept.
+ * The pills a whole zoom level keeps: current before stale, strongest first,
+ * each one at least that level's spacing from every one kept before it. Null
+ * where every pill is kept.
  */
 function thin(features: Feature[], zoom: number): Set<Feature> | null {
   const spacingPx = SPACING_PX[Math.max(zoom, MIN_ZOOM)];
@@ -154,7 +172,7 @@ function thin(features: Feature[], zoom: number): Set<Feature> | null {
   const spacing = spacingPx * (ZOOM0_RESOLUTION / 2 ** zoom);
   const kept: Array<[number, number]> = [];
   const keep = new Set<Feature>();
-  for (const feature of [...features].sort((a, b) => peakOf(b) - peakOf(a))) {
+  for (const feature of [...features].sort(byPrecedence)) {
     const [x, y] = (feature.getGeometry() as Point).getCoordinates();
     if (kept.some(([kx, ky]) => Math.hypot(x - kx, y - ky) < spacing)) continue;
     kept.push([x, y]);
@@ -167,7 +185,7 @@ export interface CloudHints {
   layer: VectorLayer<VectorSource>;
   /** Replace the cores with the newest list's. */
   setClouds(clouds: RadarVolume[]): void;
-  /** The radar the flat map draws, which a core must be as new as to be tagged. */
+  /** The radar the flat map draws: a core older than it is tagged grey. */
   setRadar(radar: RadarScans): void;
 }
 
@@ -178,15 +196,15 @@ export default function makeCloudHints(): CloudHints {
   let radar: RadarScans = { scan: null, networks: {} };
 
   /*
-   * Off the source rather than merely not drawn, so a core from an older scan
-   * neither takes a fresh one's place in the thinning nor answers a tap. Each
-   * feature carries its core for the tap.
+   * A stale core still answers a tap: the 3D map draws it, the newest picture
+   * of its storm there is. Each feature carries its core for the tap.
    */
   const fill = () => {
     source.clear(true);
-    source.addFeatures(onePerStorm(clouds.filter((cloud) => !isVolumeBehind(cloud, radar))).map((cloud) => new Feature({
+    source.addFeatures(onePerStorm(clouds).map((cloud) => new Feature({
       geometry: new Point(fromLonLat([cloud.lon, cloud.lat])),
       peak_dbz: cloud.peak_dbz ?? null,
+      stale: isVolumeBehind(cloud, radar),
       cloud,
     })));
   };
@@ -216,8 +234,9 @@ export default function makeCloudHints(): CloudHints {
     // A name of its own, so the pills give way to each other and not to the
     // place labels, which declutter together under `true`.
     declutter: "cloud-hints",
-    // Earlier features win the declutter, so the strongest core keeps its pill.
-    renderOrder: (a, b) => peakOf(b) - peakOf(a),
+    // Earlier features win the declutter, so a current core keeps its pill
+    // over a stale one, and then the strongest.
+    renderOrder: byPrecedence,
     // Thinned away is not drawn, and so not tappable either.
     style: (feature, resolution) => {
       const keep = keepsAt(resolution);

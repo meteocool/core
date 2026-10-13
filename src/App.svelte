@@ -479,7 +479,7 @@ derived(
 /* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the
    way there (see layers/cloudHints.ts). Only where that map is offered, and,
    like the cells, only on the newest observation, which is the scan the cores
-   were found in. Only for the cores as new as that radar, too. */
+   were found in. A core older than that radar is tagged grey. */
 const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
 const hints = makeCloudHints();
 const cloudHintLayer = hints.layer;

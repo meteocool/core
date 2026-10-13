@@ -764,7 +764,7 @@ export default class RadarCapability extends Capability {
 
   /**
    * The scans of the radar the live step shows on the 3D map: what a storm's
-   * volume is judged against, and its "3D" tag on the flat map left off when
+   * volume is judged against, and its "3D" tag on the flat map greyed when
    * older. The same frames App.svelte drapes there, DWD's and each network's
    * own, whichever product the flat map draws.
    */

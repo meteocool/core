@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { FIXTURES, type RecordedResponse } from "./offline";
-import { settled, timeline } from "./app";
+import { noGeocoder, settled, timeline } from "./app";
 import { patchOf, serveStorms, stormIdOf, stormOfVolume } from "./storms";
 import { expect, test } from "./test";
 
@@ -30,12 +30,6 @@ const [cellLon, cellLat] = cell.geometry.coordinates[cell.geometry.coordinates.l
 
 /** A storm's panel, by the label its section carries. */
 const panel = (page: Page, name: string | RegExp) => page.getByRole("region", { name });
-
-/** No place names offline: the panel is titled without one. */
-async function noGeocoder(page: Page) {
-  await page.route("**/geocoding/**", (route) => route.fulfill({ status: 404, json: {} }));
-  await page.route("https://api.bigdatacloud.net/**", (route) => route.fulfill({ status: 404, json: {} }));
-}
 
 /** Where a [lon, lat] is on the flat map, in page pixels, once it is drawn. */
 async function flatPixel(page: Page, lon: number, lat: number): Promise<{ x: number; y: number }> {
