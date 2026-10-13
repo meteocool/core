@@ -34,3 +34,29 @@ test("boxes of storms a scan behind the radar are greyed, the rest in colour", a
     expect(tally[network].greyed).toBe(0);
   }
 });
+
+/** The 3D map's layers from the bottom up, and the colour of the boxes' halo. */
+const boxLayers = (page: Page) => page.evaluate(() => {
+  const gl = (window as any).lm.getCapability("cells3d").gl;
+  if (!gl?.getLayer("cloud-box")) return null;
+  const order = gl.getStyle().layers.map((layer: { id: string }) => layer.id);
+  return {
+    halo: order.indexOf("cloud-box-casing"),
+    outline: order.indexOf("cloud-box"),
+    colour: String(gl.getPaintProperty("cloud-box-casing", "line-color")),
+  };
+});
+
+for (const [scheme, halo] of [["dark", /^rgba\(255, 255, 255/], ["light", /^rgba\(17, 20, 26/]] as const) {
+  test.describe(`on a ${scheme} map`, () => {
+    test.use({ colorScheme: scheme });
+    test("every box's outline has a halo under it, against the map", async ({ page }) => {
+      await open3d(page, BORDER_3D);
+      await expect.poll(() => boxLayers(page), { timeout: 20_000 }).not.toBeNull();
+      const layers = (await boxLayers(page))!;
+      expect(layers.halo).toBeGreaterThanOrEqual(0);
+      expect(layers.halo).toBeLessThan(layers.outline);
+      expect(layers.colour).toMatch(halo);
+    });
+  });
+}

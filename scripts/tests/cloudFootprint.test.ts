@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BOX_KM, boxFootprint, tileWidthM } from "../../src/lib/cloudFootprint.ts";
+import { BOX_KM, boxCasing, boxFootprint, tileWidthM } from "../../src/lib/cloudFootprint.ts";
 
 /** Kilometres per degree on MapLibre's sphere. */
 const KM_PER_DEG = (2 * Math.PI * 6371.0088) / 360;
@@ -51,4 +51,22 @@ test("a tile's outline is the tile: its corners are the map's tile corners", () 
 
   assert.ok(Math.abs(sw[0] - lonOf(544)) < 1e-9 && Math.abs(ne[0] - lonOf(545)) < 1e-9);
   assert.ok(Math.abs(sw[1] - latOf(356)) < 1e-9 && Math.abs(ne[1] - latOf(355)) < 1e-9);
+});
+
+const brightness = ([r, g, b]: number[]) => (r + g + b) / 3;
+
+test("on a dark map a box's halo is light, so the outline stands off the ground", () => {
+  assert.ok(brightness(boxCasing(true).colour) > 200);
+});
+
+test("on a light map a box's halo is dark", () => {
+  assert.ok(brightness(boxCasing(false).colour) < 60);
+});
+
+test("the halo is wider than the 1.5-pixel outline, and see-through", () => {
+  for (const dark of [true, false]) {
+    const { colour, width } = boxCasing(dark);
+    assert.ok(width > 1.5);
+    assert.ok(colour[3] > 0 && colour[3] < 0.5);
+  }
 });

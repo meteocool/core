@@ -59,7 +59,7 @@ import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { correctCtrlClicks, reportsCtrlClickAsRight } from "../lib/ctrlDrag";
 import { middleDragTurnsAndTilts } from "../lib/middleDrag";
 import { tracked } from "../lib/progress";
-import { boxFootprint, tileWidthM } from "../lib/cloudFootprint";
+import { boxCasing, boxFootprint, tileWidthM } from "../lib/cloudFootprint";
 import { isPastItsScan, isVolumeBehind, networkOf, scanTime, VolumeFeed } from "../lib/scans";
 import { greyedOut, STALE_GREY } from "../lib/staleTint";
 import type { Rgb } from "../lib/staleTint";
@@ -244,6 +244,9 @@ const CLOUD_SOURCE = "clouds";
 
 /** The outline of the box a storm's cutaway raymarches, on the ground. */
 const CLOUD_BOX = "cloud-box";
+
+/** A halo under the outline, so it stands off the ground and the clouds; see `boxCasing`. */
+const CLOUD_BOX_CASING = "cloud-box-casing";
 
 /** The inside of a storm's box, undrawn: what a tap opens it by. */
 const CLOUD_HIT = "cloud-hit";
@@ -2014,6 +2017,18 @@ export default class Cells3DCapability extends Capability {
     const unopenable: ExpressionSpecification = ["==", ["get", "tier"], TIER_UNOPENABLE];
     // On the ground with the radar, under the storms: see `drapeAnchor`.
     const under = drapeAnchor(gl.getStyle().layers);
+    const casing = boxCasing(this.dark);
+    gl.addLayer({
+      id: CLOUD_BOX_CASING,
+      type: "line",
+      source: CLOUD_SOURCE,
+      layout: { "line-join": "round" },
+      paint: {
+        "line-color": `rgba(${casing.colour.join(", ")})`,
+        "line-width": casing.width,
+        "line-opacity": ["case", unopenable, RING_OPACITY.unopenable, RING_OPACITY.openable],
+      },
+    }, under);
     gl.addLayer({
       id: CLOUD_BOX,
       type: "line",

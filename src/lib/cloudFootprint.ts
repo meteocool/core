@@ -16,6 +16,16 @@
  * stands in for it.
  */
 
+/**
+ * The halo under a box's outline, by the brightness of the map: light on a
+ * dark map and dark on a light one, a few pixels wide under a 1.5-pixel line.
+ * A greyed box on a dark map, or any box behind a cloud, was otherwise a
+ * hairline the colour of what was around it.
+ */
+export function boxCasing(dark: boolean): { colour: [number, number, number, number]; width: number } {
+  return dark ? { colour: [255, 255, 255, 0.3], width: 4 } : { colour: [17, 20, 26, 0.16], width: 4 };
+}
+
 /** The width of a box from before tiles, east to west and north to south. */
 export const BOX_KM = 40;
 
