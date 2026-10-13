@@ -66,7 +66,7 @@
     "clouds_body": "Radarové echo ve 3D, obarvené podle síly. Každé se odlupuje až na jádro a zase dorůstá.",
     "scale_aria": "Odrazivost od {min} do {max} dBZ",
     "box": "Rámečky",
-    "box_body": "Prostor, do kterého se bouřka otevře, obarvený podle maxima. Klikni dovnitř a otevřeš ji.",
+    "box_body": "Prostor, do kterého se bouřka otevře, obarvený podle maxima. Klikni dovnitř a otevřeš ji. Šedý, dokud je radar o jeden sken dál.",
     "cut": "Rozříznuté",
     "cut_body": "Otevřená bouřka v řezu. Řez otočíš v panelu.",
     "faint": "Bledé",

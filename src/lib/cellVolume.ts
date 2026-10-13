@@ -173,12 +173,16 @@ export function dbzColour(dbz: number, colormap: string): [number, number, numbe
  *
  * Every 2.5 dBZ, which is finer than any of the palettes changes hue: they
  * are stepped every half decibel, but a linear expression between these stops
- * is indistinguishable from them at the size of a ring or a tier.
+ * is indistinguishable from them at the size of a ring or a tier. `tint` is
+ * laid over each colour: a stale storm's grey (lib/staleTint.ts).
  */
-export function dbzStops(colormap: string): Array<[number, string]> {
+export function dbzStops(
+  colormap: string,
+  tint: (colour: [number, number, number]) => [number, number, number] = (colour) => colour,
+): Array<[number, string]> {
   const stops: Array<[number, string]> = [];
   for (let dbz = 10; dbz <= 70; dbz += 2.5) {
-    const [r, g, b] = dbzColour(dbz, colormap);
+    const [r, g, b] = tint(dbzColour(dbz, colormap));
     stops.push([dbz, `rgb(${r}, ${g}, ${b})`]);
   }
   return stops;

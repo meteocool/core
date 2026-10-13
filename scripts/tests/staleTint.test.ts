@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { greyedOut, STALE_COLOUR_KEPT, tagPrecedence } from "../../src/lib/staleTint.ts";
+import { greyedOut, STALE_COLOUR_KEPT, STALE_GREY, tagPrecedence } from "../../src/lib/staleTint.ts";
 
 /**
  * A "3D" tag for a storm a scan behind its radar: grey over the cube's colour,
@@ -38,4 +38,9 @@ test("a current tag wins over a stale one, however much stronger the stale core"
 test("between two tags alike, the stronger core wins", () => {
   assert.ok(tagPrecedence({ stale: false, peak: 55 }, { stale: false, peak: 40 }) < 0);
   assert.ok(tagPrecedence({ stale: true, peak: 40 }, { stale: true, peak: 55 }) > 0);
+});
+
+test("the grey is darker on a dark map than on a light one", () => {
+  const { light, dark } = STALE_GREY;
+  assert.ok(dark.every((channel, i) => channel < light[i]));
 });

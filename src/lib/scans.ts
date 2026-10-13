@@ -14,8 +14,8 @@
  * cells from two convective days in September 2026, 355 overlapped the
  * composite of their own scan best, and 3 the scan before. So the 3D map draws
  * them in full colour all the same, the newest picture of each storm there is
- * (ng ADR 0018), and only the flat map's "3D" tag greys a storm from an older
- * scan than its radar, until its own scan arrives.
+ * (ng ADR 0018), and only the flat map's "3D" tag and the 3D map's box outline
+ * grey a storm from an older scan than its radar, until its own scan arrives.
  *
  * Against its own network's radar, not DWD's. A storm from France's run is
  * stamped with the newest scan in France's composite, which is on France's
@@ -63,7 +63,7 @@ export function radarScanOf(network: string, radar: RadarScans): Scan | null {
   return radar.networks[network]?.upstream_time ?? null;
 }
 
-/** Whether a storm's volume is from an older scan than its radar: what the flat map tags grey. */
+/** Whether a storm's volume is from an older scan than its radar: what its tag and box show greyed. */
 export function isVolumeBehind(
   volume: { network?: string | null; reference_time?: string | null },
   radar: RadarScans,

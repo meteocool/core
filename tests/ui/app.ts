@@ -57,3 +57,9 @@ export const preloadedShares = (page: Page): Promise<number[]> => page.locator("
 
 /** The fetched-ahead band drawn as one piece of glass, once every frame is in. */
 export const wholePreloadBand = (page: Page): Locator => page.locator(".strip .preload-glass.whole");
+
+/** Open the 3D map at `path` and wait for its canvas. */
+export async function open3d(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  await expect(page.locator(".maplibre-host canvas").first()).toBeVisible({ timeout: 30_000 });
+}

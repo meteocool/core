@@ -12,7 +12,7 @@ import { radarColormap } from "../stores";
 import type { RadarVolume } from "../api";
 import { isVolumeBehind } from "../lib/scans";
 import type { RadarScans } from "../lib/scans";
-import { greyedOut, tagPrecedence } from "../lib/staleTint";
+import { greyedOut, STALE_GREY, tagPrecedence } from "../lib/staleTint";
 
 /**
  * A "3D" tag beside every storm core the 3D map can cut open.
@@ -88,11 +88,11 @@ interface Palette {
 
 const LIGHT: Palette = {
   fill: "rgba(255, 255, 255, 0.94)", edge: "rgba(17, 20, 26, 0.18)", text: "#11141a",
-  grey: [158, 162, 168], staleText: "#80858d",
+  grey: STALE_GREY.light, staleText: "#80858d",
 };
 const DARK: Palette = {
   fill: "rgba(24, 28, 36, 0.92)", edge: "rgba(255, 255, 255, 0.22)", text: "#f2f4f7",
-  grey: [112, 117, 125], staleText: "#8a9099",
+  grey: STALE_GREY.dark, staleText: "#8a9099",
 };
 
 let palette = LIGHT;

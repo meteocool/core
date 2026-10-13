@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
+import { open3d } from "./app";
 
 /**
  * The 3D map's corner credits: on the web, where nothing else names the
@@ -8,11 +9,6 @@ import { expect, test } from "./test";
 const MAP_3D = "?layer=cells3d&latLonZ=50.50000,9.50000,7.00";
 
 const credits = (page: Page) => page.locator(".maplibre-host .maplibregl-ctrl-attrib");
-
-async function open3d(page: Page, path: string): Promise<void> {
-  await page.goto(path);
-  await expect(page.locator(".maplibre-host canvas").first()).toBeVisible({ timeout: 30_000 });
-}
 
 test("on the web, the 3D map credits its sources", async ({ page }) => {
   await open3d(page, `/${MAP_3D}`);

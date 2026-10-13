@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { closeRing, scaleRing } from "../../src/lib/cellGeometry.ts";
-import { cellVolume, exponentForMean, profile, shoelace } from "../../src/lib/cellVolume.ts";
+import { cellVolume, dbzColour, dbzStops, exponentForMean, profile, shoelace } from "../../src/lib/cellVolume.ts";
+import { greyedOut, STALE_GREY } from "../../src/lib/staleTint.ts";
 import { volumeCollection, footprintCollection } from "../../src/lib/cellExtrusions.ts";
 import type { CellCurrent } from "../../src/api/index.ts";
 
@@ -350,4 +351,19 @@ test("rings too short to be polygons are ignored rather than drawn", () => {
 
   assert.doesNotThrow(() => volumeCollection([broken]));
   assert.deepEqual(cores(broken as CellCurrent).length > 0, true);
+});
+
+test("the palette's stops are its own colours, untinted", () => {
+  const [dbz, colour] = dbzStops("classic")[8];
+  const [r, g, b] = dbzColour(dbz, "classic");
+  assert.equal(colour, `rgb(${r}, ${g}, ${b})`);
+});
+
+test("a stale storm's stops are each colour greyed, at the same reflectivities", () => {
+  const plain = dbzStops("classic");
+  const greyed = dbzStops("classic", (colour) => greyedOut(colour, STALE_GREY.dark));
+  assert.deepEqual(greyed.map(([dbz]) => dbz), plain.map(([dbz]) => dbz));
+  const [dbz, colour] = greyed[8];
+  const [r, g, b] = greyedOut(dbzColour(dbz, "classic"), STALE_GREY.dark);
+  assert.equal(colour, `rgb(${r}, ${g}, ${b})`);
 });

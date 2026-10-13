@@ -66,7 +66,7 @@
     "clouds_body": "Echo radarowe w 3D, barwione według siły. Każda chmura kurczy się do rdzenia i znów rośnie.",
     "scale_aria": "Odbiciowość od {min} do {max} dBZ",
     "box": "Ramki",
-    "box_body": "Obszar, w którym otwiera się burza, barwiony według maksimum. Kliknij w niego, aby ją otworzyć.",
+    "box_body": "Obszar, w którym otwiera się burza, barwiony według maksimum. Kliknij w niego, aby ją otworzyć. Wyszarzony, dopóki radar jest o jeden skan dalej.",
     "cut": "W przekroju",
     "cut_body": "Otwarta burza w przekroju. Obróć przekrój w panelu.",
     "faint": "Blade",
