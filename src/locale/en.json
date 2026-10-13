@@ -123,7 +123,7 @@
   "radar_no_coverage_body": "Live radar comes from the weather services of Germany, Switzerland, France, Czechia and Poland, so it only covers those countries. Lightning and the forecast models work worldwide.",
   "forecast_no_coverage": "No Forecast Here",
   "forecast_no_coverage_body": "The rain forecast comes from Germany's weather service, so it only covers Germany and the area around it. The radar elsewhere shows the past and present only.",
-  "forecast_no_coverage_body_nowcast": "Neither the German Weather Service's forecast nor meteocool's nowcast covers most of the map at this time. The radar there shows the past and present only.",
+  "forecast_no_coverage_body_nowcast": "Neither the German Weather Service's forecast nor meteocool's nowcast covers this part of the map at this time. The radar there shows the past and present only.",
   "outdated": "Out of date",
   "degraded": "Degraded",
   "show_for_my_location": "Show for my location",

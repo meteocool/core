@@ -123,7 +123,7 @@
   "radar_no_coverage_body": "Das Live-Radar stammt von den Wetterdiensten Deutschlands, der Schweiz, Frankreichs, Tschechiens und Polens und deckt deshalb nur diese Länder ab. Blitze und die Wettermodelle funktionieren weltweit.",
   "forecast_no_coverage": "Keine Vorhersage hier",
   "forecast_no_coverage_body": "Die Regenvorhersage kommt vom Deutschen Wetterdienst und deckt deshalb nur Deutschland und die Umgebung ab. Das Radar anderswo zeigt nur Vergangenheit und Gegenwart.",
-  "forecast_no_coverage_body_nowcast": "Weder die Vorhersage des Deutschen Wetterdienstes noch der meteocool-Nowcast deckt zu dieser Zeit den Großteil der Karte ab. Das Radar zeigt dort nur Vergangenheit und Gegenwart.",
+  "forecast_no_coverage_body_nowcast": "Weder die Vorhersage des Deutschen Wetterdienstes noch der meteocool-Nowcast deckt zu dieser Zeit diesen Kartenausschnitt ab. Das Radar zeigt dort nur Vergangenheit und Gegenwart.",
   "outdated": "Veraltet",
   "degraded": "Eingeschränkt",
   "show_for_my_location": "Für meinen Standort",

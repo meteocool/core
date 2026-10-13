@@ -123,7 +123,7 @@
   "radar_no_coverage_body": "Radar na żywo pochodzi ze służb meteorologicznych Niemiec, Szwajcarii, Francji, Czech i Polski, więc obejmuje tylko te kraje. Wyładowania i modele prognostyczne działają na całym świecie.",
   "forecast_no_coverage": "Brak prognozy w tym miejscu",
   "forecast_no_coverage_body": "Prognoza opadów pochodzi z niemieckiej służby meteorologicznej, więc obejmuje tylko Niemcy i ich okolice. Radar w innych miejscach pokazuje tylko przeszłość i teraźniejszość.",
-  "forecast_no_coverage_body_nowcast": "Ani prognoza niemieckiej służby meteorologicznej, ani nowcast meteocool nie obejmuje o tej porze większości mapy. Radar pokazuje tam tylko przeszłość i teraźniejszość.",
+  "forecast_no_coverage_body_nowcast": "Ani prognoza niemieckiej służby meteorologicznej, ani nowcast meteocool nie obejmuje o tej porze tej części mapy. Radar pokazuje tam tylko przeszłość i teraźniejszość.",
   "outdated": "Nieaktualne",
   "degraded": "Ograniczone",
   "show_for_my_location": "Pokaż dla mojej lokalizacji",

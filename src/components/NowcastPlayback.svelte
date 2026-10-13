@@ -37,7 +37,7 @@ import {
   frRadarExtent4326,
   plRadarExtent4326,
 } from "../layers/extents";
-import { FORECAST_UNCOVERED_SHARE, uncoveredShare } from "../lib/forecastCoverage";
+import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
 import { drawnByAny } from "../layers/networkAt";
 import type { CountryNetwork } from "../api/events";
 import { canPlay, nextFrame } from "../lib/playbackLoop";
@@ -193,13 +193,13 @@ const forecastCovers = (runs: readonly CountryNetwork[]) => (lon: number, lat: n
 };
 
 /**
- * On a forecast step, whether most of the screen has no forecast behind it.
+ * On a forecast step, whether none of the screen has a forecast behind it.
  *
  * WN is DWD's. Over France or Poland the present has radar and a forecast
  * step washes it all out, which reads as "no rain coming". With meteocool's
  * nowcast on, a network whose run has a lead at the step covers its ground
- * too, so only what no run covers counts. Only past half a screen: a border
- * at the edge of the view is not worth a notice. The radar's own notice
+ * too, so only what no run covers counts. Only for the whole screen: where
+ * any of it has a forecast, the forecast shows where. The radar's own notice
  * comes first; with no radar there is no forecast either.
  */
 $: forecastReachable = $sharedActiveCap === "radar" && $mapExtent4326 !== null && !outOfCoverage;
@@ -211,7 +211,7 @@ $: anyForecastMissing = forecastReachable && $mapExtent4326 ? uncoveredShare($ma
 $: forecastMissing = !forecastReachable || !$mapExtent4326 ? 0
   : runsShown.join() === runsAtAll.join() ? anyForecastMissing
     : uncoveredShare($mapExtent4326, forecastCovers(runsShown));
-$: outOfForecast = $onForecastStep && forecastMissing >= FORECAST_UNCOVERED_SHARE;
+$: outOfForecast = $onForecastStep && saysNoForecast(forecastMissing);
 /* None of the screen: playback has nothing to show past now (playbackLoop). */
 $: noForecast = anyForecastMissing === 1;
 

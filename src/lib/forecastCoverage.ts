@@ -1,13 +1,14 @@
 /**
- * How much of the screen a forecast step has nothing for.
+ * Whether a forecast step says it has nothing here.
  *
  * WN is DWD's, so on a forecast step everywhere outside DWD's reach is
  * washed out, even where another network shows the present, unless
  * meteocool's experimental nowcast has a run there (lib/nowcast.ts). Over
  * France or Poland that reads as "no rain coming" when the truth is "no
- * forecast here". Past this share of the screen, the player says so.
+ * forecast here". The player says so only when none of the screen has a
+ * forecast: any of it covered, and the forecast shows where it reaches.
  */
-export const FORECAST_UNCOVERED_SHARE = 0.5;
+export const saysNoForecast = (uncovered: number): boolean => uncovered >= 1;
 
 const mercatorY = (lat: number): number => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
 const latitude = (y: number): number => (Math.atan(Math.exp(y)) - Math.PI / 4) * (360 / Math.PI);

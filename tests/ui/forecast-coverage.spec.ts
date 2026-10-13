@@ -8,6 +8,8 @@ import { openRadar, playButton, timeline } from "./app";
  * the only one, does not reach.
  */
 const AQUITAINE_VIEW = "/?layer=radar&latLonZ=44.80000,-0.60000,8.00";
+/** Champagne, DWD's reach coming in from the right: most of the screen has no forecast, some of it does. */
+const BORDER_VIEW = "/?layer=radar&latLonZ=49.50000,4.00000,8.00";
 /** Central Germany, close enough that the whole screen is inside DWD's reach on a desktop too. */
 const GERMANY_VIEW = "/?layer=radar&latLonZ=50.50000,10.00000,8.00";
 
@@ -54,6 +56,13 @@ test("from the past, play loops the past radar and never enters the forecast", a
 
 test("over the forecast, play stays on into it and nothing is said", async ({ page }) => {
   await openRadar(page, GERMANY_VIEW);
+  await step(page, "ArrowRight", 3);
+  await expect(playButton(page)).toBeEnabled();
+  await expect(noForecastNotice(page)).toBeHidden();
+});
+
+test("with some forecast on screen, play goes into it and nothing is said", async ({ page }) => {
+  await openRadar(page, BORDER_VIEW);
   await step(page, "ArrowRight", 3);
   await expect(playButton(page)).toBeEnabled();
   await expect(noForecastNotice(page)).toBeHidden();

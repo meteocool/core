@@ -123,7 +123,7 @@
   "radar_no_coverage_body": "Live radar komt van de weerdiensten van Duitsland, Zwitserland, Frankrijk, Tsjechië en Polen, en dekt dus alleen die landen. Bliksem en de voorspellingsmodellen werken wereldwijd.",
   "forecast_no_coverage": "Geen verwachting hier",
   "forecast_no_coverage_body": "De regenverwachting komt van de Duitse weerdienst en dekt dus alleen Duitsland en de omgeving. De radar elders toont alleen het verleden en het heden.",
-  "forecast_no_coverage_body_nowcast": "De verwachting van de Duitse weerdienst noch de nowcast van meteocool dekt op dit moment het grootste deel van de kaart. De radar toont daar alleen het verleden en het heden.",
+  "forecast_no_coverage_body_nowcast": "De verwachting van de Duitse weerdienst noch de nowcast van meteocool dekt op dit moment dit deel van de kaart. De radar toont daar alleen het verleden en het heden.",
   "outdated": "Verouderd",
   "degraded": "Beperkt",
   "show_for_my_location": "Toon voor mijn locatie",
