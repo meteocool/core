@@ -413,8 +413,8 @@ cycloneLayerVisible.subscribe((value) => {
 // lines above was immediately overwritten.
 cycloneLayerVisible.set(window.settings.getBoolean("layerMesocyclones"));
 
-const [cellSource, cellLayer] = makeCellLayer();
-const [pulseSource, pulseLayer, stopPulse] = makeCellPulseLayer();
+const [pulseSource, pulseLayer, stopPulse, crowded] = makeCellPulseLayer();
+const [cellSource, cellLayer] = makeCellLayer(crowded);
 const stormmgr = new StormManager(cellSource, pulseSource);
 onDestroy(stopPulse);
 /* From a seed to its storm, and the storm to its detail; see lib/stormResolver.ts. */

@@ -41,6 +41,18 @@ export function overlaps(a: { x: number; y: number; width: number; height: numbe
   return a.x < b.x + b.width - 1 && b.x < a.x + a.width - 1 && a.y < b.y + b.height - 1 && b.y < a.y + a.height - 1;
 }
 
+/** Where a [lon, lat] is on the flat map, in page pixels, once it is drawn. */
+export async function flatPixel(page: Page, lon: number, lat: number): Promise<{ x: number; y: number }> {
+  return page.evaluate(([lng, lt]) => {
+    const map = (window as any).lm.maps[0];
+    const x = (lng * Math.PI * 6378137) / 180;
+    const y = Math.log(Math.tan(Math.PI / 4 + (lt * Math.PI) / 360)) * 6378137;
+    const [px, py] = map.getPixelFromCoordinate([x, y]);
+    const box = map.getViewport().getBoundingClientRect();
+    return { x: box.left + px, y: box.top + py };
+  }, [lon, lat]);
+}
+
 /** No place names offline: what asks for one (a storm's panel, the 3D map) goes without. */
 export async function noGeocoder(page: Page): Promise<void> {
   await page.route("**/geocoding/**", (route) => route.fulfill({ status: 404, json: {} }));

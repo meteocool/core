@@ -29,6 +29,17 @@ test("an active storm draws its path and its position, and is ringed while live"
   assert.deepEqual(pings.map((p) => p.storm), [A]);
 });
 
+test("a ring carries how long its storm has been tracked, first detection to last", () => {
+  const { pings } = drawStorms([storm(A, { born_at: at(-25), last_seen: at(-5) })], options);
+  assert.equal(pings[0].history_minutes, 20);
+});
+
+test("a storm drawn on an earlier frame has been tracked only until then", () => {
+  const then = T0 - 50 * 60_000;
+  const { pings } = drawStorms([storm(A, { born_at: at(-60), last_seen: at(0) })], { now: then, reference: then, selection: null, at: then });
+  assert.equal(pings[0].history_minutes, 10);
+});
+
 test("a storm seen once has no path, only a position", () => {
   const { marks } = drawStorms([storm(A, {}, [[10, 50]])], options);
   assert.deepEqual(kinds(marks, A), ["position"]);

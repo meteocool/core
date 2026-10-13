@@ -7,10 +7,12 @@ import type Point from "ol/geom/Point";
 import type Feature from "ol/Feature";
 import { DARK_INK, watchInk } from "./casing";
 import {
-  DASH, DASH_PERIOD, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, RING_WIDTH, TICK_MS, onlySlid,
+  DASH, DASH_PERIOD, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, RING_WIDTH, TICK_MS, crowdedOut, onlySlid,
 } from "../lib/cellPulse";
 import type { RingLayout } from "../lib/cellPulse";
 import { onMapMotion } from "../lib/mapMotion";
+import { selectedMark } from "../lib/stormMarks";
+import { selectedStorm } from "../stores";
 
 /**
  * A ring of dashes around every cell still being detected, stepping round it.
@@ -93,13 +95,42 @@ function makeRing(): HTMLDivElement {
   return ring;
 }
 
+/** The storms left off the map at a resolution; see `crowdedOut`. */
+export type Crowded = (resolution: number) => ReadonlySet<string>;
+
 /**
  * The source to fill with one point per live cell, and the layer that marks it.
  *
- * The returned `stop` takes the basemap and map-motion subscriptions down.
+ * The returned `stop` takes the basemap, selection and map-motion
+ * subscriptions down. `crowded` names the storms whose rings give way to
+ * another's at a resolution, for the storm layer to leave their marks off too:
+ * a dot with no ring, a country away, reads as a storm of its own.
  */
-export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Layer, () => void] {
+export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Layer, () => void, Crowded] {
   const source = new VectorSource<Feature<Point>>();
+
+  let selected: string | null = null;
+
+  /* Worked out once per zoom, cell set and selection: both layers ask for every frame. */
+  let crowdKey = "";
+  let crowd: ReadonlySet<string> = new Set();
+  const crowded: Crowded = (resolution) => {
+    const key = `${resolution}|${source.getRevision()}|${selected}`;
+    if (key === crowdKey) return crowd;
+    crowdKey = key;
+    crowd = crowdedOut(source.getFeatures().flatMap((feature) => {
+      const coordinate = feature.getGeometry()?.getCoordinates();
+      if (!coordinate) return [];
+      return [{
+        storm: feature.get("storm"),
+        x: coordinate[0],
+        y: coordinate[1],
+        severity: feature.get("severity") ?? 0,
+        historyMinutes: feature.get("history_minutes") ?? 0,
+      }];
+    }), resolution, selected);
+    return crowd;
+  };
 
   const container = document.createElement("div");
   container.className = PULSE_CLASS;
@@ -129,9 +160,11 @@ export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Lay
   const layOut = (frameState: FrameState) => {
     const seen = new Set<string>();
     const half = RING_RADIUS + RING_WIDTH;
+    const hidden = crowded(frameState.viewState.resolution);
     anchor = applyTransform(frameState.pixelToCoordinateTransform, [0, 0]);
     if (paneTransform) pane.style.transform = paneTransform = "";
     for (const feature of source.getFeatures()) {
+      if (hidden.has(feature.get("storm"))) continue;
       const uid = getUid(feature);
       seen.add(uid);
       let ring = rings.get(uid);
@@ -169,7 +202,7 @@ export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Lay
      */
     render(frameState: FrameState) {
       const { resolution, rotation } = frameState.viewState;
-      const now: RingLayout = { resolution, rotation, revision: source.getRevision() };
+      const now: RingLayout = { resolution, rotation, revision: source.getRevision(), selected };
       if (onlySlid(laid, now)) {
         const [x, y] = applyTransform(frameState.coordinateToPixelTransform, anchor.slice());
         const transform = `translate3d(${x}px, ${y}px, 0)`;
@@ -212,8 +245,17 @@ export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Lay
     container.classList.remove(STILL_CLASS);
   });
 
+  /* The selected storm keeps its ring however crowded, so a selection lays them out again. */
+  const unselect = selectedStorm.subscribe((selection) => {
+    const next = selectedMark(selection);
+    if (next === selected) return;
+    selected = next;
+    layer.changed();
+  });
+
   return [source, layer, () => {
     unwatch();
     unlisten();
-  }];
+    unselect();
+  }, crowded];
 }

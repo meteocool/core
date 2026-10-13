@@ -115,6 +115,8 @@ export interface RingLayout {
   rotation: number;
   /** The source's revision: a cell added, removed or moved changes it. */
   revision: number;
+  /** The selected storm, which is never crowded out (see `crowdedOut`). */
+  selected: string | null;
 }
 
 /**
@@ -128,5 +130,61 @@ export function onlySlid(laid: RingLayout | null, now: RingLayout): boolean {
   return laid !== null
     && laid.resolution === now.resolution
     && laid.rotation === now.rotation
-    && laid.revision === now.revision;
+    && laid.revision === now.revision
+    && laid.selected === now.selected;
+}
+
+/** The severity class from which a storm keeps its ring however crowded: DWD's red and purple. */
+export const SEVERE = 2;
+
+/** How close two rings' centres are, in pixels, when their strokes touch. */
+export const RING_OVERLAP_PX = 2 * RING_RADIUS + RING_WIDTH;
+
+/**
+ * A ring to place: its storm, its centre in map units, its severity class,
+ * and how long the storm has been tracked.
+ */
+export interface RingSpot {
+  storm: string;
+  x: number;
+  y: number;
+  severity: number;
+  historyMinutes: number;
+}
+
+/**
+ * The storms whose rings, and whose marks, are left off the map at this
+ * resolution, because they would sit on another storm's ring.
+ *
+ * Zoomed out, a ring is wider than the gap between storms: a line of storms
+ * along a front, or new detections round an established one, turns into a
+ * knot of rings turning over each other, none of them readable. Rings are
+ * kept most severe first and, within a class, longest tracked first; one that
+ * would touch a ring already kept is dropped, so a storm the tracker has only
+ * just found gives way to the one it sits next to. A severe storm keeps its
+ * ring regardless, as does the selected one, so rings still overlap where a
+ * storm is at its worst. From `ENDED_MIN_ZOOM` in nothing is dropped: the
+ * rings come apart there, and a new storm next to an old one is part of the
+ * story being told.
+ */
+export function crowdedOut(rings: readonly RingSpot[], resolution: number, selected: string | null): Set<string> {
+  const out = new Set<string>();
+  if (showsEnded(resolution)) return out;
+  const reach = RING_OVERLAP_PX * resolution;
+  const ranked = [...rings].sort((a, b) => (
+    Number(b.storm === selected) - Number(a.storm === selected)
+    || b.severity - a.severity
+    || b.historyMinutes - a.historyMinutes
+    || (a.storm < b.storm ? -1 : 1)
+  ));
+  const kept: RingSpot[] = [];
+  for (const ring of ranked) {
+    const stays = ring.storm === selected || ring.severity >= SEVERE;
+    if (!stays && kept.some((other) => Math.hypot(other.x - ring.x, other.y - ring.y) < reach)) {
+      out.add(ring.storm);
+    } else {
+      kept.push(ring);
+    }
+  }
+  return out;
 }

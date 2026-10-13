@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { FIXTURES, type RecordedResponse } from "./offline";
-import { noGeocoder, settled, timeline } from "./app";
+import { flatPixel, noGeocoder, settled, timeline } from "./app";
 import { patchOf, serveStorms, stormIdOf, stormOfVolume } from "./storms";
 import { expect, test } from "./test";
 
@@ -30,18 +30,6 @@ const [cellLon, cellLat] = cell.geometry.coordinates[cell.geometry.coordinates.l
 
 /** A storm's panel, by the label its section carries. */
 const panel = (page: Page, name: string | RegExp) => page.getByRole("region", { name });
-
-/** Where a [lon, lat] is on the flat map, in page pixels, once it is drawn. */
-async function flatPixel(page: Page, lon: number, lat: number): Promise<{ x: number; y: number }> {
-  return page.evaluate(([lng, lt]) => {
-    const map = (window as any).lm.maps[0];
-    const x = (lng * Math.PI * 6378137) / 180;
-    const y = Math.log(Math.tan(Math.PI / 4 + (lt * Math.PI) / 360)) * 6378137;
-    const [px, py] = map.getPixelFromCoordinate([x, y]);
-    const box = map.getViewport().getBoundingClientRect();
-    return { x: box.left + px, y: box.top + py };
-  }, [lon, lat]);
-}
 
 test("tapping a storm on the flat map opens it, and the address names it", async ({ page, isMobile }) => {
   await page.goto(`/?layer=radar&latLonZ=${cellLat.toFixed(5)},${cellLon.toFixed(5)},9.00`);

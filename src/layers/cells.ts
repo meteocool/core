@@ -12,6 +12,7 @@ import { LIGHT_CASING, watchCasing } from "./casing";
 import { leadLabel, outlineIsCurrent } from "../lib/cellGeometry";
 import { showsEnded } from "../lib/cellPulse";
 import { selectedMark, type StormMarkKind } from "../lib/stormMarks";
+import type { Crowded } from "./cellPulse";
 
 /**
  * Storms: where each one has been, and where it is going.
@@ -379,7 +380,7 @@ const STYLES: Record<
 };
 
 /** The feature source, and the layer that draws it. */
-export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource>] {
+export default function makeCellLayer(crowded: Crowded = () => new Set()): [VectorSource, VectorLayer<VectorSource>] {
   const source = new VectorSource({ features: [] });
   const layer = new VectorLayer({
     source,
@@ -390,6 +391,9 @@ export default function makeCellLayer(): [VectorSource, VectorLayer<VectorSource
       // A storm no longer seen, only close in; see `ENDED_MIN_ZOOM`.
       if (feature.get("live") === false && !showsEnded(resolution) && !isSelected(feature)
         && feature.get("from_storm") !== selectedCode) return undefined;
+      // A storm whose ring gave way to another's, zoomed out; see `crowdedOut`.
+      const hidden = crowded(resolution);
+      if (hidden.size && (hidden.has(feature.get("storm")) || hidden.has(feature.get("from_storm")))) return undefined;
       const style = STYLES[feature.get("kind") as StormMarkKind];
       return style ? style(feature, resolution) : undefined;
     },

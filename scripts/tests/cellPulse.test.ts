@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DASH, DASH_PERIOD, ENDED_MIN_ZOOM, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_PATH_LENGTH, RING_RADIUS, TICK_MS, onlySlid,
-  ringAngle, showsEnded,
+  DASH, DASH_PERIOD, ENDED_MIN_ZOOM, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_OVERLAP_PX, RING_PATH_LENGTH, RING_RADIUS,
+  SEVERE, TICK_MS, crowdedOut, onlySlid, ringAngle, showsEnded,
 } from "../../src/lib/cellPulse.ts";
 
 /**
@@ -82,11 +82,12 @@ test("a cell that has stopped being detected stops pinging", () => {
  * the same amount, anything else moves each by its own.
  */
 test("a pan slides the rings together; anything else lays them out again", () => {
-  const laid = { resolution: 611.5, rotation: 0, revision: 7 };
+  const laid = { resolution: 611.5, rotation: 0, revision: 7, selected: null };
   assert.equal(onlySlid(laid, { ...laid }), true);
   assert.equal(onlySlid(laid, { ...laid, resolution: 600 }), false, "a zoom");
   assert.equal(onlySlid(laid, { ...laid, rotation: 0.1 }), false, "a turn");
   assert.equal(onlySlid(laid, { ...laid, revision: 8 }), false, "a cell added, removed or moved");
+  assert.equal(onlySlid(laid, { ...laid, selected: "A" }), false, "a storm selected");
   assert.equal(onlySlid(null, laid), false, "nothing laid out yet");
 });
 
@@ -97,4 +98,55 @@ test("cells no longer detected are drawn from zoom 10 in, not from a country awa
   assert.ok(showsEnded(atZoom(10)));
   assert.ok(!showsEnded(atZoom(9.5)));
   assert.ok(!showsEnded(atZoom(6)));
+});
+
+/**
+ * Zoomed out, a ring is wider than the gap between storms, and a line of
+ * them, or a storm just found next to an established one, turns into a knot
+ * of rings. Only severe storms keep overlapping.
+ */
+const atZoom = (zoom: number) => 156_543.033_928_041 / 2 ** zoom;
+const ZOOMED_OUT = atZoom(6);
+/** A ring `px` pixels east of the origin at `resolution`. */
+const ring = (storm: string, historyMinutes: number, px = 0, severity = 0, resolution = ZOOMED_OUT) => (
+  { storm, x: px * resolution, y: 0, severity, historyMinutes }
+);
+const crowded = (rings: ReturnType<typeof ring>[], selected: string | null = null) => [...crowdedOut(rings, ZOOMED_OUT, selected)];
+
+test("a new storm on an established one's ring gives way to it, zoomed out", () => {
+  assert.deepEqual(crowded([ring("new", 0, 10), ring("old", 60)]), ["new"]);
+});
+
+test("of two storms with a history on each other, the one tracked longer keeps its ring", () => {
+  assert.deepEqual(crowded([ring("younger", 30, 10), ring("older", 60)]), ["younger"]);
+});
+
+test("a more severe storm keeps its ring over one tracked longer", () => {
+  assert.deepEqual(crowded([ring("new", 0, 10, 1), ring("old", 60, 0, 0)]), ["old"]);
+});
+
+test("severe storms keep their rings however close they are", () => {
+  assert.deepEqual(crowded([ring("red", 0, 5, SEVERE), ring("purple", 60, 0, SEVERE + 1)]), []);
+});
+
+test("rings that do not touch are all kept", () => {
+  assert.deepEqual(crowded([ring("new", 0, RING_OVERLAP_PX + 1), ring("old", 60)]), []);
+  assert.deepEqual(crowded([ring("new", 0, RING_OVERLAP_PX - 1), ring("old", 60)]), ["new"]);
+});
+
+test("a ring is measured against the rings kept, not the ones given way", () => {
+  // `b` touches `a`, which gave way to `old`; `b` itself is clear of `old`.
+  assert.deepEqual(crowded([ring("old", 60), ring("a", 10, 20), ring("b", 5, 40)]), ["a"]);
+});
+
+test("the selected storm keeps its ring, and a severe one next to it does too", () => {
+  assert.deepEqual(crowded([ring("new", 0, 10), ring("old", 60)], "new"), ["old"]);
+  assert.deepEqual(crowded([ring("new", 0, 10), ring("red", 60, 0, SEVERE)], "new"), []);
+});
+
+test("from zoom 10 in, where the rings come apart, no ring gives way", () => {
+  const close = atZoom(ENDED_MIN_ZOOM);
+  assert.equal(crowdedOut([ring("new", 0, 10, 0, close), ring("old", 60, 0, 0, close)], close, null).size, 0);
+  const far = atZoom(ENDED_MIN_ZOOM - 0.5);
+  assert.equal(crowdedOut([ring("new", 0, 10, 0, far), ring("old", 60, 0, 0, far)], far, null).size, 1);
 });

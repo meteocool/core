@@ -157,7 +157,10 @@ export default class StormManager {
       // Not silent: the ping's timer starts and stops on this source changing.
       if (pings.length) {
         this.pulse.addFeatures(pings.map((ping) => new Feature({
-          severity: ping.severity, geometry: new Point(fromLonLat(ping.coordinates)),
+          storm: ping.storm,
+          severity: ping.severity,
+          history_minutes: ping.history_minutes,
+          geometry: new Point(fromLonLat(ping.coordinates)),
         })));
       } else {
         this.pulse.changed();

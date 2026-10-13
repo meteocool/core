@@ -60,8 +60,12 @@ export interface StormDrawing {
   marks: StormMark[];
   /** The joins, drawn underneath. */
   links: StormMark[];
-  /** Where the live ring goes round a storm. */
-  pings: { storm: string; severity: number; coordinates: LonLat }[];
+  /**
+   * Where the live ring goes round a storm, and how long the storm has been
+   * tracked, from its first detection to its last: with the severity, what
+   * decides which rings give way zoomed out (lib/cellPulse.ts `crowdedOut`).
+   */
+  pings: { storm: string; severity: number; coordinates: LonLat; history_minutes: number }[];
 }
 
 const pairs = (coordinates: number[][]): LonLat[] => coordinates.map((c) => [c[0], c[1]]);
@@ -212,7 +216,10 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
     const centroid = centroidOf(storm);
     if (!taken) {
       marks.push({ ...shared, kind: "position", id: p.id, geometry: { type: "Point", coordinates: centroid } });
-      if (live) pings.push({ storm: p.id, severity: shared.severity, coordinates: centroid });
+      if (live) {
+        const history_minutes = Math.max(0, ageMinutes(p.born_at, new Date(p.last_seen).getTime()));
+        pings.push({ storm: p.id, severity: shared.severity, coordinates: centroid, history_minutes });
+      }
       // The list has no outlines: only the selected storm's is known, and
       // only in the present (it is its newest detection's).
       const outline = p.id === selected && at === null ? outlineOf(selection) : null;
