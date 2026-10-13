@@ -15,7 +15,7 @@ import {
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
-  nowcastCoverage,
+  nowcastCoverage, framesPreloaded, networkStatus,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -38,6 +38,7 @@ import {
   plRadarExtent4326,
 } from "../layers/extents";
 import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
+import { preloadMode } from "../lib/framePreload";
 import { drawnByAny } from "../layers/networkAt";
 import type { CountryNetwork } from "../api/events";
 import { canPlay, nextFrame } from "../lib/playbackLoop";
@@ -53,8 +54,8 @@ export let cap: RadarCapability;
 
 let gridConfig: GridConfig | null = null;
 
-/** How many frames ahead of playback to ask for tiles: about a second and a half of the loop. */
-const PREFETCH_FRAMES = 3;
+/** On a slow or data-saving connection, how many frames ahead of playback are preloaded: about a second and a half of the loop. */
+const PRELOAD_AHEAD_SLOW = 3;
 
 /** How long each frame of playback is on screen. */
 const FRAME_MS = 450;
@@ -222,6 +223,30 @@ $: playable = canPlay({
   shown: shown || latestObservation,
   latestObservation,
 });
+
+/**
+ * Every frame's tiles fetched ahead for the map in view, nearest the needle
+ * first, and drawn filling the timeline (lib/framePreload.ts): once the
+ * reader starts moving through frames, until the player is back on live.
+ * Planned again whenever the map settles, the needle moves or the frames
+ * change. The setting is the "preload forecast" switch.
+ */
+function preload(..._changed: unknown[]): void {
+  const mode = preloadMode({
+    setting: $precacheForecast,
+    radarShown: $sharedActiveCap === "radar" && !outOfCoverage && steps.length > 0,
+    browsing: $browsingFrames,
+    playing: $playbackRunning,
+    slow: $networkStatus.isSlow,
+  });
+  if (mode === "all") cap.preloadTimeline(shown);
+  else if (mode === "ahead") cap.preloadTimeline(shown, PRELOAD_AHEAD_SLOW);
+  else cap.stopPreload();
+}
+$: preload(shown, steps, $mapExtent4326, $precacheForecast, $sharedActiveCap, outOfCoverage,
+  $browsingFrames, $playbackRunning, $networkStatus.isSlow);
+/* A hidden page fetches nothing more; back on it, the rest. */
+subscriptions.push(onWake(() => preload()));
 
 let forecastCoverageDismissed = false;
 $: if (!outOfForecast) forecastCoverageDismissed = false;
@@ -440,10 +465,6 @@ const fsm = new StateMachine({
           thisFrameDelayMs = 800;
         }
         sliderChangedHandler(shown);
-        // The next frames' tiles, asked for before the player reaches them,
-        // so each frame is whole when it is shown. The setting is the
-        // "preload forecast" switch.
-        if ($precacheForecast) cap.prefetchFrames(shown, PREFETCH_FRAMES);
         // Always round again: a loop that stops at the end only ever asked
         // for another press of play.
         playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
@@ -760,6 +781,7 @@ onDestroy(() => {
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   window.clearTimeout(backToLiveTimer);
   headObserver?.disconnect();
+  cap.stopPreload();
   playbackRunning.set(false);
   browsingFrames.set(false);
 });
@@ -1111,6 +1133,7 @@ onDestroy(() => {
           now={gridConfig?.now ?? 0}
           latest={latestObservation}
           value={shown}
+          preloaded={$framesPreloaded}
           {labelEvery}
           on:grab={grabbed}
           on:release={released}

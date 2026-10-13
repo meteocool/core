@@ -428,6 +428,13 @@ export const browsingFrames = writable<boolean>(false);
 export const unit = writable<string>("pictogram");
 export const precacheForecast = writable<boolean>(true);
 
+/**
+ * How much of each timeline step's tiles has been fetched ahead for the map
+ * in view, 0 to 1, by step; empty while nothing is preloaded. Drawn on the
+ * timeline; see lib/framePreload.ts.
+ */
+export const framesPreloaded = writable<ReadonlyMap<number, number>>(new Map());
+
 export const sharedActiveCap = writable<string>("");
 export const sharedCmap = writable<string>("");
 

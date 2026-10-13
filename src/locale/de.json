@@ -635,7 +635,7 @@
       "no_tilesets": "noch keine Tilesets",
       "basemap_tiles": "Basiskarten-Kacheln",
       "forecast_preload": "Vorhersage vorladen",
-      "preload_on": "an: nächste Bilder werden vor der Wiedergabe geladen",
+      "preload_on": "an: alle Bilder werden für den Kartenausschnitt vorab geladen",
       "off": "aus",
       "used": "belegt",
       "quota": "Kontingent",

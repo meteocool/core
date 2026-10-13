@@ -635,7 +635,7 @@
       "no_tilesets": "no tilesets yet",
       "basemap_tiles": "basemap tiles",
       "forecast_preload": "forecast preload",
-      "preload_on": "on: next frames fetched ahead of playback",
+      "preload_on": "on: every frame fetched ahead for the map in view",
       "off": "off",
       "used": "used",
       "quota": "quota",

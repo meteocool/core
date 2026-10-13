@@ -626,7 +626,7 @@
       "no_tilesets": "aucun jeu de tuiles pour l'instant",
       "basemap_tiles": "tuiles du fond de carte",
       "forecast_preload": "préchargement des prévisions",
-      "preload_on": "activé : les prochaines images sont chargées avant la lecture",
+      "preload_on": "activé : toutes les images sont chargées à l’avance pour la carte affichée",
       "off": "désactivé",
       "used": "utilisé",
       "quota": "quota",

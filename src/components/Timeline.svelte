@@ -17,6 +17,12 @@
  * needle, because for weather the whole window matters: when the rain starts
  * is read off the strip, not off the number under the needle.
  *
+ * Behind it all, each step's slot fills from the bottom, in the logo's pale
+ * cyan, as its tiles are fetched ahead (lib/framePreload.ts): a filled slot
+ * is whole the moment the needle reaches it, an empty one may come up blocky
+ * or half-drawn for a moment. Full across, the strip can be scrubbed as fast
+ * as a finger goes, and the band takes the glass's bevel, one rounded piece.
+ *
  * The component only draws and reports: `seek` says which step the finger
  * has reached and `grab` that a hand is on it. Which frame the map shows,
  * and the play loop, stay with NowcastPlayback.
@@ -32,6 +38,7 @@ import {
   type TimelineStep,
 } from "../lib/timeline";
 import type { Translate } from "../locale/t";
+import { allPreloaded, slotShare } from "../lib/framePreload";
 
 /** The steps, oldest first; see lib/timeline.ts. */
 export let steps: TimelineStep[] = [];
@@ -45,11 +52,15 @@ export let value = 0;
 export let interactive = true;
 /** How often the axis is labelled, in minutes. */
 export let labelEvery = 30;
+/** How much of each step's tiles has been fetched ahead, 0 to 1, by step; see lib/framePreload.ts. */
+export let preloaded: ReadonlyMap<number, number> = new Map();
 
 const dispatch = createEventDispatcher<{ seek: number; grab: void; release: void }>();
 
 /** The height of the plot, in CSS px; the axis row sits under it. */
 const PLOT_H = 56;
+/** The corners of the band of frames fetched ahead. */
+const BAND_RADIUS = 10;
 /** A ruler tick's height, minor and on the half hour. */
 const TICK = 7;
 const TICK_MAJOR = 13;
@@ -60,6 +71,10 @@ $: n = steps.length;
 $: last = lastPlayableIndex(steps);
 $: slot = n > 0 ? width / n : 0;
 $: ceiling = barCeiling(steps);
+/** Every step the needle can reach fetched ahead: the band is whole. */
+$: preloadedAll = allPreloaded(steps, preloaded);
+/* Its own clip per strip, should there ever be two. */
+const bandClip = `mc-preload-band-${Math.random().toString(36).slice(2)}`;
 $: nowIndex = indexOf(steps, latest);
 
 /** "-2h", "+45m", "+1h30m", and "now" for the zero mark. */
@@ -334,6 +349,41 @@ onDestroy(stop);
     opacity: 0.12;
   }
 
+  /* Fetched ahead: the logo's cyan, pale. Grows from the bottom as the
+     tiles come in, and drains the same way when the map moves on to
+     somewhere they are not. */
+  .preloaded {
+    fill: var(--mc-preload-fill, rgba(139, 205, 216, 0.2));
+    transform-box: fill-box;
+    transform-origin: bottom;
+    transition: transform 420ms var(--mc-ease, ease-out);
+    shape-rendering: crispEdges;
+  }
+  /* The full band as a piece of glass: the same bevel every glass surface
+     has (a specular top rim, a fainter rim all round, a shaded lip), drawn
+     under the plot so the bars and the needle stay on top. */
+  .preload-glass {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--band-radius);
+    box-shadow: var(--mc-glass-highlight);
+    opacity: 0;
+    transition: opacity 600ms var(--mc-ease, ease-out);
+    pointer-events: none;
+  }
+  .preload-glass.whole {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .preloaded,
+    .preload-glass {
+      transition: none;
+    }
+  }
+
   /* What has already happened, tinted, so the eye finds now without reading. */
   .past {
     fill: currentColor;
@@ -433,6 +483,7 @@ onDestroy(stop);
 <div class="timeline" style:--plot-h="{PLOT_H}px">
   <div
     class="strip"
+    style:--band-radius="{BAND_RADIUS}px"
     class:interactive
     class:dragging
     bind:this={strip}
@@ -451,9 +502,26 @@ onDestroy(stop);
     on:pointercancel={onPointerUp}
     on:keydown={onKey}>
     {#if n > 0 && width > 0}
+      <!-- The whole band, once every frame is in: the glass's bevel on it. -->
+      <div class="preload-glass" class:whole={preloadedAll} aria-hidden="true"></div>
       <svg viewBox="0 0 {width} {PLOT_H}" preserveAspectRatio="none" aria-hidden="true">
         <!-- The past ends, and the line stands, where the needle rests on now:
              the middle of its step, like every bar and label. -->
+        <!-- Each step's tiles fetched ahead, filling its slot from the bottom,
+             the band's ends rounded. -->
+        <clipPath id={bandClip}>
+          <rect x="0" y="0" width={width} height={PLOT_H} rx={BAND_RADIUS} />
+        </clipPath>
+        {#each steps as step, i (step.t)}
+          <rect
+            clip-path="url(#{bandClip})"
+            class="preloaded"
+            x={i * slot}
+            y="0"
+            width={slot}
+            height={PLOT_H}
+            style:transform="scaleY({slotShare(step, preloaded, preloadedAll)})" />
+        {/each}
         <rect class="past" x="0" y="0" width={(nowIndex + 0.5) * slot} height={PLOT_H} />
         {#each bars as bar (bar.i)}
           <rect

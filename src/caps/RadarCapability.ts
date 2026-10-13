@@ -41,6 +41,7 @@ import {
   radarProducts,
   meteocoolNowcast,
   nowcastCoverage,
+  framesPreloaded,
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
@@ -64,6 +65,7 @@ import type { NowcastRuns } from "../lib/nowcast";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
 import { timedFetch } from "../lib/timedFetch";
+import { FramePreloader, preloadOrder } from "../lib/framePreload";
 import { derived, get } from "svelte/store";
 import { _ } from "svelte-i18n";
 import { reportToast } from "../lib/Toast";
@@ -73,10 +75,8 @@ const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
 /** The grid's step, in seconds. */
 const STEP_SECONDS = 5 * 60;
-/** The most tiles one prefetch asks for: a few frames of a phone or a desktop viewport. */
-const PREFETCH_MAX_TILES = 48;
-/** How many prefetched URLs are remembered before the set is started afresh. */
-const PREFETCH_REMEMBERED = 3000;
+/** The most tiles one layer of one frame is preloaded with: a desktop viewport's. */
+const PRELOAD_MAX_TILES = 48;
 
 /**
  * What the radar layer fades to while it is known to be out of date.
@@ -555,7 +555,7 @@ export default class RadarCapability extends Capability {
 
       const bucket = layerAttributes.source === "observation" ? "meteoradar" : "meteonowcast";
       // The frame's value tiles. Everything keyed by URL (indices, holes,
-      // prefetch) follows.
+      // preload) follows.
       const sourceUrl = tileSourceUrl(bucket, drawnTileId(layerAttributes));
 
       body[step] = layerAttributes;
@@ -572,101 +572,108 @@ export default class RadarCapability extends Capability {
     return latestRadar;
   }
 
-  /** Tile URLs already asked for ahead of playback, so a loop asks once. */
-  private prefetched = new Set<string>();
+  /** Fetches the timeline's frames ahead for the map in view; see lib/framePreload.ts. */
+  private preloader = new FramePreloader(
+    // Same request the tile loader makes (CORS, no credentials), so the cache
+    // entry is the one it will look for. The body is read to the end: a
+    // response left unread is not stored.
+    (url) => timedFetch(url, { mode: "cors", credentials: "same-origin", priority: "low" } as RequestInit)
+      .then(async (response) => {
+        if (!response.ok) return false;
+        await response.arrayBuffer();
+        return true;
+      }),
+    (progress) => framesPreloaded.set(progress),
+    { mayFetch: () => document.visibilityState !== "hidden" },
+  );
 
   /**
-   * Fetch the tiles the next few frames will need where the map is looking.
-   *
-   * Playback re-points one source at a frame every 450ms, and the tiles for
-   * the frame arrive after the switch: the first loop through a viewport
-   * shows each frame half-loaded for the first few hundred milliseconds. This
-   * asks for the next `count` frames' tiles for the current viewport and
-   * zoom before the player gets there, through `fetch`, so they are in the
-   * HTTP cache (and the service worker's) when OpenLayers asks.
-   *
-   * This only helps because the tiles are cacheable by URL (a tile_id names
-   * one rendering). The bytes are the same either way; only the time they are
-   * asked for changes.
+   * The tile URLs one frame needs where the map is looking, at its zoom:
+   * whichever layers draw on that step (DWD's, each network's, or a product of
+   * all of theirs; each network's nowcast on a forecast step it has a lead
+   * for). Null while the map has no size to look with.
    */
-  prefetchFrames(fromStep: number, count: number) {
+  private frameTileUrls(step: number): string[] | null {
     const { source } = this;
-    if (!source || !this.clientGrid) return;
     const view = this.map.getView();
     const size = this.map.getSize();
     const resolution = view.getResolution();
-    if (!size || resolution === undefined) return;
+    if (!source || !this.clientGrid || !size || resolution === undefined) return null;
     const tileGrid = source.getTileGridForProjection(view.getProjection());
     const z = tileGrid.getZForResolution(resolution);
     const extent = view.calculateExtent(size);
-    const last = this.getLastPlayableStep();
-
-    const ahead: number[] = [];
-    for (let step = fromStep + STEP_SECONDS; step <= last && ahead.length < count; step += STEP_SECONDS) {
-      ahead.push(step);
-    }
 
     const urls: string[] = [];
-    for (const step of ahead) {
-      const frame = this.dwdFrame(step);
-      // A missed scan: nothing to fetch, but the frames after it still play.
-      if (!frame) continue;
+    const whole = this.wholeFrame(step);
+    const around = whole ? null : this.aroundFrame(step);
+    // A missed scan: nothing to fetch, but the frames after it still play.
+    const frame = whole ? null : this.dwdFrame(step);
+    if (frame) {
       const { tiles: index } = frame;
       const template = templateOf(frame.url);
       tileGrid.forEachTileCoord(extent, z, ([tz, tx, ty]) => {
-        if (urls.length >= PREFETCH_MAX_TILES) return;
+        if (urls.length >= PRELOAD_MAX_TILES) return;
         // Past a frame's deepest zoom its tiles come out of their ancestor's.
         const { z: sz, x, y } = sourceTile(index, tz, tx, ty);
         // A tile the frame does not have is answered locally; see lib/tileIndex.ts.
         if (!hasTile(index, sz, x, 2 ** sz - 1 - y)) return;
-        const url = template
+        urls.push(template
           .replace("{z}", String(sz))
           .replace("{x}", String(x))
           .replace("{-y}", String(2 ** sz - 1 - y))
-          .replace("{y}", String(y));
-        if (!urls.includes(url)) urls.push(url);
+          .replace("{y}", String(y)));
       });
     }
-
-    // The networks' frames for the same steps: over their countries DWD's
-    // tiles are holes, so without these playback there is half-loaded anyway.
-    // Or a product of every network's, on the steps it stands in for them all.
-    const wholes = ahead.map((step) => this.wholeFrame(step));
-    const arounds = ahead.map((step) => this.aroundFrame(step));
-    for (const network of this.networks) {
-      const frames = ahead
-        .filter((_step, i) => !wholes[i] && !arounds[i])
-        .map((step) => this.networkGrid[network.network.code]?.[step])
-        .filter((frame): frame is RadarFrame => Boolean(frame));
-      if (frames.length) urls.push(...network.tileUrls(frames, PREFETCH_MAX_TILES));
+    // Over the networks' countries DWD's tiles are holes: their own frames,
+    // or a product of all of theirs on the steps it stands in for them.
+    if (whole) urls.push(...this.wholes[whole.product].tileUrls([whole.frame], PRELOAD_MAX_TILES));
+    else if (around) urls.push(...this.around.tileUrls([around], PRELOAD_MAX_TILES));
+    else {
+      for (const network of this.networks) {
+        const own = this.networkGrid[network.network.code]?.[step];
+        if (own) urls.push(...network.tileUrls([own], PRELOAD_MAX_TILES));
+      }
     }
-    for (const [product, layer] of Object.entries(this.wholes) as [WholeProduct, NetworkRadarLayer][]) {
-      const frames = wholes.filter((whole) => whole?.product === product).map((whole) => whole!.frame);
-      if (frames.length) urls.push(...layer.tileUrls(frames, PREFETCH_MAX_TILES));
-    }
-    const aroundFrames = arounds.filter((frame): frame is RadarFrame => Boolean(frame));
-    if (aroundFrames.length) urls.push(...this.around.tileUrls(aroundFrames, PREFETCH_MAX_TILES));
-    // Each network's nowcast on the forecast steps ahead it has leads for:
-    // WN's tiles are holes there.
+    // Each network's nowcast on a forecast step it has a lead for: WN's tiles are holes there.
+    const domains = this.nowcastDomainsAt(step);
     for (const layer of this.nowcasts) {
-      const { code } = layer.network;
-      const frames = ahead
-        .filter((step) => this.nowcastDomainsAt(step).includes(code as CountryNetwork))
-        .map((step) => this.nowcastGrid[code as CountryNetwork]![step]);
-      if (frames.length) urls.push(...layer.tileUrls(frames, PREFETCH_MAX_TILES));
+      const code = layer.network.code as CountryNetwork;
+      if (domains.includes(code)) urls.push(...layer.tileUrls([this.nowcastGrid[code]![step]], PRELOAD_MAX_TILES));
     }
+    return [...new Set(urls)];
+  }
 
-    if (this.prefetched.size > PREFETCH_REMEMBERED) this.prefetched.clear();
-    for (const url of urls) {
-      if (this.prefetched.has(url)) continue;
-      this.prefetched.add(url);
-      // Same request the tile loader makes (CORS, no credentials), so the
-      // cache entry is the one it will look for. The body is read to
-      // the end: a response left unread is not stored.
-      timedFetch(url, { mode: "cors", credentials: "same-origin", priority: "low" } as RequestInit)
-        .then((response) => (response.ok ? response.arrayBuffer() : undefined))
-        .catch(() => { this.prefetched.delete(url); });
+  /**
+   * Fetch the tiles of every frame the timeline can show, for the map in
+   * view, nearest `from` first; or, with `ahead`, only that many frames after
+   * it, which is what a reader saving data gets during playback.
+   *
+   * Scrubbed through quickly, a frame whose tiles are asked for only when it
+   * is shown is blocky or half-drawn for the first few hundred milliseconds,
+   * and playback's first loop through a viewport is too. Asked for here,
+   * through `fetch`, they are in the HTTP cache (and the service worker's)
+   * when OpenLayers asks. The tiles are cacheable by URL (a tile_id names one
+   * rendering), so the bytes are the same either way; only when they are
+   * asked for changes. How far each frame has got is `framesPreloaded`.
+   */
+  preloadTimeline(from: number, ahead?: number) {
+    if (!this.clientGrid) return;
+    const last = this.getLastPlayableStep();
+    const steps = Object.keys(this.clientGrid).map(Number).filter((step) => step <= last).sort((a, b) => a - b);
+    const order = ahead === undefined ? preloadOrder(steps, from)
+      : steps.filter((step) => step > from).slice(0, ahead);
+    const needs: Array<[number, string[]]> = [];
+    for (const step of order) {
+      const urls = this.frameTileUrls(step);
+      if (!urls) return;
+      needs.push([step, urls]);
     }
+    this.preloader.plan(needs);
+  }
+
+  /** No more frames fetched ahead, and none shown as fetched. */
+  stopPreload() {
+    this.preloader.stop();
   }
 
   regenerateGridConfig() {

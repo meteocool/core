@@ -626,7 +626,7 @@
       "no_tilesets": "nog geen tilesets",
       "basemap_tiles": "basiskaarttegels",
       "forecast_preload": "voorspelling voorladen",
-      "preload_on": "aan: volgende beelden worden vooraf opgehaald voor het afspelen",
+      "preload_on": "aan: alle beelden worden vooraf opgehaald voor de getoonde kaart",
       "off": "uit",
       "used": "gebruikt",
       "quota": "quotum",

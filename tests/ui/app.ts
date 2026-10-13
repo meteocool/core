@@ -46,3 +46,14 @@ export async function noGeocoder(page: Page): Promise<void> {
   await page.route("**/geocoding/**", (route) => route.fulfill({ status: 404, json: {} }));
   await page.route("https://api.bigdatacloud.net/**", (route) => route.fulfill({ status: 404, json: {} }));
 }
+
+/**
+ * How full each step's slot on the timeline is with tiles fetched ahead, 0 to
+ * 1, oldest first, the unpublished tail included. Drawn, not announced: read
+ * off the fill's scale.
+ */
+export const preloadedShares = (page: Page): Promise<number[]> => page.locator(".strip .preloaded")
+  .evaluateAll((rects) => rects.map((rect) => Number(/scaleY\(([\d.]+)\)/.exec((rect as SVGElement).style.transform)?.[1] ?? 0)));
+
+/** The fetched-ahead band drawn as one piece of glass, once every frame is in. */
+export const wholePreloadBand = (page: Page): Locator => page.locator(".strip .preload-glass.whole");

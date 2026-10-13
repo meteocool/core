@@ -626,7 +626,7 @@
       "no_tilesets": "jeszcze brak zestawów kafelków",
       "basemap_tiles": "kafelki mapy bazowej",
       "forecast_preload": "wstępne wczytywanie prognozy",
-      "preload_on": "wł.: kolejne klatki pobierane przed odtwarzaniem",
+      "preload_on": "wł.: wszystkie klatki pobierane z wyprzedzeniem dla widocznej mapy",
       "off": "wył.",
       "used": "wykorzystano",
       "quota": "limit",

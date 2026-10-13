@@ -626,7 +626,7 @@
       "no_tilesets": "zatím žádné sady dlaždic",
       "basemap_tiles": "dlaždice podkladové mapy",
       "forecast_preload": "přednačítání předpovědi",
-      "preload_on": "zapnuto: další snímky se stahují předem pro přehrávání",
+      "preload_on": "zapnuto: všechny snímky se předem stahují pro zobrazenou mapu",
       "off": "vypnuto",
       "used": "využito",
       "quota": "kvóta",
