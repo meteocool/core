@@ -26,6 +26,13 @@ export type CellsEvent = Schemas["CellsRefresh"];
 export type NetworkEvent = Schemas["NetworkRefresh"];
 /** One of the four national networks with a composite of their own: not `eu`, `colmax` or `dmax`, which share their event. */
 export type CountryNetwork = Exclude<NetworkEvent["network"], "eu" | "colmax" | "dmax">;
+/**
+ * One network's run of meteocool's own nowcast is complete (ng ADR 0022): a
+ * client showing the nowcast refetches the timeseries. Not a `poke`, which
+ * reloads DWD's whole timeseries for every client; Germany's run is never
+ * announced.
+ */
+export type NowcastEvent = Schemas["NowcastRefresh"];
 /** Storms have changed; refetch `/storms` for the viewport. */
 export type StormsEvent = Schemas["StormsRefresh"];
 /** One run's volumes, or one part of a run's, are built; refetch `/cells/volumes`. */
@@ -36,6 +43,7 @@ export interface ServerToClientEvents {
   lightning: (strike: LightningEvent) => void;
   mesocyclones: (detections: MesocycloneEvent[]) => void;
   network: (network: NetworkEvent) => void;
+  nowcast: (nowcast: NowcastEvent) => void;
   poke: (poke: PokeEvent) => void;
   snow: (snow: SnowEvent) => void;
   storms: (storms: StormsEvent) => void;

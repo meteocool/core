@@ -424,6 +424,13 @@ export interface paths {
          *     frame carries its tile index and most clients draw neither. The chart is
          *     still read from HX and the networks, whichever is drawn.
          *
+         *     `products=nowcast` adds meteocool's own nowcast (ADR 0022): each network's
+         *     newest complete run, under `nowcast_<domain>`, its steps keyed by the
+         *     forecast steps they are valid at, shaped as WN's are in `frames`. With a
+         *     point and `network`, that network's steps carry the dBZ there, and the
+         *     `headlines` are worded from them instead of WN's, up to the run's last
+         *     lead. Germany's run is never served: WN is Germany's forecast.
+         *
          *     `threshold`, the dBZ the client counts as rain, adds what the chart comes
          *     to in words, `headlines`, in `lang`, with the peak's dBZ when `details`:
          *     the same words and rules as the rain alerts and Live Activities, so that
@@ -781,6 +788,30 @@ export interface components {
             network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax" | "colmax";
         };
         /**
+         * NowcastRefresh
+         * @description A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).
+         *
+         *     Deliberately not a `Poke`, though WN's completed run is announced as one:
+         *     every client's `poke` handler reloads DWD's whole timeseries, and with four
+         *     networks on their own clocks these land every minute or two. A client that
+         *     shows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;
+         *     one that does not ignores it. Germany's run is never announced: it is
+         *     recorded for scoring and never shown.
+         */
+        NowcastRefresh: {
+            /**
+             * Domain
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW
+             * @enum {string}
+             */
+            domain: "ch" | "fr" | "cz" | "pl";
+            /**
+             * Issued At
+             * @description The run's issue time, unix seconds: the five-minute slot it starts from
+             */
+            issued_at: number;
+        };
+        /**
          * Platform
          * @description Which push provider a client is registered with.
          * @enum {string}
@@ -855,7 +886,7 @@ export interface components {
             };
             /**
              * Headlines
-             * @description With `lat`, `lon` and `threshold`: the headline for the rain at that point, keyed by when it applies -- now, the end of the newest observed step, and then each forecast step as it becomes now -- for a client that keeps showing this series for a while. Rain is a step at `threshold` or above until two steps in a row below min(threshold, 14 dBZ), as in the rain alerts.
+             * @description With `lat`, `lon` and `threshold`: the headline for the rain at that point, keyed by when it applies -- now, the end of the newest observed step, and then each forecast step as it becomes now -- for a client that keeps showing this series for a while. Rain is a step at `threshold` or above until two steps in a row below min(threshold, 14 dBZ), as in the rain alerts. With `products=nowcast` and `network` (ch, fr, cz, pl), the forecast steps are that network's nowcast run, sampled at the point, up to its last lead; otherwise WN's.
              */
             headlines?: {
                 [key: string]: components["schemas"]["Headline"];
@@ -871,7 +902,7 @@ export interface components {
             };
             /**
              * Products
-             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, and `colmax`, its column maximum of every network -- keyed like `networks`: the frame measured nearest each observed step (`dmax` and `colmax` only on their own step), and on the newest step the newest one, while it is fresh. Empty unless asked for.
+             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, and `colmax`, its column maximum of every network -- keyed like `networks`: the frame measured nearest each observed step (`dmax` and `colmax` only on their own step), and on the newest step the newest one, while it is fresh. With `products=nowcast`, meteocool's own nowcast (experimental): `nowcast_ch`, `nowcast_fr`, `nowcast_cz` and `nowcast_pl`, each that network's newest complete run issued in the last 30 minutes, its steps keyed by the step they are valid at and shaped as WN's are in `frames` (`source` `nowcast_phys`, tiles in the nowcast bucket, `upstream_time` the run's issue time); with `lat`, `lon` and `network`, that network's steps carry `dbz` at the point. A network without a fresh run is absent; Germany has none here. Empty unless asked for.
              */
             products?: {
                 [key: string]: {
@@ -1540,7 +1571,7 @@ export interface operations {
                 lat?: number;
                 lon?: number;
                 network?: ("ch" | "fr" | "cz" | "pl") | null;
-                products?: ("dmax" | "merged" | "colmax")[] | null;
+                products?: ("dmax" | "merged" | "colmax" | "nowcast")[] | null;
                 threshold?: number | null;
                 lang?: components["schemas"]["Language"];
                 details?: boolean;
