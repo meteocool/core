@@ -354,10 +354,6 @@
       "volume_gone": "That storm core's radar volume is no longer available.",
       "storm_gone": "That storm is no longer being tracked."
     },
-    "unknown": {
-      "untracked_de": "DWD's storm analysis does not report this storm, so there is no forecast and no hail or rotation flag for it. Tracked by meteocool from the radar alone.",
-      "outside_de": "Outside DWD's storm analysis: no forecast and no hail or rotation flags here. Tracked by meteocool from the radar alone."
-    },
     "merges": {
       "into": "Merged into another storm",
       "from": "A storm merged in, last seen {time}"

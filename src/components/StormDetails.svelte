@@ -752,8 +752,6 @@ $: status = storm
     ? cellStatus({ active: track.active, child_codes: track.child_codes, ageMinutes: recency.ageMinutes }, $_)
     : null;
 $: observedAt = lastSeen ? clock(lastSeen) : "–";
-/** Whether DWD's analysis covers it: a KONRAD3D track, or a storm in Germany. */
-$: inGermany = Boolean(track) || storm?.primary_domain === "de";
 
 /**
  * Closing leaves the cell's forecast on the map on a phone, and clears it
@@ -834,12 +832,6 @@ function close() {
 
   <h3 class="section">{$_("storm.section.readings")}</h3>
   <Readings items={readings} />
-
-  <!-- What the panel cannot say for a storm KONRAD3D does not track, said
-       rather than left as blanks a reader would take for "none". -->
-  {#if !track && !coreOnly}
-    <p class="unknown">{$_(inGermany ? "storm.unknown.untracked_de" : "storm.unknown.outside_de")}</p>
-  {/if}
 
   <!-- Numbers before models: the readings are the answer to "how bad is it",
        which is what a reader wants first, and the 3D shapes are the slower,
@@ -1057,12 +1049,6 @@ function close() {
   }
 
   .dial { margin: 2px 0 8px; }
-  /* Said once, quietly: a fact about the coverage, not a warning about the storm. */
-  .unknown {
-    margin: 8px 0 4px;
-    font: 400 12px/1.4 var(--mc-font);
-    color: var(--mc-text-2);
-  }
   /* A quiet line that does not compete with the dial: it says the sheet goes
      up, for the few who want what is above. */
   .how {

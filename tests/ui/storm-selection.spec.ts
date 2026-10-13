@@ -79,7 +79,7 @@ test("a link to a KONRAD3D cell opens the storm it belongs to, under the storm's
   expect(await page.evaluate(() => window.history.length)).toBe(entries);
 });
 
-test("a storm outside Germany says plainly what is not known there", async ({ page }) => {
+test("a storm outside Germany shows what is known there and nothing else", async ({ page }) => {
   const french = volumes.find((volume) => volume.network === "fr")!;
   const id = "01KFRANCESTANDBYSTRM000000";
   await serveStorms(page, [stormOfVolume(french, id)]);
@@ -87,7 +87,7 @@ test("a storm outside Germany says plainly what is not known there", async ({ pa
   await page.goto(`/?layer=radar&storm=${id}`);
   const opened = panel(page, "Storm");
   await expect(opened).toBeVisible({ timeout: 30_000 });
-  await expect(opened).toContainText("Outside DWD's storm analysis");
+  await expect(opened).not.toContainText("DWD");
   // Its history is the tracker's, and there is no forecast to state.
   await expect(opened.getByRole("img", { name: /^Reflectivity/ })).toBeVisible();
   await expect(opened).not.toContainText("Forecast");
@@ -130,5 +130,5 @@ test("tapping a box of sky on the 3D map opens the storm it belongs to", async (
   const opened = panel(page, "Storm");
   await expect(opened).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`storm=${id}`), { timeout: 15_000 });
-  await expect(opened).toContainText("DWD's storm analysis does not report this storm");
+  await expect(opened).not.toContainText("DWD's storm analysis");
 });

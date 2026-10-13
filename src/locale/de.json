@@ -354,10 +354,6 @@
       "volume_gone": "Das Radarvolumen dieses Gewitterkerns ist nicht mehr verfügbar.",
       "storm_gone": "Dieses Gewitter wird nicht mehr verfolgt."
     },
-    "unknown": {
-      "untracked_de": "Die Gewitteranalyse des DWD meldet dieses Gewitter nicht, daher gibt es keine Vorhersage und keine Hagel- oder Rotationswarnung dafür. Von meteocool allein aus dem Radar verfolgt.",
-      "outside_de": "Außerhalb der Gewitteranalyse des DWD: hier keine Vorhersage und keine Hagel- oder Rotationswarnung. Von meteocool allein aus dem Radar verfolgt."
-    },
     "merges": {
       "into": "In ein anderes Gewitter übergegangen",
       "from": "Ein Gewitter ging darin auf, zuletzt gesehen {time}"
