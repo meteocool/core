@@ -73,8 +73,6 @@ import { reportToast } from "../lib/Toast";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
 
-/** The grid's step, in seconds. */
-const STEP_SECONDS = 5 * 60;
 /** The most tiles one layer of one frame is preloaded with: a desktop viewport's. */
 const PRELOAD_MAX_TILES = 48;
 
