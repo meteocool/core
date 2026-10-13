@@ -382,6 +382,12 @@
   }
 }
 
+/* A wide screen puts the player's head beside the colour scale, one row less. */
+@media (min-width: 1024px) {
+  :root { --mc-player-h: 132px; }
+  :root.is-ios { --mc-player-h: 136px; }
+}
+
 /* Fallback ladder. Each rung flips the same tokens, so every surface degrades
    identically without needing a class. The chrome-dark root is listed with the
    others because it sets the fill too, and at the same specificity as the

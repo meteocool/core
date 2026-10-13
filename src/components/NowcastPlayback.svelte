@@ -762,11 +762,14 @@ onDestroy(() => {
   }
 
   /* ---------------------------------------------------------------------
-     The player, three rows at every size:
+     The player, three rows up to a wide screen:
 
          head      where the strip's numbers are from, and the product picker
          timeline  the strip: forecast bars, needle, axis
          row       transport and the colour scale
+
+     On a wide screen the head moves to the right of the colour scale, so the
+     player is two rows and gives the map back the height of one.
      --------------------------------------------------------------------- */
   .player {
     display: flex;
@@ -795,10 +798,6 @@ onDestroy(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .title.quiet {
-    font-weight: 500;
-    color: var(--mc-text-2);
   }
 
   /* The way back to the client's own position: a tinted chip, the same one
@@ -846,9 +845,33 @@ onDestroy(() => {
     min-width: 0;
     padding: 0 4px;
   }
+  /* Kept at the end of the head with no title before it: there is none while
+     the client's position is unknown. */
   .product-pill {
     flex: 0 0 auto;
     display: inline-flex;
+    margin-left: auto;
+  }
+
+  /* The head beside the colour scale rather than above the strip. Its column
+     is as wide as the head needs, up to a share of the tray that leaves the
+     scale its labels; a longer title is cut, and fitTitle drops the district. */
+  @media (min-width: 1024px) {
+    .player {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) fit-content(40%);
+      grid-template-rows: auto minmax(0, 1fr);
+      column-gap: 12px;
+      row-gap: 4px;
+    }
+    .plot { grid-column: 1 / -1; grid-row: 1; }
+    .row { grid-column: 1; grid-row: 2; }
+    .head {
+      grid-column: 2;
+      grid-row: 2;
+      min-width: 0;
+      padding: 0;
+    }
   }
 
   /* A tint on the tray. */
@@ -1052,8 +1075,6 @@ onDestroy(() => {
               <span>{$_("show_for_my_location")}</span>
             </button>
           {/if}
-        {:else}
-          <span class="title quiet">{$_("chrome.playback.controls")}</span>
         {/if}
         <!-- The legend's caption, up here rather than in the row of controls,
              which has no room left on a phone. -->
