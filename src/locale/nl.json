@@ -179,7 +179,7 @@
     "playback_from_start": "Herhalen vanaf twee uur geleden",
     "playback_from_start_hint": "Het afspelen begint twee uur voor nu in plaats van bij nu, zodat je eerst ziet waar de regen vandaan kwam en dan waar hij heen gaat.",
     "meteocool_nowcast": "meteocool-nowcast (experimenteel)",
-    "meteocool_nowcast_hint": "Voorspelt het komende uur boven Zwitserland, Frankrijk, Tsjechië en Polen uit hun eigen radar, zoals meteocool die doortrekt. Duitsland houdt de verwachting van de Duitse weerdienst. Experimenteel: kan fout, te laat of afwezig zijn.",
+    "meteocool_nowcast_hint": "Voorspelt de komende twee uur boven Zwitserland, Frankrijk, Tsjechië en Polen uit hun eigen radar, zoals meteocool die doortrekt. Duitsland houdt de verwachting van de Duitse weerdienst. Experimenteel: kan fout, te laat of afwezig zijn.",
     "performance": "Prestaties",
     "mode": "Modus",
     "modes": {
@@ -434,7 +434,6 @@
       "cells": "Onweerscellen",
       "map_layers": "Kaartlagen",
       "back_to_latest": "Terug naar nu",
-      "germany_only": "alleen DE",
       "play": "Afspelen",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",

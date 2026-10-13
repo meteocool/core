@@ -8,8 +8,8 @@ import { fixtureFile, type RecordedResponse } from "./offline";
  * meteocool's own nowcast outside Germany, behind the experimental setting
  * (lib/nowcast.ts). The recording has no run in it, so the timeseries is
  * answered here with a French one put in: an hour of leads from the first
- * forecast step, shaped as WN's steps are, as the API sends it with
- * `products=nowcast`.
+ * forecast step, a run still being made, shaped as WN's steps are, as the
+ * API sends it with `products=nowcast`.
  */
 const AQUITAINE_VIEW = "/?layer=radar&latLonZ=44.80000,-0.60000,8.00";
 const RUN_LEADS = 12;
@@ -50,35 +50,34 @@ async function answerWithRun(page: Page): Promise<string[][]> {
   return asked;
 }
 
-test("off by default: the nowcast is not asked for, and France has no forecast", async ({ page }) => {
+test("on by default: it is asked for, and France has a forecast to its run's last lead", async ({ page }) => {
   const asked = await answerWithRun(page);
   await openRadar(page, AQUITAINE_VIEW);
   expect(asked.length).toBeGreaterThan(0);
-  expect(asked.every((products) => !products.includes("nowcast"))).toBe(true);
+  expect(asked.every((products) => products.includes("nowcast"))).toBe(true);
   await step(page, 3);
+  await expect(noForecastNotice(page)).toBeHidden();
+  await expect(playButton(page)).toBeEnabled();
+  // Past a run still being made, France is back to having none.
+  await step(page, RUN_LEADS);
   await expect(noForecastNotice(page)).toBeVisible();
-  await expect(page.getByText("DE only")).toHaveCount(0);
 });
 
-test("turned on, it is asked for, remembered, and France has a forecast to its last lead", async ({ page }) => {
+test("turned off, it is not asked for, remembered, and France has no forecast", async ({ page }) => {
   const asked = await answerWithRun(page);
   await openRadar(page, AQUITAINE_VIEW);
   await page.getByRole("button", { name: "Settings" }).click();
   const toggle = page.getByRole("switch", { name: "meteocool Nowcast (Experimental)" });
-  await expect(toggle).not.toBeChecked();
-  await toggle.check();
-  expect(await page.evaluate(() => localStorage.getItem("meteocoolNowcast"))).toBe("true");
-  await expect.poll(() => asked.some((products) => products.includes("nowcast"))).toBe(true);
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  expect(await page.evaluate(() => localStorage.getItem("meteocoolNowcast"))).toBe("false");
   await page.keyboard.press("Escape");
 
+  const before = asked.length;
   await page.reload();
   await expect(timeline(page)).toBeVisible({ timeout: 30_000 });
-  // The forecast past the run's last lead is Germany's alone, and marked so.
-  await expect(page.getByText("DE only")).toBeVisible();
+  await expect.poll(() => asked.length).toBeGreaterThan(before);
+  expect(asked.slice(before).every((products) => !products.includes("nowcast"))).toBe(true);
   await step(page, 3);
-  await expect(noForecastNotice(page)).toBeHidden();
-  await expect(playButton(page)).toBeEnabled();
-  // Past the run, France is back to having none.
-  await step(page, RUN_LEADS);
   await expect(noForecastNotice(page)).toBeVisible();
 });

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  NOWCAST_DOMAINS, chartFrames, domainsAt, domainsWithRun, lastLead, nowcastRuns,
+  NOWCAST_DOMAINS, chartFrames, domainsAt, domainsWithRun, nowcastRuns,
 } from "../../src/lib/nowcast.ts";
 
 /**
  * meteocool's own nowcast outside Germany: which runs a timeseries carries,
- * which of them draw on a step, how far they reach, and the chart's bars at
+ * which of them draw on a step, and the chart's bars at
  * a point one of the networks draws.
  */
 
@@ -40,12 +40,6 @@ test("a step draws the runs with a lead valid there, and none past their last", 
   assert.deepEqual(domainsAt(runs, NOW + 12 * STEP), ["fr"]);
   assert.deepEqual(domainsAt(runs, NOW + 13 * STEP), []);
   assert.deepEqual(domainsAt(runs, NOW - STEP), []);
-});
-
-test("the runs' reach is read off their steps, not assumed to be an hour", () => {
-  assert.equal(lastLead(nowcastRuns({ nowcast_fr: run(NOW, 12), nowcast_ch: run(NOW - STEP, 12) })), NOW + 12 * STEP);
-  assert.equal(lastLead(nowcastRuns({ nowcast_pl: run(NOW, 6) })), NOW + 6 * STEP);
-  assert.equal(lastLead({}), null);
 });
 
 test("the chart's forecast bars come from the point's run, and stop at its last lead", () => {

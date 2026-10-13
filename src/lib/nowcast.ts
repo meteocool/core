@@ -3,7 +3,7 @@
  * experimental "meteocool nowcast" setting.
  *
  * Each of the four networks around DWD (`ch`, `fr`, `cz`, `pl`) has a run of
- * its own: twelve leads, five to sixty minutes, on the timeline's own steps.
+ * its own: up to 24 leads, five to 120 minutes, on the timeline's own steps.
  * `/v3/radar/timeseries?products=nowcast` answers them under `products` as
  * `nowcast_<domain>`, each keyed by the step a lead is valid at and shaped as
  * WN's steps are in `frames`. A network without a fresh run is absent.
@@ -45,22 +45,6 @@ export function domainsAt<F>(runs: NowcastRuns<F>, step: number): CountryNetwork
 /** The networks with a run at all. */
 export function domainsWithRun<F>(runs: NowcastRuns<F>): CountryNetwork[] {
   return NOWCAST_DOMAINS.filter((domain) => runs[domain] !== undefined);
-}
-
-/**
- * The newest step any network's run reaches, unix seconds; null without a
- * run. Read off the steps the response carries rather than assumed to be an
- * hour on: past it, only Germany has a forecast.
- */
-export function lastLead<F>(runs: NowcastRuns<F>): number | null {
-  let last: number | null = null;
-  for (const run of Object.values(runs)) {
-    for (const key of Object.keys(run ?? {})) {
-      const step = parseInt(key, 10);
-      if (Number.isFinite(step) && (last === null || step > last)) last = step;
-    }
-  }
-  return last;
 }
 
 /**

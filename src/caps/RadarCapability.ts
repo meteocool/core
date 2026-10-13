@@ -58,7 +58,7 @@ import {
 } from "../lib/observedProduct";
 import type { AlternativeProduct, NewestScans, ObservedProduct, ScanRange } from "../lib/observedProduct";
 import {
-  NOWCAST_PRODUCT, chartFrames, domainsAt, domainsWithRun, lastLead, nowcastRuns,
+  NOWCAST_PRODUCT, chartFrames, domainsAt, domainsWithRun, nowcastRuns,
 } from "../lib/nowcast";
 import type { NowcastRuns } from "../lib/nowcast";
 import { NOWCAST_OPACITY } from "../layers/ui";
@@ -1023,15 +1023,6 @@ export default class RadarCapability extends Capability {
     const frame = this.clientGrid?.[step];
     if (!frame?.url || frame.source === "observation") return [];
     return domainsAt(this.nowcastGrid, step);
-  }
-
-  /**
-   * The last step any network's nowcast run reaches, unix seconds, while the
-   * setting is on and there is a run; null otherwise. Past it the forecast
-   * is Germany's alone, and the player marks that stretch.
-   */
-  nowcastLastLead(): number | null {
-    return this.nowcastOn ? lastLead(this.nowcastGrid) : null;
   }
 
   /**

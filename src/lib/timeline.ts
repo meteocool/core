@@ -103,8 +103,8 @@ export function lastPlayableIndex(steps: TimelineStep[]): number {
  * neighbouring networks, which WN does not forecast: the right half of the
  * strip is empty for a reason rather than because it will stay dry, and this
  * is where the forecast would start. With meteocool's nowcast there
- * (lib/nowcast.ts) it is where the network's run ends, an hour on, and WN's
- * further two hours go on for Germany alone. A gap in the middle is a step
+ * (lib/nowcast.ts) it is where the network's run ends, which is short of
+ * WN's while the run is still being made. A gap in the middle is a step
  * missing from a run, not the end of it.
  */
 export function forecastGapFrom(steps: TimelineStep[]): number | null {
@@ -118,18 +118,6 @@ export function forecastGapFrom(steps: TimelineStep[]): number | null {
   if (lastReading < 0) return null;
   const gap = Math.max(lastReading + 1, first);
   return gap < published.length ? gap / steps.length : null;
-}
-
-/**
- * The index of the first forecast step past `lastLead`, the last step any
- * network's nowcast run reaches: from there on the forecast is Germany's
- * alone, and the strip marks it so. Null without a run, or where the strip
- * ends before the runs do.
- */
-export function germanyOnlyFrom(steps: TimelineStep[], lastLead: number | null): number | null {
-  if (lastLead === null) return null;
-  const index = steps.findIndex((step) => step.forecast && step.t > lastLead);
-  return index < 0 ? null : index;
 }
 
 /** Whether any step has measurable echo: the strip is worth bars at all. */

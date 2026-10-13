@@ -179,7 +179,7 @@
     "playback_from_start": "Opakovať od času pred dvoma hodinami",
     "playback_from_start_hint": "Prehrávanie sa začína dve hodiny pred súčasnosťou namiesto od teraz, takže najprv ukáže, odkiaľ dážď prišiel, a potom kam smeruje.",
     "meteocool_nowcast": "Nowcast meteocool (experimentálny)",
-    "meteocool_nowcast_hint": "Predpovedá nasledujúcu hodinu nad Švajčiarskom, Francúzskom, Českom a Poľskom z ich vlastného radaru, ako ho meteocool extrapoluje. Nemecko si ponecháva predpoveď nemeckej meteorologickej služby. Experimentálny: môže byť chybný, oneskorený alebo chýbať.",
+    "meteocool_nowcast_hint": "Predpovedá nasledujúce dve hodiny nad Švajčiarskom, Francúzskom, Českom a Poľskom z ich vlastného radaru, ako ho meteocool extrapoluje. Nemecko si ponecháva predpoveď nemeckej meteorologickej služby. Experimentálny: môže byť chybný, oneskorený alebo chýbať.",
     "performance": "Výkon",
     "mode": "Režim",
     "modes": {
@@ -434,7 +434,6 @@
       "cells": "Búrkové bunky",
       "map_layers": "Mapové vrstvy",
       "back_to_latest": "Späť na najnovšie",
-      "germany_only": "len DE",
       "play": "Prehrať",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",

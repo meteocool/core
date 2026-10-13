@@ -179,7 +179,7 @@
     "playback_from_start": "Boucle depuis il y a deux heures",
     "playback_from_start_hint": "La lecture commence deux heures avant maintenant plutôt que maintenant : elle montre d'où vient la pluie avant de montrer où elle va.",
     "meteocool_nowcast": "Nowcast meteocool (expérimental)",
-    "meteocool_nowcast_hint": "Prévoit l'heure à venir sur la Suisse, la France, la Tchéquie et la Pologne à partir de leur propre radar, extrapolé par meteocool. L'Allemagne garde la prévision du service météorologique allemand. Expérimental : peut être faux, en retard ou absent.",
+    "meteocool_nowcast_hint": "Prévoit les deux heures à venir sur la Suisse, la France, la Tchéquie et la Pologne à partir de leur propre radar, extrapolé par meteocool. L'Allemagne garde la prévision du service météorologique allemand. Expérimental : peut être faux, en retard ou absent.",
     "performance": "Performances",
     "mode": "Mode",
     "modes": {
@@ -434,7 +434,6 @@
       "cells": "Cellules orageuses",
       "map_layers": "Couches de la carte",
       "back_to_latest": "Revenir au plus récent",
-      "germany_only": "DE uniquement",
       "play": "Lecture",
       "offset_minutes": "{sign}{minutes}min",
       "offset_hours": "{sign}{hours}h",
