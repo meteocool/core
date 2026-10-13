@@ -250,14 +250,22 @@ async function request<T>(
   }
 }
 
+/**
+ * What `/v3/radar/timeseries?products=` may ask for: another observed
+ * product's past, or `nowcast`, meteocool's own run for each network around
+ * DWD (lib/nowcast.ts).
+ */
+export type TimeseriesProduct = AlternativeProduct | "nowcast";
+
 /** Radar and nowcast tile metadata for each timestep in the current window. */
 export function fetchRadarTimeseries(
   nanobar?: Progress,
   position?: { lat: number; lon: number; network?: CountryNetwork },
-  products: readonly AlternativeProduct[] = [],
+  products: readonly TimeseriesProduct[] = [],
 ) {
   // The chosen product's own past, beside HX's and the networks': asked for,
-  // since every frame carries its tile index (lib/observedProduct.ts).
+  // since every frame carries its tile index (lib/observedProduct.ts). And
+  // with the experimental setting on, every network's nowcast run.
   const query = { ...position, ...(products.length ? { products: [...products] } : {}) };
   return request(nanobar, "/v3/radar/timeseries", () =>
     apiClient.GET("/v3/radar/timeseries", { params: { query } }));

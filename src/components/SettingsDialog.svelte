@@ -4,7 +4,7 @@ import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
   cells3dVisible, cellLayerVisible, cycloneLayerVisible, fullResolution3d, lightningLayerVisible, mapBaseLayer,
-  playbackFromStart, radarColormap, terrain3dVisible,
+  meteocoolNowcast, playbackFromStart, radarColormap, terrain3dVisible,
 } from "../stores";
 import { isHandheld } from "../lib/gpuBudget";
 import { dbz2color } from "../lib/cmap_utils";
@@ -128,6 +128,13 @@ function setFullResolution3d(value: boolean) {
 
 function setPlaybackFromStart(value: boolean) {
   window.settings.set("playbackFromStart", value);
+}
+
+/* meteocool's own nowcast outside Germany, on the forecast steps the player
+   plays (lib/nowcast.ts). Experimental, and offered on every environment;
+   it changes nothing about the alerts. */
+function setMeteocoolNowcast(value: boolean) {
+  window.settings.set("meteocoolNowcast", value);
 }
 
 </script>
@@ -401,6 +408,20 @@ function setPlaybackFromStart(value: boolean) {
     </label>
   </div>
   <p class="hint">{$_("settings.playback_from_start_hint")}</p>
+  {#if offersRadar}
+    <div class="group">
+      <label class="row">
+        <span class="label">{$_("settings.meteocool_nowcast")}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          class="switch"
+          checked={$meteocoolNowcast}
+          on:change={(event) => setMeteocoolNowcast(event.currentTarget.checked)} />
+      </label>
+    </div>
+    <p class="hint">{$_("settings.meteocool_nowcast_hint")}</p>
+  {/if}
 
   <!-- What costs frames or bandwidth, and can be traded away for them. -->
   <h2>{$_("settings.performance")}</h2>

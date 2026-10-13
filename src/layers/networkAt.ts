@@ -1,5 +1,10 @@
 import { fromLonLat } from "ol/proj";
-import { chExclusiveCoverage, czExclusiveCoverage, frExclusiveCoverage, plExclusiveCoverage } from "./extents";
+import { containsCoordinate } from "ol/extent";
+import type { Extent } from "ol/extent";
+import {
+  chExclusiveCoverage, chRadarExtent, czExclusiveCoverage, czRadarExtent, frExclusiveCoverage, frRadarExtent,
+  plExclusiveCoverage, plRadarExtent,
+} from "./extents";
 import type { CountryNetwork } from "../api/events";
 
 /** Each network's coverage, as `network.ts`'s layers are clipped to it. */
@@ -40,4 +45,18 @@ export function insideRings(rings: number[][][], [x, y]: number[]): boolean {
 export function networkAt(lat: number, lon: number): CountryNetwork | undefined {
   const point = fromLonLat([lon, lat]);
   return COVERAGE.find(([, rings]) => insideRings(rings, point))?.[0];
+}
+
+/** Each network's grid rectangle, which its coverage lies inside: a cheap first test. */
+const EXTENT: Record<CountryNetwork, Extent> = { ch: chRadarExtent, fr: frRadarExtent, cz: czRadarExtent, pl: plRadarExtent };
+
+const RINGS = Object.fromEntries(COVERAGE) as Record<CountryNetwork, number[][][]>;
+
+/**
+ * Whether one of these networks draws at a point, in EPSG:3857: inside the
+ * ground its layers are cut to. Where meteocool's nowcast covers, for the
+ * player's "no forecast here" (lib/nowcast.ts).
+ */
+export function drawnByAny(networks: readonly CountryNetwork[], point: number[]): boolean {
+  return networks.some((network) => containsCoordinate(EXTENT[network], point) && insideRings(RINGS[network], point));
 }

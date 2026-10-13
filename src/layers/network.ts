@@ -41,6 +41,8 @@ export interface Network {
   extent: Extent;
   /** Where this network may draw; see `extents.ts` for who draws where. Null draws everywhere. */
   coverage: number[][][] | null;
+  /** The bucket its frames' tiles are in: `meteoradar` unless said otherwise. */
+  bucket?: string;
 }
 
 export const SWITZERLAND: Network = {
@@ -117,6 +119,23 @@ export const AROUND_DMAX: Network = {
   extent: NETWORKS.map((network) => network.extent).reduce((whole, one) => extend(whole, one), createEmpty()),
   coverage: NETWORKS.flatMap((network) => network.coverage ?? []),
 };
+
+/** For a layer that is only ever handed its frames. */
+const handedFrames = async (): Promise<null> => null;
+
+/**
+ * Each network's run of meteocool's own nowcast (ng ADR 0022), drawn on the
+ * forecast steps it has a lead for while the experimental setting is on:
+ * cut to the same ground as the network's composite, so WN, holed for it on
+ * those steps (`networkHoles.ts`), and the run never draw on one pixel. Its
+ * tiles are in the nowcast bucket, as WN's are; its frames come with the
+ * timeseries (lib/nowcast.ts) and are handed to it, never fetched.
+ */
+export const NOWCAST_NETWORKS: Network[] = NETWORKS.map((network) => ({
+  ...network,
+  fetch: handedFrames,
+  bucket: "meteonowcast",
+}));
 
 /**
  * An independent tile layer for one EUMETNET network's composite.
@@ -228,7 +247,7 @@ export default class NetworkRadarLayer {
 
     const urls: string[] = [];
     for (const frame of frames) {
-      const template = tileSourceUrl("meteoradar", drawnTileId(frame));
+      const template = tileSourceUrl(this.network.bucket ?? "meteoradar", drawnTileId(frame));
       tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
         if (urls.length >= max) return;
         // Not a tile the frame does not have: the index is what the loader
@@ -249,7 +268,7 @@ export default class NetworkRadarLayer {
       this.layer?.setVisible(false);
       return;
     }
-    const url = tileSourceUrl("meteoradar", drawnTileId(frame));
+    const url = tileSourceUrl(this.network.bucket ?? "meteoradar", drawnTileId(frame));
     if (!this.layer) {
       this.createLayer(url, frame);
     } else if (url !== this.url) {

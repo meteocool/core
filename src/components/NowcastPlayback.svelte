@@ -15,6 +15,7 @@ import {
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
+  nowcastCoverage,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -27,7 +28,7 @@ import LiveIndicator from "./LiveIndicator.svelte";
 import Timeline from "./Timeline.svelte";
 import { _, locale } from "svelte-i18n";
 import { get } from "svelte/store";
-import { forecastGapFrom, hasEcho, timelineSteps } from "../lib/timeline";
+import { forecastGapFrom, germanyOnlyFrom, hasEcho, timelineSteps } from "../lib/timeline";
 import {
   chRadarExtent4326,
   czRadarExtent4326,
@@ -37,6 +38,8 @@ import {
   plRadarExtent4326,
 } from "../layers/extents";
 import { FORECAST_UNCOVERED_SHARE, uncoveredShare } from "../lib/forecastCoverage";
+import { drawnByAny } from "../layers/networkAt";
+import type { CountryNetwork } from "../api/events";
 import { canPlay, nextFrame } from "../lib/playbackLoop";
 import Polygon from "ol/geom/Polygon";
 import { fromLonLat } from "ol/proj";
@@ -144,6 +147,14 @@ $: hasPrecipitation = hasEcho(steps);
 $: noForecastFrom = forecastGapFrom(steps);
 
 /**
+ * Where the forecast is Germany's alone: the steps past the last lead of
+ * meteocool's nowcast runs, read off the runs the grid came with, while the
+ * experimental setting is on and there is a run; null otherwise. The strip
+ * hatches them, and says so unless "no forecast here" already stands there.
+ */
+$: germanyOnly = gridConfig && $nowcastCoverage ? germanyOnlyFrom(steps, cap.nowcastLastLead()) : null;
+
+/**
  * Whether any of what is on screen has radar behind it.
  *
  * meteocool's live radar is DWD's composite plus MeteoSwiss's and
@@ -183,22 +194,34 @@ $: if (!outOfCoverage) coverageDismissed = false;
 
 /* DWD's reach, the hole in the wash a forecast step draws (dwd.ts). */
 const forecastReach = new Polygon([dwdCoverageInv.getLinearRing(1)!.getCoordinates()]);
-const forecastCovers = (lon: number, lat: number): boolean => forecastReach.intersectsCoordinate(fromLonLat([lon, lat]));
+/** Whether a forecast draws at a point: WN in DWD's reach, or one of these networks' nowcast runs on its own ground. */
+const forecastCovers = (runs: readonly CountryNetwork[]) => (lon: number, lat: number): boolean => {
+  const point = fromLonLat([lon, lat]);
+  return forecastReach.intersectsCoordinate(point) || drawnByAny(runs, point);
+};
 
 /**
  * On a forecast step, whether most of the screen has no forecast behind it.
  *
- * The forecast is DWD's alone. Over France or Poland the present has radar and
- * a forecast step washes it all out, which reads as "no rain coming". Only
- * past half a screen: a border at the edge of the view is not worth a notice.
- * The radar's own notice comes first; with no radar there is no forecast either.
+ * WN is DWD's. Over France or Poland the present has radar and a forecast
+ * step washes it all out, which reads as "no rain coming". With meteocool's
+ * nowcast on, a network whose run has a lead at the step covers its ground
+ * too, so only what no run covers counts. Only past half a screen: a border
+ * at the edge of the view is not worth a notice. The radar's own notice
+ * comes first; with no radar there is no forecast either.
  */
-$: forecastMissing = $sharedActiveCap === "radar" && $mapExtent4326 !== null && !outOfCoverage
-  ? uncoveredShare($mapExtent4326, forecastCovers)
-  : 0;
+$: forecastReachable = $sharedActiveCap === "radar" && $mapExtent4326 !== null && !outOfCoverage;
+$: runsAtAll = $nowcastCoverage?.withRun ?? [];
+$: runsShown = $nowcastCoverage?.shown ?? [];
+/* With any run: whether playback has anything past now to show. */
+$: anyForecastMissing = forecastReachable && $mapExtent4326 ? uncoveredShare($mapExtent4326, forecastCovers(runsAtAll)) : 0;
+/* With the runs that have the step on screen: the notice. The same sum, unless the two differ. */
+$: forecastMissing = !forecastReachable || !$mapExtent4326 ? 0
+  : runsShown.join() === runsAtAll.join() ? anyForecastMissing
+    : uncoveredShare($mapExtent4326, forecastCovers(runsShown));
 $: outOfForecast = $onForecastStep && forecastMissing >= FORECAST_UNCOVERED_SHARE;
 /* None of the screen: playback has nothing to show past now (playbackLoop). */
-$: noForecast = forecastMissing === 1;
+$: noForecast = anyForecastMissing === 1;
 
 $: playable = canPlay({
   outOfRadar: outOfCoverage,
@@ -1034,7 +1057,7 @@ onDestroy(() => {
     title={$_("forecast_no_coverage")}
     collapsed={$bottomToolbarMode !== "player"}
     on:dismiss={() => { forecastCoverageDismissed = true; }}>
-    <p class="notice">{$_("forecast_no_coverage_body")}</p>
+    <p class="notice">{$_($nowcastCoverage ? "forecast_no_coverage_body_nowcast" : "forecast_no_coverage_body")}</p>
   </DismissableStrip>
 {/if}
 
@@ -1097,6 +1120,8 @@ onDestroy(() => {
           latest={latestObservation}
           value={shown}
           {labelEvery}
+          {germanyOnly}
+          germanyOnlyLabel={noForecastFrom === null}
           on:grab={grabbed}
           on:release={released}
           on:seek={seek} />

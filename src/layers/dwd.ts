@@ -1,13 +1,20 @@
 import Feature from "ol/Feature";
 import Fill from "ol/style/Fill";
 import Style from "ol/style/Style";
+import LinearRing from "ol/geom/LinearRing";
+import type Polygon from "ol/geom/Polygon";
+import { derived } from "svelte/store";
 import TileLayer from "./webglTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
-import { dwdCoverageInv, dwdRadarExtent, radarCoverageInv } from "./extents";
-import { onForecastStep } from "../stores";
+import {
+  chExclusiveCoverage, czExclusiveCoverage, dwdCoverageInv, dwdRadarExtent, frExclusiveCoverage, plExclusiveCoverage,
+  radarCoverageInv,
+} from "./extents";
+import { nowcastCoverage, onForecastStep } from "../stores";
+import type { CountryNetwork } from "../api/events";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
@@ -130,22 +137,100 @@ watchBasemap(washFor, (colour) => {
   washLayers.forEach((layer) => layer.changed());
 });
 
+/** The ground each network's nowcast is drawn on: its composite's, `network.ts`. */
+const NOWCAST_GROUND: Record<CountryNetwork, number[][][]> = {
+  ch: chExclusiveCoverage,
+  fr: frExclusiveCoverage,
+  cz: czExclusiveCoverage,
+  pl: plExclusiveCoverage,
+};
+
+/** A scratch canvas the cut wash is drawn on before it is laid on the map's. */
+let scratch: HTMLCanvasElement | null = null;
+
+/**
+ * The forecast step's wash with meteocool's nowcast cut out of it as well as
+ * DWD's reach: the world, and every ring after its first cut away from it one
+ * at a time.
+ *
+ * Not a plain fill. Each network's ground overlaps DWD's reach inside its own
+ * borders, and under the nonzero rule two holes over one pixel count back to
+ * filled: exactly the ground both forecasts reach would be washed as having
+ * none. So the wash is drawn on a canvas of its own, its holes erased from it
+ * separately, and the result laid on the map. Hit detection draws nothing:
+ * nothing asks the wash what was tapped.
+ */
+const cutWash = new Style({
+  renderer(coordinates, state) {
+    const rings = coordinates as number[][][];
+    const { context } = state;
+    const { width, height } = context.canvas;
+    scratch ??= document.createElement("canvas");
+    scratch.width = width;
+    scratch.height = height;
+    const cut = scratch.getContext("2d");
+    if (!cut || rings.length === 0) return;
+    cut.setTransform(context.getTransform());
+    const trace = (ring: number[][]) => {
+      cut.beginPath();
+      ring.forEach(([x, y], i) => (i === 0 ? cut.moveTo(x, y) : cut.lineTo(x, y)));
+      cut.closePath();
+      cut.fill();
+    };
+    cut.fillStyle = String(washFill.getColor());
+    trace(rings[0]);
+    // Erased by an opaque fill: `destination-out` takes away as much as it is opaque.
+    cut.globalCompositeOperation = "destination-out";
+    cut.fillStyle = "#000";
+    rings.slice(1).forEach(trace);
+    context.save();
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.drawImage(scratch, 0, 0);
+    context.restore();
+  },
+  hitDetectionRenderer() {},
+});
+
+/** The cut wash's geometry for a set of networks, built once per set. */
+const cutGeometries = new Map<string, Polygon>();
+
+function nowcastWashGeometry(networks: readonly CountryNetwork[]): Polygon {
+  const key = networks.join();
+  let geometry = cutGeometries.get(key);
+  if (!geometry) {
+    geometry = dwdCoverageInv.clone();
+    for (const network of networks) {
+      for (const ring of NOWCAST_GROUND[network]) geometry.appendLinearRing(new LinearRing(ring));
+    }
+    cutGeometries.set(key, geometry);
+  }
+  return geometry;
+}
+
 /**
  * The washes that follow the player onto a forecast step, and what they cover.
  *
- * The forecast is DWD's alone: on its steps every other network's country
- * has nothing drawn for that time, so the wash covers all but DWD's reach
+ * WN is DWD's alone: on its steps every other network's country has nothing
+ * drawn for that time, so the wash covers all but DWD's reach
  * (`dwdCoverageInv`), and goes back to every network's as soon as the player
- * is on the present or the past again. One module-level subscription, as for
- * the colour above.
+ * is on the present or the past again. With meteocool's nowcast on, the
+ * ground of each network whose run has a lead at the step is left clear as
+ * well (`cutWash`). One module-level subscription, as for the colour above.
  */
 const forecastWashes = new Set<Feature>();
-let washGeometry = radarCoverageInv;
+let washGeometry: Polygon = radarCoverageInv;
+let washStyle: Style | undefined;
 
-onForecastStep.subscribe((forecast) => {
-  washGeometry = forecast ? dwdCoverageInv : radarCoverageInv;
-  forecastWashes.forEach((feature) => feature.setGeometry(washGeometry));
-});
+derived([onForecastStep, nowcastCoverage], ([forecast, nowcast]) => ({ forecast, runs: nowcast?.shown ?? [] }))
+  .subscribe(({ forecast, runs }) => {
+    const cut = forecast && runs.length > 0;
+    washGeometry = !forecast ? radarCoverageInv : cut ? nowcastWashGeometry(runs) : dwdCoverageInv;
+    washStyle = cut ? cutWash : undefined;
+    forecastWashes.forEach((feature) => {
+      feature.setGeometry(washGeometry);
+      feature.setStyle(washStyle);
+    });
+  });
 
 /**
  * The dark wash over everywhere no network reaches.
@@ -159,7 +244,10 @@ export const radolanOverlay = ({ followsForecast = false } = {}) => {
     geometry: followsForecast ? washGeometry : radarCoverageInv,
     name: "DarkOverlay",
   });
-  if (followsForecast) forecastWashes.add(feature);
+  if (followsForecast) {
+    feature.setStyle(washStyle);
+    forecastWashes.add(feature);
+  }
   const layer = new VectorLayer({
     zIndex: 1000,
     renderBuffer: 500,

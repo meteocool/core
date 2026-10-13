@@ -6,7 +6,9 @@ import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
 import { frameOnStep, templateOf } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
-import NetworkRadarLayer, { AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, NETWORKS } from "../layers/network";
+import NetworkRadarLayer, {
+  AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, NETWORKS, NOWCAST_NETWORKS,
+} from "../layers/network";
 import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
@@ -15,7 +17,8 @@ import { hasTile, sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
 import { drawnTileId } from "../lib/rvp6";
 import type { ValueTiles } from "../lib/rvp6";
-import type { RadarFrame } from "../api";
+import type { RadarFrame, TimeseriesProduct } from "../api";
+import type { CountryNetwork } from "../api/events";
 import type { RadarScans } from "../lib/scans";
 import {
   capDescription,
@@ -36,6 +39,8 @@ import {
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
   observedProduct,
   radarProducts,
+  meteocoolNowcast,
+  nowcastCoverage,
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
@@ -52,6 +57,10 @@ import {
   DEFAULT_PRODUCT, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, scanRange, stepFrame, timeseriesProducts,
 } from "../lib/observedProduct";
 import type { AlternativeProduct, NewestScans, ObservedProduct, ScanRange } from "../lib/observedProduct";
+import {
+  NOWCAST_PRODUCT, chartFrames, domainsAt, domainsWithRun, lastLead, nowcastRuns,
+} from "../lib/nowcast";
+import type { NowcastRuns } from "../lib/nowcast";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
 import { timedFetch } from "../lib/timedFetch";
@@ -95,7 +104,7 @@ const STALE_OPACITY = NOWCAST_OPACITY * 0.45;
 const INSPECT_OPACITY = 0.55;
 
 /** A list of products as one string, to tell two requests' apart. */
-const productsKey = (products: readonly AlternativeProduct[]): string => products.join(",");
+const productsKey = (products: readonly TimeseriesProduct[]): string => products.join(",");
 
 /** The products of every network at once, each drawn whole in place of the six; see `showNetworks`. */
 const WHOLE_PRODUCTS = ["merged", "colmax"] as const satisfies readonly AlternativeProduct[];
@@ -116,7 +125,8 @@ function setPattern(style) {
 
 /** One timestep of the playback grid, as the UI consumes it. */
 export interface GridStep {
-  dbz: number;
+  /** Reflectivity at the point; null where nothing forecasts it (lib/nowcast.ts `chartFrames`). */
+  dbz: number | null;
   url: string | null;
   tile_id: string;
   source: string;
@@ -227,6 +237,25 @@ export default class RadarCapability extends Capability {
    */
   private networkGrid: Partial<Record<NetworkCode, Record<number, RadarFrame>>> = {};
 
+  /**
+   * Each network's run of meteocool's own nowcast, drawn on the forecast
+   * steps it has a lead for while the experimental setting is on: one layer
+   * per network, cut to its ground, with WN holed for it on those steps
+   * (`holes`). Handed the run's frames, never fetching. See lib/nowcast.ts.
+   */
+  private nowcasts: NetworkRadarLayer[];
+
+  /** Mirror of the `meteocoolNowcast` store: whether the runs are asked for and drawn. */
+  private nowcastOn = false;
+
+  /** Each network's run, from the same response as the grid; empty while the setting is off. */
+  private nowcastGrid: NowcastRuns<RadarFrame> = {};
+
+  /** The network the grid in hand was sampled for, whose run the chart's forecast bars come from. */
+  private gridNetwork: CountryNetwork | null = null;
+
+  private unsubscribeNowcast: (() => void) | null = null;
+
   /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
   stale: boolean;
 
@@ -243,6 +272,8 @@ export default class RadarCapability extends Capability {
   private snowHandler: (() => void) | null = null;
 
   private networkHandler: ((event: { network: string }) => void) | null = null;
+
+  private nowcastHandler: (() => void) | null = null;
 
   private unsubscribeLiveFrame: (() => void) | null = null;
 
@@ -305,14 +336,26 @@ export default class RadarCapability extends Capability {
       colmax: new NetworkRadarLayer(map, EUROPE_COLUMN_MAXIMUM),
     };
     this.around = new NetworkRadarLayer(map, AROUND_DMAX);
+    this.nowcasts = NOWCAST_NETWORKS.map((network) => new NetworkRadarLayer(map, network));
     this.latest = { ...this.wholes, dmax: this.dmax };
     this.unsubscribeProduct = observedProduct.subscribe((product) => {
       this.chosen = product;
       // Its past comes with the grid, asked for by name. Before the first
       // grid, the request in flight is checked when it lands instead.
-      const wanted = productsKey(timeseriesProducts(this.chosen));
+      const wanted = productsKey(this.timeseriesRequest());
       if (this.serverGrid && wanted && wanted !== this.gridProducts) this.reloadRadar();
       this.productsChanged();
+    });
+    /* The runs come with the grid, asked for by name; turned off, they are
+       gone from the map at once, and the chart's bars are WN's again with
+       the grid that answers without them. */
+    this.unsubscribeNowcast = meteocoolNowcast.subscribe((on) => {
+      if (on === this.nowcastOn) return;
+      this.nowcastOn = on;
+      if (!on) this.nowcastGrid = {};
+      if (!this.serverGrid) return;
+      this.productsChanged();
+      this.reloadRadar();
     });
 
     /* The networks follow the scrubber: their own newest frame on the live
@@ -332,7 +375,9 @@ export default class RadarCapability extends Capability {
       // place, with nothing reloaded and the grid neither refetched nor
       // re-announced.
       setDwdCmap(colorScheme);
-      for (const network of [...this.networks, ...Object.values(this.wholes), this.around]) network.setPalette(colorScheme);
+      for (const network of [...this.networks, ...Object.values(this.wholes), this.around, ...this.nowcasts]) {
+        network.setPalette(colorScheme);
+      }
     });
 
     latLon.subscribe((latlonUpdate) => {
@@ -450,9 +495,22 @@ export default class RadarCapability extends Capability {
           this.networks.find((layer) => layer.network.code === network)?.refresh(this.nanobar);
         });
       };
+      // One network's nowcast run is complete: the timeseries again, which
+      // carries every network's newest run, and with it the forecast layers
+      // re-pointed. Ignored with the setting off, as an old client does. One
+      // key for every network: four runs landing while the page is hidden
+      // are one refetch when it is looked at.
+      this.nowcastHandler = () => {
+        if (!this.nowcastOn) return;
+        whenVisible("radar:nowcast", () => {
+          console.log("received websocket nowcast, refreshing the forecast");
+          this.reloadRadar();
+        });
+      };
       this.socket_io.on("poke", this.pokeHandler);
       this.socket_io.on("snow", this.snowHandler);
       this.socket_io.on("network", this.networkHandler);
+      this.socket_io.on("nowcast", this.nowcastHandler);
       this.loaded = Promise.allSettled([
         this.downloadCurrentRadar(),
         ...this.networks.map((network) => network.refresh(this.nanobar)),
@@ -476,9 +534,11 @@ export default class RadarCapability extends Capability {
     if (!options.screenshot) restartHandler();
   }
 
-  updateClientGridFromServerGrid(server) {
+  updateClientGridFromServerGrid(frames) {
     let latestRadar = new Date(0);
     const body = { ...this.gridconfig.grid };
+    // Untyped, as the grid's steps are: the frame is decorated into a GridStep below.
+    const server: Record<string, any> = this.chartSeries(frames);
 
     latestRadar = new Date(this.serverTime * 1000);
 
@@ -586,6 +646,15 @@ export default class RadarCapability extends Capability {
     }
     const aroundFrames = arounds.filter((frame): frame is RadarFrame => Boolean(frame));
     if (aroundFrames.length) urls.push(...this.around.tileUrls(aroundFrames, PREFETCH_MAX_TILES));
+    // Each network's nowcast on the forecast steps ahead it has leads for:
+    // WN's tiles are holes there.
+    for (const layer of this.nowcasts) {
+      const { code } = layer.network;
+      const frames = ahead
+        .filter((step) => this.nowcastDomainsAt(step).includes(code as CountryNetwork))
+        .map((step) => this.nowcastGrid[code as CountryNetwork]![step]);
+      if (frames.length) urls.push(...layer.tileUrls(frames, PREFETCH_MAX_TILES));
+    }
 
     if (this.prefetched.size > PREFETCH_REMEMBERED) this.prefetched.clear();
     for (const url of urls) {
@@ -870,8 +939,16 @@ export default class RadarCapability extends Capability {
     const holes = new globalThis.Map<string, NetworkCode[]>();
     const newest = this.getMostRecentObservation();
     for (const [key, frame] of Object.entries(this.clientGrid ?? {})) {
-      if (!frame?.url || frame.source !== "observation") continue;
+      if (!frame?.url) continue;
       const step = parseInt(key, 10);
+      if (frame.source !== "observation") {
+        // A forecast step is WN's, holed for each network whose nowcast has
+        // a lead there: WN cut to DWD's own ground, as HX is for the
+        // networks' composites.
+        const runs = this.nowcastDomainsAt(step);
+        if (runs.length) holes.set(frame.url, runs);
+        continue;
+      }
       // Around DMAX the column maximum stands where every network would.
       const codes = step === newest || this.aroundFrame(step)
         ? ALL_NETWORKS
@@ -915,6 +992,65 @@ export default class RadarCapability extends Capability {
       this.wholes[product].show(false, whole?.product === product ? whole.frame : null);
     }
     this.layer?.setVisible(!whole);
+    this.showNowcasts(shown);
+  }
+
+  /**
+   * Point each network's nowcast layer at the step on screen: its run's lead
+   * there, on a forecast step it has one for, and nothing anywhere else.
+   * Says where the nowcast draws, for the wash and the player.
+   */
+  private showNowcasts(shown: number) {
+    const domains = this.nowcastDomainsAt(shown);
+    for (const layer of this.nowcasts) {
+      const code = layer.network.code as CountryNetwork;
+      layer.show(false, domains.includes(code) ? this.nowcastGrid[code]![shown] : null);
+    }
+    const coverage = this.nowcastOn ? { withRun: domainsWithRun(this.nowcastGrid), shown: domains } : null;
+    const before = get(nowcastCoverage);
+    // A write only when it changed: the wash and the player recompute coverage on every one.
+    if (JSON.stringify(before) !== JSON.stringify(coverage)) nowcastCoverage.set(coverage);
+  }
+
+  /**
+   * The networks whose nowcast draws on a step: with the setting on, on a
+   * forecast step, those with a lead valid there (lib/nowcast.ts). Never an
+   * observed step, where the networks' own composites are, though a run
+   * from a network that is a scan behind DWD can have a lead on one.
+   */
+  private nowcastDomainsAt(step: number): CountryNetwork[] {
+    if (!this.nowcastOn) return [];
+    const frame = this.clientGrid?.[step];
+    if (!frame?.url || frame.source === "observation") return [];
+    return domainsAt(this.nowcastGrid, step);
+  }
+
+  /**
+   * The last step any network's nowcast run reaches, unix seconds, while the
+   * setting is on and there is a run; null otherwise. Past it the forecast
+   * is Germany's alone, and the player marks that stretch.
+   */
+  nowcastLastLead(): number | null {
+    return this.nowcastOn ? lastLead(this.nowcastGrid) : null;
+  }
+
+  /**
+   * The series the chart is drawn from: the timeseries' frames, with the
+   * forecast steps' readings from the nowcast run of the network the point
+   * is in, where the setting is on and that network has one; see
+   * `chartFrames`. Over DWD's own ground, WN's, as ever.
+   */
+  private chartSeries<F extends { source: string; dbz?: number | null }>(
+    frames: Record<string, F | null>,
+  ): Record<string, F | null> {
+    if (!this.nowcastOn || !this.gridNetwork) return frames;
+    return chartFrames(frames, this.nowcastGrid[this.gridNetwork]);
+  }
+
+  /** What the timeseries is asked for with: the chosen product's past, and the nowcast runs while the setting is on. */
+  private timeseriesRequest(): TimeseriesProduct[] {
+    const products: TimeseriesProduct[] = timeseriesProducts(this.chosen);
+    return this.nowcastOn ? [...products, NOWCAST_PRODUCT] : products;
   }
 
   /**
@@ -956,16 +1092,17 @@ export default class RadarCapability extends Capability {
     const at = this.positionKey();
     this.gridRequests += 1;
     const request = this.gridRequests;
-    const products = timeseriesProducts(this.chosen);
+    const products = this.timeseriesRequest();
+    const position = this.getPosition();
     // Asked again without the products when that fails: an API that does not
     // know one yet (a client deployed before its backend) answers 422, and
     // without the retry the map would have no radar at all instead of HX
     // without that product.
     let asked = products;
-    const data = await fetchRadarTimeseries(this.nanobar, this.getPosition(), products).catch(() => {
+    const data = await fetchRadarTimeseries(this.nanobar, position, products).catch(() => {
       if (!products.length) return null;
       asked = [];
-      return fetchRadarTimeseries(this.nanobar, this.getPosition(), []).catch(() => null);
+      return fetchRadarTimeseries(this.nanobar, position, []).catch(() => null);
     });
     if (!data) {
       live.set(false);
@@ -979,12 +1116,13 @@ export default class RadarCapability extends Capability {
     this.gridApplied = request;
     this.gridSampledAt = at;
     this.gridProducts = productsKey(asked);
+    this.gridNetwork = position?.network ?? null;
     this.processRadar(data);
-    if (forUser) dryAtUser.set(isDry(data.frames));
+    if (forUser) dryAtUser.set(isDry(this.chartSeries(data.frames)));
     // Picked while this was out: its past is still to be asked for. Against
     // what was asked for first, so a product the API refused is not asked
     // for again and again.
-    const wanted = productsKey(timeseriesProducts(this.chosen));
+    const wanted = productsKey(this.timeseriesRequest());
     if (wanted && wanted !== productsKey(products)) this.reloadRadar();
   }
 
@@ -1075,6 +1213,7 @@ export default class RadarCapability extends Capability {
     this.serverGrid = obj.frames;
     this.networkGrid = obj.networks ?? {};
     this.productGrid = obj.products ?? {};
+    this.nowcastGrid = this.nowcastOn ? nowcastRuns<RadarFrame>(obj.products) : {};
     this.serverTime = obj.server_time;
     // Only the backend knows: a replay is built to look identical from here,
     // so nothing in the frames gives it away.
@@ -1195,6 +1334,10 @@ export default class RadarCapability extends Capability {
     for (const network of this.networks) network.destroy();
     for (const whole of Object.values(this.wholes)) whole.destroy();
     this.around.destroy();
+    for (const nowcast of this.nowcasts) nowcast.destroy();
+    nowcastCoverage.set(null);
+    this.unsubscribeNowcast?.();
+    this.unsubscribeNowcast = null;
     this.unsubscribeProduct?.();
     this.unsubscribeProduct = null;
     this.unsubscribeLiveFrame?.();
@@ -1215,6 +1358,10 @@ export default class RadarCapability extends Capability {
       if (this.networkHandler) {
         this.socket_io.off("network", this.networkHandler);
         this.networkHandler = null;
+      }
+      if (this.nowcastHandler) {
+        this.socket_io.off("nowcast", this.nowcastHandler);
+        this.nowcastHandler = null;
       }
     }
   }

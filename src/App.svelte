@@ -37,7 +37,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
-  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen,
+  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, meteocoolNowcast,
 } from "./stores";
 
 import "./global.css";
@@ -247,6 +247,16 @@ window.settings = new Settings({
     default: false,
     cb: (value) => {
       playbackFromStart.set(Boolean(value));
+    },
+  },
+  /* meteocool's own nowcast outside Germany on the forecast steps, beside WN
+     (lib/nowcast.ts). Experimental, so off unless turned on; nothing about
+     the alerts follows it. */
+  meteocoolNowcast: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      meteocoolNowcast.set(Boolean(value));
     },
   },
   layer3dFullResolution: {
