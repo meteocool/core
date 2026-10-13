@@ -68,7 +68,7 @@ import { coalesce } from "./lib/coalesce";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
 import StormManager from "./lib/StormManager";
 import { offerVolumes, startStormResolver } from "./lib/stormResolver";
-import { isResolution, selectionKey, withStorm } from "./lib/stormSelection";
+import { existedBy, isResolution, selectionKey, withStorm } from "./lib/stormSelection";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
@@ -455,14 +455,14 @@ derived(
   // The ping only ever marks cells the tracks layer is already drawing, so it
   // appears and disappears with it rather than carrying a rule of its own.
   pulseLayer.setVisible(value);
-  // The popup is anchored to a mark that is no longer on the map, and it dims
-  // the radar underneath for as long as it is up. Leaving it open over a frame
-  // its cell is not drawn on would be a panel of present-tense numbers about a
-  // storm the map has stopped showing, over a picture darkened to make room
-  // for marks that are not there. Another frame is the same: the storm was
-  // somewhere else then, or not yet there. A grid refresh on the live frame is
-  // not another frame, so a panel open on now stays open across it.
-  if (at !== cellsAt) selectedStorm.set(null);
+  // The panel stays open on another frame its storm is drawn on: the newest,
+  // or an earlier one it had already appeared by. Before that, or with the
+  // marks hidden, it would be a panel about a storm the map is not showing.
+  // A grid refresh on the live frame is not another frame.
+  const current = get(selectedStorm);
+  if (at !== cellsAt && current && !(at === "now" || (at !== "hidden" && existedBy(current, at * 1000)))) {
+    selectedStorm.set(null);
+  }
   cellsAt = at;
 });
 

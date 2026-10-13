@@ -180,6 +180,17 @@ export function selectionKey(selection: StormSelection | null): string {
 }
 
 /**
+ * Whether the selection had appeared by `atMs`: the storm born, or a seed's
+ * cell first seen. An earlier frame drawn after that still has it on the map
+ * (lib/stormMarks.ts `stormAsOf`); one before it does not. A box of sky with
+ * no storm is one scan's, so it says nothing about other frames: false.
+ */
+export function existedBy(selection: StormSelection, atMs: number): boolean {
+  const since = selection.summary?.properties.born_at ?? selection.cell?.first_seen;
+  return since !== undefined && new Date(since).getTime() <= atMs;
+}
+
+/**
  * Whether going from one selection to the other only found the storm a seed
  * belongs to. The same thing on screen, under its proper name: not a new
  * selection, so not a history entry, a re-cut or a reframing.

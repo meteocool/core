@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  byId, claimsCell, fromStorm, headingOf, holdsFeature, isResolution, knowsSeverity, lookupOf, mergedInto,
+  byId, claimsCell, existedBy, fromStorm, headingOf, holdsFeature, isResolution, knowsSeverity, lookupOf, mergedInto,
   nearestStorms, newestPatches, outlineOf, positionOf, primaryCell, selectionKey, stormClaiming, trackerSeries,
   volumeOfStorm, withCell, withDetail, withStorm, withVolume,
 } from "../../src/lib/stormSelection.ts";
 import {
-  at, cell, detail, feature, sid, storm, trackFeature, trackerTrack, volume,
+  T0, at, cell, detail, feature, sid, storm, trackFeature, trackerTrack, volume,
 } from "./stormFixtures.ts";
 
 /**
@@ -261,4 +261,16 @@ test("the outline is the KONRAD3D cell's where that track is primary, else the t
   const tracker = withDetail(fromStorm(ours), detail(ours, { tracks: [trackerTrack("t1", [feature("c", 0)])] }))!;
   assert.equal(outlineOf(tracker)?.length, 4);
   assert.equal(outlineOf(fromStorm(storm(A))), null);
+});
+
+test("a selection stays open on an earlier frame it had already appeared by", () => {
+  const minute = (m: number) => T0 + m * 60_000;
+  const open = fromStorm(storm(A, { born_at: at(-60) }));
+  assert.equal(existedBy(open, minute(-30)), true);
+  assert.equal(existedBy(open, minute(-60)), true);
+  assert.equal(existedBy(open, minute(-90)), false);
+  const seed = withCell(null, cell("C1", { first_seen: at(-20) }));
+  assert.equal(existedBy(seed, minute(-10)), true);
+  assert.equal(existedBy(seed, minute(-25)), false);
+  assert.equal(existedBy(withVolume(null, volume("v")), minute(0)), false);
 });
