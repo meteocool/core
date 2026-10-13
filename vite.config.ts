@@ -175,7 +175,8 @@ export default defineConfig(({ mode }) => {
         "/v3": { target: API, changeOrigin: true },
         "/lightning_cache": { target: DATA, changeOrigin: true },
         "/cells": { target: DATA, changeOrigin: true },
-      "/mesocyclones": { target: DATA, changeOrigin: true },
+        "/storms": { target: DATA, changeOrigin: true },
+        "/mesocyclones": { target: DATA, changeOrigin: true },
         // The tile CDN, or minio standing in for it locally.
         "/tiles": { target: TILES, changeOrigin: true, rewrite: (path) => path.replace(/^\/tiles/, "") },
         "/geocoding": {
