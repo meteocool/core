@@ -26,6 +26,7 @@ import type { EventsKey } from "ol/events";
 import { fromExtent } from "ol/geom/Polygon";
 import { fetchLightningStats } from "../api";
 import { LightningColors } from "../colormaps";
+import { yTickLabel } from "../lib/lightningChart";
 import { mapTapped, sharedActiveCap } from "../stores";
 import { reverseGeocode, scaleForZoom } from "../lib/reverseGeocode";
 import { onWake } from "../lib/wakeup";
@@ -232,12 +233,8 @@ function canvasInit(elem: HTMLCanvasElement) {
           min: 0,
           max: 300,
           ticks: {
-            callback(_value, index, values) {
-              const data = this?.chart?.data?.datasets?.[0]?.data as number[] | undefined;
-              if (!data?.length) return "";
-              if (index === values.length - 1) return Math.min(...data);
-              if (index === 0) return Math.max(...data);
-              return "";
+            callback(value) {
+              return yTickLabel(Number(value), Number(this.chart.options.scales?.y?.max ?? 0));
             },
           },
         },
