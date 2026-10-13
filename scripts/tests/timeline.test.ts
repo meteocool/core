@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  axisTicks, barCeiling, forecastGapFrom, glideStep, hasEcho, indexOf, lastPlayableIndex, lastPublishedStep,
-  newestObservation, restingStep, rubberBand, timelineSteps,
+  axisTicks, barCeiling, forecastGapFrom, germanyOnlyFrom, glideStep, hasEcho, indexOf, lastPlayableIndex,
+  lastPublishedStep, newestObservation, restingStep, rubberBand, timelineSteps,
 } from "../../src/lib/timeline.ts";
 import type { GridConfig } from "../../src/caps/RadarCapability.ts";
 
@@ -71,6 +71,23 @@ test("a past with readings and a forecast with none marks where the forecast wou
 test("no gap is reported when the forecast has readings, or when nothing does", () => {
   assert.equal(forecastGapFrom(timelineSteps(grid(NOW - STEP, NOW + STEP, () => 20), NOW + STEP)), null);
   assert.equal(forecastGapFrom(timelineSteps(grid(NOW - STEP, NOW + STEP, () => null), NOW + STEP)), null);
+});
+
+test("a forecast that ends before the published strip does is marked from where it ends", () => {
+  // Readings to +2 steps, a run's last lead, and the published forecast on to +4 for Germany alone.
+  const short = timelineSteps(grid(NOW - 3 * STEP, NOW + 4 * STEP, (t) => (t <= NOW + 2 * STEP ? 20 : null)), NOW + 4 * STEP);
+  assert.equal(forecastGapFrom(short), 6 / 8);
+  // A step missing in the middle of a run is not its end.
+  const holed = timelineSteps(grid(NOW - STEP, NOW + 3 * STEP, (t) => (t === NOW + STEP ? null : 20)), NOW + 3 * STEP);
+  assert.equal(forecastGapFrom(holed), null);
+});
+
+test("the stretch past the nowcast runs' last lead is Germany's alone", () => {
+  const steps = timelineSteps(grid(NOW - 2 * STEP, NOW + 6 * STEP, () => 10), NOW + 6 * STEP);
+  assert.equal(germanyOnlyFrom(steps, NOW + 3 * STEP), 6);
+  assert.equal(germanyOnlyFrom(steps, null), null);
+  // The runs reach the strip's end: nothing is Germany's alone.
+  assert.equal(germanyOnlyFrom(steps, NOW + 6 * STEP), null);
 });
 
 test("the axis labels both ends and the round offsets between, clear of the ends", () => {

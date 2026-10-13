@@ -7,6 +7,7 @@ import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange
 import { showsForecastStep } from "./lib/freshness";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties } from "./api";
+import type { CountryNetwork } from "./api/events";
 import { withCell, type StormSelection } from "./lib/stormSelection";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
@@ -218,6 +219,20 @@ export const terrain3dVisible = writable<boolean>(true);
  * rather than at now. The `playbackFromStart` setting; off by default.
  */
 export const playbackFromStart = writable<boolean>(false);
+/**
+ * Whether the forecast steps draw meteocool's own nowcast outside Germany
+ * (lib/nowcast.ts), beside WN over it. The experimental `meteocoolNowcast`
+ * setting; off by default, on every environment alike.
+ */
+export const meteocoolNowcast = writable<boolean>(false);
+/**
+ * Where meteocool's nowcast draws, as RadarCapability publishes it: the
+ * networks with a run at all, and those whose run has a lead at the step on
+ * screen. Null while the setting is off, which is WN alone, as ever. What the
+ * forecast step's wash leaves clear (layers/dwd.ts) and the player counts as
+ * covered.
+ */
+export const nowcastCoverage = writable<{ withRun: CountryNetwork[]; shown: CountryNetwork[] } | null>(null);
 /**
  * "How the radar works" is open, from the radar product menu's "?". Held up
  * here, not in the menu: the tray the menu lives in can go while it is open.

@@ -45,6 +45,16 @@ export let value = 0;
 export let interactive = true;
 /** How often the axis is labelled, in minutes. */
 export let labelEvery = 30;
+/**
+ * The index of the first step only Germany has a forecast for: past the last
+ * lead of meteocool's nowcast runs (lib/nowcast.ts), from where WN alone goes
+ * on. Hatched, and labelled unless `germanyOnlyLabel` is off; null for none.
+ */
+export let germanyOnly: number | null = null;
+export let germanyOnlyLabel = true;
+
+/** The hatch's pattern, by an id no other strip on the page shares. */
+const hatchId = `mc-timeline-hatch-${Math.random().toString(36).slice(2, 9)}`;
 
 const dispatch = createEventDispatcher<{ seek: number; grab: void; release: void }>();
 
@@ -350,6 +360,27 @@ onDestroy(stop);
     shape-rendering: crispEdges;
   }
 
+  /* The forecast past meteocool's nowcast runs: Germany's alone. Hatched in
+     the ruler's ink, faint enough that bars over it still read. */
+  .germany-only {
+    pointer-events: none;
+  }
+  .hatch-line {
+    stroke: currentColor;
+    stroke-width: 1;
+    opacity: 0.35;
+  }
+  .germany-only-label {
+    position: absolute;
+    top: 2px;
+    padding: 0 4px;
+    font: 600 10px/14px var(--mc-font);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    color: var(--mc-text-2);
+    pointer-events: none;
+  }
+
   /* The needle: the chrome's accent, haloed so it stands on any bar colour. */
   .needle {
     fill: var(--mc-chrome-accent, var(--mc-accent));
@@ -455,6 +486,15 @@ onDestroy(stop);
         <!-- The past ends, and the line stands, where the needle rests on now:
              the middle of its step, like every bar and label. -->
         <rect class="past" x="0" y="0" width={(nowIndex + 0.5) * slot} height={PLOT_H} />
+        {#if germanyOnly !== null && germanyOnly < n}
+          <defs>
+            <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line class="hatch-line" x1="0" y1="0" x2="0" y2="6" />
+            </pattern>
+          </defs>
+          <rect class="germany-only" x={germanyOnly * slot} y="0" width={width - germanyOnly * slot} height={PLOT_H}
+            fill="url(#{hatchId})" />
+        {/if}
         {#each bars as bar (bar.i)}
           <rect
             class="tick"
@@ -489,6 +529,9 @@ onDestroy(stop);
           {/if}
         </g>
       </svg>
+      {#if germanyOnly !== null && germanyOnly < n && germanyOnlyLabel}
+        <span class="germany-only-label" style:left="{germanyOnly * slot}px">{$_("chrome.playback.germany_only")}</span>
+      {/if}
       {#if active}
         <span class="readout" style:left="{Math.min(Math.max(needleX, 24), width - 24)}px">{readout}</span>
       {/if}

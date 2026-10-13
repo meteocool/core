@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { insideRings, networkAt } from "../../src/layers/networkAt.ts";
+import { fromLonLat } from "ol/proj";
+import { drawnByAny, insideRings, networkAt } from "../../src/layers/networkAt.ts";
 
 test("each network owns its own country", () => {
   assert.equal(networkAt(46.95, 7.45), "ch"); // Bern
@@ -22,4 +23,15 @@ test("a ring wound the other way is a hole, under the nonzero rule", () => {
   assert.equal(insideRings([outer, hole], [2, 2]), true);
   assert.equal(insideRings([outer, hole], [5, 5]), false);
   assert.equal(insideRings([outer, hole], [12, 5]), false);
+});
+
+test("a network's nowcast covers its own ground, and none of another's", () => {
+  const paris = fromLonLat([2.35, 48.86]);
+  const warsaw = fromLonLat([21.01, 52.23]);
+  const munich = fromLonLat([11.58, 48.14]);
+  assert.equal(drawnByAny(["fr"], paris), true);
+  assert.equal(drawnByAny(["ch", "cz", "pl"], paris), false);
+  assert.equal(drawnByAny(["fr", "pl"], warsaw), true);
+  assert.equal(drawnByAny(["ch", "fr", "cz", "pl"], munich), false);
+  assert.equal(drawnByAny([], paris), false);
 });

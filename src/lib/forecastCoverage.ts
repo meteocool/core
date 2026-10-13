@@ -1,8 +1,9 @@
 /**
  * How much of the screen a forecast step has nothing for.
  *
- * The forecast is DWD's alone, so on a forecast step everywhere outside DWD's
- * reach is washed out, even where another network shows the present. Over
+ * WN is DWD's, so on a forecast step everywhere outside DWD's reach is
+ * washed out, even where another network shows the present, unless
+ * meteocool's experimental nowcast has a run there (lib/nowcast.ts). Over
  * France or Poland that reads as "no rain coming" when the truth is "no
  * forecast here". Past this share of the screen, the player says so.
  */
