@@ -353,9 +353,17 @@ onDestroy(stop);
 
   /* Fetched ahead: the logo's cyan, pale. Grows from the bottom as the
      tiles come in, and drains the same way when the map moves on to
-     somewhere they are not. */
+     somewhere they are not.
+
+     Each step is opaque and laps a pixel onto the next, and the group is
+     faded as one. With a faint fill on each step instead, the pixel where
+     two steps meet, which both cover once snapped to the screen, drew
+     twice as strong: a line between every step on a phone. */
+  .preload-steps {
+    opacity: var(--mc-preload-opacity, 0.2);
+  }
   .preloaded {
-    fill: var(--mc-preload-fill, rgba(139, 205, 216, 0.2));
+    fill: var(--mc-brand, #8bcdd8);
     transform-box: fill-box;
     transform-origin: bottom;
     transition: transform 420ms var(--mc-ease, ease-out);
@@ -507,48 +515,55 @@ onDestroy(stop);
       <!-- The whole band, once every frame is in: the glass's bevel on it. -->
       <div class="preload-glass" class:whole={preloadedAll} aria-hidden="true"></div>
       <svg viewBox="0 0 {width} {PLOT_H}" preserveAspectRatio="none" aria-hidden="true">
-        <!-- The past ends, and the line stands, where the needle rests on now:
-             the middle of its step, like every bar and label. -->
-        <!-- Each step's tiles fetched ahead, filling its slot from the bottom,
-             the band's ends rounded. -->
+        <!-- Everything but the needle inside the band's rounded ends, which
+             the glass draws: the past's tint, the fill and the bars at either
+             end would otherwise square off its corners. One clip on the group,
+             not one per rect: a clip on a transformed rect is drawn in the
+             rect's own transformed space. -->
         <clipPath id={bandClip}>
           <rect x="0" y="0" width={width} height={PLOT_H} rx={BAND_RADIUS} />
         </clipPath>
-        {#each steps as step, i (step.t)}
-          <rect
-            clip-path="url(#{bandClip})"
-            class="preloaded"
-            x={i * slot}
-            y="0"
-            width={slot}
-            height={PLOT_H}
-            style:transform="scaleY({slotShare(step, preloaded, preloadedAll)})" />
-        {/each}
-        <rect class="past" x="0" y="0" width={(nowIndex + 0.5) * slot} height={PLOT_H} />
-        {#each bars as bar (bar.i)}
-          <rect
-            class="tick"
-            class:major={bar.major}
-            class:pending={bar.pending}
-            x={bar.x - 0.75}
-            y={PLOT_H - (bar.major ? TICK_MAJOR : TICK)}
-            width="1.5"
-            height={bar.major ? TICK_MAJOR : TICK}
-            rx="0.75" />
-        {/each}
-        {#each bars as bar (bar.i)}
-          {#if bar.h > 0}
+        <g clip-path="url(#{bandClip})">
+          <!-- Each step's tiles fetched ahead, filling its slot from the bottom. -->
+          <g class="preload-steps">
+            {#each steps as step, i (step.t)}
+              <rect
+                class="preloaded"
+                x={i * slot}
+                y="0"
+                width={slot + 1}
+                height={PLOT_H}
+                style:transform="scaleY({slotShare(step, preloaded, preloadedAll)})" />
+            {/each}
+          </g>
+          <!-- The past ends, and the line stands, where the needle rests on now:
+               the middle of its step, like every bar and label. -->
+          <rect class="past" x="0" y="0" width={(nowIndex + 0.5) * slot} height={PLOT_H} />
+          {#each bars as bar (bar.i)}
             <rect
-              class="rain"
-              x={bar.x - Math.max(0.5, slot / 2 - 0.75)}
-              y={PLOT_H - bar.h}
-              width={Math.max(1, slot - 1.5)}
-              height={bar.h}
-              rx={Math.min(1.5, slot / 4)}
-              fill={bar.fill} />
-          {/if}
-        {/each}
-        <line class="now" x1={(nowIndex + 0.5) * slot} x2={(nowIndex + 0.5) * slot} y1="0" y2={PLOT_H} />
+              class="tick"
+              class:major={bar.major}
+              class:pending={bar.pending}
+              x={bar.x - 0.75}
+              y={PLOT_H - (bar.major ? TICK_MAJOR : TICK)}
+              width="1.5"
+              height={bar.major ? TICK_MAJOR : TICK}
+              rx="0.75" />
+          {/each}
+          {#each bars as bar (bar.i)}
+            {#if bar.h > 0}
+              <rect
+                class="rain"
+                x={bar.x - Math.max(0.5, slot / 2 - 0.75)}
+                y={PLOT_H - bar.h}
+                width={Math.max(1, slot - 1.5)}
+                height={bar.h}
+                rx={Math.min(1.5, slot / 4)}
+                fill={bar.fill} />
+            {/if}
+          {/each}
+          <line class="now" x1={(nowIndex + 0.5) * slot} x2={(nowIndex + 0.5) * slot} y1="0" y2={PLOT_H} />
+        </g>
         <g class="needle-group" class:nudge style:transform="translateX({needleX}px)" on:animationend={() => { nudge = false; }}>
           <rect class="needle" x="-1.5" y="0.5" width="3" height={PLOT_H - 1} rx="1.5" />
           {#if interactive}

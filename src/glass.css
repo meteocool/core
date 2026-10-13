@@ -185,7 +185,7 @@
   --mc-orange-tint: rgba(255, 149, 0, 0.20);
   --mc-orange-ink: #9a5a00;
   --mc-brand: #8bcdd8;                                /* the logo cyan; nanobar, timeline preload */
-  --mc-preload-fill: rgba(139, 205, 216, 0.20);       /* --mc-brand, faint: frames fetched ahead */
+  --mc-preload-opacity: 0.20;                         /* --mc-brand at this, faint: frames fetched ahead */
 
   /* shape and spacing */
   --mc-radius-pill: 9999px;
@@ -279,7 +279,7 @@
    Keep the same restrained saturation as light chrome and dim the backdrop. */
 :root[data-chrome="dark"] {
   --mc-glass-brightness: 0.85;
-  --mc-preload-fill: rgba(139, 205, 216, 0.09);
+  --mc-preload-opacity: 0.09;
   --mc-glass-fill: rgba(28, 28, 30, 0.82);
   --mc-glass-fill-strong: rgba(28, 28, 30, 0.90);
   --mc-glass-fill-solid: rgba(28, 28, 30, 0.94);
