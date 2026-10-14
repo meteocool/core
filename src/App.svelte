@@ -20,7 +20,7 @@ import BottomToolbar from "./components/BottomToolbar.svelte";
 
 import RadarCapability from "./caps/RadarCapability";
 
-import { LayerManager } from "./lib/LayerManager";
+import { LayerManager, VIEW_EXTENT } from "./lib/LayerManager";
 import { capabilityEnabled } from "./caps/enabled";
 import { progress } from "./lib/progress";
 import Settings from "./lib/Settings";
@@ -937,6 +937,7 @@ window.settings.setCb("mapRotation", (value) => {
     zoom: current.getView().getZoom(),
     minZoom: current.getView().getMinZoom(),
     enableRotation: Boolean(value),
+    extent: VIEW_EXTENT,
     // The tray's strip, which the centre above is measured inside. Left off,
     // the map jumped by half a tray and stayed unpadded until the bars next
     // moved.

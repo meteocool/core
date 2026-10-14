@@ -4,6 +4,7 @@ import {
   toLonLat,
   transformExtent,
 } from "ol/proj";
+import { EXTENT as WEB_MERCATOR_EXTENT } from "ol/proj/epsg3857";
 import { defaults } from "ol/control";
 import Attribution from "ol/control/Attribution";
 import { orderAttributions } from "../layers/attributions";
@@ -81,6 +82,13 @@ const LONG_PRESS_SLOP = 10;
 interface CapabilityMap {
     [name: string]: Capability;
 }
+
+// How far the map may be panned. Exported because rebuilding the View (which
+// the mapRotation setting does) has to reapply it: OpenLayers keeps the
+// configured extent private, so it cannot be read back off an existing View.
+export const VIEW_EXTENT = [
+  ...fromLonLat([-190.0, -75.0]), fromLonLat([190.0, 0])[0], WEB_MERCATOR_EXTENT[3],
+];
 
 /**
  * An attribution control that lists its credits in ATTRIBUTION_ORDER rather
@@ -330,6 +338,7 @@ export class LayerManager {
           center: fromLonLat([lon, lat]),
           enableRotation: Boolean(this.settings.get("mapRotation")),
           constrainResolution: false,
+          extent: VIEW_EXTENT,
           minZoom: 3,
         }),
       controls,
