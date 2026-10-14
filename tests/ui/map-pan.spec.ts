@@ -1,7 +1,20 @@
 import { expect, test } from "./test";
-import { openRadar } from "./app";
+import { flatPixel, openRadar } from "./app";
 
 for (const rebuildView of [false, true]) {
+  for (const latitude of [-80, 80]) {
+    test(`latitude ${latitude} stays visible${rebuildView ? " after changing rotation" : ""}`, async ({ page }) => {
+      await openRadar(page, `/?layer=radar&latLonZ=${latitude},10.00000,6.00`);
+      if (rebuildView) {
+        await page.evaluate(() => window.settings.set("mapRotation", true));
+      }
+
+      const point = await flatPixel(page, 10, latitude);
+      expect(point.y).toBeGreaterThanOrEqual(0);
+      expect(point.y).toBeLessThanOrEqual(page.viewportSize()!.height);
+    });
+  }
+
   test(`the map cannot pan into a repeated world${rebuildView ? " after changing rotation" : ""}`, async ({ page }) => {
     await openRadar(page);
     if (rebuildView) {
@@ -18,8 +31,8 @@ for (const rebuildView of [false, true]) {
       });
     });
     for (const longitude of longitudes) {
-      expect(longitude).toBeGreaterThanOrEqual(-190);
-      expect(longitude).toBeLessThanOrEqual(190);
+      expect(longitude).toBeGreaterThanOrEqual(-180);
+      expect(longitude).toBeLessThanOrEqual(180);
     }
   });
 
