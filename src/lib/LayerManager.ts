@@ -82,11 +82,6 @@ interface CapabilityMap {
     [name: string]: Capability;
 }
 
-// How far the map may be panned. Exported because rebuilding the View (which
-// the mapRotation setting does) has to reapply it: OpenLayers keeps the
-// configured extent private, so it cannot be read back off an existing View.
-export const VIEW_EXTENT = [...fromLonLat([-190.0, -75.0]), ...fromLonLat([190.0, 62.0])];
-
 /**
  * An attribution control that lists its credits in ATTRIBUTION_ORDER rather
  * than in the order their layers happened to be added. OpenLayers offers no
@@ -335,7 +330,6 @@ export class LayerManager {
           center: fromLonLat([lon, lat]),
           enableRotation: Boolean(this.settings.get("mapRotation")),
           constrainResolution: false,
-          extent: VIEW_EXTENT,
           minZoom: 3,
         }),
       controls,
