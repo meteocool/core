@@ -20,7 +20,9 @@ export const imgwAttribution = `© ${link("https://www.imgw.pl/", "IMGW-PIB")}`;
 /**
  * Belgium's radars have two owners: RMI (also KMI-IRM, either name its own
  * credit) runs Jabbeke and Wideumont, VMM, the Flemish Environment Agency,
- * owns Helchteren. Both CC BY 4.0. One composite, so one credit naming both.
+ * owns Helchteren. RMI's volumes are CC BY 4.0; Helchteren's are CC BY 4.0 by
+ * EUMETNET's metadata, while VMM's own blanket terms are the Flemish Modellicentie
+ * Gratis Hergebruik v1.0, so the imprint names both. One composite, one credit.
  */
 export const rmiVmmAttribution = `© ${link("https://www.meteo.be/", "RMI")}, © ${link("https://vmm.vlaanderen.be/", "VMM")}`;
 export const shmuAttribution = `© ${link("https://www.shmu.sk/", "SHMÚ")}`;
