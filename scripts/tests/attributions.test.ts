@@ -51,3 +51,25 @@ test("the imprint's data section covers every credit on the map", () => {
     }
   }
 });
+
+/**
+ * Every radar entry in the imprint links the licence its data is shown
+ * under, Belgium's two owners each in their own entry.
+ */
+test("every radar entry in the imprint links its licence", () => {
+  const imprint = readFileSync(new URL("../../imprint.html", import.meta.url), "utf8");
+  const radar = imprint.slice(imprint.indexOf("<h3>Radar</h3>"), imprint.indexOf("</ul>", imprint.indexOf("<h3>Radar</h3>")));
+  const entries = radar.split("<li>").slice(1);
+  assert.ok(entries.length > 0, "imprint.html has no radar list under <h3>Radar</h3>");
+  const licences = [
+    "https://creativecommons.org/licenses/by/4.0/",
+    "https://www.etalab.gouv.fr/licence-ouverte-open-licence/",
+  ];
+  for (const entry of entries) {
+    const hrefs = [...entry.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+    assert.ok(
+      hrefs.some((href) => licences.some((licence) => href === licence)),
+      `no licence linked in: ${entry.replace(/\s+/g, " ").trim()}`,
+    );
+  }
+});
