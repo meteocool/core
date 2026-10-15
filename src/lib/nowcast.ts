@@ -2,7 +2,7 @@
  * meteocool's own nowcast outside Germany (ng ADR 0022), behind the
  * experimental "meteocool nowcast" setting.
  *
- * Each of the four networks around DWD (`ch`, `fr`, `cz`, `pl`) has a run of
+ * Each of the six networks around DWD (`ch`, `fr`, `cz`, `pl`, `be`, `sk`) has a run of
  * its own: up to 24 leads, five to 120 minutes, on the timeline's own steps.
  * `/v3/radar/timeseries?products=nowcast` answers them under `products` as
  * `nowcast_<domain>`, each keyed by the step a lead is valid at and shaped as
@@ -16,7 +16,7 @@
 import type { CountryNetwork } from "../api/events";
 
 /** The networks with a nowcast of their own, in the order the map lists them. */
-export const NOWCAST_DOMAINS: readonly CountryNetwork[] = ["ch", "fr", "cz", "pl"];
+export const NOWCAST_DOMAINS: readonly CountryNetwork[] = ["ch", "fr", "cz", "pl", "be", "sk"];
 
 /** The `products` value that asks for the runs. */
 export const NOWCAST_PRODUCT = "nowcast";

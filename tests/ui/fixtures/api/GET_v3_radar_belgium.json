@@ -1,0 +1,7 @@
+{
+ "status": 404,
+ "contentType": "application/json",
+ "json": {
+  "detail": "no Belgian reflectivity available yet"
+ }
+}

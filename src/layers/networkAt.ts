@@ -2,8 +2,8 @@ import { fromLonLat } from "ol/proj";
 import { containsCoordinate } from "ol/extent";
 import type { Extent } from "ol/extent";
 import {
-  chExclusiveCoverage, chRadarExtent, czExclusiveCoverage, czRadarExtent, frExclusiveCoverage, frRadarExtent,
-  plExclusiveCoverage, plRadarExtent,
+  beExclusiveCoverage, beRadarExtent, chExclusiveCoverage, chRadarExtent, czExclusiveCoverage, czRadarExtent,
+  frExclusiveCoverage, frRadarExtent, plExclusiveCoverage, plRadarExtent, skExclusiveCoverage, skRadarExtent,
 } from "./extents";
 import type { CountryNetwork } from "../api/events";
 
@@ -13,6 +13,8 @@ const COVERAGE: [CountryNetwork, number[][][]][] = [
   ["fr", frExclusiveCoverage],
   ["cz", czExclusiveCoverage],
   ["pl", plExclusiveCoverage],
+  ["be", beExclusiveCoverage],
+  ["sk", skExclusiveCoverage],
 ];
 
 /**
@@ -48,7 +50,9 @@ export function networkAt(lat: number, lon: number): CountryNetwork | undefined 
 }
 
 /** Each network's grid rectangle, which its coverage lies inside: a cheap first test. */
-const EXTENT: Record<CountryNetwork, Extent> = { ch: chRadarExtent, fr: frRadarExtent, cz: czRadarExtent, pl: plRadarExtent };
+const EXTENT: Record<CountryNetwork, Extent> = {
+  ch: chRadarExtent, fr: frRadarExtent, cz: czRadarExtent, pl: plRadarExtent, be: beRadarExtent, sk: skRadarExtent,
+};
 
 const RINGS = Object.fromEntries(COVERAGE) as Record<CountryNetwork, number[][][]>;
 

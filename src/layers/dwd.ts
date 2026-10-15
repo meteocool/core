@@ -10,8 +10,8 @@ import VectorSource from "ol/source/Vector";
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import {
-  chExclusiveCoverage, czExclusiveCoverage, dwdCoverageInv, dwdRadarExtent, frExclusiveCoverage, plExclusiveCoverage,
-  radarCoverageInv,
+  beExclusiveCoverage, chExclusiveCoverage, czExclusiveCoverage, dwdCoverageInv, dwdRadarExtent, frExclusiveCoverage,
+  plExclusiveCoverage, radarCoverageInv, skExclusiveCoverage,
 } from "./extents";
 import { nowcastCoverage, onForecastStep } from "../stores";
 import type { CountryNetwork } from "../api/events";
@@ -143,6 +143,8 @@ const NOWCAST_GROUND: Record<CountryNetwork, number[][][]> = {
   fr: frExclusiveCoverage,
   cz: czExclusiveCoverage,
   pl: plExclusiveCoverage,
+  be: beExclusiveCoverage,
+  sk: skExclusiveCoverage,
 };
 
 /** A scratch canvas the cut wash is drawn on before it is laid on the map's. */

@@ -24,7 +24,7 @@ export type CellsEvent = Schemas["CellsRefresh"];
  * network (`colmax`) or DWD's DMAX (`dmax`); refetch only that frame.
  */
 export type NetworkEvent = Schemas["NetworkRefresh"];
-/** One of the four national networks with a composite of their own: not `eu`, `colmax` or `dmax`, which share their event. */
+/** One of the six national networks with a composite of their own: not `eu`, `colmax` or `dmax`, which share their event. */
 export type CountryNetwork = Exclude<NetworkEvent["network"], "eu" | "colmax" | "dmax">;
 /**
  * One network's run of meteocool's own nowcast is complete (ng ADR 0022): a

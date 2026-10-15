@@ -30,12 +30,14 @@ import { _, locale } from "svelte-i18n";
 import { get } from "svelte/store";
 import { forecastGapFrom, hasEcho, timelineSteps } from "../lib/timeline";
 import {
+  beRadarExtent4326,
   chRadarExtent4326,
   czRadarExtent4326,
   dwdCoverageInv,
   dwdRadarExtent4326,
   frRadarExtent4326,
   plRadarExtent4326,
+  skRadarExtent4326,
 } from "../layers/extents";
 import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
 import { preloadMode } from "../lib/framePreload";
@@ -175,6 +177,8 @@ const radarExtents4326 = [
   frRadarExtent4326,
   czRadarExtent4326,
   plRadarExtent4326,
+  beRadarExtent4326,
+  skRadarExtent4326,
 ];
 
 $: outOfCoverage = $sharedActiveCap === "radar"

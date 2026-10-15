@@ -332,6 +332,26 @@ export function fetchPolishRadar(nanobar?: Progress) {
   );
 }
 
+/** The most recent Belgian reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchBelgianRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/belgium",
+    () => apiClient.GET("/v3/radar/belgium", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Slovak reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchSlovakRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/slovakia",
+    () => apiClient.GET("/v3/radar/slovakia", {}),
+    { optional: true },
+  );
+}
+
 /**
  * The most recent merged European composite (every network's lowest tilts
  * on one grid, a product behind a setting); `optional` for the reason

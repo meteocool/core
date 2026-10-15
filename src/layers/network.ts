@@ -6,9 +6,12 @@ import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
 import {
-  chmiAttribution, dwdAttribution, imgwAttribution, meteoFranceAttribution, meteoSwissAttribution,
+  chmiAttribution, dwdAttribution, imgwAttribution, meteoFranceAttribution, meteoSwissAttribution, rmiVmmAttribution,
+  shmuAttribution,
 } from "./attributions";
 import {
+  beExclusiveCoverage,
+  beRadarExtent,
   chExclusiveCoverage,
   chRadarExtent,
   dwdRadarExtent,
@@ -18,6 +21,8 @@ import {
   frRadarExtent,
   plExclusiveCoverage,
   plRadarExtent,
+  skExclusiveCoverage,
+  skRadarExtent,
 } from "./extents";
 import { tileSourceUrl } from "./dwd";
 import { maskPath } from "./tileMask";
@@ -26,7 +31,8 @@ import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
 import { radarTileCache } from "../lib/gpuBudget";
 import {
-  fetchCzechRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar, fetchSwissRadar,
+  fetchBelgianRadar, fetchCzechRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar,
+  fetchSlovakRadar, fetchSwissRadar,
 } from "../api";
 import type { Progress, RadarFrame } from "../api";
 import type { NetworkCode } from "./networkHoles";
@@ -77,19 +83,39 @@ export const POLAND: Network = {
   coverage: plExclusiveCoverage,
 };
 
-export const NETWORKS: Network[] = [SWITZERLAND, FRANCE, CZECHIA, POLAND];
+export const BELGIUM: Network = {
+  code: "be",
+  fetch: fetchBelgianRadar,
+  attribution: rmiVmmAttribution,
+  extent: beRadarExtent,
+  coverage: beExclusiveCoverage,
+};
+
+export const SLOVAKIA: Network = {
+  code: "sk",
+  fetch: fetchSlovakRadar,
+  attribution: shmuAttribution,
+  extent: skRadarExtent,
+  coverage: skExclusiveCoverage,
+};
+
+/** In the coverage document's priority order (`spec/coverage.json`), after DWD. */
+export const NETWORKS: Network[] = [SWITZERLAND, FRANCE, CZECHIA, POLAND, BELGIUM, SLOVAKIA];
 
 /**
  * Every network's lowest tilts on one grid, DWD's included: the merged
  * composite worker-analysis builds on its background worker. Not one of
- * `NETWORKS`: it is not cut to a country and it stands in for all five
+ * `NETWORKS`: it is not cut to a country and it stands in for all seven
  * products at once, on the live step, when the reader asks for it.
  */
 export const EUROPE: Network = {
   code: "eu",
   fetch: fetchEuropeRadar,
-  attribution: [dwdAttribution, meteoSwissAttribution, meteoFranceAttribution, chmiAttribution, imgwAttribution].join(" "),
-  extent: [dwdRadarExtent, chRadarExtent, frRadarExtent, czRadarExtent, plRadarExtent].reduce(
+  attribution: [
+    dwdAttribution, meteoSwissAttribution, meteoFranceAttribution, chmiAttribution, imgwAttribution, rmiVmmAttribution,
+    shmuAttribution,
+  ].join(" "),
+  extent: [dwdRadarExtent, chRadarExtent, frRadarExtent, czRadarExtent, plRadarExtent, beRadarExtent, skRadarExtent].reduce(
     (whole, one) => extend(whole, one), createEmpty(),
   ),
   coverage: null,
@@ -110,7 +136,7 @@ export const EUROPE_COLUMN_MAXIMUM: Network = {
  * The column maximum of every network, cut to the ground the networks draw
  * on: what surrounds DMAX, Germany's own column maximum, in place of the
  * networks' lowest scans. Each network's coverage is one polygon wound to
- * nest and the four only touch, so their rings traced as one path are their
+ * nest and the six only touch, so their rings traced as one path are their
  * union. Its frames are handed to it (`show`), never fetched: they are the
  * whole column maximum's.
  */

@@ -978,7 +978,7 @@ export default class RadarCapability extends Capability {
    * Point every network layer at the step on screen.
    *
    * On an observed step where a product of every network's is drawn, that
-   * one frame stands in for all five networks while it is the drawn product.
+   * one frame stands in for all seven networks while it is the drawn product.
    * DWD's layer and the networks' are hidden under it instead of blended with
    * it: every palette is partly transparent, and two drawn together read as a
    * third intensity.

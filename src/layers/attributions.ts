@@ -17,6 +17,15 @@ export const meteoSwissAttribution = `© ${link("https://www.meteoswiss.admin.ch
 export const meteoFranceAttribution = `© ${link("https://meteofrance.com/", "Météo-France")}`;
 export const chmiAttribution = `© ${link("https://www.chmi.cz/", "ČHMÚ")}`;
 export const imgwAttribution = `© ${link("https://www.imgw.pl/", "IMGW-PIB")}`;
+/**
+ * Belgium's radars have two operators: RMI (also KMI-IRM, either name its own
+ * credit) runs Jabbeke and Wideumont, VMM, the Flemish Environment Agency,
+ * runs Helchteren. One composite, so one credit naming both. VMM's licence
+ * terms for Helchteren are still to be confirmed (see imprint.html#data).
+ */
+export const rmiVmmAttribution = `© ${link("https://www.meteo.be/", "RMI")}, © ${link("https://www.vmm.be/", "VMM")}`;
+/** SHMÚ: CC BY 4.0 by secondary sources only; confirm on shmu.sk before production (see imprint.html#data). */
+export const shmuAttribution = `© ${link("https://www.shmu.sk/", "SHMÚ")}`;
 export const noaaAttribution = link("https://www.weather.gov/disclaimer", "NOAA/NWS");
 export const blitzortungAttribution = `© ${link("https://www.blitzortung.org/", "Blitzortung.org")}`;
 export const mapterhornAttribution = `© ${link("https://mapterhorn.com/attribution", "Mapterhorn")}`;
@@ -42,6 +51,8 @@ export const ATTRIBUTION_ORDER = [
   meteoFranceAttribution,
   chmiAttribution,
   imgwAttribution,
+  rmiVmmAttribution,
+  shmuAttribution,
   noaaAttribution,
   blitzortungAttribution,
   imprintAttribution,

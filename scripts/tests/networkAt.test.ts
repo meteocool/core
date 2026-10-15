@@ -9,6 +9,63 @@ test("each network owns its own country", () => {
   assert.equal(networkAt(44.84, -0.58), "fr"); // Bordeaux, off DWD's grid
   assert.equal(networkAt(50.08, 14.43), "cz"); // Prague
   assert.equal(networkAt(52.23, 21.01), "pl"); // Warsaw
+  assert.equal(networkAt(50.85, 4.35), "be"); // Brussels
+  assert.equal(networkAt(48.15, 17.11), "sk"); // Bratislava
+  assert.equal(networkAt(48.72, 21.26), "sk"); // Košice
+});
+
+/*
+ * Outside every border the first network by priority that reaches wins: DWD
+ * within its 150 km outline, then MeteoSwiss, Meteo-France, CHMI, IMGW, RMI
+ * and SHMÚ. The places ng's handoff for Belgium and Slovakia measured
+ * (doc/handoff-core-belgium-slovakia.md there); undefined is DWD's.
+ */
+const BEYOND_BORDERS: [string, number, number][] = [
+  ["Amsterdam", 52.37, 4.90],
+  ["Rotterdam", 51.92, 4.48],
+  ["The Hague", 52.08, 4.30],
+  ["Utrecht", 52.09, 5.12],
+  ["Eindhoven", 51.44, 5.47],
+  ["Maastricht", 50.85, 5.69],
+  ["Luxembourg", 49.61, 6.13],
+  ["Enschede", 52.22, 6.89],
+  ["Arnhem", 51.98, 5.91],
+  ["Nijmegen", 51.84, 5.86],
+  ["Zwolle", 52.52, 6.08],
+  ["Vienna", 48.21, 16.37],
+  ["Győr", 47.69, 17.63],
+  ["Sopron", 47.68, 16.58],
+  ["Miskolc", 48.10, 20.78],
+  ["Uzhhorod", 48.62, 22.30],
+  ["Linz", 48.31, 14.29],
+  ["Budapest", 47.50, 19.04],
+  ["Debrecen", 47.53, 21.63],
+];
+
+const drawnAt = () => Object.fromEntries(BEYOND_BORDERS.map(([place, lat, lon]) => [place, networkAt(lat, lon)]));
+
+test("beyond every border the first network by priority that reaches draws", () => {
+  assert.deepEqual(drawnAt(), {
+    Amsterdam: "be", // DWD's outline stops short; RMI is the first that reaches
+    Rotterdam: "fr",
+    "The Hague": "fr",
+    Utrecht: undefined,
+    Eindhoven: undefined,
+    Maastricht: undefined,
+    Luxembourg: undefined,
+    Enschede: undefined,
+    Arnhem: undefined,
+    Nijmegen: undefined,
+    Zwolle: undefined,
+    Vienna: "cz",
+    Győr: "cz",
+    Sopron: "cz",
+    Miskolc: "pl",
+    Uzhhorod: "pl",
+    Linz: "cz",
+    Budapest: "sk", // only SHMÚ reaches
+    Debrecen: "sk",
+  });
 });
 
 test("DWD's ground and ground nobody covers are no network's", () => {
@@ -32,6 +89,8 @@ test("a network's nowcast covers its own ground, and none of another's", () => {
   assert.equal(drawnByAny(["fr"], paris), true);
   assert.equal(drawnByAny(["ch", "cz", "pl"], paris), false);
   assert.equal(drawnByAny(["fr", "pl"], warsaw), true);
-  assert.equal(drawnByAny(["ch", "fr", "cz", "pl"], munich), false);
+  assert.equal(drawnByAny(["ch", "fr", "cz", "pl", "be", "sk"], munich), false);
+  assert.equal(drawnByAny(["be"], fromLonLat([4.35, 50.85])), true); // Brussels
+  assert.equal(drawnByAny(["sk"], fromLonLat([17.11, 48.15])), true); // Bratislava
   assert.equal(drawnByAny([], paris), false);
 });

@@ -155,6 +155,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/radar/belgium": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Belgian reflectivity tile metadata.
+         * @description The newest Belgian reflectivity composite -- one frame, not a timeseries.
+         *
+         *     RMI's three radars, composited by meteocool from the lowest tilt of each
+         *     volume; it reaches well into the Netherlands. See `/switzerland` for why
+         *     this is a route of its own.
+         */
+        get: operations["belgium_v3_radar_belgium_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/radar/classification": {
         parameters: {
             query?: never;
@@ -188,7 +212,7 @@ export interface paths {
          * Column-maximum reflectivity of every network tile metadata.
          * @description The newest column maximum of every network -- one frame, not a timeseries.
          *
-         *     DMAX's picture over all five networks: the strongest echo above each cell
+         *     DMAX's picture over all seven networks: the strongest echo above each cell
          *     from every tilt of every radar, composited by meteocool once a cycle on a
          *     background worker, with the networks evened out where they can be -- one
          *     five-minute cycle, 180 km from any radar, up to 12 km, nothing under 12
@@ -290,9 +314,9 @@ export interface paths {
          * Merged European reflectivity tile metadata.
          * @description The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.
          *
-         *     DWD's, MeteoSwiss's, Meteo-France's, CHMI's and IMGW's radars on one grid,
+         *     DWD's, MeteoSwiss's, Meteo-France's, CHMI's, IMGW's, RMI's and SHMU's radars on one grid,
          *     composited by meteocool every few minutes on a background worker. A
-         *     product the reader picks: the map's own arrangement of five products
+         *     product the reader picks: the map's own arrangement of seven products
          *     stays the default, and this is offered beside it. Its past is in
          *     `/timeseries` only when asked for (`products=merged`): every client would
          *     carry it otherwise.
@@ -344,6 +368,29 @@ export interface paths {
          *     volume; see `/switzerland` for why this is a route of its own.
          */
         get: operations["poland_v3_radar_poland_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/slovakia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Slovak reflectivity tile metadata.
+         * @description The newest Slovak reflectivity composite -- one frame, not a timeseries.
+         *
+         *     SHMU's four radars, composited by meteocool from the lowest tilt of each
+         *     volume; see `/switzerland` for why this is a route of its own.
+         */
+        get: operations["slovakia_v3_radar_slovakia_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -782,17 +829,17 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "eu" | "dmax" | "colmax";
+            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "eu" | "dmax" | "colmax";
         };
         /**
          * NowcastRefresh
          * @description A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).
          *
          *     Deliberately not a `Poke`, though WN's completed run is announced as one:
-         *     every client's `poke` handler reloads DWD's whole timeseries, and with four
+         *     every client's `poke` handler reloads DWD's whole timeseries, and with six
          *     networks on their own clocks these land every minute or two. A client that
          *     shows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;
          *     one that does not ignores it. Germany's run is never announced: it is
@@ -801,10 +848,10 @@ export interface components {
         NowcastRefresh: {
             /**
              * Domain
-             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU
              * @enum {string}
              */
-            domain: "ch" | "fr" | "cz" | "pl";
+            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk";
             /**
              * Issued At
              * @description The run's issue time, unix seconds: the five-minute slot it starts from
@@ -1363,6 +1410,26 @@ export interface operations {
             };
         };
     };
+    belgium_v3_radar_belgium_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     classification_v3_radar_classification_get: {
         parameters: {
             query?: never;
@@ -1523,6 +1590,26 @@ export interface operations {
             };
         };
     };
+    slovakia_v3_radar_slovakia_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     snow_v3_radar_snow_get: {
         parameters: {
             query?: never;
@@ -1570,7 +1657,7 @@ export interface operations {
                 end?: number;
                 lat?: number;
                 lon?: number;
-                network?: ("ch" | "fr" | "cz" | "pl") | null;
+                network?: ("ch" | "fr" | "cz" | "pl" | "be" | "sk") | null;
                 products?: ("dmax" | "merged" | "colmax" | "nowcast")[] | null;
                 threshold?: number | null;
                 lang?: components["schemas"]["Language"];

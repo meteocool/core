@@ -168,7 +168,7 @@ const VOLUME_FETCHES = 4;
 /**
  * How much volume is held at once, in bytes of 3D texture.
  *
- * The list now covers five networks and every tile of sky it rains in, so on
+ * The list now covers seven networks and every tile of sky it rains in, so on
  * a continental afternoon it runs to a hundred; each held one is a 3D texture
  * and a raymarch per frame. So only what is in view, strongest and nearest
  * first, up to this much: the rest stay as the ground outlines, which are
@@ -1098,7 +1098,7 @@ export default class Cells3DCapability extends Capability {
           // reader had moved on from it.
           this.picking = null;
           // By path: a code is a grid position, unique only within one
-          // network's scan, and the list holds five networks' scans.
+          // network's scan, and the list holds seven networks' scans.
           const listed = cloud?.properties?.path
             ? this.clouds.find((c) => c.path === cloud.properties.path) ?? null
             : null;

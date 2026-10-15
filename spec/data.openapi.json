@@ -996,12 +996,14 @@
         "description": "A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\none frame, and ignore a value they do not know.",
         "properties": {
           "network": {
-            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network",
+            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network",
             "enum": [
               "ch",
               "fr",
               "cz",
               "pl",
+              "be",
+              "sk",
               "eu",
               "dmax",
               "colmax"
@@ -1014,6 +1016,35 @@
           "network"
         ],
         "title": "NetworkRefresh",
+        "type": "object"
+      },
+      "NowcastRefresh": {
+        "description": "A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).\n\nDeliberately not a `Poke`, though WN's completed run is announced as one:\nevery client's `poke` handler reloads DWD's whole timeseries, and with six\nnetworks on their own clocks these land every minute or two. A client that\nshows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;\none that does not ignores it. Germany's run is never announced: it is\nrecorded for scoring and never shown.",
+        "properties": {
+          "domain": {
+            "description": "Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU",
+            "enum": [
+              "ch",
+              "fr",
+              "cz",
+              "pl",
+              "be",
+              "sk"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "issued_at": {
+            "description": "The run's issue time, unix seconds: the five-minute slot it starts from",
+            "title": "Issued At",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "domain",
+          "issued_at"
+        ],
+        "title": "NowcastRefresh",
         "type": "object"
       },
       "PointGeometry": {

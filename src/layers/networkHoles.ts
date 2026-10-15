@@ -1,4 +1,6 @@
-import { chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd } from "./extents";
+import {
+  beBordersNearDwd, chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd, skBordersNearDwd,
+} from "./extents";
 import { maskPath } from "./tileMask";
 import type { NetworkEvent } from "../api/events";
 
@@ -32,6 +34,9 @@ export const HOLES = ([
   ["fr", frBordersNearDwd],
   ["cz", czBordersNearDwd],
   ["pl", plBordersNearDwd],
+  ["be", beBordersNearDwd],
+  // Empty, as no DWD radar reaches Slovakia: `bboxOf` of no rings is a box nothing overlaps, so no tile is touched.
+  ["sk", skBordersNearDwd],
 ] as [NetworkCode, number[][][]][]).map(([code, rings]) => ({ code, ...maskPath(rings) }));
 
 /** Every network: what the live frame is holed for. */
