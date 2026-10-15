@@ -8,6 +8,21 @@ test("a radar is found by its node code, whichever network it reports through", 
   assert.equal(radarSite("chalb")?.name, "Albis");
   assert.equal(radarSite("czbrd")?.name, "Brdy");
   assert.equal(radarSite("plpoz")?.name, "Poznań");
+  assert.equal(radarSite("bejab")?.name, "Jabbeke");
+  assert.equal(radarSite("skkoj")?.name, "Kojšovská hoľa");
+});
+
+test("each Belgian radar reaches as far as its own files do", () => {
+  assert.equal(radarSite("behel")?.rangeKm, 200);
+  assert.equal(radarSite("bejab")?.rangeKm, 250);
+  assert.equal(radarSite("bewid")?.rangeKm, 250);
+});
+
+test("a Slovak radar's lowest beam is level as it leaves the antenna", () => {
+  // Bratislava, 16 km from Malý Javorník: SHMÚ's 0.0 degree tilt is still at the site's own height.
+  const [javornik] = contributions(["skjav"], 48.15, 17.11);
+  assert.ok(javornik.lowestBeamKm !== null);
+  assert.ok(javornik.lowestBeamKm > 0.6 && javornik.lowestBeamKm < 0.65);
 });
 
 test("a volume from before every network joined names DWD's radars by their bare code", () => {

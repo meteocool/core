@@ -28,6 +28,10 @@ const SWISS = { lowestDeg: -0.2, rangeKm: 246 };
 const FRENCH = { lowestDeg: 0.4, rangeKm: 256.32 };
 const CZECH = { lowestDeg: 0.1, rangeKm: 260 };
 const POLISH = { lowestDeg: 0.5, rangeKm: 250 };
+// RMI's sites do not share one reach: Helchteren's files stop at 200 km,
+// Jabbeke's run to 299 and are read to 250, Wideumont's stop at 250.
+const BELGIAN = { lowestDeg: 0.3 };
+const SLOVAK = { lowestDeg: 0.0, rangeKm: 240 };
 
 export const RADAR_SITES: Record<string, RadarSite> = {
   deasb: { name: "Borkum", lat: 53.564129, lon: 6.748317, heightM: 36.2, ...DWD },
@@ -92,6 +96,15 @@ export const RADAR_SITES: Record<string, RadarSite> = {
   plrze: { name: "Rzeszów", lat: 50.1141, lon: 22.037, heightM: 241.2, ...POLISH },
   plswi: { name: "Świdwin", lat: 53.7958, lon: 15.8368, heightM: 146.6, ...POLISH },
   pluzr: { name: "Użranki", lat: 53.8557, lon: 21.4123, heightM: 237.0, ...POLISH },
+
+  behel: { name: "Helchteren", lat: 51.0702, lon: 5.4054, heightM: 144.0, ...BELGIAN, rangeKm: 200 },
+  bejab: { name: "Jabbeke", lat: 51.1917, lon: 3.0642, heightM: 50.0, ...BELGIAN, rangeKm: 250 },
+  bewid: { name: "Wideumont", lat: 49.9136, lon: 5.5044, heightM: 585.0, ...BELGIAN, rangeKm: 250 },
+
+  skjav: { name: "Malý Javorník", lat: 48.255636, lon: 17.152379, heightM: 600.0, ...SLOVAK },
+  skkoj: { name: "Kojšovská hoľa", lat: 48.782727, lon: 20.987328, heightM: 1256.0, ...SLOVAK },
+  skkub: { name: "Kubínska hoľa", lat: 49.27167, lon: 19.24935, heightM: 1425.0, ...SLOVAK },
+  sklaz: { name: "Španí laz", lat: 48.240409, lon: 19.25732, heightM: 661.0, ...SLOVAK },
 };
 
 /** The lowest elevation in DWD's volume scan, in degrees. */
