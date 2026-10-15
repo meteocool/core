@@ -15,10 +15,10 @@ test("each network owns its own country", () => {
 });
 
 /*
- * Outside every border the first network by priority that reaches wins: DWD
- * within its 150 km outline, then MeteoSwiss, Meteo-France, CHMI, IMGW, RMI
- * and SHMÚ. The places ng's handoff for Belgium and Slovakia measured
- * (doc/handoff-core-belgium-slovakia.md there); undefined is DWD's.
+ * Outside every border the nearest radar that reaches wins, whatever network
+ * it is, DWD's within its 150 km outline. The places ng's handoff for Belgium
+ * and Slovakia measured (doc/handoff-core-belgium-slovakia.md there), with
+ * the nearest radar of each network that reaches; undefined is DWD's.
  */
 const BEYOND_BORDERS: [string, number, number][] = [
   ["Amsterdam", 52.37, 4.90],
@@ -44,34 +44,35 @@ const BEYOND_BORDERS: [string, number, number][] = [
 
 const drawnAt = () => Object.fromEntries(BEYOND_BORDERS.map(([place, lat, lon]) => [place, networkAt(lat, lon)]));
 
-test("beyond every border the first network by priority that reaches draws", () => {
+test("beyond every border the nearest radar that reaches draws, whatever its network", () => {
   assert.deepEqual(drawnAt(), {
-    Amsterdam: "be", // DWD's outline stops short; RMI is the first that reaches
-    Rotterdam: "fr",
-    "The Hague": "fr",
-    Utrecht: undefined,
-    Eindhoven: undefined,
-    Maastricht: undefined,
-    Luxembourg: undefined,
-    Enschede: undefined,
-    Arnhem: undefined,
+    Amsterdam: "be", // Helchteren 149 km, Essen 178: past DWD's outline
+    Rotterdam: "be", // Helchteren 114, Essen 181, Avesnes 205
+    "The Hague": "be", // RMI 131, Avesnes 220
+    Utrecht: "be", // RMI 115, Essen 149
+    Eindhoven: "be", // RMI 41, DWD 104
+    Maastricht: "be", // RMI 32, DWD 102
+    Luxembourg: "be", // Wideumont 56, Neuheilenbach 63
+    Enschede: undefined, // Essen 91, RMI 164
+    Arnhem: undefined, // Essen 97, Helchteren 107
     Nijmegen: undefined,
     Zwolle: undefined,
-    Vienna: "cz",
-    Győr: "cz",
-    Sopron: "cz",
-    Miskolc: "pl",
-    Uzhhorod: "pl",
-    Linz: "cz",
+    Vienna: "sk", // Malý Javorník 58, Skalky 147
+    Győr: "sk", // SHMÚ 72, CHMI 211
+    Sopron: "sk", // SHMÚ 77, CHMI 203
+    Miskolc: "sk", // SHMÚ 77, Rzeszów 242
+    Uzhhorod: "sk", // SHMÚ 98, IMGW 167
+    Linz: "cz", // Brdy 154, SHMÚ 213; Isen 163 is past DWD's outline
     Budapest: "sk", // only SHMÚ reaches
     Debrecen: "sk",
   });
 });
 
-test("DWD's ground and ground nobody covers are no network's", () => {
-  assert.equal(networkAt(48.14, 11.58), undefined); // Munich
-  assert.equal(networkAt(52.52, 13.40), undefined); // Berlin
-  assert.equal(networkAt(40.42, -3.70), undefined); // Madrid
+test("inside a country its own network draws, though another's radar is nearer", () => {
+  // Aachen: RMI's Helchteren is 57 km off, DWD's Essen 93; Germany is DWD's.
+  assert.equal(networkAt(50.78, 6.08), undefined);
+  // Lille: Jabbeke is 62 km off, Avesnes 77; France is Meteo-France's.
+  assert.equal(networkAt(50.63, 3.06), "fr");
 });
 
 test("a ring wound the other way is a hole, under the nonzero rule", () => {

@@ -5,19 +5,23 @@ import { containsCoordinate } from "ol/extent";
 import Polygon from "ol/geom/Polygon";
 import { insideRings } from "../../src/layers/networkAt.ts";
 import {
-  beExclusiveCoverage, beRadarExtent, chExclusiveCoverage, chRadarExtent, czExclusiveCoverage, czRadarExtent,
-  frExclusiveCoverage, frRadarExtent, plExclusiveCoverage, plRadarExtent, radarCoverageInv, skExclusiveCoverage,
-  skRadarExtent,
+  beBordersNearDwd, beExclusiveCoverage, beRadarExtent, chBorders, chExclusiveCoverage, chRadarExtent,
+  czBordersNearDwd, czExclusiveCoverage, czRadarExtent, dwdCoverageInv, frBordersNearDwd, frExclusiveCoverage,
+  frRadarExtent, plBordersNearDwd, plExclusiveCoverage, plRadarExtent, radarCoverageInv, skBordersNearDwd,
+  skExclusiveCoverage, skRadarExtent,
 } from "../../src/layers/extents.ts";
 
-/** Each network's coverage, as `network.ts` cuts its layer to it, inside its grid's rectangle. */
+/**
+ * Each network's coverage, as `network.ts` cuts its layer to it, inside its
+ * grid's rectangle, and its hole in DWD's tiles (`networkHoles.ts`).
+ */
 const NETWORKS = [
-  { code: "ch", extent: chRadarExtent, coverage: chExclusiveCoverage },
-  { code: "fr", extent: frRadarExtent, coverage: frExclusiveCoverage },
-  { code: "cz", extent: czRadarExtent, coverage: czExclusiveCoverage },
-  { code: "pl", extent: plRadarExtent, coverage: plExclusiveCoverage },
-  { code: "be", extent: beRadarExtent, coverage: beExclusiveCoverage },
-  { code: "sk", extent: skRadarExtent, coverage: skExclusiveCoverage },
+  { code: "ch", extent: chRadarExtent, coverage: chExclusiveCoverage, hole: chBorders },
+  { code: "fr", extent: frRadarExtent, coverage: frExclusiveCoverage, hole: frBordersNearDwd },
+  { code: "cz", extent: czRadarExtent, coverage: czExclusiveCoverage, hole: czBordersNearDwd },
+  { code: "pl", extent: plRadarExtent, coverage: plExclusiveCoverage, hole: plBordersNearDwd },
+  { code: "be", extent: beRadarExtent, coverage: beExclusiveCoverage, hole: beBordersNearDwd },
+  { code: "sk", extent: skRadarExtent, coverage: skExclusiveCoverage, hole: skBordersNearDwd },
 ];
 
 /**
@@ -53,5 +57,28 @@ test("the no-radar wash has one hole, and every network draws inside it", () => 
     if (!drawing(point).length || hole.intersectsCoordinate(point)) continue;
     const [x, y] = hole.getClosestPoint(point);
     assert.ok(Math.hypot(x - point[0], y - point[1]) < SIMPLIFIED_M, `washed out at ${point}`);
+  }
+});
+
+/** Whether a point is within some distance of any ring's edge. */
+function nearEdge(rings: number[][][], [x, y]: number[], distance: number): boolean {
+  return rings.some((ring) => ring.some(([x1, y1], i) => {
+    const [x2, y2] = ring[(i + 1) % ring.length];
+    const length = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    const along = length ? Math.max(0, Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / length)) : 0;
+    return Math.hypot(x - (x1 + along * (x2 - x1)), y - (y1 + along * (y2 - y1))) < distance;
+  }));
+}
+
+test("wherever a network draws inside DWD's outline, DWD's tiles are holed for it", () => {
+  // Beyond every border a network now wins ground DWD's radars reach too,
+  // Eindhoven's or Luxembourg's; DWD's tiles must give way there as well.
+  const outline = new Polygon([dwdCoverageInv.getLinearRing(1)!.getCoordinates()]);
+  for (const point of GRID) {
+    if (!outline.intersectsCoordinate(point)) continue;
+    for (const network of drawing(point)) {
+      const holed = insideRings(network.hole, point) || nearEdge(network.hole, point, SIMPLIFIED_M);
+      assert.ok(holed, `${network.code} draws over DWD at ${point}`);
+    }
   }
 });

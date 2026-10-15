@@ -11,9 +11,11 @@ import type { NetworkEvent } from "../api/events";
 export type NetworkCode = Exclude<NetworkEvent["network"], "dmax">;
 
 /**
- * DWD tiles with the EUMETNET networks' countries cut out of them.
+ * DWD tiles with the EUMETNET networks' ground cut out of them: their
+ * countries, and beyond every border the ground one of their radars is the
+ * nearest to (`extents.ts`).
  *
- * Inside those networks' borders their own layers should be on screen.
+ * There their own layers should be on screen.
  * Stacking them on top of DWD is not enough: every palette here is partly
  * transparent, so DWD underneath would blend through into colours neither
  * radar measured. Clipping the DWD layer is not possible either: it is an
@@ -35,7 +37,6 @@ export const HOLES = ([
   ["cz", czBordersNearDwd],
   ["pl", plBordersNearDwd],
   ["be", beBordersNearDwd],
-  // Empty, as no DWD radar reaches Slovakia: `bboxOf` of no rings is a box nothing overlaps, so no tile is touched.
   ["sk", skBordersNearDwd],
 ] as [NetworkCode, number[][][]][]).map(([code, rings]) => ({ code, ...maskPath(rings) }));
 

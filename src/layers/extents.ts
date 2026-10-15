@@ -1207,27 +1207,34 @@ dwdCoverageInv.appendLinearRing(
  *
  *   - Inside a network's own borders, only that network draws: it is the
  *     national radar for that ground.
- *   - Elsewhere the first network by priority that reaches wins: DWD (its
- *     150 km outline), then MeteoSwiss, then Meteo-France, then CHMI, then
- *     IMGW, then RMI, then SHMÚ.
+ *   - Elsewhere the nearest radar that reaches wins, whatever network it is,
+ *     DWD's sites reaching their 150 km outline. Rotterdam is drawn from
+ *     Belgium's Helchteren at 114 km rather than France's Avesnes at 205, and
+ *     Vienna from Slovakia's Malý Javorník at 58 rather than Czechia's
+ *     Skalky at 147; the seams are where two radars are equally far, so
+ *     their beams equally high.
  *
  * Every layer is WebGL and cannot be clipped, so the cuts are made in the
  * tile images: each EUMETNET layer's tiles are cut to its `*ExclusiveCoverage`
- * (`network.ts`), and the other networks' borders are erased from DWD's
- * observation tiles (`networkHoles.ts`). Every ring is wound so the nonzero
- * rule treats holes as holes, in EPSG:3857, the projection the map renders in.
+ * (`network.ts`), and each network's ground within DWD's sweeps, inside its
+ * borders and beyond them, is erased from DWD's observation tiles
+ * (`networkHoles.ts`). Every ring is wound so the nonzero rule treats holes as
+ * holes, in EPSG:3857, the projection the map renders in.
  *
- * The shapes are the server's: meteocool/ng decides by them which domain a
- * point belongs to (a phone's alerts, once there is more than DWD's
- * forecast) and serves them at `/v3/radar/coverage` (its ADR 0012).
- * `spec/coverage.json` is that document, copied here as `spec/`'s API
- * schemas are, so the map and the server draw the same lines.
+ * The shapes are meant to be the server's: meteocool/ng decides by them which
+ * domain a point belongs to (a phone's alerts, once there is more than DWD's
+ * forecast) and serves them at `/v3/radar/coverage` (its ADR 0012). ng still
+ * generates them under a priority rule, first network that reaches wins, so
+ * until it takes this rule up `spec/coverage.json` is generated here, from
+ * ng's sites and countries, by `scripts/coverage-nearest.py`; the server's
+ * domains differ from the map's outside the borders meanwhile. Once ng
+ * serves the same document, copy it from there again.
  */
 import coverage from "../../spec/coverage.json" with { type: "json" };
 
 type Rings = number[][][];
 
-/** Where the Swiss layer may draw: Switzerland, plus reach neither DWD nor another network's borders claim. */
+/** Where the Swiss layer may draw: Switzerland, plus the ground beyond every border its radars are nearest to. */
 export const chExclusiveCoverage: Rings = coverage.domains.ch.exclusive;
 /** Where the French layer may draw. */
 export const frExclusiveCoverage: Rings = coverage.domains.fr.exclusive;
@@ -1240,20 +1247,27 @@ export const beExclusiveCoverage: Rings = coverage.domains.be.exclusive;
 /** Where the Slovak layer may draw. */
 export const skExclusiveCoverage: Rings = coverage.domains.sk.exclusive;
 
-/** Switzerland itself, as a hole in DWD's observation tiles. */
+/**
+ * Switzerland, and the ground beyond it the Swiss radars are nearest to, as
+ * a hole in DWD's observation tiles: the part DWD's tiles can carry data
+ * over at all, within 180 km of DWD's radars, the reach of its sweeps.
+ */
 export const chBorders: Rings = coverage.domains.ch.dwd_hole;
 /**
- * France, as a hole in DWD's observation tiles: only the part DWD's tiles can
- * carry data over at all (the country within 180 km of DWD's radars, the
- * reach of its sweeps), since erasing the rest of France from them would cost
- * thousands of vertices and erase nothing.
+ * France and the ground its radars are nearest to, as a hole in DWD's
+ * observation tiles, cut the same way: erasing the rest of France from them
+ * would cost thousands of vertices and erase nothing.
  */
 export const frBordersNearDwd: Rings = coverage.domains.fr.dwd_hole;
-/** Czechia, as a hole in DWD's observation tiles, cut the same way as France's. */
+/** Czechia and the ground its radars are nearest to, cut the same way. */
 export const czBordersNearDwd: Rings = coverage.domains.cz.dwd_hole;
-/** Poland, as a hole in DWD's observation tiles, cut the same way as France's. */
+/** Poland and the ground its radars are nearest to, cut the same way. */
 export const plBordersNearDwd: Rings = coverage.domains.pl.dwd_hole;
-/** Belgium, as a hole in DWD's observation tiles, cut the same way as France's. */
+/** Belgium and the ground its radars are nearest to, most of the Netherlands west of Arnhem among it, cut the same way. */
 export const beBordersNearDwd: Rings = coverage.domains.be.dwd_hole;
-/** Slovakia, cut the same way: empty, since none of DWD's radars reaches it. */
+/**
+ * Slovakia's, cut the same way: none of DWD's radars reaches Slovakia, so
+ * only a corner of Austria south of Linz, where Malý Javorník is the
+ * nearest radar and DWD's Isen still sweeps.
+ */
 export const skBordersNearDwd: Rings = coverage.domains.sk.dwd_hole;
