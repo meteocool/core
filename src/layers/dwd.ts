@@ -24,6 +24,7 @@ import { hgClassStyle } from "../lib/hgClasses";
 import type { ClassTiles } from "../api";
 import { NOWCAST_OPACITY } from "./ui";
 import { radarTileCache } from "../lib/gpuBudget";
+import { groupRings } from "../lib/ringGroups";
 
 /** What a layer is built for: one frame's tile set, and what its bytes mean. */
 export interface TileFrame {
@@ -152,8 +153,9 @@ let scratch: HTMLCanvasElement | null = null;
 
 /**
  * The forecast step's wash with meteocool's nowcast cut out of it as well as
- * DWD's reach: the world, and every ring after its first cut away from it one
- * at a time.
+ * DWD's reach: the world, and each ground after it cut away from it one at a
+ * time, all of a ground's rings at once, so its holes (another country's
+ * islands in Denmark's sea) stay washed.
  *
  * Not a plain fill. Each network's ground overlaps DWD's reach inside its own
  * borders, and under the nonzero rule two holes over one pixel count back to
@@ -173,18 +175,21 @@ const cutWash = new Style({
     const cut = scratch.getContext("2d");
     if (!cut || rings.length === 0) return;
     cut.setTransform(context.getTransform());
-    const trace = (ring: number[][]) => {
+    // Several rings in one path, filled under the nonzero rule: a ground's holes stay holes.
+    const trace = (group: number[][][]) => {
       cut.beginPath();
-      ring.forEach(([x, y], i) => (i === 0 ? cut.moveTo(x, y) : cut.lineTo(x, y)));
-      cut.closePath();
+      for (const ring of group) {
+        ring.forEach(([x, y], i) => (i === 0 ? cut.moveTo(x, y) : cut.lineTo(x, y)));
+        cut.closePath();
+      }
       cut.fill();
     };
     cut.fillStyle = String(washFill.getColor());
-    trace(rings[0]);
+    trace([rings[0]]);
     // Erased by an opaque fill: `destination-out` takes away as much as it is opaque.
     cut.globalCompositeOperation = "destination-out";
     cut.fillStyle = "#000";
-    rings.slice(1).forEach(trace);
+    groupRings(rings.slice(1), washGroups).forEach(trace);
     context.save();
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.drawImage(scratch, 0, 0);
@@ -193,20 +198,24 @@ const cutWash = new Style({
   hitDetectionRenderer() {},
 });
 
-/** The cut wash's geometry for a set of networks, built once per set. */
-const cutGeometries = new Map<string, Polygon>();
+/** The cut wash's geometry for a set of networks, and its rings' grouping, built once per set. */
+const cutGeometries = new Map<string, { geometry: Polygon; groups: number[] }>();
 
-function nowcastWashGeometry(networks: readonly CountryNetwork[]): Polygon {
+function nowcastWashGeometry(networks: readonly CountryNetwork[]): { geometry: Polygon; groups: number[] } {
   const key = networks.join();
-  let geometry = cutGeometries.get(key);
-  if (!geometry) {
-    geometry = dwdCoverageInv.clone();
+  let cut = cutGeometries.get(key);
+  if (!cut) {
+    const geometry = dwdCoverageInv.clone();
+    // DWD's reach, then each network's ground: one cut each, however many rings it has.
+    const groups = [geometry.getLinearRingCount() - 1];
     for (const network of networks) {
       for (const ring of NOWCAST_GROUND[network]) geometry.appendLinearRing(new LinearRing(ring));
+      groups.push(NOWCAST_GROUND[network].length);
     }
-    cutGeometries.set(key, geometry);
+    cut = { geometry, groups };
+    cutGeometries.set(key, cut);
   }
-  return geometry;
+  return cut;
 }
 
 /**
@@ -222,11 +231,14 @@ function nowcastWashGeometry(networks: readonly CountryNetwork[]): Polygon {
 const forecastWashes = new Set<Feature>();
 let washGeometry: Polygon = radarCoverageInv;
 let washStyle: Style | undefined;
+/** How many of the cut wash's rings, after the world's, `cutWash` erases together, ground by ground. */
+let washGroups: number[] = [];
 
 derived([onForecastStep, nowcastCoverage], ([forecast, nowcast]) => ({ forecast, runs: nowcast?.shown ?? [] }))
   .subscribe(({ forecast, runs }) => {
-    const cut = forecast && runs.length > 0;
-    washGeometry = !forecast ? radarCoverageInv : cut ? nowcastWashGeometry(runs) : dwdCoverageInv;
+    const cut = forecast && runs.length > 0 ? nowcastWashGeometry(runs) : null;
+    washGeometry = !forecast ? radarCoverageInv : cut ? cut.geometry : dwdCoverageInv;
+    washGroups = cut?.groups ?? [];
     washStyle = cut ? cutWash : undefined;
     forecastWashes.forEach((feature) => {
       feature.setGeometry(washGeometry);
