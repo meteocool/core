@@ -714,18 +714,18 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "eu" | "dmax" | "colmax";
+            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax";
         };
         /**
          * NowcastRefresh
          * @description A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).
          *
          *     Deliberately not a `Poke`, though WN's completed run is announced as one:
-         *     every client's `poke` handler reloads DWD's whole timeseries, and with six
-         *     networks on their own clocks these land every minute or two. A client that
+         *     every client's `poke` handler reloads DWD's whole timeseries, and with
+         *     fourteen networks on their own clocks these land every minute or two. A client that
          *     shows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;
          *     one that does not ignores it. Germany's run is never announced: it is
          *     recorded for scoring and never shown.
@@ -733,10 +733,10 @@ export interface components {
         NowcastRefresh: {
             /**
              * Domain
-             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway
              * @enum {string}
              */
-            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk";
+            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no";
             /**
              * Issued At
              * @description The run's issue time, unix seconds: the five-minute slot it starts from

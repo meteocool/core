@@ -33,10 +33,19 @@ import {
   beRadarExtent4326,
   chRadarExtent4326,
   czRadarExtent4326,
+  dkRadarExtent4326,
   dwdCoverageInv,
   dwdRadarExtent4326,
+  eeRadarExtent4326,
+  fiRadarExtent4326,
   frRadarExtent4326,
+  hrRadarExtent4326,
+  ieRadarExtent4326,
+  ltRadarExtent4326,
+  nlRadarExtent4326,
+  noRadarExtent4326,
   plRadarExtent4326,
+  seRadarExtent4326,
   skRadarExtent4326,
 } from "../layers/extents";
 import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
@@ -179,6 +188,15 @@ const radarExtents4326 = [
   plRadarExtent4326,
   beRadarExtent4326,
   skRadarExtent4326,
+  ltRadarExtent4326,
+  eeRadarExtent4326,
+  ieRadarExtent4326,
+  hrRadarExtent4326,
+  dkRadarExtent4326,
+  nlRadarExtent4326,
+  fiRadarExtent4326,
+  seRadarExtent4326,
+  noRadarExtent4326,
 ];
 
 $: outOfCoverage = $sharedActiveCap === "radar"

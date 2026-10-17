@@ -26,6 +26,23 @@ export const imgwAttribution = `© ${link("https://www.imgw.pl/", "IMGW-PIB")}`;
  */
 export const rmiVmmAttribution = `© ${link("https://www.meteo.be/", "RMI")}, © ${link("https://vmm.vlaanderen.be/", "VMM")}`;
 export const shmuAttribution = `© ${link("https://www.shmu.sk/", "SHMÚ")}`;
+/** LHMT's radars are CC BY 4.0 by EUMETNET's metadata and CC BY-SA 4.0 by its own terms; the imprint names both. */
+export const lhmtAttribution = `© ${link("https://www.meteo.lt/", "LHMT")}`;
+/** The Estonian Environment Agency (KAUR), which asks to be named as the source, by its Estonian name. */
+export const kaurAttribution = `© ${link("https://www.ilmateenistus.ee/", "Keskkonnaagentuur")}`;
+/**
+ * Met Éireann's terms ask for five statements wherever its data is shown;
+ * the corner carries the copyright and the licence, the imprint all five.
+ */
+export const metEireannAttribution = `© ${link("https://www.met.ie/", "Met Éireann")} (CC BY 4.0)`;
+/** DHMZ: CC BY 4.0 by EUMETNET's metadata and the Croatian Open Licence by its own; the imprint names both. */
+export const dhmzAttribution = `© ${link("https://meteo.hr/", "DHMZ")}`;
+export const dmiAttribution = `© ${link("https://www.dmi.dk/", "DMI")}`;
+export const knmiAttribution = `© ${link("https://www.knmi.nl/", "KNMI")}`;
+export const fmiAttribution = `© ${link("https://en.ilmatieteenlaitos.fi/open-data", "FMI")}`;
+export const smhiAttribution = `© ${link("https://www.smhi.se/", "SMHI")}`;
+/** MET Norway: NLOD 2.0 and CC BY 4.0 on its own terms, which this links; the imprint names both. */
+export const metNorwayAttribution = `© ${link("https://www.met.no/en/free-meteorological-data/Licensing-and-crediting", "MET Norway")}`;
 export const noaaAttribution = link("https://www.weather.gov/disclaimer", "NOAA/NWS");
 export const blitzortungAttribution = `© ${link("https://www.blitzortung.org/", "Blitzortung.org")}`;
 export const mapterhornAttribution = `© ${link("https://mapterhorn.com/attribution", "Mapterhorn")}`;
@@ -53,6 +70,15 @@ export const ATTRIBUTION_ORDER = [
   imgwAttribution,
   rmiVmmAttribution,
   shmuAttribution,
+  lhmtAttribution,
+  kaurAttribution,
+  metEireannAttribution,
+  dhmzAttribution,
+  dmiAttribution,
+  knmiAttribution,
+  fmiAttribution,
+  smhiAttribution,
+  metNorwayAttribution,
   noaaAttribution,
   blitzortungAttribution,
   imprintAttribution,

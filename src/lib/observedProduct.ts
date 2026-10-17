@@ -5,9 +5,9 @@
  *
  * - `hx`, the default: DWD's HX over Germany, the lowest scan of every radar,
  *   with each EUMETNET network's own lowest-tilt composite around it.
- * - `merged`: meteocool's composite of all seven networks' lowest scans on
+ * - `merged`: meteocool's composite of all sixteen networks' lowest scans on
  *   one grid, drawn whole in place of HX and the networks' own composites.
- * - `colmax`: meteocool's column maximum of all seven networks, every tilt of
+ * - `colmax`: meteocool's column maximum of all sixteen networks, every tilt of
  *   every radar evened out across them, drawn whole like `merged`. Built once
  *   a cycle when the slowest network's volume is in, so a cycle or two
  *   behind HX.
@@ -31,7 +31,7 @@ export type AlternativeProduct = Exclude<ObservedProduct, "hx">;
 
 /**
  * The picker's two kinds of picture, each with DWD's own first and meteocool's
- * merge of all seven networks second: the lowest scans, the rain nearest the
+ * merge of all sixteen networks second: the lowest scans, the rain nearest the
  * ground, and the column maxima, the strongest echo at any height.
  */
 export type ProductGroup = "lowest" | "column";

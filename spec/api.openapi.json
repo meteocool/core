@@ -96,7 +96,7 @@
             "type": "object"
           },
           "priority": {
-            "description": "Who wins outside every network's own borders where several reach, first to last.",
+            "description": "The networks, DWD first, in the order their coverages are listed and cut from each other. No longer who wins where several reach: inside a network's own borders that network does, and outside every border the nearest radar that reaches, DWD's out to 150 km.",
             "items": {
               "type": "string"
             },
@@ -495,11 +495,11 @@
         "properties": {
           "dwd_hole": {
             "$ref": "#/components/schemas/Rings",
-            "description": "The part of its country cut out of DWD's observation tiles."
+            "description": "Its country and its exclusive coverage where DWD's sweeps reach: what is cut out of DWD's observation tiles."
           },
           "exclusive": {
             "$ref": "#/components/schemas/Rings",
-            "description": "Where this network's composite alone is drawn."
+            "description": "Where this network's composite alone is drawn: its own country within its radars' reach, and outside every network's borders the ground one of its radars is the nearest that reaches."
           }
         },
         "required": [
@@ -513,7 +513,7 @@
         "description": "A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\none frame, and ignore a value they do not know.",
         "properties": {
           "network": {
-            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network",
+            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network",
             "enum": [
               "ch",
               "fr",
@@ -521,6 +521,15 @@
               "pl",
               "be",
               "sk",
+              "lt",
+              "ee",
+              "ie",
+              "hr",
+              "dk",
+              "nl",
+              "fi",
+              "se",
+              "no",
               "eu",
               "dmax",
               "colmax"
@@ -536,17 +545,25 @@
         "type": "object"
       },
       "NowcastRefresh": {
-        "description": "A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).\n\nDeliberately not a `Poke`, though WN's completed run is announced as one:\nevery client's `poke` handler reloads DWD's whole timeseries, and with six\nnetworks on their own clocks these land every minute or two. A client that\nshows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;\none that does not ignores it. Germany's run is never announced: it is\nrecorded for scoring and never shown.",
+        "description": "A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).\n\nDeliberately not a `Poke`, though WN's completed run is announced as one:\nevery client's `poke` handler reloads DWD's whole timeseries, and with\nfourteen networks on their own clocks these land every minute or two. A client that\nshows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;\none that does not ignores it. Germany's run is never announced: it is\nrecorded for scoring and never shown.",
         "properties": {
           "domain": {
-            "description": "Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU",
+            "description": "Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway",
             "enum": [
               "ch",
               "fr",
               "cz",
               "pl",
               "be",
-              "sk"
+              "sk",
+              "lt",
+              "ee",
+              "hr",
+              "dk",
+              "nl",
+              "fi",
+              "se",
+              "no"
             ],
             "title": "Domain",
             "type": "string"
@@ -1150,7 +1167,7 @@
     "contact": {
       "email": "valentin@meteocool.com"
     },
-    "description": "\nWelcome to the meteocool backend. You are free to use our raw and aggregated\ndata for your private and server applications. If you are planning on releasing\na publicly available application, please cache these endpoints on your side\nrather than having your users hit them directly.\n\n## Compatibility\n\nWe cannot guarantee consistency or availability of these endpoints, but `/v3/`\nendpoints will not introduce breaking changes soon. Most are rate limited,\nespecially on error responses.\n\n## Attributions\n\nAlways attribute the original data sources. You, not us, are responsible to the\ncopyright holders if you fail to.\n\n* Radar, precipitation types and nowcast data: **DWD**\n* Lightning data: **blitzortung.org**\n\nWe would appreciate an attribution to meteocool too.\n\n## Mobile endpoints\n\nEndpoints tagged `mobile` are documented for completeness; they need a valid\nAPNS or Firebase push token and are write-only, because the read channel is the\nnotification delivered to the device.\n",
+    "description": "\nWelcome to the meteocool backend. You are free to use our raw and aggregated\ndata for your private and server applications. If you are planning on releasing\na publicly available application, please cache these endpoints on your side\nrather than having your users hit them directly.\n\n## Compatibility\n\nWe cannot guarantee consistency or availability of these endpoints, but `/v3/`\nendpoints will not introduce breaking changes soon. Most are rate limited,\nespecially on error responses.\n\n## Attributions\n\nAlways attribute the original data sources. You, not us, are responsible to the\ncopyright holders if you fail to.\n\n* Radar, precipitation types and nowcast data: **DWD**\n* Radar outside Germany: the network that measured it, **MeteoSwiss**,\n  **M\u00e9t\u00e9o-France**, **\u010cHM\u00da**, **IMGW-PIB**, **RMI** and **VMM** (Belgium),\n  **SHM\u00da**\n* Lightning data: **blitzortung.org**\n\nWe would appreciate an attribution to meteocool too.\n\n## Mobile endpoints\n\nEndpoints tagged `mobile` are documented for completeness; they need a valid\nAPNS or Firebase push token and are write-only, because the read channel is the\nnotification delivered to the device.\n",
     "title": "meteocool Severe Weather API",
     "version": "4.0.0"
   },
@@ -1473,7 +1490,7 @@
     },
     "/v3/radar/belgium": {
       "get": {
-        "description": "The newest Belgian reflectivity composite -- one frame, not a timeseries.\n\nRMI's three radars, composited by meteocool from the lowest tilt of each\nvolume; it reaches well into the Netherlands. See `/switzerland` for why\nthis is a route of its own.",
+        "description": "The newest Belgian reflectivity composite -- one frame, not a timeseries.\n\nRMI's Jabbeke and Wideumont and VMM's Helchteren, composited by meteocool\nfrom the lowest tilt of each volume; it reaches well into the Netherlands.\nSee `/switzerland` for why this is a route of its own.",
         "operationId": "belgium_v3_radar_belgium_get",
         "responses": {
           "200": {
@@ -1517,7 +1534,7 @@
     },
     "/v3/radar/colmax": {
       "get": {
-        "description": "The newest column maximum of every network -- one frame, not a timeseries.\n\nDMAX's picture over all seven networks: the strongest echo above each cell\nfrom every tilt of every radar, composited by meteocool once a cycle on a\nbackground worker, with the networks evened out where they can be -- one\nfive-minute cycle, 180 km from any radar, up to 12 km, nothing under 12\ndBZ. Stamped with its cycle, as DMAX is, and about seven minutes behind\nit. Refetched on the `network` socket event (`colmax`); its past is in\n`/timeseries` when asked for (`products=colmax`).",
+        "description": "The newest column maximum of every network -- one frame, not a timeseries.\n\nDMAX's picture over every network on the map: the strongest echo above each cell\nfrom every tilt of every radar, composited by meteocool once a cycle on a\nbackground worker, with the networks evened out where they can be -- one\nfive-minute cycle, 180 km from any radar, up to 12 km, nothing under 12\ndBZ. Stamped with its cycle, as DMAX is, and about seven minutes behind\nit. Refetched on the `network` socket event (`colmax`); its past is in\n`/timeseries` when asked for (`products=colmax`).",
         "operationId": "colmax_v3_radar_colmax_get",
         "responses": {
           "200": {
@@ -1539,7 +1556,7 @@
     },
     "/v3/radar/coverage": {
       "get": {
-        "description": "Each EUMETNET network's exclusive coverage, and the part of its country cut out of DWD's tiles.\n\nThe map clips each network's layer to its coverage and holes DWD's tiles\nwith the rest, and the server decides by the same shapes which domain a\npoint belongs to (ADR 0012), so the two cannot disagree. They change only\nwith a release.",
+        "description": "Each EUMETNET network's exclusive coverage, and what of it and its country is cut out of DWD's tiles.\n\nInside a network's own borders only that network draws; outside every\nborder the nearest radar that reaches does, whatever its network, DWD's\nout to 150 km. The map clips each network's layer to its coverage and\nholes DWD's tiles with the rest, and the server decides by the same\nshapes which domain a point belongs to (ADR 0012), so the two cannot\ndisagree. They change only with a release.",
         "operationId": "coverage_v3_radar_coverage_get",
         "responses": {
           "200": {
@@ -1554,6 +1571,28 @@
           }
         },
         "summary": "Which network's composite is drawn where.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/croatia": {
+      "get": {
+        "description": "The newest Croatian reflectivity composite -- one frame, not a timeseries.\n\nDHMZ's five radars, composited by meteocool from the lowest tilt of each\nvolume; it reaches Slovenia, Styria and Carinthia. See `/switzerland` for\nwhy this is a route of its own.",
+        "operationId": "croatia_v3_radar_croatia_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Croatian reflectivity tile metadata.",
         "tags": [
           "radar"
         ]
@@ -1581,6 +1620,28 @@
         ]
       }
     },
+    "/v3/radar/denmark": {
+      "get": {
+        "description": "The newest Danish reflectivity composite -- one frame, not a timeseries.\n\nDMI's five radars, composited by meteocool from the lowest tilt of each\nvolume. They reach 120 km, the shortest of any network here, so parts of\nwestern Jutland and much of the sea between are out of reach. See\n`/switzerland` for why this is a route of its own.",
+        "operationId": "denmark_v3_radar_denmark_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Danish reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v3/radar/dmax": {
       "get": {
         "description": "The newest column maximum DWD has published -- one frame, not a timeseries.\n\nThe strongest echo above each 250 m pixel over every tilt of DWD's volume\nscan, on HX's grid: what a storm's core looks like, not the rain at the\nground. A product the reader picks instead of HX, and a cycle behind it,\nsince it needs the whole volume. Refetched on the `network` socket event\n(`dmax`); its past is in `/timeseries` when asked for (`products=dmax`).",
@@ -1603,9 +1664,31 @@
         ]
       }
     },
+    "/v3/radar/estonia": {
+      "get": {
+        "description": "The newest Estonian reflectivity composite -- one frame, not a timeseries.\n\nKAUR's two radars, Harku and Surgavere, composited by meteocool from the\nlowest tilt of each; it reaches across the Gulf of Finland and into\nLatvia. See `/switzerland` for why this is a route of its own.",
+        "operationId": "estonia_v3_radar_estonia_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Estonian reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v3/radar/europe": {
       "get": {
-        "description": "The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.\n\nDWD's, MeteoSwiss's, Meteo-France's, CHMI's, IMGW's, RMI's and SHMU's radars on one grid,\ncomposited by meteocool every few minutes on a background worker. A\nproduct the reader picks: the map's own arrangement of seven products\nstays the default, and this is offered beside it. Its past is in\n`/timeseries` only when asked for (`products=merged`): every client would\ncarry it otherwise.",
+        "description": "The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.\n\nThe radars of every network meteocool reads on one grid,\ncomposited by meteocool every few minutes on a background worker. A\nproduct the reader picks: the map's own arrangement of a product per network\nstays the default, and this is offered beside it. Its past is in\n`/timeseries` only when asked for (`products=merged`): every client would\ncarry it otherwise.",
         "operationId": "europe_v3_radar_europe_get",
         "responses": {
           "200": {
@@ -1620,6 +1703,28 @@
           }
         },
         "summary": "Merged European reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/finland": {
+      "get": {
+        "description": "The newest Finnish reflectivity composite -- one frame, not a timeseries.\n\nFMI's twelve radars, composited by meteocool from each one's lowest tilt;\nit reaches from the Baltic to the Barents coast. See `/switzerland` for\nwhy this is a route of its own.",
+        "operationId": "finland_v3_radar_finland_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Finnish reflectivity tile metadata.",
         "tags": [
           "radar"
         ]
@@ -1642,6 +1747,94 @@
           }
         },
         "summary": "French reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/ireland": {
+      "get": {
+        "description": "The newest Irish reflectivity composite -- one frame, not a timeseries.\n\nMet Eireann's two radars, Dublin's from a file per tilt and Shannon's from\na whole volume, composited by meteocool from the lowest tilt of each; it\nreaches over Northern Ireland and across the Irish Sea to Wales and\nLancashire. See `/switzerland` for why this is a route of its own.",
+        "operationId": "ireland_v3_radar_ireland_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Irish reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/lithuania": {
+      "get": {
+        "description": "The newest Lithuanian reflectivity composite -- one frame, not a timeseries.\n\nLHMT's two radars, composited by meteocool from the lowest tilt of each\ncycle; it reaches into Latvia, Belarus and Kaliningrad. See `/switzerland`\nfor why this is a route of its own.",
+        "operationId": "lithuania_v3_radar_lithuania_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Lithuanian reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/netherlands": {
+      "get": {
+        "description": "The newest Dutch reflectivity composite -- one frame, not a timeseries.\n\nKNMI's two radars, composited by meteocool from the lowest tilt of each\nvolume; see `/switzerland` for why this is a route of its own.",
+        "operationId": "netherlands_v3_radar_netherlands_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Dutch reflectivity tile metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/norway": {
+      "get": {
+        "description": "The newest Norwegian reflectivity composite -- one frame, not a timeseries.\n\nMET Norway's twelve radars, composited by meteocool from the lowest tilt of\neach volume; they reach into Sweden and Finland. See `/switzerland` for why\nthis is a route of its own.",
+        "operationId": "norway_v3_radar_norway_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Norwegian reflectivity tile metadata.",
         "tags": [
           "radar"
         ]
@@ -1708,6 +1901,28 @@
           }
         },
         "summary": "Snowfield overlay metadata.",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v3/radar/sweden": {
+      "get": {
+        "description": "The newest Swedish reflectivity composite -- one frame, not a timeseries.\n\nSMHI's ten radars, composited by meteocool from the lowest tilt of each;\nsee `/switzerland` for why this is a route of its own.",
+        "operationId": "sweden_v3_radar_sweden_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarFrame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Swedish reflectivity tile metadata.",
         "tags": [
           "radar"
         ]
@@ -1793,7 +2008,16 @@
                     "cz",
                     "pl",
                     "be",
-                    "sk"
+                    "sk",
+                    "lt",
+                    "ee",
+                    "ie",
+                    "hr",
+                    "dk",
+                    "nl",
+                    "fi",
+                    "se",
+                    "no"
                   ],
                   "type": "string"
                 },

@@ -6,21 +6,40 @@ import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
 import {
-  chmiAttribution, dwdAttribution, imgwAttribution, meteoFranceAttribution, meteoSwissAttribution, rmiVmmAttribution,
-  shmuAttribution,
+  chmiAttribution, dhmzAttribution, dmiAttribution, dwdAttribution, fmiAttribution, imgwAttribution, kaurAttribution,
+  knmiAttribution, lhmtAttribution, meteoFranceAttribution, meteoSwissAttribution, metEireannAttribution,
+  metNorwayAttribution, rmiVmmAttribution, shmuAttribution, smhiAttribution,
 } from "./attributions";
 import {
   beExclusiveCoverage,
   beRadarExtent,
   chExclusiveCoverage,
   chRadarExtent,
-  dwdRadarExtent,
   czExclusiveCoverage,
   czRadarExtent,
+  dkExclusiveCoverage,
+  dkRadarExtent,
+  dwdRadarExtent,
+  eeExclusiveCoverage,
+  eeRadarExtent,
+  fiExclusiveCoverage,
+  fiRadarExtent,
   frExclusiveCoverage,
   frRadarExtent,
+  hrExclusiveCoverage,
+  hrRadarExtent,
+  ieExclusiveCoverage,
+  ieRadarExtent,
+  ltExclusiveCoverage,
+  ltRadarExtent,
+  nlExclusiveCoverage,
+  nlRadarExtent,
+  noExclusiveCoverage,
+  noRadarExtent,
   plExclusiveCoverage,
   plRadarExtent,
+  seExclusiveCoverage,
+  seRadarExtent,
   skExclusiveCoverage,
   skRadarExtent,
 } from "./extents";
@@ -31,8 +50,9 @@ import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
 import { radarTileCache } from "../lib/gpuBudget";
 import {
-  fetchBelgianRadar, fetchCzechRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFrenchRadar, fetchPolishRadar,
-  fetchSlovakRadar, fetchSwissRadar,
+  fetchBelgianRadar, fetchCroatianRadar, fetchCzechRadar, fetchDanishRadar, fetchDutchRadar, fetchEstonianRadar,
+  fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFinnishRadar, fetchFrenchRadar, fetchIrishRadar, fetchLithuanianRadar,
+  fetchNorwegianRadar, fetchPolishRadar, fetchSlovakRadar, fetchSwedishRadar, fetchSwissRadar,
 } from "../api";
 import type { Progress, RadarFrame } from "../api";
 import type { NetworkCode } from "./networkHoles";
@@ -99,23 +119,96 @@ export const SLOVAKIA: Network = {
   coverage: skExclusiveCoverage,
 };
 
+export const LITHUANIA: Network = {
+  code: "lt",
+  fetch: fetchLithuanianRadar,
+  attribution: lhmtAttribution,
+  extent: ltRadarExtent,
+  coverage: ltExclusiveCoverage,
+};
+
+export const ESTONIA: Network = {
+  code: "ee",
+  fetch: fetchEstonianRadar,
+  attribution: kaurAttribution,
+  extent: eeRadarExtent,
+  coverage: eeExclusiveCoverage,
+};
+
+export const IRELAND: Network = {
+  code: "ie",
+  fetch: fetchIrishRadar,
+  attribution: metEireannAttribution,
+  extent: ieRadarExtent,
+  coverage: ieExclusiveCoverage,
+};
+
+export const CROATIA: Network = {
+  code: "hr",
+  fetch: fetchCroatianRadar,
+  attribution: dhmzAttribution,
+  extent: hrRadarExtent,
+  coverage: hrExclusiveCoverage,
+};
+
+export const DENMARK: Network = {
+  code: "dk",
+  fetch: fetchDanishRadar,
+  attribution: dmiAttribution,
+  extent: dkRadarExtent,
+  coverage: dkExclusiveCoverage,
+};
+
+export const NETHERLANDS: Network = {
+  code: "nl",
+  fetch: fetchDutchRadar,
+  attribution: knmiAttribution,
+  extent: nlRadarExtent,
+  coverage: nlExclusiveCoverage,
+};
+
+export const FINLAND: Network = {
+  code: "fi",
+  fetch: fetchFinnishRadar,
+  attribution: fmiAttribution,
+  extent: fiRadarExtent,
+  coverage: fiExclusiveCoverage,
+};
+
+export const SWEDEN: Network = {
+  code: "se",
+  fetch: fetchSwedishRadar,
+  attribution: smhiAttribution,
+  extent: seRadarExtent,
+  coverage: seExclusiveCoverage,
+};
+
+export const NORWAY: Network = {
+  code: "no",
+  fetch: fetchNorwegianRadar,
+  attribution: metNorwayAttribution,
+  extent: noRadarExtent,
+  coverage: noExclusiveCoverage,
+};
+
 /** In the coverage document's priority order (`spec/coverage.json`), after DWD. */
-export const NETWORKS: Network[] = [SWITZERLAND, FRANCE, CZECHIA, POLAND, BELGIUM, SLOVAKIA];
+export const NETWORKS: Network[] = [
+  SWITZERLAND, FRANCE, CZECHIA, POLAND, BELGIUM, SLOVAKIA, LITHUANIA, ESTONIA, IRELAND, CROATIA, DENMARK, NETHERLANDS,
+  FINLAND, SWEDEN, NORWAY,
+];
 
 /**
  * Every network's lowest tilts on one grid, DWD's included: the merged
  * composite worker-analysis builds on its background worker. Not one of
- * `NETWORKS`: it is not cut to a country and it stands in for all seven
+ * `NETWORKS`: it is not cut to a country and it stands in for all sixteen
  * products at once, on the live step, when the reader asks for it.
  */
 export const EUROPE: Network = {
   code: "eu",
   fetch: fetchEuropeRadar,
-  attribution: [
-    dwdAttribution, meteoSwissAttribution, meteoFranceAttribution, chmiAttribution, imgwAttribution, rmiVmmAttribution,
-    shmuAttribution,
-  ].join(" "),
-  extent: [dwdRadarExtent, chRadarExtent, frRadarExtent, czRadarExtent, plRadarExtent, beRadarExtent, skRadarExtent].reduce(
+  attribution: [dwdAttribution, ...NETWORKS.map((network) => network.attribution)].join(" "),
+  // ng's `merged_composite.BBOX` is the union of every network's grid.
+  extent: [dwdRadarExtent, ...NETWORKS.map((network) => network.extent)].reduce(
     (whole, one) => extend(whole, one), createEmpty(),
   ),
   coverage: null,
@@ -135,9 +228,9 @@ export const EUROPE_COLUMN_MAXIMUM: Network = {
 /**
  * The column maximum of every network, cut to the ground the networks draw
  * on: what surrounds DMAX, Germany's own column maximum, in place of the
- * networks' lowest scans. Each network's coverage is one polygon wound to
- * nest and the six only touch, so their rings traced as one path are their
- * union. Its frames are handed to it (`show`), never fetched: they are the
+ * networks' lowest scans. Each network's coverage is wound to nest (its
+ * holes for another country's islands against it) and no two overlap, so
+ * their rings traced as one path are their union. Its frames are handed to it (`show`), never fetched: they are the
  * whole column maximum's.
  */
 export const AROUND_DMAX: Network = {

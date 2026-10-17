@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  ATTRIBUTION_ORDER, blitzortungAttribution, chmiAttribution, dwdAttribution, imgwAttribution, imprintAttribution,
-  meteoSwissAttribution, orderAttributions, osmAttribution, protomapsAttribution, rmiVmmAttribution, shmuAttribution,
+  ATTRIBUTION_ORDER, blitzortungAttribution, chmiAttribution, dhmzAttribution, dmiAttribution, dwdAttribution,
+  fmiAttribution, imgwAttribution, imprintAttribution, kaurAttribution, knmiAttribution, lhmtAttribution,
+  meteoSwissAttribution, metEireannAttribution, metNorwayAttribution, orderAttributions, osmAttribution,
+  protomapsAttribution, rmiVmmAttribution, shmuAttribution, smhiAttribution,
 } from "../../src/layers/attributions.ts";
 
 /**
@@ -72,4 +74,48 @@ test("every radar entry in the imprint links its licence", () => {
       `no licence linked in: ${entry.replace(/\s+/g, " ").trim()}`,
     );
   }
+});
+
+test("the networks of the second wave are credited in the coverage document's order, after SHMÚ", () => {
+  // As OpenLayers might collect them over the Baltic and Scandinavia.
+  const collected = [
+    metNorwayAttribution, imprintAttribution, smhiAttribution, fmiAttribution, osmAttribution, kaurAttribution,
+    lhmtAttribution, dmiAttribution, knmiAttribution, metEireannAttribution, dhmzAttribution, shmuAttribution,
+  ];
+  assert.deepEqual(orderAttributions(collected), [
+    osmAttribution, shmuAttribution, lhmtAttribution, kaurAttribution, metEireannAttribution, dhmzAttribution,
+    dmiAttribution, knmiAttribution, fmiAttribution, smhiAttribution, metNorwayAttribution, imprintAttribution,
+  ]);
+});
+
+/**
+ * Where a provider's own terms and EUMETNET's metadata name different
+ * licences, the imprint credits under both: Lithuania (CC BY 4.0 and
+ * CC BY-SA 4.0), Croatia (CC BY 4.0 and the Croatian Open Licence) and
+ * Norway (NLOD 2.0 and CC BY 4.0).
+ */
+test("a radar under two licences is credited under both", () => {
+  const imprint = readFileSync(new URL("../../imprint.html", import.meta.url), "utf8");
+  const radar = imprint.slice(imprint.indexOf("<h3>Radar</h3>"), imprint.indexOf("</ul>", imprint.indexOf("<h3>Radar</h3>")));
+  const entry = (country: string) => radar.split("<li>").find((li) => li.trim().startsWith(country)) ?? "";
+  const cc = "https://creativecommons.org/licenses/by/4.0/";
+  for (const [country, other] of [
+    ["Lithuania", "https://creativecommons.org/licenses/by-sa/4.0/"],
+    ["Croatia", "https://data.gov.hr/otvorena-dozvola"],
+    ["Norway", "https://data.norge.no/nlod/en/2.0"],
+  ]) {
+    assert.ok(entry(country).includes(`href="${cc}"`), `${country} does not link CC BY 4.0`);
+    assert.ok(entry(country).includes(`href="${other}"`), `${country} does not link ${other}`);
+  }
+});
+
+test("Ireland's entry makes Met Éireann's five statements", () => {
+  const imprint = readFileSync(new URL("../../imprint.html", import.meta.url), "utf8");
+  const radar = imprint.slice(imprint.indexOf("<h3>Radar</h3>"), imprint.indexOf("</ul>", imprint.indexOf("<h3>Radar</h3>")));
+  const ireland = (radar.split("<li>").find((li) => li.trim().startsWith("Ireland")) ?? "").replace(/\s+/g, " ");
+  assert.match(ireland, /Copyright Met &Eacute;ireann/);
+  assert.match(ireland, /Source: <a href="https:\/\/www\.met\.ie\/">www\.met\.ie<\/a>/);
+  assert.match(ireland, /Creative Commons Attribution 4\.0 International licence/);
+  assert.match(ireland, /has been modified/);
+  assert.match(ireland, /does not accept any liability whatsoever/);
 });

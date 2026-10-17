@@ -3,7 +3,10 @@ import { containsCoordinate } from "ol/extent";
 import type { Extent } from "ol/extent";
 import {
   beExclusiveCoverage, beRadarExtent, chExclusiveCoverage, chRadarExtent, czExclusiveCoverage, czRadarExtent,
-  frExclusiveCoverage, frRadarExtent, plExclusiveCoverage, plRadarExtent, skExclusiveCoverage, skRadarExtent,
+  dkExclusiveCoverage, dkRadarExtent, eeExclusiveCoverage, eeRadarExtent, fiExclusiveCoverage, fiRadarExtent,
+  frExclusiveCoverage, frRadarExtent, hrExclusiveCoverage, hrRadarExtent, ieExclusiveCoverage, ieRadarExtent,
+  ltExclusiveCoverage, ltRadarExtent, nlExclusiveCoverage, nlRadarExtent, noExclusiveCoverage, noRadarExtent,
+  plExclusiveCoverage, plRadarExtent, seExclusiveCoverage, seRadarExtent, skExclusiveCoverage, skRadarExtent,
 } from "./extents";
 import type { CountryNetwork } from "../api/events";
 
@@ -15,6 +18,15 @@ const COVERAGE: [CountryNetwork, number[][][]][] = [
   ["pl", plExclusiveCoverage],
   ["be", beExclusiveCoverage],
   ["sk", skExclusiveCoverage],
+  ["lt", ltExclusiveCoverage],
+  ["ee", eeExclusiveCoverage],
+  ["ie", ieExclusiveCoverage],
+  ["hr", hrExclusiveCoverage],
+  ["dk", dkExclusiveCoverage],
+  ["nl", nlExclusiveCoverage],
+  ["fi", fiExclusiveCoverage],
+  ["se", seExclusiveCoverage],
+  ["no", noExclusiveCoverage],
 ];
 
 /**
@@ -52,6 +64,8 @@ export function networkAt(lat: number, lon: number): CountryNetwork | undefined 
 /** Each network's grid rectangle, which its coverage lies inside: a cheap first test. */
 const EXTENT: Record<CountryNetwork, Extent> = {
   ch: chRadarExtent, fr: frRadarExtent, cz: czRadarExtent, pl: plRadarExtent, be: beRadarExtent, sk: skRadarExtent,
+  lt: ltRadarExtent, ee: eeRadarExtent, ie: ieRadarExtent, hr: hrRadarExtent, dk: dkRadarExtent, nl: nlRadarExtent,
+  fi: fiRadarExtent, se: seRadarExtent, no: noRadarExtent,
 };
 
 const RINGS = Object.fromEntries(COVERAGE) as Record<CountryNetwork, number[][][]>;

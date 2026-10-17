@@ -1,5 +1,7 @@
 import {
-  beBordersNearDwd, chBorders, czBordersNearDwd, frBordersNearDwd, plBordersNearDwd, skBordersNearDwd,
+  beBordersNearDwd, chBorders, czBordersNearDwd, dkBordersNearDwd, eeBordersNearDwd, fiBordersNearDwd, frBordersNearDwd,
+  hrBordersNearDwd, ieBordersNearDwd, ltBordersNearDwd, nlBordersNearDwd, noBordersNearDwd, plBordersNearDwd,
+  seBordersNearDwd, skBordersNearDwd,
 } from "./extents";
 import { maskPath } from "./tileMask";
 import type { NetworkEvent } from "../api/events";
@@ -38,6 +40,16 @@ export const HOLES = ([
   ["pl", plBordersNearDwd],
   ["be", beBordersNearDwd],
   ["sk", skBordersNearDwd],
+  // Empty too: no DWD radar reaches the Baltic states, Ireland, Finland or Norway.
+  ["lt", ltBordersNearDwd],
+  ["ee", eeBordersNearDwd],
+  ["ie", ieBordersNearDwd],
+  ["hr", hrBordersNearDwd],
+  ["dk", dkBordersNearDwd],
+  ["nl", nlBordersNearDwd],
+  ["fi", fiBordersNearDwd],
+  ["se", seBordersNearDwd],
+  ["no", noBordersNearDwd],
 ] as [NetworkCode, number[][][]][]).map(([code, rings]) => ({ code, ...maskPath(rings) }));
 
 /** Every network: what the live frame is holed for. */

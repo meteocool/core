@@ -166,9 +166,9 @@ export interface paths {
          * Belgian reflectivity tile metadata.
          * @description The newest Belgian reflectivity composite -- one frame, not a timeseries.
          *
-         *     RMI's three radars, composited by meteocool from the lowest tilt of each
-         *     volume; it reaches well into the Netherlands. See `/switzerland` for why
-         *     this is a route of its own.
+         *     RMI's Jabbeke and Wideumont and VMM's Helchteren, composited by meteocool
+         *     from the lowest tilt of each volume; it reaches well into the Netherlands.
+         *     See `/switzerland` for why this is a route of its own.
          */
         get: operations["belgium_v3_radar_belgium_get"];
         put?: never;
@@ -212,7 +212,7 @@ export interface paths {
          * Column-maximum reflectivity of every network tile metadata.
          * @description The newest column maximum of every network -- one frame, not a timeseries.
          *
-         *     DMAX's picture over all seven networks: the strongest echo above each cell
+         *     DMAX's picture over every network on the map: the strongest echo above each cell
          *     from every tilt of every radar, composited by meteocool once a cycle on a
          *     background worker, with the networks evened out where they can be -- one
          *     five-minute cycle, 180 km from any radar, up to 12 km, nothing under 12
@@ -238,14 +238,40 @@ export interface paths {
         };
         /**
          * Which network's composite is drawn where.
-         * @description Each EUMETNET network's exclusive coverage, and the part of its country cut out of DWD's tiles.
+         * @description Each EUMETNET network's exclusive coverage, and what of it and its country is cut out of DWD's tiles.
          *
-         *     The map clips each network's layer to its coverage and holes DWD's tiles
-         *     with the rest, and the server decides by the same shapes which domain a
-         *     point belongs to (ADR 0012), so the two cannot disagree. They change only
-         *     with a release.
+         *     Inside a network's own borders only that network draws; outside every
+         *     border the nearest radar that reaches does, whatever its network, DWD's
+         *     out to 150 km. The map clips each network's layer to its coverage and
+         *     holes DWD's tiles with the rest, and the server decides by the same
+         *     shapes which domain a point belongs to (ADR 0012), so the two cannot
+         *     disagree. They change only with a release.
          */
         get: operations["coverage_v3_radar_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/croatia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Croatian reflectivity tile metadata.
+         * @description The newest Croatian reflectivity composite -- one frame, not a timeseries.
+         *
+         *     DHMZ's five radars, composited by meteocool from the lowest tilt of each
+         *     volume; it reaches Slovenia, Styria and Carinthia. See `/switzerland` for
+         *     why this is a route of its own.
+         */
+        get: operations["croatia_v3_radar_croatia_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -269,6 +295,31 @@ export interface paths {
          *     volume; see `/switzerland` for why this is a route of its own.
          */
         get: operations["czechia_v3_radar_czechia_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/denmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Danish reflectivity tile metadata.
+         * @description The newest Danish reflectivity composite -- one frame, not a timeseries.
+         *
+         *     DMI's five radars, composited by meteocool from the lowest tilt of each
+         *     volume. They reach 120 km, the shortest of any network here, so parts of
+         *     western Jutland and much of the sea between are out of reach. See
+         *     `/switzerland` for why this is a route of its own.
+         */
+        get: operations["denmark_v3_radar_denmark_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -303,6 +354,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/radar/estonia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estonian reflectivity tile metadata.
+         * @description The newest Estonian reflectivity composite -- one frame, not a timeseries.
+         *
+         *     KAUR's two radars, Harku and Surgavere, composited by meteocool from the
+         *     lowest tilt of each; it reaches across the Gulf of Finland and into
+         *     Latvia. See `/switzerland` for why this is a route of its own.
+         */
+        get: operations["estonia_v3_radar_estonia_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/radar/europe": {
         parameters: {
             query?: never;
@@ -314,14 +389,38 @@ export interface paths {
          * Merged European reflectivity tile metadata.
          * @description The newest merged composite of every network's lowest tilts -- one frame, not a timeseries.
          *
-         *     DWD's, MeteoSwiss's, Meteo-France's, CHMI's, IMGW's, RMI's and SHMU's radars on one grid,
+         *     The radars of every network meteocool reads on one grid,
          *     composited by meteocool every few minutes on a background worker. A
-         *     product the reader picks: the map's own arrangement of seven products
+         *     product the reader picks: the map's own arrangement of a product per network
          *     stays the default, and this is offered beside it. Its past is in
          *     `/timeseries` only when asked for (`products=merged`): every client would
          *     carry it otherwise.
          */
         get: operations["europe_v3_radar_europe_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/finland": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finnish reflectivity tile metadata.
+         * @description The newest Finnish reflectivity composite -- one frame, not a timeseries.
+         *
+         *     FMI's twelve radars, composited by meteocool from each one's lowest tilt;
+         *     it reaches from the Baltic to the Barents coast. See `/switzerland` for
+         *     why this is a route of its own.
+         */
+        get: operations["finland_v3_radar_finland_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -345,6 +444,102 @@ export interface paths {
          *     lowest tilts; see `/switzerland` for why this is a route of its own.
          */
         get: operations["france_v3_radar_france_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/ireland": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Irish reflectivity tile metadata.
+         * @description The newest Irish reflectivity composite -- one frame, not a timeseries.
+         *
+         *     Met Eireann's two radars, Dublin's from a file per tilt and Shannon's from
+         *     a whole volume, composited by meteocool from the lowest tilt of each; it
+         *     reaches over Northern Ireland and across the Irish Sea to Wales and
+         *     Lancashire. See `/switzerland` for why this is a route of its own.
+         */
+        get: operations["ireland_v3_radar_ireland_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/lithuania": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lithuanian reflectivity tile metadata.
+         * @description The newest Lithuanian reflectivity composite -- one frame, not a timeseries.
+         *
+         *     LHMT's two radars, composited by meteocool from the lowest tilt of each
+         *     cycle; it reaches into Latvia, Belarus and Kaliningrad. See `/switzerland`
+         *     for why this is a route of its own.
+         */
+        get: operations["lithuania_v3_radar_lithuania_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/netherlands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dutch reflectivity tile metadata.
+         * @description The newest Dutch reflectivity composite -- one frame, not a timeseries.
+         *
+         *     KNMI's two radars, composited by meteocool from the lowest tilt of each
+         *     volume; see `/switzerland` for why this is a route of its own.
+         */
+        get: operations["netherlands_v3_radar_netherlands_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/norway": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Norwegian reflectivity tile metadata.
+         * @description The newest Norwegian reflectivity composite -- one frame, not a timeseries.
+         *
+         *     MET Norway's twelve radars, composited by meteocool from the lowest tilt of
+         *     each volume; they reach into Sweden and Finland. See `/switzerland` for why
+         *     this is a route of its own.
+         */
+        get: operations["norway_v3_radar_norway_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -411,6 +606,29 @@ export interface paths {
          * @description The most recent snowfield vector tile set.
          */
         get: operations["snow_v3_radar_snow_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/sweden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Swedish reflectivity tile metadata.
+         * @description The newest Swedish reflectivity composite -- one frame, not a timeseries.
+         *
+         *     SMHI's ten radars, composited by meteocool from the lowest tilt of each;
+         *     see `/switzerland` for why this is a route of its own.
+         */
+        get: operations["sweden_v3_radar_sweden_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -588,7 +806,7 @@ export interface components {
             };
             /**
              * Priority
-             * @description Who wins outside every network's own borders where several reach, first to last.
+             * @description The networks, DWD first, in the order their coverages are listed and cut from each other. No longer who wins where several reach: inside a network's own borders that network does, and outside every border the nearest radar that reaches, DWD's out to 150 km.
              */
             priority: string[];
         };
@@ -812,9 +1030,9 @@ export interface components {
          * @description Where one network answers, and what of its country is cut out of DWD's tiles.
          */
         NetworkCoverage: {
-            /** @description The part of its country cut out of DWD's observation tiles. */
+            /** @description Its country and its exclusive coverage where DWD's sweeps reach: what is cut out of DWD's observation tiles. */
             dwd_hole: components["schemas"]["Rings"];
-            /** @description Where this network's composite alone is drawn. */
+            /** @description Where this network's composite alone is drawn: its own country within its radars' reach, and outside every network's borders the ground one of its radars is the nearest that reaches. */
             exclusive: components["schemas"]["Rings"];
         };
         /**
@@ -829,18 +1047,18 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "eu" | "dmax" | "colmax";
+            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax";
         };
         /**
          * NowcastRefresh
          * @description A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).
          *
          *     Deliberately not a `Poke`, though WN's completed run is announced as one:
-         *     every client's `poke` handler reloads DWD's whole timeseries, and with six
-         *     networks on their own clocks these land every minute or two. A client that
+         *     every client's `poke` handler reloads DWD's whole timeseries, and with
+         *     fourteen networks on their own clocks these land every minute or two. A client that
          *     shows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;
          *     one that does not ignores it. Germany's run is never announced: it is
          *     recorded for scoring and never shown.
@@ -848,10 +1066,10 @@ export interface components {
         NowcastRefresh: {
             /**
              * Domain
-             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI, `sk` SHMU
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway
              * @enum {string}
              */
-            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk";
+            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no";
             /**
              * Issued At
              * @description The run's issue time, unix seconds: the five-minute slot it starts from
@@ -1490,7 +1708,47 @@ export interface operations {
             };
         };
     };
+    croatia_v3_radar_croatia_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     czechia_v3_radar_czechia_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    denmark_v3_radar_denmark_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1530,6 +1788,26 @@ export interface operations {
             };
         };
     };
+    estonia_v3_radar_estonia_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     europe_v3_radar_europe_get: {
         parameters: {
             query?: never;
@@ -1550,7 +1828,107 @@ export interface operations {
             };
         };
     };
+    finland_v3_radar_finland_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     france_v3_radar_france_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    ireland_v3_radar_ireland_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    lithuania_v3_radar_lithuania_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    netherlands_v3_radar_netherlands_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    norway_v3_radar_norway_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1630,6 +2008,26 @@ export interface operations {
             };
         };
     };
+    sweden_v3_radar_sweden_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
     switzerland_v3_radar_switzerland_get: {
         parameters: {
             query?: never;
@@ -1657,7 +2055,7 @@ export interface operations {
                 end?: number;
                 lat?: number;
                 lon?: number;
-                network?: ("ch" | "fr" | "cz" | "pl" | "be" | "sk") | null;
+                network?: ("ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no") | null;
                 products?: ("dmax" | "merged" | "colmax" | "nowcast")[] | null;
                 threshold?: number | null;
                 lang?: components["schemas"]["Language"];

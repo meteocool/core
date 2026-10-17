@@ -20,6 +20,19 @@ test("where only Slovakia's radars reach, nothing says there is no radar", async
   await expect(noRadarNotice(page)).toBeHidden();
 });
 
+/** Dublin and Tromsø: past every grid but Ireland's and Norway's, which joined in the second wave. */
+const DUBLIN_VIEW = "/?layer=radar&latLonZ=53.35000,-6.26000,10.00";
+const TROMSO_VIEW = "/?layer=radar&latLonZ=69.65000,18.96000,10.00";
+
+test("over Ireland and northern Norway, nothing says there is no radar", async ({ page }) => {
+  for (const view of [DUBLIN_VIEW, TROMSO_VIEW]) {
+    await openRadar(page, view);
+    // Long enough for the notice to have come up if it were going to.
+    await page.waitForTimeout(1000);
+    await expect(noRadarNotice(page)).toBeHidden();
+  }
+});
+
 test("where no network reaches, the player says there is no radar", async ({ page }) => {
   await openRadar(page, BUCHAREST_VIEW);
   await expect(noRadarNotice(page)).toBeVisible();

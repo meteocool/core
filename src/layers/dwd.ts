@@ -10,8 +10,9 @@ import VectorSource from "ol/source/Vector";
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import {
-  beExclusiveCoverage, chExclusiveCoverage, czExclusiveCoverage, dwdCoverageInv, dwdRadarExtent, frExclusiveCoverage,
-  plExclusiveCoverage, radarCoverageInv, skExclusiveCoverage,
+  beExclusiveCoverage, chExclusiveCoverage, czExclusiveCoverage, dkExclusiveCoverage, dwdCoverageInv, dwdRadarExtent,
+  eeExclusiveCoverage, fiExclusiveCoverage, frExclusiveCoverage, hrExclusiveCoverage, ltExclusiveCoverage,
+  nlExclusiveCoverage, noExclusiveCoverage, plExclusiveCoverage, radarCoverageInv, seExclusiveCoverage, skExclusiveCoverage,
 } from "./extents";
 import { nowcastCoverage, onForecastStep } from "../stores";
 import type { CountryNetwork } from "../api/events";
@@ -138,14 +139,25 @@ watchBasemap(washFor, (colour) => {
   washLayers.forEach((layer) => layer.changed());
 });
 
-/** The ground each network's nowcast is drawn on: its composite's, `network.ts`. */
-const NOWCAST_GROUND: Record<CountryNetwork, number[][][]> = {
+/**
+ * The ground each network's nowcast is drawn on: its composite's, `network.ts`.
+ * Not Ireland's: ng runs no nowcast there (`NOWCAST_DOMAINS`).
+ */
+const NOWCAST_GROUND: Record<Exclude<CountryNetwork, "ie">, number[][][]> = {
   ch: chExclusiveCoverage,
   fr: frExclusiveCoverage,
   cz: czExclusiveCoverage,
   pl: plExclusiveCoverage,
   be: beExclusiveCoverage,
   sk: skExclusiveCoverage,
+  lt: ltExclusiveCoverage,
+  ee: eeExclusiveCoverage,
+  hr: hrExclusiveCoverage,
+  dk: dkExclusiveCoverage,
+  nl: nlExclusiveCoverage,
+  fi: fiExclusiveCoverage,
+  se: seExclusiveCoverage,
+  no: noExclusiveCoverage,
 };
 
 /** A scratch canvas the cut wash is drawn on before it is laid on the map's. */
@@ -209,8 +221,9 @@ function nowcastWashGeometry(networks: readonly CountryNetwork[]): { geometry: P
     // DWD's reach, then each network's ground: one cut each, however many rings it has.
     const groups = [geometry.getLinearRingCount() - 1];
     for (const network of networks) {
-      for (const ring of NOWCAST_GROUND[network]) geometry.appendLinearRing(new LinearRing(ring));
-      groups.push(NOWCAST_GROUND[network].length);
+      const ground = network === "ie" ? [] : NOWCAST_GROUND[network];
+      for (const ring of ground) geometry.appendLinearRing(new LinearRing(ring));
+      groups.push(ground.length);
     }
     cut = { geometry, groups };
     cutGeometries.set(key, cut);

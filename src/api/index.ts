@@ -352,6 +352,100 @@ export function fetchSlovakRadar(nanobar?: Progress) {
   );
 }
 
+/** The most recent Lithuanian reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchLithuanianRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/lithuania",
+    () => apiClient.GET("/v3/radar/lithuania", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Estonian reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchEstonianRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/estonia",
+    () => apiClient.GET("/v3/radar/estonia", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Irish reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchIrishRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/ireland",
+    () => apiClient.GET("/v3/radar/ireland", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Croatian reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchCroatianRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/croatia",
+    () => apiClient.GET("/v3/radar/croatia", {}),
+    { optional: true },
+  );
+}
+
+/**
+ * The most recent Danish reflectivity composite; `optional` for the reason
+ * Switzerland's is. DMI's is composited every ten minutes, and the timeseries
+ * gives each five-minute step the nearest, so two steps show one frame.
+ */
+export function fetchDanishRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/denmark",
+    () => apiClient.GET("/v3/radar/denmark", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Dutch reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchDutchRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/netherlands",
+    () => apiClient.GET("/v3/radar/netherlands", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Finnish reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchFinnishRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/finland",
+    () => apiClient.GET("/v3/radar/finland", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Swedish reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchSwedishRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/sweden",
+    () => apiClient.GET("/v3/radar/sweden", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent Norwegian reflectivity composite; `optional` for the reason Switzerland's is. */
+export function fetchNorwegianRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/norway",
+    () => apiClient.GET("/v3/radar/norway", {}),
+    { optional: true },
+  );
+}
+
 /**
  * The most recent merged European composite (every network's lowest tilts
  * on one grid, a product behind a setting); `optional` for the reason
