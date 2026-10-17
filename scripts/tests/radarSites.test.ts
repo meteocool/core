@@ -10,6 +10,35 @@ test("a radar is found by its node code, whichever network it reports through", 
   assert.equal(radarSite("plpoz")?.name, "Poznań");
   assert.equal(radarSite("bejab")?.name, "Jabbeke");
   assert.equal(radarSite("skkoj")?.name, "Kojšovská hoľa");
+  assert.equal(radarSite("ltvil")?.name, "Vilnius (Trakų Vokė)");
+  assert.equal(radarSite("eesur")?.name, "Sürgavere");
+  assert.equal(radarSite("iedub")?.name, "Dublin");
+  assert.equal(radarSite("hrgol")?.name, "Goli");
+  assert.equal(radarSite("dkste")?.name, "Stevns");
+  assert.equal(radarSite("nlhrw")?.name, "Herwijnen");
+  assert.equal(radarSite("fivih")?.name, "Vihti");
+  assert.equal(radarSite("sebaa")?.name, "Bålsta");
+  assert.equal(radarSite("nohur")?.name, "Hurum");
+});
+
+test("each radar reaches as far as its own files do, read no further than 250 km", () => {
+  assert.equal(radarSite("ltlau")?.rangeKm, 249.3);
+  assert.equal(radarSite("eehar")?.rangeKm, 249.9);
+  assert.equal(radarSite("iedub")?.rangeKm, 250);
+  assert.equal(radarSite("iesha")?.rangeKm, 248.5);
+  assert.equal(radarSite("hrbil")?.rangeKm, 249.8);
+  assert.equal(radarSite("dkbor")?.rangeKm, 238);
+  // KNMI's files run to 320 km.
+  assert.equal(radarSite("nldhl")?.rangeKm, 250);
+  assert.equal(radarSite("fikau")?.rangeKm, 250);
+  assert.equal(radarSite("sekrn")?.rangeKm, 240);
+  assert.equal(radarSite("nosta")?.rangeKm, 240);
+});
+
+test("a Finnish radar's lowest tilt is its own site's", () => {
+  assert.equal(radarSite("fivih")?.lowestDeg, 0.3);
+  assert.equal(radarSite("fikor")?.lowestDeg, 0.5);
+  assert.equal(radarSite("filuo")?.lowestDeg, 0.1);
 });
 
 test("each Belgian radar reaches as far as its own files do", () => {
