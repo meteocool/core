@@ -40,7 +40,7 @@ import { elementCentre } from "./viewCentre";
 import { isScreenshot } from "./screenshot";
 import { reportMapMotion } from "./mapMotion";
 import { HANDHELD_RELEASE_AFTER_MS, RELEASE_AFTER_MS, releaseWhileHidden } from "./hiddenMaps";
-import { HANDHELD_RADAR_TILES, isHandheld, mapPixelRatio } from "./gpuBudget";
+import { HANDHELD_RADAR_TILES, isHandheld } from "./gpuBudget";
 import { releaseIdleLayers } from "./idleLayers";
 import { releasePassesOnDispose } from "./webglRelease";
 
@@ -329,7 +329,6 @@ export class LayerManager {
 
     const newMap = new Map({
       layers,
-      pixelRatio: mapPixelRatio(window.devicePixelRatio, isHandheld()),
       view: this.maps.length > 0 ?
         this.maps[0].getView() :
         new View({

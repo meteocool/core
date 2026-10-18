@@ -24,10 +24,10 @@ import { unByKey } from "ol/Observable";
  * `budget`, the layers being drawn split that many tiles between them,
  * however many there are.
  *
- * With a budget, the basemap's drawn tiles are let go too. OpenLayers keeps
- * twice as many as the widest view has wanted and never fewer again, so one
- * look at Europe left a phone with 35 tile canvases of 4 MB a layer; now and
- * then the cache is set back to what the view wants now.
+ * With a budget, the basemap keeps fewer drawn tiles too. OpenLayers keeps
+ * twice as many as the widest view has wanted, and never fewer again: a tile
+ * is a 9 MB canvas at an iPhone's 3x, and one look at Europe left 40 of them
+ * (October 2026). It keeps what the view wants now and a few more.
  */
 
 /** How long a layer may go undrawn, while its map draws, before it lets go. */
@@ -51,6 +51,14 @@ export function tileShare(budget: number, layers: number, own: number, shown = 0
   return Math.min(own, Math.max(MIN_LAYER_TILES, 2 * shown, Math.floor(budget / Math.max(1, layers))));
 }
 
+/** How many drawn tiles past those in view a basemap layer keeps under a budget. */
+export const BASEMAP_TILE_MARGIN = 4;
+
+/** The drawn tiles a basemap layer keeps when its view wants `wanted`. */
+export function basemapTiles(wanted: number): number {
+  return wanted + BASEMAP_TILE_MARGIN;
+}
+
 /** Whether a frame draws this layer: shown, at this zoom, and over the frame's ground. */
 function drawn(state: FrameState["layerStatesArray"][number], frameState: FrameState): boolean {
   if (!inView(state, frameState.viewState)) return false;
@@ -59,6 +67,7 @@ function drawn(state: FrameState["layerStatesArray"][number], frameState: FrameS
 
 interface TileCacheInternals {
   helper?: unknown;
+  updateCacheSize?(wanted: number): void;
   tileRepresentationCache?: {
     highWaterMark: number;
     getCount(): number;
@@ -78,30 +87,35 @@ function holds(layer: WebGLTileLayer): boolean {
   return Boolean(renderer.helper) || (renderer.tileRepresentationCache?.getCount() ?? 0) > 0;
 }
 
-/** How often a basemap's tile cache is set back to what the view wants. */
-const SHRINK_EVERY_MS = 10_000;
+/**
+ * Size a canvas tile layer's cache to what its view wants, once per renderer.
+ * OpenLayers asks `updateCacheSize` after every complete frame, then lets go
+ * of the oldest tiles past it.
+ */
+function fitTileCache(layer: VectorTileLayer, fitted: WeakSet<object>): void {
+  if (!layer.hasRenderer()) return;
+  const renderer = layer.getRenderer() as unknown as TileCacheInternals;
+  const cache = renderer.tileCache_;
+  if (!cache || !renderer.updateCacheSize || fitted.has(renderer)) return;
+  fitted.add(renderer);
+  renderer.updateCacheSize = (wanted) => { cache.highWaterMark = basemapTiles(wanted); };
+}
 
 /** Watch `map`'s WebGL tile layers from now on; the returned function stops watching. */
 export function releaseIdleLayers(map: Map, { after = IDLE_AFTER_MS, budget }: { after?: number; budget?: number } = {}): () => void {
   const lastDrawn = new globalThis.Map<BaseLayer, number>();
   const own = new WeakMap<BaseLayer, number>();
   const lastShown = new WeakMap<BaseLayer, number>();
+  const fitted = new WeakSet<object>();
   let swept = 0;
-  let shrunk = 0;
   const key = map.on("postrender", (event) => {
     const { frameState } = event;
     if (!frameState) return;
     const now = Date.now();
     const onMap = new Set<BaseLayer>();
-    const shrink = budget !== undefined && now - shrunk > SHRINK_EVERY_MS;
-    if (shrink) shrunk = now;
     for (const state of frameState.layerStatesArray) {
       const { layer } = state;
-      // Zero is "not known yet": the next drawn frame sets it to twice what it wants.
-      if (shrink && layer instanceof VectorTileLayer && layer.hasRenderer()) {
-        const cache = (layer.getRenderer() as unknown as TileCacheInternals).tileCache_;
-        if (cache) cache.highWaterMark = 0;
-      }
+      if (budget !== undefined && layer instanceof VectorTileLayer) fitTileCache(layer, fitted);
       if (!(layer instanceof WebGLTileLayer)) continue;
       onMap.add(layer);
       if (drawn(state, frameState) || !lastDrawn.has(layer)) lastDrawn.set(layer, now);

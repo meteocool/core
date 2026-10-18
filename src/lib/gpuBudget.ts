@@ -18,15 +18,7 @@ import { DeviceDetect as dd } from "./DeviceDetect";
  */
 const DRAPED = new Set(["background", "fill", "line", "raster", "hillshade", "color-relief"]);
 
-/**
- * The canvas's pixel ratio on a handheld device: a phone's 3x is 2.25 times
- * the pixels of 2x.
- *
- * The flat map draws at it too. At an iPhone's 3x every WebGL radar layer
- * holds a screen-sized target and depth buffer of 15 MB, every basemap tile
- * drawn ahead is a 9 MB canvas, and with playback running while zooming the
- * two came to 800 MB of the web view's memory (October 2026).
- */
+/** The canvas's pixel ratio on a handheld device: a phone's 3x is 2.25 times the pixels of 2x. */
 const HANDHELD_PIXEL_RATIO = 2;
 
 /**

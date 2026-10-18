@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { idleLayers, MIN_LAYER_TILES, tileShare } from "../../src/lib/idleLayers.ts";
+import { BASEMAP_TILE_MARGIN, basemapTiles, idleLayers, MIN_LAYER_TILES, tileShare } from "../../src/lib/idleLayers.ts";
 
 test("a layer drawn within the wait is not idle", () => {
   assert.deepEqual(idleLayers(new Map([["dwd", 10_000]]), 25_000, 20_000), []);
@@ -29,4 +29,8 @@ test("a share never grows a layer past its own cache", () => {
 
 test("a budget with no layers drawn yet is one layer's", () => {
   assert.equal(tileShare(320, 0, 512), 320);
+});
+
+test("a basemap keeps the tiles its view wants and a few more, not twice as many", () => {
+  assert.equal(basemapTiles(18), 18 + BASEMAP_TILE_MARGIN);
 });
