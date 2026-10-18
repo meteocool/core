@@ -108,6 +108,8 @@ export default class LightningCapability extends Capability {
     super.getMap().addLayer(newLayer);
     if (this.currentLayer) {
       super.getMap().removeLayer(this.currentLayer);
+      // Removed is not released: its renderer and GPU target stayed.
+      this.currentLayer.dispose();
     }
     this.currentLayer = newLayer;
     capLastUpdated.set(new Date(data.processed_time * 1000));

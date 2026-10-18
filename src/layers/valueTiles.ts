@@ -215,7 +215,11 @@ const valueLayers = new Set<WebGLTileLayer>();
  */
 export function dropEarlierFrames(): void {
   forgetting += 1;
-  for (const layer of valueLayers) dropFramesBut(layer);
+  for (const layer of valueLayers) {
+    // A layer replaced and disposed (precipitation types) is let go here.
+    if ((layer as unknown as { disposed: boolean }).disposed) valueLayers.delete(layer);
+    else dropFramesBut(layer);
+  }
 }
 
 /** Dispose of every tile a layer holds that is not of the frame it shows. */
