@@ -39,7 +39,12 @@ import type { CapabilityOptions } from "../caps/options";
 import { elementCentre } from "./viewCentre";
 import { isScreenshot } from "./screenshot";
 import { reportMapMotion } from "./mapMotion";
-import { releaseWhileHidden } from "./hiddenMaps";
+import { HANDHELD_RELEASE_AFTER_MS, RELEASE_AFTER_MS, releaseWhileHidden } from "./hiddenMaps";
+import { HANDHELD_RADAR_TILES, isHandheld, mapPixelRatio } from "./gpuBudget";
+import { releaseIdleLayers } from "./idleLayers";
+import { releasePassesOnDispose } from "./webglRelease";
+
+releasePassesOnDispose();
 
 /** One entry of the capability list App.svelte builds. */
 export interface CapabilityDescriptor {
@@ -324,6 +329,7 @@ export class LayerManager {
 
     const newMap = new Map({
       layers,
+      pixelRatio: mapPixelRatio(window.devicePixelRatio, isHandheld()),
       view: this.maps.length > 0 ?
         this.maps[0].getView() :
         new View({
@@ -467,7 +473,8 @@ export class LayerManager {
       mapView.set({ lat, lon, zoom: newMap.getView().getZoom() ?? 0 });
     });
     newMap.set("baselayer", baselayer);
-    releaseWhileHidden(newMap);
+    releaseWhileHidden(newMap, isHandheld() ? HANDHELD_RELEASE_AFTER_MS : RELEASE_AFTER_MS);
+    releaseIdleLayers(newMap, { budget: isHandheld() ? HANDHELD_RADAR_TILES : undefined });
     return newMap;
   }
 

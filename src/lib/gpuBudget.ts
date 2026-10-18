@@ -18,7 +18,15 @@ import { DeviceDetect as dd } from "./DeviceDetect";
  */
 const DRAPED = new Set(["background", "fill", "line", "raster", "hillshade", "color-relief"]);
 
-/** The canvas's pixel ratio on a handheld device: a phone's 3x is 2.25 times the pixels of 2x. */
+/**
+ * The canvas's pixel ratio on a handheld device: a phone's 3x is 2.25 times
+ * the pixels of 2x.
+ *
+ * The flat map draws at it too. At an iPhone's 3x every WebGL radar layer
+ * holds a screen-sized target and depth buffer of 15 MB, every basemap tile
+ * drawn ahead is a 9 MB canvas, and with playback running while zooming the
+ * two came to 800 MB of the web view's memory (October 2026).
+ */
 const HANDHELD_PIXEL_RATIO = 2;
 
 /**
@@ -47,6 +55,15 @@ export const HANDHELD_TILE_CACHE_ZOOM_LEVELS = 1;
  * reads the rest again from the HTTP cache.
  */
 export const HANDHELD_RADAR_TILE_CACHE = 128;
+
+/**
+ * How many radar tiles all the layers a flat map draws keep between them on
+ * a handheld device (lib/idleLayers.ts). Over Central Europe a phone's screen
+ * draws DWD, a few networks and their nowcasts at once, each keeping up to
+ * `HANDHELD_RADAR_TILE_CACHE`: a thousand tiles, half a gigabyte of
+ * textures, while playing and zooming (October 2026).
+ */
+export const HANDHELD_RADAR_TILES = 320;
 
 /** The `cacheSize` of a radar layer of the flat map that keeps `desktop` tiles on a desktop. */
 export function radarTileCache(desktop: number, handheld = isHandheld()): number {

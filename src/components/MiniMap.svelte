@@ -9,6 +9,7 @@
   import type BaseLayer from "ol/layer/Base";
   import { dwdValueLayer } from "../layers/dwd";
   import { labelsOnly } from "../layers/vector";
+  import { isHandheld, mapPixelRatio } from "../lib/gpuBudget";
   import { get } from "svelte/store";
   import { capTimeIndicator, mapBaseLayer } from "../stores";
   const dispatch = createEventDispatcher();
@@ -97,6 +98,7 @@
     const own = new View({ center: [0, 0], zoom: 7 });
     const preview_ = new Map({
       layers: [layerManager.baseLayerFactory(get(mapBaseLayer)), labelsOnly()],
+      pixelRatio: mapPixelRatio(window.devicePixelRatio, isHandheld()),
       controls: [],
       interactions: [],
       view: own,

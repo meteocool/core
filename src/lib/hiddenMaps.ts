@@ -20,6 +20,13 @@ import { unByKey } from "ol/Observable";
 
 export const RELEASE_AFTER_MS = 30_000;
 
+/**
+ * The same on a phone, where the flat map's hundreds of megabytes are still
+ * held while the 3D map is built on top of them; coming back from it a few
+ * seconds later costs a moment's redraw.
+ */
+export const HANDHELD_RELEASE_AFTER_MS = 5_000;
+
 /** Watch `map` from now on; the returned function stops watching. */
 export function releaseWhileHidden(map: Map, after = RELEASE_AFTER_MS): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
