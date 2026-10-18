@@ -17,6 +17,7 @@
     "test": "node --test --import ./scripts/tests/register.mjs \"scripts/tests/**/*.test.ts\"",
     "test:ui": "playwright test",
     "test:ui:record": "UI_RECORD=1 playwright test",
+    "memlab": "node scripts/memlab/run.mjs",
     "licences": "node scripts/licences.mjs",
     "generate:api": "openapi-typescript spec/api.openapi.json -o src/api/generated/api.ts && openapi-typescript spec/data.openapi.json -o src/api/generated/data.ts",
     "lint": "eslint .",

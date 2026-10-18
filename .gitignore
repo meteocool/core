@@ -128,3 +128,4 @@ dist
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+scripts/memlab/out/
