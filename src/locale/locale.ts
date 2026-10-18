@@ -19,6 +19,13 @@ const LOADERS: Record<Exclude<AppLocale, "en">, () => Promise<Locale>> = {
   nl: () => import("date-fns/locale/nl").then((m) => m.nl),
   cs: () => import("date-fns/locale/cs").then((m) => m.cs),
   sk: () => import("date-fns/locale/sk").then((m) => m.sk),
+  lt: () => import("date-fns/locale/lt").then((m) => m.lt),
+  et: () => import("date-fns/locale/et").then((m) => m.et),
+  hr: () => import("date-fns/locale/hr").then((m) => m.hr),
+  da: () => import("date-fns/locale/da").then((m) => m.da),
+  fi: () => import("date-fns/locale/fi").then((m) => m.fi),
+  sv: () => import("date-fns/locale/sv").then((m) => m.sv),
+  nb: () => import("date-fns/locale/nb").then((m) => m.nb),
 };
 
 let current: Locale = enUS;

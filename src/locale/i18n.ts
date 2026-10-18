@@ -23,6 +23,13 @@ register("pl", () => import("./pl.json"));
 register("nl", () => import("./nl.json"));
 register("cs", () => import("./cs.json"));
 register("sk", () => import("./sk.json"));
+register("lt", () => import("./lt.json"));
+register("et", () => import("./et.json"));
+register("hr", () => import("./hr.json"));
+register("da", () => import("./da.json"));
+register("fi", () => import("./fi.json"));
+register("sv", () => import("./sv.json"));
+register("nb", () => import("./nb.json"));
 
 /* The browser's language, or `?lang=`: choose.ts. What `init` hands back
    rejects when the chosen catalogue cannot be fetched; `i18nReady` below is

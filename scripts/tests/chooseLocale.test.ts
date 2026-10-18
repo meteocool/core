@@ -13,9 +13,17 @@ test("region and case do not matter, languages we lack are null", () => {
   assert.equal(normaliseLocale("en-GB"), "en");
   assert.equal(normaliseLocale("fr-FR"), "fr");
   assert.equal(normaliseLocale("sk"), "sk");
+  assert.equal(normaliseLocale("fi-FI"), "fi");
+  assert.equal(normaliseLocale("sv-FI"), "sv");
   assert.equal(normaliseLocale("it-IT"), null);
   assert.equal(normaliseLocale(""), null);
   assert.equal(normaliseLocale(null), null);
+});
+
+test("every Norwegian tag reads Bokmål", () => {
+  assert.equal(normaliseLocale("nb-NO"), "nb");
+  assert.equal(normaliseLocale("no"), "nb");
+  assert.equal(normaliseLocale("nn-NO"), "nb");
 });
 
 test("the URL beats the browser", () => {

@@ -10,15 +10,22 @@
  * Pure but for the defaults, which read the page: the tests hand it the
  * sources.
  */
-export const LOCALES = ["en", "de", "fr", "pl", "nl", "cs", "sk"] as const;
+export const LOCALES = ["en", "de", "fr", "pl", "nl", "cs", "sk", "lt", "et", "hr", "da", "fi", "sv", "nb"] as const;
 export type AppLocale = (typeof LOCALES)[number];
 
 /** The URL parameter that overrides the browser's language. */
 export const LANG_KEY = "lang";
 
+/**
+ * Norwegian is written in Bokmål here. Older systems say "no" for it, and a
+ * reader set to Nynorsk reads Bokmål far more easily than English.
+ */
+const ALIASES: Record<string, AppLocale> = { no: "nb", nn: "nb" };
+
 /** "de-AT", "de_DE", "DE" -> "de"; null for a language we do not have. */
 export function normaliseLocale(tag: string | null | undefined): AppLocale | null {
-  const language = String(tag ?? "").trim().toLowerCase().split(/[-_]/)[0];
+  const subtag = String(tag ?? "").trim().toLowerCase().split(/[-_]/)[0];
+  const language = ALIASES[subtag] ?? subtag;
   return (LOCALES as readonly string[]).includes(language) ? (language as AppLocale) : null;
 }
 
