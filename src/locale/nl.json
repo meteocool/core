@@ -103,7 +103,7 @@
   "point_menu_share": "Delen",
   "point_menu_share_sub": "Stuur een link naar deze plek",
   "dry_outlook_title_week": "Geen regen in zicht · komende 7 dagen",
-  "dry_outlook_title_hours": "{hours, plural, =0 {Regen waarschijnlijk binnen het uur} other {Regen waarschijnlijk over # uur}}",
+  "dry_outlook_title_hours": "{hours, plural, =0 {Regen waarschijnlijk binnen het uur} one {Regen waarschijnlijk over # uur} other {Regen waarschijnlijk over # uur}}",
   "dry_outlook_title_days": "{days, plural, one {Regen waarschijnlijk over # dag} other {Regen waarschijnlijk over # dagen}}",
   "dry_outlook_title_tomorrow": "Regen waarschijnlijk morgen",
   "dry_outlook_title_weekday": "{day, select, 0 {Regen waarschijnlijk op zondag} 1 {Regen waarschijnlijk op maandag} 2 {Regen waarschijnlijk op dinsdag} 3 {Regen waarschijnlijk op woensdag} 4 {Regen waarschijnlijk op donderdag} 5 {Regen waarschijnlijk op vrijdag} 6 {Regen waarschijnlijk op zaterdag} other {Regen waarschijnlijk deze week}}",
@@ -203,7 +203,8 @@
       "weak": "Zwak onweer",
       "moderate": "Matig onweer",
       "strong": "Sterk onweer",
-      "extreme": "Extreem onweer"
+      "extreme": "Extreem onweer",
+      "unclassed": "Onweer"
     },
     "duration": {
       "min": "{m} min",
@@ -233,7 +234,8 @@
       "live": "live",
       "stale": "geen nieuwe gegevens",
       "superseded": "vervangen",
-      "ended": "opgelost"
+      "ended": "opgelost",
+      "merged": "samengevoegd"
     },
     "stat": {
       "status": "Status",
@@ -256,7 +258,8 @@
       "inside_aside": "sleep om de doorsnede te draaien",
       "history": "Geschiedenis",
       "family": "Stamboom",
-      "details": "Details"
+      "details": "Details",
+      "merges": "Samensmeltingen"
     },
     "reading": {
       "peak": "piek",
@@ -271,7 +274,8 @@
     "history": {
       "reflectivity": "Reflectiviteit",
       "echo_top": "Echotop",
-      "aria": "{title} over de gevolgde periode, in {unit}"
+      "aria": "{title} over de gevolgde periode, in {unit}",
+      "area": "Oppervlakte"
     },
     "model_at": "om {time}",
     "model_aria": "Driedimensionaal model van de reflectiviteitsstructuur van de onweerscel",
@@ -350,7 +354,12 @@
     },
     "toast": {
       "cell_gone": "Die onweerscel wordt niet meer gevolgd.",
-      "volume_gone": "Het radarvolume van die onweerskern is niet meer beschikbaar."
+      "volume_gone": "Het radarvolume van die onweerskern is niet meer beschikbaar.",
+      "storm_gone": "Dit onweer wordt niet meer gevolgd."
+    },
+    "merges": {
+      "into": "Opgegaan in een ander onweer",
+      "from": "Een onweer ging hierin op, laatst gezien {time}"
     }
   },
   "compare": {

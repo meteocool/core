@@ -203,7 +203,8 @@
       "weak": "Słaba burza",
       "moderate": "Umiarkowana burza",
       "strong": "Silna burza",
-      "extreme": "Ekstremalna burza"
+      "extreme": "Ekstremalna burza",
+      "unclassed": "Burza"
     },
     "duration": {
       "min": "{m} min",
@@ -233,7 +234,8 @@
       "live": "na żywo",
       "stale": "brak nowych danych",
       "superseded": "zastąpiona",
-      "ended": "zanikła"
+      "ended": "zanikła",
+      "merged": "połączona"
     },
     "stat": {
       "status": "Status",
@@ -256,7 +258,8 @@
       "inside_aside": "przeciągnij, aby obrócić przekrój",
       "history": "Historia",
       "family": "Rodzina",
-      "details": "Szczegóły"
+      "details": "Szczegóły",
+      "merges": "Połączenia"
     },
     "reading": {
       "peak": "szczyt",
@@ -271,7 +274,8 @@
     "history": {
       "reflectivity": "Reflektywność",
       "echo_top": "Wierzchołek echa",
-      "aria": "{title} w okresie śledzenia, w {unit}"
+      "aria": "{title} w okresie śledzenia, w {unit}",
+      "area": "Powierzchnia"
     },
     "model_at": "o {time}",
     "model_aria": "Trójwymiarowy model struktury reflektywności komórki burzowej",
@@ -350,7 +354,12 @@
     },
     "toast": {
       "cell_gone": "Ta burza nie jest już śledzona.",
-      "volume_gone": "Wolumen radarowy tego jądra burzy nie jest już dostępny."
+      "volume_gone": "Wolumen radarowy tego jądra burzy nie jest już dostępny.",
+      "storm_gone": "Ta burza nie jest już śledzona."
+    },
+    "merges": {
+      "into": "Połączyła się z inną burzą",
+      "from": "Połączyła się z nią inna burza, ostatnio widziana {time}"
     }
   },
   "compare": {

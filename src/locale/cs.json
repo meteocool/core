@@ -203,7 +203,8 @@
       "weak": "Slabá bouřka",
       "moderate": "Mírná bouřka",
       "strong": "Silná bouřka",
-      "extreme": "Extrémní bouřka"
+      "extreme": "Extrémní bouřka",
+      "unclassed": "Bouřka"
     },
     "duration": {
       "min": "{m} min",
@@ -233,7 +234,8 @@
       "live": "aktivní",
       "stale": "žádná nová data",
       "superseded": "nahrazeno",
-      "ended": "zaniklo"
+      "ended": "zaniklo",
+      "merged": "sloučeno"
     },
     "stat": {
       "status": "Stav",
@@ -256,7 +258,8 @@
       "inside_aside": "tažením otočíš řez",
       "history": "Historie",
       "family": "Rodokmen",
-      "details": "Podrobnosti"
+      "details": "Podrobnosti",
+      "merges": "Sloučení"
     },
     "reading": {
       "peak": "maximum",
@@ -271,7 +274,8 @@
     "history": {
       "reflectivity": "Odrazivost",
       "echo_top": "Echo top",
-      "aria": "{title} za sledované období, v {unit}"
+      "aria": "{title} za sledované období, v {unit}",
+      "area": "Plocha"
     },
     "model_at": "v {time}",
     "model_aria": "Trojrozměrný model struktury odrazivosti bouřkové buňky",
@@ -350,7 +354,12 @@
     },
     "toast": {
       "cell_gone": "Tato bouřka už se nesleduje.",
-      "volume_gone": "Radarový objem jádra této bouřky už není k dispozici."
+      "volume_gone": "Radarový objem jádra této bouřky už není k dispozici.",
+      "storm_gone": "Tato bouřka už se nesleduje."
+    },
+    "merges": {
+      "into": "Splynula s jinou bouřkou",
+      "from": "Splynula s ní jiná bouřka, naposledy viděna {time}"
     }
   },
   "compare": {

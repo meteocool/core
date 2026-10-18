@@ -203,7 +203,8 @@
       "weak": "Orage faible",
       "moderate": "Orage modéré",
       "strong": "Orage fort",
-      "extreme": "Orage extrême"
+      "extreme": "Orage extrême",
+      "unclassed": "Orage"
     },
     "duration": {
       "min": "{m} min",
@@ -233,7 +234,8 @@
       "live": "en direct",
       "stale": "aucune nouvelle donnée",
       "superseded": "remplacée",
-      "ended": "dissipée"
+      "ended": "dissipée",
+      "merged": "fusionnée"
     },
     "stat": {
       "status": "Statut",
@@ -256,7 +258,8 @@
       "inside_aside": "glisser pour tourner la coupe",
       "history": "Historique",
       "family": "Famille",
-      "details": "Détails"
+      "details": "Détails",
+      "merges": "Fusions"
     },
     "reading": {
       "peak": "pic",
@@ -271,7 +274,8 @@
     "history": {
       "reflectivity": "Réflectivité",
       "echo_top": "Sommet d'écho",
-      "aria": "{title} sur la période suivie, en {unit}"
+      "aria": "{title} sur la période suivie, en {unit}",
+      "area": "Surface"
     },
     "model_at": "à {time}",
     "model_aria": "Modèle tridimensionnel de la structure de réflectivité de la cellule orageuse",
@@ -350,7 +354,12 @@
     },
     "toast": {
       "cell_gone": "Cette cellule orageuse n'est plus suivie.",
-      "volume_gone": "Le volume radar de ce noyau orageux n'est plus disponible."
+      "volume_gone": "Le volume radar de ce noyau orageux n'est plus disponible.",
+      "storm_gone": "Cet orage n'est plus suivi."
+    },
+    "merges": {
+      "into": "Fondu dans un autre orage",
+      "from": "Un orage s'y est fondu, dernière observation : {time}"
     }
   },
   "compare": {

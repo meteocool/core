@@ -203,7 +203,8 @@
       "weak": "Slabá búrka",
       "moderate": "Mierna búrka",
       "strong": "Silná búrka",
-      "extreme": "Extrémna búrka"
+      "extreme": "Extrémna búrka",
+      "unclassed": "Búrka"
     },
     "duration": {
       "min": "{m} min",
@@ -233,7 +234,8 @@
       "live": "naživo",
       "stale": "žiadne nové dáta",
       "superseded": "nahradená",
-      "ended": "zaniknutá"
+      "ended": "zaniknutá",
+      "merged": "zlúčená"
     },
     "stat": {
       "status": "Stav",
@@ -256,7 +258,8 @@
       "inside_aside": "ťahaním otočíš rez",
       "history": "História",
       "family": "Rodokmeň",
-      "details": "Podrobnosti"
+      "details": "Podrobnosti",
+      "merges": "Zlúčenia"
     },
     "reading": {
       "peak": "maximum",
@@ -271,7 +274,8 @@
     "history": {
       "reflectivity": "Odrazivosť",
       "echo_top": "Echo top",
-      "aria": "{title} za sledované obdobie, v {unit}"
+      "aria": "{title} za sledované obdobie, v {unit}",
+      "area": "Plocha"
     },
     "model_at": "o {time}",
     "model_aria": "Trojrozmerný model štruktúry odrazivosti búrkovej bunky",
@@ -350,7 +354,12 @@
     },
     "toast": {
       "cell_gone": "Táto búrka sa už nesleduje.",
-      "volume_gone": "Radarový objem jadra tejto búrky už nie je dostupný."
+      "volume_gone": "Radarový objem jadra tejto búrky už nie je dostupný.",
+      "storm_gone": "Táto búrka sa už nesleduje."
+    },
+    "merges": {
+      "into": "Splynula s inou búrkou",
+      "from": "Splynula s ňou iná búrka, naposledy videná {time}"
     }
   },
   "compare": {
