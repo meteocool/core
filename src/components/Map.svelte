@@ -339,26 +339,8 @@
   :global(.maplibre-host .maplibregl-ctrl-top-right .maplibregl-ctrl) {
     margin: 0 0 var(--mc-gutter);
   }
-  /* And the attribution up the right edge, as a phone's flat map keeps it
-     (src/glass.css), at every width: along the bottom it ran between the
-     guide in the corner (Guide3D.svelte) and the peel slider, and wrapped
-     into a strip under both. Under the control column, above the peel
-     slider while it is up (PeelSlider). The corner box already lets touches
-     through; its float would put the text at the top of the strip once the
-     box is turned. */
-  :global(.maplibre-host .maplibregl-ctrl-bottom-right) {
-    right: 2px;
-    top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
-    bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + var(--mc-peel-h, 0px) + 1px);
-    max-width: none;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    text-align: start;
-  }
-  :global(.maplibre-host .maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
-    float: none;
-    padding: 2px 0;
-  }
+  /* Both maps' attribution stands up the right edge, under this column: one
+     rule for the two, at the end of the attribution rules in src/glass.css. */
 
   /* The wrappers ship their own zoom and locate controls. */
   :global(.is-app .ol-zoom),

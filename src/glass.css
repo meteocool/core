@@ -773,9 +773,6 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   overflow: visible;
   height: auto;
   padding: 0;
-  right: 2px;
-  bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + 1px);
-  max-width: calc(100% - 4px);
   font-size: 9px;
 }
 .ol-attribution:not(.ol-collapsed) { background: none; }
@@ -801,30 +798,6 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    back and sat on top of the corner control. */
 .ol-attribution button,
 .ol-touch .ol-attribution button { display: none; }
-
-/* On a phone the small print ran three lines deep across the whole width,
-   right above the tray, over the part of the map people look at. It
-   stands up the right edge instead, reading bottom to top, in the strip
-   between the control column (switcher, zoom, locate, share, and the
-   north-up disc when it shows) and the tray. The box spans that whole strip so a long list
-   wraps into a second column rather than climbing under the controls; it lets
-   touches through, and only its links take them (see above). Rotating a vertical-rl
-   box half a turn flips its inline direction, so `start` is the bottom. */
-@media only screen and (max-width: 620px) {
-  .ol-attribution,
-  .ol-attribution.ol-uncollapsible {
-    top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
-    max-width: none;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    flex-flow: row;
-    text-align: start;
-    pointer-events: none;
-  }
-  .ol-attribution ul {
-    padding: 2px 0;
-  }
-}
 
 /* ---------------------------------------------------------------------------
    MapLibre's controls, on the 3D map: the same capsule and disc as the
@@ -923,6 +896,35 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
    text and the map did not move. Only the links still want a tap. */
 .maplibre-host .maplibregl-ctrl.maplibregl-ctrl-attrib { pointer-events: none; }
 .maplibre-host .maplibregl-ctrl-attrib a { pointer-events: auto; }
+
+/* Both maps' credits stand up the right edge, reading bottom to top, in the
+   strip between the control column (switcher, zoom, locate, share, and the
+   north-up disc or compass) and whatever holds the bottom edge: the tray, or
+   the 3D map's peel slider while it is up (PeelSlider). Along the bottom they
+   wrapped: on a phone three lines deep across the whole width, on a desktop
+   two lines over the top of the player, and on the 3D map into a strip under
+   the guide and the slider. The box spans that whole strip, so a long list
+   wraps into a second column rather than climbing under the controls; it lets
+   touches through, and only its links take them (see the rules above).
+
+   One rule for the two: OpenLayers' attribution is turned itself; MapLibre
+   floats its attribution in a corner box of its own, so the box is turned,
+   as its float would put the text at the top of the strip otherwise.
+   Rotating a vertical-rl box half a turn flips its inline direction, so
+   `start` is the bottom. */
+.ol-attribution,
+.ol-attribution.ol-uncollapsible,
+.maplibre-host .maplibregl-ctrl-bottom-right {
+  right: 2px;
+  top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
+  bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + var(--mc-peel-h, 0px) + 1px);
+  max-width: none;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: start;
+}
+.ol-attribution.ol-uncollapsible { flex-flow: row; }
+.maplibre-host .maplibregl-ctrl-bottom-right .maplibregl-ctrl { float: none; }
 
 /* Scrollbars as a phone draws them: a few pixels of thumb, there while the
    reader scrolls and gone a moment after. With a mouse, a desktop browser
