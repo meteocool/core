@@ -17,11 +17,10 @@ import type { CountryNetwork } from "../api/events";
 
 /**
  * The networks with a nowcast of their own, in the order the map lists them.
- * Not Ireland (`ie`): ng runs none there until Dublin's clutter map is built
- * from more than one dry day, so its ground says "No forecast here".
+ * Ireland's since ng rebuilt Dublin's clutter map from two dry days.
  */
 export const NOWCAST_DOMAINS: readonly CountryNetwork[] = [
-  "ch", "fr", "cz", "pl", "be", "sk", "lt", "ee", "hr", "dk", "nl", "fi", "se", "no",
+  "ch", "fr", "cz", "pl", "be", "sk", "lt", "ee", "hr", "dk", "nl", "fi", "se", "no", "ie",
 ];
 
 /** The `products` value that asks for the runs. */

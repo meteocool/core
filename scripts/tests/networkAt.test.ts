@@ -227,10 +227,9 @@ test("a network's nowcast covers its own ground, and none of another's", () => {
   assert.equal(drawnByAny([], paris), false);
 });
 
-test("no nowcast covers Ireland, whose radar is drawn all the same", () => {
-  // ng runs none there until Dublin's clutter map rests on two dry days: "No forecast here".
+test("Ireland's nowcast covers Ireland's ground", () => {
   for (const [, lat, lon] of [["Dublin", 53.35, -6.26], ["Cork", 51.90, -8.47], ["Belfast", 54.60, -5.93]] as const) {
     assert.equal(networkAt(lat, lon), "ie");
-    assert.equal(drawnByAny(NOWCAST_DOMAINS, fromLonLat([lon, lat])), false);
+    assert.equal(drawnByAny(NOWCAST_DOMAINS, fromLonLat([lon, lat])), true);
   }
 });

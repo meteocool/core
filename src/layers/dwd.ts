@@ -12,7 +12,8 @@ import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import {
   beExclusiveCoverage, chExclusiveCoverage, czExclusiveCoverage, dkExclusiveCoverage, dwdCoverageInv, dwdRadarExtent,
   eeExclusiveCoverage, fiExclusiveCoverage, frExclusiveCoverage, hrExclusiveCoverage, ltExclusiveCoverage,
-  nlExclusiveCoverage, noExclusiveCoverage, plExclusiveCoverage, radarCoverageInv, seExclusiveCoverage, skExclusiveCoverage,
+  ieExclusiveCoverage, nlExclusiveCoverage, noExclusiveCoverage, plExclusiveCoverage, radarCoverageInv, seExclusiveCoverage,
+  skExclusiveCoverage,
 } from "./extents";
 import { nowcastCoverage, onForecastStep } from "../stores";
 import type { CountryNetwork } from "../api/events";
@@ -141,9 +142,8 @@ watchBasemap(washFor, (colour) => {
 
 /**
  * The ground each network's nowcast is drawn on: its composite's, `network.ts`.
- * Not Ireland's: ng runs no nowcast there (`NOWCAST_DOMAINS`).
  */
-const NOWCAST_GROUND: Record<Exclude<CountryNetwork, "ie">, number[][][]> = {
+const NOWCAST_GROUND: Record<CountryNetwork, number[][][]> = {
   ch: chExclusiveCoverage,
   fr: frExclusiveCoverage,
   cz: czExclusiveCoverage,
@@ -158,6 +158,7 @@ const NOWCAST_GROUND: Record<Exclude<CountryNetwork, "ie">, number[][][]> = {
   fi: fiExclusiveCoverage,
   se: seExclusiveCoverage,
   no: noExclusiveCoverage,
+  ie: ieExclusiveCoverage,
 };
 
 /** A scratch canvas the cut wash is drawn on before it is laid on the map's. */
@@ -221,7 +222,7 @@ function nowcastWashGeometry(networks: readonly CountryNetwork[]): { geometry: P
     // DWD's reach, then each network's ground: one cut each, however many rings it has.
     const groups = [geometry.getLinearRingCount() - 1];
     for (const network of networks) {
-      const ground = network === "ie" ? [] : NOWCAST_GROUND[network];
+      const ground = NOWCAST_GROUND[network];
       for (const ring of ground) geometry.appendLinearRing(new LinearRing(ring));
       groups.push(ground.length);
     }

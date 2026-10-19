@@ -31,7 +31,7 @@ test("the runs are read from their nowcast_ keys, and nothing else under product
   assert.deepEqual(Object.keys(runs).sort(), ["ch", "fr"]);
   assert.deepEqual(domainsWithRun(runs), ["ch", "fr"]);
   assert.deepEqual(nowcastRuns(undefined), {});
-  assert.deepEqual(NOWCAST_DOMAINS, ["ch", "fr", "cz", "pl", "be", "sk", "lt", "ee", "hr", "dk", "nl", "fi", "se", "no"]);
+  assert.deepEqual(NOWCAST_DOMAINS, ["ch", "fr", "cz", "pl", "be", "sk", "lt", "ee", "hr", "dk", "nl", "fi", "se", "no", "ie"]);
 });
 
 test("a step draws the runs with a lead valid there, and none past their last", () => {
