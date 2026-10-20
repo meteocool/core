@@ -439,9 +439,9 @@ cellLayerVisible.set(window.settings.getBoolean("layerCells"));
  * and cheap enough to follow a playback or a scrub frame by frame.
  *
  * The test is the frame on screen against the newest one the grid holds, not
- * the `live` store the pill uses: that is cleared at the top of every grid
- * refetch and set again when the grid lands, so a layer keyed to it would
- * blink off and back every few minutes. The test is also one-way on purpose:
+ * the `live` store the pill uses: that is also cleared when the radar is
+ * stale or a grid request fails, even though the frame has not changed.
+ * The test is also one-way on purpose:
  * both stores at 0 means no grid has arrived, which is a page that has not
  * loaded its radar or is not showing radar at all, and there is no frame there
  * for the cells to disagree with. Hiding is for the case we can positively

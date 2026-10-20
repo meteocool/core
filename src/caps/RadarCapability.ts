@@ -1080,7 +1080,6 @@ export default class RadarCapability extends Capability {
   }
 
   async downloadCurrentRadar() {
-    live.set(false);
     // Taken with the position, before the round trip: a point tapped while the
     // request is out must not have the answer for the client's own position
     // read as the answer for it, or the other way round.

@@ -31,11 +31,10 @@ export const capLastUpdated = writable<Date | null>(null);
  * same unix-second steps the grid keys them by, or 0 before any grid has
  * arrived.
  *
- * The pair answers "is the map showing now?", which `live` cannot: that one is
- * cleared at the start of every grid refetch and set again when the grid lands,
- * so anything keyed to it blinks once every few minutes. These two only move
- * when a frame changes, and both being 0 means there is no player yet, not
- * that the player is off the live edge.
+ * The pair answers "is the map showing now?" independently of `live`, which
+ * is also cleared when the radar is stale or a grid request fails. These two
+ * only move when a frame changes, and both being 0 means there is no player
+ * yet, not that the player is off the live edge.
  *
  * Held in one store and published through `setFrames` instead of written
  * separately, because a live grid refresh moves both halves at once and a

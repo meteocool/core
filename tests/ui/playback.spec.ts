@@ -27,6 +27,35 @@ test("Back to now is hidden on the live frame", async ({ page }) => {
   await expect(backToNow(page)).toBeHidden();
 });
 
+test("a background radar refresh keeps Latest and Back to now stable", async ({ page }) => {
+  const indicator = page.locator(".live-wrapper");
+  await expect(indicator).toHaveText("Latest");
+  const shown = await timeline(page).getAttribute("aria-valuenow");
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/v3/radar/timeseries**", async (route) => {
+    await pending;
+    await route.fallback();
+  });
+  const requested = page.waitForRequest((request) => new URL(request.url()).pathname === "/v3/radar/timeseries");
+  const answered = page.waitForResponse((response) => new URL(response.url()).pathname === "/v3/radar/timeseries");
+  await page.evaluate(() => (window.lm.getCapability("radar") as import("../../src/caps/RadarCapability").default).reloadRadar());
+  await requested;
+  try {
+    // Keep the request open long enough for the pill and its transition to appear.
+    await page.waitForTimeout(400);
+    await expect(indicator).toHaveText("Latest", { timeout: 100 });
+    await expect(backToNow(page)).toBeHidden();
+    await expect(timeline(page)).toHaveAttribute("aria-valuenow", shown!);
+  } finally {
+    release();
+  }
+  await answered;
+  await expect(indicator).toHaveText("Latest");
+  await expect(backToNow(page)).toBeHidden();
+  await expect(timeline(page)).toHaveAttribute("aria-valuenow", shown!);
+});
+
 test("Back to now shows through playback and stops it on the live frame", async ({ page }) => {
   await playButton(page).click();
   await expect(playButton(page)).toHaveClass(/playing/);
