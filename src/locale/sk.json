@@ -432,6 +432,7 @@
       "lightning": "Blesky",
       "mesocyclones": "Mezocyklóny",
       "cells": "Búrkové bunky",
+      "radar_sites": "Radarové stanovištia",
       "map_layers": "Mapové vrstvy",
       "back_to_latest": "Späť na najnovšie",
       "play": "Prehrať",
@@ -840,6 +841,38 @@
     "why": {
       "title": "Prečo 3D oblaky zaostávajú za plochým radarom",
       "p1": "Plochá mapa vzniká zo zrážkového skenu, ktorý je hotový po pol minúte. 3D oblak potrebuje všetkých desať náklonov a posledný končí po piatich minútach. Oblaky jedného cyklu sa teda nemôžu objaviť skôr ako asi po šiestich minútach, kým plochý snímok toho istého cyklu je hotový za menej než tri."
+    }
+  },
+  "site": {
+    "title": "Radar {name}",
+    "close": "Zavrieť radar",
+    "tilt": "Elevácia",
+    "quantity": {
+      "group": "Čo zobraziť",
+      "reflectivity": "Odrazivosť",
+      "velocity": "Rýchlosť",
+      "srv": "Voči búrke"
+    },
+    "none": "V tomto čase žiadne meranie",
+    "failed": "Toto meranie sa nepodarilo načítať",
+    "scanned": "Namerané {time}",
+    "dealiased": "Rozbalené",
+    "not_dealiased": "Nerozbalené: preloženie vyzerá ako dvojica",
+    "srv_hint": "Vyberte búrku, aby sa jej pohyb odčítal od rýchlosti.",
+    "legend": {
+      "velocity": "m/s<br />k radaru · od radaru",
+      "srv": "m/s<br />voči búrke",
+      "hint": "Radiálna rýchlosť: zelená k radaru, červená od radaru, fialová kde ju nebolo možné rozbaliť"
+    },
+    "read": {
+      "where": "{azimuth}° · {range} km · lúč {height} km",
+      "unmeasured": "Nemerané",
+      "no_echo": "Bez odrazu",
+      "unresolved": "Nedá sa rozbaliť",
+      "dbz": "{value} dBZ",
+      "away": "{value} m/s od radaru",
+      "toward": "{value} m/s k radaru",
+      "calm": "0 m/s"
     }
   }
 }

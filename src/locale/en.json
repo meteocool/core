@@ -441,6 +441,7 @@
       "lightning": "Lightning Strikes",
       "mesocyclones": "Mesocyclones",
       "cells": "Storm Cells",
+      "radar_sites": "Radar Sites",
       "map_layers": "Map Layers",
       "back_to_latest": "Back to now",
       "play": "Play",
@@ -849,6 +850,38 @@
     "why": {
       "title": "Why the 3D Clouds Trail the Flat Radar",
       "p1": "The flat map comes from the precipitation scan, which is done half a minute into the cycle. A 3D cloud needs all ten tilts, and the last one ends five minutes into the cycle. So the clouds for a cycle cannot appear before about six minutes, while that cycle's flat frame is out after less than three."
+    }
+  },
+  "site": {
+    "title": "{name} radar",
+    "close": "Close the radar",
+    "tilt": "Tilt",
+    "quantity": {
+      "group": "What to show",
+      "reflectivity": "Reflectivity",
+      "velocity": "Velocity",
+      "srv": "Storm-relative"
+    },
+    "none": "No sweep at this time",
+    "failed": "This sweep could not be loaded",
+    "scanned": "Scanned {time}",
+    "dealiased": "Dealiased",
+    "not_dealiased": "Not dealiased: a fold looks like a couplet",
+    "srv_hint": "Select a storm to take its motion out of the velocity.",
+    "legend": {
+      "velocity": "m/s<br />toward · away",
+      "srv": "m/s<br />storm-relative",
+      "hint": "Radial velocity: green toward the radar, red away, purple where it could not be unfolded"
+    },
+    "read": {
+      "where": "{azimuth}° · {range} km · beam {height} km",
+      "unmeasured": "Not measured",
+      "no_echo": "No echo",
+      "unresolved": "Could not be unfolded",
+      "dbz": "{value} dBZ",
+      "away": "{value} m/s away",
+      "toward": "{value} m/s toward",
+      "calm": "0 m/s"
     }
   }
 }

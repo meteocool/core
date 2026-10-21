@@ -25,6 +25,7 @@ import {
   capLatestObservation,
   capLastUpdated,
   capTimeIndicator,
+  compositeDim,
   dryAtUser,
   lastFocus,
   inspectLatLon,
@@ -260,6 +261,9 @@ export default class RadarCapability extends Capability {
   /** Whether a cell's popup is open, which is the other reason to dim it. */
   private inspecting = false;
 
+  /** How strongly the composites are drawn: dimmed while site mode is open (`compositeDim`). */
+  private dim = 1;
+
   private nanobar: NanobarWrapper;
 
   private socket_io?: RadarSocket;
@@ -425,6 +429,14 @@ export default class RadarCapability extends Capability {
 
     radarStale.subscribe((value) => {
       this.stale = value;
+      this.applyRadarOpacity();
+    });
+
+    /* Site mode draws one radar's own sweep over the composites, and dims
+       them so the one does not drown in the other; the networks' layers
+       follow the same store (layers/network.ts). */
+    compositeDim.subscribe((value) => {
+      this.dim = value;
       this.applyRadarOpacity();
     });
 
@@ -734,7 +746,7 @@ export default class RadarCapability extends Capability {
    * and each is undone only by its own cause.
    */
   private applyRadarOpacity() {
-    const base = this.stale ? STALE_OPACITY : NOWCAST_OPACITY;
+    const base = (this.stale ? STALE_OPACITY : NOWCAST_OPACITY) * this.dim;
     this.layer?.setOpacity(this.inspecting ? base * INSPECT_OPACITY : base);
   }
 

@@ -2,6 +2,7 @@ import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
 import LatestFrame from "./latestFrame";
 import { hasTile } from "../lib/tileIndex";
 import TileLayer from "./webglTile";
+import { compositeDim } from "../stores";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
@@ -294,12 +295,19 @@ export default class NetworkRadarLayer {
   /** How strongly it is drawn: the radar map's own, unless a map lays it under something else. */
   private readonly opacity: number;
 
+  /** Dimmed under an open radar's own sweep (`compositeDim`, site mode). */
+  private dim = 1;
+
   constructor(map: Map, network: Network, onLiveFrame?: () => void, opacity = NOWCAST_OPACITY) {
     this.map = map;
     this.network = network;
     this.latest = new LatestFrame(network.fetch);
     this.onLiveFrame = onLiveFrame;
     this.opacity = opacity;
+    compositeDim.subscribe((value) => {
+      this.dim = value;
+      this.layer?.setOpacity(this.opacity * value);
+    });
   }
 
   /** Fetch the newest composite and show it, creating the layer on first use. */
@@ -427,7 +435,7 @@ export default class NetworkRadarLayer {
       // so this only settles which draws first. Europe's draws above DWD's
       // instead, which is hidden while it shows.
       zIndex: this.network.coverage ? 79 : 81,
-      opacity: this.opacity,
+      opacity: this.opacity * this.dim,
       cacheSize: radarTileCache(512),
       // The rectangle is a cheap first pass; `coverage` is the real edge.
       extent: this.network.extent,

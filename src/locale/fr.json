@@ -432,6 +432,7 @@
       "lightning": "Impacts de foudre",
       "mesocyclones": "Mésocyclones",
       "cells": "Cellules orageuses",
+      "radar_sites": "Sites radar",
       "map_layers": "Couches de la carte",
       "back_to_latest": "Revenir au plus récent",
       "play": "Lecture",
@@ -840,6 +841,38 @@
     "why": {
       "title": "Pourquoi les nuages 3D sont en retard sur le radar plat",
       "p1": "La carte plate vient du balayage de précipitations, fini une demi-minute après le début du cycle. Un nuage 3D a besoin des dix angles, et le dernier se termine cinq minutes après le début. Les nuages d'un cycle ne peuvent donc pas apparaître avant environ six minutes, alors que l'image plate du même cycle sort en moins de trois."
+    }
+  },
+  "site": {
+    "title": "Radar de {name}",
+    "close": "Fermer le radar",
+    "tilt": "Site",
+    "quantity": {
+      "group": "Que montrer",
+      "reflectivity": "Réflectivité",
+      "velocity": "Vitesse",
+      "srv": "Relative à l’orage"
+    },
+    "none": "Pas de balayage à cette heure",
+    "failed": "Ce balayage n’a pas pu être chargé",
+    "scanned": "Balayé à {time}",
+    "dealiased": "Dépliée",
+    "not_dealiased": "Non dépliée : un repliement ressemble à un couplet",
+    "srv_hint": "Choisissez un orage pour retirer son déplacement de la vitesse.",
+    "legend": {
+      "velocity": "m/s<br />vers · depuis",
+      "srv": "m/s<br />relative à l’orage",
+      "hint": "Vitesse radiale : vert vers le radar, rouge en s’éloignant, violet là où elle n’a pas pu être dépliée"
+    },
+    "read": {
+      "where": "{azimuth}° · {range} km · faisceau {height} km",
+      "unmeasured": "Non mesuré",
+      "no_echo": "Pas d’écho",
+      "unresolved": "Non dépliable",
+      "dbz": "{value} dBZ",
+      "away": "{value} m/s en s’éloignant",
+      "toward": "{value} m/s vers le radar",
+      "calm": "0 m/s"
     }
   }
 }

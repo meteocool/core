@@ -432,6 +432,7 @@
       "lightning": "Wyładowania",
       "mesocyclones": "Mezocyklony",
       "cells": "Komórki burzowe",
+      "radar_sites": "Stacje radarowe",
       "map_layers": "Warstwy mapy",
       "back_to_latest": "Wróć do najnowszego",
       "play": "Odtwórz",
@@ -840,6 +841,38 @@
     "why": {
       "title": "Dlaczego chmury 3D spóźniają się za płaskim radarem",
       "p1": "Płaska mapa pochodzi ze skanu opadowego, gotowego po pół minuty. Chmura 3D potrzebuje wszystkich dziesięciu kątów, a ostatni kończy się po pięciu minutach. Chmury z jednego cyklu nie mogą więc pojawić się wcześniej niż po około sześciu minutach, a płaski obraz z tego samego cyklu jest gotowy w niecałe trzy."
+    }
+  },
+  "site": {
+    "title": "Radar {name}",
+    "close": "Zamknij radar",
+    "tilt": "Elewacja",
+    "quantity": {
+      "group": "Co pokazać",
+      "reflectivity": "Odbiciowość",
+      "velocity": "Prędkość",
+      "srv": "Względem burzy"
+    },
+    "none": "Brak pomiaru o tej porze",
+    "failed": "Nie udało się wczytać tego pomiaru",
+    "scanned": "Zmierzono {time}",
+    "dealiased": "Rozwinięta",
+    "not_dealiased": "Nierozwinięta: zawinięcie wygląda jak para wirów",
+    "srv_hint": "Wybierz burzę, aby odjąć jej ruch od prędkości.",
+    "legend": {
+      "velocity": "m/s<br />do · od radaru",
+      "srv": "m/s<br />względem burzy",
+      "hint": "Prędkość radialna: zielony w stronę radaru, czerwony od radaru, fioletowy tam, gdzie nie dało się jej rozwinąć"
+    },
+    "read": {
+      "where": "{azimuth}° · {range} km · wiązka {height} km",
+      "unmeasured": "Nie mierzono",
+      "no_echo": "Brak echa",
+      "unresolved": "Nie da się rozwinąć",
+      "dbz": "{value} dBZ",
+      "away": "{value} m/s od radaru",
+      "toward": "{value} m/s do radaru",
+      "calm": "0 m/s"
     }
   }
 }

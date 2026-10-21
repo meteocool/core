@@ -432,6 +432,7 @@
       "lightning": "Blesky",
       "mesocyclones": "Mezocyklóny",
       "cells": "Bouřkové buňky",
+      "radar_sites": "Radarová stanoviště",
       "map_layers": "Vrstvy mapy",
       "back_to_latest": "Zpět na nejnovější",
       "play": "Přehrát",
@@ -840,6 +841,38 @@
     "why": {
       "title": "Proč 3D mraky zaostávají za plochým radarem",
       "p1": "Plochá mapa vzniká ze srážkového skenu, který je hotový po půl minutě. 3D mrak potřebuje všech deset náklonů a poslední končí po pěti minutách. Mraky jednoho cyklu se tedy nemohou objevit dřív než asi po šesti minutách, zatímco plochý snímek téhož cyklu je hotový za méně než tři."
+    }
+  },
+  "site": {
+    "title": "Radar {name}",
+    "close": "Zavřít radar",
+    "tilt": "Elevace",
+    "quantity": {
+      "group": "Co zobrazit",
+      "reflectivity": "Odrazivost",
+      "velocity": "Rychlost",
+      "srv": "Vůči bouřce"
+    },
+    "none": "V tuto dobu žádné měření",
+    "failed": "Toto měření se nepodařilo načíst",
+    "scanned": "Změřeno {time}",
+    "dealiased": "Rozbaleno",
+    "not_dealiased": "Nerozbaleno: přeložení vypadá jako dvojice",
+    "srv_hint": "Vyberte bouřku, aby se její pohyb odečetl od rychlosti.",
+    "legend": {
+      "velocity": "m/s<br />k radaru · od radaru",
+      "srv": "m/s<br />vůči bouřce",
+      "hint": "Radiální rychlost: zelená k radaru, červená od radaru, fialová kde ji nešlo rozbalit"
+    },
+    "read": {
+      "where": "{azimuth}° · {range} km · paprsek {height} km",
+      "unmeasured": "Neměřeno",
+      "no_echo": "Bez odrazu",
+      "unresolved": "Nelze rozbalit",
+      "dbz": "{value} dBZ",
+      "away": "{value} m/s od radaru",
+      "toward": "{value} m/s k radaru",
+      "calm": "0 m/s"
     }
   }
 }

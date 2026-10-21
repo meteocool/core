@@ -1,3 +1,4 @@
+import type { SiteMode, SiteSweepView } from "./lib/siteSweeps";
 import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
 import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
 import { REACHABLE, type Reachability } from "./lib/reachability";
@@ -479,3 +480,23 @@ export const tileStatus = writable<{ lastSuccessAt: number | null }>({ lastSucce
 
 /** Bumped by the banner's retry button; LayerManager refreshes every source. */
 export const tileRefreshSignal = writable<number>(0);
+
+/**
+ * Site mode (lib/siteSweeps.ts): the radar open on the flat map, what of it
+ * is drawn and at which tilt; null when none is. Set by tapping a radar's
+ * mark, cleared by the tray's close.
+ */
+export const siteMode = writable<SiteMode | null>(null);
+/** The radars' marks, the way into site mode: the setting `layerSites`. */
+export const siteMarksVisible = writable<boolean>(true);
+/**
+ * What site mode is showing, for the tray: the open radar as listed, its
+ * tilts, the sweep drawn (or why none is), and the storm motion SRV takes
+ * out. Written by `lib/SiteSweepManager.ts` only.
+ */
+export const siteSweepView = writable<SiteSweepView | null>(null);
+/**
+ * How strongly the composites are drawn, 0 to 1: dimmed under an open
+ * radar's own sweep, so the one does not drown in the other.
+ */
+export const compositeDim = writable<number>(1);

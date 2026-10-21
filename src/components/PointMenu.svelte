@@ -27,7 +27,9 @@ import { faDroplet } from "@fortawesome/free-solid-svg-icons/faDroplet";
 import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
 import Icon from "./Icon.svelte";
 import { share, shareAvailable, shareIcon } from "../lib/share";
-import { inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap } from "../stores";
+import { inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap, siteMode } from "../stores";
+import { readSiteAt } from "../lib/SiteSweepManager";
+import { describeReading } from "../lib/siteSweeps";
 import { openModelCompare } from "../lib/modelCompare";
 import { hideNativeControls } from "../lib/nativeBridge";
 import { reverseGeocode } from "../lib/reverseGeocode";
@@ -70,6 +72,12 @@ async function name(point: [number, number] | null) {
   if (namedFor === point) placeName = found;
 }
 $: void name($pointMenuAt);
+
+/* In site mode the hold also reads the open radar's own bin under the
+   finger: its value, bearing, range and beam height, from the sweep the map
+   is drawing (lib/sweepGeometry.ts holds the CPU copy of the shader). */
+$: siteReading = $pointMenuAt && $siteMode ? readSiteAt($pointMenuAt[1], $pointMenuAt[0]) : null;
+$: siteRead = siteReading ? describeReading(siteReading.reading, siteReading.quantity, siteReading.bin, $_) : null;
 let keys: EventsKey[] = [];
 
 const map = () => layerManager.getCapability("radar")?.getMap();
@@ -193,6 +201,12 @@ onDestroy(() => {
     style:--dot-half="{DOT_HALF}px">
     <div bind:this={menu} class="menu glass" role="menu" aria-label={placeName ?? $_("point_menu_title")}>
       <p class="head">{placeName ?? $_("point_menu_title")}</p>
+      {#if siteRead}
+        <p class="site-reading" role="note">
+          <span class="value">{siteRead.value}</span>
+          <span class="where">{siteRead.where}</span>
+        </p>
+      {/if}
       <button type="button" role="menuitem" on:click={precipitation}>
         <span class="icon"><Icon icon={faDroplet} /></span>
         <span class="text">
@@ -223,6 +237,15 @@ onDestroy(() => {
 </div>
 
 <style>
+  .site-reading {
+    margin: 0 12px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .site-reading .value { font: 600 14px/1.2 var(--mc-font); color: var(--mc-text-1); }
+  .site-reading .where { font: 500 11px/1.3 var(--mc-font); color: var(--mc-text-2); }
+
   /* Where the element waits until OpenLayers moves it into the map. */
   .anchor { display: none; }
 

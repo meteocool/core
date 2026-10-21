@@ -15,7 +15,7 @@ import {
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
-  nowcastCoverage, framesPreloaded, networkStatus,
+  nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -24,6 +24,8 @@ import type { GridConfig } from "../caps/RadarCapability";
 
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import RadarProductPicker from "./RadarProductPicker.svelte";
+import SiteSweepTray from "./SiteSweepTray.svelte";
+import VelocityScaleLine from "./scales/VelocityScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import Timeline from "./Timeline.svelte";
 import { _, locale } from "svelte-i18n";
@@ -1146,6 +1148,11 @@ onDestroy(() => {
         {/if}
       </div>
 
+      <!-- Site mode: one radar's own sweep over the dimmed composites (lib/SiteSweepManager.ts). -->
+      {#if $siteMode}
+        <SiteSweepTray />
+      {/if}
+
       <div class="plot">
         {#if gridLoading && !hasPrecipitation}
           <div class="skeleton"><ChartSkeleton bars={25} /></div>
@@ -1174,7 +1181,11 @@ onDestroy(() => {
           <Icon icon={playPauseButton} />
         </button>
         <div class="legend">
-          <RadarScaleLine />
+          {#if $siteMode && $siteMode.quantity !== "reflectivity"}
+            <VelocityScaleLine nyquist={$siteSweepView?.nyquist ?? null} relative={$siteMode.quantity === "srv"} />
+          {:else}
+            <RadarScaleLine />
+          {/if}
         </div>
       </div>
     </div>

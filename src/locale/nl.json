@@ -432,6 +432,7 @@
       "lightning": "Blikseminslagen",
       "mesocyclones": "Mesocyclonen",
       "cells": "Onweerscellen",
+      "radar_sites": "Radarlocaties",
       "map_layers": "Kaartlagen",
       "back_to_latest": "Terug naar nu",
       "play": "Afspelen",
@@ -840,6 +841,38 @@
     "why": {
       "title": "Waarom de 3D-wolken achterlopen op de platte radar",
       "p1": "De platte kaart komt uit de neerslagscan, die na een halve minuut klaar is. Een 3D-wolk heeft alle tien hoeken nodig, en de laatste eindigt na vijf minuten. De wolken van een cyclus kunnen dus niet voor ongeveer zes minuten verschijnen, terwijl het platte beeld van dezelfde cyclus er al binnen drie minuten is."
+    }
+  },
+  "site": {
+    "title": "Radar {name}",
+    "close": "Radar sluiten",
+    "tilt": "Elevatie",
+    "quantity": {
+      "group": "Wat tonen",
+      "reflectivity": "Reflectiviteit",
+      "velocity": "Snelheid",
+      "srv": "Buirelatief"
+    },
+    "none": "Geen scan op dit tijdstip",
+    "failed": "Deze scan kon niet worden geladen",
+    "scanned": "Gescand {time}",
+    "dealiased": "Ontvouwen",
+    "not_dealiased": "Niet ontvouwen: een vouw lijkt op een koppel",
+    "srv_hint": "Kies een bui om haar verplaatsing uit de snelheid te halen.",
+    "legend": {
+      "velocity": "m/s<br />naar · van",
+      "srv": "m/s<br />buirelatief",
+      "hint": "Radiale snelheid: groen naar de radar toe, rood ervan af, paars waar ze niet ontvouwen kon worden"
+    },
+    "read": {
+      "where": "{azimuth}° · {range} km · bundel {height} km",
+      "unmeasured": "Niet gemeten",
+      "no_echo": "Geen echo",
+      "unresolved": "Niet te ontvouwen",
+      "dbz": "{value} dBZ",
+      "away": "{value} m/s van de radar af",
+      "toward": "{value} m/s naar de radar toe",
+      "calm": "0 m/s"
     }
   }
 }

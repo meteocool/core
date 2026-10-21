@@ -4,6 +4,7 @@ import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
   cells3dVisible, cellLayerVisible, cycloneLayerVisible, fullResolution3d, lightningLayerVisible, mapBaseLayer,
+  siteMarksVisible,
   meteocoolNowcast, playbackFromStart, radarColormap, terrain3dVisible,
 } from "../stores";
 import { isHandheld } from "../lib/gpuBudget";
@@ -106,6 +107,7 @@ $: overlays = [
   { store: lightningLayerVisible, on: $lightningLayerVisible, label: $_("chrome.playback.lightning") },
   { store: cycloneLayerVisible, on: $cycloneLayerVisible, label: $_("chrome.playback.mesocyclones") },
   { store: cellLayerVisible, on: $cellLayerVisible, label: $_("chrome.playback.cells") },
+  { store: siteMarksVisible, on: $siteMarksVisible, label: $_("chrome.playback.radar_sites") },
 ];
 
 /** Only where the 3D map is offered at all. */

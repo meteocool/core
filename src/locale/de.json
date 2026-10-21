@@ -441,6 +441,7 @@
       "lightning": "Blitze",
       "mesocyclones": "Mesozyklonen",
       "cells": "Gewitterzellen",
+      "radar_sites": "Radarstandorte",
       "map_layers": "Kartenebenen",
       "back_to_latest": "Zurück zu Aktuell",
       "play": "Abspielen",
@@ -849,6 +850,38 @@
     "why": {
       "title": "Warum die 3D-Wolken dem flachen Radar hinterherhängen",
       "p1": "Die flache Karte kommt aus dem Niederschlagsscan, der nach einer halben Minute fertig ist. Eine 3D-Wolke braucht alle zehn Winkel, und der letzte endet nach fünf Minuten. Die Wolken eines Zyklus können also frühestens nach etwa sechs Minuten erscheinen, während das flache Bild desselben Zyklus schon nach weniger als drei da ist."
+    }
+  },
+  "site": {
+    "title": "Radar {name}",
+    "close": "Radar schließen",
+    "tilt": "Elevation",
+    "quantity": {
+      "group": "Was angezeigt wird",
+      "reflectivity": "Reflektivität",
+      "velocity": "Geschwindigkeit",
+      "srv": "Sturmrelativ"
+    },
+    "none": "Kein Scan zu dieser Zeit",
+    "failed": "Dieser Scan konnte nicht geladen werden",
+    "scanned": "Gescannt {time}",
+    "dealiased": "Entfaltet",
+    "not_dealiased": "Nicht entfaltet: eine Faltung sieht aus wie ein Wirbelpaar",
+    "srv_hint": "Eine Gewitterzelle auswählen, um ihre Zugbewegung aus der Geschwindigkeit herauszurechnen.",
+    "legend": {
+      "velocity": "m/s<br />hin · weg",
+      "srv": "m/s<br />sturmrelativ",
+      "hint": "Radialgeschwindigkeit: grün zum Radar hin, rot vom Radar weg, violett wo sie nicht entfaltet werden konnte"
+    },
+    "read": {
+      "where": "{azimuth}° · {range} km · Strahl {height} km",
+      "unmeasured": "Nicht gemessen",
+      "no_echo": "Kein Echo",
+      "unresolved": "Nicht entfaltbar",
+      "dbz": "{value} dBZ",
+      "away": "{value} m/s weg",
+      "toward": "{value} m/s hin",
+      "calm": "0 m/s"
     }
   }
 }

@@ -39,6 +39,7 @@ import {
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, meteocoolNowcast,
+  siteMarksVisible, siteMode, zoomlevel,
 } from "./stores";
 
 import "./global.css";
@@ -75,6 +76,12 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import makeCellPulseLayer from "./layers/cellPulse";
 import makeCloudHints from "./layers/cloudHints";
+import makeRadarSiteMarks, { MIN_ZOOM as SITE_MARKS_MIN_ZOOM } from "./layers/radarSiteMarks";
+import makeSiteSweepLayer from "./layers/siteSweep";
+import makeBeamRings from "./layers/beamRings";
+import SiteSweepManager, { readThrough } from "./lib/SiteSweepManager";
+import { NETWORKS } from "./layers/network";
+import { dwdAttribution } from "./layers/attributions";
 import { VolumeFeed } from "./lib/scans";
 import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
 /* The storm panel is loaded when a storm is opened, not with the page: the
@@ -336,6 +343,16 @@ window.settings = new Settings({
       lightningLayerVisible.set(Boolean(value));
     },
   },
+  /* The radars' own marks on the flat map, the way into site mode
+     (lib/SiteSweepManager.ts). On unless turned off. */
+  layerSites: {
+    type: "boolean",
+    default: true,
+    cb: (value) => {
+      siteMarksVisible.set(Boolean(value));
+      if (!value) siteMode.set(null);
+    },
+  },
   // A picture of the map for a headless renderer; see lib/screenshot.ts. Last,
   // so it has the final word over logo, layerswitcher and toolbar above.
   screenshot: {
@@ -499,6 +516,30 @@ const cloudHints = new VolumeFeed<CurrentVolumes>(
   },
 );
 
+/* Site mode: a mark on every radar with sweeps lately, and tapped, that
+   radar's own sweep drawn in its polar bins over the dimmed composites, with
+   rings of beam height (lib/SiteSweepManager.ts, ng doc/site-sweeps.md). Not
+   in a screenshot, which is of the composites. */
+const siteMarks = makeRadarSiteMarks();
+const siteSweep = makeSiteSweepLayer();
+const beamRings = makeBeamRings();
+const siteCredit = (network: string) => (network === "de"
+  ? dwdAttribution
+  : NETWORKS.find((candidate) => candidate.code === network)?.attribution ?? null);
+const siteSweeps = new SiteSweepManager(siteMarks, siteSweep, beamRings, siteCredit);
+readThrough(siteSweeps);
+siteMarksVisible.set(!screenshot && window.settings.getBoolean("layerSites"));
+siteMarksVisible.subscribe((value) => {
+  if (!screenshot) window.settings.set("layerSites", value);
+});
+
+/* The marks for the radars in view, once the map settles where they are
+   drawn at all. */
+derived([mapExtent4326, zoomlevel, siteMarksVisible], (values) => values).subscribe(([extent, zoom, shown]) => {
+  // Past the marks' least zoom, which OpenLayers takes as exclusive.
+  if (extent && shown && zoom > SITE_MARKS_MIN_ZOOM) void siteSweeps.listViewport(extent);
+});
+
 /* `run` is the scan of a KONRAD3D run that has just landed. Its cores are
    usually not built yet, and fetched only now the tags stood a scan behind
    until the next run; they are waited for (see lib/scans.ts). Without one, a
@@ -636,6 +677,7 @@ const lm = new LayerManager({
       additionalLayers: [
         pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, labelsOnly(),
         radolanOverlay({ followsForecast: true }),
+        siteSweep.layer, beamRings.layer, siteMarks.layer,
       ],
       options: {
         nanobar: nb,
@@ -735,6 +777,11 @@ if (radarCap && hintsWanted) {
 radarSocketIO.on("cells", (cells) => {
   whenVisible("cloudHints", () => void reloadCloudHints(Math.floor(cells.reference_time / 1000), quietly));
 });
+// A radar published new sweeps: the open one's are refetched, in a visible tab.
+radarSocketIO.on("sweeps", (event) => {
+  whenVisible("siteSweeps", () => void siteSweeps.sitePublished(event.site));
+});
+
 // And with each network's runs as they are built, which no KONRAD3D run announces.
 radarSocketIO.on("volumes", () => {
   whenVisible("cloudHints", () => void reloadCloudHints(undefined, quietly));
@@ -858,6 +905,19 @@ lm.forEachMap((map) => {
   });
 
   map.on("singleclick", (event) => {
+    /* A radar's mark opens it in site mode, before anything under it: the
+       mark is a fixed place, and a storm passing over it is tapped beside it. */
+    if (siteMarks.layer.getVisible()) {
+      const radar = map.forEachFeatureAtPixel(
+        event.pixel,
+        (feature) => feature.get("radarSite") as string | undefined,
+        { layerFilter: (layer) => layer === siteMarks.layer, hitTolerance: 4 },
+      );
+      if (radar) {
+        siteSweeps.open(radar);
+        return;
+      }
+    }
     const cellsShown = get(cellLayerVisible);
     const code = cellsShown
       ? map.forEachFeatureAtPixel(
