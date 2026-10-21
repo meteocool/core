@@ -1,0 +1,3677 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "sites": [
+   {
+    "site": "deoft",
+    "network": "de",
+    "lat": 49.984745,
+    "lon": 8.712933,
+    "newest": "2026-10-11T01:35:00Z",
+    "reflectivity": [
+     {
+      "elevation_deg": 0.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 1.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 2.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 3.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 4.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 5.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     }
+    ],
+    "velocity": [
+     {
+      "elevation_deg": 0.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 1.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 2.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 3.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 4.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 5.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T013000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T012000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T011000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T010000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T005000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deoft/20261011T004000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "site": "defld",
+    "network": "de",
+    "lat": 51.311197,
+    "lon": 8.801998,
+    "newest": "2026-10-11T01:35:00Z",
+    "reflectivity": [
+     {
+      "elevation_deg": 0.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 1.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 2.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 3.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 4.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 5.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     }
+    ],
+    "velocity": [
+     {
+      "elevation_deg": 0.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 1.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 2.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 3.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 4.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 5.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T013000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T012000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T011000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T010000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T005000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/defld/20261011T004000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "site": "deneu",
+    "network": "de",
+    "lat": 50.500114,
+    "lon": 11.135034,
+    "newest": "2026-10-11T01:35:00Z",
+    "reflectivity": [
+     {
+      "elevation_deg": 0.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/00.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 1.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/01.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 2.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/02.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 3.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/03.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 4.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/04.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     },
+     {
+      "elevation_deg": 5.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/05.5/DBZH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": null,
+        "dealiased": false
+       }
+      ]
+     }
+    ],
+    "velocity": [
+     {
+      "elevation_deg": 0.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/00.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 1.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/01.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 2.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/02.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 3.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/03.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 4.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/04.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     },
+     {
+      "elevation_deg": 5.5,
+      "scans": [
+       {
+        "scanned_at": "2026-10-11T01:35:00Z",
+        "started_at": "2026-10-11T01:37:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:30:00Z",
+        "started_at": "2026-10-11T01:32:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T013000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:25:00Z",
+        "started_at": "2026-10-11T01:27:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:20:00Z",
+        "started_at": "2026-10-11T01:22:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T012000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:15:00Z",
+        "started_at": "2026-10-11T01:17:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:10:00Z",
+        "started_at": "2026-10-11T01:12:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T011000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:05:00Z",
+        "started_at": "2026-10-11T01:07:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T01:00:00Z",
+        "started_at": "2026-10-11T01:02:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T010000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:55:00Z",
+        "started_at": "2026-10-11T00:57:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:50:00Z",
+        "started_at": "2026-10-11T00:52:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T005000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:45:00Z",
+        "started_at": "2026-10-11T00:47:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004500/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       },
+       {
+        "scanned_at": "2026-10-11T00:40:00Z",
+        "started_at": "2026-10-11T00:42:30Z",
+        "path": "meteoradar/sweeps/de/deneu/20261011T004000/05.5/VRADH.mcsw",
+        "bytes": 60000,
+        "nyquist_m_s": 31.9,
+        "dealiased": true
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}
