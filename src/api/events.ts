@@ -37,6 +37,8 @@ export type NowcastEvent = Schemas["NowcastRefresh"];
 export type StormsEvent = Schemas["StormsRefresh"];
 /** One run's volumes, or one part of a run's, are built; refetch `/cells/volumes`. */
 export type VolumesEvent = Schemas["VolumesRefresh"];
+/** One radar published new sweeps; site mode refetches `/sweeps` for it if it is the open one. */
+export type SweepsEvent = Schemas["SweepsRefresh"];
 
 export interface ServerToClientEvents {
   cells: (cells: CellsEvent) => void;
@@ -47,6 +49,7 @@ export interface ServerToClientEvents {
   poke: (poke: PokeEvent) => void;
   snow: (snow: SnowEvent) => void;
   storms: (storms: StormsEvent) => void;
+  sweeps: (sweeps: SweepsEvent) => void;
   volumes: (volumes: VolumesEvent) => void;
 }
 

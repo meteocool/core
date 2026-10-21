@@ -165,6 +165,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sweeps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every radar in view with recent sweeps, by quantity and tilt, for the flat map's site mode.
+         * @description Sites, their tilts, and each tilt's newest sweeps; the objects themselves are in the bucket.
+         */
+        get: operations["current_sweeps_sweeps_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -607,6 +627,14 @@ export interface components {
             reference_time?: string | null;
         };
         /**
+         * CurrentSweeps
+         * @description Every radar in view with recent sweeps.
+         */
+        CurrentSweeps: {
+            /** Sites */
+            sites?: components["schemas"]["SiteSweeps"][];
+        };
+        /**
          * CurrentVolumes
          * @description Every storm with a radar volume, from each network's newest scan that has any.
          */
@@ -733,10 +761,10 @@ export interface components {
         NowcastRefresh: {
             /**
              * Domain
-             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann
              * @enum {string}
              */
-            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no";
+            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "ie";
             /**
              * Issued At
              * @description The run's issue time, unix seconds: the five-minute slot it starts from
@@ -891,6 +919,39 @@ export interface components {
              * @description The Web Mercator tile the box fills, as z, x, y; absent on volumes from before tiles
              */
             tile?: number[] | null;
+        };
+        /**
+         * SiteSweeps
+         * @description One radar, where it is, and the tilts it has published lately.
+         */
+        SiteSweeps: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Network */
+            network: string;
+            /**
+             * Newest
+             * Format: date-time
+             * @description Its newest sweep's scan time
+             */
+            newest: string;
+            /**
+             * Reflectivity
+             * @description Lowest tilt first
+             */
+            reflectivity?: components["schemas"]["SweepTilt"][];
+            /**
+             * Site
+             * @description The ODIM node code, such as `deoft`
+             */
+            site: string;
+            /**
+             * Velocity
+             * @description Lowest tilt first
+             */
+            velocity?: components["schemas"]["SweepTilt"][];
         };
         /**
          * SnowRefresh
@@ -1107,6 +1168,79 @@ export interface components {
              * @description Strike time, milliseconds since the epoch
              */
             time: number;
+        };
+        /**
+         * SweepScan
+         * @description One published sweep of one tilt.
+         */
+        SweepScan: {
+            /**
+             * Bytes
+             * @description The object's size, gzipped
+             */
+            bytes: number;
+            /**
+             * Dealiased
+             * @description Velocity only: whether it was dealiased
+             * @default false
+             */
+            dealiased: boolean;
+            /**
+             * Nyquist M S
+             * @description Velocity only: the folding speed
+             */
+            nyquist_m_s?: number | null;
+            /**
+             * Path
+             * @description Path under the tile base, bucket first, e.g. meteoradar/sweeps/de/deoft/.../DBZH.mcsw
+             */
+            path: string;
+            /**
+             * Scanned At
+             * Format: date-time
+             * @description The minute in the source file's name, as every reader of sweeps keeps it
+             */
+            scanned_at: string;
+            /**
+             * Started At
+             * @description When the antenna swept this tilt
+             */
+            started_at?: string | null;
+        };
+        /**
+         * SweepTilt
+         * @description One tilt of one quantity, and its newest sweeps.
+         */
+        SweepTilt: {
+            /**
+             * Elevation Deg
+             * @description The tilt, as its newest sweep has it
+             */
+            elevation_deg: number;
+            /**
+             * Scans
+             * @description Newest first, at most 12
+             */
+            scans: components["schemas"]["SweepScan"][];
+        };
+        /**
+         * SweepsRefresh
+         * @description A nudge that one radar has published new sweeps (doc/site-sweeps.md).
+         *
+         *     Per site, not per network: a reader in site mode looks at one radar, and
+         *     refetches `/sweeps` for it alone. Sent once a pass per site with anything new.
+         */
+        SweepsRefresh: {
+            /**
+             * Scanned At
+             * @description The newest new sweep's scan time, milliseconds since the epoch
+             */
+            scanned_at: number;
+            /**
+             * Site
+             * @description The radar's ODIM node code, such as `deoft`
+             */
+            site: string;
         };
         /**
          * TrackCollection
@@ -1628,6 +1762,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StormDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_sweeps_sweeps_get: {
+        parameters: {
+            query?: {
+                /** @description Viewport as `west,south,east,north` in WGS84 degrees: the sites inside it */
+                bbox?: string | null;
+                /** @description One site alone, by its ODIM node code */
+                site?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentSweeps"];
                 };
             };
             /** @description Validation Error */

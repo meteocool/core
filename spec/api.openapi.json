@@ -939,6 +939,27 @@
         "title": "Strike",
         "type": "object"
       },
+      "SweepsRefresh": {
+        "description": "A nudge that one radar has published new sweeps (doc/site-sweeps.md).\n\nPer site, not per network: a reader in site mode looks at one radar, and\nrefetches `/sweeps` for it alone. Sent once a pass per site with anything new.",
+        "properties": {
+          "scanned_at": {
+            "description": "The newest new sweep's scan time, milliseconds since the epoch",
+            "title": "Scanned At",
+            "type": "integer"
+          },
+          "site": {
+            "description": "The radar's ODIM node code, such as `deoft`",
+            "title": "Site",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site",
+          "scanned_at"
+        ],
+        "title": "SweepsRefresh",
+        "type": "object"
+      },
       "TelemetryReading": {
         "description": "A barometric reading submitted alongside a location.",
         "properties": {

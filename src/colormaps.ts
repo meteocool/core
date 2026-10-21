@@ -798,3 +798,66 @@ export const precipTypeNames = {
   drizzle: "87CFEB",
   "n/a": "787878",
 };
+
+/**
+ * Radial velocity, for a site's `vrad-u8` sweep (lib/sweep.ts): 256 entries,
+ * one per byte, as `rvp6Table` is for reflectivity.
+ *
+ * Toward the radar green and away red, as every Doppler display draws it,
+ * darker for a slow wind and brighter for a fast one, washing out past
+ * 30 m/s; within 1 m/s of still, grey. Byte 0 (not measured) is
+ * transparent, 1 (measured, no echo) a faint tint, so the reach of the
+ * sweep shows; 255, where the dealiaser gave up, purple, a colour no wind is.
+ */
+const TOWARD_STOPS: Array<[number, [number, number, number]]> = [
+  [1, [70, 92, 70]],
+  [5, [0, 110, 20]],
+  [15, [0, 190, 40]],
+  [25, [60, 255, 90]],
+  [35, [190, 255, 200]],
+  [50, [235, 255, 245]],
+];
+const AWAY_STOPS: Array<[number, [number, number, number]]> = [
+  [1, [96, 70, 70]],
+  [5, [120, 0, 10]],
+  [15, [205, 0, 20]],
+  [25, [255, 60, 50]],
+  [35, [255, 190, 170]],
+  [50, [255, 245, 230]],
+];
+export const VELOCITY_CALM: Rgba = [140, 140, 140, 210];
+export const VELOCITY_NO_ECHO: Rgba = [128, 128, 128, 36];
+export const VELOCITY_UNRESOLVED: Rgba = [160, 40, 220, 255];
+
+function ramp(stops: Array<[number, [number, number, number]]>, speed: number): Rgba {
+  if (speed <= stops[0][0]) return [...stops[0][1], 230];
+  for (let i = 1; i < stops.length; i++) {
+    const [to, colourTo] = stops[i];
+    const [from, colourFrom] = stops[i - 1];
+    if (speed <= to) {
+      const f = (speed - from) / (to - from);
+      return [0, 1, 2].map((c) => Math.round(colourFrom[c] + f * (colourTo[c] - colourFrom[c]))).concat(240) as Rgba;
+    }
+  }
+  return [...stops[stops.length - 1][1], 240];
+}
+
+let velocityTableCache: Rgba[] | null = null;
+
+/** Byte to RGBA for radial velocity; see `TOWARD_STOPS`. */
+export function velocityTable(): Rgba[] {
+  if (velocityTableCache) return velocityTableCache;
+  const table: Rgba[] = [];
+  for (let byte = 0; byte < 256; byte++) {
+    if (byte === 0) table.push([0, 0, 0, 0]);
+    else if (byte === 1) table.push(VELOCITY_NO_ECHO);
+    else if (byte === 255) table.push(VELOCITY_UNRESOLVED);
+    else {
+      const v = (byte - 128) * 0.5;
+      if (Math.abs(v) <= 1) table.push(VELOCITY_CALM);
+      else table.push(ramp(v < 0 ? TOWARD_STOPS : AWAY_STOPS, Math.abs(v)));
+    }
+  }
+  velocityTableCache = table;
+  return table;
+}

@@ -825,6 +825,20 @@
         "title": "CurrentCells",
         "type": "object"
       },
+      "CurrentSweeps": {
+        "description": "Every radar in view with recent sweeps.",
+        "properties": {
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/SiteSweeps"
+            },
+            "title": "Sites",
+            "type": "array"
+          }
+        },
+        "title": "CurrentSweeps",
+        "type": "object"
+      },
       "CurrentVolumes": {
         "description": "Every storm with a radar volume, from each network's newest scan that has any.",
         "properties": {
@@ -1031,7 +1045,7 @@
         "description": "A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).\n\nDeliberately not a `Poke`, though WN's completed run is announced as one:\nevery client's `poke` handler reloads DWD's whole timeseries, and with\nfourteen networks on their own clocks these land every minute or two. A client that\nshows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;\none that does not ignores it. Germany's run is never announced: it is\nrecorded for scoring and never shown.",
         "properties": {
           "domain": {
-            "description": "Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway",
+            "description": "Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann",
             "enum": [
               "ch",
               "fr",
@@ -1046,7 +1060,8 @@
               "nl",
               "fi",
               "se",
-              "no"
+              "no",
+              "ie"
             ],
             "title": "Domain",
             "type": "string"
@@ -1319,6 +1334,59 @@
           "reference_time"
         ],
         "title": "RadarVolume",
+        "type": "object"
+      },
+      "SiteSweeps": {
+        "description": "One radar, where it is, and the tilts it has published lately.",
+        "properties": {
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "network": {
+            "title": "Network",
+            "type": "string"
+          },
+          "newest": {
+            "description": "Its newest sweep's scan time",
+            "format": "date-time",
+            "title": "Newest",
+            "type": "string"
+          },
+          "reflectivity": {
+            "description": "Lowest tilt first",
+            "items": {
+              "$ref": "#/components/schemas/SweepTilt"
+            },
+            "title": "Reflectivity",
+            "type": "array"
+          },
+          "site": {
+            "description": "The ODIM node code, such as `deoft`",
+            "title": "Site",
+            "type": "string"
+          },
+          "velocity": {
+            "description": "Lowest tilt first",
+            "items": {
+              "$ref": "#/components/schemas/SweepTilt"
+            },
+            "title": "Velocity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "site",
+          "network",
+          "lat",
+          "lon",
+          "newest"
+        ],
+        "title": "SiteSweeps",
         "type": "object"
       },
       "SnowRefresh": {
@@ -1683,6 +1751,110 @@
           "time"
         ],
         "title": "Strike",
+        "type": "object"
+      },
+      "SweepScan": {
+        "description": "One published sweep of one tilt.",
+        "properties": {
+          "bytes": {
+            "description": "The object's size, gzipped",
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "dealiased": {
+            "default": false,
+            "description": "Velocity only: whether it was dealiased",
+            "title": "Dealiased",
+            "type": "boolean"
+          },
+          "nyquist_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Velocity only: the folding speed",
+            "title": "Nyquist M S"
+          },
+          "path": {
+            "description": "Path under the tile base, bucket first, e.g. meteoradar/sweeps/de/deoft/.../DBZH.mcsw",
+            "title": "Path",
+            "type": "string"
+          },
+          "scanned_at": {
+            "description": "The minute in the source file's name, as every reader of sweeps keeps it",
+            "format": "date-time",
+            "title": "Scanned At",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the antenna swept this tilt",
+            "title": "Started At"
+          }
+        },
+        "required": [
+          "scanned_at",
+          "path",
+          "bytes"
+        ],
+        "title": "SweepScan",
+        "type": "object"
+      },
+      "SweepTilt": {
+        "description": "One tilt of one quantity, and its newest sweeps.",
+        "properties": {
+          "elevation_deg": {
+            "description": "The tilt, as its newest sweep has it",
+            "title": "Elevation Deg",
+            "type": "number"
+          },
+          "scans": {
+            "description": "Newest first, at most 12",
+            "items": {
+              "$ref": "#/components/schemas/SweepScan"
+            },
+            "title": "Scans",
+            "type": "array"
+          }
+        },
+        "required": [
+          "elevation_deg",
+          "scans"
+        ],
+        "title": "SweepTilt",
+        "type": "object"
+      },
+      "SweepsRefresh": {
+        "description": "A nudge that one radar has published new sweeps (doc/site-sweeps.md).\n\nPer site, not per network: a reader in site mode looks at one radar, and\nrefetches `/sweeps` for it alone. Sent once a pass per site with anything new.",
+        "properties": {
+          "scanned_at": {
+            "description": "The newest new sweep's scan time, milliseconds since the epoch",
+            "title": "Scanned At",
+            "type": "integer"
+          },
+          "site": {
+            "description": "The radar's ODIM node code, such as `deoft`",
+            "title": "Site",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site",
+          "scanned_at"
+        ],
+        "title": "SweepsRefresh",
         "type": "object"
       },
       "TrackCollection": {
@@ -2653,6 +2825,79 @@
         "summary": "One storm and its tracks, with their recent features.",
         "tags": [
           "storms"
+        ]
+      }
+    },
+    "/sweeps": {
+      "get": {
+        "description": "Sites, their tilts, and each tilt's newest sweeps; the objects themselves are in the bucket.",
+        "operationId": "current_sweeps_sweeps_get",
+        "parameters": [
+          {
+            "description": "Viewport as `west,south,east,north` in WGS84 degrees: the sites inside it",
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Viewport as `west,south,east,north` in WGS84 degrees: the sites inside it",
+              "examples": [
+                "5,47,16,56"
+              ],
+              "title": "Bbox"
+            }
+          },
+          {
+            "description": "One site alone, by its ODIM node code",
+            "in": "query",
+            "name": "site",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One site alone, by its ODIM node code",
+              "title": "Site"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSweeps"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Every radar in view with recent sweeps, by quantity and tilt, for the flat map's site mode.",
+        "tags": [
+          "sweeps"
         ]
       }
     }

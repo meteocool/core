@@ -240,6 +240,20 @@ export function headingOf(selection: StormSelection): number | null {
 }
 
 /**
+ * How the storm is moving, in metres per second and the heading it moves
+ * toward: the KONRAD3D track's newest step, else the storm's own; null when
+ * neither says both. What storm-relative velocity takes out (lib/sweepGeometry.ts).
+ */
+export function motionOf(selection: StormSelection): { speedMs: number; headingDeg: number } | null {
+  const series = selection.cell?.series ?? [];
+  const last = series[series.length - 1];
+  const speed = last?.speed_kmh ?? selection.summary?.properties.speed_kmh ?? null;
+  const heading = last?.heading_deg ?? selection.summary?.properties.heading_deg ?? null;
+  if (speed === null || heading === null || speed === undefined || heading === undefined) return null;
+  return { speedMs: speed / 3.6, headingDeg: heading };
+}
+
+/**
  * The tracker track whose history to show: the storm's primary one where
  * that is the tracker's, else the most recently seen it claims.
  */

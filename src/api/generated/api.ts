@@ -1253,6 +1253,25 @@ export interface components {
             time: number;
         };
         /**
+         * SweepsRefresh
+         * @description A nudge that one radar has published new sweeps (doc/site-sweeps.md).
+         *
+         *     Per site, not per network: a reader in site mode looks at one radar, and
+         *     refetches `/sweeps` for it alone. Sent once a pass per site with anything new.
+         */
+        SweepsRefresh: {
+            /**
+             * Scanned At
+             * @description The newest new sweep's scan time, milliseconds since the epoch
+             */
+            scanned_at: number;
+            /**
+             * Site
+             * @description The radar's ODIM node code, such as `deoft`
+             */
+            site: string;
+        };
+        /**
          * TelemetryReading
          * @description A barometric reading submitted alongside a location.
          */

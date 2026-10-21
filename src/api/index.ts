@@ -42,6 +42,8 @@ export type CellVolume = DataSchemas["schemas"]["CellVolume"];
 /** A box of sky. Its `feature`, the patch it was cut from, is how it finds its storm. */
 export type RadarVolume = DataSchemas["schemas"]["RadarVolume"];
 export type CurrentVolumes = DataSchemas["schemas"]["CurrentVolumes"];
+export type SiteSweeps = DataSchemas["schemas"]["SiteSweeps"];
+export type CurrentSweeps = DataSchemas["schemas"]["CurrentSweeps"];
 /** A storm, as a GeoJSON feature at its current centroid; its path is a property. */
 export type Storm = DataSchemas["schemas"]["StormFeature"];
 export type StormProperties = DataSchemas["schemas"]["StormProperties"];
@@ -578,6 +580,24 @@ export function fetchCurrentVolumes(nanobar?: Progress, { coarse = false }: { co
   return request(nanobar, "/cells/volumes", () => dataClient.GET("/cells/volumes", {
     params: { query: coarse ? { coarse: true } : {} },
   }));
+}
+
+/**
+ * Every radar in view that has published sweeps lately, or one radar alone,
+ * with each tilt's newest sweeps: what site mode draws (lib/siteSweeps.ts).
+ *
+ * One request for every site in view, as the volumes are; a sweep itself is
+ * fetched from the bucket by its `path`. `optional`: a backend from before
+ * site sweeps answers 404, which is a map with no radar marks on it.
+ */
+export function fetchSweeps(
+  where: { bbox?: [number, number, number, number]; site?: string },
+  nanobar?: Progress,
+) {
+  const query: { bbox?: string; site?: string } = {};
+  if (where.bbox) query.bbox = where.bbox.map((value) => value.toFixed(3)).join(",");
+  if (where.site) query.site = where.site;
+  return request(nanobar, "/sweeps", () => dataClient.GET("/sweeps", { params: { query } }), { optional: true });
 }
 
 /**
