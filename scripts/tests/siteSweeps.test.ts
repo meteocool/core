@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { aheadOf, describeReading, MAX_AGE_S, sweepAt, tiltNear } from "../../src/lib/siteSweeps.ts";
+import { aheadOf, describeReading, MAX_AGE_S, sweepAt, tiltNear, velocityTicks } from "../../src/lib/siteSweeps.ts";
 import { velocityTable, VELOCITY_CALM, VELOCITY_NO_ECHO, VELOCITY_UNRESOLVED } from "../../src/colormaps.ts";
 import { motionOf } from "../../src/lib/stormSelection.ts";
 
@@ -69,4 +69,20 @@ test("a storm's motion is its newest step's, in metres per second", () => {
   } as unknown as Parameters<typeof motionOf>[0];
   assert.deepEqual(motionOf(selection), { speedMs: 10, headingDeg: 70 });
   assert.equal(motionOf({ ...selection, cell: null }), null);
+});
+
+test("the velocity legend labels every 5 m/s where the strip has room, coarser where it has not", () => {
+  const values = (span: number, width: number) => velocityTicks(span, width).map((tick) => tick.value);
+  assert.deepEqual(values(30, 1100), [-30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30]);
+  // A phone's strip: 5 m/s apart ran +25 into the end-aligned 30.
+  assert.deepEqual(values(30, 300), [-30, -20, -10, 0, 10, 20, 30]);
+  assert.deepEqual(values(60, 300), [-60, -40, -20, 0, 20, 40, 60]);
+  // Unmeasured yet: the coarsest, never a crowd.
+  assert.deepEqual(values(30, 0), [-20, 0, 20]);
+  // Every label has its room, the end ones included.
+  for (const [span, width] of [[8, 300], [30, 300], [32.5, 307], [45, 300], [60, 640], [30, 1100]]) {
+    const ticks = velocityTicks(span, width);
+    ticks.slice(1).forEach((tick, i) => assert.ok((tick.at - ticks[i].at) * width >= 40, `${span} m/s on ${width} px`));
+    assert.ok(ticks.every((tick) => tick.at >= 0 && tick.at <= 1));
+  }
 });

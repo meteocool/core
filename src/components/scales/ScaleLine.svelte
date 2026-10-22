@@ -16,6 +16,8 @@
   /** What clicking the strip does, if anything: it is a button then, named by `toggleLabel`. */
   export let onToggle: (() => void) | null = null;
   export let toggleLabel = "";
+  /** How wide the colour strip is, in px, for a legend that labels by the room it has. Bindable. */
+  export let stripWidth = 0;
 
   let className = "";
   export { className as class };
@@ -191,7 +193,8 @@
         aria-label={onToggle ? toggleLabel : undefined}
         role={onToggle ? undefined : "presentation"}
         on:click={() => onToggle?.()}>
-        <div class="scale-line" style:--backgroundImage={backgroundImage} style:--backgroundUrl={backgroundUrl}>
+        <div class="scale-line" style:--backgroundImage={backgroundImage} style:--backgroundUrl={backgroundUrl}
+            bind:clientWidth={stripWidth}>
             {#if ticks}
                 <div class="scale-ticks">
                     {#each ticks as tick, i (i)}

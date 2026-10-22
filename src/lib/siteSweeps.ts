@@ -124,6 +124,28 @@ export function tiltBeam(beamKmAt100: number): string {
   return ` · ${beamKmAt100.toFixed(1)} km`;
 }
 
+/** The steps the velocity legend may label in m/s, finest first. */
+const VELOCITY_TICK_STEPS = [5, 10, 20];
+/**
+ * The strip each label needs, in px: about three characters of it and a gap
+ * as wide. The end labels are aligned to the strip's ends rather than centred,
+ * and at 5 m/s on a phone the last ran into the one before it.
+ */
+const VELOCITY_TICK_ROOM_PX = 40;
+
+/**
+ * Where the velocity legend puts its labels across ±`span` m/s, on a strip
+ * `widthPx` wide: every 5 m/s where there is room, else every 10 or 20, the
+ * finest that has it. 0 is always one.
+ */
+export function velocityTicks(span: number, widthPx: number): { value: number; at: number }[] {
+  const step = VELOCITY_TICK_STEPS.find((candidate) => (widthPx * candidate) / (2 * span) >= VELOCITY_TICK_ROOM_PX)
+    ?? VELOCITY_TICK_STEPS[VELOCITY_TICK_STEPS.length - 1];
+  const each = Math.floor(span / step);
+  return Array.from({ length: 2 * each + 1 }, (_value, i) => (i - each) * step)
+    .map((value) => ({ value, at: (value + span) / (2 * span) }));
+}
+
 /** One tilt as the tray offers it. */
 export interface OfferedTilt {
   elevation: number;

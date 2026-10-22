@@ -185,6 +185,11 @@ test.describe("with the radars' marks on", () => {
 
     await tray.getByRole("radio", { name: "Velocity", exact: true }).click();
     await expect(tray.getByText("Dealiased", { exact: true })).toBeVisible({ timeout: 15_000 });
+    // The legend's labels each have room of their own, on a phone too.
+    const labels = await page.locator(".timeslider .scale-tick")
+      .evaluateAll((ticks) => ticks.map((tick) => tick.getBoundingClientRect()).map(({ left, right }) => ({ left, right })));
+    expect(labels.length).toBeGreaterThan(2);
+    labels.slice(1).forEach((label, i) => expect(label.left).toBeGreaterThan(labels[i].right));
 
     // Hold 20 km north-east of the radar, inside the sweep: the menu reads the bin.
     const box = await page.locator("#map").boundingBox();

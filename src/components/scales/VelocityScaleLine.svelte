@@ -2,16 +2,16 @@
   /**
    * The legend for a radar's radial velocity: toward the radar green, away
    * red, across the sweep's own Nyquist velocity, which is as fast a wind as
-   * that tilt measures at all. Ticks every 5 m/s (10 on a phone past 20,
-   * where 5 would run into each other); a sweep folding at 8 m/s
-   * gets a short scale, which is the point: it says how little that tilt can
-   * tell apart before it folds.
+   * that tilt measures at all. Ticks every 5 m/s, or every 10 or 20 where the
+   * strip has no room for that (a phone's); a sweep folding at 8 m/s gets a
+   * short scale, which is the point: it says how little that tilt can tell
+   * apart before it folds.
    */
   import { _ } from "svelte-i18n";
   import ScaleLine from "./ScaleLine.svelte";
   import { velocityTable } from "../../colormaps";
   import { velocityByte } from "../../lib/sweep";
-  import { smallScreen } from "../../stores";
+  import { velocityTicks } from "../../lib/siteSweeps";
 
   /** The sweep's Nyquist velocity in m/s, or null when unknown. */
   export let nyquist: number | null = null;
@@ -27,11 +27,10 @@
     const [r, g, b] = velocityTable()[velocityByte(v)];
     return `${v.toFixed(1)}:${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
   }).join(";");
-  $: every = $smallScreen && span > 20 ? 10 : 5;
-  $: ticks = Array.from({ length: Math.floor(span / every) * 2 + 1 }, (_value, i) => (i - Math.floor(span / every)) * every)
-    .map((v) => ({ at: (v + span) / (2 * span), html: `${v > 0 ? "+" : ""}${v}` }));
+  let stripWidth = 0;
+  $: ticks = velocityTicks(span, stripWidth).map(({ value, at }) => ({ at, html: `${value > 0 ? "+" : ""}${value}` }));
 </script>
 
-<ScaleLine class="scale" {palette} {ticks}
+<ScaleLine class="scale" {palette} {ticks} bind:stripWidth
   title={relative ? $_("site.legend.srv") : $_("site.legend.velocity")}
   hint={$_("site.legend.hint")} />
