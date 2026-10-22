@@ -400,6 +400,11 @@
 @media (min-width: 1024px) {
   :root.site-open { --mc-site-tray-h: calc(var(--mc-site-row-h) + 4px); }
 }
+/* Storm-relative velocity adds a row: whose motion it takes out (StormMotion). */
+:root.site-open.site-srv { --mc-site-tray-h: calc(3 * var(--mc-site-row-h) + 12px); }
+@media (min-width: 1024px) {
+  :root.site-open.site-srv { --mc-site-tray-h: calc(2 * var(--mc-site-row-h) + 8px); }
+}
 
 /* Fallback ladder. Each rung flips the same tokens, so every surface degrades
    identically without needing a class. The chrome-dark root is listed with the

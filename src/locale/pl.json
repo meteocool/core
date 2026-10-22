@@ -868,8 +868,21 @@
     "dealiased": "Rozwinięta",
     "not_dealiased": "Nierozwinięta: zawinięcie wygląda jak para wirów",
     "not_dealiased_badge": "Nierozwinięta",
-    "srv_hint": "Wybierz burzę, aby odjąć jej ruch od prędkości.",
-    "srv_hint_badge": "Wybierz burzę",
+    "srv_hint": "Wybierz burzę albo ustaw jej ruch ręcznie, aby odjąć go od prędkości.",
+    "srv_hint_badge": "Brak ruchu",
+    "motion": {
+      "title": "Ruch burzy",
+      "edit": "Ustaw ruch burzy",
+      "line": "Ruch: {source} · {speed} km/h {direction}",
+      "manual": "ręcznie",
+      "source": "Czyj ruch",
+      "storm": "Burza",
+      "by_hand": "Ręcznie",
+      "heading": "Kierunek",
+      "speed": "Prędkość w km/h",
+      "slower": "Wolniej",
+      "faster": "Szybciej"
+    },
     "legend": {
       "velocity": "m/s<br />do · od radaru",
       "srv": "m/s<br />względem burzy",

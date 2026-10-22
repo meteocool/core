@@ -10,6 +10,7 @@
  *
  * Pure: plain values in and out, so the unit tests can hold it.
  */
+import type { SrvMotion } from "./srvMotion";
 
 /** A sweep as `/sweeps` lists it: when it was scanned, and where its object is. */
 export interface ListedScan {
@@ -144,8 +145,10 @@ export interface SiteSweepView {
   nyquist: number | null;
   dealiased: boolean | null;
   dealiaser: string | null;
-  /** Whether a storm is selected for SRV to take the motion of. */
-  hasMotion: boolean;
+  /** The motion SRV takes out, and whose: the selected storm's, or the one set by hand (lib/srvMotion.ts). */
+  srv: SrvMotion;
+  /** Whether a storm is selected that says how it moves, so the tray can offer its motion. */
+  stormMoves: boolean;
 }
 
 /** What a reading says, as the long press shows it: the value, then where the bin is. */

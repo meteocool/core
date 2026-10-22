@@ -868,8 +868,21 @@
     "dealiased": "Dépliée",
     "not_dealiased": "Non dépliée : un repliement ressemble à un couplet",
     "not_dealiased_badge": "Non dépliée",
-    "srv_hint": "Choisissez un orage pour retirer son déplacement de la vitesse.",
-    "srv_hint_badge": "Choisissez un orage",
+    "srv_hint": "Choisissez un orage, ou réglez son déplacement à la main, pour le retirer de la vitesse.",
+    "srv_hint_badge": "Aucun déplacement",
+    "motion": {
+      "title": "Déplacement de l’orage",
+      "edit": "Régler le déplacement de l’orage",
+      "line": "Déplacement : {source} · {speed} km/h {direction}",
+      "manual": "à la main",
+      "source": "Quel déplacement",
+      "storm": "Orage",
+      "by_hand": "À la main",
+      "heading": "Direction",
+      "speed": "Vitesse en km/h",
+      "slower": "Plus lent",
+      "faster": "Plus rapide"
+    },
     "legend": {
       "velocity": "m/s<br />vers · depuis",
       "srv": "m/s<br />relative à l’orage",

@@ -868,8 +868,21 @@
     "dealiased": "Ontvouwen",
     "not_dealiased": "Niet ontvouwen: een vouw lijkt op een koppel",
     "not_dealiased_badge": "Niet ontvouwen",
-    "srv_hint": "Kies een bui om haar verplaatsing uit de snelheid te halen.",
-    "srv_hint_badge": "Kies een bui",
+    "srv_hint": "Kies een bui, of stel haar verplaatsing met de hand in, om die uit de snelheid te halen.",
+    "srv_hint_badge": "Geen verplaatsing",
+    "motion": {
+      "title": "Verplaatsing van de bui",
+      "edit": "Verplaatsing van de bui instellen",
+      "line": "Verplaatsing: {source} · {speed} km/h {direction}",
+      "manual": "met de hand",
+      "source": "Welke verplaatsing",
+      "storm": "Bui",
+      "by_hand": "Met de hand",
+      "heading": "Richting",
+      "speed": "Snelheid in km/h",
+      "slower": "Langzamer",
+      "faster": "Sneller"
+    },
     "legend": {
       "velocity": "m/s<br />naar · van",
       "srv": "m/s<br />buirelatief",

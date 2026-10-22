@@ -3,17 +3,18 @@ import { fetchSweeps, quietly } from "../api";
 import type { Progress } from "../api";
 import {
   capLatestObservation, capTimeIndicator, compositeDim, radarColormap, selectedStorm, siteMarksVisible, siteMode,
-  siteSweepView,
+  siteSweepView, srvManualMotion, srvPrefersManual,
 } from "../stores";
 import { tileBaseUrl } from "../urls";
 import { decodeSweep, readBin, SweepGone } from "./sweep";
 import type { BinReading, Sweep } from "./sweep";
 import { binAt, fromSite, reachM, stormRelative } from "./sweepGeometry";
-import type { BinAt, Motion, SweepGeometry } from "./sweepGeometry";
+import type { BinAt, SweepGeometry } from "./sweepGeometry";
 import { aheadOf, listedFor, sweepAt, tiltNear } from "./siteSweeps";
-import type { ListedScan, ListedSite, OfferedTilt, SiteMode } from "./siteSweeps";
+import type { ListedScan, ListedSite, OfferedTilt, SiteMode, SiteSweepView } from "./siteSweeps";
 import { beamHeightKm, radarSite } from "./radarSites";
 import { motionOf } from "./stormSelection";
+import { resolveMotion } from "./srvMotion";
 import { timedFetch } from "./timedFetch";
 import type { SiteSweepLayer } from "../layers/siteSweep";
 import type { RadarSiteMarks } from "../layers/radarSiteMarks";
@@ -26,8 +27,9 @@ import type { BeamRings } from "../layers/beamRings";
  * Everything it decides is in `siteSweeps.ts` and `sweepGeometry.ts`, pure;
  * this is the plumbing between the listing, the timeline, the selected storm
  * and the layers. Its state is the stores: `siteMode` says what is open,
- * `siteSweepView` what is shown, and `compositeDim` how faint the composites
- * are drawn under it.
+ * `siteSweepView` what is shown, `compositeDim` how faint the composites
+ * are drawn under it, and `srvManualMotion` and `srvPrefersManual` what SRV
+ * takes out when it is not the selected storm's motion (`srvMotion.ts`).
  */
 
 /** How the composites are drawn under an open radar's sweep. */
@@ -76,7 +78,10 @@ export default class SiteSweepManager {
   ) {
     siteMode.subscribe((mode) => this.modeChanged(mode));
     capTimeIndicator.subscribe(() => void this.redraw());
-    selectedStorm.subscribe(() => void this.redraw());
+    // The motion SRV takes out: the sweep on screen drawn again, nothing fetched.
+    selectedStorm.subscribe(() => this.motionChanged());
+    srvManualMotion.subscribe(() => this.motionChanged());
+    srvPrefersManual.subscribe(() => this.motionChanged());
     radarColormap.subscribe((name) => layer.setPalette(name));
     siteMarksVisible.subscribe((visible) => marks.layer.setVisible(visible));
   }
@@ -131,16 +136,33 @@ export default class SiteSweepManager {
     const bin = binAt(header, lon, lat);
     if (!bin) return null;
     let reading = readBin(header.encoding, bins[bin.ray * header.nbins + bin.bin]);
-    const motion = this.motion();
-    if (mode.quantity === "srv" && motion && reading.kind === "value") {
-      reading = { kind: "value", value: stormRelative(reading.value, bin.azimuthDeg, motion) };
+    if (mode.quantity === "srv" && reading.kind === "value") {
+      reading = { kind: "value", value: stormRelative(reading.value, bin.azimuthDeg, this.motion().srv.motion) };
     }
     return { bin, reading, quantity: mode.quantity, header };
   }
 
-  private motion(): Motion | null {
+  /** What SRV takes out, and whether a selected storm says how it moves, as the tray reads them. */
+  private motion(): Pick<SiteSweepView, "srv" | "stormMoves"> {
     const storm = get(selectedStorm);
-    return storm ? motionOf(storm) : null;
+    const stormMotion = storm ? motionOf(storm) : null;
+    return {
+      srv: resolveMotion(stormMotion, get(srvManualMotion), get(srvPrefersManual)),
+      stormMoves: stormMotion !== null,
+    };
+  }
+
+  /**
+   * The motion changed, a storm selected or the dial turned: the sweep on
+   * screen drawn again with it. A drag turns the dial through dozens of
+   * headings, and none of them is a reason to fetch anything.
+   */
+  private motionChanged() {
+    const mode = get(siteMode);
+    if (!mode) return;
+    const motion = this.motion();
+    siteSweepView.update((view) => (view ? { ...view, ...motion } : view));
+    if (this.shown) this.layer.show({ sweep: this.shown.sweep, mode: mode.quantity, motion: motion.srv.motion });
   }
 
   private async modeChanged(mode: SiteMode | null) {
@@ -185,24 +207,23 @@ export default class SiteSweepManager {
     const newest = get(capLatestObservation);
     const live = step === 0 || step === newest;
     const scan = tilt ? sweepAt(tilt.scans, step, live) : null;
-    const motion = this.motion();
     const view = {
       site,
       tilts: this.offered(site, mode),
       hasVelocity: listedFor(site, "velocity").length > 0,
-      hasMotion: motion !== null,
     };
     this.layer.setAttribution(this.credit(site.network));
     if (!scan) {
       this.shown = null;
       this.layer.show(null);
       this.rings.clear();
-      siteSweepView.set({ ...view, status: "none", startedAt: null, scannedAt: null, nyquist: null, dealiased: null, dealiaser: null });
+      siteSweepView.set({ ...view, ...this.motion(), status: "none", startedAt: null, scannedAt: null, nyquist: null, dealiased: null, dealiaser: null });
       return;
     }
     if (this.shown?.scan.path !== scan.path) {
       siteSweepView.update((current) => ({
         ...view,
+        ...this.motion(),
         status: "loading",
         startedAt: current?.startedAt ?? null,
         scannedAt: current?.scannedAt ?? null,
@@ -218,16 +239,19 @@ export default class SiteSweepManager {
       if (generation !== this.generation) return;
       this.shown = null;
       this.layer.show(null);
-      siteSweepView.set({ ...view, status: "failed", startedAt: null, scannedAt: scan.scanned_at, nyquist: null, dealiased: null, dealiaser: null });
+      siteSweepView.set({ ...view, ...this.motion(), status: "failed", startedAt: null, scannedAt: scan.scanned_at, nyquist: null, dealiased: null, dealiaser: null });
       return;
     }
     if (generation !== this.generation) return;
+    // Taken now, not before the fetch: the dial may have turned while it was out.
+    const motion = this.motion();
     this.shown = { scan, sweep };
     this.reach = { geometry: sweep.header, groundM: reachM(sweep.header) };
-    this.layer.show({ sweep, mode: mode.quantity, motion });
+    this.layer.show({ sweep, mode: mode.quantity, motion: motion.srv.motion });
     this.rings.show(sweep.header);
     siteSweepView.set({
       ...view,
+      ...motion,
       status: "shown",
       startedAt: sweep.header.started_at,
       scannedAt: sweep.header.scanned_at,

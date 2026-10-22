@@ -11,6 +11,9 @@
  * Two rows of a fixed height up to a wide screen and one row there, so the
  * map keeps the rest. The player grows by exactly that: --mc-site-tray-h in
  * glass.css, switched on by the root's `site-open` while this is drawn.
+ * Storm-relative velocity adds one row of the same height, `site-srv`: whose
+ * motion it takes out, which opens the controls to set one by hand
+ * (StormMotion).
  * Whatever does not fit gives way with an ellipsis rather than adding a row,
  * and the status is a short badge with its whole sentence in the title. On a
  * phone the chosen tilt shows its elevation alone; the list it opens has the
@@ -22,6 +25,7 @@ import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 import Icon from "./Icon.svelte";
 import Segmented from "./Segmented.svelte";
+import StormMotion from "./StormMotion.svelte";
 import { pointMenuAt, selectedStorm, siteMode, siteSweepView, stormDetails } from "../stores";
 import { radarSite } from "../lib/radarSites";
 import { tiltAngle, tiltBeam, tiltLabel } from "../lib/siteSweeps";
@@ -40,7 +44,9 @@ $: options = [
 ];
 
 $: document.documentElement.classList.toggle("site-open", Boolean(mode && view));
-onDestroy(() => document.documentElement.classList.remove("site-open"));
+$: srvShown = Boolean(mode && view && mode.quantity === "srv");
+$: document.documentElement.classList.toggle("site-srv", srvShown);
+onDestroy(() => document.documentElement.classList.remove("site-open", "site-srv"));
 
 function setQuantity(quantity: Quantity) {
   siteMode.update((current) => (current ? { ...current, quantity } : current));
@@ -57,15 +63,16 @@ function close() {
 
 /*
  * Escape closes the radar, unless something over it is what the key is for:
- * a dialog, the point menu, the open storm's panel (whose motion a
- * storm-relative sweep is read against, so it goes first), or a field
- * other than the tray's own tilt.
+ * a dialog, the storm motion's controls, the point menu, the open storm's
+ * panel (whose motion a storm-relative sweep is read against, so it goes
+ * first), or a field other than the tray's own tilt.
  * Capture phase, so the storm is still open when this looks.
  */
 let tray: HTMLElement | undefined;
+let motionOpen = false;
 function onKeydown(event: KeyboardEvent) {
   if (event.key !== "Escape" || event.defaultPrevented || !$siteMode) return;
-  if (document.querySelector("[role='dialog'][aria-modal='true']")) return;
+  if (motionOpen || document.querySelector("[role='dialog'][aria-modal='true']")) return;
   if ($pointMenuAt || ($selectedStorm && $stormDetails)) return;
   const target = event.target as HTMLElement | null;
   if (target?.isContentEditable) return;
@@ -102,12 +109,13 @@ function badgesOf(view: SiteSweepView, quantity: Quantity): Badge[] {
   const add = (text: string, title = text, warn = false) => badges.push({ text, title, warn });
   if (view.status === "none") add($_("site.none"));
   else if (view.status === "failed") add($_("site.failed"), undefined, true);
-  // Storm-relative with no storm to be relative to: the way to one says more
-  // than that the sweep was dealiased, and takes that badge's place.
-  const wantsStorm = quantity === "srv" && !view.hasMotion;
-  if (quantity !== "reflectivity" && view.dealiased === true && !wantsStorm) add($_("site.dealiased"), view.dealiaser ?? undefined);
+  // Storm-relative with nothing to take out, no storm selected and no motion
+  // set by hand: the way to one says more than that the sweep was dealiased,
+  // and takes that badge's place.
+  const nothingTaken = quantity === "srv" && view.srv.motion.speedMs === 0;
+  if (quantity !== "reflectivity" && view.dealiased === true && !nothingTaken) add($_("site.dealiased"), view.dealiaser ?? undefined);
   else if (quantity !== "reflectivity" && view.dealiased === false) add($_("site.not_dealiased_badge"), $_("site.not_dealiased"), true);
-  if (wantsStorm) add($_("site.srv_hint_badge"), $_("site.srv_hint"));
+  if (nothingTaken) add($_("site.srv_hint_badge"), $_("site.srv_hint"));
   return badges;
 }
 
@@ -132,6 +140,14 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
     column-gap: 8px;
     align-items: center;
   }
+  /* Storm-relative: a row more, whose motion it takes out. */
+  .tray.srv {
+    grid-template-rows: var(--mc-site-row-h) var(--mc-site-row-h) var(--mc-site-row-h);
+    grid-template-areas:
+      "about close"
+      "controls controls"
+      "motion motion";
+  }
   @media (min-width: 1024px) {
     .tray {
       grid-template-columns: minmax(0, 1fr) auto auto;
@@ -139,6 +155,17 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
       grid-template-areas: "about controls close";
       column-gap: 12px;
     }
+    .tray.srv {
+      grid-template-rows: var(--mc-site-row-h) var(--mc-site-row-h);
+      grid-template-areas:
+        "about controls close"
+        "motion motion motion";
+    }
+  }
+  .motion {
+    grid-area: motion;
+    display: flex;
+    min-width: 0;
   }
 
   .about {
@@ -271,7 +298,7 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
 </style>
 
 {#if mode && view}
-  <div class="tray" bind:this={tray} role="group" aria-label={title}>
+  <div class="tray" bind:this={tray} class:srv={srvShown} role="group" aria-label={title}>
     <div class="about">
       <span class="name" title={title}>{name}</span>
       {#if scanned}
@@ -304,5 +331,10 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
       title={$_("site.close")} aria-label={$_("site.close")}>
       <Icon icon={faXmark} />
     </button>
+    {#if srvShown}
+      <div class="motion">
+        <StormMotion bind:open={motionOpen} srv={view.srv} stormMoves={view.stormMoves} />
+      </div>
+    {/if}
   </div>
 {/if}

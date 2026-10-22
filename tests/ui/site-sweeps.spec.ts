@@ -83,6 +83,75 @@ test.describe("with the radars' marks on", () => {
     await expect.poll(() => compositeOpacity(page)).toBeCloseTo(before, 5);
   });
 
+  /** Open Offenthal's radar from its mark, and wait for its tray. */
+  async function openOffenthal(page: Page) {
+    await expect.poll(() => markOf(page, "deoft"), { timeout: 20_000 }).not.toBeNull();
+    const at = (await markOf(page, "deoft"))!;
+    await page.mouse.click(at.x, at.y);
+    const tray = page.getByRole("group", { name: "Offenthal radar" });
+    await settled(tray);
+    return tray;
+  }
+
+  test("with no storm selected, SRV takes a motion set by hand on the dial, says so, and keeps it", async ({ page }) => {
+    await noGeocoder(page);
+    await openRadar(page, CENTRAL_GERMANY);
+    let tray = await openOffenthal(page);
+    await tray.getByRole("radio", { name: "Storm-relative", exact: true }).click();
+
+    // Nothing set yet: standing still, so nothing is taken out, and the badge says so.
+    let motion = tray.getByRole("button", { name: /^Motion: / });
+    await expect(motion).toHaveText("Motion: manual · 0 km/h NE");
+    await expect(tray.getByText("No motion set", { exact: true })).toBeVisible();
+    // One row more, and the player grows by it rather than clipping the play button.
+    await settled(tray);
+    expect((await tray.boundingBox())!.height).toBeLessThanOrEqual(93);
+    const player = page.locator(".timeslider");
+    expect(await player.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
+    const [play, box] = [(await playButton(page).boundingBox())!, (await player.boundingBox())!];
+    expect(play.y + play.height).toBeLessThanOrEqual(box.y + box.height);
+
+    // The row opens the dial. A thumb on its south-west points the arrow
+    // there; dragged round past the dial's edge to the east, it follows.
+    await motion.click();
+    const controls = page.getByRole("dialog", { name: "Storm motion" });
+    const dial = controls.getByRole("slider", { name: "Heading" });
+    await expect(dial).toBeVisible();
+    const face = (await dial.boundingBox())!;
+    const centre = { x: face.x + face.width / 2, y: face.y + face.height / 2 };
+    await page.mouse.move(centre.x - 30, centre.y + 30);
+    await page.mouse.down();
+    await expect(dial).toHaveAttribute("aria-valuenow", "225");
+    await page.mouse.move(centre.x + 120, centre.y, { steps: 6 });
+    await page.mouse.up();
+    await expect(dial).toHaveAttribute("aria-valuenow", "90");
+
+    // Three clicks back with the keys, and six steps of speed.
+    await dial.press("ArrowLeft");
+    await dial.press("ArrowLeft");
+    await dial.press("ArrowLeft");
+    const faster = controls.getByRole("button", { name: "Faster" });
+    for (let i = 0; i < 6; i++) await faster.click();
+    await expect(controls.getByRole("spinbutton", { name: "Speed in km/h" })).toHaveValue("30");
+    await expect(dial).toHaveAttribute("aria-valuenow", "75");
+
+    // The tray says whose motion it is and what, with the dial put away.
+    // Escape puts the dial away and leaves the radar open.
+    await dial.press("Escape");
+    await expect(controls).toBeHidden();
+    await expect(tray).toBeVisible();
+    await expect(motion).toHaveText("Motion: manual · 30 km/h ENE");
+    await expect(tray.getByText("No motion set", { exact: true })).toBeHidden();
+
+    // Kept in the settings, and there again after a reload.
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("srvMotion"))).toBe("75,30");
+    await openRadar(page, CENTRAL_GERMANY);
+    tray = await openOffenthal(page);
+    await tray.getByRole("radio", { name: "Storm-relative", exact: true }).click();
+    motion = tray.getByRole("button", { name: /^Motion: / });
+    await expect(motion).toHaveText("Motion: manual · 30 km/h ENE");
+  });
+
   /**
    * The same with real sweeps behind the listing: Borkum's (deasb) 0.5 degree tilt of
    * 2026-10-09 18:20, from staging's archive

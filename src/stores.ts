@@ -1,4 +1,5 @@
 import type { SiteMode, SiteSweepView } from "./lib/siteSweeps";
+import { DEFAULT_MANUAL_MOTION, type ManualMotion } from "./lib/srvMotion";
 import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
 import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
 import { REACHABLE, type Reachability } from "./lib/reachability";
@@ -495,6 +496,17 @@ export const siteMarksVisible = writable<boolean>(false);
  * out. Written by `lib/SiteSweepManager.ts` only.
  */
 export const siteSweepView = writable<SiteSweepView | null>(null);
+/**
+ * The storm motion set by hand on the tray's dial, for SRV with no storm
+ * selected or when the reader prefers their own (lib/srvMotion.ts): the
+ * setting `srvMotion`.
+ */
+export const srvManualMotion = writable<ManualMotion>(DEFAULT_MANUAL_MOTION);
+/**
+ * Whether SRV takes the motion set by hand even with a storm selected. For
+ * this page load: selecting a storm next time takes its motion again.
+ */
+export const srvPrefersManual = writable<boolean>(false);
 /**
  * How strongly the composites are drawn, 0 to 1: dimmed under an open
  * radar's own sweep, so the one does not drown in the other.

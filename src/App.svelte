@@ -39,8 +39,9 @@ import {
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, meteocoolNowcast,
-  siteMarksVisible, siteMode, zoomlevel,
+  siteMarksVisible, siteMode, srvManualMotion, zoomlevel,
 } from "./stores";
+import { DEFAULT_MANUAL_MOTION, formatManualMotion, parseManualMotion, sameManualMotion } from "./lib/srvMotion";
 
 import "./global.css";
 import "@shoelace-style/shoelace/dist/themes/light.css";
@@ -353,6 +354,17 @@ window.settings = new Settings({
       if (!value) siteMode.set(null);
     },
   },
+  /* The storm motion set by hand on site mode's dial, as "heading,km/h", for
+     storm-relative velocity with no storm selected or when the reader
+     prefers their own (lib/srvMotion.ts). */
+  srvMotion: {
+    type: "string",
+    default: formatManualMotion(DEFAULT_MANUAL_MOTION),
+    cb: (value) => {
+      const motion = parseManualMotion(value);
+      if (!sameManualMotion(get(srvManualMotion), motion)) srvManualMotion.set(motion);
+    },
+  },
   // A picture of the map for a headless renderer; see lib/screenshot.ts. Last,
   // so it has the final word over logo, layerswitcher and toolbar above.
   screenshot: {
@@ -531,6 +543,14 @@ readThrough(siteSweeps);
 siteMarksVisible.set(!screenshot && window.settings.getBoolean("layerSites"));
 siteMarksVisible.subscribe((value) => {
   if (!screenshot) window.settings.set("layerSites", value);
+});
+/* Kept once the dial comes to rest: a drag turns it through dozens of
+   headings, and each would be a write. */
+srvManualMotion.set(parseManualMotion(window.settings.get("srvMotion")));
+let srvMotionWrite: ReturnType<typeof setTimeout> | undefined;
+srvManualMotion.subscribe((motion) => {
+  clearTimeout(srvMotionWrite);
+  srvMotionWrite = setTimeout(() => window.settings.set("srvMotion", formatManualMotion(motion)), 400);
 });
 
 /* The marks for the radars in view, once the map settles where they are

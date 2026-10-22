@@ -868,8 +868,21 @@
     "dealiased": "Dealiased",
     "not_dealiased": "Not dealiased: a fold looks like a couplet",
     "not_dealiased_badge": "Not dealiased",
-    "srv_hint": "Select a storm to take its motion out of the velocity.",
-    "srv_hint_badge": "Select a storm",
+    "srv_hint": "Select a storm, or set its motion by hand, to take it out of the velocity.",
+    "srv_hint_badge": "No motion set",
+    "motion": {
+      "title": "Storm motion",
+      "edit": "Set the storm motion",
+      "line": "Motion: {source} · {speed} km/h {direction}",
+      "manual": "manual",
+      "source": "Whose motion",
+      "storm": "Storm",
+      "by_hand": "By hand",
+      "heading": "Heading",
+      "speed": "Speed in km/h",
+      "slower": "Slower",
+      "faster": "Faster"
+    },
     "legend": {
       "velocity": "m/s<br />toward · away",
       "srv": "m/s<br />storm-relative",

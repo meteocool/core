@@ -868,8 +868,21 @@
     "dealiased": "Entfaltet",
     "not_dealiased": "Nicht entfaltet: eine Faltung sieht aus wie ein Wirbelpaar",
     "not_dealiased_badge": "Nicht entfaltet",
-    "srv_hint": "Eine Gewitterzelle auswählen, um ihre Zugbewegung aus der Geschwindigkeit herauszurechnen.",
-    "srv_hint_badge": "Zelle auswählen",
+    "srv_hint": "Eine Gewitterzelle auswählen oder ihre Zugbewegung von Hand einstellen, um sie aus der Geschwindigkeit herauszurechnen.",
+    "srv_hint_badge": "Keine Zugbewegung",
+    "motion": {
+      "title": "Zugbewegung",
+      "edit": "Zugbewegung einstellen",
+      "line": "Zugbewegung: {source} · {speed} km/h {direction}",
+      "manual": "von Hand",
+      "source": "Wessen Zugbewegung",
+      "storm": "Zelle",
+      "by_hand": "Von Hand",
+      "heading": "Zugrichtung",
+      "speed": "Geschwindigkeit in km/h",
+      "slower": "Langsamer",
+      "faster": "Schneller"
+    },
     "legend": {
       "velocity": "m/s<br />hin · weg",
       "srv": "m/s<br />sturmrelativ",
