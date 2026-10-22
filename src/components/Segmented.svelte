@@ -25,6 +25,11 @@ export let options: Array<{ value: T; label: string }> = [];
 export let value: T;
 /** What the group is, for assistive tech. */
 export let label: string;
+/**
+ * For a crowded tray: 28px tall rather than 30, a hair smaller, and
+ * labels that give way with an ellipsis rather than push the row wider.
+ */
+export let compact = false;
 
 const dispatch = createEventDispatcher<{ change: T }>();
 
@@ -286,11 +291,26 @@ onDestroy(() => {
     outline: 2px solid var(--mc-accent);
     outline-offset: 1px;
   }
+
+  .segmented.compact {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .segmented.compact button {
+    height: 22px;
+    padding: 0 7px;
+    font-size: 11.5px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 </style>
 
 <div
   class="segmented"
   class:dragging
+  class:compact
   role="radiogroup"
   aria-label={label}
   tabindex="-1"

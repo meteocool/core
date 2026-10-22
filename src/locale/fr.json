@@ -867,7 +867,9 @@
     "scanned": "Balayé à {time}",
     "dealiased": "Dépliée",
     "not_dealiased": "Non dépliée : un repliement ressemble à un couplet",
+    "not_dealiased_badge": "Non dépliée",
     "srv_hint": "Choisissez un orage pour retirer son déplacement de la vitesse.",
+    "srv_hint_badge": "Choisissez un orage",
     "legend": {
       "velocity": "m/s<br />vers · depuis",
       "srv": "m/s<br />relative à l’orage",

@@ -867,7 +867,9 @@
     "scanned": "Zmierzono {time}",
     "dealiased": "Rozwinięta",
     "not_dealiased": "Nierozwinięta: zawinięcie wygląda jak para wirów",
+    "not_dealiased_badge": "Nierozwinięta",
     "srv_hint": "Wybierz burzę, aby odjąć jej ruch od prędkości.",
+    "srv_hint_badge": "Wybierz burzę",
     "legend": {
       "velocity": "m/s<br />do · od radaru",
       "srv": "m/s<br />względem burzy",

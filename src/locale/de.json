@@ -867,7 +867,9 @@
     "scanned": "Gescannt {time}",
     "dealiased": "Entfaltet",
     "not_dealiased": "Nicht entfaltet: eine Faltung sieht aus wie ein Wirbelpaar",
+    "not_dealiased_badge": "Nicht entfaltet",
     "srv_hint": "Eine Gewitterzelle auswählen, um ihre Zugbewegung aus der Geschwindigkeit herauszurechnen.",
+    "srv_hint_badge": "Zelle auswählen",
     "legend": {
       "velocity": "m/s<br />hin · weg",
       "srv": "m/s<br />sturmrelativ",

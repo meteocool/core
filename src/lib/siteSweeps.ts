@@ -112,7 +112,15 @@ export function aheadOf(scans: ListedScan[], shown: ListedScan | null, count = 3
  * is what a reader choosing a tilt actually wants to know.
  */
 export function tiltLabel(elevationDeg: number, beamKmAt100: number): string {
-  return `${elevationDeg.toFixed(1)}° · ${beamKmAt100.toFixed(1)} km`;
+  return `${tiltAngle(elevationDeg)}${tiltBeam(beamKmAt100)}`;
+}
+
+/** The label's two halves, for a tray that has no room for the second. */
+export function tiltAngle(elevationDeg: number): string {
+  return `${elevationDeg.toFixed(1)}°`;
+}
+export function tiltBeam(beamKmAt100: number): string {
+  return ` · ${beamKmAt100.toFixed(1)} km`;
 }
 
 /** One tilt as the tray offers it. */

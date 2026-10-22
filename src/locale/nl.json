@@ -867,7 +867,9 @@
     "scanned": "Gescand {time}",
     "dealiased": "Ontvouwen",
     "not_dealiased": "Niet ontvouwen: een vouw lijkt op een koppel",
+    "not_dealiased_badge": "Niet ontvouwen",
     "srv_hint": "Kies een bui om haar verplaatsing uit de snelheid te halen.",
+    "srv_hint_badge": "Kies een bui",
     "legend": {
       "velocity": "m/s<br />naar · van",
       "srv": "m/s<br />buirelatief",

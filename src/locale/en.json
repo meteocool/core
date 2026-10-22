@@ -867,7 +867,9 @@
     "scanned": "Scanned {time}",
     "dealiased": "Dealiased",
     "not_dealiased": "Not dealiased: a fold looks like a couplet",
+    "not_dealiased_badge": "Not dealiased",
     "srv_hint": "Select a storm to take its motion out of the velocity.",
+    "srv_hint_badge": "Select a storm",
     "legend": {
       "velocity": "m/s<br />toward · away",
       "srv": "m/s<br />storm-relative",

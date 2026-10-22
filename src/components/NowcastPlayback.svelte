@@ -832,6 +832,9 @@ onDestroy(() => {
 
      On a wide screen the head moves to the right of the colour scale, so the
      player is two rows and gives the map back the height of one.
+
+     Site mode puts its tray (SiteSweepTray) under the head, or over the strip
+     on a wide screen, and the player grows by its height.
      --------------------------------------------------------------------- */
   .player {
     display: flex;
@@ -887,15 +890,11 @@ onDestroy(() => {
   .link:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .link :global(svg) { width: 11px; height: 11px; }
 
+  .site,
   .plot {
     position: relative;
     flex: 0 0 auto;
     min-width: 0;
-  }
-  .site {
-    flex: 0 0 auto;
-    min-width: 0;
-    padding: 0 0 0 8px;
   }
 
   .row {
@@ -1152,7 +1151,7 @@ onDestroy(() => {
     on:outrostart={toolbarTransitionStart}
     on:introend={toolbarTransitionEnd}
     on:outroend={toolbarTransitionEnd}>
-    <div class="player" class:sited={$siteMode !== null}>
+    <div class="player" class:sited={$siteMode && $siteSweepView}>
       <div class="head" bind:this={head}>
         {#if $inspectLatLon || $latLon}
           <span class="title" bind:this={titleEl}>{chartTitle}</span>
@@ -1177,7 +1176,7 @@ onDestroy(() => {
       <!-- Site mode: one radar's own sweep over the dimmed composites
            (lib/SiteSweepManager.ts), its controls over the timeline, which
            scrubs its sweeps as it scrubs frames. -->
-      {#if $siteMode}
+      {#if $siteMode && $siteSweepView}
         <div class="site"><SiteSweepTray /></div>
       {/if}
 

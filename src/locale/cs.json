@@ -867,7 +867,9 @@
     "scanned": "Změřeno {time}",
     "dealiased": "Rozbaleno",
     "not_dealiased": "Nerozbaleno: přeložení vypadá jako dvojice",
+    "not_dealiased_badge": "Nerozbaleno",
     "srv_hint": "Vyberte bouřku, aby se její pohyb odečetl od rychlosti.",
+    "srv_hint_badge": "Vyberte bouřku",
     "legend": {
       "velocity": "m/s<br />k radaru · od radaru",
       "srv": "m/s<br />vůči bouřce",

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { expect, test } from "./test";
-import { flatPixel, noGeocoder, openRadar, settled, timeline } from "./app";
+import { flatPixel, noGeocoder, openRadar, playButton, settled, timeline } from "./app";
 import type { Page } from "@playwright/test";
 
 /**
@@ -61,6 +61,13 @@ test.describe("with the radars' marks on", () => {
 
     const tray = page.getByRole("group", { name: "Offenthal radar" });
     await settled(tray);
+    // Two rows at most, and the player grows by them rather than pushing the
+    // strip and the play button out of its bottom.
+    expect((await tray.boundingBox())!.height).toBeLessThanOrEqual(61);
+    const player = page.locator(".timeslider");
+    expect(await player.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
+    const [play, box] = [(await playButton(page).boundingBox())!, (await player.boundingBox())!];
+    expect(play.y + play.height).toBeLessThanOrEqual(box.y + box.height);
     const tilts = tray.getByRole("combobox", { name: "Tilt" });
     await expect(tilts.locator("option")).toHaveCount(6);
     await expect(tilts.locator("option").first()).toHaveText(/^0\.5° · /);
