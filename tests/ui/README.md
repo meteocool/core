@@ -24,9 +24,9 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
 - answers `/storms` from storms made of the recorded KONRAD3D tracks
   (`storms.ts`) while the recording has no successful answer for it: staging
   does not serve storms yet;
-- answers `/sweeps` from `fixtures/api/GET_sweeps.json`, written by hand
-  until staging serves the route: re-recording keeps it only if staging
-  answers, so check the diff for it;
+- answers `/sweeps` from `fixtures/api/GET_sweeps.json`, still written by
+  hand: staging serves the route since 2026-10-22, and the next re-recording
+  replaces it with every view's listing in `record.ts`, merged;
 - draws every map tile blank: radar, value tiles and the basemap;
 - connects the lightning socket to a stand-in that stays quiet;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it

@@ -23,8 +23,26 @@ const VIEWS = [
   "/?layer=radar&latLonZ=44.80000,-0.60000,8.00",
   "/?layer=cells3d&latLonZ=50.50000,9.50000,7.00",
   "/ios.html?layer=radar&latLonZ=50.50000,9.50000,6.00",
+  // site-sweeps.spec.ts: Offenthal's and Borkum's marks.
+  "/?layer=radar&latLonZ=50.20000,9.20000,7.20",
+  "/?layer=radar&latLonZ=53.70000,6.90000,8.20",
 ];
 const SETTLE_MS = 15_000;
+
+type Listing = { sites: { site: string }[] };
+
+/**
+ * One fixture answers `/sweeps` whatever its bbox, so each view's listing is
+ * added to the ones before it rather than replacing them: every spec finds
+ * the sites in its view, whichever view was recorded last.
+ */
+function withSitesOf(before: RecordedResponse | undefined, answer: RecordedResponse): RecordedResponse {
+  const earlier = (before?.json as Listing | undefined)?.sites ?? [];
+  const listing = answer.json as Listing | undefined;
+  if (!listing?.sites) return answer;
+  const sites = new Map([...earlier, ...listing.sites].map((site) => [site.site, site]));
+  return { ...answer, json: { ...listing, sites: [...sites.values()] } };
+}
 
 async function visit(browser: Browser, baseURL: string | undefined, device: (typeof devices)[string],
   answers: Map<string, RecordedResponse>) {
@@ -43,7 +61,8 @@ async function visit(browser: Browser, baseURL: string | undefined, device: (typ
     } catch {
       answer.text = body;
     }
-    answers.set(fixtureFile(route.request().method(), url), answer);
+    const file = fixtureFile(route.request().method(), url);
+    answers.set(file, url.pathname === "/sweeps" ? withSitesOf(answers.get(file), answer) : answer);
     return route.fulfill({ response });
   });
   for (const view of VIEWS) {
