@@ -27,6 +27,7 @@ import RadarProductPicker from "./RadarProductPicker.svelte";
 import SiteSweepTray from "./SiteSweepTray.svelte";
 import VelocityScaleLine from "./scales/VelocityScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
+import Appendix from "./Appendix.svelte";
 import Timeline from "./Timeline.svelte";
 import { _, locale } from "svelte-i18n";
 import { get } from "svelte/store";
@@ -952,6 +953,20 @@ onDestroy(() => {
     }
   }
 
+  /* The apps' badges and the repo mark, which the bottom bar carries on the
+     other maps and this tray covers: at the end of the scale's row once the
+     screen is wide enough to leave the scale its labels beside them. */
+  .appendix { display: none; }
+  @media (min-width: 1280px) {
+    .player { grid-template-columns: minmax(0, 1fr) fit-content(40%) auto; }
+    .appendix {
+      grid-column: 3;
+      grid-row: 2;
+      display: flex;
+      align-items: center;
+    }
+  }
+
   /* A tint on the tray. */
   .controlButton {
     width: var(--mc-control);
@@ -1210,6 +1225,10 @@ onDestroy(() => {
           {/if}
         </div>
       </div>
+
+      {#if !dd.isApp()}
+        <div class="appendix"><Appendix /></div>
+      {/if}
     </div>
   </div>
 {/if}

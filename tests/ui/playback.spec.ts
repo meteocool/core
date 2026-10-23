@@ -1,6 +1,6 @@
 import { expect, test } from "./test";
 import type { Page } from "@playwright/test";
-import { backToNow, openRadar, playButton, timeline } from "./app";
+import { backToNow, openRadar, overlaps, playButton, timeline } from "./app";
 
 /** The player: its timeline, playback, and the way back to now. */
 
@@ -112,4 +112,19 @@ test("a quick drag with the mouse stops where it is let go, with no glide after"
   // one over; a glide would have carried it well on, towards -2h.
   const settled = Number(await timeline(page).getAttribute("aria-valuenow"));
   expect(Math.abs(settled - Number(atRelease))).toBeLessThanOrEqual(1);
+});
+
+test("a wide desktop has the apps' badges at the end of the scale's row, clear of the scale", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a phone has no room for them");
+  const player = page.locator(".bottomToolbar.timeslider");
+  const badge = player.getByRole("link", { name: "iOS App Store link" });
+  await expect(badge).toBeVisible();
+  await expect(player.getByRole("link", { name: /Play Store/ })).toBeVisible();
+  const scale = (await player.locator(".legend").boundingBox())!;
+  const box = (await badge.boundingBox())!;
+  expect(overlaps(scale, box)).toBe(false);
+  expect(box.x).toBeGreaterThan(scale.x + scale.width);
+
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await expect(badge).toBeHidden();
 });
