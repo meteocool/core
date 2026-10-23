@@ -8,8 +8,8 @@ import {
 import { tileBaseUrl } from "../urls";
 import { decodeSweep, readBin, SweepGone } from "./sweep";
 import type { BinReading, Sweep } from "./sweep";
-import { binAt, stormRelative } from "./sweepGeometry";
-import type { BinAt, Motion } from "./sweepGeometry";
+import { binAt, fromSite, reachM, stormRelative } from "./sweepGeometry";
+import type { BinAt, Motion, SweepGeometry } from "./sweepGeometry";
 import { aheadOf, listedFor, sweepAt, tiltNear } from "./siteSweeps";
 import type { ListedScan, ListedSite, OfferedTilt, SiteMode } from "./siteSweeps";
 import { beamHeightKm, radarSite } from "./radarSites";
@@ -62,6 +62,8 @@ export default class SiteSweepManager {
   /** The open site as `/sweeps?site=` last answered, newer than the viewport's listing. */
   private openSite: ListedSite | null = null;
   private shown: { scan: ListedScan; sweep: Sweep } | null = null;
+  /** The open site's last sweep drawn, kept through a step with none: how far it reaches. */
+  private reach: { geometry: SweepGeometry; groundM: number } | null = null;
   /** Bumped on every redraw, so a sweep that lands after the reader has moved on is not drawn. */
   private generation = 0;
   private viewport: [number, number, number, number] | null = null;
@@ -111,6 +113,16 @@ export default class SiteSweepManager {
     await this.redraw();
   }
 
+  /**
+   * Whether a point is inside the open radar's reach, as its last sweep drawn
+   * covered it. False with none open, or none drawn yet.
+   */
+  reaches(lon: number, lat: number): boolean {
+    if (!get(siteMode) || !this.reach) return false;
+    const { geometry, groundM } = this.reach;
+    return fromSite(geometry.lon, geometry.lat, lon, lat).groundM <= groundM;
+  }
+
   /** What the open sweep holds at a point, for the long press; null outside it or with none open. */
   readAt(lon: number, lat: number): SweepReading | null {
     const mode = get(siteMode);
@@ -137,6 +149,7 @@ export default class SiteSweepManager {
     if (!mode) {
       this.openSite = null;
       this.shown = null;
+      this.reach = null;
       this.sweeps.clear();
       this.generation++;
       this.layer.release();
@@ -147,6 +160,7 @@ export default class SiteSweepManager {
     }
     if (this.openSite?.site !== mode.site) {
       this.openSite = this.marks.site(mode.site) ?? null;
+      this.reach = null;
       this.sweeps.clear();
       await this.refreshOpenSite(mode.site);
     }
@@ -209,6 +223,7 @@ export default class SiteSweepManager {
     }
     if (generation !== this.generation) return;
     this.shown = { scan, sweep };
+    this.reach = { geometry: sweep.header, groundM: reachM(sweep.header) };
     this.layer.show({ sweep, mode: mode.quantity, motion });
     this.rings.show(sweep.header);
     siteSweepView.set({

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { expect, test } from "./test";
-import { noGeocoder, openRadar, settled } from "./app";
+import { flatPixel, noGeocoder, openRadar, settled, timeline } from "./app";
 import type { Page } from "@playwright/test";
 
 /**
@@ -126,5 +126,47 @@ test.describe("with the radars' marks on", () => {
     await page.waitForTimeout(900);
     await page.mouse.up();
     await expect(page.locator(".site-reading .where")).toHaveText(/° · \d+\.\d km · beam \d+\.\d km$/, { timeout: 10_000 });
+  });
+
+  /* Borkum's sweep reaches 180 km. Out at sea 230 km north of it there is
+     no other radar's mark and no storm to hit. */
+  const BORKUM = "/?layer=radar&latLonZ=53.56413,6.74832,6.20";
+
+  test("the timeline gives way to the radar, and Escape or a click past its reach closes it", async ({ page }) => {
+    await noGeocoder(page);
+    await page.route("**/meteoradar/sweeps/**", (route) => {
+      const body = gunzipSync(readFileSync("tests/ui/fixtures/sweeps/DBZH.mcsw"));
+      return route.fulfill({ status: 200, contentType: "application/octet-stream", body });
+    });
+    await openRadar(page, BORKUM);
+    await expect.poll(() => markOf(page, "deasb"), { timeout: 20_000 }).not.toBeNull();
+    const open = async () => {
+      const at = (await markOf(page, "deasb"))!;
+      await page.mouse.click(at.x, at.y);
+      const tray = page.getByRole("group", { name: "Borkum radar" });
+      await settled(tray);
+      await expect(tray.getByText(/^Scanned \d\d?:\d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
+      return tray;
+    };
+
+    const tray = await open();
+    await expect(timeline(page)).toBeHidden();
+    await expect(page.locator("button.controlButton.play")).toBeHidden();
+
+    // Inside its reach, 100 km east: still open.
+    const inside = await flatPixel(page, 8.25, 53.56413);
+    await page.mouse.click(inside.x, inside.y);
+    await page.waitForTimeout(400);
+    await expect(tray).toBeVisible();
+
+    const outside = await flatPixel(page, 6.74832, 55.63);
+    await page.mouse.click(outside.x, outside.y);
+    await expect(tray).toBeHidden();
+    await expect(timeline(page)).toBeVisible();
+
+    await open();
+    await page.keyboard.press("Escape");
+    await expect(tray).toBeHidden();
+    await expect(timeline(page)).toBeVisible();
   });
 });

@@ -243,7 +243,7 @@ onDestroy(() => {
     flex-direction: column;
     gap: 2px;
   }
-  .site-reading .value { font: 600 14px/1.2 var(--mc-font); color: var(--mc-text-1); }
+  .site-reading .value { font: 600 14px/1.2 var(--mc-font); color: var(--mc-text); }
   .site-reading .where { font: 500 11px/1.3 var(--mc-font); color: var(--mc-text-2); }
 
   /* Where the element waits until OpenLayers moves it into the map. */

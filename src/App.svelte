@@ -9,7 +9,7 @@ import { _ } from "svelte-i18n";
 
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { fromLonLat, transformExtent } from "ol/proj";
+import { fromLonLat, toLonLat, transformExtent } from "ol/proj";
 import Map from "./components/Map.svelte";
 import MapLoading from "./components/MapLoading.svelte";
 import Lazy from "./components/Lazy.svelte";
@@ -934,6 +934,16 @@ lm.forEachMap((map) => {
       );
       if (cloud) {
         openCloudIn3D(cloud);
+        return;
+      }
+    }
+    /* With a radar open, a click past its reach that hits no storm or cloud
+       closes it, and only it: the storm a storm-relative sweep is read
+       against stays selected. */
+    if (!code && get(siteMode)) {
+      const [lon, lat] = toLonLat(event.coordinate);
+      if (!siteSweeps.reaches(lon, lat)) {
+        siteSweeps.close();
         return;
       }
     }

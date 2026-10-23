@@ -8,6 +8,7 @@ import type { Rgba } from "../colormaps";
 import type { Sweep } from "../lib/sweep";
 import type { Motion } from "../lib/sweepGeometry";
 import { EARTH_RADIUS_M, EFFECTIVE_RADIUS_M } from "../lib/sweepGeometry";
+import { isDarkBasemap, watchBasemap } from "./casing";
 
 /**
  * One radar's sweep, drawn in its own polar bins: site mode's map.
@@ -26,7 +27,9 @@ import { EARTH_RADIUS_M, EFFECTIVE_RADIUS_M } from "../lib/sweepGeometry";
  * Raw WebGL2 on a canvas of its own, as the 3D map's raymarch is, handed to
  * OpenLayers through an `ImageCanvas` source: the layer is drawn again when
  * the view settles or the sweep changes, and moved as a picture while the map
- * pans. Above the composites (79 to 81) and below the snow (90).
+ * pans. Above the composites (79 to 81) and below the snow (90). Past the
+ * sweep's last bin the map is greyed over, so the radar's reach reads at a
+ * glance and nothing out there passes for what it measured.
  *
  * Its context is let go whenever site mode closes, and when its map has been
  * hidden a while (`hiddenMaps.ts` clears every layer's renderer, which this
@@ -57,6 +60,7 @@ uniform int u_mode;         // 0 reflectivity, 1 velocity, 2 storm-relative velo
 uniform vec2 u_motion;      // the storm's speed in m/s and heading in radians, for 2
 uniform usampler2D u_bins;  // R8UI, bins wide, rays high
 uniform sampler2D u_palette;// 256 x 1
+uniform vec4 u_veil;        // premultiplied, over the map past the last bin
 
 out vec4 colour;
 
@@ -82,7 +86,11 @@ void main() {
   float s = ground / EFFECTIVE;
   float slant = EFFECTIVE * sin(s) / cos(u_elevation + s);
   int bin = int(floor((slant - u_range.x) / u_range.y));
-  if (slant < 0.0 || bin < 0 || bin >= u_shape.y) discard;
+  if (slant < 0.0 || bin >= u_shape.y) {
+    colour = u_veil;
+    return;
+  }
+  if (bin < 0) discard;
   // mod() on floats: GLSL leaves % of a negative int undefined.
   float steps = round((bearing - u_azimuth.x) / u_azimuth.y);
   int ray = int(mod(steps, float(u_shape.x)));
@@ -98,6 +106,10 @@ void main() {
   if (c.a == 0.0) discard;
   colour = vec4(c.rgb * c.a, c.a);
 }`;
+
+/** The grey past a sweep's reach, premultiplied, on a light basemap and a dark one. */
+const LIGHT_VEIL: Rgba = [96, 100, 108, 140];
+const DARK_VEIL: Rgba = [0, 0, 0, 120];
 
 /** What is drawn: the sweep, how, and for SRV, the storm's motion. */
 export interface Drawn {
@@ -131,7 +143,7 @@ class SweepRenderer {
   }
 
   /** A canvas of `size` with the sweep drawn over `extent`, or an empty one. */
-  draw(drawn: Drawn | null, reflectivityPalette: string, extent: Extent, size: Size): HTMLCanvasElement {
+  draw(drawn: Drawn | null, reflectivityPalette: string, veil: Rgba, extent: Extent, size: Size): HTMLCanvasElement {
     if (!drawn || size[0] < 1 || size[1] < 1) return this.empty;
     const started = performance.now();
     const gl = this.context();
@@ -160,6 +172,8 @@ class SweepRenderer {
     const mode = drawn.mode === "reflectivity" ? 0 : drawn.mode === "srv" && drawn.motion ? 2 : 1;
     gl.uniform1i(u.u_mode, mode);
     gl.uniform2f(u.u_motion, drawn.motion?.speedMs ?? 0, ((drawn.motion?.headingDeg ?? 0) * Math.PI) / 180);
+    const alpha = veil[3] / 255;
+    gl.uniform4f(u.u_veil, (veil[0] / 255) * alpha, (veil[1] / 255) * alpha, (veil[2] / 255) * alpha, alpha);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.bins);
     gl.uniform1i(u.u_bins, 0);
@@ -212,7 +226,7 @@ class SweepRenderer {
     const position = gl.getAttribLocation(program, "a_position");
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-    for (const name of ["u_extent", "u_size", "u_site", "u_elevation", "u_range", "u_shape", "u_azimuth", "u_mode", "u_motion", "u_bins", "u_palette"]) {
+    for (const name of ["u_extent", "u_size", "u_site", "u_elevation", "u_range", "u_shape", "u_azimuth", "u_mode", "u_motion", "u_bins", "u_palette", "u_veil"]) {
       this.uniforms[name] = gl.getUniformLocation(program, name);
     }
     this.canvas = canvas;
@@ -307,14 +321,19 @@ export default function makeSiteSweepLayer(): SiteSweepLayer {
   const renderer = new SweepRenderer();
   let drawn: Drawn | null = null;
   let palette = "classic";
+  let veil = LIGHT_VEIL;
   const source = new ImageCanvasSource({
-    canvasFunction: (extent, _resolution, _pixelRatio, size) => renderer.draw(drawn, palette, extent, size),
+    canvasFunction: (extent, _resolution, _pixelRatio, size) => renderer.draw(drawn, palette, veil, extent, size),
     // The viewport, no margin: drawn again when the view settles, and a margin
     // would only be pixels the shader paints for nobody.
     ratio: 1,
     interpolate: false,
   });
   const layer = new SweepImageLayer(renderer, source);
+  watchBasemap((basemap) => (isDarkBasemap(basemap) ? DARK_VEIL : LIGHT_VEIL), (next) => {
+    veil = next;
+    if (drawn) source.changed();
+  });
   return {
     layer,
     stats: renderer.stats,

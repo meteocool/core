@@ -589,6 +589,17 @@ function returnToLive() {
   open();
 }
 
+/*
+ * A radar opened takes the player back to now: site mode has no timeline,
+ * so a frame parked on or a playback running would be left with no way back.
+ */
+let siteWasOpen = false;
+$: siteOpened($siteMode !== null);
+function siteOpened(isOpen: boolean) {
+  if (isOpen && !siteWasOpen && ($playbackRunning || !$live)) returnToLive();
+  siteWasOpen = isOpen;
+}
+
 /**
  * Open on the frame something outside the player asked for.
  *
@@ -839,6 +850,7 @@ onDestroy(() => {
     height: 100%;
   }
 
+  .head[hidden] { display: none; }
   .head {
     flex: 0 0 auto;
     display: flex;
@@ -891,6 +903,11 @@ onDestroy(() => {
     flex: 0 0 auto;
     min-width: 0;
   }
+  .site {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0 0 0 8px;
+  }
 
   .row {
     flex: 1 1 auto;
@@ -925,7 +942,7 @@ onDestroy(() => {
       column-gap: 12px;
       row-gap: 4px;
     }
-    .plot { grid-column: 1 / -1; grid-row: 1; }
+    .plot, .site { grid-column: 1 / -1; grid-row: 1; }
     .row { grid-column: 1; grid-row: 2; }
     .head {
       grid-column: 2;
@@ -1108,7 +1125,7 @@ onDestroy(() => {
     on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
 {/if}
 
-{#if showBackToLive}
+{#if showBackToLive && !$siteMode}
   <div class="back-to-live" style:--open-strips={$openStripCount} style:--open-hints={$openHintCount}>
     <button type="button" class="glass glass-pill" on:click={returnToLive}
       transition:fly={{ y: 12, duration: 200 }}>
@@ -1127,7 +1144,9 @@ onDestroy(() => {
     on:introend={toolbarTransitionEnd}
     on:outroend={toolbarTransitionEnd}>
     <div class="player">
-      <div class="head" bind:this={head}>
+      <!-- Site mode has no strip for the title to name, and the product is
+           the open radar's, chosen in its tray. -->
+      <div class="head" bind:this={head} hidden={$siteMode !== null}>
         {#if $inspectLatLon || $latLon}
           <span class="title" bind:this={titleEl}>{chartTitle}</span>
           {#if $inspectLatLon && $latLon}
@@ -1148,38 +1167,41 @@ onDestroy(() => {
         {/if}
       </div>
 
-      <!-- Site mode: one radar's own sweep over the dimmed composites (lib/SiteSweepManager.ts). -->
+      <!-- Site mode: one radar's own sweep over the dimmed composites
+           (lib/SiteSweepManager.ts), its controls where the timeline was. -->
       {#if $siteMode}
-        <SiteSweepTray />
+        <div class="site"><SiteSweepTray /></div>
+      {:else}
+        <div class="plot">
+          {#if gridLoading && !hasPrecipitation}
+            <div class="skeleton"><ChartSkeleton bars={25} /></div>
+          {/if}
+          <Timeline
+            {steps}
+            now={gridConfig?.now ?? 0}
+            latest={latestObservation}
+            value={shown}
+            preloaded={$framesPreloaded}
+            {labelEvery}
+            on:grab={grabbed}
+            on:release={released}
+            on:seek={seek} />
+          {#if !gridLoading && noForecastFrom !== null}
+            <p class="no-forecast" style:left={`${noForecastFrom * 100}%`}>{$_("forecast_none_here")}</p>
+          {/if}
+        </div>
       {/if}
-
-      <div class="plot">
-        {#if gridLoading && !hasPrecipitation}
-          <div class="skeleton"><ChartSkeleton bars={25} /></div>
-        {/if}
-        <Timeline
-          {steps}
-          now={gridConfig?.now ?? 0}
-          latest={latestObservation}
-          value={shown}
-          preloaded={$framesPreloaded}
-          {labelEvery}
-          on:grab={grabbed}
-          on:release={released}
-          on:seek={seek} />
-        {#if !gridLoading && noForecastFrom !== null}
-          <p class="no-forecast" style:left={`${noForecastFrom * 100}%`}>{$_("forecast_none_here")}</p>
-        {/if}
-      </div>
 
       <div class="row">
         <!-- Nothing on screen to play (playbackLoop); a running playback can still be paused. -->
-        <button type="button" class="controlButton play" class:playing={$playbackRunning}
-          disabled={!$playbackRunning && !playable}
-          on:click={playPause}
-          title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
-          <Icon icon={playPauseButton} />
-        </button>
+        {#if !$siteMode}
+          <button type="button" class="controlButton play" class:playing={$playbackRunning}
+            disabled={!$playbackRunning && !playable}
+            on:click={playPause}
+            title={$_("chrome.playback.play")} aria-label={$_("chrome.playback.play")}>
+            <Icon icon={playPauseButton} />
+          </button>
+        {/if}
         <div class="legend">
           {#if $siteMode && $siteMode.quantity !== "reflectivity"}
             <VelocityScaleLine nyquist={$siteSweepView?.nyquist ?? null} relative={$siteMode.quantity === "srv"} />
