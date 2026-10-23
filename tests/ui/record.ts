@@ -47,6 +47,8 @@ function withSitesOf(before: RecordedResponse | undefined, answer: RecordedRespo
 async function visit(browser: Browser, baseURL: string | undefined, device: (typeof devices)[string],
   answers: Map<string, RecordedResponse>) {
   const context = await browser.newContext({ ...device, serviceWorkers: "block", baseURL });
+  // The radars' marks are off by default; on, every view records its `/sweeps` listing.
+  await context.addInitScript(() => localStorage.setItem("layerSites", "true"));
   const page = await context.newPage();
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());

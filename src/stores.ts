@@ -488,7 +488,7 @@ export const tileRefreshSignal = writable<number>(0);
  */
 export const siteMode = writable<SiteMode | null>(null);
 /** The radars' marks, the way into site mode: the setting `layerSites`. */
-export const siteMarksVisible = writable<boolean>(true);
+export const siteMarksVisible = writable<boolean>(false);
 /**
  * What site mode is showing, for the tray: the open radar as listed, its
  * tilts, the sweep drawn (or why none is), and the storm motion SRV takes
