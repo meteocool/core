@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { aheadOf, describeReading, MAX_AGE_S, sweepAt, tiltNear, velocityTicks } from "../../src/lib/siteSweeps.ts";
+import { aheadOf, describeReading, MAX_AGE_S, stepsWithSweep, sweepAt, tiltNear, velocityTicks } from "../../src/lib/siteSweeps.ts";
 import { velocityTable, VELOCITY_CALM, VELOCITY_NO_ECHO, VELOCITY_UNRESOLVED } from "../../src/colormaps.ts";
 import { motionOf } from "../../src/lib/stormSelection.ts";
 
@@ -85,4 +85,13 @@ test("the velocity legend labels every 5 m/s where the strip has room, coarser w
     ticks.slice(1).forEach((tick, i) => assert.ok((tick.at - ticks[i].at) * width >= 40, `${span} m/s on ${width} px`));
     assert.ok(ticks.every((tick) => tick.at >= 0 && tick.at <= 1));
   }
+});
+
+test("an open radar plays the observed steps it has a sweep for, and none after now", () => {
+  const scans = [at(0), at(5), at(30)];
+  const steps = [-5, 0, 5, 10, 15, 20, 25, 30, 35, 40].map(step);
+  // 20 and 25: the sweep at 5 is more than two cycles old. 35 and 40: forecast.
+  assert.deepEqual(stepsWithSweep(scans, steps, step(30)), [0, 5, 10, 15, 30].map(step));
+  // The live step shows the newest sweep, filed after it.
+  assert.deepEqual(stepsWithSweep([at(0), at(7)], [0, 5].map(step), step(5)), [0, 5].map(step));
 });

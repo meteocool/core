@@ -55,7 +55,8 @@ import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
 import { preloadMode } from "../lib/framePreload";
 import { drawnByAny } from "../layers/networkAt";
 import type { CountryNetwork } from "../api/events";
-import { canPlay, nextFrame } from "../lib/playbackLoop";
+import { canPlay, nearestStep, nextFrame } from "../lib/playbackLoop";
+import { listedFor, stepsWithSweep, tiltNear } from "../lib/siteSweeps";
 import Polygon from "ol/geom/Polygon";
 import { fromLonLat } from "ol/proj";
 import { nearPlace, type NearPlace } from "../lib/reverseGeocode";
@@ -241,12 +242,46 @@ $: outOfForecast = $onForecastStep && saysNoForecast(forecastMissing);
 /* None of the screen: playback has nothing to show past now (playbackLoop). */
 $: noForecast = anyForecastMissing === 1;
 
+/*
+ * With a radar open, the steps it has a sweep for at the tilt on screen:
+ * playback steps through those alone (playbackLoop), the strip hatches the
+ * rest and the needle stays out of them. Null with none open, before its
+ * listing is in (the view still holds the radar open before it), or with
+ * none in the strip's hours, when there is nothing to keep it to.
+ */
+$: sweepSteps = $siteMode && $siteSweepView?.site.site === $siteMode.site
+  ? nonEmpty(stepsWithSweep(
+    tiltNear(listedFor($siteSweepView.site, $siteMode.quantity), $siteMode.elevation)?.scans ?? [],
+    steps.map((step) => step.t),
+    latestObservation,
+  ))
+  : null;
+const nonEmpty = (list: number[]) => (list.length ? list : null);
+
+/* The strip as the needle sees it: with a radar open, its sweepless steps out of reach. */
+$: stripSteps = sweepSteps ? steps.map((step) => (sweepSteps.includes(step.t) ? step : { ...step, noSweep: true })) : steps;
+
+/*
+ * A radar opened on a step it has no sweep for: the player moves to one, as
+ * the needle would not have stopped there. Outside its sweeps' hours (a
+ * forecast step, or a link's time the radar has since moved past) that is
+ * its newest, the live edge; in a gap between them, the nearest.
+ */
+$: keepToSweeps(sweepSteps);
+function keepToSweeps(only: number[] | null) {
+  if (!only || fsm.state !== "manualScrolling" || !shown || only.includes(shown)) return;
+  const inside = shown > only[0] && shown < only[only.length - 1];
+  shown = inside ? nearestStep(only, shown) : only[only.length - 1];
+  sliderChangedHandler(shown);
+}
+
 $: playable = canPlay({
   outOfRadar: outOfCoverage,
   noForecast,
   // 0 until the scrubber is first moved: the player is following the live frame.
   shown: shown || latestObservation,
   latestObservation,
+  only: sweepSteps,
 });
 
 /**
@@ -485,6 +520,7 @@ const fsm = new StateMachine({
           loopFrom,
           fromStart: $playbackFromStart,
           noForecast,
+          only: sweepSteps,
         });
         if (sliderValueInt === 0) {
           thisFrameDelayMs = 800;
@@ -1185,7 +1221,7 @@ onDestroy(() => {
           <div class="skeleton"><ChartSkeleton bars={25} /></div>
         {/if}
         <Timeline
-          {steps}
+          steps={stripSteps}
           now={gridConfig?.now ?? 0}
           latest={latestObservation}
           value={shown}

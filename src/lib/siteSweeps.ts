@@ -93,6 +93,17 @@ export function sweepAt(scans: ListedScan[], stepS: number, live: boolean): List
 }
 
 /**
+ * The timeline steps an open radar has a sweep for, oldest first: what
+ * playback steps through while it is open, rather than over steps that would
+ * say "no sweep". Observed steps only: a sweep is a scan, and on a forecast
+ * step it would be the newest scan under a later label. `latest` is the live
+ * step, judged as `sweepAt` judges it.
+ */
+export function stepsWithSweep(scans: ListedScan[], steps: number[], latest: number): number[] {
+  return steps.filter((stepS) => stepS <= latest && sweepAt(scans, stepS, stepS === latest) !== null);
+}
+
+/**
  * The sweeps to fetch ahead of the one shown: the next `count` scanned after
  * it, oldest first, as playback steps forward; from the oldest again past the
  * newest, as playback wraps round.

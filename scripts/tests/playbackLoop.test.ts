@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canPlay, nextFrame, type LoopState } from "../../src/lib/playbackLoop.ts";
+import { canPlay, nearestStep, nextFrame, type LoopState } from "../../src/lib/playbackLoop.ts";
 
 /**
  * The play button where the screen has no forecast: off from now on, and from
@@ -57,4 +57,30 @@ test("with no forecast and play-from-start, the loop goes back to the start", ()
 test("a forecast lost mid-playback ends the loop on the next frame, not in the wash", () => {
   // Panned away from the forecast while playing through it: started on now.
   assert.equal(nextFrame(state({ noForecast: true, shown: NOW + 30 * MIN, loopFrom: NOW })), NOW - 120 * MIN);
+});
+
+test("with a radar open, play is on while it has another step with a sweep", () => {
+  const only = [NOW - 10 * MIN, NOW];
+  assert.equal(canPlay({ outOfRadar: false, noForecast: false, shown: NOW, latestObservation: NOW, only }), true);
+  assert.equal(canPlay({ outOfRadar: false, noForecast: false, shown: NOW, latestObservation: NOW, only: [NOW] }), false);
+  assert.equal(canPlay({ outOfRadar: false, noForecast: false, shown: NOW, latestObservation: NOW, only: [] }), false);
+});
+
+test("with a radar open, playback skips the steps it has no sweep for and never enters the forecast", () => {
+  const only = [NOW - 30 * MIN, NOW - 25 * MIN, NOW - 10 * MIN, NOW];
+  const radar = state({ only, loopFrom: NOW - 30 * MIN });
+  assert.equal(nextFrame({ ...radar, shown: NOW - 25 * MIN }), NOW - 10 * MIN);
+  assert.equal(nextFrame({ ...radar, shown: NOW - 20 * MIN }), NOW - 10 * MIN);
+  // Past its last sweep: back to where play was pressed, not into the forecast.
+  assert.equal(nextFrame({ ...radar, shown: NOW }), NOW - 30 * MIN);
+  assert.equal(nextFrame({ ...radar, shown: NOW + 30 * MIN, loopFrom: NOW + 30 * MIN }), NOW - 30 * MIN);
+  assert.equal(nextFrame({ ...radar, shown: NOW, loopFrom: NOW - 25 * MIN }), NOW - 25 * MIN);
+  assert.equal(nextFrame({ ...radar, shown: NOW, loopFrom: NOW - 25 * MIN, fromStart: true }), NOW - 30 * MIN);
+});
+
+test("a radar opened on a step it has no sweep for goes to its nearest one", () => {
+  const only = [NOW - 30 * MIN, NOW - 10 * MIN, NOW];
+  assert.equal(nearestStep(only, NOW + 15 * MIN), NOW);
+  assert.equal(nearestStep(only, NOW - 20 * MIN), NOW - 30 * MIN);
+  assert.equal(nearestStep(only, NOW - 15 * MIN), NOW - 10 * MIN);
 });

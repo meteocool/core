@@ -35,7 +35,7 @@ import { dbz2color } from "../lib/cmap_utils";
 import { decideAxis, type SwipeAxis } from "../lib/swipeAway";
 import { haptic } from "../lib/haptics";
 import {
-  AT_REST, axisTicks, barCeiling, flickGlides, glideStep, indexOf, lastPlayableIndex, restingStep, rubberBand,
+  AT_REST, axisTicks, barCeiling, flickGlides, glideStep, indexOf, reachOf, restingStep, rubberBand, stepOver, sweepGaps,
   type TimelineStep,
 } from "../lib/timeline";
 import type { Translate } from "../locale/t";
@@ -68,14 +68,18 @@ const TICK_MAJOR = 13;
 
 let width = 0;
 $: n = steps.length;
-/** The last step the needle may reach; the strip itself runs on to +2h. */
-$: last = lastPlayableIndex(steps);
+/** Where the needle may rest; the strip itself runs from -2h to +2h. */
+$: reach = reachOf(steps);
+$: last = reach.last;
+/** With a radar open, the runs of steps it has no sweep for: hatched. */
+$: gaps = sweepGaps(steps);
 $: slot = n > 0 ? width / n : 0;
 $: ceiling = barCeiling(steps);
 /** Every step the needle can reach fetched ahead: the band is whole. */
 $: preloadedAll = allPreloaded(steps, preloaded);
-/* Its own clip per strip, should there ever be two. */
+/* Its own clip and hatching per strip, should there ever be two. */
 const bandClip = `mc-preload-band-${Math.random().toString(36).slice(2)}`;
+const hatchId = `mc-no-sweep-${Math.random().toString(36).slice(2)}`;
 $: nowIndex = indexOf(steps, latest);
 
 /** "-2h", "+45m", "+1h30m", and "now" for the zero mark. */
@@ -138,8 +142,8 @@ let dragging = false;
 let frame = 0;
 $: active = dragging || frame !== 0;
 $: if (!active) pos = indexOf(steps, value);
-$: needleX = (Math.min(Math.max(pos, -1.5), last + 1.5) + 0.5) * slot;
-$: shownIndex = restingStep(pos, last);
+$: needleX = (Math.min(Math.max(pos, reach.first - 1.5), last + 1.5) + 0.5) * slot;
+$: shownIndex = restingStep(pos, reach);
 $: readout = n > 0 ? formatOffset(Math.round((steps[shownIndex].t - now) / 60), $_) : "";
 
 let reported = -1;
@@ -148,9 +152,9 @@ let reported = -1;
  * haptics per step, and a firmer one on now and at the ends: the detents.
  */
 function report(): void {
-  const index = Math.min(Math.max(Math.round(pos), 0), last);
+  const index = restingStep(pos, reach);
   if (index === reported || n === 0) return;
-  const detent = index === nowIndex || index === 0 || index === last;
+  const detent = index === nowIndex || index === reach.first || index === last;
   reported = index;
   haptic(detent ? "detent" : "tick");
   dispatch("seek", steps[index].t);
@@ -163,7 +167,7 @@ function stop(): void {
 
 /** Ease onto the nearest whole step, or onto now when it is close. */
 function settle(): void {
-  const target = restingStep(pos, last, nowIndex);
+  const target = restingStep(pos, reach, nowIndex);
   const from = pos;
   if (Math.abs(target - from) < 0.001) {
     pos = target;
@@ -185,13 +189,13 @@ function settle(): void {
 /** Carry on at the release speed, slowing, then settle. */
 let velocity = 0;
 function glide(): void {
-  if (Math.abs(velocity) < AT_REST || pos < 0 || pos > last) {
+  if (Math.abs(velocity) < AT_REST || pos < reach.first || pos > last) {
     settle();
     return;
   }
   let lastT = performance.now();
   const step = (t: number) => {
-    const next = glideStep({ pos, velocity }, t - lastT, last, nowIndex);
+    const next = glideStep({ pos, velocity }, t - lastT, reach, nowIndex);
     lastT = t;
     pos = next.pos;
     velocity = next.velocity;
@@ -235,7 +239,7 @@ function onPointerDown(event: PointerEvent): void {
   lastT = event.timeStamp;
   velocity = 0;
   axis = "undecided";
-  reported = restingStep(pos, last);
+  reported = restingStep(pos, reach);
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -256,7 +260,7 @@ function onPointerMove(event: PointerEvent): void {
   velocity = 0.7 * (delta / dt) + 0.3 * velocity;
   lastX = event.clientX;
   lastT = event.timeStamp;
-  pos = rubberBand(indexAt(event.clientX), last);
+  pos = rubberBand(indexAt(event.clientX), reach);
   report();
 }
 
@@ -266,7 +270,7 @@ function onPointerUp(event: PointerEvent): void {
   pointerId = null;
   if (axis === "undecided") {
     // A tap: straight to the step under the finger.
-    pos = restingStep(indexAt(event.clientX), last);
+    pos = restingStep(indexAt(event.clientX), reach);
     report();
     dispatch("release");
     return;
@@ -281,15 +285,15 @@ function onKey(event: KeyboardEvent): void {
   if (!interactive || n === 0) return;
   const step = event.shiftKey ? 6 : 1;
   let target: number;
-  if (event.key === "ArrowLeft") target = restingStep(pos, last) - step;
-  else if (event.key === "ArrowRight") target = restingStep(pos, last) + step;
+  if (event.key === "ArrowLeft") target = stepOver(restingStep(pos, reach), -step, reach);
+  else if (event.key === "ArrowRight") target = stepOver(restingStep(pos, reach), step, reach);
   else if (event.key === "Home") target = nowIndex;
   else if (event.key === "End") target = last;
   else return;
   event.preventDefault();
   stop();
   dispatch("grab");
-  pos = restingStep(target, last);
+  pos = restingStep(target, reach);
   reported = -1;
   report();
   dispatch("release");
@@ -410,6 +414,17 @@ onDestroy(stop);
     shape-rendering: crispEdges;
   }
 
+  /* With a radar open, the steps it has no sweep for: greyed over, and
+     hatched, so they read as out of bounds rather than as dry. */
+  .no-sweep {
+    fill: var(--mc-glass-fill-solid);
+    opacity: 0.6;
+  }
+  .hatch-stripe {
+    fill: currentColor;
+    opacity: 0.22;
+  }
+
   /* The needle: the chrome's accent, haloed so it stands on any bar colour. */
   .needle {
     fill: var(--mc-chrome-accent, var(--mc-accent));
@@ -502,7 +517,7 @@ onDestroy(stop);
     tabindex={interactive ? 0 : -1}
     aria-readonly={!interactive}
     aria-label={$_("chrome.playback.timeline")}
-    aria-valuemin={0}
+    aria-valuemin={reach.first}
     aria-valuemax={last}
     aria-valuenow={shownIndex}
     aria-valuetext={readout}
@@ -523,6 +538,9 @@ onDestroy(stop);
         <clipPath id={bandClip}>
           <rect x="0" y="0" width={width} height={PLOT_H} rx={BAND_RADIUS} />
         </clipPath>
+        <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect class="hatch-stripe" x="0" y="0" width="2" height="6" />
+        </pattern>
         <g clip-path="url(#{bandClip})">
           <!-- Each step's tiles fetched ahead, filling its slot from the bottom. -->
           <g class="preload-steps">
@@ -563,6 +581,12 @@ onDestroy(stop);
             {/if}
           {/each}
           <line class="now" x1={(nowIndex + 0.5) * slot} x2={(nowIndex + 0.5) * slot} y1="0" y2={PLOT_H} />
+          <!-- With a radar open, where it has no sweep: greyed and hatched, over
+               the bars, and the needle never rests there. -->
+          {#each gaps as [from, to] (from)}
+            <rect class="no-sweep" x={from * slot} y="0" width={(to - from + 1) * slot} height={PLOT_H} />
+            <rect x={from * slot} y="0" width={(to - from + 1) * slot} height={PLOT_H} fill="url(#{hatchId})" />
+          {/each}
         </g>
         <g class="needle-group" class:nudge style:transform="translateX({needleX}px)" on:animationend={() => { nudge = false; }}>
           <rect class="needle" x="-1.5" y="0.5" width="3" height={PLOT_H - 1} rx="1.5" />

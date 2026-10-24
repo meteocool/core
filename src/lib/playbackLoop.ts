@@ -5,6 +5,9 @@
  * none of the screen (Aquitaine, Poland: radar, but no forecast), the forecast
  * steps are washed out and playing into them shows nothing. So play is off on
  * now and after it, and from the past it loops the past radar instead.
+ *
+ * With one radar's sweep open, playback steps only through the steps that
+ * radar has a sweep for (`only`), so it never runs over "no sweep".
  */
 
 const STEP_S = 5 * 60;
@@ -26,22 +29,32 @@ export interface LoopState {
   fromStart: boolean;
   /** The forecast covers none of the screen. */
   noForecast: boolean;
+  /** The only steps playback may land on, oldest first: an open radar's, with a sweep. */
+  only?: number[] | null;
 }
 
 /** Whether play can be pressed: there is anything on screen to play. */
-export function canPlay({ outOfRadar, noForecast, shown, latestObservation }: {
+export function canPlay({ outOfRadar, noForecast, shown, latestObservation, only }: {
   outOfRadar: boolean;
   noForecast: boolean;
   shown: number;
   latestObservation: number;
+  only?: number[] | null;
 }): boolean {
+  if (only) return only.some((step) => step !== shown);
   if (outOfRadar) return false;
   return !noForecast || shown < latestObservation;
 }
 
 /** The frame after `shown`, wrapping round at the end of what is worth playing. */
 export function nextFrame(state: LoopState): number {
-  const { shown, latestObservation, now, lastStep, start, loopFrom, fromStart, noForecast } = state;
+  const { shown, latestObservation, now, lastStep, start, loopFrom, fromStart, noForecast, only } = state;
+  if (only?.length) {
+    const next = only.find((step) => step > shown);
+    if (next !== undefined) return next;
+    // Past the last: back to where play was pressed, as the loop over the past radar goes.
+    return !fromStart && only.includes(loopFrom) && loopFrom < only[only.length - 1] ? loopFrom : only[0];
+  }
   if (noForecast) {
     if (shown < latestObservation) return shown + STEP_S;
     // Back to where play was pressed, unless that was no earlier than now.
@@ -49,4 +62,9 @@ export function nextFrame(state: LoopState): number {
   }
   if (shown >= lastStep) return fromStart ? start : now;
   return shown + STEP_S;
+}
+
+/** The step in `only` nearest `t`, the earlier of two as near. */
+export function nearestStep(only: number[], t: number): number {
+  return only.reduce((best, step) => (Math.abs(step - t) < Math.abs(best - t) ? step : best));
 }

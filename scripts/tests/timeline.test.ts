@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   axisTicks, barCeiling, flickGlides, forecastGapFrom, glideStep, hasEcho, indexOf, lastPlayableIndex,
-  lastPublishedStep, newestObservation, restingStep, rubberBand, timelineSteps,
+  lastPublishedStep, newestObservation, reachOf, restingStep, rubberBand, stepOver, sweepGaps, timelineSteps,
 } from "../../src/lib/timeline.ts";
 import type { GridConfig } from "../../src/caps/RadarCapability.ts";
 
@@ -13,6 +13,8 @@ import type { GridConfig } from "../../src/caps/RadarCapability.ts";
  */
 
 const NOW = 1_700_000_000;
+/** Every step from the first to `last`, as the strip with no radar open. */
+const upTo = (last: number) => ({ first: 0, last, gaps: new Set<number>() });
 const STEP = 300;
 
 function grid(from: number, to: number, dbz: (t: number) => number | null): GridConfig {
@@ -102,40 +104,40 @@ test("indexOf finds the step at or before a time, clamped", () => {
 });
 
 test("the ends give way a little and never more than the overshoot", () => {
-  assert.equal(rubberBand(5, 10), 5);
-  assert.ok(rubberBand(-3, 10) < 0 && rubberBand(-3, 10) > -1.5);
-  assert.ok(rubberBand(100, 10) > 10 && rubberBand(100, 10) < 11.5);
+  assert.equal(rubberBand(5, upTo(10)), 5);
+  assert.ok(rubberBand(-3, upTo(10)) < 0 && rubberBand(-3, upTo(10)) > -1.5);
+  assert.ok(rubberBand(100, upTo(10)) > 10 && rubberBand(100, upTo(10)) < 11.5);
 });
 
 test("a glide slows, stops dead at an end, and rests on a whole step", () => {
   let needle = { pos: 2, velocity: 0.05 };
-  needle = glideStep(needle, 16, 10);
+  needle = glideStep(needle, 16, upTo(10));
   assert.ok(needle.pos > 2);
   assert.ok(needle.velocity < 0.05);
-  const hit = glideStep({ pos: 9.9, velocity: 0.05 }, 16, 10);
+  const hit = glideStep({ pos: 9.9, velocity: 0.05 }, 16, upTo(10));
   assert.equal(hit.pos, 10);
   assert.equal(hit.velocity, 0);
-  assert.equal(restingStep(3.4, 10), 3);
-  assert.equal(restingStep(-0.8, 10), 0);
-  assert.equal(restingStep(12, 10), 10);
+  assert.equal(restingStep(3.4, upTo(10)), 3);
+  assert.equal(restingStep(-0.8, upTo(10)), 0);
+  assert.equal(restingStep(12, upTo(10)), 10);
 });
 
 test("a needle let go near now is caught by it; one further away is not", () => {
-  assert.equal(restingStep(24.8, 47, 24), 24);
-  assert.equal(restingStep(23.2, 47, 24), 24);
-  assert.equal(restingStep(22.9, 47, 24), 23);
-  assert.equal(restingStep(30.4, 47, 24), 30);
+  assert.equal(restingStep(24.8, upTo(47), 24), 24);
+  assert.equal(restingStep(23.2, upTo(47), 24), 24);
+  assert.equal(restingStep(22.9, upTo(47), 24), 23);
+  assert.equal(restingStep(30.4, upTo(47), 24), 30);
 });
 
 test("a slow glide is caught crossing now; a fast one passes through", () => {
-  const slow = glideStep({ pos: 23.95, velocity: 0.005 }, 16, 47, 24);
+  const slow = glideStep({ pos: 23.95, velocity: 0.005 }, 16, upTo(47), 24);
   assert.equal(slow.pos, 24);
   assert.equal(slow.velocity, 0);
-  const fast = glideStep({ pos: 23.95, velocity: 0.08 }, 16, 47, 24);
+  const fast = glideStep({ pos: 23.95, velocity: 0.08 }, 16, upTo(47), 24);
   assert.ok(fast.pos > 24);
   assert.ok(fast.velocity > 0);
   // Not crossing it: nothing to catch.
-  const away = glideStep({ pos: 30, velocity: 0.005 }, 16, 47, 24);
+  const away = glideStep({ pos: 30, velocity: 0.005 }, 16, upTo(47), 24);
   assert.ok(away.pos > 30 && away.velocity > 0);
 });
 
@@ -184,4 +186,37 @@ test("a thumb's flick carries the needle on", () => {
 test("a mouse, trackpad or pen stops where it is let go", () => {
   assert.equal(flickGlides("mouse"), false);
   assert.equal(flickGlides("pen"), false);
+});
+
+/** Six steps: no sweep on 0, 3 and 5 (a gap, and the forecast past it). */
+const sweptSteps = [false, true, true, false, true, false].map((swept, i) => ({
+  t: NOW + i * STEP, dbz: null, forecast: i === 5, playable: true, noSweep: !swept,
+}));
+
+test("with a radar open the needle reaches from its first sweep to its last, around the gaps", () => {
+  const reach = reachOf(sweptSteps);
+  assert.deepEqual({ ...reach, gaps: [...reach.gaps] }, { first: 1, last: 4, gaps: [3] });
+  assert.deepEqual(sweepGaps(sweptSteps), [[0, 0], [3, 3], [5, 5]]);
+  // Without one, every published step.
+  assert.deepEqual(reachOf(sweptSteps.map((step) => ({ ...step, noSweep: undefined }))).first, 0);
+});
+
+test("a needle let go in a gap rests on its nearer side, and never past the sweeps", () => {
+  const reach = reachOf(sweptSteps);
+  assert.equal(restingStep(2.9, reach), 2);
+  assert.equal(restingStep(3.4, reach), 4);
+  assert.equal(restingStep(0.2, reach), 1);
+  assert.equal(restingStep(5.3, reach), 4);
+  // Now in a gap does not catch it.
+  assert.equal(restingStep(3.2, reach, 3), 4);
+  assert.ok(rubberBand(-1, reach) < 1 && rubberBand(-1, reach) > -0.5);
+  assert.equal(glideStep({ pos: 1.05, velocity: -0.05 }, 16, reach).pos, 1);
+});
+
+test("the arrow keys step over a gap the way they go", () => {
+  const reach = reachOf(sweptSteps);
+  assert.equal(stepOver(2, 1, reach), 4);
+  assert.equal(stepOver(4, -1, reach), 2);
+  assert.equal(stepOver(4, 6, reach), 4);
+  assert.equal(stepOver(1, -6, reach), 1);
 });

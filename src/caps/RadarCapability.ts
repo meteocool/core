@@ -16,7 +16,8 @@ import type { NetworkCode } from "../layers/networkHoles";
 import { hasTile, sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
 import { drawnTileId } from "../lib/rvp6";
-import type { ValueTiles } from "../lib/rvp6";
+import type { Ink, ValueTiles } from "../lib/rvp6";
+import { isDarkBasemap } from "../layers/casing";
 import type { RadarFrame, TimeseriesProduct } from "../api";
 import type { CountryNetwork } from "../api/events";
 import type { RadarScans } from "../lib/scans";
@@ -31,6 +32,7 @@ import {
   inspectLatLon,
   latLon,
   live,
+  mapBaseLayer,
   radarCadence,
   radarColorScheme,
   radarStale,
@@ -372,13 +374,22 @@ export default class RadarCapability extends Capability {
     window.radar = this;
 
     //mcTileCache.setMap(map);
-    radarColorScheme.subscribe((colorScheme) => {
+    /* Under an open radar's own sweep the composites are dimmed
+       (`compositeDim`) and drawn in grey, so their colours do not mix with
+       the sweep's: black ink on a light basemap, white on a dark one. */
+    derived(
+      [radarColorScheme, compositeDim, mapBaseLayer],
+      ([colorScheme, dim, basemap]) => {
+        const ink: Ink | null = dim < 1 ? (isDarkBasemap(String(basemap)) ? "white" : "black") : null;
+        return [colorScheme, ink] as const;
+      },
+    ).subscribe(([colorScheme, ink]) => {
       // Every radar layer's palette is its style (lib/rvp6.ts): restyled in
       // place, with nothing reloaded and the grid neither refetched nor
       // re-announced.
-      setDwdCmap(colorScheme);
+      setDwdCmap(colorScheme, ink);
       for (const network of [...this.networks, ...Object.values(this.wholes), this.around, ...this.nowcasts]) {
-        network.setPalette(colorScheme);
+        network.setPalette(colorScheme, ink);
       }
     });
 

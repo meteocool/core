@@ -19,6 +19,7 @@
  * `toolbar` and `layerswitcher`, which embeds set) are left where they are.
  */
 import { normaliseCut } from "./cutAngle";
+import type { Quantity } from "./siteSweeps";
 
 /** The radar map's switchable overlays, in the order a link lists them. */
 export const OVERLAYS = ["cells", "lightning", "mesocyclones"] as const;
@@ -62,6 +63,8 @@ export interface LinkState {
   time?: number;
   /** The point the forecast strip is asked about, as [lat, lon]. */
   point?: [number, number];
+  /** A radar open in site mode: its code, what is drawn of it (reflectivity unless said) and the tilt. */
+  radar?: LinkRadar;
   /**
    * When the link was shared, in unix seconds, to the minute. Set only on a
    * link made to be sent (lib/shareLink.ts), so the receiver can be told how
@@ -71,6 +74,14 @@ export interface LinkState {
   shared?: number;
 }
 
+/** A radar open in site mode, as a link names it. */
+export interface LinkRadar {
+  site: string;
+  quantity: Quantity;
+  /** The tilt's elevation in degrees; absent, the lowest. */
+  tilt?: number;
+}
+
 /**
  * The parameters this module reads and writes, in the order it writes them.
  *
@@ -78,7 +89,8 @@ export interface LinkState {
  * dashboard URL already in circulation still opens where it used to.
  */
 const OWNED = [
-  "layer", "latLonZ", "pitch", "bearing", "overlays", "t", "point", "storm", "cell", "details", "cloud", "cut", "shared",
+  "layer", "latLonZ", "pitch", "bearing", "overlays", "t", "point", "radar", "sweep", "tilt",
+  "storm", "cell", "details", "cloud", "cut", "shared",
 ] as const;
 type OwnedKey = (typeof OWNED)[number];
 
@@ -123,6 +135,12 @@ const LAYER = /^[A-Za-z0-9]{1,32}$/;
  * that the value is safe as a path segment of `/cells/tracks/{code}`.
  */
 const CELL = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** A radar site's code, `deoft` or `frave`: a plain word, which `/sweeps?site=` looks up. */
+const RADAR = /^[a-z0-9]{3,12}$/;
+
+/** What a link may say is drawn of a radar beside reflectivity, the default. */
+const SWEEPS: readonly Quantity[] = ["velocity", "srv"];
 
 /** A storm id: opaque, in the 26-character shape the backend hands out; anything else is not looked up. */
 const STORM = /^[0-9A-HJKMNP-TV-Z]{26}$/;
@@ -264,6 +282,14 @@ export function parseLink(search: string | URLSearchParams): LinkState {
   const point = parsePair(params.get("point"));
   if (point) state.point = point;
 
+  const radar = params.get("radar")?.toLowerCase();
+  if (radar && RADAR.test(radar)) {
+    const sweep = params.get("sweep") as Quantity | null;
+    const tilt = finite(params.get("tilt"));
+    state.radar = { site: radar, quantity: sweep && SWEEPS.includes(sweep) ? sweep : "reflectivity" };
+    if (tilt !== null && tilt >= 0 && tilt <= 90) state.radar.tilt = tilt;
+  }
+
   // The same spelling as a frame's, which is what it is: a minute, in UTC.
   const sharedAt = params.get("shared");
   const shared = sharedAt ? frameTime(sharedAt) : null;
@@ -296,6 +322,10 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
       : (OVERLAYS.filter((overlay) => state.overlays!.includes(overlay)).join(",") || "none"),
     t: state.time === undefined || tracked ? null : frameLink(state.time),
     point: state.point ? `${fixed(state.point[0], 5)},${fixed(state.point[1], 5)}` : null,
+    radar: state.radar?.site ?? null,
+    sweep: state.radar && state.radar.quantity !== "reflectivity" ? state.radar.quantity : null,
+    // Two decimals, as the sites file them (Meteo-France's 0.39), without trailing zeros.
+    tilt: state.radar?.tilt === undefined ? null : String(Math.round(state.radar.tilt * 100) / 100),
     storm: state.storm ?? null,
     cell: !state.storm && state.cell ? state.cell : null,
     details: tracked && state.details === false ? "0" : null,
@@ -348,7 +378,7 @@ export function linkSearch(search: string, state: LinkState, keep: readonly stri
  * Whether going from one state to the other is a step the Back button should
  * be able to undo.
  *
- * Switching map, or opening, changing or closing a storm, is navigation: it is
+ * Switching map, or opening, changing or closing a storm or a radar, is navigation: it is
  * what a reader would expect Back to take them out of. Everything else
  * (panning, zooming, tilting, turning the slice, scrubbing, toggling an
  * overlay) is adjusting the view they are in, and a history entry per pan would make
@@ -360,5 +390,6 @@ export function linkSearch(search: string, state: LinkState, keep: readonly stri
 export function isNavigation(from: LinkState, to: LinkState): boolean {
   if (from.layer !== undefined && from.layer !== to.layer) return true;
   return (from.storm ?? null) !== (to.storm ?? null)
-    || (from.cell ?? null) !== (to.cell ?? null) || (from.cloud ?? null) !== (to.cloud ?? null);
+    || (from.cell ?? null) !== (to.cell ?? null) || (from.cloud ?? null) !== (to.cloud ?? null)
+    || (from.radar?.site ?? null) !== (to.radar?.site ?? null);
 }

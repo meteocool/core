@@ -30,7 +30,7 @@ import type { CameraRequest } from "../caps/Cells3DCapability";
 import {
   capLatestObservation, capTimeIndicator, cellLayerVisible, cutRotationDeg, cycloneLayerVisible,
   frameRequest, inspectLatLon, lightningLayerVisible, mapExtent4326, mapView, playbackRunning, selectedStorm,
-  sharedActiveCap, stormDetails,
+  sharedActiveCap, siteMode, stormDetails,
 } from "../stores";
 import type StormManager from "./StormManager";
 import {
@@ -47,6 +47,7 @@ import { reportToast } from "./Toast";
 import { currentLocale, t } from "../locale/t";
 import { setElementCentre } from "./viewCentre";
 import { onWake } from "./wakeup";
+import { radarSite } from "./radarSites";
 
 /** The setting each overlay is stored under, whose callback drives its store. */
 const OVERLAY_SETTINGS: Record<Overlay, string> = {
@@ -88,6 +89,9 @@ const RESTORE_HOLD_MS = 15_000;
  */
 const STORM_ZOOM = 8;
 
+/** The zoom a link to a radar opens at when it does not say where to look: its whole reach in view. */
+const RADAR_ZOOM = 7;
+
 /** The link the page was opened with. Read once: the URL is ours to rewrite from here on. */
 export const openingLink: LinkState = parseLink(window.location.search);
 
@@ -100,7 +104,7 @@ export const openingLink: LinkState = parseLink(window.location.search);
  * just stays where the link put it.
  */
 export function linkPlacesView(link: LinkState = openingLink): boolean {
-  return Boolean(link.view || link.storm || link.cell || link.cloud || link.point);
+  return Boolean(link.view || link.storm || link.cell || link.cloud || link.point || link.radar);
 }
 
 /**
@@ -119,6 +123,8 @@ export function applyLinkedOverlays(settings: Settings, link: LinkState = openin
     }
   }
   if (link.storm || link.cell) settings.override(OVERLAY_SETTINGS.cells, true);
+  // A linked radar opens whether or not the reader keeps the radars' marks on.
+  if (link.radar) settings.override("layerSites", true);
 }
 
 /** `CameraRequest` without the keys a link left out, so a merge cannot erase them. */
@@ -182,6 +188,9 @@ export function currentState(): LinkState | null {
     if (!tracked && !get(playbackRunning) && offLiveEdge()) state.time = get(capTimeIndicator);
     const point = get(inspectLatLon);
     if (point) state.point = point;
+    const radar = get(siteMode);
+    // A tilt of 0 is a link's "the lowest", until one is chosen in the tray.
+    if (radar) state.radar = { site: radar.site, quantity: radar.quantity, tilt: radar.elevation || undefined };
   }
   return state;
 }
@@ -272,10 +281,10 @@ export function startUrlState({ lm, settings, stormmgr, cells3d, nanobar }: Wiri
     waiting.add(off);
   }
 
-  /** Bring a storm into view, for a link that named it but not where to look. */
-  function centreOn(lat: number, lon: number) {
+  /** Bring a storm (or a radar) into view, for a link that named it but not where to look. */
+  function centreOn(lat: number, lon: number, least = STORM_ZOOM) {
     const view = sharedView();
-    const zoom = Math.max(view?.getZoom() ?? 0, STORM_ZOOM);
+    const zoom = Math.max(view?.getZoom() ?? 0, least);
     view?.setZoom(zoom);
     if (view) setElementCentre(view, fromLonLat([lon, lat]));
     // The 3D map reads the View when it is built, but not after.
@@ -465,6 +474,20 @@ export function startUrlState({ lm, settings, stormmgr, cells3d, nanobar }: Wiri
       if (point && opening && !link.view && !link.cell && !link.storm) centreOn(point[0], point[1]);
       if (link.time !== undefined) frameRequest.set(link.time);
       else if (!opening && offLiveEdge()) frameRequest.set("live");
+      // A linked radar: opened, or brought round to what the entry says; none named, closed on Back.
+      const radar = link.radar;
+      const opened = get(siteMode);
+      if (radar) {
+        // No tilt: 0, which `tiltNear` takes as the lowest.
+        const elevation = radar.tilt ?? 0;
+        if (opened?.site !== radar.site || opened.quantity !== radar.quantity || opened.elevation !== elevation) {
+          siteMode.set({ site: radar.site, quantity: radar.quantity, elevation });
+        }
+        const at = radarSite(radar.site);
+        if (opening && !link.view && at) centreOn(at.lat, at.lon, RADAR_ZOOM);
+      } else if (!opening && opened) {
+        siteMode.set(null);
+      }
     }
     schedule();
   }
@@ -515,7 +538,7 @@ export function startUrlState({ lm, settings, stormmgr, cells3d, nanobar }: Wiri
   const watched: Readable<unknown>[] = [
     sharedActiveCap, mapView, selectedStorm, stormDetails, cutRotationDeg,
     lightningLayerVisible, cellLayerVisible, cycloneLayerVisible,
-    capTimeIndicator, capLatestObservation, playbackRunning, inspectLatLon,
+    capTimeIndicator, capLatestObservation, playbackRunning, inspectLatLon, siteMode,
   ];
   const unsubscribers = watched.map((store) => store.subscribe(() => schedule()));
 

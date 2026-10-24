@@ -47,6 +47,7 @@ import {
 import { tileSourceUrl } from "./dwd";
 import { maskPath } from "./tileMask";
 import { drawnTileId, rvp6Style } from "../lib/rvp6";
+import type { Ink } from "../lib/rvp6";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
 import { radarTileCache } from "../lib/gpuBudget";
@@ -292,6 +293,9 @@ export default class NetworkRadarLayer {
   /** The palette the reader chose: the layer's style, so a change reloads nothing. */
   private palette = "classic";
 
+  /** Grey in this ink under an open radar's sweep (`setPalette`), else null. */
+  private ink: Ink | null = null;
+
   /** How strongly it is drawn: the radar map's own, unless a map lays it under something else. */
   private readonly opacity: number;
 
@@ -350,10 +354,11 @@ export default class NetworkRadarLayer {
     this.apply();
   }
 
-  /** Draw this network in a palette from now on. */
-  setPalette(palette: string) {
+  /** Draw this network in a palette from now on; in grey with an ink, under an open radar's sweep. */
+  setPalette(palette: string, ink: Ink | null = null) {
     this.palette = palette;
-    this.layer?.setStyle(rvp6Style(palette));
+    this.ink = ink;
+    this.layer?.setStyle(rvp6Style(palette, ink));
   }
 
   /**
@@ -430,7 +435,7 @@ export default class NetworkRadarLayer {
     }));
     this.layer = staleOnlyWhileLoading(new TileLayer({
       source,
-      style: rvp6Style(this.palette),
+      style: rvp6Style(this.palette, this.ink),
       // Just under DWD's 80. The cut means they never cover the same pixel,
       // so this only settles which draws first. Europe's draws above DWD's
       // instead, which is hidden while it shows.

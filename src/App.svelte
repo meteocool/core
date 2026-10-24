@@ -345,10 +345,10 @@ window.settings = new Settings({
     },
   },
   /* The radars' own marks on the flat map, the way into site mode
-     (lib/SiteSweepManager.ts). Off unless turned on in Settings. */
+     (lib/SiteSweepManager.ts). On unless turned off in Settings. */
   layerSites: {
     type: "boolean",
-    default: false,
+    default: true,
     cb: (value) => {
       siteMarksVisible.set(Boolean(value));
       if (!value) siteMode.set(null);

@@ -3,7 +3,7 @@ import test from "node:test";
 import { RVP6_CLASSIC, RVP6_CLASSIC_LEFTPAD } from "../../src/colormaps.ts";
 import { dbz2color } from "../../src/lib/cmap_utils.ts";
 import {
-  RVP6_ENTRIES, carriesValues, drawnTileId, paintValues, rvp6Style, rvp6Table,
+  RVP6_ENTRIES, carriesValues, drawnTileId, greyTable, paintValues, rvp6PaletteColours, rvp6Style, rvp6Table,
 } from "../../src/lib/rvp6.ts";
 
 test("the classic table is the classic palette, byte for byte, where it has colours", () => {
@@ -64,4 +64,32 @@ test("a frame carries values only when it says so in the encoding the client rea
   assert.equal(carriesValues({ values: { tile_id: "v", encoding: "hg-class-u8" } }), false);
   assert.equal(drawnTileId({ tile_id: "t", values }), "v");
   assert.equal(drawnTileId({ tile_id: "t" }), "t");
+});
+
+test("in grey, every class keeps the palette's alpha and darkens with dBZ in black ink", () => {
+  const colour = rvp6Table("classic");
+  const grey = greyTable("classic", "black");
+  assert.equal(grey.length, RVP6_ENTRIES);
+  let last = 255;
+  for (let i = 1; i < RVP6_ENTRIES; i++) {
+    const [r, g, b, a] = grey[i];
+    assert.ok(r === g && g === b, `index ${i} is grey`);
+    assert.equal(a, colour[i][3], `index ${i} keeps its alpha`);
+    assert.ok(r <= last, `index ${i} is no lighter than the one before`);
+    last = r;
+  }
+  assert.deepEqual(grey[RVP6_ENTRIES - 1], [0, 0, 0, colour[RVP6_ENTRIES - 1][3]]);
+});
+
+test("in white ink the strongest echo is white, for the dark basemap", () => {
+  const grey = greyTable("viridis", "white");
+  assert.equal(grey[RVP6_ENTRIES - 1][0], 255);
+  assert.ok(grey[(20 + 32.5) * 2][0] < 255);
+});
+
+test("the style takes the grey with an ink, the colours without", () => {
+  const colours = (ink: "black" | null) => ((rvp6Style("classic", ink).color as unknown[])[1] as [string, unknown, number[][]])[2];
+  assert.deepEqual(colours(null), rvp6PaletteColours("classic"));
+  assert.deepEqual(colours("black"), rvp6PaletteColours("classic", "black"));
+  assert.notDeepEqual(colours("black"), colours(null));
 });

@@ -51,9 +51,36 @@ export function rvp6Table(palette: string): Rgba[] {
   return table;
 }
 
-/** The same, as the colours an OpenLayers `palette` expression takes (alpha 0..1). */
-export function rvp6PaletteColours(palette: string): number[][] {
-  return rvp6Table(palette).map(([r, g, b, a]) => [r, g, b, a / 255]);
+/**
+ * What the composites are drawn in under an open radar's own sweep: grey, so
+ * their colours do not mix with the sweep's. Black ink on a light basemap,
+ * white on a dark one, so the strongest echo stands out of either.
+ */
+export type Ink = "black" | "white";
+
+/** The dBZ the grey runs between: from its faintest at the first to full ink at the second. */
+const GREY_FROM_DBZ = 5;
+const GREY_TO_DBZ = 50;
+/** The grey at the faint end, by ink: far enough from the basemap to be seen. */
+const GREY_FAINT: Record<Ink, number> = { black: 160, white: 120 };
+const GREY_FULL: Record<Ink, number> = { black: 0, white: 255 };
+
+/**
+ * The palette's table in grey: each class's alpha kept, so drizzle fades in
+ * as it does in colour, and its grey running with dBZ, not with the colour's
+ * lightness, which in most palettes goes up and down again.
+ */
+export function greyTable(palette: string, ink: Ink): Rgba[] {
+  return rvp6Table(palette).map(([, , , a], i) => {
+    const t = Math.min(1, Math.max(0, (i / 2 - 32.5 - GREY_FROM_DBZ) / (GREY_TO_DBZ - GREY_FROM_DBZ)));
+    const grey = Math.round(GREY_FAINT[ink] + (GREY_FULL[ink] - GREY_FAINT[ink]) * t);
+    return [grey, grey, grey, a];
+  });
+}
+
+/** The same, as the colours an OpenLayers `palette` expression takes (alpha 0..1); in grey with an ink. */
+export function rvp6PaletteColours(palette: string, ink: Ink | null = null): number[][] {
+  return (ink ? greyTable(palette, ink) : rvp6Table(palette)).map(([r, g, b, a]) => [r, g, b, a / 255]);
 }
 
 /**
@@ -64,13 +91,13 @@ export function rvp6PaletteColours(palette: string): number[][] {
  * no blending between neighbouring classes. The colour's alpha is then
  * scaled by the tile's own, band 4: opaque everywhere but where a network's
  * hole was cut (networkHoles.ts), whose antialiased edge fades out exactly
- * as an RGBA tile's does.
+ * as an RGBA tile's does. With an ink, the palette in grey (`greyTable`).
  */
-export function rvp6Style(palette: string) {
+export function rvp6Style(palette: string, ink: Ink | null = null) {
   return {
     color: [
       "*",
-      ["palette", ["*", ["band", 1], 255], rvp6PaletteColours(palette)],
+      ["palette", ["*", ["band", 1], 255], rvp6PaletteColours(palette, ink)],
       ["color", 255, 255, 255, ["band", 4]],
     ],
   };

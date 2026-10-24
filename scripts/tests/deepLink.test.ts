@@ -231,3 +231,30 @@ test("opening, changing or closing a storm is navigation", () => {
   assert.equal(isNavigation({ ...here, storm: STORM }, here), true);
   assert.equal(isNavigation({ ...here, storm: STORM }, { ...here, storm: STORM, details: false }), false);
 });
+
+test("a radar open round-trips, reflectivity and the default left unsaid", () => {
+  const state: LinkState = { layer: "radar", radar: { site: "frave", quantity: "srv", tilt: 0.39 } };
+  const search = linkSearch("", state);
+  assert.equal(search, "?layer=radar&radar=frave&sweep=srv&tilt=0.39");
+  assert.deepEqual(parseLink(search), state);
+  assert.equal(linkSearch("", { radar: { site: "deoft", quantity: "reflectivity", tilt: 0.5 } }), "?radar=deoft&tilt=0.5");
+  assert.deepEqual(parseLink("?radar=DEOFT").radar, { site: "deoft", quantity: "reflectivity" });
+});
+
+test("a radar link that does not parse is dropped, and an unknown sweep is reflectivity", () => {
+  assert.equal(parseLink("?radar=../tiles").radar, undefined);
+  assert.equal(parseLink("?radar=").radar, undefined);
+  assert.deepEqual(parseLink("?radar=deoft&sweep=hail&tilt=-3").radar, { site: "deoft", quantity: "reflectivity" });
+  // A tilt or sweep alone means nothing.
+  assert.equal(parseLink("?sweep=velocity&tilt=1.5").radar, undefined);
+});
+
+test("opening, switching or closing a radar is a step Back undoes; turning its tilt is not", () => {
+  const at = (site?: string, tilt = 0.5): LinkState => ({
+    layer: "radar", ...(site ? { radar: { site, quantity: "reflectivity" as const, tilt } } : {}),
+  });
+  assert.equal(isNavigation(at(), at("deoft")), true);
+  assert.equal(isNavigation(at("deoft"), at("frave")), true);
+  assert.equal(isNavigation(at("deoft"), at()), true);
+  assert.equal(isNavigation(at("deoft"), at("deoft", 1.5)), false);
+});

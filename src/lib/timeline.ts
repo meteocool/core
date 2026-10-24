@@ -24,6 +24,11 @@ export interface TimelineStep {
    * is always the same two hours each way, but the needle cannot reach them.
    */
   playable: boolean;
+  /**
+   * A radar is open and has no sweep for this step: hatched on the strip,
+   * and out of the needle's reach, as the unpublished tail is.
+   */
+  noSweep?: boolean;
 }
 
 /**
@@ -92,6 +97,40 @@ export function lastPlayableIndex(steps: TimelineStep[]): number {
   let index = 0;
   steps.forEach((step, i) => { if (step.playable) index = i; });
   return index;
+}
+
+/**
+ * Where the needle may rest: from `first` to `last`, by index, less the
+ * steps in `gaps` between them. Without a radar open that is every step
+ * from the first to the last published; with one, its steps with a sweep.
+ */
+export interface Reach {
+  first: number;
+  last: number;
+  gaps: ReadonlySet<number>;
+}
+
+/** The strip's reach: its steps published and, with a radar open, swept. Every published step if none is. */
+export function reachOf(steps: TimelineStep[]): Reach {
+  const reachable = steps.map((step) => step.playable && !step.noSweep);
+  const first = reachable.indexOf(true);
+  if (first < 0) return { first: 0, last: lastPlayableIndex(steps), gaps: new Set() };
+  const last = reachable.lastIndexOf(true);
+  const gaps = new Set<number>();
+  for (let i = first; i <= last; i += 1) if (!reachable[i]) gaps.add(i);
+  return { first, last, gaps };
+}
+
+/** The runs of steps a radar open has no sweep for, as [from, to] indices, inclusive. */
+export function sweepGaps(steps: TimelineStep[]): [number, number][] {
+  const runs: [number, number][] = [];
+  steps.forEach((step, i) => {
+    if (!step.noSweep) return;
+    const run = runs[runs.length - 1];
+    if (run && run[1] === i - 1) run[1] = i;
+    else runs.push([i, i]);
+  });
+  return runs;
 }
 
 /**
@@ -218,9 +257,9 @@ export const DETENT_STEPS = 0.9;
 /** A glide slower than this is caught by the detent as it crosses it, in steps per millisecond. */
 export const DETENT_CATCH = 0.012;
 
-/** Clamp into the strip, with rubber-banding past the ends. */
-export function rubberBand(pos: number, last: number): number {
-  if (pos < 0) return -OVERSHOOT * (1 - 1 / (1 + -pos / OVERSHOOT));
+/** Clamp into the reach, with rubber-banding past its ends. */
+export function rubberBand(pos: number, { first, last }: Reach): number {
+  if (pos < first) return first - OVERSHOOT * (1 - 1 / (1 + (first - pos) / OVERSHOOT));
   if (pos > last) return last + OVERSHOOT * (1 - 1 / (1 + (pos - last) / OVERSHOOT));
   return pos;
 }
@@ -230,11 +269,11 @@ export function rubberBand(pos: number, last: number): number {
  * detent when the glide has slowed enough for it to catch. A fast flick
  * passes straight through, so the strip can still be thrown from end to end.
  */
-export function glideStep(needle: Needle, dt: number, last: number, detent: number | null = null): Needle {
+export function glideStep(needle: Needle, dt: number, { first, last }: Reach, detent: number | null = null): Needle {
   const velocity = needle.velocity * Math.exp(-FRICTION * dt);
   let pos = needle.pos + velocity * dt;
-  if (pos <= 0 || pos >= last) {
-    pos = Math.min(Math.max(pos, 0), last);
+  if (pos <= first || pos >= last) {
+    pos = Math.min(Math.max(pos, first), last);
     return { pos, velocity: 0 };
   }
   if (detent !== null && Math.abs(velocity) < DETENT_CATCH
@@ -246,9 +285,23 @@ export function glideStep(needle: Needle, dt: number, last: number, detent: numb
 
 /**
  * Where a released needle comes to rest: the detent if it is close, otherwise
- * the nearest whole step inside the strip.
+ * the nearest whole step in reach, over a gap to the nearer side of it.
  */
-export function restingStep(pos: number, last: number, detent: number | null = null): number {
-  if (detent !== null && Math.abs(pos - detent) <= DETENT_STEPS) return detent;
-  return Math.min(Math.max(Math.round(pos), 0), last);
+export function restingStep(pos: number, reach: Reach, detent: number | null = null): number {
+  if (detent !== null && Math.abs(pos - detent) <= DETENT_STEPS && !reach.gaps.has(detent)) return detent;
+  const step = Math.min(Math.max(Math.round(pos), reach.first), reach.last);
+  if (!reach.gaps.has(step)) return step;
+  let below = step;
+  let above = step;
+  while (reach.gaps.has(below)) below -= 1;
+  while (reach.gaps.has(above)) above += 1;
+  return pos - below <= above - pos ? below : above;
+}
+
+/** The step `by` steps on from `index`, in reach, stepping over any gap the way it went. */
+export function stepOver(index: number, by: number, reach: Reach): number {
+  let target = Math.min(Math.max(index + by, reach.first), reach.last);
+  const way = Math.sign(by) || 1;
+  while (reach.gaps.has(target)) target += way;
+  return target;
 }

@@ -21,6 +21,7 @@ import { isDarkBasemap, watchBasemap } from "./casing";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
 import { drawnTileId, rvp6Style } from "../lib/rvp6";
+import type { Ink } from "../lib/rvp6";
 import type { ValueTiles } from "../lib/rvp6";
 import { hgClassStyle } from "../lib/hgClasses";
 import type { ClassTiles } from "../api";
@@ -37,6 +38,8 @@ export interface TileFrame {
 
 /** The palette DWD's frames are drawn in, by the name the settings store it under. */
 let palette = "classic";
+/** Grey in this ink under an open radar's sweep (`setDwdCmap`), else null. */
+let ink: Ink | null = null;
 
 // Zoom 9 for the observed frame, HX at 250 m; a forecast step is WN at 1 km
 // and stops at 8, and answers 9 out of its own 8 (lib/tileIndex.ts). The
@@ -81,7 +84,7 @@ export function dwdValueLayer(frame: TileFrame): [TileLayer, ValueTileSource, st
   source.set("tile_id", tileId);
   const layer = staleOnlyWhileLoading(new TileLayer({
     source,
-    style: rvp6Style(palette),
+    style: rvp6Style(palette, ink),
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
     cacheSize: radarTileCache(512),
@@ -92,12 +95,14 @@ export function dwdValueLayer(frame: TileFrame): [TileLayer, ValueTileSource, st
   return [layer, source, url];
 }
 
-export function setDwdCmap(colorMapString: string) {
+/** Draw DWD in a palette from now on; in grey with an ink, under an open radar's sweep. */
+export function setDwdCmap(colorMapString: string, inkNow: Ink | null = null) {
   palette = colorMapString;
+  ink = inkNow;
   for (const layer of valueLayers) {
     // Disposed: OpenLayers takes the source away.
     if (!layer.getSource()) valueLayers.delete(layer);
-    else layer.setStyle(rvp6Style(palette));
+    else layer.setStyle(rvp6Style(palette, ink));
   }
 }
 

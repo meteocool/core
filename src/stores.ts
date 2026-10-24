@@ -489,7 +489,7 @@ export const tileRefreshSignal = writable<number>(0);
  */
 export const siteMode = writable<SiteMode | null>(null);
 /** The radars' marks, the way into site mode: the setting `layerSites`. */
-export const siteMarksVisible = writable<boolean>(false);
+export const siteMarksVisible = writable<boolean>(true);
 /**
  * What site mode is showing, for the tray: the open radar as listed, its
  * tilts, the sweep drawn (or why none is), and the storm motion SRV takes
@@ -509,6 +509,7 @@ export const srvManualMotion = writable<ManualMotion>(DEFAULT_MANUAL_MOTION);
 export const srvPrefersManual = writable<boolean>(false);
 /**
  * How strongly the composites are drawn, 0 to 1: dimmed under an open
- * radar's own sweep, so the one does not drown in the other.
+ * radar's own sweep, so the one does not drown in the other. Below 1 they
+ * are drawn in grey as well (caps/RadarCapability.ts).
  */
 export const compositeDim = writable<number>(1);

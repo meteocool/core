@@ -27,13 +27,17 @@ import type { BeamRings } from "../layers/beamRings";
  * Everything it decides is in `siteSweeps.ts` and `sweepGeometry.ts`, pure;
  * this is the plumbing between the listing, the timeline, the selected storm
  * and the layers. Its state is the stores: `siteMode` says what is open,
- * `siteSweepView` what is shown, `compositeDim` how faint the composites
+ * `siteSweepView` what is shown, `compositeDim` how faint (and grey) the composites
  * are drawn under it, and `srvManualMotion` and `srvPrefersManual` what SRV
  * takes out when it is not the selected storm's motion (`srvMotion.ts`).
  */
 
-/** How the composites are drawn under an open radar's sweep, and only while one is drawn. */
-export const SITE_MODE_COMPOSITES = 0.35;
+/**
+ * How strongly the composites are drawn under an open radar's sweep, and
+ * only while one is drawn. In grey there (caps/RadarCapability.ts) they no
+ * longer mix with its colours, so they keep most of their structure.
+ */
+export const SITE_MODE_COMPOSITES = 0.6;
 
 /** Sweeps kept decoded: a step's, the three ahead, and a few behind for scrubbing back. */
 const KEPT_SWEEPS = 16;
