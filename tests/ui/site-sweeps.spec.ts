@@ -132,7 +132,7 @@ test.describe("with the radars' marks on", () => {
      no other radar's mark and no storm to hit. */
   const BORKUM = "/?layer=radar&latLonZ=53.56413,6.74832,6.20";
 
-  test("the timeline gives way to the radar, and Escape or a click past its reach closes it", async ({ page }) => {
+  test("the timeline stays with a radar open, and Escape or a click past its reach closes it", async ({ page }) => {
     await noGeocoder(page);
     await page.route("**/meteoradar/sweeps/**", (route) => {
       const body = gunzipSync(readFileSync("tests/ui/fixtures/sweeps/DBZH.mcsw"));
@@ -149,9 +149,10 @@ test.describe("with the radars' marks on", () => {
       return tray;
     };
 
+    // Its sweeps are scrubbed and played as the frames are.
     const tray = await open();
-    await expect(timeline(page)).toBeHidden();
-    await expect(page.locator("button.controlButton.play")).toBeHidden();
+    await expect(timeline(page)).toBeVisible();
+    await expect(page.locator("button.controlButton.play")).toBeVisible();
 
     // Inside its reach, 100 km east: still open.
     const inside = await flatPixel(page, 8.25, 53.56413);
