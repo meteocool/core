@@ -69,6 +69,7 @@
   "overrides": {
     "svelte-i18n": {
       "esbuild": "^0.25.0"
-    }
+    },
+    "undici": "^7.30.1"
   }
 }
