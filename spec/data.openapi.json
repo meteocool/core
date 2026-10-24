@@ -1010,7 +1010,7 @@
         "description": "A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\none frame, and ignore a value they do not know.",
         "properties": {
           "network": {
-            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network",
+            "description": "Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network, and from the same pass its echo tops at 18, 45 and 50 dBZ, `echotop18`, `echotop45` and `echotop50`, and its vertically integrated liquid, `vil`",
             "enum": [
               "ch",
               "fr",
@@ -1029,7 +1029,11 @@
               "no",
               "eu",
               "dmax",
-              "colmax"
+              "colmax",
+              "echotop18",
+              "echotop45",
+              "echotop50",
+              "vil"
             ],
             "title": "Network",
             "type": "string"
@@ -1042,7 +1046,7 @@
         "type": "object"
       },
       "NowcastRefresh": {
-        "description": "A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).\n\nDeliberately not a `Poke`, though WN's completed run is announced as one:\nevery client's `poke` handler reloads DWD's whole timeseries, and with\nfourteen networks on their own clocks these land every minute or two. A client that\nshows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;\none that does not ignores it. Germany's run is never announced: it is\nrecorded for scoring and never shown.",
+        "description": "A nudge that one network's run of meteocool's own nowcast is complete.\n\nDeliberately not a `Poke`, though WN's completed run is announced as one:\nevery client's `poke` handler reloads DWD's whole timeseries, and with\nfourteen networks on their own clocks these land every minute or two. A client that\nshows the nowcast refetches `/v3/radar/timeseries` with `products=nowcast`;\none that does not ignores it. Germany's run is never announced: it is\nrecorded for scoring and never shown.",
         "properties": {
           "domain": {
             "description": "Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann",
@@ -1837,7 +1841,7 @@
         "type": "object"
       },
       "SweepsRefresh": {
-        "description": "A nudge that one radar has published new sweeps (doc/site-sweeps.md).\n\nPer site, not per network: a reader in site mode looks at one radar, and\nrefetches `/sweeps` for it alone. Sent once a pass per site with anything new.",
+        "description": "A nudge that one radar has published new sweeps.\n\nPer site, not per network: a reader in site mode looks at one radar, and\nrefetches `/sweeps` for it alone. Sent once a pass per site with anything new.",
         "properties": {
           "scanned_at": {
             "description": "The newest new sweep's scan time, milliseconds since the epoch",

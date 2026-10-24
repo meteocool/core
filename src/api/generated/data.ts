@@ -742,14 +742,14 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network, and from the same pass its echo tops at 18, 45 and 50 dBZ, `echotop18`, `echotop45` and `echotop50`, and its vertically integrated liquid, `vil`
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax";
+            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil";
         };
         /**
          * NowcastRefresh
-         * @description A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).
+         * @description A nudge that one network's run of meteocool's own nowcast is complete.
          *
          *     Deliberately not a `Poke`, though WN's completed run is announced as one:
          *     every client's `poke` handler reloads DWD's whole timeseries, and with
@@ -1225,7 +1225,7 @@ export interface components {
         };
         /**
          * SweepsRefresh
-         * @description A nudge that one radar has published new sweeps (doc/site-sweeps.md).
+         * @description A nudge that one radar has published new sweeps.
          *
          *     Per site, not per network: a reader in site mode looks at one radar, and
          *     refetches `/sweeps` for it alone. Sent once a pass per site with anything new.

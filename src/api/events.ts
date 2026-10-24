@@ -20,11 +20,15 @@ export type SnowEvent = Schemas["SnowRefresh"];
 export type CellsEvent = Schemas["CellsRefresh"];
 /**
  * One EUMETNET network's composite was re-rendered, or the merged one (`eu`), the column maximum of every
- * network (`colmax`) or DWD's DMAX (`dmax`); refetch only that frame.
+ * network (`colmax`), one of its column products (`echotop18`, `echotop45`, `echotop50`, `vil`) or DWD's
+ * DMAX (`dmax`); refetch only that frame.
  */
 export type NetworkEvent = Schemas["NetworkRefresh"];
-/** One of the fifteen national networks with a composite of their own: not `eu`, `colmax` or `dmax`, which share their event. */
-export type CountryNetwork = Exclude<NetworkEvent["network"], "eu" | "colmax" | "dmax">;
+/** One of the fifteen national networks with a composite of their own, not one of the frames that share their event. */
+export type CountryNetwork = Exclude<
+  NetworkEvent["network"],
+  "eu" | "colmax" | "dmax" | "echotop18" | "echotop45" | "echotop50" | "vil"
+>;
 /**
  * One network's run of meteocool's own nowcast is complete: a
  * client showing the nowcast refetches the timeseries. Not a `poke`, which

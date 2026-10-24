@@ -92,9 +92,64 @@ export interface paths {
         put?: never;
         /**
          * Acknowledge a delivered notification.
-         * @description Mark a client's notification as seen, so the next one can be sent.
+         * @description Mark a phone's notifications as seen, its places' too, so the next ones can be sent.
          */
         post: operations["clear_notification_v3_mobile_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/mobile/commutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the commutes a phone wants checked for rain.
+         * @description Store each commute, and forget the token's commutes not in the list.
+         *
+         *     Before each scheduled departure, from `lead` minutes before it, every
+         *     run of the domain the commute starts in reads the way for the departures
+         *     within `flexibility` of it, and alerts once if leaving on time is wet. A
+         *     commute sent again keeps what it was alerted for, so a changed name or
+         *     route does not alert the same departure twice. An empty list forgets
+         *     every commute.
+         */
+        put: operations["put_commutes_v3_mobile_commutes_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/mobile/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The radar series at a point, as alerts read it.
+         * @description The chart at a point, read by the domain the map draws there, as its alerts are.
+         *
+         *     `/v3/radar/timeseries` reads DWD's unless the client names a network,
+         *     which an app cannot know: in Paris or Warsaw it charts nothing while the
+         *     alerts come from that network's run. Here the point's domain decides,
+         *     and the series is that domain's: a network's composites and its own
+         *     nowcast, or DWD's HX and WN. `threshold`, `lang` and `details` add the
+         *     headlines and words as the timeseries does. Only with a push token in
+         *     `X-Push-Token`, within its quota.
+         */
+        get: operations["forecast_v3_mobile_forecast_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -121,8 +176,11 @@ export interface paths {
          *     asks for one, so it is forgotten then.
          *
          *     A phone that can start an activity now and could not before is decided
-         *     for at once (worker-radar's `notify_for_client`): rain already due starts
-         *     it without waiting for the next run.
+         *     for at once: rain already due starts it without waiting for the next run.
+         *
+         *     The activity is the phone's own location's, or with `place` one of its
+         *     saved places' (Better Rain Alarm), each its own, started with that place
+         *     in its attributes. A place's is started by the next run, not at once.
          */
         post: operations["post_live_activity_v3_mobile_live_activity_post"];
         delete?: never;
@@ -142,14 +200,79 @@ export interface paths {
         put?: never;
         /**
          * Register or refresh a push client.
-         * @description Upsert a push client's location and notification preferences.
+         * @description Upsert a phone's own location and its notification preferences; its places are left alone.
          */
         post: operations["post_location_v3_mobile_location_post"];
         /**
-         * Forget a push client.
-         * @description Remove a push client's registration.
+         * Forget a push client's location.
+         * @description Remove a phone's own location; its places and commutes stay (`PUT` them empty to forget them).
+         *
+         *     404 only for a token with no registration at all.
          */
         delete: operations["unregister_v3_mobile_location_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/mobile/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the places a phone wants alerts for.
+         * @description Store each place as a push client of its own, and forget the token's places not in the list.
+         *
+         *     A place is then decided, alerted and cleared exactly as a phone's location
+         *     is, by the run of the domain it is in, with flags of its own; its alerts'
+         *     titles start with its name, and carry its id as `place`. A place sent
+         *     again keeps its flags, so an alert it is showing is not sent again. An
+         *     empty list forgets every place; the phone's location and commutes stay.
+         *     `pausedUntil` is set on the phone's location too.
+         */
+        put: operations["put_places_v3_mobile_places_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/mobile/route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The rain along a trip, for each time to leave.
+         * @description Where the traveller is at each moment of the trip, and how wet that gets them, by departure.
+         *
+         *     The way is read about every kilometre (at most 60 points), each point
+         *     passed at its fraction of `duration`, from the same radar series
+         *     `/v3/radar/timeseries` charts there: what was measured, then the
+         *     forecast, each network's own where the map draws that network. Each
+         *     departure says what each point reads in the five-minute step it is
+         *     passed in, and how many seconds of the trip are at or above
+         *     `threshold`; the advice says when to leave, and the headline says it
+         *     in words, in `lang`, with times for the device to fill in.
+         *
+         *     Without `departures`: from now, floored to five minutes, every five
+         *     minutes for as long as the trip still ends inside the forecast -- and
+         *     at least the first -- at most 48.
+         *
+         *     Only with a push token in `X-Push-Token`, within its quota, and a few
+         *     routes at a time: one waiting too long for its turn is answered 503.
+         */
+        post: operations["route_forecast_v3_mobile_route_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -244,7 +367,7 @@ export interface paths {
          *     border the nearest radar that reaches does, whatever its network, DWD's
          *     out to 150 km. The map clips each network's layer to its coverage and
          *     holes DWD's tiles with the rest, and the server decides by the same
-         *     shapes which domain a point belongs to (ADR 0012), so the two cannot
+         *     shapes which domain a point belongs to, so the two cannot
          *     disagree. They change only with a release.
          */
         get: operations["coverage_v3_radar_coverage_get"];
@@ -346,6 +469,78 @@ export interface paths {
          *     (`dmax`); its past is in `/timeseries` when asked for (`products=dmax`).
          */
         get: operations["dmax_v3_radar_dmax_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/echotop18": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 18 dBZ echo top of every network tile metadata.
+         * @description The newest 18 dBZ echo top of every network -- one frame, not a timeseries.
+         *
+         *     How high above sea level each cell's echo reaches 18 dBZ, the top of a
+         *     storm's precipitation, from the tilts the column maximum of every network
+         *     is built from, once a cycle and stamped with it. Its tiles are
+         *     `height-250m-u8`. Refetched on the `network` socket event (`echotop18`);
+         *     its past is in `/timeseries` when asked for (`products=echotop18`).
+         */
+        get: operations["echotop18_v3_radar_echotop18_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/echotop45": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 45 dBZ echo top of every network tile metadata.
+         * @description The newest 45 dBZ echo top of every network: a core's top, which hail grows above the freezing level in.
+         *
+         *     As `/echotop18`, at 45 dBZ; refetched on the `network` socket event
+         *     (`echotop45`), its past in `/timeseries` with `products=echotop45`.
+         */
+        get: operations["echotop45_v3_radar_echotop45_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/echotop50": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 50 dBZ echo top of every network tile metadata.
+         * @description The newest 50 dBZ echo top of every network: what the largest hail is read from against the -20 °C level.
+         *
+         *     As `/echotop18`, at 50 dBZ; refetched on the `network` socket event
+         *     (`echotop50`), its past in `/timeseries` with `products=echotop50`.
+         */
+        get: operations["echotop50_v3_radar_echotop50_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -679,17 +874,20 @@ export interface paths {
          *     `network` as well, it is that network's reading wherever it has a composite
          *     for the step -- which is every observed step, while its ingest is running
          *     -- and DWD's everywhere else, the forecast included. The client names the
-         *     network because it is the one that knows which draws where: the borders are
-         *     `extents.ts`'s, and a point sampled from a network the map is not showing
-         *     there would put bars under the chart that nothing on the map agrees with.
+         *     network because it is the one that knows which draws where, and a point
+         *     sampled from a network the map is not showing there would put bars under
+         *     the chart that nothing on the map agrees with.
          *
          *     `products` adds another observed product's frames for the same steps, for
-         *     a client drawing that one instead: DWD's column maximum, `dmax`, or the
-         *     merged composite, `merged`. Asked for rather than always sent, since each
-         *     frame carries its tile index and most clients draw neither. The chart is
-         *     still read from HX and the networks, whichever is drawn.
+         *     a client drawing that one instead: DWD's column maximum, `dmax`, the
+         *     merged composite, `merged`, the column maximum of every network,
+         *     `colmax`, or one of that pass's column products: an echo top,
+         *     `echotop18`, `echotop45` or `echotop50`, or `vil`. Asked for rather than
+         *     always sent, since each frame carries its tile index and most clients
+         *     draw none of them. The chart is still read from HX and the networks,
+         *     whichever is drawn; a column product's frames carry no reading.
          *
-         *     `products=nowcast` adds meteocool's own nowcast (ADR 0022): each network's
+         *     `products=nowcast` adds meteocool's own nowcast: each network's
          *     newest complete run, under `nowcast_<domain>`, its steps keyed by the
          *     forecast steps they are valid at, shaped as WN's are in `frames`. With a
          *     point and `network`, that network's steps carry the dBZ there, and the
@@ -702,6 +900,32 @@ export interface paths {
          *     the apps show text rather than work it out.
          */
         get: operations["timeseries_v3_radar_timeseries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/vil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vertically integrated liquid of every network tile metadata.
+         * @description The newest vertically integrated liquid of every network -- one frame, not a timeseries.
+         *
+         *     The liquid water in each cell's column, kg m⁻², by Greene and Clark from
+         *     the tilts the column maximum of every network is built from, once a cycle
+         *     and stamped with it. Its tiles are `vil-0.5kg-u8`. Refetched on
+         *     the `network` socket event (`vil`); its past is in `/timeseries` when asked
+         *     for (`products=vil`).
+         */
+        get: operations["vil_v3_radar_vil_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -734,6 +958,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AlertStyle
+         * @description How a rain is alerted (Better Rain Alarm); the meteocool apps', `remind`, unless the app says.
+         * @enum {string}
+         */
+        AlertStyle: "remind" | "once" | "updating";
+        /**
+         * App
+         * @description Which app registered a push client, and so which APNs topic its pushes go to.
+         *
+         *     The meteocool apps never say; Better Rain Alarm says `rainalarm`.
+         * @enum {string}
+         */
+        App: "meteocool" | "rainalarm";
         /**
          * CellsRefresh
          * @description A nudge that a new KONRAD3D reference time is available.
@@ -788,6 +1026,89 @@ export interface components {
             token: string;
         };
         /**
+         * CommuteSetting
+         * @description One trip a phone makes on a schedule, checked for rain before each departure.
+         */
+        CommuteSetting: {
+            /**
+             * Drynotice
+             * @description Say so when the way is dry, too.
+             * @default false
+             */
+            dryNotice: boolean;
+            /**
+             * Duration
+             * @description Seconds the trip takes.
+             */
+            duration: number;
+            /**
+             * Flexibility
+             * @description Minutes either side of the time the user could leave instead.
+             */
+            flexibility: number;
+            /**
+             * Id
+             * @description The app's id for it, a UUID; its alerts carry it as `commute`.
+             */
+            id: string;
+            /**
+             * Intensity
+             * @description Threshold in dbZ
+             */
+            intensity: number;
+            /**
+             * Lead
+             * @description Minutes before the departure that the check starts.
+             */
+            lead: number;
+            /** Name */
+            name: string;
+            /**
+             * Points
+             * @description [lat, lon] in the order travelled, up to 200 km.
+             */
+            points: components["schemas"]["Coordinate"][];
+            /**
+             * Time
+             * @description HH:MM, local: when the user means to leave.
+             */
+            time: string;
+            tz: components["schemas"]["Zone"];
+            /**
+             * Weekdays
+             * @description ISO weekdays it is made on, Monday 1.
+             */
+            weekdays: number[];
+        };
+        /**
+         * CommutesUpdate
+         * @description Every commute a phone wants checked, replacing the ones it sent before.
+         */
+        CommutesUpdate: {
+            /** @default meteocool */
+            app: components["schemas"]["App"];
+            /**
+             * Commutes
+             * @description Empty to remove every commute.
+             */
+            commutes: components["schemas"]["CommuteSetting"][];
+            /** @default en */
+            lang: components["schemas"]["Language"];
+            /** @default ios */
+            source: components["schemas"]["Platform"];
+            /** Token */
+            token: string;
+            /**
+             * Withdbz
+             * @default false
+             */
+            withDBZ: boolean;
+        };
+        Coordinate: [
+            components["schemas"]["Latitude"],
+            components["schemas"]["Longitude"]
+        ];
+        /**
          * Coverages
          * @description Which domain answers for which ground: the map draws by this, and the server decides by it.
          */
@@ -811,6 +1132,28 @@ export interface components {
             priority: string[];
         };
         /**
+         * DepartureWindow
+         * @description The times to leave at: `from`, then every `step` seconds until `until`, at most 48 of them.
+         */
+        DepartureWindow: {
+            /**
+             * From
+             * @description Unix seconds
+             */
+            from: number;
+            /**
+             * Step
+             * @description Seconds
+             * @default 300
+             */
+            step: number;
+            /**
+             * Until
+             * @description Unix seconds, the last departure
+             */
+            until: number;
+        };
+        /**
          * FrameSource
          * @description Where a timestep's values came from.
          *
@@ -832,7 +1175,7 @@ export interface components {
         };
         /**
          * Headline
-         * @description What the rain at a place comes to, in words (meteocool-radar's `headline`).
+         * @description What the rain at a place comes to, in words.
          *
          *     The device fills in the times, which it knows how to show: `{at:name}` in a
          *     text is a clock time, `{in:name}` a countdown, each `times[name]` in unix
@@ -872,9 +1215,13 @@ export interface components {
         /**
          * Language
          * @description Languages notifications are written in.
+         *
+         *     The apps send their own language when it is one of these, Norwegian as
+         *     `nb`, and English otherwise; any other value is a 422.
          * @enum {string}
          */
-        Language: "de" | "en";
+        Language: "de" | "en" | "nl" | "lt" | "et" | "hr" | "da" | "fi" | "sv" | "nb" | "fr" | "it" | "pl" | "cs" | "sk";
+        Latitude: number;
         /**
          * LightningCollection
          * @description Strikes since a baseline.
@@ -939,6 +1286,11 @@ export interface components {
              */
             enabled: boolean;
             /**
+             * Place
+             * @description A saved place's id (Better Rain Alarm), whose own activity these are; null for the location's
+             */
+            place?: string | null;
+            /**
              * Starttoken
              * @description The push-to-start token, null while `enabled` is false
              */
@@ -961,6 +1313,8 @@ export interface components {
              * @description Notify this many minutes ahead
              */
             ahead: number;
+            /** @default meteocool */
+            app: components["schemas"]["App"];
             /**
              * Intensity
              * @description Threshold in dbZ
@@ -980,12 +1334,46 @@ export interface components {
              * @description EPSG:4326 longitude
              */
             lon: number;
+            /** @default 0 */
+            minMinutes: components["schemas"]["MinMinutes"];
+            /**
+             * Pauseduntil
+             * @description No alert until then, unix seconds, as during quiet hours; null for none.
+             */
+            pausedUntil?: number | null;
+            /** @description No alert during these hours: rain still due after them is alerted then, and clears still go out. Null for none. */
+            quiet?: components["schemas"]["QuietHours"] | null;
+            /** @default 0 */
+            radius: components["schemas"]["Radius"];
+            /**
+             * Rainends
+             * @description Also alert, once a rain, when the rain falling now is forecast to stop within `ahead`.
+             * @default false
+             */
+            rainEnds: boolean;
+            /**
+             * Sound
+             * @description Whether its alerts sound and light the screen; false delivers them quietly.
+             * @default true
+             */
+            sound: boolean;
             source: components["schemas"]["Platform"];
             /**
              * Speed
              * @default 0
              */
             speed: number;
+            /**
+             * @description How the rain is alerted: `remind` again once the last was seen (the meteocool apps'), `once` a rain, or `updating`, once and then replaced quietly as the forecast changes. A Live Activity is `/v3/mobile/live_activity`'s.
+             * @default remind
+             */
+            style: components["schemas"]["AlertStyle"];
+            /**
+             * Timesensitive
+             * @description Whether its alerts break through a Focus (iOS's time-sensitive). Not without `sound`.
+             * @default false
+             */
+            timeSensitive: boolean;
             /** Token */
             token: string;
             /**
@@ -994,6 +1382,7 @@ export interface components {
              */
             withDBZ: boolean;
         };
+        Longitude: number;
         /**
          * Mesocyclone
          * @description One DWD mesocyclone detection. The `mesocyclones` event carries a list.
@@ -1025,6 +1414,8 @@ export interface components {
              */
             time: number;
         };
+        /** @description Rain forecast to last less than this many minutes is not alerted; hail still is. 0 for all. */
+        MinMinutes: number;
         /**
          * NetworkCoverage
          * @description Where one network answers, and what of its country is cut out of DWD's tiles.
@@ -1047,14 +1438,14 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network, and from the same pass its echo tops at 18, 45 and 50 dBZ, `echotop18`, `echotop45` and `echotop50`, and its vertically integrated liquid, `vil`
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax";
+            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil";
         };
         /**
          * NowcastRefresh
-         * @description A nudge that one network's run of meteocool's own nowcast is complete (ADR 0022).
+         * @description A nudge that one network's run of meteocool's own nowcast is complete.
          *
          *     Deliberately not a `Poke`, though WN's completed run is announced as one:
          *     every client's `poke` handler reloads DWD's whole timeseries, and with
@@ -1066,10 +1457,10 @@ export interface components {
         NowcastRefresh: {
             /**
              * Domain
-             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann
              * @enum {string}
              */
-            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no";
+            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "ie";
             /**
              * Issued At
              * @description The run's issue time, unix seconds: the five-minute slot it starts from
@@ -1077,11 +1468,146 @@ export interface components {
             issued_at: number;
         };
         /**
+         * Place
+         * @description One saved place, which alerts as a phone's location does.
+         */
+        Place: {
+            /**
+             * Ahead
+             * @description Notify this many minutes ahead
+             */
+            ahead: number;
+            /**
+             * Id
+             * @description The app's id for it, a UUID; its alerts carry it as `place`.
+             */
+            id: string;
+            /**
+             * Intensity
+             * @description Threshold in dbZ
+             */
+            intensity: number;
+            lat: components["schemas"]["Latitude"];
+            lon: components["schemas"]["Longitude"];
+            /** @default 0 */
+            minMinutes: components["schemas"]["MinMinutes"];
+            /**
+             * Name
+             * @description Its alerts start with it: "Home: ..."
+             */
+            name: string;
+            /** @default 0 */
+            radius: components["schemas"]["Radius"];
+            /**
+             * Rainends
+             * @description Also alert, once a rain, when the rain falling now is forecast to stop within `ahead`. Null for the request's `rainEnds`.
+             */
+            rainEnds?: boolean | null;
+            /**
+             * Sound
+             * @description Whether its alerts sound and light the screen; false delivers them quietly.
+             * @default true
+             */
+            sound: boolean;
+            /**
+             * @description How the rain is alerted: `remind` again once the last was seen (the meteocool apps'), `once` a rain, or `updating`, once and then replaced quietly as the forecast changes. A Live Activity is `/v3/mobile/live_activity`'s.
+             * @default remind
+             */
+            style: components["schemas"]["AlertStyle"];
+            /**
+             * Timesensitive
+             * @description Whether its alerts break through a Focus (iOS's time-sensitive). Not without `sound`.
+             * @default false
+             */
+            timeSensitive: boolean;
+        };
+        /**
+         * PlacesUpdate
+         * @description Every place a phone wants alerts for, replacing the ones it sent before.
+         */
+        PlacesUpdate: {
+            /** @default meteocool */
+            app: components["schemas"]["App"];
+            /** @default en */
+            lang: components["schemas"]["Language"];
+            /**
+             * Pauseduntil
+             * @description No alert until then, unix seconds, as during quiet hours; null for none. Set on the phone's location too.
+             */
+            pausedUntil?: number | null;
+            /**
+             * Places
+             * @description Empty to remove every place.
+             */
+            places: components["schemas"]["Place"][];
+            /** @description No alert during these hours: rain still due after them is alerted then, and clears still go out. Null for none. */
+            quiet?: components["schemas"]["QuietHours"] | null;
+            /**
+             * Rainends
+             * @description Also alert, once a rain, when the rain falling now is forecast to stop within `ahead`.
+             * @default false
+             */
+            rainEnds: boolean;
+            /** @default ios */
+            source: components["schemas"]["Platform"];
+            /** Token */
+            token: string;
+            /**
+             * Withdbz
+             * @default false
+             */
+            withDBZ: boolean;
+        };
+        /**
          * Platform
          * @description Which push provider a client is registered with.
          * @enum {string}
          */
         Platform: "ios" | "android";
+        /**
+         * PointForecast
+         * @description The radar series at one point as the rain alerts read it there, without tile metadata.
+         */
+        PointForecast: {
+            /**
+             * Domain
+             * @description The domain whose readings these are, the one the map draws at the point and whose run alerts it: `de` for DWD's, a network's code such as `fr`, or null outside every domain, where every step is null.
+             */
+            domain: string | null;
+            /**
+             * Frames
+             * @description Now and two hours either side, every five minutes, keyed by unix seconds: in a network's domain its composites for the measured steps where it has one and its own fresh nowcast up to its last lead, else DWD's HX and WN. Null where there is no frame, and past the nowcast's last lead.
+             */
+            frames: {
+                [key: string]: components["schemas"]["PointFrame"] | null;
+            };
+            /**
+             * Headlines
+             * @description With `threshold`: as `/v3/radar/timeseries` gives them, worded from these very readings; null outside every domain.
+             */
+            headlines?: {
+                [key: string]: components["schemas"]["Headline"];
+            } | null;
+            /** Server Time */
+            server_time: number;
+            /**
+             * Words
+             * @description With `threshold`: the rain alerts' words for each dBZ band, heaviest first.
+             */
+            words?: components["schemas"]["IntensityWord"][] | null;
+        };
+        /**
+         * PointFrame
+         * @description One step of a point's series: what the radar read there, and whether it was measured.
+         */
+        PointFrame: {
+            /**
+             * Dbz
+             * @description dBZ at the point; null where nothing was read.
+             */
+            dbz: number | null;
+            source: components["schemas"]["FrameSource"];
+        };
         /**
          * Poke
          * @description A nudge that a tile product has been re-rendered, and should be refetched.
@@ -1106,6 +1632,23 @@ export interface components {
             upstream_time: number;
             /** @description What the tile set's bytes mean: HG classes. Absent on frames rendered in RGBA. */
             values?: components["schemas"]["ClassTiles"] | null;
+        };
+        /**
+         * QuietHours
+         * @description Local hours without alerts, wrapping midnight when `from` is after `until`; equal times are none.
+         */
+        QuietHours: {
+            /**
+             * From
+             * @description HH:MM, local
+             */
+            from: string;
+            tz: components["schemas"]["Zone"];
+            /**
+             * Until
+             * @description HH:MM, local
+             */
+            until: string;
         };
         /**
          * RadarFrame
@@ -1137,7 +1680,7 @@ export interface components {
              * @description When the radars measured what this frame shows, unix seconds: for a network's composite, its newest scan. The cutaway volumes carry the same time as `reference_time`, so a client can tell a volume from an older scan than the frame under it. Absent on frames recorded without one.
              */
             upstream_time?: number | null;
-            /** @description What the tile set's bytes mean: single-band RVP6. Absent on frames rendered in RGBA. */
+            /** @description What the tile set's bytes mean: single-band RVP6, or a column product's encoding. Absent on frames rendered in RGBA. */
             values?: components["schemas"]["ValueTiles"] | null;
         };
         /**
@@ -1167,7 +1710,7 @@ export interface components {
             };
             /**
              * Products
-             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, and `colmax`, its column maximum of every network -- keyed like `networks`: the frame measured nearest each observed step (`dmax` and `colmax` only on their own step), and on the newest step the newest one, while it is fresh. With `products=nowcast`, meteocool's own nowcast (experimental): `nowcast_ch`, `nowcast_fr`, `nowcast_cz` and `nowcast_pl`, each that network's newest complete run issued in the last 30 minutes, its steps keyed by the step they are valid at and shaped as WN's are in `frames` (`source` `nowcast_phys`, tiles in the nowcast bucket, `upstream_time` the run's issue time); with `lat`, `lon` and `network`, that network's steps carry `dbz` at the point. A network without a fresh run is absent; Germany has none here. Empty unless asked for.
+             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, `colmax`, its column maximum of every network, and that pass's echo tops, `echotop18`, `echotop45` and `echotop50`, and vertically integrated liquid, `vil` -- keyed like `networks`: the frame measured nearest each observed step (`dmax`, `colmax` and its column products only on their own step), and on the newest step the newest one, while it is fresh. A column product's tiles are of its own encoding (`values.encoding`) and carry no `dbz`. With `products=nowcast`, meteocool's own nowcast (experimental): `nowcast_ch`, `nowcast_fr`, `nowcast_cz` and `nowcast_pl`, each that network's newest complete run issued in the last 30 minutes, its steps keyed by the step they are valid at and shaped as WN's are in `frames` (`source` `nowcast_phys`, tiles in the nowcast bucket, `upstream_time` the run's issue time); with `lat`, `lon` and `network`, that network's steps carry `dbz` at the point. A network without a fresh run is absent; Germany has none here. Empty unless asked for.
              */
             products?: {
                 [key: string]: {
@@ -1188,7 +1731,151 @@ export interface components {
              */
             words?: components["schemas"]["IntensityWord"][] | null;
         };
+        /** @description Also alert, once a rain, when rain at the threshold is this many km away in the run's first lead and not forecast to arrive within `ahead`: 0 for off, else 3 to 50. */
+        Radius: number;
         Rings: number[][][];
+        /**
+         * RouteAdvice
+         * @description When to leave.
+         */
+        RouteAdvice: {
+            /**
+             * At
+             * @description The departure the advice names, unix seconds.
+             */
+            at: number | null;
+            /**
+             * Best
+             * @description The least wet departure, the earliest of equals.
+             */
+            best: number | null;
+            /** @description `dry`: every departure is. `leave_by`: the first is dry, a later one is not; `at` is the last of the first dry ones. `wait_until`: the first is wet, a later one dry; `at` is the first dry one. `least_wet`: none is dry; `at` is the least wet. `unknown`: no departure has a reading. */
+            kind: components["schemas"]["RouteAdviceKind"];
+        };
+        /**
+         * RouteAdviceKind
+         * @description What the departures come to.
+         * @enum {string}
+         */
+        RouteAdviceKind: "dry" | "leave_by" | "wait_until" | "least_wet" | "unknown";
+        /**
+         * RouteDeparture
+         * @description Leaving at `at`: what each sample reads as the traveller passes it.
+         */
+        RouteDeparture: {
+            /**
+             * At
+             * @description Unix seconds
+             */
+            at: number;
+            /**
+             * Dbz
+             * @description Per sample, the dBZ of the step it is passed in, to the nearest half; null if unknown.
+             */
+            dbz: (number | null)[];
+            /**
+             * Dry
+             * @description `wet` is 0.
+             */
+            dry: boolean;
+            /**
+             * Peak
+             * @description The heaviest reading on the way; 0 when dry.
+             */
+            peak: number;
+            /**
+             * Wet
+             * @description Seconds of the trip at or above the threshold, each sample its share of it.
+             */
+            wet: number;
+        };
+        /**
+         * RouteForecast
+         * @description The rain along a trip for each time the traveller could leave.
+         */
+        RouteForecast: {
+            advice: components["schemas"]["RouteAdvice"];
+            /**
+             * Departures
+             * @description In time order; a departure with no reading at any sample is left out.
+             */
+            departures: components["schemas"]["RouteDeparture"][];
+            /**
+             * Distance
+             * @description Metres along the way.
+             */
+            distance: number;
+            /** Duration */
+            duration: number;
+            /** @description The advice in words, in `lang`; the device fills in the times. */
+            headline: components["schemas"]["Headline"];
+            /**
+             * Interval
+             * @description Seconds between radar steps.
+             */
+            interval: number;
+            /** Samples */
+            samples: components["schemas"]["RouteSample"][];
+            /**
+             * Start
+             * @description Unix seconds of the first radar step read: the first departure's.
+             */
+            start: number;
+            /** Threshold */
+            threshold: number;
+            /**
+             * Words
+             * @description The rain alerts' words for each dBZ band, heaviest first.
+             */
+            words: components["schemas"]["IntensityWord"][];
+        };
+        /**
+         * RouteRequest
+         * @description A trip, and when the traveller could leave.
+         */
+        RouteRequest: {
+            /** @description Default: from now, floored to five minutes, every five minutes for as long as the trip still ends inside the forecast, at most 48. */
+            departures?: components["schemas"]["DepartureWindow"] | null;
+            /**
+             * Details
+             * @description Add the peak's dBZ to the headline's detail.
+             * @default false
+             */
+            details: boolean;
+            /**
+             * Duration
+             * @description Seconds the trip takes.
+             */
+            duration: number;
+            /** @default en */
+            lang: components["schemas"]["Language"];
+            /**
+             * Points
+             * @description [lat, lon] in the order travelled, up to 200 km.
+             */
+            points: components["schemas"]["Coordinate"][];
+            /**
+             * Threshold
+             * @description The dBZ that counts as wet.
+             * @default 20
+             */
+            threshold: number;
+        };
+        /**
+         * RouteSample
+         * @description A point the way is read at, about every kilometre of it.
+         */
+        RouteSample: {
+            /**
+             * Fraction
+             * @description How far along the way: 0 at the start, 1 at the end.
+             */
+            fraction: number;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+        };
         /**
          * SnowRefresh
          * @description A nudge that the snowfield overlay has been re-rendered.
@@ -1254,7 +1941,7 @@ export interface components {
         };
         /**
          * SweepsRefresh
-         * @description A nudge that one radar has published new sweeps (doc/site-sweeps.md).
+         * @description A nudge that one radar has published new sweeps.
          *
          *     Per site, not per network: a reader in site mode looks at one radar, and
          *     refetches `/sweeps` for it alone. Sent once a pass per site with anything new.
@@ -1346,10 +2033,10 @@ export interface components {
         ValueTiles: {
             /**
              * Encoding
-             * @description Single-band 8-bit greyscale PNG; pixel = RVP6 = (dBZ + 32.5) * 2, clipped to 0..255; 0 draws nothing.
-             * @constant
+             * @description Single-band 8-bit greyscale PNG; 0 draws nothing. `rvp6-u8`: pixel = RVP6 = (dBZ + 32.5) * 2, clipped to 0..255, for reflectivity. `height-250m-u8`, an echo top (`echotop18`, `echotop45`, `echotop50`): pixel * 250 m above sea level, 1..254, 0 where no echo reaches the threshold. `vil-0.5kg-u8`, vertically integrated liquid (`vil`): pixel * 0.5 kg m-2, 1..254, 0 under 0.25.
+             * @enum {string}
              */
-            encoding: "rvp6-u8";
+            encoding: "rvp6-u8" | "height-250m-u8" | "vil-0.5kg-u8";
             /**
              * Tile Id
              * @description The tile set, at the same place as `tile_id`'s.
@@ -1386,6 +2073,8 @@ export interface components {
              */
             reference_time: number;
         };
+        /** @description An IANA time zone, such as Europe/Berlin */
+        Zone: string;
     };
     responses: never;
     parameters: never;
@@ -1541,6 +2230,100 @@ export interface operations {
             };
         };
     };
+    put_commutes_v3_mobile_commutes_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommutesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description A token the push provider says is dead. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forecast_v3_mobile_forecast_get: {
+        parameters: {
+            query: {
+                /** @description EPSG:4326 latitude */
+                lat: number;
+                /** @description EPSG:4326 longitude */
+                lon: number;
+                threshold?: number | null;
+                lang?: components["schemas"]["Language"];
+                details?: boolean;
+            };
+            header?: {
+                /** @description The app's push token: its APNs device token in hex, or its FCM token. */
+                "x-push-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PointForecast"];
+                };
+            };
+            /** @description No push token in `X-Push-Token`, or one its provider does not deliver to. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description The token's quota, or the checks of new tokens, ran out: try again after `Retry-After`. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     post_live_activity_v3_mobile_live_activity_post: {
         parameters: {
             query?: never;
@@ -1644,6 +2427,103 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    put_places_v3_mobile_places_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description A token the push provider says is dead. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    route_forecast_v3_mobile_route_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The app's push token: its APNs device token in hex, or its FCM token. */
+                "x-push-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteForecast"];
+                };
+            };
+            /** @description No push token in `X-Push-Token`, or one its provider does not deliver to. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description The token's quota, or the checks of new tokens, ran out: try again after `Retry-After`. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Every turn at reading a route stayed taken; try again after `Retry-After`. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1788,6 +2668,66 @@ export interface operations {
         };
     };
     dmax_v3_radar_dmax_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    echotop18_v3_radar_echotop18_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    echotop45_v3_radar_echotop45_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    echotop50_v3_radar_echotop50_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2075,7 +3015,7 @@ export interface operations {
                 lat?: number;
                 lon?: number;
                 network?: ("ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no") | null;
-                products?: ("dmax" | "merged" | "colmax" | "nowcast")[] | null;
+                products?: ("dmax" | "merged" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil" | "nowcast")[] | null;
                 threshold?: number | null;
                 lang?: components["schemas"]["Language"];
                 details?: boolean;
@@ -2102,6 +3042,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vil_v3_radar_vil_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
                 };
             };
         };
