@@ -5,10 +5,10 @@ storm and lightning tracker](https://github.com/meteocool/).
 
 
 The meteocool frontend is Svelte 5 and TypeScript, built with Vite. The
-`develop` branch is automatically deployed to the
-[staging environment](https://next.meteocool.com), which can be
-viewed after enabling the "Experimental Features" setting in the
-iOS app or by joining the Beta program on meteocool Play store page.
+`main` branch is deployed to [meteocool.com](https://meteocool.com) and the
+apps. The `develop` branch is deployed to
+[next.meteocool.com](https://next.meteocool.com), which the apps show with
+the "Experimental Features" setting.
 
 ## Architecture
 
@@ -47,14 +47,16 @@ Non-existent, but here's a few pointers:
 
 ## Deployment
 
-The public website and new native apps use the `staging` Worker environment
-in `wrangler.jsonc`. Build with `--mode staging` so the frontend uses the
-same backend as the Worker's native API forwarding. `npm run deploy:staging`
-builds and deploys both the public website and its staging aliases;
-`npm run deploy:demo` publishes only the demo environment.
+Three Worker environments in `wrangler.jsonc`, each with its own Vite mode:
 
-`npm run build` without a mode targets the old backend. It is not the public
-website's deployment build, and `deploy:production` is intentionally blocked.
+| Environment | Hostnames | Deployed from | Build |
+|---|---|---|---|
+| `production` | meteocool.com, app.meteocool.com | `main` | `vite build` |
+| `next` | next.meteocool.com | `develop` | `vite build --mode next` |
+| `demo` | demo.meteocool.com | `develop` | `vite build --mode demo` |
+
+CI deploys on every push to those branches. `npm run deploy:production`,
+`deploy:next` and `deploy:demo` do the same by hand.
 The Pages build guard must stay enabled while legacy apps use that project.
 
 ## Warning: Recreational Programming

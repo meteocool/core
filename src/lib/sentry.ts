@@ -16,8 +16,8 @@ import { unsupportedBrowser } from "./browserSupport";
 import { failureKind } from "./shownFailure";
 import { isAbort } from "./timedFetch";
 
-// The `v4-web` project, which only staging and demo report to: the old
-// production build still reports to `web`, and its issues are not ours.
+// The `v4-web` project, with production, next and demo told apart by
+// environment (the Vite mode). The legacy apps' build reports to `web`.
 const DSN = "https://9527d5ff2482249661ee40aa73c7c7e7@o347743.ingest.us.sentry.io/4512206228750336";
 
 type Shown = { surface: string; error: unknown; context: Record<string, unknown> };

@@ -438,8 +438,8 @@ function contextRows(): Row[] {
  * Whether the tiles on screen are being cached.
  *
  * Worth its own section because the answer is not obvious and is usually no:
- * the service worker only routes tiles-a.meteocool.com, so a staging build
- * (assets-staging) or a dev build (the vite proxy) requests tiles the worker
+ * the service worker only routes tiles-a.meteocool.com, so a deployed build
+ * (assets-staging, assets-demo) or a dev build (the vite proxy) requests tiles the worker
  * never sees, and nothing is cached however healthy the panel otherwise looks.
  * That is what "routed" reports, tested against the worker's own patterns,
  * imported rather than restated, so this cannot go on claiming a route that

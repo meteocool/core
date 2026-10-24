@@ -1,0 +1,86 @@
+# Deploys meteocool.com and app.meteocool.com on every push to `main`: the
+# `production` Worker environment in wrangler.jsonc, built in Vite's default
+# mode.
+#
+# The same rules as deploy.yml keep the Cloudflare token reachable from as
+# little as possible: push only, never a pull_request trigger; the token lives
+# in the `production` GitHub Environment, which only admits `main`; the job
+# that holds it installs nothing from package-lock.json; GitHub-hosted
+# runners only; actions pinned by commit; GITHUB_TOKEN read-only.
+name: deploy-production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A deploy in progress always finishes: cancelling one leaves a Worker half
+# uploaded. A newer push queues behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: types
+        run: npm run check
+      - name: test
+        run: npm test
+
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: build
+        run: npx vite build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist-production
+          path: dist
+          retention-days: 3
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://meteocool.com
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist-production
+          path: dist
+      # The same wrangler as deploy.yml and package.json. Keep the three in step.
+      - name: publish
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.131.1 deploy --env production

@@ -51,15 +51,15 @@ function swatch(cmap: string): string {
  * selected (lib/urlState.ts).
  */
 const MODES = [
-  { id: "production", origin: "https://meteocool.com", aliases: ["https://www.meteocool.com"] },
-  { id: "experimental", origin: "https://next.meteocool.com", aliases: ["https://web.staging.meteocool.com", "https://app.meteocool.com"] },
+  { id: "production", origin: "https://meteocool.com", aliases: ["https://www.meteocool.com", "https://app.meteocool.com"] },
+  { id: "experimental", origin: "https://next.meteocool.com", aliases: [] },
   { id: "demo", origin: "https://demo.meteocool.com", aliases: [] },
 ] as const;
 
 /** By origin; a dev server or preview by what its build points at (urls.ts). */
 const currentMode = MODES.find((m) => m.origin === window.location.origin
   || (m.aliases as readonly string[]).includes(window.location.origin))?.id
-  ?? (import.meta.env.MODE === "demo" ? "demo" : import.meta.env.PROD && import.meta.env.MODE !== "staging" ? "production" : "experimental");
+  ?? (import.meta.env.MODE === "demo" ? "demo" : import.meta.env.MODE === "production" ? "production" : "experimental");
 
 function setMode(mode: (typeof MODES)[number]) {
   if (mode.id === currentMode) return;

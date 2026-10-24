@@ -73,8 +73,7 @@ const commit = process.env.COMMIT_REF ?? process.env.GITHUB_SHA ?? process.env.G
  * Cloudflare Pages project `core` serves app.ng.meteocool.com. Publishing
  * this frontend there would replace the legacy app's map. A failed Pages
  * build leaves its live deployment alone. The public website and new apps
- * deploy as Workers from .github/workflows/deploy.yml, which never sets
- * CF_PAGES.
+ * deploy as Workers from .github/workflows, which never set CF_PAGES.
  */
 if (process.env.CF_PAGES && !process.env.MC_ALLOW_PAGES_BUILD) {
   throw new Error(

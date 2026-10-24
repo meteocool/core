@@ -1,7 +1,7 @@
 name: SentryRelease
 
 # A production release, so only for what production runs: `main`. `develop`
-# goes to staging and demo (deploy.yml), and a release cut from each push there
+# goes to next and demo (deploy.yml), and a release cut from each push there
 # would claim to be production.
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: meteocool
-          SENTRY_PROJECT: web
+          SENTRY_PROJECT: v4-web
         with:
           tagName: ${{github.sha}}
           environment: production

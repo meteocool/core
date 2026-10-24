@@ -34,10 +34,9 @@ interface Env {
   /**
    * Origin serving `/v3/preview/og.png`, set per environment in
    * wrangler.jsonc. The Worker is bundled by wrangler rather than Vite, so
-   * `--mode staging` does not reach it and a hardcoded default would have the
-   * staging deployment advertising production's preview image in its OpenGraph
-   * tags, the one thing about a shared staging link that would still point at
-   * prod. Falls back to production so a deploy that forgets the var behaves as
+   * `--mode` does not reach it and a hardcoded default would have next and
+   * demo advertising another environment's preview image in their OpenGraph
+   * tags. Falls back to production so a deploy that forgets the var behaves as
    * it always did.
    */
   PREVIEW_ORIGIN?: string;

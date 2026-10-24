@@ -1,17 +1,16 @@
-# Deploys the frontend to staging and demo on every push to `develop`, the
-# default branch that feature branches merge into. Both are Cloudflare Workers (wrangler.jsonc, envs
-# `staging` and `demo`) in front of the staging cluster. The staging Worker
-# also serves meteocool.com and the new native apps, so pushes to develop
-# publish to the public website.
+# Deploys the frontend to next and demo on every push to `develop`, the
+# default branch that feature branches merge into. Both are Cloudflare
+# Workers (wrangler.jsonc, envs `next` and `demo`). meteocool.com and the
+# apps are deployed from `main` (deploy-production.yml).
 #
-# This repository is public, and this is the only workflow that runs on
-# `develop` holding a secret: a Cloudflare API token that can publish
+# This repository is public, and this and deploy-production.yml are the only
+# workflows holding a secret: a Cloudflare API token that can publish
 # Workers. It keeps the token reachable from as little as possible:
 #
 # - Push only. No `pull_request`, and never `pull_request_target`: a fork's
 #   pull request must not be able to run anything next to the token. Adding
 #   either trigger here would undo the rest of this list.
-# - The token lives in the `staging` and `demo` GitHub Environments, not in the
+# - The token lives in the `next` and `demo` GitHub Environments, not in the
 #   repository's secrets, and both Environments only admit `develop`. A
 #   workflow on any other ref cannot read it even if it names the Environment.
 # - The job that holds it installs nothing from package-lock.json. The app's
@@ -64,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [staging, demo]
+        environment: [next, demo]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -87,11 +86,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     strategy:
-      # Staging failing to publish is no reason to leave demo on an old build.
+      # Next failing to publish is no reason to leave demo on an old build.
       fail-fast: false
       matrix:
         include:
-          - environment: staging
+          - environment: next
             url: https://next.meteocool.com
           - environment: demo
             url: https://demo.meteocool.com
