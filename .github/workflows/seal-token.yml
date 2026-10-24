@@ -1,0 +1,30 @@
+# One-off: hands the Cloudflare token to a new GitHub Environment. The token
+# is encrypted to the public key given as input, and only the ciphertext is
+# printed. Removed again right after use.
+name: seal-token
+
+on:
+  workflow_dispatch:
+    inputs:
+      public_key:
+        description: Base64 of a PEM RSA public key
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  seal:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: seal
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PUB: ${{ inputs.public_key }}
+        run: |
+          printf '%s' "$PUB" | base64 -d > pub.pem
+          printf 'SEALED:'
+          printf '%s' "$TOKEN" | openssl pkeyutl -encrypt -pubin -inkey pub.pem \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 | base64 -w0
+          echo
