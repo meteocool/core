@@ -5,7 +5,7 @@ import { loadHorizons, smoothed } from "../../src/lib/radarHorizons.ts";
 import { RADAR_SITES } from "../../src/lib/radarSites.ts";
 
 /**
- * The radars' terrain-limited reach, as ng's `horizons.py` wrote it and as
+ * The radars' terrain-limited reach, as the backend computed it and as
  * the minimap draws it.
  */
 

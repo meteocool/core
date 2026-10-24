@@ -20,8 +20,8 @@ const here = (file: string) => fileURLToPath(new URL(file, import.meta.url));
  * radar at all.
  *
  * `npm run dev` proxies to the staging cluster. `npm run dev-local`
- * (`--mode localstack`) proxies to the stack `make up` publishes on 127.0.0.1
- * in meteocool/ng. Either default can be overridden per-origin:
+ * (`--mode localstack`) proxies to a backend stack running on 127.0.0.1.
+ * Either default can be overridden per-origin:
  *   MC_API=https://api.meteocool.com MC_SOCKET=https://api.ng.meteocool.com \
  *   MC_DATA=https://data.meteocool.com MC_TILES=https://tiles-a.meteocool.com \
  *   npm run dev
@@ -37,8 +37,7 @@ function proxyTargets(mode: string) {
       ?? (localStack ? "http://127.0.0.1:5002" : "https://data-staging.meteocool.com"),
     TILES: process.env.MC_TILES
       ?? (localStack ? "http://127.0.0.1:9000" : "https://assets-staging.meteocool.com"),
-    // `docker compose --profile geocoding up nominatim` in meteocool/ng is what
-    // listens on 8080 locally; it holds Monaco and nothing else, so the staging
+    // A local geocoder listens on 8080; it holds Monaco and nothing else, so the staging
     // instance is usually the more useful target even for a local stack.
     GEOCODING: process.env.MC_GEOCODING
       ?? (localStack ? "http://127.0.0.1:8080" : "https://geocoding-staging.meteocool.com"),

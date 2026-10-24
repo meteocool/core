@@ -66,7 +66,7 @@ test("a forwarded read keeps its path and query", () => {
     "https://api-next.meteocool.com",
   );
   assert.equal(timeseries.url, "https://api-next.meteocool.com/v3/radar/timeseries?lat=48.137&lon=11.575");
-  // preview-edge picks the frontend by this hostname, and the card by the
+  // The preview Worker picks the frontend by this hostname, and the card by the
   // query, commas and all.
   const preview = appApiRequest(
     new Request("https://app.meteocool.com/v3/preview/og.png?latLonZ=48.137,11.575,9.5&aspectRatio=square&logo=false"),

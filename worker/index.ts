@@ -42,7 +42,7 @@ interface Env {
    */
   PREVIEW_ORIGIN?: string;
   /**
-   * ng's preview-edge Worker, which the apps' preview requests are handed to,
+   * The preview Worker, which the apps' preview requests are handed to,
    * addressed to PREVIEW_ORIGIN (api.ts). Unbound, those paths 404.
    */
   PREVIEW?: Fetcher;

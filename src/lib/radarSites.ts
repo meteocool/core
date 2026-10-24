@@ -4,8 +4,8 @@
  *
  * A volume names its radars by EUMETNET's node code (`deisn`, `frnan`), which
  * is all the worker needs and means nothing to a reader. Coordinates and
- * antenna heights are ng's `openradar.py` network tables, which read them off
- * the sites' own files, so the distances here are the ones the volume was
+ * antenna heights are the backend's network tables, read off the sites' own
+ * files, so the distances here are the ones the volume was
  * georeferenced with. Volumes from before every network joined name
  * DWD's radars by their bare three-letter code; those resolve too.
  */
@@ -19,7 +19,7 @@ export interface RadarSite {
   heightM: number;
   /** The lowest tilt its network scans, in degrees, from which the lowest beam's height follows. */
   lowestDeg: number;
-  /** How far that tilt reaches, in kilometres: ng's `site_range_m`, from `nbins * rscale` in the files. */
+  /** How far that tilt reaches, in kilometres, from `nbins * rscale` in the files. */
   rangeKm: number;
 }
 

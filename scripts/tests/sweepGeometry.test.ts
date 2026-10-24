@@ -3,7 +3,7 @@ import test from "node:test";
 import { alongBeam, beamHeightRings, binAt, fromSite, groundAtHeight, reachM, stormRelative } from "../../src/lib/sweepGeometry.ts";
 import { beamHeightKm } from "../../src/lib/radarSites.ts";
 
-/** Emden's 0.5 degree tilt as worker-analysis publishes it: 360 rays from 0.5 degrees, 720 bins of 250 m. */
+/** Emden's 0.5 degree tilt as the backend publishes it: 360 rays from 0.5 degrees, 720 bins of 250 m. */
 const EMDEN = {
   lat: 53.564129, lon: 6.748317, height_m: 36.2, elevation_deg: 0.5,
   range_start_m: 0, range_step_m: 250, nrays: 360, nbins: 720, azimuth0_deg: 0.518, azimuth_step_deg: 1,

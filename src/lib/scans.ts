@@ -6,15 +6,15 @@
  * four minutes after the scan starts; KONRAD3D's cells for that same scan come
  * about two minutes later; the volumes are built by a slower job of our own,
  * from every radar's sweeps around storms found in a column maximum (DWD's
- * DMAX in Germany, ng's own of each network elsewhere; ng ADR 0019), and
+ * DMAX in Germany, our own of each network elsewhere), and
  * land half a minute after the cells. So the older ones stand a scan upwind
  * of the echo under them for part of every cycle.
  *
  * It is only lateness. In data time they agree: checked against 486 KONRAD3D
  * cells from two convective days in September 2026, 355 overlapped the
  * composite of their own scan best, and 3 the scan before. So the 3D map draws
- * them in full colour all the same, the newest picture of each storm there is
- * (ng ADR 0018), and only the flat map's "3D" tag and the 3D map's box outline
+ * them in full colour all the same, the newest picture of each storm there is,
+ * and only the flat map's "3D" tag and the 3D map's box outline
  * grey a storm from an older scan than its radar, until its own scan arrives.
  *
  * Against its own network's radar, not DWD's. A storm from France's run is

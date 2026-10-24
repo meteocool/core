@@ -100,7 +100,7 @@ test("the no-radar wash has a hole for the continent and one for Ireland, touchi
   assert.ok(!other.some((point) => insideRings([one], point)));
 });
 
-/** The ground no radar reaches though radars ring it (ng's `KNOWN_HOLES`): a point inside each. */
+/** The ground no radar reaches though radars ring it (the backend's known holes): a point inside each. */
 const KNOWN_ISLANDS = {
   "the Niedere Tauern": at(47.29, 13.93),
   "the northern Apennines south-west of Bologna": at(44.26, 11.02),

@@ -118,7 +118,7 @@ export interface Drawn {
   motion: Motion | null;
 }
 
-/** How long the last draw took, for the phone measurement (scripts/explorations/site-sweep-ppi in ng). */
+/** How long the last draw took, for measuring it on phones. */
 export interface DrawStats {
   lastMs: number;
   draws: number;

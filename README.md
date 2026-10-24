@@ -15,7 +15,7 @@ iOS app or by joining the Beta program on meteocool Play store page.
 Non-existent, but here's a few pointers:
 
 * Backend calls go through a typed client generated from the
-  [backend's](https://github.com/meteocool/ng) OpenAPI schemas. The schemas
+  backend's OpenAPI schemas. The schemas
   are vendored in `spec/`; `npm run generate:api` regenerates
   `src/api/generated/`, and `src/api/index.ts` wraps each endpoint so the
   progress bar and error reporting cannot be forgotten. Socket.IO cannot be

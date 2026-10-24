@@ -9,7 +9,7 @@
 // same relative URLs, so the choice of backend lives in one file.
 const proxied = import.meta.env.DEV;
 
-// `--mode staging` points a BUILD at the staging cluster on meteocloud. The
+// `--mode staging` points a BUILD at the staging cluster. The
 // staging Worker is built from the same source as production, so without a
 // mode of its own it would ship pointing at the production backend and look
 // entirely healthy while doing it.
@@ -18,8 +18,7 @@ const proxied = import.meta.env.DEV;
 // the websocket are all one origin here, where production still has three.
 //
 // `--mode demo` is the same cluster's second environment, which replays a
-// recorded storm while staging ingests the live feeds (meteocool/ng,
-// doc/staging-and-demo.md). Its data and tile hostnames are staging's with
+// recorded storm while staging ingests the live feeds. Its data and tile hostnames are staging's with
 // `demo` in place of `staging`, and it shares staging's geocoder. The API is the
 // exception: demo.meteocool.com itself is this Worker, so the API behind it is
 // api-demo.meteocool.com, and staging's is api-next.meteocool.com to match.

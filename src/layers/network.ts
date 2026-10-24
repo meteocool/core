@@ -200,7 +200,7 @@ export const NETWORKS: Network[] = [
 
 /**
  * Every network's lowest tilts on one grid, DWD's included: the merged
- * composite worker-analysis builds on its background worker. Not one of
+ * composite the backend builds. Not one of
  * `NETWORKS`: it is not cut to a country and it stands in for all sixteen
  * products at once, on the live step, when the reader asks for it.
  */
@@ -208,7 +208,7 @@ export const EUROPE: Network = {
   code: "eu",
   fetch: fetchEuropeRadar,
   attribution: [dwdAttribution, ...NETWORKS.map((network) => network.attribution)].join(" "),
-  // ng's `merged_composite.BBOX` is the union of every network's grid.
+  // The merged composite's grid is the union of every network's.
   extent: [dwdRadarExtent, ...NETWORKS.map((network) => network.extent)].reduce(
     (whole, one) => extend(whole, one), createEmpty(),
   ),
@@ -217,7 +217,7 @@ export const EUROPE: Network = {
 
 /**
  * The column maximum of every network, on the merged composite's kind of
- * grid: every tilt of every radar rather than the lowest (ng ADR 0019). Drawn
+ * grid: every tilt of every radar rather than the lowest. Drawn
  * like `EUROPE`, whole and in place of the others, when the reader asks.
  */
 export const EUROPE_COLUMN_MAXIMUM: Network = {
@@ -244,7 +244,7 @@ export const AROUND_DMAX: Network = {
 const handedFrames = async (): Promise<null> => null;
 
 /**
- * Each network's run of meteocool's own nowcast (ng ADR 0022), drawn on the
+ * Each network's run of meteocool's own nowcast, drawn on the
  * forecast steps it has a lead for while the experimental setting is on:
  * cut to the same ground as the network's composite, so WN, holed for it on
  * those steps (`networkHoles.ts`), and the run never draw on one pixel. Its

@@ -2,8 +2,8 @@
  * Precipitation types as value tiles: a byte per DWD HG class, coloured here.
  *
  * HG's class codes run to 2^24, so the backend gives each class a byte and
- * publishes the frame with `values.encoding` `hg-class-u8` (`HG_CLASS_BYTES`
- * in meteocool/ng's worker-radar `tiling.py`, and the API's `ClassTiles`). A
+ * publishes the frame with `values.encoding` `hg-class-u8` (the API's
+ * `ClassTiles`). A
  * byte keeps its class for good; a new class takes a new byte, and has to be
  * added here to be drawn.
  */

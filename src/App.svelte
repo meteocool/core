@@ -518,7 +518,7 @@ const cloudHints = new VolumeFeed<CurrentVolumes>(
 
 /* Site mode: a mark on every radar with sweeps lately, and tapped, that
    radar's own sweep drawn in its polar bins over the dimmed composites, with
-   rings of beam height (lib/SiteSweepManager.ts, ng doc/site-sweeps.md). Not
+   rings of beam height (lib/SiteSweepManager.ts). Not
    in a screenshot, which is of the composites. */
 const siteMarks = makeRadarSiteMarks();
 const siteSweep = makeSiteSweepLayer();
@@ -726,8 +726,7 @@ const cells3d = lm.getCapability("cells3d") as Cells3DCapability | undefined;
 const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
   // HX and the networks, whichever product the flat map draws: the storms on
-  // the 3D map are the column already, and are judged against these scans
-  // (ng ADR 0016).
+  // the 3D map are the column already, and are judged against these scans.
   const forwardRadarFrame = () => {
     const step = radarCap.getMostRecentObservation();
     const frame = radarCap.clientGrid?.[step];

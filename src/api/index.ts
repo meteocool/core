@@ -1,5 +1,5 @@
 /**
- * The backend, as typed calls generated from ng's OpenAPI schemas.
+ * The backend, as typed calls generated from the backend's OpenAPI schemas.
  *
  * Each wrapper drives the loading bar and reports a failure (to Sentry, and to
  * apiHealth, which the status pill reads), so a caller cannot forget either.

@@ -53,7 +53,7 @@ export function modelById(id: string): ModelDef | undefined {
 /**
  * Models sharing a lineage do not corroborate one another: four ICON variants
  * agreeing is one model's opinion, not four. Counting by family keeps a cluster
- * from reading as independent agreement (meteocompare ADR 0006).
+ * from reading as independent agreement.
  */
 const FAMILY: Record<string, string> = {
   icon_global: "icon",

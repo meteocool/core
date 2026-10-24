@@ -3,8 +3,7 @@
  *
  * `/cells/volumes` lists the newest scan's volumes and nothing older. Each
  * one stays in the bucket for about a day, though, under a key that says
- * when and where (worker-analysis's `_key`,
- * `volumes/<scan>/<network>-<tile>.mcvx`), so an older scan's storms can be
+ * when and where (`volumes/<scan>/<network>-<tile>.mcvx`), so an older scan's storms can be
  * found by asking for tiles under an older scan, with no list of them.
  *
  * Asked tile by tile, most answers would be misses. So the scan's coarse

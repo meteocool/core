@@ -24,7 +24,7 @@ export interface Consensus {
 
 export type Tier = "high" | "mid" | "low";
 
-/** meteocompare's raw-scale cutoffs (ADR 0008). */
+/** meteocompare's raw-scale cutoffs. */
 export function tierFor(predictability: number): Tier {
   if (predictability >= 0.7) return "high";
   if (predictability >= 0.4) return "mid";

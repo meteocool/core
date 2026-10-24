@@ -65,8 +65,7 @@
         "DATA_ORIGIN": "https://data-staging.meteocool.com",
         "ASSET_ORIGIN": "https://assets-staging.meteocool.com",
       },
-      // ng's preview-edge Worker (infra/terraform/cloudflare/preview.tf). The
-      // apps' preview requests reach it this way rather than by a fetch to
+      // The preview Worker. The apps' preview requests reach it this way rather than by a fetch to
       // PREVIEW_ORIGIN, which from a Worker in the same zone would skip its
       // route and land on the cluster (worker/api.ts).
       "services": [{ "binding": "PREVIEW", "service": "meteocool-preview" }],

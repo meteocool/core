@@ -78,7 +78,7 @@ test.describe("with the radars' marks on", () => {
 
   /**
    * The same with real sweeps behind the listing: Borkum's (deasb) 0.5 degree tilt of
-   * 2026-10-09 18:20, from staging's archive, published by worker-analysis
+   * 2026-10-09 18:20, from staging's archive
    * (fixtures/sweeps). Whatever the listing names, these two objects answer.
    */
   const EMDEN = "/?layer=radar&latLonZ=53.70000,6.90000,8.20";

@@ -2,9 +2,8 @@
  * The Socket.IO events browsers receive on the `/radar` namespace.
  *
  * OpenAPI cannot describe an event stream, so the map from event name to
- * payload is written by hand. The payload types are generated: ng exports the
- * producers' pydantic models into both schemas (see scripts/export_openapi.py),
- * so a field that changes on the publishing side shows up here as a type error
+ * payload is written by hand. The payload types are generated: the backend
+ * exports its producers' models into both schemas, so a field that changes on the publishing side shows up here as a type error
  * instead of as silently missing data. This channel has no request/response
  * round trip that would catch it otherwise.
  */
@@ -27,7 +26,7 @@ export type NetworkEvent = Schemas["NetworkRefresh"];
 /** One of the fifteen national networks with a composite of their own: not `eu`, `colmax` or `dmax`, which share their event. */
 export type CountryNetwork = Exclude<NetworkEvent["network"], "eu" | "colmax" | "dmax">;
 /**
- * One network's run of meteocool's own nowcast is complete (ng ADR 0022): a
+ * One network's run of meteocool's own nowcast is complete: a
  * client showing the nowcast refetches the timeseries. Not a `poke`, which
  * reloads DWD's whole timeseries for every client; Germany's run is never
  * announced.

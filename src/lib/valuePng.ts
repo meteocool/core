@@ -1,8 +1,7 @@
 /**
  * A value tile's PNG, read to its bytes here rather than by the browser.
  *
- * Every value tile is an 8-bit greyscale PNG (meteocool/ng's worker-radar,
- * `encode_value_tile`), and a byte one off is another value: half a dBZ in
+ * Every value tile is an 8-bit greyscale PNG, and a byte one off is another value: half a dBZ in
  * reflectivity, another class in precipitation types. WebKit colour-manages
  * greyscale PNGs on every way in (`createImageBitmap` even with
  * `colorSpaceConversion: "none"`, an `<img>`, a WebGL upload, with or without

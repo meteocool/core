@@ -146,7 +146,7 @@ export function ageMinutes(lastSeen: string, now = Date.now()): number {
 /**
  * How long a cell stays active after its last detection.
  *
- * The backend's rule (`ACTIVE_WITHIN` in ng's konrad3d/tracks.py), which sets
+ * The backend's rule, which sets
  * the `active` flag on every track it sends, and the flag is what the map
  * draws by. Mirrored here only for an earlier frame, where the flag has to be
  * worked out for a moment the backend was not asked about.

@@ -3,7 +3,7 @@ import test from "node:test";
 import { deepestZoom, hasTile, sourceTile } from "../../src/lib/tileIndex.ts";
 
 /**
- * The same example the encoder's test in meteocool/ng uses: zoom 5 is a 2x2
+ * The same example the backend's encoder is tested with: zoom 5 is a 2x2
  * rectangle from (16, 20) with its top-left and bottom-right set (1001, so
  * the byte 0x90), zoom 4 one tile at (8, 10).
  */

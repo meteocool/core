@@ -1,5 +1,5 @@
 /**
- * meteocool's own nowcast outside Germany (ng ADR 0022), behind the
+ * meteocool's own nowcast outside Germany, behind the
  * experimental "meteocool nowcast" setting.
  *
  * Each network around DWD but Ireland's (`NOWCAST_DOMAINS`) has a run of its
@@ -17,7 +17,7 @@ import type { CountryNetwork } from "../api/events";
 
 /**
  * The networks with a nowcast of their own, in the order the map lists them.
- * Ireland's since ng rebuilt Dublin's clutter map from two dry days.
+ * Ireland's since Dublin's clutter map was rebuilt from two dry days.
  */
 export const NOWCAST_DOMAINS: readonly CountryNetwork[] = [
   "ch", "fr", "cz", "pl", "be", "sk", "lt", "ee", "hr", "dk", "nl", "fi", "se", "no", "ie",

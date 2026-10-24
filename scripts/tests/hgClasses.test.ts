@@ -11,7 +11,7 @@ test("byte 0 draws nothing and every class is opaque and its own colour", () => 
 });
 
 test("hail and graupel, the bytes the backend gives them, are red and orange", () => {
-  // meteocool/ng worker-radar `HG_CLASS_BYTES`: 8192 -> 7, 4096 -> 6.
+  // The backend's class bytes: 8192 -> 7, 4096 -> 6.
   assert.deepEqual(HG_CLASS_COLOURS[7], [255, 0, 0, 255]);
   assert.deepEqual(HG_CLASS_COLOURS[6], [255, 0x99, 0, 255]);
 });

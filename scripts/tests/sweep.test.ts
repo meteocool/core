@@ -3,7 +3,7 @@ import test from "node:test";
 import { gzipSync } from "node:zlib";
 import { decodeSweep, readBin, velocityByte } from "../../src/lib/sweep.ts";
 
-/** An object as worker-analysis `sweeps.encode` writes it, before the browser has gunzipped it. */
+/** An object as the backend writes it, before the browser has gunzipped it. */
 function encode(header: Record<string, unknown>, bins: Uint8Array): ArrayBuffer {
   const text = new TextEncoder().encode(JSON.stringify(header));
   const out = new Uint8Array(12 + text.length + bins.length);

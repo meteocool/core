@@ -1,5 +1,5 @@
 /**
- * Which product the radar map draws its observed frames from (ng ADRs 0016, 0019).
+ * Which product the radar map draws its observed frames from.
  *
  * Four pictures of the same weather, each a trade the reader makes:
  *

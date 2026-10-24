@@ -10,7 +10,7 @@
  * blank, which OpenLayers draws as nothing.
  *
  * Kept free of OpenLayers so the decoding can be stated in a test. The
- * encoder is `tile_index` in meteocool/ng's worker-radar, and the two agree
+ * encoder is the backend's, and the two agree
  * on the layout: XYZ x, TMS y (the numbering the URL uses), row major from
  * the rectangle's corner, most significant bit first, base64.
  */

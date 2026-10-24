@@ -1,6 +1,5 @@
 # Deploys the frontend to staging and demo on every push to `develop`, the
-# default branch that feature branches merge into (the frontend's counterpart
-# of meteocool/ng's `v4`). Both are Cloudflare Workers (wrangler.jsonc, envs
+# default branch that feature branches merge into. Both are Cloudflare Workers (wrangler.jsonc, envs
 # `staging` and `demo`) in front of the staging cluster. The staging Worker
 # also serves meteocool.com and the new native apps, so pushes to develop
 # publish to the public website.
@@ -19,9 +18,8 @@
 #   dependency tree (a thousand packages, some with install scripts) is
 #   installed and built in `build`, which has no secrets, and the Worker imports
 #   nothing, so `deploy` needs only the built `dist/` and a pinned wrangler.
-# - GitHub-hosted runners only. The self-hosted meteocloud runner sits inside a
-#   private network and is registered to meteocool/ng alone; a public
-#   repository must never be given a runner label that reaches it.
+# - GitHub-hosted runners only. A public repository must never be given a
+#   self-hosted runner.
 # - Actions are pinned by commit, not by tag, and GITHUB_TOKEN is read-only.
 name: deploy
 

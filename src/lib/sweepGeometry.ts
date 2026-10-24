@@ -9,7 +9,7 @@
  * Distances on the ground are great-circle on a sphere of the earth's mean
  * radius; the beam is bent by the standard atmosphere, which is the same as
  * a straight beam over an earth four thirds the size (the textbook model, and
- * wradlib's, which the ng side uses). Over a ground distance `s` from a radar
+ * wradlib's). Over a ground distance `s` from a radar
  * tilted `theta` up, on that earth of radius R':
  *
  *     slant range  r = R' sin(s / R') / cos(theta + s / R')

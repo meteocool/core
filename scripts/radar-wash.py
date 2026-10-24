@@ -1,14 +1,10 @@
 """Regenerate the no-radar wash's holes (`radarCoverageInv` in src/layers/extents.ts).
 
-The holes are every network's reach, unioned: ng's
-`coverage.everywhere_reached()`, each site's geodesic circle as ng's
-`src/coverage.py` draws it (at `openradar.reach_m`, DWD's at its 150 km
-outline) and simplified as the coverage document is, so the wash and the
-exclusive coverages in `spec/coverage.json` are drawn from the same circles.
-Run it with ng's worker-analysis on the path, from that directory:
-
-    cd ../ng/services/worker-analysis
-    PYTHONPATH=. uv run python ../../../core/scripts/radar-wash.py ../../../core/src/layers/extents.ts
+The holes are every network's reach, unioned: each site's geodesic circle as
+the backend's coverage document draws it (DWD's at its 150 km outline) and
+simplified the same way, so the wash and the exclusive coverages in
+`spec/coverage.json` are drawn from the same circles. Run it with the
+backend's sources importable, passing the path of src/layers/extents.ts.
 
 The union is several parts that touch nowhere (the continent, and Ireland,
 whose radars reach no other network's), and a part may have islands inside

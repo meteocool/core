@@ -12,9 +12,8 @@ const drawnAt = (places: Place[]) => Object.fromEntries(places.map(([place, lat,
 const expected = (places: Place[]) => Object.fromEntries(places.map(([place, , , network]) => [place, network]));
 
 /*
- * The places ng pins for `domain_at` on the same coverage document
- * (libs/meteocool-radar/tests/test_coverage.py there; its handoff for core's
- * second wave has the distances). "de" there is undefined here: DWD's ground
+ * The places the backend's own tests pin on the same coverage document.
+ * "de" there is undefined here: DWD's ground
  * has no layer of its own to name. Distances are to each network's nearest
  * radar, in km.
  */

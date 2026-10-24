@@ -6,8 +6,7 @@
  * Far smaller than the radar's range, and lopsided where it stands by
  * mountains: the low tilts run into the Alps, the Pyrenees or the Massif
  * Central and only the steeper ones, already high, get over. Computed offline
- * in ng from each site's own tilts and a terrain model (`src/horizons.py` in
- * worker-analysis, which says how to regenerate `radarHorizons.json`), and
+ * by the backend from each site's own tilts and a terrain model, and
  * loaded only when something draws it.
  */
 

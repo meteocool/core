@@ -3,9 +3,8 @@
  *
  * The composites answer where it is raining. Site mode answers what one radar
  * saw at one tilt, which is how storm chasers read radar: its radial velocity
- * for rotation, its reflectivity for the hook. ng publishes every sweep up to
- * six degrees as one object (worker-analysis `sweeps.py`, ng
- * `doc/site-sweeps.md`), and the map draws it in its own bins
+ * for rotation, its reflectivity for the hook. The backend publishes every sweep up
+ * to six degrees as one object, and the map draws it in its own bins
  * (`layers/siteSweep.ts`) rather than as tiles.
  *
  * ## The Wire Format

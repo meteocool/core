@@ -18,17 +18,16 @@
  * And for the iOS app's Live Activity, which reads the API's radar time series
  * and a square preview card of the user's location through this hostname.
  * Those are reads, forwarded for GET alone. The preview is not the cluster's
- * to answer: ng's preview-edge Worker takes `/v3/preview/*` on each API
- * hostname, and a fetch from this Worker to a hostname in its own zone goes
+ * to answer: a preview Worker takes `/v3/preview/*` on each API hostname, and a fetch from this Worker to a hostname in its own zone goes
  * straight to the origin, past any Worker routed there. So the preview goes
  * over a service binding instead, addressed to this environment's preview
- * origin, whose hostname is how preview-edge picks the frontend it renders.
+ * origin, whose hostname is how the preview Worker picks the frontend it renders.
  *
  * Kept free of Worker globals beyond fetch/Request, so the tests can run it
  * under Node.
  */
 
-/** The unversioned routes the shipped apps call, served by ng's legacy router. */
+/** The unversioned routes the shipped apps call, kept by the API for them. */
 const LEGACY_PATHS = new Set(["/post_location", "/clear_notification", "/unregister"]);
 
 /** The versioned routes that replace them. */
@@ -45,12 +44,12 @@ export function isAppApiRead(method: string, pathname: string): boolean {
   return method === "GET" && API_READ_PATHS.has(pathname);
 }
 
-/** A preview card, served by ng's preview-edge Worker. */
+/** A preview card, served by the preview Worker. */
 export function isPreviewRead(method: string, pathname: string): boolean {
   return method === "GET" && pathname.startsWith("/v3/preview/");
 }
 
-/** The data service's routes the AR view reads; see ng's services/data. */
+/** The data service's routes the AR view reads. */
 const DATA_PATHS = new Set(["/cells/volumes", "/cells/current", "/cells/tracks", "/lightning_cache", "/mesocyclones/all/"]);
 
 export function isAppDataPath(pathname: string): boolean {
