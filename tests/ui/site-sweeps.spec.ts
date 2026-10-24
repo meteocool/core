@@ -265,6 +265,20 @@ test.describe("with the radars' marks on", () => {
     await page.keyboard.press("Escape");
     await expect(tray).toBeHidden();
     await expect(timeline(page)).toBeVisible();
+
+    // Opened again and again, it is drawn every time. Closing lets go of the
+    // sweep's WebGL context, and the browser's word that it was lost, landing
+    // after the next radar had built its own, left every other one blank.
+    const draws = () => page.evaluate(() => (window as any).lm.getCurrentMap().getAllLayers()
+      .find((layer: any) => layer.getZIndex() === 85 && layer.sweeps)?.sweeps.stats.draws ?? 0);
+    for (let i = 0; i < 3; i += 1) {
+      const before = await draws();
+      await open();
+      await expect.poll(draws).toBeGreaterThan(before);
+      await page.keyboard.press("Escape");
+      await expect(tray).toBeHidden();
+      await page.waitForTimeout(300);
+    }
   });
 
   test("a link opens a radar and its time; one the radar has moved past opens on its newest", async ({ page }) => {

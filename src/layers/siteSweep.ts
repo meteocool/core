@@ -34,8 +34,9 @@ import { isDarkBasemap, watchBasemap } from "./casing";
  * Its context is let go whenever site mode closes, and when its map has been
  * hidden a while (`hiddenMaps.ts` clears every layer's renderer, which this
  * takes as its cue), so a phone holds no second WebGL context for a mode
- * nobody has open. A browser without WebGL2, or a context lost, draws
- * nothing, and the rest of the map draws as ever.
+ * nobody has open. A browser without WebGL2 draws nothing, and the rest
+ * of the map draws as ever; a context the browser takes away is replaced
+ * by a new one, and the sweep drawn again on it.
  */
 
 const VERTEX = `#version 300 es
@@ -133,11 +134,11 @@ class SweepRenderer {
   private uniforms: Record<string, WebGLUniformLocation | null> = {};
   private uploaded: Sweep | null = null;
   private paletteKey = "";
-  private lost = false;
   private readonly empty = document.createElement("canvas");
   readonly stats: DrawStats = { lastMs: 0, draws: 0 };
 
-  constructor() {
+  /** `lost` is told when the browser takes the context away, so the sweep is drawn again on a new one. */
+  constructor(private readonly lost: () => void) {
     this.empty.width = 1;
     this.empty.height = 1;
   }
@@ -195,6 +196,11 @@ class SweepRenderer {
       gl.deleteProgram(this.program);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     }
+    this.forget();
+  }
+
+  /** Drop every handle on the context, whether let go of or taken away. */
+  private forget() {
     this.gl = null;
     this.canvas = null;
     this.program = null;
@@ -202,21 +208,22 @@ class SweepRenderer {
     this.palette = null;
     this.uploaded = null;
     this.paletteKey = "";
-    this.lost = false;
   }
 
   private context(): WebGL2RenderingContext | null {
-    if (this.lost) return null;
     if (this.gl) return this.gl;
     const canvas = document.createElement("canvas");
     // Kept, because OpenLayers copies the canvas onto the map after this returns.
     const gl = canvas.getContext("webgl2", { premultipliedAlpha: true, preserveDrawingBuffer: true, antialias: false });
     if (!gl) return null;
-    canvas.addEventListener("webglcontextlost", (event) => {
-      event.preventDefault();
-      this.lost = true;
+    // Only for the context in use. `release` loses its own on purpose, and
+    // the event for that lands after the next radar may have built a new
+    // one: taken for that one's, it left every other radar opened blank.
+    canvas.addEventListener("webglcontextlost", () => {
+      if (canvas !== this.canvas) return;
+      this.forget();
+      this.lost();
     });
-    canvas.addEventListener("webglcontextrestored", () => this.release());
     const program = link(gl);
     if (!program) return null;
     const buffer = gl.createBuffer();
@@ -318,7 +325,8 @@ export interface SiteSweepLayer {
 
 /** The layer, and the way to put a sweep on it. */
 export default function makeSiteSweepLayer(): SiteSweepLayer {
-  const renderer = new SweepRenderer();
+  // Taken away by the browser (too many contexts, a GPU reset): drawn again on a new one.
+  const renderer = new SweepRenderer(() => { if (drawn) source.changed(); });
   let drawn: Drawn | null = null;
   let palette = "classic";
   let veil = LIGHT_VEIL;
