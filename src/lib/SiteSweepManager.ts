@@ -32,7 +32,7 @@ import type { BeamRings } from "../layers/beamRings";
  * takes out when it is not the selected storm's motion (`srvMotion.ts`).
  */
 
-/** How the composites are drawn under an open radar's sweep. */
+/** How the composites are drawn under an open radar's sweep, and only while one is drawn. */
 export const SITE_MODE_COMPOSITES = 0.35;
 
 /** Sweeps kept decoded: a step's, the three ahead, and a few behind for scrubbing back. */
@@ -167,13 +167,13 @@ export default class SiteSweepManager {
 
   private async modeChanged(mode: SiteMode | null) {
     this.marks.setOpen(mode?.site ?? null);
-    compositeDim.set(mode ? SITE_MODE_COMPOSITES : 1);
     if (!mode) {
       this.openSite = null;
       this.shown = null;
       this.reach = null;
       this.sweeps.clear();
       this.generation++;
+      compositeDim.set(1);
       this.layer.release();
       this.layer.setAttribution(null);
       this.rings.clear();
@@ -214,8 +214,7 @@ export default class SiteSweepManager {
     };
     this.layer.setAttribution(this.credit(site.network));
     if (!scan) {
-      this.shown = null;
-      this.layer.show(null);
+      this.showNothing();
       this.rings.clear();
       siteSweepView.set({ ...view, ...this.motion(), status: "none", startedAt: null, scannedAt: null, nyquist: null, dealiased: null, dealiaser: null });
       return;
@@ -232,13 +231,17 @@ export default class SiteSweepManager {
         dealiaser: current?.dealiaser ?? null,
       }));
     }
+    const loading = this.load(scan.path);
+    // The next few on their way now, not once this one is drawn: playback
+    // moves on every 450 ms, and a sweep asked for only when its own step
+    // comes lands after it, so a first pass over the hour drew none of them.
+    for (const next of aheadOf(tilt!.scans, scan)) void this.load(next.path).catch(() => undefined);
     let sweep: Sweep;
     try {
-      sweep = await this.load(scan.path);
+      sweep = await loading;
     } catch {
       if (generation !== this.generation) return;
-      this.shown = null;
-      this.layer.show(null);
+      this.showNothing();
       siteSweepView.set({ ...view, ...this.motion(), status: "failed", startedAt: null, scannedAt: scan.scanned_at, nyquist: null, dealiased: null, dealiaser: null });
       return;
     }
@@ -248,6 +251,7 @@ export default class SiteSweepManager {
     this.shown = { scan, sweep };
     this.reach = { geometry: sweep.header, groundM: reachM(sweep.header) };
     this.layer.show({ sweep, mode: mode.quantity, motion: motion.srv.motion });
+    compositeDim.set(SITE_MODE_COMPOSITES);
     this.rings.show(sweep.header);
     siteSweepView.set({
       ...view,
@@ -259,8 +263,16 @@ export default class SiteSweepManager {
       dealiased: sweep.header.encoding === "vrad-u8" ? sweep.header.dealiased : null,
       dealiaser: sweep.header.dealiaser,
     });
-    // The next few, so a step forward finds its sweep already here.
-    for (const next of aheadOf(tilt!.scans, scan)) void this.load(next.path).catch(() => undefined);
+  }
+
+  /**
+   * No sweep on the map, and the composites at their own strength: dimmed
+   * with nothing over them, the map looks empty while the tray says why.
+   */
+  private showNothing() {
+    this.shown = null;
+    this.layer.show(null);
+    compositeDim.set(1);
   }
 
   /** Every tilt of what is open, lowest first, each with its beam's height 100 km out. */

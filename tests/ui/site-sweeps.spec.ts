@@ -49,7 +49,7 @@ test.describe("with the radars' marks on", () => {
     await page.addInitScript(() => localStorage.setItem("layerSites", "true"));
   });
 
-  test("a radar's mark opens its sweep, lists its tilts, and closing gives the composites back", async ({ page }) => {
+  test("a radar's mark opens its sweep and lists its tilts, and one that cannot be loaded leaves the composites whole", async ({ page }) => {
     await noGeocoder(page);
     await openRadar(page, CENTRAL_GERMANY);
     await expect.poll(() => markOf(page, "deoft"), { timeout: 20_000 }).not.toBeNull();
@@ -71,7 +71,9 @@ test.describe("with the radars' marks on", () => {
     const tilts = tray.getByRole("combobox", { name: "Tilt" });
     await expect(tilts.locator("option")).toHaveCount(6);
     await expect(tilts.locator("option").first()).toHaveText(/^0\.5° · /);
-    await expect.poll(() => compositeOpacity(page)).toBeCloseTo(before * 0.35, 5);
+    // Nothing drawn over them, so nothing to dim them for.
+    await expect(tray.getByText("This sweep could not be loaded", { exact: true })).toBeVisible();
+    expect(await compositeOpacity(page)).toBeCloseTo(before, 5);
 
     // Velocity is offered, the site having published it.
     await tray.getByRole("radio", { name: "Velocity", exact: true }).click();
@@ -250,5 +252,79 @@ test.describe("with the radars' marks on", () => {
     await page.keyboard.press("Escape");
     await expect(tray).toBeHidden();
     await expect(timeline(page)).toBeVisible();
+  });
+
+  /**
+   * Borkum's real sweep as the scan a path names: its header's scan time set to
+   * the path's, so each step's sweep says it is its own.
+   */
+  function sweepScannedAs(path: string): Buffer {
+    const quantity = path.endsWith("VRADH.mcsw") ? "VRADH" : "DBZH";
+    const object = gunzipSync(readFileSync(`tests/ui/fixtures/sweeps/${quantity}.mcsw`));
+    const length = object.readUInt32LE(8);
+    const header = JSON.parse(object.subarray(12, 12 + length).toString("utf8"));
+    const [, d, t] = /\/(\d{8})T(\d{6})\//.exec(path)!;
+    header.scanned_at = header.started_at =
+      `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}T${t.slice(0, 2)}:${t.slice(2, 4)}:${t.slice(4)}Z`;
+    const json = Buffer.from(JSON.stringify(header), "utf8");
+    const head = Buffer.from(object.subarray(0, 12));
+    head.writeUInt32LE(json.length, 8);
+    return Buffer.concat([head, json, object.subarray(12 + length)]);
+  }
+
+  test("playing over the past, each step's sweep is drawn the first time round, and the composites dim only under one", async ({ page }) => {
+    // Playback waits for its frames, which a busy machine draws slowly.
+    test.setTimeout(90_000);
+    await noGeocoder(page);
+    // A second a sweep, more than a step of playback (450 ms): the next steps'
+    // must already be on their way when their step comes.
+    await page.route("**/meteoradar/sweeps/**", async (route) => {
+      const body = sweepScannedAs(new URL(route.request().url()).pathname);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return route.fulfill({ status: 200, contentType: "application/octet-stream", body });
+    });
+    await openRadar(page, EMDEN);
+    await expect.poll(() => compositeOpacity(page), { timeout: 20_000 }).not.toBeNull();
+    const before = (await compositeOpacity(page))!;
+
+    // Back to before the listing's hour (00:40 to 01:35): no sweep there yet,
+    // and nothing to dim the composites for.
+    await timeline(page).focus();
+    for (let i = 0; i < 13; i += 1) await page.keyboard.press("ArrowLeft");
+    await expect.poll(() => markOf(page, "deasb"), { timeout: 20_000 }).not.toBeNull();
+    const at = (await markOf(page, "deasb"))!;
+    await page.mouse.click(at.x, at.y);
+    const tray = page.getByRole("group", { name: "Borkum radar" });
+    await settled(tray);
+    await expect(tray.getByText("No sweep at this time", { exact: true })).toBeVisible();
+    expect(await compositeOpacity(page)).toBeCloseTo(before, 5);
+
+    // Play through the hour once, the page noting every step and every scan
+    // time the tray shows: each is a sweep drawn.
+    await tray.evaluate((element) => {
+      const slider = document.querySelector("[role=slider][aria-label='Radar timeline']")!;
+      const seen = { steps: [] as string[], scans: [] as string[] };
+      (window as any).seen = seen;
+      const note = () => {
+        const step = slider.getAttribute("aria-valuetext");
+        const time = element.querySelector(".time")?.textContent;
+        if (step && !seen.steps.includes(step)) seen.steps.push(step);
+        if (time && !seen.scans.includes(time)) seen.scans.push(time);
+      };
+      new MutationObserver(note).observe(element, { subtree: true, childList: true, characterData: true });
+      new MutationObserver(note).observe(slider, { attributes: true, attributeFilter: ["aria-valuetext"] });
+    });
+    await playButton(page).click();
+    await expect.poll(() => page.evaluate(() => (window as any).seen.steps.includes("Now")), { timeout: 60_000 }).toBe(true);
+    const shown: string[] = await page.evaluate(() => (window as any).seen.scans);
+    // Twelve scans in the hour; the first has no step ahead of it to be
+    // fetched from.
+    expect(shown.length, shown.join(", ")).toBeGreaterThanOrEqual(8);
+    await expect.poll(() => compositeOpacity(page)).toBeCloseTo(before * 0.35, 5);
+
+    // Closed, the composites come back whole.
+    await tray.getByRole("button", { name: "Close the radar" }).click();
+    await expect(tray).toBeHidden();
+    await expect.poll(() => compositeOpacity(page)).toBeCloseTo(before, 5);
   });
 });
