@@ -334,7 +334,8 @@
       "unavailable": "Volymen är inte tillgänglig",
       "not_openable": "Inte tillräckligt väl sett för att skäras upp: radarernas strålar täcker för lite av skiktet 3–8 km. Ritas på kartan, men utan genomskärning.",
       "cappi_height": "Snittets höjd",
-      "cappi_caption": "Allt ovanför {km} km är bortskuret. Dra uppåt eller nedåt för att hålla en höjd."
+      "cappi_caption": "Allt ovanför {km} km är bortskuret. Dra uppåt eller nedåt för att hålla en höjd.",
+      "open_radar": "Öppna radarn {radar}"
     },
     "cut": {
       "north_south": "snitt från norr till söder",
@@ -393,7 +394,8 @@
       "volume": "3D-vy",
       "volume_body": "Tryck för att öppna ovädret på 3D-kartan.",
       "mesocyclone": "Mesocyklon",
-      "mesocyclone_body": "En rotation från DWD:s mesocyklonprodukt."
+      "mesocyclone_body": "En rotation från DWD:s mesocyklonprodukt.",
+      "show": "Visa på kartan: {mark}"
     }
   },
   "compare": {

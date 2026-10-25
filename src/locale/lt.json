@@ -334,7 +334,8 @@
       "unavailable": "Tūris nepasiekiamas",
       "not_openable": "Matoma per prastai, kad būtų galima perpjauti: radarų pluoštai apima per mažą 3–8 km sluoksnio dalį. Nupiešta žemėlapyje, bet be pjūvio.",
       "cappi_height": "Pjūvio aukštis",
-      "cappi_caption": "Viskas virš {km} km nupjauta. Vilk aukštyn arba žemyn, kad pasirinktum aukštį."
+      "cappi_caption": "Viskas virš {km} km nupjauta. Vilk aukštyn arba žemyn, kad pasirinktum aukštį.",
+      "open_radar": "Atidaryti radarą {radar}"
     },
     "cut": {
       "north_south": "pjūvis iš šiaurės į pietus",
@@ -393,7 +394,8 @@
       "volume": "3D vaizdas",
       "volume_body": "Bakstelėkite, kad atidarytumėte audrą 3D žemėlapyje.",
       "mesocyclone": "Mezociklonas",
-      "mesocyclone_body": "Sukimasis, aptiktas DWD mezociklonų produkte."
+      "mesocyclone_body": "Sukimasis, aptiktas DWD mezociklonų produkte.",
+      "show": "Rodyti žemėlapyje: {mark}"
     }
   },
   "compare": {

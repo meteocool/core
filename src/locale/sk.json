@@ -334,7 +334,8 @@
       "unavailable": "Objem nie je dostupný",
       "not_openable": "Radary ju nevideli dosť dobre na rozrezanie: ich lúče pokrývajú príliš malú časť vrstvy 3–8 km. Na mape je, ale bez rezu.",
       "cappi_height": "Výška rezu",
-      "cappi_caption": "Všetko nad {km} km je odrezané. Ťahaním nahor alebo nadol podrž výšku."
+      "cappi_caption": "Všetko nad {km} km je odrezané. Ťahaním nahor alebo nadol podrž výšku.",
+      "open_radar": "Otvoriť radar {radar}"
     },
     "cut": {
       "north_south": "rez od severu na juh",
@@ -393,7 +394,8 @@
       "volume": "3D zobrazenie",
       "volume_body": "Ťuknutím otvoríte búrku na 3D mape.",
       "mesocyclone": "Mezocyklóna",
-      "mesocyclone_body": "Rotácia zistená produktom mezocyklón DWD."
+      "mesocyclone_body": "Rotácia zistená produktom mezocyklón DWD.",
+      "show": "Zobraziť na mape: {mark}"
     }
   },
   "compare": {

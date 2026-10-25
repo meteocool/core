@@ -203,6 +203,14 @@ export const cycloneLayerVisible = writable<boolean>(true);
 /** Whether tracked thunderstorm cells are drawn. */
 export const cellLayerVisible = writable<boolean>(true);
 /**
+ * What the map key (StormKey) can turn off of the storm marks: a tracker's
+ * storms, a strength's, or one kind of mark everywhere. Persisted as the
+ * `hiddenStormMarks` setting; lib/stormMarks.ts applies it.
+ */
+export type StormMarkToggle = "dwd" | "meteocool" | "weak" | "moderate" | "strong" | "extreme"
+  | "live" | "path" | "join" | "hail" | "rotation" | "forecast" | "volume";
+export const hiddenStormMarks = writable<ReadonlySet<StormMarkToggle>>(new Set());
+/**
  * Whether the 3D map draws KONRAD3D's cells as extruded tiers. Off unless the
  * reader turns it on: the radar volumes are the storms there, and the cells
  * land minutes after the radar under them (see lib/scans.ts).

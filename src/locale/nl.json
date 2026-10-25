@@ -334,7 +334,8 @@
       "unavailable": "Volume niet beschikbaar",
       "not_openable": "Niet goed genoeg gezien om open te snijden: de radarbundels dekken te weinig van de laag van 3–8 km. Wel op de kaart getekend, maar zonder doorsnede.",
       "cappi_height": "Hoogte van de doorsnede",
-      "cappi_caption": "Alles boven {km} km is weggesneden. Sleep omhoog of omlaag om een hoogte vast te houden."
+      "cappi_caption": "Alles boven {km} km is weggesneden. Sleep omhoog of omlaag om een hoogte vast te houden.",
+      "open_radar": "Radar {radar} openen"
     },
     "cut": {
       "north_south": "doorsnede van noord naar zuid",
@@ -393,7 +394,8 @@
       "volume": "3D-weergave",
       "volume_body": "Tik om het onweer op de 3D-kaart te openen.",
       "mesocyclone": "Mesocycloon",
-      "mesocyclone_body": "Een rotatie uit het mesocycloonproduct van de DWD."
+      "mesocyclone_body": "Een rotatie uit het mesocycloonproduct van de DWD.",
+      "show": "Op de kaart tonen: {mark}"
     }
   },
   "compare": {

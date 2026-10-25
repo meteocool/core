@@ -334,7 +334,8 @@
       "unavailable": "Wolumen niedostępny",
       "not_openable": "Radary widzą tę burzę za słabo, by otworzyć przekrój: ich wiązki obejmują zbyt małą część warstwy 3–8 km. Jest narysowana na mapie, ale bez przekroju.",
       "cappi_height": "Wysokość przekroju",
-      "cappi_caption": "Wszystko powyżej {km} km jest odcięte. Przeciągnij w górę lub w dół, aby ustalić wysokość."
+      "cappi_caption": "Wszystko powyżej {km} km jest odcięte. Przeciągnij w górę lub w dół, aby ustalić wysokość.",
+      "open_radar": "Otwórz radar {radar}"
     },
     "cut": {
       "north_south": "przekrój z północy na południe",
@@ -393,7 +394,8 @@
       "volume": "Widok 3D",
       "volume_body": "Dotknij, aby otworzyć burzę na mapie 3D.",
       "mesocyclone": "Mezocyklon",
-      "mesocyclone_body": "Rotacja wykryta w produkcie mezocyklonów DWD."
+      "mesocyclone_body": "Rotacja wykryta w produkcie mezocyklonów DWD.",
+      "show": "Pokaż na mapie: {mark}"
     }
   },
   "compare": {

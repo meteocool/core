@@ -334,7 +334,8 @@
       "unavailable": "Radarimaht pole saadaval",
       "not_openable": "Pole piisavalt hästi näha, et lahti lõigata: radarikiired katavad 3–8 km kihist liiga vähe. Kaardil on see näha, kuid läbilõiget ei ole.",
       "cappi_height": "Lõike kõrgus",
-      "cappi_caption": "Kõik üle {km} km on ära lõigatud. Kõrguse hoidmiseks lohista üles või alla."
+      "cappi_caption": "Kõik üle {km} km on ära lõigatud. Kõrguse hoidmiseks lohista üles või alla.",
+      "open_radar": "Ava radar {radar}"
     },
     "cut": {
       "north_south": "lõige põhjast lõunasse",
@@ -393,7 +394,8 @@
       "volume": "3D-vaade",
       "volume_body": "Puuduta, et avada äike 3D-kaardil.",
       "mesocyclone": "Mesotsüklon",
-      "mesocyclone_body": "DWD mesotsüklonite tootes tuvastatud pöörlemine."
+      "mesocyclone_body": "DWD mesotsüklonite tootes tuvastatud pöörlemine.",
+      "show": "Näita kaardil: {mark}"
     }
   },
   "compare": {

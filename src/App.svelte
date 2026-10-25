@@ -29,10 +29,11 @@ import type { SettingValue } from "./lib/Settings";
 import { resolveBaseLayer as resolveSettingBaseLayer } from "./lib/baseLayers";
 
 import { tileRefreshSignal } from "./stores";
+import type { StormMarkToggle } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, lastFocus, observedProduct,
+  cellLayerVisible, hiddenStormMarks, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, lastFocus, observedProduct,
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cutRotationDeg, stormDetails,
   lightningLayerVisible, logoStyle,
@@ -85,6 +86,7 @@ import { NETWORKS } from "./layers/network";
 import { dwdAttribution } from "./layers/attributions";
 import { VolumeFeed } from "./lib/scans";
 import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
+import { registerOpenRadar } from "./lib/openRadar";
 /* The storm panel is loaded when a storm is opened, not with the page: the
    history charts, the lineage graph (dagre) and the two 3D pictures are a
    third of the app's code, and most sessions never tap a storm. */
@@ -235,6 +237,14 @@ window.settings = new Settings({
     default: true,
     cb: (value) => {
       cellLayerVisible.set(Boolean(value));
+    },
+  },
+  /* What the map key has turned off, as a comma-separated list (stores.ts `StormMarkToggle`). */
+  hiddenStormMarks: {
+    type: "string",
+    default: "",
+    cb: (value) => {
+      hiddenStormMarks.set(new Set(String(value ?? "").split(",").filter(Boolean) as StormMarkToggle[]));
     },
   },
   layer3dCells: {
@@ -456,6 +466,7 @@ cellLayerVisible.subscribe((value) => {
   if (value) stormmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
 });
 cellLayerVisible.set(window.settings.getBoolean("layerCells"));
+hiddenStormMarks.subscribe((hidden) => window.settings.set("hiddenStormMarks", [...hidden].join(",")));
 
 /**
  * Cells are drawn on every observed frame, the newest and the earlier ones,
@@ -514,8 +525,8 @@ const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
 const hints = makeCloudHints();
 const cloudHintLayer = hints.layer;
 derived(
-  [capTimeIndicator, capLatestObservation],
-  ([shown, newest]) => hintsWanted && showsLatestFrame(shown, newest),
+  [capTimeIndicator, capLatestObservation, hiddenStormMarks],
+  ([shown, newest, hidden]) => hintsWanted && showsLatestFrame(shown, newest) && !hidden.has("volume"),
 ).subscribe((value) => cloudHintLayer.setVisible(value));
 
 const cloudHints = new VolumeFeed<CurrentVolumes>(
@@ -813,6 +824,13 @@ installScrollbars();
 // The panels' "open in 3D" links and the tags above all switch through this,
 // and the way back (see below) through the same manager.
 if (cells3d) registerOpen3D(() => lm.setTarget("cells3d", "map"), (cap) => lm.setTarget(cap, "map"));
+/* A storm panel's radars open in site mode, which is the flat map's: from
+   the 3D map that is a switch, not a detour to come back from. */
+registerOpenRadar(() => {
+  if (get(sharedActiveCap) === "radar") return;
+  forget3DOrigin();
+  lm.setTarget("radar", "map");
+});
 
 /*
  * A phone has room for the 3D map or the flat map's playback, not both.

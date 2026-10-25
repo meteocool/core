@@ -334,7 +334,8 @@
       "unavailable": "Objem není k dispozici",
       "not_openable": "Radary ji neviděly dost dobře na rozříznutí: jejich paprsky pokrývají příliš malou část vrstvy 3–8 km. Je vykreslená na mapě, ale bez řezu.",
       "cappi_height": "Výška řezu",
-      "cappi_caption": "Vše nad {km} km je odříznuto. Tažením nahoru nebo dolů nastavíš výšku."
+      "cappi_caption": "Vše nad {km} km je odříznuto. Tažením nahoru nebo dolů nastavíš výšku.",
+      "open_radar": "Otevřít radar {radar}"
     },
     "cut": {
       "north_south": "řez ze severu na jih",
@@ -393,7 +394,8 @@
       "volume": "3D zobrazení",
       "volume_body": "Klepnutím otevřete bouřku na 3D mapě.",
       "mesocyclone": "Mezocyklóna",
-      "mesocyclone_body": "Rotace zjištěná produktem mezocyklón DWD."
+      "mesocyclone_body": "Rotace zjištěná produktem mezocyklón DWD.",
+      "show": "Zobrazit na mapě: {mark}"
     }
   },
   "compare": {

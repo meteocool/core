@@ -16,6 +16,8 @@
 import type { CellTrackProperties, Storm } from "../api";
 import { ACTIVE_MINUTES, ageMinutes, ellipseRing4326, leadingTip } from "./cellGeometry";
 import { isLive } from "./cellPulse";
+import { BAND_NAMES } from "./cellMetrics";
+import type { StormMarkToggle } from "../stores";
 import { KONRAD3D, outlineOf, stormSource } from "./stormSelection";
 import type { StormSelection, StormSource } from "./stormSelection";
 
@@ -174,10 +176,24 @@ export interface DrawOptions {
   selection: StormSelection | null;
   /** An earlier frame, ms, or null for the present. */
   at: number | null;
+  /** What the reader turned off in the map key; nothing when absent. */
+  hidden?: ReadonlySet<StormMarkToggle>;
+}
+
+/**
+ * Whether the map key hides a storm: its tracker's or its strength's storms
+ * are turned off. The selected one is always drawn, as `isDrawn` has it.
+ */
+export function isHidden(storm: Storm, hidden: ReadonlySet<StormMarkToggle>, selected: string | null): boolean {
+  if (!hidden.size || storm.properties.id === selected) return false;
+  const severity = Math.min(Math.max(storm.properties.severity ?? 0, 0), 3);
+  return hidden.has(stormSource(storm)) || hidden.has(BAND_NAMES[severity]);
 }
 
 /** Every mark for these storms. */
-export function drawStorms(storms: readonly Storm[], { now, reference, selection, at }: DrawOptions): StormDrawing {
+export function drawStorms(storms: readonly Storm[], {
+  now, reference, selection, at, hidden = new Set(),
+}: DrawOptions): StormDrawing {
   const selected = selection?.id ?? null;
   const asOf = (storm: Storm) => (at === null ? storm : stormAsOf(storm, at));
   let drawing = storms.map(asOf).filter((storm): storm is Storm => storm !== null);
@@ -187,7 +203,7 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
     ? asOf(selection.summary)
     : null;
   if (pinned) drawing = [...drawing, pinned];
-  drawing = drawing.filter((storm) => isDrawn(storm, reference, selected));
+  drawing = drawing.filter((storm) => isDrawn(storm, reference, selected) && !isHidden(storm, hidden, selected));
 
   const byId = new Map(drawing.map((storm) => [storm.properties.id, storm]));
   const marks: StormMark[] = [];
@@ -207,19 +223,19 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
       storm: p.id,
       severity: Math.min(Math.max(p.severity ?? 0, 0), 3),
       source: stormSource(storm),
-      hail: Boolean(p.hail),
-      meso: Boolean(p.meso),
+      hail: Boolean(p.hail) && !hidden.has("hail"),
+      meso: Boolean(p.meso) && !hidden.has("rotation"),
       age_minutes: ageMinutes(p.last_seen, now),
       live,
     };
     const path = pathOf(storm);
-    if (path.length > 1) {
+    if (path.length > 1 && !hidden.has("path")) {
       marks.push({ ...shared, kind: "path", id: `${p.id}:path`, geometry: { type: "LineString", coordinates: path } });
     }
     const centroid = centroidOf(storm);
     if (!taken) {
       marks.push({ ...shared, kind: "position", id: p.id, geometry: { type: "Point", coordinates: centroid } });
-      if (live) {
+      if (live && !hidden.has("live")) {
         const history_minutes = Math.max(0, ageMinutes(p.born_at, new Date(p.last_seen).getTime()));
         pings.push({ storm: p.id, severity: shared.severity, coordinates: centroid, history_minutes });
       }
@@ -230,7 +246,7 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
         marks.push({ ...shared, kind: "outline", id: `${p.id}:outline`, geometry: { type: "Polygon", coordinates: [outline] } });
       }
     }
-    if (target) {
+    if (target && !hidden.has("join")) {
       const start = path[path.length - 1];
       const t = target.properties;
       links.push({
@@ -251,7 +267,7 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
     // that storm's path cut back to the split, at its vertex nearest the
     // branch's first point.
     const parent = p.split_from ? byId.get(p.split_from) : undefined;
-    if (parent) {
+    if (parent && !hidden.has("join")) {
       const start = path[0];
       const then = stormAsOf(parent, new Date(p.born_at).getTime()) ?? parent;
       links.push({
@@ -268,7 +284,7 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
 
   // The forecast, for the selected storm alone and only in the present: a
   // past frame's storm is as it was then, with no forecast yet.
-  const cell = at === null ? forecastCell(selection) : null;
+  const cell = at === null && !hidden.has("forecast") ? forecastCell(selection) : null;
   const storm = selected ? byId.get(selected) : undefined;
   const owner = selectedMark(selection);
   if (cell && owner) {

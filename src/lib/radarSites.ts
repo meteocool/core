@@ -199,6 +199,17 @@ const EARTH_RADIUS_KM = 6371;
  */
 const EFFECTIVE_RADIUS_KM = (4 / 3) * EARTH_RADIUS_KM;
 
+/** A volume's radar code as site mode names it: DWD's bare three letters from older volumes get their country. */
+export function siteCode(code: string): string {
+  const lower = code.toLowerCase();
+  return RADAR_SITES[lower] || !RADAR_SITES[`de${lower}`] ? lower : `de${lower}`;
+}
+
+/** The radar's country, ISO 3166 alpha-2 in lower case, from its node code. */
+export function countryOf(code: string): string {
+  return siteCode(code).slice(0, 2);
+}
+
 /** Great-circle distance, in kilometres. */
 export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const rad = Math.PI / 180;

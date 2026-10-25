@@ -334,7 +334,8 @@
       "unavailable": "Volumet er ikke tilgjengelig",
       "not_openable": "Ikke sett godt nok til å skjæres opp: radarstrålene dekker for lite av laget mellom 3 og 8 km. Tegnet på kartet, men uten snitt.",
       "cappi_height": "Snitthøyde",
-      "cappi_caption": "Alt over {km} km er skåret bort. Dra opp eller ned for å holde en høyde."
+      "cappi_caption": "Alt over {km} km er skåret bort. Dra opp eller ned for å holde en høyde.",
+      "open_radar": "Åpne radaren {radar}"
     },
     "cut": {
       "north_south": "snitt fra nord til sør",
@@ -393,7 +394,8 @@
       "volume": "3D-visning",
       "volume_body": "Trykk for å åpne uværet på 3D-kartet.",
       "mesocyclone": "Mesosyklon",
-      "mesocyclone_body": "En rotasjon fra DWDs mesosyklonprodukt."
+      "mesocyclone_body": "En rotasjon fra DWDs mesosyklonprodukt.",
+      "show": "Vis på kartet: {mark}"
     }
   },
   "compare": {

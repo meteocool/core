@@ -334,7 +334,8 @@
       "unavailable": "Volume indisponible",
       "not_openable": "Pas assez bien vu pour être ouvert en coupe : les faisceaux des radars couvrent trop peu de la couche 3–8 km. Dessiné sur la carte, mais sans coupe.",
       "cappi_height": "Hauteur de la coupe",
-      "cappi_caption": "Tout ce qui dépasse {km} km est coupé. Glissez vers le haut ou le bas pour fixer une hauteur."
+      "cappi_caption": "Tout ce qui dépasse {km} km est coupé. Glissez vers le haut ou le bas pour fixer une hauteur.",
+      "open_radar": "Ouvrir le radar de {radar}"
     },
     "cut": {
       "north_south": "coupe du nord au sud",
@@ -393,7 +394,8 @@
       "volume": "Vue 3D",
       "volume_body": "Touchez pour ouvrir l'orage sur la carte 3D.",
       "mesocyclone": "Mésocyclone",
-      "mesocyclone_body": "Une rotation détectée par le produit mésocyclone du DWD."
+      "mesocyclone_body": "Une rotation détectée par le produit mésocyclone du DWD.",
+      "show": "Afficher sur la carte : {mark}"
     }
   },
   "compare": {

@@ -190,3 +190,23 @@ test("a storm's marks carry its source, so DWD's draw as diamonds and meteocool'
   assert.equal(marks.find((m) => m.storm === A && m.kind === "position")?.source, "dwd");
   assert.equal(marks.find((m) => m.storm === B && m.kind === "position")?.source, "meteocool");
 });
+
+test("the map key hides a tracker's or a strength's storms, but never the selected one", () => {
+  const dwd = storm(A, { primary_product: "dwd/konrad3d", severity: 2 });
+  const ours = storm(B, { primary_product: "meteocool/tracker", severity: 0 });
+  const drawn = (hidden: string[], selection = null as ReturnType<typeof fromStorm> | null) => drawStorms(
+    [dwd, ours], { ...options, selection, hidden: new Set(hidden) as never },
+  ).marks.filter((m) => m.kind === "position").map((m) => m.storm);
+  assert.deepEqual(drawn(["dwd"]), [B]);
+  assert.deepEqual(drawn(["weak"]), [A]);
+  assert.deepEqual(drawn(["dwd"], fromStorm(dwd)), [A, B]);
+});
+
+test("the map key hides one kind of mark everywhere: paths, rings, hail and rotation badges", () => {
+  const busy = storm(A, { hail: true, meso: true });
+  const { marks, pings } = drawStorms([busy], { ...options, hidden: new Set(["path", "live", "hail", "rotation"]) as never });
+  assert.deepEqual(kinds(marks, A), ["position"]);
+  assert.deepEqual(pings, []);
+  assert.equal(marks[0].hail, false);
+  assert.equal(marks[0].meso, false);
+});

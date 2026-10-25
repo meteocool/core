@@ -37,6 +37,7 @@ import CloseDisc from "./CloseDisc.svelte";
 import Icon from "./Icon.svelte";
 import { onForecastStep, radarExplainerOpen, radarProducts, smallScreen } from "../stores";
 import { hideNativeControls } from "../lib/nativeBridge";
+import { topStackPx } from "../lib/safeArea";
 import { FORECAST_PRODUCT, PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
 import type { ObservedProduct, ScanRange } from "../lib/observedProduct";
 
@@ -144,8 +145,10 @@ async function show() {
   const centred = rect.left + rect.width / 2 - menuWidth / 2;
   left = Math.max(MARGIN, Math.min(centred, rightColumn - menuWidth - MARGIN));
   // Still under a button, and it stops short of it and scrolls.
+  // Under the top chrome, too: the iOS app's status bar blur is over the page (lib/safeArea.ts).
   const ceiling = Math.max(
     MARGIN,
+    topStackPx(),
     ...buttons.filter((b) => b.left < left + menuWidth && b.right > left).map((b) => b.bottom + MARGIN),
   );
   if (window.innerHeight - bottom - menu.offsetHeight < ceiling) maxHeight = window.innerHeight - bottom - ceiling;

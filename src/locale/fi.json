@@ -334,7 +334,8 @@
       "unavailable": "Tilavuus ei saatavilla",
       "not_openable": "Ei näy tarpeeksi hyvin auki leikattavaksi: tutkien keilat kattavat liian vähän 3–8 km:n kerroksesta. Piirretty kartalle, mutta ilman leikkausta.",
       "cappi_height": "Leikkauksen korkeus",
-      "cappi_caption": "Kaikki {km} km:n yläpuolella leikattu pois. Lukitse korkeus vetämällä ylös tai alas."
+      "cappi_caption": "Kaikki {km} km:n yläpuolella leikattu pois. Lukitse korkeus vetämällä ylös tai alas.",
+      "open_radar": "Avaa tutka {radar}"
     },
     "cut": {
       "north_south": "leikkaus pohjoisesta etelään",
@@ -393,7 +394,8 @@
       "volume": "3D-näkymä",
       "volume_body": "Napauta avataksesi ukkosen 3D-kartalla.",
       "mesocyclone": "Mesosykloni",
-      "mesocyclone_body": "DWD:n mesosyklonituotteen havaitsema pyöriminen."
+      "mesocyclone_body": "DWD:n mesosyklonituotteen havaitsema pyöriminen.",
+      "show": "Näytä kartalla: {mark}"
     }
   },
   "compare": {

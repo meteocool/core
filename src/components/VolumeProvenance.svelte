@@ -11,13 +11,18 @@
  *
  * The flat map's panel takes the radars alone, under its own cutaway.
  *
+ * Each radar carries its country's flag, and one whose sweeps are published
+ * opens them in site mode (lib/openRadar.ts).
+ *
  * Shared by both kinds of storm, a tracked cell's and a core found only in
  * the composite, and headed in `StormPanel`'s sections.
  */
 import { _ } from "svelte-i18n";
 import CappiSweep from "./CappiSweep.svelte";
 import RadarMinimap from "./RadarMinimap.svelte";
-import { contributions } from "../lib/radarSites";
+import Flag from "./Flag.svelte";
+import { contributions, countryOf, siteCode } from "../lib/radarSites";
+import { openRadar, openRadarAvailable, radarsWithSweeps } from "../lib/openRadar";
 import type { CellVolume } from "../api";
 
 export let volume: CellVolume;
@@ -42,6 +47,17 @@ function pick(code: string) {
 $: radars = at
   ? contributions(volume.sites ?? [], at.lat, at.lon)
   : (volume.sites ?? []).map((code) => ({ code, name: code.toUpperCase(), distanceKm: null, lowestBeamKm: null, site: null }));
+/* Which of them have sweeps to open: asked once per volume, the list keyed on it. */
+let openable = new Set<string>();
+let askedFor = "";
+$: void listOpenable((volume.sites ?? []).join(","));
+async function listOpenable(key: string) {
+  if (key === askedFor || !$openRadarAvailable) return;
+  askedFor = key;
+  openable = new Set();
+  const served = await radarsWithSweeps(volume.sites ?? []);
+  if (askedFor === key) openable = served;
+}
 $: coverage = volume.coverage != null
   ? $_("storm.volume.coverage", { values: { pct: Math.round(volume.coverage * 100) } })
   : null;
@@ -74,8 +90,18 @@ $: unopenable = volume.tier === 1;
           on:pointerdown={(e) => { pressedBy = e.pointerType; }}
           on:click={() => pick(radar.code)}
         >
-          <span>{radar.name}</span>
-          {#if radar.distanceKm != null}<span class="detail">{Math.round(radar.distanceKm)} km</span>{/if}
+          <span class="name">
+            {#if openable.has(siteCode(radar.code))}
+              <button type="button" class="open" title={$_("storm.volume.open_radar", { values: { radar: radar.name } })}
+                on:click|stopPropagation={() => openRadar(radar.code)}>{radar.name}<span class="chevron" aria-hidden="true">›</span></button>
+            {:else}
+              {radar.name}
+            {/if}
+          </span>
+          <span class="detail">
+            {#if radar.distanceKm != null}{Math.round(radar.distanceKm)} km{/if}
+            <Flag country={countryOf(radar.code)} />
+          </span>
         </li>
       {/each}
     </ul>
@@ -89,7 +115,22 @@ $: unopenable = volume.tier === 1;
 .radars li { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; padding: 10px 0; }
 .radars li + li { border-top: 0.5px solid var(--mc-separator); }
 .radars li:first-child { padding-top: 0; }
-.radars li.picked span:first-child { color: var(--mc-accent); }
+.radars li.picked .name { color: var(--mc-accent); }
+.name { min-width: 0; }
+.detail { display: inline-flex; align-items: center; gap: 8px; }
+/* A radar with sweeps opens them: a link in the row, the row's hover kept. */
+.open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.open:hover { text-decoration: underline; }
+.open:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; border-radius: 3px; }
+.chevron { margin-left: 4px; color: var(--mc-accent); font-weight: 600; }
 .detail { color: var(--mc-text-2); font-variant-numeric: tabular-nums; }
 .unopenable { margin: 0 0 12px; color: var(--mc-text-2); font-size: 13px; line-height: 1.4; }
 </style>

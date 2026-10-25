@@ -334,7 +334,8 @@
       "unavailable": "Volumen nije dostupan",
       "not_openable": "Nije dovoljno dobro vidljiva da bi se rasjekla: zrake radara pokrivaju premalo sloja od 3 do 8 km. Prikazana je na karti, ali bez presjeka.",
       "cappi_height": "Visina presjeka",
-      "cappi_caption": "Sve iznad {km} km je odrezano. Povuci gore ili dolje da zadržiš visinu."
+      "cappi_caption": "Sve iznad {km} km je odrezano. Povuci gore ili dolje da zadržiš visinu.",
+      "open_radar": "Otvori radar {radar}"
     },
     "cut": {
       "north_south": "presjek od sjevera prema jugu",
@@ -393,7 +394,8 @@
       "volume": "3D prikaz",
       "volume_body": "Dodirnite za otvaranje oluje na 3D karti.",
       "mesocyclone": "Mezociklona",
-      "mesocyclone_body": "Rotacija otkrivena u DWD-ovom proizvodu mezociklona."
+      "mesocyclone_body": "Rotacija otkrivena u DWD-ovom proizvodu mezociklona.",
+      "show": "Prikaži na karti: {mark}"
     }
   },
   "compare": {

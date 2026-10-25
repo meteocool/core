@@ -334,7 +334,8 @@
       "unavailable": "Volume unavailable",
       "not_openable": "Not seen well enough to cut open: the radars' beams cover too little of the 3–8 km layer. Drawn on the map, but no cutaway.",
       "cappi_height": "Height of the slice",
-      "cappi_caption": "Everything above {km} km cut away. Drag up or down to hold a height."
+      "cappi_caption": "Everything above {km} km cut away. Drag up or down to hold a height.",
+      "open_radar": "Open the {radar} radar"
     },
     "cut": {
       "north_south": "cut north to south",
@@ -393,7 +394,8 @@
       "volume": "3D view",
       "volume_body": "Tap to open the storm on the 3D map.",
       "mesocyclone": "Mesocyclone",
-      "mesocyclone_body": "A rotation detected in DWD's mesocyclone product."
+      "mesocyclone_body": "A rotation detected in DWD's mesocyclone product.",
+      "show": "Show on the map: {mark}"
     }
   },
   "compare": {

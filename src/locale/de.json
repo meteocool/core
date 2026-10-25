@@ -334,7 +334,8 @@
       "unavailable": "Volumen nicht verfügbar",
       "not_openable": "Nicht gut genug erfasst, um es aufzuschneiden: Die Radarstrahlen decken die 3–8-km-Schicht zu wenig ab. Auf der Karte gezeichnet, aber kein Schnitt.",
       "cappi_height": "Höhe des Schnitts",
-      "cappi_caption": "Alles oberhalb von {km} km ist weggeschnitten. Nach oben oder unten ziehen, um eine Höhe festzuhalten."
+      "cappi_caption": "Alles oberhalb von {km} km ist weggeschnitten. Nach oben oder unten ziehen, um eine Höhe festzuhalten.",
+      "open_radar": "Radar {radar} öffnen"
     },
     "cut": {
       "north_south": "Schnitt von Nord nach Süd",
@@ -393,7 +394,8 @@
       "volume": "3D-Ansicht",
       "volume_body": "Antippen, um das Gewitter in der 3D-Karte zu öffnen.",
       "mesocyclone": "Mesozyklone",
-      "mesocyclone_body": "Eine Rotation aus dem Mesozyklonen-Produkt des DWD."
+      "mesocyclone_body": "Eine Rotation aus dem Mesozyklonen-Produkt des DWD.",
+      "show": "Auf der Karte zeigen: {mark}"
     }
   },
   "compare": {

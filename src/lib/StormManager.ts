@@ -7,7 +7,7 @@ import type VectorSource from "ol/source/Vector";
 import { get } from "svelte/store";
 import { fetchStorms } from "../api";
 import type { Progress, Storm } from "../api";
-import { selectedStorm } from "../stores";
+import { hiddenStormMarks, selectedStorm } from "../stores";
 import { covers, padExtent, worldExtent } from "./cellGeometry";
 import type { Extent } from "./cellGeometry";
 import { drawStorms } from "./stormMarks";
@@ -84,6 +84,8 @@ export default class StormManager {
       this.drawnFor = key;
       this.draw();
     });
+    // What the map key turns off is left out of the drawing, not hidden in its style.
+    hiddenStormMarks.subscribe(() => this.draw());
   }
 
   /**
@@ -147,7 +149,7 @@ export default class StormManager {
     const { storms } = this.answer;
     const reference = now;
     const { marks, links, pings } = drawStorms(storms, {
-      now, reference, selection: get(selectedStorm), at: this.at,
+      now, reference, selection: get(selectedStorm), at: this.at, hidden: get(hiddenStormMarks),
     });
     this.vs.clear(true);
     // Joins first, so the tracks and their marks draw over them.
