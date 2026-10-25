@@ -211,6 +211,41 @@ export function knowsSeverity(selection: StormSelection): boolean {
   return Boolean(selection.cell) || selection.summary?.properties.primary_product === KONRAD3D;
 }
 
+/**
+ * Whose tracking a storm is: DWD's (KONRAD3D, over Germany) or meteocool's
+ * own tracker (everywhere). The map draws the two differently and the panel
+ * names them, since only DWD's carry a forecast, hail and rotation.
+ */
+export type StormSource = "dwd" | "meteocool";
+
+const sourceOfProduct = (product: string | null | undefined): StormSource => (
+  product === KONRAD3D ? "dwd" : "meteocool"
+);
+
+/** A storm's source, by its primary track: the one whose attributes it shows. */
+export function stormSource(storm: Storm): StormSource {
+  return sourceOfProduct(storm.properties.primary_product);
+}
+
+/**
+ * Every source behind the selection, the one its readings are from first.
+ *
+ * A storm both track names both; a meteocool storm with a KONRAD3D track
+ * shows that track's readings (`cell`), so DWD leads there. A seed cell is
+ * DWD's alone, a box of sky meteocool's.
+ */
+export function sourcesOf(selection: StormSelection): StormSource[] {
+  const tracks = selection.detail?.storm.properties.tracks ?? selection.summary?.properties.tracks ?? [];
+  const named = new Set<StormSource>(tracks.map((track) => sourceOfProduct(track.product)));
+  if (selection.summary) named.add(stormSource(selection.summary));
+  if (selection.cell) named.add("dwd");
+  if (!named.size && selection.volume) named.add("meteocool");
+  const lead: StormSource | null = selection.cell
+    ? "dwd"
+    : selection.summary ? stormSource(selection.summary) : null;
+  return [...named].sort((a, b) => Number(b === lead) - Number(a === lead));
+}
+
 /** The storm's severity class, 0..3, or null when there is nothing to take one from. */
 export function severityOf(selection: StormSelection): number | null {
   const value = selection.summary?.properties.severity ?? selection.cell?.max_severity ?? null;

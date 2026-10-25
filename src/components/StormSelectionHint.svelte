@@ -25,11 +25,12 @@ import { fly, fade } from "svelte/transition";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { _ } from "svelte-i18n";
 import Icon from "./Icon.svelte";
+import SourceBadge from "./SourceBadge.svelte";
 import SwipeDock, { type Leaving } from "./SwipeDock.svelte";
 import { openHintCount, openStripCount, selectedStorm, stormDetails } from "../stores";
 import { severityColour } from "../layers/cells";
 import { BAND_NAMES, duration } from "../lib/cellMetrics";
-import { knowsSeverity, severityOf } from "../lib/stormSelection";
+import { knowsSeverity, severityOf, sourcesOf } from "../lib/stormSelection";
 import type { StormSelection } from "../lib/stormSelection";
 
 export let selection: StormSelection;
@@ -44,6 +45,8 @@ $: classed = knowsSeverity(selection);
 $: colour = severityColour(severity);
 $: storm = selection.summary?.properties ?? null;
 $: cell = selection.cell;
+/* Whose it is, as the panel's header says; the swatch takes the map's shape for it. */
+$: source = sourcesOf(selection)[0] ?? null;
 /* A storm that has stopped says so: a severity-coloured dot and an "alive
    for" counting on to now would read as a storm still going. Its lifetime is
    its span of sightings, plus the one scan the last of them stands for, so a
@@ -121,6 +124,11 @@ function clear(leaving: Leaving) {
   .swatch.ended {
     background: var(--mc-text-3);
   }
+  /* DWD's storms are diamonds on the map. */
+  .swatch.dwd {
+    border-radius: 1px;
+    transform: rotate(45deg) scale(0.9);
+  }
 
   /* Two lines rather than one that wraps. "Strong storm (alive for 49 min)" is
      about thirty characters and there are two controls and a swatch beside it;
@@ -135,6 +143,10 @@ function clear(leaving: Leaving) {
   }
 
   .what .title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -144,7 +156,14 @@ function clear(leaving: Leaving) {
   }
 
   .what .title b {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-weight: inherit;
+  }
+  .what .title :global(.badge) {
+    flex: 0 0 auto;
+    text-transform: none;
   }
 
   .what .alive {
@@ -235,10 +254,11 @@ function clear(leaving: Leaving) {
   in:fade={{ duration: 200 }}>
   <SwipeDock action={$_("storm.hint.clear_action")} tappable strong on:tap={open} on:dismiss={(e) => clear(e.detail)}>
     <div class="hint">
-      <span class="swatch" class:ended style:background={ended ? null : colour}></span>
+      <span class="swatch" class:ended class:dwd={source === "dwd"} style:background={ended ? null : colour}></span>
       <span class="what">
         <span class="title">
           <b>{classed ? $_(`storm.storm_label.${BAND_NAMES[severity]}`) : $_("storm.storm_label.unclassed")}</b>
+          {#if source}<SourceBadge {source} />{/if}
         </span>
         <span class="alive">{lifeLine}</span>
       </span>

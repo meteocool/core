@@ -284,7 +284,8 @@
       "observed": "Täheldatud",
       "radar": "Radar",
       "forecast": "Prognoos",
-      "forecast_value": "kuni {time}, ±{km} km"
+      "forecast_value": "kuni {time}, ±{km} km",
+      "source": "Allikas"
     },
     "radar_offset": {
       "behind": "{m} min radarist maas",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Ühines teise äikesega",
       "from": "Siia ühines äike, viimati nähtud {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD äikesejälgimine (KONRAD3D)",
+      "meteocool_long": "meteocooli äikesejälgimine",
+      "also": "jälgib ka {source}"
+    },
+    "key": {
+      "pill": "Äikesed",
+      "open": "Mida äikesemärgid tähendavad",
+      "title": "Äikesemärgid",
+      "dwd": "DWD äike",
+      "dwd_body": "Jälgib Saksa ilmateenistus Saksamaa kohal. Sellel on prognoos ning rahe- ja pöörlemismärge.",
+      "meteocool": "meteocooli äike",
+      "meteocool_body": "Jälgib meteocool radarilt kogu Euroopas. Prognoosi ega rahe- või pöörlemismärget pole.",
+      "strength": "Tugevus",
+      "live": "Aktiivne",
+      "live_body": "Seda tuvastatakse endiselt. Ilma rõngata nähti seda viimati mõne aja eest.",
+      "path": "Teekond",
+      "path_body": "Kus see on liikunud. Tuhmub, kui seda enam ei nähta.",
+      "join": "Ühinemine või jagunemine",
+      "join_body": "Punktiir: üks äike ühines teisega või eraldus sellest.",
+      "hail": "Rahe",
+      "hail_body": "Punane äär ja ✦: DWD tuvastab rahet.",
+      "rotation": "Pöörlemine",
+      "rotation_body": "↻: DWD tuvastab pöörleva tõusuvoolu (mesotsüklon).",
+      "forecast": "Prognoos",
+      "forecast_body": "Valitud DWD äikese puhul: kus see tõenäoliselt on, minutites praegusest.",
+      "volume": "3D-vaade",
+      "volume_body": "Puuduta, et avada äike 3D-kaardil.",
+      "mesocyclone": "Mesotsüklon",
+      "mesocyclone_body": "DWD mesotsüklonite tootes tuvastatud pöörlemine."
     }
   },
   "compare": {

@@ -42,6 +42,7 @@ import CellModel3D from "./CellModel3D.svelte";
 import CellCutaway from "./CellCutaway.svelte";
 import SliceDial from "./SliceDial.svelte";
 import StormPanel from "./StormPanel.svelte";
+import SourceBadge from "./SourceBadge.svelte";
 import Readings from "./Readings.svelte";
 import VolumeProvenance from "./VolumeProvenance.svelte";
 import { open3DAvailable, openStormIn3D } from "../lib/open3d";
@@ -52,7 +53,7 @@ import { currentLocale, type Translate } from "../locale/t";
 import { cellVolume, dbzColour, frameOf, unionFrame } from "../lib/cellVolume";
 import { stormPlace, type StormPlace } from "../lib/reverseGeocode";
 import {
-  headingOf, knowsSeverity, positionOf, selectionKey, severityOf, trackerSeries,
+  headingOf, knowsSeverity, positionOf, selectionKey, severityOf, sourcesOf, trackerSeries,
 } from "../lib/stormSelection";
 import type { StormSelection } from "../lib/stormSelection";
 import { forecastCell } from "../lib/stormMarks";
@@ -99,6 +100,13 @@ const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
 const compass = (deg: number | null | undefined, t: Translate): string => (
   deg === null || deg === undefined ? "–" : t(`storm.compass.${COMPASS[Math.round(deg / 22.5) % 16]}`)
 );
+
+/**
+ * Whose tracking this is, the one the readings are from first: DWD's
+ * KONRAD3D, meteocool's own tracker, or both for a storm both found. Named
+ * in the header, as the map tells them apart by shape.
+ */
+$: sources = sourcesOf(selection);
 
 /* ---- the history chart ------------------------------------------------- */
 
@@ -773,7 +781,14 @@ function close() {
 
 <StormPanel rule={colour} {label} {place} onClose={close}
   onShare={(anchor) => share({ subject: shareSubject, anchor })}>
-  <span slot="header" class="headline" class:severity={classed && !coreOnly}>{title}</span>
+  <svelte:fragment slot="header">
+    <span class="headline" class:severity={classed && !coreOnly}>{title}</span>
+    {#if sources.length}
+      <span class="sources">
+        {#each sources as source, i (source)}<SourceBadge {source} secondary={i > 0} />{/each}
+      </span>
+    {/if}
+  </svelte:fragment>
 
   <!-- Whether it is still there, how long it has been, and how old the
        numbers below are: the three things to know before reading any of
@@ -983,6 +998,14 @@ function close() {
           <dd class="behind">{radarOffset}</dd>
         </div>
       {/if}
+      {#if sources.length}
+        <div>
+          <dt>{$_("storm.fact.source")}</dt>
+          <dd>
+            {$_(`storm.source.${sources[0]}_long`)}{#if sources.length > 1}<br /><span class="also">{$_("storm.source.also", { values: { source: $_(`storm.source.${sources[1]}_long`) } })}</span>{/if}
+          </dd>
+        </div>
+      {/if}
       {#if forecast.length}
         <div>
           <dt>{$_("storm.fact.forecast")}</dt>
@@ -1003,6 +1026,15 @@ function close() {
 <style>
   .severity {
     text-transform: capitalize;
+  }
+  /* Beside the title, centred on it rather than on its baseline. */
+  .sources {
+    display: inline-flex;
+    gap: 4px;
+    align-self: center;
+  }
+  .also {
+    color: var(--mc-text-2);
   }
 
   /**

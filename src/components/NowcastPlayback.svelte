@@ -15,7 +15,7 @@ import {
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
-  nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView,
+  nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -23,6 +23,7 @@ import type RadarCapability from "../caps/RadarCapability";
 import type { GridConfig } from "../caps/RadarCapability";
 
 import RadarScaleLine from "./scales/RadarScaleLine.svelte";
+import StormKey from "./StormKey.svelte";
 import RadarProductPicker from "./RadarProductPicker.svelte";
 import SiteSweepTray from "./SiteSweepTray.svelte";
 import VelocityScaleLine from "./scales/VelocityScaleLine.svelte";
@@ -952,6 +953,7 @@ onDestroy(() => {
   .product-pill {
     flex: 0 0 auto;
     display: inline-flex;
+    gap: 6px;
     margin-left: auto;
   }
 
@@ -1200,7 +1202,11 @@ onDestroy(() => {
         {/if}
         <!-- The legend's caption, up here rather than in the row of controls,
              which has no room left on a phone. -->
-        <span class="product-pill"><RadarProductPicker variant="pill" /></span>
+        <span class="product-pill">
+          <!-- What the storm marks on the map are, while they are drawn. -->
+          {#if $cellLayerVisible}<StormKey />{/if}
+          <RadarProductPicker variant="pill" />
+        </span>
         {#if $inspectLatLon && !$latLon}
           <button type="button" class="controlButton clear" on:click={returnToCurrentPosition}
             title={$_("close")} aria-label={$_("close")}>

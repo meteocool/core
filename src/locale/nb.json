@@ -284,7 +284,8 @@
       "observed": "Observert",
       "radar": "Radar",
       "forecast": "Varsel",
-      "forecast_value": "til {time}, ±{km} km"
+      "forecast_value": "til {time}, ±{km} km",
+      "source": "Kilde"
     },
     "radar_offset": {
       "behind": "{m} min bak radaren",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Slått sammen med et annet tordenvær",
       "from": "Et annet tordenvær gikk inn i dette, sist sett {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWDs tordenværsporing (KONRAD3D)",
+      "meteocool_long": "meteocools tordenværsporing",
+      "also": "også fulgt av {source}"
+    },
+    "key": {
+      "pill": "Uvær",
+      "open": "Hva uværsmerkene betyr",
+      "title": "Uværsmerker",
+      "dwd": "DWD-uvær",
+      "dwd_body": "Fulgt av den tyske værtjenesten over Tyskland. Har prognose og melder hagl og rotasjon.",
+      "meteocool": "meteocool-uvær",
+      "meteocool_body": "Fulgt av meteocool på radaren i hele Europa. Ingen prognose, hagl- eller rotasjonsmelding.",
+      "strength": "Styrke",
+      "live": "Aktiv",
+      "live_body": "Registreres fortsatt. Uten ringen ble det sist sett for en stund siden.",
+      "path": "Bane",
+      "path_body": "Hvor det har vært. Blekner når det ikke lenger sees.",
+      "join": "Sammenslåing eller deling",
+      "join_body": "Prikket: et uvær gikk sammen med et annet eller brøt ut fra det.",
+      "hail": "Hagl",
+      "hail_body": "Rød kant og ✦: DWD registrerer hagl.",
+      "rotation": "Rotasjon",
+      "rotation_body": "↻: DWD registrerer en roterende oppvind (mesosyklon).",
+      "forecast": "Prognose",
+      "forecast_body": "For et valgt DWD-uvær: hvor det sannsynligvis vil være, i minutter fra nå.",
+      "volume": "3D-visning",
+      "volume_body": "Trykk for å åpne uværet på 3D-kartet.",
+      "mesocyclone": "Mesosyklon",
+      "mesocyclone_body": "En rotasjon fra DWDs mesosyklonprodukt."
     }
   },
   "compare": {

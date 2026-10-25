@@ -284,7 +284,8 @@
       "observed": "Observé",
       "radar": "Radar",
       "forecast": "Prévision",
-      "forecast_value": "jusqu'à {time}, ±{km} km"
+      "forecast_value": "jusqu'à {time}, ±{km} km",
+      "source": "Source"
     },
     "radar_offset": {
       "behind": "{m} min de retard sur le radar",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Fondu dans un autre orage",
       "from": "Un orage s'y est fondu, dernière observation : {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "Suivi des orages du DWD (KONRAD3D)",
+      "meteocool_long": "Suivi des orages meteocool",
+      "also": "aussi suivi par {source}"
+    },
+    "key": {
+      "pill": "Orages",
+      "open": "Signification des symboles d'orage",
+      "title": "Symboles d'orage",
+      "dwd": "Orage DWD",
+      "dwd_body": "Suivi par le service météo allemand au-dessus de l'Allemagne. Avec prévision, grêle et rotation signalées.",
+      "meteocool": "Orage meteocool",
+      "meteocool_body": "Suivi par meteocool à partir du radar, dans toute l'Europe. Sans prévision, ni signal de grêle ou de rotation.",
+      "strength": "Intensité",
+      "live": "Actif",
+      "live_body": "Toujours détecté. Sans l'anneau, il a été vu pour la dernière fois il y a un moment.",
+      "path": "Trajectoire",
+      "path_body": "Là où il est passé. S'estompe quand il n'est plus détecté.",
+      "join": "Fusion ou division",
+      "join_body": "Pointillés : un orage a rejoint un autre, ou s'en est détaché.",
+      "hail": "Grêle",
+      "hail_body": "Bord rouge et ✦ : le DWD détecte de la grêle.",
+      "rotation": "Rotation",
+      "rotation_body": "↻ : le DWD détecte un courant ascendant en rotation (mésocyclone).",
+      "forecast": "Prévision",
+      "forecast_body": "Pour un orage DWD sélectionné : où il sera probablement, en minutes à partir de maintenant.",
+      "volume": "Vue 3D",
+      "volume_body": "Touchez pour ouvrir l'orage sur la carte 3D.",
+      "mesocyclone": "Mésocyclone",
+      "mesocyclone_body": "Une rotation détectée par le produit mésocyclone du DWD."
     }
   },
   "compare": {

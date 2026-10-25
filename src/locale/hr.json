@@ -284,7 +284,8 @@
       "observed": "Opaženo",
       "radar": "Radar",
       "forecast": "Prognoza",
-      "forecast_value": "do {time}, ±{km} km"
+      "forecast_value": "do {time}, ±{km} km",
+      "source": "Izvor"
     },
     "radar_offset": {
       "behind": "{m} min iza radara",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Spojila se s drugom olujom",
       "from": "S njom se spojila oluja, zadnji put viđena u {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD praćenje oluja (KONRAD3D)",
+      "meteocool_long": "meteocool praćenje oluja",
+      "also": "prati i {source}"
+    },
+    "key": {
+      "pill": "Oluje",
+      "open": "Što znače oznake oluja",
+      "title": "Oznake oluja",
+      "dwd": "DWD oluja",
+      "dwd_body": "Prati je njemačka meteorološka služba iznad Njemačke. Ima prognozu i javlja tuču i rotaciju.",
+      "meteocool": "meteocool oluja",
+      "meteocool_body": "Prati je meteocool s radara diljem Europe. Bez prognoze i dojava tuče ili rotacije.",
+      "strength": "Jačina",
+      "live": "Aktivna",
+      "live_body": "Još se detektira. Bez prstena zadnji put je viđena prije nekog vremena.",
+      "path": "Putanja",
+      "path_body": "Kuda je prošla. Blijedi kad se više ne vidi.",
+      "join": "Spajanje ili dijeljenje",
+      "join_body": "Točkasto: jedna se oluja spojila s drugom ili se od nje odvojila.",
+      "hail": "Tuča",
+      "hail_body": "Crveni rub i ✦: DWD detektira tuču.",
+      "rotation": "Rotacija",
+      "rotation_body": "↻: DWD detektira rotirajuću uzlaznu struju (mezociklonu).",
+      "forecast": "Prognoza",
+      "forecast_body": "Za odabranu DWD oluju: gdje će vjerojatno biti, u minutama od sada.",
+      "volume": "3D prikaz",
+      "volume_body": "Dodirnite za otvaranje oluje na 3D karti.",
+      "mesocyclone": "Mezociklona",
+      "mesocyclone_body": "Rotacija otkrivena u DWD-ovom proizvodu mezociklona."
     }
   },
   "compare": {

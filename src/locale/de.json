@@ -284,7 +284,8 @@
       "observed": "Beobachtet",
       "radar": "Radar",
       "forecast": "Vorhersage",
-      "forecast_value": "bis {time}, ±{km} km"
+      "forecast_value": "bis {time}, ±{km} km",
+      "source": "Quelle"
     },
     "radar_offset": {
       "behind": "{m} Min. hinter dem Radar",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "In ein anderes Gewitter übergegangen",
       "from": "Ein Gewitter ging darin auf, zuletzt gesehen {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD-Gewittertracking (KONRAD3D)",
+      "meteocool_long": "meteocool-Gewittertracking",
+      "also": "auch erfasst von {source}"
+    },
+    "key": {
+      "pill": "Gewitter",
+      "open": "Was die Gewittersymbole bedeuten",
+      "title": "Gewittersymbole",
+      "dwd": "DWD-Gewitter",
+      "dwd_body": "Vom Deutschen Wetterdienst über Deutschland verfolgt. Mit Vorhersage, Hagel- und Rotationshinweis.",
+      "meteocool": "meteocool-Gewitter",
+      "meteocool_body": "Von meteocool aus dem Radar verfolgt, in ganz Europa. Ohne Vorhersage, Hagel- oder Rotationshinweis.",
+      "strength": "Stärke",
+      "live": "Aktiv",
+      "live_body": "Wird noch erfasst. Ohne den Ring wurde es zuletzt vor einer Weile gesehen.",
+      "path": "Zugbahn",
+      "path_body": "Wo es entlanggezogen ist. Verblasst, sobald es nicht mehr erfasst wird.",
+      "join": "Verschmelzung oder Teilung",
+      "join_body": "Gepunktet: ein Gewitter ist in ein anderes aufgegangen oder hat sich abgespalten.",
+      "hail": "Hagel",
+      "hail_body": "Roter Rand und ✦: der DWD erkennt Hagel.",
+      "rotation": "Rotation",
+      "rotation_body": "↻: der DWD erkennt einen rotierenden Aufwind (Mesozyklone).",
+      "forecast": "Vorhersage",
+      "forecast_body": "Für ein ausgewähltes DWD-Gewitter: wo es voraussichtlich sein wird, in Minuten ab jetzt.",
+      "volume": "3D-Ansicht",
+      "volume_body": "Antippen, um das Gewitter in der 3D-Karte zu öffnen.",
+      "mesocyclone": "Mesozyklone",
+      "mesocyclone_body": "Eine Rotation aus dem Mesozyklonen-Produkt des DWD."
     }
   },
   "compare": {

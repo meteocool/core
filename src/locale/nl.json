@@ -284,7 +284,8 @@
       "observed": "Waargenomen",
       "radar": "Radar",
       "forecast": "Voorspelling",
-      "forecast_value": "tot {time}, ±{km} km"
+      "forecast_value": "tot {time}, ±{km} km",
+      "source": "Bron"
     },
     "radar_offset": {
       "behind": "{m} min achter op de radar",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Opgegaan in een ander onweer",
       "from": "Een onweer ging hierin op, laatst gezien {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "Onweerstracking van de DWD (KONRAD3D)",
+      "meteocool_long": "Onweerstracking van meteocool",
+      "also": "ook gevolgd door {source}"
+    },
+    "key": {
+      "pill": "Onweer",
+      "open": "Wat de onweerssymbolen betekenen",
+      "title": "Onweerssymbolen",
+      "dwd": "DWD-onweer",
+      "dwd_body": "Gevolgd door de Duitse weerdienst boven Duitsland. Met verwachting, hagel- en rotatiemelding.",
+      "meteocool": "meteocool-onweer",
+      "meteocool_body": "Door meteocool gevolgd op de radar, in heel Europa. Zonder verwachting, hagel- of rotatiemelding.",
+      "strength": "Sterkte",
+      "live": "Actief",
+      "live_body": "Wordt nog gedetecteerd. Zonder de ring is het een tijd geleden voor het laatst gezien.",
+      "path": "Baan",
+      "path_body": "Waar het is geweest. Vervaagt zodra het niet meer wordt gezien.",
+      "join": "Samensmelting of splitsing",
+      "join_body": "Gestippeld: een onweer is in een ander opgegaan of ervan afgesplitst.",
+      "hail": "Hagel",
+      "hail_body": "Rode rand en ✦: de DWD detecteert hagel.",
+      "rotation": "Rotatie",
+      "rotation_body": "↻: de DWD detecteert een roterende opwaartse stroming (mesocycloon).",
+      "forecast": "Verwachting",
+      "forecast_body": "Voor een geselecteerd DWD-onweer: waar het waarschijnlijk zal zijn, in minuten vanaf nu.",
+      "volume": "3D-weergave",
+      "volume_body": "Tik om het onweer op de 3D-kaart te openen.",
+      "mesocyclone": "Mesocycloon",
+      "mesocyclone_body": "Een rotatie uit het mesocycloonproduct van de DWD."
     }
   },
   "compare": {

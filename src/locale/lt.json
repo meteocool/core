@@ -284,7 +284,8 @@
       "observed": "Stebėta",
       "radar": "Radaras",
       "forecast": "Prognozė",
-      "forecast_value": "iki {time}, ±{km} km"
+      "forecast_value": "iki {time}, ±{km} km",
+      "source": "Šaltinis"
     },
     "radar_offset": {
       "behind": "{m} min atsilieka nuo radaro",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Susiliejo su kita audra",
       "from": "Su ja susiliejo kita audra, paskutinį kartą matyta {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD audrų sekimas (KONRAD3D)",
+      "meteocool_long": "meteocool audrų sekimas",
+      "also": "taip pat seka {source}"
+    },
+    "key": {
+      "pill": "Audros",
+      "open": "Ką reiškia audrų žymės",
+      "title": "Audrų žymės",
+      "dwd": "DWD audra",
+      "dwd_body": "Seka Vokietijos meteorologijos tarnyba virš Vokietijos. Turi prognozę ir žymi krušą bei sukimąsi.",
+      "meteocool": "meteocool audra",
+      "meteocool_body": "Seka meteocool iš radaro visoje Europoje. Be prognozės, krušos ar sukimosi žymų.",
+      "strength": "Stiprumas",
+      "live": "Aktyvi",
+      "live_body": "Vis dar aptinkama. Be žiedo ji paskutinį kartą matyta prieš kurį laiką.",
+      "path": "Kelias",
+      "path_body": "Kur ji buvo. Blunka, kai nebematoma.",
+      "join": "Susiliejimas ar skilimas",
+      "join_body": "Taškuota: audra susiliejo su kita arba nuo jos atskilo.",
+      "hail": "Kruša",
+      "hail_body": "Raudonas kraštas ir ✦: DWD aptinka krušą.",
+      "rotation": "Sukimasis",
+      "rotation_body": "↻: DWD aptinka besisukančią kylančią srovę (mezocikloną).",
+      "forecast": "Prognozė",
+      "forecast_body": "Pasirinktai DWD audrai: kur ji tikėtinai bus, minutėmis nuo dabar.",
+      "volume": "3D vaizdas",
+      "volume_body": "Bakstelėkite, kad atidarytumėte audrą 3D žemėlapyje.",
+      "mesocyclone": "Mezociklonas",
+      "mesocyclone_body": "Sukimasis, aptiktas DWD mezociklonų produkte."
     }
   },
   "compare": {

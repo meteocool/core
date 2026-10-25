@@ -4,6 +4,7 @@ import Style from "ol/style/Style";
 import Stroke from "ol/style/Stroke";
 import Fill from "ol/style/Fill";
 import Circle from "ol/style/Circle";
+import RegularShape from "ol/style/RegularShape";
 import Text from "ol/style/Text";
 import Point from "ol/geom/Point";
 import type { FeatureLike } from "ol/Feature";
@@ -175,6 +176,21 @@ function linkStyle(feature: FeatureLike): Style {
   }));
 }
 
+/**
+ * How much further a DWD storm's diamond reaches than a circle's radius: a
+ * diamond of the same radius has under two thirds of the circle's area and
+ * reads as the weaker storm. The map key draws its swatch with it too.
+ */
+export const DIAMOND_REACH = 1.3;
+
+/**
+ * Where a storm is now: a diamond for DWD's, a circle for meteocool's own.
+ *
+ * Both are drawn over Germany, side by side, and only DWD's carry a forecast,
+ * hail and rotation; the colours are the same scale for both. A shape tells
+ * them apart at a glance and without colour, which a fill or a badge could
+ * not do at this size.
+ */
 function positionStyle(feature: FeatureLike): Style {
   const severity = feature.get("severity") ?? 0;
   const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
@@ -182,26 +198,31 @@ function positionStyle(feature: FeatureLike): Style {
   const mark = badge(feature);
   const colour = severityColour(severity);
   const picked = isSelected(feature);
-  return cached(`position:${severity}:${opacity}:${hail}:${mark}:${picked}`, () => new Style({
-    image: new Circle({
-      radius: (picked ? 8 : 6) + 2 * Math.min(severity, 3),
-      fill: new Fill({ color: rgba(colour, (picked ? 1 : 0.75) * opacity) }),
-      stroke: new Stroke({
-        // The open popup's own storm, ringed so it is findable among the rest.
-        color: hail ? rgba("#e03131", opacity) : rgba("#ffffff", opacity),
-        width: picked ? 3.5 : (hail ? 3 : 1.5),
-      }),
-    }),
-    text: mark
-      ? new Text({
-        text: mark,
-        font: "bold 13px sans-serif",
-        offsetY: -16,
-        fill: new Fill({ color: rgba(colour, opacity) }),
-        stroke: new Stroke({ color: rgba("#ffffff", opacity), width: 3 }),
-      })
-      : undefined,
-  }));
+  const dwd = feature.get("source") === "dwd";
+  return cached(`position:${severity}:${opacity}:${hail}:${mark}:${picked}:${dwd}`, () => {
+    const radius = (picked ? 8 : 6) + 2 * Math.min(severity, 3);
+    const fill = new Fill({ color: rgba(colour, (picked ? 1 : 0.75) * opacity) });
+    const stroke = new Stroke({
+      // The open popup's own storm, ringed so it is findable among the rest.
+      color: hail ? rgba("#e03131", opacity) : rgba("#ffffff", opacity),
+      width: picked ? 3.5 : (hail ? 3 : 1.5),
+      lineJoin: "round",
+    });
+    return new Style({
+      image: dwd
+        ? new RegularShape({ points: 4, radius: radius * DIAMOND_REACH, fill, stroke })
+        : new Circle({ radius, fill, stroke }),
+      text: mark
+        ? new Text({
+          text: mark,
+          font: "bold 13px sans-serif",
+          offsetY: -16,
+          fill: new Fill({ color: rgba(colour, opacity) }),
+          stroke: new Stroke({ color: rgba("#ffffff", opacity), width: 3 }),
+        })
+        : undefined,
+    });
+  });
 }
 
 /** Whether this feature belongs to the storm whose popup is open. */

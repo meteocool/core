@@ -5,9 +5,9 @@
  * storm's path, its position now, its outline, and for the selected storm
  * KONRAD3D's forecast centroids and the uncertainty ellipse around each; and a
  * dotted join where one storm merged into another, or split off one. Over Germany a storm
- * whose primary track is KONRAD3D's looks as its cell did; elsewhere it has
- * meteocool's tracker's track and nothing else: no forecast, no hail or
- * rotation badge, a colour from its peak alone.
+ * whose primary track is KONRAD3D's is DWD's, and its position is a diamond;
+ * elsewhere it has meteocool's tracker's track and nothing else, a circle:
+ * no forecast, no hail or rotation badge, a colour from its peak alone.
  *
  * Pure, and free of OpenLayers (StormManager projects the marks at the
  * edge), so the rules can be tested: what is drawn at all, what a merged
@@ -16,8 +16,8 @@
 import type { CellTrackProperties, Storm } from "../api";
 import { ACTIVE_MINUTES, ageMinutes, ellipseRing4326, leadingTip } from "./cellGeometry";
 import { isLive } from "./cellPulse";
-import { KONRAD3D, outlineOf } from "./stormSelection";
-import type { StormSelection } from "./stormSelection";
+import { KONRAD3D, outlineOf, stormSource } from "./stormSelection";
+import type { StormSelection, StormSource } from "./stormSelection";
 
 /**
  * What a mark is: a storm's path, its `position` now, its outline, a forecast
@@ -43,6 +43,8 @@ export interface StormMark {
   from_storm?: string;
   geometry: MarkGeometry;
   severity: number;
+  /** Whose tracking it is: a DWD storm's position is a diamond, meteocool's a circle (layers/cells.ts). */
+  source: StormSource;
   hail: boolean;
   meso: boolean;
   /** Minutes since the storm was last seen, which fades it. */
@@ -204,6 +206,7 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
     const shared = {
       storm: p.id,
       severity: Math.min(Math.max(p.severity ?? 0, 0), 3),
+      source: stormSource(storm),
       hail: Boolean(p.hail),
       meso: Boolean(p.meso),
       age_minutes: ageMinutes(p.last_seen, now),
@@ -237,6 +240,7 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
         from_storm: p.id,
         geometry: { type: "LineString", coordinates: [start, nearestOn(pathOf(target), start)] },
         severity: Math.min(Math.max(t.severity ?? 0, 0), 3),
+        source: stormSource(target),
         hail: false,
         meso: false,
         age_minutes: ageMinutes(t.last_seen, now),
@@ -273,6 +277,7 @@ export function drawStorms(storms: readonly Storm[], { now, reference, selection
     const shared = {
       storm: owner,
       severity: Math.min(Math.max(storm?.properties.severity ?? cell.max_severity, 0), 3),
+      source: "dwd" as const,
       hail: false,
       meso: false,
       age_minutes: ageMinutes(cell.last_seen, now),

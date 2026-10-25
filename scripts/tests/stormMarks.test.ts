@@ -181,3 +181,12 @@ test("an earlier frame draws no forecast, even for the selected storm", () => {
   const { marks } = drawStorms([of], { now: T0 - 10 * 60_000, reference: T0 - 10 * 60_000, selection, at: T0 - 10 * 60_000 });
   assert.ok(!marks.some((m) => m.kind === "forecast" || m.kind === "ellipse"));
 });
+
+test("a storm's marks carry its source, so DWD's draw as diamonds and meteocool's as circles", () => {
+  const { marks } = drawStorms([
+    storm(A, { primary_product: "dwd/konrad3d" }),
+    storm(B, { primary_product: "meteocool/tracker" }),
+  ], options);
+  assert.equal(marks.find((m) => m.storm === A && m.kind === "position")?.source, "dwd");
+  assert.equal(marks.find((m) => m.storm === B && m.kind === "position")?.source, "meteocool");
+});

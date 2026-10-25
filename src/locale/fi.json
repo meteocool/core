@@ -284,7 +284,8 @@
       "observed": "Havaittu",
       "radar": "Tutka",
       "forecast": "Ennuste",
-      "forecast_value": "klo {time} asti, ±{km} km"
+      "forecast_value": "klo {time} asti, ±{km} km",
+      "source": "Lähde"
     },
     "radar_offset": {
       "behind": "{m} min tutkaa jäljessä",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Yhdistyi toiseen ukkoseen",
       "from": "Toinen ukkonen yhdistyi tähän, nähty viimeksi {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD:n ukkosseuranta (KONRAD3D)",
+      "meteocool_long": "meteocoolin ukkosseuranta",
+      "also": "seuraa myös {source}"
+    },
+    "key": {
+      "pill": "Ukkoset",
+      "open": "Mitä ukkosmerkit tarkoittavat",
+      "title": "Ukkosmerkit",
+      "dwd": "DWD:n ukkonen",
+      "dwd_body": "Saksan sääpalvelu seuraa sitä Saksan yllä. Sillä on ennuste, ja se ilmoittaa rakeet ja pyörimisen.",
+      "meteocool": "meteocoolin ukkonen",
+      "meteocool_body": "meteocool seuraa sitä tutkasta koko Euroopassa. Ei ennustetta eikä rae- tai pyörimisilmoitusta.",
+      "strength": "Voimakkuus",
+      "live": "Aktiivinen",
+      "live_body": "Havaitaan yhä. Ilman rengasta se nähtiin viimeksi hetki sitten.",
+      "path": "Reitti",
+      "path_body": "Missä se on kulkenut. Haalistuu, kun sitä ei enää nähdä.",
+      "join": "Yhdistyminen tai jakautuminen",
+      "join_body": "Pisteviiva: ukkonen yhdistyi toiseen tai irtosi siitä.",
+      "hail": "Rakeet",
+      "hail_body": "Punainen reuna ja ✦: DWD havaitsee rakeita.",
+      "rotation": "Pyöriminen",
+      "rotation_body": "↻: DWD havaitsee pyörivän nousuvirtauksen (mesosyklonin).",
+      "forecast": "Ennuste",
+      "forecast_body": "Valitulle DWD:n ukkoselle: missä se todennäköisesti on, minuutteina tästä hetkestä.",
+      "volume": "3D-näkymä",
+      "volume_body": "Napauta avataksesi ukkosen 3D-kartalla.",
+      "mesocyclone": "Mesosykloni",
+      "mesocyclone_body": "DWD:n mesosyklonituotteen havaitsema pyöriminen."
     }
   },
   "compare": {

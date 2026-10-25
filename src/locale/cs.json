@@ -284,7 +284,8 @@
       "observed": "Pozorováno",
       "radar": "Radar",
       "forecast": "Předpověď",
-      "forecast_value": "do {time}, ±{km} km"
+      "forecast_value": "do {time}, ±{km} km",
+      "source": "Zdroj"
     },
     "radar_offset": {
       "behind": "{m} min za radarem",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Splynula s jinou bouřkou",
       "from": "Splynula s ní jiná bouřka, naposledy viděna {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "Sledování bouřek DWD (KONRAD3D)",
+      "meteocool_long": "Sledování bouřek meteocool",
+      "also": "sleduje také {source}"
+    },
+    "key": {
+      "pill": "Bouřky",
+      "open": "Co znamenají značky bouřek",
+      "title": "Značky bouřek",
+      "dwd": "Bouřka DWD",
+      "dwd_body": "Sleduje ji Německá meteorologická služba nad Německem. Má předpověď a hlásí kroupy a rotaci.",
+      "meteocool": "Bouřka meteocool",
+      "meteocool_body": "Sleduje ji meteocool z radaru po celé Evropě. Bez předpovědi a hlášení krup či rotace.",
+      "strength": "Síla",
+      "live": "Aktivní",
+      "live_body": "Stále se detekuje. Bez kroužku byla naposledy viděna před chvílí.",
+      "path": "Dráha",
+      "path_body": "Kudy prošla. Bledne, jakmile už není vidět.",
+      "join": "Spojení nebo rozdělení",
+      "join_body": "Tečkovaně: bouřka splynula s jinou nebo se od ní oddělila.",
+      "hail": "Kroupy",
+      "hail_body": "Červený okraj a ✦: DWD detekuje kroupy.",
+      "rotation": "Rotace",
+      "rotation_body": "↻: DWD detekuje rotující výstupný proud (mezocyklónu).",
+      "forecast": "Předpověď",
+      "forecast_body": "U vybrané bouřky DWD: kde nejspíš bude, v minutách od teď.",
+      "volume": "3D zobrazení",
+      "volume_body": "Klepnutím otevřete bouřku na 3D mapě.",
+      "mesocyclone": "Mezocyklóna",
+      "mesocyclone_body": "Rotace zjištěná produktem mezocyklón DWD."
     }
   },
   "compare": {

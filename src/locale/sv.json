@@ -284,7 +284,8 @@
       "observed": "Observerad",
       "radar": "Radar",
       "forecast": "Prognos",
-      "forecast_value": "till {time}, ±{km} km"
+      "forecast_value": "till {time}, ±{km} km",
+      "source": "Källa"
     },
     "radar_offset": {
       "behind": "{m} min efter radarn",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Uppgick i ett annat åskväder",
       "from": "Ett åskväder uppgick i detta, sågs senast {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD:s ovädersspårning (KONRAD3D)",
+      "meteocool_long": "meteocools ovädersspårning",
+      "also": "följs även av {source}"
+    },
+    "key": {
+      "pill": "Oväder",
+      "open": "Vad ovädersmarkeringarna betyder",
+      "title": "Ovädersmarkeringar",
+      "dwd": "DWD-oväder",
+      "dwd_body": "Följs av tyska vädertjänsten över Tyskland. Har prognos och flaggar hagel och rotation.",
+      "meteocool": "meteocool-oväder",
+      "meteocool_body": "Följs av meteocool på radarn i hela Europa. Ingen prognos, hagel- eller rotationsflagga.",
+      "strength": "Styrka",
+      "live": "Aktivt",
+      "live_body": "Upptäcks fortfarande. Utan ringen sågs det senast för en stund sedan.",
+      "path": "Bana",
+      "path_body": "Var det har varit. Bleknar när det inte längre syns.",
+      "join": "Sammanslagning eller delning",
+      "join_body": "Prickad: ett oväder gick upp i ett annat eller bröt sig loss från det.",
+      "hail": "Hagel",
+      "hail_body": "Röd kant och ✦: DWD upptäcker hagel.",
+      "rotation": "Rotation",
+      "rotation_body": "↻: DWD upptäcker en roterande uppvind (mesocyklon).",
+      "forecast": "Prognos",
+      "forecast_body": "För ett valt DWD-oväder: var det troligen kommer att vara, i minuter från nu.",
+      "volume": "3D-vy",
+      "volume_body": "Tryck för att öppna ovädret på 3D-kartan.",
+      "mesocyclone": "Mesocyklon",
+      "mesocyclone_body": "En rotation från DWD:s mesocyklonprodukt."
     }
   },
   "compare": {

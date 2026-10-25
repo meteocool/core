@@ -284,7 +284,8 @@
       "observed": "Obserwacja",
       "radar": "Radar",
       "forecast": "Prognoza",
-      "forecast_value": "do {time}, ±{km} km"
+      "forecast_value": "do {time}, ±{km} km",
+      "source": "Źródło"
     },
     "radar_offset": {
       "behind": "{m} min za radarem",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Połączyła się z inną burzą",
       "from": "Połączyła się z nią inna burza, ostatnio widziana {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "Śledzenie burz DWD (KONRAD3D)",
+      "meteocool_long": "Śledzenie burz meteocool",
+      "also": "śledzona też przez {source}"
+    },
+    "key": {
+      "pill": "Burze",
+      "open": "Co oznaczają znaczniki burz",
+      "title": "Znaczniki burz",
+      "dwd": "Burza DWD",
+      "dwd_body": "Śledzona przez Niemiecką Służbę Meteorologiczną nad Niemcami. Ma prognozę i sygnalizuje grad oraz rotację.",
+      "meteocool": "Burza meteocool",
+      "meteocool_body": "Śledzona przez meteocool na radarze w całej Europie. Bez prognozy i sygnałów gradu czy rotacji.",
+      "strength": "Siła",
+      "live": "Aktywna",
+      "live_body": "Nadal wykrywana. Bez pierścienia była ostatnio widziana jakiś czas temu.",
+      "path": "Tor",
+      "path_body": "Którędy przeszła. Blednie, gdy przestaje być widoczna.",
+      "join": "Połączenie lub podział",
+      "join_body": "Kropkowana: burza połączyła się z inną lub się od niej oddzieliła.",
+      "hail": "Grad",
+      "hail_body": "Czerwona obwódka i ✦: DWD wykrywa grad.",
+      "rotation": "Rotacja",
+      "rotation_body": "↻: DWD wykrywa rotujący prąd wstępujący (mezocyklon).",
+      "forecast": "Prognoza",
+      "forecast_body": "Dla wybranej burzy DWD: gdzie prawdopodobnie będzie, w minutach od teraz.",
+      "volume": "Widok 3D",
+      "volume_body": "Dotknij, aby otworzyć burzę na mapie 3D.",
+      "mesocyclone": "Mezocyklon",
+      "mesocyclone_body": "Rotacja wykryta w produkcie mezocyklonów DWD."
     }
   },
   "compare": {

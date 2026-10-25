@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   byId, claimsCell, existedBy, fromStorm, headingOf, holdsFeature, isResolution, knowsSeverity, lookupOf, mergedInto,
-  nearestStorms, newestPatches, outlineOf, positionOf, primaryCell, selectionKey, stormClaiming, trackerSeries,
+  nearestStorms, newestPatches, outlineOf, positionOf, primaryCell, selectionKey, sourcesOf, stormClaiming, stormSource,
+  trackerSeries,
   volumeOfStorm, withCell, withDetail, withStorm, withVolume,
 } from "../../src/lib/stormSelection.ts";
 import {
@@ -273,4 +274,28 @@ test("a selection stays open on an earlier frame it had already appeared by", ()
   assert.equal(existedBy(seed, minute(-10)), true);
   assert.equal(existedBy(seed, minute(-25)), false);
   assert.equal(existedBy(withVolume(null, volume("v")), minute(0)), false);
+});
+
+test("a storm's source is its primary track's: DWD for KONRAD3D, meteocool otherwise", () => {
+  assert.equal(stormSource(storm(A, { primary_product: "dwd/konrad3d" })), "dwd");
+  assert.equal(stormSource(storm(A, { primary_product: "meteocool/tracker" })), "meteocool");
+  assert.equal(stormSource(storm(A)), "meteocool");
+});
+
+test("the panel names every source behind a storm, the one its readings are from first", () => {
+  const tracks = [
+    { product: "meteocool/tracker", domain: "de", track: "t1" },
+    { product: "dwd/konrad3d", domain: "de", track: "K1" },
+  ];
+  const ours = fromStorm(storm(A, { primary_product: "meteocool/tracker", tracks }));
+  assert.deepEqual(sourcesOf(ours), ["meteocool", "dwd"]);
+  // Its KONRAD3D track's readings are what the panel shows, so DWD leads.
+  assert.deepEqual(sourcesOf({ ...ours, cell: cell("K1") }), ["dwd", "meteocool"]);
+  const dwd = fromStorm(storm(A, { primary_product: "dwd/konrad3d", tracks: [tracks[1]] }));
+  assert.deepEqual(sourcesOf(dwd), ["dwd"]);
+});
+
+test("a seed cell is DWD's, a box of sky meteocool's", () => {
+  assert.deepEqual(sourcesOf(withCell(null, cell("K1"))), ["dwd"]);
+  assert.deepEqual(sourcesOf(withVolume(null, volume("v1"))), ["meteocool"]);
 });

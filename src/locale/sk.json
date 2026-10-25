@@ -284,7 +284,8 @@
       "observed": "Pozorované",
       "radar": "Radar",
       "forecast": "Predpoveď",
-      "forecast_value": "do {time}, ±{km} km"
+      "forecast_value": "do {time}, ±{km} km",
+      "source": "Zdroj"
     },
     "radar_offset": {
       "behind": "{m} min za radarom",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Splynula s inou búrkou",
       "from": "Splynula s ňou iná búrka, naposledy videná {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "Sledovanie búrok DWD (KONRAD3D)",
+      "meteocool_long": "Sledovanie búrok meteocool",
+      "also": "sleduje aj {source}"
+    },
+    "key": {
+      "pill": "Búrky",
+      "open": "Čo znamenajú značky búrok",
+      "title": "Značky búrok",
+      "dwd": "Búrka DWD",
+      "dwd_body": "Sleduje ju Nemecká meteorologická služba nad Nemeckom. Má predpoveď a hlási krupobitie a rotáciu.",
+      "meteocool": "Búrka meteocool",
+      "meteocool_body": "Sleduje ju meteocool z radaru po celej Európe. Bez predpovede a hlásenia krupobitia či rotácie.",
+      "strength": "Sila",
+      "live": "Aktívna",
+      "live_body": "Stále sa deteguje. Bez krúžku bola naposledy videná pred chvíľou.",
+      "path": "Dráha",
+      "path_body": "Kadiaľ prešla. Bledne, keď už nie je vidieť.",
+      "join": "Spojenie alebo rozdelenie",
+      "join_body": "Bodkovane: búrka splynula s inou alebo sa od nej oddelila.",
+      "hail": "Krupobitie",
+      "hail_body": "Červený okraj a ✦: DWD deteguje krupobitie.",
+      "rotation": "Rotácia",
+      "rotation_body": "↻: DWD deteguje rotujúci výstupný prúd (mezocyklónu).",
+      "forecast": "Predpoveď",
+      "forecast_body": "Pri vybranej búrke DWD: kde pravdepodobne bude, v minútach od teraz.",
+      "volume": "3D zobrazenie",
+      "volume_body": "Ťuknutím otvoríte búrku na 3D mape.",
+      "mesocyclone": "Mezocyklóna",
+      "mesocyclone_body": "Rotácia zistená produktom mezocyklón DWD."
     }
   },
   "compare": {

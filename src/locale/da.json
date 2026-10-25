@@ -284,7 +284,8 @@
       "observed": "Observeret",
       "radar": "Radar",
       "forecast": "Prognose",
-      "forecast_value": "til kl. {time}, ±{km} km"
+      "forecast_value": "til kl. {time}, ±{km} km",
+      "source": "Kilde"
     },
     "radar_offset": {
       "behind": "{m} min efter radaren",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Smeltede sammen med et andet uvejr",
       "from": "Et andet uvejr smeltede sammen med dette, sidst set {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD's tordenvejrssporing (KONRAD3D)",
+      "meteocool_long": "meteocools tordenvejrssporing",
+      "also": "også fulgt af {source}"
+    },
+    "key": {
+      "pill": "Uvejr",
+      "open": "Hvad uvejrsmærkerne betyder",
+      "title": "Uvejrsmærker",
+      "dwd": "DWD-uvejr",
+      "dwd_body": "Fulgt af den tyske vejrtjeneste over Tyskland. Har prognose og melder hagl og rotation.",
+      "meteocool": "meteocool-uvejr",
+      "meteocool_body": "Fulgt af meteocool på radaren i hele Europa. Ingen prognose, hagl- eller rotationsmelding.",
+      "strength": "Styrke",
+      "live": "Aktiv",
+      "live_body": "Registreres stadig. Uden ringen blev det sidst set for et stykke tid siden.",
+      "path": "Bane",
+      "path_body": "Hvor det har været. Falmer, når det ikke længere ses.",
+      "join": "Sammensmeltning eller deling",
+      "join_body": "Prikket: et uvejr løb sammen med et andet eller brød ud fra det.",
+      "hail": "Hagl",
+      "hail_body": "Rød kant og ✦: DWD registrerer hagl.",
+      "rotation": "Rotation",
+      "rotation_body": "↻: DWD registrerer en roterende opvind (mesocyklon).",
+      "forecast": "Prognose",
+      "forecast_body": "For et valgt DWD-uvejr: hvor det sandsynligvis vil være, i minutter fra nu.",
+      "volume": "3D-visning",
+      "volume_body": "Tryk for at åbne uvejret på 3D-kortet.",
+      "mesocyclone": "Mesocyklon",
+      "mesocyclone_body": "En rotation fra DWD's mesocyklonprodukt."
     }
   },
   "compare": {

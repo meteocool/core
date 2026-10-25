@@ -284,7 +284,8 @@
       "observed": "Observed",
       "radar": "Radar",
       "forecast": "Forecast",
-      "forecast_value": "to {time}, ±{km} km"
+      "forecast_value": "to {time}, ±{km} km",
+      "source": "Source"
     },
     "radar_offset": {
       "behind": "{m} min behind the radar",
@@ -360,6 +361,39 @@
     "merges": {
       "into": "Merged into another storm",
       "from": "A storm merged in, last seen {time}"
+    },
+    "source": {
+      "dwd": "DWD",
+      "meteocool": "meteocool",
+      "dwd_long": "DWD storm tracking (KONRAD3D)",
+      "meteocool_long": "meteocool storm tracking",
+      "also": "also tracked by {source}"
+    },
+    "key": {
+      "pill": "Storms",
+      "open": "What the storm marks mean",
+      "title": "Storm marks",
+      "dwd": "DWD storm",
+      "dwd_body": "Tracked by the German Weather Service over Germany. Has a forecast, and flags hail and rotation.",
+      "meteocool": "meteocool storm",
+      "meteocool_body": "Tracked by meteocool from the radar, all over Europe. No forecast, hail or rotation flags.",
+      "strength": "Strength",
+      "live": "Live",
+      "live_body": "Still being detected. Without the ring, it was last seen a while ago.",
+      "path": "Path",
+      "path_body": "Where it has been. Fades once it is no longer seen.",
+      "join": "Merge or split",
+      "join_body": "Dotted: one storm ran into another, or broke off it.",
+      "hail": "Hail",
+      "hail_body": "Red rim and ✦: DWD detects hail.",
+      "rotation": "Rotation",
+      "rotation_body": "↻: DWD detects a rotating updraft (mesocyclone).",
+      "forecast": "Forecast",
+      "forecast_body": "For a selected DWD storm: where it is likely to be, in minutes from now.",
+      "volume": "3D view",
+      "volume_body": "Tap to open the storm on the 3D map.",
+      "mesocyclone": "Mesocyclone",
+      "mesocyclone_body": "A rotation detected in DWD's mesocyclone product."
     }
   },
   "compare": {
