@@ -203,7 +203,8 @@
   --mc-player-base-h: 168px;                          /* the radar player: head row + timeline + transport and scale row */
   --mc-site-row-h: 28px;                              /* a row of site mode's tray in the player: the radar and close, then its controls */
   --mc-site-tray-h: 0px;                              /* what that tray adds to the player while it is open (:root.site-open) */
-  --mc-player-h: calc(var(--mc-player-base-h) + var(--mc-site-tray-h));
+  --mc-stations-tray-h: 0px;                          /* what the weather stations' picker adds to the player while they are on (:root.stations-open) */
+  --mc-player-h: calc(var(--mc-player-base-h) + var(--mc-site-tray-h) + var(--mc-stations-tray-h));
   --mc-strip-h: 104px;                                /* a chart strip above the tray (DismissableStrip) */
   --mc-hint-h: 54px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);
@@ -400,6 +401,8 @@
 @media (min-width: 1024px) {
   :root.site-open { --mc-site-tray-h: calc(var(--mc-site-row-h) + 4px); }
 }
+/* The weather stations' picker (StationPicker): one row, a gap below what is above it. */
+:root.stations-open { --mc-stations-tray-h: calc(var(--mc-site-row-h) + 4px); }
 /* Storm-relative velocity adds a row: whose motion it takes out (StormMotion). */
 :root.site-open.site-srv { --mc-site-tray-h: calc(3 * var(--mc-site-row-h) + 12px); }
 @media (min-width: 1024px) {

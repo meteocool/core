@@ -40,8 +40,9 @@ import {
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, meteocoolNowcast,
-  siteMarksVisible, siteMode, srvManualMotion, zoomlevel,
+  siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
 } from "./stores";
+import { parseStationChoice } from "./lib/stations";
 import { DEFAULT_MANUAL_MOTION, formatManualMotion, parseManualMotion, sameManualMotion } from "./lib/srvMotion";
 
 import "./global.css";
@@ -110,6 +111,11 @@ import { reportNotice } from "./lib/Toast";
 import { dropEarlierFrames, forgetEarlierFrames } from "./layers/valueTiles";
 import { isHandheld } from "./lib/gpuBudget";
 import LightningCapability from "./caps/LightningCapability";
+import makeStationLayer from "./layers/stations";
+import StationManager from "./lib/StationManager";
+import type { ObservedProperties } from "./lib/stations";
+const loadStationDetails = () => import("./components/StationDetails.svelte");
+const loadStationSheet = () => Promise.all([loadCellSheet(), loadStationDetails()]);
 
 export let device;
 export let postInitCb;
@@ -375,6 +381,23 @@ window.settings = new Settings({
       if (!sameManualMotion(get(srvManualMotion), motion)) srvManualMotion.set(motion);
     },
   },
+  /* DWD's weather stations over the radar map (lib/StationManager.ts). Off
+     unless turned on, by the player's pill or in Settings. */
+  layerStations: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      stationLayerVisible.set(Boolean(value));
+    },
+  },
+  /* The one parameter the weather stations show (lib/stations.ts). */
+  stationParameter: {
+    type: "string",
+    default: "wind",
+    cb: (value) => {
+      stationChoice.set(parseStationChoice(value));
+    },
+  },
   // A picture of the map for a headless renderer; see lib/screenshot.ts. Last,
   // so it has the final word over logo, layerswitcher and toolbar above.
   screenshot: {
@@ -555,6 +578,20 @@ siteMarksVisible.set(!screenshot && window.settings.getBoolean("layerSites"));
 siteMarksVisible.subscribe((value) => {
   if (!screenshot) window.settings.set("layerSites", value);
 });
+/* The weather stations over the radar map, from the timeline's frame; not
+   in a screenshot, which is of the radar. */
+const stationLayer = makeStationLayer();
+const stationmgr = new StationManager(stationLayer, nb);
+onDestroy(() => stationmgr.destroy());
+stationLayerVisible.set(!screenshot && window.settings.getBoolean("layerStations"));
+stationLayerVisible.subscribe((value) => {
+  if (!screenshot) window.settings.set("layerStations", value);
+});
+stationChoice.subscribe((choice) => window.settings.set("stationParameter", choice));
+/* One sheet at a time: a storm opened puts the station's away, and back. */
+selectedStorm.subscribe((storm) => { if (storm) selectedStation.set(null); });
+selectedStation.subscribe((station) => { if (station) selectedStorm.set(null); });
+
 /* Kept once the dial comes to rest: a drag turns it through dozens of
    headings, and each would be a write. */
 srvManualMotion.set(parseManualMotion(window.settings.get("srvMotion")));
@@ -632,6 +669,7 @@ bottomToolbarMode.subscribe((mode) => {
 });
 
 const closeCompare = () => modelCompareAt.set(null);
+const closeStation = () => selectedStation.set(null);
 /** A box of sky's sheet closes the selection: it leaves no marks on the flat map behind it. */
 const closeStorm = () => selectedStorm.set(null);
 /** Whether the selected storm stands cut open on the 3D map behind its sheet. */
@@ -706,7 +744,7 @@ const lm = new LayerManager({
       name: "radar",
       capability: RadarCapability,
       additionalLayers: [
-        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, labelsOnly(),
+        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, stationLayer.layer, labelsOnly(),
         radolanOverlay({ followsForecast: true }),
         siteSweep.layer, beamRings.layer, siteMarks.layer,
       ],
@@ -974,6 +1012,17 @@ lm.forEachMap((map) => {
         return;
       }
     }
+    /* A weather station, where no storm is: its values in a sheet. Any
+       other tap puts an open one away. */
+    if (!code && stationLayer.layer.getVisible()) {
+      const station = map.forEachFeatureAtPixel(
+        event.pixel,
+        (feature) => feature.get("observed") as ObservedProperties | undefined,
+        { layerFilter: (layer) => layer === stationLayer.layer, hitTolerance: 10 },
+      );
+      selectedStation.set(station ?? null);
+      if (station) return;
+    }
     /* With a radar open, a click past its reach that hits no storm or cloud
        closes it, and only it: the storm a storm-relative sweep is read
        against stays selected. */
@@ -1124,6 +1173,7 @@ const unsubscribeWake = onWake(() => {
   reloadLightning();
   reloadCyclones();
   void reloadCloudHints();
+  stationmgr.resync();
 });
 onDestroy(unsubscribeWake);
 
@@ -1369,6 +1419,26 @@ if (postInitCb) postInitCb(lm);
       {/if}
     </Lazy>
   {/key}
+{/if}
+
+<!-- A weather station tapped on the radar map: a sheet on a phone, the
+     corner drawer on a desktop, as a storm's. -->
+{#if $selectedStation && $sharedActiveCap === "radar"}
+  {#if $smallScreen}
+    <Lazy load={loadStationSheet} floating let:module>
+      <svelte:component this={module[0].default} onClose={closeStation} expandable={false}>
+        <svelte:component this={module[1].default} station={$selectedStation} />
+      </svelte:component>
+    </Lazy>
+  {:else}
+    <div class="cell-details-panel mc-drawer">
+      <div class="scroll">
+        <Lazy load={loadStationDetails} let:module>
+          <svelte:component this={module.default} station={$selectedStation} onClose={closeStation} />
+        </Lazy>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 {#if $toolbarVisible === "yes"}

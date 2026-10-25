@@ -886,5 +886,37 @@
       "title": "Miks 3D-pilved jäävad tasasest radarist maha",
       "p1": "Tasane kaart tuleb sademeskaneeringust, mis on valmis pool minutit pärast tsükli algust. 3D-pilv vajab kõiki kümmet tõusunurka ja viimane neist lõpeb viis minutit pärast tsükli algust. Seega ei saa tsükli pilved ilmuda enne umbes kuut minutit, samas kui sama tsükli tasane kaader on väljas vähem kui kolme minutiga."
     }
+  },
+  "stations": {
+    "title": "Ilmajaamad",
+    "pill": "Jaamad",
+    "toggle": "Näita ilmajaamu",
+    "observed": "Mõõdetud {time}",
+    "none": "Mõõtmisi pole",
+    "choice": {
+      "group": "Näitaja",
+      "wind": "Tuul",
+      "gusts": "Puhangud",
+      "temperature": "Temp.",
+      "precipitation": "Sademed",
+      "humidity": "Niiskus",
+      "pressure": "Rõhk"
+    },
+    "parameter": {
+      "wind": "Tuul",
+      "wind_direction": "Tuule suund",
+      "gusts": "Puhangud",
+      "gust_direction": "Puhangute suund",
+      "temperature": "Temperatuur",
+      "precipitation": "Sademed, 10 min",
+      "humidity": "Niiskus",
+      "pressure": "Õhurõhk merepinnal"
+    },
+    "sheet": {
+      "height": "Kõrgus",
+      "observed": "Mõõdetud",
+      "none": "Sellest jaamast väärtusi pole.",
+      "source": "Andmed: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

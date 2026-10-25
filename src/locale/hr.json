@@ -886,5 +886,37 @@
       "title": "Zašto 3D oblaci kasne za ravnim radarom",
       "p1": "Ravna karta dolazi iz oborinskog skena, koji je gotov pola minute nakon početka ciklusa. 3D oblaku treba svih deset elevacija, a zadnja završava pet minuta nakon početka ciklusa. Zato se oblaci za neki ciklus ne mogu pojaviti prije otprilike šest minuta, dok je ravna slika tog ciklusa gotova za manje od tri."
     }
+  },
+  "stations": {
+    "title": "Meteorološke postaje",
+    "pill": "Postaje",
+    "toggle": "Prikaži meteorološke postaje",
+    "observed": "Izmjereno {time}",
+    "none": "Nema mjerenja",
+    "choice": {
+      "group": "Parametar",
+      "wind": "Vjetar",
+      "gusts": "Udari",
+      "temperature": "Temp.",
+      "precipitation": "Oborina",
+      "humidity": "Vlaga",
+      "pressure": "Tlak"
+    },
+    "parameter": {
+      "wind": "Vjetar",
+      "wind_direction": "Smjer vjetra",
+      "gusts": "Udari",
+      "gust_direction": "Smjer udara",
+      "temperature": "Temperatura",
+      "precipitation": "Oborina, 10 min",
+      "humidity": "Vlaga",
+      "pressure": "Tlak na razini mora"
+    },
+    "sheet": {
+      "height": "Visina",
+      "observed": "Izmjereno",
+      "none": "Nema vrijednosti s ove postaje.",
+      "source": "Podaci: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

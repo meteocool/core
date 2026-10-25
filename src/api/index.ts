@@ -53,6 +53,8 @@ export type StormCollection = DataSchemas["schemas"]["StormCollection"];
 export type StormDetail = DataSchemas["schemas"]["StormDetail"];
 export type TrackerTrack = DataSchemas["schemas"]["TrackerTrack"];
 export type TrackerFeature = DataSchemas["schemas"]["TrackerFeature"];
+/** One weather station's newest values, as `/stations/observations` answers them. */
+export type ObservedFeature = DataSchemas["schemas"]["ObservedFeature"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
@@ -598,6 +600,24 @@ export function fetchSweeps(
   if (where.bbox) query.bbox = where.bbox.map((value) => value.toFixed(3)).join(",");
   if (where.site) query.site = where.site;
   return request(nanobar, "/sweeps", () => dataClient.GET("/sweeps", { params: { query } }), { optional: true });
+}
+
+/**
+ * The weather stations' newest values of `parameters`, at `at` or now.
+ *
+ * `optional`: a backend that does not serve stations (demo, which replays a
+ * storm, or one not yet updated) answers 404, and that is a map with no
+ * stations on it, not a broken backend.
+ */
+export function fetchStationObservations(
+  parameters: string[],
+  at: Date | null,
+  nanobar?: Progress,
+) {
+  const query: { parameter: string[]; at?: string } = { parameter: parameters };
+  if (at) query.at = at.toISOString();
+  return request(nanobar, "/stations/observations", () =>
+    dataClient.GET("/stations/observations", { params: { query } }), { optional: true });
 }
 
 /**

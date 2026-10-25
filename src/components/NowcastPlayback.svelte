@@ -15,7 +15,7 @@ import {
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
-  nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible,
+  nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible, stationLayerVisible,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -26,6 +26,8 @@ import RadarScaleLine from "./scales/RadarScaleLine.svelte";
 import StormKey from "./StormKey.svelte";
 import RadarProductPicker from "./RadarProductPicker.svelte";
 import SiteSweepTray from "./SiteSweepTray.svelte";
+import StationToggle from "./StationToggle.svelte";
+import StationPicker from "./StationPicker.svelte";
 import VelocityScaleLine from "./scales/VelocityScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import Appendix from "./Appendix.svelte";
@@ -871,7 +873,9 @@ onDestroy(() => {
      player is two rows and gives the map back the height of one.
 
      Site mode puts its tray (SiteSweepTray) under the head, or over the strip
-     on a wide screen, and the player grows by its height.
+     on a wide screen, and the player grows by its height. So do the weather
+     stations' parameter picker (StationPicker) while they are on, under
+     site mode's tray.
      --------------------------------------------------------------------- */
   .player {
     display: flex;
@@ -928,6 +932,7 @@ onDestroy(() => {
   .link :global(svg) { width: 11px; height: 11px; }
 
   .site,
+  .stations,
   .plot {
     position: relative;
     flex: 0 0 auto;
@@ -975,6 +980,15 @@ onDestroy(() => {
     .sited .site { grid-column: 1 / -1; grid-row: 1; }
     .sited .plot { grid-row: 2; }
     .sited .row, .sited .head { grid-row: 3; }
+    /* The stations' picker, another row over the strip, under site mode's. */
+    .player.stationed { grid-template-rows: auto auto minmax(0, 1fr); }
+    .stationed .stations { grid-column: 1 / -1; grid-row: 1; }
+    .stationed .plot { grid-row: 2; }
+    .stationed .row, .stationed .head { grid-row: 3; }
+    .player.sited.stationed { grid-template-rows: auto auto auto minmax(0, 1fr); }
+    .sited.stationed .stations { grid-row: 2; }
+    .sited.stationed .plot { grid-row: 3; }
+    .sited.stationed .row, .sited.stationed .head { grid-row: 4; }
     .head {
       grid-column: 2;
       grid-row: 2;
@@ -995,7 +1009,8 @@ onDestroy(() => {
       display: flex;
       align-items: center;
     }
-    .sited .appendix { grid-row: 3; }
+    .sited .appendix, .stationed .appendix { grid-row: 3; }
+    .sited.stationed .appendix { grid-row: 4; }
   }
 
   /* A tint on the tray. */
@@ -1189,7 +1204,7 @@ onDestroy(() => {
     on:outrostart={toolbarTransitionStart}
     on:introend={toolbarTransitionEnd}
     on:outroend={toolbarTransitionEnd}>
-    <div class="player" class:sited={$siteMode && $siteSweepView}>
+    <div class="player" class:sited={$siteMode && $siteSweepView} class:stationed={$stationLayerVisible}>
       <div class="head" bind:this={head}>
         {#if $inspectLatLon || $latLon}
           <span class="title" bind:this={titleEl}>{chartTitle}</span>
@@ -1205,6 +1220,8 @@ onDestroy(() => {
         <span class="product-pill">
           <!-- What the storm marks on the map are, while they are drawn. -->
           {#if $cellLayerVisible}<StormKey />{/if}
+          <!-- DWD's weather stations over the map, on or off. -->
+          <StationToggle />
           <RadarProductPicker variant="pill" />
         </span>
         {#if $inspectLatLon && !$latLon}
@@ -1220,6 +1237,11 @@ onDestroy(() => {
            scrubs its sweeps as it scrubs frames. -->
       {#if $siteMode && $siteSweepView}
         <div class="site"><SiteSweepTray /></div>
+      {/if}
+
+      <!-- Which parameter the weather stations show, while they are on. -->
+      {#if $stationLayerVisible}
+        <div class="stations"><StationPicker /></div>
       {/if}
 
       <div class="plot">

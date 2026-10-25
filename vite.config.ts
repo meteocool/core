@@ -175,6 +175,7 @@ export default defineConfig(({ mode }) => {
         "/cells": { target: DATA, changeOrigin: true },
         "/storms": { target: DATA, changeOrigin: true },
         "/sweeps": { target: DATA, changeOrigin: true },
+        "/stations": { target: DATA, changeOrigin: true },
         "/mesocyclones": { target: DATA, changeOrigin: true },
         // The tile CDN, or minio standing in for it locally.
         "/tiles": { target: TILES, changeOrigin: true, rewrite: (path) => path.replace(/^\/tiles/, "") },

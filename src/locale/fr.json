@@ -934,5 +934,37 @@
       "toward": "{value} m/s vers le radar",
       "calm": "0 m/s"
     }
+  },
+  "stations": {
+    "title": "Stations météo",
+    "pill": "Stations",
+    "toggle": "Afficher les stations météo",
+    "observed": "Mesuré à {time}",
+    "none": "Aucune observation",
+    "choice": {
+      "group": "Paramètre",
+      "wind": "Vent",
+      "gusts": "Rafales",
+      "temperature": "Temp.",
+      "precipitation": "Pluie",
+      "humidity": "Humidité",
+      "pressure": "Pression"
+    },
+    "parameter": {
+      "wind": "Vent",
+      "wind_direction": "Direction du vent",
+      "gusts": "Rafales",
+      "gust_direction": "Direction des rafales",
+      "temperature": "Température",
+      "precipitation": "Précipitations, 10 min",
+      "humidity": "Humidité",
+      "pressure": "Pression au niveau de la mer"
+    },
+    "sheet": {
+      "height": "Altitude",
+      "observed": "Mesuré",
+      "none": "Aucune valeur de cette station.",
+      "source": "Données : Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

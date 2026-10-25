@@ -1,0 +1,2694 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "type": "FeatureCollection",
+  "at": "2026-10-11T01:40:07Z",
+  "since": "2026-10-11T00:40:07Z",
+  "features": [
+   {
+    "type": "Feature",
+    "id": "00087",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.0479,
+      51.095
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.01,
+     "station": "00087",
+     "name": "Alperstedt",
+     "state": "Thüringen",
+     "elevation_m": 158.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00090",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.2583,
+      50.7557
+     ]
+    },
+    "properties": {
+     "wind_speed_m_s": 4.4,
+     "wind_direction_deg": 260.0,
+     "gust_m_s": 8.2,
+     "gust_direction_deg": 250.0,
+     "wind_speed_max_m_s": 5.1,
+     "wind_speed_min_m_s": 2.1,
+     "station": "00090",
+     "name": "Alsfeld",
+     "state": "Hessen",
+     "elevation_m": 305.0,
+     "datasets": [
+      "extreme_wind",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00091",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.345,
+      50.7446
+     ]
+    },
+    "properties": {
+     "temperature_c": 9.0,
+     "ground_temperature_c": 6.4,
+     "humidity_pct": 67.0,
+     "dew_point_c": 3.2,
+     "temperature_max_c": 9.2,
+     "temperature_min_c": 8.6,
+     "ground_temperature_min_c": 6.3,
+     "precipitation_mm": 0.0,
+     "station": "00091",
+     "name": "Alsfeld-Eifa",
+     "state": "Hessen",
+     "elevation_m": 304.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00158",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.9545,
+      50.784
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "00158",
+     "name": "Amöneburg-Rüdigheim",
+     "state": "Hessen",
+     "elevation_m": 210.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00191",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.9114,
+      49.9694
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.1,
+     "ground_temperature_c": 5.1,
+     "humidity_pct": 82.7,
+     "dew_point_c": 5.3,
+     "temperature_max_c": 8.4,
+     "temperature_min_c": 7.9,
+     "ground_temperature_min_c": 4.7,
+     "precipitation_mm": 0.0,
+     "station": "00191",
+     "name": "Arnstein-Müdesheim",
+     "state": "Bayern",
+     "elevation_m": 217.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00240",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.5743,
+      50.1805
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "00240",
+     "name": "Aura im Sinngrund",
+     "state": "Bayern",
+     "elevation_m": 293.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00282",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.9206,
+      49.8743
+     ]
+    },
+    "properties": {
+     "temperature_c": 9.4,
+     "ground_temperature_c": 7.7,
+     "humidity_pct": 73.2,
+     "dew_point_c": 4.8,
+     "pressure_hpa": 981.2,
+     "pressure_msl_hpa": 1009.9,
+     "temperature_max_c": 9.7,
+     "temperature_min_c": 9.2,
+     "ground_temperature_min_c": 7.5,
+     "wind_speed_m_s": 4.2,
+     "wind_direction_deg": 240.0,
+     "gust_m_s": 7.3,
+     "gust_direction_deg": 230.0,
+     "wind_speed_max_m_s": 4.3,
+     "wind_speed_min_m_s": 2.2,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "00282",
+     "name": "Bamberg",
+     "state": "Bayern",
+     "elevation_m": 240.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00336",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.5148,
+      51.0221
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "00336",
+     "name": "Hörselberg-Hainich-Behringen",
+     "state": "Thüringen",
+     "elevation_m": 290.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00479",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.2892,
+      50.2435
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "00479",
+     "name": "Wächtersbach",
+     "state": "Hessen",
+     "elevation_m": 138.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00814",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.7361,
+      50.1457
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "00814",
+     "name": "Pfarrweisach-Lohr (Pegel)",
+     "state": "Bayern",
+     "elevation_m": 270.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00817",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.8146,
+      51.0306
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.8,
+     "ground_temperature_c": 6.3,
+     "humidity_pct": 68.8,
+     "dew_point_c": 3.4,
+     "temperature_max_c": 8.8,
+     "temperature_min_c": 8.1,
+     "ground_temperature_min_c": 5.7,
+     "precipitation_mm": 0.0,
+     "station": "00817",
+     "name": "Burgwald-Bottendorf",
+     "state": "Hessen",
+     "elevation_m": 296.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00867",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.9679,
+      50.3066
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.1,
+     "ground_temperature_c": 7.5,
+     "humidity_pct": 84.1,
+     "dew_point_c": 5.6,
+     "pressure_hpa": 967.7,
+     "pressure_msl_hpa": 1008.7,
+     "temperature_max_c": 8.3,
+     "temperature_min_c": 8.1,
+     "ground_temperature_min_c": 7.3,
+     "wind_speed_m_s": 4.0,
+     "wind_direction_deg": 270.0,
+     "gust_m_s": 6.6,
+     "gust_direction_deg": 270.0,
+     "wind_speed_max_m_s": 4.2,
+     "wind_speed_min_m_s": 2.6,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "global_radiation_j_cm2": 0.0,
+     "diffuse_radiation_j_cm2": 0.0,
+     "longwave_radiation_j_cm2": 20.7,
+     "sunshine_minutes": 0.0,
+     "station": "00867",
+     "name": "Lautertal-Oberlauter",
+     "state": "Bayern",
+     "elevation_m": 344.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "solar",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00896",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.8619,
+      51.0778
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.1,
+     "ground_temperature_c": 6.8,
+     "humidity_pct": 82.0,
+     "dew_point_c": 5.2,
+     "temperature_max_c": 8.2,
+     "temperature_min_c": 8.1,
+     "ground_temperature_min_c": 6.8,
+     "precipitation_mm": 0.13,
+     "station": "00896",
+     "name": "Dachwig",
+     "state": "Thüringen",
+     "elevation_m": 170.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "00962",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.1692,
+      50.8018
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "00962",
+     "name": "Stadtilm-Dienstedt",
+     "state": "Thüringen",
+     "elevation_m": 326.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01107",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.4991,
+      49.852
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.7,
+     "ground_temperature_c": 5.3,
+     "humidity_pct": 87.3,
+     "dew_point_c": 5.7,
+     "temperature_max_c": 7.9,
+     "temperature_min_c": 7.6,
+     "ground_temperature_min_c": 5.2,
+     "precipitation_mm": 0.0,
+     "station": "01107",
+     "name": "Ebrach",
+     "state": "Bayern",
+     "elevation_m": 346.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01270",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.9613,
+      50.9827
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.0,
+     "ground_temperature_c": 5.9,
+     "humidity_pct": 82.6,
+     "dew_point_c": 4.2,
+     "pressure_hpa": 968.8,
+     "pressure_msl_hpa": 1006.7,
+     "temperature_max_c": 7.1,
+     "temperature_min_c": 6.8,
+     "ground_temperature_min_c": 5.8,
+     "wind_speed_m_s": 10.1,
+     "wind_direction_deg": 280.0,
+     "gust_m_s": 14.8,
+     "gust_direction_deg": 270.0,
+     "wind_speed_max_m_s": 11.3,
+     "wind_speed_min_m_s": 6.1,
+     "precipitation_mm": 0.11,
+     "precipitation_minutes": 8.0,
+     "precipitation_indicator": 1,
+     "station": "01270",
+     "name": "Erfurt-Weimar",
+     "state": "Thüringen",
+     "elevation_m": 317.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01411",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.0479,
+      50.5309
+     ]
+    },
+    "properties": {
+     "temperature_c": 5.7,
+     "ground_temperature_c": 5.3,
+     "humidity_pct": 85.9,
+     "dew_point_c": 3.5,
+     "temperature_max_c": 5.8,
+     "temperature_min_c": 5.7,
+     "ground_temperature_min_c": 5.2,
+     "precipitation_mm": 0.0,
+     "station": "01411",
+     "name": "Birx/Rhön",
+     "state": "Thüringen",
+     "elevation_m": 747.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01435",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.8575,
+      50.5921
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "01435",
+     "name": "Ilmenau-Frauenwald",
+     "state": "Thüringen",
+     "elevation_m": 768.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01526",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.6532,
+      50.5668
+     ]
+    },
+    "properties": {
+     "temperature_c": 9.1,
+     "ground_temperature_c": 7.3,
+     "humidity_pct": 68.2,
+     "dew_point_c": 3.6,
+     "temperature_max_c": 9.2,
+     "temperature_min_c": 8.8,
+     "ground_temperature_min_c": 7.0,
+     "precipitation_mm": 0.0,
+     "station": "01526",
+     "name": "Fulda-Horas",
+     "state": "Hessen",
+     "elevation_m": 245.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01561",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.2076,
+      50.4034
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "01561",
+     "name": "Gedern-Schönhausen",
+     "state": "Hessen",
+     "elevation_m": 414.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01573",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.9539,
+      50.7133
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "01573",
+     "name": "Geisa",
+     "state": "Thüringen",
+     "elevation_m": 281.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01645",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.05,
+      50.9656
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.0,
+     "ground_temperature_c": 5.3,
+     "humidity_pct": 76.8,
+     "dew_point_c": 4.2,
+     "temperature_max_c": 8.7,
+     "temperature_min_c": 8.0,
+     "ground_temperature_min_c": 5.3,
+     "precipitation_mm": 0.0,
+     "station": "01645",
+     "name": "Gilserberg-Moischeid",
+     "state": "Hessen",
+     "elevation_m": 327.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01851",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.0904,
+      49.9229
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "01851",
+     "name": "Großostheim",
+     "state": "Bayern",
+     "elevation_m": 110.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01863",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.1854,
+      50.2667
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.3,
+     "ground_temperature_c": 2.2,
+     "humidity_pct": 78.2,
+     "dew_point_c": 3.8,
+     "temperature_max_c": 7.6,
+     "temperature_min_c": 7.3,
+     "ground_temperature_min_c": 2.2,
+     "precipitation_mm": 0.0,
+     "station": "01863",
+     "name": "Gründau-Breitenborn",
+     "state": "Hessen",
+     "elevation_m": 258.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "01997",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.9079,
+      50.1219
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "01997",
+     "name": "Hammelburg",
+     "state": "Bayern",
+     "elevation_m": 220.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02109",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.3458,
+      50.0664
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "02109",
+     "name": "Heinrichsthal",
+     "state": "Bayern",
+     "elevation_m": 446.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02152",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.1468,
+      51.0425
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "02152",
+     "name": "Herleshausen-Archfeld",
+     "state": "Hessen",
+     "elevation_m": 380.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02171",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.7377,
+      50.852
+     ]
+    },
+    "properties": {
+     "temperature_c": 9.3,
+     "ground_temperature_c": 7.7,
+     "humidity_pct": 65.0,
+     "dew_point_c": 3.1,
+     "pressure_hpa": 975.7,
+     "pressure_msl_hpa": 1008.1,
+     "temperature_max_c": 9.5,
+     "temperature_min_c": 9.3,
+     "ground_temperature_min_c": 7.5,
+     "wind_speed_m_s": 2.3,
+     "wind_direction_deg": 220.0,
+     "gust_m_s": 3.7,
+     "gust_direction_deg": 200.0,
+     "wind_speed_max_m_s": 2.3,
+     "wind_speed_min_m_s": 0.7,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "02171",
+     "name": "Hersfeld, Bad",
+     "state": "Hessen",
+     "elevation_m": 272.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02431",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.9317,
+      50.1337
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "02431",
+     "name": "Itzgrund-Herreth",
+     "state": "Bayern",
+     "elevation_m": 367.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02480",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.993,
+      50.0643
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.6,
+     "ground_temperature_c": 6.9,
+     "humidity_pct": 84.2,
+     "dew_point_c": 6.1,
+     "temperature_max_c": 8.6,
+     "temperature_min_c": 8.4,
+     "ground_temperature_min_c": 6.6,
+     "precipitation_mm": 0.0,
+     "station": "02480",
+     "name": "Kahl/Main",
+     "state": "Bayern",
+     "elevation_m": 108.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02541",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.0317,
+      50.5467
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "02541",
+     "name": "Katzhütte",
+     "state": "Thüringen",
+     "elevation_m": 452.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02597",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.0792,
+      50.224
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.3,
+     "ground_temperature_c": 6.6,
+     "humidity_pct": 81.1,
+     "dew_point_c": 5.3,
+     "pressure_hpa": 975.9,
+     "pressure_msl_hpa": 1009.6,
+     "temperature_max_c": 9.0,
+     "temperature_min_c": 8.3,
+     "ground_temperature_min_c": 6.6,
+     "wind_speed_m_s": 4.9,
+     "wind_direction_deg": 220.0,
+     "gust_m_s": 7.0,
+     "gust_direction_deg": 210.0,
+     "wind_speed_max_m_s": 4.9,
+     "wind_speed_min_m_s": 2.8,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "02597",
+     "name": "Kissingen, Bad",
+     "state": "Bayern",
+     "elevation_m": 282.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02618",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.4803,
+      50.8458
+     ]
+    },
+    "properties": {
+     "temperature_c": 4.5,
+     "ground_temperature_c": 3.8,
+     "humidity_pct": 88.1,
+     "dew_point_c": 2.7,
+     "temperature_max_c": 4.7,
+     "temperature_min_c": 4.4,
+     "ground_temperature_min_c": 3.7,
+     "precipitation_mm": 0.0,
+     "station": "02618",
+     "name": "Kleiner Inselsberg",
+     "state": "Thüringen",
+     "elevation_m": 732.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02680",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.4456,
+      50.284
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.4,
+     "ground_temperature_c": 6.9,
+     "humidity_pct": 80.6,
+     "dew_point_c": 5.3,
+     "temperature_max_c": 8.7,
+     "temperature_min_c": 8.4,
+     "ground_temperature_min_c": 6.9,
+     "precipitation_mm": 0.0,
+     "station": "02680",
+     "name": "Königshofen, Bad",
+     "state": "Bayern",
+     "elevation_m": 289.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02709",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.2367,
+      49.9164
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "02709",
+     "name": "Kolitzheim",
+     "state": "Bayern",
+     "elevation_m": 230.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "02897",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.2857,
+      50.5808
+     ]
+    },
+    "properties": {
+     "wind_speed_m_s": 7.0,
+     "wind_direction_deg": 260.0,
+     "gust_m_s": 11.7,
+     "gust_direction_deg": 260.0,
+     "wind_speed_max_m_s": 7.9,
+     "wind_speed_min_m_s": 4.4,
+     "station": "02897",
+     "name": "Lautertal-Hörgenau",
+     "state": "Hessen",
+     "elevation_m": 522.0,
+     "datasets": [
+      "extreme_wind",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03136",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.8209,
+      50.1294
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03136",
+     "name": "Mühlheim/Main",
+     "state": "Hessen",
+     "elevation_m": 102.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03204",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.8815,
+      50.7335
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.3,
+     "ground_temperature_c": 7.0,
+     "humidity_pct": 71.6,
+     "dew_point_c": 3.5,
+     "temperature_max_c": 8.4,
+     "temperature_min_c": 7.8,
+     "ground_temperature_min_c": 5.4,
+     "precipitation_mm": 0.0,
+     "station": "03204",
+     "name": "Martinroda",
+     "state": "Thüringen",
+     "elevation_m": 429.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03207",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.272,
+      50.1798
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03207",
+     "name": "Maßbach",
+     "state": "Bayern",
+     "elevation_m": 328.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03220",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.8832,
+      50.3571
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03220",
+     "name": "Meeder-Ottowind",
+     "state": "Bayern",
+     "elevation_m": 450.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03231",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.3771,
+      50.5611
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.4,
+     "ground_temperature_c": 6.5,
+     "humidity_pct": 70.4,
+     "dew_point_c": 3.3,
+     "pressure_hpa": 954.9,
+     "pressure_msl_hpa": 1008.0,
+     "temperature_max_c": 8.7,
+     "temperature_min_c": 8.0,
+     "ground_temperature_min_c": 6.0,
+     "wind_speed_m_s": 2.8,
+     "wind_direction_deg": 230.0,
+     "gust_m_s": 6.9,
+     "gust_direction_deg": 250.0,
+     "wind_speed_max_m_s": 2.8,
+     "wind_speed_min_m_s": 0.5,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "03231",
+     "name": "Meiningen",
+     "state": "Thüringen",
+     "elevation_m": 450.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "solar",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03248",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.1324,
+      50.3904
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03248",
+     "name": "Frankenblick-Mengersgereuth-Hämmern",
+     "state": "Thüringen",
+     "elevation_m": 516.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03364",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.8211,
+      50.8681
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.01,
+     "station": "03364",
+     "name": "Drei Gleichen-Mühlberg",
+     "state": "Thüringen",
+     "elevation_m": 286.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03513",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.1345,
+      50.5003
+     ]
+    },
+    "properties": {
+     "temperature_c": 4.7,
+     "ground_temperature_c": 4.4,
+     "humidity_pct": 94.8,
+     "dew_point_c": 3.9,
+     "pressure_hpa": 909.3,
+     "pressure_msl_hpa": 1007.5,
+     "temperature_max_c": 4.7,
+     "temperature_min_c": 4.7,
+     "ground_temperature_min_c": 4.4,
+     "wind_speed_m_s": 5.8,
+     "wind_direction_deg": 240.0,
+     "gust_m_s": 10.5,
+     "gust_direction_deg": 250.0,
+     "wind_speed_max_m_s": 6.1,
+     "wind_speed_min_m_s": 2.1,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "03513",
+     "name": "Neuhaus am Rennweg",
+     "state": "Thüringen",
+     "elevation_m": 845.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03527",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.405,
+      50.8923
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.6,
+     "ground_temperature_c": 6.5,
+     "humidity_pct": 71.6,
+     "dew_point_c": 2.8,
+     "temperature_max_c": 7.7,
+     "temperature_min_c": 7.6,
+     "ground_temperature_min_c": 6.2,
+     "precipitation_mm": 0.0,
+     "station": "03527",
+     "name": "Neukirchen-Hauptschwenda",
+     "state": "Hessen",
+     "elevation_m": 500.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03560",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.176,
+      50.3039
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03560",
+     "name": "Neustadt, Bad",
+     "state": "Bayern",
+     "elevation_m": 230.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03572",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.1104,
+      50.3198
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03572",
+     "name": "Neustadt bei Coburg",
+     "state": "Bayern",
+     "elevation_m": 330.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03589",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.8653,
+      50.2741
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03589",
+     "name": "Nidderau-Erbstadt",
+     "state": "Hessen",
+     "elevation_m": 162.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03681",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.5963,
+      49.9185
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03681",
+     "name": "Oberaurach-Fatschenbrunn",
+     "state": "Bayern",
+     "elevation_m": 426.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03700",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.7727,
+      50.2661
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03700",
+     "name": "Oberleichtersbach-Modlos",
+     "state": "Bayern",
+     "elevation_m": 472.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03836",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.2211,
+      50.4538
+     ]
+    },
+    "properties": {
+     "temperature_c": 9.1,
+     "ground_temperature_c": 6.6,
+     "humidity_pct": 71.1,
+     "dew_point_c": 4.1,
+     "temperature_max_c": 9.4,
+     "temperature_min_c": 9.0,
+     "ground_temperature_min_c": 6.6,
+     "precipitation_mm": 0.0,
+     "station": "03836",
+     "name": "Ostheim v.d. Rhön",
+     "state": "Bayern",
+     "elevation_m": 314.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "03911",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.725,
+      50.6175
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "03911",
+     "name": "Petersberg-Marbach",
+     "state": "Hessen",
+     "elevation_m": 305.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04016",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.1006,
+      49.8526
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "04016",
+     "name": "Prosselsheim-Seligenstadt",
+     "state": "Bayern",
+     "elevation_m": 283.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04057",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.7847,
+      50.4933
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "04057",
+     "name": "Ratscher",
+     "state": "Thüringen",
+     "elevation_m": 394.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T00:50:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04134",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.8806,
+      49.8366
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "04134",
+     "name": "Otzberg-Habitzheim",
+     "state": "Hessen",
+     "elevation_m": 172.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04218",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.7918,
+      50.3311
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "04218",
+     "name": "Rodach",
+     "state": "Bayern",
+     "elevation_m": 300.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04230",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.8395,
+      49.9832
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "04230",
+     "name": "Rödermark-Ober-Roden",
+     "state": "Hessen",
+     "elevation_m": 137.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04377",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.0034,
+      50.3518
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.4,
+     "ground_temperature_c": 5.7,
+     "humidity_pct": 74.0,
+     "dew_point_c": 3.1,
+     "temperature_max_c": 7.5,
+     "temperature_min_c": 7.2,
+     "ground_temperature_min_c": 5.3,
+     "precipitation_mm": 0.0,
+     "station": "04377",
+     "name": "Sandberg",
+     "state": "Bayern",
+     "elevation_m": 518.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04411",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.9672,
+      49.9195
+     ]
+    },
+    "properties": {
+     "temperature_c": 10.0,
+     "ground_temperature_c": 6.8,
+     "humidity_pct": 76.6,
+     "dew_point_c": 6.1,
+     "temperature_max_c": 10.0,
+     "temperature_min_c": 9.9,
+     "ground_temperature_min_c": 6.4,
+     "precipitation_mm": 0.0,
+     "station": "04411",
+     "name": "Schaafheim-Schlierbach",
+     "state": "Hessen",
+     "elevation_m": 155.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04469",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.762,
+      50.5071
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "04469",
+     "name": "Schleusingen",
+     "state": "Thüringen",
+     "elevation_m": 399.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04480",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.5533,
+      50.3447
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.5,
+     "ground_temperature_c": 6.1,
+     "humidity_pct": 73.1,
+     "dew_point_c": 4.0,
+     "temperature_max_c": 8.7,
+     "temperature_min_c": 8.4,
+     "ground_temperature_min_c": 6.1,
+     "precipitation_mm": 0.0,
+     "station": "04480",
+     "name": "Schlüchtern-Herolz",
+     "state": "Hessen",
+     "elevation_m": 232.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04501",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.7696,
+      50.6545
+     ]
+    },
+    "properties": {
+     "temperature_c": 3.3,
+     "ground_temperature_c": 3.1,
+     "humidity_pct": 95.4,
+     "dew_point_c": 2.6,
+     "pressure_hpa": 899.1,
+     "pressure_msl_hpa": 1008.0,
+     "temperature_max_c": 3.3,
+     "temperature_min_c": 3.1,
+     "ground_temperature_min_c": 2.8,
+     "wind_speed_m_s": 4.1,
+     "wind_direction_deg": 250.0,
+     "gust_m_s": 6.2,
+     "gust_direction_deg": 250.0,
+     "wind_speed_max_m_s": 5.2,
+     "wind_speed_min_m_s": 1.4,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "04501",
+     "name": "Schmücke",
+     "state": "Thüringen",
+     "elevation_m": 938.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04605",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.1936,
+      50.6441
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.4,
+     "ground_temperature_c": 4.2,
+     "humidity_pct": 86.4,
+     "dew_point_c": 5.3,
+     "temperature_max_c": 7.4,
+     "temperature_min_c": 6.3,
+     "ground_temperature_min_c": 3.4,
+     "precipitation_mm": 0.0,
+     "station": "04605",
+     "name": "Schwarzburg",
+     "state": "Thüringen",
+     "elevation_m": 277.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04763",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.9266,
+      51.0607
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.4,
+     "ground_temperature_c": 6.3,
+     "humidity_pct": 86.0,
+     "dew_point_c": 5.2,
+     "temperature_max_c": 7.5,
+     "temperature_min_c": 7.3,
+     "ground_temperature_min_c": 6.3,
+     "precipitation_mm": 0.0,
+     "station": "04763",
+     "name": "Sontra",
+     "state": "Hessen",
+     "elevation_m": 265.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04813",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.0467,
+      50.0806
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.4,
+     "ground_temperature_c": 6.2,
+     "humidity_pct": 80.4,
+     "dew_point_c": 5.2,
+     "temperature_max_c": 8.6,
+     "temperature_min_c": 8.2,
+     "ground_temperature_min_c": 5.8,
+     "precipitation_mm": 0.0,
+     "station": "04813",
+     "name": "Staffelstein, Bad-Stublang",
+     "state": "Bayern",
+     "elevation_m": 318.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04958",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.567,
+      50.2417
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "04958",
+     "name": "Sulzdorf an der Lederhecke",
+     "state": "Bayern",
+     "elevation_m": 333.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "04978",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.0228,
+      50.639
+     ]
+    },
+    "properties": {
+     "temperature_c": 9.0,
+     "ground_temperature_c": 7.8,
+     "humidity_pct": 68.3,
+     "dew_point_c": 3.5,
+     "temperature_max_c": 9.1,
+     "temperature_min_c": 9.0,
+     "ground_temperature_min_c": 7.7,
+     "precipitation_mm": 0.0,
+     "station": "04978",
+     "name": "Tann/Rhön",
+     "state": "Hessen",
+     "elevation_m": 395.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "05084",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.2473,
+      51.1594
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "05084",
+     "name": "Südeichsfeld-Wendehausen",
+     "state": "Thüringen",
+     "elevation_m": 290.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "05240",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.8738,
+      51.1598
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "05240",
+     "name": "Vöhl-Buchenberg",
+     "state": "Hessen",
+     "elevation_m": 380.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "05263",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.3821,
+      51.067
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.04,
+     "station": "05263",
+     "name": "Wabern-Hebel",
+     "state": "Hessen",
+     "elevation_m": 203.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "05335",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.5483,
+      50.8963
+     ]
+    },
+    "properties": {
+     "temperature_c": 6.9,
+     "ground_temperature_c": 5.8,
+     "humidity_pct": 83.9,
+     "dew_point_c": 4.4,
+     "temperature_max_c": 7.2,
+     "temperature_min_c": 6.9,
+     "ground_temperature_min_c": 5.8,
+     "precipitation_mm": 0.04,
+     "station": "05335",
+     "name": "Waltershausen",
+     "state": "Thüringen",
+     "elevation_m": 352.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "05371",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.9427,
+      50.4973
+     ]
+    },
+    "properties": {
+     "temperature_c": 3.8,
+     "ground_temperature_c": 3.3,
+     "humidity_pct": 91.0,
+     "dew_point_c": 2.5,
+     "pressure_hpa": 901.5,
+     "pressure_msl_hpa": 1008.3,
+     "temperature_max_c": 3.8,
+     "temperature_min_c": 3.7,
+     "ground_temperature_min_c": 3.3,
+     "wind_speed_m_s": 7.6,
+     "wind_direction_deg": 260.0,
+     "gust_m_s": 13.0,
+     "gust_direction_deg": 250.0,
+     "wind_speed_max_m_s": 7.9,
+     "wind_speed_min_m_s": 3.3,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "05371",
+     "name": "Wasserkuppe",
+     "state": "Hessen",
+     "elevation_m": 920.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "05851",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      8.8769,
+      51.0806
+     ]
+    },
+    "properties": {
+     "wind_speed_m_s": 4.7,
+     "wind_direction_deg": 260.0,
+     "gust_m_s": 6.6,
+     "gust_direction_deg": 270.0,
+     "wind_speed_max_m_s": 7.0,
+     "wind_speed_min_m_s": 3.4,
+     "station": "05851",
+     "name": "Frankenberg-Geismar",
+     "state": "Hessen",
+     "elevation_m": 392.0,
+     "datasets": [
+      "extreme_wind",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "06195",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.0189,
+      49.956
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "06195",
+     "name": "Scheßlitz-Köttensdorf",
+     "state": "Bayern",
+     "elevation_m": 305.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "06200",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.4887,
+      50.0785
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "06200",
+     "name": "Königsberg/Bayern-Holzhausen",
+     "state": "Bayern",
+     "elevation_m": 262.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "06249",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.0313,
+      50.3485
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "06249",
+     "name": "Rödental-Schönstädt (Speicher)",
+     "state": "Bayern",
+     "elevation_m": 365.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "06270",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.4901,
+      50.4099
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "06270",
+     "name": "Römhild-Sülzdorf",
+     "state": "Thüringen",
+     "elevation_m": 330.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "06287",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.735,
+      50.1141
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "06287",
+     "name": "Gräfendorf,Kr.Main-Spessart",
+     "state": "Bayern",
+     "elevation_m": 160.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "06336",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.654,
+      50.0132
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.2,
+     "ground_temperature_c": 6.3,
+     "humidity_pct": 78.4,
+     "dew_point_c": 4.7,
+     "temperature_max_c": 8.6,
+     "temperature_min_c": 8.2,
+     "ground_temperature_min_c": 6.3,
+     "precipitation_mm": 0.0,
+     "station": "06336",
+     "name": "Lohr/Main-Halsbach",
+     "state": "Bayern",
+     "elevation_m": 288.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "06347",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.2972,
+      50.0579
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.5,
+     "ground_temperature_c": 6.1,
+     "humidity_pct": 87.4,
+     "dew_point_c": 5.5,
+     "temperature_max_c": 7.6,
+     "temperature_min_c": 7.5,
+     "ground_temperature_min_c": 5.9,
+     "precipitation_mm": 0.0,
+     "station": "06347",
+     "name": "Schonungen-Mainberg",
+     "state": "Bayern",
+     "elevation_m": 305.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "07368",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.3621,
+      51.0007
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.1,
+     "ground_temperature_c": 6.0,
+     "humidity_pct": 82.4,
+     "dew_point_c": 4.3,
+     "pressure_hpa": 970.1,
+     "pressure_msl_hpa": 1007.4,
+     "temperature_max_c": 7.2,
+     "temperature_min_c": 7.1,
+     "ground_temperature_min_c": 5.9,
+     "wind_speed_m_s": 4.8,
+     "wind_direction_deg": 280.0,
+     "gust_m_s": 7.3,
+     "gust_direction_deg": 280.0,
+     "wind_speed_max_m_s": 6.1,
+     "wind_speed_min_m_s": 2.5,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 5.0,
+     "precipitation_indicator": 1,
+     "station": "07368",
+     "name": "Eisenach",
+     "state": "Thüringen",
+     "elevation_m": 312.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "07392",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.4487,
+      50.3332
+     ]
+    },
+    "properties": {
+     "wind_speed_m_s": 3.4,
+     "wind_direction_deg": 240.0,
+     "gust_m_s": 5.5,
+     "gust_direction_deg": 270.0,
+     "wind_speed_max_m_s": 3.4,
+     "wind_speed_min_m_s": 1.6,
+     "station": "07392",
+     "name": "Aubstadt",
+     "state": "Bayern",
+     "elevation_m": 304.0,
+     "datasets": [
+      "extreme_wind",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "07396",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.2246,
+      50.5084
+     ]
+    },
+    "properties": {
+     "temperature_c": 4.7,
+     "ground_temperature_c": 3.4,
+     "humidity_pct": 79.6,
+     "dew_point_c": 1.5,
+     "pressure_hpa": 922.0,
+     "pressure_msl_hpa": 1008.8,
+     "temperature_max_c": 4.9,
+     "temperature_min_c": 4.7,
+     "ground_temperature_min_c": 3.3,
+     "wind_speed_m_s": 6.8,
+     "wind_direction_deg": 270.0,
+     "gust_m_s": 10.0,
+     "gust_direction_deg": 280.0,
+     "wind_speed_max_m_s": 7.0,
+     "wind_speed_min_m_s": 4.6,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "07396",
+     "name": "Hoherodskopf/Vogelsberg",
+     "state": "Hessen",
+     "elevation_m": 740.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "07410",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.0224,
+      50.7513
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.8,
+     "ground_temperature_c": 6.9,
+     "humidity_pct": 66.9,
+     "dew_point_c": 3.0,
+     "pressure_hpa": 966.7,
+     "pressure_msl_hpa": 1008.3,
+     "temperature_max_c": 9.0,
+     "temperature_min_c": 8.8,
+     "ground_temperature_min_c": 6.8,
+     "wind_speed_m_s": 7.0,
+     "wind_direction_deg": 240.0,
+     "gust_m_s": 9.7,
+     "gust_direction_deg": 240.0,
+     "wind_speed_max_m_s": 7.5,
+     "wind_speed_min_m_s": 4.7,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "07410",
+     "name": "Neu-Ulrichstein",
+     "state": "Hessen",
+     "elevation_m": 350.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "07412",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.4238,
+      50.0083
+     ]
+    },
+    "properties": {
+     "temperature_c": 8.0,
+     "ground_temperature_c": 6.4,
+     "humidity_pct": 82.6,
+     "dew_point_c": 5.2,
+     "pressure_hpa": 969.8,
+     "pressure_msl_hpa": 1010.4,
+     "temperature_max_c": 8.2,
+     "temperature_min_c": 7.9,
+     "ground_temperature_min_c": 6.2,
+     "wind_speed_m_s": 3.9,
+     "wind_direction_deg": 260.0,
+     "gust_m_s": 6.3,
+     "gust_direction_deg": 260.0,
+     "wind_speed_max_m_s": 3.9,
+     "wind_speed_min_m_s": 1.7,
+     "precipitation_mm": 0.0,
+     "precipitation_minutes": 0.0,
+     "precipitation_indicator": 0,
+     "station": "07412",
+     "name": "Neuhütten/Spessart",
+     "state": "Bayern",
+     "elevation_m": 340.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "extreme_wind",
+      "precipitation",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "07428",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.8156,
+      50.4167
+     ]
+    },
+    "properties": {
+     "temperature_c": 7.0,
+     "ground_temperature_c": 5.3,
+     "humidity_pct": 90.8,
+     "dew_point_c": 5.6,
+     "temperature_max_c": 7.3,
+     "temperature_min_c": 7.0,
+     "ground_temperature_min_c": 5.2,
+     "precipitation_mm": 0.0,
+     "station": "07428",
+     "name": "Veilsdorf",
+     "state": "Thüringen",
+     "elevation_m": 397.0,
+     "datasets": [
+      "air_temperature",
+      "extreme_temperature",
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "07430",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.8129,
+      50.0615
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "07430",
+     "name": "Rentweinsdorf-Treinfeld",
+     "state": "Bayern",
+     "elevation_m": 258.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "13701",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.9885,
+      51.1945
+     ]
+    },
+    "properties": {
+     "wind_speed_m_s": 2.6,
+     "wind_direction_deg": 230.0,
+     "gust_m_s": 7.5,
+     "gust_direction_deg": 210.0,
+     "wind_speed_max_m_s": 2.6,
+     "wind_speed_min_m_s": 0.3,
+     "station": "13701",
+     "name": "Eschwege-Eltmannshausen",
+     "state": "Hessen",
+     "elevation_m": 250.0,
+     "datasets": [
+      "extreme_wind",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "13900",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.358,
+      50.2688
+     ]
+    },
+    "properties": {
+     "wind_speed_m_s": 2.3,
+     "wind_direction_deg": 200.0,
+     "gust_m_s": 3.3,
+     "gust_direction_deg": 200.0,
+     "wind_speed_max_m_s": 2.6,
+     "wind_speed_min_m_s": 1.4,
+     "station": "13900",
+     "name": "Soden,Bad-Salmünster (Kläranlage)",
+     "state": "Hessen",
+     "elevation_m": 145.0,
+     "datasets": [
+      "extreme_wind",
+      "wind"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "15529",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.3168,
+      50.7564
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "15529",
+     "name": "Breitungen",
+     "state": "Thüringen",
+     "elevation_m": 258.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T00:50:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "19131",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.0181,
+      50.7036
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "19131",
+     "name": "Gräfinau-Angstedt",
+     "state": "Thüringen",
+     "elevation_m": 408.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T00:50:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "19134",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.0714,
+      50.9614
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "19134",
+     "name": "Gerstungen/Werra",
+     "state": "Thüringen",
+     "elevation_m": 210.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T00:50:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "19140",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.6988,
+      50.9657
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.22,
+     "station": "19140",
+     "name": "Gotha",
+     "state": "Thüringen",
+     "elevation_m": 278.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "19225",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      10.0966,
+      50.5352
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "19225",
+     "name": "Fladungen-Leubach",
+     "state": "Bayern",
+     "elevation_m": 560.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "19270",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.006,
+      50.4465
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "19270",
+     "name": "Bleßberg",
+     "state": "Thüringen",
+     "elevation_m": 865.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "19271",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      9.7436,
+      50.2996
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "19271",
+     "name": "Brückenau, Bad-Staatsbad",
+     "state": "Bayern",
+     "elevation_m": 280.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   },
+   {
+    "type": "Feature",
+    "id": "19361",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      11.0437,
+      50.4159
+     ]
+    },
+    "properties": {
+     "precipitation_mm": 0.0,
+     "station": "19361",
+     "name": "Frankenblick-Rauenstein",
+     "state": "Thüringen",
+     "elevation_m": 540.0,
+     "datasets": [
+      "precipitation"
+     ],
+     "observed_at": "2026-10-11T01:00:00Z"
+    }
+   }
+  ]
+ }
+}

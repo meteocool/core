@@ -886,5 +886,37 @@
       "title": "Miksi 3D-pilvet laahaavat tasaisen tutkan perässä",
       "p1": "Tasainen kartta tehdään sadekeilauksesta, joka on valmis puolen minuutin kohdalla jaksoa. 3D-pilvi tarvitsee kaikki kymmenen kulmaa, ja viimeinen päättyy viiden minuutin kohdalla. Siksi jakson pilvet voivat ilmestyä aikaisintaan noin kuuden minuutin kohdalla, kun taas saman jakson tasainen kuva on valmis alle kolmessa."
     }
+  },
+  "stations": {
+    "title": "Sääasemat",
+    "pill": "Asemat",
+    "toggle": "Näytä sääasemat",
+    "observed": "Mitattu {time}",
+    "none": "Ei havaintoja",
+    "choice": {
+      "group": "Suure",
+      "wind": "Tuuli",
+      "gusts": "Puuskat",
+      "temperature": "Lämpö",
+      "precipitation": "Sade",
+      "humidity": "Kosteus",
+      "pressure": "Paine"
+    },
+    "parameter": {
+      "wind": "Tuuli",
+      "wind_direction": "Tuulen suunta",
+      "gusts": "Puuskat",
+      "gust_direction": "Puuskien suunta",
+      "temperature": "Lämpötila",
+      "precipitation": "Sademäärä, 10 min",
+      "humidity": "Kosteus",
+      "pressure": "Ilmanpaine merenpinnan tasolla"
+    },
+    "sheet": {
+      "height": "Korkeus",
+      "observed": "Mitattu",
+      "none": "Asemalta ei ole arvoja.",
+      "source": "Tiedot: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

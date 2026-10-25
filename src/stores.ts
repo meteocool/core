@@ -7,6 +7,7 @@ import { INITIAL_CONNECTION, type Connection } from "./lib/connectionState";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange } from "./lib/observedProduct";
 import { showsForecastStep } from "./lib/freshness";
+import { DEFAULT_STATION_CHOICE, type ObservedProperties, type StationChoice } from "./lib/stations";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties } from "./api";
 import type { CountryNetwork } from "./api/events";
@@ -521,3 +522,18 @@ export const srvPrefersManual = writable<boolean>(false);
  * are drawn in grey as well (caps/RadarCapability.ts).
  */
 export const compositeDim = writable<number>(1);
+
+/**
+ * The weather stations over the radar map (lib/StationManager.ts): whether
+ * they are on, the setting `layerStations`, and the one parameter they show,
+ * the setting `stationParameter`.
+ */
+export const stationLayerVisible = writable<boolean>(false);
+export const stationChoice = writable<StationChoice>(DEFAULT_STATION_CHOICE);
+/**
+ * What the station map's newest answer held, for the tray: how many stations
+ * and the newest time any of them is from. Null before the first answer.
+ */
+export const stationView = writable<{ count: number; observedAt: Date | null } | null>(null);
+/** The station tapped on the radar map, with the values the newest answer has for it; null when none is. */
+export const selectedStation = writable<ObservedProperties | null>(null);

@@ -934,5 +934,37 @@
       "toward": "{value} m/s do radaru",
       "calm": "0 m/s"
     }
+  },
+  "stations": {
+    "title": "Stacje pogodowe",
+    "pill": "Stacje",
+    "toggle": "Pokaż stacje pogodowe",
+    "observed": "Pomiar {time}",
+    "none": "Brak pomiarów",
+    "choice": {
+      "group": "Parametr",
+      "wind": "Wiatr",
+      "gusts": "Porywy",
+      "temperature": "Temp.",
+      "precipitation": "Opad",
+      "humidity": "Wilgotność",
+      "pressure": "Ciśnienie"
+    },
+    "parameter": {
+      "wind": "Wiatr",
+      "wind_direction": "Kierunek wiatru",
+      "gusts": "Porywy",
+      "gust_direction": "Kierunek porywów",
+      "temperature": "Temperatura",
+      "precipitation": "Opad, 10 min",
+      "humidity": "Wilgotność",
+      "pressure": "Ciśnienie na poziomie morza"
+    },
+    "sheet": {
+      "height": "Wysokość",
+      "observed": "Pomiar",
+      "none": "Brak wartości z tej stacji.",
+      "source": "Dane: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

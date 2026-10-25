@@ -934,5 +934,37 @@
       "toward": "{value} m/s naar de radar toe",
       "calm": "0 m/s"
     }
+  },
+  "stations": {
+    "title": "Weerstations",
+    "pill": "Stations",
+    "toggle": "Weerstations tonen",
+    "observed": "Gemeten {time}",
+    "none": "Geen waarnemingen",
+    "choice": {
+      "group": "Parameter",
+      "wind": "Wind",
+      "gusts": "Stoten",
+      "temperature": "Temp.",
+      "precipitation": "Neerslag",
+      "humidity": "Vocht",
+      "pressure": "Druk"
+    },
+    "parameter": {
+      "wind": "Wind",
+      "wind_direction": "Windrichting",
+      "gusts": "Windstoten",
+      "gust_direction": "Richting windstoten",
+      "temperature": "Temperatuur",
+      "precipitation": "Neerslag, 10 min",
+      "humidity": "Luchtvochtigheid",
+      "pressure": "Luchtdruk op zeeniveau"
+    },
+    "sheet": {
+      "height": "Hoogte",
+      "observed": "Gemeten",
+      "none": "Geen waarden van dit station.",
+      "source": "Gegevens: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

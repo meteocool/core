@@ -886,5 +886,37 @@
       "title": "Varför 3D-molnen släpar efter den platta radarn",
       "p1": "Den platta kartan kommer från nederbördsskanningen, som är klar en halv minut in i cykeln. Ett 3D-moln behöver alla tio vinklar, och den sista slutar fem minuter in i cykeln. Därför kan en cykels moln inte dyka upp förrän efter ungefär sex minuter, medan samma cykels platta bild är ute efter mindre än tre."
     }
+  },
+  "stations": {
+    "title": "Väderstationer",
+    "pill": "Stationer",
+    "toggle": "Visa väderstationer",
+    "observed": "Uppmätt {time}",
+    "none": "Inga observationer",
+    "choice": {
+      "group": "Parameter",
+      "wind": "Vind",
+      "gusts": "Byar",
+      "temperature": "Temp.",
+      "precipitation": "Nederbörd",
+      "humidity": "Fukt",
+      "pressure": "Tryck"
+    },
+    "parameter": {
+      "wind": "Vind",
+      "wind_direction": "Vindriktning",
+      "gusts": "Byar",
+      "gust_direction": "Byarnas riktning",
+      "temperature": "Temperatur",
+      "precipitation": "Nederbörd, 10 min",
+      "humidity": "Luftfuktighet",
+      "pressure": "Lufttryck vid havsytan"
+    },
+    "sheet": {
+      "height": "Höjd",
+      "observed": "Uppmätt",
+      "none": "Inga värden från den här stationen.",
+      "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

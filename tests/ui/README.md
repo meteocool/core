@@ -19,7 +19,7 @@ Run them before pushing develop. They are not in CI yet.
 A run never reaches a backend. `test.ts` gives every spec a page that:
 
 - answers the backend's requests (`/v3`, `/cells`, `/storms`, `/mesocyclones`,
-  `/lightning_cache`, `/geocoding`, see `offline.ts`) from
+  `/lightning_cache`, `/stations`, `/geocoding`, see `offline.ts`) from
   `fixtures/api/*.json`, keyed by method and path (the query is ignored);
 - answers `/storms` from storms made of the recorded KONRAD3D tracks
   (`storms.ts`) while the recording has no successful answer for it: staging
@@ -27,6 +27,12 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
 - answers `/sweeps` from `fixtures/api/GET_sweeps.json`, still written by
   hand: staging serves the route since 2026-10-22, and the next re-recording
   replaces it with every view's listing in `record.ts`, merged;
+- answers `/stations/observations` from
+  `fixtures/api/GET_stations_observations.json`, written by hand from a
+  real answer of 2026-10-25 with every parameter, trimmed to the stations
+  around central Germany, its times moved onto the recording's clock:
+  staging did not serve the route yet, and the next re-recording (which
+  turns the stations on) replaces it;
 - draws every map tile blank: radar, value tiles and the basemap;
 - connects the lightning socket to a stand-in that stays quiet;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it

@@ -934,5 +934,37 @@
       "toward": "{value} m/s k radaru",
       "calm": "0 m/s"
     }
+  },
+  "stations": {
+    "title": "Meteostanice",
+    "pill": "Stanice",
+    "toggle": "Zobraziť meteostanice",
+    "observed": "Namerané {time}",
+    "none": "Žiadne merania",
+    "choice": {
+      "group": "Veličina",
+      "wind": "Vietor",
+      "gusts": "Nárazy",
+      "temperature": "Tepl.",
+      "precipitation": "Zrážky",
+      "humidity": "Vlhkosť",
+      "pressure": "Tlak"
+    },
+    "parameter": {
+      "wind": "Vietor",
+      "wind_direction": "Smer vetra",
+      "gusts": "Nárazy",
+      "gust_direction": "Smer nárazov",
+      "temperature": "Teplota",
+      "precipitation": "Zrážky, 10 min",
+      "humidity": "Vlhkosť",
+      "pressure": "Tlak prepočítaný na hladinu mora"
+    },
+    "sheet": {
+      "height": "Výška",
+      "observed": "Namerané",
+      "none": "Z tejto stanice nie sú žiadne hodnoty.",
+      "source": "Údaje: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

@@ -886,5 +886,37 @@
       "title": "Kodėl 3D debesys atsilieka nuo plokščio radaro",
       "p1": "Plokščias žemėlapis sudaromas iš kritulių skenavimo, kuris baigiamas po pusės minutės nuo ciklo pradžios. 3D debesiui reikia visų dešimties kampų, o paskutinis baigiasi praėjus penkioms minutėms nuo ciklo pradžios. Todėl ciklo debesys negali pasirodyti anksčiau nei maždaug po šešių minučių, o to paties ciklo plokščias kadras paskelbiamas greičiau nei po trijų."
     }
+  },
+  "stations": {
+    "title": "Meteorologijos stotys",
+    "pill": "Stotys",
+    "toggle": "Rodyti meteorologijos stotis",
+    "observed": "Išmatuota {time}",
+    "none": "Matavimų nėra",
+    "choice": {
+      "group": "Parametras",
+      "wind": "Vėjas",
+      "gusts": "Gūsiai",
+      "temperature": "Temp.",
+      "precipitation": "Krituliai",
+      "humidity": "Drėgmė",
+      "pressure": "Slėgis"
+    },
+    "parameter": {
+      "wind": "Vėjas",
+      "wind_direction": "Vėjo kryptis",
+      "gusts": "Gūsiai",
+      "gust_direction": "Gūsių kryptis",
+      "temperature": "Temperatūra",
+      "precipitation": "Krituliai, 10 min",
+      "humidity": "Drėgmė",
+      "pressure": "Slėgis jūros lygyje"
+    },
+    "sheet": {
+      "height": "Aukštis",
+      "observed": "Išmatuota",
+      "none": "Iš šios stoties verčių nėra.",
+      "source": "Duomenys: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

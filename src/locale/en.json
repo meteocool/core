@@ -934,5 +934,37 @@
       "toward": "{value} m/s toward",
       "calm": "0 m/s"
     }
+  },
+  "stations": {
+    "title": "Weather Stations",
+    "pill": "Stations",
+    "toggle": "Show the weather stations",
+    "observed": "Measured {time}",
+    "none": "No observations",
+    "choice": {
+      "group": "Station parameter",
+      "wind": "Wind",
+      "gusts": "Gusts",
+      "temperature": "Temp",
+      "precipitation": "Rain",
+      "humidity": "Humidity",
+      "pressure": "Pressure"
+    },
+    "parameter": {
+      "wind": "Wind",
+      "wind_direction": "Wind direction",
+      "gusts": "Gusts",
+      "gust_direction": "Gust direction",
+      "temperature": "Temperature",
+      "precipitation": "Precipitation, 10 min",
+      "humidity": "Humidity",
+      "pressure": "Pressure at sea level"
+    },
+    "sheet": {
+      "height": "Height",
+      "observed": "Measured",
+      "none": "No values from this station.",
+      "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

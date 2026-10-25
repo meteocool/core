@@ -886,5 +886,37 @@
       "title": "Hvorfor 3D-skyene ligger etter det flate radarkartet",
       "p1": "Det flate kartet kommer fra nedbørskannet, som er ferdig et halvt minutt ut i syklusen. En 3D-sky trenger alle ti elevasjonene, og den siste er ferdig fem minutter ut i syklusen. Derfor kan skyene for en syklus ikke dukke opp før etter omtrent seks minutter, mens den flate rammen for samme syklus er ute etter mindre enn tre."
     }
+  },
+  "stations": {
+    "title": "Værstasjoner",
+    "pill": "Stasjoner",
+    "toggle": "Vis værstasjoner",
+    "observed": "Målt {time}",
+    "none": "Ingen observasjoner",
+    "choice": {
+      "group": "Parameter",
+      "wind": "Vind",
+      "gusts": "Vindkast",
+      "temperature": "Temp.",
+      "precipitation": "Nedbør",
+      "humidity": "Fukt",
+      "pressure": "Trykk"
+    },
+    "parameter": {
+      "wind": "Vind",
+      "wind_direction": "Vindretning",
+      "gusts": "Vindkast",
+      "gust_direction": "Vindkastretning",
+      "temperature": "Temperatur",
+      "precipitation": "Nedbør, 10 min",
+      "humidity": "Luftfuktighet",
+      "pressure": "Lufttrykk ved havnivå"
+    },
+    "sheet": {
+      "height": "Høyde",
+      "observed": "Målt",
+      "none": "Ingen verdier fra denne stasjonen.",
+      "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

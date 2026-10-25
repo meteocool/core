@@ -934,5 +934,37 @@
       "toward": "{value} m/s hin",
       "calm": "0 m/s"
     }
+  },
+  "stations": {
+    "title": "Wetterstationen",
+    "pill": "Stationen",
+    "toggle": "Wetterstationen zeigen",
+    "observed": "Gemessen {time}",
+    "none": "Keine Messwerte",
+    "choice": {
+      "group": "Messgröße",
+      "wind": "Wind",
+      "gusts": "Böen",
+      "temperature": "Temp.",
+      "precipitation": "Regen",
+      "humidity": "Feuchte",
+      "pressure": "Druck"
+    },
+    "parameter": {
+      "wind": "Wind",
+      "wind_direction": "Windrichtung",
+      "gusts": "Böen",
+      "gust_direction": "Böenrichtung",
+      "temperature": "Temperatur",
+      "precipitation": "Niederschlag, 10 min",
+      "humidity": "Luftfeuchte",
+      "pressure": "Luftdruck auf Meereshöhe"
+    },
+    "sheet": {
+      "height": "Höhe",
+      "observed": "Gemessen",
+      "none": "Keine Werte von dieser Station.",
+      "source": "Daten: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

@@ -49,6 +49,8 @@ async function visit(browser: Browser, baseURL: string | undefined, device: (typ
   const context = await browser.newContext({ ...device, serviceWorkers: "block", baseURL });
   // The radars' marks on, whatever the default: every view records its `/sweeps` listing.
   await context.addInitScript(() => localStorage.setItem("layerSites", "true"));
+  // And the weather stations, off by default, so `/stations/observations` is recorded.
+  await context.addInitScript(() => localStorage.setItem("layerStations", "true"));
   const page = await context.newPage();
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());

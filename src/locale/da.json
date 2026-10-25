@@ -886,5 +886,37 @@
       "title": "Hvorfor 3D-skyerne halter efter den flade radar",
       "p1": "Det flade kort kommer fra nedbørsscannet, som er færdigt et halvt minut inde i cyklussen. En 3D-sky kræver alle ti vinkler, og den sidste slutter fem minutter inde i cyklussen. Derfor kan skyerne for en cyklus ikke dukke op før efter cirka seks minutter, mens cyklussens flade billede er ude efter under tre."
     }
+  },
+  "stations": {
+    "title": "Vejrstationer",
+    "pill": "Stationer",
+    "toggle": "Vis vejrstationer",
+    "observed": "Målt {time}",
+    "none": "Ingen målinger",
+    "choice": {
+      "group": "Parameter",
+      "wind": "Vind",
+      "gusts": "Vindstød",
+      "temperature": "Temp.",
+      "precipitation": "Nedbør",
+      "humidity": "Fugt",
+      "pressure": "Tryk"
+    },
+    "parameter": {
+      "wind": "Vind",
+      "wind_direction": "Vindretning",
+      "gusts": "Vindstød",
+      "gust_direction": "Vindstødsretning",
+      "temperature": "Temperatur",
+      "precipitation": "Nedbør, 10 min",
+      "humidity": "Luftfugtighed",
+      "pressure": "Lufttryk ved havniveau"
+    },
+    "sheet": {
+      "height": "Højde",
+      "observed": "Målt",
+      "none": "Ingen værdier fra denne station.",
+      "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    }
   }
 }

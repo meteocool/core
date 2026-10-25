@@ -34,7 +34,8 @@ export interface RecordedResponse {
  * proxies them (vite.config.ts). Recorded and replayed.
  */
 const API_PATHS = [
-  /^\/v3\//, /^\/cells\//, /^\/storms(\/|$)/, /^\/sweeps(\/|$)/, /^\/mesocyclones\//, /^\/lightning_cache/, /^\/geocoding\//,
+  /^\/v3\//, /^\/cells\//, /^\/storms(\/|$)/, /^\/sweeps(\/|$)/, /^\/stations(\/|$)/, /^\/mesocyclones\//,
+  /^\/lightning_cache/, /^\/geocoding\//,
 ];
 
 /** Map tiles: radar frames, value tiles and the basemap. Drawn blank, never recorded. */
