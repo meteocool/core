@@ -131,6 +131,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every DWD weather station that currently publishes ten-minute observations.
+         * @description The stations, where they are and which series each publishes.
+         */
+        get: operations["stations_stations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stations/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every station's newest observations at a time, for the station layer.
+         * @description One feature per station, with the newest value of each parameter in the window.
+         */
+        get: operations["observations_stations_observations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stations/{station}/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One station's ten-minute observations over a window, oldest first, for a chart.
+         * @description Every ten minutes the station reported in the window, at most a week of them.
+         */
+        get: operations["series_stations__station__observations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/storms": {
         parameters: {
             query?: never;
@@ -772,6 +832,327 @@ export interface components {
             issued_at: number;
         };
         /**
+         * ObservationRow
+         * @description What a station measured in one ten-minute interval.
+         */
+        ObservationRow: {
+            /**
+             * Dew Point C
+             * @description Dew point, °C
+             */
+            dew_point_c?: number | null;
+            /**
+             * Diffuse Radiation J Cm2
+             * @description Diffuse sky radiation summed over the ten minutes, J/cm²
+             */
+            diffuse_radiation_j_cm2?: number | null;
+            /**
+             * Global Radiation J Cm2
+             * @description Global radiation summed over the ten minutes, J/cm²
+             */
+            global_radiation_j_cm2?: number | null;
+            /**
+             * Ground Temperature C
+             * @description Air temperature 5 cm above ground, °C
+             */
+            ground_temperature_c?: number | null;
+            /**
+             * Ground Temperature Max C
+             * @description Highest temperature 5 cm above ground in the ten minutes, °C
+             */
+            ground_temperature_max_c?: number | null;
+            /**
+             * Ground Temperature Min C
+             * @description Lowest temperature 5 cm above ground in the ten minutes, °C
+             */
+            ground_temperature_min_c?: number | null;
+            /**
+             * Gust Direction Deg
+             * @description Direction the strongest wind blew from, degrees from north
+             */
+            gust_direction_deg?: number | null;
+            /**
+             * Gust M S
+             * @description Strongest wind in the ten minutes, m/s
+             */
+            gust_m_s?: number | null;
+            /**
+             * Humidity Pct
+             * @description Relative humidity, %
+             */
+            humidity_pct?: number | null;
+            /**
+             * Longwave Radiation J Cm2
+             * @description Long-wave radiation summed over the ten minutes, J/cm²
+             */
+            longwave_radiation_j_cm2?: number | null;
+            /**
+             * Observed At
+             * Format: date-time
+             * @description End of the ten minutes, UTC
+             */
+            observed_at: string;
+            /**
+             * Precipitation Indicator
+             * @description DWD's precipitation indicator: whether it fell, and how the sensor was running
+             */
+            precipitation_indicator?: number | null;
+            /**
+             * Precipitation Minutes
+             * @description How many of the ten minutes it precipitated
+             */
+            precipitation_minutes?: number | null;
+            /**
+             * Precipitation Mm
+             * @description Precipitation in the ten minutes, mm
+             */
+            precipitation_mm?: number | null;
+            /**
+             * Pressure Hpa
+             * @description Air pressure at the station's height, hPa
+             */
+            pressure_hpa?: number | null;
+            /**
+             * Pressure Msl Hpa
+             * @description Air pressure reduced to sea level from the station's pressure, temperature, humidity and height, hPa. Computed, not measured; absent where any of them is
+             */
+            pressure_msl_hpa?: number | null;
+            /**
+             * Sunshine Minutes
+             * @description Sunshine in the ten minutes, minutes
+             */
+            sunshine_minutes?: number | null;
+            /**
+             * Temperature C
+             * @description Air temperature 2 m above ground, °C
+             */
+            temperature_c?: number | null;
+            /**
+             * Temperature Max C
+             * @description Highest 2 m temperature in the ten minutes, °C
+             */
+            temperature_max_c?: number | null;
+            /**
+             * Temperature Min C
+             * @description Lowest 2 m temperature in the ten minutes, °C
+             */
+            temperature_min_c?: number | null;
+            /**
+             * Wind Direction Deg
+             * @description Mean direction the wind blew from over the ten minutes, degrees from north
+             */
+            wind_direction_deg?: number | null;
+            /**
+             * Wind Speed M S
+             * @description Mean wind speed over the ten minutes, m/s
+             */
+            wind_speed_m_s?: number | null;
+            /**
+             * Wind Speed Max M S
+             * @description Highest one-minute mean of the wind in the ten minutes, m/s
+             */
+            wind_speed_max_m_s?: number | null;
+            /**
+             * Wind Speed Min M S
+             * @description Weakest wind in the ten minutes, m/s
+             */
+            wind_speed_min_m_s?: number | null;
+        };
+        /**
+         * ObservedCollection
+         * @description Every station's newest observations at a time.
+         */
+        ObservedCollection: {
+            /**
+             * At
+             * Format: date-time
+             * @description The time asked for, UTC
+             */
+            at: string;
+            /** Features */
+            features: components["schemas"]["ObservedFeature"][];
+            /**
+             * Since
+             * Format: date-time
+             * @description The oldest a value may be, UTC
+             */
+            since: string;
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+        };
+        /**
+         * ObservedFeature
+         * @description One station's observations as a GeoJSON feature.
+         */
+        ObservedFeature: {
+            geometry: components["schemas"]["StationPoint"];
+            /**
+             * Id
+             * @description DWD's station id
+             */
+            id: string;
+            properties: components["schemas"]["ObservedProperties"];
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+        };
+        /**
+         * ObservedProperties
+         * @description A station, and the newest value of each parameter it reported in the window asked for.
+         */
+        ObservedProperties: {
+            /**
+             * Datasets
+             * @description The ten-minute series it publishes: air_temperature, extreme_temperature, wind, extreme_wind, precipitation, solar
+             */
+            datasets: string[];
+            /**
+             * Dew Point C
+             * @description Dew point, °C
+             */
+            dew_point_c?: number | null;
+            /**
+             * Diffuse Radiation J Cm2
+             * @description Diffuse sky radiation summed over the ten minutes, J/cm²
+             */
+            diffuse_radiation_j_cm2?: number | null;
+            /**
+             * Elevation M
+             * @description Height of the station above sea level, m
+             */
+            elevation_m: number;
+            /**
+             * Global Radiation J Cm2
+             * @description Global radiation summed over the ten minutes, J/cm²
+             */
+            global_radiation_j_cm2?: number | null;
+            /**
+             * Ground Temperature C
+             * @description Air temperature 5 cm above ground, °C
+             */
+            ground_temperature_c?: number | null;
+            /**
+             * Ground Temperature Max C
+             * @description Highest temperature 5 cm above ground in the ten minutes, °C
+             */
+            ground_temperature_max_c?: number | null;
+            /**
+             * Ground Temperature Min C
+             * @description Lowest temperature 5 cm above ground in the ten minutes, °C
+             */
+            ground_temperature_min_c?: number | null;
+            /**
+             * Gust Direction Deg
+             * @description Direction the strongest wind blew from, degrees from north
+             */
+            gust_direction_deg?: number | null;
+            /**
+             * Gust M S
+             * @description Strongest wind in the ten minutes, m/s
+             */
+            gust_m_s?: number | null;
+            /**
+             * Humidity Pct
+             * @description Relative humidity, %
+             */
+            humidity_pct?: number | null;
+            /**
+             * Longwave Radiation J Cm2
+             * @description Long-wave radiation summed over the ten minutes, J/cm²
+             */
+            longwave_radiation_j_cm2?: number | null;
+            /** Name */
+            name: string;
+            /**
+             * Observed At
+             * Format: date-time
+             * @description End of the newest ten minutes any of the values is from, UTC. Each series is published on its own schedule, so a station's values can be up to the window apart
+             */
+            observed_at: string;
+            /**
+             * Precipitation Indicator
+             * @description DWD's precipitation indicator: whether it fell, and how the sensor was running
+             */
+            precipitation_indicator?: number | null;
+            /**
+             * Precipitation Minutes
+             * @description How many of the ten minutes it precipitated
+             */
+            precipitation_minutes?: number | null;
+            /**
+             * Precipitation Mm
+             * @description Precipitation in the ten minutes, mm
+             */
+            precipitation_mm?: number | null;
+            /**
+             * Pressure Hpa
+             * @description Air pressure at the station's height, hPa
+             */
+            pressure_hpa?: number | null;
+            /**
+             * Pressure Msl Hpa
+             * @description Air pressure reduced to sea level from the station's pressure, temperature, humidity and height, hPa. Computed, not measured; absent where any of them is
+             */
+            pressure_msl_hpa?: number | null;
+            /**
+             * State
+             * @description The German state it is in
+             */
+            state: string;
+            /**
+             * Station
+             * @description DWD's station id, five digits
+             */
+            station: string;
+            /**
+             * Sunshine Minutes
+             * @description Sunshine in the ten minutes, minutes
+             */
+            sunshine_minutes?: number | null;
+            /**
+             * Temperature C
+             * @description Air temperature 2 m above ground, °C
+             */
+            temperature_c?: number | null;
+            /**
+             * Temperature Max C
+             * @description Highest 2 m temperature in the ten minutes, °C
+             */
+            temperature_max_c?: number | null;
+            /**
+             * Temperature Min C
+             * @description Lowest 2 m temperature in the ten minutes, °C
+             */
+            temperature_min_c?: number | null;
+            /**
+             * Wind Direction Deg
+             * @description Mean direction the wind blew from over the ten minutes, degrees from north
+             */
+            wind_direction_deg?: number | null;
+            /**
+             * Wind Speed M S
+             * @description Mean wind speed over the ten minutes, m/s
+             */
+            wind_speed_m_s?: number | null;
+            /**
+             * Wind Speed Max M S
+             * @description Highest one-minute mean of the wind in the ten minutes, m/s
+             */
+            wind_speed_max_m_s?: number | null;
+            /**
+             * Wind Speed Min M S
+             * @description Weakest wind in the ten minutes, m/s
+             */
+            wind_speed_min_m_s?: number | null;
+        };
+        /**
          * PointGeometry
          * @description Where a cell seen only once is. GeoJSON needs two positions for a line.
          */
@@ -963,6 +1344,93 @@ export interface components {
              * @constant
              */
             refresh: "overlay";
+        };
+        /**
+         * StationCollection
+         * @description Every station that currently publishes ten-minute observations.
+         */
+        StationCollection: {
+            /** Features */
+            features: components["schemas"]["StationFeature"][];
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+        };
+        /**
+         * StationFeature
+         * @description One station as a GeoJSON feature.
+         */
+        StationFeature: {
+            geometry: components["schemas"]["StationPoint"];
+            /**
+             * Id
+             * @description DWD's station id
+             */
+            id: string;
+            properties: components["schemas"]["StationInfo"];
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+        };
+        /**
+         * StationInfo
+         * @description One station: who runs it, where it is, and what it measures.
+         */
+        StationInfo: {
+            /**
+             * Datasets
+             * @description The ten-minute series it publishes: air_temperature, extreme_temperature, wind, extreme_wind, precipitation, solar
+             */
+            datasets: string[];
+            /**
+             * Elevation M
+             * @description Height of the station above sea level, m
+             */
+            elevation_m: number;
+            /** Name */
+            name: string;
+            /**
+             * State
+             * @description The German state it is in
+             */
+            state: string;
+            /**
+             * Station
+             * @description DWD's station id, five digits
+             */
+            station: string;
+        };
+        /**
+         * StationPoint
+         * @description A GeoJSON point, WGS84, longitude first.
+         */
+        StationPoint: {
+            /**
+             * Coordinates
+             * @description [lon, lat]
+             */
+            coordinates: number[];
+            /**
+             * Type
+             * @default Point
+             * @constant
+             */
+            type: "Point";
+        };
+        /**
+         * StationSeries
+         * @description One station and its ten-minute observations, oldest first.
+         */
+        StationSeries: {
+            /** Observations */
+            observations: components["schemas"]["ObservationRow"][];
+            station: components["schemas"]["StationFeature"];
         };
         /**
          * StormCollection
@@ -1692,6 +2160,112 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stations_stations_get: {
+        parameters: {
+            query?: {
+                /** @description Viewport as `west,south,east,north` in WGS84 degrees */
+                bbox?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationCollection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    observations_stations_observations_get: {
+        parameters: {
+            query?: {
+                /** @description The time to show, UTC; defaults to now. Values are never from after it */
+                at?: string | null;
+                /** @description How old a value may be and still be shown. DWD publishes ten-minute values with about half an hour's delay, and each series on its own schedule */
+                max_age_minutes?: number;
+                /** @description Only these parameters, and only the stations that report one of them; repeat for several. Defaults to all */
+                parameter?: string[] | null;
+                /** @description Viewport as `west,south,east,north` in WGS84 degrees */
+                bbox?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservedCollection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    series_stations__station__observations_get: {
+        parameters: {
+            query?: {
+                /** @description Start of the window, UTC; defaults to a day before its end */
+                since?: string | null;
+                /** @description End of the window, UTC; defaults to now */
+                until?: string | null;
+            };
+            header?: never;
+            path: {
+                station: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationSeries"];
                 };
             };
             /** @description Validation Error */

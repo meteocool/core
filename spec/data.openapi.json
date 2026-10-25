@@ -1083,6 +1083,688 @@
         "title": "NowcastRefresh",
         "type": "object"
       },
+      "ObservationRow": {
+        "description": "What a station measured in one ten-minute interval.",
+        "properties": {
+          "dew_point_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dew point, \u00b0C",
+            "title": "Dew Point C"
+          },
+          "diffuse_radiation_j_cm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Diffuse sky radiation summed over the ten minutes, J/cm\u00b2",
+            "title": "Diffuse Radiation J Cm2"
+          },
+          "global_radiation_j_cm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Global radiation summed over the ten minutes, J/cm\u00b2",
+            "title": "Global Radiation J Cm2"
+          },
+          "ground_temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air temperature 5 cm above ground, \u00b0C",
+            "title": "Ground Temperature C"
+          },
+          "ground_temperature_max_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Highest temperature 5 cm above ground in the ten minutes, \u00b0C",
+            "title": "Ground Temperature Max C"
+          },
+          "ground_temperature_min_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest temperature 5 cm above ground in the ten minutes, \u00b0C",
+            "title": "Ground Temperature Min C"
+          },
+          "gust_direction_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Direction the strongest wind blew from, degrees from north",
+            "title": "Gust Direction Deg"
+          },
+          "gust_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Strongest wind in the ten minutes, m/s",
+            "title": "Gust M S"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Relative humidity, %",
+            "title": "Humidity Pct"
+          },
+          "longwave_radiation_j_cm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Long-wave radiation summed over the ten minutes, J/cm\u00b2",
+            "title": "Longwave Radiation J Cm2"
+          },
+          "observed_at": {
+            "description": "End of the ten minutes, UTC",
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "precipitation_indicator": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "DWD's precipitation indicator: whether it fell, and how the sensor was running",
+            "title": "Precipitation Indicator"
+          },
+          "precipitation_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How many of the ten minutes it precipitated",
+            "title": "Precipitation Minutes"
+          },
+          "precipitation_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precipitation in the ten minutes, mm",
+            "title": "Precipitation Mm"
+          },
+          "pressure_hpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air pressure at the station's height, hPa",
+            "title": "Pressure Hpa"
+          },
+          "pressure_msl_hpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air pressure reduced to sea level from the station's pressure, temperature, humidity and height, hPa. Computed, not measured; absent where any of them is",
+            "title": "Pressure Msl Hpa"
+          },
+          "sunshine_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sunshine in the ten minutes, minutes",
+            "title": "Sunshine Minutes"
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air temperature 2 m above ground, \u00b0C",
+            "title": "Temperature C"
+          },
+          "temperature_max_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Highest 2 m temperature in the ten minutes, \u00b0C",
+            "title": "Temperature Max C"
+          },
+          "temperature_min_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest 2 m temperature in the ten minutes, \u00b0C",
+            "title": "Temperature Min C"
+          },
+          "wind_direction_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mean direction the wind blew from over the ten minutes, degrees from north",
+            "title": "Wind Direction Deg"
+          },
+          "wind_speed_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mean wind speed over the ten minutes, m/s",
+            "title": "Wind Speed M S"
+          },
+          "wind_speed_max_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Highest one-minute mean of the wind in the ten minutes, m/s",
+            "title": "Wind Speed Max M S"
+          },
+          "wind_speed_min_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Weakest wind in the ten minutes, m/s",
+            "title": "Wind Speed Min M S"
+          }
+        },
+        "required": [
+          "observed_at"
+        ],
+        "title": "ObservationRow",
+        "type": "object"
+      },
+      "ObservedCollection": {
+        "description": "Every station's newest observations at a time.",
+        "properties": {
+          "at": {
+            "description": "The time asked for, UTC",
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/ObservedFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "since": {
+            "description": "The oldest a value may be, UTC",
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "since",
+          "features"
+        ],
+        "title": "ObservedCollection",
+        "type": "object"
+      },
+      "ObservedFeature": {
+        "description": "One station's observations as a GeoJSON feature.",
+        "properties": {
+          "geometry": {
+            "$ref": "#/components/schemas/StationPoint"
+          },
+          "id": {
+            "description": "DWD's station id",
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/ObservedProperties"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "properties"
+        ],
+        "title": "ObservedFeature",
+        "type": "object"
+      },
+      "ObservedProperties": {
+        "description": "A station, and the newest value of each parameter it reported in the window asked for.",
+        "properties": {
+          "datasets": {
+            "description": "The ten-minute series it publishes: air_temperature, extreme_temperature, wind, extreme_wind, precipitation, solar",
+            "items": {
+              "type": "string"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "dew_point_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dew point, \u00b0C",
+            "title": "Dew Point C"
+          },
+          "diffuse_radiation_j_cm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Diffuse sky radiation summed over the ten minutes, J/cm\u00b2",
+            "title": "Diffuse Radiation J Cm2"
+          },
+          "elevation_m": {
+            "description": "Height of the station above sea level, m",
+            "title": "Elevation M",
+            "type": "number"
+          },
+          "global_radiation_j_cm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Global radiation summed over the ten minutes, J/cm\u00b2",
+            "title": "Global Radiation J Cm2"
+          },
+          "ground_temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air temperature 5 cm above ground, \u00b0C",
+            "title": "Ground Temperature C"
+          },
+          "ground_temperature_max_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Highest temperature 5 cm above ground in the ten minutes, \u00b0C",
+            "title": "Ground Temperature Max C"
+          },
+          "ground_temperature_min_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest temperature 5 cm above ground in the ten minutes, \u00b0C",
+            "title": "Ground Temperature Min C"
+          },
+          "gust_direction_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Direction the strongest wind blew from, degrees from north",
+            "title": "Gust Direction Deg"
+          },
+          "gust_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Strongest wind in the ten minutes, m/s",
+            "title": "Gust M S"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Relative humidity, %",
+            "title": "Humidity Pct"
+          },
+          "longwave_radiation_j_cm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Long-wave radiation summed over the ten minutes, J/cm\u00b2",
+            "title": "Longwave Radiation J Cm2"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "observed_at": {
+            "description": "End of the newest ten minutes any of the values is from, UTC. Each series is published on its own schedule, so a station's values can be up to the window apart",
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "precipitation_indicator": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "DWD's precipitation indicator: whether it fell, and how the sensor was running",
+            "title": "Precipitation Indicator"
+          },
+          "precipitation_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How many of the ten minutes it precipitated",
+            "title": "Precipitation Minutes"
+          },
+          "precipitation_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precipitation in the ten minutes, mm",
+            "title": "Precipitation Mm"
+          },
+          "pressure_hpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air pressure at the station's height, hPa",
+            "title": "Pressure Hpa"
+          },
+          "pressure_msl_hpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air pressure reduced to sea level from the station's pressure, temperature, humidity and height, hPa. Computed, not measured; absent where any of them is",
+            "title": "Pressure Msl Hpa"
+          },
+          "state": {
+            "description": "The German state it is in",
+            "title": "State",
+            "type": "string"
+          },
+          "station": {
+            "description": "DWD's station id, five digits",
+            "title": "Station",
+            "type": "string"
+          },
+          "sunshine_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sunshine in the ten minutes, minutes",
+            "title": "Sunshine Minutes"
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Air temperature 2 m above ground, \u00b0C",
+            "title": "Temperature C"
+          },
+          "temperature_max_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Highest 2 m temperature in the ten minutes, \u00b0C",
+            "title": "Temperature Max C"
+          },
+          "temperature_min_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest 2 m temperature in the ten minutes, \u00b0C",
+            "title": "Temperature Min C"
+          },
+          "wind_direction_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mean direction the wind blew from over the ten minutes, degrees from north",
+            "title": "Wind Direction Deg"
+          },
+          "wind_speed_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mean wind speed over the ten minutes, m/s",
+            "title": "Wind Speed M S"
+          },
+          "wind_speed_max_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Highest one-minute mean of the wind in the ten minutes, m/s",
+            "title": "Wind Speed Max M S"
+          },
+          "wind_speed_min_m_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Weakest wind in the ten minutes, m/s",
+            "title": "Wind Speed Min M S"
+          }
+        },
+        "required": [
+          "station",
+          "name",
+          "state",
+          "elevation_m",
+          "datasets",
+          "observed_at"
+        ],
+        "title": "ObservedProperties",
+        "type": "object"
+      },
       "PointGeometry": {
         "description": "Where a cell seen only once is. GeoJSON needs two positions for a line.",
         "properties": {
@@ -1406,6 +2088,144 @@
           "refresh"
         ],
         "title": "SnowRefresh",
+        "type": "object"
+      },
+      "StationCollection": {
+        "description": "Every station that currently publishes ten-minute observations.",
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/StationFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "features"
+        ],
+        "title": "StationCollection",
+        "type": "object"
+      },
+      "StationFeature": {
+        "description": "One station as a GeoJSON feature.",
+        "properties": {
+          "geometry": {
+            "$ref": "#/components/schemas/StationPoint"
+          },
+          "id": {
+            "description": "DWD's station id",
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/StationInfo"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "properties"
+        ],
+        "title": "StationFeature",
+        "type": "object"
+      },
+      "StationInfo": {
+        "description": "One station: who runs it, where it is, and what it measures.",
+        "properties": {
+          "datasets": {
+            "description": "The ten-minute series it publishes: air_temperature, extreme_temperature, wind, extreme_wind, precipitation, solar",
+            "items": {
+              "type": "string"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "elevation_m": {
+            "description": "Height of the station above sea level, m",
+            "title": "Elevation M",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "state": {
+            "description": "The German state it is in",
+            "title": "State",
+            "type": "string"
+          },
+          "station": {
+            "description": "DWD's station id, five digits",
+            "title": "Station",
+            "type": "string"
+          }
+        },
+        "required": [
+          "station",
+          "name",
+          "state",
+          "elevation_m",
+          "datasets"
+        ],
+        "title": "StationInfo",
+        "type": "object"
+      },
+      "StationPoint": {
+        "description": "A GeoJSON point, WGS84, longitude first.",
+        "properties": {
+          "coordinates": {
+            "description": "[lon, lat]",
+            "items": {
+              "type": "number"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "Point",
+            "default": "Point",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "coordinates"
+        ],
+        "title": "StationPoint",
+        "type": "object"
+      },
+      "StationSeries": {
+        "description": "One station and its ten-minute observations, oldest first.",
+        "properties": {
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationRow"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "station": {
+            "$ref": "#/components/schemas/StationFeature"
+          }
+        },
+        "required": [
+          "station",
+          "observations"
+        ],
+        "title": "StationSeries",
         "type": "object"
       },
       "StormCollection": {
@@ -2386,7 +3206,7 @@
     "contact": {
       "email": "valentin@meteocool.com"
     },
-    "description": "\nLive lightning strikes, DWD mesocyclone detections, tracked thunderstorm\ncells from DWD's KONRAD3D, and the storms fused from every product's tracks.\n\nTwo coordinate conventions, for historical reasons. `/lightning_cache` and\n`/mesocyclones` serve projected **EPSG:3857 metres** in fields named `lat` and\n`lon`, kept as-is for existing clients. `/cells` and `/storms` are RFC 7946 GeoJSON:\n**WGS84 degrees**, `[lon, lat]`.\n",
+    "description": "\nLive lightning strikes, DWD mesocyclone detections, tracked thunderstorm\ncells from DWD's KONRAD3D, the storms fused from every product's tracks, and\nthe ten-minute observations of DWD's weather stations.\n\nTwo coordinate conventions, for historical reasons. `/lightning_cache` and\n`/mesocyclones` serve projected **EPSG:3857 metres** in fields named `lat` and\n`lon`, kept as-is for existing clients. `/cells`, `/storms` and `/stations` are RFC 7946 GeoJSON:\n**WGS84 degrees**, `[lon, lat]`.\n",
     "title": "meteocool data",
     "version": "4.0.0"
   },
@@ -2686,6 +3506,257 @@
           }
         },
         "summary": "Extra nowcast parameters for one mesocyclone detection."
+      }
+    },
+    "/stations": {
+      "get": {
+        "description": "The stations, where they are and which series each publishes.",
+        "operationId": "stations_stations_get",
+        "parameters": [
+          {
+            "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+              "examples": [
+                "5,47,16,56"
+              ],
+              "title": "Bbox"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Every DWD weather station that currently publishes ten-minute observations.",
+        "tags": [
+          "stations"
+        ]
+      }
+    },
+    "/stations/observations": {
+      "get": {
+        "description": "One feature per station, with the newest value of each parameter in the window.",
+        "operationId": "observations_stations_observations_get",
+        "parameters": [
+          {
+            "description": "The time to show, UTC; defaults to now. Values are never from after it",
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time to show, UTC; defaults to now. Values are never from after it",
+              "title": "At"
+            }
+          },
+          {
+            "description": "How old a value may be and still be shown. DWD publishes ten-minute values with about half an hour's delay, and each series on its own schedule",
+            "in": "query",
+            "name": "max_age_minutes",
+            "required": false,
+            "schema": {
+              "default": 60,
+              "description": "How old a value may be and still be shown. DWD publishes ten-minute values with about half an hour's delay, and each series on its own schedule",
+              "maximum": 180,
+              "minimum": 10,
+              "title": "Max Age Minutes",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only these parameters, and only the stations that report one of them; repeat for several. Defaults to all",
+            "in": "query",
+            "name": "parameter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only these parameters, and only the stations that report one of them; repeat for several. Defaults to all",
+              "examples": [
+                [
+                  "wind_speed_m_s",
+                  "wind_direction_deg"
+                ]
+              ],
+              "title": "Parameter"
+            }
+          },
+          {
+            "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+              "examples": [
+                "5,47,16,56"
+              ],
+              "title": "Bbox"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservedCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Every station's newest observations at a time, for the station layer.",
+        "tags": [
+          "stations"
+        ]
+      }
+    },
+    "/stations/{station}/observations": {
+      "get": {
+        "description": "Every ten minutes the station reported in the window, at most a week of them.",
+        "operationId": "series_stations__station__observations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "station",
+            "required": true,
+            "schema": {
+              "title": "Station",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the window, UTC; defaults to a day before its end",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start of the window, UTC; defaults to a day before its end",
+              "title": "Since"
+            }
+          },
+          {
+            "description": "End of the window, UTC; defaults to now",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End of the window, UTC; defaults to now",
+              "title": "Until"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationSeries"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One station's ten-minute observations over a window, oldest first, for a chart.",
+        "tags": [
+          "stations"
+        ]
       }
     },
     "/storms": {
