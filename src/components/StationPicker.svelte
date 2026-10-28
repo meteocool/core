@@ -1,21 +1,25 @@
 <script lang="ts">
 /**
  * Which parameter the weather stations over the radar map show, and when
- * what is on the map was measured: a row of the player while they are on.
+ * what is on the map was measured: a glass pill of its own, floating a gap
+ * above the player while the stations are on (NowcastPlayback).
  *
- * A row inside the player rather than glass of its own over the map, so it
- * can cover nothing: the player grows by exactly its height
- * (--mc-stations-tray-h in src/glass.css, switched by `stations-open` on the
- * root while this is mounted), as it does for site mode's tray, and the
- * timeline, the credits and the map's padding all move up with the tray.
- * The choice is remembered through `stationChoice` (the setting
- * `stationParameter`, App.svelte).
+ * Out of the player and over it, where it is the most prominent control on
+ * the map after the timeline: the parameter is what the stations are read
+ * by. The stack over the player makes room for it: while it is up, the
+ * root's `stations-picker` sets --mc-stations-stack (src/glass.css), which
+ * the strips, the storm hint, "Back to now" and the map's credits all stand
+ * on. Where the screen is too narrow for every parameter it scrolls
+ * sideways, its edges fading out. The choice is remembered through
+ * `stationChoice` (the setting `stationParameter`, App.svelte).
  */
 import { onDestroy, onMount } from "svelte";
+import { fly } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import { format } from "date-fns";
 import Segmented from "./Segmented.svelte";
 import { STATION_CHOICES } from "../lib/stations";
+import { fadeEdges } from "../lib/fadeEdges";
 import { stationChoice, stationView } from "../stores";
 
 $: options = STATION_CHOICES.map((value) => ({ value, label: $_(`stations.choice.${value}`) }));
@@ -24,49 +28,83 @@ $: status = $stationView
   ? (time ? $_("stations.observed", { values: { time } }) : $_("stations.none"))
   : "";
 
-onMount(() => document.documentElement.classList.add("stations-open"));
-onDestroy(() => document.documentElement.classList.remove("stations-open"));
+onMount(() => document.documentElement.classList.add("stations-picker"));
+onDestroy(() => document.documentElement.classList.remove("stations-picker"));
 </script>
 
-<div class="stationPicker">
-  <Segmented {options} bind:value={$stationChoice} label={$_("stations.choice.group")} compact />
-  <!-- In full where there is room; a phone's row has the time alone beside
-       the picker, or a dash for none, with the words still read out. -->
-  <span class="status" title={status} aria-live="polite">
-    <span class="long">{status}</span>
-    <span class="short" aria-hidden="true">{$stationView ? (time ?? "–") : ""}</span>
-  </span>
+<div class="stationPicker-dock">
+  <div class="stationPicker glass glass-pill" transition:fly|global={{ y: 12, duration: 200 }}>
+    <div class="scroller mc-fade-x" use:fadeEdges>
+      <span class="row">
+        <Segmented {options} bind:value={$stationChoice} label={$_("stations.choice.group")} compact />
+        {#if $stationView}
+          <span class="status" title={status} aria-live="polite">
+            <span class="sr">{status}</span>
+            <span aria-hidden="true">{time ?? "–"}</span>
+          </span>
+        {/if}
+      </span>
+    </div>
+  </div>
 </div>
 
 <style>
+  /* A row the width of the screen that lets touches through, so the pill
+     can be centred, as "Back to now" is; directly over the player. */
+  .stationPicker-dock {
+    position: absolute;
+    left: var(--mc-gutter);
+    right: var(--mc-gutter);
+    bottom: calc(var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap));
+    z-index: var(--mc-z-pill);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
   .stationPicker {
+    pointer-events: auto;
+    box-sizing: border-box;
+    max-width: 100%;
+    height: var(--mc-stations-pill-h);
+    padding: 4px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    height: var(--mc-site-row-h);
     min-width: 0;
-    padding: 0 0 0 4px;
+  }
+  .scroller {
+    min-width: 0;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    border-radius: var(--mc-radius-pill);
+  }
+  .scroller::-webkit-scrollbar { display: none; }
+  .row {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* Touch pans the row sideways from the picker too, rather than dragging
+     its lens; a tap still chooses. */
+  .row :global(.segmented.compact) {
+    touch-action: pan-x;
   }
   .status {
-    position: relative;
-    flex: 1 1 auto;
-    min-width: 0;
-    font: 500 12px/1.2 var(--mc-font);
-    color: var(--mc-text-2);
+    padding-right: 10px;
+    color: var(--mc-accent);
+    font: 600 12px/1 var(--mc-font);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .short { display: none; }
-  @media only screen and (max-width: 620px) {
-    .status { text-align: right; }
-    .long {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-    }
-    .short { display: inline; }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 </style>

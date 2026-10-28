@@ -77,7 +77,7 @@ function dismiss(leaving: Leaving) {
     left: var(--mc-gutter);
     right: var(--mc-gutter);
     bottom: calc(
-      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap)
+      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap) + var(--mc-stations-stack)
     );
     height: var(--mc-strip-h);
     z-index: var(--mc-z-chart);

@@ -55,6 +55,9 @@ export type TrackerTrack = DataSchemas["schemas"]["TrackerTrack"];
 export type TrackerFeature = DataSchemas["schemas"]["TrackerFeature"];
 /** One weather station's newest values, as `/stations/observations` answers them. */
 export type ObservedFeature = DataSchemas["schemas"]["ObservedFeature"];
+/** One weather station's ten-minute observations over a window, for its charts. */
+export type StationSeries = DataSchemas["schemas"]["StationSeries"];
+export type ObservationRow = DataSchemas["schemas"]["ObservationRow"];
 
 /** The subset of NanobarWrapper these calls need. */
 export interface Progress {
@@ -603,7 +606,8 @@ export function fetchSweeps(
 }
 
 /**
- * The weather stations' newest values of `parameters`, at `at` or now.
+ * The weather stations' newest values of `parameters`, at `at` or now, none
+ * older than `maxAgeMinutes`.
  *
  * `optional`: a backend that does not serve stations (demo, which replays a
  * storm, or one not yet updated) answers 404, and that is a map with no
@@ -612,12 +616,27 @@ export function fetchSweeps(
 export function fetchStationObservations(
   parameters: string[],
   at: Date | null,
+  maxAgeMinutes: number,
   nanobar?: Progress,
 ) {
-  const query: { parameter: string[]; at?: string } = { parameter: parameters };
+  const query: { parameter: string[]; at?: string; max_age_minutes: number } = {
+    parameter: parameters, max_age_minutes: maxAgeMinutes,
+  };
   if (at) query.at = at.toISOString();
   return request(nanobar, "/stations/observations", () =>
     dataClient.GET("/stations/observations", { params: { query } }), { optional: true });
+}
+
+/**
+ * One weather station's ten-minute observations from `since` to now, oldest
+ * first: its charts in the station's sheet. A week at most, which the
+ * service holds; `optional` for the same reason as the map's.
+ */
+export function fetchStationHistory(station: string, since: Date, nanobar?: Progress) {
+  return request(nanobar, "/stations/{station}/observations", () =>
+    dataClient.GET("/stations/{station}/observations", {
+      params: { path: { station }, query: { since: since.toISOString() } },
+    }), { optional: true });
 }
 
 /**

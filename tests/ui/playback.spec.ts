@@ -89,6 +89,15 @@ test("Back to now goes while a hand is on the timeline, and comes back on releas
   await expect(backToNow(page)).toBeHidden();
 });
 
+test("the axis labels under the strip scrub it too", async ({ page }) => {
+  const live = await timeline(page).getAttribute("aria-valuetext");
+  const box = (await timeline(page).boundingBox())!;
+  // Halfway down the label row, under the strip's left quarter.
+  await page.mouse.click(box.x + box.width * 0.25, box.y + box.height + 8);
+  await expect(timeline(page)).not.toHaveAttribute("aria-valuetext", live!);
+  await expect(backToNow(page)).toBeVisible();
+});
+
 test("a quick drag with the mouse stops where it is let go, with no glide after", async ({ page }) => {
   // Driven in the page, a few milliseconds a move, and let go at once: a
   // drag from here is too slow between moves, and reads as a hand held still.

@@ -19,6 +19,7 @@ import {
 } from "../lib/stations";
 import type { ObservedProperties, PlacedStation, StationChoice } from "../lib/stations";
 import { dbz2color } from "../lib/cmap_utils";
+import { currentLocale } from "../locale/t";
 import type { ObservedFeature } from "../api";
 
 /**
@@ -60,7 +61,17 @@ export interface StationLayer {
   thin(cell: number, resolution: number): void;
   /** Rain is drawn in the radar's palette. */
   setPalette(palette: string): void;
+  /**
+   * Greyed: the timeline is on a forecast frame, which no station has
+   * measured, so what is drawn is the newest and not the frame's. Faint
+   * and without its colours, as the radar's composites go grey behind an
+   * open radar.
+   */
+  setStale(stale: boolean): void;
 }
+
+/** How faint the stations are while greyed. */
+const STALE_OPACITY = 0.45;
 
 /** Draw a barb (or the calm circle) into a canvas of its own, the station in its middle. */
 function drawBarb(shape: BarbShape, palette: Palette, ratio: number): HTMLCanvasElement {
@@ -114,6 +125,7 @@ export default function makeStationLayer(): StationLayer {
   let palette = LIGHT;
   let choice: StationChoice = "wind";
   let radarPalette = "classic";
+  let stale = false;
   const barbs = new Map<string, Style>();
   const labels = new Map<string, Style>();
 
@@ -179,7 +191,7 @@ export default function makeStationLayer(): StationLayer {
       const [r, g, b] = dbz2color(dbz, radarPalette);
       colour = `rgb(${r}, ${g}, ${b})`;
     }
-    return labelStyle(formatValue(choice, value), colour);
+    return labelStyle(formatValue(choice, value, currentLocale()), stale ? null : colour);
   };
 
   const layer = new VectorLayer({
@@ -248,6 +260,12 @@ export default function makeStationLayer(): StationLayer {
       if (next === radarPalette) return;
       radarPalette = next;
       labels.clear();
+      layer.changed();
+    },
+    setStale(next) {
+      if (next === stale) return;
+      stale = next;
+      layer.setOpacity(stale ? STALE_OPACITY : 1);
       layer.changed();
     },
   };

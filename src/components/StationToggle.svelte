@@ -1,9 +1,10 @@
 <script lang="ts">
 /**
  * The weather stations over the radar map, on or off: a pill in the player
- * beside the storm key's, in its shape, pressed while they are drawn. The
- * choice is kept as the setting `layerStations` (App.svelte), as the storm
- * marks' is, and Settings switches it too.
+ * beside the storm key's, in its shape, pressed while they are drawn. While
+ * on, which parameter they show is a pill of its own over the player
+ * (StationPicker). The choice is kept as the setting `layerStations`
+ * (App.svelte), as the storm marks' is, and Settings switches it too.
  */
 import { _ } from "svelte-i18n";
 import { stationLayerVisible } from "../stores";

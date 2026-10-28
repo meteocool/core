@@ -31,6 +31,15 @@ export const DEFAULT_STATION_CHOICE: StationChoice = "wind";
 /** How often the stations are asked for again while they are shown: DWD publishes every ten minutes. */
 export const STATIONS_REFRESH_MS = 5 * 60 * 1000;
 
+/**
+ * How old a station's value may be and still be drawn. DWD publishes a
+ * series 20 to 60 minutes after its ten minutes end, a series at a time, so
+ * the service's own hour often holds none of a series: at 02:50 the newest
+ * temperature was from 01:50, and the map was empty. An hour and a half
+ * covers that and the ingest's poll, and no more.
+ */
+export const STATIONS_MAX_AGE_MINUTES = 90;
+
 /** How long the timeline has to rest on a frame before the stations for it are asked for. */
 export const STATIONS_SCRUB_DEBOUNCE_MS = 400;
 
@@ -46,6 +55,17 @@ const PARAMETERS: Record<StationChoice, readonly StationParameter[]> = {
 /** A stored choice, or the default for anything that is not one. */
 export function parseStationChoice(value: unknown): StationChoice {
   return STATION_CHOICES.includes(value as StationChoice) ? (value as StationChoice) : DEFAULT_STATION_CHOICE;
+}
+
+/**
+ * Whether the stations drawn are greyed: the timeline is on a forecast
+ * frame, past the newest observation, which no station has measured. They
+ * stay on the map, the newest of them, faint and without their colours, so
+ * the reader scrubbing ahead keeps them and is not told they are the
+ * frame's. Zero is a timeline with no grid yet.
+ */
+export function stationsStale(shown: number, newest: number): boolean {
+  return shown > 0 && newest > 0 && shown > newest;
 }
 
 /**
@@ -93,11 +113,21 @@ export function valueOf(choice: StationChoice, station: ObservedProperties): num
   return typeof value === "number" ? value : null;
 }
 
-/** A value as the map writes it: whole percent for humidity, one decimal for the rest. */
-export function formatValue(choice: StationChoice, value: number): string {
+/**
+ * A number with `digits` decimals as the reader's language writes it: 7,3 in
+ * German, 7.3 in English. Never grouped, so a pressure is 1013,0 and not
+ * 1.013,0, which reads as one hectopascal.
+ */
+export function formatNumber(value: number, digits: number, lang = "en"): string {
   // `|| 0`: -0.04 °C is written 0.0, not -0.0.
-  if (choice === "humidity") return String(Math.round(value) || 0);
-  return (Math.round(value * 10) / 10 || 0).toFixed(1);
+  const rounded = Math.round(value * 10 ** digits) / 10 ** digits || 0;
+  return new Intl.NumberFormat(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false })
+    .format(rounded);
+}
+
+/** A value as the map writes it: whole percent for humidity, one decimal for the rest. */
+export function formatValue(choice: StationChoice, value: number, lang = "en"): string {
+  return formatNumber(value, choice === "humidity" ? 0 : 1, lang);
 }
 
 /**

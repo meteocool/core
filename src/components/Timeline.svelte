@@ -58,8 +58,12 @@ export let preloaded: ReadonlyMap<number, number> = new Map();
 
 const dispatch = createEventDispatcher<{ seek: number; grab: void; release: void }>();
 
-/** The height of the plot, in CSS px; the axis row sits under it. */
-const PLOT_H = 56;
+/**
+ * The height of the plot, in CSS px, as laid out: --mc-plot-h (src/glass.css),
+ * which the player shortens while there is no rain to plot. The axis row sits
+ * under it.
+ */
+let plotH = 0;
 /** The corners of the band of frames fetched ahead. */
 const BAND_RADIUS = 10;
 /** A ruler tick's height, minor and on the half hour. */
@@ -107,7 +111,7 @@ $: bars = steps.map((step, i) => {
   return {
     i,
     x: (i + 0.5) * slot,
-    h: Math.max(2, (step.dbz / ceiling) * (PLOT_H - 4)),
+    h: Math.max(2, (step.dbz / ceiling) * (plotH - 4)),
     fill: `rgba(${r}, ${g}, ${b}, ${alpha})`,
     major: minutes % 30 === 0,
     pending: !step.playable,
@@ -312,17 +316,17 @@ onDestroy(stop);
 
   .strip {
     position: relative;
-    height: var(--plot-h);
+    height: var(--mc-plot-h);
     outline: none;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
-  .strip.interactive {
+  .timeline.interactive {
     touch-action: pan-y;
     cursor: grab;
   }
-  .strip.interactive.dragging {
+  .timeline.interactive.dragging {
     cursor: grabbing;
   }
   .strip.interactive:focus-visible::after {
@@ -505,7 +509,17 @@ onDestroy(stop);
   .label.end { right: 0; }
 </style>
 
-<div class="timeline" style:--plot-h="{PLOT_H}px">
+<!-- The hand is taken over the axis labels too, not only the strip: a
+     taller target for a thumb, and the labels are what it aims at anyway. -->
+<div
+  class="timeline"
+  class:interactive
+  class:dragging
+  on:pointerdown={onPointerDown}
+  on:pointermove={onPointerMove}
+  on:pointerup={onPointerUp}
+  on:pointercancel={onPointerUp}
+  role="presentation">
   <div
     class="strip"
     style:--band-radius="{BAND_RADIUS}px"
@@ -513,6 +527,7 @@ onDestroy(stop);
     class:dragging
     bind:this={strip}
     bind:clientWidth={width}
+    bind:clientHeight={plotH}
     role="slider"
     tabindex={interactive ? 0 : -1}
     aria-readonly={!interactive}
@@ -521,22 +536,18 @@ onDestroy(stop);
     aria-valuemax={last}
     aria-valuenow={shownIndex}
     aria-valuetext={readout}
-    on:pointerdown={onPointerDown}
-    on:pointermove={onPointerMove}
-    on:pointerup={onPointerUp}
-    on:pointercancel={onPointerUp}
     on:keydown={onKey}>
-    {#if n > 0 && width > 0}
+    {#if n > 0 && width > 0 && plotH > 0}
       <!-- The whole band, once every frame is in: the glass's bevel on it. -->
       <div class="preload-glass" class:whole={preloadedAll} aria-hidden="true"></div>
-      <svg viewBox="0 0 {width} {PLOT_H}" preserveAspectRatio="none" aria-hidden="true">
+      <svg viewBox="0 0 {width} {plotH}" preserveAspectRatio="none" aria-hidden="true">
         <!-- Everything but the needle inside the band's rounded ends, which
              the glass draws: the past's tint, the fill and the bars at either
              end would otherwise square off its corners. One clip on the group,
              not one per rect: a clip on a transformed rect is drawn in the
              rect's own transformed space. -->
         <clipPath id={bandClip}>
-          <rect x="0" y="0" width={width} height={PLOT_H} rx={BAND_RADIUS} />
+          <rect x="0" y="0" width={width} height={plotH} rx={BAND_RADIUS} />
         </clipPath>
         <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <rect class="hatch-stripe" x="0" y="0" width="2" height="6" />
@@ -550,20 +561,20 @@ onDestroy(stop);
                 x={i * slot}
                 y="0"
                 width={slot + 1}
-                height={PLOT_H}
+                height={plotH}
                 style:transform="scaleY({slotShare(step, preloaded, preloadedAll)})" />
             {/each}
           </g>
           <!-- The past ends, and the line stands, where the needle rests on now:
                the middle of its step, like every bar and label. -->
-          <rect class="past" x="0" y="0" width={(nowIndex + 0.5) * slot} height={PLOT_H} />
+          <rect class="past" x="0" y="0" width={(nowIndex + 0.5) * slot} height={plotH} />
           {#each bars as bar (bar.i)}
             <rect
               class="tick"
               class:major={bar.major}
               class:pending={bar.pending}
               x={bar.x - 0.75}
-              y={PLOT_H - (bar.major ? TICK_MAJOR : TICK)}
+              y={plotH - (bar.major ? TICK_MAJOR : TICK)}
               width="1.5"
               height={bar.major ? TICK_MAJOR : TICK}
               rx="0.75" />
@@ -573,28 +584,28 @@ onDestroy(stop);
               <rect
                 class="rain"
                 x={bar.x - Math.max(0.5, slot / 2 - 0.75)}
-                y={PLOT_H - bar.h}
+                y={plotH - bar.h}
                 width={Math.max(1, slot - 1.5)}
                 height={bar.h}
                 rx={Math.min(1.5, slot / 4)}
                 fill={bar.fill} />
             {/if}
           {/each}
-          <line class="now" x1={(nowIndex + 0.5) * slot} x2={(nowIndex + 0.5) * slot} y1="0" y2={PLOT_H} />
+          <line class="now" x1={(nowIndex + 0.5) * slot} x2={(nowIndex + 0.5) * slot} y1="0" y2={plotH} />
           <!-- With a radar open, where it has no sweep: greyed and hatched, over
                the bars, and the needle never rests there. -->
           {#each gaps as [from, to] (from)}
-            <rect class="no-sweep" x={from * slot} y="0" width={(to - from + 1) * slot} height={PLOT_H} />
-            <rect x={from * slot} y="0" width={(to - from + 1) * slot} height={PLOT_H} fill="url(#{hatchId})" />
+            <rect class="no-sweep" x={from * slot} y="0" width={(to - from + 1) * slot} height={plotH} />
+            <rect x={from * slot} y="0" width={(to - from + 1) * slot} height={plotH} fill="url(#{hatchId})" />
           {/each}
         </g>
         <g class="needle-group" class:nudge style:transform="translateX({needleX}px)" on:animationend={() => { nudge = false; }}>
-          <rect class="needle" x="-1.5" y="0.5" width="3" height={PLOT_H - 1} rx="1.5" />
+          <rect class="needle" x="-1.5" y="0.5" width="3" height={plotH - 1} rx="1.5" />
           {#if interactive}
             <!-- The knob: a thumb's handle on the needle, with a grip. -->
-            <rect class="knob" x="-7" y={PLOT_H / 2 - 11} width="14" height="22" rx="7" />
-            <rect class="grip" x="-2.5" y={PLOT_H / 2 - 5} width="1.5" height="10" rx="0.75" />
-            <rect class="grip" x="1" y={PLOT_H / 2 - 5} width="1.5" height="10" rx="0.75" />
+            <rect class="knob" x="-7" y={plotH / 2 - 11} width="14" height="22" rx="7" />
+            <rect class="grip" x="-2.5" y={plotH / 2 - 5} width="1.5" height="10" rx="0.75" />
+            <rect class="grip" x="1" y={plotH / 2 - 5} width="1.5" height="10" rx="0.75" />
           {/if}
         </g>
       </svg>

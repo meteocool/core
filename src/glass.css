@@ -200,11 +200,13 @@
   --mc-tray-pad: 8px;                                 /* a tray's horizontal padding */
   --mc-rail-gap: 10px;                                /* player grid column gap; the forecast bars key off both */
   --mc-bar-h: 84px;                                   /* the other maps' bottom bar */
-  --mc-player-base-h: 168px;                          /* the radar player: head row + timeline + transport and scale row */
+  --mc-player-base-h: 112px;                          /* the radar player: head row + the timeline's axis + transport and scale row */
+  --mc-plot-h: 48px;                                  /* the timeline's strip, over its axis; shorter while it has no rain to plot (:root.plot-dry) */
   --mc-site-row-h: 28px;                              /* a row of site mode's tray in the player: the radar and close, then its controls */
   --mc-site-tray-h: 0px;                              /* what that tray adds to the player while it is open (:root.site-open) */
-  --mc-stations-tray-h: 0px;                          /* what the weather stations' picker adds to the player while they are on (:root.stations-open) */
-  --mc-player-h: calc(var(--mc-player-base-h) + var(--mc-site-tray-h) + var(--mc-stations-tray-h));
+  --mc-player-h: calc(var(--mc-player-base-h) + var(--mc-plot-h) + var(--mc-site-tray-h));
+  --mc-stations-pill-h: 38px;                         /* the weather stations' parameter picker over the player (StationPicker) */
+  --mc-stations-stack: 0px;                           /* what it adds under everything stacked over the player (:root.stations-picker) */
   --mc-strip-h: 104px;                                /* a chart strip above the tray (DismissableStrip) */
   --mc-hint-h: 54px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);
@@ -361,7 +363,7 @@
 /* Keep the collapsed iOS tray near the edge, above the home indicator. */
 :root.is-ios {
   --mc-collapsed-bottom: max(12px, calc(var(--mc-safe-bottom) - 12px));
-  --mc-player-base-h: 168px;
+  --mc-player-base-h: 112px;
 }
 
 /* A phone is held closer and read at arm's length less often than a desktop
@@ -384,15 +386,28 @@
     --mc-glass-blur: 28px;
     --mc-tray-pad: 12px;
     --mc-bar-h: 42px;
-    --mc-player-base-h: 164px;
+    --mc-player-base-h: 100px;
   }
+  :root.is-ios { --mc-player-base-h: 104px; }
 }
 
-/* A wide screen puts the player's head beside the colour scale, one row less. */
-@media (min-width: 1024px) {
-  :root { --mc-player-base-h: 132px; }
-  :root.is-ios { --mc-player-base-h: 136px; }
+/* The stations' parameter picker over the player: what is stacked over the
+   player stands a pill and a gap higher (StationPicker). */
+:root.stations-picker { --mc-stations-stack: calc(var(--mc-stations-pill-h) + var(--mc-tray-gap)); }
+
+/* A row that scrolls sideways, its edge with more beyond it faded out
+   (lib/fadeEdges.ts sets the classes). */
+.mc-fade-x {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
 }
+.mc-fade-x.fade-start { --fade-start: 28px; }
+.mc-fade-x.fade-end { --fade-end: 28px; }
+
+/* The timeline with no rain at the point it plots: a ruler, and short. */
+:root.plot-dry { --mc-plot-h: 28px; }
 
 /* Site mode's tray in the player (SiteSweepTray), each row a gap below the
    one before: two rows under the head, the radar and the way out over what
@@ -401,8 +416,6 @@
 @media (min-width: 1024px) {
   :root.site-open { --mc-site-tray-h: calc(var(--mc-site-row-h) + 4px); }
 }
-/* The weather stations' picker (StationPicker): one row, a gap below what is above it. */
-:root.stations-open { --mc-stations-tray-h: calc(var(--mc-site-row-h) + 4px); }
 /* Storm-relative velocity adds a row: whose motion it takes out (StormMotion). */
 :root.site-open.site-srv { --mc-site-tray-h: calc(3 * var(--mc-site-row-h) + 12px); }
 @media (min-width: 1024px) {
@@ -936,7 +949,7 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 .maplibre-host .maplibregl-ctrl-bottom-right {
   right: 2px;
   top: calc(var(--ol-controls-top) + 5 * var(--mc-control-lg) + 4 * var(--mc-gutter));
-  bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + var(--mc-peel-h, 0px) + 1px);
+  bottom: calc(max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom)) + var(--mc-peel-h, 0px) + var(--mc-stations-stack) + 1px);
   max-width: none;
   writing-mode: vertical-rl;
   transform: rotate(180deg);

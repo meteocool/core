@@ -28,6 +28,7 @@ import RadarProductPicker from "./RadarProductPicker.svelte";
 import SiteSweepTray from "./SiteSweepTray.svelte";
 import StationToggle from "./StationToggle.svelte";
 import StationPicker from "./StationPicker.svelte";
+import { fadeEdges } from "../lib/fadeEdges";
 import VelocityScaleLine from "./scales/VelocityScaleLine.svelte";
 import LiveIndicator from "./LiveIndicator.svelte";
 import Appendix from "./Appendix.svelte";
@@ -157,6 +158,8 @@ $: steps = gridConfig && lastPlayableStep !== undefined ? timelineSteps(gridConf
  * full-width row of zero-height bars over the map.
  */
 $: hasPrecipitation = hasEcho(steps);
+/* With none, the strip is a bare ruler and shrinks to suit (--mc-plot-h in src/glass.css). */
+$: document.documentElement.classList.toggle("plot-dry", !hasPrecipitation);
 
 /**
  * Where along the track the forecast starts, as a fraction, when there is none
@@ -845,6 +848,7 @@ onDestroy(() => {
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   window.clearTimeout(backToLiveTimer);
   headObserver?.disconnect();
+  document.documentElement.classList.remove("plot-dry");
   cap.stopPreload();
   playbackRunning.set(false);
   browsingFrames.set(false);
@@ -863,19 +867,19 @@ onDestroy(() => {
   }
 
   /* ---------------------------------------------------------------------
-     The player, three rows up to a wide screen:
+     The player, three rows:
 
-         head      where the strip's numbers are from, and the product picker
+         head      where the strip's numbers are from, and the pills
          timeline  the strip: forecast bars, needle, axis
          row       transport and the colour scale
 
-     On a wide screen the head moves to the right of the colour scale, so the
-     player is two rows and gives the map back the height of one.
-
-     Site mode puts its tray (SiteSweepTray) under the head, or over the strip
-     on a wide screen, and the player grows by its height. So do the weather
-     stations' parameter picker (StationPicker) while they are on, under
-     site mode's tray.
+     The head stays on top on a wide screen too, so the pills sit over the
+     strip with site mode's tray (SiteSweepTray) under them; the player
+     grows by its height. The weather stations' parameter picker grows no
+     row: it is a pill of its own over the player (StationPicker). The
+     pills scroll sideways when they are more than the head holds. The
+     strip is shorter where it has no rain to plot (--mc-plot-h in
+     src/glass.css).
      --------------------------------------------------------------------- */
   .player {
     display: flex;
@@ -895,8 +899,12 @@ onDestroy(() => {
        with the minute the needle is at. */
     padding: 0 0 0 8px;
   }
+  /* Its own width, up to a cap, whatever the pills beside it do: where they
+     are more than the head holds they scroll, rather than the place name
+     being cut shorter and moving them. */
   .title {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
+    max-width: min(40%, 16em);
     min-width: 0;
     font: 700 13px/1.3 var(--mc-font);
     letter-spacing: -0.01em;
@@ -932,7 +940,6 @@ onDestroy(() => {
   .link :global(svg) { width: 11px; height: 11px; }
 
   .site,
-  .stations,
   .plot {
     position: relative;
     flex: 0 0 auto;
@@ -953,48 +960,29 @@ onDestroy(() => {
     min-width: 0;
     padding: 0 4px;
   }
-  /* Kept at the end of the head with no title before it: there is none while
-     the client's position is unknown. */
+  /* Straight after the title, or first in the head with none (there is none
+     while the client's position is unknown), and left-aligned, the
+     Stations pill first: the storm key coming and going after it never
+     moves it. */
   .product-pill {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    /* Sideways, when the pills are more than the head holds, beside a long
+       place name on a phone. Room above and below, so a focus ring or a
+       badge is not cut off. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding: 3px 0;
+    margin-block: -3px;
+  }
+  .product-pill::-webkit-scrollbar { display: none; }
+  .pills {
     flex: 0 0 auto;
     display: inline-flex;
     gap: 6px;
-    margin-left: auto;
-  }
-
-  /* The head beside the colour scale rather than above the strip. Its column
-     is as wide as the head needs, up to a share of the tray that leaves the
-     scale its labels; a longer title is cut, and fitTitle drops the district. */
-  @media (min-width: 1024px) {
-    .player {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) fit-content(40%);
-      grid-template-rows: auto minmax(0, 1fr);
-      column-gap: 12px;
-      row-gap: 4px;
-    }
-    .plot { grid-column: 1 / -1; grid-row: 1; }
-    .row { grid-column: 1; grid-row: 2; }
-    /* Site mode's tray, a row of its own over the strip. */
-    .player.sited { grid-template-rows: auto auto minmax(0, 1fr); }
-    .sited .site { grid-column: 1 / -1; grid-row: 1; }
-    .sited .plot { grid-row: 2; }
-    .sited .row, .sited .head { grid-row: 3; }
-    /* The stations' picker, another row over the strip, under site mode's. */
-    .player.stationed { grid-template-rows: auto auto minmax(0, 1fr); }
-    .stationed .stations { grid-column: 1 / -1; grid-row: 1; }
-    .stationed .plot { grid-row: 2; }
-    .stationed .row, .stationed .head { grid-row: 3; }
-    .player.sited.stationed { grid-template-rows: auto auto auto minmax(0, 1fr); }
-    .sited.stationed .stations { grid-row: 2; }
-    .sited.stationed .plot { grid-row: 3; }
-    .sited.stationed .row, .sited.stationed .head { grid-row: 4; }
-    .head {
-      grid-column: 2;
-      grid-row: 2;
-      min-width: 0;
-      padding: 0;
-    }
   }
 
   /* The apps' badges and the repo mark, which the bottom bar carries on the
@@ -1002,15 +990,11 @@ onDestroy(() => {
      screen is wide enough to leave the scale its labels beside them. */
   .appendix { display: none; }
   @media (min-width: 1280px) {
-    .player { grid-template-columns: minmax(0, 1fr) fit-content(40%) auto; }
     .appendix {
-      grid-column: 3;
-      grid-row: 2;
+      flex: 0 0 auto;
       display: flex;
       align-items: center;
     }
-    .sited .appendix, .stationed .appendix { grid-row: 3; }
-    .sited.stationed .appendix { grid-row: 4; }
   }
 
   /* A tint on the tray. */
@@ -1062,6 +1046,7 @@ onDestroy(() => {
   .controlButton.play.playing :global(svg) { margin-left: 0; }
   /* Letting a tapped point go: smaller than the transport, like a close disc. */
   .controlButton.clear {
+    margin-left: auto;
     width: 30px;
     height: 30px;
     font-size: 13px;
@@ -1114,7 +1099,7 @@ onDestroy(() => {
     left: var(--mc-gutter);
     right: var(--mc-gutter);
     bottom: calc(
-      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap)
+      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap) + var(--mc-stations-stack)
       + var(--open-strips, 0) * (var(--mc-strip-h) + var(--mc-tray-gap))
       + var(--open-hints, 0) * (var(--mc-hint-h) + var(--mc-tray-gap))
     );
@@ -1145,6 +1130,21 @@ onDestroy(() => {
   .back-to-live button:active { transform: scale(var(--mc-press)); }
   .back-to-live button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .back-to-live :global(svg) { width: 12px; height: 12px; color: var(--mc-accent); }
+
+  /* On a desktop the bottom row is as slim as the strip above it: a smaller
+     play button and a thinner colour scale, its labels moved up to suit. A
+     phone keeps the full-size button for the thumb. */
+  @media (min-width: 621px) {
+    .controlButton.play {
+      width: 32px;
+      height: 32px;
+      font-size: 13px;
+    }
+    .player .legend :global(.scale) { height: 22px; }
+    .player .legend :global(.scale-line) { height: 6px; }
+    .player .legend :global(.scale-dividers),
+    .player .legend :global(.scale-ticks) { top: 8px; }
+  }
 
   @media only screen and (max-width: 620px) {
     .timeslider {
@@ -1186,6 +1186,12 @@ onDestroy(() => {
     on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
 {/if}
 
+<!-- Which parameter the weather stations show, a pill of its own over the
+     player while they are on; the rest of the stack stands on it. -->
+{#if $bottomToolbarMode === "player" && $stationLayerVisible}
+  <StationPicker />
+{/if}
+
 {#if showBackToLive}
   <div class="back-to-live" style:--open-strips={$openStripCount} style:--open-hints={$openHintCount}>
     <button type="button" class="glass glass-pill" on:click={returnToLive}
@@ -1204,7 +1210,7 @@ onDestroy(() => {
     on:outrostart={toolbarTransitionStart}
     on:introend={toolbarTransitionEnd}
     on:outroend={toolbarTransitionEnd}>
-    <div class="player" class:sited={$siteMode && $siteSweepView} class:stationed={$stationLayerVisible}>
+    <div class="player">
       <div class="head" bind:this={head}>
         {#if $inspectLatLon || $latLon}
           <span class="title" bind:this={titleEl}>{chartTitle}</span>
@@ -1217,12 +1223,16 @@ onDestroy(() => {
         {/if}
         <!-- The legend's caption, up here rather than in the row of controls,
              which has no room left on a phone. -->
-        <span class="product-pill">
-          <!-- What the storm marks on the map are, while they are drawn. -->
-          {#if $cellLayerVisible}<StormKey />{/if}
-          <!-- DWD's weather stations over the map, on or off. -->
-          <StationToggle />
-          <RadarProductPicker variant="pill" />
+        <!-- An edge with more beyond it fades out (lib/fadeEdges.ts). -->
+        <span class="product-pill mc-fade-x" use:fadeEdges>
+          <span class="pills">
+            <!-- DWD's weather stations over the map, on or off. First, so
+                 the pills after it never move it. -->
+            <StationToggle />
+            <!-- What the storm marks on the map are, while they are drawn. -->
+            {#if $cellLayerVisible}<StormKey />{/if}
+            <RadarProductPicker variant="pill" />
+          </span>
         </span>
         {#if $inspectLatLon && !$latLon}
           <button type="button" class="controlButton clear" on:click={returnToCurrentPosition}
@@ -1237,11 +1247,6 @@ onDestroy(() => {
            scrubs its sweeps as it scrubs frames. -->
       {#if $siteMode && $siteSweepView}
         <div class="site"><SiteSweepTray /></div>
-      {/if}
-
-      <!-- Which parameter the weather stations show, while they are on. -->
-      {#if $stationLayerVisible}
-        <div class="stations"><StationPicker /></div>
       {/if}
 
       <div class="plot">
@@ -1278,11 +1283,10 @@ onDestroy(() => {
             <RadarScaleLine />
           {/if}
         </div>
+        {#if !dd.isApp()}
+          <div class="appendix"><Appendix /></div>
+        {/if}
       </div>
-
-      {#if !dd.isApp()}
-        <div class="appendix"><Appendix /></div>
-      {/if}
     </div>
   </div>
 {/if}

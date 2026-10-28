@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DEFAULT_STATION_CHOICE, formatValue, parametersFor, parseStationChoice, precipitationDbz, resolutionAt,
-  STATION_CHOICES, stationsAt, stationsShown, temperatureColour, thinningCell, thinToGrid, valueOf, windOf,
+  STATION_CHOICES, stationsAt, stationsShown, stationsStale, temperatureColour, thinningCell, thinToGrid, valueOf, windOf,
 } from "../../src/lib/stations.ts";
 import type { ObservedProperties } from "../../src/lib/stations.ts";
 
@@ -69,6 +69,17 @@ test("on a forecast frame, the stations asked for are the newest", () => {
   assert.equal(stationsAt(NEWEST + 900, NEWEST), null);
 });
 
+test("on a forecast frame the stations are greyed; live and in the past they are not", () => {
+  assert.equal(stationsStale(NEWEST + 300, NEWEST), true);
+  assert.equal(stationsStale(NEWEST, NEWEST), false);
+  assert.equal(stationsStale(NEWEST - 1800, NEWEST), false);
+});
+
+test("before the timeline has a grid, the stations are not greyed", () => {
+  assert.equal(stationsStale(0, NEWEST), false);
+  assert.equal(stationsStale(NEWEST + 300, 0), false);
+});
+
 test("before the timeline has a grid, the stations asked for are the newest", () => {
   assert.equal(stationsAt(0, 0), null);
   assert.equal(stationsAt(NEWEST - 600, 0), null);
@@ -98,6 +109,13 @@ test("values read with one decimal, humidity in whole percent", () => {
   assert.equal(formatValue("pressure", 1013), "1013.0");
   assert.equal(formatValue("precipitation", 0.04), "0.0");
   assert.equal(formatValue("humidity", 86.6), "87");
+});
+
+test("values are written with the reader's decimal mark, and never grouped", () => {
+  assert.equal(formatValue("temperature", 7.26, "de"), "7,3");
+  assert.equal(formatValue("pressure", 1013.04, "de"), "1013,0");
+  assert.equal(formatValue("pressure", 1013.04, "en"), "1013.0");
+  assert.equal(formatValue("humidity", 86.6, "de"), "87");
 });
 
 test("a value rounding to zero is never written negative", () => {

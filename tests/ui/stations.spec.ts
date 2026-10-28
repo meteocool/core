@@ -1,6 +1,6 @@
 import type { Page, Request } from "@playwright/test";
 import { expect, test } from "./test";
-import { openRadar, overlaps, playButton, settled, timeline } from "./app";
+import { openRadar, overlaps, settled, timeline } from "./app";
 
 /**
  * DWD's weather stations over the radar map: switched by a pill in the
@@ -117,28 +117,98 @@ test("a past frame asks for the stations at its time, and back to now for the ne
   expect(askedAt(await live)).toBeNull();
 });
 
-test("a forecast frame asks for nothing new: the newest stations are already shown", async ({ page }) => {
+test("a forecast frame asks for nothing new and greys the newest stations, which no station has measured", async ({ page }) => {
   await openWithStations(page);
+  const opacity = () => page.evaluate(() => (window as any).lm.getCurrentMap().getAllLayers()
+    .find((layer: any) => layer.getZIndex() === 150).getOpacity());
+  expect(await opacity()).toBe(1);
   let asked = false;
   page.on("request", (request) => { if (asksFor(request)) asked = true; });
   await timeline(page).focus();
   for (let i = 0; i < 3; i += 1) await page.keyboard.press("ArrowRight");
+  // Still reachable: the stations do not keep the needle out of the forecast.
+  await expect(timeline(page)).toHaveAttribute("aria-valuetext", /^\+/);
+  await expect.poll(opacity).toBeLessThan(1);
   // Past the debounce.
   await page.waitForTimeout(1000);
   expect(asked).toBe(false);
+  await expect(page.locator(".strip .no-sweep")).toHaveCount(0);
+
+  await page.keyboard.press("Home");
+  await expect.poll(opacity).toBe(1);
 });
 
-test("tapping a station opens its name, height and values, and when they were measured", async ({ page }) => {
+test("the stations are asked for with room for DWD's delay", async ({ page }) => {
+  const request = await openWithStations(page);
+  expect(Number(new URL(request.url()).searchParams.get("max_age_minutes"))).toBeGreaterThanOrEqual(90);
+});
+
+test("tapping a station opens its name, its state, height and when it measured, and its values", async ({ page }) => {
   await openWithStations(page);
   await expect.poll(() => someStation(page), { timeout: 10_000 }).not.toBeNull();
   const station = (await someStation(page))!;
   await page.mouse.click(station.x, station.y);
   const panel = page.getByRole("region", { name: station.name });
   await expect(panel).toBeVisible();
-  await expect(panel.getByText("Height", { exact: true })).toBeVisible();
+  await expect(panel.getByText(/^[^·]+ · \d+ m · measured \d\d:\d\d$/)).toBeVisible();
   await expect(panel.getByText("Wind direction", { exact: true })).toBeVisible();
   await expect(panel.getByText(/ m\/s · \d+ kt$/).first()).toBeVisible();
   await expect(panel.getByText("Data: Deutscher Wetterdienst (CC BY 4.0)")).toBeVisible();
+});
+
+test("a station's sheet charts what it measured, summed up, over the period chosen", async ({ page }) => {
+  const asked: string[] = [];
+  await page.route(/\/stations\/\d+\/observations/, (route) => {
+    const url = new URL(route.request().url());
+    asked.push(url.searchParams.get("since")!);
+    const since = Date.parse(url.searchParams.get("since")!);
+    const observations = Array.from({ length: 144 }, (_, i) => ({
+      observed_at: new Date(since + (i + 1) * 600_000).toISOString(),
+      temperature_c: 10 + (i % 6),
+      temperature_max_c: 10.5 + (i % 6),
+      temperature_min_c: 9.5 + (i % 6),
+      dew_point_c: 6,
+      precipitation_mm: i % 12 === 0 ? 0.4 : 0,
+      wind_speed_m_s: 2,
+      gust_m_s: 5,
+      wind_direction_deg: 220,
+    }));
+    return route.fulfill({ json: { station: { type: "Feature", id: "x", geometry: { type: "Point", coordinates: [0, 0] }, properties: {} }, observations } });
+  });
+  await openWithStations(page);
+  await expect.poll(() => someStation(page), { timeout: 10_000 }).not.toBeNull();
+  const station = (await someStation(page))!;
+  await page.mouse.click(station.x, station.y);
+  const panel = page.getByRole("region", { name: station.name });
+  await expect(panel.getByRole("img", { name: /^Temperature and dew point over the period/ })).toBeAttached();
+  await expect(panel.locator("figcaption", { hasText: "Temperature and dew point" })).toContainText("max 15.5 °C · min 9.5 °C");
+  await expect(panel.locator("figcaption", { hasText: "Precipitation" })).toContainText(/total \d+\.\d/);
+  await expect(panel.locator("figcaption", { hasText: "Wind and gusts" })).toContainText("peak gust 5.0 m/s");
+  // Measured only: no sunshine, humidity or pressure in this answer, so no panels for them.
+  await expect(panel.locator("figcaption", { hasText: "Humidity" })).toHaveCount(0);
+
+  // A finger dragged sideways along a panel puts a line on one moment, its
+  // values in every caption, and leaves it there when let go.
+  const caption = panel.locator("figcaption", { hasText: "Temperature and dew point" });
+  const chart = (await panel.locator(".history svg").first().boundingBox())!;
+  await panel.locator(".history").evaluate((history, box) => {
+    const fire = (type: string, x: number) => history.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, pointerId: 9, pointerType: "touch", isPrimary: true, clientX: x, clientY: box.y + box.height / 2,
+    }));
+    fire("pointerdown", box.x + box.width * 0.3);
+    for (let share = 0.32; share <= 0.5; share += 0.03) fire("pointermove", box.x + box.width * share);
+    fire("pointerup", box.x + box.width * 0.5);
+  }, chart);
+  await expect(caption).toContainText(/\d\d:\d\d · \d+\.\d °C · dew point 6\.0 °C/);
+  await expect(panel.locator(".history .cursor")).not.toHaveCount(0);
+  await expect(panel.locator("figcaption", { hasText: "Wind and gusts" })).toContainText(/\d\d:\d\d · 2\.0 m\/s · gust 5\.0 m\/s/);
+
+  // Six days further back for a week than for a day.
+  await panel.getByRole("radio", { name: "7 days" }).click();
+  await expect.poll(() => asked.length).toBe(2);
+  const further = (Date.parse(asked[0]) - Date.parse(asked[1])) / 3_600_000;
+  expect(further).toBeGreaterThan(143.9);
+  expect(further).toBeLessThan(144.1);
 });
 
 test("with the stations on, the map credits DWD", async ({ page }) => {
@@ -146,31 +216,67 @@ test("with the stations on, the map credits DWD", async ({ page }) => {
   await expect(page.locator(".ol-attribution")).toContainText("DWD");
 });
 
+/** The bounding boxes of what is stacked over the player, bottom first. */
+const below = (a: { y: number; height: number }, b: { y: number }) => a.y + a.height <= b.y;
+
+test("the picker floats over the player, which does not grow, and what stacks over the player stands on it", async ({ page }) => {
+  await openRadar(page, GERMANY_VIEW);
+  const player = page.locator(".timeslider");
+  await settled(player);
+  const before = (await player.boundingBox())!.height;
+  await toggle(page).click();
+  const pill = page.locator(".stationPicker");
+  await settled(pill);
+  expect((await player.boundingBox())!.height).toBe(before);
+  const [box, tray] = [(await pill.boundingBox())!, (await player.boundingBox())!];
+  expect(below(box, tray)).toBe(true);
+  expect(tray.y - (box.y + box.height)).toBeLessThan(16);
+
+  // "Back to now" over it, not on it.
+  await timeline(page).focus();
+  await page.keyboard.press("ArrowLeft");
+  const back = page.getByRole("button", { name: "Back to now" });
+  await settled(back);
+  expect(below((await back.boundingBox())!, (await pill.boundingBox())!)).toBe(true);
+
+  // Off, the picker goes and Back to now comes down to the player.
+  await toggle(page).click();
+  await expect(pill).toHaveCount(0);
+  await settled(back);
+  const lowered = (await back.boundingBox())!;
+  expect((await player.boundingBox())!.y - (lowered.y + lowered.height)).toBeLessThan(16);
+});
+
+test("a notice strip over the player stands on the picker", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("layerStations", "true"));
+  await openRadar(page, "/?layer=radar&latLonZ=44.43000,26.10000,10.00");
+  const pill = page.locator(".stationPicker");
+  await settled(pill);
+  const strip = page.locator(".strip-dock");
+  await expect(page.getByText("No Radar Here Yet")).toBeVisible();
+  await settled(strip);
+  expect(below((await strip.boundingBox())!, (await pill.boundingBox())!)).toBe(true);
+});
+
 test.describe("on a phone", () => {
   test.skip(({ isMobile }) => !isMobile, "the room a phone's player has");
 
-  test("the pill and the picker sit inside the player, clear of the timeline, the play button and the credits", async ({ page }) => {
+  test("the picker fits the screen, scrolls sideways where it must, and keeps clear of the player and the credits", async ({ page }) => {
     await openWithStations(page);
-    const player = page.locator(".timeslider");
-    await settled(player);
-    const box = (await player.boundingBox())!;
-    const strip = (await timeline(page).boundingBox())!;
-    const play = (await playButton(page).boundingBox())!;
+    const pill = page.locator(".stationPicker");
+    await settled(pill);
+    const box = (await pill.boundingBox())!;
+    const viewport = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+    expect(below(box, (await page.locator(".timeslider").boundingBox())!)).toBe(true);
     const credits = page.locator(".ol-attribution");
-    for (const control of [toggle(page), picker(page)]) {
-      const at = (await control.boundingBox())!;
-      expect(at.x).toBeGreaterThanOrEqual(box.x);
-      expect(at.y).toBeGreaterThanOrEqual(box.y);
-      expect(at.x + at.width).toBeLessThanOrEqual(box.x + box.width);
-      expect(at.y + at.height).toBeLessThanOrEqual(box.y + box.height);
-      expect(overlaps(at, strip)).toBe(false);
-      expect(overlaps(at, play)).toBe(false);
-      if (await credits.isVisible()) expect(overlaps((await credits.boundingBox())!, at)).toBe(false);
+    if (await credits.isVisible()) expect(overlaps((await credits.boundingBox())!, box)).toBe(false);
+    // Where every parameter does not fit, the row scrolls and says so.
+    const scroller = pill.locator(".scroller");
+    if (await scroller.evaluate((element) => element.scrollWidth > element.clientWidth)) {
+      await expect(scroller).toHaveClass(/fade-end/);
     }
-    // The player grows by the picker's row rather than pushing its own
-    // bottom row out of it.
-    expect(await player.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
-    expect(play.y + play.height).toBeLessThanOrEqual(box.y + box.height);
     for (const choice of await picker(page).getByRole("radio").all()) {
       // Not cut short with an ellipsis.
       expect(await choice.evaluate((button) => button.scrollWidth <= button.clientWidth)).toBe(true);

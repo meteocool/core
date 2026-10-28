@@ -2,12 +2,13 @@ import { derived, get } from "svelte/store";
 import { fetchStationObservations, NothingPublished } from "../api";
 import type { ObservedFeature, Progress } from "../api";
 import {
-  capLatestObservation, capTimeIndicator, radarColorScheme, selectedStation, sharedActiveCap, stationChoice,
+  capLatestObservation, capTimeIndicator, live, radarColorScheme, selectedStation, sharedActiveCap, stationChoice,
   stationLayerVisible, stationView, zoomlevel,
 } from "../stores";
 import type { StationLayer } from "../layers/stations";
 import {
-  parametersFor, resolutionAt, STATIONS_REFRESH_MS, STATIONS_SCRUB_DEBOUNCE_MS, stationsAt, stationsShown, thinningCell,
+  parametersFor, resolutionAt, STATIONS_MAX_AGE_MINUTES, STATIONS_REFRESH_MS, STATIONS_SCRUB_DEBOUNCE_MS, stationsAt, stationsShown, stationsStale,
+  thinningCell,
 } from "./stations";
 import type { StationChoice } from "./stations";
 import { whenVisible } from "./wakeup";
@@ -56,8 +57,14 @@ export default class StationManager {
       if (this.shown) void this.fetch();
     }));
     // The timeline's frame, once it comes to rest: a scrub passes through
-    // dozens, and only the one it stops on is worth asking about.
-    this.unsubscribers.push(derived([capTimeIndicator, capLatestObservation], ([shown, newest]) => stationsAt(shown, newest))
+    // dozens, and only the one it stops on is worth asking about. Following
+    // live is the newest whatever the two say: a new grid moves the newest
+    // observation a moment before the player moves onto it, and in between
+    // the frame on screen reads as the past.
+    this.unsubscribers.push(derived(
+      [capTimeIndicator, capLatestObservation, live],
+      ([shown, newest, following]) => (following ? null : stationsAt(shown, newest)),
+    )
       .subscribe((at) => {
         clearTimeout(this.scrubTimer);
         this.scrubTimer = setTimeout(() => {
@@ -66,6 +73,13 @@ export default class StationManager {
           if (this.shown) void this.fetch();
         }, STATIONS_SCRUB_DEBOUNCE_MS);
       }));
+    // Greyed on a forecast frame at once, not once the scrub rests: the
+    // first forecast frame scrubbed past is already not what they measured.
+    this.unsubscribers.push(derived(
+      [capTimeIndicator, capLatestObservation, live],
+      ([shown, newest, following]) => !following && stationsStale(shown, newest),
+    )
+      .subscribe((stale) => layer.setStale(stale)));
     // Thinned for the zoom the map came to rest at.
     this.unsubscribers.push(zoomlevel.subscribe((zoom) => layer.thin(thinningCell(zoom), resolutionAt(zoom))));
   }
@@ -94,7 +108,7 @@ export default class StationManager {
     const { choice, at } = this;
     let stations: ObservedFeature[] | null;
     try {
-      stations = (await fetchStationObservations(parametersFor(choice), at, this.bar)).features;
+      stations = (await fetchStationObservations(parametersFor(choice), at, STATIONS_MAX_AGE_MINUTES, this.bar)).features;
     } catch (error) {
       // No stations served here (demo, or a backend without them yet) is an
       // empty overlay. Anything else keeps what is drawn, unless it was drawn
