@@ -373,6 +373,7 @@
     "key": {
       "pill": "Orages",
       "open": "Signification des symboles d'orage",
+      "germany_only": "Allemagne seulement",
       "title": "Symboles d'orage",
       "dwd": "Orage DWD",
       "dwd_body": "Suivi par le service météo allemand au-dessus de l'Allemagne. Avec prévision, grêle et rotation signalées.",
@@ -901,9 +902,9 @@
     "none": "Pas de balayage à cette heure",
     "failed": "Ce balayage n’a pas pu être chargé",
     "scanned": "Balayé à {time}",
-    "dealiased": "Dépliée",
-    "not_dealiased": "Non dépliée : un repliement ressemble à un couplet",
-    "not_dealiased_badge": "Non dépliée",
+    "dealiased": "Dealiased",
+    "not_dealiased": "Non dealiased : un repliement ressemble à un couplet",
+    "not_dealiased_badge": "Non dealiased",
     "srv_hint": "Choisissez un orage, ou réglez son déplacement à la main, pour le retirer de la vitesse.",
     "srv_hint_badge": "Aucun déplacement",
     "motion": {

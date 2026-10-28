@@ -373,6 +373,7 @@
     "key": {
       "pill": "Uvær",
       "open": "Hva uværsmerkene betyr",
+      "germany_only": "Bare Tyskland",
       "title": "Uværsmerker",
       "dwd": "DWD-uvær",
       "dwd_body": "Fulgt av den tyske værtjenesten over Tyskland. Har prognose og melder hagl og rotasjon.",

@@ -373,6 +373,7 @@
     "key": {
       "pill": "Oväder",
       "open": "Vad ovädersmarkeringarna betyder",
+      "germany_only": "Endast Tyskland",
       "title": "Ovädersmarkeringar",
       "dwd": "DWD-oväder",
       "dwd_body": "Följs av tyska vädertjänsten över Tyskland. Har prognos och flaggar hagel och rotation.",

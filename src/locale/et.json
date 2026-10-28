@@ -373,6 +373,7 @@
     "key": {
       "pill": "Äikesed",
       "open": "Mida äikesemärgid tähendavad",
+      "germany_only": "Ainult Saksamaa",
       "title": "Äikesemärgid",
       "dwd": "DWD äike",
       "dwd_body": "Jälgib Saksa ilmateenistus Saksamaa kohal. Sellel on prognoos ning rahe- ja pöörlemismärge.",

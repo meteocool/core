@@ -373,6 +373,7 @@
     "key": {
       "pill": "Audros",
       "open": "Ką reiškia audrų žymės",
+      "germany_only": "Tik Vokietija",
       "title": "Audrų žymės",
       "dwd": "DWD audra",
       "dwd_body": "Seka Vokietijos meteorologijos tarnyba virš Vokietijos. Turi prognozę ir žymi krušą bei sukimąsi.",

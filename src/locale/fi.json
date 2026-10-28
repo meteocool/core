@@ -373,6 +373,7 @@
     "key": {
       "pill": "Ukkoset",
       "open": "Mitä ukkosmerkit tarkoittavat",
+      "germany_only": "Vain Saksa",
       "title": "Ukkosmerkit",
       "dwd": "DWD:n ukkonen",
       "dwd_body": "Saksan sääpalvelu seuraa sitä Saksan yllä. Sillä on ennuste, ja se ilmoittaa rakeet ja pyörimisen.",

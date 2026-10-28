@@ -18,6 +18,7 @@
  * map with storms missing says why.
  */
 import { onDestroy, tick } from "svelte";
+import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import CloseDisc from "./CloseDisc.svelte";
 import SourceBadge from "./SourceBadge.svelte";
@@ -35,6 +36,14 @@ const MARGIN = 8;
 let open = false;
 let trigger: HTMLButtonElement;
 let card: HTMLDivElement | undefined;
+/**
+ * On a phone the map is blurred behind the card, and the pill is drawn
+ * sharp over the blur in its own place, as the radar product's is: where it
+ * was laid out, its size about its centre, so a press still scaling it down
+ * does not cut the copy smaller and off to one side.
+ */
+let twin: { left: number; top: number; width: number; height: number } | null = null;
+let twinButton: HTMLButtonElement | undefined;
 let left = MARGIN;
 let bottom = 0;
 /** The room above the pill and under the top chrome (the safe area), which the card scrolls within. */
@@ -42,6 +51,16 @@ let maxHeight = 0;
 
 async function show() {
   const rect = trigger.getBoundingClientRect();
+  // Its computed size, which keeps the fractions offsetWidth rounds away.
+  const style = getComputedStyle(trigger);
+  const offsetWidth = parseFloat(style.width) || trigger.offsetWidth;
+  const offsetHeight = parseFloat(style.height) || trigger.offsetHeight;
+  twin = {
+    left: rect.left + (rect.width - offsetWidth) / 2,
+    top: rect.top + (rect.height - offsetHeight) / 2,
+    width: offsetWidth,
+    height: offsetHeight,
+  };
   bottom = window.innerHeight - rect.top + MARGIN;
   maxHeight = rect.top - MARGIN - Math.max(MARGIN, topStackPx());
   open = true;
@@ -62,7 +81,7 @@ function close(refocus = false) {
 function outside(event: PointerEvent) {
   if (!open) return;
   const target = event.target as Node;
-  if (card?.contains(target) || trigger?.contains(target)) return;
+  if (card?.contains(target) || trigger?.contains(target) || twinButton?.contains(target)) return;
   close();
 }
 
@@ -115,14 +134,38 @@ const B = 5 * DIAMOND_REACH;
   aria-haspopup="dialog"
   aria-expanded={open}
   class:filtered={$hiddenStormMarks.size > 0 || !$cycloneLayerVisible}
+  class:twinned={open && $smallScreen && twin !== null}
   title={$_("storm.key.open")}
   on:click={() => (open ? close() : show())}>
+  {@render face()}
+</button>
+
+{#snippet face()}
   <svg viewBox="0 0 22 12" aria-hidden="true">
     <path d="M6 1 11 6 6 11 1 6Z" fill={STRONG} />
     <circle cx="16.5" cy="6" r="4.5" fill={MODERATE} />
   </svg>
   <span>{$_("storm.key.pill")}</span>
-</button>
+{/snippet}
+
+{#if open && $smallScreen}
+  <div use:portal class="blur" aria-hidden="true" transition:fade={{ duration: 150 }}></div>
+  {#if twin}
+    <!-- The pill, over the blur; the real one, under it, keeps the focus. -->
+    <button
+      bind:this={twinButton}
+      use:portal
+      type="button"
+      class="pill twin"
+      class:filtered={$hiddenStormMarks.size > 0 || !$cycloneLayerVisible}
+      tabindex="-1"
+      aria-hidden="true"
+      style="left: {twin.left}px; top: {twin.top}px; width: {twin.width}px; height: {twin.height}px"
+      on:click={() => close(true)}>
+      {@render face()}
+    </button>
+  {/if}
+{/if}
 
 <!-- A row's switch: on while the map draws that mark. -->
 {#snippet toggle(mark: StormMarkToggle)}
@@ -148,16 +191,6 @@ const B = 5 * DIAMOND_REACH;
     </header>
 
     <ul>
-      <li class:off={$hiddenStormMarks.has("dwd")}>
-        <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
-          <path d="M16 {12 - D} {16 + D} 12 16 {12 + D} {16 - D} 12Z" fill={STRONG} stroke="#fff" stroke-width="1.5" stroke-linejoin="round" />
-        </svg>
-        <div>
-          <strong>{$_("storm.key.dwd")} <SourceBadge source="dwd" /></strong>
-          <span>{$_("storm.key.dwd_body")}</span>
-        </div>
-        {@render toggle("dwd")}
-      </li>
       <li class:off={$hiddenStormMarks.has("meteocool")}>
         <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
           <circle cx="16" cy="12" r="7" fill={STRONG} stroke="#fff" stroke-width="1.5" />
@@ -218,6 +251,32 @@ const B = 5 * DIAMOND_REACH;
         </div>
         {@render toggle("join")}
       </li>
+      <li class:off={$hiddenStormMarks.has("volume")}>
+        <svg class="swatch" viewBox="0 0 34 18" aria-hidden="true">
+          <rect class="tag" x="0.5" y="0.5" width="33" height="17" rx="8.5" />
+          <path d="M10 4 L14.5 6.5 L14.5 11.5 L10 14 L5.5 11.5 L5.5 6.5 Z" fill={STRONG} />
+          <text class="tag-text" x="23.5" y="12.6" text-anchor="middle">3D</text>
+        </svg>
+        <div>
+          <strong>{$_("storm.key.volume")}</strong>
+          <span>{$_("storm.key.volume_body")}</span>
+        </div>
+        {@render toggle("volume")}
+      </li>
+    </ul>
+    <!-- What DWD's tracking adds, over Germany alone: after what holds everywhere. -->
+    <h3 class="region">{$_("storm.key.germany_only")}</h3>
+    <ul>
+      <li class:off={$hiddenStormMarks.has("dwd")}>
+        <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
+          <path d="M16 {12 - D} {16 + D} 12 16 {12 + D} {16 - D} 12Z" fill={STRONG} stroke="#fff" stroke-width="1.5" stroke-linejoin="round" />
+        </svg>
+        <div>
+          <strong>{$_("storm.key.dwd")} <SourceBadge source="dwd" /></strong>
+          <span>{$_("storm.key.dwd_body")}</span>
+        </div>
+        {@render toggle("dwd")}
+      </li>
       <li class:off={$hiddenStormMarks.has("hail")}>
         <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
           <path d="M16 {16 - B} {16 + B} 16 16 {16 + B} {16 - B} 16Z" fill={STRONG} stroke="#e03131" stroke-width="2.6" stroke-linejoin="round" />
@@ -253,18 +312,6 @@ const B = 5 * DIAMOND_REACH;
         </div>
         {@render toggle("forecast")}
       </li>
-      <li class:off={$hiddenStormMarks.has("volume")}>
-        <svg class="swatch" viewBox="0 0 34 18" aria-hidden="true">
-          <rect class="tag" x="0.5" y="0.5" width="33" height="17" rx="8.5" />
-          <path d="M10 4 L14.5 6.5 L14.5 11.5 L10 14 L5.5 11.5 L5.5 6.5 Z" fill={STRONG} />
-          <text class="tag-text" x="23.5" y="12.6" text-anchor="middle">3D</text>
-        </svg>
-        <div>
-          <strong>{$_("storm.key.volume")}</strong>
-          <span>{$_("storm.key.volume_body")}</span>
-        </div>
-        {@render toggle("volume")}
-      </li>
       <li class:off={!$cycloneLayerVisible}>
         <img class="swatch" src={mesocycloneIcon} alt="" />
         <div>
@@ -280,6 +327,15 @@ const B = 5 * DIAMOND_REACH;
 {/if}
 
 <style>
+  /* A heading over the rows that hold over Germany alone, in the
+     secondary ink as a list's section header is. */
+  .region {
+    margin: 14px 0 2px;
+    font: 600 12px/1.3 var(--mc-font);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--mc-text-2);
+  }
   button {
     -webkit-tap-highlight-color: transparent;
     cursor: pointer;
@@ -306,6 +362,22 @@ const B = 5 * DIAMOND_REACH;
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .pill svg { width: 18px; height: 10px; }
 
+  /* The map behind the card on a phone, blurred out of its way. */
+  .blur {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--mc-z-dialog) - 1);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+  /* Its twin is over the blur in its place, and the twin's tint is
+     see-through: the blurred original under it would ghost the label. */
+  .twinned { visibility: hidden; }
+  .twin {
+    position: fixed;
+    z-index: var(--mc-z-dialog);
+    margin: 0;
+  }
   .card {
     position: fixed;
     z-index: var(--mc-z-dialog);

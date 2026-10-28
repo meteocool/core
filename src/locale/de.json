@@ -373,6 +373,7 @@
     "key": {
       "pill": "Gewitter",
       "open": "Was die Gewittersymbole bedeuten",
+      "germany_only": "Nur Deutschland",
       "title": "Gewittersymbole",
       "dwd": "DWD-Gewitter",
       "dwd_body": "Vom Deutschen Wetterdienst über Deutschland verfolgt. Mit Vorhersage, Hagel- und Rotationshinweis.",
@@ -901,9 +902,9 @@
     "none": "Kein Scan zu dieser Zeit",
     "failed": "Dieser Scan konnte nicht geladen werden",
     "scanned": "Gescannt {time}",
-    "dealiased": "Entfaltet",
-    "not_dealiased": "Nicht entfaltet: eine Faltung sieht aus wie ein Wirbelpaar",
-    "not_dealiased_badge": "Nicht entfaltet",
+    "dealiased": "Dealiased",
+    "not_dealiased": "Nicht dealiased: eine Faltung sieht aus wie ein Wirbelpaar",
+    "not_dealiased_badge": "Nicht dealiased",
     "srv_hint": "Eine Gewitterzelle auswählen oder ihre Zugbewegung von Hand einstellen, um sie aus der Geschwindigkeit herauszurechnen.",
     "srv_hint_badge": "Keine Zugbewegung",
     "motion": {

@@ -373,6 +373,7 @@
     "key": {
       "pill": "Bouřky",
       "open": "Co znamenají značky bouřek",
+      "germany_only": "Jen Německo",
       "title": "Značky bouřek",
       "dwd": "Bouřka DWD",
       "dwd_body": "Sleduje ji Německá meteorologická služba nad Německem. Má předpověď a hlásí kroupy a rotaci.",
@@ -901,9 +902,9 @@
     "none": "V tuto dobu žádné měření",
     "failed": "Toto měření se nepodařilo načíst",
     "scanned": "Změřeno {time}",
-    "dealiased": "Rozbaleno",
-    "not_dealiased": "Nerozbaleno: přeložení vypadá jako dvojice",
-    "not_dealiased_badge": "Nerozbaleno",
+    "dealiased": "Dealiased",
+    "not_dealiased": "Bez dealiasingu: přeložení vypadá jako dvojice",
+    "not_dealiased_badge": "Bez dealiasingu",
     "srv_hint": "Vyberte bouřku nebo nastavte její pohyb ručně, aby se odečetl od rychlosti.",
     "srv_hint_badge": "Bez pohybu",
     "motion": {

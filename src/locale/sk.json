@@ -373,6 +373,7 @@
     "key": {
       "pill": "Búrky",
       "open": "Čo znamenajú značky búrok",
+      "germany_only": "Len Nemecko",
       "title": "Značky búrok",
       "dwd": "Búrka DWD",
       "dwd_body": "Sleduje ju Nemecká meteorologická služba nad Nemeckom. Má predpoveď a hlási krupobitie a rotáciu.",
@@ -901,9 +902,9 @@
     "none": "V tomto čase žiadne meranie",
     "failed": "Toto meranie sa nepodarilo načítať",
     "scanned": "Namerané {time}",
-    "dealiased": "Rozbalené",
-    "not_dealiased": "Nerozbalené: preloženie vyzerá ako dvojica",
-    "not_dealiased_badge": "Nerozbalené",
+    "dealiased": "Dealiased",
+    "not_dealiased": "Bez dealiasingu: preloženie vyzerá ako dvojica",
+    "not_dealiased_badge": "Bez dealiasingu",
     "srv_hint": "Vyberte búrku alebo nastavte jej pohyb ručne, aby sa odčítal od rýchlosti.",
     "srv_hint_badge": "Bez pohybu",
     "motion": {

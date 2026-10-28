@@ -373,6 +373,7 @@
     "key": {
       "pill": "Onweer",
       "open": "Wat de onweerssymbolen betekenen",
+      "germany_only": "Alleen Duitsland",
       "title": "Onweerssymbolen",
       "dwd": "DWD-onweer",
       "dwd_body": "Gevolgd door de Duitse weerdienst boven Duitsland. Met verwachting, hagel- en rotatiemelding.",
@@ -901,9 +902,9 @@
     "none": "Geen scan op dit tijdstip",
     "failed": "Deze scan kon niet worden geladen",
     "scanned": "Gescand {time}",
-    "dealiased": "Ontvouwen",
-    "not_dealiased": "Niet ontvouwen: een vouw lijkt op een koppel",
-    "not_dealiased_badge": "Niet ontvouwen",
+    "dealiased": "Dealiased",
+    "not_dealiased": "Niet dealiased: een vouw lijkt op een koppel",
+    "not_dealiased_badge": "Niet dealiased",
     "srv_hint": "Kies een bui, of stel haar verplaatsing met de hand in, om die uit de snelheid te halen.",
     "srv_hint_badge": "Geen verplaatsing",
     "motion": {

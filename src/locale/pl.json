@@ -373,6 +373,7 @@
     "key": {
       "pill": "Burze",
       "open": "Co oznaczają znaczniki burz",
+      "germany_only": "Tylko Niemcy",
       "title": "Znaczniki burz",
       "dwd": "Burza DWD",
       "dwd_body": "Śledzona przez Niemiecką Służbę Meteorologiczną nad Niemcami. Ma prognozę i sygnalizuje grad oraz rotację.",
@@ -901,9 +902,9 @@
     "none": "Brak pomiaru o tej porze",
     "failed": "Nie udało się wczytać tego pomiaru",
     "scanned": "Zmierzono {time}",
-    "dealiased": "Rozwinięta",
-    "not_dealiased": "Nierozwinięta: zawinięcie wygląda jak para wirów",
-    "not_dealiased_badge": "Nierozwinięta",
+    "dealiased": "Dealiased",
+    "not_dealiased": "Bez dealiasingu: zawinięcie wygląda jak para wirów",
+    "not_dealiased_badge": "Bez dealiasingu",
     "srv_hint": "Wybierz burzę albo ustaw jej ruch ręcznie, aby odjąć go od prędkości.",
     "srv_hint_badge": "Brak ruchu",
     "motion": {
