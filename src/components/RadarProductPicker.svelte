@@ -29,13 +29,14 @@
  */
 import { onDestroy, tick } from "svelte";
 import { fade } from "svelte/transition";
-import { _ } from "svelte-i18n";
+import { _, locale } from "svelte-i18n";
 import { faChevronUp } from "@fortawesome/free-solid-svg-icons/faChevronUp";
 import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons/faCircleQuestion";
 import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDish";
 import CloseDisc from "./CloseDisc.svelte";
 import Icon from "./Icon.svelte";
-import { onForecastStep, radarExplainerOpen, radarProducts, smallScreen } from "../stores";
+import { onForecastStep, radarExplainerOpen, radarProducts, siteMode, siteSweepView, smallScreen } from "../stores";
+import { radarSite } from "../lib/radarSites";
 import { hideNativeControls } from "../lib/nativeBridge";
 import { topStackPx } from "../lib/safeArea";
 import { FORECAST_PRODUCT, PRODUCT_GROUPS, ageSpan, fallsBehind } from "../lib/observedProduct";
@@ -85,6 +86,24 @@ onDestroy(() => hideControls(false));
 
 /** The ages are minutes: a tick a quarter of one keeps them honest. */
 let nowS = Date.now() / 1000;
+
+/*
+ * With one radar open (site mode), the pill is about that radar: its name
+ * in place of the product's, and how long ago its sweep on screen was
+ * scanned in place of the composites' ages, which say nothing about it.
+ */
+$: openSite = $siteMode && $siteSweepView?.site.site === $siteMode.site ? $siteMode.site : null;
+$: siteName = openSite ? (radarSite(openSite)?.name ?? openSite.toUpperCase()) : null;
+$: siteScanned = openSite ? ($siteSweepView?.startedAt ?? $siteSweepView?.scannedAt ?? null) : null;
+/** The sweep's own scan time to the second, as the pill's title says it. */
+$: siteScannedNote = siteScanned
+  ? $_("site.scanned", { values: { time: new Date(siteScanned).toLocaleTimeString($locale ?? undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) } })
+  : null;
+function siteAge(iso: string | null, now: number): string {
+  if (!iso) return $_("chrome.radar_product.unavailable");
+  const minutes = Math.max(0, Math.round((now - Date.parse(iso) / 1000) / 60));
+  return $_("chrome.radar_product.age", { values: { minutes } });
+}
 const clock = setInterval(() => { nowS = Date.now() / 1000; }, 15_000);
 onDestroy(() => clearInterval(clock));
 
@@ -118,11 +137,17 @@ async function show() {
   nowS = Date.now() / 1000;
   const rect = trigger.getBoundingClientRect();
   const style = getComputedStyle(trigger);
+  // Its laid-out size about its centre, not its box on screen: a tap lands
+  // while the press still scales it down, and a twin cut to that box sat a
+  // little smaller and off to one side.
+  // The computed size keeps the fractions offsetWidth rounds away.
+  const offsetWidth = parseFloat(style.width) || trigger.offsetWidth;
+  const offsetHeight = parseFloat(style.height) || trigger.offsetHeight;
   twin = {
-    left: rect.left,
-    top: rect.top,
-    width: rect.width,
-    height: rect.height,
+    left: rect.left + (rect.width - offsetWidth) / 2,
+    top: rect.top + (rect.height - offsetHeight) / 2,
+    width: offsetWidth,
+    height: offsetHeight,
     vars: PILL_VARS.map((name) => `${name}: ${style.getPropertyValue(name)}`).filter((v) => !v.endsWith(": ")).join("; "),
   };
   bottom = window.innerHeight - rect.top + MARGIN;
@@ -213,14 +238,18 @@ function portal(node: HTMLElement) {
   aria-haspopup="menu"
   aria-expanded={open}
   aria-disabled={forecast}
-  title={forecast ? forecastNote : fellBack ? fellBackNote : $_("chrome.radar_product.choose")}
-  aria-label={face === "pill" ? `${$_("chrome.radar_product.choose")}: ${forecast ? forecastNote : fellBack ? fellBackNote : $_(`chrome.radar_product.${chosen}`)}` : undefined}
+  title={siteScannedNote ?? (forecast ? forecastNote : fellBack ? fellBackNote : $_("chrome.radar_product.choose"))}
+  aria-label={face === "pill" ? `${$_("chrome.radar_product.choose")}: ${siteName ?? (forecast ? forecastNote : fellBack ? fellBackNote : $_(`chrome.radar_product.${chosen}`))}` : undefined}
   on:click={() => (forecast ? undefined : open ? close() : show())}>
   {@render label()}
 </button>
 
 {#snippet label()}
-  {#if face === "pill"}
+  {#if face === "pill" && siteName}
+    <Icon icon={faSatelliteDish} />
+    <span class="site">{siteName}</span>
+    <span class="age">{siteAge(siteScanned, nowS)}</span>
+  {:else if face === "pill"}
     <Icon icon={faSatelliteDish} />
     <span>{$_(`chrome.radar_product.${shown}_short`)}</span>
     <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
@@ -372,6 +401,13 @@ function portal(node: HTMLElement) {
     font-variant-numeric: tabular-nums;
   }
   .pill.fellBack .age { color: var(--mc-orange-ink); }
+  /* A radar's name can be long ("Neuhaus am Rennweg"): cut, not the age. */
+  .pill .site {
+    min-width: 0;
+    max-width: 12em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   /* On a forecast step: greyed out, and nothing to open. */
   .forecast {

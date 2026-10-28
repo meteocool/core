@@ -874,12 +874,11 @@ onDestroy(() => {
          row       transport and the colour scale
 
      The head stays on top on a wide screen too, so the pills sit over the
-     strip with site mode's tray (SiteSweepTray) under them; the player
-     grows by its height. The weather stations' parameter picker grows no
-     row: it is a pill of its own over the player (StationPicker). The
-     pills scroll sideways when they are more than the head holds. The
-     strip is shorter where it has no rain to plot (--mc-plot-h in
-     src/glass.css).
+     strip. An open radar's controls (SiteSweepTray) and the weather
+     stations' parameter picker (StationPicker) grow no row: they are pills
+     of their own over the player. The head's pills scroll sideways when
+     they are more than it holds. The strip is shorter where it has no rain
+     to plot (--mc-plot-h in src/glass.css).
      --------------------------------------------------------------------- */
   .player {
     display: flex;
@@ -939,7 +938,6 @@ onDestroy(() => {
   .link:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .link :global(svg) { width: 11px; height: 11px; }
 
-  .site,
   .plot {
     position: relative;
     flex: 0 0 auto;
@@ -1099,7 +1097,7 @@ onDestroy(() => {
     left: var(--mc-gutter);
     right: var(--mc-gutter);
     bottom: calc(
-      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap) + var(--mc-stations-stack)
+      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap) + var(--mc-float-stack)
       + var(--open-strips, 0) * (var(--mc-strip-h) + var(--mc-tray-gap))
       + var(--open-hints, 0) * (var(--mc-hint-h) + var(--mc-tray-gap))
     );
@@ -1186,8 +1184,16 @@ onDestroy(() => {
     on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
 {/if}
 
+<!-- Site mode: one radar's own sweep over the dimmed composites
+     (lib/SiteSweepManager.ts), its controls in pills over the player, whose
+     timeline scrubs its sweeps as it scrubs frames. -->
+{#if $bottomToolbarMode === "player" && $siteMode && $siteSweepView}
+  <SiteSweepTray />
+{/if}
+
 <!-- Which parameter the weather stations show, a pill of its own over the
-     player while they are on; the rest of the stack stands on it. -->
+     player (and an open radar's) while they are on; the rest of the stack
+     stands on it. -->
 {#if $bottomToolbarMode === "player" && $stationLayerVisible}
   <StationPicker />
 {/if}
@@ -1241,13 +1247,6 @@ onDestroy(() => {
           </button>
         {/if}
       </div>
-
-      <!-- Site mode: one radar's own sweep over the dimmed composites
-           (lib/SiteSweepManager.ts), its controls over the timeline, which
-           scrubs its sweeps as it scrubs frames. -->
-      {#if $siteMode && $siteSweepView}
-        <div class="site"><SiteSweepTray /></div>
-      {/if}
 
       <div class="plot">
         {#if gridLoading && !hasPrecipitation}

@@ -28,7 +28,18 @@
     return `${v.toFixed(1)}:${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
   }).join(";");
   let stripWidth = 0;
-  $: ticks = velocityTicks(span, stripWidth).map(({ value, at }) => ({ at, html: `${value > 0 ? "+" : ""}${value}` }));
+  /** Room the last tick needs with its unit, from the one before it. */
+  const UNIT_ROOM_PX = 60;
+  /* The unit on the last tick: a phone has no room for the title, which
+     carries it on a wider screen, and a bare +30 says nothing. Longer for
+     it, so the tick before it gives way where the two would touch. */
+  $: ticks = velocityTicks(span, stripWidth)
+    .filter((_tick, i, all) => !(i === all.length - 2 && all.length > 2
+      && (all[i + 1].at - all[i].at) * stripWidth < UNIT_ROOM_PX))
+    .map(({ value, at }, i, all) => ({
+      at,
+      html: `${value > 0 ? "+" : ""}${value}${i === all.length - 1 ? " m/s" : ""}`,
+    }));
 </script>
 
 <ScaleLine class="scale" {palette} {ticks} bind:stripWidth

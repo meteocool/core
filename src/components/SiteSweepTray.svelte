@@ -1,26 +1,29 @@
 <script lang="ts">
 /**
- * Site mode's controls, in the player's tray while a radar is open: what to
- * draw of it (reflectivity, radial velocity, or velocity relative to the
- * selected storm), at which tilt, the sweep's own scan time, and the way out.
+ * Site mode's controls while a radar is open: what to draw of it
+ * (reflectivity, radial velocity, or velocity relative to the selected
+ * storm), at which tilt, and the way out. A glass pill of its own, floating
+ * a gap over the player, as the stations' picker does (StationPicker); the
+ * radar's name and how long ago its sweep was scanned are on the player's
+ * product pill (RadarProductPicker).
  *
  * Each tilt is offered with how high its beam is 100 km out, which is what a
  * reader choosing one wants to know. A velocity sweep says whether the
- * server could dealias it, because a fold looks exactly like a couplet.
+ * server could dealias it, because a fold looks exactly like a couplet: a
+ * short badge in the pill, its whole sentence in the title.
  *
- * Two rows of a fixed height up to a wide screen and one row there, so the
- * map keeps the rest. The player grows by exactly that: --mc-site-tray-h in
- * glass.css, switched on by the root's `site-open` while this is drawn.
- * Storm-relative velocity adds one row of the same height, `site-srv`: whose
+ * Storm-relative velocity grows the pill by a row over the controls: whose
  * motion it takes out, which opens the controls to set one by hand
- * (StormMotion).
- * Whatever does not fit gives way with an ellipsis rather than adding a row,
- * and the status is a short badge with its whole sentence in the title. On a
- * phone the chosen tilt shows its elevation alone; the list it opens has the
- * beam heights.
+ * (StormMotion). The root's `site-open` and `site-srv` say how much of the
+ * stack over the player this is (--mc-site-float-h in glass.css), so the
+ * stations' picker, the strips and "Back to now" stand on it. Where the screen is too narrow
+ * the pill scrolls sideways, its edges fading out. On a phone the chosen
+ * tilt shows its elevation alone; the list it opens has the beam heights.
  */
 import { onDestroy } from "svelte";
-import { _, locale } from "svelte-i18n";
+import { _ } from "svelte-i18n";
+import { fly } from "svelte/transition";
+import { fadeEdges } from "../lib/fadeEdges";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 import Icon from "./Icon.svelte";
@@ -83,18 +86,8 @@ function onKeydown(event: KeyboardEvent) {
 window.addEventListener("keydown", onKeydown, true);
 onDestroy(() => window.removeEventListener("keydown", onKeydown, true));
 
-function clock(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleTimeString($locale ?? undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
 $: chosenTilt = view && mode
   ? view.tilts.reduce((best, tilt) => (Math.abs(tilt.elevation - mode.elevation) < Math.abs(best.elevation - mode.elevation) ? tilt : best), view.tilts[0])
-  : null;
-
-/** The scan time, unless there is no sweep to have one. */
-$: scanned = view && view.status !== "none" && view.status !== "failed" && (view.startedAt || view.scannedAt)
-  ? $_("site.scanned", { values: { time: clock(view.startedAt ?? view.scannedAt) } })
   : null;
 
 interface Badge {
@@ -123,84 +116,67 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
 </script>
 
 <style>
-  /* Two rows under the head, each --mc-site-row-h tall:
-
-         Borkum  Scanned 20:22:31  [Dealiased]                (x)
-         [Reflectivity|Velocity|Storm-relative]  [0.5° v]
-
-     and on a wide screen the three side by side, one row over the strip. */
-  .tray {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: var(--mc-site-row-h) var(--mc-site-row-h);
-    grid-template-areas:
-      "about close"
-      "controls controls";
-    row-gap: 4px;
-    column-gap: 8px;
+  /* Over the player, centred: a row the width of the screen that lets
+     touches through. */
+  .dock {
+    position: absolute;
+    left: var(--mc-gutter);
+    right: var(--mc-gutter);
+    bottom: calc(var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap));
+    z-index: var(--mc-z-pill);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+  /* A pill, or with storm-relative velocity a rounded box of two rows, the
+     motion over the controls: the same corners, so it reads as the pill grown. */
+  .float {
+    pointer-events: auto;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-height: var(--mc-float-pill-h);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    border-radius: calc(var(--mc-float-pill-h) / 2);
+  }
+  .scroller {
+    min-width: 0;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    border-radius: var(--mc-radius-pill);
+  }
+  .scroller::-webkit-scrollbar { display: none; }
+  .row {
+    flex: 0 0 auto;
+    display: inline-flex;
     align-items: center;
+    gap: 6px;
   }
-  /* Storm-relative: a row more, whose motion it takes out. */
-  .tray.srv {
-    grid-template-rows: var(--mc-site-row-h) var(--mc-site-row-h) var(--mc-site-row-h);
-    grid-template-areas:
-      "about close"
-      "controls controls"
-      "motion motion";
-  }
-  @media (min-width: 1024px) {
-    .tray {
-      grid-template-columns: minmax(0, 1fr) auto auto;
-      grid-template-rows: var(--mc-site-row-h);
-      grid-template-areas: "about controls close";
-      column-gap: 12px;
-    }
-    .tray.srv {
-      grid-template-rows: var(--mc-site-row-h) var(--mc-site-row-h);
-      grid-template-areas:
-        "about controls close"
-        "motion motion motion";
-    }
+  /* Touch pans the row sideways from the segments too; a tap still chooses. */
+  .row :global(.segmented.compact) {
+    touch-action: pan-x;
   }
   .motion {
-    grid-area: motion;
     display: flex;
+    min-width: 0;
+    padding: 0 2px;
+  }
+  .motion > :global(*) {
+    flex: 1 1 auto;
     min-width: 0;
   }
 
-  .about {
-    grid-area: about;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    /* In line with the head's title; the controls under it are capsules and
-       go to the strip's own edge. */
-    padding-left: 8px;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .name {
-    flex: 0 1 auto;
-    min-width: 4em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font: 700 13px/1.3 var(--mc-font);
-    letter-spacing: -0.01em;
-    color: var(--mc-text);
-  }
-  .time {
-    flex: 0 0 auto;
-    font: 500 11px/1.3 var(--mc-font);
-    font-variant-numeric: tabular-nums;
-    color: var(--mc-text-2);
-  }
-  /* The badges give way first, then the name; the scan time stays whole. */
+  /* Whether the sweep was dealiased, short, after the tilt. */
   .badge {
-    flex: 0 4 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 0 0 auto;
+    white-space: nowrap;
     padding: 3px 7px;
     border-radius: var(--mc-radius-pill);
     background: var(--mc-tint);
@@ -210,14 +186,6 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
   .badge.warn {
     background: var(--mc-orange-tint);
     color: var(--mc-orange-ink);
-  }
-
-  .controls {
-    grid-area: controls;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
   }
 
   /* The tilt: a capsule in the segmented control's groove, the system's own
@@ -267,7 +235,7 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
 
   /* The way out: a close disc, like the one that lets a tapped point go. */
   .close {
-    grid-area: close;
+    flex: 0 0 auto;
     width: var(--mc-site-row-h);
     height: var(--mc-site-row-h);
     display: grid;
@@ -298,43 +266,41 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
 </style>
 
 {#if mode && view}
-  <div class="tray" bind:this={tray} class:srv={srvShown} role="group" aria-label={title}>
-    <div class="about">
-      <span class="name" title={title}>{name}</span>
-      {#if scanned}
-        <span class="time">{scanned}</span>
+  <div class="dock" bind:this={tray} role="group" aria-label={title}>
+    <div class="float controls glass" transition:fly|global={{ y: 12, duration: 200 }}>
+      {#if srvShown}
+        <div class="motion">
+          <StormMotion bind:open={motionOpen} srv={view.srv} stormMoves={view.stormMoves} />
+        </div>
       {/if}
-      {#each badges as badge (badge.text)}
-        <span class="badge" class:warn={badge.warn} title={badge.title}>{badge.text}</span>
-      {/each}
-    </div>
-    <div class="controls">
-      <Segmented compact options={options} value={mode.quantity} label={$_("site.quantity.group")}
-        on:change={(event) => setQuantity(event.detail)} />
-      {#if view.tilts.length}
-        <span class="tilt">
-          {#if chosenTilt}
-            <span class="chosen" aria-hidden="true">
-              {tiltAngle(chosenTilt.elevation)}<span class="beam">{tiltBeam(chosenTilt.beamKmAt100)}</span>
+      <div class="scroller mc-fade-x" use:fadeEdges>
+        <span class="row">
+          <Segmented compact options={options} value={mode.quantity} label={$_("site.quantity.group")}
+            on:change={(event) => setQuantity(event.detail)} />
+          {#if view.tilts.length}
+            <span class="tilt">
+              {#if chosenTilt}
+                <span class="chosen" aria-hidden="true">
+                  {tiltAngle(chosenTilt.elevation)}<span class="beam">{tiltBeam(chosenTilt.beamKmAt100)}</span>
+                </span>
+              {/if}
+              <Icon icon={faChevronDown} />
+              <select aria-label={$_("site.tilt")} value={chosenTilt?.elevation} on:change={setTilt}>
+                {#each view.tilts as tilt (tilt.elevation)}
+                  <option value={tilt.elevation}>{tiltLabel(tilt.elevation, tilt.beamKmAt100)}</option>
+                {/each}
+              </select>
             </span>
           {/if}
-          <Icon icon={faChevronDown} />
-          <select aria-label={$_("site.tilt")} value={chosenTilt?.elevation} on:change={setTilt}>
-            {#each view.tilts as tilt (tilt.elevation)}
-              <option value={tilt.elevation}>{tiltLabel(tilt.elevation, tilt.beamKmAt100)}</option>
-            {/each}
-          </select>
+          {#each badges as badge (badge.text)}
+            <span class="badge" class:warn={badge.warn} title={badge.title}>{badge.text}</span>
+          {/each}
+          <button type="button" class="close" on:click={close}
+            title={$_("site.close")} aria-label={$_("site.close")}>
+            <Icon icon={faXmark} />
+          </button>
         </span>
-      {/if}
-    </div>
-    <button type="button" class="close" on:click={close}
-      title={$_("site.close")} aria-label={$_("site.close")}>
-      <Icon icon={faXmark} />
-    </button>
-    {#if srvShown}
-      <div class="motion">
-        <StormMotion bind:open={motionOpen} srv={view.srv} stormMoves={view.stormMoves} />
       </div>
-    {/if}
+    </div>
   </div>
 {/if}

@@ -4,6 +4,9 @@ import { expect, test } from "./test";
 import { flatPixel, noGeocoder, openRadar, playButton, settled, timeline } from "./app";
 import type { Page } from "@playwright/test";
 
+/** The player's product pill, which names an open radar and says when its sweep was scanned. */
+const productPill = (page: Page) => page.locator("button[aria-haspopup='menu']:visible").first();
+
 /**
  * Site mode: a radar's mark on the flat map opens that radar's own sweep,
  * with a tray to choose what and which tilt, over the composites dimmed.
@@ -74,10 +77,12 @@ test.describe("with the radars' marks on", () => {
 
     const tray = page.getByRole("group", { name: "Offenthal radar" });
     await settled(tray);
-    // Two rows at most, and the player grows by them rather than pushing the
-    // strip and the play button out of its bottom.
-    expect((await tray.boundingBox())!.height).toBeLessThanOrEqual(61);
+    // One pill, over the player rather than in it: the player keeps its
+    // height and its play button.
+    expect((await tray.boundingBox())!.height).toBeLessThanOrEqual(40);
     const player = page.locator(".timeslider");
+    const trayBox = (await tray.boundingBox())!;
+    expect(trayBox.y + trayBox.height).toBeLessThanOrEqual((await player.boundingBox())!.y);
     expect(await player.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
     const [play, box] = [(await playButton(page).boundingBox())!, (await player.boundingBox())!];
     expect(play.y + play.height).toBeLessThanOrEqual(box.y + box.height);
@@ -118,10 +123,12 @@ test.describe("with the radars' marks on", () => {
     let motion = tray.getByRole("button", { name: /^Motion: / });
     await expect(motion).toHaveText("Motion: manual · 0 km/h NE");
     await expect(tray.getByText("No motion set", { exact: true })).toBeVisible();
-    // One row more, and the player grows by it rather than clipping the play button.
+    // A pill more over it, and still nothing in the player.
     await settled(tray);
-    expect((await tray.boundingBox())!.height).toBeLessThanOrEqual(93);
+    expect((await tray.boundingBox())!.height).toBeLessThanOrEqual(86);
     const player = page.locator(".timeslider");
+    const trayBox = (await tray.boundingBox())!;
+    expect(trayBox.y + trayBox.height).toBeLessThanOrEqual((await player.boundingBox())!.y);
     expect(await player.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
     const [play, box] = [(await playButton(page).boundingBox())!, (await player.boundingBox())!];
     expect(play.y + play.height).toBeLessThanOrEqual(box.y + box.height);
@@ -190,7 +197,9 @@ test.describe("with the radars' marks on", () => {
 
     const tray = page.getByRole("group", { name: "Borkum radar" });
     await settled(tray);
-    await expect(tray.getByText(/^Scanned \d\d?:\d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
+    // The radar's name and its sweep's age on the product pill, the scan time to the second in its title.
+    await expect(productPill(page)).toContainText("Borkum");
+    await expect(productPill(page)).toHaveAttribute("title", /^Scanned \d\d?:\d\d:\d\d/, { timeout: 15_000 });
     const drawn = () => page.evaluate(() => {
       const map = (window as any).lm.getCurrentMap();
       const layer = map.getAllLayers().find((candidate: any) => candidate.getZIndex() === 85);
@@ -241,7 +250,9 @@ test.describe("with the radars' marks on", () => {
       await page.mouse.click(at.x, at.y);
       const tray = page.getByRole("group", { name: "Borkum radar" });
       await settled(tray);
-      await expect(tray.getByText(/^Scanned \d\d?:\d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
+      // The radar's name and its sweep's age on the product pill, the scan time to the second in its title.
+    await expect(productPill(page)).toContainText("Borkum");
+    await expect(productPill(page)).toHaveAttribute("title", /^Scanned \d\d?:\d\d:\d\d/, { timeout: 15_000 });
       return tray;
     };
 
@@ -365,9 +376,10 @@ test.describe("with the radars' marks on", () => {
       const slider = document.querySelector("[role=slider][aria-label='Radar timeline']")!;
       const seen = { steps: [] as string[], played: [] as string[], scans: [] as string[], none: [] as string[] };
       (window as any).seen = seen;
+      const pill = document.querySelector("button[aria-haspopup=menu]")!;
       const note = () => {
         const step = slider.getAttribute("aria-valuetext");
-        const time = element.querySelector(".time")?.textContent;
+        const time = pill.getAttribute("title")?.match(/^Scanned (.+)$/)?.[1];
         if (step && seen.played[seen.played.length - 1] !== step) seen.played.push(step);
         if (step && !seen.steps.includes(step)) seen.steps.push(step);
         if (time && !seen.scans.includes(time)) seen.scans.push(time);
@@ -375,6 +387,7 @@ test.describe("with the radars' marks on", () => {
       };
       new MutationObserver(note).observe(element, { subtree: true, childList: true, characterData: true });
       new MutationObserver(note).observe(slider, { attributes: true, attributeFilter: ["aria-valuetext"] });
+      new MutationObserver(note).observe(pill, { attributes: true, attributeFilter: ["title"] });
     });
     await playButton(page).click();
     // Round again: a step played a second time.

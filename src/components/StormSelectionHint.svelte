@@ -96,7 +96,7 @@ function clear(leaving: Leaving) {
     right: var(--mc-gutter);
     bottom: calc(
       max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom))
-      + var(--mc-tray-gap) + var(--mc-stations-stack)
+      + var(--mc-tray-gap) + var(--mc-float-stack)
       + var(--open-strips, 0) * (var(--mc-strip-h) + var(--mc-tray-gap))
     );
     height: var(--mc-hint-h);

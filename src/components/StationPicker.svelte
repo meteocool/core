@@ -6,10 +6,10 @@
  *
  * Out of the player and over it, where it is the most prominent control on
  * the map after the timeline: the parameter is what the stations are read
- * by. The stack over the player makes room for it: while it is up, the
- * root's `stations-picker` sets --mc-stations-stack (src/glass.css), which
- * the strips, the storm hint, "Back to now" and the map's credits all stand
- * on. Where the screen is too narrow for every parameter it scrolls
+ * by. Over an open radar's pills (SiteSweepTray), if any. The stack over
+ * the player makes room for it: while it is up, the root's
+ * `stations-picker` adds to --mc-float-stack (src/glass.css), which the
+ * strips, the storm hint, "Back to now" and the map's credits all stand on. Where the screen is too narrow for every parameter it scrolls
  * sideways, its edges fading out. The choice is remembered through
  * `stationChoice` (the setting `stationParameter`, App.svelte).
  */
@@ -55,7 +55,7 @@ onDestroy(() => document.documentElement.classList.remove("stations-picker"));
     position: absolute;
     left: var(--mc-gutter);
     right: var(--mc-gutter);
-    bottom: calc(var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap));
+    bottom: calc(var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap) + var(--mc-site-float-h));
     z-index: var(--mc-z-pill);
     display: flex;
     justify-content: center;
@@ -65,7 +65,7 @@ onDestroy(() => document.documentElement.classList.remove("stations-picker"));
     pointer-events: auto;
     box-sizing: border-box;
     max-width: 100%;
-    height: var(--mc-stations-pill-h);
+    height: var(--mc-float-pill-h);
     padding: 4px;
     display: flex;
     align-items: center;
