@@ -961,10 +961,42 @@
       "pressure": "Pressure at sea level"
     },
     "sheet": {
-      "height": "Height",
-      "observed": "Measured",
+      "place": "{state} · {height} m · measured {time}",
+      "latest": "Latest values",
       "none": "No values from this station.",
       "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "History",
+      "window": {
+        "group": "Period",
+        "day": "24 h",
+        "three_days": "3 days",
+        "week": "7 days"
+      },
+      "panel": {
+        "temperature": "Temperature and dew point",
+        "precipitation": "Precipitation",
+        "sunshine": "Sunshine",
+        "humidity": "Humidity",
+        "pressure": "Pressure at sea level",
+        "wind": "Wind and gusts",
+        "direction": "Wind direction"
+      },
+      "stat": {
+        "max": "max",
+        "min": "min",
+        "mean": "mean",
+        "total": "total",
+        "change": "change",
+        "gust": "peak gust"
+      },
+      "series": {
+        "dew_point": "dew point",
+        "gusts": "gust"
+      },
+      "aria": "{title} over the period, in {unit}",
+      "none": "No history from this station."
     }
   }
 }

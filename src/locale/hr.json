@@ -913,10 +913,42 @@
       "pressure": "Tlak na razini mora"
     },
     "sheet": {
-      "height": "Visina",
-      "observed": "Izmjereno",
+      "place": "{state} · {height} m · izmjereno {time}",
+      "latest": "Najnovije vrijednosti",
       "none": "Nema vrijednosti s ove postaje.",
       "source": "Podaci: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Povijest",
+      "window": {
+        "group": "Razdoblje",
+        "day": "24 h",
+        "three_days": "3 dana",
+        "week": "7 dana"
+      },
+      "panel": {
+        "temperature": "Temperatura i rosište",
+        "precipitation": "Oborina",
+        "sunshine": "Sijanje sunca",
+        "humidity": "Vlažnost",
+        "pressure": "Tlak na razini mora",
+        "wind": "Vjetar i udari",
+        "direction": "Smjer vjetra"
+      },
+      "stat": {
+        "max": "maks",
+        "min": "min",
+        "mean": "prosjek",
+        "total": "ukupno",
+        "change": "promjena",
+        "gust": "najjači udar"
+      },
+      "series": {
+        "dew_point": "rosište",
+        "gusts": "udar"
+      },
+      "aria": "{title} u razdoblju, u {unit}",
+      "none": "Nema povijesti s ove postaje."
     }
   }
 }

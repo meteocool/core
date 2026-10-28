@@ -1421,12 +1421,12 @@ if (postInitCb) postInitCb(lm);
   {/key}
 {/if}
 
-<!-- A weather station tapped on the radar map: a sheet on a phone, the
-     corner drawer on a desktop, as a storm's. -->
+<!-- A weather station tapped on the radar map: a sheet on a phone that
+     pulls up for its history, the corner drawer on a desktop, as a storm's. -->
 {#if $selectedStation && $sharedActiveCap === "radar"}
   {#if $smallScreen}
     <Lazy load={loadStationSheet} floating let:module>
-      <svelte:component this={module[0].default} onClose={closeStation} expandable={false}>
+      <svelte:component this={module[0].default} onClose={closeStation}>
         <svelte:component this={module[1].default} station={$selectedStation} />
       </svelte:component>
     </Lazy>

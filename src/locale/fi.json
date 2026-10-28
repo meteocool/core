@@ -913,10 +913,42 @@
       "pressure": "Ilmanpaine merenpinnan tasolla"
     },
     "sheet": {
-      "height": "Korkeus",
-      "observed": "Mitattu",
+      "place": "{state} · {height} m · mitattu {time}",
+      "latest": "Uusimmat arvot",
       "none": "Asemalta ei ole arvoja.",
       "source": "Tiedot: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Historia",
+      "window": {
+        "group": "Jakso",
+        "day": "24 h",
+        "three_days": "3 päivää",
+        "week": "7 päivää"
+      },
+      "panel": {
+        "temperature": "Lämpötila ja kastepiste",
+        "precipitation": "Sade",
+        "sunshine": "Auringonpaiste",
+        "humidity": "Kosteus",
+        "pressure": "Ilmanpaine merenpinnalla",
+        "wind": "Tuuli ja puuskat",
+        "direction": "Tuulen suunta"
+      },
+      "stat": {
+        "max": "maks",
+        "min": "min",
+        "mean": "keskiarvo",
+        "total": "yhteensä",
+        "change": "muutos",
+        "gust": "kovin puuska"
+      },
+      "series": {
+        "dew_point": "kastepiste",
+        "gusts": "puuska"
+      },
+      "aria": "{title} jaksolla, yksikkönä {unit}",
+      "none": "Tältä asemalta ei ole historiaa."
     }
   }
 }

@@ -961,10 +961,42 @@
       "pressure": "Ciśnienie na poziomie morza"
     },
     "sheet": {
-      "height": "Wysokość",
-      "observed": "Pomiar",
+      "place": "{state} · {height} m · pomiar {time}",
+      "latest": "Najnowsze wartości",
       "none": "Brak wartości z tej stacji.",
       "source": "Dane: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Przebieg",
+      "window": {
+        "group": "Okres",
+        "day": "24 h",
+        "three_days": "3 dni",
+        "week": "7 dni"
+      },
+      "panel": {
+        "temperature": "Temperatura i punkt rosy",
+        "precipitation": "Opad",
+        "sunshine": "Usłonecznienie",
+        "humidity": "Wilgotność",
+        "pressure": "Ciśnienie na poziomie morza",
+        "wind": "Wiatr i porywy",
+        "direction": "Kierunek wiatru"
+      },
+      "stat": {
+        "max": "maks.",
+        "min": "min.",
+        "mean": "średnia",
+        "total": "suma",
+        "change": "zmiana",
+        "gust": "najsilniejszy poryw"
+      },
+      "series": {
+        "dew_point": "punkt rosy",
+        "gusts": "poryw"
+      },
+      "aria": "{title} w okresie, w {unit}",
+      "none": "Brak przebiegu z tej stacji."
     }
   }
 }

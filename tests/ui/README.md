@@ -33,6 +33,9 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
   around central Germany, its times moved onto the recording's clock:
   staging did not serve the route yet, and the next re-recording (which
   turns the stations on) replaces it;
+- answers every station's `/stations/{station}/observations` from
+  `fixtures/api/GET_stations_station_observations.json`, staging's day of
+  München-Stadt of 2026-10-27, its times moved onto the recording's clock;
 - draws every map tile blank: radar, value tiles and the basemap;
 - connects the lightning socket to a stand-in that stays quiet;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it

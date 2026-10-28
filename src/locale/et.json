@@ -913,10 +913,42 @@
       "pressure": "Õhurõhk merepinnal"
     },
     "sheet": {
-      "height": "Kõrgus",
-      "observed": "Mõõdetud",
+      "place": "{state} · {height} m · mõõdetud {time}",
+      "latest": "Viimased väärtused",
       "none": "Sellest jaamast väärtusi pole.",
       "source": "Andmed: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Ajalugu",
+      "window": {
+        "group": "Periood",
+        "day": "24 h",
+        "three_days": "3 päeva",
+        "week": "7 päeva"
+      },
+      "panel": {
+        "temperature": "Temperatuur ja kastepunkt",
+        "precipitation": "Sademed",
+        "sunshine": "Päikesepaiste",
+        "humidity": "Niiskus",
+        "pressure": "Õhurõhk merepinnal",
+        "wind": "Tuul ja puhangud",
+        "direction": "Tuule suund"
+      },
+      "stat": {
+        "max": "maks",
+        "min": "min",
+        "mean": "keskmine",
+        "total": "kokku",
+        "change": "muutus",
+        "gust": "tugevaim puhang"
+      },
+      "series": {
+        "dew_point": "kastepunkt",
+        "gusts": "puhang"
+      },
+      "aria": "{title} perioodi jooksul, ühikus {unit}",
+      "none": "Sellelt jaamalt ajalugu pole."
     }
   }
 }

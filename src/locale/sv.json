@@ -913,10 +913,42 @@
       "pressure": "Lufttryck vid havsytan"
     },
     "sheet": {
-      "height": "Höjd",
-      "observed": "Uppmätt",
+      "place": "{state} · {height} m · uppmätt {time}",
+      "latest": "Senaste värden",
       "none": "Inga värden från den här stationen.",
       "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Historik",
+      "window": {
+        "group": "Period",
+        "day": "24 h",
+        "three_days": "3 dagar",
+        "week": "7 dagar"
+      },
+      "panel": {
+        "temperature": "Temperatur och daggpunkt",
+        "precipitation": "Nederbörd",
+        "sunshine": "Solsken",
+        "humidity": "Luftfuktighet",
+        "pressure": "Lufttryck vid havsnivå",
+        "wind": "Vind och byar",
+        "direction": "Vindriktning"
+      },
+      "stat": {
+        "max": "max",
+        "min": "min",
+        "mean": "medel",
+        "total": "totalt",
+        "change": "ändring",
+        "gust": "kraftigaste by"
+      },
+      "series": {
+        "dew_point": "daggpunkt",
+        "gusts": "by"
+      },
+      "aria": "{title} under perioden, i {unit}",
+      "none": "Ingen historik från den här stationen."
     }
   }
 }

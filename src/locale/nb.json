@@ -913,10 +913,42 @@
       "pressure": "Lufttrykk ved havnivå"
     },
     "sheet": {
-      "height": "Høyde",
-      "observed": "Målt",
+      "place": "{state} · {height} m · målt {time}",
+      "latest": "Siste verdier",
       "none": "Ingen verdier fra denne stasjonen.",
       "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Historikk",
+      "window": {
+        "group": "Periode",
+        "day": "24 t",
+        "three_days": "3 dager",
+        "week": "7 dager"
+      },
+      "panel": {
+        "temperature": "Temperatur og duggpunkt",
+        "precipitation": "Nedbør",
+        "sunshine": "Solskinn",
+        "humidity": "Luftfuktighet",
+        "pressure": "Lufttrykk ved havnivå",
+        "wind": "Vind og vindkast",
+        "direction": "Vindretning"
+      },
+      "stat": {
+        "max": "maks",
+        "min": "min",
+        "mean": "snitt",
+        "total": "totalt",
+        "change": "endring",
+        "gust": "sterkeste vindkast"
+      },
+      "series": {
+        "dew_point": "duggpunkt",
+        "gusts": "vindkast"
+      },
+      "aria": "{title} i perioden, i {unit}",
+      "none": "Ingen historikk fra denne stasjonen."
     }
   }
 }

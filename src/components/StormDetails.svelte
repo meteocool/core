@@ -33,6 +33,7 @@ import { cellStatus } from "../lib/cellStatus";
 import { stormStatus } from "../lib/stormStatus";
 import { MAX_FAMILY, missingRelatives } from "../lib/cellLineage";
 import { timeTicks } from "../lib/timeTicks";
+import { path, verticalScale } from "../lib/chartScale";
 import { fetchCellTrack, NothingPublished } from "../api";
 import { onWake } from "../lib/wakeup";
 import CellLineage from "./CellLineage.svelte";
@@ -120,9 +121,7 @@ $: sources = sourcesOf(selection);
  * shared clock they answer the same question (is the core strengthening while
  * the cloud collapses?) without either line being able to lie about the other.
  *
- * A bare sparkline with no scale can say "went up a bit" and nothing more: a
- * rise from 48 to 52 dBZ and one from 30 to 62 draw the identical line,
- * because both are normalised to the box.
+ * Each with a scale of its own (lib/chartScale.ts).
  *
  * Still hand-drawn rather than handed to a chart library. This is one popup
  * with two dozen points in it, and the app already pays for one map renderer.
@@ -135,67 +134,6 @@ const CHART = {
 const AXIS_ROOM = 16;
 
 const plot = { x0: CHART.left, x1: CHART.width - CHART.right };
-
-/** Tick values at 1, 2, 2.5 or 5 times a power of ten, whichever fits. */
-function niceTicks(min: number, max: number, target = 4): number[] {
-  const span = max - min || 1;
-  const rough = span / target;
-  const magnitude = 10 ** Math.floor(Math.log10(rough));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= rough)
-    ?? 10 * magnitude;
-  const ticks: number[] = [];
-  for (let v = Math.ceil(min / step) * step; v <= max + step / 1000; v += step) {
-    ticks.push(Math.round(v * 1000) / 1000);
-  }
-  return ticks;
-}
-
-interface Scale {
-  min: number;
-  max: number;
-  ticks: number[];
-  at: (value: number) => number;
-}
-
-/** A vertical scale over `values`, padded out to whole ticks. */
-function verticalScale(values: number[], y0: number, y1: number, target = 4): Scale | null {
-  const real = values.filter((v) => Number.isFinite(v));
-  if (real.length < 2) return null;
-  const low = Math.min(...real);
-  const high = Math.max(...real);
-  // A flat series still needs a box to sit in, or every point lands on one row.
-  const pad = (high - low || Math.max(Math.abs(high) * 0.1, 1)) * 0.15;
-  const ticks = niceTicks(low - pad, high + pad, target);
-  const min = Math.min(low - pad, ticks[0]);
-  const max = Math.max(high + pad, ticks[ticks.length - 1]);
-  return {
-    min,
-    max,
-    ticks,
-    at: (value: number) => y0 + ((value - min) / (max - min)) * (y1 - y0),
-  };
-}
-
-/** Points along a series, skipping steps where that series is missing. */
-function path(
-  steps: Array<{ t: number; v: number | null | undefined }>,
-  atX: (t: number) => number,
-  scale: Scale | null,
-): string {
-  if (!scale) return "";
-  let open = false;
-  return steps
-    .map(({ t, v }) => {
-      if (v === null || v === undefined || !Number.isFinite(v)) {
-        open = false;
-        return "";
-      }
-      const command = open ? "L" : "M";
-      open = true;
-      return `${command}${atX(t).toFixed(1)},${scale.at(v).toFixed(1)}`;
-    })
-    .join("");
-}
 
 /* ---- what is known of this storm ---------------------------------------- */
 

@@ -51,10 +51,12 @@ export const isLocal = (url: URL): boolean => url.hostname === "localhost" || ur
  * Where an answer is kept: by method and path. The query is left out on
  * purpose: it carries the viewport and the time (`cells/tracks?bbox=…&since=…`),
  * which differ from run to run, and one answer per endpoint is what a test
- * needs.
+ * needs. So is a weather station's id: which station a test taps depends on
+ * the map, and one station's history answers for any.
  */
 export function fixtureFile(method: string, url: URL): string {
-  const name = `${method} ${url.pathname}`.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  const where = url.pathname.replace(/^\/stations\/\d+\/observations$/, "/stations/station/observations");
+  const name = `${method} ${where}`.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
   return path.join(API_DIR, `${name}.json`);
 }
 

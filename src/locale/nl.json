@@ -961,10 +961,42 @@
       "pressure": "Luchtdruk op zeeniveau"
     },
     "sheet": {
-      "height": "Hoogte",
-      "observed": "Gemeten",
+      "place": "{state} · {height} m · gemeten {time}",
+      "latest": "Nieuwste waarden",
       "none": "Geen waarden van dit station.",
       "source": "Gegevens: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Verloop",
+      "window": {
+        "group": "Periode",
+        "day": "24 u",
+        "three_days": "3 dagen",
+        "week": "7 dagen"
+      },
+      "panel": {
+        "temperature": "Temperatuur en dauwpunt",
+        "precipitation": "Neerslag",
+        "sunshine": "Zonneschijn",
+        "humidity": "Luchtvochtigheid",
+        "pressure": "Luchtdruk op zeeniveau",
+        "wind": "Wind en windstoten",
+        "direction": "Windrichting"
+      },
+      "stat": {
+        "max": "max",
+        "min": "min",
+        "mean": "gem.",
+        "total": "totaal",
+        "change": "verandering",
+        "gust": "zwaarste windstoot"
+      },
+      "series": {
+        "dew_point": "dauwpunt",
+        "gusts": "windstoot"
+      },
+      "aria": "{title} over de periode, in {unit}",
+      "none": "Geen verloop van dit station."
     }
   }
 }

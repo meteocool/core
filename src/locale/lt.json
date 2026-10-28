@@ -913,10 +913,42 @@
       "pressure": "Slėgis jūros lygyje"
     },
     "sheet": {
-      "height": "Aukštis",
-      "observed": "Išmatuota",
+      "place": "{state} · {height} m · išmatuota {time}",
+      "latest": "Naujausios reikšmės",
       "none": "Iš šios stoties verčių nėra.",
       "source": "Duomenys: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Istorija",
+      "window": {
+        "group": "Laikotarpis",
+        "day": "24 val.",
+        "three_days": "3 dienos",
+        "week": "7 dienos"
+      },
+      "panel": {
+        "temperature": "Temperatūra ir rasos taškas",
+        "precipitation": "Krituliai",
+        "sunshine": "Saulės spindėjimas",
+        "humidity": "Drėgmė",
+        "pressure": "Slėgis jūros lygyje",
+        "wind": "Vėjas ir gūsiai",
+        "direction": "Vėjo kryptis"
+      },
+      "stat": {
+        "max": "maks.",
+        "min": "min.",
+        "mean": "vidurkis",
+        "total": "iš viso",
+        "change": "pokytis",
+        "gust": "stipriausias gūsis"
+      },
+      "series": {
+        "dew_point": "rasos taškas",
+        "gusts": "gūsis"
+      },
+      "aria": "{title} per laikotarpį, {unit}",
+      "none": "Šios stoties istorijos nėra."
     }
   }
 }

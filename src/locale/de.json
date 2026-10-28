@@ -961,10 +961,42 @@
       "pressure": "Luftdruck auf Meereshöhe"
     },
     "sheet": {
-      "height": "Höhe",
-      "observed": "Gemessen",
+      "place": "{state} · {height} m · gemessen {time}",
+      "latest": "Neueste Werte",
       "none": "Keine Werte von dieser Station.",
       "source": "Daten: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Verlauf",
+      "window": {
+        "group": "Zeitraum",
+        "day": "24 h",
+        "three_days": "3 Tage",
+        "week": "7 Tage"
+      },
+      "panel": {
+        "temperature": "Temperatur und Taupunkt",
+        "precipitation": "Niederschlag",
+        "sunshine": "Sonnenschein",
+        "humidity": "Luftfeuchte",
+        "pressure": "Luftdruck auf Meereshöhe",
+        "wind": "Wind und Böen",
+        "direction": "Windrichtung"
+      },
+      "stat": {
+        "max": "max",
+        "min": "min",
+        "mean": "Mittel",
+        "total": "Summe",
+        "change": "Änderung",
+        "gust": "stärkste Böe"
+      },
+      "series": {
+        "dew_point": "Taupunkt",
+        "gusts": "Böe"
+      },
+      "aria": "{title} im Zeitraum, in {unit}",
+      "none": "Kein Verlauf von dieser Station."
     }
   }
 }

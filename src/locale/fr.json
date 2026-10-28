@@ -961,10 +961,42 @@
       "pressure": "Pression au niveau de la mer"
     },
     "sheet": {
-      "height": "Altitude",
-      "observed": "Mesuré",
+      "place": "{state} · {height} m · mesuré à {time}",
+      "latest": "Dernières valeurs",
       "none": "Aucune valeur de cette station.",
       "source": "Données : Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Historique",
+      "window": {
+        "group": "Période",
+        "day": "24 h",
+        "three_days": "3 jours",
+        "week": "7 jours"
+      },
+      "panel": {
+        "temperature": "Température et point de rosée",
+        "precipitation": "Précipitations",
+        "sunshine": "Ensoleillement",
+        "humidity": "Humidité",
+        "pressure": "Pression au niveau de la mer",
+        "wind": "Vent et rafales",
+        "direction": "Direction du vent"
+      },
+      "stat": {
+        "max": "max",
+        "min": "min",
+        "mean": "moyenne",
+        "total": "total",
+        "change": "variation",
+        "gust": "rafale max"
+      },
+      "series": {
+        "dew_point": "point de rosée",
+        "gusts": "rafale"
+      },
+      "aria": "{title} sur la période, en {unit}",
+      "none": "Pas d'historique pour cette station."
     }
   }
 }

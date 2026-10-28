@@ -961,10 +961,42 @@
       "pressure": "Tlak přepočtený na hladinu moře"
     },
     "sheet": {
-      "height": "Výška",
-      "observed": "Měřeno",
+      "place": "{state} · {height} m · měřeno {time}",
+      "latest": "Nejnovější hodnoty",
       "none": "Z této stanice nejsou žádné hodnoty.",
       "source": "Data: Deutscher Wetterdienst (CC BY 4.0)"
+    },
+    "history": {
+      "title": "Průběh",
+      "window": {
+        "group": "Období",
+        "day": "24 h",
+        "three_days": "3 dny",
+        "week": "7 dní"
+      },
+      "panel": {
+        "temperature": "Teplota a rosný bod",
+        "precipitation": "Srážky",
+        "sunshine": "Sluneční svit",
+        "humidity": "Vlhkost",
+        "pressure": "Tlak na hladině moře",
+        "wind": "Vítr a nárazy",
+        "direction": "Směr větru"
+      },
+      "stat": {
+        "max": "max",
+        "min": "min",
+        "mean": "průměr",
+        "total": "úhrn",
+        "change": "změna",
+        "gust": "nejsilnější náraz"
+      },
+      "series": {
+        "dew_point": "rosný bod",
+        "gusts": "náraz"
+      },
+      "aria": "{title} za období, v {unit}",
+      "none": "Z této stanice není k dispozici průběh."
     }
   }
 }
