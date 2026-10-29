@@ -262,7 +262,7 @@ test("the picker floats over the player, which does not grow, and what stacks ov
   expect((await player.boundingBox())!.y - (lowered.y + lowered.height)).toBeLessThan(16);
 });
 
-test("a notice strip over the player stands on the picker", async ({ page }) => {
+test("the picker stands on a notice strip over the player", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("layerStations", "true"));
   await openRadar(page, "/?layer=radar&latLonZ=44.43000,26.10000,10.00");
   const pill = page.locator(".stationPicker");
@@ -270,7 +270,8 @@ test("a notice strip over the player stands on the picker", async ({ page }) => 
   const strip = page.locator(".strip-dock");
   await expect(page.getByText("No Radar Here Yet")).toBeVisible();
   await settled(strip);
-  expect(below((await strip.boundingBox())!, (await pill.boundingBox())!)).toBe(true);
+  // The strip is about the map, the picker about how it is read: the strip next to the player.
+  expect(below((await pill.boundingBox())!, (await strip.boundingBox())!)).toBe(true);
 });
 
 test.describe("on a phone", () => {
