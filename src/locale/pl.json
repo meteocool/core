@@ -942,6 +942,7 @@
     "toggle": "Pokaż stacje pogodowe",
     "observed": "Pomiar {time}",
     "none": "Brak pomiarów",
+    "close": "Ukryj stacje pogodowe",
     "choice": {
       "group": "Parametr",
       "wind": "Wiatr",

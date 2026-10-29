@@ -894,6 +894,7 @@
     "toggle": "Vis vejrstationer",
     "observed": "Målt {time}",
     "none": "Ingen målinger",
+    "close": "Skjul vejrstationerne",
     "choice": {
       "group": "Parameter",
       "wind": "Vind",

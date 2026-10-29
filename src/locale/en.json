@@ -942,6 +942,7 @@
     "toggle": "Show the weather stations",
     "observed": "Measured {time}",
     "none": "No observations",
+    "close": "Hide the weather stations",
     "choice": {
       "group": "Station parameter",
       "wind": "Wind",

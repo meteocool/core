@@ -894,6 +894,7 @@
     "toggle": "Prikaži meteorološke postaje",
     "observed": "Izmjereno {time}",
     "none": "Nema mjerenja",
+    "close": "Sakrij meteorološke postaje",
     "choice": {
       "group": "Parametar",
       "wind": "Vjetar",

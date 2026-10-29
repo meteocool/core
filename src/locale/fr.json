@@ -942,6 +942,7 @@
     "toggle": "Afficher les stations météo",
     "observed": "Mesuré à {time}",
     "none": "Aucune observation",
+    "close": "Masquer les stations météo",
     "choice": {
       "group": "Paramètre",
       "wind": "Vent",

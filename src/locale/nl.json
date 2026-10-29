@@ -942,6 +942,7 @@
     "toggle": "Weerstations tonen",
     "observed": "Gemeten {time}",
     "none": "Geen waarnemingen",
+    "close": "Weerstations verbergen",
     "choice": {
       "group": "Parameter",
       "wind": "Wind",

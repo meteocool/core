@@ -894,6 +894,7 @@
     "toggle": "Näita ilmajaamu",
     "observed": "Mõõdetud {time}",
     "none": "Mõõtmisi pole",
+    "close": "Peida ilmajaamad",
     "choice": {
       "group": "Näitaja",
       "wind": "Tuul",

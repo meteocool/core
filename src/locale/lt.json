@@ -894,6 +894,7 @@
     "toggle": "Rodyti meteorologijos stotis",
     "observed": "Išmatuota {time}",
     "none": "Matavimų nėra",
+    "close": "Slėpti meteorologijos stotis",
     "choice": {
       "group": "Parametras",
       "wind": "Vėjas",

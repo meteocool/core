@@ -942,6 +942,7 @@
     "toggle": "Zobraziť meteostanice",
     "observed": "Namerané {time}",
     "none": "Žiadne merania",
+    "close": "Skryť meteorologické stanice",
     "choice": {
       "group": "Veličina",
       "wind": "Vietor",

@@ -894,6 +894,7 @@
     "toggle": "Näytä sääasemat",
     "observed": "Mitattu {time}",
     "none": "Ei havaintoja",
+    "close": "Piilota sääasemat",
     "choice": {
       "group": "Suure",
       "wind": "Tuuli",

@@ -942,6 +942,7 @@
     "toggle": "Wetterstationen zeigen",
     "observed": "Gemessen {time}",
     "none": "Keine Messwerte",
+    "close": "Wetterstationen ausblenden",
     "choice": {
       "group": "Messgröße",
       "wind": "Wind",

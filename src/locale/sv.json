@@ -894,6 +894,7 @@
     "toggle": "Visa väderstationer",
     "observed": "Uppmätt {time}",
     "none": "Inga observationer",
+    "close": "Dölj väderstationerna",
     "choice": {
       "group": "Parameter",
       "wind": "Vind",
