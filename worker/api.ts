@@ -33,8 +33,15 @@ const LEGACY_PATHS = new Set(["/post_location", "/clear_notification", "/unregis
 /** The versioned routes that replace them. */
 const PREFIXES = ["/v3/mobile/", "/v3/telemetry/"];
 
+/** A phone's storm log, read and wiped by its push token (GET and DELETE). */
+const TOKEN_PATHS = new Set(["/v4/storm-log"]);
+
 export function isAppApiPath(pathname: string): boolean {
-  return LEGACY_PATHS.has(pathname) || PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return (
+    LEGACY_PATHS.has(pathname) ||
+    TOKEN_PATHS.has(pathname) ||
+    PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  );
 }
 
 /** The API's read-only routes the apps call, forwarded for GET only. */
@@ -50,7 +57,13 @@ export function isPreviewRead(method: string, pathname: string): boolean {
 }
 
 /** The data service's routes the AR view reads. */
-const DATA_PATHS = new Set(["/cells/volumes", "/cells/current", "/cells/tracks", "/lightning_cache", "/mesocyclones/all/"]);
+const DATA_PATHS = new Set([
+  "/cells/volumes",
+  "/cells/current",
+  "/cells/tracks",
+  "/lightning_cache",
+  "/mesocyclones/all/",
+]);
 
 export function isAppDataPath(pathname: string): boolean {
   return DATA_PATHS.has(pathname) || /^\/cells\/tracks\/\d{22}$/.test(pathname);
@@ -62,7 +75,8 @@ export function isAppDataPath(pathname: string): boolean {
  * storm's peak (`G`) or a cell (`R`) before them, as `lib/deepLink.ts` reads
  * them. Nothing else under the asset host is redirected.
  */
-const VOLUME_PATH = /^\/meteoradar\/volumes\/\d{8}T\d{6}\/(?:[a-z]{2}-)?(?:T\d{12}|G\d{10}|R\d{1,12})\.mcvx$/;
+const VOLUME_PATH =
+  /^\/meteoradar\/volumes\/\d{8}T\d{6}\/(?:[a-z]{2}-)?(?:T\d{12}|G\d{10}|R\d{1,12})\.mcvx$/;
 
 export function isVolumePath(pathname: string): boolean {
   return VOLUME_PATH.test(pathname);

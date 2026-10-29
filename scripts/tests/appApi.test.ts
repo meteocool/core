@@ -17,13 +17,29 @@ import {
  */
 
 test("the apps' API routes are forwarded", () => {
-  for (const path of ["/post_location", "/clear_notification", "/unregister", "/v3/mobile/location", "/v3/telemetry/pressure"]) {
+  for (const path of [
+    "/post_location",
+    "/clear_notification",
+    "/unregister",
+    "/v3/mobile/location",
+    "/v3/telemetry/pressure",
+    "/v4/storm-log",
+  ]) {
     assert.ok(isAppApiPath(path), path);
   }
 });
 
 test("the map's pages and assets are not", () => {
-  for (const path of ["/", "/ios.html", "/assets/index.js", "/v3/radar", "/v3/mobile", "/post_location/x", "/sw.js"]) {
+  for (const path of [
+    "/",
+    "/ios.html",
+    "/assets/index.js",
+    "/v3/radar",
+    "/v3/mobile",
+    "/post_location/x",
+    "/v4/storm-log/x",
+    "/sw.js",
+  ]) {
     assert.ok(!isAppApiPath(path), path);
   }
 });
@@ -43,7 +59,10 @@ test("a forwarded request keeps its method, body, headers and query", async () =
 });
 
 test("the path cannot escape the API origin", () => {
-  const forwarded = appApiRequest(new Request("https://app.meteocool.com//evil.example/post_location"), "https://api-next.meteocool.com");
+  const forwarded = appApiRequest(
+    new Request("https://app.meteocool.com//evil.example/post_location"),
+    "https://api-next.meteocool.com",
+  );
   assert.equal(new URL(forwarded.url).host, "api-next.meteocool.com");
 });
 
@@ -54,7 +73,13 @@ test("the Live Activity's reads are forwarded, for GET only", () => {
     assert.ok(!isAppApiRead(method, "/v3/radar/timeseries"), method);
     assert.ok(!isPreviewRead(method, "/v3/preview/og.png"), method);
   }
-  for (const path of ["/v3/radar", "/v3/radar/timeseries/x", "/v3/radar/frames", "/v3/preview", "/v3/previews/og.png"]) {
+  for (const path of [
+    "/v3/radar",
+    "/v3/radar/timeseries/x",
+    "/v3/radar/frames",
+    "/v3/preview",
+    "/v3/previews/og.png",
+  ]) {
     assert.ok(!isAppApiRead("GET", path), path);
     assert.ok(!isPreviewRead("GET", path), path);
   }
@@ -65,24 +90,44 @@ test("a forwarded read keeps its path and query", () => {
     new Request("https://app.meteocool.com/v3/radar/timeseries?lat=48.137&lon=11.575"),
     "https://api-next.meteocool.com",
   );
-  assert.equal(timeseries.url, "https://api-next.meteocool.com/v3/radar/timeseries?lat=48.137&lon=11.575");
+  assert.equal(
+    timeseries.url,
+    "https://api-next.meteocool.com/v3/radar/timeseries?lat=48.137&lon=11.575",
+  );
   // The preview Worker picks the frontend by this hostname, and the card by the
   // query, commas and all.
   const preview = appApiRequest(
-    new Request("https://app.meteocool.com/v3/preview/og.png?latLonZ=48.137,11.575,9.5&aspectRatio=square&logo=false"),
+    new Request(
+      "https://app.meteocool.com/v3/preview/og.png?latLonZ=48.137,11.575,9.5&aspectRatio=square&logo=false",
+    ),
     "https://api-demo.meteocool.com",
   );
-  assert.equal(preview.url,
-    "https://api-demo.meteocool.com/v3/preview/og.png?latLonZ=48.137,11.575,9.5&aspectRatio=square&logo=false");
+  assert.equal(
+    preview.url,
+    "https://api-demo.meteocool.com/v3/preview/og.png?latLonZ=48.137,11.575,9.5&aspectRatio=square&logo=false",
+  );
   assert.equal(preview.method, "GET");
 });
 
 test("the AR view's data routes are forwarded, and nothing else of the data service", () => {
-  for (const path of ["/cells/volumes", "/cells/current", "/cells/tracks", "/cells/tracks/2026100402050000012345",
-    "/lightning_cache", "/mesocyclones/all/"]) {
+  for (const path of [
+    "/cells/volumes",
+    "/cells/current",
+    "/cells/tracks",
+    "/cells/tracks/2026100402050000012345",
+    "/lightning_cache",
+    "/mesocyclones/all/",
+  ]) {
     assert.ok(isAppDataPath(path), path);
   }
-  for (const path of ["/cells", "/cells/tracks/abc", "/cells/volumes/x", "/mesocyclones/7", "/ios.html", "/sw.js"]) {
+  for (const path of [
+    "/cells",
+    "/cells/tracks/abc",
+    "/cells/volumes/x",
+    "/mesocyclones/7",
+    "/ios.html",
+    "/sw.js",
+  ]) {
     assert.ok(!isAppDataPath(path), path);
   }
 });
@@ -94,17 +139,25 @@ test("only storm volumes are redirected to the asset host", () => {
   assert.ok(isVolumePath("/meteoradar/volumes/20261005T015000/de-T100053300344.mcvx"));
   assert.ok(isVolumePath("/meteoradar/volumes/20261005T015000/fr-T110106600689.mcvx"));
   assert.ok(isVolumePath("/meteoradar/volumes/20261005T015000/de-T090026600172.mcvx"));
-  for (const path of ["/meteoradar/abc/1/2/3.png", "/meteoradar/volumes/20261004T020500/../x.mcvx",
-    "/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx/x", "/meteonowcast/volumes/20261004T020500/de-G1374918628.mcvx",
-    "/meteoradar/volumes/20261005T015000/de-T1000533003.mcvx", "/meteoradar/volumes/20261005T015000/de-T10005330034412.mcvx"]) {
+  for (const path of [
+    "/meteoradar/abc/1/2/3.png",
+    "/meteoradar/volumes/20261004T020500/../x.mcvx",
+    "/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx/x",
+    "/meteonowcast/volumes/20261004T020500/de-G1374918628.mcvx",
+    "/meteoradar/volumes/20261005T015000/de-T1000533003.mcvx",
+    "/meteoradar/volumes/20261005T015000/de-T10005330034412.mcvx",
+  ]) {
     assert.ok(!isVolumePath(path), path);
   }
   const response = volumeRedirect(
-    new Request("https://app.meteocool.com/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx?x=1"),
+    new Request(
+      "https://app.meteocool.com/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx?x=1",
+    ),
     "https://assets-staging.meteocool.com",
   );
   assert.equal(response.status, 302);
-  assert.equal(response.headers.get("Location"),
-    "https://assets-staging.meteocool.com/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx");
+  assert.equal(
+    response.headers.get("Location"),
+    "https://assets-staging.meteocool.com/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx",
+  );
 });
-
