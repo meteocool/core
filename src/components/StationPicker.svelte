@@ -15,9 +15,10 @@
  * sideways, its edges fading out. The choice is remembered through
  * `stationChoice` (the setting `stationParameter`, App.svelte).
  *
- * After the clock, how long ago that was, counting up while the pill is
- * up: on the timeline's past frames "03:20" alone leaves the reader to do the
- * sum. At the end, a way out that switches the stations off, as an open
+ * After the parameters, how long ago what is on the map was measured,
+ * counting up while the pill is up: the question is how fresh it is, and
+ * "03:20" alone leaves the reader to do the sum. A tap swaps it for the
+ * clock, and another back. At the end, a way out that switches the stations off, as an open
  * radar's pill has (SiteSweepTray), outside the scroller so it never
  * scrolls out of reach.
  */
@@ -51,6 +52,9 @@ $: status = $stationView
 
 const hide = () => stationLayerVisible.set(false);
 
+/** Whether the tap has swapped the age for the clock. */
+let showClock = false;
+
 onMount(() => document.documentElement.classList.add("stations-picker"));
 onDestroy(() => {
   document.documentElement.classList.remove("stations-picker");
@@ -65,11 +69,12 @@ onDestroy(() => {
       <span class="row">
         <Segmented {options} bind:value={$stationChoice} label={$_("stations.choice.group")} compact />
         {#if $stationView}
-          <span class="status" title={status} aria-live="polite">
-            <span class="sr">{status}</span>
-            <span aria-hidden="true">{time ?? "–"}</span>
-            {#if time && age}<span class="age" aria-hidden="true">{age}</span>{/if}
-          </span>
+          <!-- Announced when the frame's time changes, not as the age counts up. -->
+          <span class="sr" aria-live="polite">{time ? $_("stations.observed", { values: { time } }) : $_("stations.none")}</span>
+          <button type="button" class="status" title={status} aria-label={status}
+            aria-pressed={showClock} disabled={!time} on:click={() => { showClock = !showClock; }}>
+            <span aria-hidden="true">{(showClock ? time : age) ?? "–"}</span>
+          </button>
         {/if}
       </span>
     </div>
@@ -129,20 +134,35 @@ onDestroy(() => {
   .row :global(.segmented.compact) {
     touch-action: pan-x;
   }
+  /* The age, or the clock: in the accent, as what a tap changes is. */
   .status {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    padding-right: 4px;
+    height: 30px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: none;
     color: var(--mc-accent);
     font: 600 12px/1 var(--mc-font);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--mc-motion-fast), transform var(--mc-motion-fast) var(--mc-ease);
   }
-  /* How long ago, quieter than the clock it qualifies. */
-  .age {
+  .status:hover { background: var(--mc-tint); }
+  .status:active {
+    background: var(--mc-tint-active);
+    transform: scale(var(--mc-press));
+  }
+  .status:focus-visible {
+    outline: 2px solid var(--mc-accent);
+    outline-offset: 2px;
+  }
+  .status:disabled {
     color: var(--mc-text-2);
-    font-weight: 500;
+    cursor: default;
+    background: none;
+    transform: none;
   }
   /* The way out, as an open radar's pill has it (SiteSweepTray): a disc the
      segments' height, its glyph quiet until it is pointed at. */

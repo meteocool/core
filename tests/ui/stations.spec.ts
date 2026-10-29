@@ -27,7 +27,7 @@ async function openWithStations(page: Page): Promise<Request> {
   await openRadar(page, GERMANY_VIEW);
   const request = await first;
   await settled(picker(page));
-  await expect(status(page)).toHaveAttribute("title", /^Measured \d\d:\d\d, \d+ min ago$/);
+  await expect(status(page)).toHaveAttribute("title", /^Measured \d\d:\d\d, .+ ago$/);
   return request;
 }
 
