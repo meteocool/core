@@ -937,6 +937,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Tato stanice v poslední době nic nehlásila."
+    },
     "title": "Meteostanice",
     "pill": "Stanice",
     "toggle": "Zobrazit meteostanice",

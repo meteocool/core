@@ -75,3 +75,16 @@ test("an age is said in minutes, then hours, then days", () => {
   assert.deepEqual(linkAge(3 * 86400 + 3600), [3, "day"]);
   assert.deepEqual(linkAge(-30), [0, "minute"]);
 });
+
+test("a shared link says every overlay and what the stations show, as the address bar does", () => {
+  const url = shareUrl("https://app.meteocool.com", {
+    layer: "radar",
+    overlays: { cells: true, lightning: true, mesocyclones: true, sites: true, stations: true },
+    product: "hx",
+    hide: [],
+    stationParameter: "temperature",
+  }, NOW);
+  assert.equal(url, "https://app.meteocool.com/?layer=radar&overlays=cells,lightning,mesocyclones,sites,stations"
+    + "&product=hx&hide=none&stationParameter=temperature&shared=20261006T1234Z");
+  assert.equal(parseLink(new URL(url).search).stationParameter, "temperature");
+});

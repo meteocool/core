@@ -99,7 +99,7 @@ test("a radar state with a cell, overlays and a point round-trips", () => {
   const state: LinkState = {
     layer: "radar",
     view: { lat: 48.1, lon: 11.5, zoom: 8 },
-    overlays: ["cells", "mesocyclones"],
+    overlays: { cells: true, lightning: false, mesocyclones: true },
     cell: CELL,
     details: false,
     point: [48.2, 11.6],
@@ -157,11 +157,12 @@ test("angles are folded, so one direction has one spelling", () => {
 });
 
 test("overlays: a list, none, and a typo", () => {
-  assert.deepEqual(parseLink("?overlays=lightning,cells").overlays, ["cells", "lightning"]);
-  assert.deepEqual(parseLink("?overlays=none").overlays, []);
+  assert.deepEqual(parseLink("?overlays=lightning,cells").overlays, { cells: true, lightning: true, mesocyclones: false });
+  assert.deepEqual(parseLink("?overlays=none").overlays, { cells: false, lightning: false, mesocyclones: false });
   // Naming nothing the app has is not the same as turning everything off.
   assert.equal(parseLink("?overlays=lightnin").overlays, undefined);
-  assert.equal(linkSearch("", { overlays: [] }), "?overlays=none");
+  assert.equal(linkSearch("", { overlays: { cells: false, lightning: false, mesocyclones: false } }),
+    "?overlays=-cells,-lightning,-mesocyclones");
 });
 
 test("a track code has to be safe as a path segment", () => {
@@ -177,7 +178,7 @@ test("a layer name is a plain word; whether it exists is not decided here", () =
 test("switching map or storm is navigation; adjusting the view is not", () => {
   const here: LinkState = { layer: "radar", view: { lat: 48, lon: 11, zoom: 8 } };
   assert.equal(isNavigation(here, { ...here, view: { lat: 49, lon: 11, zoom: 9 } }), false);
-  assert.equal(isNavigation(here, { ...here, overlays: [] }), false);
+  assert.equal(isNavigation(here, { ...here, overlays: { cells: false } }), false);
   assert.equal(isNavigation(here, { ...here, layer: "cells3d" }), true);
   assert.equal(isNavigation(here, { ...here, cell: CELL }), true);
   assert.equal(isNavigation({ ...here, cell: CELL }, here), true);
@@ -257,4 +258,203 @@ test("opening, switching or closing a radar is a step Back undoes; turning its t
   assert.equal(isNavigation(at("deoft"), at("frave")), true);
   assert.equal(isNavigation(at("deoft"), at()), true);
   assert.equal(isNavigation(at("deoft"), at("deoft", 1.5)), false);
+});
+
+/* ---- what the map shows: overlays, product, marks, stations ------------- */
+
+/** Every overlay of the radar map, as a link from it names them. */
+const RADAR_OVERLAYS = { cells: true, lightning: true, mesocyclones: true, sites: true, stations: false } as const;
+
+test("a link made now names every overlay of its map, the ones off with a minus", () => {
+  const search = linkSearch("", { layer: "radar", overlays: RADAR_OVERLAYS });
+  assert.equal(search, "?layer=radar&overlays=cells,lightning,mesocyclones,sites,-stations");
+  assert.deepEqual(parseLink(search).overlays, RADAR_OVERLAYS);
+});
+
+test("an overlay a link made now names as off is off, not the receiver's own", () => {
+  const { overlays } = parseLink("?overlays=cells,lightning,mesocyclones,sites,-stations");
+  assert.equal(overlays?.stations, false);
+});
+
+test("an old link's list keeps its meaning: the first three it names on, the rest of those three off", () => {
+  assert.deepEqual(parseLink("?overlays=cells,mesocyclones").overlays, { cells: true, lightning: false, mesocyclones: true });
+});
+
+test("an old link leaves the overlays added since to the receiver", () => {
+  const { overlays } = parseLink("?overlays=cells,lightning");
+  assert.equal("stations" in overlays!, false);
+  assert.equal("sites" in overlays!, false);
+  assert.equal("tiers" in overlays!, false);
+  assert.equal("stations" in parseLink("?overlays=none").overlays!, false);
+});
+
+test("a link without overlays leaves every one to the receiver", () => {
+  assert.equal(parseLink("?layer=radar&latLonZ=48,11,8").overlays, undefined);
+});
+
+test("a list that names a newer overlay leaves any overlay it does not name to the receiver", () => {
+  // The 3D map's own: the radar map's are not its business.
+  assert.deepEqual(parseLink("?layer=cells3d&overlays=-tiers").overlays, { tiers: false });
+  assert.deepEqual(parseLink("?overlays=stations").overlays, { stations: true });
+});
+
+test("names the app does not have are ignored, and a list of nothing else is dropped", () => {
+  assert.deepEqual(parseLink("?overlays=-stationz,sites").overlays, { sites: true });
+  assert.equal(parseLink("?overlays=-fronts").overlays, undefined);
+  assert.equal(parseLink("?overlays=-").overlays, undefined);
+});
+
+test("the radar product round-trips, and one the app does not have is dropped", () => {
+  assert.equal(linkSearch("", { layer: "radar", product: "colmax" }), "?layer=radar&product=colmax");
+  assert.equal(parseLink("?product=colmax").product, "colmax");
+  assert.equal(parseLink("?product=hx").product, "hx");
+  assert.equal(parseLink("?product=rainbow").product, undefined);
+});
+
+test("the storm marks put away round-trip in the key's order, and nothing put away is none", () => {
+  const search = linkSearch("", { hide: ["path", "weak"] });
+  assert.equal(search, "?hide=weak,path");
+  assert.deepEqual(parseLink(search).hide, ["weak", "path"]);
+  assert.equal(linkSearch("", { hide: [] }), "?hide=none");
+  assert.deepEqual(parseLink("?hide=none").hide, []);
+});
+
+test("a list of storm marks naming none the key has is dropped, and unknown ones in it are ignored", () => {
+  assert.equal(parseLink("?hide=tornado").hide, undefined);
+  assert.deepEqual(parseLink("?hide=tornado,hail").hide, ["hail"]);
+});
+
+test("the stations' parameter round-trips with the stations on", () => {
+  const state: LinkState = { layer: "radar", overlays: { ...RADAR_OVERLAYS, stations: true }, stationParameter: "temperature" };
+  const search = linkSearch("", state);
+  assert.equal(search, "?layer=radar&overlays=cells,lightning,mesocyclones,sites,stations&stationParameter=temperature");
+  assert.deepEqual(parseLink(search), state);
+});
+
+test("the stations' parameter is neither written nor read with the stations off or unnamed", () => {
+  assert.equal(linkSearch("", { overlays: RADAR_OVERLAYS, stationParameter: "temperature" }),
+    "?overlays=cells,lightning,mesocyclones,sites,-stations");
+  assert.equal(parseLink("?overlays=-stations&stationParameter=temperature").stationParameter, undefined);
+  assert.equal(parseLink("?stationParameter=temperature").stationParameter, undefined);
+});
+
+test("a stations' parameter the stations do not have is dropped", () => {
+  assert.equal(parseLink("?overlays=stations&stationParameter=snow").stationParameter, undefined);
+});
+
+test("a station's sheet round-trips, and brings the stations' parameter with it", () => {
+  const state: LinkState = { layer: "radar", stationParameter: "pressure", station: "02290" };
+  const search = linkSearch("", state);
+  assert.equal(search, "?layer=radar&stationParameter=pressure&station=02290");
+  assert.deepEqual(parseLink(search), state);
+});
+
+test("a station's id has to be safe as a path segment", () => {
+  assert.equal(parseLink("?station=../../admin").station, undefined);
+  assert.equal(parseLink("?station=a%2Fb").station, undefined);
+  assert.equal(parseLink("?station=").station, undefined);
+});
+
+test("a storm beside a station's sheet or the model comparison is the one opened", () => {
+  const state = parseLink(`?storm=${STORM}&station=02290&compare=48.1,11.5`);
+  assert.equal(state.storm, STORM);
+  assert.equal(state.station, undefined);
+  assert.equal(state.compare, undefined);
+  assert.equal(linkSearch("", { cell: CELL, station: "02290", compare: [48.1, 11.5] }), `?cell=${CELL}`);
+});
+
+test("the model comparison's point round-trips, and one out of range is dropped", () => {
+  const search = linkSearch("", { layer: "radar", compare: [48.13715, 11.57612] });
+  assert.equal(search, "?layer=radar&compare=48.13715,11.57612");
+  assert.deepEqual(parseLink(search).compare, [48.13715, 11.57612]);
+  assert.equal(parseLink("?compare=95,11").compare, undefined);
+  assert.equal(parseLink("?compare=48").compare, undefined);
+});
+
+test("a hand's storm motion round-trips with SRV drawn, as the dial holds it", () => {
+  const state: LinkState = { layer: "radar", radar: { site: "deoft", quantity: "srv" }, motion: { headingDeg: 225, speedKmh: 40 } };
+  const search = linkSearch("", state);
+  assert.equal(search, "?layer=radar&radar=deoft&sweep=srv&motion=225,40");
+  assert.deepEqual(parseLink(search), state);
+  // Snapped to the dial's five degrees and whole km/h.
+  assert.deepEqual(parseLink("?radar=deoft&sweep=srv&motion=223,40.4").motion, { headingDeg: 225, speedKmh: 40 });
+});
+
+test("a storm motion without SRV drawn, or one that does not parse, is dropped", () => {
+  assert.equal(parseLink("?radar=deoft&sweep=velocity&motion=225,40").motion, undefined);
+  assert.equal(parseLink("?motion=225,40").motion, undefined);
+  assert.equal(parseLink("?radar=deoft&sweep=srv&motion=225").motion, undefined);
+  assert.equal(parseLink("?radar=deoft&sweep=srv&motion=225,-5").motion, undefined);
+  assert.equal(linkSearch("", { radar: { site: "deoft", quantity: "velocity" }, motion: { headingDeg: 0, speedKmh: 30 } }),
+    "?radar=deoft&sweep=velocity");
+});
+
+test("the 3D map's peel round-trips in hundredths, held between none and all", () => {
+  const search = linkSearch("", { layer: "cells3d", overlays: { tiers: false }, peel: 0.456 });
+  assert.equal(search, "?layer=cells3d&overlays=-tiers&peel=0.46");
+  assert.equal(parseLink(search).peel, 0.46);
+  assert.equal(parseLink("?peel=4").peel, 1);
+  assert.equal(parseLink("?peel=-1").peel, 0);
+  assert.equal(parseLink("?peel=deep").peel, undefined);
+});
+
+test("the peel means nothing beside an open storm", () => {
+  assert.equal(parseLink(`?cloud=20260924T194500/R39853139&peel=0.5`).peel, undefined);
+  assert.equal(linkSearch("", { cloud: PATH, peel: 0.5 }), "?cloud=20260924T194500/R39853139");
+});
+
+test("on the 3D map an earlier scan round-trips as the frame does", () => {
+  const scan = Date.UTC(2026, 9, 25, 14, 5) / 1000;
+  const search = linkSearch("", { layer: "cells3d", overlays: { tiers: true }, time: scan });
+  assert.equal(search, "?layer=cells3d&overlays=tiers&t=20261025T1405Z");
+  assert.equal(parseLink(search).time, scan);
+});
+
+test("opening, changing or closing a station's sheet or the model comparison is navigation", () => {
+  const here: LinkState = { layer: "radar" };
+  assert.equal(isNavigation(here, { ...here, station: "02290" }), true);
+  assert.equal(isNavigation({ ...here, station: "02290" }, { ...here, station: "10865" }), true);
+  assert.equal(isNavigation({ ...here, station: "02290" }, here), true);
+  assert.equal(isNavigation(here, { ...here, compare: [48.1, 11.5] }), true);
+  assert.equal(isNavigation({ ...here, compare: [48.1, 11.5] }, here), true);
+});
+
+test("changing what the map shows is not navigation", () => {
+  const here: LinkState = { layer: "radar", overlays: RADAR_OVERLAYS, product: "hx", hide: [] };
+  assert.equal(isNavigation(here, { ...here, overlays: { ...RADAR_OVERLAYS, stations: true }, stationParameter: "temperature" }), false);
+  assert.equal(isNavigation(here, { ...here, product: "merged" }), false);
+  assert.equal(isNavigation(here, { ...here, hide: ["weak"] }), false);
+});
+
+test("a whole radar link round-trips", () => {
+  const state: LinkState = {
+    layer: "radar",
+    view: { lat: 50.5, lon: 10, zoom: 8 },
+    overlays: { cells: true, lightning: false, mesocyclones: true, sites: true, stations: true },
+    product: "merged",
+    hide: ["weak", "forecast"],
+    stationParameter: "gusts",
+    time: Date.UTC(2026, 9, 25, 14, 5) / 1000,
+    point: [50.1, 9.9],
+    radar: { site: "deoft", quantity: "srv", tilt: 0.5 },
+    motion: { headingDeg: 60, speedKmh: 35 },
+    station: "02290",
+    compare: [50.1, 9.9],
+  };
+  assert.deepEqual(parseLink(linkSearch("", state)), state);
+});
+
+test("old links read exactly as they did, with none of the new choices in them", () => {
+  const old = `?layer=radar&latLonZ=48.13715,11.57612,8.00&overlays=cells,mesocyclones&t=20260924T1945Z&point=48.2,11.6&radar=deoft&sweep=srv&tilt=0.5`;
+  assert.deepEqual(parseLink(old), {
+    layer: "radar",
+    view: { lat: 48.13715, lon: 11.57612, zoom: 8 },
+    overlays: { cells: true, lightning: false, mesocyclones: true },
+    time: Date.UTC(2026, 8, 24, 19, 45) / 1000,
+    point: [48.2, 11.6],
+    radar: { site: "deoft", quantity: "srv", tilt: 0.5 },
+  });
+  assert.deepEqual(parseLink(`?layer=cells3d&cloud=20260924T194500/R39853139&cut=30&pitch=55&bearing=-30`), {
+    layer: "cells3d", pitch: 55, bearing: -30, cloud: PATH, cut: 30,
+  });
 });

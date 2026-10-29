@@ -937,6 +937,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "That station has not reported lately."
+    },
     "title": "Weather Stations",
     "pill": "Stations",
     "toggle": "Show the weather stations",

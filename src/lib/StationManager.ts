@@ -36,6 +36,15 @@ export default class StationManager {
 
   private shown = false;
 
+  /** The answer the stations on the map were drawn from; null before any. */
+  private answer: ObservedFeature[] | null = null;
+
+  /** Whether a question is out whose answer will replace `answer`. */
+  private asking = false;
+
+  /** `find`s waiting for that answer. */
+  private waiting: (() => void)[] = [];
+
   /** Bumped by every fetch, so an answer that lands after a newer question is dropped. */
   private generation = 0;
 
@@ -84,6 +93,32 @@ export default class StationManager {
     this.unsubscribers.push(zoomlevel.subscribe((zoom) => layer.thin(thinningCell(zoom), resolutionAt(zoom))));
   }
 
+  /**
+   * A station, by its id, as the map has it: from the answer on its way if
+   * one is, so it is for the parameter on show, else from the one drawn.
+   * Before the first answer (on load the stations are only asked for once
+   * the radar map is up), from that one, waiting `patienceMs` at most. Null
+   * for one that is not in it. What a link to a station's sheet opens.
+   */
+  find(id: string, patienceMs = 15_000): Promise<ObservedFeature | null> {
+    return new Promise((resolve) => {
+      const look = () => resolve(this.answer?.find((station) => station.properties.station === id) ?? null);
+      if (!this.asking && this.answer !== null) {
+        look();
+        return;
+      }
+      const wait = () => {
+        clearTimeout(timer);
+        look();
+      };
+      const timer = setTimeout(() => {
+        this.waiting = this.waiting.filter((other) => other !== wait);
+        resolve(null);
+      }, patienceMs);
+      this.waiting.push(wait);
+    });
+  }
+
   /** Coming back to the page: the newest stations, if they are shown. */
   resync() {
     if (this.shown) void this.fetch();
@@ -106,6 +141,7 @@ export default class StationManager {
   private async fetch() {
     const generation = ++this.generation;
     const { choice, at } = this;
+    this.asking = true;
     let stations: ObservedFeature[] | null;
     try {
       stations = (await fetchStationObservations(parametersFor(choice), at, STATIONS_MAX_AGE_MINUTES, this.bar)).features;
@@ -115,11 +151,19 @@ export default class StationManager {
       // for another choice and would now read as this one.
       stations = error instanceof NothingPublished || this.drawnChoice !== choice ? [] : null;
     }
-    if (generation !== this.generation || stations === null) return;
+    if (generation !== this.generation) return;
+    this.asking = false;
+    if (stations !== null) this.answer = stations;
+    const waiting = this.waiting.splice(0);
+    if (stations === null) {
+      waiting.forEach((look) => look());
+      return;
+    }
     this.layer.show(stations, choice);
     this.drawnChoice = choice;
     const newest = stations.reduce<number>((latest, station) => Math.max(latest, Date.parse(station.properties.observed_at)), 0);
     stationView.set({ count: stations.length, observedAt: newest > 0 ? new Date(newest) : null });
+    waiting.forEach((look) => look());
   }
 
   destroy() {

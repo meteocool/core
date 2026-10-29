@@ -937,6 +937,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Dat station heeft de laatste tijd niets gemeld."
+    },
     "title": "Weerstations",
     "pill": "Stations",
     "toggle": "Weerstations tonen",

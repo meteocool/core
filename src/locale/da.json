@@ -889,6 +889,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Den station har ikke meldt noget for nylig."
+    },
     "title": "Vejrstationer",
     "pill": "Stationer",
     "toggle": "Vis vejrstationer",

@@ -889,6 +889,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "See jaam pole viimasel ajal andmeid saatnud."
+    },
     "title": "Ilmajaamad",
     "pill": "Jaamad",
     "toggle": "Näita ilmajaamu",

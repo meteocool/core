@@ -889,6 +889,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Den stasjonen har ikke meldt noe i det siste."
+    },
     "title": "Værstasjoner",
     "pill": "Stasjoner",
     "toggle": "Vis værstasjoner",

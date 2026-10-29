@@ -889,6 +889,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Den stationen har inte rapporterat på sistone."
+    },
     "title": "Väderstationer",
     "pill": "Stationer",
     "toggle": "Visa väderstationer",

@@ -60,7 +60,7 @@ import type { CurrentVolumes, Progress, RadarVolume } from "./api";
 import { showsLatestFrame } from "./lib/freshness";
 import { DEFAULT_PRODUCT, parseObservedProduct } from "./lib/observedProduct";
 import { nextSelection } from "./lib/cellSelection";
-import { applyLinkedOverlays, openingLink, startUrlState } from "./lib/urlState";
+import { applyLinkedChoices, openingLink, startUrlState } from "./lib/urlState";
 import { exposeShareLink } from "./lib/share";
 import { applyScreenshotLook, isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
 import { setElementCentre } from "./lib/viewCentre";
@@ -414,10 +414,12 @@ window.settings = new Settings({
     },
   },
 });
-/* A link says which overlays the sender had on. Held for this page load only,
-   and before the stores below first read their settings, so the layers come up
-   the way the link says without the link rewriting the reader's own choices. */
-applyLinkedOverlays(window.settings);
+/* A link says which overlays the sender had on, and what they showed (the
+   product, the storm marks, the stations' parameter). Held for this page load
+   only, and before the stores below first read their settings, so the layers
+   come up the way the link says without the link rewriting the reader's own
+   choices. */
+applyLinkedChoices(window.settings);
 
 /* A screenshot draws the radar, the strikes and the cyclones once, and keeps
    nothing up to date: no socket, no timers, no cells or "3D" tags. */
@@ -1217,7 +1219,7 @@ onDestroy(cleanupUIConstants);
 /* The URL from here on: the rest of the opening link, once there is data for
    it, then the address bar kept in step with the page, and Back and Forward. */
 onDestroy(startUrlState({
-  lm, settings: window.settings, stormmgr, cells3d, nanobar: nb,
+  lm, settings: window.settings, stormmgr, stationmgr, cells3d, nanobar: nb,
 }));
 onDestroy(exposeShareLink());
 

@@ -889,6 +889,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Ta postaja u posljednje vrijeme nije javila podatke."
+    },
     "title": "Meteorološke postaje",
     "pill": "Postaje",
     "toggle": "Prikaži meteorološke postaje",

@@ -13,6 +13,14 @@
  * to, which parameters only mean something together), and those are what a
  * test should hold down.
  *
+ * Content is everything that changes what the receiver sees of the weather:
+ * the overlays and what they show, the radar product, which storm marks the
+ * key has put away, an open storm, station, radar or model comparison, the
+ * frame or scan, the cut and the peel. A link made now says each of those
+ * explicitly, so a receiver who keeps the stations on sees them off if the
+ * sender had them off; a link from before a parameter existed leaves that
+ * choice to the receiver, as it always did.
+ *
  * Every parameter is optional and every value is validated on the way in: a
  * link is text anyone can edit, and a value that does not parse is dropped
  * rather than half-applied. Parameters this module does not own (`logo`,
@@ -20,10 +28,46 @@
  */
 import { normaliseCut } from "./cutAngle";
 import type { Quantity } from "./siteSweeps";
+import { OBSERVED_PRODUCTS } from "./observedProduct";
+import type { ObservedProduct } from "./observedProduct";
+import { STATION_CHOICES } from "./stations";
+import type { StationChoice } from "./stations";
+import { clampSpeed, formatManualMotion, snapHeading } from "./srvMotion";
+import type { ManualMotion } from "./srvMotion";
+import type { StormMarkToggle } from "../stores";
 
-/** The radar map's switchable overlays, in the order a link lists them. */
-export const OVERLAYS = ["cells", "lightning", "mesocyclones"] as const;
+/**
+ * The switchable overlays of either map, in the order a link lists them: the
+ * radar map's storms, strikes, cyclones, radars' marks and weather stations,
+ * and the 3D map's KONRAD3D cells drawn as tiers.
+ */
+export const OVERLAYS = ["cells", "lightning", "mesocyclones", "sites", "stations", "tiers"] as const;
 export type Overlay = (typeof OVERLAYS)[number];
+
+/**
+ * The overlays a link could name before 2026-10-29, when it listed only the
+ * ones that were on: what an `overlays` list made of these alone means; see
+ * `parseOverlays`.
+ */
+const FIRST_OVERLAYS: readonly Overlay[] = ["cells", "lightning", "mesocyclones"];
+
+/** The overlays each map has, all of which a link from that map names. */
+export const MAP_OVERLAYS: Readonly<Record<string, readonly Overlay[]>> = {
+  radar: ["cells", "lightning", "mesocyclones", "sites", "stations"],
+  cells3d: ["tiers"],
+};
+
+/** Each overlay a link names, on or off; one it does not name is the reader's own. */
+export type OverlayStates = Partial<Record<Overlay, boolean>>;
+
+/** The storm marks the map key can put away (`StormMarkToggle`), in the order a link lists them. */
+export const STORM_MARKS = [
+  "dwd", "meteocool", "weak", "moderate", "strong", "extreme",
+  "live", "path", "join", "hail", "rotation", "forecast", "volume",
+] as const satisfies readonly StormMarkToggle[];
+// Every toggle the key has, or a new one would never reach a link.
+const ALL_MARKS: Exclude<StormMarkToggle, (typeof STORM_MARKS)[number]> extends never ? true : never = true;
+void ALL_MARKS;
 
 /** Centre and zoom, in the flat map's zoom levels on either map. */
 export interface LinkView {
@@ -57,14 +101,34 @@ export interface LinkState {
   cloud?: string;
   /** How far the cutaway's slice is turned, as `cutRotationDeg` holds it. */
   cut?: number;
-  /** Which overlays are on. Absent means whatever the reader has chosen. */
-  overlays?: Overlay[];
-  /** A frame off the live edge, in unix seconds as the radar grid keys it. */
+  /** Which overlays are on and which off; an overlay left out is whatever the reader has chosen. */
+  overlays?: OverlayStates;
+  /** The product the radar map's observed frames are drawn from. */
+  product?: ObservedProduct;
+  /** The storm marks the map key has put away; empty for none. */
+  hide?: StormMarkToggle[];
+  /** What the weather stations show. Only with the stations on. */
+  stationParameter?: StationChoice;
+  /**
+   * A frame off the live edge, in unix seconds as the radar grid keys it; on
+   * the 3D map, the earlier scan its storms are from.
+   */
   time?: number;
   /** The point the forecast strip is asked about, as [lat, lon]. */
   point?: [number, number];
   /** A radar open in site mode: its code, what is drawn of it (reflectivity unless said) and the tilt. */
   radar?: LinkRadar;
+  /**
+   * The storm motion storm-relative velocity takes out, as set by hand. Only
+   * with SRV drawn, and only when it is the hand's rather than a storm's.
+   */
+  motion?: ManualMotion;
+  /** How far the 3D map's storms are peeled, 0 to 1, when the reader set it. Only without a selection. */
+  peel?: number;
+  /** A weather station's sheet, by its id. */
+  station?: string;
+  /** The point the model comparison is open for, as [lat, lon]. */
+  compare?: [number, number];
   /**
    * When the link was shared, in unix seconds, to the minute. Set only on a
    * link made to be sent (lib/shareLink.ts), so the receiver can be told how
@@ -89,8 +153,9 @@ export interface LinkRadar {
  * dashboard URL already in circulation still opens where it used to.
  */
 const OWNED = [
-  "layer", "latLonZ", "pitch", "bearing", "overlays", "t", "point", "radar", "sweep", "tilt",
-  "storm", "cell", "details", "cloud", "cut", "shared",
+  "layer", "latLonZ", "pitch", "bearing", "overlays", "product", "hide", "stationParameter",
+  "t", "point", "radar", "sweep", "tilt", "motion",
+  "storm", "cell", "details", "cloud", "cut", "peel", "station", "compare", "shared",
 ] as const;
 type OwnedKey = (typeof OWNED)[number];
 
@@ -204,14 +269,68 @@ export function frameTime(link: string): number | null {
   return ms / 1000;
 }
 
-function parseOverlays(text: string | null): Overlay[] | undefined {
+/**
+ * The overlays a link names: `cells,lightning,-stations` is the storms and the
+ * strikes on and the stations off.
+ *
+ * Two forms. A link made since 2026-10-29 names every overlay of its map, the
+ * ones off with a minus, and an overlay it does not name (one added later, or
+ * the other map's) is the reader's own. A link from before listed only the
+ * ones that were on, and only of the first three (`FIRST_OVERLAYS`), or said
+ * `none`: one of those three it leaves out is off, as it always was, and the
+ * overlays added since are the reader's own. A list is the old form when it
+ * could have been written then: no minus, and none of the newer names.
+ */
+function parseOverlays(text: string | null): OverlayStates | undefined {
   if (text === null) return undefined;
-  const named = text.split(",").map((part) => part.trim()).filter(Boolean);
-  if (named.length === 1 && named[0] === "none") return [];
-  const known = OVERLAYS.filter((overlay) => named.includes(overlay));
+  const parts = text.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 1 && parts[0] === "none") {
+    return Object.fromEntries(FIRST_OVERLAYS.map((overlay) => [overlay, false]));
+  }
+  const named = new Map<Overlay, boolean>();
+  for (const part of parts) {
+    const off = part.startsWith("-");
+    const name = (off ? part.slice(1) : part) as Overlay;
+    if (OVERLAYS.includes(name)) named.set(name, !off);
+  }
   // A list that names nothing this app has is a typo, not "all off".
+  if (!named.size) return undefined;
+  const old = parts.every((part) => !part.startsWith("-"))
+    && [...named.keys()].every((overlay) => FIRST_OVERLAYS.includes(overlay));
+  const states: OverlayStates = {};
+  for (const overlay of OVERLAYS) {
+    if (named.has(overlay)) states[overlay] = named.get(overlay);
+    else if (old && FIRST_OVERLAYS.includes(overlay)) states[overlay] = false;
+  }
+  return states;
+}
+
+/** `cells,-stations`: each overlay `states` names, in `OVERLAYS` order; null for none. */
+function writeOverlays(states: OverlayStates): string | null {
+  const named = OVERLAYS.filter((overlay) => states[overlay] !== undefined);
+  return named.length ? named.map((overlay) => (states[overlay] ? overlay : `-${overlay}`)).join(",") : null;
+}
+
+/** The storm marks put away, `weak,path`, or `none`; a list naming none the key has is dropped. */
+function parseHide(text: string | null): StormMarkToggle[] | undefined {
+  if (text === null) return undefined;
+  const parts = text.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 1 && parts[0] === "none") return [];
+  const known = STORM_MARKS.filter((mark) => parts.includes(mark));
   return known.length ? known : undefined;
 }
+
+/** A storm motion set by hand, `heading,km/h`, as the `srvMotion` setting spells it; null for anything else. */
+function parseMotion(text: string | null): ManualMotion | null {
+  const parts = (text ?? "").split(",");
+  if (parts.length !== 2) return null;
+  const [heading, speed] = parts.map(finite);
+  if (heading === null || speed === null || speed < 0) return null;
+  return { headingDeg: snapHeading(heading), speedKmh: clampSpeed(speed) };
+}
+
+/** A weather station's id, DWD's `02290`: a plain word, safe as a path segment of `/stations/{id}/observations`. */
+const STATION = /^[A-Za-z0-9]{1,16}$/;
 
 function parseFlag(text: string | null): boolean | undefined {
   if (text === null) return undefined;
@@ -233,7 +352,12 @@ function parseFlag(text: string | null): boolean | undefined {
  * - a storm or a cell is only drawn on the newest frame (see the gate in
  *   App.svelte), so a frame off the live edge beside one is dropped;
  * - the panel and the slice both belong to a selection, and mean nothing
- *   without one.
+ *   without one;
+ * - a storm's sheet is the one a station's or the model comparison's would
+ *   take, so a storm beside either drops it, as opening one closes them;
+ * - the peel is of storms nobody has opened, and is dropped beside one;
+ * - the stations' parameter means nothing with the stations off, and a hand's
+ *   storm motion nothing without storm-relative velocity drawn.
  */
 export function parseLink(search: string | URLSearchParams): LinkState {
   const params = typeof search === "string" ? new URLSearchParams(search) : search;
@@ -275,6 +399,21 @@ export function parseLink(search: string | URLSearchParams): LinkState {
   const overlays = parseOverlays(params.get("overlays"));
   if (overlays) state.overlays = overlays;
 
+  const product = params.get("product") as ObservedProduct | null;
+  if (product && OBSERVED_PRODUCTS.includes(product)) state.product = product;
+
+  const hide = parseHide(params.get("hide"));
+  if (hide) state.hide = hide;
+
+  const selection = Boolean(state.storm || state.cell || state.cloud);
+  const station = params.get("station");
+  if (station && STATION.test(station) && !selection) state.station = station;
+
+  const parameter = params.get("stationParameter") as StationChoice | null;
+  if (parameter && STATION_CHOICES.includes(parameter) && (state.overlays?.stations || state.station)) {
+    state.stationParameter = parameter;
+  }
+
   const t = params.get("t");
   const time = t ? frameTime(t) : null;
   if (time !== null && !state.cell && !state.storm) state.time = time;
@@ -288,7 +427,15 @@ export function parseLink(search: string | URLSearchParams): LinkState {
     const tilt = finite(params.get("tilt"));
     state.radar = { site: radar, quantity: sweep && SWEEPS.includes(sweep) ? sweep : "reflectivity" };
     if (tilt !== null && tilt >= 0 && tilt <= 90) state.radar.tilt = tilt;
+    const motion = state.radar.quantity === "srv" ? parseMotion(params.get("motion")) : null;
+    if (motion) state.motion = motion;
   }
+
+  const peel = finite(params.get("peel"));
+  if (peel !== null && !selection) state.peel = Math.round(Math.min(Math.max(peel, 0), 1) * 100) / 100;
+
+  const compare = parsePair(params.get("compare"));
+  if (compare && !selection) state.compare = compare;
 
   // The same spelling as a frame's, which is what it is: a minute, in UTC.
   const sharedAt = params.get("shared");
@@ -311,21 +458,27 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
   const { view } = state;
   const selection = Boolean(state.storm || state.cell || state.cloud);
   const tracked = Boolean(state.storm || state.cell);
+  const station = !selection && state.station ? state.station : null;
+  const stationsOn = Boolean(state.overlays?.stations || station);
   return {
     layer: state.layer ?? null,
     // Five decimals is a metre: already finer than any radar pixel.
     latLonZ: view ? `${fixed(view.lat, 5)},${fixed(view.lon, 5)},${fixed(view.zoom, 2)}` : null,
     pitch: state.pitch === undefined ? null : fixed(state.pitch, 0),
     bearing: state.bearing === undefined ? null : fixed(normaliseCut(Math.round(state.bearing)), 0),
-    overlays: state.overlays === undefined
+    overlays: state.overlays === undefined ? null : writeOverlays(state.overlays),
+    product: state.product ?? null,
+    hide: state.hide === undefined
       ? null
-      : (OVERLAYS.filter((overlay) => state.overlays!.includes(overlay)).join(",") || "none"),
+      : (STORM_MARKS.filter((mark) => state.hide!.includes(mark)).join(",") || "none"),
+    stationParameter: stationsOn && state.stationParameter ? state.stationParameter : null,
     t: state.time === undefined || tracked ? null : frameLink(state.time),
     point: state.point ? `${fixed(state.point[0], 5)},${fixed(state.point[1], 5)}` : null,
     radar: state.radar?.site ?? null,
     sweep: state.radar && state.radar.quantity !== "reflectivity" ? state.radar.quantity : null,
     // Two decimals, as the sites file them (Meteo-France's 0.39), without trailing zeros.
     tilt: state.radar?.tilt === undefined ? null : String(Math.round(state.radar.tilt * 100) / 100),
+    motion: state.radar?.quantity === "srv" && state.motion ? formatManualMotion(state.motion) : null,
     storm: state.storm ?? null,
     cell: !state.storm && state.cell ? state.cell : null,
     details: tracked && state.details === false ? "0" : null,
@@ -333,6 +486,9 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
     cut: selection && state.cut !== undefined && Math.round(normaliseCut(state.cut)) !== 0
       ? fixed(Math.round(normaliseCut(state.cut)), 0)
       : null,
+    peel: selection || state.peel === undefined ? null : String(Math.round(Math.min(Math.max(state.peel, 0), 1) * 100) / 100),
+    station,
+    compare: !selection && state.compare ? `${fixed(state.compare[0], 5)},${fixed(state.compare[1], 5)}` : null,
     shared: state.shared === undefined ? null : frameLink(state.shared),
   };
 }
@@ -378,11 +534,12 @@ export function linkSearch(search: string, state: LinkState, keep: readonly stri
  * Whether going from one state to the other is a step the Back button should
  * be able to undo.
  *
- * Switching map, or opening, changing or closing a storm or a radar, is navigation: it is
- * what a reader would expect Back to take them out of. Everything else
- * (panning, zooming, tilting, turning the slice, scrubbing, toggling an
- * overlay) is adjusting the view they are in, and a history entry per pan would make
- * Back unusable for leaving the page at all.
+ * Switching map, or opening, changing or closing a storm, a radar, a
+ * station's sheet or the model comparison, is navigation: it is what a
+ * reader would expect Back to take them out of. Everything else (panning,
+ * zooming, tilting, turning the slice, scrubbing, toggling an overlay or
+ * picking a product) is adjusting the view they are in, and a history entry
+ * per pan would make Back unusable for leaving the page at all.
  *
  * A link that names no layer is not a different layer: it is an older link, or
  * none, and the first state written over it is not something to go back from.
@@ -391,5 +548,7 @@ export function isNavigation(from: LinkState, to: LinkState): boolean {
   if (from.layer !== undefined && from.layer !== to.layer) return true;
   return (from.storm ?? null) !== (to.storm ?? null)
     || (from.cell ?? null) !== (to.cell ?? null) || (from.cloud ?? null) !== (to.cloud ?? null)
-    || (from.radar?.site ?? null) !== (to.radar?.site ?? null);
+    || (from.radar?.site ?? null) !== (to.radar?.site ?? null)
+    || (from.station ?? null) !== (to.station ?? null)
+    || from.compare?.join(",") !== to.compare?.join(",");
 }

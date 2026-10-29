@@ -937,6 +937,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Cette station n’a rien transmis récemment."
+    },
     "title": "Stations météo",
     "pill": "Stations",
     "toggle": "Afficher les stations météo",

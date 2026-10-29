@@ -95,8 +95,9 @@ test("choosing a parameter asks for that parameter alone, and the choice is reme
   await picker(page).getByRole("radio", { name: "Temp" }).click();
   expect(parameters(await asked)).toEqual(["temperature_c"]);
 
+  // Opened again without a link, which would say its own parameter.
   const again = page.waitForRequest(asksFor);
-  await page.reload();
+  await page.goto(GERMANY_VIEW);
   expect(parameters(await again)).toEqual(["temperature_c"]);
   await expect(picker(page).getByRole("radio", { name: "Temp" })).toBeChecked();
 });

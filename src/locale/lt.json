@@ -889,6 +889,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Ši stotis pastaruoju metu duomenų neperdavė."
+    },
     "title": "Meteorologijos stotys",
     "pill": "Stotys",
     "toggle": "Rodyti meteorologijos stotis",

@@ -889,6 +889,9 @@
     }
   },
   "stations": {
+    "toast": {
+      "station_gone": "Tämä asema ei ole raportoinut viime aikoina."
+    },
     "title": "Sääasemat",
     "pill": "Asemat",
     "toggle": "Näytä sääasemat",
