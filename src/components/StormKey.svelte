@@ -190,6 +190,10 @@ const B = 5 * DIAMOND_REACH;
       <CloseDisc material="chrome" on:click={() => close(true)} />
     </header>
 
+    <!-- The scroller is inside the card, not the card itself: WebKit does not
+         clip a styled scrollbar to its scroller's rounded corners, and the
+         card's right edge came out square. -->
+    <div class="body">
     <ul>
       <li class:off={$hiddenStormMarks.has("meteocool")}>
         <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
@@ -323,6 +327,7 @@ const B = 5 * DIAMOND_REACH;
           on:change={(e) => cycloneLayerVisible.set(e.currentTarget.checked)} />
       </li>
     </ul>
+    </div>
   </div>
 {/if}
 
@@ -383,9 +388,9 @@ const B = 5 * DIAMOND_REACH;
     z-index: var(--mc-z-dialog);
     width: min(340px, calc(100vw - 16px));
     box-sizing: border-box;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 12px 14px 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     border-radius: var(--mc-radius-card);
     box-shadow: var(--mc-glass-ring-lg);
     font-family: var(--mc-font);
@@ -397,11 +402,25 @@ const B = 5 * DIAMOND_REACH;
     width: auto;
   }
 
+  /* The title stays put while the rows scroll under it. */
   header {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
+    padding: 12px 14px 0;
+  }
+  /* The rows' scroller, fading into the glass at both ends as GlassPanel's
+     body does, so a row is not cut off under the title or at the rim. */
+  .body {
+    --fade: 10px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--fade) 14px 8px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
   }
   h2 {
     margin: 0;

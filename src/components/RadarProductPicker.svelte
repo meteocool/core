@@ -301,6 +301,10 @@ function portal(node: HTMLElement) {
       </button>
       <CloseDisc material="chrome" on:click={() => close(true)} />
     </div>
+    <!-- The options scroll inside the card, as ScanPicker's do, not the card
+         itself: WebKit does not clip a styled scrollbar to its scroller's
+         rounded corners. -->
+    <div class="options">
     {#each PRODUCT_GROUPS as { group, products }, i (group)}
       <div class="group" role="group" aria-labelledby={`radar-product-${group}`}>
         <div class="group-heading">
@@ -335,6 +339,7 @@ function portal(node: HTMLElement) {
     {#if fellBack}
       <p class="note">{fellBackNote}</p>
     {/if}
+    </div>
   </div>
 {/if}
 
@@ -423,8 +428,9 @@ function portal(node: HTMLElement) {
     z-index: var(--mc-z-dialog);
     width: min(300px, calc(100vw - 16px));
     box-sizing: border-box;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 6px;
     border-radius: var(--mc-radius-card);
     box-shadow: var(--mc-glass-ring-lg);
@@ -447,7 +453,14 @@ function portal(node: HTMLElement) {
     box-sizing: border-box;
     margin: 0;
   }
+  .options {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
   .heading {
+    flex: none;
     display: flex;
     align-items: center;
     gap: 8px;
