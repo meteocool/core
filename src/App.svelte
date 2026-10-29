@@ -1056,22 +1056,29 @@ lm.forEachMap((map) => {
    * says it answers a click, and on a desktop the pointer is the one channel
    * that can say so without drawing anything.
    *
-   * It runs the same hit test as the tap above, hit tolerance included, so the
-   * pointer can never promise a cell that a click would then miss. Written on
+   * It runs the same hit tests as the tap above, each with its tolerance, so
+   * the pointer can never promise a mark that a click would then miss: a
+   * radar's mark, a cell, a cloud's tag, a weather station. Written on
    * the map's own viewport rather than on the shared `#map` target, so a
    * capability switch cannot leave another one wearing this one's cursor.
    */
   let hovering = false;
   const viewport = map.getViewport();
+  const hits = (pixel: number[], layer: unknown, hitTolerance: number) => map.hasFeatureAtPixel(pixel, {
+    layerFilter: (candidate) => candidate === layer,
+    hitTolerance,
+  });
   map.on("pointermove", (event) => {
     // Nothing to say mid-drag: the cursor belongs to the pan for its duration,
     // and hit-testing every frame of one buys a style nobody is looking at.
     if (!finePointer?.matches || event.dragging) return;
-    const over = map.hasFeatureAtPixel(event.pixel, {
-      layerFilter: (layer) => (layer === cellLayer && get(cellLayerVisible))
-        || (layer === cloudHintLayer && layer.getVisible()),
-      hitTolerance: 6,
-    });
+    const over = (siteMarks.layer.getVisible() && hits(event.pixel, siteMarks.layer, 4))
+      || map.hasFeatureAtPixel(event.pixel, {
+        layerFilter: (layer) => (layer === cellLayer && get(cellLayerVisible))
+          || (layer === cloudHintLayer && layer.getVisible()),
+        hitTolerance: 6,
+      })
+      || (stationLayer.layer.getVisible() && hits(event.pixel, stationLayer.layer, 10));
     if (over === hovering) return;
     hovering = over;
     viewport.style.cursor = over ? "pointer" : "";
