@@ -67,6 +67,7 @@ import { nearPlace, type NearPlace } from "../lib/reverseGeocode";
 import DismissableStrip from "./DismissableStrip.svelte";
 import DryOutlook from "./DryOutlook.svelte";
 import { onWake } from "../lib/wakeup";
+import { outlookSnoozed, snoozeOutlook } from "../lib/outlookDismissal";
 import ChartSkeleton from "./ChartSkeleton.svelte";
 
 export let cap: RadarCapability;
@@ -330,7 +331,8 @@ $: chartShowable = (hasPrecipitation || $inspectLatLon !== null)
  * Only when the rain chart has nothing to say (which it cannot, over a dry
  * position with no tapped point), and only for a position the radar covers:
  * outside every network "nothing on the radar" is no data, not no rain.
- * Dismissal lasts as long as the dry spell does. It stands aside while the
+ * Closing it keeps it away for a day, across reloads (see
+ * lib/outlookDismissal.ts). It stands aside while the
  * player is away from the live frame, and comes back on the way back to it
  * unless it was dismissed. A failed forecast
  * fetch takes it down until the page next wakes (the network back, the page
@@ -340,13 +342,19 @@ $: chartShowable = (hasPrecipitation || $inspectLatLon !== null)
 const covers = (point: [number, number] | null): boolean => point !== null
   && radarExtents4326.some(([minLon, minLat, maxLon, maxLat]) => (
     point[1] >= minLon && point[1] <= maxLon && point[0] >= minLat && point[0] <= maxLat));
-let outlookDismissed = false;
+let outlookDismissed = outlookSnoozed();
 let outlookUnavailable = false;
 let outlookFailedAt = 0;
 const OUTLOOK_RETRY_MS = 60_000;
 subscriptions.push(onWake(() => {
   if (outlookUnavailable && Date.now() - outlookFailedAt >= OUTLOOK_RETRY_MS) outlookUnavailable = false;
+  // A page left open past the day is offered the strip again on its way back.
+  if (outlookDismissed && !outlookSnoozed()) outlookDismissed = false;
 }));
+function dismissOutlook() {
+  snoozeOutlook();
+  outlookDismissed = true;
+}
 $: outlookShowable = $dryAtUser
   && $latLon !== null
   && covers($latLon)
@@ -363,7 +371,6 @@ $: outlookShowable = $dryAtUser
   // one of them.
   && $live
   && !$playbackRunning;
-$: if (!$dryAtUser) outlookDismissed = false;
 
 /* Between a tap and the grid that answers it, the strip is up with the last
    point's bars still in it. Flagged here rather than read off the capability,
@@ -1180,7 +1187,7 @@ onDestroy(() => {
     lat={$latLon[0]}
     lon={$latLon[1]}
     collapsed={$bottomToolbarMode !== "player"}
-    on:dismiss={() => { outlookDismissed = true; }}
+    on:dismiss={dismissOutlook}
     on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
 {/if}
 
