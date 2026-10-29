@@ -206,8 +206,8 @@
   --mc-player-h: calc(var(--mc-player-base-h) + var(--mc-plot-h));
   --mc-float-pill-h: 38px;                            /* a pill of controls floating over the player: an open radar's, the stations' */
   --mc-site-float-h: 0px;                             /* an open radar's pills over the player, and their gaps (:root.site-open) */
-  --mc-stations-float-h: 0px;                         /* the stations' picker over those (:root.stations-picker) */
-  --mc-float-stack: calc(var(--mc-site-float-h) + var(--mc-stations-float-h)); /* all of them: what the strips, hint and Back to now stand on */
+  --mc-stations-float-h: 0px;                         /* the stations' picker, over the strips and hint (:root.stations-picker) */
+  --mc-float-stack: calc(var(--mc-site-float-h) + var(--mc-stations-float-h)); /* all of them: what Back to now and the credits stand on; the strips and hint stand on --mc-site-float-h alone */
   --mc-strip-h: 104px;                                /* a chart strip above the tray (DismissableStrip) */
   --mc-hint-h: 54px;                                  /* the cell hint bar above those (CellSelectionHint) */
   --mc-safe-top: env(safe-area-inset-top, 0px);

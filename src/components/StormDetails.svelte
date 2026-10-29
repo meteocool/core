@@ -721,10 +721,11 @@ function close() {
   onShare={(anchor) => share({ subject: shareSubject, anchor })}>
   <svelte:fragment slot="header">
     <span class="headline" class:severity={classed && !coreOnly}>{title}</span>
-    {#if sources.length}
-      <span class="sources">
-        {#each sources as source, i (source)}<SourceBadge {source} secondary={i > 0} />{/each}
-      </span>
+    <!-- DWD's badge alone, as the storm's bar has it: a storm is meteocool's
+         unless it says otherwise. Quieter when DWD is not where the readings
+         come from. -->
+    {#if sources.includes("dwd")}
+      <span class="sources"><SourceBadge source="dwd" secondary={sources[0] !== "dwd"} /></span>
     {/if}
   </svelte:fragment>
 

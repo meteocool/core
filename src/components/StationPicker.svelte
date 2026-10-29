@@ -6,10 +6,12 @@
  *
  * Out of the player and over it, where it is the most prominent control on
  * the map after the timeline: the parameter is what the stations are read
- * by. Over an open radar's pills (SiteSweepTray), if any. The stack over
- * the player makes room for it: while it is up, the root's
- * `stations-picker` adds to --mc-float-stack (src/glass.css), which the
- * strips, the storm hint, "Back to now" and the map's credits all stand on. Where the screen is too narrow for every parameter it scrolls
+ * by. Over an open radar's pills (SiteSweepTray), and over the strips and
+ * the storm hint, if any are up, moving with them as "Back to now" does:
+ * the hint is about the map, the picker about how the map is read, so the
+ * hint sits next to the player and the picker on top. While it is up, the
+ * root's `stations-picker` adds to --mc-float-stack (src/glass.css), which
+ * "Back to now" and the map's credits stand on. Where the screen is too narrow for every parameter it scrolls
  * sideways, its edges fading out. The choice is remembered through
  * `stationChoice` (the setting `stationParameter`, App.svelte).
  *
@@ -30,7 +32,7 @@ import { STATION_CHOICES } from "../lib/stations";
 import { fadeEdges } from "../lib/fadeEdges";
 import { duration } from "../lib/cellMetrics";
 import { onWake } from "../lib/wakeup";
-import { stationChoice, stationLayerVisible, stationView } from "../stores";
+import { openHintCount, openStripCount, stationChoice, stationLayerVisible, stationView } from "../stores";
 
 $: options = STATION_CHOICES.map((value) => ({ value, label: $_(`stations.choice.${value}`) }));
 $: time = $stationView?.observedAt ? format($stationView.observedAt, "HH:mm") : null;
@@ -57,7 +59,7 @@ onDestroy(() => {
 });
 </script>
 
-<div class="stationPicker-dock">
+<div class="stationPicker-dock" style:--open-strips={$openStripCount} style:--open-hints={$openHintCount}>
   <div class="stationPicker glass glass-pill" transition:fly|global={{ y: 12, duration: 200 }}>
     <div class="scroller mc-fade-x" use:fadeEdges>
       <span class="row">
@@ -85,7 +87,12 @@ onDestroy(() => {
     position: absolute;
     left: var(--mc-gutter);
     right: var(--mc-gutter);
-    bottom: calc(var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap) + var(--mc-site-float-h));
+    bottom: calc(
+      var(--mc-tray-bottom) + var(--mc-player-h) + var(--mc-tray-gap) + var(--mc-site-float-h)
+      + var(--open-strips, 0) * (var(--mc-strip-h) + var(--mc-tray-gap))
+      + var(--open-hints, 0) * (var(--mc-hint-h) + var(--mc-tray-gap))
+    );
+    transition: bottom var(--mc-motion-spring) var(--mc-ease-spring);
     z-index: var(--mc-z-pill);
     display: flex;
     justify-content: center;

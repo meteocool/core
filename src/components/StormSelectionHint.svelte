@@ -96,7 +96,7 @@ function clear(leaving: Leaving) {
     right: var(--mc-gutter);
     bottom: calc(
       max(var(--bottom-toolbar-height, 0px), var(--mc-safe-bottom))
-      + var(--mc-tray-gap) + var(--mc-float-stack)
+      + var(--mc-tray-gap) + var(--mc-site-float-h)
       + var(--open-strips, 0) * (var(--mc-strip-h) + var(--mc-tray-gap))
     );
     height: var(--mc-hint-h);
@@ -258,7 +258,8 @@ function clear(leaving: Leaving) {
       <span class="what">
         <span class="title">
           <b>{classed ? $_(`storm.storm_label.${BAND_NAMES[severity]}`) : $_("storm.storm_label.unclassed")}</b>
-          {#if source}<SourceBadge {source} />{/if}
+          <!-- DWD's alone: a storm is meteocool's unless it says otherwise. -->
+          {#if source === "dwd"}<SourceBadge {source} />{/if}
         </span>
         <span class="alive">{lifeLine}</span>
       </span>
