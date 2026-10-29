@@ -917,7 +917,6 @@
     "sheet": {
       "place": "{state} · {height} m · išmatuota {time}",
       "latest": "Naujausios reikšmės",
-      "none": "Iš šios stoties verčių nėra.",
       "source": "Duomenys: Deutscher Wetterdienst (CC BY 4.0)"
     },
     "history": {

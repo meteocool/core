@@ -917,7 +917,6 @@
     "sheet": {
       "place": "{state} · {height} m · izmjereno {time}",
       "latest": "Najnovije vrijednosti",
-      "none": "Nema vrijednosti s ove postaje.",
       "source": "Podaci: Deutscher Wetterdienst (CC BY 4.0)"
     },
     "history": {

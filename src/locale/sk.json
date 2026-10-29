@@ -965,7 +965,6 @@
     "sheet": {
       "place": "{state} · {height} m · merané {time}",
       "latest": "Najnovšie hodnoty",
-      "none": "Z tejto stanice nie sú žiadne hodnoty.",
       "source": "Údaje: Deutscher Wetterdienst (CC BY 4.0)"
     },
     "history": {

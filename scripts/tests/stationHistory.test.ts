@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { historyPanels, historyTicks, windowStart } from "../../src/lib/stationHistory.ts";
+import { askSince, historyPanels, historyTicks, windowStart } from "../../src/lib/stationHistory.ts";
 import type { ObservationRow } from "../../src/lib/stationHistory.ts";
 import { fixedScale, path } from "../../src/lib/chartScale.ts";
 
@@ -99,4 +99,12 @@ test("over a day the axis is every six hours on the local clock; over a week, th
   } finally {
     process.env.TZ = previous;
   }
+});
+
+test("a week's rows are asked for from inside the seven days the service holds", () => {
+  const now = Date.UTC(2026, 9, 28, 12);
+  const week = 7 * 24 * 3_600_000;
+  assert.ok(now - askSince("week", now) < week);
+  // Not so far in that the axis would start before the first row by more than one.
+  assert.ok(askSince("week", now) - windowStart("week", now) < 10 * 60_000);
 });

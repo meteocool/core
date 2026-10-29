@@ -917,7 +917,6 @@
     "sheet": {
       "place": "{state} · {height} m · mõõdetud {time}",
       "latest": "Viimased väärtused",
-      "none": "Sellest jaamast väärtusi pole.",
       "source": "Andmed: Deutscher Wetterdienst (CC BY 4.0)"
     },
     "history": {

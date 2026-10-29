@@ -151,8 +151,11 @@ test("tapping a station opens its name, its state, height and when it measured, 
   const panel = page.getByRole("region", { name: station.name });
   await expect(panel).toBeVisible();
   await expect(panel.getByText(/^[^·]+ · \d+ m · measured \d\d:\d\d$/)).toBeVisible();
-  await expect(panel.getByText("Wind direction", { exact: true })).toBeVisible();
-  await expect(panel.getByText(/ m\/s · \d+ kt$/).first()).toBeVisible();
+  // Its newest values first, in the line of facts under the title.
+  await expect(panel.locator(".stats").getByText("Wind direction", { exact: true })).toBeVisible();
+  // The speed as measured, the knots a barb is drawn in under it.
+  await expect(panel.getByText(/^\d+\.\d m\/s$/).first()).toBeVisible();
+  await expect(panel.getByText(/^\d+ kt$/).first()).toBeVisible();
   await expect(panel.getByText("Data: Deutscher Wetterdienst (CC BY 4.0)")).toBeVisible();
 });
 
@@ -181,16 +184,26 @@ test("a station's sheet charts what it measured, summed up, over the period chos
   await page.mouse.click(station.x, station.y);
   const panel = page.getByRole("region", { name: station.name });
   await expect(panel.getByRole("img", { name: /^Temperature and dew point over the period/ })).toBeAttached();
-  await expect(panel.locator("figcaption", { hasText: "Temperature and dew point" })).toContainText("max 15.5 °C · min 9.5 °C");
-  await expect(panel.locator("figcaption", { hasText: "Precipitation" })).toContainText(/total \d+\.\d/);
-  await expect(panel.locator("figcaption", { hasText: "Wind and gusts" })).toContainText("peak gust 5.0 m/s");
+  // Each caption leads with the figure it is read for, in its unit, and
+  // what sums the period up in that unit beside it.
+  const resting = (name: string) => panel.locator("figcaption", { hasText: name }).locator(".state:not(.reading)");
+  await expect(resting("Temperature and dew point").locator(".figure")).toHaveText(/^\d+\.\d°C$/);
+  await expect(resting("Temperature and dew point").locator(".summary")).toContainText("max 15.5 · min 9.5");
+  // An amount's figure is its total.
+  await expect(resting("Precipitation").locator(".figure")).toHaveText(/^\d+\.\dmm$/);
+  await expect(resting("Wind and gusts").locator(".summary")).toContainText("peak gust 5.0");
   // Measured only: no sunshine, humidity or pressure in this answer, so no panels for them.
   await expect(panel.locator("figcaption", { hasText: "Humidity" })).toHaveCount(0);
 
+  // The plots run the sheet's width, drawn at it rather than scaled into it.
+  const history = (await panel.locator(".history").boundingBox())!;
+  const chart = (await panel.locator(".history svg").first().boundingBox())!;
+  expect(chart.width).toBeGreaterThan(history.width - 1);
+  expect(await panel.locator(".history svg").first().getAttribute("viewBox")).toBe(`0 0 ${Math.round(chart.width)} ${Math.round(chart.height)}`);
+
   // A finger dragged sideways along a panel puts a line on one moment, its
   // values in every caption, and leaves it there when let go.
-  const caption = panel.locator("figcaption", { hasText: "Temperature and dew point" });
-  const chart = (await panel.locator(".history svg").first().boundingBox())!;
+  const reading = (name: string) => panel.locator("figcaption", { hasText: name }).locator(".state.reading");
   await panel.locator(".history").evaluate((history, box) => {
     const fire = (type: string, x: number) => history.dispatchEvent(new PointerEvent(type, {
       bubbles: true, pointerId: 9, pointerType: "touch", isPrimary: true, clientX: x, clientY: box.y + box.height / 2,
@@ -199,9 +212,11 @@ test("a station's sheet charts what it measured, summed up, over the period chos
     for (let share = 0.32; share <= 0.5; share += 0.03) fire("pointermove", box.x + box.width * share);
     fire("pointerup", box.x + box.width * 0.5);
   }, chart);
-  await expect(caption).toContainText(/\d\d:\d\d · \d+\.\d °C · dew point 6\.0 °C/);
+  await expect(reading("Temperature and dew point").locator(".figure")).toHaveText(/^\d+\.\d°C$/);
+  await expect(reading("Temperature and dew point").locator(".summary")).toHaveText(/^\d\d:\d\d · dew point 6\.0 °C$/);
   await expect(panel.locator(".history .cursor")).not.toHaveCount(0);
-  await expect(panel.locator("figcaption", { hasText: "Wind and gusts" })).toContainText(/\d\d:\d\d · 2\.0 m\/s · gust 5\.0 m\/s/);
+  await expect(reading("Wind and gusts").locator(".figure")).toHaveText("2.0m/s");
+  await expect(reading("Wind and gusts").locator(".summary")).toHaveText(/^\d\d:\d\d · gust 5\.0 m\/s$/);
 
   // Six days further back for a week than for a day.
   await panel.getByRole("radio", { name: "7 days" }).click();

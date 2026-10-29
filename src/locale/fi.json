@@ -917,7 +917,6 @@
     "sheet": {
       "place": "{state} · {height} m · mitattu {time}",
       "latest": "Uusimmat arvot",
-      "none": "Asemalta ei ole arvoja.",
       "source": "Tiedot: Deutscher Wetterdienst (CC BY 4.0)"
     },
     "history": {

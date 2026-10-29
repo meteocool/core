@@ -30,6 +30,11 @@ export let label: string;
  * labels that give way with an ellipsis rather than push the row wider.
  */
 export let compact = false;
+/**
+ * The width it is given, shared equally between the options, as the system
+ * sets a segmented control that heads a view; else as wide as its labels.
+ */
+export let stretch = false;
 
 const dispatch = createEventDispatcher<{ change: T }>();
 
@@ -292,6 +297,16 @@ onDestroy(() => {
     outline-offset: 1px;
   }
 
+  .segmented.stretch {
+    display: flex;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .segmented.stretch button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   .segmented.compact {
     box-sizing: border-box;
     max-width: 100%;
@@ -311,6 +326,7 @@ onDestroy(() => {
   class="segmented"
   class:dragging
   class:compact
+  class:stretch
   role="radiogroup"
   aria-label={label}
   tabindex="-1"

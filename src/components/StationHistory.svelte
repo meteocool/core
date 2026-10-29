@@ -4,10 +4,14 @@
  * meteogram, a section of the station's sheet (StationDetails).
  *
  * Small multiples over one clock, as a storm's history is drawn
- * (StormDetails), and with its geometry and ink, so the two sheets read as
- * one kind of thing: a panel per quantity, its scale on the left, the newest
- * value written at the end of its line. What the panels hold, and what each
- * is summed up by under its name, is lib/stationHistory.ts's.
+ * (StormDetails), with its ink: a panel per quantity. Laid out as the
+ * system's own charts are (Health, Weather): the name, then the figure the
+ * panel is read for in large type (the newest value, or the total of an
+ * amount) with what sums it up beside it, then a plot that runs the sheet's
+ * width with its scale on the trailing edge. Drawn at the width it is given
+ * rather than scaled into it, so the type is the same size on every screen
+ * and a wider sheet is a longer time axis, not larger letters. What the
+ * panels hold, and what each is summed up by, is lib/stationHistory.ts's.
  *
  * Asked for when the sheet opens and again when the period changes, and on
  * a wake: DWD publishes every ten minutes, so a sheet left open goes stale.
@@ -17,7 +21,7 @@ import { onDestroy } from "svelte";
 import { fetchStationHistory, quietly } from "../api";
 import { fixedScale, niceTicks, path, verticalScale, type Scale } from "../lib/chartScale";
 import {
-  DIRECTION_TICKS, HISTORY_WINDOWS, historyPanels, historyTicks, MAX_GAP_MS, windowStart,
+  askSince, DIRECTION_TICKS, HISTORY_WINDOWS, historyPanels, historyTicks, MAX_GAP_MS, windowStart,
   type HistoryPanel, type HistoryWindow, type ObservationRow, type Series, type Stat,
 } from "../lib/stationHistory";
 import { currentLocale } from "../locale/t";
@@ -31,13 +35,16 @@ import ChartSkeleton from "./ChartSkeleton.svelte";
 /** DWD's id of the station. */
 export let station: string;
 
-/* StormDetails' chart, so the two line up when read one after the other;
-   wider on the right, where the newest value is written with its unit. */
-const CHART = { width: 336, left: 28, right: 62, top: 9 };
-const PANEL_H = 74;
+/** The plot's top inset, room for the highest tick's label to be centred on its line. */
+const TOP = 7;
+const PANEL_H = 96;
 /** Room for the time labels, under every panel: a panel read on its own still says when. */
-const AXIS_ROOM = 16;
-const plot = { x0: CHART.left, x1: CHART.width - CHART.right };
+const AXIS_ROOM = 18;
+/** The scale's labels, on the trailing edge: their size, and the gap to the plot. */
+const TICK_PX = 10;
+const TICK_GAP = 6;
+/** Until the first layout says otherwise: the desktop drawer's width. */
+const FALLBACK_WIDTH = 340;
 /** A row is ten minutes; a bar is that wide. */
 const ROW_MS = 10 * 60_000;
 
@@ -58,7 +65,7 @@ async function load(id: string, chosen: HistoryWindow, quiet = false): Promise<v
   const now = Date.now();
   const from = windowStart(chosen, now);
   try {
-    const answer = await fetchStationHistory(id, new Date(from), quiet ? quietly : undefined);
+    const answer = await fetchStationHistory(id, new Date(askSince(chosen, now)), quiet ? quietly : undefined);
     if (mine !== token) return;
     rows = answer.observations;
     span = { from, to: now };
@@ -83,16 +90,32 @@ const withUnit = (text: string, unit: string) => (unit === "°" ? `${text}°` : 
 
 $: options = HISTORY_WINDOWS.map((value) => ({ value, label: $_(`stations.history.window.${value}`) }));
 
-function atX(t: number): number {
-  if (!span) return plot.x0;
-  return plot.x0 + ((t - span.from) / (span.to - span.from)) * (plot.x1 - plot.x0);
-}
+/*
+ * Its own width, as laid out. One plot box for every panel, so the line the
+ * scrubber draws is at one time down the whole stack: as wide as the widest
+ * scale's labels leave it, whichever panel they are on.
+ */
+let measured = 0;
+$: chartWidth = measured || FALLBACK_WIDTH;
+/** A tick label's width, near enough: tabular figures are a little over half the type's size. */
+const labelWidth = (text: string) => text.length * TICK_PX * 0.6;
+$: gutter = Math.ceil(Math.max(14, ...grids.flat().map((line) => labelWidth(line.label))) + TICK_GAP);
+$: plot = { x0: 0, x1: chartWidth - gutter };
+
+/** A time's x across a plot box, over a period. */
+const timeScale = (over: { from: number; to: number } | null, box: { x0: number; x1: number }) => (t: number): number => {
+  if (!over) return box.x0;
+  return box.x0 + ((t - over.from) / (over.to - over.from)) * (box.x1 - box.x0);
+};
+/* Made again whenever the plot or the period moves, so every position
+   worked out with it below is worked out again too. */
+$: atX = timeScale(span, plot);
 
 const valuesOf = (series: Series[]) => series.flatMap((one) => one.points.flatMap((point) => (point.v === null ? [] : [point.v])));
 
 /** The panel's scale: fixed, from zero up to at least its floor, or read off its values. */
 function scaleOf(panel: HistoryPanel, y0: number): Scale | null {
-  if (panel.fixed) return fixedScale(panel.fixed.min, panel.fixed.max, panel.fixed.ticks, y0, CHART.top);
+  if (panel.fixed) return fixedScale(panel.fixed.min, panel.fixed.max, panel.fixed.ticks, y0, TOP);
   const values = valuesOf(panel.series);
   if (panel.floor !== undefined) {
     const top = Math.max(panel.floor, ...values);
@@ -100,9 +123,9 @@ function scaleOf(panel: HistoryPanel, y0: number): Scale | null {
     // Up to a whole tick at or over the top, so the highest bar has a value above it.
     const step = ticks.length > 1 ? ticks[1] - ticks[0] : top;
     while (ticks[ticks.length - 1] < top) ticks.push(Math.round((ticks[ticks.length - 1] + step) * 1000) / 1000);
-    return fixedScale(0, ticks[ticks.length - 1], ticks, y0, CHART.top);
+    return fixedScale(0, ticks[ticks.length - 1], ticks, y0, TOP);
   }
-  return verticalScale(values, y0, CHART.top, 3);
+  return verticalScale(values, y0, TOP, 3);
 }
 
 /** The newest value of the panel's own series, written at its end. */
@@ -110,6 +133,22 @@ function lastOf(panel: HistoryPanel): { t: number; v: number } | null {
   const own = panel.series.find((one) => one.style === "main" || one.style === "dots");
   const found = own ? [...own.points].reverse().find((point) => point.v !== null) : undefined;
   return found ? { t: found.t, v: found.v as number } : null;
+}
+
+/**
+ * The figure a panel is read for, large in its caption: an amount's total
+ * over the period (the rain that fell, the hours of sun), any other
+ * quantity's newest value. The total's stat is then not repeated beside it.
+ */
+function figureOf(panel: HistoryPanel, last: { v: number } | null, language: string): { value: string; unit: string } | null {
+  const total = panel.stats.find((one) => one.key === "total");
+  if (total) {
+    const hours = panel.key === "sunshine";
+    return { value: number(total.value, hours ? 1 : panel.digits, language), unit: hours ? "h" : panel.unit };
+  }
+  if (!last) return null;
+  if (panel.key === "direction") return { value: compass(last.v), unit: `${Math.round(last.v)}°` };
+  return { value: number(last.v, panel.digits, language), unit: panel.unit };
 }
 
 const compass = (degrees: number) => $_(`storm.compass.${["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(degrees / 45) % 8]}`);
@@ -121,17 +160,20 @@ $: panels = span ? historyPanels(rows).map((panel) => {
   return { ...panel, height, y0, scale, last: lastOf(panel) };
 }).flatMap((panel) => (panel.scale ? [{ ...panel, scale: panel.scale }] : [])) : [];
 
+/* Each panel's scale, labelled: ahead of the positions, which need the room the labels take. */
+$: grids = panels.map((panel) => panel.scale.ticks.map((value) => ({
+  value,
+  y: panel.scale.at(value),
+  label: panel.key === "direction" ? $_(`storm.compass.${DIRECTION_TICKS[value]}`) : number(value, decimalsOf(panel.scale.ticks), lang),
+})));
+
 /*
  * Positions worked out here rather than in the markup, where Svelte would
  * not know they read `span`: as StormDetails' ticks, for the same reason.
  */
 $: ticks = span ? historyTicks(span.from, span.to, currentLocale()).map((tick) => ({ ...tick, x: atX(tick.t) })) : [];
-$: drawn = panels.map((panel) => ({
-  grid: panel.scale.ticks.map((value) => ({
-    value,
-    y: panel.scale.at(value),
-    label: panel.key === "direction" ? $_(`storm.compass.${DIRECTION_TICKS[value]}`) : number(value, decimalsOf(panel.scale.ticks), lang),
-  })),
+$: drawn = panels.map((panel, i) => ({
+  grid: grids[i] ?? [],
   lines: panel.series.filter((one) => one.style === "main" || one.style === "context")
     .map((one) => ({ key: one.key, style: one.style, d: path(one.points, atX, panel.scale, MAX_GAP_MS) })),
   bars: panel.series.filter((one) => one.style === "bars").flatMap((one) => one.points.flatMap((point) => (
@@ -151,12 +193,23 @@ $: drawn = panels.map((panel) => ({
 /** The decimals a scale's ticks need: none for 0, 10, 20; one for 0.2, 0.4. */
 const decimalsOf = (ticks: number[]) => (ticks.some((tick) => !Number.isInteger(tick)) ? 1 : 0);
 
-/** "max 18,4 °C · min 7,0 °C", each with its unit; sunshine's total in hours, as sunshine is told. */
-function statText(panel: HistoryPanel, one: Stat, language: string): string {
+/**
+ * "max 18,4 · min 7,0 · mean 9,9", less the total the figure already says.
+ * In the figure's unit, which is written once, beside the figure, as the
+ * system's Weather writes "H:20° L:10°": a unit after every number is what
+ * ran the pressure's line off the edge. With no figure to carry it, each
+ * number carries its own.
+ */
+const summaryOf = (panel: HistoryPanel, figure: { unit: string } | null, language: string) => panel.stats
+  .filter((one) => one.key !== "total")
+  .map((one) => statText(panel, one, figure?.unit !== panel.unit, language)).join(" · ");
+
+/** One stat, with its unit when asked; sunshine's total in hours, as sunshine is told. */
+function statText(panel: HistoryPanel, one: Stat, unit: boolean, language: string): string {
   const hours = panel.key === "sunshine" && one.key === "total";
   const sign = one.key === "change" && one.value > 0 ? "+" : "";
   const value = `${sign}${number(one.value, hours ? 1 : panel.digits, language)}`;
-  return `${$_(`stations.history.stat.${one.key}`)} ${withUnit(value, hours ? "h" : panel.unit)}`;
+  return `${$_(`stations.history.stat.${one.key}`)} ${unit ? withUnit(value, hours ? "h" : panel.unit) : value}`;
 }
 
 /* ---- the scrubber ------------------------------------------------------ */
@@ -183,7 +236,7 @@ function rowAt(clientX: number): number | null {
   const svg = history?.querySelector("svg");
   if (!svg || !span || !times.length) return null;
   const rect = svg.getBoundingClientRect();
-  const x = ((clientX - rect.left) / rect.width) * CHART.width;
+  const x = ((clientX - rect.left) / rect.width) * chartWidth;
   const t = span.from + ((x - plot.x0) / (plot.x1 - plot.x0)) * (span.to - span.from);
   let low = 0;
   let high = times.length - 1;
@@ -251,13 +304,17 @@ function momentLabel(t: number): string {
 const write = (value: number | null | undefined, panel: HistoryPanel, language: string) => (
   value === null || value === undefined ? "–" : withUnit(number(value, panel.digits, language), panel.unit));
 
-/** What the panel's series were at row `row`, each with its unit: its own value first, the context's named after. */
-function readout(panel: HistoryPanel, row: number, language: string): string {
-  const own = panel.series.find((one) => one.style !== "context");
-  const value = own?.points[row]?.v;
-  const parts = [panel.key === "direction"
-    ? (value === null || value === undefined ? "–" : `${compass(value)} ${Math.round(value)}°`)
-    : write(value, panel, language)];
+/** The panel's own value at row `row`, for the figure while the line is out. */
+function figureAt(panel: HistoryPanel, row: number, language: string): { value: string; unit: string } {
+  const value = panel.series.find((one) => one.style !== "context")?.points[row]?.v;
+  if (value === null || value === undefined) return { value: "–", unit: "" };
+  if (panel.key === "direction") return { value: compass(value), unit: `${Math.round(value)}°` };
+  return { value: number(value, panel.digits, language), unit: panel.unit };
+}
+
+/** Beside it, when that was and the context's value then: "14:20 · dew point 2,3 °C". */
+function readout(panel: HistoryPanel, row: number, label: string, language: string): string {
+  const parts = [label];
   for (const other of panel.series.filter((one) => one.style === "context")) {
     parts.push(`${$_(`stations.history.series.${other.key}`)} ${write(other.points[row]?.v, panel, language)}`);
   }
@@ -276,7 +333,7 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
 
 <h3 class="section">{$_("stations.history.title")}</h3>
 <div class="window">
-  <Segmented {options} bind:value={period} label={$_("stations.history.window.group")} compact />
+  <Segmented {options} bind:value={period} label={$_("stations.history.window.group")} stretch />
 </div>
 
 {#if state === "loading"}
@@ -288,6 +345,7 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
     class="history"
     class:scrubbing={cursor !== null}
     bind:this={history}
+    bind:clientWidth={measured}
     on:pointerdown={onDown}
     on:pointermove={onMove}
     on:pointerup={onUp}
@@ -296,35 +354,47 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
     role="presentation">
     {#each panels as panel, panelIndex (panel.key)}
       {@const title = $_(`stations.history.panel.${panel.key}`)}
+      {@const resting = figureOf(panel, panel.last, lang)}
+      {@const reading = cursor && at !== null ? figureAt(panel, at, lang) : null}
       <figure class={panel.key}>
-        <!-- Two lines whatever they hold, the summary's or the line's values
-             under the title, so the chart under them never moves. -->
+        <!-- The period's figure and the line's, laid over each other with the
+             one not in use hidden: the caption is as tall as the taller of
+             the two, so the chart under it never moves when the line comes
+             out. Either may wrap its summary under the figure, which a long
+             language needs for the pressure's three. -->
         <figcaption>
-          <span class="name">{title}, {panel.unit}</span>
-          {#if cursor && at !== null}
-            <span class="summary reading">{cursor.label} · {readout(panel, at, lang)}</span>
-          {:else}
-            <span class="summary">{panel.stats.map((one) => statText(panel, one, lang)).join(" · ") || "\u00a0"}</span>
-          {/if}
+          <span class="name">{title}</span>
+          <span class="figures">
+            <span class="state" class:hidden={reading !== null}>
+              {#if resting}
+                <span class="figure">{resting.value}<span class="figure-unit">{resting.unit}</span></span>
+              {/if}
+              <span class="summary">{summaryOf(panel, resting, lang) || "\u00a0"}</span>
+            </span>
+            <span class="state reading" class:hidden={reading === null}>
+              {#if reading && cursor && at !== null}
+                <span class="figure">{reading.value}<span class="figure-unit">{reading.unit}</span></span>
+                <span class="summary">{readout(panel, at, cursor.label, lang)}</span>
+              {/if}
+            </span>
+          </span>
         </figcaption>
-        <svg viewBox="0 0 {CHART.width} {panel.height}" role="img"
+        <svg width={chartWidth} height={panel.height} viewBox="0 0 {chartWidth} {panel.height}" role="img"
              aria-label={$_("stations.history.aria", { values: { title, unit: panel.unit } })}>
           {#each drawn[panelIndex]?.grid ?? [] as line (line.value)}
             <line class="grid" x1={plot.x0} x2={plot.x1} y1={line.y} y2={line.y} />
-            <text class="tick left" x={plot.x0 - 5} y={line.y}>{line.label}</text>
+            <text class="tick scale" x={plot.x1 + TICK_GAP} y={line.y}>{line.label}</text>
           {/each}
 
           {#each ticks as mark, i (mark.t)}
-            <line class="vgrid" x1={mark.x} x2={mark.x} y1={panel.y0} y2={CHART.top} />
-            <line class="tickmark" x1={mark.x} x2={mark.x} y1={panel.y0} y2={panel.y0 + 3} />
-            <text class="tick" x={mark.x} y={panel.y0 + 13}
+            <line class="vgrid" x1={mark.x} x2={mark.x} y1={panel.y0} y2={TOP} />
+            <text class="tick" x={mark.x} y={panel.y0 + 14}
                   text-anchor={i === 0 && mark.x - plot.x0 < 12 ? "start"
                     : (i === ticks.length - 1 && plot.x1 - mark.x < 12 ? "end" : "middle")}>
               {mark.label}
             </text>
           {/each}
 
-          <line class="axis" x1={plot.x0} x2={plot.x0} y1={panel.y0} y2={CHART.top} />
           <line class="axis" x1={plot.x0} x2={plot.x1} y1={panel.y0} y2={panel.y0} />
 
           {#each drawn[panelIndex]?.bars ?? [] as bar (bar.t)}
@@ -338,19 +408,14 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
           {/each}
 
           {#if cursor}
-            <line class="cursor" x1={cursor.x} x2={cursor.x} y1={CHART.top - 4} y2={panel.y0} />
+            <line class="cursor" x1={cursor.x} x2={cursor.x} y1={TOP - 4} y2={panel.y0} />
             {#each marks[panelIndex] ?? [] as mark (mark.key)}
               <circle class="mark" class:context={mark.context} cx={cursor.x} cy={mark.y} r="3" />
             {/each}
           {/if}
 
-          {#if panel.last}
-            {#if panel.key !== "direction"}
-              <circle class="head" cx={atX(panel.last.t)} cy={panel.scale.at(panel.last.v)} r="2.6" />
-            {/if}
-            <text class="direct" x={plot.x1 + 5} y={panel.scale.at(panel.last.v)}>
-              {#if panel.key === "direction"}{compass(panel.last.v)}{:else}{number(panel.last.v, panel.digits, lang)}<tspan class="unit" dx="2">{panel.unit}</tspan>{/if}
-            </text>
+          {#if panel.last && panel.key !== "direction" && !cursor}
+            <circle class="head" cx={atX(panel.last.t)} cy={panel.scale.at(panel.last.v)} r="3" />
           {/if}
         </svg>
       </figure>
@@ -360,10 +425,10 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
 
 <style>
   .window {
-    margin: -2px 0 12px;
+    margin: 0 0 16px;
   }
   .skeleton {
-    height: 120px;
+    height: 140px;
   }
   .none {
     margin: 0;
@@ -372,7 +437,9 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
 
   /* Each panel's colour, as the parameter is drawn on the map where it can
      be: the temperature warm, the rain the accent's blue, the sun yellow. */
-  figure { --ink: currentColor; margin: 0 0 6px; }
+  /* Air between the panels rather than rules, as the sheet's groups are set. */
+  figure { --ink: currentColor; margin: 0 0 18px; }
+  figure:last-child { margin-bottom: 4px; }
   .temperature { --ink: var(--mc-red); }
   .precipitation { --ink: var(--mc-accent); }
   .sunshine { --ink: #ffcc00; }
@@ -380,39 +447,74 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
   .pressure { --ink: var(--mc-accent); }
   .wind { --ink: var(--mc-orange); }
 
-  /* From here on StormDetails' history, so the two charts are drawn alike. */
+  /* The caption as Health and Weather set one: the name small in the
+     secondary ink, the figure under it large, what sums the period up
+     beside the figure on its baseline, quieter. */
   figcaption {
     display: flex;
     flex-direction: column;
-    margin-bottom: 4px;
-    font: 400 12px/1.3 var(--mc-font);
-    color: var(--mc-text-2);
+    gap: 1px;
+    margin-bottom: 6px;
+    min-width: 0;
   }
-  .name,
-  .summary {
+  .name {
+    font: var(--mc-type-label);
+    color: var(--mc-text-2);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* What sums the panel up, under its name: quieter, and in figures that
-     line up from one panel to the next. */
-  .summary {
-    color: var(--mc-text-3);
+  .figures {
+    display: grid;
+    min-width: 0;
+    /* The figure's line box, held with no figure in it too. */
+    min-height: 25px;
+  }
+  .state {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 8px;
+    min-width: 0;
+  }
+  .state.hidden {
+    visibility: hidden;
+  }
+  .figure {
+    flex: 0 0 auto;
+    font: 600 22px/1.15 var(--mc-font);
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
+    color: var(--mc-text);
+  }
+  .figure-unit {
+    margin-left: 3px;
+    font: 500 13px/1 var(--mc-font);
+    letter-spacing: 0;
+    color: var(--mc-text-2);
+  }
+  .summary {
+    flex: 0 1 auto;
+    min-width: 0;
+    font: 400 13px/1.25 var(--mc-font);
+    color: var(--mc-text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  svg {
+    display: block;
+    overflow: visible;
   }
   .grid {
     stroke: currentColor;
     stroke-opacity: 0.12;
     stroke-width: 1;
   }
-  .axis,
-  .tickmark {
+  .axis {
     stroke: currentColor;
-    stroke-opacity: 0.35;
+    stroke-opacity: 0.3;
     stroke-width: 1;
   }
-  /* Over the panels above the axis the day's ticks run the panel's height,
-     faint, so a moment can be followed down the stack. */
   /* The time ticks, faint, run each panel's height, so a moment can be
      followed down the stack. */
   .vgrid {
@@ -423,6 +525,7 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
 
   /* Sideways drags are the scrubber's; vertical ones scroll the sheet. */
   .history {
+    width: 100%;
     touch-action: pan-y;
     -webkit-user-select: none;
     user-select: none;
@@ -440,17 +543,17 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
   .mark.context {
     fill: currentColor;
   }
-  /* The values at the line, in the primary ink while it is out. */
-  .summary.reading {
-    color: var(--mc-text);
+  /* While the line is out the figure is the line's: in the panel's ink, so
+     it reads as a reading and not as the newest value. */
+  .state.reading .figure {
+    color: var(--ink);
   }
   .tick {
-    font-size: 9px;
-    fill: currentColor;
-    fill-opacity: 0.6;
+    font: 400 10px/1 var(--mc-font);
+    fill: var(--mc-text-2);
     font-variant-numeric: tabular-nums;
   }
-  .left { text-anchor: end; dominant-baseline: middle; }
+  .scale { text-anchor: start; dominant-baseline: middle; }
   .trace {
     stroke: var(--ink);
     stroke-width: 2;
@@ -473,17 +576,5 @@ $: marks = cursor && at !== null ? panels.map((panel) => panel.series
   }
   .head {
     fill: var(--ink);
-  }
-  .direct {
-    font: 600 11px/1 var(--mc-font);
-    fill: currentColor;
-    dominant-baseline: middle;
-    font-variant-numeric: tabular-nums;
-  }
-  /* The unit after it, smaller and quieter: the number is what is read. */
-  .unit {
-    font-size: 9px;
-    font-weight: 500;
-    fill-opacity: 0.7;
   }
 </style>

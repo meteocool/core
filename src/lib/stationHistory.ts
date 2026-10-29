@@ -32,6 +32,19 @@ export function windowStart(window: HistoryWindow, now: number): number {
 }
 
 /**
+ * How much later than its start a window's rows are asked from. The service
+ * holds a week and refuses a longer one, and a request for exactly seven
+ * days is a little over seven by the time it arrives: the week's panels were
+ * empty. A minute in is no row lost that the axis would show.
+ */
+const ASK_SLACK_MS = 60_000;
+
+/** The `since` a window's rows are asked for with. */
+export function askSince(window: HistoryWindow, now: number): number {
+  return windowStart(window, now) + ASK_SLACK_MS;
+}
+
+/**
  * A row further from the one before than this has a gap before it: DWD's
  * rows are ten minutes apart, and a line across a quiet station would draw
  * values nobody measured. Three missed rows, so one late file is no gap.

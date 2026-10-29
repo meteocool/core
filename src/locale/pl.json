@@ -965,7 +965,6 @@
     "sheet": {
       "place": "{state} · {height} m · pomiar {time}",
       "latest": "Najnowsze wartości",
-      "none": "Brak wartości z tej stacji.",
       "source": "Dane: Deutscher Wetterdienst (CC BY 4.0)"
     },
     "history": {
