@@ -75,3 +75,24 @@ export async function open3d(page: Page, path: string): Promise<void> {
   await page.goto(path);
   await expect(page.locator(".maplibre-host canvas").first()).toBeVisible({ timeout: 30_000 });
 }
+
+/** The player's pill that turns the weather stations on and off. */
+export const stationToggle = (page: Page): Locator => page.getByRole("button", { name: "Stations", exact: true });
+
+/** The stations' parameter, a radio per choice, while they are on. */
+export const stationPicker = (page: Page): Locator => page.getByRole("radiogroup", { name: "Station parameter" });
+
+/** The page pixel of a radar's mark, once the marks are drawn; null while they are not. */
+export const radarMark = (page: Page, site: string): Promise<{ x: number; y: number } | null> => page.evaluate((code) => {
+  const map = (window as any).lm.getCurrentMap();
+  const marks = map?.getAllLayers().find((layer: any) => layer.getSource?.()?.getFeatures?.()
+    ?.some((feature: any) => feature.get("radarSite")));
+  if (!marks?.getVisible()) return null;
+  const feature = marks.getSource().getFeatures().find((candidate: any) => candidate.get("radarSite") === code);
+  if (!feature) return null;
+  const [x, y] = map.getPixelFromCoordinate(feature.getGeometry().getCoordinates());
+  const rect = map.getViewport().getBoundingClientRect();
+  const at = { x: rect.left + x, y: rect.top + y };
+  const top = document.elementFromPoint(at.x, at.y);
+  return top && map.getViewport().contains(top) ? at : null;
+}, site);

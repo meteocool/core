@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { expect, test } from "./test";
-import { flatPixel, noGeocoder, openRadar, playButton, settled, timeline } from "./app";
+import { flatPixel, noGeocoder, openRadar, playButton, radarMark, settled, timeline } from "./app";
 import type { Page } from "@playwright/test";
 
 /** The player's product pill, which names an open radar and says when its sweep was scanned. */
@@ -21,19 +21,7 @@ const CENTRAL_GERMANY = "/?layer=radar&latLonZ=50.20000,9.20000,7.20";
 
 
 /** The page pixel of a radar's mark, once the marks are drawn. */
-const markOf = (page: Page, site: string) => page.evaluate((code) => {
-  const map = (window as any).lm.getCurrentMap();
-  const marks = map?.getAllLayers().find((layer: any) => layer.getSource?.()?.getFeatures?.()
-    ?.some((feature: any) => feature.get("radarSite")));
-  if (!marks?.getVisible()) return null;
-  const feature = marks.getSource().getFeatures().find((candidate: any) => candidate.get("radarSite") === code);
-  if (!feature) return null;
-  const [x, y] = map.getPixelFromCoordinate(feature.getGeometry().getCoordinates());
-  const rect = map.getViewport().getBoundingClientRect();
-  const at = { x: rect.left + x, y: rect.top + y };
-  const top = document.elementFromPoint(at.x, at.y);
-  return top && map.getViewport().contains(top) ? at : null;
-}, site);
+const markOf = radarMark;
 
 /** How strongly DWD's composite is drawn. */
 const compositeOpacity = (page: Page) => page.evaluate(() => (window as any).radar?.layer?.getOpacity() ?? null);

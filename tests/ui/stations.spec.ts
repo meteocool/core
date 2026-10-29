@@ -1,6 +1,6 @@
 import type { Page, Request } from "@playwright/test";
 import { expect, test } from "./test";
-import { openRadar, overlaps, settled, timeline } from "./app";
+import { openRadar, overlaps, settled, stationPicker, stationToggle, timeline } from "./app";
 
 /**
  * DWD's weather stations over the radar map: switched by a pill in the
@@ -13,8 +13,8 @@ import { openRadar, overlaps, settled, timeline } from "./app";
  */
 const GERMANY_VIEW = "/?layer=radar&latLonZ=50.50000,10.00000,8.00";
 
-const toggle = (page: Page) => page.getByRole("button", { name: "Stations", exact: true });
-const picker = (page: Page) => page.getByRole("radiogroup", { name: "Station parameter" });
+const toggle = stationToggle;
+const picker = stationPicker;
 const status = (page: Page) => page.locator(".stationPicker .status");
 const asksFor = (request: Request) => new URL(request.url()).pathname === "/stations/observations";
 const parameters = (request: Request) => new URL(request.url()).searchParams.getAll("parameter");
