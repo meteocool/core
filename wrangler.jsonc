@@ -42,8 +42,9 @@
   // than fetched, which from a Worker in the same zone would skip its route.
   "env": {
     // meteocool.com, and app.meteocool.com, where the native apps load their
-    // map and send their push registrations. Production shares next's
-    // backend until it has one of its own.
+    // map and send their push registrations. Its backend is production's,
+    // the Flanders cluster (meteocool/ng, doc/flanders.md), on production's
+    // own hostnames; next and demo below share the staging cluster.
     "production": {
       "name": "meteocool-production",
       "compatibility_date": "2026-09-20",
@@ -59,12 +60,14 @@
         "traces": { "enabled": true },
       },
       "vars": {
-        "PREVIEW_ORIGIN": "https://api-next.meteocool.com",
-        "API_ORIGIN": "https://api-next.meteocool.com",
-        "DATA_ORIGIN": "https://data-staging.meteocool.com",
-        "ASSET_ORIGIN": "https://assets-staging.meteocool.com",
+        "PREVIEW_ORIGIN": "https://api.meteocool.com",
+        "API_ORIGIN": "https://api.meteocool.com",
+        "DATA_ORIGIN": "https://data.meteocool.com",
+        "ASSET_ORIGIN": "https://assets.meteocool.com",
       },
-      "services": [{ "binding": "PREVIEW", "service": "meteocool-preview" }],
+      // Production's own preview-edge Worker (ng infra/terraform/cloudflare/flanders.tf),
+      // which renders meteocool.com.
+      "services": [{ "binding": "PREVIEW", "service": "meteocool-preview-flanders" }],
     },
     // next.meteocool.com: what develop holds, on the live feeds.
     "next": {

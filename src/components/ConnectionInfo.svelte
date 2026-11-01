@@ -136,7 +136,7 @@ function quantile(sorted: number[], q: number): number | undefined {
 const SERVICES: Array<{ name: string; match: RegExp }> = [
   { name: "radar_grid", match: /\/v3\/radar\/timeseries/ },
   { name: "api_other", match: /\/v3\/(?!radar\/timeseries)/ },
-  { name: "radar_tiles", match: /(\/tiles\/|tiles-a\.meteocool|assets-staging\.meteocool).*\.png/ },
+  { name: "radar_tiles", match: /(\/tiles\/|assets(-staging|-demo)?\.meteocool).*\.png/ },
   { name: "basemap", match: /map\.meteocool\.com|\.mvt(\?|$)/ },
   { name: "lightning", match: /lightning_cache|\/lightning/ },
   { name: "mesocyclones", match: /mesocyclone/ },
