@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Arkisto",
-      "lede": "Mikä tahansa ajanjakso viime kuukaudelta sellaisena kuin se oli: tutka, salamat, ukkosmyrskyt ja asemat.",
+      "lede": "Mikä tahansa mennyt ajanjakso, jonka arkisto vielä säilyttää, sellaisena kuin se oli: tutka, salamat, ukkosmyrskyt ja asemat.",
       "pill": "Arkisto",
       "pill_empty": "Arkisto on tyhjä",
-      "choose": "Katso taaksepäin viime kuukauteen",
+      "choose": "Katso taaksepäin",
       "empty": "Arkisto on tyhjä: mitään ei vielä säilytetä.",
       "failed": "Arkistoon ei saatu yhteyttä.",
       "retry": "Yritä uudelleen",

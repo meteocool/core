@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Arhiiv",
-      "lede": "Iga eelmise kuu ajavahemik sellisena, nagu see oli: radar, välgulöögid, tormid ja jaamad.",
+      "lede": "Iga möödunud ajavahemik, mida arhiiv veel hoiab, sellisena, nagu see oli: radar, välgulöögid, tormid ja jaamad.",
       "pill": "Arhiiv",
       "pill_empty": "Arhiiv on tühi",
-      "choose": "Vaata tagasi eelmisele kuule",
+      "choose": "Vaata tagasi",
       "empty": "Arhiiv on tühi: veel ei säilitata midagi.",
       "failed": "Arhiiviga ei saadud ühendust.",
       "retry": "Proovi uuesti",

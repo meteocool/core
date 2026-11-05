@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Archief",
-      "lede": "Elk tijdvak van de afgelopen maand, zoals het was: de radar, de inslagen, de onweersbuien en de stations.",
+      "lede": "Elk voorbij tijdvak dat het archief nog bewaart, zoals het was: de radar, de inslagen, de onweersbuien en de stations.",
       "pill": "Archief",
       "pill_empty": "Archief leeg",
-      "choose": "Terugkijken over de afgelopen maand",
+      "choose": "Terugkijken",
       "empty": "Het archief is leeg: er is nog niets bewaard.",
       "failed": "Het archief is niet bereikbaar.",
       "retry": "Opnieuw proberen",

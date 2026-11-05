@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Arkiv",
-      "lede": "Et hvilket som helst tidsrom fra den siste måneden, slik det var: radaren, lynnedslagene, uværet og stasjonene.",
+      "lede": "Et hvilket som helst tidsrom arkivet fortsatt har, slik det var: radaren, lynnedslagene, uværet og stasjonene.",
       "pill": "Arkiv",
       "pill_empty": "Arkivet er tomt",
-      "choose": "Se tilbake på den siste måneden",
+      "choose": "Se tilbake",
       "empty": "Arkivet er tomt: ingenting lagres ennå.",
       "failed": "Arkivet kunne ikke nås.",
       "retry": "Prøv igjen",

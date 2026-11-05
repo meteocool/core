@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Archives",
-      "lede": "N’importe quelle période du dernier mois, telle qu’elle était : radar, impacts de foudre, orages et stations.",
+      "lede": "N’importe quelle période encore gardée par l’archive, telle qu’elle était : radar, impacts de foudre, orages et stations.",
       "pill": "Archives",
       "pill_empty": "Archives vides",
-      "choose": "Revenir sur le dernier mois",
+      "choose": "Revenir en arrière",
       "empty": "Les archives sont vides : rien n’est encore conservé.",
       "failed": "Les archives sont injoignables.",
       "retry": "Réessayer",

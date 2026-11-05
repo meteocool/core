@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Archiv",
-      "lede": "Jedes Zeitfenster des letzten Monats, wie es war: Radar, Blitze, Gewitter und Stationen.",
+      "lede": "Jedes vergangene Zeitfenster, das das Archiv noch hat, wie es war: Radar, Blitze, Gewitter und Stationen.",
       "pill": "Archiv",
       "pill_empty": "Archiv leer",
-      "choose": "Den letzten Monat zurückschauen",
+      "choose": "Zurückschauen",
       "empty": "Das Archiv ist leer: Noch ist nichts gespeichert.",
       "failed": "Das Archiv ist nicht erreichbar.",
       "retry": "Erneut versuchen",

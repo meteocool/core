@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Arkiv",
-      "lede": "Vilket tidsfönster som helst från den senaste månaden, som det var: radarn, blixtarna, ovädren och stationerna.",
+      "lede": "Vilket tidsfönster som helst som arkivet fortfarande har kvar, som det var: radarn, blixtarna, ovädren och stationerna.",
       "pill": "Arkiv",
       "pill_empty": "Arkivet är tomt",
-      "choose": "Se tillbaka på den senaste månaden",
+      "choose": "Se tillbaka",
       "empty": "Arkivet är tomt: inget sparas ännu.",
       "failed": "Arkivet kunde inte nås.",
       "retry": "Försök igen",

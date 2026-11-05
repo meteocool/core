@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Archyvas",
-      "lede": "Bet kuris praėjusio mėnesio laikotarpis, koks jis buvo: radaras, žaibai, audros ir stotys.",
+      "lede": "Bet kuris praėjęs laikotarpis, kurį archyvas dar saugo, koks jis buvo: radaras, žaibai, audros ir stotys.",
       "pill": "Archyvas",
       "pill_empty": "Archyvas tuščias",
-      "choose": "Peržiūrėti praėjusį mėnesį",
+      "choose": "Pažvelgti atgal",
       "empty": "Archyvas tuščias: kol kas nieko nesaugoma.",
       "failed": "Nepavyko pasiekti archyvo.",
       "retry": "Bandyti dar kartą",

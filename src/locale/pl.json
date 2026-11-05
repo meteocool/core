@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Archiwum",
-      "lede": "Dowolny przedział z ostatniego miesiąca, taki jak był: radar, wyładowania, burze i stacje.",
+      "lede": "Dowolny miniony przedział, który archiwum jeszcze przechowuje, taki jak był: radar, wyładowania, burze i stacje.",
       "pill": "Archiwum",
       "pill_empty": "Archiwum puste",
-      "choose": "Wróć do ostatniego miesiąca",
+      "choose": "Wróć w czasie",
       "empty": "Archiwum jest puste: nic jeszcze nie zapisano.",
       "failed": "Nie udało się połączyć z archiwum.",
       "retry": "Spróbuj ponownie",

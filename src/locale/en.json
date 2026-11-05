@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Archive",
-      "lede": "Any window of the last month, as it was: the radar, the strikes, the storms and the stations.",
+      "lede": "Any past window the archive still keeps, as it was: the radar, the strikes, the storms and the stations.",
       "pill": "Archive",
       "pill_empty": "Archive empty",
-      "choose": "Look back over the last month",
+      "choose": "Look back",
       "empty": "The archive is empty: nothing is kept yet.",
       "failed": "The archive could not be reached.",
       "retry": "Try again",

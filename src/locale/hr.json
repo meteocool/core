@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Arhiva",
-      "lede": "Bilo koje razdoblje iz proteklog mjeseca, kakvo je bilo: radar, munje, oluje i postaje.",
+      "lede": "Bilo koje proteklo razdoblje koje arhiv još čuva, kakvo je bilo: radar, munje, oluje i postaje.",
       "pill": "Arhiva",
       "pill_empty": "Arhiva je prazna",
-      "choose": "Pogledaj protekli mjesec",
+      "choose": "Pogledaj unatrag",
       "empty": "Arhiva je prazna: još se ništa ne čuva.",
       "failed": "Arhiva nije dostupna.",
       "retry": "Pokušaj ponovno",

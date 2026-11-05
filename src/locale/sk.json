@@ -474,10 +474,10 @@
   "chrome": {
     "archive": {
       "title": "Archív",
-      "lede": "Ľubovoľné okno z posledného mesiaca, ako bolo: radar, blesky, búrky a stanice.",
+      "lede": "Ľubovoľné minulé okno, ktoré archív ešte uchováva, ako bolo: radar, blesky, búrky a stanice.",
       "pill": "Archív",
       "pill_empty": "Archív je prázdny",
-      "choose": "Pozrieť sa späť na posledný mesiac",
+      "choose": "Pozrieť sa späť",
       "empty": "Archív je prázdny: zatiaľ sa nič neuchováva.",
       "failed": "Archív nie je dostupný.",
       "retry": "Skúsiť znova",
