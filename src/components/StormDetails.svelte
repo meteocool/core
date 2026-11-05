@@ -25,9 +25,11 @@ import { get } from "svelte/store";
 import { onDestroy } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import {
-  capLatestObservation, heldStormGroups, radarColormap, selectedStorm, sharedActiveCap, smallScreen, stormDetails,
+  capLatestObservation, heldStormGroups, radarColormap, rotationSignatures, selectedStorm, sharedActiveCap, smallScreen,
+  stormDetails,
 } from "../stores";
 import { systemSize } from "../lib/stormGroups";
+import { nearestSignature } from "../lib/rotationSignatures";
 import { afterClose } from "../lib/cellSelection";
 import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
 import { cellStatus } from "../lib/cellStatus";
@@ -146,6 +148,9 @@ $: storm = selection.summary?.properties ?? null;
 $: volume = track?.volume ?? selection.volume ?? null;
 /** A box of sky with no storm or cell found for it (yet): said as a storm core used to be. */
 $: coreOnly = !track && !storm && Boolean(selection.volume);
+/** A rotation signature of meteocool's within 10 km of the storm: the rotation flag counts DWD's and ours. */
+$: stormPosition = positionOf(selection);
+$: signatureNear = stormPosition ? nearestSignature($rotationSignatures, stormPosition[1], stormPosition[0], 10) : null;
 /** Whether the severity is DWD's class, which may be named; otherwise only the peak is. */
 $: classed = knowsSeverity(selection);
 $: severity = severityOf(selection) ?? 0;
@@ -773,13 +778,20 @@ function close() {
     </dl>
   {/if}
 
-  {#if track}
+  {#if track || signatureNear}
     <div class="signals">
-      {#if track.meso_ever}
+      {#if track?.meso_ever}
         <span class="signal rotating">
           {$_("storm.signal.rotating")}{track.meso_minutes ? ` ${duration(track.meso_minutes, $_)}` : ""}
         </span>
       {/if}
+      <!-- meteocool's own reading of the radar's velocity, over Germany and beyond it. -->
+      {#if signatureNear}
+        <span class="signal rotating" title={$_("signature.title")}>
+          {$_("storm.signal.rotation_signature")}{signatureNear.signature.vrot_m_s != null ? ` ${signatureNear.signature.vrot_m_s.toFixed(0)} m/s` : ""}
+        </span>
+      {/if}
+      {#if track}
       {#if track.hail_ever}
         <span class="signal hail">
           {$_("hail")}{track.hail_minutes ? ` ${duration(track.hail_minutes, $_)}` : ""}
@@ -794,6 +806,7 @@ function close() {
         <span class="signal deviant">
           {$_("storm.signal.deviant", { values: { deg: round(track.deviation_deg) } })}
         </span>
+      {/if}
       {/if}
     </div>
   {/if}

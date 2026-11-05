@@ -306,7 +306,8 @@
       "intensifying": "Stiprėja",
       "split": "Skilo",
       "merged": "Susiliejo",
-      "deviant": "Nukrypsta {deg}°"
+      "deviant": "Nukrypsta {deg}°",
+      "rotation_signature": "Sukimosi požymis"
     },
     "section": {
       "readings": "Rodmenys",
@@ -457,7 +458,7 @@
       "volume": "3D vaizdas",
       "volume_body": "Bakstelėkite, kad atidarytumėte audrą 3D žemėlapyje.",
       "mesocyclone": "Mezociklonas",
-      "mesocyclone_body": "Sukimasis, aptiktas DWD mezociklonų produkte.",
+      "mesocyclone_body": "Sukimasis iš DWD mezociklonų produkto arba sukimosi požymis, kurį meteocool nuskaito iš radaro greičio.",
       "lightning": "Žaibai",
       "lightning_body": "Iškrovos iš blitzortung.org, blunka per pusvalandį.",
       "show": "Rodyti žemėlapyje: {mark}"
@@ -1156,5 +1157,14 @@
       "antenna": "antena {height} m aukštyje",
       "range": "mato {range} km"
     }
+  },
+  "signature": {
+    "title": "Sukimosi požymis",
+    "vrot": "Sukimosi greitis {value} m/s",
+    "depth": "{count} pakylos, nuo {lowest} iki {highest} km aukštyje",
+    "range": "{range} km nuo {site}",
+    "persistent": "Matytas ir ankstesniame cikle",
+    "agrees": "DWD čia aptinka mezocikloną",
+    "disagrees": "DWD čia nieko neaptiko"
   }
 }

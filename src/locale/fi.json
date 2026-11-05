@@ -306,7 +306,8 @@
       "intensifying": "Voimistuu",
       "split": "Jakautunut",
       "merged": "Yhdistynyt",
-      "deviant": "Poikkeava {deg}°"
+      "deviant": "Poikkeava {deg}°",
+      "rotation_signature": "Pyörteen tunnusmerkki"
     },
     "section": {
       "readings": "Mittaukset",
@@ -457,7 +458,7 @@
       "volume": "3D-näkymä",
       "volume_body": "Napauta avataksesi ukkosen 3D-kartalla.",
       "mesocyclone": "Mesosykloni",
-      "mesocyclone_body": "DWD:n mesosyklonituotteen havaitsema pyöriminen.",
+      "mesocyclone_body": "DWD:n mesosyklonituotteen havaitsema pyörre tai pyörteen tunnusmerkki, jonka meteocool lukee tutkan nopeudesta.",
       "lightning": "Salamat",
       "lightning_body": "Iskut blitzortung.orgista, haalistuvat puolen tunnin aikana.",
       "show": "Näytä kartalla: {mark}"
@@ -1156,5 +1157,14 @@
       "antenna": "antenni {height} metrissä",
       "range": "näkee {range} km:n päähän"
     }
+  },
+  "signature": {
+    "title": "Pyörteen tunnusmerkki",
+    "vrot": "Pyörimisnopeus {value} m/s",
+    "depth": "{count} korkeuskulmaa, {lowest}–{highest} km korkeudessa",
+    "range": "{range} km tutkasta {site}",
+    "persistent": "Nähty myös edellisellä kierroksella",
+    "agrees": "DWD havaitsee tässä mesosyklonin",
+    "disagrees": "Ei DWD:n havaintoa tässä"
   }
 }

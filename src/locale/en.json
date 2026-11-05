@@ -907,7 +907,8 @@
       "intensifying": "Intensifying",
       "split": "Split",
       "merged": "Merged",
-      "deviant": "Deviant {deg}°"
+      "deviant": "Deviant {deg}°",
+      "rotation_signature": "Rotation signature"
     },
     "section": {
       "readings": "Readings",
@@ -1058,7 +1059,7 @@
       "volume": "3D view",
       "volume_body": "Tap to open the storm on the 3D map.",
       "mesocyclone": "Mesocyclone",
-      "mesocyclone_body": "A rotation detected in DWD's mesocyclone product.",
+      "mesocyclone_body": "A rotation detected in DWD's mesocyclone product, or a rotation signature meteocool reads off a radar's velocity.",
       "lightning": "Lightning",
       "lightning_body": "Strikes from blitzortung.org, fading over half an hour.",
       "show": "Show on the map: {mark}"
@@ -1827,5 +1828,14 @@
       "antenna": "antenna at {height} m",
       "range": "sees {range} km"
     }
+  },
+  "signature": {
+    "title": "Rotation signature",
+    "vrot": "Rotational velocity {value} m/s",
+    "depth": "{count} tilts, {lowest} to {highest} km up",
+    "range": "{range} km from {site}",
+    "persistent": "Seen in the previous cycle too",
+    "agrees": "DWD detects a mesocyclone here",
+    "disagrees": "No DWD detection here"
   }
 }

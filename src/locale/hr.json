@@ -306,7 +306,8 @@
       "intensifying": "Jačanje",
       "split": "Razdvajanje",
       "merged": "Spajanje",
-      "deviant": "Odstupa {deg}°"
+      "deviant": "Odstupa {deg}°",
+      "rotation_signature": "Rotacijski potpis"
     },
     "section": {
       "readings": "Mjerenja",
@@ -457,7 +458,7 @@
       "volume": "3D prikaz",
       "volume_body": "Dodirnite za otvaranje oluje na 3D karti.",
       "mesocyclone": "Mezociklona",
-      "mesocyclone_body": "Rotacija otkrivena u DWD-ovom proizvodu mezociklona.",
+      "mesocyclone_body": "Rotacija iz DWD-ova mezociklonskog proizvoda ili rotacijski potpis koji meteocool čita iz brzine radara.",
       "lightning": "Munje",
       "lightning_body": "Udari s blitzortung.org, blijede tijekom pola sata.",
       "show": "Prikaži na karti: {mark}"
@@ -1156,5 +1157,14 @@
       "antenna": "antena na {height} m",
       "range": "vidi {range} km"
     }
+  },
+  "signature": {
+    "title": "Rotacijski potpis",
+    "vrot": "Brzina rotacije {value} m/s",
+    "depth": "{count} elevacije, od {lowest} do {highest} km visine",
+    "range": "{range} km od {site}",
+    "persistent": "Viđen i u prethodnom ciklusu",
+    "agrees": "DWD ovdje otkriva mezociklonu",
+    "disagrees": "Nema DWD-ove detekcije ovdje"
   }
 }

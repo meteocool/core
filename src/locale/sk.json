@@ -306,7 +306,8 @@
       "intensifying": "Zosilňuje sa",
       "split": "Rozdelená",
       "merged": "Zlúčená",
-      "deviant": "Odchýlka {deg}°"
+      "deviant": "Odchýlka {deg}°",
+      "rotation_signature": "Rotačná signatúra"
     },
     "section": {
       "readings": "Namerané hodnoty",
@@ -457,7 +458,7 @@
       "volume": "3D zobrazenie",
       "volume_body": "Ťuknutím otvoríte búrku na 3D mape.",
       "mesocyclone": "Mezocyklóna",
-      "mesocyclone_body": "Rotácia zistená produktom mezocyklón DWD.",
+      "mesocyclone_body": "Rotácia z mezocyklónového produktu DWD, alebo rotačná signatúra, ktorú meteocool číta z rýchlosti radaru.",
       "lightning": "Blesky",
       "lightning_body": "Údery z blitzortung.org, blednú počas pol hodiny.",
       "show": "Zobraziť na mape: {mark}"
@@ -1226,5 +1227,14 @@
       "antenna": "anténa vo {height} m",
       "range": "vidí {range} km"
     }
+  },
+  "signature": {
+    "title": "Rotačná signatúra",
+    "vrot": "Rotačná rýchlosť {value} m/s",
+    "depth": "{count} elevácií, {lowest} až {highest} km vysoko",
+    "range": "{range} km od {site}",
+    "persistent": "Videná aj v predchádzajúcom cykle",
+    "agrees": "DWD tu deteguje mezocyklónu",
+    "disagrees": "Žiadna detekcia DWD tu"
   }
 }

@@ -10,6 +10,7 @@ import { _, locale } from "svelte-i18n";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { fromLonLat, toLonLat, transformExtent } from "ol/proj";
+import Point from "ol/geom/Point";
 import Map from "./components/Map.svelte";
 import MapLoading from "./components/MapLoading.svelte";
 import Lazy from "./components/Lazy.svelte";
@@ -51,7 +52,7 @@ import {
   shareDialog,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
-  archiveStep, archiveWindow, socketDown,
+  archiveStep, archiveWindow, socketDown, pointMenuAt,
 } from "./stores";
 import { cleanupStatusFeed, initStatusFeed, refreshStatus } from "./lib/statusFeed";
 import { archiveStrikes } from "./lib/ArchiveStrikes";
@@ -91,8 +92,7 @@ import { offerVolumes, startStormResolver } from "./lib/stormResolver";
 import { existedBy, isResolution, selectionKey, withStorm } from "./lib/stormSelection";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
-import { dwdDetections, mesoRadiusPx } from "./lib/mesocyclones";
-import type Point from "ol/geom/Point";
+import { mesoRadiusPx } from "./lib/mesocyclones";
 import makeCellLayer from "./layers/cells";
 import makeStormGroupLayer from "./layers/stormGroups";
 import makeCellPulseLayer from "./layers/cellPulse";
@@ -908,8 +908,7 @@ window.ll = lightningLayer;
 // skipped, keeping the cyclones already shown, rather than thrown on.
 radarSocketIO.on("mesocyclones", (data) => {
   if (!Array.isArray(data) || get(archiveWindow)) return;
-  mesocyclonemgr.clearAll();
-  dwdDetections(data).forEach((elem) => mesocyclonemgr.addCyclone(elem));
+  mesocyclonemgr.setAll(data);
 });
 
 // Both managers cap themselves by count, but nothing ever dropped features for
@@ -1241,10 +1240,14 @@ lm.forEachMap((map) => {
    * The storm a mesocyclone's ring under `pixel` turns in: the tracked one
    * nearest it (lib/mesocyclones.ts). Measured against the ring as drawn
    * rather than hit-tested, the icon being hollow where a finger lands.
+   * DWD's only: a rotation signature opens what it says (`signatureAt`).
    */
   const mesocycloneStorm = (pixel: number[]): string | undefined => {
     if (!mesocycloneLayer.getVisible() || !cellLayer.getVisible()) return undefined;
-    const meso = mesocycloneSource.getClosestFeatureToCoordinate(map.getCoordinateFromPixel(pixel));
+    const meso = mesocycloneSource.getClosestFeatureToCoordinate(
+      map.getCoordinateFromPixel(pixel),
+      (feature) => feature.get("source") !== "meteocool",
+    );
     if (!meso) return undefined;
     // EPSG:3857 already, as the manager files them.
     const at = (meso.getGeometry() as Point).getCoordinates();
@@ -1252,6 +1255,17 @@ lm.forEachMap((map) => {
     if (Math.hypot(x - pixel[0], y - pixel[1]) > mesoRadiusPx(meso.get("intensity")) + 4) return undefined;
     const [lon, lat] = toLonLat(at);
     return stormmgr.stormAtMesocyclone(lon, lat) ?? undefined;
+  };
+
+  /** Where the rotation signature under `pixel` stands, as [lon, lat]; undefined with none there. */
+  const signatureAt = (pixel: number[]): [number, number] | undefined => {
+    if (!mesocycloneLayer.getVisible()) return undefined;
+    const at = map.forEachFeatureAtPixel(
+      pixel,
+      (feature) => (feature.get("source") === "meteocool" ? feature.getGeometry() : undefined),
+      { layerFilter: (layer) => layer === mesocycloneLayer, hitTolerance: 8 },
+    );
+    return at instanceof Point ? toLonLat(at.getCoordinates()) as [number, number] : undefined;
   };
 
   map.on("singleclick", (event) => {
@@ -1267,6 +1281,14 @@ lm.forEachMap((map) => {
         siteSweeps.open(radar);
         return;
       }
+    }
+    /* A rotation signature: what it says, in the point menu at its place,
+       before any storm under it. DWD's detections open the storm they turn
+       in, below. */
+    const signature = signatureAt(event.pixel);
+    if (signature) {
+      pointMenuAt.set([signature[1], signature[0]]);
+      return;
     }
     const cellsShown = get(cellLayerVisible);
     const code = cellsShown
@@ -1377,7 +1399,8 @@ lm.forEachMap((map) => {
       })
       || (stationLayer.layer.getVisible() && hits(event.pixel, stationLayer.layer, 10))
       || (flightTrackLayer.layer.getVisible() && hits(event.pixel, flightTrackLayer.layer, 8))
-      || (get(cellLayerVisible) && mesocycloneStorm(event.pixel) !== undefined);
+      || (get(cellLayerVisible) && mesocycloneStorm(event.pixel) !== undefined)
+      || signatureAt(event.pixel) !== undefined;
     if (over === hovering) return;
     hovering = over;
     viewport.style.cursor = over ? "pointer" : "";
@@ -1438,8 +1461,7 @@ async function reloadCyclones() {
   if (get(archiveWindow)) return;
   const detections = await fetchMesocyclones(nb).catch(() => null);
   if (!Array.isArray(detections)) return;
-  mesocyclonemgr.clearAll();
-  dwdDetections(detections).forEach((detection) => mesocyclonemgr.addCyclone(detection));
+  mesocyclonemgr.setAll(detections);
 }
 
 /**

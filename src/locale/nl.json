@@ -306,7 +306,8 @@
       "intensifying": "Wordt sterker",
       "split": "Gesplitst",
       "merged": "Samengevoegd",
-      "deviant": "Afwijkend {deg}°"
+      "deviant": "Afwijkend {deg}°",
+      "rotation_signature": "Rotatiesignatuur"
     },
     "section": {
       "readings": "Metingen",
@@ -457,7 +458,7 @@
       "volume": "3D-weergave",
       "volume_body": "Tik om het onweer op de 3D-kaart te openen.",
       "mesocyclone": "Mesocycloon",
-      "mesocyclone_body": "Een rotatie uit het mesocycloonproduct van de DWD.",
+      "mesocyclone_body": "Een rotatie uit het mesocycloonproduct van het DWD, of een rotatiesignatuur die meteocool uit de snelheid van een radar leest.",
       "lightning": "Bliksem",
       "lightning_body": "Inslagen van blitzortung.org, die in een halfuur vervagen.",
       "show": "Op de kaart tonen: {mark}"
@@ -1226,5 +1227,14 @@
       "antenna": "antenne op {height} m",
       "range": "ziet {range} km ver"
     }
+  },
+  "signature": {
+    "title": "Rotatiesignatuur",
+    "vrot": "Rotatiesnelheid {value} m/s",
+    "depth": "{count} elevaties, {lowest} tot {highest} km hoog",
+    "range": "{range} km van {site}",
+    "persistent": "Ook in de vorige cyclus gezien",
+    "agrees": "Het DWD detecteert hier een mesocycloon",
+    "disagrees": "Geen DWD-detectie hier"
   }
 }

@@ -306,7 +306,8 @@
       "intensifying": "Tugevnev",
       "split": "Jagunes",
       "merged": "Ühines",
-      "deviant": "Kõrvalekalle {deg}°"
+      "deviant": "Kõrvalekalle {deg}°",
+      "rotation_signature": "Pöörlemise tunnus"
     },
     "section": {
       "readings": "Näidud",
@@ -457,7 +458,7 @@
       "volume": "3D-vaade",
       "volume_body": "Puuduta, et avada äike 3D-kaardil.",
       "mesocyclone": "Mesotsüklon",
-      "mesocyclone_body": "DWD mesotsüklonite tootes tuvastatud pöörlemine.",
+      "mesocyclone_body": "DWD mesotsüklonitoote tuvastatud pöörlemine või pöörlemise tunnus, mille meteocool loeb radari kiirusest.",
       "lightning": "Välk",
       "lightning_body": "Löögid blitzortung.org-ist, tuhmuvad poole tunni jooksul.",
       "show": "Näita kaardil: {mark}"
@@ -1156,5 +1157,14 @@
       "antenna": "antenn {height} m kõrgusel",
       "range": "näeb {range} km kaugele"
     }
+  },
+  "signature": {
+    "title": "Pöörlemise tunnus",
+    "vrot": "Pöörlemiskiirus {value} m/s",
+    "depth": "{count} kaldenurka, {lowest} kuni {highest} km kõrgusel",
+    "range": "{range} km radarist {site}",
+    "persistent": "Nähtud ka eelmises tsüklis",
+    "agrees": "DWD tuvastab siin mesotsükloni",
+    "disagrees": "DWD tuvastust siin pole"
   }
 }

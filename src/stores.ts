@@ -1,4 +1,5 @@
 import type { SiteMode, SiteSweepView } from "./lib/siteSweeps";
+import type { RotationSignature } from "./lib/rotationSignatures";
 import { DEFAULT_MANUAL_MOTION, type ManualMotion } from "./lib/srvMotion";
 import { EMPTY_HEALTH, type ApiHealth } from "./lib/apiHealth";
 import { NOT_DEGRADED, type DegradedState } from "./lib/degraded";
@@ -221,6 +222,8 @@ export const lightningLayerVisible = writable<boolean>(true);
 export const layerswitcherVisible = writable<"yes" | "no">("yes");
 export const toolbarVisible = writable<"yes" | "no">("yes");
 export const cycloneLayerVisible = writable<boolean>(true);
+/** meteocool's rotation signatures as the `mesocyclones` list last carried them (lib/rotationSignatures.ts). */
+export const rotationSignatures = writable<RotationSignature[]>([]);
 /** Whether tracked thunderstorm cells are drawn. */
 export const cellLayerVisible = writable<boolean>(true);
 /**

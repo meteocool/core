@@ -306,7 +306,8 @@
       "intensifying": "Intensifieras",
       "split": "Delad",
       "merged": "Sammanslagen",
-      "deviant": "Avvikande {deg}°"
+      "deviant": "Avvikande {deg}°",
+      "rotation_signature": "Rotationssignatur"
     },
     "section": {
       "readings": "Mätvärden",
@@ -457,7 +458,7 @@
       "volume": "3D-vy",
       "volume_body": "Tryck för att öppna ovädret på 3D-kartan.",
       "mesocyclone": "Mesocyklon",
-      "mesocyclone_body": "En rotation från DWD:s mesocyklonprodukt.",
+      "mesocyclone_body": "En rotation ur DWD:s mesocyklonprodukt, eller en rotationssignatur som meteocool läser ur en radars hastighet.",
       "lightning": "Blixtar",
       "lightning_body": "Nedslag från blitzortung.org, som bleknar under en halvtimme.",
       "show": "Visa på kartan: {mark}"
@@ -1156,5 +1157,14 @@
       "antenna": "antenn på {height} m",
       "range": "ser {range} km"
     }
+  },
+  "signature": {
+    "title": "Rotationssignatur",
+    "vrot": "Rotationshastighet {value} m/s",
+    "depth": "{count} elevationer, {lowest} till {highest} km upp",
+    "range": "{range} km från {site}",
+    "persistent": "Sågs även i förra cykeln",
+    "agrees": "DWD upptäcker en mesocyklon här",
+    "disagrees": "Ingen DWD-detektion här"
   }
 }

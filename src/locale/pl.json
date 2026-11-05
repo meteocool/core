@@ -306,7 +306,8 @@
       "intensifying": "Nasilenie",
       "split": "Podział",
       "merged": "Połączenie",
-      "deviant": "Odchylenie {deg}°"
+      "deviant": "Odchylenie {deg}°",
+      "rotation_signature": "Sygnatura rotacji"
     },
     "section": {
       "readings": "Odczyty",
@@ -457,7 +458,7 @@
       "volume": "Widok 3D",
       "volume_body": "Dotknij, aby otworzyć burzę na mapie 3D.",
       "mesocyclone": "Mezocyklon",
-      "mesocyclone_body": "Rotacja wykryta w produkcie mezocyklonów DWD.",
+      "mesocyclone_body": "Rotacja wykryta przez produkt mezocyklonowy DWD lub sygnatura rotacji, którą meteocool odczytuje z prędkości radaru.",
       "lightning": "Wyładowania",
       "lightning_body": "Wyładowania z blitzortung.org, blednące przez pół godziny.",
       "show": "Pokaż na mapie: {mark}"
@@ -1226,5 +1227,14 @@
       "antenna": "antena na {height} m",
       "range": "widzi na {range} km"
     }
+  },
+  "signature": {
+    "title": "Sygnatura rotacji",
+    "vrot": "Prędkość rotacji {value} m/s",
+    "depth": "{count} elewacje, od {lowest} do {highest} km wysokości",
+    "range": "{range} km od {site}",
+    "persistent": "Widoczna także w poprzednim cyklu",
+    "agrees": "DWD wykrywa tu mezocyklon",
+    "disagrees": "Brak detekcji DWD tutaj"
   }
 }

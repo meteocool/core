@@ -306,7 +306,8 @@
       "intensifying": "Intensification",
       "split": "Scission",
       "merged": "Fusion",
-      "deviant": "Déviant {deg}°"
+      "deviant": "Déviant {deg}°",
+      "rotation_signature": "Signature de rotation"
     },
     "section": {
       "readings": "Mesures",
@@ -457,7 +458,7 @@
       "volume": "Vue 3D",
       "volume_body": "Touchez pour ouvrir l'orage sur la carte 3D.",
       "mesocyclone": "Mésocyclone",
-      "mesocyclone_body": "Une rotation détectée par le produit mésocyclone du DWD.",
+      "mesocyclone_body": "Une rotation détectée par le produit mésocyclone du DWD, ou une signature de rotation que meteocool lit dans la vitesse d’un radar.",
       "lightning": "Foudre",
       "lightning_body": "Impacts de blitzortung.org, qui s'estompent en une demi-heure.",
       "show": "Afficher sur la carte : {mark}"
@@ -1226,5 +1227,14 @@
       "antenna": "antenne à {height} m",
       "range": "voit à {range} km"
     }
+  },
+  "signature": {
+    "title": "Signature de rotation",
+    "vrot": "Vitesse de rotation {value} m/s",
+    "depth": "{count} élévations, de {lowest} à {highest} km d’altitude",
+    "range": "{range} km de {site}",
+    "persistent": "Vue aussi au cycle précédent",
+    "agrees": "Le DWD détecte ici une mésocyclone",
+    "disagrees": "Pas de détection du DWD ici"
   }
 }

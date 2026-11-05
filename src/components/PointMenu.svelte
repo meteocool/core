@@ -30,11 +30,12 @@ import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDepar
 import Icon from "./Icon.svelte";
 import { share, shareAvailable, shareIcon } from "../lib/share";
 import {
-  cells3dFailed, inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap, siteMode,
+  cells3dFailed, inspectLatLon, mapView, pointMenuAt, rotationSignatures, selectedStorm, sharedActiveCap, siteMode,
 } from "../stores";
 import { canFlyFromMap, flyFromMap } from "../lib/studio/flyFromMap";
 import { readSiteAt } from "../lib/SiteSweepManager";
 import { describeReading } from "../lib/siteSweeps";
+import { describeSignature, nearestSignature } from "../lib/rotationSignatures";
 import { openModelCompare } from "../lib/modelCompare";
 import { hideNativeControls } from "../lib/nativeBridge";
 import { reverseGeocode } from "../lib/reverseGeocode";
@@ -85,6 +86,12 @@ $: void name($pointMenuAt);
    is drawing (lib/sweepGeometry.ts holds the CPU copy of the shader). */
 $: siteReading = $pointMenuAt && $siteMode ? readSiteAt($pointMenuAt[1], $pointMenuAt[0]) : null;
 $: siteRead = siteReading ? describeReading(siteReading.reading, siteReading.quantity, siteReading.bin, $_) : null;
+
+/* A rotation signature of meteocool's within reach of the point: what it
+   says of itself, under the heading that names it for what it is. */
+const SIGNATURE_WITHIN_KM = 5;
+$: signatureNear = $pointMenuAt ? nearestSignature($rotationSignatures, $pointMenuAt[0], $pointMenuAt[1], SIGNATURE_WITHIN_KM) : null;
+$: signatureLines = signatureNear ? describeSignature(signatureNear.signature, $_) : [];
 let keys: EventsKey[] = [];
 
 const map = () => layerManager.getCapability("radar")?.getMap();
@@ -233,6 +240,14 @@ onDestroy(() => {
           <span class="where">{siteRead.where}</span>
         </p>
       {/if}
+      {#if signatureNear}
+        <p class="site-reading signature" role="note">
+          <span class="value">{$_("signature.title")}</span>
+          {#each signatureLines as line (line)}
+            <span class="where">{line}</span>
+          {/each}
+        </p>
+      {/if}
       <button type="button" role="menuitem" on:click={precipitation}>
         <span class="icon"><Icon icon={faDroplet} /></span>
         <span class="text">
@@ -280,6 +295,7 @@ onDestroy(() => {
   }
   .site-reading .value { font: 600 14px/1.2 var(--mc-font); color: var(--mc-text); }
   .site-reading .where { font: 500 11px/1.3 var(--mc-font); color: var(--mc-text-2); }
+  .site-reading.signature .value { color: rgb(200, 10, 40); }
 
   /* Where the element waits until OpenLayers moves it into the map. */
   .anchor { display: none; }

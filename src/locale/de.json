@@ -306,7 +306,8 @@
       "intensifying": "Verstärkt sich",
       "split": "Geteilt",
       "merged": "Verschmolzen",
-      "deviant": "Abweichend {deg}°"
+      "deviant": "Abweichend {deg}°",
+      "rotation_signature": "Rotationssignatur"
     },
     "section": {
       "readings": "Messwerte",
@@ -457,7 +458,7 @@
       "volume": "3D-Ansicht",
       "volume_body": "Antippen, um das Gewitter in der 3D-Karte zu öffnen.",
       "mesocyclone": "Mesozyklone",
-      "mesocyclone_body": "Eine Rotation aus dem Mesozyklonen-Produkt des DWD.",
+      "mesocyclone_body": "Eine Rotation aus dem Mesozyklonen-Produkt des DWD oder eine Rotationssignatur, die meteocool aus der Radialgeschwindigkeit eines Radars liest.",
       "lightning": "Blitze",
       "lightning_body": "Einschläge von blitzortung.org, die über eine halbe Stunde verblassen.",
       "show": "Auf der Karte zeigen: {mark}"
@@ -1226,5 +1227,14 @@
       "antenna": "Antenne auf {height} m",
       "range": "sieht {range} km"
     }
+  },
+  "signature": {
+    "title": "Rotationssignatur",
+    "vrot": "Rotationsgeschwindigkeit {value} m/s",
+    "depth": "{count} Elevationen, {lowest} bis {highest} km hoch",
+    "range": "{range} km von {site}",
+    "persistent": "Auch im vorigen Zyklus gesehen",
+    "agrees": "Der DWD erkennt hier eine Mesozyklone",
+    "disagrees": "Keine DWD-Erkennung hier"
   }
 }
