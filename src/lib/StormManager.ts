@@ -14,6 +14,8 @@ import { drawStorms } from "./stormMarks";
 import type { MarkGeometry, StormMark } from "./stormMarks";
 import { selectionKey, withStorm } from "./stormSelection";
 import { holdStorms } from "./stormResolver";
+import { sameWindow } from "./archive";
+import type { ArchiveWindow } from "./archive";
 
 /**
  * The storm layer's contents: `/storms` for the viewport, replaced on each
@@ -73,6 +75,13 @@ export default class StormManager {
   /** What the selection was when last drawn, so only a change of storm, cell or forecast redraws. */
   private drawnFor = "";
 
+  /**
+   * The past window the map is open in (lib/archive.ts), or null live: the
+   * storms asked for are then every one that overlapped it, rewound to the
+   * step on screen as an earlier live frame's are.
+   */
+  private past: ArchiveWindow | null = null;
+
   constructor(vectorSource: VectorSource, pulseSource: VectorSource | null = null) {
     this.vs = vectorSource;
     this.pulse = pulseSource;
@@ -100,19 +109,36 @@ export default class StormManager {
     const token = Symbol("storms");
     this.pending = token;
 
+    const past = this.past;
     let collection;
     try {
-      collection = await fetchStorms(padded, WINDOW_MINUTES, nanobar);
+      collection = await fetchStorms(padded, past ? { since: past.start, until: past.end } : WINDOW_MINUTES, nanobar);
     } catch {
       // Already reported, or no storms served (a 404 is absence): nothing to draw.
       return;
     }
-    if (this.pending !== token) return;
+    if (this.pending !== token || !sameWindow(past, this.past)) return;
 
     this.fetched = padded;
     this.answer = { storms: collection.features ?? [] };
     this.draw();
     this.refreshSelection();
+  }
+
+  /**
+   * Open a past window, or go back to live with null: what is drawn is
+   * dropped, and the next `reload` asks for the window's storms. Whether it
+   * changed anything, for the caller to reload.
+   */
+  setWindow(next: ArchiveWindow | null): boolean {
+    if (sameWindow(next, this.past)) return false;
+    this.past = next;
+    this.pending = null;
+    this.fetched = null;
+    this.answer = null;
+    this.vs.clear();
+    this.pulse?.clear();
+    return true;
   }
 
   /** Draw the storms as they were at `atMs`, or as they are now for null; no request. */

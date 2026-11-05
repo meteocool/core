@@ -27,7 +27,8 @@ import { fromExtent } from "ol/geom/Polygon";
 import { fetchLightningStats } from "../api";
 import { LightningColors } from "../colormaps";
 import { yTickLabel } from "../lib/lightningChart";
-import { mapTapped, sharedActiveCap } from "../stores";
+import { archiveWindow, capTimeIndicator, mapTapped, sharedActiveCap } from "../stores";
+import { format } from "date-fns";
 import { reverseGeocode, scaleForZoom } from "../lib/reverseGeocode";
 import { onWake } from "../lib/wakeup";
 import { reportShown } from "../lib/sentry";
@@ -158,7 +159,9 @@ async function update() {
   resolvePlace();
   const token = ++statsToken;
   try {
-    const data = await fetchLightningStats(polygon);
+    // In a past window, the half hour up to the step on screen (lib/archive.ts).
+    const past = get(archiveWindow);
+    const data = await fetchLightningStats(polygon, undefined, past ? (get(capTimeIndicator) || past.end) : undefined);
     if (token !== statsToken) return;
     unavailable = false;
     noLightning = data.bins.reduce((total, bin) => total + bin, 0) === 0;
@@ -173,16 +176,31 @@ async function update() {
   }
 }
 
-/** "-30 min" … "now", one per bin; the last is a word, so it takes `$_`. */
-function axisLabels(t: Translate): string[] {
+/**
+ * "-30 min" … "now", one per bin; the last is a word, so it takes `$_`. In a
+ * past window the last is the step on screen's clock instead.
+ */
+function axisLabels(t: Translate, until: number | null = null): string[] {
   return Array(BINS).fill(null)
-    .map((_unused, i) => (i === BINS - 1 ? t("now") : `-${BINS - i} min`));
+    .map((_unused, i) => (i === BINS - 1 ? (until ? format(until * 1000, "HH:mm") : t("now")) : `-${BINS - i} min`));
 }
+
+/** The step the counts end at in a past window, or null live. */
+$: countedUntil = $archiveWindow ? ($capTimeIndicator || $archiveWindow.end) : null;
 
 // Re-labelled when the language changes, since the chart outlives it.
 $: if (chart) {
-  chart.data.labels = axisLabels($_);
+  chart.data.labels = axisLabels($_, countedUntil);
   chart.update();
+}
+
+/* A window opened, left, or another step of it on screen: the counts are for another moment. */
+let countedFor: number | null | undefined;
+$: if (countedUntil !== countedFor) {
+  const first = countedFor === undefined;
+  countedFor = countedUntil;
+  // Only on the lightning map, whose strip this is; switching to it asks anew.
+  if (!first && get(sharedActiveCap) === "lightning") update();
 }
 
 function canvasInit(elem: HTMLCanvasElement) {

@@ -1,8 +1,8 @@
-import { get } from "svelte/store";
+import { derived, get } from "svelte/store";
 import { fetchSweeps, quietly } from "../api";
 import type { Progress } from "../api";
 import {
-  capLatestObservation, capTimeIndicator, compositeDim, radarColormap, selectedStorm, siteMarksVisible, siteMode,
+  archiveWindow, capLatestObservation, capTimeIndicator, compositeDim, radarColormap, selectedStorm, siteMarksVisible, siteMode,
   siteSweepView, srvManualMotion, srvPrefersManual,
 } from "../stores";
 import { tileBaseUrl } from "../urls";
@@ -87,13 +87,16 @@ export default class SiteSweepManager {
     srvManualMotion.subscribe(() => this.motionChanged());
     srvPrefersManual.subscribe(() => this.motionChanged());
     radarColormap.subscribe((name) => layer.setPalette(name));
-    siteMarksVisible.subscribe((visible) => marks.layer.setVisible(visible));
+    // A past window has no site mode (lib/archive.ts): its marks, the way in, go with it.
+    derived([siteMarksVisible, archiveWindow], ([visible, past]) => visible && past === null)
+      .subscribe((visible) => marks.layer.setVisible(visible));
+    archiveWindow.subscribe((past) => { if (past && get(siteMode)) siteMode.set(null); });
   }
 
   /** The map settled on this viewport: list its radars, if the marks are shown. */
   async listViewport(bbox: [number, number, number, number], bar: Progress = quietly) {
     this.viewport = bbox;
-    if (!get(siteMarksVisible)) return;
+    if (!get(siteMarksVisible) || get(archiveWindow)) return;
     const answer = await fetchSweeps({ bbox }, bar).catch(() => null);
     if (!answer || this.viewport !== bbox) return;
     const sites = (answer.sites ?? []) as ListedSite[];

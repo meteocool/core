@@ -65,6 +65,12 @@ test("on an observed frame in the past, the stations asked for are the ones from
   assert.deepEqual(stationsAt(NEWEST - 1800, NEWEST), new Date((NEWEST - 1800) * 1000));
 });
 
+test("in a past window the stations asked for are the step's, its newest included", () => {
+  assert.deepEqual(stationsAt(NEWEST, NEWEST, true), new Date(NEWEST * 1000));
+  assert.deepEqual(stationsAt(NEWEST - 1800, NEWEST, true), new Date((NEWEST - 1800) * 1000));
+  assert.equal(stationsAt(0, NEWEST, true), null);
+});
+
 test("on a forecast frame, the stations asked for are the newest", () => {
   assert.equal(stationsAt(NEWEST + 900, NEWEST), null);
 });

@@ -91,9 +91,12 @@ export const isWind = (choice: StationChoice): boolean => choice === "wind" || c
  * epoch seconds (`capTimeIndicator`, `capLatestObservation`). On an observed
  * frame in the past the stations are the ones from then, so they match the
  * radar; live, and on a forecast frame, which no station has measured yet,
- * they are the newest. Zero is a timeline with no grid yet.
+ * they are the newest. In a past window, `past`, every step's are its own.
+ * Zero is a timeline with no grid yet.
  */
-export function stationsAt(shown: number, newest: number): Date | null {
+export function stationsAt(shown: number, newest: number, past = false): Date | null {
+  // In a past window (lib/archive.ts) every step is from then, its newest included.
+  if (past) return shown > 0 ? new Date(shown * 1000) : null;
   if (shown <= 0 || newest <= 0 || shown >= newest) return null;
   return new Date(shown * 1000);
 }

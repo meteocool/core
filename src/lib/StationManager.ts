@@ -2,7 +2,7 @@ import { derived, get } from "svelte/store";
 import { fetchStationObservations, NothingPublished } from "../api";
 import type { ObservedFeature, Progress } from "../api";
 import {
-  capLatestObservation, capTimeIndicator, live, radarColorScheme, selectedStation, sharedActiveCap, stationChoice,
+  archiveWindow, capLatestObservation, capTimeIndicator, live, radarColorScheme, selectedStation, sharedActiveCap, stationChoice,
   stationLayerVisible, stationView, zoomlevel,
 } from "../stores";
 import type { StationLayer } from "../layers/stations";
@@ -71,8 +71,8 @@ export default class StationManager {
     // observation a moment before the player moves onto it, and in between
     // the frame on screen reads as the past.
     this.unsubscribers.push(derived(
-      [capTimeIndicator, capLatestObservation, live],
-      ([shown, newest, following]) => (following ? null : stationsAt(shown, newest)),
+      [capTimeIndicator, capLatestObservation, live, archiveWindow],
+      ([shown, newest, following, past]) => (past ? stationsAt(shown, newest, true) : following ? null : stationsAt(shown, newest)),
     )
       .subscribe((at) => {
         clearTimeout(this.scrubTimer);
@@ -85,8 +85,8 @@ export default class StationManager {
     // Greyed on a forecast frame at once, not once the scrub rests: the
     // first forecast frame scrubbed past is already not what they measured.
     this.unsubscribers.push(derived(
-      [capTimeIndicator, capLatestObservation, live],
-      ([shown, newest, following]) => !following && stationsStale(shown, newest),
+      [capTimeIndicator, capLatestObservation, live, archiveWindow],
+      ([shown, newest, following, past]) => !past && !following && stationsStale(shown, newest),
     )
       .subscribe((stale) => layer.setStale(stale)));
     // Thinned for the zoom the map came to rest at.

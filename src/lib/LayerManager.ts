@@ -25,7 +25,7 @@ import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
 import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
 import {
-  inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, mapView, pointMenuAt, sharedActiveCap,
+  archiveWindow, inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, mapView, pointMenuAt, sharedActiveCap,
   zoomlevel,
 } from "../stores";
 import { DeviceDetect as dd } from "./DeviceDetect";
@@ -43,6 +43,9 @@ import { HANDHELD_RELEASE_AFTER_MS, RELEASE_AFTER_MS, releaseWhileHidden } from 
 import { HANDHELD_RADAR_TILES, isHandheld } from "./gpuBudget";
 import { releaseIdleLayers } from "./idleLayers";
 import { releasePassesOnDispose } from "./webglRelease";
+import { mapInWindow } from "./archive";
+import { reportToast } from "./Toast";
+import { t } from "../locale/t";
 
 releasePassesOnDispose();
 
@@ -546,6 +549,11 @@ export class LayerManager {
     // map since removed (satellite, aerosols) leaves the current one up.
     if (!(cap in this.capabilities)) {
       console.warn(`Capability ${cap} is not registered; staying on ${this.currentCap}`);
+      return;
+    }
+    // A past window has no 3D map (lib/archive.ts): said, and the map stays.
+    if (!mapInWindow(cap, get(archiveWindow))) {
+      reportToast(t("chrome.archive.no_3d"), "primary", "clock-history");
       return;
     }
     if (this.currentCap && cap !== this.currentCap) {

@@ -1,4 +1,8 @@
 import type { Map } from "ol";
+import { Feature } from "ol";
+import Point from "ol/geom/Point";
+import type VectorLayer from "ol/layer/Vector";
+import { derived, get } from "svelte/store";
 import type BaseLayer from "ol/layer/Base";
 import type VectorSource from "ol/source/Vector";
 import type NanobarWrapper from "../lib/NanobarWrapper";
@@ -7,8 +11,14 @@ import Capability from "./Capability";
 import StrikeManagerV2 from "../lib/StrikeManagerV2";
 import { LIVE_STRIKE_BATCH_MS } from "../lib/StrikeManager";
 import { coalesce, type Coalescer } from "../lib/coalesce";
-import { capDescription, capLastUpdated, radarColorScheme, showForecastPlaybutton } from "../stores";
+import {
+  archiveWindow, capDescription, capLastUpdated, capTimeIndicator, radarColorScheme, sharedActiveCap,
+  showForecastPlaybutton,
+} from "../stores";
 import { lightningLayerDumb, lightningLayerGL } from "../layers/lightning";
+import { TIME_KEY } from "../lib/StrikeManagerV2";
+import { archiveStrikes } from "../lib/ArchiveStrikes";
+import type { ArchiveWindow } from "../lib/archive";
 import { fetchLightningLayer, fetchLightningSince } from "../api";
 import { noaaBREF } from "../layers/noaa";
 import NetworkRadarLayer, { EUROPE } from "../layers/network";
@@ -58,10 +68,22 @@ export default class LightningCapability extends Capability {
 
   private unsubscribePalette: (() => void) | null = null;
 
+  /**
+   * In a past window (lib/archive.ts), its strikes as features: the half
+   * hour up to the step on screen, aged against it, in place of the newest
+   * tile set and the live strikes, which are hidden while it is open.
+   */
+  private archiveLayer: VectorLayer | null = null;
+
+  private past: ArchiveWindow | null = null;
+
+  private unsubscribeWindow: (() => void) | null = null;
+
   constructor(map: Map, additionalLayers: BaseLayer[], args: CapabilityOptions) {
     super(map, "lightning", () => {
       capDescription.set("foo");
       showForecastPlaybutton.set(false);
+      if (this.past) return;
       this.fetchLightning();
       void this.rain.refresh(this.nb);
     }, additionalLayers);
@@ -78,10 +100,55 @@ export default class LightningCapability extends Capability {
     this.unsubscribePalette = radarColorScheme.subscribe((palette) => this.rain.setPalette(palette));
     // A new merged frame every few minutes, announced like any network's.
     this.networkHandler = ({ network }) => {
-      if (network !== EUROPE.code) return;
+      if (network !== EUROPE.code || this.past) return;
       whenVisible("lightning:network:eu", () => { void this.rain.refresh(this.nb); });
     };
     this.socketio?.on("network", this.networkHandler);
+
+    this.unsubscribeWindow = derived([archiveWindow, capTimeIndicator], (values) => values)
+      .subscribe(([past, shown]) => this.showWindow(past, shown));
+  }
+
+  /** Into a past window, out of one, or another step of it. */
+  private showWindow(past: ArchiveWindow | null, shown: number) {
+    const was = this.past;
+    this.past = past;
+    const live = past === null;
+    this.currentLayer?.setVisible(live);
+    if (this.vectorsource) for (const layer of super.getMap().getAllLayers()) {
+      if (layer.getSource() === this.vectorsource) layer.setVisible(live);
+    }
+    // The merged composite under the strikes is the newest frame's, which a past window does not have.
+    this.rain.show(live, null);
+    if (live) {
+      this.archiveLayer?.getSource()?.clear();
+      this.archiveLayer?.setVisible(false);
+      // On screen, the newest at once; otherwise when switched to.
+      if (was && get(sharedActiveCap) === "lightning") {
+        void this.fetchLightning(true);
+        void this.rain.refresh(this.nb);
+      }
+      return;
+    }
+    if (!this.archiveLayer) {
+      this.archiveLayer = lightningLayerDumb();
+      super.getMap().addLayer(this.archiveLayer);
+    }
+    this.archiveLayer.setVisible(true);
+    void this.drawArchived(shown || past.end);
+  }
+
+  private async drawArchived(shown: number) {
+    const strikes = await archiveStrikes.at(shown);
+    if (!strikes || !this.past || (get(capTimeIndicator) || this.past.end) !== shown) return;
+    const source = this.archiveLayer?.getSource();
+    if (!source) return;
+    source.clear(true);
+    source.addFeatures(strikes.map((strike) => {
+      const feature = new Feature(new Point([strike.lon, strike.lat]));
+      feature.set(TIME_KEY, strike.time_wall);
+      return feature;
+    }));
   }
 
   /**
@@ -90,6 +157,10 @@ export default class LightningCapability extends Capability {
    * the socket's live strikes, which only start after the first success.
    */
   resync() {
+    if (this.past) {
+      void this.drawArchived(get(capTimeIndicator) || this.past.end);
+      return;
+    }
     void this.fetchLightning(true);
     void this.rain.refresh(this.nb);
   }
@@ -105,6 +176,7 @@ export default class LightningCapability extends Capability {
 
     const newLayer = lightningLayerGL(data.tile_id);
     newLayer.set("tile_id", data.tile_id);
+    newLayer.setVisible(!this.past);
     super.getMap().addLayer(newLayer);
     if (this.currentLayer) {
       super.getMap().removeLayer(this.currentLayer);
@@ -140,7 +212,7 @@ export default class LightningCapability extends Capability {
         LIVE_STRIKE_BATCH_MS,
       );
       const liveStrikes = this.liveStrikes;
-      this.lightningHandler = (data) => liveStrikes.push(data);
+      this.lightningHandler = (data) => { if (!this.past) liveStrikes.push(data); };
       this.socketio?.on("lightning", this.lightningHandler);
     }
     this.sm.setBaseline(requested);
@@ -151,6 +223,8 @@ export default class LightningCapability extends Capability {
   }
 
   destroy() {
+    this.unsubscribeWindow?.();
+    this.unsubscribeWindow = null;
     if (this.socketio && this.lightningHandler) {
       this.socketio.off("lightning", this.lightningHandler);
       this.lightningHandler = null;

@@ -18,6 +18,18 @@ import StrikeSource from "./strikeSource";
 const styleCache = {};
 const STRIKE_MINS = 1000 * 60;
 
+/**
+ * The moment strikes are aged against, epoch milliseconds: the clock live,
+ * the step on screen in a past window (lib/archive.ts), where a strike ten
+ * minutes before that step is ten minutes old, not ten days.
+ */
+let strikeClock: () => number = () => Date.now();
+
+/** Age strikes against `clock`, or against the clock again with null. */
+export function setStrikeClock(clock: (() => number) | null): void {
+  strikeClock = clock ?? (() => Date.now());
+}
+
 const styleFactory = (age, size) => {
   if (age < 5) {
     age = 0;
@@ -59,7 +71,7 @@ const greyCross = new Style({
 
 const crossFactory = (ts, zIndexOffset = 0) => {
   const then = ts;
-  const now = +new Date();
+  const now = strikeClock();
   const minutes = (now - then) / 1000 / 60;
   const index = Math.round(Math.min(LightningColors.length - 1, Math.max(0, minutes)));
   if (minutes > 120) {
@@ -101,7 +113,7 @@ export default function makeLightningLayer(): [StrikeSource, VectorLayer<VectorS
     zIndex: 100,
     style: (feature) => {
       const size = feature.get("features").length;
-      const now = new Date().getTime();
+      const now = strikeClock();
       let age = 0;
       let textsize = 24;
       if (size > 1) {

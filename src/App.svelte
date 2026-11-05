@@ -42,7 +42,10 @@ import {
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, meteocoolNowcast,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
+  archiveWindow,
 } from "./stores";
+import { archiveStrikes } from "./lib/ArchiveStrikes";
+import { shownIn } from "./lib/archive";
 import { parseStationChoice } from "./lib/stations";
 import { DEFAULT_MANUAL_MOTION, formatManualMotion, parseManualMotion, sameManualMotion } from "./lib/srvMotion";
 
@@ -68,7 +71,7 @@ import { setElementCentre } from "./lib/viewCentre";
 import type { ClientToServerEvents, ServerToClientEvents } from "./api/events";
 import { cleanupUIConstants, initUIConstants, setSolidGlassWhileMoving } from "./layers/ui";
 import { watchForSlowDevice } from "./lib/slowDevice";
-import makeLightningLayer from "./layers/lightning";
+import makeLightningLayer, { setStrikeClock } from "./layers/lightning";
 import StrikeManager, { LIVE_STRIKE_BATCH_MS } from "./lib/StrikeManager";
 import { coalesce } from "./lib/coalesce";
 import MesoCycloneManager from "./lib/MesoCycloneManager";
@@ -481,10 +484,10 @@ const strikemgr = new StrikeManager(1000, lightningSource);
 
 const [mesocycloneSource, mesocycloneLayer] = makeMesocycloneLayer();
 const mesocyclonemgr = new MesoCycloneManager(100, mesocycloneSource);
-cycloneLayerVisible.subscribe((value) => {
-  mesocycloneLayer.setVisible(value);
-  window.settings.set("layerMesocyclones", value);
-});
+cycloneLayerVisible.subscribe((value) => window.settings.set("layerMesocyclones", value));
+/* DWD publishes one current file and nothing keeps a series: a past window has no mesocyclones. */
+derived([cycloneLayerVisible, archiveWindow], ([value, past]) => value && shownIn(past, "mesocyclones"))
+  .subscribe((value) => mesocycloneLayer.setVisible(value));
 // This restored the *lightning* store from the mesocyclone setting, so the
 // mesocyclone layer never came back and the lightning visibility read three
 // lines above was immediately overwritten.
@@ -530,9 +533,11 @@ hiddenStormMarks.subscribe((hidden) => window.settings.set("hiddenStormMarks", [
 /** The frame the cells were last drawn for, so a move to another one is seen. */
 let cellsAt: "hidden" | "now" | number = "hidden";
 derived(
-  [cellLayerVisible, capTimeIndicator, capLatestObservation],
-  ([wanted, shown, newest]): "hidden" | "now" | number => {
+  [cellLayerVisible, capTimeIndicator, capLatestObservation, archiveWindow],
+  ([wanted, shown, newest, past]): "hidden" | "now" | number => {
     if (!wanted) return "hidden";
+    // In a past window every step is a moment the storms are rewound to, its end included.
+    if (past) return shown > 0 ? shown : "hidden";
     if (showsLatestFrame(shown, newest)) return "now";
     return shown < newest ? shown : "hidden";
   },
@@ -562,8 +567,9 @@ const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
 const hints = makeCloudHints();
 const cloudHintLayer = hints.layer;
 derived(
-  [capTimeIndicator, capLatestObservation, hiddenStormMarks],
-  ([shown, newest, hidden]) => hintsWanted && showsLatestFrame(shown, newest) && !hidden.has("volume"),
+  [capTimeIndicator, capLatestObservation, hiddenStormMarks, archiveWindow],
+  ([shown, newest, hidden, past]) => hintsWanted && showsLatestFrame(shown, newest) && !hidden.has("volume")
+    && shownIn(past, "cloudHints"),
 ).subscribe((value) => cloudHintLayer.setVisible(value));
 
 const cloudHints = new VolumeFeed<CurrentVolumes>(
@@ -626,7 +632,7 @@ srvManualMotion.subscribe((motion) => {
 
 /* The marks for the radars in view, once the map settles where they are
    drawn at all. */
-derived([mapExtent4326, zoomlevel, siteMarksVisible], (values) => values).subscribe(([extent, zoom, shown]) => {
+derived([mapExtent4326, zoomlevel, siteMarksVisible, archiveWindow], (values) => values).subscribe(([extent, zoom, shown]) => {
   // Past the marks' least zoom, which OpenLayers takes as exclusive.
   if (extent && shown && zoom > SITE_MARKS_MIN_ZOOM) void siteSweeps.listViewport(extent);
 });
@@ -721,6 +727,8 @@ mapExtent4326.subscribe((extent) => {
 // asking for, and only once someone is looking. A hidden tab takes the newest
 // on its way back. The open storm's detail is asked for again with them.
 radarSocketIO.on("storms", () => {
+  // The live sky's: a past window ignores it until it is left.
+  if (get(archiveWindow)) return;
   whenVisible("storms", () => {
     stormmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
     stormResolver.refresh();
@@ -734,14 +742,14 @@ const liveStrikes = coalesce<{ lon: number; lat: number; time: number }>(
   (strikes) => strikemgr.addLiveStrikes(strikes),
   LIVE_STRIKE_BATCH_MS,
 );
-radarSocketIO.on("lightning", (data) => liveStrikes.push(data));
+radarSocketIO.on("lightning", (data) => { if (!get(archiveWindow)) liveStrikes.push(data); });
 radarSocketIO.on("motion", (event) => motionmgr.received(event));
 onDestroy(() => liveStrikes.cancel());
 window.ll = lightningLayer;
 // A payload that is not a list (an error body, a half-delivered response) is
 // skipped, keeping the cyclones already shown, rather than thrown on.
 radarSocketIO.on("mesocyclones", (data) => {
-  if (!Array.isArray(data)) return;
+  if (!Array.isArray(data) || get(archiveWindow)) return;
   mesocyclonemgr.clearAll();
   data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
@@ -751,6 +759,8 @@ radarSocketIO.on("mesocyclones", (data) => {
 // day left half-hour-old strikes on the map until the ring buffer wrapped.
 const FADE_INTERVAL_MS = 5 * 60 * 1000;
 const fadeInterval = screenshot ? undefined : window.setInterval(() => {
+  // A past window's strikes are the step's half hour, drawn anew on every step.
+  if (get(archiveWindow)) return;
   strikemgr.fadeStrikes();
   mesocyclonemgr.fadeCyclones();
 }, FADE_INTERVAL_MS);
@@ -1149,18 +1159,62 @@ window.settings.setCb("latLonZ", (value) => {
 // Both of these used to finish a nanobar task keyed on the global `URL`
 // constructor rather than on a URL string, and neither had a matching start.
 async function reloadLightning() {
+  if (get(archiveWindow)) {
+    void showArchivedStrikes(get(capTimeIndicator));
+    return;
+  }
   const strikes = await fetchLightningCache(nb).catch(() => null);
-  if (!strikes) return;
+  if (!strikes || get(archiveWindow)) return;
   strikemgr.clearAll();
   strikemgr.addStrikes(strikes.map((strike) => ({ lon: strike.lon, lat: strike.lat, time: Math.round(strike.time) })));
 }
 
 async function reloadCyclones() {
+  if (get(archiveWindow)) return;
   const detections = await fetchMesocyclones(nb).catch(() => null);
   if (!Array.isArray(detections)) return;
   mesocyclonemgr.clearAll();
   detections.forEach((detection) => mesocyclonemgr.addCyclone(detection));
 }
+
+/**
+ * A past window's strikes (lib/archive.ts): the half hour up to the step on
+ * screen, from the archive in three-hour pieces, aged against that step. No
+ * socket strikes and no cache of the newest while one is open.
+ */
+async function showArchivedStrikes(shown: number) {
+  const strikes = await archiveStrikes.at(shown);
+  if (!strikes || get(capTimeIndicator) !== shown || !get(archiveWindow)) return;
+  strikemgr.clearAll();
+  strikemgr.addStrikes(strikes.map((strike) => ({ lon: strike.lon, lat: strike.lat, time: strike.time_wall })));
+}
+
+/* Into a window, out of one, and every step in one. */
+let strikesWindow: import("./lib/archive").ArchiveWindow | null = null;
+derived([archiveWindow, capTimeIndicator], (values) => values).subscribe(([past, shown]) => {
+  archiveStrikes.setWindow(past);
+  setStrikeClock(past ? () => (get(capTimeIndicator) || past.end) * 1000 : null);
+  if (past !== strikesWindow) {
+    const left = strikesWindow !== null && past === null;
+    strikesWindow = past;
+    liveStrikes.cancel();
+    strikemgr.clearAll();
+    if (left) {
+      void reloadLightning();
+      void reloadCyclones();
+    }
+  }
+  if (past) void showArchivedStrikes(shown);
+});
+
+/* Storms: every one that overlapped the window, asked for once it opens; the live ones again once it is left. */
+archiveWindow.subscribe((past) => {
+  if (past) {
+    siteMode.set(null);
+    mesocyclonemgr.clearAll();
+  }
+  if (stormmgr.setWindow(past)) stormmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
+});
 
 const lightningLoaded = reloadLightning();
 const cyclonesLoaded = reloadCyclones();

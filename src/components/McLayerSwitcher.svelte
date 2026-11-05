@@ -9,7 +9,8 @@
   import { _ } from "svelte-i18n";
   import { capabilityEnabled } from "../caps/enabled";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
-  import { selectedStorm } from "../stores";
+  import { archiveWindow, selectedStorm } from "../stores";
+  import { mapInWindow } from "../lib/archive";
 
   export let layerManager;
 
@@ -203,6 +204,10 @@
   .cell.wide {
     grid-column: span 2;
   }
+  .cell.unavailable {
+    opacity: 0.45;
+    filter: grayscale(1);
+  }
 
   /* The hero is the primary layer, so its caption is scaled with the card
      rather than left at the secondary tiles' size. */
@@ -232,8 +237,11 @@
     <div class="grid">
       <div class="maps">
         {#each tiles as tile, index (tile.layer)}
+          <!-- A map a past window has no past for is greyed, and says so; switching to it is refused (LayerManager). -->
           <div
             class="cell"
+            class:unavailable={!mapInWindow(tile.layer, $archiveWindow)}
+            title={mapInWindow(tile.layer, $archiveWindow) ? undefined : $_("chrome.archive.no_3d")}
             class:hero={index === 0}
             class:wide={index === 0 || (secondSpans && index === 1)}>
             <MiniMap
