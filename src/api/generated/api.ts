@@ -950,8 +950,9 @@ export interface paths {
          * Radar and nowcast tile metadata.
          * @description Tile metadata for each timestep in a window, past and forecast.
          *
-         *     `start` and `end`, unix seconds, pick the window, at most 1,000 steps;
-         *     without them, two hours behind now and two ahead. Observed frames and
+         *     `start` and `end`, unix seconds, pick the window, both ends on the grid
+         *     and included, at most 1,000 steps; without them, two hours behind now and
+         *     two ahead. Observed frames and
          *     their tiles are kept a month (`/v3/archive` says how far back), so a
          *     window that ended before now is served as the live one is, with observed
          *     steps only: no forecast run, no `nowcast_*`, and each network's last step
