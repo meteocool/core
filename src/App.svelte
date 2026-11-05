@@ -41,6 +41,7 @@ import {
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, meteocoolNowcast,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
+  motionLayerVisible,
 } from "./stores";
 import { parseStationChoice } from "./lib/stations";
 import { DEFAULT_MANUAL_MOTION, formatManualMotion, parseManualMotion, sameManualMotion } from "./lib/srvMotion";
@@ -113,6 +114,8 @@ import { isHandheld } from "./lib/gpuBudget";
 import LightningCapability from "./caps/LightningCapability";
 import makeStationLayer from "./layers/stations";
 import StationManager from "./lib/StationManager";
+import makeMotionArrowLayer from "./layers/motionArrows";
+import MotionArrowManager from "./lib/MotionArrowManager";
 import type { ObservedProperties } from "./lib/stations";
 const loadStationDetails = () => import("./components/StationDetails.svelte");
 const loadStationSheet = () => Promise.all([loadCellSheet(), loadStationDetails()]);
@@ -390,6 +393,15 @@ window.settings = new Settings({
       stationLayerVisible.set(Boolean(value));
     },
   },
+  /* The rain's motion as arrows over the radar map (lib/MotionArrowManager.ts).
+     Off unless turned on in Settings. */
+  layerMotion: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      motionLayerVisible.set(Boolean(value));
+    },
+  },
   /* The one parameter the weather stations show (lib/stations.ts). */
   stationParameter: {
     type: "string",
@@ -590,6 +602,15 @@ stationLayerVisible.subscribe((value) => {
   if (!screenshot) window.settings.set("layerStations", value);
 });
 stationChoice.subscribe((choice) => window.settings.set("stationParameter", choice));
+/* The rain's motion arrows over the radar map, the newest; not in a
+   screenshot, which is of the radar. */
+const motionArrows = makeMotionArrowLayer();
+const motionmgr = new MotionArrowManager(motionArrows, nb);
+onDestroy(() => motionmgr.destroy());
+motionLayerVisible.set(!screenshot && window.settings.getBoolean("layerMotion"));
+motionLayerVisible.subscribe((value) => {
+  if (!screenshot) window.settings.set("layerMotion", value);
+});
 /* One sheet at a time: a storm opened puts the station's away, and back. */
 selectedStorm.subscribe((storm) => { if (storm) selectedStation.set(null); });
 selectedStation.subscribe((station) => { if (station) selectedStorm.set(null); });
@@ -714,6 +735,7 @@ const liveStrikes = coalesce<{ lon: number; lat: number; time: number }>(
   LIVE_STRIKE_BATCH_MS,
 );
 radarSocketIO.on("lightning", (data) => liveStrikes.push(data));
+radarSocketIO.on("motion", (event) => motionmgr.received(event));
 onDestroy(() => liveStrikes.cancel());
 window.ll = lightningLayer;
 // A payload that is not a list (an error body, a half-delivered response) is
@@ -746,7 +768,8 @@ const lm = new LayerManager({
       name: "radar",
       capability: RadarCapability,
       additionalLayers: [
-        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, stationLayer.layer, labelsOnly(),
+        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, motionArrows.layer, stationLayer.layer,
+        labelsOnly(),
         radolanOverlay({ followsForecast: true }),
         siteSweep.layer, beamRings.layer, siteMarks.layer,
       ],
@@ -1183,6 +1206,7 @@ const unsubscribeWake = onWake(() => {
   reloadCyclones();
   void reloadCloudHints();
   stationmgr.resync();
+  motionmgr.resync();
 });
 onDestroy(unsubscribeWake);
 

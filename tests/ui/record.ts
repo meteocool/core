@@ -32,8 +32,8 @@ const SETTLE_MS = 15_000;
 /**
  * Asked for after the views: what the app asks only when a reader does
  * something. The stations around central Germany with every parameter,
- * which answer for whichever one a spec picks; and München-Stadt's day,
- * which answers for any station's history.
+ * which answer for whichever one a spec picks; München-Stadt's day, which
+ * answers for any station's history; and the motion arrows' tile set.
  */
 const STATIONS_AROUND = "7,49,12,52";
 const STATION = "03379";
@@ -97,6 +97,8 @@ async function visit(browser: Browser, baseURL: string | undefined, device: (typ
   await page.evaluate(async ([bbox, maxAge, station, since]) => {
     await fetch(`/stations/observations?bbox=${bbox}&max_age_minutes=${maxAge}`);
     await fetch(`/stations/${station}/observations?since=${encodeURIComponent(since)}`);
+    // The motion arrows' tile set, asked for only with Rain Motion on (motion.spec.ts).
+    await fetch("/v3/motion/layer");
   }, [STATIONS_AROUND, String(STATIONS_MAX_AGE_MINUTES), STATION, new Date(Date.now() - DAY_MS).toISOString()]);
   await context.close();
 }

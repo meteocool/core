@@ -205,7 +205,7 @@ export interface paths {
         post: operations["post_location_v3_mobile_location_post"];
         /**
          * Forget a push client's location.
-         * @description Remove a phone's own location; its places and commutes stay (`PUT` them empty to forget them).
+         * @description Remove a phone's own location and its storm log; its places and commutes stay (`PUT` them empty to forget them).
          *
          *     404 only for a token with no registration at all.
          */
@@ -272,6 +272,30 @@ export interface paths {
          *     routes at a time: one waiting too long for its turn is answered 503.
          */
         post: operations["route_forecast_v3_mobile_route_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/motion/layer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The motion arrows' vector tile set.
+         * @description The newest tile set of the arrows, and the field of each domain they were drawn from.
+         *
+         *     The arrows are `/{bucket}/{tile_id}/{z}/{x}/{y}.pbf` on the assets host:
+         *     points with `e` and `n`, the motion east and north in km/h, one block
+         *     size a zoom. A 404 is no field anywhere yet.
+         */
+        get: operations["layer_v3_motion_layer_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -954,6 +978,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v4/storm-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A phone's storm log, newest first.
+         * @description Every storm that passed over, or within 10 km of, the phone's registered location or one of its places.
+         *
+         *     An entry is opened when a tracked storm first comes within reach and
+         *     closed once it has moved away or ended; `ended_at` is null until then.
+         *     Entries are kept for about 13 months, and go when the location or place
+         *     they are for is unregistered. A token without a registration has none.
+         */
+        get: operations["get_storm_log_v4_storm_log_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Wipe a phone's storm log.
+         * @description Delete every entry of the phone's storm log, its places' included. Storms that pass later are logged again.
+         */
+        delete: operations["delete_storm_log_v4_storm_log_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1417,6 +1470,59 @@ export interface components {
         /** @description Rain forecast to last less than this many minutes is not alerted; hail still is. 0 for all. */
         MinMinutes: number;
         /**
+         * MotionLayer
+         * @description The rain's motion arrows: their vector tile set, and the fields they were drawn from.
+         */
+        MotionLayer: {
+            /** Arrows */
+            arrows: number;
+            /**
+             * Domains
+             * @description Each domain's field the arrows were drawn from, by its unix time
+             */
+            domains: {
+                [key: string]: number;
+            };
+            /**
+             * Processed Time
+             * @description When the tile set was made, unix seconds
+             */
+            processed_time: number;
+            /**
+             * Source
+             * @description What found the fields: the optical flow's model, or the tracker's links
+             */
+            source: string;
+            /** Tile Id */
+            tile_id: string;
+            /**
+             * Valid At
+             * @description The newest field the arrows were drawn from, unix seconds
+             */
+            valid_at: number;
+        };
+        /**
+         * MotionRefresh
+         * @description A nudge that the rain's motion arrows have been drawn again, from a newer field of some domain.
+         *
+         *     Deliberately not a `Poke`, which reloads DWD's whole timeseries: the
+         *     arrows are drawn again as each domain's field lands, every minute or two.
+         *     It names the new tile set, so a client showing the arrows needs no
+         *     request to find it; one that does not ignores it.
+         */
+        MotionRefresh: {
+            /**
+             * Tile Id
+             * @description The new tile set, `/{bucket}/{tile_id}/{z}/{x}/{y}.pbf` on the assets host
+             */
+            tile_id: string;
+            /**
+             * Valid At
+             * @description The newest field the arrows were drawn from, unix seconds
+             */
+            valid_at: number;
+        };
+        /**
          * NetworkCoverage
          * @description Where one network answers, and what of its country is cut out of DWD's tiles.
          */
@@ -1657,10 +1763,6 @@ export interface components {
         RadarFrame: {
             /** Dbz */
             dbz?: number | null;
-            /** Dbzmax */
-            dbzMax?: number | null;
-            /** Dbzmin */
-            dbzMin?: number | null;
             /** Filename */
             filename: string;
             /** Processed Time */
@@ -1896,6 +1998,150 @@ export interface components {
             message?: string | null;
             /** Success */
             success: boolean;
+        };
+        /**
+         * StormLog
+         * @description A phone's storm log: the storms that passed it and its places, newest first.
+         */
+        StormLog: {
+            /** Entries */
+            entries: components["schemas"]["StormPassage"][];
+        };
+        /**
+         * StormPassage
+         * @description One storm that passed over, or close to, the phone's location or one of its saved places.
+         */
+        StormPassage: {
+            /**
+             * Cell Deg
+             * @description The side of that grid cell in degrees of latitude and of longitude: the location was somewhere within half of it of `lat` and `lon`
+             */
+            cell_deg: number;
+            /**
+             * Closest At
+             * Format: date-time
+             * @description When it came closest
+             */
+            closest_at: string;
+            /**
+             * Closest Km
+             * @description The closest it came, kilometres from the core's edge; 0 when over
+             */
+            closest_km: number;
+            /**
+             * Ended At
+             * @description The last radar step it was within reach; null while it is still near
+             */
+            ended_at: string | null;
+            /**
+             * Hail
+             * @description Whether DWD flagged hail in it while near
+             */
+            hail: boolean;
+            /**
+             * Id
+             * @description The entry's own id
+             */
+            id: string;
+            /**
+             * Lat
+             * @description Roughly where the phone or the place was: the centre of the grid cell, `cell_deg` a side, its location fell in. Approximate by design; the exact location is never kept with the log
+             */
+            lat: number;
+            /**
+             * Lon
+             * @description Roughly where the phone or the place was, as `lat`: a grid cell's centre
+             */
+            lon: number;
+            /**
+             * Meso
+             * @description Whether DWD found a mesocyclone in it while near
+             */
+            meso: boolean;
+            /**
+             * Over
+             * @description Whether the point was ever under the storm's core
+             */
+            over: boolean;
+            /**
+             * Peak Dbz
+             * @description Its strongest echo while near, dBZ
+             */
+            peak_dbz: number | null;
+            /**
+             * Place
+             * @description The saved place's id; null for the phone's own location
+             */
+            place: string | null;
+            /**
+             * Place Name
+             * @description The saved place's name; null for the phone's own location
+             */
+            place_name: string | null;
+            /**
+             * Predecessors
+             * @description Storms that merged into it while it was near, oldest first
+             */
+            predecessors: string[];
+            /**
+             * Severity
+             * @description Its highest severity while near, 0 to 3, as the storm map colours it
+             */
+            severity: number;
+            /**
+             * Share Url
+             * @description A link that opens the map on the storm where it came closest, at that time where the map still holds it, else now
+             */
+            share_url: string;
+            /**
+             * Started At
+             * Format: date-time
+             * @description The first radar step it was within reach of the point
+             */
+            started_at: string;
+            /**
+             * Storm
+             * @description The storm it follows now, by the id the storm map uses
+             */
+            storm: string;
+            /**
+             * Strikes
+             * @description Lightning strikes within 10 km of the point while it was near
+             */
+            strikes: number;
+            /**
+             * Top Km
+             * @description Its highest echo top while near, km above sea level; null where DWD did not rate it
+             */
+            top_km: number | null;
+            track: components["schemas"]["StormTrack"];
+            /**
+             * Vil Kg M2
+             * @description Its highest vertically integrated liquid while near, kg/m²
+             */
+            vil_kg_m2: number | null;
+        };
+        /**
+         * StormTrack
+         * @description The storm's way past the point, as a GeoJSON line: its centroid at each radar step, oldest first.
+         */
+        StormTrack: {
+            /**
+             * Coordinates
+             * @description [longitude, latitude] of each step
+             */
+            coordinates: number[][];
+            /**
+             * Times
+             * @description Unix seconds of each step, one per position
+             */
+            times: number[];
+            /**
+             * Type
+             * @default LineString
+             * @constant
+             */
+            type: "LineString";
         };
         /**
          * StormsRefresh
@@ -2527,6 +2773,26 @@ export interface operations {
             };
         };
     };
+    layer_v3_motion_layer_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MotionLayer"];
+                };
+            };
+        };
+    };
     belgium_v3_radar_belgium_get: {
         parameters: {
             query?: never;
@@ -3087,6 +3353,92 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StatusResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_storm_log_v4_storm_log_get: {
+        parameters: {
+            query?: {
+                /** @description The app's push token; `X-Push-Token` instead keeps it out of the URL */
+                token?: string | null;
+                /** @description At most this many entries */
+                limit?: number;
+            };
+            header?: {
+                /** @description The app's push token: its APNs device token in hex, or its FCM token */
+                "x-push-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StormLog"];
+                };
+            };
+            /** @description No push token, in `token` or `X-Push-Token`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_storm_log_v4_storm_log_delete: {
+        parameters: {
+            query?: {
+                /** @description The app's push token; `X-Push-Token` instead keeps it out of the URL */
+                token?: string | null;
+            };
+            header?: {
+                /** @description The app's push token: its APNs device token in hex, or its FCM token */
+                "x-push-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description No push token, in `token` or `X-Push-Token`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

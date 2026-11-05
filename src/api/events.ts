@@ -43,11 +43,14 @@ export type StormsEvent = Schemas["StormsRefresh"];
 export type VolumesEvent = Schemas["VolumesRefresh"];
 /** One radar published new sweeps; site mode refetches `/sweeps` for it if it is the open one. */
 export type SweepsEvent = Schemas["SweepsRefresh"];
+/** The rain's motion arrows were drawn again: the new tile set, which a client showing them switches to. */
+export type MotionEvent = Schemas["MotionRefresh"];
 
 export interface ServerToClientEvents {
   cells: (cells: CellsEvent) => void;
   lightning: (strike: LightningEvent) => void;
   mesocyclones: (detections: MesocycloneEvent[]) => void;
+  motion: (motion: MotionEvent) => void;
   network: (network: NetworkEvent) => void;
   nowcast: (nowcast: NowcastEvent) => void;
   poke: (poke: PokeEvent) => void;

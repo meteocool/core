@@ -1,0 +1,15 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "tile_id": "5d0c1a52-8f1e-4c2b-9a77-motion000001",
+  "processed_time": 1793836588,
+  "valid_at": 1793836498,
+  "domains": {
+   "de": 1793836498,
+   "fr": 1793836438
+  },
+  "source": "meteocool/motion",
+  "arrows": 6120
+ }
+}

@@ -794,6 +794,73 @@
         "minimum": 0.0,
         "type": "integer"
       },
+      "MotionLayer": {
+        "description": "The rain's motion arrows: their vector tile set, and the fields they were drawn from.",
+        "properties": {
+          "arrows": {
+            "title": "Arrows",
+            "type": "integer"
+          },
+          "domains": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Each domain's field the arrows were drawn from, by its unix time",
+            "title": "Domains",
+            "type": "object"
+          },
+          "processed_time": {
+            "description": "When the tile set was made, unix seconds",
+            "title": "Processed Time",
+            "type": "integer"
+          },
+          "source": {
+            "description": "What found the fields: the optical flow's model, or the tracker's links",
+            "title": "Source",
+            "type": "string"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "type": "string"
+          },
+          "valid_at": {
+            "description": "The newest field the arrows were drawn from, unix seconds",
+            "title": "Valid At",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tile_id",
+          "processed_time",
+          "valid_at",
+          "domains",
+          "source",
+          "arrows"
+        ],
+        "title": "MotionLayer",
+        "type": "object"
+      },
+      "MotionRefresh": {
+        "description": "A nudge that the rain's motion arrows have been drawn again, from a newer field of some domain.\n\nDeliberately not a `Poke`, which reloads DWD's whole timeseries: the\narrows are drawn again as each domain's field lands, every minute or two.\nIt names the new tile set, so a client showing the arrows needs no\nrequest to find it; one that does not ignores it.",
+        "properties": {
+          "tile_id": {
+            "description": "The new tile set, `/{bucket}/{tile_id}/{z}/{x}/{y}.pbf` on the assets host",
+            "title": "Tile Id",
+            "type": "string"
+          },
+          "valid_at": {
+            "description": "The newest field the arrows were drawn from, unix seconds",
+            "title": "Valid At",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tile_id",
+          "valid_at"
+        ],
+        "title": "MotionRefresh",
+        "type": "object"
+      },
       "NetworkCoverage": {
         "description": "Where one network answers, and what of its country is cut out of DWD's tiles.",
         "properties": {
@@ -1251,28 +1318,6 @@
               }
             ],
             "title": "Dbz"
-          },
-          "dbzMax": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dbzmax"
-          },
-          "dbzMin": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dbzmin"
           },
           "filename": {
             "title": "Filename",
@@ -1735,6 +1780,246 @@
           "success"
         ],
         "title": "StatusResponse",
+        "type": "object"
+      },
+      "StormLog": {
+        "description": "A phone's storm log: the storms that passed it and its places, newest first.",
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/StormPassage"
+            },
+            "title": "Entries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "title": "StormLog",
+        "type": "object"
+      },
+      "StormPassage": {
+        "description": "One storm that passed over, or close to, the phone's location or one of its saved places.",
+        "properties": {
+          "cell_deg": {
+            "description": "The side of that grid cell in degrees of latitude and of longitude: the location was somewhere within half of it of `lat` and `lon`",
+            "title": "Cell Deg",
+            "type": "number"
+          },
+          "closest_at": {
+            "description": "When it came closest",
+            "format": "date-time",
+            "title": "Closest At",
+            "type": "string"
+          },
+          "closest_km": {
+            "description": "The closest it came, kilometres from the core's edge; 0 when over",
+            "title": "Closest Km",
+            "type": "number"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The last radar step it was within reach; null while it is still near",
+            "title": "Ended At"
+          },
+          "hail": {
+            "description": "Whether DWD flagged hail in it while near",
+            "title": "Hail",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "The entry's own id",
+            "title": "Id",
+            "type": "string"
+          },
+          "lat": {
+            "description": "Roughly where the phone or the place was: the centre of the grid cell, `cell_deg` a side, its location fell in. Approximate by design; the exact location is never kept with the log",
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "description": "Roughly where the phone or the place was, as `lat`: a grid cell's centre",
+            "title": "Lon",
+            "type": "number"
+          },
+          "meso": {
+            "description": "Whether DWD found a mesocyclone in it while near",
+            "title": "Meso",
+            "type": "boolean"
+          },
+          "over": {
+            "description": "Whether the point was ever under the storm's core",
+            "title": "Over",
+            "type": "boolean"
+          },
+          "peak_dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its strongest echo while near, dBZ",
+            "title": "Peak Dbz"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The saved place's id; null for the phone's own location",
+            "title": "Place"
+          },
+          "place_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The saved place's name; null for the phone's own location",
+            "title": "Place Name"
+          },
+          "predecessors": {
+            "description": "Storms that merged into it while it was near, oldest first",
+            "items": {
+              "type": "string"
+            },
+            "title": "Predecessors",
+            "type": "array"
+          },
+          "severity": {
+            "description": "Its highest severity while near, 0 to 3, as the storm map colours it",
+            "title": "Severity",
+            "type": "integer"
+          },
+          "share_url": {
+            "description": "A link that opens the map on the storm where it came closest, at that time where the map still holds it, else now",
+            "title": "Share Url",
+            "type": "string"
+          },
+          "started_at": {
+            "description": "The first radar step it was within reach of the point",
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "storm": {
+            "description": "The storm it follows now, by the id the storm map uses",
+            "title": "Storm",
+            "type": "string"
+          },
+          "strikes": {
+            "description": "Lightning strikes within 10 km of the point while it was near",
+            "title": "Strikes",
+            "type": "integer"
+          },
+          "top_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its highest echo top while near, km above sea level; null where DWD did not rate it",
+            "title": "Top Km"
+          },
+          "track": {
+            "$ref": "#/components/schemas/StormTrack"
+          },
+          "vil_kg_m2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its highest vertically integrated liquid while near, kg/m\u00b2",
+            "title": "Vil Kg M2"
+          }
+        },
+        "required": [
+          "id",
+          "storm",
+          "predecessors",
+          "place",
+          "place_name",
+          "lat",
+          "lon",
+          "cell_deg",
+          "started_at",
+          "ended_at",
+          "over",
+          "closest_km",
+          "closest_at",
+          "peak_dbz",
+          "top_km",
+          "vil_kg_m2",
+          "severity",
+          "hail",
+          "meso",
+          "strikes",
+          "track",
+          "share_url"
+        ],
+        "title": "StormPassage",
+        "type": "object"
+      },
+      "StormTrack": {
+        "description": "The storm's way past the point, as a GeoJSON line: its centroid at each radar step, oldest first.",
+        "properties": {
+          "coordinates": {
+            "description": "[longitude, latitude] of each step",
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "times": {
+            "description": "Unix seconds of each step, one per position",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Times",
+            "type": "array"
+          },
+          "type": {
+            "const": "LineString",
+            "default": "LineString",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "coordinates",
+          "times"
+        ],
+        "title": "StormTrack",
         "type": "object"
       },
       "StormsRefresh": {
@@ -2457,7 +2742,7 @@
     },
     "/v3/mobile/location": {
       "delete": {
-        "description": "Remove a phone's own location; its places and commutes stay (`PUT` them empty to forget them).\n\n404 only for a token with no registration at all.",
+        "description": "Remove a phone's own location and its storm log; its places and commutes stay (`PUT` them empty to forget them).\n\n404 only for a token with no registration at all.",
         "operationId": "unregister_v3_mobile_location_delete",
         "requestBody": {
           "content": {
@@ -2650,6 +2935,28 @@
         "summary": "The rain along a trip, for each time to leave.",
         "tags": [
           "mobile"
+        ]
+      }
+    },
+    "/v3/motion/layer": {
+      "get": {
+        "description": "The newest tile set of the arrows, and the field of each domain they were drawn from.\n\nThe arrows are `/{bucket}/{tile_id}/{z}/{x}/{y}.pbf` on the assets host:\npoints with `e` and `n`, the motion east and north in km/h, one block\nsize a zoom. A 404 is no field anywhere yet.",
+        "operationId": "layer_v3_motion_layer_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MotionLayer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The motion arrows' vector tile set.",
+        "tags": [
+          "motion"
         ]
       }
     },
@@ -3415,6 +3722,172 @@
         "summary": "Submit a barometric reading.",
         "tags": [
           "telemetry"
+        ]
+      }
+    },
+    "/v4/storm-log": {
+      "delete": {
+        "description": "Delete every entry of the phone's storm log, its places' included. Storms that pass later are logged again.",
+        "operationId": "delete_storm_log_v4_storm_log_delete",
+        "parameters": [
+          {
+            "description": "The app's push token; `X-Push-Token` instead keeps it out of the URL",
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 192,
+                  "minLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The app's push token; `X-Push-Token` instead keeps it out of the URL",
+              "title": "Token"
+            }
+          },
+          {
+            "description": "The app's push token: its APNs device token in hex, or its FCM token",
+            "in": "header",
+            "name": "x-push-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 192,
+                  "minLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The app's push token: its APNs device token in hex, or its FCM token",
+              "title": "X-Push-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "No push token, in `token` or `X-Push-Token`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Wipe a phone's storm log.",
+        "tags": [
+          "storm log"
+        ]
+      },
+      "get": {
+        "description": "Every storm that passed over, or within 10 km of, the phone's registered location or one of its places.\n\nAn entry is opened when a tracked storm first comes within reach and\nclosed once it has moved away or ended; `ended_at` is null until then.\nEntries are kept for about 13 months, and go when the location or place\nthey are for is unregistered. A token without a registration has none.",
+        "operationId": "get_storm_log_v4_storm_log_get",
+        "parameters": [
+          {
+            "description": "The app's push token; `X-Push-Token` instead keeps it out of the URL",
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 192,
+                  "minLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The app's push token; `X-Push-Token` instead keeps it out of the URL",
+              "title": "Token"
+            }
+          },
+          {
+            "description": "At most this many entries",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "description": "At most this many entries",
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The app's push token: its APNs device token in hex, or its FCM token",
+            "in": "header",
+            "name": "x-push-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 192,
+                  "minLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The app's push token: its APNs device token in hex, or its FCM token",
+              "title": "X-Push-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StormLog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "No push token, in `token` or `X-Push-Token`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A phone's storm log, newest first.",
+        "tags": [
+          "storm log"
         ]
       }
     }

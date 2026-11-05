@@ -29,6 +29,7 @@ export type ClassTiles = Schemas["ClassTiles"];
 export type LightningLayerMetadata = Schemas["LightningLayerMetadata"];
 export type LightningCollection = Schemas["LightningCollection"];
 export type LightningStats = Schemas["LightningStats"];
+export type MotionLayer = Schemas["MotionLayer"];
 export type Strike = DataSchemas["schemas"]["Strike"];
 export type Mesocyclone = DataSchemas["schemas"]["Mesocyclone"];
 export type CellTrack = DataSchemas["schemas"]["TrackFeature"];
@@ -562,6 +563,19 @@ export function fetchLightningLayer(nanobar?: Progress) {
     nanobar,
     "/v3/lightning/layer",
     () => apiClient.GET("/v3/lightning/layer", {}),
+    { optional: true },
+  );
+}
+
+/**
+ * The newest tile set of the rain's motion arrows. `optional`: 404 until a
+ * motion field has been found anywhere.
+ */
+export function fetchMotionLayer(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/motion/layer",
+    () => apiClient.GET("/v3/motion/layer", {}),
     { optional: true },
   );
 }

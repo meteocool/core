@@ -539,6 +539,11 @@ export const compositeDim = writable<number>(1);
  * the setting `stationParameter`.
  */
 export const stationLayerVisible = writable<boolean>(false);
+/**
+ * Whether the rain's motion arrows are drawn over the radar map
+ * (lib/MotionArrowManager.ts); the setting `layerMotion`. Off unless turned on.
+ */
+export const motionLayerVisible = writable<boolean>(false);
 export const stationChoice = writable<StationChoice>(DEFAULT_STATION_CHOICE);
 /**
  * What the station map's newest answer held, for the tray: how many stations
