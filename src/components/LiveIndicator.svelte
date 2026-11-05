@@ -1,13 +1,15 @@
 <script lang="ts">
 import { faCircle } from "@fortawesome/free-solid-svg-icons/faCircle";
+import { faClockRotateLeft } from "@fortawesome/free-solid-svg-icons/faClockRotateLeft";
 import Icon from "./Icon.svelte";
 import { _ } from "svelte-i18n";
 import { onDestroy } from "svelte";
 import { format } from "date-fns";
 import {
-  bottomToolbarMode, capTimeIndicator, connectionStatus, lastFocus, live, networkStatus,
+  archiveWindow, bottomToolbarMode, capTimeIndicator, connectionStatus, lastFocus, live, networkStatus,
   radarStale, replay,
 } from "../stores";
+import getDfnLocale from "../locale/locale";
 import { shouldShowNetworkBanner } from "../lib/networkBanner";
 // The diagnostics panel is loaded when it is opened; it is a reader of everything and needed by nothing.
 const loadConnectionInfo = () => import("./ConnectionInfo.svelte");
@@ -18,6 +20,15 @@ export let cap: RadarCapability;
 
 /** The pill is the affordance: tapping it opens what it is summarising. */
 let showInfo = false;
+
+/**
+ * In a past window, the date and time of the step on screen, in the
+ * reader's language: the window is days away, so the clock alone says
+ * little.
+ */
+$: archiveTime = $archiveWindow && $capTimeIndicator
+  ? format(new Date($capTimeIndicator * 1000), "EEE d MMM, HH:mm", { locale: getDfnLocale() })
+  : "";
 
 /** The clock of the frame on screen, while the player has one. */
 $: frameTime = $capTimeIndicator
@@ -48,6 +59,9 @@ $: state = (() => {
   if (connection === "offline") return "offline";
   if (connection === "catching-up") return "catching_up";
   if (connection === "degraded") return "degraded";
+  // A past window is the reader's choice, and the pill is the way out of it:
+  // it outranks whatever is only about now.
+  if ($archiveWindow) return "archive";
   // Knowing the frames are out of date beats showing their clock or calling
   // them the latest, and beats a connection that only measures as slow: this
   // one is not an estimate either, and it is about the picture on the map.
@@ -73,12 +87,22 @@ $: label = {
   live: $_("latest"),
   demo: $_("demo"),
   time: frameTime,
+  archive: archiveTime,
   none: "",
 }[state];
 
 /* A clock is not a status: no dot beside it. The connectivity states outrank
    this one anyway, so nothing is lost by dropping it here. */
-$: showDot = state !== "time";
+$: showDot = state !== "time" && state !== "archive";
+
+/** Tapping the pill opens what it summarises; in a past window, it leaves it. */
+function activate() {
+  if (state === "archive") {
+    archiveWindow.set(null);
+    return;
+  }
+  showInfo = true;
+}
 
 /**
  * Only the live pill fades back.
@@ -254,6 +278,13 @@ onDestroy(() => {
     padding: 0 12px;
   }
 
+  /* In a past window, the way back to live beside its date. */
+  .back {
+    display: inline-flex;
+    font-size: 11px;
+    color: var(--mc-accent);
+  }
+
   /* Lining figures, so the pill does not twitch between 09:55 and 10:00. */
   .label.clock {
     font-size: 13px;
@@ -285,10 +316,11 @@ onDestroy(() => {
     <button
       type="button"
       class="live"
-      class:clock={state === "time"}
+      class:clock={state === "time" || state === "archive"}
       class:dim
-      title={$_("connection_details")}
-      on:click={() => { showInfo = true; }}>
+      title={state === "archive" ? $_("chrome.archive.back_to_live") : $_("connection_details")}
+      aria-label={state === "archive" ? $_("chrome.archive.pill_live", { values: { time: archiveTime } }) : undefined}
+      on:click={activate}>
       <span class="pill glass glass-pill">
         <!-- Demo holds a steady dot in the accent rather than the live pulse:
              the pulse says "arriving now", and a recording is not. -->
@@ -301,7 +333,10 @@ onDestroy(() => {
             <Icon icon={faCircle} />
           </div>
         {/if}
-        <span class="label" class:clock={state === "time"}>{label}</span>
+        <span class="label" class:clock={state === "time" || state === "archive"}>{label}</span>
+        {#if state === "archive"}
+          <span class="back"><Icon icon={faClockRotateLeft} /></span>
+        {/if}
       </span>
     </button>
   </div>

@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Arkiv",
+      "lede": "Et hvilket som helst tidsrum fra den seneste måned, som det var: radaren, lynene, uvejrene og stationerne.",
+      "pill": "Arkiv",
+      "pill_empty": "Arkivet er tomt",
+      "choose": "Se tilbage over den seneste måned",
+      "empty": "Arkivet er tomt: der gemmes intet endnu.",
+      "failed": "Arkivet kunne ikke nås.",
+      "retry": "Prøv igen",
+      "loading": "Slår op, hvad arkivet gemmer…",
+      "day": "Dag",
+      "start": "Start",
+      "length": "Varighed",
+      "hours": "{hours} t",
+      "summary": "{from} til {to}, {steps} billeder",
+      "open": "Åbn",
+      "back_to_live": "Tilbage til live",
+      "pill_live": "{time}, tilbage til live",
+      "no_3d": "3D-kortet har ingen fortid. Gå tilbage til live for at åbne det.",
+      "refused": "Det tidsrum er ikke i arkivet. Tilbage til live."
+    },
     "locate_me": "Find min placering",
     "layer_switcher": "Kortlag",
     "playback": {

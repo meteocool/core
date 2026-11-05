@@ -35,7 +35,7 @@ import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons/faCircleQues
 import { faSatelliteDish } from "@fortawesome/free-solid-svg-icons/faSatelliteDish";
 import CloseDisc from "./CloseDisc.svelte";
 import Icon from "./Icon.svelte";
-import { onForecastStep, radarExplainerOpen, radarProducts, siteMode, siteSweepView, smallScreen } from "../stores";
+import { archiveWindow, onForecastStep, radarExplainerOpen, radarProducts, siteMode, siteSweepView, smallScreen } from "../stores";
 import { radarSite } from "../lib/radarSites";
 import { hideNativeControls } from "../lib/nativeBridge";
 import { topStackPx } from "../lib/safeArea";
@@ -313,7 +313,8 @@ function portal(node: HTMLElement) {
             <span class="group-hint">{$_(`chrome.radar_product.group_${group}_hint`)}</span>
           </span>
           <!-- The ages' column heading, once, over the first group. -->
-          {#if i === 0}
+          <!-- How old each product's newest scan is means nothing in a past window. -->
+          {#if i === 0 && !$archiveWindow}
             <span class="column" title={$_("chrome.radar_product.age_hint")}>{$_("chrome.radar_product.age_heading")}</span>
           {/if}
         </div>
@@ -322,7 +323,7 @@ function portal(node: HTMLElement) {
             type="button"
             role="menuitemradio"
             class="option"
-            class:behind={fallsBehind(product, scans)}
+            class:behind={!$archiveWindow && fallsBehind(product, scans)}
             aria-checked={product === chosen}
             on:click={() => choose(product)}>
             <span class="check" aria-hidden="true">{product === chosen ? "✓" : ""}</span>
@@ -331,7 +332,9 @@ function portal(node: HTMLElement) {
               <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
               <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
             </span>
-            <span class="age" title={$_("chrome.radar_product.age_hint")}>{age(product, ranges, nowS)}</span>
+            {#if !$archiveWindow}
+              <span class="age" title={$_("chrome.radar_product.age_hint")}>{age(product, ranges, nowS)}</span>
+            {/if}
           </button>
         {/each}
       </div>

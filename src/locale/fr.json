@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Archives",
+      "lede": "N’importe quelle période du dernier mois, telle qu’elle était : radar, impacts de foudre, orages et stations.",
+      "pill": "Archives",
+      "pill_empty": "Archives vides",
+      "choose": "Revenir sur le dernier mois",
+      "empty": "Les archives sont vides : rien n’est encore conservé.",
+      "failed": "Les archives sont injoignables.",
+      "retry": "Réessayer",
+      "loading": "Consultation des archives…",
+      "day": "Jour",
+      "start": "Début",
+      "length": "Durée",
+      "hours": "{hours} h",
+      "summary": "{from} à {to}, {steps} images",
+      "open": "Ouvrir",
+      "back_to_live": "Retour au direct",
+      "pill_live": "{time}, retour au direct",
+      "no_3d": "La carte 3D n’a pas de passé. Revenez au direct pour l’ouvrir.",
+      "refused": "Cette période n’est pas dans les archives. Retour au direct."
+    },
     "locate_me": "Me localiser",
     "layer_switcher": "Couches de la carte",
     "playback": {

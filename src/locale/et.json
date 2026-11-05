@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Arhiiv",
+      "lede": "Iga eelmise kuu ajavahemik sellisena, nagu see oli: radar, välgulöögid, tormid ja jaamad.",
+      "pill": "Arhiiv",
+      "pill_empty": "Arhiiv on tühi",
+      "choose": "Vaata tagasi eelmisele kuule",
+      "empty": "Arhiiv on tühi: veel ei säilitata midagi.",
+      "failed": "Arhiiviga ei saadud ühendust.",
+      "retry": "Proovi uuesti",
+      "loading": "Arhiivi sisu päritakse…",
+      "day": "Päev",
+      "start": "Algus",
+      "length": "Pikkus",
+      "hours": "{hours} t",
+      "summary": "{from} kuni {to}, {steps} kaadrit",
+      "open": "Ava",
+      "back_to_live": "Tagasi otsepilti",
+      "pill_live": "{time}, tagasi otsepilti",
+      "no_3d": "3D-kaardil pole minevikku. Selle avamiseks mine tagasi otsepilti.",
+      "refused": "Seda ajavahemikku arhiivis pole. Tagasi otsepilti."
+    },
     "locate_me": "Leia mind",
     "layer_switcher": "Kaardikihid",
     "playback": {

@@ -16,7 +16,7 @@ import {
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
   nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible, stationLayerVisible,
-  drawnEncoding,
+  drawnEncoding, archiveWindow,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -72,10 +72,23 @@ import DryOutlook from "./DryOutlook.svelte";
 import { onWake } from "../lib/wakeup";
 import { outlookSnoozed, snoozeOutlook } from "../lib/outlookDismissal";
 import ChartSkeleton from "./ChartSkeleton.svelte";
+import ArchivePill from "./ArchivePill.svelte";
+import ArchivePicker from "./ArchivePicker.svelte";
+import { frameInWindow, inWindow, nextWindowFrame, sameWindow, windowSteps } from "../lib/archive";
 
 export let cap: RadarCapability;
 
 let gridConfig: GridConfig | null = null;
+
+/**
+ * The past window the strip is of (lib/archive.ts), or null live. The
+ * grid's, not the store's: between opening a window and its grid landing,
+ * the strip on screen is still the last one.
+ */
+$: past = gridConfig?.window ?? null;
+
+/** The archive's picker, over the map. */
+let pickerOpen = false;
 
 /**
  * An echo top's or VIL's encoding while one is drawn on the step on screen,
@@ -292,7 +305,8 @@ function keepToSweeps(only: number[] | null) {
   sliderChangedHandler(shown);
 }
 
-$: playable = canPlay({
+/* In a past window anything with two frames plays, round and round it. */
+$: playable = past ? steps.filter((step) => step.playable).length > 1 : canPlay({
   outOfRadar: outOfCoverage,
   noForecast,
   // 0 until the scrubber is first moved: the player is following the live frame.
@@ -465,9 +479,11 @@ subscriptions.push(inspectLatLon.subscribe(() => { gridLoading = true; }));
    the rising edge: the grid that clears radarStale also clears this. */
 subscriptions.push(radarStale.subscribe((value) => { if (value) gridLoading = true; }));
 
-function updateSliderToLatest(_config) {
+function updateSliderToLatest(config: GridConfig | null) {
   // Never mid-playback: that would throw a running sequence back to now.
   if (fsm.state === "playing") return;
+  // A past window has no live edge to follow.
+  if (config?.window) return;
   // Only from the frame that was the newest observation last time round.
   if (liveEdge === null || shown !== liveEdge) return;
   const latest = cap.getMostRecentObservation();
@@ -517,6 +533,13 @@ const fsm = new StateMachine({
           shown = seekTo;
           return;
         }
+        // A past window's newest step, which nothing else puts on the map:
+        // following, there is the newest frame live, but nothing in one.
+        if (gridConfig?.window) {
+          shown = cap.getMostRecentObservation();
+          sliderChangedHandler(shown);
+          return;
+        }
         liveEdge = cap.getMostRecentObservation();
         shown = liveEdge;
       };
@@ -534,7 +557,7 @@ const fsm = new StateMachine({
         let thisFrameDelayMs = FRAME_MS;
         if (!gridConfig) return;
         const sliderValueInt = shown;
-        shown = nextFrame({
+        shown = gridConfig.window ? nextWindowFrame(shown, gridConfig.window, lastPlayableStep ?? gridConfig.end) : nextFrame({
           shown,
           latestObservation: cap.getMostRecentObservation(),
           now: gridConfig.now,
@@ -621,7 +644,9 @@ let scrubbing = false;
  * flicker, nor while stale, where the radar is behind rather than the reader.
  */
 $: offLive = $bottomToolbarMode === "player" && $sharedActiveCap === "radar"
-  && ($playbackRunning || !$live) && !scrubbing && !$radarStale && gridConfig !== null;
+  && ($playbackRunning || !$live) && !scrubbing && !$radarStale && gridConfig !== null
+  // In a past window the pill at the top is the way back (LiveIndicator).
+  && !$archiveWindow;
 
 /**
  * `offLive`, slow to let go: a drag back and forth across now passes the live
@@ -642,8 +667,12 @@ function settleBackToLive(off: boolean) {
   backToLiveTimer = window.setTimeout(() => { showBackToLive = false; }, BACK_TO_LIVE_LINGER_MS);
 }
 
-/** Back onto the live frame, the player still open. */
+/** Back onto the live frame, the player still open; out of a past window first. */
 function returnToLive() {
+  if (get(archiveWindow)) {
+    archiveWindow.set(null);
+    return;
+  }
   hide();
   cap.resetToLatest();
   open();
@@ -661,22 +690,51 @@ function returnToLive() {
 function takeFrameRequest() {
   const wanted = get(frameRequest);
   if (wanted === null || !gridConfig) return;
+  // Only the grid of the window the map is in (or the live one) can answer:
+  // until it lands, the request waits.
+  if (!sameWindow(gridConfig.window, get(archiveWindow))) return;
   frameRequest.set(null);
   if (wanted === "live") {
     returnToLive();
     return;
   }
-  if (!gridConfig.grid[wanted]?.url || wanted === cap.getMostRecentObservation()) return;
+  const { window: open } = gridConfig;
+  // In a past window every step is the reader's to open on, its end
+  // included; a missed scan opens on the frame before it.
+  const target = open
+    ? frameInWindow(windowSteps(open), (t) => Boolean(gridConfig?.grid[t]?.url), wanted, cap.getMostRecentObservation())
+    : wanted;
+  if (!open && (!gridConfig.grid[wanted]?.url || wanted === cap.getMostRecentObservation())) return;
   resumeOnRelease = false;
   if (fsm.state === "playing") fsm.pressPause();
+  if (open) oldTimeStep = 0;
   if (fsm.state === "followLatest") {
-    seekTo = wanted;
+    seekTo = target;
     fsm.showScrollbar();
   } else {
-    shown = wanted;
+    shown = target;
   }
-  sliderChangedHandler(wanted);
+  sliderChangedHandler(target);
 }
+
+/*
+ * A past window opened, changed or left: playback stops, and the player
+ * asks for its frame, which waits for the window's grid. Into a window, the
+ * frame a link named if it is in it, else the window's end; out of one,
+ * the live frame.
+ */
+let windowWas: import("../lib/archive").ArchiveWindow | null = null;
+subscriptions.push(archiveWindow.subscribe((next) => {
+  if (sameWindow(next, windowWas)) return;
+  windowWas = next;
+  resumeOnRelease = false;
+  if (fsm.state === "playing") fsm.pressPause();
+  liveEdge = null;
+  frameRequest.update((request) => {
+    if (!next) return "live";
+    return typeof request === "number" && inWindow(next, request) ? request : next.end;
+  });
+}));
 
 subscriptions.push(frameRequest.subscribe(() => takeFrameRequest()));
 
@@ -850,6 +908,8 @@ let awayAt: number | null = null;
 function cameBack(awayMs: number | null) {
   const away = Math.max(awayAt === null ? 0 : Date.now() - awayAt, awayMs ?? 0);
   awayAt = null;
+  // A past window was chosen on purpose, and is where the reader comes back to.
+  if (get(archiveWindow)) return;
   if (away >= RETURN_TO_LIVE_AFTER_MS && cap.trackingMode !== "live") returnToLive();
 }
 subscriptions.push(onWake((_reason, awayMs) => cameBack(awayMs)));
@@ -1174,6 +1234,10 @@ onDestroy(() => {
 
 <LiveIndicator {cap} />
 
+{#if pickerOpen}
+  <ArchivePicker on:close={() => { pickerOpen = false; }} />
+{/if}
+
 {#if outOfCoverage && !coverageDismissed}
   <DismissableStrip
     title={$_("radar_no_coverage")}
@@ -1235,7 +1299,8 @@ onDestroy(() => {
     on:outroend={toolbarTransitionEnd}>
     <div class="player">
       <div class="head" bind:this={head}>
-        {#if $inspectLatLon || $latLon}
+        <!-- A past window has no chart, so no place it is about. -->
+        {#if ($inspectLatLon || $latLon) && !past}
           <span class="title" bind:this={titleEl}>{chartTitle}</span>
           {#if $inspectLatLon && $latLon}
             <button type="button" class="link" on:click={returnToCurrentPosition}>
@@ -1255,9 +1320,11 @@ onDestroy(() => {
             <!-- What the storm marks on the map are, while they are drawn. -->
             {#if $cellLayerVisible}<StormKey />{/if}
             <RadarProductPicker variant="pill" />
+            <!-- A past window, the archive's (lib/archive.ts). -->
+            <ArchivePill on:open={() => { pickerOpen = true; }} />
           </span>
         </span>
-        {#if $inspectLatLon && !$latLon}
+        {#if $inspectLatLon && !$latLon && !past}
           <button type="button" class="controlButton clear" on:click={returnToCurrentPosition}
             title={$_("close")} aria-label={$_("close")}>
             <Icon icon={faXmark} />
@@ -1266,7 +1333,7 @@ onDestroy(() => {
       </div>
 
       <div class="plot">
-        {#if gridLoading && !hasPrecipitation}
+        {#if gridLoading && !hasPrecipitation && !past}
           <div class="skeleton"><ChartSkeleton bars={25} /></div>
         {/if}
         <Timeline
@@ -1274,6 +1341,7 @@ onDestroy(() => {
           now={gridConfig?.now ?? 0}
           latest={latestObservation}
           value={shown}
+          {past}
           preloaded={$framesPreloaded}
           {labelEvery}
           on:grab={grabbed}

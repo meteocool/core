@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  AROUND_FRAME_S, NO_PAST, STEP_S, STRIKE_CHUNK_S, acceptsWindow, chunksFor, coverageDays, inWindow, isWindow,
+  AROUND_FRAME_S, NO_PAST, frameInWindow, STEP_S, STRIKE_CHUNK_S, acceptsWindow, chunksFor, coverageDays, inWindow, isWindow,
   mapInWindow, nextWindowFrame, onGrid, pickWindow, sameWindow, shownIn, startMinutes, strikeAgeMinutes, strikeChunks,
   strikesAt, windowAround, windowLabelEvery, windowSteps, windowTicks,
 } from "../../src/lib/archive.ts";
@@ -215,4 +215,19 @@ test("the 3D map is the one map a window cannot switch to", () => {
   assert.equal(mapInWindow("radar", window), true);
   assert.equal(mapInWindow("lightning", window), true);
   assert.equal(mapInWindow("cells3d", null), true);
+});
+
+test("a window opens on the frame asked for when it has one", () => {
+  const steps = windowSteps({ start: DAY, end: DAY + HOUR });
+  assert.equal(frameInWindow(steps, () => true, DAY + 600, DAY + HOUR), DAY + 600);
+});
+
+test("a window asked for a missed scan opens on the frame before it", () => {
+  const steps = windowSteps({ start: DAY, end: DAY + HOUR });
+  assert.equal(frameInWindow(steps, (t) => t !== DAY + 600, DAY + 600, DAY + HOUR), DAY + 300);
+});
+
+test("a window with no frame up to the one asked for opens on its newest", () => {
+  const steps = windowSteps({ start: DAY, end: DAY + HOUR });
+  assert.equal(frameInWindow(steps, (t) => t > DAY + 900, DAY + 600, DAY + HOUR - STEP_S), DAY + HOUR - STEP_S);
 });

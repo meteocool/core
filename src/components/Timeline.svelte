@@ -40,6 +40,9 @@ import {
 } from "../lib/timeline";
 import type { Translate } from "../locale/t";
 import { allPreloaded, slotShare } from "../lib/framePreload";
+import { windowLabelEvery, windowTicks, type ArchiveWindow } from "../lib/archive";
+import { format, startOfDay } from "date-fns";
+import getDfnLocale from "../locale/locale";
 
 /** The steps, oldest first; see lib/timeline.ts. */
 export let steps: TimelineStep[] = [];
@@ -55,6 +58,12 @@ export let interactive = true;
 export let labelEvery = 30;
 /** How much of each step's tiles has been fetched ahead, 0 to 1, by step; see lib/framePreload.ts. */
 export let preloaded: ReadonlyMap<number, number> = new Map();
+/**
+ * The past window the strip spans (lib/archive.ts), or null live. Labelled
+ * in clock times then, with the date where the day changes, rather than as
+ * offsets from a "now" that is days away.
+ */
+export let past: ArchiveWindow | null = null;
 
 const dispatch = createEventDispatcher<{ seek: number; grab: void; release: void }>();
 
@@ -98,7 +107,17 @@ function formatOffset(minutes: number, t: Translate): string {
   });
 }
 
-$: ticks = axisTicks(steps, now, labelEvery);
+/** A step as a clock, with its date where that is wanted: the window's labels and readout. */
+function clockOf(t: number, withDate: boolean): string {
+  return format(t * 1000, withDate ? "d MMM HH:mm" : "HH:mm", { locale: getDfnLocale() });
+}
+const dayOf = (t: number) => startOfDay(t * 1000).getTime();
+
+/* Live, offsets from now; in a past window, clock times, spaced to fit however long it is. */
+$: ticks = past
+  ? windowTicks(steps.map((step) => step.t), windowLabelEvery(n, labelEvery, labelEvery >= 60 ? 4 : 8), dayOf)
+    .map((tick) => ({ at: tick.at, anchor: tick.anchor, text: clockOf(tick.t, tick.withDate) }))
+  : axisTicks(steps, now, labelEvery).map((tick) => ({ at: tick.at, anchor: tick.anchor, text: formatOffset(tick.minutes, $_) }));
 
 /** The bars, with the colour table applied once per redraw rather than per frame. */
 $: bars = steps.map((step, i) => {
@@ -148,7 +167,11 @@ $: active = dragging || frame !== 0;
 $: if (!active) pos = indexOf(steps, value);
 $: needleX = (Math.min(Math.max(pos, reach.first - 1.5), last + 1.5) + 0.5) * slot;
 $: shownIndex = restingStep(pos, reach);
-$: readout = n > 0 ? formatOffset(Math.round((steps[shownIndex].t - now) / 60), $_) : "";
+$: readout = n === 0 ? ""
+  : past ? clockOf(steps[shownIndex].t, false)
+    : formatOffset(Math.round((steps[shownIndex].t - now) / 60), $_);
+/** What a screen reader hears: in a past window, the date as well as the time. */
+$: valueText = n > 0 && past ? clockOf(steps[shownIndex].t, true) : readout;
 
 let reported = -1;
 /**
@@ -535,7 +558,7 @@ onDestroy(stop);
     aria-valuemin={reach.first}
     aria-valuemax={last}
     aria-valuenow={shownIndex}
-    aria-valuetext={readout}
+    aria-valuetext={valueText}
     on:keydown={onKey}>
     {#if n > 0 && width > 0 && plotH > 0}
       <!-- The whole band, once every frame is in: the glass's bevel on it. -->
@@ -621,7 +644,7 @@ onDestroy(stop);
         class:start={tick.anchor === "start"}
         class:end={tick.anchor === "end"}
         style:left={tick.anchor === "end" ? null : `${tick.at * 100}%`}>
-        {formatOffset(tick.minutes, $_)}
+        {tick.text}
       </span>
     {/each}
   </div>

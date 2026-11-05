@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Archiwum",
+      "lede": "Dowolny przedział z ostatniego miesiąca, taki jak był: radar, wyładowania, burze i stacje.",
+      "pill": "Archiwum",
+      "pill_empty": "Archiwum puste",
+      "choose": "Wróć do ostatniego miesiąca",
+      "empty": "Archiwum jest puste: nic jeszcze nie zapisano.",
+      "failed": "Nie udało się połączyć z archiwum.",
+      "retry": "Spróbuj ponownie",
+      "loading": "Sprawdzanie zawartości archiwum…",
+      "day": "Dzień",
+      "start": "Początek",
+      "length": "Długość",
+      "hours": "{hours} godz.",
+      "summary": "{from} do {to}, {steps} klatek",
+      "open": "Otwórz",
+      "back_to_live": "Wróć na żywo",
+      "pill_live": "{time}, wróć na żywo",
+      "no_3d": "Mapa 3D nie ma przeszłości. Wróć na żywo, aby ją otworzyć.",
+      "refused": "Tego przedziału nie ma w archiwum. Powrót na żywo."
+    },
     "locate_me": "Zlokalizuj mnie",
     "layer_switcher": "Warstwy mapy",
     "playback": {

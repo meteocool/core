@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Arhiva",
+      "lede": "Bilo koje razdoblje iz proteklog mjeseca, kakvo je bilo: radar, munje, oluje i postaje.",
+      "pill": "Arhiva",
+      "pill_empty": "Arhiva je prazna",
+      "choose": "Pogledaj protekli mjesec",
+      "empty": "Arhiva je prazna: još se ništa ne čuva.",
+      "failed": "Arhiva nije dostupna.",
+      "retry": "Pokušaj ponovno",
+      "loading": "Provjerava se što arhiva čuva…",
+      "day": "Dan",
+      "start": "Početak",
+      "length": "Trajanje",
+      "hours": "{hours} h",
+      "summary": "{from} do {to}, {steps} slika",
+      "open": "Otvori",
+      "back_to_live": "Natrag uživo",
+      "pill_live": "{time}, natrag uživo",
+      "no_3d": "3D karta nema prošlost. Vratite se uživo da biste je otvorili.",
+      "refused": "To razdoblje nije u arhivi. Natrag uživo."
+    },
     "locate_me": "Pronađi me",
     "layer_switcher": "Slojevi karte",
     "playback": {

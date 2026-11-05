@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Archiv",
+      "lede": "Jedes Zeitfenster des letzten Monats, wie es war: Radar, Blitze, Gewitter und Stationen.",
+      "pill": "Archiv",
+      "pill_empty": "Archiv leer",
+      "choose": "Den letzten Monat zurückschauen",
+      "empty": "Das Archiv ist leer: Noch ist nichts gespeichert.",
+      "failed": "Das Archiv ist nicht erreichbar.",
+      "retry": "Erneut versuchen",
+      "loading": "Archiv wird abgefragt…",
+      "day": "Tag",
+      "start": "Beginn",
+      "length": "Dauer",
+      "hours": "{hours} Std.",
+      "summary": "{from} bis {to}, {steps} Bilder",
+      "open": "Öffnen",
+      "back_to_live": "Zurück zu live",
+      "pill_live": "{time}, zurück zu live",
+      "no_3d": "Die 3D-Karte hat keine Vergangenheit. Zurück zu live, um sie zu öffnen.",
+      "refused": "Dieses Zeitfenster ist nicht im Archiv. Zurück zu live."
+    },
     "locate_me": "Standort anzeigen",
     "layer_switcher": "Kartenebenen",
     "playback": {

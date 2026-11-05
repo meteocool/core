@@ -199,6 +199,26 @@ export function windowTicks(steps: readonly number[], every: number, dayOf: (t: 
   });
 }
 
+/**
+ * The step a window opens on when asked for `wanted` (a link's frame, or its
+ * end): that step, if it has a frame; else the nearest before it that has
+ * one; else `fallback`, the window's newest observation. A missed scan is
+ * not a reason to open a link somewhere else entirely.
+ */
+export function frameInWindow(
+  steps: readonly number[],
+  hasFrame: (t: number) => boolean,
+  wanted: number,
+  fallback: number,
+): number {
+  let best: number | null = null;
+  for (const t of steps) {
+    if (t > wanted) break;
+    if (hasFrame(t)) best = t;
+  }
+  return best ?? fallback;
+}
+
 /** The frame after `shown` in a window's playback: on through it, and round to its start from its last. */
 export function nextWindowFrame(shown: number, window: ArchiveWindow, last = window.end): number {
   if (shown < window.start || shown >= last) return window.start;

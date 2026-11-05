@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Arkiv",
+      "lede": "Vilket tidsfönster som helst från den senaste månaden, som det var: radarn, blixtarna, ovädren och stationerna.",
+      "pill": "Arkiv",
+      "pill_empty": "Arkivet är tomt",
+      "choose": "Se tillbaka på den senaste månaden",
+      "empty": "Arkivet är tomt: inget sparas ännu.",
+      "failed": "Arkivet kunde inte nås.",
+      "retry": "Försök igen",
+      "loading": "Kollar vad arkivet sparar…",
+      "day": "Dag",
+      "start": "Start",
+      "length": "Längd",
+      "hours": "{hours} h",
+      "summary": "{from} till {to}, {steps} bilder",
+      "open": "Öppna",
+      "back_to_live": "Tillbaka till live",
+      "pill_live": "{time}, tillbaka till live",
+      "no_3d": "3D-kartan har inget förflutet. Gå tillbaka till live för att öppna den.",
+      "refused": "Det tidsfönstret finns inte i arkivet. Tillbaka till live."
+    },
     "locate_me": "Visa min plats",
     "layer_switcher": "Kartlager",
     "playback": {

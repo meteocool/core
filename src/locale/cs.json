@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Archiv",
+      "lede": "Libovolné okno z posledního měsíce, jak bylo: radar, blesky, bouřky a stanice.",
+      "pill": "Archiv",
+      "pill_empty": "Archiv je prázdný",
+      "choose": "Ohlédnout se za posledním měsícem",
+      "empty": "Archiv je prázdný: zatím se nic neuchovává.",
+      "failed": "Archiv není dostupný.",
+      "retry": "Zkusit znovu",
+      "loading": "Zjišťuje se, co archiv uchovává…",
+      "day": "Den",
+      "start": "Začátek",
+      "length": "Délka",
+      "hours": "{hours} h",
+      "summary": "{from} až {to}, {steps} snímků",
+      "open": "Otevřít",
+      "back_to_live": "Zpět na živě",
+      "pill_live": "{time}, zpět na živě",
+      "no_3d": "3D mapa nemá minulost. Pro její otevření se vraťte na živě.",
+      "refused": "Toto okno v archivu není. Zpět na živě."
+    },
     "locate_me": "Najít mě",
     "layer_switcher": "Vrstvy mapy",
     "playback": {

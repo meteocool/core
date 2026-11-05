@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Arkisto",
+      "lede": "Mikä tahansa ajanjakso viime kuukaudelta sellaisena kuin se oli: tutka, salamat, ukkosmyrskyt ja asemat.",
+      "pill": "Arkisto",
+      "pill_empty": "Arkisto on tyhjä",
+      "choose": "Katso taaksepäin viime kuukauteen",
+      "empty": "Arkisto on tyhjä: mitään ei vielä säilytetä.",
+      "failed": "Arkistoon ei saatu yhteyttä.",
+      "retry": "Yritä uudelleen",
+      "loading": "Tarkistetaan, mitä arkisto säilyttää…",
+      "day": "Päivä",
+      "start": "Alku",
+      "length": "Kesto",
+      "hours": "{hours} t",
+      "summary": "{from}–{to}, {steps} kuvaa",
+      "open": "Avaa",
+      "back_to_live": "Takaisin livenä",
+      "pill_live": "{time}, takaisin livenä",
+      "no_3d": "3D-kartalla ei ole menneisyyttä. Palaa liveen avataksesi sen.",
+      "refused": "Tätä ajanjaksoa ei ole arkistossa. Takaisin liveen."
+    },
     "locate_me": "Paikanna minut",
     "layer_switcher": "Karttatasot",
     "playback": {

@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Archief",
+      "lede": "Elk tijdvak van de afgelopen maand, zoals het was: de radar, de inslagen, de onweersbuien en de stations.",
+      "pill": "Archief",
+      "pill_empty": "Archief leeg",
+      "choose": "Terugkijken over de afgelopen maand",
+      "empty": "Het archief is leeg: er is nog niets bewaard.",
+      "failed": "Het archief is niet bereikbaar.",
+      "retry": "Opnieuw proberen",
+      "loading": "Archief wordt opgevraagd…",
+      "day": "Dag",
+      "start": "Begin",
+      "length": "Duur",
+      "hours": "{hours} u",
+      "summary": "{from} tot {to}, {steps} beelden",
+      "open": "Openen",
+      "back_to_live": "Terug naar live",
+      "pill_live": "{time}, terug naar live",
+      "no_3d": "De 3D-kaart heeft geen verleden. Ga terug naar live om hem te openen.",
+      "refused": "Dit tijdvak staat niet in het archief. Terug naar live."
+    },
     "locate_me": "Mijn locatie tonen",
     "layer_switcher": "Kaartlagen",
     "playback": {

@@ -472,6 +472,27 @@
     }
   },
   "chrome": {
+    "archive": {
+      "title": "Archive",
+      "lede": "Any window of the last month, as it was: the radar, the strikes, the storms and the stations.",
+      "pill": "Archive",
+      "pill_empty": "Archive empty",
+      "choose": "Look back over the last month",
+      "empty": "The archive is empty: nothing is kept yet.",
+      "failed": "The archive could not be reached.",
+      "retry": "Try again",
+      "loading": "Looking up what the archive keeps…",
+      "day": "Day",
+      "start": "Start",
+      "length": "Length",
+      "hours": "{hours} h",
+      "summary": "{from} to {to}, {steps} frames",
+      "open": "Open",
+      "back_to_live": "Back to live",
+      "pill_live": "{time}, back to live",
+      "no_3d": "The 3D map has no past. Go back to live to open it.",
+      "refused": "That window is not in the archive. Back to live."
+    },
     "locate_me": "Locate me",
     "layer_switcher": "Map layers",
     "playback": {
