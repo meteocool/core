@@ -34,6 +34,11 @@ export interface RecordedResponse {
  * proxies them (vite.config.ts). Recorded and replayed.
  */
 const API_PATHS = [
+  // Under /v3/ and /storms too, and never recorded: the archive's routes
+  // (/v3/archive, /v3/lightning/strikes, and the timeline, snow,
+  // classification, stats and storms asked for a past time). A spec that
+  // opens a past window answers them itself (archive.ts); anywhere else they
+  // are refused, and the test fails naming them.
   /^\/v3\//, /^\/cells\//, /^\/storms(\/|$)/, /^\/sweeps(\/|$)/, /^\/stations(\/|$)/, /^\/mesocyclones\//,
   /^\/lightning_cache/, /^\/geocoding\//,
 ];
