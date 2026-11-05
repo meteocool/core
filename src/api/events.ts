@@ -20,15 +20,16 @@ export type SnowEvent = Schemas["SnowRefresh"];
 export type CellsEvent = Schemas["CellsRefresh"];
 /**
  * One EUMETNET network's composite was re-rendered, or the merged one (`eu`), the column maximum of every
- * network (`colmax`), one of its column products (`echotop18`, `echotop45`, `echotop50`, `vil`) or DWD's
- * DMAX (`dmax`); refetch only that frame.
+ * network (`colmax`), one of what its pass reads up the column (`echotop18`, `echotop45`, `echotop50`,
+ * `vil`) or DWD's DMAX (`dmax`); refetch only that frame.
  */
 export type NetworkEvent = Schemas["NetworkRefresh"];
-/** One of the fifteen national networks with a composite of their own, not one of the frames that share their event. */
-export type CountryNetwork = Exclude<
-  NetworkEvent["network"],
-  "eu" | "colmax" | "dmax" | "echotop18" | "echotop45" | "echotop50" | "vil"
->;
+/** What shares the `network` event without being a country's own composite: each one frame, refetched by its route. */
+export const SHARED_NETWORK_EVENTS = [
+  "eu", "colmax", "echotop18", "echotop45", "echotop50", "vil", "dmax",
+] as const satisfies readonly NetworkEvent["network"][];
+/** One of the fifteen national networks with a composite of their own: none of `SHARED_NETWORK_EVENTS`. */
+export type CountryNetwork = Exclude<NetworkEvent["network"], (typeof SHARED_NETWORK_EVENTS)[number]>;
 /**
  * One network's run of meteocool's own nowcast is complete: a
  * client showing the nowcast refetches the timeseries. Not a `poke`, which
