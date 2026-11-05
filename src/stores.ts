@@ -6,6 +6,7 @@ import { REACHABLE, type Reachability } from "./lib/reachability";
 import { INITIAL_CONNECTION, type Connection } from "./lib/connectionState";
 import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange } from "./lib/observedProduct";
+import { RVP6_ENCODING } from "./lib/rvp6";
 import { showsForecastStep } from "./lib/freshness";
 import { DEFAULT_STATION_CHOICE, type ObservedProperties, type StationChoice } from "./lib/stations";
 import { derived, readable, writable } from "svelte/store";
@@ -285,8 +286,9 @@ export const cloudsTime = writable<CloudsTime>({ shown: null, loading: null, pro
 /**
  * Which product the radar map's observed frames are drawn from, as the reader
  * picked it in the tray: HX with the networks around it, the merged
- * composite, the column maximum of every network, or DMAX; see
- * lib/observedProduct.ts. Mirrors the `radarProduct` setting.
+ * composite, the column maximum of every network, DMAX, or an echo top or
+ * VIL of every network; see lib/observedProduct.ts. Mirrors the
+ * `radarProduct` setting.
  */
 export const observedProduct = writable<ObservedProduct>(DEFAULT_PRODUCT);
 /**
@@ -303,9 +305,17 @@ export const radarProducts = writable<{
 }>({
   chosen: DEFAULT_PRODUCT,
   drawn: DEFAULT_PRODUCT,
-  scans: { hx: null, merged: null, colmax: null, dmax: null },
-  ranges: { hx: null, merged: null, colmax: null, dmax: null },
+  scans: { hx: null, merged: null, colmax: null, dmax: null, echotop18: null, echotop45: null, echotop50: null, vil: null },
+  ranges: { hx: null, merged: null, colmax: null, dmax: null, echotop18: null, echotop45: null, echotop50: null, vil: null },
 });
+/**
+ * What the bytes of the radar the map draws on the step on screen mean, its
+ * `values.encoding`: RVP6 for reflectivity, which is every step but one an
+ * echo top or VIL is drawn on (lib/columnValues.ts). The legend follows it,
+ * so a step the default stands in on, or a forecast step, is read in dBZ.
+ * Published by RadarCapability.
+ */
+export const drawnEncoding = writable<string>(RVP6_ENCODING);
 /**
  * Whether the 3D map is still being brought up for the first time.
  *

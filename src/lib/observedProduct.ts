@@ -1,7 +1,7 @@
 /**
  * Which product the radar map draws its observed frames from.
  *
- * Four pictures of the same weather, each a trade the reader makes:
+ * Pictures of the same weather, each a trade the reader makes:
  *
  * - `hx`, the default: DWD's HX over Germany, the lowest scan of every radar,
  *   with each EUMETNET network's own lowest-tilt composite around it.
@@ -16,6 +16,10 @@
  *   picture is a column maximum throughout; the networks' composites stand
  *   in on a step `colmax` has no frame for. A cycle behind HX, because it
  *   needs the whole volume scan.
+ * - `echotop18`, `echotop45`, `echotop50` and `vil`: how high each column's
+ *   echo reaches 18, 45 and 50 dBZ, and how much liquid water it holds, read
+ *   up the same tilts in the same pass as `colmax` and drawn whole like it. Heights and kilograms rather than dBZ, so they are drawn
+ *   in palettes of their own (lib/columnValues.ts).
  *
  * The choice holds on every observed step. A forecast step is WN's whatever
  * was chosen: none of the others forecasts.
@@ -24,22 +28,53 @@
  * picker in the tray reads what it publishes.
  */
 
-export type ObservedProduct = "hx" | "merged" | "colmax" | "dmax";
+/** What the column maximum of every network's pass reads up each column besides it; see `PRODUCT_GROUPS`. */
+export type ColumnProduct = "echotop18" | "echotop45" | "echotop50" | "vil";
+
+export type ObservedProduct = "hx" | "merged" | "colmax" | "dmax" | ColumnProduct;
 
 /** The products other than the default, as `/v3/radar/timeseries?products=` names them. */
 export type AlternativeProduct = Exclude<ObservedProduct, "hx">;
 
 /**
- * The picker's two kinds of picture, each with DWD's own first and meteocool's
- * merge of all sixteen networks second: the lowest scans, the rain nearest the
- * ground, and the column maxima, the strongest echo at any height.
+ * The picker's three kinds of picture. The first two each have DWD's own
+ * first and meteocool's merge of all sixteen networks second: the lowest
+ * scans, the rain nearest the ground, and the column maxima, the strongest
+ * echo at any height. The third is meteocool's alone, read up the column
+ * maximum's own tilts: how high the echo reaches and how much water the
+ * column holds, a storm's height and its load rather than how strong its
+ * echo is. After the column maxima, since it is read from the same tilts and
+ * asks the most of the reader.
  */
-export type ProductGroup = "lowest" | "column";
+export type ProductGroup = "lowest" | "column" | "tops";
 
+/**
+ * The echo tops upward through the storm, then VIL: the 18 dBZ top, its
+ * precipitation's whole height, first, as the one that reads on any rain;
+ * the 45 and 50 dBZ tops, how high its core reaches, which only a strong
+ * storm has; and VIL, the water summed up the whole column, last.
+ */
 export const PRODUCT_GROUPS: readonly { group: ProductGroup; products: readonly ObservedProduct[] }[] = [
   { group: "lowest", products: ["hx", "merged"] },
   { group: "column", products: ["dmax", "colmax"] },
+  { group: "tops", products: ["echotop18", "echotop45", "echotop50", "vil"] },
 ];
+
+/**
+ * The products of every network at once, each one frame over all of Europe
+ * drawn whole in place of HX and the networks' composites: not DMAX, which
+ * keeps Germany's own radar and draws on HX's grid.
+ */
+export const WHOLE_PRODUCTS = [
+  "merged", "colmax", "echotop18", "echotop45", "echotop50", "vil",
+] as const satisfies readonly AlternativeProduct[];
+
+export type WholeProduct = (typeof WHOLE_PRODUCTS)[number];
+
+/** Whether a product is one of every network's, drawn whole (`WHOLE_PRODUCTS`). */
+export function isWholeProduct(product: ObservedProduct): product is WholeProduct {
+  return (WHOLE_PRODUCTS as readonly ObservedProduct[]).includes(product);
+}
 
 /** In the order the picker lists them. */
 export const OBSERVED_PRODUCTS: readonly ObservedProduct[] = PRODUCT_GROUPS.flatMap(({ products }) => products);
@@ -71,12 +106,19 @@ export const FALLBACK_BEHIND_S = 10 * 60;
  * The column maximum of every network is a cycle further back than DMAX: it
  * is built seven minutes into the cycle after its own, on a background
  * worker, so for a minute or two of every five it trails HX by two cycles,
- * and by three when one pass is late.
+ * and by three when one pass is late. The echo tops and VIL are built in the
+ * same pass, from the same tilts, and trail HX as far.
  */
+const COLUMN_PASS_BEHIND_S = FALLBACK_BEHIND_S + 5 * 60;
+
 const BEHIND_ALLOWED_S: Record<AlternativeProduct, number> = {
   merged: FALLBACK_BEHIND_S,
   dmax: FALLBACK_BEHIND_S,
-  colmax: FALLBACK_BEHIND_S + 5 * 60,
+  colmax: COLUMN_PASS_BEHIND_S,
+  echotop18: COLUMN_PASS_BEHIND_S,
+  echotop45: COLUMN_PASS_BEHIND_S,
+  echotop50: COLUMN_PASS_BEHIND_S,
+  vil: COLUMN_PASS_BEHIND_S,
 };
 
 /** The value a setting holds, as a product: anything unknown is the default. */
@@ -145,8 +187,9 @@ export type ScanRange = readonly [freshest: number, stalest: number];
  * HX and DMAX cover Germany only, and the map draws every other country
  * beside them on its own clock: the picture runs from its freshest part to
  * its stalest, either of which may be a neighbour's (Czechia's composite is
- * often out before HX). The merged composite and the column maximum of every
- * network are one frame each, stamped with their own newest scan.
+ * often out before HX). Every network's products, the merged composite, the
+ * column maximum and what its pass reads up the column, are one frame each,
+ * stamped with their own newest scan.
  */
 export function scanRange(
   product: ObservedProduct,
@@ -155,7 +198,7 @@ export function scanRange(
   around: number | null,
 ): ScanRange | null {
   if (own === null) return null;
-  if (product === "merged" || product === "colmax") return [own, own];
+  if (isWholeProduct(product)) return [own, own];
   const parts = product === "dmax" && around !== null ? [own, around] : [own, ...networks];
   return [Math.max(...parts), Math.min(...parts)];
 }
@@ -193,7 +236,7 @@ export function aroundFrame<F>(
  * in for until it catches up (`drawnProduct`).
  */
 export function givesUpChoice(chosen: ObservedProduct, scans: NewestScans, answered: boolean): boolean {
-  return (chosen === "merged" || chosen === "colmax") && answered && scans[chosen] === null;
+  return isWholeProduct(chosen) && answered && scans[chosen] === null;
 }
 
 /** How long ago a product's freshest and stalest scans were, in whole minutes; null where it has none. */

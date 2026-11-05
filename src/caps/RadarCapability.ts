@@ -7,7 +7,8 @@ import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
 import { frameOnStep, templateOf } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
 import NetworkRadarLayer, {
-  AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, NETWORKS, NOWCAST_NETWORKS,
+  AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, EUROPE_ECHO_TOP_18, EUROPE_ECHO_TOP_45, EUROPE_ECHO_TOP_50, EUROPE_VIL, NETWORKS,
+  NOWCAST_NETWORKS,
 } from "../layers/network";
 import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
@@ -15,7 +16,7 @@ import { ALL_NETWORKS } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
 import { hasTile, sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
-import { drawnTileId } from "../lib/rvp6";
+import { RVP6_ENCODING, drawnTileId, encodingOf } from "../lib/rvp6";
 import type { Ink, ValueTiles } from "../lib/rvp6";
 import { isDarkBasemap } from "../layers/casing";
 import type { RadarFrame, TimeseriesProduct } from "../api";
@@ -27,6 +28,7 @@ import {
   capLastUpdated,
   capTimeIndicator,
   compositeDim,
+  drawnEncoding,
   dryAtUser,
   lastFocus,
   inspectLatLon,
@@ -58,9 +60,12 @@ import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
 import { lastPublishedStep, newestObservation } from "../lib/timeline";
 import {
-  DEFAULT_PRODUCT, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, scanRange, stepFrame, timeseriesProducts,
+  DEFAULT_PRODUCT, OBSERVED_PRODUCTS, WHOLE_PRODUCTS, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, isWholeProduct,
+  scanRange, stepFrame, timeseriesProducts,
 } from "../lib/observedProduct";
-import type { AlternativeProduct, NewestScans, ObservedProduct, ScanRange } from "../lib/observedProduct";
+import type {
+  AlternativeProduct, NewestScans, ObservedProduct, ScanRange, WholeProduct,
+} from "../lib/observedProduct";
 import {
   NOWCAST_PRODUCT, chartFrames, domainsAt, domainsWithRun, lastStepWithRuns, nowcastRuns,
 } from "../lib/nowcast";
@@ -106,10 +111,6 @@ const INSPECT_OPACITY = 0.55;
 
 /** A list of products as one string, to tell two requests' apart. */
 const productsKey = (products: readonly TimeseriesProduct[]): string => products.join(",");
-
-/** The products of every network at once, each drawn whole in place of the six; see `showNetworks`. */
-const WHOLE_PRODUCTS = ["merged", "colmax"] as const satisfies readonly AlternativeProduct[];
-type WholeProduct = (typeof WHOLE_PRODUCTS)[number];
 
 function setPattern(style) {
   const canvas = document.createElement("canvas");
@@ -189,11 +190,12 @@ export default class RadarCapability extends Capability {
   private networks: NetworkRadarLayer[];
 
   /**
-   * The two products of every network at once (the merged composite of
-   * their lowest tilts, and their column maximum), each drawn whole in place
-   * of DWD's frame and the networks' on every observed step while it is the
-   * drawn product; see `showNetworks`. Their newest frames are fetched
-   * whatever is drawn, for the picker's age.
+   * The products of every network at once (the merged composite of their
+   * lowest tilts, their column maximum, and the echo tops and VIL its pass
+   * reads up the column), each drawn whole in place of DWD's frame and the
+   * networks' on every observed step while it is the drawn product; see
+   * `showNetworks`. Their newest frames are fetched whatever is drawn, for
+   * the picker's age.
    */
   private wholes: Record<WholeProduct, NetworkRadarLayer>;
 
@@ -338,6 +340,10 @@ export default class RadarCapability extends Capability {
     this.wholes = {
       merged: new NetworkRadarLayer(map, EUROPE),
       colmax: new NetworkRadarLayer(map, EUROPE_COLUMN_MAXIMUM),
+      echotop18: new NetworkRadarLayer(map, EUROPE_ECHO_TOP_18),
+      echotop45: new NetworkRadarLayer(map, EUROPE_ECHO_TOP_45),
+      echotop50: new NetworkRadarLayer(map, EUROPE_ECHO_TOP_50),
+      vil: new NetworkRadarLayer(map, EUROPE_VIL),
     };
     this.around = new NetworkRadarLayer(map, AROUND_DMAX);
     this.nowcasts = NOWCAST_NETWORKS.map((network) => new NetworkRadarLayer(map, network));
@@ -829,12 +835,11 @@ export default class RadarCapability extends Capability {
   private newestScans(): NewestScans {
     const step = this.getMostRecentObservation();
     const newest = this.clientGrid?.[step];
-    return {
-      hx: newest?.url && newest.source === "observation" ? (newest.upstream_time ?? step) : null,
-      merged: this.latest.merged.current()?.upstream_time ?? null,
-      colmax: this.latest.colmax.current()?.upstream_time ?? null,
-      dmax: this.latest.dmax.current()?.upstream_time ?? null,
-    };
+    const scans = { hx: newest?.url && newest.source === "observation" ? (newest.upstream_time ?? step) : null } as NewestScans;
+    for (const product of OBSERVED_PRODUCTS) {
+      if (product !== DEFAULT_PRODUCT) scans[product] = this.latest[product].current()?.upstream_time ?? null;
+    }
+    return scans;
   }
 
   /** The scans each product's picture is made of, for the picker (`scanRange`). */
@@ -845,26 +850,23 @@ export default class RadarCapability extends Capability {
     // What DMAX would have around it on the live step, drawn or not: the
     // picker ages the option before it is picked.
     const around = fallsBehind("colmax", scans) ? null : scans.colmax;
-    return {
-      hx: scanRange("hx", scans.hx, networks, null),
-      merged: scanRange("merged", scans.merged, networks, null),
-      colmax: scanRange("colmax", scans.colmax, networks, null),
-      dmax: scanRange("dmax", scans.dmax, networks, around),
-    };
+    const ranges = {} as Record<ObservedProduct, ScanRange | null>;
+    for (const product of OBSERVED_PRODUCTS) {
+      ranges[product] = scanRange(product, scans[product], networks, product === "dmax" ? around : null);
+    }
+    return ranges;
   }
 
   /**
    * Re-decide what the map draws after anything that can change it (the
-   * reader's choice, or a new frame of any of the three products), tell the
+   * reader's choice, or a new frame of any of the products), tell the
    * picker, and put it on the step on screen.
    */
   private productsChanged() {
     const scans = this.newestScans();
-    if (this.chosen === "merged" || this.chosen === "colmax") {
-      if (givesUpChoice(this.chosen, scans, this.wholes[this.chosen].answered())) {
-        this.giveUpChoice(this.chosen);
-        return;
-      }
+    if (isWholeProduct(this.chosen) && givesUpChoice(this.chosen, scans, this.wholes[this.chosen].answered())) {
+      this.giveUpChoice(this.chosen);
+      return;
     }
     this.drawn = drawnProduct(this.chosen, scans);
     radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans, ranges: this.scanRanges(scans) });
@@ -885,7 +887,7 @@ export default class RadarCapability extends Capability {
    * the product again is the reader's to do. `productsChanged` runs again
    * from the setting's own subscription.
    */
-  private giveUpChoice(product: "merged" | "colmax") {
+  private giveUpChoice(product: WholeProduct) {
     const t = get(_);
     reportToast(t("chrome.radar_product.gave_up", {
       values: { product: t(`chrome.radar_product.${product}`), fallback: t(`chrome.radar_product.${DEFAULT_PRODUCT}_option`) },
@@ -1020,6 +1022,9 @@ export default class RadarCapability extends Capability {
       this.wholes[product].show(false, whole?.product === product ? whole.frame : null);
     }
     this.layer?.setVisible(!whole);
+    // What the legend reads the step in: an echo top's or VIL's own unit
+    // while one is drawn, dBZ everywhere else.
+    drawnEncoding.set(whole ? encodingOf(whole.frame) : RVP6_ENCODING);
     this.showNowcasts(shown);
   }
 
@@ -1356,6 +1361,7 @@ export default class RadarCapability extends Capability {
     this.around.destroy();
     for (const nowcast of this.nowcasts) nowcast.destroy();
     nowcastCoverage.set(null);
+    drawnEncoding.set(RVP6_ENCODING);
     this.unsubscribeNowcast?.();
     this.unsubscribeNowcast = null;
     this.unsubscribeProduct?.();

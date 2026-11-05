@@ -105,7 +105,7 @@ async function keepPlaying(ms) {
   }
 }
 
-const PRODUCTS = ["hx", "merged", "colmax", "dmax"];
+const PRODUCTS = ["hx", "merged", "colmax", "dmax", "echotop18", "echotop45", "echotop50", "vil"];
 let product = 0;
 function nextProduct() {
   product = (product + 1) % PRODUCTS.length;

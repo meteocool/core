@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { RVP6_CLASSIC, RVP6_CLASSIC_LEFTPAD } from "../../src/colormaps.ts";
-import { dbz2color } from "../../src/lib/cmap_utils.ts";
+import { dbz2color, rvp6ToDbz } from "../../src/lib/cmap_utils.ts";
+import { columnStyle, columnTable } from "../../src/lib/columnValues.ts";
 import {
-  RVP6_ENTRIES, carriesValues, drawnTileId, greyTable, paintValues, rvp6PaletteColours, rvp6Style, rvp6Table,
+  RVP6_ENTRIES, carriesValues, columnGreyTable, drawnTileId, encodingOf, greyTable, paintValues, rvp6PaletteColours, rvp6Style,
+  rvp6Table, valueStyle,
 } from "../../src/lib/rvp6.ts";
 
 test("the classic table is the classic palette, byte for byte, where it has colours", () => {
@@ -56,13 +58,17 @@ test("values are painted; an erased pixel stays transparent, a cut edge fades", 
   assert.deepEqual([...paintValues(new Uint8Array([150]), null, table)], table[150], "uncut, every pixel is whole");
 });
 
-test("a frame carries values only when it says so in the encoding the client reads", () => {
+test("a frame carries values only when it says so in an encoding the client reads", () => {
   const values = { tile_id: "v", encoding: "rvp6-u8" };
   assert.equal(carriesValues({ values }), true);
   assert.equal(carriesValues({ values: null }), false);
   assert.equal(carriesValues({}), false);
   assert.equal(carriesValues({ values: { tile_id: "v", encoding: "hg-class-u8" } }), false);
+  assert.equal(carriesValues({ values: { tile_id: "v", encoding: "height-250m-u8" } }), true);
+  assert.equal(carriesValues({ values: { tile_id: "v", encoding: "vil-0.5kg-u8" } }), true);
+  assert.equal(carriesValues({ values: { tile_id: "v", encoding: "hail-u8" } }), false);
   assert.equal(drawnTileId({ tile_id: "t", values }), "v");
+  assert.equal(drawnTileId({ tile_id: "t", values: { tile_id: "e", encoding: "height-250m-u8" } }), "e");
   assert.equal(drawnTileId({ tile_id: "t" }), "t");
 });
 
@@ -92,4 +98,63 @@ test("the style takes the grey with an ink, the colours without", () => {
   assert.deepEqual(colours(null), rvp6PaletteColours("classic"));
   assert.deepEqual(colours("black"), rvp6PaletteColours("classic", "black"));
   assert.notDeepEqual(colours("black"), colours(null));
+});
+
+test("an RVP6 byte is half a dBZ a step from -32.5", () => {
+  assert.equal(rvp6ToDbz(1), -32);
+  assert.equal(rvp6ToDbz(65), 0);
+  assert.equal(rvp6ToDbz(165), 50);
+  assert.equal(rvp6ToDbz(255), 95);
+});
+
+test("a frame that does not say is RVP6, as every frame was before the column products", () => {
+  assert.equal(encodingOf({}), "rvp6-u8");
+  assert.equal(encodingOf({ values: null }), "rvp6-u8");
+  assert.equal(encodingOf({ values: { tile_id: "v", encoding: "vil-0.5kg-u8" } }), "vil-0.5kg-u8");
+});
+
+test("a frame is drawn by its encoding: reflectivity in the reader's palette, a column product in its own", () => {
+  assert.deepEqual(valueStyle("rvp6-u8", "viridis"), rvp6Style("viridis"));
+  assert.deepEqual(valueStyle("rvp6-u8", "nws"), rvp6Style("nws"));
+  for (const encoding of ["height-250m-u8", "vil-0.5kg-u8"] as const) {
+    // Whatever the reader's palette is.
+    assert.deepEqual(valueStyle(encoding, "viridis"), columnStyle(encoding));
+    assert.deepEqual(valueStyle(encoding, "classic"), columnStyle(encoding));
+  }
+  assert.notDeepEqual(columnStyle("height-250m-u8"), columnStyle("vil-0.5kg-u8"));
+  // Not read as dBZ: nothing at all.
+  assert.deepEqual(valueStyle("hail-u8", "classic"), { color: [0, 0, 0, 0] });
+  assert.deepEqual(valueStyle("hail-u8", "classic", "black"), { color: [0, 0, 0, 0] });
+});
+
+test("under an open radar's sweep, reflectivity takes the ink as it always has, and so does a column product", () => {
+  assert.deepEqual(valueStyle("rvp6-u8", "classic", "black"), rvp6Style("classic", "black"));
+  assert.deepEqual(valueStyle("rvp6-u8", "viridis", "white"), rvp6Style("viridis", "white"));
+  for (const encoding of ["height-250m-u8", "vil-0.5kg-u8"] as const) {
+    for (const ink of ["black", "white"] as const) {
+      assert.deepEqual(valueStyle(encoding, "classic", ink), columnStyle(encoding, columnGreyTable(encoding, ink)));
+    }
+  }
+});
+
+test("a column product in grey keeps each byte's alpha and runs from the ink's faintest to full ink", () => {
+  for (const encoding of ["height-250m-u8", "vil-0.5kg-u8"] as const) {
+    const colour = columnTable(encoding);
+    const black = columnGreyTable(encoding, "black");
+    const white = columnGreyTable(encoding, "white");
+    let last = 255;
+    for (let byte = 1; byte < 255; byte++) {
+      const [r, g, b, a] = black[byte];
+      assert.ok(r === g && g === b, `${encoding} ${byte} is grey`);
+      assert.equal(a, colour[byte][3], `${encoding} ${byte} keeps its alpha`);
+      assert.ok(r <= last, `${encoding} ${byte} is no lighter than the one before`);
+      last = r;
+    }
+    assert.equal(black[0][3], 0);
+    assert.equal(black[255][3], 0);
+    // The scale's top, and past it, is full ink.
+    assert.equal(black[254][0], 0);
+    assert.equal(white[254][0], 255);
+    assert.ok(white[1][0] < 255);
+  }
 });

@@ -495,6 +495,54 @@ export function fetchEuropeColumnMaximum(nanobar?: Progress) {
   );
 }
 
+/**
+ * The most recent 18 dBZ echo top of every network: how high above sea level
+ * each cell's echo reaches 18 dBZ, from the column maximum's pass, its tiles
+ * `height-250m-u8`. `optional` for the reason the column maximum's is, and
+ * because a backend that does not make them yet answers 404 too.
+ */
+export function fetchEchoTop18(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/echotop18",
+    () => apiClient.GET("/v3/radar/echotop18", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent 45 dBZ echo top of every network, as `fetchEchoTop18`'s. */
+export function fetchEchoTop45(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/echotop45",
+    () => apiClient.GET("/v3/radar/echotop45", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent 50 dBZ echo top of every network, as `fetchEchoTop18`'s. */
+export function fetchEchoTop50(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/echotop50",
+    () => apiClient.GET("/v3/radar/echotop50", {}),
+    { optional: true },
+  );
+}
+
+/**
+ * The most recent vertically integrated liquid of every network, kg m⁻², from
+ * the same pass, its tiles `vil-0.5kg-u8`; `optional` as `fetchEchoTop18`'s.
+ */
+export function fetchVerticallyIntegratedLiquid(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/vil",
+    () => apiClient.GET("/v3/radar/vil", {}),
+    { optional: true },
+  );
+}
+
 /** The most recent precipitation-type tile set, absent until one has rendered. */
 export function fetchPrecipitationTypes(nanobar?: Progress) {
   return request(

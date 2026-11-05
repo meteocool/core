@@ -131,13 +131,14 @@ type NodeKind = "scan" | "file" | "ours";
 const COL_X = [20, 390, 720];
 const COL_W = [230, 220, 260];
 const NODE_H = 44;
+/* Lightning, made from nothing the radars measure, sits apart at the foot. */
 const NODES: Record<string, [number, number, NodeKind]> = {
-  pcp: [0, 60, "scan"], vol: [0, 230, "scan"], nets: [0, 420, "scan"], bz: [0, 560, "scan"],
+  pcp: [0, 60, "scan"], vol: [0, 230, "scan"], nets: [0, 420, "scan"], bz: [0, 760, "scan"],
   hx: [1, 30, "file"], wn: [1, 90, "file"], hg: [1, 150, "file"], dmax: [1, 215, "file"], k3d: [1, 280, "file"],
-  meso: [1, 340, "file"], sweeps: [1, 430, "file"], strk: [1, 560, "file"],
+  meso: [1, 340, "file"], sweeps: [1, 430, "file"], strk: [1, 760, "file"],
   m_de: [2, 30, "ours"], m_fc: [2, 90, "ours"], m_hg: [2, 150, "ours"], m_cell: [2, 230, "ours"], m_meso: [2, 300, "ours"],
   m_3d: [2, 370, "ours"], m_net: [2, 440, "ours"], m_eu: [2, 500, "ours"], m_colmax: [2, 560, "ours"],
-  m_lt: [2, 620, "ours"],
+  m_tops: [2, 620, "ours"], m_vil: [2, 680, "ours"], m_lt: [2, 760, "ours"],
 };
 /* The one box with nothing to add under its name. */
 const NO_SUBTITLE = new Set(["m_meso"]);
@@ -148,7 +149,7 @@ const EDGES: Array<[string, string]> = [
   ["pcp", "hx"], ["pcp", "wn"], ["pcp", "hg"], ["vol", "dmax"], ["vol", "k3d"], ["vol", "meso"], ["vol", "sweeps"],
   ["nets", "sweeps"], ["bz", "strk"], ["hx", "m_de"], ["wn", "m_fc"], ["hg", "m_hg"], ["k3d", "m_cell"], ["dmax", "m_cell"],
   ["meso", "m_meso"], ["dmax", "m_3d"], ["sweeps", "m_3d"], ["sweeps", "m_net"], ["sweeps", "m_eu"], ["sweeps", "m_colmax"],
-  ["strk", "m_lt"],
+  ["sweeps", "m_tops"], ["sweeps", "m_vil"], ["strk", "m_lt"],
 ];
 const STRONG = new Set(["dmax>m_3d", "sweeps>m_3d"]);
 const edges = EDGES.map(([a, b]) => {
@@ -168,7 +169,7 @@ const edges = EDGES.map(([a, b]) => {
 
 const TIMES = ["pcp_done", "hx", "frame", "wn", "sweep_low", "vol_done", "dmax", "sweep_last", "clouds", "next_frame"];
 const OURS_TIMES = new Set(["frame", "clouds", "next_frame"]);
-const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "colmax", "cells", "clouds", "meso", "lightning"];
+const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "colmax", "echotops", "vil", "cells", "clouds", "meso", "lightning"];
 </script>
 
 <style>
@@ -371,12 +372,20 @@ const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "colmax", "ce
       <figcaption>{$_("radar_help.tilts.caption")}</figcaption>
     </figure>
 
-    <!-- Lowest scan or column maximum: the radar product picker's two groups -->
+    <!-- Lowest scan or column maximum: the radar product picker's first two groups -->
     <div class="col">
       <h3>{$_("radar_help.products.title")}</h3>
       <p>{$_("radar_help.products.p1")}</p>
       <p>{$_("radar_help.products.p2")}</p>
       <p>{$_("radar_help.products.p3")}</p>
+    </div>
+
+    <!-- Echo tops and VIL: the picker's third group, read up the column maximum's tilts -->
+    <div class="col">
+      <h3>{$_("radar_help.tops.title")}</h3>
+      <p>{$_("radar_help.tops.p1")}</p>
+      <p>{$_("radar_help.tops.p2")}</p>
+      <p>{$_("radar_help.tops.p3")}</p>
     </div>
 
     <!-- Five minutes, minute by minute -->
@@ -457,7 +466,7 @@ const PRODUCTS = ["de", "forecast", "types", "networks", "europe", "colmax", "ce
     </div>
     <figure>
       <div class="fig">
-        <svg viewBox="0 0 1040 700" role="img" aria-label={$_("radar_help.made.caption")}>
+        <svg viewBox="0 0 1040 820" role="img" aria-label={$_("radar_help.made.caption")}>
           {#each ["measured", "published", "shown"] as head, i (i)}
             <text class="colhead" x={COL_X[i]} y="16">{$_(`radar_help.made.col_${head}`)}</text>
           {/each}

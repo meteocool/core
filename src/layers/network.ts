@@ -46,15 +46,16 @@ import {
 } from "./extents";
 import { tileSourceUrl } from "./dwd";
 import { maskPath } from "./tileMask";
-import { drawnTileId, rvp6Style } from "../lib/rvp6";
+import { RVP6_ENCODING, drawnTileId, encodingOf, valueStyle } from "../lib/rvp6";
 import type { Ink } from "../lib/rvp6";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
 import { radarTileCache } from "../lib/gpuBudget";
 import {
-  fetchBelgianRadar, fetchCroatianRadar, fetchCzechRadar, fetchDanishRadar, fetchDutchRadar, fetchEstonianRadar,
-  fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFinnishRadar, fetchFrenchRadar, fetchIrishRadar, fetchLithuanianRadar,
-  fetchNorwegianRadar, fetchPolishRadar, fetchSlovakRadar, fetchSwedishRadar, fetchSwissRadar,
+  fetchBelgianRadar, fetchCroatianRadar, fetchCzechRadar, fetchDanishRadar, fetchDutchRadar, fetchEchoTop18, fetchEchoTop45,
+  fetchEchoTop50, fetchEstonianRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFinnishRadar, fetchFrenchRadar,
+  fetchIrishRadar, fetchLithuanianRadar, fetchNorwegianRadar, fetchPolishRadar, fetchSlovakRadar, fetchSwedishRadar,
+  fetchSwissRadar, fetchVerticallyIntegratedLiquid,
 } from "../api";
 import type { Progress, RadarFrame } from "../api";
 import type { NetworkCode } from "./networkHoles";
@@ -228,6 +229,21 @@ export const EUROPE_COLUMN_MAXIMUM: Network = {
 };
 
 /**
+ * What the column maximum's pass reads up each column of it: how high the
+ * echo reaches 18, 45 and 50 dBZ, and its vertically integrated liquid. Each
+ * on the column maximum's grid and drawn like it, whole and in place of the
+ * others, when the reader asks; their tiles hold heights and kilograms rather
+ * than RVP6, drawn by their encoding (`valueStyle`).
+ */
+export const EUROPE_ECHO_TOP_18: Network = { ...EUROPE_COLUMN_MAXIMUM, code: "echotop18", fetch: fetchEchoTop18 };
+
+export const EUROPE_ECHO_TOP_45: Network = { ...EUROPE_COLUMN_MAXIMUM, code: "echotop45", fetch: fetchEchoTop45 };
+
+export const EUROPE_ECHO_TOP_50: Network = { ...EUROPE_COLUMN_MAXIMUM, code: "echotop50", fetch: fetchEchoTop50 };
+
+export const EUROPE_VIL: Network = { ...EUROPE_COLUMN_MAXIMUM, code: "vil", fetch: fetchVerticallyIntegratedLiquid };
+
+/**
  * The column maximum of every network, cut to the ground the networks draw
  * on: what surrounds DMAX, Germany's own column maximum, in place of the
  * networks' lowest scans. Each network's coverage is wound to nest (its
@@ -296,6 +312,13 @@ export default class NetworkRadarLayer {
   /** Grey in this ink under an open radar's sweep (`setPalette`), else null. */
   private ink: Ink | null = null;
 
+  /**
+   * What the bytes of the frame on screen mean, which the style follows
+   * (`valueStyle`): RVP6 for every network's composite, a height or a weight
+   * for an echo top's or VIL's.
+   */
+  private encoding = RVP6_ENCODING;
+
   /** How strongly it is drawn: the radar map's own, unless a map lays it under something else. */
   private readonly opacity: number;
 
@@ -354,11 +377,15 @@ export default class NetworkRadarLayer {
     this.apply();
   }
 
-  /** Draw this network in a palette from now on; in grey with an ink, under an open radar's sweep. */
+  /**
+   * Draw this network in a palette from now on; in grey with an ink, under an
+   * open radar's sweep. An echo top or VIL keeps its own colours whatever the
+   * palette, but takes the ink like reflectivity (`valueStyle`).
+   */
   setPalette(palette: string, ink: Ink | null = null) {
     this.palette = palette;
     this.ink = ink;
-    this.layer?.setStyle(rvp6Style(palette, ink));
+    this.layer?.setStyle(valueStyle(this.encoding, palette, ink));
   }
 
   /**
@@ -401,10 +428,16 @@ export default class NetworkRadarLayer {
       return;
     }
     const url = tileSourceUrl(this.network.bucket ?? "meteoradar", drawnTileId(frame));
+    const encoding = encodingOf(frame);
     if (!this.layer) {
+      this.encoding = encoding;
       this.createLayer(url, frame);
-    } else if (url !== this.url) {
-      (this.layer.getSource() as ValueTileSource | null)?.setUrl(url, frame.tiles);
+    } else {
+      if (encoding !== this.encoding) {
+        this.encoding = encoding;
+        this.layer.setStyle(valueStyle(encoding, this.palette, this.ink));
+      }
+      if (url !== this.url) (this.layer.getSource() as ValueTileSource | null)?.setUrl(url, frame.tiles);
     }
     this.url = url;
     this.layer!.setVisible(true);
@@ -435,7 +468,7 @@ export default class NetworkRadarLayer {
     }));
     this.layer = staleOnlyWhileLoading(new TileLayer({
       source,
-      style: rvp6Style(this.palette, this.ink),
+      style: valueStyle(this.encoding, this.palette, this.ink),
       // Just under DWD's 80. The cut means they never cover the same pixel,
       // so this only settles which draws first. Europe's draws above DWD's
       // instead, which is hidden while it shows.

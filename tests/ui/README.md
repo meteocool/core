@@ -29,6 +29,10 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
 - answers `/sweeps` from every view's listing, merged (`record.ts`), and
   every station's `/stations/{station}/observations` from München-Stadt's
   day (`fixtures/api/GET_stations_station_observations.json`);
+- answers the echo tops and VIL (`/v3/radar/echotop18`, `echotop45`,
+  `echotop50`, `vil`) with the 404 a backend gives before their first frame,
+  written by hand until a recording has them; `column-products.spec.ts`
+  stands frames in for them itself;
 - draws every map tile blank: radar, value tiles and the basemap;
 - connects the lightning socket to a stand-in that stays quiet;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it

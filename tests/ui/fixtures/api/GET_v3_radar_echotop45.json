@@ -1,0 +1,7 @@
+{
+ "status": 404,
+ "contentType": "application/json",
+ "json": {
+  "detail": "no 45 dBZ echo-top available yet"
+ }
+}

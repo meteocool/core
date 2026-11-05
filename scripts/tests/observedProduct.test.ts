@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, ageMinutes, ageSpan, aroundFrame, drawnProduct, givesUpChoice, fallsBehind, scanRange, parseObservedProduct,
-  stepFrame, timeseriesProducts,
+  DEFAULT_PRODUCT, FALLBACK_BEHIND_S, OBSERVED_PRODUCTS, PRODUCT_GROUPS, WHOLE_PRODUCTS, ageMinutes, ageSpan, aroundFrame,
+  drawnProduct, givesUpChoice, fallsBehind, isWholeProduct, scanRange, parseObservedProduct, stepFrame, timeseriesProducts,
 } from "../../src/lib/observedProduct.ts";
-import type { NewestScans } from "../../src/lib/observedProduct.ts";
+import type { ColumnProduct, NewestScans } from "../../src/lib/observedProduct.ts";
 
 /**
  * Which picture the radar map draws, and when it quietly draws the default
@@ -17,7 +17,15 @@ const T = 1_791_240_000;
 const MIN = 60;
 
 const scans = (hx: number | null, merged: number | null, dmax: number | null, colmax: number | null = null): NewestScans => ({
-  hx, merged, colmax, dmax,
+  hx, merged, colmax, dmax, echotop18: null, echotop45: null, echotop50: null, vil: null,
+});
+
+/** What the column maximum's pass reads up the column besides it. */
+const COLUMN_PRODUCTS: ColumnProduct[] = ["echotop18", "echotop45", "echotop50", "vil"];
+
+/** HX at `hx`, and every product of the column maximum's pass at `pass`. */
+const pass = (hx: number | null, at: number | null): NewestScans => ({
+  ...scans(hx, hx, hx, at), echotop18: at, echotop45: at, echotop50: at, vil: at,
 });
 
 test("the default is never behind, even with nothing to draw", () => {
@@ -59,10 +67,28 @@ test("a merged composite ahead of HX is drawn", () => {
   assert.equal(drawnProduct("merged", scans(T, T + 2 * MIN, null)), "merged");
 });
 
+test("the echo tops and VIL trail HX as far as the column maximum they are built with, and no further", () => {
+  for (const product of COLUMN_PRODUCTS) {
+    assert.equal(drawnProduct(product, pass(T, T - 10 * MIN)), product, `${product} two cycles behind`);
+    assert.equal(drawnProduct(product, pass(T, T - 15 * MIN)), product, `${product} three cycles behind`);
+    assert.equal(drawnProduct(product, pass(T, T - 20 * MIN)), DEFAULT_PRODUCT, `${product} four cycles behind`);
+    assert.equal(drawnProduct(product, pass(T, null)), DEFAULT_PRODUCT, `${product} with nothing`);
+  }
+});
+
+test("each of the pass's products is judged by its own scan, not the column maximum's", () => {
+  const onlyColmax = { ...pass(T, null), colmax: T - 5 * MIN };
+  assert.equal(drawnProduct("colmax", onlyColmax), "colmax");
+  assert.equal(drawnProduct("echotop18", onlyColmax), DEFAULT_PRODUCT);
+  assert.equal(drawnProduct("vil", { ...onlyColmax, vil: T - 5 * MIN }), "vil");
+});
+
 test("a setting that names no product is the default", () => {
   assert.equal(parseObservedProduct("dmax"), "dmax");
   assert.equal(parseObservedProduct("merged"), "merged");
   assert.equal(parseObservedProduct("colmax"), "colmax");
+  for (const product of COLUMN_PRODUCTS) assert.equal(parseObservedProduct(product), product);
+  assert.equal(parseObservedProduct("echotop"), "hx");
   assert.equal(parseObservedProduct("eu"), "hx");
   assert.equal(parseObservedProduct(true), "hx");
   assert.equal(parseObservedProduct(null), "hx");
@@ -115,6 +141,10 @@ test("DMAX with the column maximum around it spans the two, not the networks", (
 test("the merged products are one frame, stamped with their own newest scan", () => {
   assert.deepEqual(scanRange("merged", 1_000, [1_200, 700], null), [1_000, 1_000]);
   assert.deepEqual(scanRange("colmax", 1_000, [700], 600), [1_000, 1_000]);
+  for (const product of COLUMN_PRODUCTS) {
+    assert.deepEqual(scanRange(product, 1_000, [1_200, 700], null), [1_000, 1_000], product);
+    assert.equal(scanRange(product, null, [1_200], null), null, product);
+  }
 });
 
 test("an age span runs from the freshest part to the stalest", () => {
@@ -130,13 +160,18 @@ test("DMAX asks for the column maximum's past too, to draw around it", () => {
   assert.deepEqual(timeseriesProducts("colmax"), ["colmax"]);
 });
 
+test("an echo top or VIL asks for its own past alone, not the column maximum's", () => {
+  for (const product of COLUMN_PRODUCTS) assert.deepEqual(timeseriesProducts(product), [product]);
+});
+
 test("the column maximum is drawn around DMAX only, and only where it has a frame", () => {
-  const fresh: NewestScans = { hx: 1_000, merged: 1_000, colmax: 700, dmax: 900 };
+  const fresh: NewestScans = { ...pass(1_000, 700), merged: 1_000, dmax: 900 };
   const live = { observed: true, live: true, key: 1_000 };
   const past = { observed: true, live: false, key: 400 };
   assert.equal(aroundFrame("dmax", live, {}, "newest", fresh), "newest");
   assert.equal(aroundFrame("hx", live, {}, "newest", fresh), null);
   assert.equal(aroundFrame("colmax", live, {}, "newest", fresh), null);
+  for (const product of COLUMN_PRODUCTS) assert.equal(aroundFrame(product, live, {}, "newest", fresh), null, product);
   assert.equal(aroundFrame("dmax", past, { 400: "then" }, "newest", fresh), "then");
   // A step it has no frame for has the networks around DMAX instead.
   assert.equal(aroundFrame("dmax", past, {}, "newest", fresh), null);
@@ -145,9 +180,14 @@ test("the column maximum is drawn around DMAX only, and only where it has a fram
 });
 
 test("an EU product with no frame at all is given up, once its feed has answered", () => {
-  const none: NewestScans = { hx: 1_000, merged: null, colmax: null, dmax: null };
+  const none: NewestScans = scans(1_000, null, null, null);
   assert.ok(givesUpChoice("merged", none, true));
   assert.ok(givesUpChoice("colmax", none, true));
+  for (const product of COLUMN_PRODUCTS) {
+    assert.ok(givesUpChoice(product, none, true), product);
+    assert.ok(!givesUpChoice(product, none, false), product);
+    assert.ok(!givesUpChoice(product, { ...none, [product]: 1_000 - 60 * 60 }, true), `${product} merely behind`);
+  }
   // Not before the answer: every product has nothing while the page loads.
   assert.ok(!givesUpChoice("merged", none, false));
   // Not DMAX, and not the default.
@@ -155,4 +195,21 @@ test("an EU product with no frame at all is given up, once its feed has answered
   assert.ok(!givesUpChoice("hx", none, true));
   // Merely behind is the default standing in, not a choice given up.
   assert.ok(!givesUpChoice("merged", { ...none, merged: 1_000 - 60 * 60 }, true));
+});
+
+test("the picker lists every product once: the lowest scans, the column maxima, then the echo tops upward and VIL", () => {
+  assert.deepEqual(PRODUCT_GROUPS.map(({ group }) => group), ["lowest", "column", "tops"]);
+  assert.deepEqual(PRODUCT_GROUPS[2].products, ["echotop18", "echotop45", "echotop50", "vil"]);
+  assert.equal(new Set(OBSERVED_PRODUCTS).size, OBSERVED_PRODUCTS.length);
+  assert.equal(OBSERVED_PRODUCTS.length, 8);
+  assert.equal(OBSERVED_PRODUCTS[0], DEFAULT_PRODUCT);
+});
+
+test("every product of every network is drawn whole; HX and DMAX keep DWD's grid", () => {
+  assert.deepEqual([...WHOLE_PRODUCTS].sort(), ["colmax", "echotop18", "echotop45", "echotop50", "merged", "vil"]);
+  for (const product of OBSERVED_PRODUCTS) {
+    assert.equal(isWholeProduct(product), (WHOLE_PRODUCTS as readonly string[]).includes(product), product);
+  }
+  assert.ok(!isWholeProduct("hx"));
+  assert.ok(!isWholeProduct("dmax"));
 });

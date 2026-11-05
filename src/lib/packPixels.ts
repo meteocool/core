@@ -9,10 +9,10 @@ import type { SourceTile } from "./tileIndex";
  * as opaque, rather than as four bytes a pixel.
  *
  * Where a pixel is cut away its value is written as 0, which every value
- * palette draws as nothing (lib/rvp6.ts, lib/hgClasses.ts). Only a tile with
- * partial coverage, the antialiased edge of a network's ground
- * (tileMask.ts), keeps it, as a second byte a pixel. OpenLayers works out
- * which from the length.
+ * palette draws as nothing (lib/rvp6.ts, lib/hgClasses.ts,
+ * lib/columnValues.ts). Only a tile with partial coverage, the antialiased
+ * edge of a network's ground (tileMask.ts), keeps it, as a second byte a
+ * pixel. OpenLayers works out which from the length.
  *
  * `coverage` is how much of each pixel the cut leaves, 0 to 255, or null
  * where nothing was cut.

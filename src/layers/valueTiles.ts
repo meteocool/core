@@ -13,7 +13,8 @@ import type WebGLTileLayer from "ol/layer/WebGLTile";
  * Radar frames as value tiles, drawn by the GPU in the reader's palette.
  *
  * A value tile is a greyscale PNG of bytes: RVP6 for reflectivity
- * (lib/rvp6.ts), a class for precipitation types (lib/hgClasses.ts). A
+ * (lib/rvp6.ts), a class for precipitation types (lib/hgClasses.ts), a
+ * height or a weight for an echo top or VIL (lib/columnValues.ts). A
  * worker decodes it to those bytes (lib/valuePng.ts) and packs them
  * (packTiles.ts) before WebGL gets them: the layer's `palette` style reads
  * band 1 and colours it on the GPU, so a palette change is a style change,

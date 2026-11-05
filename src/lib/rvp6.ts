@@ -9,9 +9,17 @@
  * The palette is then applied here, in the browser: one 256-entry table per
  * palette, built from `dbz2color` like the legend and the timeline, so the
  * drawn pixel and the API's point value are the same byte.
+ *
+ * Not every value tile is reflectivity: an echo top's and VIL's bytes are a
+ * height and a weight (lib/columnValues.ts), and a frame is drawn by what its
+ * own `values.encoding` says (`valueStyle`).
  */
 import type { Rgba } from "../colormaps";
 import { dbz2color } from "./cmap_utils";
+import {
+  columnScale, columnStyle, columnTable, columnValue, isColumnEncoding, legendPosition,
+} from "./columnValues";
+import type { ColumnEncoding } from "./columnValues";
 
 /** `values.encoding` of a frame whose tiles hold RVP6 bytes. */
 export const RVP6_ENCODING = "rvp6-u8";
@@ -24,9 +32,18 @@ export interface ValueTiles {
   encoding: string;
 }
 
-/** Whether a frame's tiles hold RVP6 values rather than colours. */
+/** Whether a frame's tiles hold values this client draws, RVP6 or a column product's, rather than colours. */
 export function carriesValues(frame: { values?: ValueTiles | null } | null | undefined): boolean {
-  return frame?.values?.encoding === RVP6_ENCODING;
+  const encoding = frame?.values?.encoding;
+  return encoding === RVP6_ENCODING || isColumnEncoding(encoding);
+}
+
+/**
+ * What a frame's bytes mean: its `values.encoding`, or RVP6 for a frame that
+ * does not say, as every frame drawn before the column products was.
+ */
+export function encodingOf(frame: { values?: ValueTiles | null }): string {
+  return frame.values?.encoding ?? RVP6_ENCODING;
 }
 
 /** The tile set a client draws for a frame: its value tiles where it has them. */
@@ -65,6 +82,11 @@ const GREY_TO_DBZ = 50;
 const GREY_FAINT: Record<Ink, number> = { black: 160, white: 120 };
 const GREY_FULL: Record<Ink, number> = { black: 0, white: 255 };
 
+/** The grey `t` of the way from an ink's faintest, 0, to full ink, 1. */
+function inkGrey(t: number, ink: Ink): number {
+  return Math.round(GREY_FAINT[ink] + (GREY_FULL[ink] - GREY_FAINT[ink]) * t);
+}
+
 /**
  * The palette's table in grey: each class's alpha kept, so drizzle fades in
  * as it does in colour, and its grey running with dBZ, not with the colour's
@@ -73,7 +95,23 @@ const GREY_FULL: Record<Ink, number> = { black: 0, white: 255 };
 export function greyTable(palette: string, ink: Ink): Rgba[] {
   return rvp6Table(palette).map(([, , , a], i) => {
     const t = Math.min(1, Math.max(0, (i / 2 - 32.5 - GREY_FROM_DBZ) / (GREY_TO_DBZ - GREY_FROM_DBZ)));
-    const grey = Math.round(GREY_FAINT[ink] + (GREY_FULL[ink] - GREY_FAINT[ink]) * t);
+    const grey = inkGrey(t, ink);
+    return [grey, grey, grey, a];
+  });
+}
+
+/**
+ * An echo top's or VIL's table in grey, as `greyTable` is reflectivity's, for
+ * the same reason: under an open radar's sweep its own colours would mix with
+ * the sweep's as reflectivity's would. Each byte's alpha kept, its grey
+ * running along its legend from the ink's faintest to full ink, so a higher
+ * top or more water is the stronger grey.
+ */
+export function columnGreyTable(encoding: ColumnEncoding, ink: Ink): Rgba[] {
+  const scale = columnScale(encoding);
+  return columnTable(encoding).map(([, , , a], byte) => {
+    const value = columnValue(encoding, byte);
+    const grey = inkGrey(value === null ? 0 : legendPosition(scale, value), ink);
     return [grey, grey, grey, a];
   });
 }
@@ -101,6 +139,23 @@ export function rvp6Style(palette: string, ink: Ink | null = null) {
       ["color", 255, 255, 255, ["band", 4]],
     ],
   };
+}
+
+/** A style that draws nothing, for an encoding this client cannot read. */
+const NOTHING = { color: [0, 0, 0, 0] };
+
+/**
+ * The WebGLTile style that draws a frame's value tiles by what its encoding
+ * says they are: reflectivity in the reader's palette (`rvp6Style`), an echo
+ * top or VIL in its own (lib/columnValues.ts), whatever the palette. With an
+ * ink, under an open radar's sweep, either in grey (`greyTable`,
+ * `columnGreyTable`). An encoding this client does not know draws nothing
+ * rather than be read as dBZ.
+ */
+export function valueStyle(encoding: string, palette: string, ink: Ink | null = null) {
+  if (encoding === RVP6_ENCODING) return rvp6Style(palette, ink);
+  if (!isColumnEncoding(encoding)) return NOTHING;
+  return columnStyle(encoding, ink ? columnGreyTable(encoding, ink) : columnTable(encoding));
 }
 
 /**

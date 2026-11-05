@@ -16,6 +16,7 @@ import {
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
   nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible, stationLayerVisible,
+  drawnEncoding,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -30,6 +31,8 @@ import StationToggle from "./StationToggle.svelte";
 import StationPicker from "./StationPicker.svelte";
 import { fadeEdges } from "../lib/fadeEdges";
 import VelocityScaleLine from "./scales/VelocityScaleLine.svelte";
+import ColumnScaleLine from "./scales/ColumnScaleLine.svelte";
+import { isColumnEncoding } from "../lib/columnValues";
 import LiveIndicator from "./LiveIndicator.svelte";
 import Appendix from "./Appendix.svelte";
 import Timeline from "./Timeline.svelte";
@@ -73,6 +76,13 @@ import ChartSkeleton from "./ChartSkeleton.svelte";
 export let cap: RadarCapability;
 
 let gridConfig: GridConfig | null = null;
+
+/**
+ * An echo top's or VIL's encoding while one is drawn on the step on screen,
+ * whose legend is its own; null for reflectivity. Not in site mode, whose
+ * sweep is the radar the legend is for.
+ */
+$: columnEncoding = !$siteMode && isColumnEncoding($drawnEncoding) ? $drawnEncoding : null;
 
 /** On a slow or data-saving connection, how many frames ahead of playback are preloaded: about a second and a half of the loop. */
 const PRELOAD_AHEAD_SLOW = 3;
@@ -1285,6 +1295,8 @@ onDestroy(() => {
         <div class="legend">
           {#if $siteMode && $siteMode.quantity !== "reflectivity"}
             <VelocityScaleLine nyquist={$siteSweepView?.nyquist ?? null} relative={$siteMode.quantity === "srv"} />
+          {:else if columnEncoding}
+            <ColumnScaleLine encoding={columnEncoding} />
           {:else}
             <RadarScaleLine />
           {/if}
