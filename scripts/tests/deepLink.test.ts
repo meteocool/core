@@ -458,3 +458,55 @@ test("old links read exactly as they did, with none of the new choices in them",
     layer: "cells3d", pitch: 55, bearing: -30, cloud: PATH, cut: 30,
   });
 });
+
+/* ---- a past window ------------------------------------------------------- */
+
+const FROM = frameTime("20261101T1200Z")!;
+const TO = frameTime("20261101T1500Z")!;
+
+test("a past window round-trips as from= and to=, with the frame inside it", () => {
+  const state: LinkState = { layer: "radar", window: { start: FROM, end: TO }, time: FROM + 3600 };
+  const search = linkSearch("", state);
+  assert.equal(search, "?layer=radar&from=20261101T1200Z&to=20261101T1500Z&t=20261101T1300Z");
+  assert.deepEqual(parseLink(search), state);
+});
+
+test("a window off the five-minute grid, back to front, or missing an end is dropped", () => {
+  assert.equal(parseLink("?from=20261101T1201Z&to=20261101T1500Z").window, undefined);
+  assert.equal(parseLink("?from=20261101T1500Z&to=20261101T1200Z").window, undefined);
+  assert.equal(parseLink("?from=20261101T1200Z").window, undefined);
+  assert.equal(parseLink("?from=yesterday&to=20261101T1500Z").window, undefined);
+});
+
+test("a frame outside the window is dropped, and the window kept", () => {
+  const state = parseLink("?layer=radar&from=20261101T1200Z&to=20261101T1500Z&t=20261101T1600Z");
+  assert.deepEqual(state.window, { start: FROM, end: TO });
+  assert.equal(state.time, undefined);
+  assert.equal(linkSearch("", { layer: "radar", window: { start: FROM, end: TO }, time: TO + 3600 }),
+    "?layer=radar&from=20261101T1200Z&to=20261101T1500Z");
+});
+
+test("a window has no site mode: a radar beside one is dropped", () => {
+  const state = parseLink("?layer=radar&from=20261101T1200Z&to=20261101T1500Z&radar=deoft");
+  assert.equal(state.radar, undefined);
+  assert.equal(linkSearch("", { layer: "radar", window: { start: FROM, end: TO }, radar: { site: "deoft", quantity: "reflectivity" } }),
+    "?layer=radar&from=20261101T1200Z&to=20261101T1500Z");
+});
+
+test("the 3D map has no past: a window on it is dropped", () => {
+  assert.equal(parseLink("?layer=cells3d&from=20261101T1200Z&to=20261101T1500Z").window, undefined);
+  assert.equal(linkSearch("", { layer: "cells3d", window: { start: FROM, end: TO } }), "?layer=cells3d");
+});
+
+test("the lightning map keeps a window", () => {
+  assert.deepEqual(parseLink("?layer=lightning&from=20261101T1200Z&to=20261101T1500Z").window, { start: FROM, end: TO });
+});
+
+test("opening, changing or leaving a window is navigation; moving within it is not", () => {
+  const live: LinkState = { layer: "radar" };
+  const open: LinkState = { layer: "radar", window: { start: FROM, end: TO } };
+  assert.equal(isNavigation(live, open), true);
+  assert.equal(isNavigation(open, live), true);
+  assert.equal(isNavigation(open, { layer: "radar", window: { start: FROM, end: TO + 300 } }), true);
+  assert.equal(isNavigation(open, { ...open, time: FROM + 300 }), false);
+});

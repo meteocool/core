@@ -35,6 +35,8 @@ import type { StationChoice } from "./stations";
 import { clampSpeed, formatManualMotion, snapHeading } from "./srvMotion";
 import type { ManualMotion } from "./srvMotion";
 import type { StormMarkToggle } from "../stores";
+import { inWindow, isWindow } from "./archive";
+import type { ArchiveWindow } from "./archive";
 
 /**
  * The switchable overlays of either map, in the order a link lists them: the
@@ -114,6 +116,12 @@ export interface LinkState {
    * the 3D map, the earlier scan its storms are from.
    */
   time?: number;
+  /**
+   * A past window the map is open in (lib/archive.ts), as `from=` and `to=`
+   * in the frame's spelling; `time` is then a step inside it. Only on the
+   * flat maps: the 3D map has no past.
+   */
+  window?: ArchiveWindow;
   /** The point the forecast strip is asked about, as [lat, lon]. */
   point?: [number, number];
   /** A radar open in site mode: its code, what is drawn of it (reflectivity unless said) and the tilt. */
@@ -154,7 +162,7 @@ export interface LinkRadar {
  */
 const OWNED = [
   "layer", "latLonZ", "pitch", "bearing", "overlays", "product", "hide", "stationParameter",
-  "t", "point", "radar", "sweep", "tilt", "motion",
+  "from", "to", "t", "point", "radar", "sweep", "tilt", "motion",
   "storm", "cell", "details", "cloud", "cut", "peel", "station", "compare", "shared",
 ] as const;
 type OwnedKey = (typeof OWNED)[number];
@@ -357,7 +365,9 @@ function parseFlag(text: string | null): boolean | undefined {
  *   take, so a storm beside either drops it, as opening one closes them;
  * - the peel is of storms nobody has opened, and is dropped beside one;
  * - the stations' parameter means nothing with the stations off, and a hand's
- *   storm motion nothing without storm-relative velocity drawn.
+ *   storm motion nothing without storm-relative velocity drawn;
+ * - a past window is the flat maps', and has no site mode: on the 3D map it
+ *   is dropped, and beside one a radar is; a frame outside it is dropped.
  */
 export function parseLink(search: string | URLSearchParams): LinkState {
   const params = typeof search === "string" ? new URLSearchParams(search) : search;
@@ -414,15 +424,20 @@ export function parseLink(search: string | URLSearchParams): LinkState {
     state.stationParameter = parameter;
   }
 
+  const from = params.get("from");
+  const to = params.get("to");
+  const past = from && to ? { start: frameTime(from), end: frameTime(to) } : null;
+  if (past && isWindow(past as ArchiveWindow) && state.layer !== "cells3d") state.window = past as ArchiveWindow;
+
   const t = params.get("t");
   const time = t ? frameTime(t) : null;
-  if (time !== null && !state.cell && !state.storm) state.time = time;
+  if (time !== null && !state.cell && !state.storm && (!state.window || inWindow(state.window, time))) state.time = time;
 
   const point = parsePair(params.get("point"));
   if (point) state.point = point;
 
   const radar = params.get("radar")?.toLowerCase();
-  if (radar && RADAR.test(radar)) {
+  if (radar && RADAR.test(radar) && !state.window) {
     const sweep = params.get("sweep") as Quantity | null;
     const tilt = finite(params.get("tilt"));
     state.radar = { site: radar, quantity: sweep && SWEEPS.includes(sweep) ? sweep : "reflectivity" };
@@ -460,6 +475,9 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
   const tracked = Boolean(state.storm || state.cell);
   const station = !selection && state.station ? state.station : null;
   const stationsOn = Boolean(state.overlays?.stations || station);
+  const past = isWindow(state.window) && state.layer !== "cells3d" ? state.window : null;
+  const time = state.time !== undefined && !tracked && (!past || inWindow(past, state.time)) ? state.time : null;
+  const radar = past ? null : state.radar ?? null;
   return {
     layer: state.layer ?? null,
     // Five decimals is a metre: already finer than any radar pixel.
@@ -472,13 +490,15 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
       ? null
       : (STORM_MARKS.filter((mark) => state.hide!.includes(mark)).join(",") || "none"),
     stationParameter: stationsOn && state.stationParameter ? state.stationParameter : null,
-    t: state.time === undefined || tracked ? null : frameLink(state.time),
+    from: past ? frameLink(past.start) : null,
+    to: past ? frameLink(past.end) : null,
+    t: time === null ? null : frameLink(time),
     point: state.point ? `${fixed(state.point[0], 5)},${fixed(state.point[1], 5)}` : null,
-    radar: state.radar?.site ?? null,
-    sweep: state.radar && state.radar.quantity !== "reflectivity" ? state.radar.quantity : null,
+    radar: radar?.site ?? null,
+    sweep: radar && radar.quantity !== "reflectivity" ? radar.quantity : null,
     // Two decimals, as the sites file them (Meteo-France's 0.39), without trailing zeros.
-    tilt: state.radar?.tilt === undefined ? null : String(Math.round(state.radar.tilt * 100) / 100),
-    motion: state.radar?.quantity === "srv" && state.motion ? formatManualMotion(state.motion) : null,
+    tilt: radar?.tilt === undefined ? null : String(Math.round(radar.tilt * 100) / 100),
+    motion: radar?.quantity === "srv" && state.motion ? formatManualMotion(state.motion) : null,
     storm: state.storm ?? null,
     cell: !state.storm && state.cell ? state.cell : null,
     details: tracked && state.details === false ? "0" : null,
@@ -535,7 +555,7 @@ export function linkSearch(search: string, state: LinkState, keep: readonly stri
  * be able to undo.
  *
  * Switching map, or opening, changing or closing a storm, a radar, a
- * station's sheet or the model comparison, is navigation: it is what a
+ * station's sheet, a past window or the model comparison, is navigation: it is what a
  * reader would expect Back to take them out of. Everything else (panning,
  * zooming, tilting, turning the slice, scrubbing, toggling an overlay or
  * picking a product) is adjusting the view they are in, and a history entry
@@ -550,5 +570,6 @@ export function isNavigation(from: LinkState, to: LinkState): boolean {
     || (from.cell ?? null) !== (to.cell ?? null) || (from.cloud ?? null) !== (to.cloud ?? null)
     || (from.radar?.site ?? null) !== (to.radar?.site ?? null)
     || (from.station ?? null) !== (to.station ?? null)
+    || (from.window?.start ?? null) !== (to.window?.start ?? null) || (from.window?.end ?? null) !== (to.window?.end ?? null)
     || from.compare?.join(",") !== to.compare?.join(",");
 }
