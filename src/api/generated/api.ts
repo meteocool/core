@@ -21,6 +21,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the archive covers.
+         * @description The oldest and newest observed step a client may ask the timeline for.
+         *
+         *     Observed frames and their tiles are kept a month. A window between
+         *     `since` and `until`, on the five-minute grid, is served by
+         *     `/v3/radar/timeseries` with `start` and `end` as it is served live, with
+         *     observed steps only. 404 while nothing is kept yet.
+         */
+        get: operations["coverage_v3_archive_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/lightning/baseline": {
         parameters: {
             query?: never;
@@ -70,9 +95,33 @@ export interface paths {
         };
         /**
          * Strike counts for an area.
-         * @description Per-minute strike counts inside a polygon, for the last half hour.
+         * @description Per-minute strike counts inside a polygon, for the half hour ending at `until`, unix seconds; now by default.
          */
         get: operations["stats_v3_lightning_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/lightning/strikes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Strikes in a window.
+         * @description Every strike recorded from `since` up to `until`, unix seconds, oldest first.
+         *
+         *     For a past window: strikes are kept a month. A window is at most three
+         *     hours; a client showing a step reads the hours round it. Shaped as
+         *     `/baseline` is, with `baseline` echoing `since`.
+         */
+        get: operations["strikes_v3_lightning_strikes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -335,7 +384,10 @@ export interface paths {
         };
         /**
          * Precipitation-type overlay metadata.
-         * @description The most recent precipitation-type tile set.
+         * @description The most recent precipitation-type tile set, or with `at`, unix seconds, the one for that time.
+         *
+         *     With `at`, the frame measured at or before it, within ten minutes; 404
+         *     if there is none that close. Kept a month.
          *
          *     Served at /api/precip_types/ by the old Flask service, which this replaces.
          */
@@ -822,7 +874,11 @@ export interface paths {
         };
         /**
          * Snowfield overlay metadata.
-         * @description The most recent snowfield vector tile set.
+         * @description The most recent snowfield vector tile set, or with `at`, unix seconds, the one for that time.
+         *
+         *     With `at`, the set drawn from the precipitation types measured at or
+         *     before it, within ten minutes; 404 if there is none that close. Kept a
+         *     month.
          */
         get: operations["snow_v3_radar_snow_get"];
         put?: never;
@@ -1025,6 +1081,27 @@ export interface components {
          * @enum {string}
          */
         App: "meteocool" | "rainalarm";
+        /**
+         * ArchiveCoverage
+         * @description What the archive covers: the window of past steps a client may ask the timeline for.
+         */
+        ArchiveCoverage: {
+            /**
+             * Since
+             * @description The oldest observed step still kept, unix seconds, on the five-minute grid.
+             */
+            since: number;
+            /**
+             * Step Seconds
+             * @description The grid every step is on: 300, five minutes.
+             */
+            step_seconds: number;
+            /**
+             * Until
+             * @description The newest observed step, unix seconds, on the five-minute grid.
+             */
+            until: number;
+        };
         /**
          * CellsRefresh
          * @description A nudge that a new KONRAD3D reference time is available.
@@ -2361,6 +2438,26 @@ export interface operations {
             };
         };
     };
+    coverage_v3_archive_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveCoverage"];
+                };
+            };
+        };
+    };
     since_baseline_v3_lightning_baseline_get: {
         parameters: {
             query: {
@@ -2416,6 +2513,7 @@ export interface operations {
         parameters: {
             query: {
                 bbox: string;
+                until?: number | null;
             };
             header?: never;
             path?: never;
@@ -2430,6 +2528,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LightningStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    strikes_v3_lightning_strikes_get: {
+        parameters: {
+            query: {
+                since: number;
+                until: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LightningCollection"];
                 };
             };
             /** @description Validation Error */
@@ -2815,7 +2945,9 @@ export interface operations {
     };
     classification_v3_radar_classification_get: {
         parameters: {
-            query?: never;
+            query?: {
+                at?: number | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2829,6 +2961,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrecipitationTypes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3215,7 +3356,9 @@ export interface operations {
     };
     snow_v3_radar_snow_get: {
         parameters: {
-            query?: never;
+            query?: {
+                at?: number | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3229,6 +3372,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VectorOverlay"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -3804,6 +3804,25 @@
             }
           },
           {
+            "description": "Only storms born by this time: with `since`, every storm that overlapped the window, for a past window on the map. Defaults to now",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only storms born by this time: with `since`, every storm that overlapped the window, for a past window on the map. Defaults to now",
+              "title": "Until"
+            }
+          },
+          {
             "description": "Lowest severity class to return",
             "in": "query",
             "name": "min_severity",

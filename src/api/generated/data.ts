@@ -2286,6 +2286,8 @@ export interface operations {
                 bbox?: string | null;
                 /** @description Only storms seen since this time; defaults to the last few hours */
                 since?: string | null;
+                /** @description Only storms born by this time: with `since`, every storm that overlapped the window, for a past window on the map. Defaults to now */
+                until?: string | null;
                 /** @description Lowest severity class to return */
                 min_severity?: number;
                 /** @description Maximum storms to return */

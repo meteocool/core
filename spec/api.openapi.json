@@ -20,6 +20,33 @@
         "title": "App",
         "type": "string"
       },
+      "ArchiveCoverage": {
+        "description": "What the archive covers: the window of past steps a client may ask the timeline for.",
+        "properties": {
+          "since": {
+            "description": "The oldest observed step still kept, unix seconds, on the five-minute grid.",
+            "title": "Since",
+            "type": "integer"
+          },
+          "step_seconds": {
+            "description": "The grid every step is on: 300, five minutes.",
+            "title": "Step Seconds",
+            "type": "integer"
+          },
+          "until": {
+            "description": "The newest observed step, unix seconds, on the five-minute grid.",
+            "title": "Until",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "since",
+          "until",
+          "step_seconds"
+        ],
+        "title": "ArchiveCoverage",
+        "type": "object"
+      },
       "CellsRefresh": {
         "description": "A nudge that a new KONRAD3D reference time is available.\n\nDeliberately not a `Poke`: the frontend's only `poke` handler reloads every\nradar tile, and deliberately not the cells themselves, which run to hundreds\nof kilobytes on a severe day. Clients refetch `/cells/*` from the data\nservice, scoped to their viewport.",
         "properties": {
@@ -2379,6 +2406,28 @@
         "summary": "Redirect to the app store for the visitor's platform."
       }
     },
+    "/v3/archive": {
+      "get": {
+        "description": "The oldest and newest observed step a client may ask the timeline for.\n\nObserved frames and their tiles are kept a month. A window between\n`since` and `until`, on the five-minute grid, is served by\n`/v3/radar/timeseries` with `start` and `end` as it is served live, with\nobserved steps only. 404 while nothing is kept yet.",
+        "operationId": "coverage_v3_archive_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveCoverage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "What the archive covers.",
+        "tags": [
+          "archive"
+        ]
+      }
+    },
     "/v3/lightning/baseline": {
       "get": {
         "description": "Every strike recorded since `baseline`, as a unix timestamp.",
@@ -2446,7 +2495,7 @@
     },
     "/v3/lightning/stats": {
       "get": {
-        "description": "Per-minute strike counts inside a polygon, for the last half hour.",
+        "description": "Per-minute strike counts inside a polygon, for the half hour ending at `until`, unix seconds; now by default.",
         "operationId": "stats_v3_lightning_stats_get",
         "parameters": [
           {
@@ -2456,6 +2505,22 @@
             "schema": {
               "title": "Bbox",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
             }
           }
         ],
@@ -2482,6 +2547,58 @@
           }
         },
         "summary": "Strike counts for an area.",
+        "tags": [
+          "lightning"
+        ]
+      }
+    },
+    "/v3/lightning/strikes": {
+      "get": {
+        "description": "Every strike recorded from `since` up to `until`, unix seconds, oldest first.\n\nFor a past window: strikes are kept a month. A window is at most three\nhours; a client showing a step reads the hours round it. Shaped as\n`/baseline` is, with `baseline` echoing `since`.",
+        "operationId": "strikes_v3_lightning_strikes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": true,
+            "schema": {
+              "title": "Since",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": true,
+            "schema": {
+              "title": "Until",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LightningCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Strikes in a window.",
         "tags": [
           "lightning"
         ]
@@ -2984,8 +3101,26 @@
     },
     "/v3/radar/classification": {
       "get": {
-        "description": "The most recent precipitation-type tile set.\n\nServed at /api/precip_types/ by the old Flask service, which this replaces.",
+        "description": "The most recent precipitation-type tile set, or with `at`, unix seconds, the one for that time.\n\nWith `at`, the frame measured at or before it, within ten minutes; 404\nif there is none that close. Kept a month.\n\nServed at /api/precip_types/ by the old Flask service, which this replaces.",
         "operationId": "classification_v3_radar_classification_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2996,6 +3131,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Precipitation-type overlay metadata.",
@@ -3424,8 +3569,26 @@
     },
     "/v3/radar/snow": {
       "get": {
-        "description": "The most recent snowfield vector tile set.",
+        "description": "The most recent snowfield vector tile set, or with `at`, unix seconds, the one for that time.\n\nWith `at`, the set drawn from the precipitation types measured at or\nbefore it, within ten minutes; 404 if there is none that close. Kept a\nmonth.",
         "operationId": "snow_v3_radar_snow_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3436,6 +3599,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Snowfield overlay metadata.",
