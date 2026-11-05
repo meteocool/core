@@ -2,7 +2,8 @@ import { derived, get } from "svelte/store";
 import { fetchMotionLayer } from "../api";
 import type { MotionLayer, Progress } from "../api";
 import type { MotionEvent } from "../api/events";
-import { capTimeIndicator, motionLayerVisible, onForecastStep, sharedActiveCap } from "../stores";
+import { archiveWindow, capTimeIndicator, motionLayerVisible, onForecastStep, sharedActiveCap } from "../stores";
+import { shownIn } from "./archive";
 import type { MotionArrowLayer } from "../layers/motionArrows";
 import { arrowsStale } from "./motionArrow";
 import { whenVisible } from "./wakeup";
@@ -29,7 +30,9 @@ export default class MotionArrowManager {
   private readonly unsubscribers: (() => void)[] = [];
 
   constructor(private readonly arrows: MotionArrowLayer, private readonly bar: Progress) {
-    this.unsubscribers.push(derived([motionLayerVisible, sharedActiveCap], ([on, cap]) => on && cap === "radar")
+    // The newest motion field alone is drawn: a past window has none (lib/archive.ts).
+    this.unsubscribers.push(derived([motionLayerVisible, sharedActiveCap, archiveWindow],
+      ([on, cap, past]) => on && cap === "radar" && shownIn(past, "motion"))
       .subscribe((shown) => this.showChanged(shown)));
     this.unsubscribers.push(derived([capTimeIndicator, onForecastStep], (pair) => pair)
       .subscribe(() => this.restyle()));

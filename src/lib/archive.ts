@@ -279,10 +279,11 @@ export function strikeAgeMinutes(timeMs: number, shown: number): number {
 /**
  * What the map draws live that has no past, and hides in a window: the
  * forecast, the chart's point reading, site mode and the radars' marks that
- * open it, the 3D map, the "3D" tags beside storm cores, and the
- * mesocyclones. Everything else answers for the step on screen.
+ * open it, the 3D map, the "3D" tags beside storm cores, the
+ * mesocyclones, and the rain's motion arrows, which are the newest motion
+ * field alone. Everything else answers for the step on screen.
  */
-export const NO_PAST = ["forecast", "chart", "sites", "cells3d", "cloudHints", "mesocyclones"] as const;
+export const NO_PAST = ["forecast", "chart", "sites", "cells3d", "cloudHints", "mesocyclones", "motion"] as const;
 export type NoPast = (typeof NO_PAST)[number];
 
 /** Whether `feature` is drawn: always live, and in a window only if it has a past. */
