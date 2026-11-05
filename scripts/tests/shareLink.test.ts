@@ -88,3 +88,11 @@ test("a shared link says every overlay and what the stations show, as the addres
     + "&product=hx&hide=none&stationParameter=temperature&shared=20261006T1234Z");
   assert.equal(parseLink(new URL(url).search).stationParameter, "temperature");
 });
+
+test("a shared past window carries its from= and to=, and is never called stale", () => {
+  const window = { start: NOW - 86_400 - (NOW % 300), end: NOW - 86_400 - (NOW % 300) + 3600 };
+  const url = shareUrl("https://app.meteocool.com", { layer: "radar", window }, NOW);
+  const opened = parseLink(new URL(url).search);
+  assert.deepEqual(opened.window, window);
+  assert.equal(staleSince(opened, NOW + 30 * 86_400), null);
+});

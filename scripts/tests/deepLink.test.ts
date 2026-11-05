@@ -471,8 +471,12 @@ test("a past window round-trips as from= and to=, with the frame inside it", () 
   assert.deepEqual(parseLink(search), state);
 });
 
-test("a window off the five-minute grid, back to front, or missing an end is dropped", () => {
-  assert.equal(parseLink("?from=20261101T1201Z&to=20261101T1500Z").window, undefined);
+test("a window off the five-minute grid is rounded down onto it, as the apps write it", () => {
+  assert.deepEqual(parseLink("?from=20261101T1201Z&to=20261101T1504Z").window, { start: FROM, end: TO });
+  assert.equal(parseLink("?from=20261101T1201Z&to=20261101T1504Z&t=20261101T1302Z").time, FROM + 3600);
+});
+
+test("a window back to front, or missing an end, is dropped", () => {
   assert.equal(parseLink("?from=20261101T1500Z&to=20261101T1200Z").window, undefined);
   assert.equal(parseLink("?from=20261101T1200Z").window, undefined);
   assert.equal(parseLink("?from=yesterday&to=20261101T1500Z").window, undefined);
@@ -509,4 +513,13 @@ test("opening, changing or leaving a window is navigation; moving within it is n
   assert.equal(isNavigation(open, live), true);
   assert.equal(isNavigation(open, { layer: "radar", window: { start: FROM, end: TO + 300 } }), true);
   assert.equal(isNavigation(open, { ...open, time: FROM + 300 }), false);
+});
+
+test("in a window a frame stays beside a storm, which every step draws", () => {
+  const storm = "01HZY3K5Q7W8E9R0T1Y2V3X4Z5";
+  const search = "?layer=radar&from=20261101T1200Z&to=20261101T1500Z&t=20261101T1300Z&storm=" + storm;
+  const state = parseLink(search);
+  assert.equal(state.storm, storm);
+  assert.equal(state.time, FROM + 3600);
+  assert.match(linkSearch("", state), /&t=20261101T1300Z&/);
 });

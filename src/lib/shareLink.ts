@@ -52,9 +52,11 @@ export function shareUrl(origin: string, state: LinkState, now: number, language
 /**
  * When an opened link was shared, if that is long enough ago to say so; null
  * for a fresh link, one without a stamp, and one from a clock that is wrong.
+ * Never for a past window's (lib/archive.ts), which opens on the moment it
+ * was sent about, however long ago that was.
  */
 export function staleSince(link: LinkState, now: number): number | null {
-  if (link.shared === undefined) return null;
+  if (link.shared === undefined || link.window) return null;
   const age = now - link.shared;
   if (age < -SKEW_S) return null;
   return age >= STALE_AFTER_S ? link.shared : null;

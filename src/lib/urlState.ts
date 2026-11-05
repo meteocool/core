@@ -32,8 +32,10 @@ import {
   cycloneLayerVisible, frameRequest, hiddenStormMarks, inspectLatLon, lightningLayerVisible, mapExtent4326, mapView,
   modelCompareAt, observedProduct, peelLevel, peelManual, playbackRunning, selectedStation, selectedStorm,
   sharedActiveCap, siteMarksVisible, siteMode, srvManualMotion, srvPrefersManual, stationChoice,
-  stationLayerVisible, stormDetails,
+  stationLayerVisible, stormDetails, archiveWindow,
 } from "../stores";
+import { acceptsWindow, onGrid, sameWindow, windowAround } from "./archive";
+import { loadCoverage } from "./archiveCoverage";
 import type StormManager from "./StormManager";
 import type StationManager from "./StationManager";
 import {
@@ -101,6 +103,9 @@ const STORM_ZOOM = 8;
 
 /** The zoom a link to a radar opens at when it does not say where to look: its whole reach in view. */
 const RADAR_ZOOM = 7;
+
+/** How far back the live timeline reaches: a frame older than this is the archive's. */
+const LIVE_HOURS_S = 2 * 60 * 60;
 
 /** The link the page was opened with. Read once: the URL is ours to rewrite from here on. */
 export const openingLink: LinkState = parseLink(window.location.search);
@@ -222,6 +227,10 @@ export function currentState(): LinkState | null {
   // Only a storm with a volume has a slice to turn.
   if (storm && (cell?.volume || cloud) && (tracked || layer === "cells3d")) state.cut = get(cutRotationDeg);
 
+  // A past window, on the maps that have one (lib/archive.ts).
+  const past = get(archiveWindow);
+  if (past && layer !== "cells3d") state.window = past;
+
   // Every overlay of the map on screen, on or off. All on used to go unsaid,
   // which left a receiver who had turned one off for good with theirs rather
   // than the sender's; a link now says what the sender saw.
@@ -237,7 +246,9 @@ export function currentState(): LinkState | null {
     if (get(stationLayerVisible)) state.stationParameter = get(stationChoice);
     // Not while it plays: that is a new frame twice a second, and a link
     // copied mid-animation would open parked on whichever one it caught.
-    if (!tracked && !get(playbackRunning) && offLiveEdge()) state.time = get(capTimeIndicator);
+    // In a past window always, the storm's links too: every step draws the storms there.
+    if (past && !get(playbackRunning) && get(capTimeIndicator)) state.time = get(capTimeIndicator);
+    else if (!tracked && !get(playbackRunning) && offLiveEdge()) state.time = get(capTimeIndicator);
     const point = get(inspectLatLon);
     if (point) state.point = point;
     const radar = get(siteMode);
@@ -519,6 +530,17 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
    * history everything is applied, the view first, so a switch to the 3D map
    * builds its camera where the entry was.
    */
+  /** Open a window ending on `time`, when the live timeline is past it and the archive is not. */
+  async function openAround(time: number, token: number) {
+    if (time >= onGrid(Date.now() / 1000) - LIVE_HOURS_S) return;
+    const coverage = await loadCoverage();
+    if (!coverage || token !== generation || get(archiveWindow)) return;
+    const around = windowAround(time, coverage);
+    if (!around) return;
+    archiveWindow.set(around);
+    frameRequest.set(time);
+  }
+
   function apply(link: LinkState, opening: boolean) {
     generation += 1;
     const token = generation;
@@ -572,6 +594,14 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
       selectedStorm.set(null);
     }
 
+    // A past window: opened as the link says, or left on Back to an entry
+    // without one, before the frame, which is a step inside it. One that has
+    // not ended yet is not one the archive can have.
+    if (layer !== "cells3d") {
+      const wanted = acceptsWindow(link.window, Date.now() / 1000) ? link.window : null;
+      if (!sameWindow(wanted, get(archiveWindow)) && (wanted || !opening)) archiveWindow.set(wanted);
+    }
+
     if (layer === "radar") {
       // Only when it moves. The strip shows its loading state on every write
       // to the point and clears it when the next grid lands, and the radar
@@ -584,7 +614,11 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
       }
       if (point && opening && !link.view && !link.cell && !link.storm) centreOn(point[0], point[1]);
       if (link.time !== undefined) frameRequest.set(link.time);
-      else if (!opening && offLiveEdge()) frameRequest.set("live");
+      else if (!opening && offLiveEdge() && !link.window) frameRequest.set("live");
+      // A frame older than the live timeline holds, with no window named: a
+      // window round it, if the archive keeps it, where the link would
+      // otherwise open on now.
+      if (opening && link.time !== undefined && !link.window) holding(openAround(link.time, token));
       // A linked radar: opened, or brought round to what the entry says; none named, closed on Back.
       const radar = link.radar;
       const opened = get(siteMode);
@@ -679,7 +713,7 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
   const watched: Readable<unknown>[] = [
     sharedActiveCap, mapView, selectedStorm, stormDetails, cutRotationDeg,
     ...Object.values(OVERLAY_STORES), observedProduct, hiddenStormMarks, stationChoice,
-    capTimeIndicator, capLatestObservation, playbackRunning, inspectLatLon, siteMode,
+    capTimeIndicator, capLatestObservation, playbackRunning, inspectLatLon, siteMode, archiveWindow,
     srvManualMotion, srvPrefersManual, selectedStation, modelCompareAt,
     // Only what a link says of them: the peel moves every frame while the
     // storms peel on their own, and the scan picker reports its progress.

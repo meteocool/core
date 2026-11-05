@@ -35,7 +35,7 @@ import type { StationChoice } from "./stations";
 import { clampSpeed, formatManualMotion, snapHeading } from "./srvMotion";
 import type { ManualMotion } from "./srvMotion";
 import type { StormMarkToggle } from "../stores";
-import { inWindow, isWindow } from "./archive";
+import { inWindow, isWindow, onGrid } from "./archive";
 import type { ArchiveWindow } from "./archive";
 
 /**
@@ -367,7 +367,8 @@ function parseFlag(text: string | null): boolean | undefined {
  * - the stations' parameter means nothing with the stations off, and a hand's
  *   storm motion nothing without storm-relative velocity drawn;
  * - a past window is the flat maps', and has no site mode: on the 3D map it
- *   is dropped, and beside one a radar is; a frame outside it is dropped.
+ *   is dropped, and beside one a radar is; a frame outside it is dropped,
+ *   and one inside it is kept beside a storm, which every step draws.
  */
 export function parseLink(search: string | URLSearchParams): LinkState {
   const params = typeof search === "string" ? new URLSearchParams(search) : search;
@@ -426,12 +427,17 @@ export function parseLink(search: string | URLSearchParams): LinkState {
 
   const from = params.get("from");
   const to = params.get("to");
-  const past = from && to ? { start: frameTime(from), end: frameTime(to) } : null;
-  if (past && isWindow(past as ArchiveWindow) && state.layer !== "cells3d") state.window = past as ArchiveWindow;
+  // Rounded down onto the five-minute grid, as the apps write them.
+  const start = from ? frameTime(from) : null;
+  const end = to ? frameTime(to) : null;
+  const past = start !== null && end !== null ? { start: onGrid(start), end: onGrid(end) } : null;
+  if (past && isWindow(past) && state.layer !== "cells3d") state.window = past;
 
   const t = params.get("t");
   const time = t ? frameTime(t) : null;
-  if (time !== null && !state.cell && !state.storm && (!state.window || inWindow(state.window, time))) state.time = time;
+  // In a past window every step draws the storms, so a frame stays beside one.
+  const onStep = time !== null && state.window ? onGrid(time) : time;
+  if (onStep !== null && (state.window ? inWindow(state.window, onStep) : !state.cell && !state.storm)) state.time = onStep;
 
   const point = parsePair(params.get("point"));
   if (point) state.point = point;
@@ -476,7 +482,9 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
   const station = !selection && state.station ? state.station : null;
   const stationsOn = Boolean(state.overlays?.stations || station);
   const past = isWindow(state.window) && state.layer !== "cells3d" ? state.window : null;
-  const time = state.time !== undefined && !tracked && (!past || inWindow(past, state.time)) ? state.time : null;
+  const time = state.time === undefined ? null
+    : past ? (inWindow(past, state.time) ? state.time : null)
+      : tracked ? null : state.time;
   const radar = past ? null : state.radar ?? null;
   return {
     layer: state.layer ?? null,
