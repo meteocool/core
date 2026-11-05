@@ -47,6 +47,7 @@ import {
   meteocoolNowcast,
   nowcastCoverage,
   framesPreloaded,
+  archiveWindow,
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
@@ -55,7 +56,10 @@ import type { CapabilityOptions, RadarSocket } from "./options";
 import { isDry } from "../lib/dryness";
 import Capability from "./Capability";
 import { tileBaseUrl } from "../urls";
-import { fetchColumnMaximum, fetchRadarTimeseries, fetchSnowOverlay } from "../api";
+import { NothingPublished, Refused, fetchColumnMaximum, fetchRadarTimeseries, fetchSnowOverlay } from "../api";
+import { EMPTY_CADENCE } from "../lib/updateCadence";
+import { sameWindow, windowSteps } from "../lib/archive";
+import type { ArchiveWindow } from "../lib/archive";
 import { publishCadence } from "../lib/updateCadence";
 import { isOutdated, showsLatestFrame } from "../lib/freshness";
 import { lastPublishedStep, newestObservation } from "../lib/timeline";
@@ -80,6 +84,9 @@ import { reportToast } from "../lib/Toast";
 //import { MeteoTileCache, mcTileCache } from "../lib/TileCache";
 
 const DECREASE_SNOW_TRANSPARENCY_ZOOMLEVEL = 12;
+
+/** How long the step on screen has to rest in a past window before its snow is asked for. */
+const SNOW_AT_DEBOUNCE_MS = 300;
 
 /** The most tiles one layer of one frame is preloaded with: a desktop viewport's. */
 const PRELOAD_MAX_TILES = 48;
@@ -143,13 +150,18 @@ export interface GridStep {
   values?: ValueTiles | null;
 }
 
-/** The ±2h five-minute grid the playback slider scrubs across. */
+/**
+ * The five-minute grid the playback slider scrubs across: ±2h of now, or a
+ * past window's steps (lib/archive.ts), whose "now" is its end.
+ */
 export interface GridConfig {
   grid: Record<number, GridStep>;
   start: number;
   end: number;
   now: number;
   length: number;
+  /** The past window the grid is of, or null for the live one. */
+  window: ArchiveWindow | null;
 }
 
 export default class RadarCapability extends Capability {
@@ -299,6 +311,19 @@ export default class RadarCapability extends Capability {
   private snowRequest: Promise<void> = Promise.resolve();
 
   /**
+   * The past window the map is open in (`archiveWindow`), or null for live.
+   * While one is open the grid is its steps, fetched with `start` and `end`,
+   * and nothing about now moves it: no minute's regeneration, no socket
+   * event, no return to the newest frame.
+   */
+  private past: ArchiveWindow | null = null;
+
+  /** Numbers each past snowfield request, so an answer for a step left behind is dropped. */
+  private snowAsked = 0;
+
+  private snowAtTimer: number | undefined;
+
+  /**
    * The first grid, every network's newest frame and the snow overlay,
    * settled either way: every layer the first picture has is on the map by
    * then, though not yet its tiles. What a screenshot waits on before it
@@ -363,7 +388,8 @@ export default class RadarCapability extends Capability {
       if (on === this.nowcastOn) return;
       this.nowcastOn = on;
       if (!on) this.nowcastGrid = {};
-      if (!this.serverGrid) return;
+      // A past window has no forecast to draw the runs on.
+      if (!this.serverGrid || this.past) return;
       this.productsChanged();
       this.reloadRadar();
     });
@@ -409,11 +435,12 @@ export default class RadarCapability extends Capability {
         const [oldLat, oldLon] = this.latlon;
         if (Math.abs(oldLat - lat) > 0.001 || Math.abs(oldLon - lon) > 0.001) {
           this.latlon = latlonUpdate;
-          this.reloadRadar();
+          // A past window has no chart: where the reader is changes nothing in it.
+          if (!this.past) this.reloadRadar();
         }
       } else {
         this.latlon = latlonUpdate;
-        this.reloadRadar();
+        if (!this.past) this.reloadRadar();
       }
     });
 
@@ -426,7 +453,7 @@ export default class RadarCapability extends Capability {
       // actual change is worth a round trip to the backend.
       if (before === point) return;
       if (before && point && before[0] === point[0] && before[1] === point[1]) return;
-      this.reloadRadar();
+      if (!this.past) this.reloadRadar();
     });
 
     /* Order matters: the verdict is published before the refetch goes out, so
@@ -437,6 +464,13 @@ export default class RadarCapability extends Capability {
     lastFocus.subscribe(() => {
       if (firstFocus) {
         firstFocus = false;
+        return;
+      }
+      // A past window is not overtaken by the clock: a wake asks for it again,
+      // in case what was asked before the sleep never came back.
+      if (this.past) {
+        this.reloadRadar();
+        this.downloadSnowAt(get(capTimeIndicator));
         return;
       }
       this.refreshStaleness();
@@ -466,15 +500,17 @@ export default class RadarCapability extends Capability {
       this.applyRadarOpacity();
     });
 
+    // Live, the snowfields are the newest and only drawn on the live frame;
+    // in a past window, the step's own, on every step.
     live.subscribe((value) => {
       if (this.snowOverlay) {
-        this.snowOverlay.setVisible(value);
+        this.snowOverlay.setVisible(value || this.past !== null);
       }
     });
 
     snowLayerVisible.subscribe((value) => {
       if (value) {
-        this.snowRequest = this.downloadSnowOverlay();
+        this.snowRequest = this.past ? Promise.resolve(this.downloadSnowAt(get(capTimeIndicator))) : this.downloadSnowOverlay();
       } else {
         this.processSnowOverlay({ active: false });
       }
@@ -493,13 +529,17 @@ export default class RadarCapability extends Capability {
       // DWD's grid only. The networks have their own event below; reloading
       // all four on every poke cost four requests every five minutes and
       // brought nothing new.
+      // Socket events announce the live sky: a past window ignores them until
+      // it is left, which fetches everything anew.
       this.pokeHandler = () => {
+        if (this.past) return;
         whenVisible("radar:poke", () => {
           console.log("received websocket poke, refreshing tiles + forecasts");
           this.reloadRadar();
         });
       };
       this.snowHandler = () => {
+        if (this.past) return;
         whenVisible("radar:snow", () => {
           console.log("received websocket snow overlay poke, refreshing");
           this.downloadSnowOverlay();
@@ -509,6 +549,7 @@ export default class RadarCapability extends Capability {
       // re-rendered: refetch only that frame. These land every minute or two,
       // so they don't go through `poke`, which reloads DWD's whole timeseries.
       this.networkHandler = ({ network }) => {
+        if (this.past) return;
         whenVisible(`radar:network:${network}`, () => {
           const whole = Object.values(this.wholes).find((layer) => layer.network.code === network);
           if (whole) {
@@ -528,7 +569,7 @@ export default class RadarCapability extends Capability {
       // key for every network: four runs landing while the page is hidden
       // are one refetch when it is looked at.
       this.nowcastHandler = () => {
-        if (!this.nowcastOn) return;
+        if (!this.nowcastOn || this.past) return;
         whenVisible("radar:nowcast", () => {
           console.log("received websocket nowcast, refreshing the forecast");
           this.reloadRadar();
@@ -551,6 +592,8 @@ export default class RadarCapability extends Capability {
     this.gridconfig = this.regenerateGridConfig();
     const restartHandler = () => {
       this.gridRefreshTimeout = window.setTimeout(restartHandler, 60000);
+      // A past window does not slide with the clock.
+      if (this.past) return;
       this.gridconfig = this.regenerateGridConfig();
       if (this.serverGrid) {
         this.updateClientGridFromServerGrid(this.serverGrid);
@@ -559,6 +602,56 @@ export default class RadarCapability extends Capability {
     };
     // A screenshot is taken and closed long before the grid moves on.
     if (!options.screenshot) restartHandler();
+
+    /* A past window opened, changed or left: the grid is rebuilt for it and
+       asked for. The store's first call, live, is construction. */
+    archiveWindow.subscribe((next) => {
+      if (sameWindow(next, this.past)) return;
+      if (next) this.enterWindow(next);
+      else this.leaveWindow();
+    });
+    /* In a window, the snowfields of the step on screen, once it rests. */
+    capTimeIndicator.subscribe((shown) => {
+      if (!this.past) return;
+      window.clearTimeout(this.snowAtTimer);
+      this.snowAtTimer = window.setTimeout(() => this.downloadSnowAt(shown), SNOW_AT_DEBOUNCE_MS);
+    });
+  }
+
+  /**
+   * Open the map in a past window: its grid, from the window's own steps,
+   * asked for at once; the player follows nothing, and nothing judges the
+   * frames against the clock, which a past window is always behind.
+   */
+  private enterWindow(next: ArchiveWindow) {
+    this.past = next;
+    this.trackingMode = "manual";
+    live.set(false);
+    radarStale.set(false);
+    // Nothing is due in a past window: the degraded criteria's overdue
+    // publish would count the live grid's lateness for as long as it is open.
+    radarCadence.set(EMPTY_CADENCE);
+    this.nowcastGrid = {};
+    this.gridconfig = this.regenerateGridConfig();
+    this.reloadRadar();
+    this.snowOverlay?.setVisible(true);
+  }
+
+  /** Back to live: the live grid asked for anew, which puts the player back on the newest frame. */
+  private leaveWindow() {
+    this.past = null;
+    window.clearTimeout(this.snowAtTimer);
+    this.snowAsked += 1;
+    this.trackingMode = "live";
+    this.gridconfig = this.regenerateGridConfig();
+    this.reloadAll();
+    this.snowOverlay?.setVisible(get(live));
+    this.snowRequest = this.downloadSnowOverlay();
+  }
+
+  /** The past window the map is open in, or null for live. */
+  get pastWindow(): ArchiveWindow | null {
+    return this.past;
   }
 
   updateClientGridFromServerGrid(frames) {
@@ -703,7 +796,15 @@ export default class RadarCapability extends Capability {
     this.preloader.stop();
   }
 
-  regenerateGridConfig() {
+  regenerateGridConfig(): GridConfig {
+    if (this.past) {
+      const steps = windowSteps(this.past);
+      const grid: Record<number, GridStep> = {};
+      for (const step of steps) grid[step] = { dbz: 0, url: null, tile_id: "", source: "" };
+      return {
+        grid, start: this.past.start, end: this.past.end, now: this.past.end, length: steps.length, window: this.past,
+      };
+    }
     let gridNow = new Date().getTime() / 1000;
     gridNow -= (gridNow % (60 * 5));
     const start = gridNow - (60 * 120);
@@ -723,7 +824,7 @@ export default class RadarCapability extends Capability {
       });
 
     return {
-      grid, start, end, now: gridNow, length: nSteps,
+      grid, start, end, now: gridNow, length: nSteps, window: null,
     };
   }
 
@@ -746,7 +847,7 @@ export default class RadarCapability extends Capability {
    * been replaced.
    */
   refreshStaleness() {
-    if (!this.clientGrid) return;
+    if (!this.clientGrid || this.past) return;
     if (!isOutdated(this.getMostRecentObservation(), Date.now() / 1000, get(radarCadence))) return;
     radarStale.set(true);
     live.set(false);
@@ -814,6 +915,8 @@ export default class RadarCapability extends Capability {
   reloadAll() {
     console.log("reloadAll");
     this.reloadRadar();
+    // Every other product's newest frame is the live step's, which a past window does not have.
+    if (this.past) return;
     for (const network of this.networks) network.refresh(this.nanobar);
     for (const whole of Object.values(this.wholes)) this.refreshWhole(whole);
     this.refreshColumnMaximum();
@@ -864,11 +967,13 @@ export default class RadarCapability extends Capability {
    */
   private productsChanged() {
     const scans = this.newestScans();
-    if (isWholeProduct(this.chosen) && givesUpChoice(this.chosen, scans, this.wholes[this.chosen].answered())) {
+    // A past window is not judged by what is newest now: the choice is drawn
+    // on every step it has a frame for, and the default on the others.
+    if (!this.past && isWholeProduct(this.chosen) && givesUpChoice(this.chosen, scans, this.wholes[this.chosen].answered())) {
       this.giveUpChoice(this.chosen);
       return;
     }
-    this.drawn = drawnProduct(this.chosen, scans);
+    this.drawn = this.past ? this.chosen : drawnProduct(this.chosen, scans);
     radarProducts.set({ chosen: this.chosen, drawn: this.drawn, scans, ranges: this.scanRanges(scans) });
     const shown = get(capTimeIndicator);
     const url = this.dwdFrame(shown)?.url;
@@ -878,6 +983,11 @@ export default class RadarCapability extends Capability {
       this.source.setHoles(this.holes(), url);
     }
     this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
+  }
+
+  /** Whether a step is the live one, whose frames are each product's own newest: never in a past window. */
+  private isLiveStep(step: number): boolean {
+    return !this.past && step === this.getMostRecentObservation();
   }
 
   /**
@@ -902,7 +1012,7 @@ export default class RadarCapability extends Capability {
     const frame = this.clientGrid?.[step];
     return aroundFrame(
       this.drawn,
-      { observed: frame?.source === "observation" && Boolean(frame.url), live: step === this.getMostRecentObservation(), key: step },
+      { observed: frame?.source === "observation" && Boolean(frame.url), live: this.isLiveStep(step), key: step },
       this.productGrid.colmax,
       this.latest.colmax.current(),
       this.newestScans(),
@@ -918,7 +1028,7 @@ export default class RadarCapability extends Capability {
     return stepFrame(
       product,
       this.drawn,
-      { observed: frame?.source === "observation" && Boolean(frame.url), live: step === this.getMostRecentObservation(), key: step },
+      { observed: frame?.source === "observation" && Boolean(frame.url), live: this.isLiveStep(step), key: step },
       this.productGrid[product],
       this.latest[product].current(),
     );
@@ -980,7 +1090,7 @@ export default class RadarCapability extends Capability {
         continue;
       }
       // Around DMAX the column maximum stands where every network would.
-      const codes = step === newest || this.aroundFrame(step)
+      const codes = (!this.past && step === newest) || this.aroundFrame(step)
         ? ALL_NETWORKS
         : ALL_NETWORKS.filter((code) => this.networkGrid[code]?.[step]);
       // By the name the step's frame is drawn under, which tells DMAX's
@@ -1008,7 +1118,9 @@ export default class RadarCapability extends Capability {
    * it: every palette is partly transparent, and two drawn together read as a
    * third intensity.
    */
-  private showNetworks(shown: number, live: boolean) {
+  private showNetworks(shown: number, onLiveFrame: boolean) {
+    // In a past window every step is the grid's, its end included.
+    const live = onLiveFrame && !this.past;
     const whole = this.wholeFrame(shown);
     const around = whole ? null : this.aroundFrame(shown);
     const own = !whole && !around;
@@ -1074,7 +1186,8 @@ export default class RadarCapability extends Capability {
   /** What the timeseries is asked for with: the chosen product's past, and the nowcast runs while the setting is on. */
   private timeseriesRequest(): TimeseriesProduct[] {
     const products: TimeseriesProduct[] = timeseriesProducts(this.chosen);
-    return this.nowcastOn ? [...products, NOWCAST_PRODUCT] : products;
+    // A past window has observed steps only.
+    return this.nowcastOn && !this.past ? [...products, NOWCAST_PRODUCT] : products;
   }
 
   /**
@@ -1104,29 +1217,46 @@ export default class RadarCapability extends Capability {
    * an answer for the new point lands, which the recovery retries bring.
    */
   sampledHere(): boolean {
-    return this.gridSampledAt === this.positionKey();
+    // A past window has no chart, so nothing it shows is about a point.
+    return this.past !== null || this.gridSampledAt === this.positionKey();
   }
 
   async downloadCurrentRadar() {
     // Taken with the position, before the round trip: a point tapped while the
     // request is out must not have the answer for the client's own position
     // read as the answer for it, or the other way round.
-    const forUser = this.inspectLatlon === null && this.latlon !== null;
+    // A past window is asked for by its steps alone: no chart, so no point.
+    const past = this.past;
+    const forUser = !past && this.inspectLatlon === null && this.latlon !== null;
     const at = this.positionKey();
     this.gridRequests += 1;
     const request = this.gridRequests;
     const products = this.timeseriesRequest();
-    const position = this.getPosition();
+    const position = past ? undefined : this.getPosition();
     // Asked again without the products when that fails: an API that does not
     // know one yet (a client deployed before its backend) answers 422, and
     // without the retry the map would have no radar at all instead of HX
     // without that product.
     let asked = products;
-    const data = await fetchRadarTimeseries(this.nanobar, position, products).catch(() => {
+    // A past window the backend refuses (a 4xx: outside what it keeps, say)
+    // is left, back to live, as the apps leave it, rather than kept empty.
+    let refused = false;
+    const data = await fetchRadarTimeseries(this.nanobar, position, products, past ?? undefined).catch((error) => {
+      if (past && error instanceof Refused && error.status !== undefined && error.status >= 400 && error.status < 500) {
+        refused = true;
+        return null;
+      }
       if (!products.length) return null;
       asked = [];
-      return fetchRadarTimeseries(this.nanobar, position, []).catch(() => null);
+      return fetchRadarTimeseries(this.nanobar, position, [], past ?? undefined).catch(() => null);
     });
+    // Asked for another window, or for live, than the map is in now.
+    if (!sameWindow(past, this.past)) return;
+    if (refused) {
+      reportToast(get(_)("chrome.archive.refused"), "warning", "exclamation-triangle");
+      archiveWindow.set(null);
+      return;
+    }
     if (!data) {
       live.set(false);
       return;
@@ -1149,8 +1279,23 @@ export default class RadarCapability extends Capability {
     if (wanted && wanted !== productsKey(products)) this.reloadRadar();
   }
 
+  /**
+   * In a past window, the snowfields drawn from the precipitation types
+   * measured at or before `at`, within ten minutes; none where there are
+   * none then, which a 404 says.
+   */
+  async downloadSnowAt(at: number) {
+    if (!this.past || !at || !get(snowLayerVisible)) return;
+    this.snowAsked += 1;
+    const asked = this.snowAsked;
+    const data = await fetchSnowOverlay(this.nanobar, at).catch((error) => (
+      error instanceof NothingPublished ? { active: false } : null));
+    if (!data || asked !== this.snowAsked || !this.past) return;
+    this.processSnowOverlay(data);
+  }
+
   async downloadSnowOverlay() {
-    if (!get(snowLayerVisible)) return;
+    if (!get(snowLayerVisible) || this.past) return;
     const data = await fetchSnowOverlay(this.nanobar).catch(() => null);
     if (!data) return;
     this.processSnowOverlay(data);
@@ -1211,7 +1356,8 @@ export default class RadarCapability extends Capability {
    * lib/timeline.ts.
    */
   getMostRecentObservation(): number {
-    return newestObservation(this.clientGrid, this.serverTime);
+    // A past window's "now" is its end: its newest observation, or the end itself.
+    return newestObservation(this.clientGrid, this.past ? this.past.end : this.serverTime);
   }
 
   /**
@@ -1294,8 +1440,11 @@ export default class RadarCapability extends Capability {
     // one did not, without the indicator moving to say so. It also carries
     // HX's newest scan, which the other products are measured against.
     this.productsChanged();
-    capLastUpdated.set(latestRadar);
-    this.publishCadenceFromGrid();
+    // A past window's frames say nothing of how current the radar is.
+    if (!this.past) {
+      capLastUpdated.set(latestRadar);
+      this.publishCadenceFromGrid();
+    }
     radarStale.set(false);
     this.applyRadarOpacity();
     this.notify("grid", this.clientGridConfig);
@@ -1322,6 +1471,8 @@ export default class RadarCapability extends Capability {
   }
 
   resetToLatest() {
+    // A past window has no newest frame to follow; leaving it is what returns to live.
+    if (this.past) return;
     const mostRecent = this.getMostRecentObservation();
     // A step can be in the grid and still null: before anything is published,
     // the newest observation falls back to the server's clock, a placeholder.
@@ -1346,7 +1497,8 @@ export default class RadarCapability extends Capability {
       this.trackingMode = "manual";
       live.set(false);
     }
-    if (timestep === this.gridconfig.now) {
+    // A past window's end is its "now", but never live.
+    if (timestep === this.gridconfig.now && !this.past) {
       this.trackingMode = "live";
       live.set(true);
     }
@@ -1356,6 +1508,7 @@ export default class RadarCapability extends Capability {
   }
 
   destroy() {
+    window.clearTimeout(this.snowAtTimer);
     for (const network of this.networks) network.destroy();
     for (const whole of Object.values(this.wholes)) whole.destroy();
     this.around.destroy();

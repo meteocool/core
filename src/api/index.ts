@@ -138,7 +138,7 @@ export class NothingPublished extends Error {
 export const RETRY_DELAYS_MS = [1000, 4000];
 
 /** An HTTP answer that is not the data, kept with its status so it can be judged. */
-class Refused extends Error {
+export class Refused extends Error {
   readonly status: number | undefined;
 
   constructor(id: string, status: number | undefined, error: unknown) {
@@ -265,16 +265,25 @@ async function request<T>(
  */
 export type TimeseriesProduct = AlternativeProduct | "nowcast";
 
-/** Radar and nowcast tile metadata for each timestep in the current window. */
+/**
+ * Radar and nowcast tile metadata for each timestep in the current window,
+ * or, with `past`, for each step of a past window (lib/archive.ts): observed
+ * steps only, unix seconds on the five-minute grid.
+ */
 export function fetchRadarTimeseries(
   nanobar?: Progress,
   position?: { lat: number; lon: number; network?: CountryNetwork },
   products: readonly TimeseriesProduct[] = [],
+  past?: { start: number; end: number },
 ) {
   // The chosen product's own past, beside HX's and the networks': asked for,
   // since every frame carries its tile index (lib/observedProduct.ts). And
   // with the experimental setting on, every network's nowcast run.
-  const query = { ...position, ...(products.length ? { products: [...products] } : {}) };
+  const query = {
+    ...position,
+    ...(products.length ? { products: [...products] } : {}),
+    ...(past ? { start: past.start, end: past.end } : {}),
+  };
   return request(nanobar, "/v3/radar/timeseries", () =>
     apiClient.GET("/v3/radar/timeseries", { params: { query } }));
 }
@@ -283,13 +292,32 @@ export function fetchRadarTimeseries(
  * The most recent snowfield vector tile set. `optional`: the backend answers
  * 404 until its first snowfield is in, which outside winter is for weeks.
  */
-export function fetchSnowOverlay(nanobar?: Progress) {
+export function fetchSnowOverlay(nanobar?: Progress, at?: number) {
   return request(
     nanobar,
     "/v3/radar/snow",
-    () => apiClient.GET("/v3/radar/snow", {}),
+    () => apiClient.GET("/v3/radar/snow", at === undefined ? {} : { params: { query: { at } } }),
     { optional: true },
   );
+}
+
+/**
+ * What the archive covers (lib/archive.ts): its oldest and newest observed
+ * step. `optional`: 404 while nothing is kept yet, which is an empty
+ * archive, not a broken backend.
+ */
+export function fetchArchive(nanobar?: Progress) {
+  return request(nanobar, "/v3/archive", () => apiClient.GET("/v3/archive", {}), { optional: true });
+}
+
+/**
+ * The strikes of `[since, until)`, unix seconds at most three hours apart,
+ * oldest first, in projected metres as `/baseline` gives them: a past
+ * window's (lib/archive.ts).
+ */
+export function fetchLightningStrikes(since: number, until: number, nanobar?: Progress) {
+  return request(nanobar, "/v3/lightning/strikes", () =>
+    apiClient.GET("/v3/lightning/strikes", { params: { query: { since, until } } }));
 }
 
 /**
@@ -545,11 +573,11 @@ export function fetchVerticallyIntegratedLiquid(nanobar?: Progress) {
 }
 
 /** The most recent precipitation-type tile set, absent until one has rendered. */
-export function fetchPrecipitationTypes(nanobar?: Progress) {
+export function fetchPrecipitationTypes(nanobar?: Progress, at?: number) {
   return request(
     nanobar,
     "/v3/radar/classification",
-    () => apiClient.GET("/v3/radar/classification", {}),
+    () => apiClient.GET("/v3/radar/classification", at === undefined ? {} : { params: { query: { at } } }),
     { optional: true },
   );
 }
@@ -592,10 +620,10 @@ export function fetchLightningSince(baseline: number, nanobar?: Progress) {
  * The endpoint takes the polygon as a JSON-encoded string rather than a
  * structured parameter, so the encoding lives here instead of at every call.
  */
-export function fetchLightningStats(polygon: number[][], nanobar?: Progress) {
+export function fetchLightningStats(polygon: number[][], nanobar?: Progress, until?: number) {
   return request(nanobar, "/v3/lightning/stats", () =>
     apiClient.GET("/v3/lightning/stats", {
-      params: { query: { bbox: JSON.stringify({ coordinates: polygon }) } },
+      params: { query: { bbox: JSON.stringify({ coordinates: polygon }), ...(until === undefined ? {} : { until }) } },
     }));
 }
 
@@ -722,13 +750,17 @@ export function fetchCellTrack(code: string, nanobar?: Progress, options: Reques
  */
 export function fetchStorms(
   bbox: [number, number, number, number],
-  sinceMinutes: number,
+  sinceMinutes: number | { since: number; until: number },
   nanobar?: Progress,
 ) {
-  const since = new Date(Date.now() - sinceMinutes * 60_000).toISOString();
+  // A past window's (lib/archive.ts): every storm that overlapped it, seen
+  // since its start and born by its end, unix seconds.
+  const window = typeof sinceMinutes === "number"
+    ? { since: new Date(Date.now() - sinceMinutes * 60_000).toISOString() }
+    : { since: new Date(sinceMinutes.since * 1000).toISOString(), until: new Date(sinceMinutes.until * 1000).toISOString() };
   return request(nanobar, "/storms", () =>
     dataClient.GET("/storms", {
-      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), since } },
+      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), ...window } },
     }), { optional: true });
 }
 

@@ -13,6 +13,7 @@ import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties } from "./api";
 import type { CountryNetwork } from "./api/events";
 import { withCell, type StormSelection } from "./lib/stormSelection";
+import type { ArchiveWindow } from "./lib/archive";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
 // abstraction.
@@ -423,6 +424,15 @@ export const radarColorScheme = writable<string>("classic");
 export const showForecastPlaybutton = writable<boolean>(true);
 
 export const live = writable<boolean>(false);
+
+/**
+ * The past window the map is open in (lib/archive.ts), or null for live:
+ * archive mode is "a window is open". Set by the picker in the player's tray
+ * and by a link's `from=` and `to=`; cleared by the pill's way back to live.
+ * While one is open the timeline spans it, every overlay with a past answers
+ * for the step on screen, and what has none is hidden.
+ */
+export const archiveWindow = writable<ArchiveWindow | null>(null);
 
 /**
  * A frame the player is asked to open on, from outside it: a link naming one,
