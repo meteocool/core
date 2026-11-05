@@ -1,7 +1,60 @@
 {
- "status": 404,
+ "status": 200,
  "contentType": "application/json",
  "json": {
-  "detail": "no Lithuanian reflectivity available yet"
+  "processed_time": 1793836577,
+  "upstream_time": 1793836500,
+  "tile_id": "4880af59-fe17-41cf-a5aa-567ac56fa157",
+  "source": "observation",
+  "filename": "intermediate;live_composite/lt/20261104T235614.tif",
+  "tiles": {
+   "3": {
+    "x": 4,
+    "y": 5,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "4": {
+    "x": 9,
+    "y": 10,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "5": {
+    "x": 18,
+    "y": 21,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "6": {
+    "x": 35,
+    "y": 43,
+    "w": 2,
+    "h": 2,
+    "bits": "0A=="
+   },
+   "7": {
+    "x": 71,
+    "y": 86,
+    "w": 3,
+    "h": 4,
+    "bits": "PKA="
+   },
+   "8": {
+    "x": 143,
+    "y": 173,
+    "w": 5,
+    "h": 6,
+    "bits": "GPAQEA=="
+   }
+  },
+  "values": {
+   "tile_id": "4880af59-fe17-41cf-a5aa-567ac56fa157",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null
  }
 }

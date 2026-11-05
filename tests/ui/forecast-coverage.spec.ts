@@ -3,9 +3,9 @@ import { expect, test } from "./test";
 import { openRadar, playButton, timeline } from "./app";
 
 /**
- * Where the screen has radar but no forecast. The demo replays a storm over
- * Aquitaine, where Météo-France's radar draws the present and DWD's forecast,
- * the only one, does not reach.
+ * Where the screen has radar but no forecast. Over Aquitaine Météo-France's
+ * radar draws the present, and with meteocool's own nowcast turned off
+ * (nowcast.spec.ts has it on), DWD's forecast, the only one, does not reach.
  */
 const AQUITAINE_VIEW = "/?layer=radar&latLonZ=44.80000,-0.60000,8.00";
 /** Champagne, DWD's reach coming in from the right: most of the screen has no forecast, some of it does. */
@@ -14,6 +14,10 @@ const BORDER_VIEW = "/?layer=radar&latLonZ=49.50000,4.00000,8.00";
 const GERMANY_VIEW = "/?layer=radar&latLonZ=50.50000,10.00000,8.00";
 
 const noForecastNotice = (page: Page) => page.getByText("No Forecast Here");
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("meteocoolNowcast", "false"));
+});
 
 const stepIndex = async (page: Page): Promise<number> => Number(await timeline(page).getAttribute("aria-valuenow"));
 

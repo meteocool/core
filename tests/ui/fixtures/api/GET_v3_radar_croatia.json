@@ -1,7 +1,53 @@
 {
- "status": 404,
+ "status": 200,
  "contentType": "application/json",
  "json": {
-  "detail": "no Croatian reflectivity available yet"
+  "processed_time": 1793836490,
+  "upstream_time": 1793836200,
+  "tile_id": "5fb791ca-bb8e-4276-b756-3e69c1be7541",
+  "source": "observation",
+  "filename": "intermediate;live_composite/hr/20261104T235448.tif",
+  "tiles": {
+   "4": {
+    "x": 8,
+    "y": 10,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "5": {
+    "x": 17,
+    "y": 20,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "6": {
+    "x": 34,
+    "y": 40,
+    "w": 2,
+    "h": 2,
+    "bits": "8A=="
+   },
+   "7": {
+    "x": 68,
+    "y": 80,
+    "w": 4,
+    "h": 3,
+    "bits": "K2A="
+   },
+   "8": {
+    "x": 136,
+    "y": 161,
+    "w": 7,
+    "h": 5,
+    "bits": "BZEo4YA="
+   }
+  },
+  "values": {
+   "tile_id": "5fb791ca-bb8e-4276-b756-3e69c1be7541",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null
  }
 }

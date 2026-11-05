@@ -2,11 +2,11 @@
  "status": 200,
  "contentType": "application/json",
  "json": {
-  "processed_time": 1791682517,
-  "upstream_time": 1791682200,
-  "tile_id": "4b750777-970b-4966-b52f-fbe79ce371c2",
+  "processed_time": 1793836499,
+  "upstream_time": 1793836200,
+  "tile_id": "bd584bc5-3a61-4827-b55c-40df9bd2233c",
   "source": "observation",
-  "filename": "intermediate;composite_dmax_LATEST-hd5-20261011T013441Z",
+  "filename": "intermediate;composite_dmax_LATEST-hd5-20261104T235437Z",
   "tiles": {
    "3": {
     "x": 4,
@@ -26,44 +26,42 @@
     "x": 16,
     "y": 20,
     "w": 2,
-    "h": 3,
-    "bits": "9A=="
+    "h": 2,
+    "bits": "sA=="
    },
    "6": {
-    "x": 32,
+    "x": 33,
     "y": 41,
-    "w": 3,
-    "h": 4,
-    "bits": "/5A="
+    "w": 2,
+    "h": 3,
+    "bits": "/A=="
    },
    "7": {
-    "x": 65,
+    "x": 66,
     "y": 82,
-    "w": 5,
-    "h": 7,
-    "bits": "Z73//EA="
+    "w": 4,
+    "h": 6,
+    "bits": "zu/2"
    },
    "8": {
-    "x": 130,
+    "x": 132,
     "y": 165,
-    "w": 9,
-    "h": 12,
-    "bits": "HAefz+fz/f75/3/f4EA="
+    "w": 7,
+    "h": 10,
+    "bits": "YeHjT57ee/hw"
    },
    "9": {
-    "x": 261,
-    "y": 331,
-    "w": 16,
-    "h": 22,
-    "bits": "A8AA/gB+A5wz4Dj4P/wv/Av+P/5/52/Xf7Z/oX+A/+b/8v/7P98//wGOAAg="
+    "x": 264,
+    "y": 330,
+    "w": 13,
+    "h": 20,
+    "bits": "IADgHYD2A/QLAAAHiP2AbBNP+nL8B+AcbADwAn4DsAgA"
    }
   },
   "values": {
-   "tile_id": "4b750777-970b-4966-b52f-fbe79ce371c2",
+   "tile_id": "bd584bc5-3a61-4827-b55c-40df9bd2233c",
    "encoding": "rvp6-u8"
   },
-  "dbz": null,
-  "dbzMin": null,
-  "dbzMax": null
+  "dbz": null
  }
 }

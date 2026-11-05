@@ -2,11 +2,11 @@
  "status": 200,
  "contentType": "application/json",
  "json": {
-  "processed_time": 1791682684,
-  "upstream_time": 1791682560,
-  "tile_id": "85e802b9-8a4f-4052-a87a-6d7672d6d9ff",
+  "processed_time": 1793836412,
+  "upstream_time": 1793836260,
+  "tile_id": "99d198c2-53c7-4365-8a1f-c3275b8eecf8",
   "source": "observation",
-  "filename": "intermediate;live_composite/ch/20261011T013803.tif",
+  "filename": "intermediate;live_composite/ch/20261104T235330.tif",
   "tiles": {
    "3": {
     "x": 4,
@@ -30,33 +30,31 @@
     "bits": "gA=="
    },
    "6": {
-    "x": 33,
-    "y": 41,
-    "w": 1,
-    "h": 1,
-    "bits": "gA=="
+    "x": 32,
+    "y": 40,
+    "w": 2,
+    "h": 2,
+    "bits": "8A=="
    },
    "7": {
-    "x": 67,
-    "y": 82,
-    "w": 1,
+    "x": 65,
+    "y": 81,
+    "w": 3,
     "h": 2,
-    "bits": "wA=="
+    "bits": "/A=="
    },
    "8": {
-    "x": 134,
-    "y": 165,
-    "w": 2,
-    "h": 3,
-    "bits": "/A=="
+    "x": 130,
+    "y": 162,
+    "w": 5,
+    "h": 4,
+    "bits": "H//g"
    }
   },
   "values": {
-   "tile_id": "85e802b9-8a4f-4052-a87a-6d7672d6d9ff",
+   "tile_id": "99d198c2-53c7-4365-8a1f-c3275b8eecf8",
    "encoding": "rvp6-u8"
   },
-  "dbz": null,
-  "dbzMin": null,
-  "dbzMax": null
+  "dbz": null
  }
 }

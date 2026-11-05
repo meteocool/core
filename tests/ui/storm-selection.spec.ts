@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Page } from "@playwright/test";
 import { FIXTURES, type RecordedResponse } from "./offline";
 import { flatPixel, noGeocoder, settled, timeline } from "./app";
-import { patchOf, serveStorms, stormIdOf, stormOfVolume } from "./storms";
+import { konrad3dStorms, konrad3dTracks, patchOf, recordedStorms, serveStorms, stormIdOf, stormOfVolume } from "./storms";
 import { expect, test } from "./test";
 
 /**
@@ -11,33 +11,43 @@ import { expect, test } from "./test";
  * box of sky tapped on the 3D map, and a link to a KONRAD3D cell all open
  * the storm they belong to, and the address names it as `storm=<id>`.
  *
- * The storms are stood in for from the recorded KONRAD3D tracks (storms.ts)
- * until a recording has them; the outside-Germany and 3D cases add a storm
- * only meteocool's tracker follows, made around a recorded volume.
+ * The flat map's storm is a recorded one. A recording seldom has a KONRAD3D
+ * cell, so the link to one takes a kept track and its storm (storms.ts); the
+ * outside-Germany and 3D cases add a storm only meteocool's tracker follows,
+ * made around a recorded volume.
  */
 
 const recorded = (name: string) => (JSON.parse(
   readFileSync(path.join(FIXTURES, "api", `${name}.json`), "utf8"),
 ) as RecordedResponse).json as Record<string, any>;
 
-const tracks = recorded("GET_cells_tracks").features as Record<string, any>[];
 const volumes = recorded("GET_cells_volumes").volumes as Record<string, any>[];
 
+/**
+ * A recorded storm still going, the one furthest from any other, so a tap
+ * on it finds it alone.
+ */
+const live = recordedStorms().map(({ storm }) => storm).filter((storm) => storm.properties.status === "active");
+const apart = (storm: Record<string, any>) => Math.min(...live.filter((other) => other !== storm)
+  .map((other) => Math.hypot(...[0, 1].map((i) => other.geometry.coordinates[i] - storm.geometry.coordinates[i]))));
+const tapped = live.reduce((best, storm) => (apart(storm) > apart(best) ? storm : best));
+const [stormLon, stormLat] = tapped.geometry.coordinates as number[];
+
 /** A storm KONRAD3D rates, still going, with a name to go by. */
-const cell = tracks.find((track) => track.properties.active && track.properties.placement)!;
+const cell = konrad3dTracks().find((track) => track.properties.active && track.properties.placement)!;
 const code: string = cell.properties.code;
-const [cellLon, cellLat] = cell.geometry.coordinates[cell.geometry.coordinates.length - 1] as number[];
 
 /** A storm's panel, by the label its section carries. */
 const panel = (page: Page, name: string | RegExp) => page.getByRole("region", { name });
 
 test("tapping a storm on the flat map opens it, and the address names it", async ({ page, isMobile }) => {
-  await page.goto(`/?layer=radar&latLonZ=${cellLat.toFixed(5)},${cellLon.toFixed(5)},9.00`);
+  await noGeocoder(page);
+  await page.goto(`/?layer=radar&latLonZ=${stormLat.toFixed(5)},${stormLon.toFixed(5)},9.00`);
   await settled(timeline(page));
   // Drawn once the storms are in; the storm's mark is where it is now.
   await expect.poll(() => page.evaluate((id) => Boolean((window as any).lm.maps[0].getLayers().getArray()
-    .some((layer: any) => layer.getSource?.()?.getFeatureById?.(id))), stormIdOf(code)), { timeout: 15_000 }).toBe(true);
-  const at = await flatPixel(page, cellLon, cellLat);
+    .some((layer: any) => layer.getSource?.()?.getFeatureById?.(id))), tapped.id), { timeout: 15_000 }).toBe(true);
+  const at = await flatPixel(page, stormLon, stormLat);
   await page.mouse.click(at.x, at.y);
   if (isMobile) {
     // A phone draws the storm first and says how to read about it.
@@ -45,11 +55,12 @@ test("tapping a storm on the flat map opens it, and the address names it", async
     await expect(details).toBeVisible();
     await details.click();
   }
-  await expect(panel(page, /storm$/)).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`storm=${stormIdOf(code)}`));
+  await expect(panel(page, /storm$/i)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`storm=${tapped.id}`));
 });
 
 test("a link to a KONRAD3D cell opens the storm it belongs to, under the storm's name", async ({ page }) => {
+  await serveStorms(page, konrad3dStorms());
   await page.route(`**/cells/tracks/${code}`, (route) => route.fulfill({ json: cell }));
   await page.goto(`/?layer=radar&cell=${code}`);
   const entries = await page.evaluate(() => window.history.length);
@@ -81,7 +92,7 @@ test("a link to a storm gone from the working set says so", async ({ page }) => 
 });
 
 test("tapping a box of sky on the 3D map opens the storm it belongs to", async ({ page }) => {
-  const box = volumes.find((volume) => volume.network === "de" && !volume.coarse && volume.tier === 2)!;
+  const box = volumes.find((volume) => volume.network !== "fr" && !volume.coarse && volume.tier === 2)!;
   const id = "01K3DSTANDBYSTRM0000000000";
   // The volumes name the patch each was cut from, as the backend's record does.
   const answer = recorded("GET_cells_volumes");

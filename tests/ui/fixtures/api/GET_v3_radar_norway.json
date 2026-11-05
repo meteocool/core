@@ -1,7 +1,60 @@
 {
- "status": 404,
+ "status": 200,
  "contentType": "application/json",
  "json": {
-  "detail": "no Norwegian reflectivity available yet"
+  "processed_time": 1793836566,
+  "upstream_time": 1793836200,
+  "tile_id": "720ec3ca-bd55-4453-95fe-ce9f6110f16b",
+  "source": "observation",
+  "filename": "intermediate;live_composite/no/20261104T235558.tif",
+  "tiles": {
+   "3": {
+    "x": 4,
+    "y": 5,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "4": {
+    "x": 8,
+    "y": 11,
+    "w": 2,
+    "h": 2,
+    "bits": "sA=="
+   },
+   "5": {
+    "x": 16,
+    "y": 22,
+    "w": 4,
+    "h": 4,
+    "bits": "zPY="
+   },
+   "6": {
+    "x": 32,
+    "y": 44,
+    "w": 7,
+    "h": 8,
+    "bits": "YcODB4/PCA=="
+   },
+   "7": {
+    "x": 64,
+    "y": 88,
+    "w": 13,
+    "h": 15,
+    "bits": "IAHAHgHwD4A8AHADgBwA8gf+H/B/AfAEAA=="
+   },
+   "8": {
+    "x": 129,
+    "y": 177,
+    "w": 24,
+    "h": 28,
+    "bits": "CAAAHAAAGwAAfwAAdwAA9gAAZwAAfgAA/4AAf4AAH4AAB4AAA8AAA4AAA8AAB+AAB+AAB/gAB/hAA//AAf+fAP//AH/+AH/+AB/+AB/YAA+AAAIA"
+   }
+  },
+  "values": {
+   "tile_id": "720ec3ca-bd55-4453-95fe-ce9f6110f16b",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null
  }
 }

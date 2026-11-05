@@ -1,7 +1,60 @@
 {
- "status": 404,
+ "status": 200,
  "contentType": "application/json",
  "json": {
-  "detail": "no Finnish reflectivity available yet"
+  "processed_time": 1793836617,
+  "upstream_time": 1793836500,
+  "tile_id": "9f003612-6bbf-4437-a864-6e0fa6883d6b",
+  "source": "observation",
+  "filename": "intermediate;live_composite/fi/20261104T235654.tif",
+  "tiles": {
+   "3": {
+    "x": 4,
+    "y": 5,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "4": {
+    "x": 8,
+    "y": 11,
+    "w": 2,
+    "h": 2,
+    "bits": "0A=="
+   },
+   "5": {
+    "x": 17,
+    "y": 22,
+    "w": 2,
+    "h": 3,
+    "bits": "tA=="
+   },
+   "6": {
+    "x": 35,
+    "y": 45,
+    "w": 3,
+    "h": 5,
+    "bits": "3TY="
+   },
+   "7": {
+    "x": 71,
+    "y": 90,
+    "w": 5,
+    "h": 10,
+    "bits": "hj2GEMZ7wA=="
+   },
+   "8": {
+    "x": 142,
+    "y": 181,
+    "w": 10,
+    "h": 19,
+    "bits": "wAAGAYx0HAAAcBgAAEAICgPA8GMDB+Dg"
+   }
+  },
+  "values": {
+   "tile_id": "9f003612-6bbf-4437-a864-6e0fa6883d6b",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null
  }
 }

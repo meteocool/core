@@ -1,5 +1,5 @@
 import { expect, test } from "./test";
-import { flatPixel, openRadar } from "./app";
+import { flatPixel, noGeocoder, openRadar } from "./app";
 
 for (const rebuildView of [false, true]) {
   for (const latitude of [-80, 80]) {
@@ -37,6 +37,8 @@ for (const rebuildView of [false, true]) {
   });
 
   test(`the map pans north of 62 degrees${rebuildView ? " after changing rotation" : ""}`, async ({ page }) => {
+    // Storms up north are named after the place they are over.
+    await noGeocoder(page);
     await openRadar(page, "/?layer=radar&latLonZ=55.00000,10.00000,5.00");
     if (rebuildView) {
       await page.evaluate(() => window.settings.set("mapRotation", true));

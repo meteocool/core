@@ -1,7 +1,53 @@
 {
- "status": 404,
+ "status": 200,
  "contentType": "application/json",
  "json": {
-  "detail": "no Slovak reflectivity available yet"
+  "processed_time": 1793836512,
+  "upstream_time": 1793836200,
+  "tile_id": "94269625-0c05-4c1c-99a7-6059394c2746",
+  "source": "observation",
+  "filename": "intermediate;live_composite/sk/20261104T235510.tif",
+  "tiles": {
+   "4": {
+    "x": 8,
+    "y": 10,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "5": {
+    "x": 17,
+    "y": 20,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "6": {
+    "x": 35,
+    "y": 41,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "7": {
+    "x": 70,
+    "y": 83,
+    "w": 2,
+    "h": 2,
+    "bits": "8A=="
+   },
+   "8": {
+    "x": 140,
+    "y": 166,
+    "w": 4,
+    "h": 4,
+    "bits": "72Q="
+   }
+  },
+  "values": {
+   "tile_id": "94269625-0c05-4c1c-99a7-6059394c2746",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null
  }
 }

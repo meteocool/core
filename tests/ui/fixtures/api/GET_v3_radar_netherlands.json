@@ -1,7 +1,60 @@
 {
- "status": 404,
+ "status": 200,
  "contentType": "application/json",
  "json": {
-  "detail": "no Dutch reflectivity available yet"
+  "processed_time": 1793836553,
+  "upstream_time": 1793836200,
+  "tile_id": "01ad8ae1-991d-4123-b006-31be981edb25",
+  "source": "observation",
+  "filename": "intermediate;live_composite/nl/20261104T235552.tif",
+  "tiles": {
+   "3": {
+    "x": 4,
+    "y": 5,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "4": {
+    "x": 8,
+    "y": 10,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "5": {
+    "x": 16,
+    "y": 21,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "6": {
+    "x": 32,
+    "y": 42,
+    "w": 2,
+    "h": 2,
+    "bits": "8A=="
+   },
+   "7": {
+    "x": 64,
+    "y": 84,
+    "w": 3,
+    "h": 4,
+    "bits": "X7A="
+   },
+   "8": {
+    "x": 129,
+    "y": 169,
+    "w": 5,
+    "h": 6,
+    "bits": "Z///uA=="
+   }
+  },
+  "values": {
+   "tile_id": "01ad8ae1-991d-4123-b006-31be981edb25",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null
  }
 }

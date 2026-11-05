@@ -18,24 +18,17 @@ Run them before pushing develop. They are not in CI yet.
 
 A run never reaches a backend. `test.ts` gives every spec a page that:
 
-- answers the backend's requests (`/v3`, `/cells`, `/storms`, `/mesocyclones`,
+- answers the backend's requests (`/v3`, `/cells`, `/storms`, `/sweeps`, `/mesocyclones`,
   `/lightning_cache`, `/stations`, `/geocoding`, see `offline.ts`) from
   `fixtures/api/*.json`, keyed by method and path (the query is ignored);
-- answers `/storms` from storms made of the recorded KONRAD3D tracks
-  (`storms.ts`) while the recording has no successful answer for it: staging
-  does not serve storms yet;
-- answers `/sweeps` from `fixtures/api/GET_sweeps.json`, still written by
-  hand: staging serves the route since 2026-10-22, and the next re-recording
-  replaces it with every view's listing in `record.ts`, merged;
-- answers `/stations/observations` from
-  `fixtures/api/GET_stations_observations.json`, written by hand from a
-  real answer of 2026-10-25 with every parameter, trimmed to the stations
-  around central Germany, its times moved onto the recording's clock:
-  staging did not serve the route yet, and the next re-recording (which
-  turns the stations on) replaces it;
-- answers every station's `/stations/{station}/observations` from
-  `fixtures/api/GET_stations_station_observations.json`, staging's day of
-  München-Stadt of 2026-10-27, its times moved onto the recording's clock;
+- answers `/storms/{id}`, which the app asks for no storm while it is
+  recorded, from the recorded `/storms` listing: each storm's own list copy,
+  with no history (`storms.ts`). A KONRAD3D cell is rare in a recording, so
+  the specs about one serve a pair kept from 2026-10-11
+  (`fixtures/konrad3d/tracks.json`), moved onto the recording's clock;
+- answers `/sweeps` from every view's listing, merged (`record.ts`), and
+  every station's `/stations/{station}/observations` from München-Stadt's
+  day (`fixtures/api/GET_stations_station_observations.json`);
 - draws every map tile blank: radar, value tiles and the basemap;
 - connects the lightning socket to a stand-in that stays quiet;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it

@@ -6,8 +6,8 @@ import { fixtureFile, type RecordedResponse } from "./offline";
 
 /**
  * meteocool's own nowcast outside Germany, behind the experimental setting
- * (lib/nowcast.ts). The recording has no run in it, so the timeseries is
- * answered here with a French one put in: an hour of leads from the first
+ * (lib/nowcast.ts). The timeseries is answered here with the recording's
+ * runs taken out and a French one put in: an hour of leads from the first
  * forecast step, a run still being made, shaped as WN's steps are, as the
  * API sends it with `products=nowcast`.
  */
@@ -45,13 +45,13 @@ async function answerWithRun(page: Page, leads = () => RUN_LEADS): Promise<strin
       frames: Record<string, { source: string; tile_id: string } | null>;
       products?: Record<string, unknown>;
     };
+    answer.products = {};
     if (products.includes("nowcast")) {
       const forecast = Object.keys(answer.frames)
         .filter((key) => answer.frames[key]?.source === "nowcast_phys")
         .sort()
         .slice(0, leads());
       answer.products = {
-        ...answer.products,
         nowcast_fr: Object.fromEntries(forecast.map((key, i) => [key, {
           ...answer.frames[key], tile_id: `nowcast-fr-${i}`, source: "nowcast_phys",
         }])),

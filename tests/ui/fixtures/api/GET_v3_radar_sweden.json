@@ -1,7 +1,60 @@
 {
- "status": 404,
+ "status": 200,
  "contentType": "application/json",
  "json": {
-  "detail": "no Swedish reflectivity available yet"
+  "processed_time": 1793836588,
+  "upstream_time": 1793836500,
+  "tile_id": "ce755bfa-397d-4c72-9eca-4170a970b603",
+  "source": "observation",
+  "filename": "intermediate;live_composite/se/20261104T235626.tif",
+  "tiles": {
+   "3": {
+    "x": 4,
+    "y": 5,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
+   },
+   "4": {
+    "x": 8,
+    "y": 10,
+    "w": 1,
+    "h": 2,
+    "bits": "wA=="
+   },
+   "5": {
+    "x": 16,
+    "y": 21,
+    "w": 3,
+    "h": 3,
+    "bits": "2YA="
+   },
+   "6": {
+    "x": 33,
+    "y": 43,
+    "w": 4,
+    "h": 5,
+    "bits": "zGYw"
+   },
+   "7": {
+    "x": 67,
+    "y": 87,
+    "w": 6,
+    "h": 9,
+    "bits": "w44McccCDA=="
+   },
+   "8": {
+    "x": 135,
+    "y": 174,
+    "w": 10,
+    "h": 17,
+    "bits": "gDAPg+C4DgBgUBgPAMD4Pg2AAAYBwA=="
+   }
+  },
+  "values": {
+   "tile_id": "ce755bfa-397d-4c72-9eca-4170a970b603",
+   "encoding": "rvp6-u8"
+  },
+  "dbz": null
  }
 }

@@ -1,14 +1,15 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
 import { open3d } from "./app";
+import { volumesBehind } from "./storms";
 
 /**
  * The 3D map's boxes on the ground, greyed for a storm a scan behind the
- * radar draped under it, as the flat map's "3D" tag is. The recording is one
- * such moment: DWD's newest frame is 01:35 and Germany's volumes are still
- * 01:30's, while France's and Switzerland's are their radar's own scan.
+ * radar draped under it, as the flat map's "3D" tag is. France's volumes are
+ * put a scan behind its radar, Switzerland's left their radar's own scan:
+ * over the Rhône, where the recording has storms of both.
  */
-const BORDER_3D = "/?layer=cells3d&latLonZ=48.60000,7.80000,6.50&pitch=0&bearing=0";
+const BORDER_3D = "/?layer=cells3d&latLonZ=45.30000,4.50000,6.50&pitch=0&bearing=0";
 
 /** The boxes the map holds, by the network their storm was found in: how many greyed, how many in colour. */
 const boxes = (page: Page) => page.evaluate(() => {
@@ -24,15 +25,14 @@ const boxes = (page: Page) => page.evaluate(() => {
 });
 
 test("boxes of storms a scan behind the radar are greyed, the rest in colour", async ({ page }) => {
+  await volumesBehind(page, "fr");
   await open3d(page, BORDER_3D);
   await expect.poll(async () => Object.keys((await boxes(page)) ?? {}).length, { timeout: 20_000 }).toBeGreaterThan(1);
   const tally = (await boxes(page))!;
-  expect(tally.de.greyed).toBeGreaterThan(0);
-  expect(tally.de.colour).toBe(0);
-  for (const network of ["fr", "ch"]) {
-    expect(tally[network].colour).toBeGreaterThan(0);
-    expect(tally[network].greyed).toBe(0);
-  }
+  expect(tally.fr.greyed).toBeGreaterThan(0);
+  expect(tally.fr.colour).toBe(0);
+  expect(tally.ch.colour).toBeGreaterThan(0);
+  expect(tally.ch.greyed).toBe(0);
 });
 
 /** The 3D map's layers from the bottom up, and the colour of the boxes' halo. */

@@ -2,11 +2,11 @@
  "status": 200,
  "contentType": "application/json",
  "json": {
-  "processed_time": 1791682627,
-  "upstream_time": 1791682260,
-  "tile_id": "1aeffc67-af1f-49f3-8b03-d563821eda66",
+  "processed_time": 1793836599,
+  "upstream_time": 1793836260,
+  "tile_id": "4550400d-14bc-49cb-8609-43bdd1372bf8",
   "source": "observation",
-  "filename": "intermediate;live_composite/pl/20261011T013703.tif",
+  "filename": "intermediate;live_composite/pl/20261104T235636.tif",
   "tiles": {
    "3": {
     "x": 4,
@@ -18,45 +18,43 @@
    "4": {
     "x": 8,
     "y": 10,
-    "w": 2,
-    "h": 2,
-    "bits": "4A=="
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
    },
    "5": {
     "x": 17,
-    "y": 20,
-    "w": 2,
-    "h": 3,
-    "bits": "+A=="
+    "y": 21,
+    "w": 1,
+    "h": 1,
+    "bits": "gA=="
    },
    "6": {
     "x": 34,
-    "y": 41,
-    "w": 3,
-    "h": 4,
-    "bits": "f+A="
+    "y": 42,
+    "w": 2,
+    "h": 1,
+    "bits": "wA=="
    },
    "7": {
-    "x": 68,
-    "y": 83,
-    "w": 5,
-    "h": 6,
-    "bits": "O///uA=="
+    "x": 69,
+    "y": 84,
+    "w": 2,
+    "h": 2,
+    "bits": "cA=="
    },
    "8": {
-    "x": 137,
-    "y": 167,
-    "w": 9,
-    "h": 10,
-    "bits": "Hw/P6vx4P7/H978A"
+    "x": 139,
+    "y": 168,
+    "w": 3,
+    "h": 3,
+    "bits": "YoA="
    }
   },
   "values": {
-   "tile_id": "1aeffc67-af1f-49f3-8b03-d563821eda66",
+   "tile_id": "4550400d-14bc-49cb-8609-43bdd1372bf8",
    "encoding": "rvp6-u8"
   },
-  "dbz": null,
-  "dbzMin": null,
-  "dbzMax": null
+  "dbz": null
  }
 }

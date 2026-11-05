@@ -1,20 +1,30 @@
 import type { Page, Route } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { FIXTURES, type RecordedResponse } from "./offline";
+import { FIXTURES, fixtureFile, readRecording, type RecordedResponse } from "./offline";
 
 /**
- * `/storms`, stood in for until the backend that records the fixtures
- * serves it (staging does not yet).
+ * Storms for the UI tests.
  *
- * Made from what is recorded: each recorded KONRAD3D track is a storm whose
- * primary track it is, as storms over Germany usually are. Specs that
- * need more (a storm outside Germany, a box of sky's storm) add their own
- * through `serveStorms`. Once a recording has `/storms`, offline.ts plays
- * that instead.
+ * `/storms` is recorded (fixtures/api/GET_storms.json); a storm's own answer,
+ * `/storms/{id}`, is not, as the app asks for none while it is recorded. So
+ * each recorded storm's detail is made from its list copy, with no history.
+ *
+ * A recording seldom has a KONRAD3D cell: DWD finds them in convective
+ * weather only. The specs about one take a pair kept from the recording of
+ * 2026-10-11 (fixtures/konrad3d/tracks.json), moved onto the recording's
+ * clock, each the primary track of its storm (`konrad3dStorms`). Specs that
+ * need another storm (outside Germany, a box of sky's) make their own
+ * around a recorded volume (`stormOfVolume`). Either is served beside the
+ * recorded ones through `serveStorms`.
  */
 
 type Json = Record<string, any>;
+
+type Stand = { storm: Json; detail: Json };
+
+const FIVE_MINUTES = 5 * 60_000;
+const ISO_TIME = /"(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z)"/g;
 
 const recorded = (name: string): Json => (JSON.parse(
   readFileSync(path.join(FIXTURES, "api", `${name}.json`), "utf8"),
@@ -34,7 +44,7 @@ const bounds = (coordinates: number[][]) => ({
 });
 
 /** A storm and its detail, from one recorded KONRAD3D track. */
-export function stormOfTrack(track: Json): { storm: Json; detail: Json } {
+export function stormOfTrack(track: Json): Stand {
   const p = track.properties;
   const coordinates: number[][] = track.geometry.type === "LineString" ? track.geometry.coordinates : [track.geometry.coordinates];
   const last = coordinates[coordinates.length - 1];
@@ -76,7 +86,7 @@ export function stormOfTrack(track: Json): { storm: Json; detail: Json } {
  * A storm only meteocool's tracker follows, around one recorded volume: the
  * storm the box is a part of, outside Germany if the volume is.
  */
-export function stormOfVolume(volume: Json, id: string): { storm: Json; detail: Json } {
+export function stormOfVolume(volume: Json, id: string): Stand {
   const t = volume.reference_time;
   const earlier = new Date(new Date(t).getTime() - 10 * 60_000).toISOString();
   const coordinates = [[volume.lon - 0.05, volume.lat - 0.02], [volume.lon, volume.lat]];
@@ -141,13 +151,34 @@ export function stormOfVolume(volume: Json, id: string): { storm: Json; detail: 
   return { storm, detail };
 }
 
-/** The storms made from the recorded KONRAD3D tracks. */
-export function recordedStorms(): { storm: Json; detail: Json }[] {
-  return (recorded("GET_cells_tracks").features as Json[]).map(stormOfTrack);
+/** The recorded storms, each with a detail made from its list copy. */
+export function recordedStorms(): Stand[] {
+  const file = fixtureFile("GET", new URL("http://localhost/storms"));
+  if (!existsSync(file)) return [];
+  const answer = JSON.parse(readFileSync(file, "utf8")) as RecordedResponse;
+  if (answer.status !== 200) return [];
+  return ((answer.json as Json).features as Json[]).map((storm) => ({ storm, detail: { storm, konrad3d: [], tracks: [] } }));
+}
+
+/**
+ * The kept KONRAD3D tracks, every time in them moved by the same amount, so
+ * that the newest is the newest five-minute scan before the recording.
+ */
+export function konrad3dTracks(): Json[] {
+  const text = readFileSync(path.join(FIXTURES, "konrad3d", "tracks.json"), "utf8");
+  const tracks = JSON.parse(text) as Json[];
+  const newest = Math.max(...tracks.map((track) => Date.parse(track.properties.last_seen)));
+  const shift = Math.floor(readRecording().recordedAt / FIVE_MINUTES) * FIVE_MINUTES - FIVE_MINUTES - newest;
+  return JSON.parse(text.replace(ISO_TIME, (_, time: string) => JSON.stringify(new Date(Date.parse(time) + shift).toISOString())));
+}
+
+/** A storm for each kept KONRAD3D track, the track its primary one. */
+export function konrad3dStorms(): Stand[] {
+  return konrad3dTracks().map(stormOfTrack);
 }
 
 /** Answer `/storms` and `/storms/{id}` from these storms. */
-export function answerStorms(route: Route, url: URL, storms: { storm: Json; detail: Json }[]): Promise<void> {
+export function answerStorms(route: Route, url: URL, storms: Stand[]): Promise<void> {
   const id = /^\/storms\/([^/]+)$/.exec(url.pathname)?.[1];
   if (id) {
     const found = storms.find(({ storm }) => storm.id === id);
@@ -159,7 +190,21 @@ export function answerStorms(route: Route, url: URL, storms: { storm: Json; deta
 }
 
 /** Serve these storms, beside the recorded ones, for the rest of the test. */
-export async function serveStorms(page: Page, extra: { storm: Json; detail: Json }[]): Promise<void> {
+export async function serveStorms(page: Page, extra: Stand[]): Promise<void> {
   const storms = [...recordedStorms(), ...extra];
   await page.route(/\/storms(\/|\?|$)/, (route) => answerStorms(route, new URL(route.request().url()), storms));
+}
+
+/**
+ * The recorded volumes with every one of `network`'s a scan behind its radar,
+ * for the rest of the test: the moment between the radar's scan and its
+ * volumes, which a recording happens on only by chance.
+ */
+export async function volumesBehind(page: Page, network: string): Promise<void> {
+  const answer = recorded("GET_cells_volumes");
+  const earlier = (time: string) => new Date(Date.parse(time) - FIVE_MINUTES).toISOString();
+  const volumes = (answer.volumes as Json[]).map((volume) => (volume.network === network
+    ? { ...volume, reference_time: earlier(volume.reference_time) }
+    : volume));
+  await page.route("**/cells/volumes**", (route) => route.fulfill({ json: { ...answer, volumes } }));
 }

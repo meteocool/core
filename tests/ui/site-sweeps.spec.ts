@@ -3,6 +3,7 @@ import { gunzipSync } from "node:zlib";
 import { expect, test } from "./test";
 import { flatPixel, noGeocoder, openRadar, playButton, radarMark, settled, timeline } from "./app";
 import type { Page } from "@playwright/test";
+import { fixtureFile, readRecording, type RecordedResponse } from "./offline";
 
 /** The player's product pill, which names an open radar and says when its sweep was scanned. */
 const productPill = (page: Page) => page.locator("button[aria-haspopup='menu']:visible").first();
@@ -11,13 +12,35 @@ const productPill = (page: Page) => page.locator("button[aria-haspopup='menu']:v
  * Site mode: a radar's mark on the flat map opens that radar's own sweep,
  * with a tray to choose what and which tilt, over the composites dimmed.
  *
- * `/sweeps` is answered from a fixture written by hand
- * (fixtures/api/GET_sweeps.json): neither staging nor demo served the route
- * when this was written. The sweeps themselves are tiles, answered blank,
- * so the tray says the sweep could not be loaded; the tilts are the
- * listing's.
+ * `/sweeps` is answered from staging's listing (fixtures/api/GET_sweeps.json),
+ * Offenthal's six tilts and Borkum's among it. The sweeps themselves are
+ * tiles, answered blank, so the tray says the sweep could not be loaded;
+ * the tilts are the listing's.
  */
 const CENTRAL_GERMANY = "/?layer=radar&latLonZ=50.20000,9.20000,7.20";
+
+const recordedJson = (path: string) => (JSON.parse(
+  readFileSync(fixtureFile("GET", new URL(`http://localhost${path}`)), "utf8"),
+) as RecordedResponse).json as Record<string, any>;
+
+/** The timeline's "Now": the five-minute step the recording's clock is in. */
+const NOW_S = Math.floor(readRecording().recordedAt / 300_000) * 300;
+
+/** A step's name on the timeline, as its readout says it: "Now", "-5m", "-1h", "-1h10m". */
+function stepName(atS: number): string {
+  const minutes = Math.round((NOW_S - atS) / 60);
+  if (minutes === 0) return "Now";
+  const [hours, rest] = [Math.floor(minutes / 60), minutes % 60];
+  return `-${hours ? `${hours}h` : ""}${rest || !hours ? `${rest}m` : ""}`;
+}
+
+/** The live step, the newest observation's: "Now", or "-5m" while the composite is a step behind the clock. */
+const LIVE_S = Math.max(...Object.entries(recordedJson("/v3/radar/timeseries").frames as Record<string, any>)
+  .filter(([, frame]) => frame?.source === "observation").map(([at]) => Number(at)));
+const LIVE = stepName(LIVE_S);
+/** Borkum's oldest 0.5 degree scan in the listing: the first step it has a sweep for. */
+const OLDEST = stepName(Math.min(...(recordedJson("/sweeps").sites as Record<string, any>[])
+  .find((site) => site.site === "deasb")!.reflectivity[0].scans.map((scan: any) => Date.parse(scan.scanned_at) / 1000)));
 
 
 /** The page pixel of a radar's mark, once the marks are drawn. */
@@ -289,7 +312,7 @@ test.describe("with the radars' marks on", () => {
     await openRadar(page, "/?layer=radar&radar=deasb&tilt=0.5");
     const tray = page.getByRole("group", { name: "Borkum radar" });
     await settled(tray);
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-5m");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", LIVE);
     // What is open is written back, and a tilt turned with it.
     await expect.poll(() => new URL(page.url()).searchParams.get("radar")).toBe("deasb");
     expect(new URL(page.url()).searchParams.get("latLonZ")).toMatch(/^53\.5\d+,6\.7\d+,/);
@@ -300,14 +323,14 @@ test.describe("with the radars' marks on", () => {
     const early = new URL(page.url());
     await timeline(page).focus();
     for (let i = 0; i < 13; i += 1) await page.keyboard.press("ArrowLeft");
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-1h");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", OLDEST);
     await expect.poll(() => new URL(page.url()).searchParams.get("t")).not.toBeNull();
     const t = new URL(page.url()).searchParams.get("t")!;
     const before = new Date(Date.UTC(+t.slice(0, 4), +t.slice(4, 6) - 1, +t.slice(6, 8), +t.slice(9, 11), +t.slice(11, 13)) - 30 * 60_000);
     early.searchParams.set("t", `${before.toISOString().slice(0, 16).replace(/[-:]/g, "")}Z`);
     await openRadar(page, `${early.pathname}${early.search}`);
     await settled(page.getByRole("group", { name: "Borkum radar" }));
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-5m");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", LIVE);
   });
 
   /**
@@ -343,19 +366,19 @@ test.describe("with the radars' marks on", () => {
     await expect.poll(() => compositeOpacity(page), { timeout: 20_000 }).not.toBeNull();
     const before = (await compositeOpacity(page))!;
 
-    // Back to before the listing's hour (00:40 to 01:35), where it has no
+    // Back to before the listing's hour, where it has no
     // sweep: opened there, the player moves on to its newest.
     await timeline(page).focus();
     for (let i = 0; i < 13; i += 1) await page.keyboard.press("ArrowLeft");
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-1h10m");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", stepName(LIVE_S - 13 * 300));
     expect(await compositeGrey(page)).toBe(false);
     await expect.poll(() => markOf(page, "deasb"), { timeout: 20_000 }).not.toBeNull();
     const at = (await markOf(page, "deasb"))!;
     await page.mouse.click(at.x, at.y);
     const tray = page.getByRole("group", { name: "Borkum radar" });
     await settled(tray);
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-5m");
-    // The steps it has none for are hatched: before its hour, and now and the forecast after it.
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", LIVE);
+    // The steps it has none for are hatched: before its hour, and the forecast after it.
     await expect(page.locator(".timeslider rect.no-sweep")).toHaveCount(2);
 
     // Play through the hour once and round again, the page noting every step
@@ -388,29 +411,30 @@ test.describe("with the radars' marks on", () => {
     expect(await compositeGrey(page)).toBe(true);
 
     // Only the steps it has a sweep for: from its first, an hour back, to the
-    // newest observation five minutes back, and round to the first again,
-    // never on into "Now" and the forecast past it.
+    // newest observation, and round to the first again, never on past it
+    // into the forecast.
     const played: string[] = await page.evaluate(() => (window as any).seen.played);
     // Played from its newest, round to its first. The tray may note the
     // step it opened on first, as its sweep comes in.
-    expect(played.filter((step, i) => i > 0 || step !== "-5m")[0], played.join(", ")).toBe("-1h");
-    expect(played.slice(played.indexOf("-5m") + 1)[0], played.join(", ")).toBe("-1h");
-    expect(played.filter((step) => step === "Now" || step.startsWith("+")), played.join(", ")).toEqual([]);
+    expect(played.filter((step, i) => i > 0 || step !== LIVE)[0], played.join(", ")).toBe(OLDEST);
+    expect(played.slice(played.indexOf(LIVE) + 1)[0], played.join(", ")).toBe(OLDEST);
+    const pastLive = (step: string) => step.startsWith("+") || (LIVE !== "Now" && step === "Now");
+    expect(played.filter(pastLive), played.join(", ")).toEqual([]);
     expect(await page.evaluate(() => (window as any).seen.none)).toEqual([]);
 
     // Scrubbed by hand, the needle keeps to the same steps.
     await playButton(page).click();
     await timeline(page).focus();
     await page.keyboard.press("End");
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-5m");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", LIVE);
     await page.keyboard.press("ArrowRight");
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-5m");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", LIVE);
     for (let i = 0; i < 3; i += 1) await page.keyboard.press("Shift+ArrowLeft");
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-1h");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", OLDEST);
     // A tap on the forecast rests on its last sweep.
     const strip = (await timeline(page).boundingBox())!;
     await page.mouse.click(strip.x + strip.width * 0.9, strip.y + strip.height / 2);
-    await expect(timeline(page)).toHaveAttribute("aria-valuetext", "-5m");
+    await expect(timeline(page)).toHaveAttribute("aria-valuetext", LIVE);
 
     // Closed, the composites come back whole.
     await tray.getByRole("button", { name: "Close the radar" }).click();

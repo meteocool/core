@@ -2,11 +2,11 @@
  "status": 200,
  "contentType": "application/json",
  "json": {
-  "processed_time": 1791682804,
-  "upstream_time": 1791682740,
-  "tile_id": "b95af65c-3496-489c-a6a5-b498358d12ce",
+  "processed_time": 1793836475,
+  "upstream_time": 1793836440,
+  "tile_id": "76b2f518-65a5-4122-8a5c-481d7daafc03",
   "source": "observation",
-  "filename": "intermediate;live_composite/cz/20261011T014003.tif",
+  "filename": "intermediate;live_composite/cz/20261104T235434.tif",
   "tiles": {
    "3": {
     "x": 4,
@@ -34,29 +34,27 @@
     "y": 41,
     "w": 2,
     "h": 2,
-    "bits": "cA=="
+    "bits": "sA=="
    },
    "7": {
     "x": 68,
     "y": 83,
-    "w": 4,
+    "w": 3,
     "h": 2,
-    "bits": "Pw=="
+    "bits": "nA=="
    },
    "8": {
-    "x": 136,
-    "y": 166,
-    "w": 7,
-    "h": 4,
-    "bits": "DB/+0A=="
+    "x": 137,
+    "y": 167,
+    "w": 4,
+    "h": 3,
+    "bits": "j/A="
    }
   },
   "values": {
-   "tile_id": "b95af65c-3496-489c-a6a5-b498358d12ce",
+   "tile_id": "76b2f518-65a5-4122-8a5c-481d7daafc03",
    "encoding": "rvp6-u8"
   },
-  "dbz": null,
-  "dbzMin": null,
-  "dbzMax": null
+  "dbz": null
  }
 }

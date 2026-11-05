@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { FIXTURES, type RecordedResponse } from "./offline";
+import { konrad3dStorms, konrad3dTracks, serveStorms } from "./storms";
 import { expect, test } from "./test";
 
 /**
@@ -13,17 +14,16 @@ import { expect, test } from "./test";
  * map, whose copy of the same storm has none either, and either copy used to
  * replace the panel's, cutaway and all.
  *
- * A recording seldom has a storm with a volume, so the link's answer is put
- * together from what is recorded: a cell of the viewport's answer, given the
- * first recorded volume. Its tiles are blank, so the cutaway says it cannot
+ * A recording seldom has a KONRAD3D cell, let alone one with a volume, so the
+ * link's answer is put together: a kept cell and its storm (storms.ts), the
+ * cell given the first recorded volume. Its tiles are blank, so the cutaway says it cannot
  * show the storm; the section it sits in is what this is about.
  */
 const recorded = (name: string) => (JSON.parse(
   readFileSync(path.join(FIXTURES, "api", `${name}.json`), "utf8"),
 ) as RecordedResponse).json as Record<string, any>;
 
-const tracks = recorded("GET_cells_tracks");
-const cell = tracks.features.find((track: any) => track.properties.active && !track.properties.child_codes.length
+const cell = konrad3dTracks().find((track: any) => track.properties.active && !track.properties.child_codes.length
   && !track.properties.parent_codes.length);
 const linked = { ...cell, properties: { ...cell.properties, volume: recorded("GET_cells_volumes").volumes[0] } };
 
@@ -45,6 +45,7 @@ function countViewportAnswers(page: Page): () => number {
 const drawn = (page: Page) => page.waitForTimeout(1000);
 
 test("a linked storm's cutaway stays when the map refreshes its storms", async ({ page }) => {
+  await serveStorms(page, konrad3dStorms());
   await page.route(`**/cells/tracks/${cell.properties.code}`, (route) => route.fulfill({ json: linked }));
   const viewportAnswers = countViewportAnswers(page);
 

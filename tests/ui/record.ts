@@ -1,6 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { devices, test, type Browser } from "@playwright/test";
+import { STATIONS_MAX_AGE_MINUTES } from "../../src/lib/stations";
 import { FIXTURES, fixtureFile, fulfilBlankTile, isApi, isTile, type RecordedResponse, type Recording } from "./offline";
 
 /**
@@ -28,20 +29,39 @@ const VIEWS = [
   "/?layer=radar&latLonZ=53.70000,6.90000,8.20",
 ];
 const SETTLE_MS = 15_000;
-
-type Listing = { sites: { site: string }[] };
+/**
+ * Asked for after the views: what the app asks only when a reader does
+ * something. The stations around central Germany with every parameter,
+ * which answer for whichever one a spec picks; and München-Stadt's day,
+ * which answers for any station's history.
+ */
+const STATIONS_AROUND = "7,49,12,52";
+const STATION = "03379";
+const DAY_MS = 24 * 3_600_000;
 
 /**
- * One fixture answers `/sweeps` whatever its bbox, so each view's listing is
- * added to the ones before it rather than replacing them: every spec finds
- * the sites in its view, whichever view was recorded last.
+ * The listings that are the view's: by the list in the answer, and what
+ * tells its items apart.
  */
-function withSitesOf(before: RecordedResponse | undefined, answer: RecordedResponse): RecordedResponse {
-  const earlier = (before?.json as Listing | undefined)?.sites ?? [];
+const LISTINGS: Record<string, { list: string; key: string }> = {
+  "/sweeps": { list: "sites", key: "site" },
+  "/storms": { list: "features", key: "id" },
+};
+
+type Listing = Record<string, Record<string, unknown>[] | undefined>;
+
+/**
+ * One fixture answers a listing whatever its bbox, so each view's listing is
+ * added to the ones before it rather than replacing them: every spec finds
+ * the radars and storms in its view, whichever view was recorded last.
+ */
+function withItemsOf(before: RecordedResponse | undefined, answer: RecordedResponse,
+  { list, key }: { list: string; key: string }): RecordedResponse {
+  const earlier = (before?.json as Listing | undefined)?.[list] ?? [];
   const listing = answer.json as Listing | undefined;
-  if (!listing?.sites) return answer;
-  const sites = new Map([...earlier, ...listing.sites].map((site) => [site.site, site]));
-  return { ...answer, json: { ...listing, sites: [...sites.values()] } };
+  if (!listing?.[list]) return answer;
+  const items = new Map([...earlier, ...listing[list]].map((item) => [item[key], item]));
+  return { ...answer, json: { ...listing, [list]: [...items.values()] } };
 }
 
 async function visit(browser: Browser, baseURL: string | undefined, device: (typeof devices)[string],
@@ -66,13 +86,18 @@ async function visit(browser: Browser, baseURL: string | undefined, device: (typ
       answer.text = body;
     }
     const file = fixtureFile(route.request().method(), url);
-    answers.set(file, url.pathname === "/sweeps" ? withSitesOf(answers.get(file), answer) : answer);
+    const listing = LISTINGS[url.pathname];
+    answers.set(file, listing ? withItemsOf(answers.get(file), answer, listing) : answer);
     return route.fulfill({ response });
   });
   for (const view of VIEWS) {
     await page.goto(view);
     await page.waitForTimeout(SETTLE_MS);
   }
+  await page.evaluate(async ([bbox, maxAge, station, since]) => {
+    await fetch(`/stations/observations?bbox=${bbox}&max_age_minutes=${maxAge}`);
+    await fetch(`/stations/${station}/observations?since=${encodeURIComponent(since)}`);
+  }, [STATIONS_AROUND, String(STATIONS_MAX_AGE_MINUTES), STATION, new Date(Date.now() - DAY_MS).toISOString()]);
   await context.close();
 }
 

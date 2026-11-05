@@ -2,61 +2,59 @@
  "status": 200,
  "contentType": "application/json",
  "json": {
-  "processed_time": 1791682727,
-  "upstream_time": 1791682560,
-  "tile_id": "5c3658d7-4d94-46f8-81c7-0fa2ce7f55f8",
+  "processed_time": 1793836448,
+  "upstream_time": 1793836260,
+  "tile_id": "c59ca0d7-f488-4f40-9041-827fc5f44584",
   "source": "observation",
-  "filename": "intermediate;live_composite/eu/20261011T013833.tif",
+  "filename": "intermediate;live_composite/eu/20261104T235329.tif",
   "tiles": {
    "3": {
     "x": 3,
     "y": 4,
     "w": 2,
-    "h": 2,
-    "bits": "cA=="
+    "h": 3,
+    "bits": "dA=="
    },
    "4": {
     "x": 7,
     "y": 9,
     "w": 3,
-    "h": 3,
-    "bits": "XQA="
+    "h": 4,
+    "bits": "XbA="
    },
    "5": {
     "x": 15,
     "y": 19,
-    "w": 4,
-    "h": 4,
-    "bits": "T/I="
+    "w": 5,
+    "h": 7,
+    "bits": "ZzznPMA="
    },
    "6": {
     "x": 30,
     "y": 39,
-    "w": 7,
-    "h": 6,
-    "bits": "EOP/8+GA"
+    "w": 9,
+    "h": 13,
+    "bits": "GD4fH4/h0Ph+Hg+H4eBg"
    },
    "7": {
-    "x": 61,
+    "x": 60,
     "y": 79,
-    "w": 12,
-    "h": 10,
-    "bits": "BgMgfA/g////H/D/D/Ae"
+    "w": 17,
+    "h": 24,
+    "bits": "A4AP0A/sA+wD+wH/gz+B3xgHlAHkAfMA/4D/gH/wH+gDeAHUAOMAecA/8A/4A/gA+AAw"
    },
    "8": {
-    "x": 122,
-    "y": 158,
-    "w": 24,
-    "h": 19,
-    "bits": "ABAAAAwAAAgACQgAD2AAEEAAEOAAecwA4f8w9/9+9///x///Af+vAP+PAHgPAP/fAH/HAH/vAAL8"
+    "x": 120,
+    "y": 159,
+    "w": 33,
+    "h": 46,
+    "bits": "AAeAAAAPxAAAX8EAAD/RgAB/4CAAD/DgAA/4QAAH/gwADf9HAATnfwADP/4ACA/MAA4H+MAHw/kCAeH+AMAAdIDgAAbBAAAD+EAAA/wAAAH+HgAB+w8AAfxDAADupcAA82AAADH5gAAfjMYAH/10AAf/uAAA/sCAAB4jgAAHDIAAA4YAAAHgEAAB+AwAAPwKAAB/h8AAP8PgAA//iAAD/z4AAP//AAA//wAAD/+AAAP/wAAB+4AAAHwAAAAOAA=="
    }
   },
   "values": {
-   "tile_id": "5c3658d7-4d94-46f8-81c7-0fa2ce7f55f8",
+   "tile_id": "c59ca0d7-f488-4f40-9041-827fc5f44584",
    "encoding": "rvp6-u8"
   },
-  "dbz": null,
-  "dbzMin": null,
-  "dbzMax": null
+  "dbz": null
  }
 }
