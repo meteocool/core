@@ -4,6 +4,7 @@ import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
 import mesocycloneIcon from "../assets/mesocyclone.png";
 import type { FeatureLike } from "ol/Feature";
+import { mesoScale } from "../lib/mesocyclones";
 
 const mesoStyleCache = {};
 
@@ -32,24 +33,12 @@ const mesoStyleFactory = (age, intensity) => {
       opacity = 0.1;
     }
 
-    let size;
-    if (intensity > 4) {
-      size = 55;
-    } else if (intensity > 3) {
-      size = 46;
-    } else if (intensity > 2) {
-      size = 38;
-    } else if (intensity > 1) {
-      size = 30;
-    } else {
-      size = 22;
-    }
-
     mesoStyleCache[age][intensity] = new Style({
       image: new Icon({
         src: mesocycloneIcon,
         opacity,
-        scale: 0.2 * (size / 40),
+        // Its size by intensity, which a tap measures against too (lib/mesocyclones.ts).
+        scale: mesoScale(intensity),
       }),
     });
   }

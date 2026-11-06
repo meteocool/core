@@ -59,6 +59,43 @@ test("tapping a storm on the flat map opens it, and the address names it", async
   await expect(page).toHaveURL(new RegExp(`storm=${tapped.id}`));
 });
 
+test("tapping a mesocyclone opens the storm it turns in", async ({ page, isMobile }) => {
+  // One DWD detection 4 km east of the storm and 3 km north, as EPSG:3857
+  // metres the way the feed files them: too far off for a tap on it to be
+  // a tap on the storm's own mark.
+  const [x, y] = [stormLon, stormLat].map((value, i) => (i === 0
+    ? (value * Math.PI * 6378137) / 180
+    : Math.log(Math.tan(Math.PI / 4 + (value * Math.PI) / 360)) * 6378137));
+  const scale = 1 / Math.cos((stormLat * Math.PI) / 180);
+  const [mesoX, mesoY] = [x + 4000 * scale, y + 3000 * scale];
+  await page.route("**/mesocyclones/all/**", async (route) => {
+    const time = await page.evaluate(() => Date.now());
+    return route.fulfill({ json: [{ time, intensity: 3, lon: mesoX, lat: mesoY }] });
+  });
+  await noGeocoder(page);
+  await page.goto(`/?layer=radar&latLonZ=${stormLat.toFixed(5)},${stormLon.toFixed(5)},9.00`);
+  await settled(timeline(page));
+  await expect.poll(() => page.evaluate((id) => Boolean((window as any).lm.maps[0].getLayers().getArray()
+    .some((layer: any) => layer.getSource?.()?.getFeatureById?.(id))), tapped.id), { timeout: 15_000 }).toBe(true);
+  const meso = () => page.evaluate(() => (window as any).lm.maps[0].getLayers().getArray()
+    .find((layer: any) => layer.getZIndex() === 201)?.getSource().getFeatures().length ?? 0);
+  await expect.poll(meso, { timeout: 15_000 }).toBe(1);
+  const at = await page.evaluate(([mx, my]) => {
+    const map = (window as any).lm.maps[0];
+    const [px, py] = map.getPixelFromCoordinate([mx, my]);
+    const rect = map.getViewport().getBoundingClientRect();
+    return { x: rect.left + px, y: rect.top + py };
+  }, [mesoX, mesoY]);
+  await page.mouse.click(at.x, at.y);
+  if (isMobile) {
+    const details = page.getByRole("button", { name: /^Details/ });
+    await expect(details).toBeVisible();
+    await details.click();
+  }
+  await expect(panel(page, /storm$/i)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`storm=${tapped.id}`));
+});
+
 test("a link to a KONRAD3D cell opens the storm it belongs to, under the storm's name", async ({ page }) => {
   await serveStorms(page, konrad3dStorms());
   await page.route(`**/cells/tracks/${code}`, (route) => route.fulfill({ json: cell }));

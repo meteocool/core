@@ -14,6 +14,8 @@ import { drawStorms } from "./stormMarks";
 import type { MarkGeometry, StormMark } from "./stormMarks";
 import { selectionKey, withStorm } from "./stormSelection";
 import { holdStorms } from "./stormResolver";
+import { stormAtMesocyclone } from "./mesocyclones";
+import type { LiveStorm } from "./mesocyclones";
 import { sameWindow } from "./archive";
 import type { ArchiveWindow } from "./archive";
 
@@ -71,6 +73,9 @@ export default class StormManager {
 
   /** The moment drawn, ms, when the player is parked on an earlier frame; null for the present. */
   private at: number | null = null;
+
+  /** The storms still being seen, where the drawing has them: what a mesocyclone is matched against. */
+  private live: LiveStorm[] = [];
 
   /** What the selection was when last drawn, so only a change of storm, cell or forecast redraws. */
   private drawnFor = "";
@@ -136,6 +141,7 @@ export default class StormManager {
     this.pending = null;
     this.fetched = null;
     this.answer = null;
+    this.live = [];
     this.vs.clear();
     this.pulse?.clear();
     return true;
@@ -151,6 +157,11 @@ export default class StormManager {
   /** The storms held, by id, for a tap on one of them. */
   stormFor(id: string): Storm | undefined {
     return this.answer?.storms.find((storm) => storm.properties.id === id);
+  }
+
+  /** The tracked storm a mesocyclone at `lon`, `lat` turns in, as drawn; null with none near it. */
+  stormAtMesocyclone(lon: number, lat: number): string | null {
+    return stormAtMesocyclone(this.live, lon, lat);
   }
 
   /**
@@ -177,6 +188,7 @@ export default class StormManager {
     const { marks, links, pings } = drawStorms(storms, {
       now, reference, selection: get(selectedStorm), at: this.at, hidden: get(hiddenStormMarks),
     });
+    this.live = pings.map(({ storm, coordinates }) => ({ storm, coordinates }));
     this.vs.clear(true);
     // Joins first, so the tracks and their marks draw over them.
     this.vs.addFeatures([...links, ...marks].map(featureOf));
@@ -199,6 +211,7 @@ export default class StormManager {
   clearAll(): void {
     this.fetched = null;
     this.answer = null;
+    this.live = [];
     this.vs.clear();
     this.pulse?.clear();
   }

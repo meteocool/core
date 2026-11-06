@@ -80,6 +80,8 @@ import { offerVolumes, startStormResolver } from "./lib/stormResolver";
 import { existedBy, isResolution, selectionKey, withStorm } from "./lib/stormSelection";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
+import { mesoRadiusPx } from "./lib/mesocyclones";
+import type Point from "ol/geom/Point";
 import makeCellLayer from "./layers/cells";
 import makeCellPulseLayer from "./layers/cellPulse";
 import makeCloudHints from "./layers/cloudHints";
@@ -1014,6 +1016,23 @@ lm.forEachMap((map) => {
     ) as [number, number, number, number], { nanobar: nb });
   });
 
+  /**
+   * The storm a mesocyclone's ring under `pixel` turns in: the tracked one
+   * nearest it (lib/mesocyclones.ts). Measured against the ring as drawn
+   * rather than hit-tested, the icon being hollow where a finger lands.
+   */
+  const mesocycloneStorm = (pixel: number[]): string | undefined => {
+    if (!mesocycloneLayer.getVisible() || !cellLayer.getVisible()) return undefined;
+    const meso = mesocycloneSource.getClosestFeatureToCoordinate(map.getCoordinateFromPixel(pixel));
+    if (!meso) return undefined;
+    // EPSG:3857 already, as the manager files them.
+    const at = (meso.getGeometry() as Point).getCoordinates();
+    const [x, y] = map.getPixelFromCoordinate(at);
+    if (Math.hypot(x - pixel[0], y - pixel[1]) > mesoRadiusPx(meso.get("intensity")) + 4) return undefined;
+    const [lon, lat] = toLonLat(at);
+    return stormmgr.stormAtMesocyclone(lon, lat) ?? undefined;
+  };
+
   map.on("singleclick", (event) => {
     /* A radar's mark opens it in site mode, before anything under it: the
        mark is a fixed place, and a storm passing over it is tapped beside it. */
@@ -1034,7 +1053,7 @@ lm.forEachMap((map) => {
         event.pixel,
         (feature) => feature.get("storm") as string | undefined,
         { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
-      )
+      ) ?? mesocycloneStorm(event.pixel)
       : undefined;
     if (!code && cloudHintLayer.getVisible()) {
       const cloud = map.forEachFeatureAtPixel(
@@ -1113,7 +1132,8 @@ lm.forEachMap((map) => {
           || (layer === cloudHintLayer && layer.getVisible()),
         hitTolerance: 6,
       })
-      || (stationLayer.layer.getVisible() && hits(event.pixel, stationLayer.layer, 10));
+      || (stationLayer.layer.getVisible() && hits(event.pixel, stationLayer.layer, 10))
+      || (get(cellLayerVisible) && mesocycloneStorm(event.pixel) !== undefined);
     if (over === hovering) return;
     hovering = over;
     viewport.style.cursor = over ? "pointer" : "";
