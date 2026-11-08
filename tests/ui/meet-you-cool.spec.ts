@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import { expect, test } from "./test";
 import { meetYouCool, openRadar, overlaps, timeline, topCard, topRadar } from "./app";
 
@@ -6,6 +8,10 @@ import { meetYouCool, openRadar, overlaps, timeline, topCard, topRadar } from ".
  * About or from #meetyoucool. Whether a like is a match is chance; the specs
  * fix it by standing in Math.random just before the like.
  */
+
+/** The radars dealt: one for every photo there is, the radars nobody has photographed being left out. */
+const PHOTOGRAPHED = readdirSync(path.join(import.meta.dirname, "..", "..", "public", "radars"))
+  .filter((name) => name.endsWith(".webp")).length;
 
 async function open(page: import("@playwright/test").Page): Promise<void> {
   await openRadar(page);
@@ -161,7 +167,7 @@ test("a card dragged far enough flies off; one let go too soon comes back", asyn
   await expect.poll(() => topRadar(page)).not.toBe(first);
 });
 
-test("with reduced motion the swipes are at once, and the end of the stack offers to start over", async ({ page }) => {
+test("with reduced motion the swipes are at once, every photographed radar is dealt once, and the end offers to start over", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await open(page);
   const nope = meetYouCool(page).getByRole("button", { name: "Nope" });
@@ -173,7 +179,7 @@ test("with reduced motion the swipes are at once, and the end of the stack offer
     await nope.click();
   }
   await expect(page.getByRole("heading", { name: "You've met every radar" })).toBeVisible();
-  expect(seen.size).toBeGreaterThan(100);
+  expect(seen.size).toBe(PHOTOGRAPHED);
   await page.getByRole("button", { name: "Start over" }).click();
   await expect(topCard(page)).toBeVisible();
 });
