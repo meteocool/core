@@ -73,7 +73,15 @@
     "text": {
       "en": "Sits on Poręba, the highest summit of the eastern ridge of the Kaczawskie Mountains, near the village of Pastewnik in Lower Silesia. It watches the Sudetes and the Czech border region. A radar has worked here since 2000; the current one started in June 2023."
     },
-    "photo": null
+    "photo": {
+      "src": "/radars/plpas.webp",
+      "width": 800,
+      "height": 600,
+      "author": "Tomasz Lewicki",
+      "licence": "CC BY-SA 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "page": "https://www.flickr.com/photos/stalkerpl/7003217304/"
+    }
   },
   "plpoz": {
     "operator": "IMGW-PIB",

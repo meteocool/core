@@ -9,7 +9,15 @@
     "text": {
       "en": "Stands on Trolltinden on the island of Andøya in Vesterålen, 441 m above sea level, and watches Vesterålen, parts of Troms and the sea beyond. Lightning and storms wrecked the radar in 2015; the whole radar and its dome were replaced and it was back in service in 2017. The site opened in 2007."
     },
-    "photo": null
+    "photo": {
+      "src": "/radars/noand.webp",
+      "width": 800,
+      "height": 1422,
+      "author": "Meteorologisk institutt",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "page": "https://snl.no/And%C3%B8ya_v%C3%A6rradar"
+    }
   },
   "nober": {
     "operator": "MET Norway",
@@ -81,7 +89,15 @@
     "text": {
       "en": "Stands on Nielsåsen on the Hurum peninsula, now part of Asker, 363 m above sea level. It is the radar closest to Oslo and watches central Eastern Norway and the Oslofjord. It went into service in 2010, replacing an older radar at Hagahogget in Asker."
     },
-    "photo": null
+    "photo": {
+      "src": "/radars/nohur.webp",
+      "width": 800,
+      "height": 530,
+      "author": "Meteorologisk institutt",
+      "licence": "CC BY 3.0 NO",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/no/",
+      "page": "https://snl.no/Hurum_v%C3%A6rradar"
+    }
   },
   "norsa": {
     "operator": "MET Norway",
@@ -93,7 +109,15 @@
     "text": {
       "en": "Stands on Nagelen in the Olsøyheia hills of Indre Fosen, across the fjord from Trondheim, 616 m above sea level, and watches Trøndelag, part of Møre og Romsdal and the fishing banks offshore. The site opened in 2002; in 2018 its radar, then MET Norway's oldest, was replaced by a dual-polarisation unit."
     },
-    "photo": null
+    "photo": {
+      "src": "/radars/norsa.webp",
+      "width": 800,
+      "height": 1067,
+      "author": "Meteorologisk institutt",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "page": "https://snl.no/Rissa_v%C3%A6rradar"
+    }
   },
   "norsg": {
     "operator": "MET Norway",

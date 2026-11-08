@@ -9,7 +9,15 @@
     "text": {
       "en": "A stand-in radar on a 30 m steel lattice mast near the ferry harbour of the East Frisian island of Borkum. Since 2018 it has covered the North Sea coast and the Ems estuary in place of the shut-down Emden radar. It is a relocatable backup unit with single polarisation, unlike the other DWD radars."
     },
-    "photo": null
+    "photo": {
+      "src": "/radars/deasb.webp",
+      "width": 800,
+      "height": 600,
+      "author": "Michael W",
+      "licence": "CC BY-SA 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "page": "https://geo.hlipp.de/photo/249286"
+    }
   },
   "deboo": {
     "operator": "DWD",
