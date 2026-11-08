@@ -6,9 +6,6 @@
     "dualPol": true,
     "since": "2015",
     "towerM": 56,
-    "text": {
-      "en": "Sits on a 56 m concrete tower on Praha, the second-highest summit of the Brdy hills southwest of Prague. With a range of about 260 km it covers all of Bohemia. The tower dates from 1999 to 2000; the current dual-polarisation radar was installed in 2015."
-    },
     "photo": {
       "src": "/radars/czbrd.webp",
       "width": 800,
@@ -33,9 +30,6 @@
     "dualPol": true,
     "since": "2015",
     "towerM": 37,
-    "text": {
-      "en": "Stands on a 37 m concrete tower on Skalky, the highest point of the Drahany Highlands near Protivanov in central Moravia. It covers all of Moravia. The tower was built in 1995; the current dual-polarisation radar replaced the original one in 2015."
-    },
     "photo": {
       "src": "/radars/czska.webp",
       "width": 800,

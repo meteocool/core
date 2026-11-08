@@ -6,9 +6,6 @@
     "dualPol": true,
     "since": "2010",
     "towerM": 35,
-    "text": {
-      "en": "Lithuania's first modern weather radar stands near the small town of Laukuva in the Šilalė district, on the Samogitian upland in the west of the country. It has supplied data since 2010, covers western Lithuania and the Baltic coast, and was upgraded in 2022 and 2023."
-    },
     "photo": {
       "src": "/radars/ltlau.webp",
       "width": 800,
@@ -32,9 +29,6 @@
     "dualPol": true,
     "since": "2015",
     "towerM": 32,
-    "text": {
-      "en": "Lithuania's second weather radar was built in 2013 and 2014 at Trakų Vokė, a district on the south-western edge of Vilnius, and has supplied data since 2015. From here it watches showers over eastern Lithuania and neighbouring Poland and Belarus, out to about 250 km."
-    },
     "photo": {
       "src": "/radars/ltvil.webp",
       "width": 800,

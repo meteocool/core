@@ -2,20 +2,27 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { infoFileOf, infoText, sourceLabels, type RadarInfo, type RadarInfoFile } from "../../src/lib/radarInfo.ts";
+import {
+  infoFileOf, infoText, sourceLabels, textFileOf, textLanguage, withTexts,
+  type RadarFactsFile, type RadarInfo, type RadarTextFile,
+} from "../../src/lib/radarInfo.ts";
 import { RADAR_SITES } from "../../src/lib/radarSites.ts";
+import { LOCALES } from "../../src/locale/choose.ts";
 
 const ROOT = path.join(import.meta.dirname, "..", "..");
 const INFO_DIR = path.join(ROOT, "src", "radarInfo");
+const TEXT_DIR = path.join(INFO_DIR, "text");
 const PHOTO_DIR = path.join(ROOT, "public", "radars");
 
 const entry = (text: RadarInfo["text"]): RadarInfo => ({
   operator: null, system: null, band: null, dualPol: null, since: null, towerM: null, text, photo: null, sources: [],
 });
 
-const files: Record<string, RadarInfoFile> = Object.fromEntries(readdirSync(INFO_DIR)
+const readAll = <T>(dir: string): Record<string, T> => Object.fromEntries(readdirSync(dir)
   .filter((name) => name.endsWith(".json"))
-  .map((name) => [name.replace(/\.json$/, ""), JSON.parse(readFileSync(path.join(INFO_DIR, name), "utf8"))]));
+  .map((name) => [name.replace(/\.json$/, ""), JSON.parse(readFileSync(path.join(dir, name), "utf8"))]));
+const files = readAll<RadarFactsFile>(INFO_DIR);
+const texts = readAll<RadarTextFile>(TEXT_DIR);
 
 test("a German reader reads the German text, whichever region their German is from", () => {
   const info = entry({ en: "On a hill.", de: "Auf einem Hügel." });
@@ -23,15 +30,32 @@ test("a German reader reads the German text, whichever region their German is fr
   assert.equal(infoText(info, "de-AT"), "Auf einem Hügel.");
 });
 
-test("every other language reads the English text", () => {
+test("a reader in a language the app does not speak reads the English text", () => {
   const info = entry({ en: "On a hill.", de: "Auf einem Hügel." });
   assert.equal(infoText(info, "en"), "On a hill.");
-  assert.equal(infoText(info, "pl"), "On a hill.");
+  assert.equal(infoText(info, "pt-BR"), "On a hill.");
   assert.equal(infoText(info, null), "On a hill.");
 });
 
-test("a radar with no German text reads in English in German too", () => {
-  assert.equal(infoText(entry({ en: "On a hill." }), "de"), "On a hill.");
+test("a text not yet translated reads in English", () => {
+  assert.equal(infoText(entry({ en: "On a hill." }), "pl"), "On a hill.");
+});
+
+test("a Norwegian reader on an older system reads Bokmål", () => {
+  assert.equal(textLanguage("no"), "nb");
+  assert.equal(textLanguage("nn-NO"), "nb");
+});
+
+test("a radar's text in a language is in that language's file for its country", () => {
+  assert.equal(textFileOf("deisn", "fr"), "radar-text-fr-de");
+  assert.equal(textFileOf("isn", "en"), "radar-text-en-de");
+});
+
+test("a radar takes its text from each language's file that has one", () => {
+  const facts = { operator: "DWD", system: null, band: null, dualPol: null, since: null, towerM: null, photo: null, sources: [] };
+  const info = withTexts("deisn", facts, { en: { deisn: "On a hill." }, fr: { deoft: "Sur une colline." } });
+  assert.deepEqual(info.text, { en: "On a hill." });
+  assert.equal(info.operator, "DWD");
 });
 
 test("a radar's texts are in its country's file", () => {
@@ -56,15 +80,20 @@ test("every entry is a radar there is, in its own country's file", () => {
   }
 });
 
-test("every text is a few sentences, in English and German", () => {
-  for (const radars of Object.values(files)) {
-    for (const [code, info] of Object.entries(radars)) {
-      for (const language of ["en", "de"] as const) {
-        const text = info.text[language] ?? "";
-        assert.ok(text.length >= 60, `${code}'s ${language} text is missing or too short`);
-        assert.ok(text.length <= 480, `${code}'s ${language} text runs to ${text.length} characters`);
-      }
+test("every radar has a text of a few sentences in every language the app speaks", () => {
+  for (const language of LOCALES) {
+    for (const code of Object.keys(RADAR_SITES)) {
+      const text = texts[textFileOf(code, language)]?.[code] ?? "";
+      assert.ok(text.length >= 60, `${code}'s ${language} text is missing or too short`);
+      assert.ok(text.length <= 600, `${code}'s ${language} text runs to ${text.length} characters`);
     }
+  }
+});
+
+test("every text file holds only its own country's radars", () => {
+  for (const [file, radars] of Object.entries(texts)) {
+    const language = /^radar-text-([a-z]+)-/.exec(file)?.[1] ?? "";
+    for (const code of Object.keys(radars)) assert.equal(textFileOf(code, language), file, `${code} is in ${file}.json`);
   }
 });
 

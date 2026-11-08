@@ -1020,5 +1020,67 @@
       "aria": "{title} i perioden, i {unit}",
       "none": "Ingen historikk fra denne stasjonen."
     }
+  },
+  "site": {
+    "title": "{name}-radaren",
+    "info": {
+      "button": "Om denne radaren",
+      "operator": "Operatør",
+      "system": "Radar",
+      "band": "Bånd",
+      "band_value": "{band}-bånd",
+      "dual_pol": "dobbel polarisasjon",
+      "single_pol": "enkel polarisasjon",
+      "since": "I drift siden",
+      "antenna": "Antenne",
+      "antenna_value": "{height} m over havet",
+      "tower": "Tårn",
+      "range": "Rekkevidde",
+      "metres": "{value} m",
+      "km": "{value} km",
+      "photo_alt": "{name}-radaren",
+      "photo_credit": "Foto: {author}",
+      "none": "Det finnes ingen beskrivelse av denne radaren ennå.",
+      "how": "Slik virker radaren",
+      "how_sub": "Slik skanner radarene himmelen, og slik gjør meteocool det de ser om til kart",
+      "sources": "Kilder",
+      "photo_source": "Foto ({source})"
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radarer i nærheten ser etter noen å skanne himmelen med.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "alder: et mysterium",
+    "profile": "Profilen til {name}",
+    "like": "Ja takk",
+    "nope": "Nei takk",
+    "liked": "Du sa ja takk til {name}.",
+    "noped": "Du sa nei takk til {name}.",
+    "hint_keys": "Dra kortet, eller bruk piltastene: høyre for ja takk, venstre for nei takk.",
+    "hint_touch": "Sveip til høyre for ja takk, til venstre for nei takk.",
+    "no_photo": "Ingen bilde ennå",
+    "match_title": "Det er en match!",
+    "match_text": "Du og {name} liker hverandre.",
+    "send": "Send en melding",
+    "keep_swiping": "Sveip videre",
+    "waiting_title": "{name} må sende den første meldingen",
+    "waiting_text": "Radarer er sjenerte. {name} speider fortsatt mot horisonten etter de rette ordene.",
+    "back": "Tilbake til sveipingen",
+    "matches": "Matcher",
+    "matches_none": "Ingen matcher ennå. Sveip til høyre på en radar du liker.",
+    "match_waiting": "Venter på den første meldingen",
+    "empty_title": "Du har møtt alle radarene",
+    "empty_text": "Det var alle {count}. Kanskje en av dem fortjener en ny sjanse.",
+    "start_over": "Begynn på nytt",
+    "tag": {
+      "band": "{band}-bånd",
+      "dual_pol": "dobbeltpol.",
+      "single_pol": "enkeltpol.",
+      "tower": "{height} m tårn",
+      "antenna": "antenne på {height} m",
+      "range": "ser {range} km"
+    }
   }
 }

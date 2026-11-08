@@ -6,9 +6,6 @@
     "dualPol": true,
     "since": "2023",
     "towerM": null,
-    "text": {
-      "en": "DMI's Bornholm radar sits on a former military tower on Rytterknægten, the island's highest point at 162 m, in the Almindingen forest. A radar has watched the Baltic Sea from here since 2007; after repeated breakdowns it was replaced by a new Vaisala radar in 2023."
-    },
     "photo": null,
     "sources": [
       "https://ing.dk/artikel/efter-fejl-og-mangel-paa-reservedele-bornholm-er-uden-vejrradar-frem-til-april",
@@ -25,9 +22,6 @@
     "dualPol": true,
     "since": "2017",
     "towerM": null,
-    "text": {
-      "en": "This DMI radar stands at Juvre on Rømø, a Wadden Sea island off south-west Jutland, and watches the German Bight and western Denmark. A radar has worked here since 1992; the current dual-polarisation unit was installed in 2017 as part of the renewal of the Danish network."
-    },
     "photo": {
       "src": "/radars/dkrom.webp",
       "width": 800,
@@ -52,9 +46,6 @@
     "dualPol": true,
     "since": "2024",
     "towerM": 20,
-    "text": {
-      "en": "DMI's newest radar stands on a 20 m steel lattice tower just north of the village of Permelille on Samsø, an island in the middle of the Kattegat. Its 7 m dome went up in August 2023, and the radar took over from the old radar at Virring near Skanderborg; it reaches about 240 km."
-    },
     "photo": null,
     "sources": [
       "https://www.dmi.dk/nyheder/ny-radar-paa-samsoe-giver-bedre-varslinger",
@@ -71,9 +62,6 @@
     "dualPol": true,
     "since": "2017",
     "towerM": null,
-    "text": {
-      "en": "DMI's northernmost radar stands near Sindal in Vendsyssel, the tip of Jutland, and covers the Skagerrak, the northern Kattegat and the coasts of Norway and Sweden. A radar has worked here since 1994; it was the first site to get a new dual-polarisation radar, in spring 2017."
-    },
     "photo": null,
     "sources": [
       "https://en.wikipedia.org/wiki/Danish_Meteorological_Institute",
@@ -90,9 +78,6 @@
     "dualPol": true,
     "since": "2017",
     "towerM": null,
-    "text": {
-      "en": "This DMI radar stands at Mandehoved on the Stevns peninsula, next to a viewing tower near the chalk cliffs of Stevns Klint, a UNESCO World Heritage site. It covers Zealand, Copenhagen and the western Baltic; the current dual-polarisation radar replaced the earlier one in October 2017."
-    },
     "photo": {
       "src": "/radars/dkste.webp",
       "width": 800,

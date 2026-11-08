@@ -993,7 +993,8 @@
       "none": "Van deze radar is nog geen beschrijving.",
       "how": "Hoe de radar werkt",
       "how_sub": "Hoe de radars de lucht aftasten en hoe meteocool er zijn kaarten van maakt",
-      "sources": "Bronnen"
+      "sources": "Bronnen",
+      "photo_source": "Foto ({source})"
     },
     "motion": {
       "title": "Verplaatsing van de bui",
@@ -1089,6 +1090,42 @@
       },
       "aria": "{title} over de periode, in {unit}",
       "none": "Geen verloop van dit station."
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radars bij jou in de buurt zoeken iemand om samen de lucht mee af te speuren.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "leeftijd: een raadsel",
+    "profile": "Profiel van {name}",
+    "like": "Like",
+    "nope": "Nope",
+    "liked": "Je vindt {name} leuk.",
+    "noped": "Je hebt {name} laten schieten.",
+    "hint_keys": "Sleep de kaart, of gebruik de pijltjestoetsen: rechts voor een like, links om door te gaan.",
+    "hint_touch": "Swipe naar rechts voor een like, naar links om door te gaan.",
+    "no_photo": "Nog geen foto",
+    "match_title": "Het is een match!",
+    "match_text": "Jij en {name} vinden elkaar leuk.",
+    "send": "Stuur een bericht",
+    "keep_swiping": "Verder swipen",
+    "waiting_title": "{name} moet het eerste bericht sturen",
+    "waiting_text": "Radars zijn verlegen. {name} speurt de horizon nog af naar de juiste woorden.",
+    "back": "Terug naar swipen",
+    "matches": "Matches",
+    "matches_none": "Nog geen matches. Swipe naar rechts bij een radar die je leuk vindt.",
+    "match_waiting": "Wacht op het eerste bericht",
+    "empty_title": "Je hebt alle radars ontmoet",
+    "empty_text": "Dat waren ze alle {count}. Misschien verdient er eentje een tweede kans.",
+    "start_over": "Opnieuw beginnen",
+    "tag": {
+      "band": "{band}-band",
+      "dual_pol": "dual-pol",
+      "single_pol": "single-pol",
+      "tower": "toren van {height} m",
+      "antenna": "antenne op {height} m",
+      "range": "ziet {range} km ver"
     }
   }
 }

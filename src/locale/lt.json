@@ -1020,5 +1020,67 @@
       "aria": "{title} per laikotarpį, {unit}",
       "none": "Šios stoties istorijos nėra."
     }
+  },
+  "site": {
+    "title": "{name} radaras",
+    "info": {
+      "button": "Apie šį radarą",
+      "operator": "Operatorius",
+      "system": "Radaras",
+      "band": "Dažnių juosta",
+      "band_value": "{band} juosta",
+      "dual_pol": "dviguba poliarizacija",
+      "single_pol": "vienguba poliarizacija",
+      "since": "Veikia nuo",
+      "antenna": "Antena",
+      "antenna_value": "{height} m virš jūros lygio",
+      "tower": "Bokštas",
+      "range": "Veikimo nuotolis",
+      "metres": "{value} m",
+      "km": "{value} km",
+      "photo_alt": "{name} radaras",
+      "photo_credit": "Nuotrauka: {author}",
+      "none": "Šio radaro aprašymo dar nėra.",
+      "how": "Kaip veikia radaras",
+      "how_sub": "Kaip radarai skenuoja dangų ir kaip meteocool iš to, ką jie mato, kuria žemėlapius",
+      "sources": "Šaltiniai",
+      "photo_source": "Nuotrauka ({source})"
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Netoliese esantys radarai ieško, su kuo kartu skenuoti dangų.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "amžius: paslaptis",
+    "profile": "Profilis: {name}",
+    "like": "Patinka",
+    "nope": "Ne",
+    "liked": "Tau patiko {name}.",
+    "noped": "Praleidai: {name}.",
+    "hint_keys": "Tempk kortelę arba naudok rodyklių klavišus: dešinėn, jei patinka, kairėn, jei praleidi.",
+    "hint_touch": "Brauk dešinėn, jei patinka, kairėn, jei praleidi.",
+    "no_photo": "Nuotraukos dar nėra",
+    "match_title": "Jūs pora!",
+    "match_text": "Tu ir {name} patinkate vienas kitam.",
+    "send": "Siųsti žinutę",
+    "keep_swiping": "Braukti toliau",
+    "waiting_title": "Pirmąją žinutę turi parašyti {name}",
+    "waiting_text": "Radarai drovūs. {name} vis dar ieško tinkamų žodžių horizonte.",
+    "back": "Atgal prie braukimo",
+    "matches": "Poros",
+    "matches_none": "Porų dar nėra. Brauk dešinėn, kai radaras patinka.",
+    "match_waiting": "Laukiama pirmosios žinutės",
+    "empty_title": "Susipažinai su visais radarais",
+    "empty_text": "Tai buvo visi {count}. Gal kuris nors nusipelno antro žvilgsnio.",
+    "start_over": "Pradėti iš naujo",
+    "tag": {
+      "band": "{band} juosta",
+      "dual_pol": "dviguba pol.",
+      "single_pol": "vienguba pol.",
+      "tower": "{height} m bokštas",
+      "antenna": "antena {height} m aukštyje",
+      "range": "mato {range} km"
+    }
   }
 }

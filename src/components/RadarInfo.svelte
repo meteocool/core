@@ -69,8 +69,18 @@ let photoLoaded = false;
 let photoFailed = false;
 
 $: photo = info?.photo && !photoFailed ? info.photo : null;
-$: sources = info?.sources ?? [];
-$: labels = sourceLabels(sources);
+interface Source { url: string; label: string }
+
+/** The text's and facts' sources, then where the photo was published, unless that is one of them. */
+function sourcesOf(urls: readonly string[], photoPage: string | null, tr: typeof $_): Source[] {
+  const listed: Source[] = sourceLabels(urls).map((label, index) => ({ url: urls[index], label }));
+  if (photoPage && !urls.includes(photoPage)) {
+    listed.push({ url: photoPage, label: tr("site.info.photo_source", { values: { source: sourceLabels([photoPage])[0] } }) });
+  }
+  return listed;
+}
+
+$: sources = sourcesOf(info?.sources ?? [], photo?.page ?? null, $_);
 </script>
 
 <style>
@@ -289,8 +299,8 @@ $: labels = sourceLabels(sources);
       <section class="sources" aria-labelledby="radar-sources">
         <h3 id="radar-sources">{$_("site.info.sources")}</h3>
         <ul>
-          {#each sources as url, index (url)}
-            <li><a href={url} target="_blank" rel="noopener noreferrer" title={url}>{labels[index]}</a></li>
+          {#each sources as source (source.url)}
+            <li><a href={source.url} target="_blank" rel="noopener noreferrer" title={source.url}>{source.label}</a></li>
           {/each}
         </ul>
       </section>

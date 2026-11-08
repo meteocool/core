@@ -993,7 +993,8 @@
       "none": "Ten radar nie ma jeszcze opisu.",
       "how": "Jak działa radar",
       "how_sub": "Jak radary skanują niebo i jak meteocool tworzy z tego swoje mapy",
-      "sources": "Źródła"
+      "sources": "Źródła",
+      "photo_source": "Zdjęcie ({source})"
     },
     "motion": {
       "title": "Ruch burzy",
@@ -1089,6 +1090,42 @@
       },
       "aria": "{title} w okresie, w {unit}",
       "none": "Brak przebiegu z tej stacji."
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radary w Twojej okolicy szukają kogoś, z kim mogłyby skanować niebo.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "wiek: tajemnica",
+    "profile": "Profil: {name}",
+    "like": "Lubię",
+    "nope": "Nie",
+    "liked": "Radar {name} wpadł Ci w oko.",
+    "noped": "Radar {name} odpada.",
+    "hint_keys": "Przeciągnij kartę albo użyj strzałek: w prawo, by polubić, w lewo, by odpuścić.",
+    "hint_touch": "Przesuń w prawo, by polubić, w lewo, by odpuścić.",
+    "no_photo": "Jeszcze bez zdjęcia",
+    "match_title": "Jest match!",
+    "match_text": "Ty i radar {name} wpadliście sobie w oko.",
+    "send": "Napisz wiadomość",
+    "keep_swiping": "Przesuwaj dalej",
+    "waiting_title": "Radar {name} musi napisać pierwszy",
+    "waiting_text": "Radary są nieśmiałe. {name} wciąż przeczesuje horyzont w poszukiwaniu właściwych słów.",
+    "back": "Wróć do przesuwania",
+    "matches": "Matche",
+    "matches_none": "Jeszcze żadnego matcha. Przesuń w prawo radar, który Ci się podoba.",
+    "match_waiting": "Czeka na pierwszą wiadomość",
+    "empty_title": "Wszystkie radary już poznane",
+    "empty_text": "To już wszystkie, było ich {count}. Może któryś zasługuje na drugie spojrzenie.",
+    "start_over": "Zacznij od nowa",
+    "tag": {
+      "band": "pasmo {band}",
+      "dual_pol": "dwupolaryzacyjny",
+      "single_pol": "jednopolaryzacyjny",
+      "tower": "wieża {height} m",
+      "antenna": "antena na {height} m",
+      "range": "widzi na {range} km"
     }
   }
 }

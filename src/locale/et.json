@@ -1020,5 +1020,67 @@
       "aria": "{title} perioodi jooksul, ühikus {unit}",
       "none": "Sellelt jaamalt ajalugu pole."
     }
+  },
+  "site": {
+    "title": "{name} radar",
+    "info": {
+      "button": "Radarist lähemalt",
+      "operator": "Haldaja",
+      "system": "Radar",
+      "band": "Sagedusala",
+      "band_value": "{band}-sagedusala",
+      "dual_pol": "kaksikpolarisatsioon",
+      "single_pol": "üksikpolarisatsioon",
+      "since": "Kasutusel alates",
+      "antenna": "Antenn",
+      "antenna_value": "{height} m üle merepinna",
+      "tower": "Torn",
+      "range": "Ulatus",
+      "metres": "{value} m",
+      "km": "{value} km",
+      "photo_alt": "{name} radar",
+      "photo_credit": "Foto: {author}",
+      "none": "Selle radari kohta pole veel kirjeldust.",
+      "how": "Kuidas radar töötab",
+      "how_sub": "Kuidas radarid taevast skaneerivad ja kuidas meteocool nende nähtust kaardid teeb",
+      "sources": "Allikad",
+      "photo_source": "Foto ({source})"
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Sinu lähedal olevad radarid otsivad kedagi, kellega koos taevast skaneerida.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "vanus: saladus",
+    "profile": "Profiil: {name}",
+    "like": "Meeldib",
+    "nope": "Ei sobi",
+    "liked": "{name} meeldis sulle.",
+    "noped": "Jätsid radari {name} vahele.",
+    "hint_keys": "Lohista kaarti või kasuta nooleklahve: paremale, kui meeldib, vasakule, kui ei.",
+    "hint_touch": "Pühi paremale, kui meeldib, ja vasakule, kui ei.",
+    "no_photo": "Fotot veel pole",
+    "match_title": "Klapib!",
+    "match_text": "Sina ja {name} meeldite teineteisele.",
+    "send": "Saada sõnum",
+    "keep_swiping": "Pühi edasi",
+    "waiting_title": "{name} peab esimese sõnumi saatma",
+    "waiting_text": "Radarid on häbelikud. {name} otsib silmapiirilt veel õigeid sõnu.",
+    "back": "Tagasi pühkima",
+    "matches": "Paarid",
+    "matches_none": "Paare veel pole. Pühi paremale, kui mõni radar meeldib.",
+    "match_waiting": "Ootab esimest sõnumit",
+    "empty_title": "Oled kõiki radareid kohanud",
+    "empty_text": "Need olid kõik {count}. Ehk väärib mõni neist teist pilku.",
+    "start_over": "Alusta otsast",
+    "tag": {
+      "band": "{band}-sagedusala",
+      "dual_pol": "kaksikpol",
+      "single_pol": "üksikpol",
+      "tower": "{height} m torn",
+      "antenna": "antenn {height} m kõrgusel",
+      "range": "näeb {range} km kaugele"
+    }
   }
 }

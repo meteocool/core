@@ -5,7 +5,7 @@ import View from "ol/View";
 import { EXTENT as WEB_MERCATOR_EXTENT } from "ol/proj/epsg3857";
 // The catalogues and the language in use, set up before anything renders.
 import "./locale/i18n";
-import { _ } from "svelte-i18n";
+import { _, locale } from "svelte-i18n";
 
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
@@ -104,9 +104,9 @@ const loadCellSheet = () => import("./components/CellSheet.svelte");
 const loadRadarExplainer = () => import("./components/RadarExplainer.svelte");
 // A radar's own page: the panel and its country's texts, both chunks of
 // their own (lib/radarInfoLoad.ts), loaded together when it is opened.
-const loadRadarInfo = (code: string) => () => Promise.all([
+const loadRadarInfo = (code: string, language: string | null | undefined) => () => Promise.all([
   import("./components/RadarInfo.svelte"),
-  import("./lib/radarInfoLoad").then(({ loadRadarInfo: load }) => load(code)),
+  import("./lib/radarInfoLoad").then(({ loadRadarInfo: load }) => load(code, language)),
 ]);
 /* Closed with the radar, so the next one opened does not open on its page. */
 $: if (!$siteMode) radarInfoOpen.set(false);
@@ -117,7 +117,7 @@ $: if (!$siteMode) radarInfoOpen.set(false);
 // takes the hash off again, so a reload does not reopen it.
 const loadMeetYouCool = () => Promise.all([
   import("./components/MeetYouCool.svelte"),
-  import("./lib/radarInfoLoad").then(({ loadAllRadarInfo }) => loadAllRadarInfo()),
+  import("./lib/radarInfoLoad").then(({ loadAllRadarInfo }) => loadAllRadarInfo(get(locale))),
 ]);
 const followMeetYouCoolHash = () => meetYouCoolOpen.set(isMeetYouCoolHash(window.location.hash));
 followMeetYouCoolHash();
@@ -1495,8 +1495,8 @@ if (postInitCb) postInitCb(lm);
 
 <!-- The open radar's own page goes with the radar: closing the radar closes it. -->
 {#if $radarInfoOpen && $siteMode}
-  {#key $siteMode.site}
-    <Lazy load={loadRadarInfo($siteMode.site)} floating let:module={[{ default: RadarInfo }, info]}>
+  {#key `${$siteMode.site}:${$locale}`}
+    <Lazy load={loadRadarInfo($siteMode.site, $locale)} floating let:module={[{ default: RadarInfo }, info]}>
       <svelte:component this={RadarInfo} code={$siteMode.site} {info}
         on:close={() => radarInfoOpen.set(false)}
         on:explain={() => { radarInfoOpen.set(false); radarExplainerOpen.set(true); }} />

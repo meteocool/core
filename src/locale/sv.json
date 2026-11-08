@@ -1020,5 +1020,67 @@
       "aria": "{title} under perioden, i {unit}",
       "none": "Ingen historik från den här stationen."
     }
+  },
+  "site": {
+    "title": "Radarn {name}",
+    "info": {
+      "button": "Om den här radarn",
+      "operator": "Operatör",
+      "system": "Radar",
+      "band": "Band",
+      "band_value": "{band}-bandet",
+      "dual_pol": "dubbelpolarisation",
+      "single_pol": "enkelpolarisation",
+      "since": "I drift sedan",
+      "antenna": "Antenn",
+      "antenna_value": "{height} m över havet",
+      "tower": "Torn",
+      "range": "Räckvidd",
+      "metres": "{value} m",
+      "km": "{value} km",
+      "photo_alt": "Radarn {name}",
+      "photo_credit": "Foto: {author}",
+      "none": "Det finns ingen beskrivning av den här radarn än.",
+      "how": "Så fungerar radarn",
+      "how_sub": "Hur radarerna avsöker himlen och hur meteocool gör om det de ser till sina kartor",
+      "sources": "Källor",
+      "photo_source": "Foto ({source})"
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radarer nära dig söker någon att skanna himlen med.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "ålder: ett mysterium",
+    "profile": "Profil: {name}",
+    "like": "Gilla",
+    "nope": "Nej tack",
+    "liked": "Du gillade {name}.",
+    "noped": "Du lät {name} passera.",
+    "hint_keys": "Dra kortet eller använd piltangenterna: höger för att gilla, vänster för att avstå.",
+    "hint_touch": "Svep höger för att gilla, vänster för att avstå.",
+    "no_photo": "Inget foto än",
+    "match_title": "Det är en match!",
+    "match_text": "Du och {name} gillar varandra.",
+    "send": "Skicka ett meddelande",
+    "keep_swiping": "Fortsätt svepa",
+    "waiting_title": "{name} måste skicka första meddelandet",
+    "waiting_text": "Radarer är blyga. {name} spanar fortfarande mot horisonten efter de rätta orden.",
+    "back": "Tillbaka till svepandet",
+    "matches": "Matchningar",
+    "matches_none": "Inga matchningar än. Svep höger på en radar du gillar.",
+    "match_waiting": "Väntar på första meddelandet",
+    "empty_title": "Du har träffat alla radarer",
+    "empty_text": "Det var alla {count}. Kanske förtjänar någon en andra chans.",
+    "start_over": "Börja om",
+    "tag": {
+      "band": "{band}-band",
+      "dual_pol": "dubbelpol",
+      "single_pol": "enkelpol",
+      "tower": "{height} m högt torn",
+      "antenna": "antenn på {height} m",
+      "range": "ser {range} km"
+    }
   }
 }

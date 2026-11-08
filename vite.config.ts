@@ -128,6 +128,7 @@ export default defineConfig(({ mode }) => {
             // worker caches the chunks on first use, as MapLibre's.
             "**/RadarInfo-*",
             "**/radar-info-*",
+            "**/radar-text-*",
             "radars/**",
             // "meet you cool", the radars' dating screen (App.svelte), opened
             // by few and only from About's foot or #meetyoucool; it brings

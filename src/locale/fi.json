@@ -1020,5 +1020,67 @@
       "aria": "{title} jaksolla, yksikkönä {unit}",
       "none": "Tältä asemalta ei ole historiaa."
     }
+  },
+  "site": {
+    "title": "{name}-tutka",
+    "info": {
+      "button": "Tietoa tutkasta",
+      "operator": "Ylläpitäjä",
+      "system": "Tutka",
+      "band": "Taajuuskaista",
+      "band_value": "{band}-kaista",
+      "dual_pol": "kaksoispolarisaatio",
+      "single_pol": "yksinkertainen polarisaatio",
+      "since": "Käytössä vuodesta",
+      "antenna": "Antenni",
+      "antenna_value": "{height} m merenpinnan yläpuolella",
+      "tower": "Torni",
+      "range": "Kantama",
+      "metres": "{value} m",
+      "km": "{value} km",
+      "photo_alt": "{name}-tutka",
+      "photo_credit": "Kuva: {author}",
+      "none": "Tästä tutkasta ei ole vielä kuvausta.",
+      "how": "Miten tutka toimii",
+      "how_sub": "Miten tutkat luotaavat taivasta ja miten meteocool tekee niiden havainnoista karttoja",
+      "sources": "Lähteet",
+      "photo_source": "Kuva ({source})"
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Lähistön tutkat etsivät seuraa, jonka kanssa skannata taivasta.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "ikä: arvoitus",
+    "profile": "Profiili: {name}",
+    "like": "Tykkää",
+    "nope": "Ei kiitos",
+    "liked": "Tykkäsit tutkasta {name}.",
+    "noped": "Ohitit tutkan {name}.",
+    "hint_keys": "Vedä korttia tai käytä nuolinäppäimiä: oikealle tykkäät, vasemmalle ohitat.",
+    "hint_touch": "Pyyhkäise oikealle, jos tykkäät, ja vasemmalle, jos ohitat.",
+    "no_photo": "Ei vielä kuvaa",
+    "match_title": "Tärppäsi!",
+    "match_text": "Sinä ja {name} tykkäätte toisistanne.",
+    "send": "Lähetä viesti",
+    "keep_swiping": "Jatka pyyhkäisyä",
+    "waiting_title": "Tutkan {name} pitää lähettää ensimmäinen viesti",
+    "waiting_text": "Tutkat ovat ujoja. {name} etsii yhä horisontista oikeita sanoja.",
+    "back": "Takaisin pyyhkäisemään",
+    "matches": "Tärpit",
+    "matches_none": "Ei vielä tärppejä. Pyyhkäise oikealle tutkaa, josta tykkäät.",
+    "match_waiting": "Odottaa ensimmäistä viestiä",
+    "empty_title": "Olet tavannut jokaisen tutkan",
+    "empty_text": "Siinä olivat kaikki {count}. Ehkä joku ansaitsee toisen silmäyksen.",
+    "start_over": "Aloita alusta",
+    "tag": {
+      "band": "{band}-kaista",
+      "dual_pol": "kaksoispolarisaatio",
+      "single_pol": "yksi polarisaatio",
+      "tower": "{height} m:n torni",
+      "antenna": "antenni {height} metrissä",
+      "range": "näkee {range} km:n päähän"
+    }
   }
 }

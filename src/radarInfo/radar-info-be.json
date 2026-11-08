@@ -6,9 +6,6 @@
     "dualPol": true,
     "since": "2016",
     "towerM": null,
-    "text": {
-      "en": "Belgium's newest weather radar stands in Houthalen-Helchteren in Limburg and belongs to the Flanders Environment Agency (VMM), not the national weather service. Its dual-polarisation data help separate rain from hail and feed the Flemish rainfall maps used for flood forecasting."
-    },
     "photo": null,
     "sources": [
       "https://www.meteo.be/en/instruments/weather-radars",
@@ -25,9 +22,6 @@
     "dualPol": true,
     "since": "2012",
     "towerM": 46,
-    "text": {
-      "en": "The Royal Meteorological Institute's coastal radar sits on a 46 m concrete tower in Jabbeke, West Flanders, and was inaugurated in September 2012. It watches showers coming in from the North Sea, where offshore wind farms and ship traffic are a constant source of clutter."
-    },
     "photo": null,
     "sources": [
       "https://www.meteo.be/en/about-rmi/observation-network/radarnetwerk",
@@ -45,9 +39,6 @@
     "dualPol": true,
     "since": "2022",
     "towerM": 50,
-    "text": {
-      "en": "Belgium's first weather radar has stood on a 50 m guyed steel tower on an Ardennes plateau at Wideumont since 2001, 585 m above sea level with a clear view in every direction. The original single-polarisation radar was replaced by a dual-polarisation one in spring 2022."
-    },
     "photo": {
       "src": "/radars/bewid.webp",
       "width": 800,

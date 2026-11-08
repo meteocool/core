@@ -1020,5 +1020,67 @@
       "aria": "{title} u razdoblju, u {unit}",
       "none": "Nema povijesti s ove postaje."
     }
+  },
+  "site": {
+    "title": "Radar {name}",
+    "info": {
+      "button": "O ovom radaru",
+      "operator": "Operater",
+      "system": "Radar",
+      "band": "Pojas",
+      "band_value": "{band}-pojas",
+      "dual_pol": "dvostruka polarizacija",
+      "single_pol": "jednostruka polarizacija",
+      "since": "U radu od",
+      "antenna": "Antena",
+      "antenna_value": "{height} m nadmorske visine",
+      "tower": "Toranj",
+      "range": "Domet",
+      "metres": "{value} m",
+      "km": "{value} km",
+      "photo_alt": "Radar {name}",
+      "photo_credit": "Fotografija: {author}",
+      "none": "Za ovaj radar još nema opisa.",
+      "how": "Kako radar radi",
+      "how_sub": "Kako radari pretražuju nebo i kako meteocool ono što vide pretvara u svoje karte",
+      "sources": "Izvori",
+      "photo_source": "Fotografija ({source})"
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radari u tvojoj blizini traže nekoga s kim bi skenirali nebo.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "dob: misterij",
+    "profile": "Profil: {name}",
+    "like": "Sviđa mi se",
+    "nope": "Ma ne",
+    "liked": "{name} ti se sviđa.",
+    "noped": "{name}? Ipak ne.",
+    "hint_keys": "Povuci karticu ili koristi strelice: desno za sviđanje, lijevo za dalje.",
+    "hint_touch": "Povuci udesno ako ti se sviđa, ulijevo za dalje.",
+    "no_photo": "Još nema fotografije",
+    "match_title": "Imate spoj!",
+    "match_text": "Ti i {name} sviđate se jedno drugome.",
+    "send": "Pošalji poruku",
+    "keep_swiping": "Nastavi swipati",
+    "waiting_title": "{name} mora poslati prvu poruku",
+    "waiting_text": "Radari su sramežljivi. {name} još pretražuje obzor u potrazi za pravim riječima.",
+    "back": "Natrag na swipanje",
+    "matches": "Spojevi",
+    "matches_none": "Još nema spojeva. Povuci udesno radar koji ti se sviđa.",
+    "match_waiting": "Čeka se prva poruka",
+    "empty_title": "Upoznali ste se sa svim radarima",
+    "empty_text": "Bilo ih je svih {count}. Možda neki zaslužuje drugu priliku.",
+    "start_over": "Kreni ispočetka",
+    "tag": {
+      "band": "{band}-pojas",
+      "dual_pol": "dvopolarizacijski",
+      "single_pol": "jednopolarizacijski",
+      "tower": "toranj od {height} m",
+      "antenna": "antena na {height} m",
+      "range": "vidi {range} km"
+    }
   }
 }

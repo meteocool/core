@@ -993,7 +993,8 @@
       "none": "Ce radar n'a pas encore de description.",
       "how": "Comment fonctionne le radar",
       "how_sub": "Comment les radars sondent le ciel et comment meteocool en tire ses cartes",
-      "sources": "Sources"
+      "sources": "Sources",
+      "photo_source": "Photo ({source})"
     },
     "motion": {
       "title": "Déplacement de l’orage",
@@ -1089,6 +1090,42 @@
       },
       "aria": "{title} sur la période, en {unit}",
       "none": "Pas d'historique pour cette station."
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Des radars près de chez toi cherchent quelqu'un avec qui scruter le ciel.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "âge : un mystère",
+    "profile": "Profil de {name}",
+    "like": "J'aime",
+    "nope": "Non merci",
+    "liked": "{name} te plaît.",
+    "noped": "Tu as laissé passer {name}.",
+    "hint_keys": "Fais glisser la carte, ou utilise les flèches : droite pour aimer, gauche pour passer.",
+    "hint_touch": "Glisse à droite pour aimer, à gauche pour passer.",
+    "no_photo": "Pas encore de photo",
+    "match_title": "C'est un match !",
+    "match_text": "{name} et toi, vous vous plaisez.",
+    "send": "Envoyer un message",
+    "keep_swiping": "Continuer à swiper",
+    "waiting_title": "{name} doit envoyer le premier message",
+    "waiting_text": "Les radars sont timides. {name} scrute encore l'horizon en quête des bons mots.",
+    "back": "Retour aux profils",
+    "matches": "Matchs",
+    "matches_none": "Pas encore de match. Glisse à droite sur un radar qui te plaît.",
+    "match_waiting": "En attente de son premier message",
+    "empty_title": "Tu as rencontré tous les radars",
+    "empty_text": "Les {count} y sont tous passés. L'un d'eux mérite peut-être une seconde chance.",
+    "start_over": "Recommencer",
+    "tag": {
+      "band": "Bande {band}",
+      "dual_pol": "double pol.",
+      "single_pol": "simple pol.",
+      "tower": "tour de {height} m",
+      "antenna": "antenne à {height} m",
+      "range": "voit à {range} km"
     }
   }
 }

@@ -12,11 +12,15 @@
  * which licence, and links to where it came from. Where a fact could not be
  * found it is null and left out, rather than guessed.
  *
- * The prose is in English and German; every other language reads the
- * English. The facts are drawn in the reader's language from the labels.
+ * The prose is in every language the app speaks, a file per language and
+ * country under `src/radarInfo/text/` (radar-text-<language>-<country>), so
+ * a reader fetches their own language's and English, which stands in for a
+ * text not yet translated. The facts are drawn in the reader's language from
+ * the labels.
  */
 
 import { countryOf } from "./radarSites";
+import { normaliseLocale } from "../locale/choose";
 
 export interface RadarPhoto {
   /** Under `public/radars/`, as the page fetches it. */
@@ -42,31 +46,50 @@ export interface RadarInfo {
   /** The year the radar now there went into service, as a reader writes it. */
   since: string | null;
   towerM: number | null;
-  /** Where it stands and what it watches, a few sentences long. */
-  text: { en: string; de?: string };
+  /** Where it stands and what it watches, a few sentences long, by language: English and the reader's. */
+  text: Record<string, string>;
   photo: RadarPhoto | null;
   /** Where the text and the facts come from, as links; the photo credits its own page. */
   sources: string[];
 }
 
+/** A radar as its country's file keeps it: everything but the text, which is kept by language. */
+export type RadarFacts = Omit<RadarInfo, "text">;
+
 /** A country's file of radars, by node code. */
+export type RadarFactsFile = Record<string, RadarFacts>;
+
+/** Radars with their texts, by node code. */
 export type RadarInfoFile = Record<string, RadarInfo>;
 
-/** The texts' languages besides English, which every other language falls back to. */
-const LANGUAGES = ["de"] as const;
+/** One language's texts for one country's radars, by node code. */
+export type RadarTextFile = Record<string, string>;
+
+/** The language a reader's texts are in: one the app speaks, English otherwise. */
+export function textLanguage(locale: string | null | undefined): string {
+  return normaliseLocale(locale) ?? "en";
+}
 
 /** The description in the reader's language, or in English where there is none in theirs. */
 export function infoText(info: RadarInfo, locale: string | null | undefined): string {
-  const language = (locale ?? "en").slice(0, 2).toLowerCase();
-  const own = (LANGUAGES as readonly string[]).includes(language)
-    ? info.text[language as (typeof LANGUAGES)[number]]
-    : undefined;
-  return own || info.text.en;
+  return info.text[textLanguage(locale)] || info.text.en || "";
 }
 
-/** The name of the file a radar's texts are in, by its node code. */
+/** The name of the file a radar's facts are in, by its node code. */
 export function infoFileOf(code: string): string {
   return `radar-info-${countryOf(code)}`;
+}
+
+/** The name of the file a radar's text in one language is in. */
+export function textFileOf(code: string, language: string): string {
+  return `radar-text-${language}-${countryOf(code)}`;
+}
+
+/** A radar's facts with its texts, from each language's file that has one. */
+export function withTexts(code: string, facts: RadarFacts, texts: Record<string, RadarTextFile>): RadarInfo {
+  const text: Record<string, string> = {};
+  for (const [language, file] of Object.entries(texts)) if (file[code]) text[language] = file[code];
+  return { ...facts, text };
 }
 
 /** Sources that turn up for many radars, by the name a reader knows them by. */
@@ -90,6 +113,9 @@ const SOURCE_NAMES: Array<[RegExp, string]> = [
   [/(^|\.)meteohmd\.hr$/, "DHMZ"],
   [/(^|\.)ted\.europa\.eu$/, "EU tenders (TED)"],
   [/(^|\.)wikidata\.org$/, "Wikidata"],
+  [/(^|\.)commons\.wikimedia\.org$/, "Wikimedia Commons"],
+  [/(^|\.)flickr\.com$/, "Flickr"],
+  [/(^|\.)geo\.hlipp\.de$/, "Geograph Deutschland"],
 ];
 
 /**

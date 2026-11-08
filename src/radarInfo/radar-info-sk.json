@@ -6,9 +6,6 @@
     "dualPol": true,
     "since": "2015",
     "towerM": 16,
-    "text": {
-      "en": "Sits on Malý Javorník (584 m) in the Little Carpathians, above Svätý Jur and about 6 km from Bratislava. The summit is taken up by the SHMÚ radar station, so hiking trails pass around it. The current dual-polarisation radar replaced an older one in 2015 and covers western Slovakia."
-    },
     "photo": null,
     "sources": [
       "https://drepo.uniza.sk/bitstreams/8b54ce75-3995-4752-8179-bf2bc1045152/download",
@@ -23,9 +20,6 @@
     "dualPol": true,
     "since": "2015",
     "towerM": 16,
-    "text": {
-      "en": "Stands at the weather and radar station on top of Kojšovská hoľa (1246 m) in the Volovské vrchy, about 38 km from Košice. It covers eastern Slovakia. In June 2015 a dual-polarisation radar replaced the older Doppler radar at the site."
-    },
     "photo": {
       "src": "/radars/skkoj.webp",
       "width": 800,
@@ -48,9 +42,6 @@
     "dualPol": true,
     "since": "2015",
     "towerM": 20,
-    "text": {
-      "en": "Stands on Kubínska hoľa (1346 m) in the Oravská Magura range above Dolný Kubín, a ski and hiking area. At about 1400 m antenna height it is the highest of Slovakia's four radars and covers the north of the country. The site was added in the 2015 network renewal."
-    },
     "photo": null,
     "sources": [
       "https://drepo.uniza.sk/bitstreams/8b54ce75-3995-4752-8179-bf2bc1045152/download",
@@ -65,9 +56,6 @@
     "dualPol": true,
     "since": "2015",
     "towerM": 42,
-    "text": {
-      "en": "Stands at Španí laz near Veľký Krtíš in southern central Slovakia, close to the Hungarian border. It adds coverage of the south of central Slovakia. The site was added in the 2015 network renewal."
-    },
     "photo": null,
     "sources": [
       "https://drepo.uniza.sk/bitstreams/8b54ce75-3995-4752-8179-bf2bc1045152/download",

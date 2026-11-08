@@ -993,7 +993,8 @@
       "none": "Tento radar zatiaľ nemá popis.",
       "how": "Ako radar funguje",
       "how_sub": "Ako radary snímajú oblohu a ako z toho meteocool vytvára svoje mapy",
-      "sources": "Zdroje"
+      "sources": "Zdroje",
+      "photo_source": "Foto ({source})"
     },
     "motion": {
       "title": "Pohyb búrky",
@@ -1089,6 +1090,42 @@
       },
       "aria": "{title} za obdobie, v {unit}",
       "none": "Z tejto stanice nie je k dispozícii priebeh."
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radary vo tvojom okolí hľadajú niekoho, s kým by mohli skenovať oblohu.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "vek: záhada",
+    "profile": "Profil: {name}",
+    "like": "Páči sa",
+    "nope": "Nič moc",
+    "liked": "Radar {name} sa ti páči.",
+    "noped": "Radar {name} tentoraz nie.",
+    "hint_keys": "Potiahni kartu alebo použi šípky: doprava, keď sa ti páči, doľava, keď nie.",
+    "hint_touch": "Swipni doprava, keď sa ti páči, doľava, keď nie.",
+    "no_photo": "Zatiaľ bez fotky",
+    "match_title": "Je to match!",
+    "match_text": "Ty a radar {name} ste sa zapáčili jeden druhému.",
+    "send": "Napísať správu",
+    "keep_swiping": "Swipovať ďalej",
+    "waiting_title": "Prvú správu musí napísať radar {name}",
+    "waiting_text": "Radary sú hanblivé. {name} ešte hľadá na obzore tie správne slová.",
+    "back": "Späť k swipovaniu",
+    "matches": "Matche",
+    "matches_none": "Zatiaľ žiadny match. Swipni doprava radar, ktorý sa ti páči.",
+    "match_waiting": "Čaká sa na prvú správu",
+    "empty_title": "Všetky radary sú spoznané",
+    "empty_text": "Bolo ich spolu {count}. Možno si niektorý zaslúži druhú šancu.",
+    "start_over": "Začať odznova",
+    "tag": {
+      "band": "pásmo {band}",
+      "dual_pol": "dvojitá polarizácia",
+      "single_pol": "jednoduchá polarizácia",
+      "tower": "veža {height} m",
+      "antenna": "anténa vo {height} m",
+      "range": "vidí {range} km"
     }
   }
 }

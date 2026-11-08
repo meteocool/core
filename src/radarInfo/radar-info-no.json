@@ -6,9 +6,6 @@
     "dualPol": null,
     "since": "2017",
     "towerM": 5.5,
-    "text": {
-      "en": "Stands on Trolltinden on the island of Andøya in Vesterålen, 441 m above sea level, and watches Vesterålen, parts of Troms and the sea beyond. Lightning and storms wrecked the radar in 2015; the whole radar and its dome were replaced and it was back in service in 2017. The site opened in 2007."
-    },
     "photo": {
       "src": "/radars/noand.webp",
       "width": 800,
@@ -33,9 +30,6 @@
     "dualPol": true,
     "since": "2012",
     "towerM": 17,
-    "text": {
-      "en": "Stands on the summit Skužučohkka south of Berlevåg on the Barents Sea coast and watches East Finnmark and the sea beyond. It is MET Norway's easternmost radar, opened in 2012, and its antenna was mounted unusually high so that a nearby building would not block its view."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -52,9 +46,6 @@
     "dualPol": true,
     "since": "2020",
     "towerM": 6.5,
-    "text": {
-      "en": "Stands on Klovafjellet on the island of Goddo in Bømlo, by the North Sea, and watches the North Sea as well as rain over Bergen, Haugesund and Stavanger. Opened in 2002 as MET Norway's second radar, it got a new antenna, dome and dual-polarisation electronics in 2020."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -70,9 +61,6 @@
     "dualPol": null,
     "since": "2008",
     "towerM": 6.5,
-    "text": {
-      "en": "Stands on Sluskfjellet on the Arctic island of Sørøya, 446 m above sea level, and watches West Finnmark, northern Troms and the open sea beyond. Opened in 2008, it is the northernmost radar in MET Norway's network."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -88,9 +76,6 @@
     "dualPol": true,
     "since": "2016",
     "towerM": 13.5,
-    "text": {
-      "en": "Stands on the summit of Hafjell, the ski mountain in Øyer north of Lillehammer, with its antenna 1,080 m above sea level, the highest in MET Norway's network. It watches the northern part of Eastern Norway and mountain areas such as Rondane, and went into service in 2016."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -106,9 +91,6 @@
     "dualPol": true,
     "since": "2017",
     "towerM": 7,
-    "text": {
-      "en": "Stands on Stakksteinsliknuten in the Toreshei area of Hægebostad in Agder, 631 m above sea level, and watches Sørlandet, Rogaland and part of the Skagerrak. It was the first radar in MET Norway's network, in service since 2000, and was upgraded to a dual-polarisation Leonardo radar in 2017."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -125,9 +107,6 @@
     "dualPol": true,
     "since": "2010",
     "towerM": 13.5,
-    "text": {
-      "en": "Stands on Nielsåsen on the Hurum peninsula, now part of Asker, 363 m above sea level. It is the radar closest to Oslo and watches central Eastern Norway and the Oslofjord. It went into service in 2010, replacing an older radar at Hagahogget in Asker."
-    },
     "photo": {
       "src": "/radars/nohur.webp",
       "width": 800,
@@ -151,9 +130,6 @@
     "dualPol": true,
     "since": "2018",
     "towerM": 9,
-    "text": {
-      "en": "Stands on Nagelen in the Olsøyheia hills of Indre Fosen, across the fjord from Trondheim, 616 m above sea level, and watches Trøndelag, part of Møre og Romsdal and the fishing banks offshore. The site opened in 2002; in 2018 its radar, then MET Norway's oldest, was replaced by a dual-polarisation unit."
-    },
     "photo": {
       "src": "/radars/norsa.webp",
       "width": 800,
@@ -178,9 +154,6 @@
     "dualPol": true,
     "since": "2022",
     "towerM": null,
-    "text": {
-      "en": "Stands on Rássegálvárri in Kautokeino municipality on the Finnmarksvidda plateau, where two Norwegian Armed Forces radars once stood. MET Norway's newest radar, in service since October 2022, it reaches about 240 km and, together with Hasvik and Berlevåg, covers all of Finnmark."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -197,9 +170,6 @@
     "dualPol": true,
     "since": "2021",
     "towerM": 12,
-    "text": {
-      "en": "Stands at Langneset near the airport on Røst, the low-lying outermost island group of Lofoten. With its antenna only 17 m above sea level it is the lowest radar in MET Norway's network, watching Lofoten, Ofoten, Salten and the fishing banks offshore. Opened in 2004, upgraded to dual polarisation in 2021."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -215,9 +185,6 @@
     "dualPol": true,
     "since": "2014",
     "towerM": 10.5,
-    "text": {
-      "en": "Stands on Kvaløyfjellet in Sømna on the Helgeland coast of Nordland, 315 m above sea level, and watches Helgeland, northern Trøndelag and the Sklinna, Træna and Halten fishing banks. It opened in 2014 with a dual-polarisation radar."
-    },
     "photo": null,
     "sources": [
       "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
@@ -232,9 +199,6 @@
     "dualPol": false,
     "since": "2009",
     "towerM": 10,
-    "text": {
-      "en": "Stands on Kjerringa near Vestkapp at the outer tip of the Stad peninsula, in a stone-clad 10 m tower with its antenna 508 m above sea level. It watches the northern North Sea and the southern Norwegian Sea, along with rain over Ålesund and Molde, and has been running since 2009."
-    },
     "photo": {
       "src": "/radars/nosta.webp",
       "width": 800,

@@ -993,7 +993,8 @@
       "none": "Tento radar zatím nemá popis.",
       "how": "Jak radar funguje",
       "how_sub": "Jak radary snímají oblohu a jak z toho meteocool vytváří své mapy",
-      "sources": "Zdroje"
+      "sources": "Zdroje",
+      "photo_source": "Foto ({source})"
     },
     "motion": {
       "title": "Pohyb bouřky",
@@ -1089,6 +1090,42 @@
       },
       "aria": "{title} za období, v {unit}",
       "none": "Z této stanice není k dispozici průběh."
+    }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radary ve tvém okolí hledají někoho, s kým by mohly skenovat oblohu.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "věk: záhada",
+    "profile": "Profil: {name}",
+    "like": "Líbí",
+    "nope": "Nic moc",
+    "liked": "Radar {name} se ti líbí.",
+    "noped": "Radar {name} tentokrát ne.",
+    "hint_keys": "Přetáhni kartu nebo použij šipky: doprava, když se ti líbí, doleva, když ne.",
+    "hint_touch": "Swipni doprava, když se ti líbí, doleva, když ne.",
+    "no_photo": "Zatím bez fotky",
+    "match_title": "Je to match!",
+    "match_text": "Ty a radar {name} jste se zalíbili jeden druhému.",
+    "send": "Napsat zprávu",
+    "keep_swiping": "Swipovat dál",
+    "waiting_title": "První zprávu musí napsat radar {name}",
+    "waiting_text": "Radary jsou stydlivé. {name} ještě hledá na obzoru ta správná slova.",
+    "back": "Zpět ke swipování",
+    "matches": "Matche",
+    "matches_none": "Zatím žádný match. Swipni doprava radar, který se ti líbí.",
+    "match_waiting": "Čeká se na první zprávu",
+    "empty_title": "Všechny radary jsou poznané",
+    "empty_text": "Bylo jich celkem {count}. Možná si některý zaslouží druhou šanci.",
+    "start_over": "Začít znovu",
+    "tag": {
+      "band": "pásmo {band}",
+      "dual_pol": "dvojitá polarizace",
+      "single_pol": "jednoduchá polarizace",
+      "tower": "věž {height} m",
+      "antenna": "anténa ve {height} m",
+      "range": "vidí {range} km"
     }
   }
 }
