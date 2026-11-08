@@ -1,9 +1,10 @@
 <script lang="ts">
 /**
- * Choosing a past window (lib/archive.ts): a day the archive keeps, a start
- * on the five-minute grid, and a length; "Open" puts the map in it. A panel
- * over the map on a desktop and a sheet on a phone (GlassPanel), opened from
- * the Archive pill in the player's tray.
+ * Choosing a past window (lib/archive.ts): a day the archive keeps, on a
+ * month's calendar, then its start on the five-minute grid and its length on
+ * wheels, as the system's own date picker does; "Open" puts the map in it. A
+ * panel over the map on a desktop and a sheet on a phone (GlassPanel),
+ * opened from the Archive pill in the player's tray or the frame's tab.
  *
  * The days are what `/v3/archive` says it covers, asked for as the picker
  * opens. While nothing is kept yet it says the archive is empty.
@@ -12,7 +13,8 @@ import { createEventDispatcher, onMount } from "svelte";
 import { _, locale } from "svelte-i18n";
 import { addDays, format, getHours, getMinutes, set, startOfDay } from "date-fns";
 import GlassPanel from "./GlassPanel.svelte";
-import Segmented from "./Segmented.svelte";
+import ArchiveCalendar from "./ArchiveCalendar.svelte";
+import Wheel from "./Wheel.svelte";
 import { archiveWindow } from "../stores";
 import { archiveCoverage, loadCoverage } from "../lib/archiveCoverage";
 import {
@@ -59,9 +61,20 @@ $: if (ready) minute = Math.min(Math.max(minute, firstMinute), lastMinute);
 
 /* The reader's language for dates, again once it changes. */
 $: dfn = { locale: getDfnLocale(), language: $locale };
-const dayLabel = (ms: number, options: { locale: ReturnType<typeof getDfnLocale> }) => format(ms, "EEE d MMM", options);
-const clock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const two = (n: number) => String(n).padStart(2, "0");
 $: lengths = WINDOW_HOURS.map((value) => ({ value, label: $_("chrome.archive.hours", { values: { hours: value } }) }));
+
+/* The start on two wheels: the hours the day has, then that hour's minutes.
+   An hour without the minute that was on the wheel takes its nearest one. */
+$: hourItems = Array.from(
+  { length: Math.floor(lastMinute / 60) - Math.floor(firstMinute / 60) + 1 },
+  (_, i) => { const h = Math.floor(firstMinute / 60) + i; return { value: h, label: two(h) }; },
+);
+$: hour = Math.floor(minute / 60);
+$: minuteItems = minutes.filter((m) => Math.floor(m / 60) === hour).map((m) => ({ value: m % 60, label: two(m % 60) }));
+const clampMinute = (m: number) => Math.min(Math.max(m, firstMinute), lastMinute);
+function setHour(h: number) { minute = clampMinute(h * 60 + (minute % 60)); }
+function setMinute(m: number) { minute = clampMinute(hour * 60 + m); }
 
 /** The window the choices make, kept inside the archive; null where none can be. */
 $: chosen = coverage && day
@@ -105,25 +118,24 @@ function retry() {
       <p class="status" role="status">{$_("chrome.archive.loading")}</p>
     {:else}
       <form class="fields" on:submit|preventDefault={openWindow}>
-        <label class="field">
-          <span>{$_("chrome.archive.day")}</span>
-          <select bind:value={day}>
-            {#each days as option (option)}
-              <option value={option}>{dayLabel(option, dfn)}</option>
-            {/each}
-          </select>
-        </label>
-        <label class="field">
-          <span>{$_("chrome.archive.start")}</span>
-          <select bind:value={minute}>
-            {#each minutes as option (option)}
-              <option value={option}>{clock(option)}</option>
-            {/each}
-          </select>
-        </label>
-        <div class="field">
-          <span aria-hidden="true">{$_("chrome.archive.length")}</span>
-          <Segmented options={lengths} bind:value={hours} label={$_("chrome.archive.length")} compact />
+        <ArchiveCalendar {days} value={day} label={$_("chrome.archive.day")} on:change={(event) => { day = event.detail; }} />
+        <div class="wheels">
+          <span class="caption start" aria-hidden="true">{$_("chrome.archive.start")}</span>
+          <span class="caption length" aria-hidden="true">{$_("chrome.archive.length")}</span>
+          <div class="band" aria-hidden="true"></div>
+          <div class="wheel hour">
+            <Wheel items={hourItems} value={hour} label="{$_("chrome.archive.start")}, {$_("chrome.archive.hour")}"
+              on:change={(event) => setHour(event.detail)} />
+          </div>
+          <span class="colon" aria-hidden="true">:</span>
+          <div class="wheel minute">
+            <Wheel items={minuteItems} value={minute % 60} label="{$_("chrome.archive.start")}, {$_("chrome.archive.minute")}"
+              on:change={(event) => setMinute(event.detail)} />
+          </div>
+          <div class="wheel hours">
+            <Wheel items={lengths} value={hours} label={$_("chrome.archive.length")}
+              on:change={(event) => { hours = event.detail; }} />
+          </div>
         </div>
         <p class="summary" aria-live="polite">{summary}</p>
         <div class="actions">
@@ -155,25 +167,48 @@ function retry() {
     flex-direction: column;
     gap: 12px;
   }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  /* One band across the wheels marks the row that is chosen, as the
+     system's picker draws it; the captions name the columns above it. */
+  .wheels {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 56px 14px 56px 28px 80px 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    row-gap: 2px;
+    padding-top: 4px;
+    border-top: 0.5px solid var(--mc-separator);
+  }
+  .caption {
+    grid-row: 1;
+    padding-top: 6px;
     font: var(--mc-type-label);
     color: var(--mc-text-2);
+    text-align: center;
   }
-  select {
-    height: 36px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: var(--mc-radius-inner);
+  .caption.start { grid-column: 2 / 5; }
+  .caption.length { grid-column: 6; }
+  .band {
+    grid-row: 2;
+    grid-column: 2 / 7;
+    height: 34px;
+    margin: 0 -8px;
+    border-radius: 9px;
     background: var(--mc-tint);
-    color: var(--mc-text);
-    font: 500 15px/1 var(--mc-font);
-    cursor: pointer;
+    pointer-events: none;
   }
-  select:hover { background: var(--mc-tint-hover); }
-  select:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .wheel { grid-row: 2; }
+  .wheel.hour { grid-column: 2; }
+  .colon {
+    grid-row: 2;
+    grid-column: 3;
+    text-align: center;
+    font: 500 21px/1 var(--mc-font);
+    color: var(--mc-text);
+    transform: translateY(-1px);
+  }
+  .wheel.minute { grid-column: 4; }
+  .wheel.hours { grid-column: 6; }
   .summary {
     font-variant-numeric: tabular-nums;
   }

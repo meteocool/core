@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./test";
 import { RADAR_VIEW, noGeocoder, openRadar, settled, timeline } from "./app";
 import { COVERAGE, linkTime, serveArchive } from "./archive";
@@ -24,14 +24,35 @@ const windowPill = (page: Page) => page.getByRole("button", { name: /back to liv
 const windowTab = (page: Page) => page.locator(".archive-frame .choose");
 const axisLabels = (page: Page) => page.locator(".timeline .axis .label").allTextContents();
 
+/** A day on the picker's calendar, by its full date. */
+const calendarDay = (dialog: Locator, name: string) => dialog.getByRole("button", { name, exact: true });
+/** One of the picker's wheels, named by what it picks: "Start, Hour", "Start, Minute", "Length". */
+const wheel = (dialog: Locator, name: string) => dialog.getByRole("spinbutton", { name, exact: true });
+
+/** Turn a wheel to `label` from the keyboard: to its top, then a notch at a time, 34px each. */
+async function turnWheel(dialog: Locator, name: string, label: string): Promise<void> {
+  const control = wheel(dialog, name);
+  const labels = await control.locator(".row").allTextContents();
+  const notches = labels.map((text) => text.trim()).indexOf(label);
+  expect(notches, `${label} on the ${name} wheel`).toBeGreaterThanOrEqual(0);
+  await control.focus();
+  await control.press("Home");
+  for (let i = 0; i < notches; i += 1) await control.press("ArrowDown");
+  await expect(control).toHaveAttribute("aria-valuetext", label);
+  // And at rest on it: a hand on a wheel still turning would race its motion.
+  await expect.poll(() => control.locator(".scroller").evaluate((el, top) => Math.abs(el.scrollTop - top) <= 1, notches * 34))
+    .toBe(true);
+}
+
 /** Choose the hour from 20:00 on 4 November in the picker, and open it. */
 async function chooseWindow(page: Page): Promise<void> {
   await archivePill(page).click();
   const dialog = archiveDialog(page);
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Day").selectOption({ label: "Wed 4 Nov" });
-  await dialog.getByLabel("Start").selectOption({ label: "20:00" });
-  await dialog.getByRole("radio", { name: "1 h" }).click();
+  await calendarDay(dialog, "Wednesday 4 November 2026").click();
+  await turnWheel(dialog, "Start, Hour", "20");
+  await turnWheel(dialog, "Start, Minute", "00");
+  await turnWheel(dialog, "Length", "1 h");
   await dialog.getByRole("button", { name: "Open" }).click();
   await expect(dialog).toBeHidden();
 }
@@ -47,8 +68,46 @@ test("the Archive pill opens the picker, with the days the archive keeps", async
   const dialog = archiveDialog(page);
   await expect(dialog).toBeVisible();
   // Its first day to its last, both in part: 6 October to 5 November in Berlin.
-  await expect(dialog.getByLabel("Day").locator("option")).toHaveCount(31);
+  const kept = dialog.getByRole("group", { name: "Day" }).locator("button:enabled");
+  await expect(kept).toHaveCount(5);
+  await expect(dialog.getByRole("button", { name: "Next month" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Previous month" }).click();
+  await expect(kept).toHaveCount(26);
+  await expect(dialog.getByRole("button", { name: "Previous month" })).toBeDisabled();
   await expect(dialog.getByRole("button", { name: "Open" })).toBeEnabled();
+});
+
+test("the picker's wheels turn with a scroll or a tap, its calendar with the arrow keys", async ({ page }, info) => {
+  await serveArchive(page);
+  await openRadar(page);
+  await archivePill(page).click();
+  const dialog = archiveDialog(page);
+  await calendarDay(dialog, "Wednesday 4 November 2026").click();
+  await turnWheel(dialog, "Start, Hour", "20");
+  await turnWheel(dialog, "Start, Minute", "00");
+  const hour = wheel(dialog, "Start, Hour");
+
+  // A scroll of two rows settles two hours on; mobile WebKit has no wheel.
+  if (info.project.name === "desktop") {
+    await hour.hover();
+    await page.mouse.wheel(0, 68);
+    await expect(hour).toHaveAttribute("aria-valuetext", "22");
+  } else {
+    await turnWheel(dialog, "Start, Hour", "22");
+  }
+  // A row in sight above or below the band comes to it.
+  const below = hour.locator(".row", { hasText: /^\s*23\s*$/ });
+  if (info.project.name === "desktop") await below.click();
+  else await below.tap();
+  await expect(hour).toHaveAttribute("aria-valuetext", "23");
+  await expect(dialog.locator(".summary")).toContainText("Wed 4 Nov, 23:00");
+
+  const day = calendarDay(dialog, "Wednesday 4 November 2026");
+  await day.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(calendarDay(dialog, "Tuesday 3 November 2026")).toHaveAttribute("aria-pressed", "true");
+  await expect(calendarDay(dialog, "Tuesday 3 November 2026")).toBeFocused();
+  await expect(dialog.locator(".summary")).toContainText("Tue 3 Nov, 23:00");
 });
 
 test("the picker is reached and worked with the keyboard alone", async ({ page }) => {
@@ -139,8 +198,10 @@ test("the frame's tab names the window, and opens the picker on it", async ({ pa
   await tab.click();
   const dialog = archiveDialog(page);
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel("Day")).toHaveValue(/.+/);
-  await expect(dialog.getByLabel("Start").locator("option:checked")).toHaveText("20:00");
+  await expect(calendarDay(dialog, "Wednesday 4 November 2026")).toHaveAttribute("aria-pressed", "true");
+  await expect(wheel(dialog, "Start, Hour")).toHaveAttribute("aria-valuetext", "20");
+  await expect(wheel(dialog, "Start, Minute")).toHaveAttribute("aria-valuetext", "00");
+  await expect(wheel(dialog, "Length")).toHaveAttribute("aria-valuetext", "1 h");
 });
 
 test("a from= and to= link opens in the window, and the share link carries it", async ({ page }) => {
