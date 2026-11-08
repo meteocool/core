@@ -24,6 +24,7 @@ import { onDestroy } from "svelte";
 import { _ } from "svelte-i18n";
 import { fly } from "svelte/transition";
 import { fadeEdges } from "../lib/fadeEdges";
+import { escapeBelongsToField } from "../lib/escapeTarget";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 import Icon from "./Icon.svelte";
@@ -77,9 +78,12 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key !== "Escape" || event.defaultPrevented || !$siteMode) return;
   if (motionOpen || document.querySelector("[role='dialog'][aria-modal='true']")) return;
   if ($pointMenuAt || ($selectedStorm && $stormDetails)) return;
-  const target = event.target as HTMLElement | null;
-  if (target?.isContentEditable) return;
-  if (target && !tray?.contains(target) && /^(?:INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (escapeBelongsToField(target && {
+    editable: target.isContentEditable,
+    field: /^(?:INPUT|TEXTAREA|SELECT)$/.test(target.tagName),
+    inTray: !!tray?.contains(target),
+  })) return;
   event.preventDefault();
   close();
 }

@@ -288,6 +288,15 @@ test.describe("with the radars' marks on", () => {
     await expect(tray).toBeHidden();
     await expect(timeline(page)).toBeVisible();
 
+    // An Escape aimed at the window, as iOS's web view sends some keys, closes
+    // it too, and throws nothing.
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await open();
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await expect(tray).toBeHidden();
+    expect(errors).toEqual([]);
+
     // Opened again and again, it is drawn every time. Closing lets go of the
     // sweep's WebGL context, and the browser's word that it was lost, landing
     // after the next radar had built its own, left every other one blank.
