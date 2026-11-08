@@ -16,7 +16,7 @@ import {
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
   nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible, stationLayerVisible,
-  drawnEncoding, archiveWindow,
+  drawnEncoding, archiveWindow, archivePickerOpen,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -86,9 +86,6 @@ let gridConfig: GridConfig | null = null;
  * the strip on screen is still the last one.
  */
 $: past = gridConfig?.window ?? null;
-
-/** The archive's picker, over the map. */
-let pickerOpen = false;
 
 /**
  * An echo top's or VIL's encoding while one is drawn on the step on screen,
@@ -1234,8 +1231,9 @@ onDestroy(() => {
 
 <LiveIndicator {cap} />
 
-{#if pickerOpen}
-  <ArchivePicker on:close={() => { pickerOpen = false; }} />
+<!-- The archive's picker, over the map: from the pill below, or the frame's tab. -->
+{#if $archivePickerOpen}
+  <ArchivePicker on:close={() => archivePickerOpen.set(false)} />
 {/if}
 
 {#if outOfCoverage && !coverageDismissed}
@@ -1321,7 +1319,7 @@ onDestroy(() => {
             {#if $cellLayerVisible}<StormKey />{/if}
             <RadarProductPicker variant="pill" />
             <!-- A past window, the archive's (lib/archive.ts). -->
-            <ArchivePill on:open={() => { pickerOpen = true; }} />
+            <ArchivePill on:open={() => archivePickerOpen.set(true)} />
           </span>
         </span>
         {#if $inspectLatLon && !$latLon && !past}

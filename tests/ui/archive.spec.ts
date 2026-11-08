@@ -18,8 +18,10 @@ const WINDOW_LINK = `${RADAR_VIEW}&from=${linkTime(START)}&to=${linkTime(END)}`;
 
 const archivePill = (page: Page) => page.getByRole("button", { name: "Archive", exact: true });
 const archiveDialog = (page: Page) => page.getByRole("dialog", { name: "Archive" });
-/** The pill at the top, in a past window: the date and time on screen, and the way back to live. */
+/** The cross on the frame's tab, in a past window: named by the date and time on screen, and the way back to live. */
 const windowPill = (page: Page) => page.getByRole("button", { name: /back to live$/ });
+/** The frame's tab itself, which opens the picker again. */
+const windowTab = (page: Page) => page.locator(".archive-frame .choose");
 const axisLabels = (page: Page) => page.locator(".timeline .axis .label").allTextContents();
 
 /** Choose the hour from 20:00 on 4 November in the picker, and open it. */
@@ -82,7 +84,7 @@ test("a chosen window spans the timeline in clock times, and the pill says its d
   await expect(timeline(page)).toHaveAttribute("aria-valuenow", "12");
   await expect.poll(() => axisLabels(page)).toEqual(expect.arrayContaining(["20:00", "21:00"]));
   expect((await axisLabels(page)).every((label) => /^\d{2}:\d{2}$/.test(label.trim()))).toBe(true);
-  await expect(windowPill(page)).toHaveText(/Wed 4 Nov, 21:00/);
+  await expect(windowPill(page)).toHaveAccessibleName(/Wed 4 Nov, 21:00/);
 
   const timeseries = asked.find((request) => request.path === "/v3/radar/timeseries");
   expect(timeseries?.query.get("start")).toBe(String(START));
@@ -103,10 +105,10 @@ test("the arrow keys move within the window, and stop at its ends", async ({ pag
   await expect(strip).toHaveAttribute("aria-valuenow", "12");
   await page.keyboard.press("ArrowLeft");
   await expect(strip).toHaveAttribute("aria-valuenow", "11");
-  await expect(windowPill(page)).toHaveText(/Wed 4 Nov, 20:55/);
+  await expect(windowPill(page)).toHaveAccessibleName(/Wed 4 Nov, 20:55/);
   for (let i = 0; i < 15; i += 1) await page.keyboard.press("ArrowLeft");
   await expect(strip).toHaveAttribute("aria-valuenow", "0");
-  await expect(windowPill(page)).toHaveText(/Wed 4 Nov, 20:00/);
+  await expect(windowPill(page)).toHaveAccessibleName(/Wed 4 Nov, 20:00/);
 });
 
 test("the pill at the top returns to live", async ({ page }) => {
@@ -122,6 +124,25 @@ test("the pill at the top returns to live", async ({ page }) => {
   await expect.poll(() => new URL(page.url()).searchParams.has("from")).toBe(false);
 });
 
+test("the frame's tab names the window, and opens the picker on it", async ({ page }, info) => {
+  await serveArchive(page);
+  await page.goto(WINDOW_LINK);
+  await settled(timeline(page));
+  const tab = windowTab(page);
+  await expect(tab).toHaveAccessibleName("Archive, Wed 4 Nov, 21:00");
+  // A desktop has the room for the window's day and span, then the step's clock.
+  // The text as rendered: each layout's spans are in the page, one hidden.
+  await expect.poll(() => tab.innerText()).toMatch(info.project.name === "desktop"
+    ? /Archive\s*·\s*Wed 4 Nov, 20:00–21:00\s*·\s*21:00/
+    : /Archive\s*·\s*Wed 4 Nov, 21:00/);
+
+  await tab.click();
+  const dialog = archiveDialog(page);
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Day")).toHaveValue(/.+/);
+  await expect(dialog.getByLabel("Start").locator("option:checked")).toHaveText("20:00");
+});
+
 test("a from= and to= link opens in the window, and the share link carries it", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "share", {
@@ -134,7 +155,7 @@ test("a from= and to= link opens in the window, and the share link carries it", 
   await settled(timeline(page));
 
   await expect(timeline(page)).toHaveAttribute("aria-valuemax", "12");
-  await expect(windowPill(page)).toHaveText(/Wed 4 Nov, 21:00/);
+  await expect(windowPill(page)).toHaveAccessibleName(/Wed 4 Nov, 21:00/);
   await expect.poll(() => asked.some((request) => request.path === "/storms"
     && request.query.get("until") === new Date(END * 1000).toISOString())).toBe(true);
 
@@ -154,7 +175,7 @@ test("a link to a frame older than the live timeline opens a window ending on it
   await serveArchive(page);
   await page.goto(`${RADAR_VIEW}&t=${linkTime(END)}`);
   await settled(timeline(page));
-  await expect(windowPill(page)).toHaveText(/Wed 4 Nov, 21:00/);
+  await expect(windowPill(page)).toHaveAccessibleName(/Wed 4 Nov, 21:00/);
   // Two hours, ending on the frame.
   await expect(timeline(page)).toHaveAttribute("aria-valuemax", "24");
   await expect(timeline(page)).toHaveAttribute("aria-valuenow", "24");

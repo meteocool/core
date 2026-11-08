@@ -142,6 +142,19 @@
   --mc-chrome-accent: #007aff;
   --mc-chrome-accent-strong: #0062cc;
 
+  /* A past window (ArchiveFrame, LiveIndicator): graphite, the one ink with
+     no meaning of its own here, so the frame reads as "a picture" and never as
+     a warning or a control. Inverted over the dark basemap. */
+  --mc-archive-ink: #1c1c1e;
+  --mc-archive-on: #ffffff;
+  --mc-archive-frame-w: 4px;
+  /* The map's corners inside the frame, rounded on every screen; on one with
+     rounded glass, following it (:root.is-ios) so the band stays even. */
+  --mc-archive-radius: 18px;
+  /* The tab the frame's top edge grows, naming the window: under the status
+     bar and the island, then a line of its own. */
+  --mc-archive-tab-h: calc(var(--mc-safe-top) + 26px);
+
   /* flat tints for controls that sit on glass */
   --mc-tint: rgba(60, 60, 67, 0.08);
   --mc-tint-hover: rgba(60, 60, 67, 0.14);
@@ -244,6 +257,7 @@
   --mc-z-chart: 34;
   --mc-z-tray-buttons: 36;
   --mc-z-pill: 40;
+  --mc-z-frame: 50;       /* a past window's ring: over the chrome, under what opens on it */
   --mc-z-toast: 60;
   --mc-z-dialog: 70;
   --mc-z-nanobar: 80;
@@ -315,6 +329,9 @@
   --mc-chrome-hairline: rgba(255, 255, 255, 0.26);
   --mc-chrome-accent: #0a84ff;
   --mc-chrome-accent-strong: #409cff;
+
+  --mc-archive-ink: #e5e5ea;
+  --mc-archive-on: #1c1c1e;
 }
 
 /* Dark. The sheets and everything that is not floating over the map. Same
@@ -365,6 +382,15 @@
 :root.is-ios {
   --mc-collapsed-bottom: max(12px, calc(var(--mc-safe-bottom) - 12px));
   --mc-player-base-h: 112px;
+  /* A home indicator means rounded glass, about 56px on a phone, and the
+     band keeps its width round it (min() turns the inset into 0 or 1). */
+  --mc-archive-radius: max(18px, calc(min(var(--mc-safe-bottom), 1px) * 56 - var(--mc-archive-frame-w)));
+}
+
+/* A past window (ArchiveFrame): the frame's tab takes the top of the screen,
+   and the top line, with everything measured off it, starts below. */
+:root.archive-open {
+  --mc-top-stack: calc(var(--mc-archive-tab-h) + var(--mc-gutter));
 }
 
 /* A phone is held closer and read at arm's length less often than a desktop
@@ -389,7 +415,11 @@
     --mc-bar-h: 42px;
     --mc-player-base-h: 100px;
   }
-  :root.is-ios { --mc-player-base-h: 104px; }
+  /* An iPad's corners are far tighter than a phone's: the plain radius. */
+  :root.is-ios {
+    --mc-player-base-h: 104px;
+    --mc-archive-radius: 18px;
+  }
 }
 
 /* The pills floating over the player, bottom up: an open radar's controls

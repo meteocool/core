@@ -17,6 +17,7 @@ import Guide3D from "./components/Guide3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
+import ArchiveFrame from "./components/ArchiveFrame.svelte";
 import BottomToolbar from "./components/BottomToolbar.svelte";
 
 import RadarCapability from "./caps/RadarCapability";
@@ -1551,3 +1552,4 @@ if (postInitCb) postInitCb(lm);
 {#if $toolbarVisible === "yes"}
   <NowcastPlayback cap={lm.getCapability("radar") as RadarCapability} />
 {/if}
+<ArchiveFrame />

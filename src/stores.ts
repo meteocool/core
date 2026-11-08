@@ -428,11 +428,18 @@ export const live = writable<boolean>(false);
 /**
  * The past window the map is open in (lib/archive.ts), or null for live:
  * archive mode is "a window is open". Set by the picker in the player's tray
- * and by a link's `from=` and `to=`; cleared by the pill's way back to live.
+ * and by a link's `from=` and `to=`; cleared by the frame's way back to live
+ * (ArchiveFrame).
  * While one is open the timeline spans it, every overlay with a past answers
  * for the step on screen, and what has none is hidden.
  */
 export const archiveWindow = writable<ArchiveWindow | null>(null);
+
+/**
+ * Whether the archive's picker (ArchivePicker) is open: from the Archive pill
+ * in the player's tray, or from the frame's tab while a window is open.
+ */
+export const archivePickerOpen = writable<boolean>(false);
 
 /**
  * A frame the player is asked to open on, from outside it: a link naming one,
