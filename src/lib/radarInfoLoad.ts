@@ -14,3 +14,13 @@ export async function loadRadarInfo(code: string): Promise<RadarInfo | null> {
   if (!load) return null;
   return (await load())[site] ?? null;
 }
+
+/**
+ * Every radar there is something to say about, by node code: every country's
+ * chunk at once, for "meet you cool", which deals them all. Rejects when one
+ * of them will not load.
+ */
+export async function loadAllRadarInfo(): Promise<RadarInfoFile> {
+  const countries = await Promise.all(Object.values(files).map((load) => load()));
+  return Object.assign({}, ...countries) as RadarInfoFile;
+}

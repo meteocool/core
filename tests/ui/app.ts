@@ -96,3 +96,15 @@ export const radarMark = (page: Page, site: string): Promise<{ x: number; y: num
   const top = document.elementFromPoint(at.x, at.y);
   return top && map.getViewport().contains(top) ? at : null;
 }, site);
+
+/** "meet you cool", the radars' dating screen. */
+export const meetYouCool = (page: Page): Locator => page.getByRole("dialog", { name: "meet you cool" });
+
+/** The profile on top of its stack: the only card a reader can reach. */
+export const topCard = (page: Page): Locator => meetYouCool(page).getByRole("article");
+
+/** The radar whose profile is on top, by its card's name. */
+export async function topRadar(page: Page): Promise<string> {
+  const label = await topCard(page).getAttribute("aria-label");
+  return /^(.*)'s profile$/.exec(label ?? "")?.[1] ?? "";
+}

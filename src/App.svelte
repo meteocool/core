@@ -40,7 +40,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
-  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meteocoolNowcast,
+  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meetYouCoolOpen, meteocoolNowcast,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
   archiveWindow,
@@ -95,6 +95,7 @@ import { dwdAttribution } from "./layers/attributions";
 import { VolumeFeed } from "./lib/scans";
 import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
 import { registerOpenRadar } from "./lib/openRadar";
+import { isMeetYouCoolHash } from "./lib/meetYouCoolLink";
 /* The storm panel is loaded when a storm is opened, not with the page: the
    history charts, the lineage graph (dagre) and the two 3D pictures are a
    third of the app's code, and most sessions never tap a storm. */
@@ -109,6 +110,25 @@ const loadRadarInfo = (code: string) => () => Promise.all([
 ]);
 /* Closed with the radar, so the next one opened does not open on its page. */
 $: if (!$siteMode) radarInfoOpen.set(false);
+// "meet you cool", the radars' dating screen: its component and every
+// country's texts, all chunks of their own, loaded when it is opened. It
+// opens from About's foot, which sets the address's hash, or from a link
+// with `#meetyoucool`; going back past the hash closes it, and closing it
+// takes the hash off again, so a reload does not reopen it.
+const loadMeetYouCool = () => Promise.all([
+  import("./components/MeetYouCool.svelte"),
+  import("./lib/radarInfoLoad").then(({ loadAllRadarInfo }) => loadAllRadarInfo()),
+]);
+const followMeetYouCoolHash = () => meetYouCoolOpen.set(isMeetYouCoolHash(window.location.hash));
+followMeetYouCoolHash();
+window.addEventListener("hashchange", followMeetYouCoolHash);
+onDestroy(() => window.removeEventListener("hashchange", followMeetYouCoolHash));
+function closeMeetYouCool() {
+  meetYouCoolOpen.set(false);
+  if (isMeetYouCoolHash(window.location.hash)) {
+    history.replaceState(history.state, "", `${window.location.pathname}${window.location.search}`);
+  }
+}
 // The model comparison too: its charts and the forecast fetch are for the
 // few who open it.
 const loadModelCompare = () => import("./components/ModelCompare.svelte");
@@ -1482,6 +1502,12 @@ if (postInitCb) postInitCb(lm);
         on:explain={() => { radarInfoOpen.set(false); radarExplainerOpen.set(true); }} />
     </Lazy>
   {/key}
+{/if}
+
+{#if $meetYouCoolOpen}
+  <Lazy load={loadMeetYouCool} floating let:module={[{ default: MeetYouCool }, radars]}>
+    <svelte:component this={MeetYouCool} {radars} on:close={closeMeetYouCool} />
+  </Lazy>
 {/if}
 
 {#if $radarExplainerOpen}

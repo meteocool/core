@@ -1090,5 +1090,41 @@
       "aria": "{title} im Zeitraum, in {unit}",
       "none": "Kein Verlauf von dieser Station."
     }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radare in deiner Nähe suchen jemanden, mit dem sie den Himmel absuchen können.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "Alter: ein Geheimnis",
+    "profile": "Profil von {name}",
+    "like": "Mag ich",
+    "nope": "Nein",
+    "liked": "Du magst {name}.",
+    "noped": "{name} ist es nicht.",
+    "hint_keys": "Karte ziehen oder Pfeiltasten: rechts für mag ich, links für nein.",
+    "hint_touch": "Nach rechts wischen für mag ich, nach links für nein.",
+    "no_photo": "Noch kein Foto",
+    "match_title": "Es ist ein Match!",
+    "match_text": "Du und {name} mögt euch.",
+    "send": "Nachricht schreiben",
+    "keep_swiping": "Weiter wischen",
+    "waiting_title": "{name} muss die erste Nachricht schreiben",
+    "waiting_text": "Radare sind schüchtern. {name} sucht noch den Horizont nach den richtigen Worten ab.",
+    "back": "Zurück zum Wischen",
+    "matches": "Matches",
+    "matches_none": "Noch keine Matches. Wisch nach rechts, wenn dir ein Radar gefällt.",
+    "match_waiting": "Wartet auf die erste Nachricht",
+    "empty_title": "Du hast jedes Radar kennengelernt",
+    "empty_text": "Das waren alle {count}. Vielleicht verdient eines einen zweiten Blick.",
+    "start_over": "Von vorn",
+    "tag": {
+      "band": "{band}-Band",
+      "dual_pol": "dual-pol",
+      "single_pol": "single-pol",
+      "tower": "{height} m Turm",
+      "antenna": "Antenne auf {height} m",
+      "range": "sieht {range} km"
+    }
   }
 }

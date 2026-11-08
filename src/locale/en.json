@@ -1090,5 +1090,41 @@
       "aria": "{title} over the period, in {unit}",
       "none": "No history from this station."
     }
+  },
+  "meet": {
+    "entry": "Meet you cool",
+    "title": "meet you cool",
+    "intro": "Radars near you are looking for someone to scan the sky with.",
+    "name_age": "{name}, {age}",
+    "age_unknown": "age: a mystery",
+    "profile": "{name}'s profile",
+    "like": "Like",
+    "nope": "Nope",
+    "liked": "You liked {name}.",
+    "noped": "You passed on {name}.",
+    "hint_keys": "Drag the card, or use the arrow keys: right to like, left to pass.",
+    "hint_touch": "Swipe right to like, left to pass.",
+    "no_photo": "No photo yet",
+    "match_title": "It's a match!",
+    "match_text": "You and {name} like each other.",
+    "send": "Send a message",
+    "keep_swiping": "Keep swiping",
+    "waiting_title": "{name} needs to send the first message",
+    "waiting_text": "Radars are shy. {name} is still scanning the horizon for the right words.",
+    "back": "Back to swiping",
+    "matches": "Matches",
+    "matches_none": "No matches yet. Swipe right on a radar you like.",
+    "match_waiting": "Waiting for their first message",
+    "empty_title": "You've met every radar",
+    "empty_text": "That was all {count} of them. Perhaps one deserves a second look.",
+    "start_over": "Start over",
+    "tag": {
+      "band": "{band} band",
+      "dual_pol": "dual-pol",
+      "single_pol": "single-pol",
+      "tower": "{height} m tower",
+      "antenna": "antenna at {height} m",
+      "range": "sees {range} km"
+    }
   }
 }

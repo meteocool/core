@@ -1,6 +1,10 @@
 <script lang="ts">
+import { createEventDispatcher } from "svelte";
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
+import { MEET_YOU_COOL_HASH } from "../lib/meetYouCoolLink";
+
+const dispatch = createEventDispatcher<{ close: void }>();
 </script>
 
 <style>
@@ -40,6 +44,23 @@ import GlassPanel from "./GlassPanel.svelte";
   .appstore-logo.about {
     flex: 50%;
   }
+
+  /* An easter egg, so a quiet one: the last line, in the footnotes' ink. The
+     link sets the address's hash, which opens the screen (App.svelte), and
+     About gets out of its way. */
+  .meet {
+    margin: 24px 0 2px;
+    color: var(--mc-text-3);
+    font-size: 12px;
+    text-align: center;
+  }
+  .meet a,
+  .meet a:visited {
+    color: inherit;
+  }
+  .meet a:hover {
+    color: var(--mc-accent);
+  }
 </style>
 
 <GlassPanel title={$_("title")} on:close>
@@ -75,5 +96,8 @@ import GlassPanel from "./GlassPanel.svelte";
       <li>{@html $_("other_things.list2")}</li>
       <li>{@html $_("other_things.list3")}</li>
     </ul>
+    <p class="meet">
+      <a href={MEET_YOU_COOL_HASH} on:click={() => dispatch("close")}>{$_("meet.entry")}</a>
+    </p>
   </div>
 </GlassPanel>

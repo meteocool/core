@@ -258,6 +258,11 @@ export const radarExplainerOpen = writable<boolean>(false);
  */
 export const radarInfoOpen = writable<boolean>(false);
 /**
+ * "meet you cool", the radars' dating screen, is open: from the link at the
+ * foot of About, or from `#meetyoucool` in the address (App.svelte).
+ */
+export const meetYouCoolOpen = writable<boolean>(false);
+/**
  * Whether a phone or tablet draws the 3D map at its screen's full pixel
  * ratio instead of at 2x at most (lib/gpuBudget.ts). Off unless the reader
  * turns it on: a phone's 3x is 2.25 times the pixels, and the memory that
