@@ -9,7 +9,14 @@
     "text": {
       "en": "Belgium's newest weather radar stands in Houthalen-Helchteren in Limburg and belongs to the Flanders Environment Agency (VMM), not the national weather service. Its dual-polarisation data help separate rain from hail and feed the Flemish rainfall maps used for flood forecasting."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.meteo.be/en/instruments/weather-radars",
+      "https://www.meteo.be/en/about-rmi/observation-network/radarnetwerk",
+      "https://www.meteo.be/nl/info/veelgestelde-vragen/radar/de-radars-van-jabbeke-en-helchteren-zijn-uitgerust-met-dubbele-polarisatietechniek",
+      "https://meteo.be/uploads/media/60ddc37432cab/poster-delo-goud-erad-2014.pdf",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/"
+    ]
   },
   "bejab": {
     "operator": "RMI",
@@ -21,7 +28,15 @@
     "text": {
       "en": "The Royal Meteorological Institute's coastal radar sits on a 46 m concrete tower in Jabbeke, West Flanders, and was inaugurated in September 2012. It watches showers coming in from the North Sea, where offshore wind farms and ship traffic are a constant source of clutter."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.meteo.be/en/about-rmi/observation-network/radarnetwerk",
+      "https://www.meteo.be/en/instruments/weather-radars",
+      "https://www.meteo.be/nl/info/nieuwsbrief/artikels-2021/spectaculaire-onderhoud-van-kmi-weerradar-in-jabbeke",
+      "https://meteo.be/uploads/media/60ddc37432cab/poster-delo-goud-erad-2014.pdf",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "bewid": {
     "operator": "RMI",
@@ -41,6 +56,15 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:RadarMeteoIRM-Wideumont-16oct2016.jpg"
-    }
+    },
+    "sources": [
+      "https://www.meteo.be/en/about-rmi/observation-network/radarnetwerk",
+      "https://www.meteo.be/en/instruments/weather-radars",
+      "https://www.meteo.be/fr/infos/newsletter/articles-2022/une-nouvelle-technologie-pour-le-radar-de-wideumont",
+      "https://www.meteo.be/nl/info/nieuwsoverzicht/vervanging-van-de-weerradar-in-wideumont",
+      "https://meteo.be/uploads/media/60ddc37432cab/poster-delo-goud-erad-2014.pdf",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   }
 }

@@ -991,7 +991,9 @@
       "photo_alt": "Le radar de {name}",
       "photo_credit": "Photo : {author}",
       "none": "Ce radar n'a pas encore de description.",
-      "how": "Comment fonctionne le radar"
+      "how": "Comment fonctionne le radar",
+      "how_sub": "Comment les radars sondent le ciel et comment meteocool en tire ses cartes",
+      "sources": "Sources"
     },
     "motion": {
       "title": "Déplacement de l’orage",

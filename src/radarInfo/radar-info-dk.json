@@ -9,7 +9,14 @@
     "text": {
       "en": "DMI's Bornholm radar sits on a former military tower on Rytterknægten, the island's highest point at 162 m, in the Almindingen forest. A radar has watched the Baltic Sea from here since 2007; after repeated breakdowns it was replaced by a new Vaisala radar in 2023."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://ing.dk/artikel/efter-fejl-og-mangel-paa-reservedele-bornholm-er-uden-vejrradar-frem-til-april",
+      "https://www.dmi.dk/nyheder/2022/to-nye-radarer-pa-vej",
+      "https://en.wikipedia.org/wiki/Danish_Meteorological_Institute",
+      "https://en.wikipedia.org/wiki/Rytterkn%C3%A6gten",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/"
+    ]
   },
   "dkrom": {
     "operator": "DMI",
@@ -29,7 +36,14 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:R%C3%B8m%C3%B8_-_DMIs_vejrradar.jpg"
-    }
+    },
+    "sources": [
+      "https://ing.dk/artikel/skybrud-tidligere-kunne-de-ikke-maales-i-dag-kan-de-overses-nu-skal-nye-radarer-lure-dem",
+      "https://en.wikipedia.org/wiki/Danish_Meteorological_Institute",
+      "https://dk.openprocurements.com/tender/2014-weather-radar-modernization-project-wram16",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "dksam": {
     "operator": "DMI",
@@ -41,7 +55,14 @@
     "text": {
       "en": "DMI's newest radar stands on a 20 m steel lattice tower just north of the village of Permelille on Samsø, an island in the middle of the Kattegat. Its 7 m dome went up in August 2023, and the radar took over from the old radar at Virring near Skanderborg; it reaches about 240 km."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dmi.dk/nyheder/ny-radar-paa-samsoe-giver-bedre-varslinger",
+      "https://www.dmi.dk/nyheder/2022/to-nye-radarer-pa-vej",
+      "https://www.visitdenmark.com/denmark/plan-your-trip/et-meteorologisk-midtpunkt-gdk1152228",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "dksin": {
     "operator": "DMI",
@@ -53,7 +74,14 @@
     "text": {
       "en": "DMI's northernmost radar stands near Sindal in Vendsyssel, the tip of Jutland, and covers the Skagerrak, the northern Kattegat and the coasts of Norway and Sweden. A radar has worked here since 1994; it was the first site to get a new dual-polarisation radar, in spring 2017."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://en.wikipedia.org/wiki/Danish_Meteorological_Institute",
+      "https://dk.openprocurements.com/tender/2014-weather-radar-modernization-project-wram16",
+      "https://ing.dk/artikel/skybrud-tidligere-kunne-de-ikke-maales-i-dag-kan-de-overses-nu-skal-nye-radarer-lure-dem",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "dkste": {
     "operator": "DMI",
@@ -73,6 +101,13 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Rasteplads_Flagbanken.JPG"
-    }
+    },
+    "sources": [
+      "https://dk.openprocurements.com/tender/2014-weather-radar-modernization-project-wram16",
+      "https://ing.dk/artikel/skybrud-tidligere-kunne-de-ikke-maales-i-dag-kan-de-overses-nu-skal-nye-radarer-lure-dem",
+      "https://en.wikipedia.org/wiki/Danish_Meteorological_Institute",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   }
 }

@@ -17,7 +17,14 @@
       "licence": "CC BY 2.0",
       "licenceUrl": "https://creativecommons.org/licenses/by/2.0/",
       "page": "https://snl.no/And%C3%B8ya_v%C3%A6rradar"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/And%C3%B8ya_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMbrWcLs3ygiTtLB15tb7ou9E72onnm9XXe8jGhFEM7X6",
+      "https://www.blv.no/na-er-varradaren-i-orden/s/5-9-512073",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   },
   "nober": {
     "operator": "MET Norway",
@@ -29,7 +36,14 @@
     "text": {
       "en": "Stands on the summit Skužučohkka south of Berlevåg on the Barents Sea coast and watches East Finnmark and the sea beyond. It is MET Norway's easternmost radar, opened in 2012, and its antenna was mounted unusually high so that a nearby building would not block its view."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/Berlev%C3%A5g_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMVA0wdS_47yLwwNK79eoK028ZXtjH-4qL8KskvmEOWVm",
+      "https://www.nrk.no/tromsogfinnmark/dette-er-norges-hoyeste-vaerradio-1.8255793",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   },
   "nobml": {
     "operator": "MET Norway",
@@ -41,7 +55,13 @@
     "text": {
       "en": "Stands on Klovafjellet on the island of Goddo in Bømlo, by the North Sea, and watches the North Sea as well as rain over Bergen, Haugesund and Stavanger. Opened in 2002 as MET Norway's second radar, it got a new antenna, dome and dual-polarisation electronics in 2020."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/B%C3%B8mlo_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMeBFfJ8XDn_vWP-kAmH65eU4Ohbcyv7sgQD8kjxkB2vI",
+      "https://www.met.no/nyhetsarkiv/na-oppgraderer-vi-bomlo-vaerradar"
+    ]
   },
   "nohas": {
     "operator": "MET Norway",
@@ -53,7 +73,13 @@
     "text": {
       "en": "Stands on Sluskfjellet on the Arctic island of Sørøya, 446 m above sea level, and watches West Finnmark, northern Troms and the open sea beyond. Opened in 2008, it is the northernmost radar in MET Norway's network."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/Hasvik_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMfWJ8e6r10f1WDyJZUxBoZZocp-nHds-gRB8oXjkv1lv",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   },
   "nohfj": {
     "operator": "MET Norway",
@@ -65,7 +91,13 @@
     "text": {
       "en": "Stands on the summit of Hafjell, the ski mountain in Øyer north of Lillehammer, with its antenna 1,080 m above sea level, the highest in MET Norway's network. It watches the northern part of Eastern Norway and mountain areas such as Rondane, and went into service in 2016."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/Hafjell_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMcB_ZUI23ZXZ2-Thj2d5eVbTnzDdXRhz3Fzt_VqIpB95",
+      "https://www.met.no/nyhetsarkiv/na-oppgraderer-vi-bomlo-vaerradar"
+    ]
   },
   "nohgb": {
     "operator": "MET Norway",
@@ -77,7 +109,14 @@
     "text": {
       "en": "Stands on Stakksteinsliknuten in the Toreshei area of Hægebostad in Agder, 631 m above sea level, and watches Sørlandet, Rogaland and part of the Skagerrak. It was the first radar in MET Norway's network, in service since 2000, and was upgraded to a dual-polarisation Leonardo radar in 2017."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/H%C3%A6gebostad_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMfLtJo6NKGpI6Fe_Uj0HWwrr-gLZRj07YjUHW0FnbcaR",
+      "https://www.met.no/nyhetsarkiv/na-oppgraderer-vi-bomlo-vaerradar",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   },
   "nohur": {
     "operator": "MET Norway",
@@ -97,7 +136,13 @@
       "licence": "CC BY 3.0 NO",
       "licenceUrl": "https://creativecommons.org/licenses/by/3.0/no/",
       "page": "https://snl.no/Hurum_v%C3%A6rradar"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/Hurum_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMepJuBVqbeokpdmvxTVGTqwX0grkm9gwjRgYQUfAPp6V",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   },
   "norsa": {
     "operator": "MET Norway",
@@ -117,7 +162,14 @@
       "licence": "CC BY 2.0",
       "licenceUrl": "https://creativecommons.org/licenses/by/2.0/",
       "page": "https://snl.no/Rissa_v%C3%A6rradar"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/Rissa_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMVkMGvVXbSdeclZ0VWfo7psl0izu0oGznTZxzbbcYMx1",
+      "https://doffin.no/notices/2018-891166",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   },
   "norsg": {
     "operator": "MET Norway",
@@ -129,7 +181,14 @@
     "text": {
       "en": "Stands on Rássegálvárri in Kautokeino municipality on the Finnmarksvidda plateau, where two Norwegian Armed Forces radars once stood. MET Norway's newest radar, in service since October 2022, it reaches about 240 km and, together with Hasvik and Berlevåg, covers all of Finnmark."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.met.no/nyhetsarkiv/ny-vaerradar-i-finnmark-gir-bedre-varsling",
+      "https://www.met.no/nyhetsarkiv/ny-vaerradar-pa-finnmarksvidda",
+      "https://kommunikasjon.ntb.no/pressemelding/17943360/ny-vaerradar-apnet-i-finnmark?publisherId=17846853",
+      "https://www.regjeringen.no/no/aktuelt/ny-verradar-pa-finnmarksvidda/id2769360/"
+    ]
   },
   "norst": {
     "operator": "MET Norway",
@@ -141,7 +200,13 @@
     "text": {
       "en": "Stands at Langneset near the airport on Røst, the low-lying outermost island group of Lofoten. With its antenna only 17 m above sea level it is the lowest radar in MET Norway's network, watching Lofoten, Ofoten, Salten and the fishing banks offshore. Opened in 2004, upgraded to dual polarisation in 2021."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/R%C3%B8st_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMYPqdfwERP5vW0jLIik1ZGvWav2WjHVVI9MG0HUFzvj6",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   },
   "nosmn": {
     "operator": "MET Norway",
@@ -153,7 +218,12 @@
     "text": {
       "en": "Stands on Kvaløyfjellet in Sømna on the Helgeland coast of Nordland, 315 m above sea level, and watches Helgeland, northern Trøndelag and the Sklinna, Træna and Halten fishing banks. It opened in 2014 with a dual-polarisation radar."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/S%C3%B8mna_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMR5bltSU0u6q0Zwsks1UKzYMoEaLSSbheU4tsu9HURdt"
+    ]
   },
   "nosta": {
     "operator": "MET Norway",
@@ -173,6 +243,12 @@
       "licence": "Attribution",
       "licenceUrl": null,
       "page": "https://commons.wikimedia.org/wiki/File:Radom-montering.jpg"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://snl.no/Stad_v%C3%A6rradar",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMespllCNRDRU3eRFichsgOP6S89JbQ5P8YFtzHZzddSS",
+      "https://no.wikipedia.org/wiki/V%C3%A6rradar"
+    ]
   }
 }

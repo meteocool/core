@@ -45,6 +45,8 @@ export interface RadarInfo {
   /** Where it stands and what it watches, a few sentences long. */
   text: { en: string; de?: string };
   photo: RadarPhoto | null;
+  /** Where the text and the facts come from, as links; the photo credits its own page. */
+  sources: string[];
 }
 
 /** A country's file of radars, by node code. */
@@ -65,4 +67,55 @@ export function infoText(info: RadarInfo, locale: string | null | undefined): st
 /** The name of the file a radar's texts are in, by its node code. */
 export function infoFileOf(code: string): string {
   return `radar-info-${countryOf(code)}`;
+}
+
+/** Sources that turn up for many radars, by the name a reader knows them by. */
+const SOURCE_NAMES: Array<[RegExp, string]> = [
+  [/(^|\.)wrd\.mgm\.gov\.tr$/, "WMO Weather Radar Database"],
+  [/(^|\.)eumetnet\.eu$/, "EUMETNET OPERA"],
+  [/(^|\.)dwd\.de$/, "DWD"],
+  [/(^|\.)(ilmatieteenlaitos\.fi|fmi\.fi)$/, "FMI"],
+  [/(^|\.)(meteoswiss|meteosuisse)\.admin\.ch$/, "MeteoSwiss"],
+  [/(^|\.)meteofrance\.(com|fr)$/, "Météo-France"],
+  [/(^|\.)smhi\.se$/, "SMHI"],
+  [/(^|\.)met\.no$/, "MET Norway"],
+  [/(^|\.)snl\.no$/, "Store norske leksikon"],
+  [/(^|\.)meteo\.be$/, "RMI"],
+  [/(^|\.)knmi\.nl$/, "KNMI"],
+  [/(^|\.)dmi\.dk$/, "DMI"],
+  [/(^|\.)met\.ie$/, "Met Éireann"],
+  [/(^|\.)imgw\.pl$/, "IMGW"],
+  [/(^|\.)chmi\.cz$/, "ČHMÚ"],
+  [/(^|\.)meteo\.lt$/, "LHMT"],
+  [/(^|\.)meteohmd\.hr$/, "DHMZ"],
+  [/(^|\.)ted\.europa\.eu$/, "EU tenders (TED)"],
+  [/(^|\.)wikidata\.org$/, "Wikidata"],
+];
+
+/**
+ * What a source link says: the name of whoever published it where it is a
+ * known one ("DWD", "Wikipedia (de)"), its site's address otherwise. Two
+ * links to the same publisher are told apart by a number.
+ */
+export function sourceLabels(urls: readonly string[]): string[] {
+  const names = urls.map((url) => {
+    let host: string;
+    try {
+      host = new URL(url).hostname.toLowerCase();
+    } catch {
+      return url;
+    }
+    const wiki = /^([a-z-]+)\.(wikipedia|wikiversity)\.org$/.exec(host);
+    if (wiki) return `${wiki[2] === "wikipedia" ? "Wikipedia" : "Wikiversity"} (${wiki[1]})`;
+    return SOURCE_NAMES.find(([pattern]) => pattern.test(host))?.[1] ?? host.replace(/^www\./, "");
+  });
+  const seen = new Map<string, number>();
+  const total = new Map<string, number>();
+  for (const name of names) total.set(name, (total.get(name) ?? 0) + 1);
+  return names.map((name) => {
+    if ((total.get(name) ?? 0) < 2) return name;
+    const n = (seen.get(name) ?? 0) + 1;
+    seen.set(name, n);
+    return `${name} ${n}`;
+  });
 }

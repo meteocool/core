@@ -9,7 +9,13 @@
     "text": {
       "en": "This radar stands beside the Tallinn-Harku weather station on the western edge of Tallinn and covers northern Estonia and the Gulf of Finland. A new radar on a 36 m lattice tower, 16 m taller than the old one, went online in December 2024; the wind farm at Paldiski still leaves streaks in its images."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://news.err.ee/1609558624/new-harku-weather-radar-data-showing-on-estonian-weather-service-page-app",
+      "https://www.newstodate.aero/2007/6/finnish-provider-of-met-radars-lands-estonian-order",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "eesur": {
     "operator": "Estonian Environment Agency",
@@ -21,6 +27,12 @@
     "text": {
       "en": "Estonia's second weather radar stands at Sürgavere, north of Viljandi in the middle of the country, and covers southern Estonia and much of Latvia's north. The Vaisala dual-polarisation radar was ordered in 2007 together with the one at Harku and has run since 2008."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.newstodate.aero/2007/6/finnish-provider-of-met-radars-lands-estonian-order",
+      "https://news.err.ee/1609558624/new-harku-weather-radar-data-showing-on-estonian-weather-service-page-app",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   }
 }

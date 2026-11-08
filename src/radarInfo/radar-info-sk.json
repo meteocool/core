@@ -9,7 +9,12 @@
     "text": {
       "en": "Sits on Malý Javorník (584 m) in the Little Carpathians, above Svätý Jur and about 6 km from Bratislava. The summit is taken up by the SHMÚ radar station, so hiking trails pass around it. The current dual-polarisation radar replaced an older one in 2015 and covers western Slovakia."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://drepo.uniza.sk/bitstreams/8b54ce75-3995-4752-8179-bf2bc1045152/download",
+      "https://sk.wikipedia.org/wiki/Mal%C3%BD_Javorn%C3%ADk_(Mal%C3%A9_Karpaty,_584_m)",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "skkoj": {
     "operator": "SHMÚ",
@@ -29,7 +34,12 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Koj%C5%A1ovsk%C3%A1_ho%C4%BEa,_meteoradar,_2018.jpg"
-    }
+    },
+    "sources": [
+      "https://drepo.uniza.sk/bitstreams/8b54ce75-3995-4752-8179-bf2bc1045152/download",
+      "https://sk.wikipedia.org/wiki/Koj%C5%A1ovsk%C3%A1_ho%C4%BEa_(vrch)",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "skkub": {
     "operator": "SHMÚ",
@@ -41,7 +51,12 @@
     "text": {
       "en": "Stands on Kubínska hoľa (1346 m) in the Oravská Magura range above Dolný Kubín, a ski and hiking area. At about 1400 m antenna height it is the highest of Slovakia's four radars and covers the north of the country. The site was added in the 2015 network renewal."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://drepo.uniza.sk/bitstreams/8b54ce75-3995-4752-8179-bf2bc1045152/download",
+      "https://sk.wikipedia.org/wiki/Kub%C3%ADnska_ho%C4%BEa_(vrch)",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "sklaz": {
     "operator": "SHMÚ",
@@ -53,6 +68,10 @@
     "text": {
       "en": "Stands at Španí laz near Veľký Krtíš in southern central Slovakia, close to the Hungarian border. It adds coverage of the south of central Slovakia. The site was added in the 2015 network renewal."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://drepo.uniza.sk/bitstreams/8b54ce75-3995-4752-8179-bf2bc1045152/download",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   }
 }

@@ -17,7 +17,11 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Abbeville_(80-Fr)_Station_m%C3%A9t%C3%A9o.jpg"
-    }
+    },
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMdXz1XhifchLiEuZKn4MHoPsU8EeIKUswtqsjJbSm1l9",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "fraja": {
     "operator": "Météo-France",
@@ -29,7 +33,12 @@
     "text": {
       "en": "Sits on the summit of La Punta, about 780 m up in the hills above Ajaccio. It covers Corsica's west coast and complements the Aléria radar, whose view is limited mostly to the east of the island. Installed in December 2017, it became operational in July 2018."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMYV6WrNMPrOP2T3ZOC4qwJXoFucISKZkpmIbPyt4Qjey",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.corsenetinfos.corsica/Ajaccio-Le-nouveau-radar-de-la-Punta-operationnel_a35595.html"
+    ]
   },
   "frale": {
     "operator": "Météo-France",
@@ -41,7 +50,12 @@
     "text": {
       "en": "Stands on Corsica's flat eastern plain near Aléria, close to the Tyrrhenian coast. The S-band radar watches eastern Corsica and the sea towards Italy; since 2018 a second radar near Ajaccio covers the west of the island. It has been in service since the early 2000s."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMS9u99jd5cpzN31hyUonubtT_CNYmiXM2PCgJVE1wKVV",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.corsenetinfos.corsica/Ajaccio-Le-nouveau-radar-de-la-Punta-operationnel_a35595.html"
+    ]
   },
   "frave": {
     "operator": "Météo-France",
@@ -53,7 +67,11 @@
     "text": {
       "en": "Stands in the Avesnois, west of Avesnes-sur-Helpe in the far north of France, near the Belgian border. Its C-band beam covers the Nord department, the edge of the Ardennes and parts of Wallonia. In service since 2005."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMaDGBwyLcbzCUjSwupN2SbPN0WPfnR6ebkdHDWESiHLW",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frbla": {
     "operator": "Météo-France",
@@ -65,7 +83,12 @@
     "text": {
       "en": "Stands at about 590 m on the limestone uplands west of Dijon in the Côte-d'Or. From this height its C-band beam covers Burgundy, the Saône plain and the Morvan. In service since 2006."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMbDG7WhzmSdud3_Tm5Vll3JNVvMGY-6oplwiDoeNsIKJ",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://fr.wikipedia.org/wiki/Blaisy-Haut"
+    ]
   },
   "frbol": {
     "operator": "Météo-France",
@@ -77,7 +100,12 @@
     "text": {
       "en": "Stands on a hill above the Rhône valley near Bollène in northern Vaucluse. It was pushed for after the deadly Vaison-la-Romaine flood of 1992 to watch heavy rain over the lower Rhône and its tributaries; construction began in 1998. Like the other Mediterranean radars it uses the S band."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMUl2VFa8NNP_01wDA68L0R_B_keKwJIdk5Hq63h-0vfs",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://questions.assemblee-nationale.fr/dyn/11/questions/QANR5L11QE23766.pdf"
+    ]
   },
   "frbor": {
     "operator": "Météo-France",
@@ -97,7 +125,12 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Station_Meteo_France_de_M%C3%A9rignac_(Gironde).JPG"
-    }
+    },
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMQx-yWj2Z-9Wu2zdRrYi1VMYBgsvESvE4gLRWa1A2wK0",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://anciensmeteos.info/wp-content/uploads/2020/03/radars-mf-gillet.pdf"
+    ]
   },
   "frbou": {
     "operator": "Météo-France",
@@ -109,7 +142,11 @@
     "text": {
       "en": "Stands at Météo-France's Bourges weather station in the Cher, in the middle of France. Its C-band beam covers the Berry, the Loire valley and the Sologne. Dating from 1987, it is one of the oldest radars still running in the network."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMYx4-8nBjenacvsiHCwBwKIl5wtAiPHdngvfv2yMuCUv",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frcae": {
     "operator": "Météo-France",
@@ -121,7 +158,11 @@
     "text": {
       "en": "Stands just north-east of Falaise, south of Caen in Calvados. Its C-band beam covers Lower Normandy, the Channel coast and the sea towards England. The current dual-polarisation radar went into service in 2014."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMZoBreC-GX-ZQGhRaWx1OEFmnVbi3vffyEcU1d90VWXF",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frcol": {
     "operator": "Météo-France",
@@ -141,7 +182,11 @@
       "licence": "CC BY 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Radar_m%C3%A9t%C3%A9o_de_Collobri%C3%A8res,_vue_large,_Var,_France.jpg"
-    }
+    },
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMXYwP99P9qZhwMJvofN78oz9mi2nVSreE_kwn2vYfKoO",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frgre": {
     "operator": "Météo-France",
@@ -161,7 +206,12 @@
       "licence": "CC BY-SA 3.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
       "page": "https://commons.wikimedia.org/wiki/File:Gr%C3%A8zes_(24)_station_m%C3%A9t%C3%A9o.JPG"
-    }
+    },
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMQxAb0rLGoZC4GJYgD-3tyH795wgeaJn7mf5cJwffdwC",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://anciensmeteos.info/wp-content/uploads/2020/03/radars-mf-gillet.pdf"
+    ]
   },
   "frlep": {
     "operator": "Météo-France",
@@ -173,7 +223,13 @@
     "text": {
       "en": "Stands at about 1,115 m in the forests of the Haute-Loire near La Chaise-Dieu; a radar has stood here since 1996. It watches the Massif Central and Cévennes-type downpours up to 180 km away. Because nearby trees keep growing, a new 50 m tower, France's tallest for a weather radar, is being built in 2026."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMe8KZMw2HN5yX8CM0ybLPNKpXWybyV03fZXWjxv1jCYZ",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://meteofrance.com/presse/la-plus-haute-tour-radar-meteo-de-france-bientot-sembadel",
+      "https://fr.wikipedia.org/wiki/Sembadel"
+    ]
   },
   "frmcl": {
     "operator": "Météo-France",
@@ -185,7 +241,12 @@
     "text": {
       "en": "Stands at about 670 m on a hilltop in southern Aveyron. Its C-band beam covers the Grands Causses, the southern Massif Central and the plains towards Toulouse and Montpellier. In service since October 2005."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMUqBw6XH1L6Lr9fNNF0cGacTxsQL80GrWGl-sFPFCbDc",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.wikidata.org/wiki/Q111700185"
+    ]
   },
   "frmom": {
     "operator": "Météo-France",
@@ -205,7 +266,11 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Radar_MeteoFrance_Momui.jpg"
-    }
+    },
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMXSMadSutwdk6GSD5MSNJa7FFAHKU3Gn7q4uCRIEcv7h",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frmtc": {
     "operator": "Météo-France",
@@ -217,7 +282,12 @@
     "text": {
       "en": "Stands at the highest point of Montancy, at about 930 m in the Jura of the Doubs, right on the Swiss border. It sees deep into Switzerland, Alsace and the Burgundian Gate, and appears on MeteoSwiss maps of the radars around Switzerland. In service since 2007."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMeKtGXrYK4d2T9jNa2aCBKsoCh-CvovxDEP9JqnF8Fh4",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://fr.wikipedia.org/wiki/Montancy"
+    ]
   },
   "frnan": {
     "operator": "Météo-France",
@@ -229,7 +299,11 @@
     "text": {
       "en": "Stands in the Lorraine countryside about 30 km east of Nancy. Its C-band beam covers Lorraine, the Vosges and the border areas with Saarland and Alsace. Dating from 1984, it is one of the oldest radars still running in the French network."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMV_vgJQsumg2Og_r1RIoYYoCb-KpiCSWvvR_j1YITcjR",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frnim": {
     "operator": "Météo-France",
@@ -241,7 +315,14 @@
     "text": {
       "en": "Stands on the plain south-east of Nîmes, near Manduel in the Gard. The S-band radar watches the Cévennes and the Rhône delta, where autumn storms can bring extreme rain. It replaced an older S-band radar in 2008 and was the first S-band dual-polarisation radar in the network."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMcXZg1CI-R0yksnmUZgzAXF0tBNvgu-DjZGru8GyvXA8",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://fr.wikipedia.org/wiki/Application_radar_%C3%A0_la_m%C3%A9t%C3%A9orologie_infra-synoptique",
+      "https://meetings.copernicus.org/www.cosis.net/abstracts/EGU2007/06789/EGU2007-J-06789.pdf",
+      "https://anciensmeteos.info/wp-content/uploads/2020/03/radars-mf-gillet.pdf"
+    ]
   },
   "frniz": {
     "operator": "Météo-France",
@@ -261,7 +342,12 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Radar_M%C3%A9t%C3%A9o_France_de_Saint-Nizier_d%27Azergues_4_(avr_2023).jpg"
-    }
+    },
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMeOZ3-eCu4ymdJorTjKuF0Ftq12i9joDaFsQFScvyoDK",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.wikidata.org/wiki/Q118444942"
+    ]
   },
   "fropo": {
     "operator": "Météo-France",
@@ -273,7 +359,12 @@
     "text": {
       "en": "Stands on the Montolier de Perellos, a 709 m summit on a ridge north of Perpignan that is visible across the Roussillon plain. The S-band radar watches the eastern Pyrenees, the Aude and the Gulf of Lion. In service since 2000."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMXF7UgdkcexNkcwLsQ2Xnq_ryHIfVQ43EKZh9f15hPz4",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://fr.wikipedia.org/wiki/Opoul-P%C3%A9rillos"
+    ]
   },
   "frpla": {
     "operator": "Météo-France",
@@ -285,7 +376,11 @@
     "text": {
       "en": "Stands in the countryside of northern Finistère near Plabennec, north of Brest. From the western tip of Brittany its C-band beam reaches far over the Atlantic and the western Channel, catching weather systems as they arrive. In service since 2012."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMV8i8dkHI9gaUs1-Oj-waRIOYlxAnmw7_7uzJX-KpFdw",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frtou": {
     "operator": "Météo-France",
@@ -305,7 +400,11 @@
       "licence": "CC0",
       "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
       "page": "https://commons.wikimedia.org/wiki/File:%C3%89cole_Nationale_de_la_M%C3%A9t%C3%A9orologie_en_novembre_2020.jpg"
-    }
+    },
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMaNSisNA0A3nixaV7Qfgddwu6SDUKIxtqDQUyMNH9WGK",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json"
+    ]
   },
   "frtra": {
     "operator": "Météo-France",
@@ -317,7 +416,13 @@
     "text": {
       "en": "Stands at Météo-France's site in Trappes, south-west of Paris, and watches the Île-de-France region. Installed in 2004, it was the first dual-polarisation radar in France and served as the test bed for the polarimetric rain products later used across the network."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMTNNMitf-26-zembuiQyhT_1VDMqhWzGyfsXNWC6JbSm",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://ams.confex.com/ams/35Radar/webprogram/Paper191900.html",
+      "https://www.eumetnet.eu/wp-content/uploads/2017/03/OPERA_2012_03_Operational_polarimetry_in_C_and_S_bands.pdf"
+    ]
   },
   "frtre": {
     "operator": "Météo-France",
@@ -329,7 +434,12 @@
     "text": {
       "en": "Stands at Treillières, just north of Nantes in the Loire-Atlantique. Its C-band beam covers the lower Loire, the Vendée coast and southern Brittany. The current radar dates from 2016."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMRFm0lb5LHQffbh-ZlFKQBnhPxV_JnYhwtzSAvf8kPBP",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.wikidata.org/wiki/Q111829606"
+    ]
   },
   "frtro": {
     "operator": "Météo-France",
@@ -341,6 +451,11 @@
     "text": {
       "en": "Stands on the chalk plain of Champagne, south-east of Arcis-sur-Aube and north-east of Troyes. Its C-band beam covers the Aube, the Marne and the lakes of the Forêt d'Orient. One of the newer radars in the network, in service since the mid-2010s."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMUEDXrQ4lIO0N9svZJKAD9BsAgbTnUWb36YbEJMIXfal",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.marne.gouv.fr/index.php/contenu/telechargement/35321/219520/file/2.6.1_Avis_R%C3%A9ponse_servitude_MeteoFrance.pdf"
+    ]
   }
 }

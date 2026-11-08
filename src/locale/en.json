@@ -991,7 +991,9 @@
       "photo_alt": "The {name} radar",
       "photo_credit": "Photo: {author}",
       "none": "There is no description of this radar yet.",
-      "how": "How the radar works"
+      "how": "How the radar works",
+      "how_sub": "How the radars scan the sky, and how meteocool turns what they see into its maps",
+      "sources": "Sources"
     },
     "motion": {
       "title": "Storm motion",

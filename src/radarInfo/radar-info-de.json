@@ -17,7 +17,14 @@
       "licence": "CC BY-SA 2.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
       "page": "https://geo.hlipp.de/photo/249286"
-    }
+    },
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://ams.confex.com/ams/35Radar/webprogram/Paper191548.html",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte"
+    ]
   },
   "deboo": {
     "operator": "DWD",
@@ -37,7 +44,15 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Radarturm-Schwienhagen-Boostedt.jpg"
-    }
+    },
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMboB8aYIhqmDm-zcwhT8hVs66ST1bLD3S3x27LCzy2QM",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://de.wikipedia.org/wiki/Schwienhagen",
+      "https://de.wikipedia.org/wiki/Boostedt"
+    ]
   },
   "dedrs": {
     "operator": "DWD",
@@ -57,7 +72,15 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Dresden,_Wilhelmine-Reichard-Ring,_Flughafen_Dresden,_Wetter-Radarturm,_17.6.2.40-070133.jpg"
-    }
+    },
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMaFS-H8oWVNpreFAqN14gTywDDdH79Wkz_aWF9ngds43",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte",
+      "https://de.wikipedia.org/wiki/Flughafen_Dresden"
+    ]
   },
   "deeis": {
     "operator": "DWD",
@@ -69,7 +92,15 @@
     "text": {
       "en": "Sits on a 26 m steel lattice tower on the Eisberg (officially Eisenberg since 2013), a 771 m hill in the Upper Palatinate Forest near Moosbach, close to the Czech border. A radar has stood here since 1997. While it was being renewed in 2014, the Czech weather service filled the gap with its own data."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMZYEpjFM7-_txsNgOTz5Lj9Tur5k7O5JvU5Ri8qMGaW8",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte",
+      "https://de.wikipedia.org/wiki/Eisberg_(Oberpf%C3%A4lzer_Wald)"
+    ]
   },
   "deess": {
     "operator": "DWD",
@@ -81,7 +112,16 @@
     "text": {
       "en": "Stands on a 30 m concrete tower in Schuir, a rural district on the southern edge of Essen, and watches the Ruhr area and the Lower Rhine. The tower was built in 2010 and the dual-pol radar followed in 2012. In 2015 a court blocked a wind turbine 11 km away because its rotor would have disturbed the measurements."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMZWtQ3AI1zji_bbIWRdUvKkAIiQCDyEt38bCe0YnkjrK",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte",
+      "https://de.wikipedia.org/wiki/Schuir",
+      "https://www.lto.de/recht/nachrichten/n/vg-duesseldorf-10-k-5017-13-windraeder-deutscher-wetterdienst"
+    ]
   },
   "defbg": {
     "operator": "DWD",
@@ -101,7 +141,14 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Friedrich-Luise-Turm.jpg"
-    }
+    },
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMSZY1NVxh4ZEmMuyOibo6m-UK8BXLbQTVUY4YFts9JG6",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikipedia.org/wiki/Feldberg_(Berg_im_Schwarzwald)"
+    ]
   },
   "defld": {
     "operator": "DWD",
@@ -113,7 +160,15 @@
     "text": {
       "en": "Stands on a 73 m steel lattice tower, the tallest in the DWD network, near Flechtdorf in the municipality of Diemelsee in northern Hesse. A radar has operated here since 1997. The current dual-pol radar was installed in July 2014 and joined the national network at the end of that October."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMR9-yeXUDoVQw_uAwHZyM9NjvsbDkFOoqf-d_b_lLn9t",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikipedia.org/wiki/Flechtdorf",
+      "https://nabu-waldeck-frankenberg.de/tl_files/fM_k0002/Pressespiegel/2014/2014-12-11%20WLZ%20Wetterradar%20soll%20in%20den%20Kellerwald.pdf"
+    ]
   },
   "dehnr": {
     "operator": "DWD",
@@ -133,7 +188,14 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:HAJ_Alter_Tower.JPG"
-    }
+    },
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMdZ2322P1NqFlUD5eW0YW_qc5ZwyZpnU9Q0sUS_W0wmA",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://de.wikipedia.org/wiki/Flughafen_Hannover"
+    ]
   },
   "deisn": {
     "operator": "DWD",
@@ -145,7 +207,14 @@
     "text": {
       "en": "Stands on a 45 m concrete tower in farmland near the market town of Isen, east of Munich. It replaced the radar at München-Fürholzen in 2014, when DWD moved several radars out of large cities, and watches Upper Bavaria as far as the Alps."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMZvMGQbf0w-IAlQcEsTw3Vor8KpfW0pDeyJ9_0PNmnaq",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://www.essl.org/ECSS/2013/programme/presentations/48.pdf"
+    ]
   },
   "demem": {
     "operator": "DWD",
@@ -157,7 +226,15 @@
     "text": {
       "en": "A 55 m concrete tower in the Niederrieder Forst, a wooded ridge near Niederrieden north of Memmingen. Opened in October 2013 as the network's 17th radar, it closed a gap over the Allgäu foothills that had been only thinly covered. Building it took five years and cost about 2.3 million euros."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMTmRakYEboEdIuDMAa8lYdB_DYDQQfDbtIesty3ECy00",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://www.schwaebische.de/regional/bayern/neues-wetterauge-spaeht-in-den-himmel-ueber-schwaben-857979",
+      "https://de.wikipedia.org/wiki/Niederrieden"
+    ]
   },
   "deneu": {
     "operator": "DWD",
@@ -169,7 +246,14 @@
     "text": {
       "en": "Stands at about 850 m on the ridge of the Thuringian Forest at Neuhaus am Rennweg, on a 30 m concrete tower. The GDR weather service already opened a radar station near Neuhaus in 1988. Today's dual-pol radar has run since 2012 and covers Thuringia and northern Bavaria."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMV2gdeCoAjFmWDurbVWvUB7Ecrk8zoPx-K5ofeB2V5Hr",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte"
+    ]
   },
   "denhb": {
     "operator": "DWD",
@@ -181,7 +265,14 @@
     "text": {
       "en": "Stands on a 32 m steel lattice tower on a rise near Neuheilenbach in the Eifel, close to the borders with Luxembourg and Belgium, and can be seen from many kilometres away. The station dates from 1998. While it got its dual-pol radar in 2014, Belgium's weather service supplied data in its place."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMVBu81q46aKA-RwdL8am-mkQ6pwP7OoIJSy4hqJdBpAn",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://www.kuladig.de/Objektansicht/KLD-345689"
+    ]
   },
   "deoft": {
     "operator": "DWD",
@@ -201,7 +292,14 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:2021_Wetterradarturm_bei_Langen.jpg"
-    }
+    },
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMWQX9dJ6MoIx4L0P9VCgsyoYbNnrJtnYYwNc2z_q87tM",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://bollinger-grohmann.com/en.projects.weather-radar-system.html"
+    ]
   },
   "depro": {
     "operator": "DWD",
@@ -213,7 +311,15 @@
     "text": {
       "en": "Stands on a 51 m concrete tower at Heidekrug near Prötzel, east of Berlin, beside a former Volkspolizei barracks. It replaced the radar at the old Tempelhof Airport in 2014, moving Berlin's weather radar out of the city, and covers Berlin, Brandenburg and western Poland."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMb4Wgx75FJA67Iw43Kkh8LibYvjFv3X2KAhlyrqCgtag",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://de.wikipedia.org/wiki/Heidekrug_(Pr%C3%B6tzel)",
+      "https://de.wikipedia.org/wiki/Pr%C3%B6tzel"
+    ]
   },
   "deros": {
     "operator": "DWD",
@@ -233,7 +339,14 @@
       "licence": "CC BY-SA 3.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
       "page": "https://commons.wikimedia.org/wiki/File:Warnem%C3%BCnde,_Rostock,_Germany_-_panoramio.jpg"
-    }
+    },
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMQ0PN_7aW4C088-OyWvR0qCS9R71qAxvaER-hfVlmLYt",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte"
+    ]
   },
   "detur": {
     "operator": "DWD",
@@ -245,7 +358,16 @@
     "text": {
       "en": "Stands on a 32 m steel lattice tower on the Swabian Alb near Türkheim, above the Geislinger Steige. A radar has operated here since 1998; the dual-pol radar went into service in December 2013. Its 15 km protection zone has held up wind farm plans in nearby villages such as Nellingen."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMb6NAVh1HvT6wzTc7kkGQeQaXBuDdjjFhiNIk2SfAIPh",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte",
+      "https://www.schwaebische.de/regional/ulm-alb-donau/nellingen/neidvolle-blicke-zum-nachbarn-719640",
+      "https://gewerbeaufsicht.baden-wuerttemberg.de/documents/20121/72110/Schallausbreitung_Windenergieanlagen_Fachgutachten_Wetterradar.pdf"
+    ]
   },
   "deumd": {
     "operator": "DWD",
@@ -257,6 +379,14 @@
     "text": {
       "en": "Stands on a steel lattice tower near Ummendorf in the flat farmland of the Magdeburger Börde, west of Magdeburg. A radar has operated here since 1996; the dual-pol radar went into service in December 2013. It covers Saxony-Anhalt and the Harz."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.dwd.de/DE/presse/publikationen/wetterradar_pdf.pdf?__blob=publicationFile&v=5",
+      "https://www.pa.op.dlr.de/erad2014/programme/ExtendedAbstracts/237_Helmert.pdf",
+      "https://wrd.mgm.gov.tr/Radar/Detail/V1JEMe2QKV9DiEad_cE7JGyWwbYyhdTeNfPDDdzHoNcOZbN9",
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://de.wikiversity.org/wiki/Projekt:FE_Beobachtung_1/Wetterradar/Anwendungen,_Systeme,_Projekte",
+      "https://www.donnerwetter.de/wetter-spezial/keine-ufos-im-radar_cid_15957.html"
+    ]
   }
 }

@@ -991,7 +991,9 @@
       "photo_alt": "Radar {name}",
       "photo_credit": "Foto: {author}",
       "none": "Tento radar zatím nemá popis.",
-      "how": "Jak radar funguje"
+      "how": "Jak radar funguje",
+      "how_sub": "Jak radary snímají oblohu a jak z toho meteocool vytváří své mapy",
+      "sources": "Zdroje"
     },
     "motion": {
       "title": "Pohyb bouřky",

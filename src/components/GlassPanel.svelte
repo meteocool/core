@@ -34,6 +34,9 @@ export let title: string;
 /** Fill what the map leaves, for a wall of readings; otherwise a reading column. */
 export let wide = false;
 
+/** Wider than a reading column where the screen has room, for a picture beside its facts; as tall as it needs. */
+export let broad = false;
+
 /* The sheet is the storm panels' chunk, not this one's: it brings the cell's
    details, charts and model with it, which About has no use for on a desktop. */
 const loadSheet = () => import("./CellSheet.svelte");
@@ -111,6 +114,9 @@ onMount(() => {
   .floating.wide {
     width: min(72rem, 100%);
     height: 100%;
+  }
+  .floating.broad {
+    width: min(56rem, 100%);
   }
 
   .floating header {
@@ -201,6 +207,7 @@ onMount(() => {
     <div
       class="panel floating glass glass-tray glass-reading"
       class:wide
+      class:broad
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}

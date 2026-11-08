@@ -991,7 +991,9 @@
       "photo_alt": "De radar {name}",
       "photo_credit": "Foto: {author}",
       "none": "Van deze radar is nog geen beschrijving.",
-      "how": "Hoe de radar werkt"
+      "how": "Hoe de radar werkt",
+      "how_sub": "Hoe de radars de lucht aftasten en hoe meteocool er zijn kaarten van maakt",
+      "sources": "Bronnen"
     },
     "motion": {
       "title": "Verplaatsing van de bui",

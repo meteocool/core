@@ -991,7 +991,9 @@
       "photo_alt": "Das Radar {name}",
       "photo_credit": "Foto: {author}",
       "none": "Zu diesem Radar gibt es noch keine Beschreibung.",
-      "how": "So funktioniert das Radar"
+      "how": "So funktioniert das Radar",
+      "how_sub": "Wie die Radare den Himmel abtasten und wie meteocool daraus seine Karten macht",
+      "sources": "Quellen"
     },
     "motion": {
       "title": "Zugbewegung",

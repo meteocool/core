@@ -17,7 +17,13 @@
       "licence": "Public domain",
       "licenceUrl": null,
       "page": "https://commons.wikimedia.org/wiki/File:Laukuva_1.JPG"
-    }
+    },
+    "sources": [
+      "https://www.meteo.lt/en/organization/administrative-information/our-history/",
+      "https://www.elsis.lt/meteorologinis-radiolokatorius/?lang=en",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "ltvil": {
     "operator": "LHMT",
@@ -37,6 +43,12 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Traku_Vokes_meteoradaras_by_Augustas_Didzgalvis.jpg"
-    }
+    },
+    "sources": [
+      "https://www.elsis.lt/meteorologinis-radiolokatorius/?lang=en",
+      "https://www.meteo.lt/en/organization/administrative-information/our-history/",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   }
 }

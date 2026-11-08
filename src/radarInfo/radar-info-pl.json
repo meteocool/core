@@ -17,7 +17,13 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Weather_radar_in_Brzuchania_2026_bk01.jpg"
-    }
+    },
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://dlapilota.pl/wiadomosci/polska/rozbudowa-sieci-radarow-meteorologicznych-polrad-imgw-pib-na-finiszu",
+      "https://odrapcu.pl/wp-content/uploads/2022/08/4A.3.1_g.2_DEMP_Brzuchania.pdf",
+      "https://obserwator.imgw.pl/?p=10200"
+    ]
   },
   "plgdy": {
     "operator": "IMGW-PIB",
@@ -29,7 +35,13 @@
     "text": {
       "en": "Stands in forest near Kamień in Szemud commune, west of Gdynia, on a tower about 38 m tall. It covers Pomerania and the Gulf of Gdańsk. It went into service in March 2024 and replaced the radar at Gdańsk airport, which had worked since 2003 and had to make way for airport expansion."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://imgw.pl/wp-content/uploads/2024/10/lista-sprawdzajaca-kontrakt-4a.3.1_j-nowy-gdansk.pdf",
+      "https://obserwator.imgw.pl/?p=10200",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "plgsa": {
     "operator": "IMGW-PIB",
@@ -41,7 +53,14 @@
     "text": {
       "en": "Stands on a 49 m tower near Żyrowa, beside the St. Anne Mountain pilgrimage hill in Opole Silesia. One of two new POLRAD sites, it lies between the Sudetes and the Carpathians and improves coverage of southern Poland. It has run since November 2023 and was officially opened in July 2024."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://dlapilota.pl/wiadomosci/polska/rozbudowa-sieci-radarow-meteorologicznych-polrad-imgw-pib-na-finiszu",
+      "https://imgw.pl/wp-content/uploads/2024/10/lista-sprawdzajaca-kontrakt-4a.3.1_i-gora-swietej-anny.pdf",
+      "https://obserwator.imgw.pl/?p=10200",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "plleg": {
     "operator": "IMGW-PIB",
@@ -61,7 +80,13 @@
       "licence": "CC BY-SA 3.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
       "page": "https://commons.wikimedia.org/wiki/File:Legionowo,_IMGW_-_fotopolska.eu_(314550).jpg"
-    }
+    },
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://imgw.pl/wp-content/uploads/2024/10/lista-sprawdzajaca-kontrakt-4a.3.1_a.1.2-legionowo.pdf",
+      "https://obserwator.imgw.pl/?p=10200",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "plpas": {
     "operator": "IMGW-PIB",
@@ -81,7 +106,13 @@
       "licence": "CC BY-SA 2.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
       "page": "https://www.flickr.com/photos/stalkerpl/7003217304/"
-    }
+    },
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://pl.wikipedia.org/wiki/Pastewnik_(wojew%C3%B3dztwo_dolno%C5%9Bl%C4%85skie)",
+      "https://imgw.pl/wp-content/uploads/2024/10/lista-sprawdzajaca-kontrakt-4a.3.1_d-pastewnik.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "plpoz": {
     "operator": "IMGW-PIB",
@@ -101,7 +132,13 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Wysogotowo_radar.JPG"
-    }
+    },
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://pl.wikipedia.org/wiki/Radar_meteorologiczny_w_Wysogotowie",
+      "https://imgw.pl/wp-content/uploads/2024/10/lista-sprawdzajaca-kontrakt-4a.3.1_e-poznan.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "plram": {
     "operator": "IMGW-PIB",
@@ -121,7 +158,13 @@
       "licence": "CC BY-SA 3.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
       "page": "https://commons.wikimedia.org/wiki/File:Radar_meteorologiczny_-_panoramio.jpg"
-    }
+    },
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://pl.wikipedia.org/wiki/Ram%C5%BCa",
+      "https://imgw.pl/wp-content/uploads/2024/10/lista-sprawdzajaca-kontrakt-4a.3.1_f-ramza.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "plrze": {
     "operator": "IMGW-PIB",
@@ -133,7 +176,13 @@
     "text": {
       "en": "Stands at Jasionka beside Rzeszów airport in south-eastern Poland, and covers south-eastern Poland. A radar has worked here since 2003. The current dual-polarisation unit started in October 2022."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://imgw.pl/wp-content/uploads/2024/10/lista-sprawdzajaca-kontrakt-4a.3.1_b-rzeszow.pdf",
+      "https://dlapilota.pl/wiadomosci/imgw/siec-radarow-polrad-charakterystyka-i-znaczenie-dla-pilotow",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "plswi": {
     "operator": "IMGW-PIB",
@@ -145,7 +194,12 @@
     "text": {
       "en": "Stands near Świdwin in West Pomerania and covers north-western Poland, the Szczecin area and the Baltic coast. A radar has worked here since 2003. The current dual-polarisation unit started in October 2022."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://obserwator.imgw.pl/?p=10200",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "pluzr": {
     "operator": "IMGW-PIB",
@@ -157,6 +211,12 @@
     "text": {
       "en": "Stands on a new 38 m tower at Użranki near Mrągowo, in the Masurian lake district. Before it opened in April 2023, north-eastern Poland was seen only from distant Legionowo. It helps warn sailors and visitors on the Masurian lakes of approaching storms."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://pl.wikipedia.org/wiki/POLRAD",
+      "https://odrapcu.pl/wp-content/uploads/2022/08/4A.3.1_h-DEMP-Uzranki.pdf",
+      "https://obserwator.imgw.pl/?p=10200",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   }
 }

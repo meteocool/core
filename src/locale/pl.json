@@ -991,7 +991,9 @@
       "photo_alt": "Radar {name}",
       "photo_credit": "Zdjęcie: {author}",
       "none": "Ten radar nie ma jeszcze opisu.",
-      "how": "Jak działa radar"
+      "how": "Jak działa radar",
+      "how_sub": "Jak radary skanują niebo i jak meteocool tworzy z tego swoje mapy",
+      "sources": "Źródła"
     },
     "motion": {
       "title": "Ruch burzy",

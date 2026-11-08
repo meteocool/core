@@ -9,7 +9,14 @@
     "text": {
       "en": "Sits on top of the Kaipiainen water tower in Kouvola and watches southeastern Finland, where severe storms sometimes arrive from the Karelian Isthmus. The site has been in use since the early 1990s; its current radar, put into service in October 2009, was only the second dual-polarisation radar in Finland."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/88e7900a-7e96-4200-9680-9f189f158139",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://yle.fi/a/3-5909308"
+    ]
   },
   "fikan": {
     "operator": "FMI",
@@ -21,7 +28,16 @@
     "text": {
       "en": "Stands on the Ylisenharju ridge in Kankaanpää, Satakunta, and covers western Finland out towards the Gulf of Bothnia. The radar was moved here in spring 2022 from the Ikaalinen water tower, about 30 km away, where it had operated since 2010, because the water tower was due for renovation."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/fed068a8-04fd-47cd-92d7-a973aac3cd07",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/1JBd5q8Jl7tqJT1ANgVYyO",
+      "https://en.ilmatieteenlaitos.fi/news/DZHEKyeBXbGzCee1Ru4bN",
+      "https://yle.fi/a/3-5646229"
+    ]
   },
   "fikau": {
     "operator": "FMI",
@@ -41,7 +57,14 @@
       "licence": "CC BY 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Kaunisp%C3%A4%C3%A4_weather_radar_tower.jpg"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/e43b8016-237f-4d1a-ac39-0a7ef833f52c",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/NXtIfWPadjGIW3AZy8YfT"
+    ]
   },
   "fikes": {
     "operator": "FMI",
@@ -53,7 +76,14 @@
     "text": {
       "en": "Stands at Kesälahti in Kitee, North Karelia. Built in 2014 as the ninth radar of the network, it watches eastern Finland and can pick up summer storms and low winter snowfall approaching from the direction of Lake Ladoga hours earlier than before."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/bf782dff-da07-4ce0-a191-a9470ca1c84e",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://en.ilmatieteenlaitos.fi/press-release/38009506"
+    ]
   },
   "fikor": {
     "operator": "FMI",
@@ -73,7 +103,15 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Korpo_radar.jpg"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/4de94dfa-6b98-435b-9abb-9cec9b32f032",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://fi.wikipedia.org/wiki/Korppoon_s%C3%A4%C3%A4tutka",
+      "https://www.ilmatieteenlaitos.fi/tiedote/634859"
+    ]
   },
   "fikuo": {
     "operator": "FMI",
@@ -85,7 +123,14 @@
     "text": {
       "en": "Stands at Rytky in Kuopio and covers the lake district of eastern central Finland. The site dates from 1995; its dual-polarisation radar went into service in autumn 2013. FMI notes it is particularly useful for air traffic in the region, since it shows which parts of a cloud hold water and which hold ice."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/9ccd6311-2a96-4eaa-9d8e-9c7fe7c5f8d0",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/1225855"
+    ]
   },
   "filuo": {
     "operator": "FMI",
@@ -97,7 +142,15 @@
     "text": {
       "en": "Stands on the bare summit of Ukko-Luosto, more than 500 m above sea level, in the Pyhä-Luosto fells of Sodankylä, and covers central Lapland. The site has been in use since 2000 and its dual-polarisation radar since July 2014. With Lapland's long distances, its data matter especially for winter road maintenance."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/0edf5e9f-8568-4a81-be4b-cbc1909d2f1d",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/7179232",
+      "https://fi.wikipedia.org/wiki/Luosto"
+    ]
   },
   "finur": {
     "operator": "FMI",
@@ -109,7 +162,14 @@
     "text": {
       "en": "Stands on Riihivaara hill at Mujejärvi in Nurmes, North Karelia. Completed in November 2019 as the eleventh radar of the network, it mainly improves coverage of Kainuu, North Karelia and North Savo in eastern Finland."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/6f257fac-bdb5-49b0-ae14-673c9bb67fdf",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/1199324402"
+    ]
   },
   "fipet": {
     "operator": "FMI",
@@ -129,7 +189,15 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Liisalanper%C3%A4n_s%C3%A4%C3%A4tutka.jpg"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/4686e842-3e15-478a-8a41-70f3e369c9ad",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/111211555",
+      "https://fi.wikipedia.org/wiki/Pet%C3%A4j%C3%A4vesi"
+    ]
   },
   "fiuta": {
     "operator": "FMI",
@@ -149,7 +217,15 @@
       "licence": "Public domain",
       "licenceUrl": null,
       "page": "https://commons.wikimedia.org/wiki/File:Utajarvi_weather_radar.JPG"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/4c965454-235e-4738-ac1d-a17b15a4e807",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/1225855",
+      "https://www.kaleva.fi/utajarvi-sai-uuden-tarkemman-saatutkan/1749204"
+    ]
   },
   "fivih": {
     "operator": "FMI",
@@ -161,7 +237,15 @@
     "text": {
       "en": "Stands north of Ylimmäinen in Vihti, near the Loppi border, and covers the Helsinki region and southern Finland. It started operating in July 2021 and replaced the Vantaa radar on the Kaivoksela water tower, which had been the first radar of FMI's network; the new site offers a clearer view."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/06eeabb1-4f60-49ec-bceb-05f4188d4d52",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://www.ilmatieteenlaitos.fi/tiedote/3K5GyxByUCzvF11MwVZjgC",
+      "https://vihtijarvi.fi/ajankohtaista/vihtijarvelle-saatutka"
+    ]
   },
   "fivim": {
     "operator": "FMI",
@@ -181,6 +265,14 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Lakeaharju_weather_radar_tower_20190217.jpg"
-    }
+    },
+    "sources": [
+      "https://www.eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/OPERA_RADARS_DB.json",
+      "https://en.ilmatieteenlaitos.fi/fmi-radar-network",
+      "https://instrumentdb.out.ocp.fmi.fi/instrument/b02f0573-54b2-4fd7-be2f-b6b7f98d90c5",
+      "https://www.ilmatieteenlaitos.fi/havaintoasemat",
+      "https://yle.fi/a/3-10441156",
+      "https://fi.wikipedia.org/wiki/Lakeaharju"
+    ]
   }
 }

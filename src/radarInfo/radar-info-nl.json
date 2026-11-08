@@ -9,7 +9,15 @@
     "text": {
       "en": "KNMI's northern radar stands on the Royal Netherlands Navy's grounds in the port of Den Helder, at the tip of North Holland, and looks far out over the North Sea and the Wadden Sea. KNMI has measured here since 1997; the present dual-polarisation radar on its 52 m tower dates from 2016."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.knmi.nl/over-het-knmi/nieuws/de-nieuwe-weerradar-van-het-knmi",
+      "https://www.knmi.nl/over-het-knmi/nieuws/herwijnen-nieuwe-locatie-knmi-radar/",
+      "https://www.knmi.nl/kennis-en-datacentrum/uitleg/neerslagradar-door-de-jaren-heen",
+      "https://www.circuitsonline.net/forum/file/140296",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/",
+      "https://wrd.mgm.gov.tr/Radar/List"
+    ]
   },
   "nlhrw": {
     "operator": "KNMI",
@@ -29,6 +37,13 @@
       "licence": "CC BY-SA 3.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
       "page": "https://commons.wikimedia.org/wiki/File:Neerslagradar_(buienradar)_voor_het_KNMI_in_Herwijnen_(01).JPG"
-    }
+    },
+    "sources": [
+      "https://www.knmi.nl/over-het-knmi/nieuws/knmi-opent-neerslagradar-in-herwijnen",
+      "https://www.knmi.nl/over-het-knmi/nieuws/herwijnen-nieuwe-locatie-knmi-radar/",
+      "https://www.knmi.nl/kennis-en-datacentrum/uitleg/neerslagradar-door-de-jaren-heen",
+      "https://www.circuitsonline.net/forum/file/140296",
+      "https://eumetnet.eu/wp-content/themes/aeron-child/observations-programme/current-activities/opera/database/OPERA_Database/"
+    ]
   }
 }

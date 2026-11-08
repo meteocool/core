@@ -9,7 +9,15 @@
     "text": {
       "en": "Stands on a 40 m tower on the Albis ridge southwest of Zurich, above the Sihl valley. It watches the whole of northern Switzerland. Its current dual-polarisation radar replaced a 1994 system in 2012, adding nine decibels of sensitivity partly by moving the transmitter to the top of the tower."
     },
-    "photo": null
+    "photo": null,
+    "sources": [
+      "https://www.meteoswiss.admin.ch/weather/measurement-systems/atmosphere/weather-radar-network.html",
+      "https://www.meteoswiss.admin.ch/dam/jcr:b43915e4-d499-4416-a726-6e4625f3cd99/20170830_Radarnetz_DE_einzeln.pdf",
+      "https://www.meteoswiss.admin.ch/dam/jcr:8f791ccf-6aac-4ea9-a5fc-40bd530db3e7/peak-performance-radar-design-for-prediction.pdf",
+      "https://ams.confex.com/ams/36Radar/webprogram/Manuscript/Paper228506/AMS2013_extended_abstract_fvj.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List",
+      "https://de.wikipedia.org/wiki/Albis"
+    ]
   },
   "chdol": {
     "operator": "MeteoSwiss",
@@ -29,7 +37,16 @@
       "licence": "Public domain",
       "licenceUrl": null,
       "page": "https://commons.wikimedia.org/wiki/File:Radar_La_Dole.jpg"
-    }
+    },
+    "sources": [
+      "https://www.meteoswiss.admin.ch/weather/measurement-systems/atmosphere/weather-radar-network.html",
+      "https://www.meteoswiss.admin.ch/dam/jcr:b43915e4-d499-4416-a726-6e4625f3cd99/20170830_Radarnetz_DE_einzeln.pdf",
+      "https://www.meteoswiss.admin.ch/dam/jcr:8f791ccf-6aac-4ea9-a5fc-40bd530db3e7/peak-performance-radar-design-for-prediction.pdf",
+      "https://ams.confex.com/ams/36Radar/webprogram/Manuscript/Paper228506/AMS2013_extended_abstract_fvj.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List",
+      "https://de.wikipedia.org/wiki/La_D%C3%B4le",
+      "https://fr.wikipedia.org/wiki/La_D%C3%B4le"
+    ]
   },
   "chlem": {
     "operator": "MeteoSwiss",
@@ -49,7 +66,16 @@
       "licence": "CC BY-SA 3.0",
       "licenceUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
       "page": "https://commons.wikimedia.org/wiki/File:Monte-Lema.jpg"
-    }
+    },
+    "sources": [
+      "https://www.meteoswiss.admin.ch/weather/measurement-systems/atmosphere/weather-radar-network.html",
+      "https://www.meteoswiss.admin.ch/dam/jcr:b43915e4-d499-4416-a726-6e4625f3cd99/20170830_Radarnetz_DE_einzeln.pdf",
+      "https://www.meteoswiss.admin.ch/dam/jcr:8f791ccf-6aac-4ea9-a5fc-40bd530db3e7/peak-performance-radar-design-for-prediction.pdf",
+      "https://ams.confex.com/ams/36Radar/webprogram/Manuscript/Paper228506/AMS2013_extended_abstract_fvj.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List",
+      "https://www.meteosuisse.admin.ch/dam/jcr:6f192c46-6682-4ce0-ac32-8dedda02637e/Facstheet_Weissflugipfel_Davos_2017_F_Fin.pdf",
+      "https://de.wikipedia.org/wiki/Monte_Lema"
+    ]
   },
   "chppm": {
     "operator": "MeteoSwiss",
@@ -69,7 +95,14 @@
       "licence": "CC BY-SA 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
       "page": "https://commons.wikimedia.org/wiki/File:Pointe_de_la_Plaine_Morte_weather_radar.jpg"
-    }
+    },
+    "sources": [
+      "https://www.meteoswiss.admin.ch/weather/measurement-systems/atmosphere/weather-radar-network.html",
+      "https://www.meteoswiss.admin.ch/dam/jcr:b43915e4-d499-4416-a726-6e4625f3cd99/20170830_Radarnetz_DE_einzeln.pdf",
+      "https://www.meteoswiss.admin.ch/dam/jcr:8f791ccf-6aac-4ea9-a5fc-40bd530db3e7/peak-performance-radar-design-for-prediction.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List",
+      "https://en.wikipedia.org/wiki/Pointe_de_la_Plaine_Morte"
+    ]
   },
   "chwei": {
     "operator": "MeteoSwiss",
@@ -89,6 +122,14 @@
       "licence": "CC BY-SA 3.0",
       "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
       "page": "https://commons.wikimedia.org/wiki/File:Weissfluh_14.jpg"
-    }
+    },
+    "sources": [
+      "https://www.meteoswiss.admin.ch/weather/measurement-systems/atmosphere/weather-radar-network.html",
+      "https://www.meteoswiss.admin.ch/dam/jcr:b43915e4-d499-4416-a726-6e4625f3cd99/20170830_Radarnetz_DE_einzeln.pdf",
+      "https://www.meteoswiss.admin.ch/dam/jcr:8f791ccf-6aac-4ea9-a5fc-40bd530db3e7/peak-performance-radar-design-for-prediction.pdf",
+      "https://wrd.mgm.gov.tr/Radar/List",
+      "https://www.meteosuisse.admin.ch/dam/jcr:6f192c46-6682-4ce0-ac32-8dedda02637e/Facstheet_Weissflugipfel_Davos_2017_F_Fin.pdf",
+      "https://de.wikipedia.org/wiki/Weissflue"
+    ]
   }
 }

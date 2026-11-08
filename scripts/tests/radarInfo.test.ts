@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { infoFileOf, infoText, type RadarInfo, type RadarInfoFile } from "../../src/lib/radarInfo.ts";
+import { infoFileOf, infoText, sourceLabels, type RadarInfo, type RadarInfoFile } from "../../src/lib/radarInfo.ts";
 import { RADAR_SITES } from "../../src/lib/radarSites.ts";
 
 const ROOT = path.join(import.meta.dirname, "..", "..");
@@ -10,7 +10,7 @@ const INFO_DIR = path.join(ROOT, "src", "radarInfo");
 const PHOTO_DIR = path.join(ROOT, "public", "radars");
 
 const entry = (text: RadarInfo["text"]): RadarInfo => ({
-  operator: null, system: null, band: null, dualPol: null, since: null, towerM: null, text, photo: null,
+  operator: null, system: null, band: null, dualPol: null, since: null, towerM: null, text, photo: null, sources: [],
 });
 
 const files: Record<string, RadarInfoFile> = Object.fromEntries(readdirSync(INFO_DIR)
@@ -84,4 +84,27 @@ test("every photo is in the repository and says whose it is and under which lice
   }
   // And none is shipped that no radar shows.
   for (const name of readdirSync(PHOTO_DIR)) assert.ok(shown.has(name), `public/radars/${name} is shown by no radar`);
+});
+
+test("a source is named by who published it, where it is a known publisher", () => {
+  assert.deepEqual(sourceLabels([
+    "https://www.dwd.de/DE/derdwd/messnetz/atmosphaerenbeobachtung/_functions/HaeufigGesucht/radarverbund.html",
+    "https://de.wikipedia.org/wiki/Wetterradar",
+    "https://wrd.mgm.gov.tr/Home/Detail?id=1",
+    "https://www.schwaebische.de/a/radar",
+  ]), ["DWD", "Wikipedia (de)", "WMO Weather Radar Database", "schwaebische.de"]);
+});
+
+test("two sources from the same publisher are told apart", () => {
+  assert.deepEqual(sourceLabels(["https://www.smhi.se/a", "https://www.smhi.se/b", "https://www.met.no/c"]),
+    ["SMHI 1", "SMHI 2", "MET Norway"]);
+});
+
+test("every radar names where its text and facts come from", () => {
+  for (const radars of Object.values(files)) {
+    for (const [code, info] of Object.entries(radars)) {
+      assert.ok(info.sources.length > 0, `${code} names no source`);
+      for (const url of info.sources) assert.match(url, /^https?:\/\/[^/]+\.[a-z]+/, `${code}: ${url}`);
+    }
+  }
 });
