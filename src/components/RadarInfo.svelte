@@ -30,11 +30,14 @@ const dispatch = createEventDispatcher<{ close: void; explain: void }>();
 $: site = radarSite(code);
 $: name = site?.name ?? code.toUpperCase();
 $: text = info ? infoText(info, $locale) : null;
-$: num = (value: number, digits = 0) => value.toLocaleString($locale ?? "en", { maximumFractionDigits: digits });
+/** Numbers as the reader's language writes them. */
+const numIn = (language: string | null | undefined) => (value: number, digits = 0) =>
+  value.toLocaleString(language ?? "en", { maximumFractionDigits: digits });
+type Num = ReturnType<typeof numIn>;
 
 interface Fact { label: string; value: string }
 
-function factsOf(info: RadarInfo | null, tr: typeof $_, n: typeof num): Fact[] {
+function factsOf(info: RadarInfo | null, tr: typeof $_, n: Num): Fact[] {
   const facts: Fact[] = [];
   const add = (label: string, value: string | null | undefined) => { if (value) facts.push({ label: tr(label), value }); };
   add("site.info.operator", info?.operator);
@@ -53,7 +56,7 @@ function factsOf(info: RadarInfo | null, tr: typeof $_, n: typeof num): Fact[] {
   return facts;
 }
 
-$: facts = factsOf(info, $_, num);
+$: facts = factsOf(info, $_, numIn($locale));
 
 let photoLoaded = false;
 let photoFailed = false;
