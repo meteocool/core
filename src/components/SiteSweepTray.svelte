@@ -19,6 +19,9 @@
  * stations' picker, the strips and "Back to now" stand on it. Where the screen is too narrow
  * the pill scrolls sideways, its edges fading out. On a phone the chosen
  * tilt shows its elevation alone; the list it opens has the beam heights.
+ *
+ * The "i" beside the way out opens the radar's own page: its photo, where it
+ * stands and what it is (RadarInfo, a chunk fetched when it is first asked for).
  */
 import { onDestroy } from "svelte";
 import { _ } from "svelte-i18n";
@@ -27,10 +30,11 @@ import { fadeEdges } from "../lib/fadeEdges";
 import { escapeBelongsToField } from "../lib/escapeTarget";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons/faCircleInfo";
 import Icon from "./Icon.svelte";
 import Segmented from "./Segmented.svelte";
 import StormMotion from "./StormMotion.svelte";
-import { pointMenuAt, selectedStorm, siteMode, siteSweepView, stormDetails } from "../stores";
+import { pointMenuAt, radarInfoOpen, selectedStorm, siteMode, siteSweepView, stormDetails } from "../stores";
 import { radarSite } from "../lib/radarSites";
 import { tiltAngle, tiltBeam, tiltLabel } from "../lib/siteSweeps";
 import type { Quantity, SiteSweepView } from "../lib/siteSweeps";
@@ -63,6 +67,10 @@ function setTilt(event: Event) {
 
 function close() {
   siteMode.set(null);
+}
+
+function about() {
+  radarInfoOpen.set(true);
 }
 
 /*
@@ -299,6 +307,10 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
           {#each badges as badge (badge.text)}
             <span class="badge" class:warn={badge.warn} title={badge.title}>{badge.text}</span>
           {/each}
+          <button type="button" class="close" on:click={about}
+            title={$_("site.info.button")} aria-label={$_("site.info.button")}>
+            <Icon icon={faCircleInfo} />
+          </button>
           <button type="button" class="close" on:click={close}
             title={$_("site.close")} aria-label={$_("site.close")}>
             <Icon icon={faXmark} />

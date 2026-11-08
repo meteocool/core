@@ -1,0 +1,346 @@
+{
+  "frabb": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2009",
+    "towerM": 13,
+    "text": {
+      "en": "Stands at Météo-France's Abbeville-Drucat weather station, just north of Abbeville in the Somme. Its C-band beam covers Picardy, the Somme estuary and the eastern English Channel. The current dual-polarisation radar went into service in 2009."
+    },
+    "photo": {
+      "src": "/radars/frabb.webp",
+      "width": 800,
+      "height": 495,
+      "author": "APictche",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Abbeville_(80-Fr)_Station_m%C3%A9t%C3%A9o.jpg"
+    }
+  },
+  "fraja": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2018",
+    "towerM": 4,
+    "text": {
+      "en": "Sits on the summit of La Punta, about 780 m up in the hills above Ajaccio. It covers Corsica's west coast and complements the Aléria radar, whose view is limited mostly to the east of the island. Installed in December 2017, it became operational in July 2018."
+    },
+    "photo": null
+  },
+  "frale": {
+    "operator": "Météo-France",
+    "system": "Thomson",
+    "band": "S",
+    "dualPol": null,
+    "since": null,
+    "towerM": 13,
+    "text": {
+      "en": "Stands on Corsica's flat eastern plain near Aléria, close to the Tyrrhenian coast. The S-band radar watches eastern Corsica and the sea towards Italy; since 2018 a second radar near Ajaccio covers the west of the island. It has been in service since the early 2000s."
+    },
+    "photo": null
+  },
+  "frave": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2005",
+    "towerM": 17,
+    "text": {
+      "en": "Stands in the Avesnois, west of Avesnes-sur-Helpe in the far north of France, near the Belgian border. Its C-band beam covers the Nord department, the edge of the Ardennes and parts of Wallonia. In service since 2005."
+    },
+    "photo": null
+  },
+  "frbla": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2006",
+    "towerM": 15,
+    "text": {
+      "en": "Stands at about 590 m on the limestone uplands west of Dijon in the Côte-d'Or. From this height its C-band beam covers Burgundy, the Saône plain and the Morvan. In service since 2006."
+    },
+    "photo": null
+  },
+  "frbol": {
+    "operator": "Météo-France",
+    "system": "Thomson",
+    "band": "S",
+    "dualPol": null,
+    "since": null,
+    "towerM": 16,
+    "text": {
+      "en": "Stands on a hill above the Rhône valley near Bollène in northern Vaucluse. It was pushed for after the deadly Vaison-la-Romaine flood of 1992 to watch heavy rain over the lower Rhône and its tributaries; construction began in 1998. Like the other Mediterranean radars it uses the S band."
+    },
+    "photo": null
+  },
+  "frbor": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 24,
+    "text": {
+      "en": "Stands at Météo-France's station in Mérignac, on the western edge of Bordeaux. The dual-polarisation C-band radar covers Gironde, the Landes forest and the Atlantic coast. It replaced an older radar in 2014; a radar already operated here in the late 1970s."
+    },
+    "photo": {
+      "src": "/radars/frbor.webp",
+      "width": 800,
+      "height": 532,
+      "author": "Michael Specht",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Station_Meteo_France_de_M%C3%A9rignac_(Gironde).JPG"
+    }
+  },
+  "frbou": {
+    "operator": "Météo-France",
+    "system": "Thomson",
+    "band": "C",
+    "dualPol": null,
+    "since": "1987",
+    "towerM": 11,
+    "text": {
+      "en": "Stands at Météo-France's Bourges weather station in the Cher, in the middle of France. Its C-band beam covers the Berry, the Loire valley and the Sologne. Dating from 1987, it is one of the oldest radars still running in the network."
+    },
+    "photo": null
+  },
+  "frcae": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 12,
+    "text": {
+      "en": "Stands just north-east of Falaise, south of Caen in Calvados. Its C-band beam covers Lower Normandy, the Channel coast and the sea towards England. The current dual-polarisation radar went into service in 2014."
+    },
+    "photo": null
+  },
+  "frcol": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "S",
+    "dualPol": true,
+    "since": "2012",
+    "towerM": 13,
+    "text": {
+      "en": "Stands at about 640 m in the Massif des Maures above Collobrières in the Var. The S-band radar watches the coast between Toulon and Saint-Tropez and far out over the Mediterranean, where autumn storms bring torrential rain. The current radar dates from 2012."
+    },
+    "photo": {
+      "src": "/radars/frcol.webp",
+      "width": 800,
+      "height": 603,
+      "author": "Gnrc",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Radar_m%C3%A9t%C3%A9o_de_Collobri%C3%A8res,_vue_large,_Var,_France.jpg"
+    }
+  },
+  "frgre": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2011",
+    "towerM": 9,
+    "text": {
+      "en": "Stands under a radome at the Grèzes weather station in eastern Dordogne, near the Corrèze border. It covers Périgord, Limousin and the western edge of the Massif Central. The current radar dates from 2011; a radar here was already part of the national network in the early 1980s."
+    },
+    "photo": {
+      "src": "/radars/frgre.webp",
+      "width": 800,
+      "height": 600,
+      "author": "Père Igor",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Gr%C3%A8zes_(24)_station_m%C3%A9t%C3%A9o.JPG"
+    }
+  },
+  "frlep": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2013",
+    "towerM": 28,
+    "text": {
+      "en": "Stands at about 1,115 m in the forests of the Haute-Loire near La Chaise-Dieu; a radar has stood here since 1996. It watches the Massif Central and Cévennes-type downpours up to 180 km away. Because nearby trees keep growing, a new 50 m tower, France's tallest for a weather radar, is being built in 2026."
+    },
+    "photo": null
+  },
+  "frmcl": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2005",
+    "towerM": 11,
+    "text": {
+      "en": "Stands at about 670 m on a hilltop in southern Aveyron. Its C-band beam covers the Grands Causses, the southern Massif Central and the plains towards Toulouse and Montpellier. In service since October 2005."
+    },
+    "photo": null
+  },
+  "frmom": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2006",
+    "towerM": 19,
+    "text": {
+      "en": "Stands on a tower in the rolling Chalosse countryside of the Landes, near Hagetmau. Its C-band beam covers the Landes, the Basque coast and the foothills of the western Pyrenees. In service since 2006."
+    },
+    "photo": {
+      "src": "/radars/frmom.webp",
+      "width": 800,
+      "height": 600,
+      "author": "Pdbdt",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Radar_MeteoFrance_Momui.jpg"
+    }
+  },
+  "frmtc": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2007",
+    "towerM": 13,
+    "text": {
+      "en": "Stands at the highest point of Montancy, at about 930 m in the Jura of the Doubs, right on the Swiss border. It sees deep into Switzerland, Alsace and the Burgundian Gate, and appears on MeteoSwiss maps of the radars around Switzerland. In service since 2007."
+    },
+    "photo": null
+  },
+  "frnan": {
+    "operator": "Météo-France",
+    "system": "Thomson",
+    "band": "C",
+    "dualPol": true,
+    "since": "1984",
+    "towerM": 11,
+    "text": {
+      "en": "Stands in the Lorraine countryside about 30 km east of Nancy. Its C-band beam covers Lorraine, the Vosges and the border areas with Saarland and Alsace. Dating from 1984, it is one of the oldest radars still running in the French network."
+    },
+    "photo": null
+  },
+  "frnim": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "S",
+    "dualPol": true,
+    "since": "2008",
+    "towerM": 7,
+    "text": {
+      "en": "Stands on the plain south-east of Nîmes, near Manduel in the Gard. The S-band radar watches the Cévennes and the Rhône delta, where autumn storms can bring extreme rain. It replaced an older S-band radar in 2008 and was the first S-band dual-polarisation radar in the network."
+    },
+    "photo": null
+  },
+  "frniz": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2015",
+    "towerM": 12,
+    "text": {
+      "en": "Stands at about 910 m on a ridge of the Beaujolais hills near Saint-Nizier-d'Azergues, north-west of Lyon. Its C-band beam covers the Lyon area, the Saône valley and the eastern Massif Central. In service since 2015."
+    },
+    "photo": {
+      "src": "/radars/frniz.webp",
+      "width": 800,
+      "height": 600,
+      "author": "Sebleouf",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Radar_M%C3%A9t%C3%A9o_France_de_Saint-Nizier_d%27Azergues_4_(avr_2023).jpg"
+    }
+  },
+  "fropo": {
+    "operator": "Météo-France",
+    "system": "Thomson",
+    "band": "S",
+    "dualPol": true,
+    "since": "2000",
+    "towerM": 15,
+    "text": {
+      "en": "Stands on the Montolier de Perellos, a 709 m summit on a ridge north of Perpignan that is visible across the Roussillon plain. The S-band radar watches the eastern Pyrenees, the Aude and the Gulf of Lion. In service since 2000."
+    },
+    "photo": null
+  },
+  "frpla": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2012",
+    "towerM": 14,
+    "text": {
+      "en": "Stands in the countryside of northern Finistère near Plabennec, north of Brest. From the western tip of Brittany its C-band beam reaches far over the Atlantic and the western Channel, catching weather systems as they arrive. In service since 2012."
+    },
+    "photo": null
+  },
+  "frtou": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2006",
+    "towerM": 29,
+    "text": {
+      "en": "Sits on top of the observation tower of the Météopôle, Météo-France's research and training campus in western Toulouse, home of the national meteorology school. Its C-band beam covers the Toulouse area, the Garonne valley and the central Pyrenees. In service since 2006."
+    },
+    "photo": {
+      "src": "/radars/frtou.webp",
+      "width": 800,
+      "height": 534,
+      "author": "Neillman",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "page": "https://commons.wikimedia.org/wiki/File:%C3%89cole_Nationale_de_la_M%C3%A9t%C3%A9orologie_en_novembre_2020.jpg"
+    }
+  },
+  "frtra": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2004",
+    "towerM": 24,
+    "text": {
+      "en": "Stands at Météo-France's site in Trappes, south-west of Paris, and watches the Île-de-France region. Installed in 2004, it was the first dual-polarisation radar in France and served as the test bed for the polarimetric rain products later used across the network."
+    },
+    "photo": null
+  },
+  "frtre": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": "2016",
+    "towerM": 12,
+    "text": {
+      "en": "Stands at Treillières, just north of Nantes in the Loire-Atlantique. Its C-band beam covers the lower Loire, the Vendée coast and southern Brittany. The current radar dates from 2016."
+    },
+    "photo": null
+  },
+  "frtro": {
+    "operator": "Météo-France",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": true,
+    "since": null,
+    "towerM": 9,
+    "text": {
+      "en": "Stands on the chalk plain of Champagne, south-east of Arcis-sur-Aube and north-east of Troyes. Its C-band beam covers the Aube, the Marne and the lakes of the Forêt d'Orient. One of the newer radars in the network, in service since the mid-2010s."
+    },
+    "photo": null
+  }
+}

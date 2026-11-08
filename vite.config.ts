@@ -122,6 +122,13 @@ export default defineConfig(({ mode }) => {
             "**/_redirects",
             "**/*.map",
             "shoelace/assets/icons/**",
+            // A radar's page, its country's texts and its photo are fetched
+            // when it is opened (src/lib/radarInfo.ts): few readers ever open
+            // one, and they would be most of the precache's text. The service
+            // worker caches the chunks on first use, as MapLibre's.
+            "**/RadarInfo-*",
+            "**/radar-info-*",
+            "radars/**",
           ],
         },
       }),

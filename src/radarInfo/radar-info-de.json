@@ -1,0 +1,254 @@
+{
+  "deasb": {
+    "operator": "DWD",
+    "system": null,
+    "band": "C",
+    "dualPol": false,
+    "since": "2018",
+    "towerM": 30,
+    "text": {
+      "en": "A stand-in radar on a 30 m steel lattice mast near the ferry harbour of the East Frisian island of Borkum. Since 2018 it has covered the North Sea coast and the Ems estuary in place of the shut-down Emden radar. It is a relocatable backup unit with single polarisation, unlike the other DWD radars."
+    },
+    "photo": null
+  },
+  "deboo": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 30,
+    "text": {
+      "en": "Stands on a 30 m steel lattice tower on the Schwienhagen, a wooded hill at Boostedt near Neumünster, and took over from the old radar at Hamburg-Fuhlsbüttel. It watches Schleswig-Holstein and Hamburg. Until it was blown up in 2005, the hill carried a 38 m radar tower of the German air traffic control service."
+    },
+    "photo": {
+      "src": "/radars/deboo.webp",
+      "width": 800,
+      "height": 1423,
+      "author": "FinleyFinleyson",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Radarturm-Schwienhagen-Boostedt.jpg"
+    }
+  },
+  "dedrs": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2015",
+    "towerM": 36,
+    "text": {
+      "en": "Stands by the access road to the terminal of Dresden Airport in Klotzsche, on a concrete and steel tower whose design won the city's Erlwein Prize in 2001. Dresden has had a DWD radar since 2000. The current dual-pol radar has run since 2015 and looks across Saxony into Czechia and Poland."
+    },
+    "photo": {
+      "src": "/radars/dedrs.webp",
+      "width": 800,
+      "height": 1200,
+      "author": "Albrecht Voß",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Dresden,_Wilhelmine-Reichard-Ring,_Flughafen_Dresden,_Wetter-Radarturm,_17.6.2.40-070133.jpg"
+    }
+  },
+  "deeis": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 26,
+    "text": {
+      "en": "Sits on a 26 m steel lattice tower on the Eisberg (officially Eisenberg since 2013), a 771 m hill in the Upper Palatinate Forest near Moosbach, close to the Czech border. A radar has stood here since 1997. While it was being renewed in 2014, the Czech weather service filled the gap with its own data."
+    },
+    "photo": null
+  },
+  "deess": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2012",
+    "towerM": 30,
+    "text": {
+      "en": "Stands on a 30 m concrete tower in Schuir, a rural district on the southern edge of Essen, and watches the Ruhr area and the Lower Rhine. The tower was built in 2010 and the dual-pol radar followed in 2012. In 2015 a court blocked a wind turbine 11 km away because its rotor would have disturbed the measurements."
+    },
+    "photo": null
+  },
+  "defbg": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2012",
+    "towerM": 21,
+    "text": {
+      "en": "The highest radar in the DWD network, with its antenna at about 1,516 m on the summit of the Feldberg, the highest peak of the Black Forest. It is housed in the 21 m Friedrich-Luise-Turm, built in 1913, next to the mountain weather station. The dual-pol radar went into service on 20 November 2012."
+    },
+    "photo": {
+      "src": "/radars/defbg.webp",
+      "width": 800,
+      "height": 564,
+      "author": "Jörg Braukmann",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Friedrich-Luise-Turm.jpg"
+    }
+  },
+  "defld": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 73,
+    "text": {
+      "en": "Stands on a 73 m steel lattice tower, the tallest in the DWD network, near Flechtdorf in the municipality of Diemelsee in northern Hesse. A radar has operated here since 1997. The current dual-pol radar was installed in July 2014 and joined the national network at the end of that October."
+    },
+    "photo": null
+  },
+  "dehnr": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 44,
+    "text": {
+      "en": "Sits on a 44 m concrete tower at Hannover Airport in Langenhagen, apparently the airport's former control tower from 1966, now topped by the radar dome. It replaced the airport's older DWD radar in 2014 and covers much of Lower Saxony."
+    },
+    "photo": {
+      "src": "/radars/dehnr.webp",
+      "width": 800,
+      "height": 1067,
+      "author": "TeWeBs",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:HAJ_Alter_Tower.JPG"
+    }
+  },
+  "deisn": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 45,
+    "text": {
+      "en": "Stands on a 45 m concrete tower in farmland near the market town of Isen, east of Munich. It replaced the radar at München-Fürholzen in 2014, when DWD moved several radars out of large cities, and watches Upper Bavaria as far as the Alps."
+    },
+    "photo": null
+  },
+  "demem": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2013",
+    "towerM": 55,
+    "text": {
+      "en": "A 55 m concrete tower in the Niederrieder Forst, a wooded ridge near Niederrieden north of Memmingen. Opened in October 2013 as the network's 17th radar, it closed a gap over the Allgäu foothills that had been only thinly covered. Building it took five years and cost about 2.3 million euros."
+    },
+    "photo": null
+  },
+  "deneu": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2012",
+    "towerM": 30,
+    "text": {
+      "en": "Stands at about 850 m on the ridge of the Thuringian Forest at Neuhaus am Rennweg, on a 30 m concrete tower. The GDR weather service already opened a radar station near Neuhaus in 1988. Today's dual-pol radar has run since 2012 and covers Thuringia and northern Bavaria."
+    },
+    "photo": null
+  },
+  "denhb": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 32,
+    "text": {
+      "en": "Stands on a 32 m steel lattice tower on a rise near Neuheilenbach in the Eifel, close to the borders with Luxembourg and Belgium, and can be seen from many kilometres away. The station dates from 1998. While it got its dual-pol radar in 2014, Belgium's weather service supplied data in its place."
+    },
+    "photo": null
+  },
+  "deoft": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2011",
+    "towerM": 45,
+    "text": {
+      "en": "A 45 m concrete tower on the Albanusberg in the forest between Dreieich-Offenthal and Langen, south of Frankfurt. Built from 2007 to 2010 to replace the radar at Frankfurt Airport, it was among the first sites of DWD's renewed dual-pol network in 2011. It watches the Rhine-Main area."
+    },
+    "photo": {
+      "src": "/radars/deoft.webp",
+      "width": 800,
+      "height": 1201,
+      "author": "Stefan Oemisch",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:2021_Wetterradarturm_bei_Langen.jpg"
+    }
+  },
+  "depro": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 51,
+    "text": {
+      "en": "Stands on a 51 m concrete tower at Heidekrug near Prötzel, east of Berlin, beside a former Volkspolizei barracks. It replaced the radar at the old Tempelhof Airport in 2014, moving Berlin's weather radar out of the city, and covers Berlin, Brandenburg and western Poland."
+    },
+    "photo": null
+  },
+  "deros": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": 34,
+    "text": {
+      "en": "Sits in the dome atop the brick tower of the former GDR weather office in Warnemünde, completed in 1988 and now a youth hostel. Back then the dome was nicknamed the giant egg. DWD's current dual-pol radar on the 34 m tower went into service in 2014 and watches the Baltic coast."
+    },
+    "photo": {
+      "src": "/radars/deros.webp",
+      "width": 800,
+      "height": 534,
+      "author": "Foto Fitti",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Warnem%C3%BCnde,_Rostock,_Germany_-_panoramio.jpg"
+    }
+  },
+  "detur": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2013",
+    "towerM": 32,
+    "text": {
+      "en": "Stands on a 32 m steel lattice tower on the Swabian Alb near Türkheim, above the Geislinger Steige. A radar has operated here since 1998; the dual-pol radar went into service in December 2013. Its 15 km protection zone has held up wind farm plans in nearby villages such as Nellingen."
+    },
+    "photo": null
+  },
+  "deumd": {
+    "operator": "DWD",
+    "system": "EEC DWSR-5001C/SDP/CE",
+    "band": "C",
+    "dualPol": true,
+    "since": "2013",
+    "towerM": 24,
+    "text": {
+      "en": "Stands on a steel lattice tower near Ummendorf in the flat farmland of the Magdeburger Börde, west of Magdeburg. A radar has operated here since 1996; the dual-pol radar went into service in December 2013. It covers Saxony-Anhalt and the Harz."
+    },
+    "photo": null
+  }
+}

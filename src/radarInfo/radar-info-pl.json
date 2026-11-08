@@ -1,0 +1,154 @@
+{
+  "plbrz": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2023",
+    "towerM": 54.35,
+    "text": {
+      "en": "Stands near Miechów, north of Kraków, and covers Lesser Poland. A radar has worked here since 2004; in 2023 the old tower was replaced by one about 54 m tall, 15 m higher, making it the tallest radar in Poland."
+    },
+    "photo": {
+      "src": "/radars/plbrz.webp",
+      "width": 800,
+      "height": 1067,
+      "author": "Bartek444",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Weather_radar_in_Brzuchania_2026_bk01.jpg"
+    }
+  },
+  "plgdy": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2024",
+    "towerM": 38.36,
+    "text": {
+      "en": "Stands in forest near Kamień in Szemud commune, west of Gdynia, on a tower about 38 m tall. It covers Pomerania and the Gulf of Gdańsk. It went into service in March 2024 and replaced the radar at Gdańsk airport, which had worked since 2003 and had to make way for airport expansion."
+    },
+    "photo": null
+  },
+  "plgsa": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2023",
+    "towerM": 49.25,
+    "text": {
+      "en": "Stands on a 49 m tower near Żyrowa, beside the St. Anne Mountain pilgrimage hill in Opole Silesia. One of two new POLRAD sites, it lies between the Sudetes and the Carpathians and improves coverage of southern Poland. It has run since November 2023 and was officially opened in July 2024."
+    },
+    "photo": null
+  },
+  "plleg": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2022",
+    "towerM": 29,
+    "text": {
+      "en": "Stands on the IMGW-PIB research campus in Legionowo, just north of Warsaw, and covers Mazovia and central Poland. Its previous radar ran from 2002 until May 2022. The current dual-polarisation radar started in August 2022, the first of the network's replacements."
+    },
+    "photo": {
+      "src": "/radars/plleg.webp",
+      "width": 800,
+      "height": 534,
+      "author": "Wiesław Z.",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Legionowo,_IMGW_-_fotopolska.eu_(314550).jpg"
+    }
+  },
+  "plpas": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2023",
+    "towerM": 23,
+    "text": {
+      "en": "Sits on Poręba, the highest summit of the eastern ridge of the Kaczawskie Mountains, near the village of Pastewnik in Lower Silesia. It watches the Sudetes and the Czech border region. A radar has worked here since 2000; the current one started in June 2023."
+    },
+    "photo": null
+  },
+  "plpoz": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2022",
+    "towerM": 35,
+    "text": {
+      "en": "Stands in Wysogotowo on the western edge of Poznań, near Ławica airport, and covers Greater Poland. A radar has worked here since 2003. The current dual-polarisation unit replaced it in November 2022 during the modernisation of the POLRAD network."
+    },
+    "photo": {
+      "src": "/radars/plpoz.webp",
+      "width": 800,
+      "height": 1205,
+      "author": "MOs810",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Wysogotowo_radar.JPG"
+    }
+  },
+  "plram": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2023",
+    "towerM": 35,
+    "text": {
+      "en": "Stands on a 35 m tower near the top of Ramża (325 m), the highest hill of the Rybnik Plateau in Upper Silesia, and watches the Silesian conurbation and the Beskids. A radar has stood here since 1996; the current one started in April 2023."
+    },
+    "photo": {
+      "src": "/radars/plram.webp",
+      "width": 800,
+      "height": 1067,
+      "author": "ARKADIUSZ MARKIEWICZ",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Radar_meteorologiczny_-_panoramio.jpg"
+    }
+  },
+  "plrze": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2022",
+    "towerM": 30,
+    "text": {
+      "en": "Stands at Jasionka beside Rzeszów airport in south-eastern Poland, and covers south-eastern Poland. A radar has worked here since 2003. The current dual-polarisation unit started in October 2022."
+    },
+    "photo": null
+  },
+  "plswi": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2022",
+    "towerM": 30,
+    "text": {
+      "en": "Stands near Świdwin in West Pomerania and covers north-western Poland, the Szczecin area and the Baltic coast. A radar has worked here since 2003. The current dual-polarisation unit started in October 2022."
+    },
+    "photo": null
+  },
+  "pluzr": {
+    "operator": "IMGW-PIB",
+    "system": "Leonardo METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2023",
+    "towerM": 38.35,
+    "text": {
+      "en": "Stands on a new 38 m tower at Użranki near Mrągowo, in the Masurian lake district. Before it opened in April 2023, north-eastern Poland was seen only from distant Legionowo. It helps warn sailors and visitors on the Masurian lakes of approaching storms."
+    },
+    "photo": null
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "fianj": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2009",
+    "towerM": null,
+    "text": {
+      "en": "Sits on top of the Kaipiainen water tower in Kouvola and watches southeastern Finland, where severe storms sometimes arrive from the Karelian Isthmus. The site has been in use since the early 1990s; its current radar, put into service in October 2009, was only the second dual-polarisation radar in Finland."
+    },
+    "photo": null
+  },
+  "fikan": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2022",
+    "towerM": null,
+    "text": {
+      "en": "Stands on the Ylisenharju ridge in Kankaanpää, Satakunta, and covers western Finland out towards the Gulf of Bothnia. The radar was moved here in spring 2022 from the Ikaalinen water tower, about 30 km away, where it had operated since 2010, because the water tower was due for renovation."
+    },
+    "photo": null
+  },
+  "fikau": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2025",
+    "towerM": 30,
+    "text": {
+      "en": "Finland's northernmost weather radar, standing near the summit of Kaunispää fell above the Saariselkä resort in Inari. In service since March 2025, it is the twelfth and newest radar in FMI's network and mainly improves coverage of northern Lapland, for example for winter road maintenance."
+    },
+    "photo": {
+      "src": "/radars/fikau.webp",
+      "width": 800,
+      "height": 1526,
+      "author": "Antti Leppänen",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Kaunisp%C3%A4%C3%A4_weather_radar_tower.jpg"
+    }
+  },
+  "fikes": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2015",
+    "towerM": 30.6,
+    "text": {
+      "en": "Stands at Kesälahti in Kitee, North Karelia. Built in 2014 as the ninth radar of the network, it watches eastern Finland and can pick up summer storms and low winter snowfall approaching from the direction of Lake Ladoga hours earlier than before."
+    },
+    "photo": null
+  },
+  "fikor": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2012",
+    "towerM": 29,
+    "text": {
+      "en": "Stands at Rumar on the island of Korpo in the Turku archipelago and has watched the Archipelago Sea since 1997, replacing an older radar on the Masku water tower. The tower has a public viewing platform at 14 m, popular with travellers on the Archipelago Trail. The current dual-polarisation radar was installed in 2012."
+    },
+    "photo": {
+      "src": "/radars/fikor.webp",
+      "width": 800,
+      "height": 975,
+      "author": "Xepheid",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Korpo_radar.jpg"
+    }
+  },
+  "fikuo": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2013",
+    "towerM": null,
+    "text": {
+      "en": "Stands at Rytky in Kuopio and covers the lake district of eastern central Finland. The site dates from 1995; its dual-polarisation radar went into service in autumn 2013. FMI notes it is particularly useful for air traffic in the region, since it shows which parts of a cloud hold water and which hold ice."
+    },
+    "photo": null
+  },
+  "filuo": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": null,
+    "text": {
+      "en": "Stands on the bare summit of Ukko-Luosto, more than 500 m above sea level, in the Pyhä-Luosto fells of Sodankylä, and covers central Lapland. The site has been in use since 2000 and its dual-polarisation radar since July 2014. With Lapland's long distances, its data matter especially for winter road maintenance."
+    },
+    "photo": null
+  },
+  "finur": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2019",
+    "towerM": 33,
+    "text": {
+      "en": "Stands on Riihivaara hill at Mujejärvi in Nurmes, North Karelia. Completed in November 2019 as the eleventh radar of the network, it mainly improves coverage of Kainuu, North Karelia and North Savo in eastern Finland."
+    },
+    "photo": null
+  },
+  "fipet": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2015",
+    "towerM": 26,
+    "text": {
+      "en": "Stands at Liisalanperä near Kintaus in Petäjävesi, west of Jyväskylä. Put into service in October 2015 as the network's tenth radar, it covers Central Finland, a gap in earlier coverage, and also serves the air force academy at Tikkakoski."
+    },
+    "photo": {
+      "src": "/radars/fipet.webp",
+      "width": 800,
+      "height": 600,
+      "author": "Kapulakone",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Liisalanper%C3%A4n_s%C3%A4%C3%A4tutka.jpg"
+    }
+  },
+  "fiuta": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2013",
+    "towerM": null,
+    "text": {
+      "en": "Stands at Korkiakangas in Utajärvi, east of Oulu, and covers the Oulu region of northern Finland. The site has been in use since 1997; its dual-polarisation radar went into service in autumn 2013 and maps precipitation up to about 250 km away."
+    },
+    "photo": {
+      "src": "/radars/fiuta.webp",
+      "width": 800,
+      "height": 600,
+      "author": "SeppVei",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "page": "https://commons.wikimedia.org/wiki/File:Utajarvi_weather_radar.JPG"
+    }
+  },
+  "fivih": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": "2021",
+    "towerM": null,
+    "text": {
+      "en": "Stands north of Ylimmäinen in Vihti, near the Loppi border, and covers the Helsinki region and southern Finland. It started operating in July 2021 and replaced the Vantaa radar on the Kaivoksela water tower, which had been the first radar of FMI's network; the new site offers a clearer view."
+    },
+    "photo": null
+  },
+  "fivim": {
+    "operator": "FMI",
+    "system": "Vaisala WRM200",
+    "band": "C",
+    "dualPol": true,
+    "since": null,
+    "towerM": 30,
+    "text": {
+      "en": "Stands on the Lakeaharju ridge in Vimpeli, South Ostrobothnia, next to the Lakis ski slopes, and covers western central Finland. The site has been in use since 2005. When the radar was replaced around 2017 and 2018, the old white radome was turned into a meeting room at the ski resort."
+    },
+    "photo": {
+      "src": "/radars/fivim.webp",
+      "width": 800,
+      "height": 1176,
+      "author": "Santeri Viinamäki",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Lakeaharju_weather_radar_tower_20190217.jpg"
+    }
+  }
+}

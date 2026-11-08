@@ -1,0 +1,122 @@
+{
+  "seang": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2015",
+    "towerM": 20,
+    "text": {
+      "en": "Stands on the Hallandsåsen ridge north of Ängelholm, close to 190 m above sea level, and watches north-western Skåne, the Kattegat and the Öresund region. The station dates from 2001; its radar was renewed with dual-polarisation technology in 2015, early in SMHI's network upgrade."
+    },
+    "photo": null
+  },
+  "seatv": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2019",
+    "towerM": 21,
+    "text": {
+      "en": "Stands at Vilebo near Åtvidaberg in southern Östergötland and watches eastern Götaland, including Linköping, Norrköping and the Baltic coast. The site dates from 2003; its modernised dual-polarisation radar has been running since 2019."
+    },
+    "photo": null
+  },
+  "sebaa": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2018",
+    "towerM": 22,
+    "text": {
+      "en": "Stands just north-east of Bålsta near Lake Mälaren and is the Swedish radar closest to Stockholm and Uppsala, watching the Mälaren valley and much of eastern Svealand. It is the youngest site in SMHI's network, in service since 2018 with a dual-polarisation radar."
+    },
+    "photo": null
+  },
+  "sehuv": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2017",
+    "towerM": 12,
+    "text": {
+      "en": "Stands on a hill about 375 m high south-west of Hudiksvall in Hälsingland and watches the coast of the Bothnian Sea and the forests of Gävleborg and southern Västernorrland. The site has been in use since 1992; its current dual-polarisation radar has been running since 2017."
+    },
+    "photo": null
+  },
+  "sekaa": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2018",
+    "towerM": 24,
+    "text": {
+      "en": "Stands north of Karlskrona in Blekinge and watches south-eastern Sweden, Öland and the southern Baltic Sea. Dating from 1990, it is one of the oldest sites in the Swedish network; its dual-polarisation radar has been running since 2018."
+    },
+    "photo": null
+  },
+  "sekrn": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2021",
+    "towerM": 5,
+    "text": {
+      "en": "Sweden's northernmost weather radar stands on high ground outside Kiruna, about 640 m above sea level and well north of the Arctic Circle, watching the mountains and valleys of Swedish Lapland. Modernised on its existing site, it was the last of SMHI's twelve radars to return, in February 2021; the site dates from 1996."
+    },
+    "photo": null
+  },
+  "selek": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2017",
+    "towerM": 16,
+    "text": {
+      "en": "Stands on a hill just west of Leksand, at the southern end of Lake Siljan in Dalarna, about 440 m above sea level, and watches Dalarna and the surrounding parts of central Sweden. The site has been in use since 1994, its dual-polarisation radar since 2017."
+    },
+    "photo": null
+  },
+  "sella": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2018",
+    "towerM": 19,
+    "text": {
+      "en": "Stands near the village of Rosvik on the coast between Piteå and Luleå, only about 70 m above sea level, and watches the Bothnian Bay and coastal Norrbotten. The site dates from 2005; its current dual-polarisation radar has been running since 2018."
+    },
+    "photo": null
+  },
+  "seoer": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2017",
+    "towerM": 12,
+    "text": {
+      "en": "Stands on a hilltop north of Örnsköldsvik in Västernorrland, more than 500 m above sea level, and watches the High Coast, the northern Bothnian Sea and southern Västerbotten. The site has been in use since 1991; its current dual-polarisation radar has been running since 2017."
+    },
+    "photo": null
+  },
+  "seosd": {
+    "operator": "SMHI",
+    "system": "EEC",
+    "band": "C",
+    "dualPol": true,
+    "since": "2016",
+    "towerM": 13,
+    "text": {
+      "en": "Stands on high ground north-east of Östersund in Jämtland, about 450 m above sea level, and watches the Storsjön basin and the mountains towards the Norwegian border. The site dates from 1995; its dual-polarisation radar, in service since 2016, was among the first of SMHI's renewed units."
+    },
+    "photo": null
+  }
+}

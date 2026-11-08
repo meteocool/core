@@ -1,0 +1,94 @@
+{
+  "chalb": {
+    "operator": "MeteoSwiss",
+    "system": "Selex METEOR 635C",
+    "band": "C",
+    "dualPol": true,
+    "since": "2012",
+    "towerM": 40,
+    "text": {
+      "en": "Stands on a 40 m tower on the Albis ridge southwest of Zurich, above the Sihl valley. It watches the whole of northern Switzerland. Its current dual-polarisation radar replaced a 1994 system in 2012, adding nine decibels of sensitivity partly by moving the transmitter to the top of the tower."
+    },
+    "photo": null
+  },
+  "chdol": {
+    "operator": "MeteoSwiss",
+    "system": "Selex METEOR 635C",
+    "band": "C",
+    "dualPol": true,
+    "since": "2011",
+    "towerM": null,
+    "text": {
+      "en": "Sits on the summit of La Dôle (1677 m) in the Vaud Jura, above Lake Geneva, and covers western Switzerland. Switzerland's first weather radar was installed here in 1959. The radome shares the summit with an air traffic control radar operated by Skyguide."
+    },
+    "photo": {
+      "src": "/radars/chdol.webp",
+      "width": 800,
+      "height": 600,
+      "author": "Serge Nueffer",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "page": "https://commons.wikimedia.org/wiki/File:Radar_La_Dole.jpg"
+    }
+  },
+  "chlem": {
+    "operator": "MeteoSwiss",
+    "system": "Selex METEOR 635C",
+    "band": "C",
+    "dualPol": true,
+    "since": "2011",
+    "towerM": null,
+    "text": {
+      "en": "Stands on the summit of Monte Lema on the Swiss-Italian border in Ticino, between Lake Lugano and Lake Maggiore. It looks south over the Po Valley, with a range that reaches the Gulf of Genoa. The site has hosted a radar since 1993."
+    },
+    "photo": {
+      "src": "/radars/chlem.webp",
+      "width": 800,
+      "height": 789,
+      "author": "Thomas Schmidtkonz",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+      "page": "https://commons.wikimedia.org/wiki/File:Monte-Lema.jpg"
+    }
+  },
+  "chppm": {
+    "operator": "MeteoSwiss",
+    "system": "Selex METEOR 635C",
+    "band": "C",
+    "dualPol": true,
+    "since": "2014",
+    "towerM": null,
+    "text": {
+      "en": "Sits at about 2940 m on the Pointe de la Plaine Morte above Crans-Montana in Valais, the highest of the five Swiss weather radars. Built to see into the inner-Alpine valleys of Valais, it went into service in 2014 and is reached by cable car."
+    },
+    "photo": {
+      "src": "/radars/chppm.webp",
+      "width": 800,
+      "height": 754,
+      "author": "Pierre cb",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Pointe_de_la_Plaine_Morte_weather_radar.jpg"
+    }
+  },
+  "chwei": {
+    "operator": "MeteoSwiss",
+    "system": "Selex METEOR 635C",
+    "band": "C",
+    "dualPol": true,
+    "since": "2016",
+    "towerM": null,
+    "text": {
+      "en": "Stands at 2850 m on the Weissfluhgipfel between Davos and Arosa in Graubünden, reached by cable car. It covers the eastern Swiss Alps, where valleys used to sit in the shadow of other radars. Construction began in May 2014 and it went into service in January 2016 as the fifth Swiss radar."
+    },
+    "photo": {
+      "src": "/radars/chwei.webp",
+      "width": 800,
+      "height": 763,
+      "author": "Tiia Monto",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Weissfluh_14.jpg"
+    }
+  }
+}

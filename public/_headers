@@ -5,3 +5,7 @@
 # Vite names everything under /assets/ by content hash, so a URL is immutable.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The radars' photos (src/lib/radarInfo.ts): named by radar, not by content.
+/radars/*
+  Cache-Control: public, max-age=604800

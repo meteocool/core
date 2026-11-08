@@ -40,7 +40,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
-  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, meteocoolNowcast,
+  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meteocoolNowcast,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
   archiveWindow,
@@ -101,6 +101,14 @@ import { registerOpenRadar } from "./lib/openRadar";
 const loadStormDetails = () => import("./components/StormDetails.svelte");
 const loadCellSheet = () => import("./components/CellSheet.svelte");
 const loadRadarExplainer = () => import("./components/RadarExplainer.svelte");
+// A radar's own page: the panel and its country's texts, both chunks of
+// their own (lib/radarInfoLoad.ts), loaded together when it is opened.
+const loadRadarInfo = (code: string) => () => Promise.all([
+  import("./components/RadarInfo.svelte"),
+  import("./lib/radarInfoLoad").then(({ loadRadarInfo: load }) => load(code)),
+]);
+/* Closed with the radar, so the next one opened does not open on its page. */
+$: if (!$siteMode) radarInfoOpen.set(false);
 // The model comparison too: its charts and the forecast fetch are for the
 // few who open it.
 const loadModelCompare = () => import("./components/ModelCompare.svelte");
@@ -1464,6 +1472,17 @@ if (postInitCb) postInitCb(lm);
   <Guide3D />
 {/if}
 <PointMenu layerManager={lm} />
+
+<!-- The open radar's own page goes with the radar: closing the radar closes it. -->
+{#if $radarInfoOpen && $siteMode}
+  {#key $siteMode.site}
+    <Lazy load={loadRadarInfo($siteMode.site)} floating let:module={[{ default: RadarInfo }, info]}>
+      <svelte:component this={RadarInfo} code={$siteMode.site} {info}
+        on:close={() => radarInfoOpen.set(false)}
+        on:explain={() => { radarInfoOpen.set(false); radarExplainerOpen.set(true); }} />
+    </Lazy>
+  {/key}
+{/if}
 
 {#if $radarExplainerOpen}
   <Lazy load={loadRadarExplainer} floating let:module>

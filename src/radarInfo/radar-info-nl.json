@@ -1,0 +1,34 @@
+{
+  "nldhl": {
+    "operator": "KNMI",
+    "system": "Selex METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2016",
+    "towerM": 52,
+    "text": {
+      "en": "KNMI's northern radar stands on the Royal Netherlands Navy's grounds in the port of Den Helder, at the tip of North Holland, and looks far out over the North Sea and the Wadden Sea. KNMI has measured here since 1997; the present dual-polarisation radar on its 52 m tower dates from 2016."
+    },
+    "photo": null
+  },
+  "nlhrw": {
+    "operator": "KNMI",
+    "system": "Selex METEOR 735CDP10",
+    "band": "C",
+    "dualPol": true,
+    "since": "2017",
+    "towerM": 22,
+    "text": {
+      "en": "KNMI's southern radar sits on a former air traffic control radar tower in the village of Herwijnen, in the river land between the Waal and the Linge. It replaced the radar on KNMI's tower in De Bilt, whose view was blocked by new high-rise buildings, and was officially opened on 12 May 2017."
+    },
+    "photo": {
+      "src": "/radars/nlhrw.webp",
+      "width": 800,
+      "height": 1200,
+      "author": "S.J. de Waard",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Neerslagradar_(buienradar)_voor_het_KNMI_in_Herwijnen_(01).JPG"
+    }
+  }
+}

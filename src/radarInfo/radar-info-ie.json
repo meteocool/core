@@ -1,0 +1,26 @@
+{
+  "iedub": {
+    "operator": "Met Éireann",
+    "system": "Selex",
+    "band": "C",
+    "dualPol": false,
+    "since": "1991",
+    "towerM": null,
+    "text": {
+      "en": "Met Éireann's eastern radar stands at Dublin Airport and has watched the east of Ireland and the Irish Sea since 1991. It was upgraded in 2010 but is still a single-polarisation radar; its replacement and relocation are being planned as part of a programme to grow Ireland's network from two radars to six."
+    },
+    "photo": null
+  },
+  "iesha": {
+    "operator": "Met Éireann",
+    "system": "Leonardo",
+    "band": "C",
+    "dualPol": true,
+    "since": "2023",
+    "towerM": null,
+    "text": {
+      "en": "Ireland's western radar stands at Shannon Airport on the Shannon estuary, where a radar has worked since 1996. In October 2023 it was replaced by Ireland's first dual-polarisation radar, which covers a 240 km radius over the west of the country and the Atlantic approaches."
+    },
+    "photo": null
+  }
+}
