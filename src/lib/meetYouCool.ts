@@ -8,7 +8,7 @@
  * in as a function, storage as a getter, and words through the translator
  * the caller hands in.
  */
-import type { RadarInfo } from "./radarInfo";
+import type { RadarInfo, RadarInfoFile } from "./radarInfo";
 import type { RadarSite } from "./radarSites";
 
 /** A source of numbers in [0, 1), as Math.random is. */
@@ -35,6 +35,15 @@ export function ageOf(since: string | null | undefined, year: number): number | 
   if (!match) return null;
   const age = year - Number(match[1]);
   return age >= 0 ? age : null;
+}
+
+/**
+ * The radars dealt into the stack: those on the map with a photo. A profile
+ * without a face is no profile; the radars nobody has photographed are left
+ * out until someone does.
+ */
+export function dealt(radars: RadarInfoFile, known: (code: string) => boolean): string[] {
+  return Object.keys(radars).filter((code) => known(code) && radars[code].photo).sort();
 }
 
 /** A copy of `items` in a random order (Fisher–Yates). */

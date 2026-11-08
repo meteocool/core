@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  ageOf, isMatch, MATCH_CHANCE, MATCHES_KEY, parseMatches, readMatches, shuffled, swipeThreshold, tagsOf, tiltOf,
+  ageOf, dealt, isMatch, MATCH_CHANCE, MATCHES_KEY, parseMatches, readMatches, shuffled, swipeThreshold, tagsOf, tiltOf,
   upcoming, verdictOf, withMatch, writeMatches, type Translate,
 } from "../../src/lib/meetYouCool.ts";
 import { isMeetYouCoolHash } from "../../src/lib/meetYouCoolLink.ts";
@@ -55,6 +55,15 @@ test("a radar with no year, or something other than a year, has no age", () => {
 
 test("a radar dated after this year has no age rather than a negative one", () => {
   assert.equal(ageOf("2030", 2026), null);
+});
+
+test("only radars with a photo are dealt, and only those on the map", () => {
+  const photo = { src: "/radars/deoft.webp", width: 800, height: 600, author: "A", licence: "CC0", licenceUrl: null, page: "https://example.org" };
+  const entry = (withPhoto: boolean): RadarInfo => ({
+    operator: null, system: null, band: null, dualPol: null, since: null, towerM: null,
+    text: { en: "On a hill." }, photo: withPhoto ? photo : null,
+  });
+  assert.deepEqual(dealt({ deoft: entry(true), deisn: entry(false), xxnone: entry(true) }, known), ["deoft"]);
 });
 
 test("the stack is shuffled, and every radar is still in it once", () => {

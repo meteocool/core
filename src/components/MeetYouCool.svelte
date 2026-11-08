@@ -38,7 +38,7 @@ import logo from "../assets/logo.svg";
 import { countryOf, radarSite } from "../lib/radarSites";
 import { infoText, type RadarInfo, type RadarInfoFile } from "../lib/radarInfo";
 import {
-  ageOf, isMatch, readMatches, shuffled, tagsOf, tiltOf, upcoming, verdictOf, withMatch, writeMatches,
+  ageOf, dealt, isMatch, readMatches, shuffled, tagsOf, tiltOf, upcoming, verdictOf, withMatch, writeMatches,
   type Match, type Verdict,
 } from "../lib/meetYouCool";
 import { holdNativeChrome } from "../lib/nativeBridge";
@@ -49,8 +49,8 @@ export let radars: RadarInfoFile;
 const dispatch = createEventDispatcher<{ close: void }>();
 const titleId = "meet-you-cool-title";
 
-/** The radars dealt: those with an entry that are on the map. */
-const codes = Object.keys(radars).filter((code) => radarSite(code)).sort();
+/** The radars dealt: those on the map with a photo. */
+const codes = dealt(radars, (code) => Boolean(radarSite(code)));
 if (!sessionOrder || sessionOrder.length !== codes.length) {
   sessionOrder = shuffled(codes);
   sessionSwiped = new Set();
