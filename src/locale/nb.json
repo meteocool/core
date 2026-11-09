@@ -495,6 +495,7 @@
       "back_to_live": "Tilbake til direkte",
       "pill_live": "{time}, tilbake til direkte",
       "no_3d": "3D-kartet har ingen fortid. Gå tilbake til direkte for å åpne det.",
+      "no_past": "Ikke i arkivet. Gå tilbake til direkte for å se det.",
       "refused": "Det tidsrommet er ikke i arkivet. Tilbake til direkte."
     },
     "locate_me": "Finn posisjonen min",

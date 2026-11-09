@@ -10,6 +10,8 @@ import {
 import { isHandheld } from "../lib/gpuBudget";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
+import { archiveWindow } from "../stores";
+import { shownIn } from "../lib/archive";
 
 /**
  * The web's settings: the ones the apps push in through
@@ -101,16 +103,17 @@ function setSolidGlass(value: boolean) {
 
 /* The radar map's overlays, named as its layer-switcher tile is. A layer
    kept on or off is a preference, so they are settings. Each store persists
-   itself (App.svelte). */
+   itself (App.svelte). One with no past is greyed in a past window, its
+   setting kept for live (lib/archive.ts). */
 const offersRadar = capabilityEnabled("radar");
 $: overlays = [
-  { store: lightningLayerVisible, on: $lightningLayerVisible, label: $_("chrome.playback.lightning") },
-  { store: cycloneLayerVisible, on: $cycloneLayerVisible, label: $_("chrome.playback.mesocyclones") },
-  { store: cellLayerVisible, on: $cellLayerVisible, label: $_("chrome.playback.cells") },
-  { store: siteMarksVisible, on: $siteMarksVisible, label: $_("chrome.playback.radar_sites") },
-  { store: stationLayerVisible, on: $stationLayerVisible, label: $_("stations.title") },
-  { store: motionLayerVisible, on: $motionLayerVisible, label: $_("chrome.playback.motion") },
-];
+  { store: lightningLayerVisible, on: $lightningLayerVisible, label: $_("chrome.playback.lightning"), feature: "lightning" },
+  { store: cycloneLayerVisible, on: $cycloneLayerVisible, label: $_("chrome.playback.mesocyclones"), feature: "mesocyclones" },
+  { store: cellLayerVisible, on: $cellLayerVisible, label: $_("chrome.playback.cells"), feature: "cells" },
+  { store: siteMarksVisible, on: $siteMarksVisible, label: $_("chrome.playback.radar_sites"), feature: "sites" },
+  { store: stationLayerVisible, on: $stationLayerVisible, label: $_("stations.title"), feature: "stations" },
+  { store: motionLayerVisible, on: $motionLayerVisible, label: $_("chrome.playback.motion"), feature: "motion" },
+].map((overlay) => ({ ...overlay, kept: shownIn($archiveWindow, overlay.feature) }));
 
 /** Only where the 3D map is offered at all. */
 const offers3d = capabilityEnabled("cells3d");
@@ -265,6 +268,18 @@ function setMeteocoolNowcast(value: boolean) {
   .switch:checked::after {
     transform: translateX(18px);
   }
+  /* An overlay a past window has no past for: its switch is kept, not worked. */
+  .row.unavailable {
+    cursor: default;
+  }
+  .row.unavailable:hover,
+  .row.unavailable:active {
+    background: transparent;
+  }
+  .switch:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
   .switch:focus-visible {
     outline: 2px solid var(--mc-accent);
     outline-offset: 2px;
@@ -327,13 +342,17 @@ function setMeteocoolNowcast(value: boolean) {
     <h2>{$_("rain_and_thunderstorms")}</h2>
     <div class="group">
       {#each overlays as overlay (overlay.store)}
-        <label class="row">
-          <span class="label">{overlay.label}</span>
+        <label class="row" class:unavailable={!overlay.kept}>
+          <span class="label">
+            {overlay.label}
+            {#if !overlay.kept}<span class="sublabel">{$_("chrome.archive.no_past")}</span>{/if}
+          </span>
           <input
             type="checkbox"
             role="switch"
             class="switch"
             checked={overlay.on}
+            disabled={!overlay.kept}
             on:change={(event) => overlay.store.set(event.currentTarget.checked)} />
         </label>
       {/each}

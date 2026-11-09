@@ -495,6 +495,7 @@
       "back_to_live": "Wróć na żywo",
       "pill_live": "{time}, wróć na żywo",
       "no_3d": "Mapa 3D nie ma przeszłości. Wróć na żywo, aby ją otworzyć.",
+      "no_past": "Brak w archiwum. Wróć na żywo, aby to zobaczyć.",
       "refused": "Tego przedziału nie ma w archiwum. Powrót na żywo."
     },
     "locate_me": "Zlokalizuj mnie",

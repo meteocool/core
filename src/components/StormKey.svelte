@@ -22,7 +22,8 @@ import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import CloseDisc from "./CloseDisc.svelte";
 import SourceBadge from "./SourceBadge.svelte";
-import { cycloneLayerVisible, hiddenStormMarks, smallScreen } from "../stores";
+import { archiveWindow, cycloneLayerVisible, hiddenStormMarks, smallScreen } from "../stores";
+import { shownIn } from "../lib/archive";
 import type { StormMarkToggle } from "../stores";
 import { DIAMOND_REACH, SEVERITY_COLOURS } from "../layers/cells";
 import { BAND_NAMES } from "../lib/cellMetrics";
@@ -316,13 +317,15 @@ const B = 5 * DIAMOND_REACH;
         </div>
         {@render toggle("forecast")}
       </li>
-      <li class:off={!$cycloneLayerVisible}>
+      <!-- DWD keeps no series of them: in a past window there are none to show. -->
+      <li class:off={!$cycloneLayerVisible || !shownIn($archiveWindow, "mesocyclones")}>
         <img class="swatch" src={mesocycloneIcon} alt="" />
         <div>
           <strong>{$_("storm.key.mesocyclone")}</strong>
-          <span>{$_("storm.key.mesocyclone_body")}</span>
+          <span>{shownIn($archiveWindow, "mesocyclones") ? $_("storm.key.mesocyclone_body") : $_("chrome.archive.no_past")}</span>
         </div>
         <input type="checkbox" role="switch" class="switch" checked={$cycloneLayerVisible}
+          disabled={!shownIn($archiveWindow, "mesocyclones")}
           aria-label={$_("storm.key.show", { values: { mark: $_("storm.key.mesocyclone") } })}
           on:change={(e) => cycloneLayerVisible.set(e.currentTarget.checked)} />
       </li>
@@ -536,6 +539,7 @@ const B = 5 * DIAMOND_REACH;
   .switch:checked { background: var(--mc-accent); }
   .switch:checked::after { transform: translateX(15px); }
   .switch:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .switch:disabled { opacity: 0.4; cursor: default; }
 
   /* Something is switched off: a dot on the pill. */
   .pill.filtered::after {

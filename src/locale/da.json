@@ -495,6 +495,7 @@
       "back_to_live": "Tilbage til live",
       "pill_live": "{time}, tilbage til live",
       "no_3d": "3D-kortet har ingen fortid. Gå tilbage til live for at åbne det.",
+      "no_past": "Ikke i arkivet. Gå tilbage til live for at se det.",
       "refused": "Det tidsrum er ikke i arkivet. Tilbage til live."
     },
     "locate_me": "Find min placering",

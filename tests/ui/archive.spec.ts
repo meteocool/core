@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./test";
-import { RADAR_VIEW, noGeocoder, openRadar, settled, timeline } from "./app";
+import { RADAR_VIEW, noGeocoder, openRadar, productControl, settled, timeline } from "./app";
 import { COVERAGE, linkTime, serveArchive } from "./archive";
 
 /**
@@ -266,4 +266,35 @@ test("a window the backend refuses is left, back to live", async ({ page }) => {
   await settled(timeline(page));
   await expect(page.locator(".live-wrapper")).toHaveText("Latest");
   await expect.poll(() => new URL(page.url()).searchParams.has("from")).toBe(false);
+});
+
+test("in a window the product control names the product without a live age", async ({ page }) => {
+  await serveArchive(page);
+  await openRadar(page);
+  await expect(productControl(page)).toContainText(/min ago/);
+  await chooseWindow(page);
+  await expect(productControl(page)).toBeVisible();
+  await expect(productControl(page)).not.toContainText(/min ago/);
+  await expect(productControl(page)).not.toContainText(/unavailable/);
+});
+
+test("in a window the overlays with no past are greyed in Settings, and back with live", async ({ page }) => {
+  await serveArchive(page);
+  await page.goto(WINDOW_LINK);
+  await settled(timeline(page));
+  await page.getByRole("button", { name: "Settings" }).click();
+  for (const name of [/^Mesocyclones/, /^Radar Sites/, /^Rain Motion/]) {
+    await expect(page.getByRole("switch", { name })).toBeDisabled();
+  }
+  for (const name of [/^Lightning Strikes/, /^Storm Cells/, /^Weather Stations/]) {
+    await expect(page.getByRole("switch", { name })).toBeEnabled();
+  }
+  await expect(page.getByText("Not kept in the archive").first()).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await windowPill(page).click();
+  await expect(page.locator(".live-wrapper")).toHaveText("Latest");
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByRole("switch", { name: /^Mesocyclones/ })).toBeEnabled();
+  await expect(page.getByText("Not kept in the archive")).toHaveCount(0);
 });

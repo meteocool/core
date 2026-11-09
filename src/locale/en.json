@@ -495,6 +495,7 @@
       "back_to_live": "Back to live",
       "pill_live": "{time}, back to live",
       "no_3d": "The 3D map has no past. Go back to live to open it.",
+      "no_past": "Not kept in the archive. Back to live to see it.",
       "refused": "That window is not in the archive. Back to live."
     },
     "locate_me": "Locate me",

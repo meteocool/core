@@ -495,6 +495,7 @@
       "back_to_live": "Zurück zu live",
       "pill_live": "{time}, zurück zu live",
       "no_3d": "Die 3D-Karte hat keine Vergangenheit. Zurück zu live, um sie zu öffnen.",
+      "no_past": "Nicht im Archiv. Zurück zu live, um es zu sehen.",
       "refused": "Dieses Zeitfenster ist nicht im Archiv. Zurück zu live."
     },
     "locate_me": "Standort anzeigen",

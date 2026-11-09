@@ -495,6 +495,7 @@
       "back_to_live": "Späť na živo",
       "pill_live": "{time}, späť na živo",
       "no_3d": "3D mapa nemá minulosť. Na jej otvorenie sa vráťte na živo.",
+      "no_past": "Nie je v archíve. Na zobrazenie sa vráťte na živo.",
       "refused": "Toto okno v archíve nie je. Späť na živo."
     },
     "locate_me": "Zobraziť polohu",

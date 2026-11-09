@@ -11,6 +11,9 @@
  * the pill on its own.
  * Either opens the same menu above the tray.
  *
+ * In a past window it names the product alone: how long ago the newest scan
+ * was is the live radar's age, and says nothing of the window's.
+ *
  * On a forecast step it shows the forecast's product and opens nothing: WN
  * is the forecast whatever was picked (FORECAST_PRODUCT). The choice itself
  * is left as it was, so it is back the moment the player is on the present
@@ -110,6 +113,8 @@ onDestroy(() => clearInterval(clock));
 $: face = variant === "adaptive" ? ($smallScreen ? "pill" : "caption") : variant;
 $: ({ chosen, drawn, scans, ranges } = $radarProducts);
 $: forecast = $onForecastStep;
+/** A past window is open: no age, which would be measured against now. */
+$: archived = $archiveWindow !== null;
 /** What the control names: the choice, or the forecast's product on its steps. */
 $: shown = forecast ? FORECAST_PRODUCT : chosen;
 /** The choice has fallen behind, and the default is drawn in its place. */
@@ -252,10 +257,14 @@ function portal(node: HTMLElement) {
   {:else if face === "pill"}
     <Icon icon={faSatelliteDish} />
     <span>{$_(`chrome.radar_product.${shown}_short`)}</span>
-    <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
+    {#if forecast || fellBack || !archived}
+      <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
+    {/if}
   {:else}
     <span class="name">{$_(`chrome.radar_product.${shown}`)}<Icon icon={faChevronUp} class="chevron" /></span>
-    <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
+    {#if forecast || fellBack || !archived}
+      <span class="age">{forecast ? $_("chrome.radar_product.forecast_short") : fellBack ? $_("chrome.radar_product.fell_back_short") : age(chosen, ranges, nowS)}</span>
+    {/if}
   {/if}
 {/snippet}
 
@@ -314,7 +323,7 @@ function portal(node: HTMLElement) {
           </span>
           <!-- The ages' column heading, once, over the first group. -->
           <!-- How old each product's newest scan is means nothing in a past window. -->
-          {#if i === 0 && !$archiveWindow}
+          {#if i === 0 && !archived}
             <span class="column" title={$_("chrome.radar_product.age_hint")}>{$_("chrome.radar_product.age_heading")}</span>
           {/if}
         </div>
@@ -323,7 +332,7 @@ function portal(node: HTMLElement) {
             type="button"
             role="menuitemradio"
             class="option"
-            class:behind={!$archiveWindow && fallsBehind(product, scans)}
+            class:behind={!archived && fallsBehind(product, scans)}
             aria-checked={product === chosen}
             on:click={() => choose(product)}>
             <span class="check" aria-hidden="true">{product === chosen ? "✓" : ""}</span>
@@ -332,7 +341,7 @@ function portal(node: HTMLElement) {
               <span class="hint">{$_(`chrome.radar_product.${product}_hint`)}</span>
               <span class="grid">{$_(`chrome.radar_product.${product}_grid`)}</span>
             </span>
-            {#if !$archiveWindow}
+            {#if !archived}
               <span class="age" title={$_("chrome.radar_product.age_hint")}>{age(product, ranges, nowS)}</span>
             {/if}
           </button>

@@ -495,6 +495,7 @@
       "back_to_live": "Terug naar live",
       "pill_live": "{time}, terug naar live",
       "no_3d": "De 3D-kaart heeft geen verleden. Ga terug naar live om hem te openen.",
+      "no_past": "Niet in het archief. Ga terug naar live om het te zien.",
       "refused": "Dit tijdvak staat niet in het archief. Terug naar live."
     },
     "locate_me": "Mijn locatie tonen",

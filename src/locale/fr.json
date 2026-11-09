@@ -495,6 +495,7 @@
       "back_to_live": "Retour au direct",
       "pill_live": "{time}, retour au direct",
       "no_3d": "La carte 3D n’a pas de passé. Revenez au direct pour l’ouvrir.",
+      "no_past": "Absent des archives. Revenez au direct pour le voir.",
       "refused": "Cette période n’est pas dans les archives. Retour au direct."
     },
     "locate_me": "Me localiser",
