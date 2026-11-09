@@ -4,13 +4,14 @@
  * frame round the whole map, its corners rounded, so nobody takes the
  * archive for now, not even in a screenshot passed on. Its top edge grows a
  * tab: the window and the step on screen, which opens the picker to choose
- * another, and a cross back to live. The top line of controls moves below
- * it (glass.css, archive-open).
+ * another, and a cross back to live. The top line of controls stays where
+ * it is, beside the tab; only where the tab would run into one of them
+ * (a narrow phone) does the line move below it (glass.css, archive-crowded).
  *
  * Always in the page and only faded in: leaving the archive should be seen
  * too, and an empty frame costs nothing.
  */
-import { onDestroy } from "svelte";
+import { onDestroy, onMount, tick } from "svelte";
 import { _ } from "svelte-i18n";
 import { format, isSameDay } from "date-fns";
 import { faCalendarDays } from "@fortawesome/free-solid-svg-icons/faCalendarDays";
@@ -31,7 +32,7 @@ $: open = $archiveWindow !== null;
  * crossed midnight from the window's start.
  */
 let step = "";
-/** The step for the iPhone app's tab, between its buttons: without its weekday. */
+/** The step for a phone's tab, between the top line's buttons: without its weekday. */
 let stepShort = "";
 let span = "";
 let stepClock = "";
@@ -51,12 +52,51 @@ $: if ($archiveWindow) {
 }
 
 $: document.documentElement.classList.toggle("archive-open", open);
-onDestroy(() => document.documentElement.classList.remove("archive-open"));
+
+/** The page's own controls on the top line, which the tab stands between. */
+const TOP_LINE = ".top-left, .lsToggle";
+/** The tab's fillets, and a little air beyond them. */
+const TAB_CLEARANCE = 10 + 6;
+
+let tab: HTMLDivElement;
+/**
+ * The tab would run into a control on the top line: the line moves below
+ * it. Side by side only: the tab is centred on the top edge whatever the
+ * line does, so its width decides.
+ */
+let crowded = false;
+function measure() {
+  if (!open || !tab) {
+    crowded = false;
+    return;
+  }
+  const { left, right } = tab.getBoundingClientRect();
+  crowded = [...document.querySelectorAll<HTMLElement>(TOP_LINE)].some((control) => {
+    const rect = control.getBoundingClientRect();
+    return rect.width > 0 && rect.right > left - TAB_CLEARANCE && rect.left < right + TAB_CLEARANCE;
+  });
+}
+$: document.documentElement.classList.toggle("archive-crowded", crowded);
+// Again whenever the tab's text or the window changes width.
+$: if (open || step || span) void tick().then(measure);
+
+let resizes: ResizeObserver | null = null;
+onMount(() => {
+  resizes = new ResizeObserver(() => measure());
+  resizes.observe(tab);
+  for (const control of document.querySelectorAll<HTMLElement>(TOP_LINE)) resizes.observe(control);
+  window.addEventListener("resize", measure);
+});
+onDestroy(() => {
+  resizes?.disconnect();
+  window.removeEventListener("resize", measure);
+  document.documentElement.classList.remove("archive-open", "archive-crowded");
+});
 </script>
 
 <div class="archive-frame" class:on={open}>
   <div class="window" aria-hidden="true"></div>
-  <div class="tab">
+  <div class="tab" bind:this={tab}>
     <button
       type="button"
       class="choose"
@@ -230,16 +270,17 @@ onDestroy(() => document.documentElement.classList.remove("archive-open"));
     .narrow { display: none; }
     .wide { display: inline; }
   }
-  /* The iPhone app's tab runs between its own buttons, the logo's and the
-     column's, which stay where they are: the calendar says "archive", and
-     the date and time alone are left beside it, without the weekday. */
+  /* A phone's tab runs between the top line's buttons, which stay where
+     they are (the iPhone app's are its own and cannot move): the calendar
+     says "archive", and the date and time alone are left beside it,
+     without the weekday. */
   @media (max-width: 620px) {
-    :global(html.is-ios) .word,
-    :global(html.is-ios) .sep.narrow,
-    :global(html.is-ios) .full {
+    .word,
+    .sep.narrow,
+    .full {
       display: none;
     }
-    :global(html.is-ios) .short { display: inline; }
+    .short { display: inline; }
   }
 
   /* The headless renderer's picture carries nothing over the map but its

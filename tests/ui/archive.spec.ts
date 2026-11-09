@@ -189,11 +189,19 @@ test("the frame's tab names the window, and opens the picker on it", async ({ pa
   await settled(timeline(page));
   const tab = windowTab(page);
   await expect(tab).toHaveAccessibleName("Archive, Wed 4 Nov, 21:00");
-  // A desktop has the room for the window's day and span, then the step's clock.
-  // The text as rendered: each layout's spans are in the page, one hidden.
+  // A desktop has the room for the window's day and span, then the step's
+  // clock; a phone's tab, between its buttons, the step's date and time alone.
+  // The text as rendered: each layout's spans are in the page, the others hidden.
   await expect.poll(() => tab.innerText()).toMatch(info.project.name === "desktop"
     ? /Archive\s*·\s*Wed 4 Nov, 20:00–21:00\s*·\s*21:00/
-    : /Archive\s*·\s*Wed 4 Nov, 21:00/);
+    : /^\s*4 Nov, 21:00\s*$/);
+  // The top line stays on the top edge, beside the tab, where it fits.
+  const logoTop = () => page.locator(".top-left").evaluate((el) => el.getBoundingClientRect().top);
+  await expect.poll(logoTop).toBeLessThan(20);
+  await page.setViewportSize({ width: 340, height: 700 });
+  // Too narrow for both: the line moves below the tab.
+  await expect.poll(logoTop).toBeGreaterThan(26);
+  await page.setViewportSize(info.project.use.viewport ?? { width: 393, height: 659 });
 
   await tab.click();
   const dialog = archiveDialog(page);

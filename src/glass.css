@@ -396,9 +396,10 @@
   --mc-archive-radius-top: 18px;
 }
 
-/* A past window (ArchiveFrame): the frame's tab takes the top of the screen,
-   and the top line, with everything measured off it, starts below. */
-:root.archive-open {
+/* A past window (ArchiveFrame) whose tab would run into the top line's
+   buttons, on a narrow phone: the line, with everything measured off it,
+   starts below the tab. Elsewhere the tab sits between them. */
+:root.archive-open.archive-crowded {
   --mc-top-stack: calc(var(--mc-archive-tab-h) + var(--mc-gutter));
 }
 
