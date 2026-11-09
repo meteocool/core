@@ -1,4 +1,5 @@
 import { packValues } from "../lib/packPixels";
+import { decodeWorkers } from "../lib/gpuBudget";
 import { pageCanvas, tileValues } from "./tileValues";
 import type { Extent, MaskPath } from "./tileMask";
 import type { SourceTile } from "../lib/tileIndex";
@@ -21,8 +22,11 @@ import type { PackJob, PackReply } from "./packTiles.worker";
  * worker cannot, the page does the same.
  */
 
-/** Two, so a burst of tiles (a pan into new ground) is not one queue. */
-const WORKERS = 2;
+/**
+ * At least two, so a burst of tiles (a pan into new ground, a frame of
+ * playback) is not one queue; more on a desktop with the cores to spare.
+ */
+const workers = (): number => decodeWorkers(typeof navigator === "undefined" ? undefined : navigator.hardwareConcurrency);
 
 interface Packer {
   worker: Worker;
@@ -43,7 +47,7 @@ function pool(): Packer[] | null {
   packers = null;
   if (typeof Worker === "undefined" || typeof OffscreenCanvas === "undefined") return null;
   try {
-    packers = Array.from({ length: WORKERS }, () => {
+    packers = Array.from({ length: workers() }, () => {
       const worker = new Worker(new URL("./packTiles.worker.ts", import.meta.url), { type: "module" });
       const packer: Packer = { worker, known: new Set(), waiting: 0 };
       worker.onmessage = ({ data }: MessageEvent<PackReply>) => {

@@ -60,6 +60,8 @@ import {
 } from "../layers/extents";
 import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
 import { preloadMode } from "../lib/framePreload";
+import type { PreloadMode } from "../lib/framePreload";
+import { holdsForTiles, playOrder, shouldAdvance, waitLeft } from "../lib/playbackGate";
 import { drawnByAny } from "../layers/networkAt";
 import type { CountryNetwork } from "../api/events";
 import { canPlay, nearestStep, nextFrame } from "../lib/playbackLoop";
@@ -119,6 +121,16 @@ let liveEdge: number | null = null;
 
 let playPauseButton = faPlay;
 let playTimeout;
+
+/**
+ * A tick holding the frame on screen for the next one's tiles; aborted by
+ * pause and close, so a wait that outlives them moves nothing on.
+ */
+let readyWait: AbortController | null = null;
+function stopWaiting() {
+  readyWait?.abort();
+  readyWait = null;
+}
 
 /**
  * A frame the player was opened to show, rather than the live edge.
@@ -313,23 +325,52 @@ $: playable = past ? steps.filter((step) => step.playable).length > 1 : canPlay(
 });
 
 /**
- * Every frame's tiles fetched ahead for the map in view, nearest the needle
+ * Every frame's tiles decoded ahead for the map in view, nearest the needle
  * first, and drawn filling the timeline (lib/framePreload.ts): once the
  * reader starts moving through frames, until the player is back on live.
  * Planned again whenever the map settles, the needle moves or the frames
  * change. The setting is the "preload forecast" switch.
  */
-function preload(..._changed: unknown[]): void {
-  const mode = preloadMode({
+function currentPreloadMode(): PreloadMode {
+  return preloadMode({
     setting: $precacheForecast,
     radarShown: $sharedActiveCap === "radar" && !outOfCoverage && steps.length > 0,
     browsing: $browsingFrames,
     playing: $playbackRunning,
     slow: $networkStatus.isSlow,
   });
-  if (mode === "all") cap.preloadTimeline(shown);
-  else if (mode === "ahead") cap.preloadTimeline(shown, PRELOAD_AHEAD_SLOW);
+}
+/**
+ * The step playback shows after `from`, by the loop's rules (lib/playbackLoop.ts,
+ * or a past window's).
+ */
+function stepAfter(from: number, grid: GridConfig): number {
+  return grid.window ? nextWindowFrame(from, grid.window, lastPlayableStep ?? grid.end) : nextFrame({
+    shown: from,
+    latestObservation: cap.getMostRecentObservation(),
+    now: grid.now,
+    lastStep: lastPlayableStep ?? grid.end,
+    start: grid.start,
+    loopFrom,
+    fromStart: $playbackFromStart,
+    noForecast,
+    only: sweepSteps,
+  });
+}
+/**
+ * Plan the preload in `mode` from `from`: that step first, or the few after
+ * it. While playing, in the order the loop will show them, so what is
+ * decoded is what comes next and the steps the loop never visits are not.
+ */
+function planPreload(mode: PreloadMode, from: number): void {
+  const grid = gridConfig;
+  const order = $playbackRunning && grid ? playOrder(from, (step) => stepAfter(step, grid), steps.length + 1) : undefined;
+  if (mode === "all") cap.preloadTimeline(from, { order });
+  else if (mode === "ahead") cap.preloadTimeline(from, { ahead: PRELOAD_AHEAD_SLOW, order });
   else cap.stopPreload();
+}
+function preload(..._changed: unknown[]): void {
+  planPreload(currentPreloadMode(), shown);
 }
 $: preload(shown, steps, $mapExtent4326, $precacheForecast, $sharedActiveCap, outOfCoverage,
   $browsingFrames, $playbackRunning, $networkStatus.isSlow);
@@ -547,31 +588,43 @@ const fsm = new StateMachine({
       }, 200);
     },
     onPressPlay: (_transition, firstDelayMs = 0) => {
+      /** Put `target` on screen, and the next tick after it. */
+      const advance = (target: number, from: number) => {
+        shown = target;
+        sliderChangedHandler(shown);
+        // Always round again: a loop that stops at the end only ever asked
+        // for another press of play.
+        playTimeout = window.setTimeout(playTick, from === 0 ? 800 : FRAME_MS);
+      };
+      /**
+       * Move on to `target` once its tiles for the map in view are decoded,
+       * holding the frame on screen meanwhile, but no longer than
+       * READY_TIMEOUT_MS from `started` (lib/playbackGate.ts). Asked again
+       * after each wait: the map may have moved, and the step need other tiles.
+       */
+      const hold = (target: number, from: number, started: number, mode: PreloadMode) => {
+        if (fsm.state !== "playing") return;
+        const waited = performance.now() - started;
+        if (!holdsForTiles(mode) || shouldAdvance(cap.stepReady(target), waited)) {
+          advance(target, from);
+          return;
+        }
+        // The preloader goes for that step first.
+        if (readyWait === null) planPreload(mode, target);
+        const wait = new AbortController();
+        readyWait = wait;
+        cap.whenStepReady(target, waitLeft(waited), wait.signal).then(() => {
+          if (wait.signal.aborted) return;
+          hold(target, from, started, mode);
+        });
+      };
       const playTick = () => {
         // Pause and close both cancel playTimeout; a tick that outlives them
         // would otherwise resume playback on its own.
         if (fsm.state !== "playing") return;
-        let thisFrameDelayMs = FRAME_MS;
         if (!gridConfig) return;
-        const sliderValueInt = shown;
-        shown = gridConfig.window ? nextWindowFrame(shown, gridConfig.window, lastPlayableStep ?? gridConfig.end) : nextFrame({
-          shown,
-          latestObservation: cap.getMostRecentObservation(),
-          now: gridConfig.now,
-          lastStep: lastPlayableStep ?? gridConfig.end,
-          start: gridConfig.start,
-          loopFrom,
-          fromStart: $playbackFromStart,
-          noForecast,
-          only: sweepSteps,
-        });
-        if (sliderValueInt === 0) {
-          thisFrameDelayMs = 800;
-        }
-        sliderChangedHandler(shown);
-        // Always round again: a loop that stops at the end only ever asked
-        // for another press of play.
-        playTimeout = window.setTimeout(playTick, thisFrameDelayMs);
+        readyWait = null;
+        hold(stepAfter(shown, gridConfig), shown, performance.now(), currentPreloadMode());
       };
       // From a timer rather than from here: a pause inside this transition
       // throws, leaving the machine mid-transition for good. A resume after a
@@ -583,6 +636,7 @@ const fsm = new StateMachine({
     onPressPause: () => {
       if (playTimeout !== 0) window.clearTimeout(playTimeout);
       playTimeout = 0;
+      stopWaiting();
       playPauseButton = faPlay;
     },
     // Entering and leaving the state rather than the transitions into it:
@@ -740,6 +794,7 @@ function hide() {
   scrubbing = false;
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   playTimeout = 0;
+  stopWaiting();
   fsm.hideScrollbar();
 }
 
@@ -920,6 +975,7 @@ subscriptions.push(() => document.removeEventListener("visibilitychange", onVisi
 onDestroy(() => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
+  stopWaiting();
   window.clearTimeout(backToLiveTimer);
   headObserver?.disconnect();
   document.documentElement.classList.remove("plot-dry");

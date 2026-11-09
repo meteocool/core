@@ -120,3 +120,80 @@ test("a frame standing on another step is named apart, so each step keeps its ow
   assert.equal(templateOf(live), DMAX, "the same tiles are fetched");
   assert.equal(templateOf(DMAX), DMAX);
 });
+
+const { decodedTiles, forgetEarlierFrames, loadStoredTile, valueTileJob } = await import("../../src/layers/valueTiles.ts");
+
+test("a tile decoded once is answered from the decoded tiles, the same array, with nothing fetched", async (t) => {
+  decodedTiles.clear();
+  const values = Uint8Array.from({ length: 512 * 512 }, (_, i) => i & 255);
+  const { fetched } = browser(t, () => new Response(valueTile(values, 512)));
+  const job = valueTileJob(TEMPLATE, index, 5, 16, 11, [], null);
+  const first = await loadStoredTile(job);
+  assert.equal(fetched.length, 1);
+  const again = await loadStoredTile(valueTileJob(TEMPLATE, index, 5, 16, 11, [], null));
+  assert.equal(again, first, "not a copy: one allocation for the store and OpenLayers");
+  assert.equal(fetched.length, 1);
+});
+
+test("a tile asked for twice at once is loaded once", async (t) => {
+  decodedTiles.clear();
+  const { fetched } = browser(t, () => new Response(valueTile(new Uint8Array(512 * 512), 512)));
+  const job = valueTileJob(TEMPLATE, index, 5, 16, 11, [], null);
+  const [a, b] = await Promise.all([loadStoredTile(job), loadStoredTile(job)]);
+  assert.equal(a, b);
+  assert.equal(fetched.length, 1);
+});
+
+test("a tile the frame does not have is answered on the spot, and never kept", async (t) => {
+  decodedTiles.clear();
+  const { fetched } = browser(t, () => new Response("", { status: 500 }));
+  const job = valueTileJob(TEMPLATE, index, 5, 17, 11, [], null);
+  assert.equal(job.local, true);
+  assert.equal(await loadStoredTile(job), blankTile());
+  assert.deepEqual(fetched, []);
+  assert.equal(decodedTiles.size, 0);
+});
+
+test("a 404 is kept as a blank, so the next loop does not ask again", async (t) => {
+  decodedTiles.clear();
+  const { fetched } = browser(t, () => new Response("", { status: 404 }));
+  const job = valueTileJob(TEMPLATE, null, 5, 16, 11, [], null);
+  assert.equal(await loadStoredTile(job), blankTile());
+  assert.equal(await loadStoredTile(job), blankTile());
+  assert.equal(fetched.length, 1);
+});
+
+test("a hole that does not meet a tile leaves its key alone; one that does makes it another tile", () => {
+  const [west, south, east, north] = tileExtent(5, 0, 0);
+  const far = maskPath([[[west, south], [east, south], [east, north], [west, north]]]);
+  const [w, s, e, n] = tileExtent(5, 16, 11);
+  const near = maskPath([[[w, s], [e, s], [e, n], [w, n]]]);
+  const plain = valueTileJob(TEMPLATE, index, 5, 16, 11, [], null);
+  assert.equal(valueTileJob(TEMPLATE, index, 5, 16, 11, [far], null).key, plain.key);
+  assert.notEqual(valueTileJob(TEMPLATE, index, 5, 16, 11, [near], null).key, plain.key);
+});
+
+test("closing the player lets every decoded tile go, and one still loading is not kept", async (t) => {
+  decodedTiles.clear();
+  let answer: (response: Response) => void = () => {};
+  browser(t, () => new Response(valueTile(new Uint8Array(512 * 512), 512)));
+  await loadStoredTile(valueTileJob(TEMPLATE, index, 5, 16, 11, [], null));
+  assert.equal(decodedTiles.size, 1);
+  Object.assign(globalThis, { fetch: () => new Promise<Response>((resolve) => { answer = resolve; }) });
+  const job = valueTileJob(TEMPLATE, null, 5, 16, 12, [], null);
+  assert.equal(job.local, false);
+  const late = loadStoredTile(job);
+  forgetEarlierFrames();
+  assert.equal(decodedTiles.size, 0);
+  answer(new Response(valueTile(new Uint8Array(512 * 512), 512)));
+  await late;
+  assert.equal(decodedTiles.size, 0);
+});
+
+test("a tile with nothing left in it to draw is a blank, kept as one", async (t) => {
+  decodedTiles.clear();
+  browser(t, () => new Response(valueTile(new Uint8Array(512 * 512), 512)));
+  assert.equal(await loadValueTile(TEMPLATE, index, 5, 16, 11, [], null), blankTile());
+  await loadStoredTile(valueTileJob(TEMPLATE, index, 5, 16, 11, [], null));
+  assert.ok(decodedTiles.bytes < 1024, "a blank costs no quarter megabyte");
+});

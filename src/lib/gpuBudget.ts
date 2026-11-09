@@ -35,31 +35,102 @@ export const HANDHELD_DRAPE_SIZE = 1024;
  */
 export const HANDHELD_TILE_CACHE_ZOOM_LEVELS = 1;
 
+/** A megabyte, in bytes. */
+const MB = 1024 * 1024;
+
+/** The side of a radar tile of the flat map, in pixels. */
+export const RADAR_TILE_SIZE = 512;
+
 /**
- * How many tiles each radar layer of the flat map keeps on a handheld device.
+ * The bytes one radar tile holds, in JavaScript and as much again on the GPU:
+ * a byte a pixel and band. Packed (layers/packTiles.ts), a tile is one band,
+ * its values, or two at the antialiased edge of a network's ground.
+ */
+export function tileBytes(bands = 1, size = RADAR_TILE_SIZE): number {
+  return size * size * bands;
+}
+
+/** A packed radar tile, the common case, in bytes. */
+export const RADAR_TILE_BYTES = tileBytes(1);
+
+/**
+ * What each radar layer of the flat map may keep in tiles on a handheld
+ * device, in bytes of values (each has its texture beside it).
  *
  * Playback keeps the tiles of every step it has shown, so a loop never
  * fetches or decodes them twice. A tile is a quarter of a megabyte of values
  * in JavaScript and as much again on the GPU, and DWD and every network keep
- * their own. At 512 a layer, a few loops held over a gigabyte on an iPhone 16
- * Pro, and opening the 3D map on top of that passed iOS's 2 GB for a web view
- * (October 2026). 128 is about six frames of a phone's screen; a longer loop
- * reads the rest again from the HTTP cache.
+ * their own. At 512 tiles a layer, a few loops held over a gigabyte on an
+ * iPhone 16 Pro, and opening the 3D map on top of that passed iOS's 2 GB for
+ * a web view (October 2026). 32 MB, 128 tiles, is about six frames of a
+ * phone's screen; the frames past those come from the decoded tiles
+ * (`decodedTileBytes`) or are read again.
  */
-export const HANDHELD_RADAR_TILE_CACHE = 128;
+const HANDHELD_RADAR_LAYER_BYTES = 32 * MB;
+
+/** How many tiles each radar layer of the flat map keeps on a handheld device. */
+export const HANDHELD_RADAR_TILE_CACHE = HANDHELD_RADAR_LAYER_BYTES / RADAR_TILE_BYTES;
 
 /**
- * How many radar tiles all the layers a flat map draws keep between them on
- * a handheld device (lib/idleLayers.ts). Over Central Europe a phone's screen
- * draws DWD, a few networks and their nowcasts at once, each keeping up to
- * `HANDHELD_RADAR_TILE_CACHE`: a thousand tiles, half a gigabyte of
+ * What all the radar layers a flat map draws keep between them on a handheld
+ * device (lib/idleLayers.ts), in bytes of values. Over Central Europe a
+ * phone's screen draws DWD, a few networks and their nowcasts at once, each
+ * keeping up to its own 32 MB: a thousand tiles, half a gigabyte of
  * textures, while playing and zooming (October 2026).
  */
-export const HANDHELD_RADAR_TILES = 320;
+const HANDHELD_RADAR_SHARED_BYTES = 80 * MB;
+
+/** How many radar tiles all the layers a flat map draws keep between them on a handheld device. */
+export const HANDHELD_RADAR_TILES = HANDHELD_RADAR_SHARED_BYTES / RADAR_TILE_BYTES;
+
+/**
+ * What each radar layer of the flat map may keep on a desktop, in bytes of
+ * values: 640 tiles, a little more than a full loop of a laptop's screen
+ * needs of DWD's at most zooms, beside the decoded tiles.
+ */
+const DESKTOP_RADAR_LAYER_BYTES = 160 * MB;
+
+/** How many tiles each radar layer of the flat map keeps on a desktop. */
+export const DESKTOP_RADAR_TILE_CACHE = DESKTOP_RADAR_LAYER_BYTES / RADAR_TILE_BYTES;
 
 /** The `cacheSize` of a radar layer of the flat map that keeps `desktop` tiles on a desktop. */
-export function radarTileCache(desktop: number, handheld = isHandheld()): number {
+export function radarTileCache(desktop = DESKTOP_RADAR_TILE_CACHE, handheld = isHandheld()): number {
   return handheld ? Math.min(desktop, HANDHELD_RADAR_TILE_CACHE) : desktop;
+}
+
+/**
+ * The most bytes of tiles decoded ahead of playback (lib/decodedTiles.ts).
+ *
+ * Each is the same allocation OpenLayers is handed, so a tile both hold
+ * costs once; past that, this is what playback adds, with no texture of its
+ * own. On a phone, 32 MB: eight to a dozen frames of its screen ahead of the
+ * needle, a few seconds of the loop, and what the layers keep on the GPU
+ * covers much of the rest. Its peaks are what iOS judges the web view by,
+ * and decoding further ahead buys little a few seconds cannot. On a
+ * desktop, most of a loop at a laptop's screen.
+ */
+export function decodedTileBytes(handheld = isHandheld()): number {
+  return handheld ? 32 * MB : 256 * MB;
+}
+
+/**
+ * How many tiles are loaded and decoded ahead at once (lib/framePreload.ts):
+ * on a phone two, one for each of its workers, so the frame on screen is
+ * not kept waiting behind them and the decoding's garbage comes no faster
+ * than it is collected; on a desktop four.
+ */
+export function decodeAheadParallel(handheld = isHandheld()): number {
+  return handheld ? 2 : 4;
+}
+
+/**
+ * How many workers decode value tiles (layers/packTiles.ts): two on a phone,
+ * whose cores the page and the GPU need as well; on a desktop, one per core
+ * to spare, up to four.
+ */
+export function decodeWorkers(cores: number | undefined, handheld = isHandheld()): number {
+  if (handheld || !cores) return 2;
+  return Math.max(2, Math.min(4, cores - 1));
 }
 
 /** A phone or a tablet: an app's webview, or a browser that is touched and cannot hover. */

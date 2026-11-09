@@ -477,9 +477,9 @@ export const unit = writable<string>("pictogram");
 export const precacheForecast = writable<boolean>(true);
 
 /**
- * How much of each timeline step's tiles has been fetched ahead for the map
- * in view, 0 to 1, by step; empty while nothing is preloaded. Drawn on the
- * timeline; see lib/framePreload.ts.
+ * How much of each timeline step's tiles is decoded ahead (or still on the
+ * GPU) for the map in view, ready to draw, 0 to 1, by step; empty while
+ * nothing is preloaded. Drawn on the timeline; see lib/framePreload.ts.
  */
 export const framesPreloaded = writable<ReadonlyMap<number, number>>(new Map());
 

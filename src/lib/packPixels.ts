@@ -50,3 +50,24 @@ export function magnifyValues(
   }
   return out;
 }
+
+/**
+ * Whether a packed tile of `pixels` pixels draws nothing: every value in it
+ * is 0, which every palette draws as nothing, whatever coverage a cut left
+ * beside it. Such a tile is a blank, and kept as one it costs no texture and
+ * no quarter megabyte. DWD's tiles over a network's country, erased for the
+ * network's own layer, are mostly that.
+ */
+export function drawsNothing(packed: Uint8Array, pixels: number): boolean {
+  if (packed.length === pixels * 2) {
+    for (let i = 0; i < packed.length; i += 2) if (packed[i] !== 0) return false;
+    return true;
+  }
+  const words = packed.byteOffset % 4 === 0 ? Math.floor(packed.length / 4) : 0;
+  if (words) {
+    const view = new Uint32Array(packed.buffer, packed.byteOffset, words);
+    for (let i = 0; i < view.length; i++) if (view[i] !== 0) return false;
+  }
+  for (let i = words * 4; i < packed.length; i++) if (packed[i] !== 0) return false;
+  return true;
+}

@@ -33,7 +33,8 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
   `echotop50`, `vil`) with the 404 a backend gives before their first frame,
   written by hand until a recording has them; `column-products.spec.ts`
   stands frames in for them itself;
-- draws every map tile blank: radar, value tiles and the basemap;
+- draws every map tile blank: radar, value tiles and the basemap; a value
+  tile is a 512-pixel greyscale PNG of zeros, which decodes as a real one does;
 - connects the lightning socket to a stand-in that stays quiet;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it
   run on, so "now", the live frame and "3–8 min ago" are the recording's;

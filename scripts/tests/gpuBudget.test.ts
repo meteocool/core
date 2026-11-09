@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { drapeAnchor, mapPixelRatio, radarTileCache } from "../../src/lib/gpuBudget.ts";
+import {
+  DESKTOP_RADAR_TILE_CACHE, HANDHELD_RADAR_TILES, HANDHELD_RADAR_TILE_CACHE, RADAR_TILE_BYTES, decodeAheadParallel, decodeWorkers,
+  decodedTileBytes,
+  drapeAnchor, mapPixelRatio, radarTileCache, tileBytes,
+} from "../../src/lib/gpuBudget.ts";
 
 test("a phone's 3x is drawn at 2x, a desktop's ratio as it is", () => {
   assert.equal(mapPixelRatio(3, true), 2);
@@ -29,8 +33,38 @@ test("a layer on the ground goes before the first layer that stands up", () => {
   assert.equal(drapeAnchor(layers.slice(0, 4)), undefined);
 });
 
-test("a phone's radar layers keep a quarter of a desktop's tiles, never more than asked", () => {
+test("a phone's radar layers keep a fifth of a desktop's tiles, never more than asked", () => {
   assert.equal(radarTileCache(512, true), 128);
   assert.equal(radarTileCache(64, true), 64);
   assert.equal(radarTileCache(512, false), 512);
+  assert.equal(radarTileCache(undefined, true), 128);
+  assert.equal(radarTileCache(undefined, false), DESKTOP_RADAR_TILE_CACHE);
+});
+
+test("a radar tile is a byte a pixel and band, 512 pixels square", () => {
+  assert.equal(RADAR_TILE_BYTES, 512 * 512);
+  assert.equal(tileBytes(2), 2 * 512 * 512, "the antialiased edge of a network's ground keeps its coverage too");
+});
+
+test("the tile counts come out of byte budgets that keep October's ceilings on a phone", () => {
+  // 32 MB a layer, 80 MB between the layers drawn: what the memory measures were taken at.
+  assert.equal(HANDHELD_RADAR_TILE_CACHE, 128);
+  assert.equal(HANDHELD_RADAR_TILE_CACHE * RADAR_TILE_BYTES, 32 * 1024 * 1024);
+  assert.equal(HANDHELD_RADAR_TILES, 320);
+  assert.equal(HANDHELD_RADAR_TILES * RADAR_TILE_BYTES, 80 * 1024 * 1024);
+  assert.ok(Number.isInteger(DESKTOP_RADAR_TILE_CACHE) && DESKTOP_RADAR_TILE_CACHE >= 512);
+});
+
+test("a phone decodes ahead within what it can spare, a desktop most of a loop", () => {
+  assert.ok(decodedTileBytes(true) <= 32 * 1024 * 1024);
+  assert.ok(decodedTileBytes(false) > decodedTileBytes(true));
+  assert.ok(decodeAheadParallel(true) < decodeAheadParallel(false));
+});
+
+test("tiles are decoded by two workers on a phone, more where a desktop has the cores", () => {
+  assert.equal(decodeWorkers(8, true), 2);
+  assert.equal(decodeWorkers(2, false), 2);
+  assert.equal(decodeWorkers(4, false), 3);
+  assert.equal(decodeWorkers(16, false), 4);
+  assert.equal(decodeWorkers(undefined, false), 2);
 });

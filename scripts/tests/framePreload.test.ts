@@ -182,3 +182,60 @@ test("the unpublished tail fills only once the band is whole, so the band runs t
   assert.equal(slotShare(step(600, false), new Map(), false), 0);
   assert.equal(slotShare(step(600, false), new Map(), true), 1);
 });
+
+test("progress can be read off a store of decoded tiles", () => {
+  const kept = new Set(["a"]);
+  assert.equal(frameProgress([[0, ["a", "b"]]], (key) => kept.has(key)).get(0), 0.5);
+});
+
+test("backed by a store, a tile counts as ready only while the store has it", async () => {
+  const { fetchTile, asked, answer } = controlledFetch();
+  const store = new Set<string>();
+  const reports: Array<Map<number, number>> = [];
+  const preloader = new FramePreloader(async (key) => {
+    const ok = await fetchTile(key);
+    if (ok) store.add(key);
+    return ok;
+  }, (progress) => reports.push(progress), { parallel: 1, has: (key) => store.has(key) });
+  preloader.plan([[0, ["a"]]]);
+  await answer("a");
+  assert.equal(reports.at(-1)!.get(0), 1);
+  // Let go to make room for frames nearer the needle: it is loaded again.
+  store.delete("a");
+  preloader.plan([[0, ["a"]]]);
+  assert.equal(reports.at(-1)!.get(0), 0);
+  assert.deepEqual(asked, ["a", "a"]);
+});
+
+test("a tile the store already has, from the map's own loads, is not loaded again", () => {
+  const { fetchTile, asked } = controlledFetch();
+  const preloader = new FramePreloader(fetchTile, () => {}, { has: (key) => key === "a" });
+  preloader.plan([[0, ["a", "b"]]]);
+  assert.deepEqual(asked, ["b"]);
+});
+
+test("once the last tile of a plan is in, the preloader says so", async () => {
+  const { fetchTile, answer } = controlledFetch();
+  let idle = 0;
+  const preloader = new FramePreloader(fetchTile, () => {}, { parallel: 1, onIdle: () => { idle += 1; } });
+  preloader.plan([[0, ["a", "b"]]]);
+  await answer("a");
+  assert.equal(idle, 0);
+  await answer("b", false);
+  assert.equal(idle, 1, "a failed tile is as done as a loaded one");
+});
+
+test("tiles coming in quickly are reported together, a plan at once", async () => {
+  const { fetchTile, answer } = controlledFetch();
+  const reports: Array<Map<number, number>> = [];
+  const preloader = new FramePreloader(fetchTile, (progress) => reports.push(progress), { parallel: 3, reportEvery: 20 });
+  preloader.plan([[0, ["a", "b", "c"]]]);
+  assert.equal(reports.length, 1);
+  await answer("a");
+  await answer("b");
+  assert.equal(reports.length, 1, "not yet");
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(reports.length, 2);
+  assert.ok(Math.abs(reports.at(-1)!.get(0)! - 2 / 3) < 1e-9);
+  preloader.stop();
+});

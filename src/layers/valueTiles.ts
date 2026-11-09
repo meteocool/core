@@ -1,12 +1,18 @@
 import DataTileSource from "ol/source/DataTile";
 import type { Options as DataTileOptions } from "ol/source/DataTile";
-import { blankTile, fetchFrameTile } from "./indexedTiles";
+import type { Extent as MapExtent } from "ol/extent";
+import { blankTile, fetchFrameTile, present } from "./indexedTiles";
 import { ALL_NETWORKS, HOLES, holesSignature } from "./networkHoles";
 import type { NetworkCode } from "./networkHoles";
 import { overlaps, tileExtent } from "./tileMask";
 import { packValueTile } from "./packTiles";
+import { drawsNothing } from "../lib/packPixels";
 import type { MaskPath } from "./tileMask";
+import { sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
+import { BLANK, DecodedTiles, tileKey } from "../lib/decodedTiles";
+import { decodedTileBytes } from "../lib/gpuBudget";
+import { getCacheKey } from "ol/renderer/webgl/TileLayerBase";
 import type WebGLTileLayer from "ol/layer/WebGLTile";
 
 /**
@@ -27,6 +33,10 @@ import type WebGLTileLayer from "ol/layer/WebGLTile";
  * those have frames for (`setHoles`), and each network's are kept to the
  * ground `extents.ts` gives it (`keep`). Erased is transparent, which the
  * style draws as nothing.
+ *
+ * Every tile a source loads, and every tile decoded ahead of playback, is
+ * kept in `decodedTiles` by what decides its bytes, and a source asked for
+ * one it holds answers at once (`loadStoredTile`).
  */
 
 /** How many frames' indices a source remembers before starting afresh. */
@@ -38,7 +48,8 @@ const REMEMBERED = 400;
  * outside `keep` altogether.
  *
  * Decoded and packed to the bytes that mean something (packTiles.ts), or a
- * blank where there is nothing. `size` is the source's tile size.
+ * blank where there is nothing, the cut having left nothing included.
+ * `size` is the source's tile size.
  */
 export async function loadValueTile(
   template: string,
@@ -56,7 +67,117 @@ export async function loadValueTile(
   const fetched = await fetchFrameTile(template, index, z, x, y, signal);
   if (!fetched) return blankTile();
   const met = holes.filter((hole) => overlaps(extent, hole.bbox));
-  return packValueTile(fetched.png, fetched.from, extent, met, keep, size, signal);
+  const packed = await packValueTile(fetched.png, fetched.from, extent, met, keep, size, signal);
+  // Nothing left to draw, once cut: a blank, with no texture behind it.
+  return drawsNothing(packed, size * size) ? blankTile() : packed;
+}
+
+/**
+ * The value tiles of every layer, decoded: those a source loaded, and those
+ * decoded ahead of playback (lib/framePreload.ts); see lib/decodedTiles.ts.
+ */
+export const decodedTiles = new DecodedTiles(decodedTileBytes());
+
+/** One tile, as a source's loader is handed it; what playback decodes ahead. */
+export interface TileJob {
+  /** What `decodedTiles` keeps it under. */
+  key: string;
+  template: string;
+  index: TileIndex | null | undefined;
+  z: number;
+  x: number;
+  y: number;
+  /** Only the holes that meet the tile: others cut nothing from it. */
+  holes: MaskPath[];
+  keep: MaskPath | null;
+  size: number;
+  /**
+   * A blank answered without asking anyone: outside `keep` altogether, or a
+   * tile the frame's index says it does not have. Never worth decoding ahead.
+   */
+  local: boolean;
+  /** The source that will ask for it, and the key it will ask under: where to look for it on the GPU. */
+  drawnBy?: { source: ValueTileSource; sourceKey: string };
+}
+
+const pathNames = new WeakMap<MaskPath, string>();
+let paths = 0;
+
+/** A mask path's name in a tile's key: the same path, the same name, for as long as it exists. */
+function pathName(path: MaskPath): string {
+  let name = pathNames.get(path);
+  if (name === undefined) {
+    paths += 1;
+    name = `p${paths}`;
+    pathNames.set(path, name);
+  }
+  return name;
+}
+
+/** Tile `z`/`x`/`y` of the frame at `template`, holed by `holes` and kept to `keep`, as a job. */
+export function valueTileJob(
+  template: string,
+  index: TileIndex | null | undefined,
+  z: number,
+  x: number,
+  y: number,
+  holes: MaskPath[],
+  keep: MaskPath | null,
+  size = 512,
+): TileJob {
+  const extent = tileExtent(z, x, y);
+  const met = holes.filter((hole) => overlaps(extent, hole.bbox));
+  const from = sourceTile(index, z, x, y);
+  const local = (keep !== null && !overlaps(extent, keep.bbox)) || (Boolean(index) && !present(index, from.z, from.x, from.y));
+  const key = tileKey({ template, z, x, y, holes: met.map(pathName), keep: keep ? pathName(keep) : null, size });
+  return { key, template, index, z, x, y, holes: met, keep, size, local };
+}
+
+/**
+ * Whether the layer drawing a job's source already holds its tile, uploaded
+ * and ready to draw. Its texture cache is keyed by the frame, so on a
+ * desktop a whole loop of a viewport stays on the GPU after the first time
+ * round, and those tiles need nothing decoded: they are drawn as soon as
+ * the frame is shown, whatever the decoded tiles have let go.
+ */
+export function heldOnScreen(job: TileJob): boolean {
+  if (!job.drawnBy) return false;
+  const { source, sourceKey } = job.drawnBy;
+  const layer = layerOf.get(source);
+  if (!layer?.hasRenderer()) return false;
+  const cache = (layer.getRenderer() as unknown as FrameCache).tileRepresentationCache;
+  const at = getCacheKey(source, [job.z, job.x, job.y], sourceKey);
+  return Boolean(cache?.containsKey(at) && cache.peek(at).ready);
+}
+
+/** Whether a job's tile is ready to draw at once: answered on the spot, decoded, or on the GPU. */
+export function tileReady(job: TileJob): boolean {
+  return job.local || decodedTiles.has(job.key) || heldOnScreen(job);
+}
+
+/** Tiles being loaded, by key: a tile the preloader and a source both want is loaded once. */
+const loading = new Map<string, Promise<Uint8Array | HTMLCanvasElement>>();
+
+/**
+ * A job's tile: from `decodedTiles` at once where it is kept, else loaded
+ * (`loadValueTile`) and kept. The bytes kept are the very array returned, so
+ * a tile OpenLayers holds costs nothing more here.
+ */
+export function loadStoredTile(job: TileJob, signal?: AbortSignal): Promise<Uint8Array | HTMLCanvasElement> {
+  if (job.local) return Promise.resolve(blankTile());
+  const kept = decodedTiles.get(job.key);
+  if (kept !== undefined) return Promise.resolve(kept === BLANK ? blankTile() : kept);
+  const running = loading.get(job.key);
+  if (running) return running;
+  const epoch = decodedTiles.epoch;
+  const load = loadValueTile(job.template, job.index, job.z, job.x, job.y, job.holes, job.keep, signal, job.size)
+    .then((tile) => {
+      decodedTiles.put(job.key, tile instanceof Uint8Array ? tile : BLANK, epoch);
+      return tile;
+    })
+    .finally(() => loading.delete(job.key));
+  loading.set(job.key, load);
+  return load;
 }
 
 /**
@@ -77,6 +198,15 @@ export function frameOnStep(template: string, measuredAt: number | null | undefi
 export function templateOf(name: string): string {
   const at = name.indexOf("#");
   return at < 0 ? name : name.slice(0, at);
+}
+
+/**
+ * What the renderer caches a frame's tiles by: a frame whose holes changed
+ * (the live frame becoming history, a network's composite arriving for a
+ * step) has to load afresh, so the holes are part of it.
+ */
+function frameKey(url: string, codes: readonly NetworkCode[]): string {
+  return codes.length ? `${url}#holes:${codes.join(",")}` : url;
 }
 
 /**
@@ -162,22 +292,53 @@ export default class ValueTileSource extends DataTileSource {
     if (showing) this.setUrl(showing);
   }
 
+  /** What the loader is handed for a frame's tiles, by the frame's name: as things stand now. */
+  private frameArgs(url: string): { template: string; gate: TileIndex | null | undefined; holes: MaskPath[]; codes: NetworkCode[] } {
+    const codes = this.holes.get(url) ?? [];
+    return {
+      template: templateOf(url),
+      gate: this.indexFor(url),
+      holes: HOLES.filter((hole) => codes.includes(hole.code)),
+      codes,
+    };
+  }
+
+  /** The side of this source's tiles at zoom `z`, in pixels. */
+  private sizeAt(z: number): number {
+    const size = this.getTileGrid()!.getTileSize(z);
+    return typeof size === "number" ? size : size[0];
+  }
+
+  /**
+   * The tiles OpenLayers will ask this source for of frame `url`, over
+   * `extent` at the view's `resolution`, exactly as its loader would be
+   * handed them once the frame is shown with the holes it has now; at most
+   * `max`. What playback decodes ahead, and waits for.
+   */
+  tileJobs(url: string, index: TileIndex | null | undefined, extent: MapExtent, resolution: number, max: number): TileJob[] {
+    this.remember(url, index);
+    const { template, gate, holes, codes } = this.frameArgs(url);
+    const drawnBy = { source: this, sourceKey: frameKey(url, codes) };
+    const grid = this.getTileGrid()!;
+    // The zoom the renderer draws at, as it works it out.
+    const z = grid.getZForResolution(resolution, this.zDirection);
+    const jobs: TileJob[] = [];
+    grid.forEachTileCoord(extent, z, ([tz, x, y]) => {
+      if (jobs.length < max) jobs.push({ ...valueTileJob(template, gate, tz, x, y, holes, this.keep, this.sizeAt(tz)), drawnBy });
+    });
+    return jobs;
+  }
+
   setUrl(url: string, index?: TileIndex | null): void {
     this.remember(url, index);
     this.url = url;
-    const gate = this.indexFor(url);
-    const codes = this.holes.get(url) ?? [];
-    const holes = HOLES.filter((hole) => codes.includes(hole.code));
+    const { template, gate, holes, codes } = this.frameArgs(url);
     const keep = this.keep;
-    const template = templateOf(url);
-    this.setLoader((z, x, y, options) => {
-      const size = this.getTileGrid()!.getTileSize(z);
-      return loadValueTile(template, gate, z, x, y, holes, keep, options.signal, typeof size === "number" ? size : size[0]);
-    });
-    // What the renderer caches tiles by: a frame whose holes changed (the live
-    // frame becoming history, a network's composite arriving for a step) has
-    // to load afresh, so the holes are part of it.
-    this.setKey(codes.length ? `${url}#holes:${codes.join(",")}` : url);
+    this.setLoader((z, x, y, options) => loadStoredTile(
+      valueTileJob(template, gate, z, x, y, holes, keep, this.sizeAt(z)),
+      options.signal,
+    ));
+    this.setKey(frameKey(url, codes));
   }
 }
 
@@ -190,14 +351,17 @@ let forgetting = 0;
  * Let every value layer drop the tiles of every frame but the one it shows.
  *
  * Playback keeps each step's tiles, so a loop never fetches or decodes them
- * twice. That is up to 512 tiles a layer, for DWD and every network, and most
- * of the radar's memory. Once the player is closed nothing steps through them any
+ * twice. That is hundreds of tiles a layer, for DWD and every network, and
+ * with the tiles decoded ahead of it (`decodedTiles`), most of the radar's
+ * memory. Once the player is closed nothing steps through them any
  * more. Each layer lets them go the next time its own frame is fully drawn,
  * which is after the switch back to the newest: dropped at once, they could
  * not stand in while it loads, and the radar would blink empty.
  */
 export function forgetEarlierFrames(): void {
   forgetting += 1;
+  // Not drawn from, so nothing blinks: they go now.
+  decodedTiles.clear();
 }
 
 /**
@@ -216,6 +380,7 @@ const valueLayers = new Set<WebGLTileLayer>();
  */
 export function dropEarlierFrames(): void {
   forgetting += 1;
+  decodedTiles.clear();
   for (const layer of valueLayers) {
     // A layer replaced and disposed (precipitation types) is let go here.
     if ((layer as unknown as { disposed: boolean }).disposed) valueLayers.delete(layer);
@@ -242,10 +407,14 @@ interface FrameCache {
   getStaleKeys?(): string[];
   tileRepresentationCache?: {
     getKeys(): string[];
-    peek(key: string): { tile: { key: string }; dispose(): void };
+    containsKey(key: string): boolean;
+    peek(key: string): { tile: { key: string }; ready: boolean; dispose(): void };
     remove(key: string): unknown;
   };
 }
+
+/** Each value layer, by its source: whose renderer holds the source's tiles. */
+const layerOf = new WeakMap<object, WebGLTileLayer>();
 
 /**
  * Let an older frame stand in only while the frame on screen loads.
@@ -269,6 +438,8 @@ interface FrameCache {
 export function staleOnlyWhileLoading<L extends WebGLTileLayer>(layer: L): L {
   let forgot = forgetting;
   valueLayers.add(layer);
+  const source = layer.getSource();
+  if (source) layerOf.set(source, layer);
   layer.on("postrender", () => {
     const renderer = layer.getRenderer() as unknown as FrameCache | null;
     if (!renderer?.renderComplete) return;

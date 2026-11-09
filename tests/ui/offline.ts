@@ -72,8 +72,8 @@ export function readRecording(): Recording {
   return JSON.parse(readFileSync(RECORDING, "utf8")) as Recording;
 }
 
-/** A 256-pixel transparent PNG, what every raster tile is answered with. */
-export const EMPTY_PNG = ((size: number) => {
+/** A PNG of `size` square, `colour` type and `channels` bytes a pixel, every byte 0. */
+const zeroPng = (size: number, colour: number, channels: number) => {
   const chunk = (type: string, data: Buffer) => {
     const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
     const length = Buffer.alloc(4);
@@ -86,23 +86,38 @@ export const EMPTY_PNG = ((size: number) => {
   header.writeUInt32BE(size, 0);
   header.writeUInt32BE(size, 4);
   header[8] = 8; // bit depth
-  header[9] = 6; // RGBA
-  // One filter byte and a row of transparent pixels, per row.
-  const pixels = Buffer.alloc(size * (1 + size * 4));
+  header[9] = colour;
+  // One filter byte and a row of zero pixels, per row.
+  const pixels = Buffer.alloc(size * (1 + size * channels));
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", header),
     chunk("IDAT", deflateSync(pixels)),
     chunk("IEND", Buffer.alloc(0)),
   ]);
-})(256);
+};
+
+/** A 256-pixel transparent PNG, what every raster tile but a radar value tile is answered with. */
+export const EMPTY_PNG = zeroPng(256, 6, 4);
+
+/**
+ * A radar value tile with nothing in it: 512 pixels of greyscale 0, which
+ * every value palette draws as nothing. Decoded and packed as a real one is
+ * (lib/valuePng.ts), so a frame's tiles come out ready rather than failed,
+ * which is what the player waits on and the timeline fills by.
+ */
+export const EMPTY_VALUE_PNG = zeroPng(512, 0, 1);
+
+/** The radar's value tiles, by path: DWD's and the networks' frames, and the nowcast's. */
+const VALUE_TILE = /^\/tiles\/(meteoradar|meteonowcast)\/[^/]+\/\d+\/\d+\/\d+\.png$/;
 
 /** A blank tile of whichever kind was asked for: an empty vector tile is a valid one. */
 export function fulfilBlankTile(route: Route, url: URL): Promise<void> {
   if (/\.(pbf|mvt)$/.test(url.pathname)) {
     return route.fulfill({ status: 200, contentType: "application/x-protobuf", body: Buffer.alloc(0) });
   }
-  return route.fulfill({ status: 200, contentType: "image/png", body: EMPTY_PNG });
+  const body = VALUE_TILE.test(url.pathname) ? EMPTY_VALUE_PNG : EMPTY_PNG;
+  return route.fulfill({ status: 200, contentType: "image/png", body });
 }
 
 /**

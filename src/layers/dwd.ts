@@ -87,7 +87,7 @@ export function dwdValueLayer(frame: TileFrame): [TileLayer, ValueTileSource, st
     style: rvp6Style(palette, ink),
     zIndex: 80,
     opacity: NOWCAST_OPACITY,
-    cacheSize: radarTileCache(512),
+    cacheSize: radarTileCache(),
     extent: dwdRadarExtent,
   }));
   layer.set("tile_id", tileId);

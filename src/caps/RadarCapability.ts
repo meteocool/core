@@ -4,8 +4,12 @@ import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
-import { frameOnStep, templateOf } from "../layers/valueTiles";
+import { decodedTiles, frameOnStep, heldOnScreen, loadStoredTile, tileReady } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
+import type { TileJob } from "../layers/valueTiles";
+import { ENTRY_OVERHEAD, costOf } from "../lib/decodedTiles";
+import { decodeAheadParallel } from "../lib/gpuBudget";
+import { getIntersection, isEmpty } from "ol/extent";
 import NetworkRadarLayer, {
   AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, EUROPE_ECHO_TOP_18, EUROPE_ECHO_TOP_45, EUROPE_ECHO_TOP_50, EUROPE_VIL, NETWORKS,
   NOWCAST_NETWORKS,
@@ -14,7 +18,6 @@ import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
-import { hasTile, sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
 import { RVP6_ENCODING, drawnTileId, encodingOf } from "../lib/rvp6";
 import type { Ink, ValueTiles } from "../lib/rvp6";
@@ -76,7 +79,6 @@ import {
 import type { NowcastRuns } from "../lib/nowcast";
 import { NOWCAST_OPACITY } from "../layers/ui";
 import { whenVisible } from "../lib/wakeup";
-import { timedFetch } from "../lib/timedFetch";
 import { FramePreloader, preloadOrder } from "../lib/framePreload";
 import { derived, get } from "svelte/store";
 import { _ } from "svelte-i18n";
@@ -90,6 +92,32 @@ const SNOW_AT_DEBOUNCE_MS = 300;
 
 /** The most tiles one layer of one frame is preloaded with: a desktop viewport's. */
 const PRELOAD_MAX_TILES = 48;
+
+/**
+ * How much of the decoded tiles' room a plan may take: the rest is for the
+ * tiles the layers load on their own, the frame on screen among them.
+ */
+const PLANNED_SHARE = 0.8;
+
+/**
+ * What to decode ahead (`RadarCapability.preloadTimeline`): with `ahead`,
+ * only that many frames after the one given; with `order`, the steps in the
+ * order playback will show them, the one given first.
+ */
+export interface PreloadOptions {
+  ahead?: number;
+  order?: readonly number[];
+}
+
+/**
+ * What a tile will hold once decoded: what it does, if it is; else what the
+ * tiles held cost on average, or until that is known, a whole packed tile.
+ */
+function expectedBytes(job: TileJob): number {
+  const kept = decodedTiles.peek(job.key);
+  if (kept !== undefined) return costOf(kept);
+  return decodedTiles.meanCost() ?? ENTRY_OVERHEAD + job.size * job.size;
+}
 
 /**
  * What the radar layer fades to while it is known to be out of date.
@@ -692,108 +720,177 @@ export default class RadarCapability extends Capability {
     return latestRadar;
   }
 
-  /** Fetches the timeline's frames ahead for the map in view; see lib/framePreload.ts. */
+  /**
+   * Decodes the timeline's frames ahead for the map in view, into the tiles
+   * every value layer's loader answers from; see lib/framePreload.ts.
+   */
   private preloader = new FramePreloader(
-    // Same request the tile loader makes (CORS, no credentials), so the cache
-    // entry is the one it will look for. The body is read to the end: a
-    // response left unread is not stored.
-    (url) => timedFetch(url, { mode: "cors", credentials: "same-origin", priority: "low" } as RequestInit)
-      .then(async (response) => {
-        if (!response.ok) return false;
-        await response.arrayBuffer();
-        return true;
-      }),
+    (key) => {
+      const job = this.plannedJobs.get(key);
+      return job ? loadStoredTile(job).then(() => true) : Promise.resolve(false);
+    },
     (progress) => framesPreloaded.set(progress),
-    { mayFetch: () => document.visibilityState !== "hidden" },
+    {
+      mayFetch: () => document.visibilityState !== "hidden",
+      parallel: decodeAheadParallel(),
+      reportEvery: 100,
+      has: (key) => {
+        const job = this.plannedJobs.get(key);
+        return job ? tileReady(job) : decodedTiles.has(key);
+      },
+      // A plan cut short by what its tiles were expected to cost may reach
+      // further once they are decoded and turn out to cost less.
+      onIdle: () => {
+        if (this.planCut) this.preloadTimeline(this.planCut.from, { ...this.planCut.options, onlyFurther: true });
+      },
+    },
   );
 
+  /** What the plan in hand was made from, when it stopped short of the timeline's end; see `preloadTimeline`. */
+  private planCut: { from: number; options: PreloadOptions } | null = null;
+
+  /** How many frames the plan in hand reaches. */
+  private planReach = 0;
+
+  /** The tiles of the plan in hand, by key, for the preloader to load. */
+  private plannedJobs = new globalThis.Map<string, TileJob>();
+
   /**
-   * The tile URLs one frame needs where the map is looking, at its zoom:
-   * whichever layers draw on that step (DWD's, each network's, or a product of
-   * all of theirs; each network's nowcast on a forecast step it has a lead
-   * for). Null while the map has no size to look with.
+   * The tiles one step needs where the map is looking, at its zoom, as each
+   * layer that draws on it will ask its loader for them: DWD's, each
+   * network's (its newest frame on the live step), or a product of all of
+   * theirs; each network's nowcast on a forecast step it has a lead for. The
+   * same choices `showNetworks` makes. Null while the map has no size to
+   * look with.
    */
-  private frameTileUrls(step: number): string[] | null {
+  private stepJobs(step: number): TileJob[] | null {
     const { source } = this;
     const view = this.map.getView();
     const size = this.map.getSize();
     const resolution = view.getResolution();
     if (!source || !this.clientGrid || !size || resolution === undefined) return null;
-    const tileGrid = source.getTileGridForProjection(view.getProjection());
-    const z = tileGrid.getZForResolution(resolution);
-    const extent = view.calculateExtent(size);
+    const viewExtent = view.calculateExtent(size);
 
-    const urls: string[] = [];
+    const jobs: TileJob[] = [];
     const whole = this.wholeFrame(step);
     const around = whole ? null : this.aroundFrame(step);
-    // A missed scan: nothing to fetch, but the frames after it still play.
+    // A missed scan: nothing to load, but the frames after it still play.
     const frame = whole ? null : this.dwdFrame(step);
     if (frame) {
-      const { tiles: index } = frame;
-      const template = templateOf(frame.url);
-      tileGrid.forEachTileCoord(extent, z, ([tz, tx, ty]) => {
-        if (urls.length >= PRELOAD_MAX_TILES) return;
-        // Past a frame's deepest zoom its tiles come out of their ancestor's.
-        const { z: sz, x, y } = sourceTile(index, tz, tx, ty);
-        // A tile the frame does not have is answered locally; see lib/tileIndex.ts.
-        if (!hasTile(index, sz, x, 2 ** sz - 1 - y)) return;
-        urls.push(template
-          .replace("{z}", String(sz))
-          .replace("{x}", String(x))
-          .replace("{-y}", String(2 ** sz - 1 - y))
-          .replace("{y}", String(y)));
-      });
+      // Only what the layer draws: nothing outside DWD's grid is asked for.
+      const layerExtent = this.layer?.getExtent();
+      const extent = layerExtent ? getIntersection(viewExtent, layerExtent) : viewExtent;
+      if (!isEmpty(extent)) jobs.push(...source.tileJobs(frame.url, frame.tiles, extent, resolution, PRELOAD_MAX_TILES));
     }
     // Over the networks' countries DWD's tiles are holes: their own frames,
     // or a product of all of theirs on the steps it stands in for them.
-    if (whole) urls.push(...this.wholes[whole.product].tileUrls([whole.frame], PRELOAD_MAX_TILES));
-    else if (around) urls.push(...this.around.tileUrls([around], PRELOAD_MAX_TILES));
+    if (whole) jobs.push(...this.wholes[whole.product].tileJobs(whole.frame, viewExtent, resolution, PRELOAD_MAX_TILES));
+    else if (around) jobs.push(...this.around.tileJobs(around, viewExtent, resolution, PRELOAD_MAX_TILES));
     else {
+      const live = !this.past && showsLatestFrame(step, this.getMostRecentObservation());
       for (const network of this.networks) {
-        const own = this.networkGrid[network.network.code]?.[step];
-        if (own) urls.push(...network.tileUrls([own], PRELOAD_MAX_TILES));
+        const own = live ? network.current() : this.networkGrid[network.network.code]?.[step];
+        if (own) jobs.push(...network.tileJobs(own, viewExtent, resolution, PRELOAD_MAX_TILES));
       }
     }
     // Each network's nowcast on a forecast step it has a lead for: WN's tiles are holes there.
     const domains = this.nowcastDomainsAt(step);
     for (const layer of this.nowcasts) {
       const code = layer.network.code as CountryNetwork;
-      if (domains.includes(code)) urls.push(...layer.tileUrls([this.nowcastGrid[code]![step]], PRELOAD_MAX_TILES));
+      if (domains.includes(code)) {
+        jobs.push(...layer.tileJobs(this.nowcastGrid[code]![step], viewExtent, resolution, PRELOAD_MAX_TILES));
+      }
     }
-    return [...new Set(urls)];
+    return jobs;
+  }
+
+  /** The keys of the tiles a step needs that are not ready to draw at once (`tileReady`); null while the map cannot say. */
+  private stepMissing(step: number): string[] | null {
+    const jobs = this.stepJobs(step);
+    return jobs && [...new Set(jobs.filter((job) => !tileReady(job)).map((job) => job.key))];
   }
 
   /**
-   * Fetch the tiles of every frame the timeline can show, for the map in
-   * view, nearest `from` first; or, with `ahead`, only that many frames after
-   * it, which is what a reader saving data gets during playback.
+   * Decode the tiles of every frame the timeline can show, for the map in
+   * view, nearest `from` first, or in the `order` playback shows them; or,
+   * with `ahead`, only that many frames after it, which is what a reader
+   * saving data gets during playback.
    *
-   * Scrubbed through quickly, a frame whose tiles are asked for only when it
-   * is shown is blocky or half-drawn for the first few hundred milliseconds,
-   * and playback's first loop through a viewport is too. Asked for here,
-   * through `fetch`, they are in the HTTP cache (and the service worker's)
-   * when OpenLayers asks. The tiles are cacheable by URL (a tile_id names one
-   * rendering), so the bytes are the same either way; only when they are
-   * asked for changes. How far each frame has got is `framesPreloaded`.
+   * Scrubbed through or played, a frame whose tiles are asked for only when
+   * it is shown is blocky or half-drawn for the first few hundred
+   * milliseconds. Decoded here, a layer's loader answers from them at once
+   * (`loadStoredTile`). Only as many frames as the decoded tiles can hold
+   * are planned (`decodedTileBytes`), nearest first, and those are kept over
+   * any others: past that, a phone would decode the next frame only to let
+   * it go for the one after. A tile not yet decoded is reckoned at what
+   * those held cost on average, and a plan cut short is tried again once
+   * loaded (`onlyFurther`), taken only if it then reaches further. How far
+   * each frame has got is `framesPreloaded`.
    */
-  preloadTimeline(from: number, ahead?: number) {
+  preloadTimeline(from: number, { ahead, order: played, onlyFurther = false }: PreloadOptions & { onlyFurther?: boolean } = {}) {
     if (!this.clientGrid) return;
     const last = this.getLastPlayableStep();
     const steps = Object.keys(this.clientGrid).map(Number).filter((step) => step <= last).sort((a, b) => a - b);
-    const order = ahead === undefined ? preloadOrder(steps, from)
-      : steps.filter((step) => step > from).slice(0, ahead);
+    const known = new Set(steps);
+    // Playing, the steps in the order the loop shows them; else nearest the needle.
+    const around = played ? played.filter((step) => known.has(step)) : preloadOrder(steps, from);
+    const order = ahead === undefined ? around
+      : played ? around.slice(0, ahead + 1) : steps.filter((step) => step > from).slice(0, ahead);
     const needs: Array<[number, string[]]> = [];
+    const jobs = new globalThis.Map<string, TileJob>();
+    let bytes = 0;
+    let cut = false;
     for (const step of order) {
-      const urls = this.frameTileUrls(step);
-      if (!urls) return;
-      needs.push([step, urls]);
+      const stepJobs = this.stepJobs(step);
+      if (!stepJobs) return;
+      const fresh = stepJobs.filter((job) => !job.local && !jobs.has(job.key));
+      // A tile already on the GPU is not decoded again, and costs the store nothing.
+      const cost = fresh.reduce((sum, job) => sum + (heldOnScreen(job) ? 0 : expectedBytes(job)), 0);
+      // Always the next couple of frames, whatever they cost.
+      if (needs.length >= 2 && bytes + cost > decodedTiles.capacity * PLANNED_SHARE) {
+        cut = true;
+        break;
+      }
+      bytes += cost;
+      for (const job of fresh) jobs.set(job.key, job);
+      needs.push([step, [...new Set(stepJobs.filter((job) => !job.local).map((job) => job.key))]]);
     }
+    // Tried again once this plan is loaded, and taken only where it reaches further.
+    if (onlyFurther && needs.length <= this.planReach) return;
+    this.planCut = cut ? { from, options: { ahead, order: played } } : null;
+    this.planReach = needs.length;
+    this.plannedJobs = jobs;
+    decodedTiles.retain(jobs.keys());
     this.preloader.plan(needs);
   }
 
-  /** No more frames fetched ahead, and none shown as fetched. */
+  /** No more frames decoded ahead, and none shown as decoded. */
   stopPreload() {
+    this.planCut = null;
+    this.planReach = 0;
     this.preloader.stop();
+    this.plannedJobs = new globalThis.Map();
+    decodedTiles.retain([]);
+  }
+
+  /**
+   * Whether every tile `step` needs for the map in view is ready to draw
+   * (`tileReady`: decoded, or still on the GPU), so that putting it on
+   * screen draws it whole at once. True while the map cannot say, which
+   * nothing would come of waiting for.
+   */
+  stepReady(step: number): boolean {
+    return !this.stepMissing(step)?.length;
+  }
+
+  /**
+   * Resolves true once every tile `step` needs for the map in view is
+   * ready to draw, or false after `timeoutMs` or once `signal` aborts.
+   * Playback holds the frame on screen for it (lib/playbackGate.ts).
+   */
+  whenStepReady(step: number, timeoutMs: number, signal?: AbortSignal): Promise<boolean> {
+    const missing = this.stepMissing(step);
+    return missing ? decodedTiles.whenAll(missing, timeoutMs, signal) : Promise.resolve(true);
   }
 
   regenerateGridConfig(): GridConfig {

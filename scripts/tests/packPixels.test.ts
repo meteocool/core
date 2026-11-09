@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { magnifyValues, packValues } from "../../src/lib/packPixels.ts";
+import { drawsNothing, magnifyValues, packValues } from "../../src/lib/packPixels.ts";
 
 test("an uncut tile packs to its values, one byte a pixel", () => {
   assert.deepEqual(packValues(new Uint8Array([12, 200, 0]), null), new Uint8Array([12, 200, 0]));
@@ -33,4 +33,24 @@ test("a tile past the frame's depth is its part of the ancestor, each pixel a sq
     15, 15, 16, 16,
   ]));
   assert.equal(magnifyValues(ancestor, 4, { scale: 1, column: 0, row: 0 }), ancestor);
+});
+
+test("a tile of zeros draws nothing, and one value anywhere does", () => {
+  assert.equal(drawsNothing(new Uint8Array(512 * 512), 512 * 512), true);
+  for (const at of [0, 1, 4097, 512 * 512 - 1]) {
+    const tile = new Uint8Array(512 * 512);
+    tile[at] = 1;
+    assert.equal(drawsNothing(tile, 512 * 512), false, `a value at ${at}`);
+  }
+  // A view that does not start on a word, and an odd length.
+  const odd = new Uint8Array(new ArrayBuffer(16), 1, 13);
+  assert.equal(drawsNothing(odd, 13), true);
+  odd[12] = 3;
+  assert.equal(drawsNothing(odd, 13), false);
+});
+
+test("a cut tile with coverage left but no value draws nothing; one value does", () => {
+  // Value, coverage: the antialiased edge of a hole over ground with no echo.
+  assert.equal(drawsNothing(new Uint8Array([0, 255, 0, 128, 0, 0]), 3), true);
+  assert.equal(drawsNothing(new Uint8Array([0, 255, 7, 128, 0, 0]), 3), false);
 });

@@ -19,7 +19,7 @@
  * is read off the strip, not off the number under the needle.
  *
  * Behind it all, each step's slot fills from the bottom, in the logo's pale
- * cyan, as its tiles are fetched ahead (lib/framePreload.ts): a filled slot
+ * cyan, as its tiles are decoded ahead (lib/framePreload.ts): a filled slot
  * is whole the moment the needle reaches it, an empty one may come up blocky
  * or half-drawn for a moment. Full across, the strip can be scrubbed as fast
  * as a finger goes, and the band takes the glass's bevel, one rounded piece.
@@ -56,7 +56,7 @@ export let value = 0;
 export let interactive = true;
 /** How often the axis is labelled, in minutes. */
 export let labelEvery = 30;
-/** How much of each step's tiles has been fetched ahead, 0 to 1, by step; see lib/framePreload.ts. */
+/** How much of each step's tiles is ready to draw, 0 to 1, by step; see lib/framePreload.ts. */
 export let preloaded: ReadonlyMap<number, number> = new Map();
 /**
  * The past window the strip spans (lib/archive.ts), or null live. Labelled
@@ -73,7 +73,7 @@ const dispatch = createEventDispatcher<{ seek: number; grab: void; release: void
  * under it.
  */
 let plotH = 0;
-/** The corners of the band of frames fetched ahead. */
+/** The corners of the band of frames decoded ahead. */
 const BAND_RADIUS = 10;
 /** A ruler tick's height, minor and on the half hour. */
 const TICK = 7;
@@ -88,7 +88,7 @@ $: last = reach.last;
 $: gaps = sweepGaps(steps);
 $: slot = n > 0 ? width / n : 0;
 $: ceiling = barCeiling(steps);
-/** Every step the needle can reach fetched ahead: the band is whole. */
+/** Every step the needle can reach decoded ahead: the band is whole. */
 $: preloadedAll = allPreloaded(steps, preloaded);
 /* Its own clip and hatching per strip, should there ever be two. */
 const bandClip = `mc-preload-band-${Math.random().toString(36).slice(2)}`;
@@ -576,7 +576,7 @@ onDestroy(stop);
           <rect class="hatch-stripe" x="0" y="0" width="2" height="6" />
         </pattern>
         <g clip-path="url(#{bandClip})">
-          <!-- Each step's tiles fetched ahead, filling its slot from the bottom. -->
+          <!-- Each step's tiles decoded ahead, filling its slot from the bottom. -->
           <g class="preload-steps">
             {#each steps as step, i (step.t)}
               <rect

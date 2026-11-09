@@ -1,6 +1,6 @@
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
+import type { TileJob } from "./valueTiles";
 import LatestFrame from "./latestFrame";
-import { hasTile } from "../lib/tileIndex";
 import TileLayer from "./webglTile";
 import { compositeDim } from "../stores";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
@@ -389,45 +389,37 @@ export default class NetworkRadarLayer {
   }
 
   /**
-   * The tile URLs to ask for ahead of playback, for these frames where the
-   * map is looking. Empty until the layer exists, which it does from the
-   * first composite on.
+   * The tiles to decode ahead of playback for `frame` where the map is
+   * looking, at the view's `resolution`, as this layer's loader will be
+   * handed them; at most `max`. None until the layer exists, which it does
+   * from the first composite on, and none where the map is away from this
+   * network's ground.
    */
-  tileUrls(frames: RadarFrame[], max: number): string[] {
-    const source = this.layer?.getSource();
-    const view = this.map.getView();
-    const size = this.map.getSize();
-    const resolution = view.getResolution();
-    if (!source || !size || resolution === undefined) return [];
-    const extent = getIntersection(view.calculateExtent(size), this.network.extent);
+  tileJobs(frame: RadarFrame, viewExtent: Extent, resolution: number, max: number): TileJob[] {
+    const source = this.layer?.getSource() as ValueTileSource | null | undefined;
+    if (!source) return [];
+    const extent = getIntersection(viewExtent, this.network.extent);
     if (isEmpty(extent)) return [];
-    const tileGrid = source.getTileGridForProjection(view.getProjection());
-    const z = tileGrid.getZForResolution(resolution);
+    return source.tileJobs(this.urlOf(frame), frame.tiles, extent, resolution, max);
+  }
 
-    const urls: string[] = [];
-    for (const frame of frames) {
-      const template = tileSourceUrl(this.network.bucket ?? "meteoradar", drawnTileId(frame));
-      tileGrid.forEachTileCoord(extent, z, ([tz, x, y]) => {
-        if (urls.length >= max) return;
-        // Not a tile the frame does not have: the index is what the loader
-        // will consult too, so this is a request that would never be made.
-        if (!hasTile(frame.tiles, tz, x, 2 ** tz - 1 - y)) return;
-        urls.push(template
-          .replace("{z}", String(tz))
-          .replace("{x}", String(x))
-          .replace("{-y}", String(2 ** tz - 1 - y)));
-      });
-    }
-    return urls;
+  /** The frame `show` would put on screen now: the live one, the step's, or none. */
+  shownFrame(): RadarFrame | null {
+    return this.live ? this.latest.current() : this.stepFrame;
+  }
+
+  /** What a frame's tiles are fetched by: its template. */
+  private urlOf(frame: RadarFrame): string {
+    return tileSourceUrl(this.network.bucket ?? "meteoradar", drawnTileId(frame));
   }
 
   private apply() {
-    const frame = this.live ? this.latest.current() : this.stepFrame;
+    const frame = this.shownFrame();
     if (!frame) {
       this.layer?.setVisible(false);
       return;
     }
-    const url = tileSourceUrl(this.network.bucket ?? "meteoradar", drawnTileId(frame));
+    const url = this.urlOf(frame);
     const encoding = encodingOf(frame);
     if (!this.layer) {
       this.encoding = encoding;
@@ -474,7 +466,7 @@ export default class NetworkRadarLayer {
       // instead, which is hidden while it shows.
       zIndex: this.network.coverage ? 79 : 81,
       opacity: this.opacity * this.dim,
-      cacheSize: radarTileCache(512),
+      cacheSize: radarTileCache(),
       // The rectangle is a cheap first pass; `coverage` is the real edge.
       extent: this.network.extent,
     }));
