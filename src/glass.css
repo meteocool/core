@@ -151,6 +151,11 @@
   /* The map's corners inside the frame, rounded on every screen; on one with
      rounded glass, following it (:root.is-ios) so the band stays even. */
   --mc-archive-radius: 18px;
+  /* Where the frame's top edge runs: the window's own, except in the iOS app,
+     whose status bar is blurred over the page (:root.is-ios). Its corners
+     there are the plain radius: they are not the screen's. */
+  --mc-archive-top: 0px;
+  --mc-archive-radius-top: var(--mc-archive-radius);
   /* The tab the frame's top edge grows, naming the window: under the status
      bar and the island, then a line of its own. */
   --mc-archive-tab-h: calc(var(--mc-safe-top) + 26px);
@@ -385,6 +390,10 @@
   /* A home indicator means rounded glass, about 56px on a phone, and the
      band keeps its width round it (min() turns the inset into 0 or 1). */
   --mc-archive-radius: max(18px, calc(min(var(--mc-safe-bottom), 1px) * 56 - var(--mc-archive-frame-w)));
+  /* The app blurs its status bar over the page: a frame drawn under the blur
+     loses its top edge and corners, so it starts at the blur's foot. */
+  --mc-archive-top: var(--mc-safe-top);
+  --mc-archive-radius-top: 18px;
 }
 
 /* A past window (ArchiveFrame): the frame's tab takes the top of the screen,

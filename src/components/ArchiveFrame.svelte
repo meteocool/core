@@ -31,6 +31,8 @@ $: open = $archiveWindow !== null;
  * crossed midnight from the window's start.
  */
 let step = "";
+/** The step for the iPhone app's tab, between its buttons: without its weekday. */
+let stepShort = "";
 let span = "";
 let stepClock = "";
 $: if ($archiveWindow) {
@@ -43,6 +45,7 @@ $: if ($archiveWindow) {
   if ($capTimeIndicator) {
     const shown = $capTimeIndicator * 1000;
     step = format(shown, "EEE d MMM, HH:mm", dfn);
+    stepShort = format(shown, "d MMM, HH:mm", dfn);
     stepClock = format(shown, isSameDay(start, shown) ? "HH:mm" : "EEE HH:mm", dfn);
   }
 }
@@ -66,7 +69,8 @@ onDestroy(() => document.documentElement.classList.remove("archive-open"));
       <!-- A phone: the step's date and time. A desktop: the window, then the step. -->
       {#if step}
         <span class="sep narrow" aria-hidden="true">·</span>
-        <span class="time narrow">{step}</span>
+        <span class="time narrow full">{step}</span>
+        <span class="time narrow short">{stepShort}</span>
       {/if}
       <span class="sep wide" aria-hidden="true">·</span>
       <span class="time wide">{span}</span>
@@ -88,9 +92,11 @@ onDestroy(() => document.documentElement.classList.remove("archive-open"));
 
 <style>
   /* --mc-motion is 0 under reduced motion (glass.css), so no media query. */
+  /* Below the iOS app's status bar blur, where it has one: the blur stays as
+     it is live, and the frame is all below it. */
   .archive-frame {
     position: fixed;
-    inset: 0;
+    inset: var(--mc-archive-top) 0 0;
     z-index: var(--mc-z-frame);
     overflow: hidden;
     pointer-events: none;
@@ -112,13 +118,14 @@ onDestroy(() => document.documentElement.classList.remove("archive-open"));
   .window {
     position: absolute;
     inset: var(--mc-archive-frame-w);
-    border-radius: var(--mc-archive-radius);
+    border-radius: var(--mc-archive-radius-top) var(--mc-archive-radius-top) var(--mc-archive-radius) var(--mc-archive-radius);
     box-shadow: 0 0 0 100vmax var(--mc-archive-ink);
   }
 
   /* The tab: hung from the top edge, one piece with it, its inner corners
      filleted into the band. Tall enough to clear the status bar and the
-     island, its line of its own beneath them. */
+     island, its line of its own beneath them; in the iOS app, hung below
+     the app's status bar blur, its line alone. */
   .tab {
     --fillet: 10px;
     position: absolute;
@@ -129,9 +136,9 @@ onDestroy(() => document.documentElement.classList.remove("archive-open"));
     display: flex;
     align-items: center;
     gap: 2px;
-    max-width: calc(100% - 2 * var(--mc-archive-radius) - 2 * var(--fillet));
-    height: var(--mc-archive-tab-h);
-    padding: var(--mc-safe-top) 4px 0;
+    max-width: calc(100% - 2 * var(--mc-archive-radius-top) - 2 * var(--fillet));
+    height: calc(var(--mc-archive-tab-h) - var(--mc-archive-top));
+    padding: calc(var(--mc-safe-top) - var(--mc-archive-top)) 4px 0;
     border-radius: 0 0 14px 14px;
     background: var(--mc-archive-ink);
     color: var(--mc-archive-on);
@@ -218,9 +225,21 @@ onDestroy(() => document.documentElement.classList.remove("archive-open"));
 
   /* Room for the window as well as the step: the desktop's breakpoint. */
   .wide { display: none; }
+  .short { display: none; }
   @media (min-width: 621px) {
     .narrow { display: none; }
     .wide { display: inline; }
+  }
+  /* The iPhone app's tab runs between its own buttons, the logo's and the
+     column's, which stay where they are: the calendar says "archive", and
+     the date and time alone are left beside it, without the weekday. */
+  @media (max-width: 620px) {
+    :global(html.is-ios) .word,
+    :global(html.is-ios) .sep.narrow,
+    :global(html.is-ios) .full {
+      display: none;
+    }
+    :global(html.is-ios) .short { display: inline; }
   }
 
   /* The headless renderer's picture carries nothing over the map but its
