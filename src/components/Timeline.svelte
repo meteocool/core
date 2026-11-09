@@ -40,7 +40,7 @@ import {
 } from "../lib/timeline";
 import type { Translate } from "../locale/t";
 import { allPreloaded, slotShare } from "../lib/framePreload";
-import { windowLabelEvery, windowTicks, type ArchiveWindow } from "../lib/archive";
+import { windowEdgeClear, windowLabelEvery, windowTicks, type ArchiveWindow } from "../lib/archive";
 import { format, startOfDay } from "date-fns";
 import getDfnLocale from "../locale/locale";
 
@@ -115,7 +115,12 @@ const dayOf = (t: number) => startOfDay(t * 1000).getTime();
 
 /* Live, offsets from now; in a past window, clock times, spaced to fit however long it is. */
 $: ticks = past
-  ? windowTicks(steps.map((step) => step.t), windowLabelEvery(n, labelEvery, labelEvery >= 60 ? 4 : 8), dayOf)
+  ? windowTicks(
+    steps.map((step) => step.t),
+    windowLabelEvery(n, labelEvery, labelEvery >= 60 ? 4 : 8),
+    dayOf,
+    windowEdgeClear(width, n > 0 && dayOf(steps[0].t) !== dayOf(steps[n - 1].t)),
+  )
     .map((tick) => ({ at: tick.at, anchor: tick.anchor, text: clockOf(tick.t, tick.withDate) }))
   : axisTicks(steps, now, labelEvery).map((tick) => ({ at: tick.at, anchor: tick.anchor, text: formatOffset(tick.minutes, $_) }));
 

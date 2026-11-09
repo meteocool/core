@@ -173,12 +173,29 @@ export function windowLabelEvery(steps: number, base: number, most: number): num
 }
 
 /**
+ * How close to an end a label may sit on a strip `width` pixels wide, as a
+ * share of it: a clock time is wider than the live strip's offsets, and on a
+ * phone the fixed share let "15:00" run into a "14:45" at the start. `dated`:
+ * the labels carry dates (a window across midnight), wider still.
+ */
+export function windowEdgeClear(width: number, dated: boolean): number {
+  if (width <= 0) return AXIS_EDGE_CLEAR;
+  return Math.max(AXIS_EDGE_CLEAR, (dated ? 80 : 40) / width);
+}
+
+/**
  * Where a window's axis is labelled, in clock times rather than offsets:
  * both ends, and between them every `every` minutes of the clock, skipping
- * any that would collide with an end. `dayOf` is the reader's calendar day
- * of a step, any value two steps on one day share.
+ * any that would collide with an end (closer than `clear`, a share of the
+ * strip; see `windowEdgeClear`). `dayOf` is the reader's calendar day of a
+ * step, any value two steps on one day share.
  */
-export function windowTicks(steps: readonly number[], every: number, dayOf: (t: number) => number | string): WindowTick[] {
+export function windowTicks(
+  steps: readonly number[],
+  every: number,
+  dayOf: (t: number) => number | string,
+  clear = AXIS_EDGE_CLEAR,
+): WindowTick[] {
   const n = steps.length;
   if (n === 0) return [];
   const crosses = dayOf(steps[0]) !== dayOf(steps[n - 1]);
@@ -186,7 +203,7 @@ export function windowTicks(steps: readonly number[], every: number, dayOf: (t: 
   for (let i = 1; i < n - 1; i += 1) {
     if (steps[i] % (every * 60) !== 0) continue;
     const at = (i + 0.5) / n;
-    if (at < AXIS_EDGE_CLEAR || at > 1 - AXIS_EDGE_CLEAR) continue;
+    if (at < clear || at > 1 - clear) continue;
     ticks.push({ at, t: steps[i], anchor: null });
   }
   if (n > 1) ticks.push({ at: 1, t: steps[n - 1], anchor: "end" });

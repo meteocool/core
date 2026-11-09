@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   AROUND_FRAME_S, NO_PAST, frameInWindow, STEP_S, STRIKE_CHUNK_S, acceptsWindow, chunksFor, coverageDays, inWindow, isWindow,
   mapInWindow, nextWindowFrame, onGrid, pickWindow, sameWindow, shownIn, startMinutes, strikeAgeMinutes, strikeChunks,
-  strikesAt, windowAround, windowLabelEvery, windowSteps, windowTicks,
+  strikesAt, windowAround, windowEdgeClear, windowLabelEvery, windowSteps, windowTicks,
 } from "../../src/lib/archive.ts";
 
 /**
@@ -130,6 +130,16 @@ test("a label too close to an end gives way to the end's", () => {
   const steps = windowSteps({ start: DAY - 5 * 60, end: DAY + 3 * HOUR });
   const ticks = windowTicks(steps, 60, (t) => utcDay(t * 1000));
   assert.ok(!ticks.some((tick) => tick.t === DAY));
+});
+
+test("on a phone's strip a clock label gives way to the start's sooner", () => {
+  // Three hours from 14:45: "15:00" is the fourth of 37 steps, 9.5% in.
+  const steps = windowSteps({ start: DAY + 14 * HOUR + 45 * 60, end: DAY + 17 * HOUR + 45 * 60 });
+  const every = (t: number) => utcDay(t * 1000);
+  assert.ok(windowTicks(steps, 60, every, windowEdgeClear(1200, false)).some((tick) => tick.t === DAY + 15 * HOUR));
+  assert.ok(!windowTicks(steps, 60, every, windowEdgeClear(360, false)).some((tick) => tick.t === DAY + 15 * HOUR));
+  assert.ok(windowEdgeClear(360, true) > windowEdgeClear(360, false));
+  assert.equal(windowEdgeClear(0, false), windowEdgeClear(10_000, false));
 });
 
 test("a window across midnight dates its first label and each new day's first", () => {
