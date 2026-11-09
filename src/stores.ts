@@ -467,6 +467,13 @@ export const frameRequest = writable<number | "live" | null>(null);
 export const playbackRunning = writable<boolean>(false);
 
 /**
+ * Whether a step of playback fades from the frame before, in value, where the
+ * radar's frame layer draws it (layers/radarFrames.ts): the `radarCrossfade`
+ * setting, on unless turned off.
+ */
+export const radarCrossfade = writable<boolean>(true);
+
+/**
  * Whether the player is stepping through frames: from Play, or the first hand
  * on its strip, until it is back on the live frame. The player is always open
  * on the radar, so this, not its being open, is what says frames are being

@@ -26,10 +26,13 @@ const FAILED_KEPT = 400;
  */
 const failed = new Set<Tile>();
 
+/** A tile arrived: now is the last time one did. */
+export function tileArrived(): void {
+  tileStatus.update((s) => ({ ...s, lastSuccessAt: Date.now() }));
+}
+
 export function trackTileLoads<T extends TileSource>(source: T): T {
-  source.on("tileloadend", () => {
-    tileStatus.update((s) => ({ ...s, lastSuccessAt: Date.now() }));
-  });
+  source.on("tileloadend", tileArrived);
   source.on("tileloaderror", (event: TileSourceEvent) => {
     if (failed.size >= FAILED_KEPT) failed.delete(failed.values().next().value!);
     failed.add(event.tile);
@@ -47,6 +50,7 @@ export function trackTileLoads<T extends TileSource>(source: T): T {
  */
 export function retryFailedTiles(): boolean {
   let any = false;
+  for (const retry of retries) any = retry() || any;
   for (const tile of failed) {
     if (tile.getState() !== TileState.ERROR) continue;
     tile.setState(TileState.IDLE);
@@ -54,4 +58,17 @@ export function retryFailedTiles(): boolean {
   }
   failed.clear();
   return any;
+}
+
+/** What loads tiles past OpenLayers' sources, asked to retry its failures with theirs. */
+const retries = new Set<() => boolean>();
+
+/**
+ * Be asked by `retryFailedTiles` to retry the tiles that failed, answering
+ * whether there was one: the radar's frame layer (layers/radarFrames.ts)
+ * loads its own. The returned function stops it.
+ */
+export function onRetry(retry: () => boolean): () => void {
+  retries.add(retry);
+  return () => retries.delete(retry);
 }

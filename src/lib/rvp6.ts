@@ -158,6 +158,19 @@ export function valueStyle(encoding: string, palette: string, ink: Ink | null = 
   return columnStyle(encoding, ink ? columnGreyTable(encoding, ink) : columnTable(encoding));
 }
 
+const NOTHING_TABLE: Rgba[] = Array.from({ length: RVP6_ENTRIES }, () => [0, 0, 0, 0]);
+
+/**
+ * The 256 colours `valueStyle` draws a frame's bytes in, as a table: what the
+ * radar's frame layer looks its pixels up in (layers/radarFrames.ts), so the
+ * two paths colour every byte alike.
+ */
+export function valueTable(encoding: string, palette: string, ink: Ink | null = null): Rgba[] {
+  if (encoding === RVP6_ENCODING) return ink ? greyTable(palette, ink) : rvp6Table(palette);
+  if (!isColumnEncoding(encoding)) return NOTHING_TABLE;
+  return ink ? columnGreyTable(encoding, ink) : columnTable(encoding);
+}
+
 /**
  * RGBA pixels for a tile's values (lib/valuePng.ts) in a palette.
  *

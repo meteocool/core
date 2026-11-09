@@ -49,12 +49,8 @@ const markOf = radarMark;
 /** How strongly DWD's composite is drawn. */
 const compositeOpacity = (page: Page) => page.evaluate(() => (window as any).radar?.layer?.getOpacity() ?? null);
 
-/** Whether DWD's composite is drawn in grey: its palette's strongest class, as its style has it. */
-const compositeGrey = (page: Page) => page.evaluate(() => {
-  const colours = (window as any).radar?.layer?.style_?.color?.[1]?.[2] as number[][] | undefined;
-  const [r, g, b] = colours?.[colours.length - 1] ?? [];
-  return r === g && g === b;
-});
+/** Whether DWD's composite is drawn in grey: in an ink rather than its palette (layers/radarDrawing.ts). */
+const compositeGrey = (page: Page) => page.evaluate(() => (window as any).radar?.layer?.getLook().ink !== null);
 
 test("the radars' marks are on by default", async ({ page }) => {
   await noGeocoder(page);

@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   DESKTOP_RADAR_TILE_CACHE, HANDHELD_RADAR_TILES, HANDHELD_RADAR_TILE_CACHE, RADAR_TILE_BYTES, decodeAheadParallel, decodeWorkers,
   decodedTileBytes,
-  drapeAnchor, mapPixelRatio, radarTileCache, tileBytes,
+  drapeAnchor, frameTextureBytes, mapPixelRatio, radarTileCache, tileBytes, uploadAheadSteps, uploadsPerFrame,
 } from "../../src/lib/gpuBudget.ts";
 
 test("a phone's 3x is drawn at 2x, a desktop's ratio as it is", () => {
@@ -67,4 +67,14 @@ test("tiles are decoded by two workers on a phone, more where a desktop has the 
   assert.equal(decodeWorkers(4, false), 3);
   assert.equal(decodeWorkers(16, false), 4);
   assert.equal(decodeWorkers(undefined, false), 2);
+});
+
+test("the frame layer keeps less in textures on a phone than the radar layers kept between them", () => {
+  assert.equal(frameTextureBytes(true), 48 * 1024 * 1024);
+  assert.ok(frameTextureBytes(true) < HANDHELD_RADAR_TILES * RADAR_TILE_BYTES, "under the 80 MB the tile layers shared");
+  assert.ok(frameTextureBytes(true) / RADAR_TILE_BYTES >= 128, "room for several frames of a phone's screen");
+  assert.ok(frameTextureBytes(false) >= decodedTileBytes(false), "a desktop's loop, once decoded, fits on the GPU");
+  assert.ok(uploadsPerFrame(true) < uploadsPerFrame(false));
+  assert.equal(uploadAheadSteps(true), 1, "a phone's budget has room for one frame more than shown and asked for");
+  assert.ok(uploadAheadSteps(false) > uploadAheadSteps(true));
 });

@@ -1,7 +1,8 @@
-import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
+import ValueTileSource from "./valueTiles";
 import type { TileJob } from "./valueTiles";
 import LatestFrame from "./latestFrame";
-import TileLayer from "./webglTile";
+import { radarDrawing } from "./radarDrawing";
+import type { RadarDrawing } from "./radarDrawing";
 import { compositeDim } from "../stores";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
@@ -46,11 +47,10 @@ import {
 } from "./extents";
 import { tileSourceUrl } from "./dwd";
 import { maskPath } from "./tileMask";
-import { RVP6_ENCODING, drawnTileId, encodingOf, valueStyle } from "../lib/rvp6";
+import { RVP6_ENCODING, drawnTileId, encodingOf } from "../lib/rvp6";
 import type { Ink } from "../lib/rvp6";
 import { trackTileLoads } from "../lib/tileStatus";
 import { NOWCAST_OPACITY } from "./ui";
-import { radarTileCache } from "../lib/gpuBudget";
 import {
   fetchBelgianRadar, fetchCroatianRadar, fetchCzechRadar, fetchDanishRadar, fetchDutchRadar, fetchEchoTop18, fetchEchoTop45,
   fetchEchoTop50, fetchEstonianRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFinnishRadar, fetchFrenchRadar,
@@ -275,7 +275,7 @@ export const NOWCAST_NETWORKS: Network[] = NETWORKS.map((network) => ({
 }));
 
 /**
- * An independent tile layer for one EUMETNET network's composite.
+ * One EUMETNET network's composite, drawn on its own (layers/radarDrawing.ts).
  *
  * Two frames, from two places. The live frame is its own: fetched here and
  * replaced whenever a radar reports, on the network's own socket event, which
@@ -290,7 +290,11 @@ export default class NetworkRadarLayer {
 
   private readonly map: Map;
 
-  private layer: TileLayer | null = null;
+  /** Where its frames' tiles come from, made with the first frame. */
+  private source: ValueTileSource | null = null;
+
+  /** How it is drawn, from the first frame on: a slot of the map's frame layer, or a tile layer. */
+  private layer: RadarDrawing | null = null;
 
   /** The URL the layer's source is on, so an unchanged step costs nothing. */
   private url = "";
@@ -306,14 +310,14 @@ export default class NetworkRadarLayer {
   /** Told after every new live frame; the 3D map drapes the same one. */
   private readonly onLiveFrame: (() => void) | undefined;
 
-  /** The palette the reader chose: the layer's style, so a change reloads nothing. */
+  /** The palette the reader chose: the layer's look, so a change reloads nothing. */
   private palette = "classic";
 
   /** Grey in this ink under an open radar's sweep (`setPalette`), else null. */
   private ink: Ink | null = null;
 
   /**
-   * What the bytes of the frame on screen mean, which the style follows
+   * What the bytes of the frame on screen mean, which the look follows
    * (`valueStyle`): RVP6 for every network's composite, a height or a weight
    * for an echo top's or VIL's.
    */
@@ -385,7 +389,7 @@ export default class NetworkRadarLayer {
   setPalette(palette: string, ink: Ink | null = null) {
     this.palette = palette;
     this.ink = ink;
-    this.layer?.setStyle(valueStyle(this.encoding, palette, ink));
+    this.layer?.setLook(this.encoding, palette, ink);
   }
 
   /**
@@ -396,7 +400,7 @@ export default class NetworkRadarLayer {
    * network's ground.
    */
   tileJobs(frame: RadarFrame, viewExtent: Extent, resolution: number, max: number): TileJob[] {
-    const source = this.layer?.getSource() as ValueTileSource | null | undefined;
+    const { source } = this;
     if (!source) return [];
     const extent = getIntersection(viewExtent, this.network.extent);
     if (isEmpty(extent)) return [];
@@ -427,9 +431,9 @@ export default class NetworkRadarLayer {
     } else {
       if (encoding !== this.encoding) {
         this.encoding = encoding;
-        this.layer.setStyle(valueStyle(encoding, this.palette, this.ink));
+        this.layer.setLook(encoding, this.palette, this.ink);
       }
-      if (url !== this.url) (this.layer.getSource() as ValueTileSource | null)?.setUrl(url, frame.tiles);
+      if (url !== this.url) this.source?.setUrl(url, frame.tiles);
     }
     this.url = url;
     this.layer!.setVisible(true);
@@ -443,11 +447,11 @@ export default class NetworkRadarLayer {
    * blend that reads as a third intensity neither measured. So each tile is
    * cut to `coverage` as it loads (`valueTiles.ts`), which keeps exactly one
    * network's colours on any pixel; the holes cut into DWD's tiles
-   * (`networkHoles.ts`) are the other half. A WebGL layer cannot be clipped
-   * at render time, and nothing outside the coverage is even fetched.
+   * (`networkHoles.ts`) are the other half. The radar is not clipped at
+   * render time, and nothing outside the coverage is even fetched.
    */
   private createLayer(url: string, frame: RadarFrame) {
-    const source = trackTileLoads(new ValueTileSource({
+    this.source = trackTileLoads(new ValueTileSource({
       url,
       index: frame.tiles,
       keep: this.network.coverage ? maskPath(this.network.coverage) : null,
@@ -458,25 +462,23 @@ export default class NetworkRadarLayer {
       transition: 0,
       interpolate: false,
     }));
-    this.layer = staleOnlyWhileLoading(new TileLayer({
-      source,
-      style: valueStyle(this.encoding, this.palette, this.ink),
+    this.layer = radarDrawing(this.map, this.source, {
+      encoding: this.encoding,
+      palette: this.palette,
+      ink: this.ink,
       // Just under DWD's 80. The cut means they never cover the same pixel,
       // so this only settles which draws first. Europe's draws above DWD's
       // instead, which is hidden while it shows.
-      zIndex: this.network.coverage ? 79 : 81,
+      order: this.network.coverage ? 79 : 81,
       opacity: this.opacity * this.dim,
-      cacheSize: radarTileCache(),
       // The rectangle is a cheap first pass; `coverage` is the real edge.
       extent: this.network.extent,
-    }));
-    this.map.addLayer(this.layer);
+    });
   }
 
   destroy() {
-    if (this.layer) {
-      this.map.removeLayer(this.layer);
-      this.layer = null;
-    }
+    this.layer?.destroy();
+    this.layer = null;
+    this.source = null;
   }
 }

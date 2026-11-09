@@ -8,6 +8,9 @@ import TileLayer from "./webglTile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import ValueTileSource, { staleOnlyWhileLoading } from "./valueTiles";
+import { radarDrawing } from "./radarDrawing";
+import type { RadarDrawing } from "./radarDrawing";
+import type OlMap from "ol/Map";
 import { blitzortungAttribution, dwdAttribution } from "./attributions";
 import {
   beExclusiveCoverage, chExclusiveCoverage, czExclusiveCoverage, dkExclusiveCoverage, dwdCoverageInv, dwdRadarExtent,
@@ -20,7 +23,7 @@ import type { CountryNetwork } from "../api/events";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { tileBaseUrl } from "../urls";
 import { trackTileLoads } from "../lib/tileStatus";
-import { drawnTileId, rvp6Style } from "../lib/rvp6";
+import { RVP6_ENCODING, drawnTileId } from "../lib/rvp6";
 import type { Ink } from "../lib/rvp6";
 import type { ValueTiles } from "../lib/rvp6";
 import { hgClassStyle } from "../lib/hgClasses";
@@ -66,31 +69,30 @@ export const tileSourceUrl = (bucket: string, tileId: string) =>
   `${tileBaseUrl}/${bucket}/${tileId}/{z}/{x}/{-y}.png`;
 
 /** The value layers built, so a palette change restyles them in place. */
-const valueLayers = new Set<TileLayer>();
+const valueLayers = new Set<RadarDrawing>();
 
 /**
- * The layer DWD's frames are drawn through, built on one of them.
+ * How DWD's frames are drawn on `map`, built on one of them
+ * (layers/radarDrawing.ts).
  *
  * Playback re-points its source at every step (`ValueTileSource.setUrl`),
  * which also cuts the EUMETNET networks' countries out of the observed
  * steps those networks have frames for: see `networkHoles.ts` for why. The
- * palette is the layer's style, a 256-entry lookup on the GPU, the same
- * cost in every palette.
+ * palette is a 256-entry lookup on the GPU, the same cost in every palette.
  */
-export function dwdValueLayer(frame: TileFrame): [TileLayer, ValueTileSource, string] {
+export function dwdValueLayer(map: OlMap, frame: TileFrame): [RadarDrawing, ValueTileSource, string] {
   const tileId = drawnTileId(frame);
   const url = tileSourceUrl(frame.bucket ?? "meteoradar", tileId);
   const source = trackTileLoads(new ValueTileSource({ ...commonDWDParameters, url, holed: true }));
   source.set("tile_id", tileId);
-  const layer = staleOnlyWhileLoading(new TileLayer({
-    source,
-    style: rvp6Style(palette, ink),
-    zIndex: 80,
+  const layer = radarDrawing(map, source, {
+    encoding: RVP6_ENCODING,
+    palette,
+    ink,
+    order: 80,
     opacity: NOWCAST_OPACITY,
-    cacheSize: radarTileCache(),
     extent: dwdRadarExtent,
-  }));
-  layer.set("tile_id", tileId);
+  });
   valueLayers.add(layer);
   return [layer, source, url];
 }
@@ -100,9 +102,8 @@ export function setDwdCmap(colorMapString: string, inkNow: Ink | null = null) {
   palette = colorMapString;
   ink = inkNow;
   for (const layer of valueLayers) {
-    // Disposed: OpenLayers takes the source away.
-    if (!layer.getSource()) valueLayers.delete(layer);
-    else layer.setStyle(rvp6Style(palette, ink));
+    if (layer.disposed) valueLayers.delete(layer);
+    else layer.setLook(RVP6_ENCODING, palette, ink);
   }
 }
 

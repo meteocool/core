@@ -6,8 +6,8 @@
   import View from "ol/View";
   import { unByKey } from "ol/Observable";
   import type { EventsKey } from "ol/events";
-  import type BaseLayer from "ol/layer/Base";
   import { dwdValueLayer } from "../layers/dwd";
+  import type { RadarDrawing } from "../layers/radarDrawing";
   import { labelsOnly } from "../layers/vector";
   import { get } from "svelte/store";
   import { capTimeIndicator, mapBaseLayer } from "../stores";
@@ -142,19 +142,15 @@
      * after that for nothing: the check is a string compare.
      */
     let shown: string | null = null;
-    let tiles: BaseLayer | null = null;
+    let tiles: RadarDrawing | null = null;
     const unsubscribe = capTimeIndicator.subscribe(() => {
       const radar = layerManager.getCapability("radar");
       const step = radar?.getMostRecentObservation?.();
       const frame = step === undefined ? null : radar?.clientGrid?.[step];
       if (!frame?.tile_id || frame.tile_id === shown) return;
       shown = frame.tile_id;
-      if (tiles) {
-        preview_.removeLayer(tiles);
-        tiles.dispose();
-      }
-      [tiles] = dwdValueLayer(frame);
-      preview_.addLayer(tiles);
+      tiles?.destroy();
+      [tiles] = dwdValueLayer(preview_, frame);
     });
 
     return {

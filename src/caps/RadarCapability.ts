@@ -4,12 +4,14 @@ import MVT from "ol/format/MVT";
 import { Fill, Style } from "ol/style";
 import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
+import type { RadarDrawing } from "../layers/radarDrawing";
+import { radarFrames } from "../layers/radarFrames";
 import { decodedTiles, frameOnStep, heldOnScreen, loadStoredTile, tileReady } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
 import type { TileJob } from "../layers/valueTiles";
 import { ENTRY_OVERHEAD, costOf } from "../lib/decodedTiles";
 import { decodeAheadParallel } from "../lib/gpuBudget";
-import { getIntersection, isEmpty } from "ol/extent";
+import { getForViewAndSize, getIntersection, isEmpty } from "ol/extent";
 import NetworkRadarLayer, {
   AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, EUROPE_ECHO_TOP_18, EUROPE_ECHO_TOP_45, EUROPE_ECHO_TOP_50, EUROPE_VIL, NETWORKS,
   NOWCAST_NETWORKS,
@@ -51,6 +53,8 @@ import {
   nowcastCoverage,
   framesPreloaded,
   archiveWindow,
+  playbackRunning,
+  radarCrossfade,
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
@@ -193,8 +197,8 @@ export interface GridConfig {
 }
 
 export default class RadarCapability extends Capability {
-  /** The layer DWD's frames are drawn through, built with the first grid. */
-  layer: BaseLayer | null;
+  /** How DWD's frames are drawn, built with the first grid. */
+  layer: RadarDrawing | null;
 
   /** The tile source behind `layer`; its URL is swapped as playback moves. */
   source: ValueTileSource | null = null;
@@ -511,6 +515,12 @@ export default class RadarCapability extends Capability {
       this.applyRadarOpacity();
     });
 
+    /* Each step of playback fades from the one before where the frame layer
+       draws the radar (layers/radarFrames.ts), unless the reader turned it
+       off; a frame picked by hand is cut to. */
+    derived([playbackRunning, radarCrossfade], ([playing, crossfade]) => playing && crossfade)
+      .subscribe((fading) => radarFrames(map)?.setCrossfade(fading));
+
     /* Site mode draws one radar's own sweep over the composites, and dims
        them so the one does not drown in the other; the networks' layers
        follow the same store (layers/network.ts). */
@@ -765,11 +775,13 @@ export default class RadarCapability extends Capability {
    */
   private stepJobs(step: number): TileJob[] | null {
     const { source } = this;
-    const view = this.map.getView();
     const size = this.map.getSize();
-    const resolution = view.getResolution();
+    const { center, resolution, rotation } = this.map.getView().getState();
     if (!source || !this.clientGrid || !size || resolution === undefined) return null;
-    const viewExtent = view.calculateExtent(size);
+    // What the map draws: the whole of it, about its middle. `calculateExtent`
+    // centres the size on the View's centre, which the tray's padding moves,
+    // and missed the tiles under the tray.
+    const viewExtent = getForViewAndSize(center, resolution, rotation, size);
 
     const jobs: TileJob[] = [];
     const whole = this.wholeFrame(step);
@@ -861,6 +873,7 @@ export default class RadarCapability extends Capability {
     this.planReach = needs.length;
     this.plannedJobs = jobs;
     decodedTiles.retain(jobs.keys());
+    radarFrames(this.map)?.retain(jobs.keys());
     this.preloader.plan(needs);
   }
 
@@ -871,6 +884,20 @@ export default class RadarCapability extends Capability {
     this.preloader.stop();
     this.plannedJobs = new globalThis.Map();
     decodedTiles.retain([]);
+    radarFrames(this.map)?.retain([]);
+    radarFrames(this.map)?.setUpcoming([]);
+  }
+
+  /**
+   * The steps playback shows next, the nearest first: where the frame layer
+   * draws the radar, their tiles are uploaded as they are decoded, so that
+   * moving onto them uploads nothing (layers/radarFrames.ts `setUpcoming`).
+   * None, once nothing plays.
+   */
+  prepareSteps(steps: readonly number[]) {
+    const frames = radarFrames(this.map);
+    if (!frames) return;
+    frames.setUpcoming(steps.flatMap((step) => this.stepJobs(step) ?? []));
   }
 
   /**
@@ -1494,8 +1521,7 @@ export default class RadarCapability extends Capability {
     if (!this.layer) {
       const last = this.clientGrid?.[this.getMostRecentObservation()];
       if (last?.url) {
-        [this.layer, this.source] = dwdValueLayer(last);
-        this.map.addLayer(this.layer);
+        [this.layer, this.source] = dwdValueLayer(this.map, last);
       }
     }
     // Before any setUrl below: the step being moved onto is the one whose

@@ -49,7 +49,12 @@ test("a storm a scan behind the radar keeps its 3D tag, which still opens it in 
   await expect.poll(async () => (await greyedTags(page)).length, { timeout: 20_000 }).toBeGreaterThan(0);
   let at: { x: number; y: number } | null = null;
   for (const tag of await greyedTags(page)) {
-    await page.evaluate((centre) => (window as any).lm.getCurrentMap().getView().setCenter(centre), tag);
+    // Drawn there at once: a pixel worked out from the frame before the move is where the tag was.
+    await page.evaluate((centre) => {
+      const map = (window as any).lm.getCurrentMap();
+      map.getView().setCenter(centre);
+      map.renderSync();
+    }, tag);
     at = await expect.poll(where, { timeout: 2_000 }).not.toBeNull().then(() => where(), () => null);
     if (at) break;
   }

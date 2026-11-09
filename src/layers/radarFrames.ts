@@ -1,0 +1,924 @@
+import Layer from "ol/layer/Layer";
+import LayerRenderer from "ol/renderer/Layer";
+import View from "ol/View";
+import type Map from "ol/Map";
+import type { FrameState } from "ol/Map";
+import type { ViewStateLayerStateExtent } from "ol/View";
+import { getIntersection, intersects, isEmpty } from "ol/extent";
+import type { Extent } from "ol/extent";
+import { decodedTiles, loadStoredTile, onFramesForgotten } from "./valueTiles";
+import type ValueTileSource from "./valueTiles";
+import type { TileHolder, TileJob, ValueFrame } from "./valueTiles";
+import type { DrawingOptions, Look, RadarDrawing } from "./radarDrawing";
+import { BLANK } from "../lib/decodedTiles";
+import { GpuTiles } from "../lib/gpuTiles";
+import type { GpuTile } from "../lib/gpuTiles";
+import { FrameSwitch, ancestorTile, childTiles, settled } from "../lib/frameSwitch";
+import type { TileCoord } from "../lib/frameSwitch";
+import { frameTextureBytes, uploadsPerFrame } from "../lib/gpuBudget";
+import { IDLE_AFTER_MS } from "../lib/idleLayers";
+import { onRetry, tileArrived } from "../lib/tileStatus";
+import { valueTable } from "../lib/rvp6";
+import type { Ink } from "../lib/rvp6";
+
+/**
+ * Every radar source of the flat map, drawn by one layer from its own WebGL2
+ * context: DWD's frames, each network's, the products of all of theirs, the
+ * nowcasts.
+ *
+ * They used to be a dozen OpenLayers WebGL tile layers, re-pointed at the
+ * next frame on every step of playback. Each then asked for that frame's
+ * tiles one by one and drew each as it landed, the last frame's standing in
+ * for the rest: half of one time and half of another, coarse squares where
+ * nothing stood in, and on a phone the tile caches turned over every loop.
+ * Each also kept a render target and a depth buffer the size of the screen,
+ * 15 MB at an iPhone's 3x, beside its own cache of textures.
+ *
+ * Here each source is a slot (`RadarSlot`) with the frame it shows and the
+ * frame it is asked for (lib/frameSwitch.ts). A slot moves to the frame asked
+ * for only once every tile of it the view needs is on the GPU, uploading any
+ * decoded since (lib/decodedTiles.ts), so it changes whole, in one draw;
+ * until then the frame before stays whole. The tiles are textures of a byte
+ * a pixel (two at the antialiased edge of a network's ground, the second its
+ * coverage), kept by key in one budget of bytes (lib/gpuTiles.ts), so a loop
+ * played once stays on the GPU on a desktop and a window of it ahead of the
+ * needle on a phone. The frames coming up are uploaded a few tiles an
+ * animation frame while nothing else happens (`setUpcoming`), so a step of
+ * playback uploads nothing. Playing, each step fades from the frame before in
+ * value, before the palette: a cell moves through the intensities between.
+ *
+ * A tile's decoded bytes are not let go once it is uploaded, on a phone
+ * either: the decoded tiles are bounded by their bytes whatever they hold,
+ * so letting an uploaded tile's go would not lower that, only fill the room
+ * with frames further ahead, decoded sooner and let go sooner. Played and
+ * zoomed through in a simulated iPhone's web view, the content process held
+ * no more than it had with the tile layers, and the GPU half as much
+ * (November 2026).
+ *
+ * The palette is a 256-entry table on the GPU, built from the same tables as
+ * the tile layers' styles (`valueTable`): a palette change reloads nothing.
+ *
+ * Which tiles a slot needs, and what each is keyed by, is its
+ * `ValueTileSource`'s to say, exactly as for a tile layer, so the frames
+ * decoded ahead of playback and the tiles waited for are the same ones;
+ * every tile is loaded through `loadStoredTile`. Drawn above the basemap at
+ * 80, the old layers' place, below the site sweep at 85. While any tile of
+ * a frame shown or asked for is still loading, the map is not complete
+ * (`rendercomplete`), which is what a screenshot waits on.
+ *
+ * Its textures and context are let go when its map has been hidden a while
+ * (lib/hiddenMaps.ts clears every renderer), after it has drawn nothing for
+ * `IDLE_AFTER_MS`, and when the 3D map opens (`dropEarlierFrames`); closing
+ * the player lets go of every texture but those on screen. All are built
+ * again on the next draw. A context the browser takes away is replaced.
+ */
+
+/**
+ * How long a step of playback fades from the frame before, in milliseconds:
+ * the first two fifths of the player's 450 ms a frame, so the picture rests
+ * on each frame for most of its time. 0 cuts.
+ */
+export const CROSSFADE_MS = 180;
+
+/** How many tiles a layer loads at once for the frames it draws: OpenLayers' own queue had sixteen. */
+const MAX_LOADING = 8;
+
+/** How long to wait before drawing again while the context is lost. */
+const CONTEXT_RETRY_MS = 1000;
+
+/** What one tile is on the GPU. */
+interface TileTexture {
+  texture: WebGLTexture;
+  /** One, values; two, values and the coverage the cut left of each pixel. */
+  bands: number;
+}
+
+/** What the layer has done, for measuring it. */
+export interface FrameStats {
+  /** Draws of the layer. */
+  renders: number;
+  /** Slots drawn, a draw each. */
+  slotDraws: number;
+  /** Slots drawn with tiles of two frames other than a fade's: none, by design. */
+  mixed: number;
+  /** Frames switched to, and how many of those faded. */
+  switches: number;
+  fades: number;
+  /** Tiles uploaded: in all, ahead of their frame, and in a draw that then switched to their frame. */
+  uploads: number;
+  preUploads: number;
+  switchUploads: number;
+  /** Tiles the layer loaded itself, and those that failed. */
+  loads: number;
+  failed: number;
+}
+
+/** One rectangle of a tile to draw: where, from which texture's part, faded from which. */
+interface DrawItem {
+  slot: RadarSlot;
+  /** The ground drawn, in map units. */
+  region: Extent;
+  /** The ground the texture covers, in map units. */
+  covers: Extent;
+  b: GpuTile<TileTexture>;
+  /** The frame faded from, the same tile; null when not fading. */
+  a: GpuTile<TileTexture> | null;
+  t: number;
+}
+
+const VERTEX = `#version 300 es
+in vec2 a_unit;
+uniform vec2 u_origin;  // the region's south-west corner, clip space
+uniform vec2 u_east;    // from there to its south-east corner
+uniform vec2 u_north;   // from there to its north-west corner
+uniform vec4 u_tex;     // the texture's west, south, east and north edges of the region
+out vec2 v_tex;
+void main() {
+  v_tex = vec2(mix(u_tex.x, u_tex.z, a_unit.x), mix(u_tex.y, u_tex.w, a_unit.y));
+  gl_Position = vec4(u_origin + u_east * a_unit.x + u_north * a_unit.y, 0.0, 1.0);
+}`;
+
+/** `blendTexel` in lib/frameSwitch.ts, on the GPU. */
+const FRAGMENT = `#version 300 es
+precision highp float;
+uniform sampler2D u_a;      // the frame faded from
+uniform sampler2D u_b;      // the frame shown
+uniform sampler2D u_lut;    // 256 x 1, the palette
+uniform float u_t;          // how far the fade has come; 1 for none
+uniform float u_opacity;
+uniform bool u_coverage;    // whether the shown frame's tile has its coverage as a second band
+in vec2 v_tex;
+out vec4 colour;
+
+vec4 lookUp(float value) {
+  return texelFetch(u_lut, ivec2(int(value), 0), 0);
+}
+
+void main() {
+  vec4 texel = texture(u_b, v_tex);
+  float b = floor(texel.r * 255.0 + 0.5);
+  vec4 c = lookUp(b);
+  if (u_t < 1.0) {
+    float a = floor(texture(u_a, v_tex).r * 255.0 + 0.5);
+    vec4 from = lookUp(a);
+    if (from.a > 0.0 && c.a > 0.0) c = lookUp(floor(a + (b - a) * u_t + 0.5));
+    else if (from.a > 0.0) c = vec4(from.rgb, from.a * (1.0 - u_t));
+    else c.a *= u_t;
+  }
+  float alpha = c.a * (u_coverage ? texel.g : 1.0) * u_opacity;
+  if (alpha <= 0.0) discard;
+  colour = vec4(c.rgb * alpha, alpha);
+}`;
+
+const UNIFORMS = ["u_origin", "u_east", "u_north", "u_tex", "u_a", "u_b", "u_lut", "u_t", "u_opacity", "u_coverage"] as const;
+
+let webgl2: boolean | undefined;
+
+/** Whether this browser hands out a WebGL2 context: asked once, on a canvas let go at once. */
+export function webgl2Supported(): boolean {
+  if (webgl2 === undefined) {
+    const gl = typeof document === "undefined" ? null : document.createElement("canvas").getContext("webgl2");
+    webgl2 = gl !== null;
+    gl?.getExtension("WEBGL_lose_context")?.loseContext();
+  }
+  return webgl2;
+}
+
+/** A palette's table as a 256 x 1 texture's bytes. */
+function tableBytes(encoding: string, palette: string, ink: Ink | null): Uint8Array {
+  const bytes = new Uint8Array(256 * 4);
+  valueTable(encoding, palette, ink).forEach((rgba, i) => bytes.set(rgba, i * 4));
+  return bytes;
+}
+
+function nearest(gl: WebGL2RenderingContext) {
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+function link(gl: WebGL2RenderingContext): WebGLProgram | null {
+  const compile = (type: number, source: string) => {
+    const shader = gl.createShader(type);
+    if (!shader) return null;
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
+      console.warn("radar frames shader:", gl.getShaderInfoLog(shader));
+      return null;
+    }
+    return shader;
+  };
+  const vertex = compile(gl.VERTEX_SHADER, VERTEX);
+  const fragment = compile(gl.FRAGMENT_SHADER, FRAGMENT);
+  const program = gl.createProgram();
+  if (!vertex || !fragment || !program) return null;
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.linkProgram(program);
+  gl.deleteShader(vertex);
+  gl.deleteShader(fragment);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    if (!gl.isContextLost()) console.warn("radar frames program:", gl.getProgramInfoLog(program));
+    return null;
+  }
+  return program;
+}
+
+/**
+ * One radar source as the frame layer draws it: in place of an OpenLayers
+ * layer of its own, with the same source, order, extent, opacity and look.
+ */
+export class RadarSlot implements RadarDrawing {
+  readonly frames = new FrameSwitch<ValueFrame>();
+
+  readonly source: ValueTileSource;
+
+  readonly order: number;
+
+  readonly extent: Extent | undefined;
+
+  visible = true;
+
+  opacity: number;
+
+  encoding: string;
+
+  palette: string;
+
+  ink: Ink | null;
+
+  private gone = false;
+
+  private readonly owner: RadarFrameLayer;
+
+  constructor(owner: RadarFrameLayer, source: ValueTileSource, options: DrawingOptions) {
+    this.owner = owner;
+    this.source = source;
+    this.order = options.order;
+    this.extent = options.extent;
+    this.opacity = options.opacity;
+    this.encoding = options.encoding;
+    this.palette = options.palette;
+    this.ink = options.ink;
+    source.holder = () => owner.residency;
+    source.onFrame = (frame) => {
+      this.frames.want(frame);
+      owner.changed();
+    };
+    this.frames.want(source.currentFrame());
+  }
+
+  /** What its palette table is kept under. */
+  get look(): string {
+    return `${this.encoding}|${this.palette}|${this.ink ?? ""}`;
+  }
+
+  setOpacity(opacity: number) {
+    if (opacity === this.opacity) return;
+    this.opacity = opacity;
+    this.owner.changed();
+  }
+
+  getOpacity(): number {
+    return this.opacity;
+  }
+
+  /** Hidden, it shows nothing, and shown again it starts from its frame, drawn as it comes. */
+  setVisible(visible: boolean) {
+    if (visible === this.visible) return;
+    this.visible = visible;
+    if (!visible) this.frames.hide();
+    else this.frames.want(this.frames.wanted);
+    this.owner.changed();
+  }
+
+  setLook(encoding: string, palette: string, ink: Ink | null) {
+    if (encoding === this.encoding && palette === this.palette && ink === this.ink) return;
+    this.encoding = encoding;
+    this.palette = palette;
+    this.ink = ink;
+    this.owner.changed();
+  }
+
+  getLook(): Look {
+    return { encoding: this.encoding, palette: this.palette, ink: this.ink };
+  }
+
+  getExtent(): Extent | undefined {
+    return this.extent;
+  }
+
+  get disposed(): boolean {
+    return this.gone;
+  }
+
+  destroy() {
+    this.gone = true;
+    this.source.onFrame = null;
+    this.owner.remove(this);
+  }
+}
+
+/** The layer's WebGL2 context, its textures, and the draw. */
+class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
+  /** Every tile on the GPU, by its job's key. */
+  readonly tiles: GpuTiles<TileTexture>;
+
+  private canvas: HTMLCanvasElement | null = null;
+
+  private gl: WebGL2RenderingContext | null = null;
+
+  private program: WebGLProgram | null = null;
+
+  private uniforms: Partial<Record<(typeof UNIFORMS)[number], WebGLUniformLocation | null>> = {};
+
+  private quad: WebGLVertexArrayObject | null = null;
+
+  private buffer: WebGLBuffer | null = null;
+
+  /** One texel of 0, drawn for a blank. */
+  private blank: WebGLTexture | null = null;
+
+  private readonly luts = new globalThis.Map<string, WebGLTexture>();
+
+  private retry: ReturnType<typeof setTimeout> | null = null;
+
+  private items: DrawItem[] = [];
+
+  /** Tiles uploaded for frames asked for, counted so that a switch can say how many it waited on. */
+  private pendingUploads = 0;
+
+  constructor(layer: RadarFrameLayer) {
+    super(layer);
+    this.tiles = new GpuTiles(frameTextureBytes(), ({ texture }) => {
+      if (this.gl && !this.gl.isContextLost()) this.gl.deleteTexture(texture);
+    });
+    this.tiles.retain(layer.retainedKeys());
+  }
+
+  /** Whether a tile is on the GPU, or known to draw nothing. */
+  holds(key: string): boolean {
+    return this.tiles.has(key);
+  }
+
+  /** Whether there is a context to upload to. */
+  get live(): boolean {
+    return this.gl !== null && !this.gl.isContextLost();
+  }
+
+  /** Put a tile on the GPU: a texture of a byte or two a pixel, or for a blank, nothing. */
+  upload(job: TileJob, tile: Uint8Array | typeof BLANK): void {
+    const gl = this.gl;
+    const pixels = job.size * job.size;
+    const bands = tile === BLANK ? 0 : tile.byteLength / pixels;
+    if (tile === BLANK || (bands !== 1 && bands !== 2)) {
+      this.tiles.put(job.key, BLANK, 0);
+      return;
+    }
+    const texture = gl?.createTexture();
+    if (!gl || !texture) return;
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    const [internal, format] = bands === 2 ? [gl.RG8, gl.RG] : [gl.R8, gl.RED];
+    gl.texImage2D(gl.TEXTURE_2D, 0, internal, job.size, job.size, 0, format, gl.UNSIGNED_BYTE, tile);
+    nearest(gl);
+    this.tiles.put(job.key, { texture, bands }, tile.byteLength);
+    this.getLayer().stats.uploads += 1;
+  }
+
+  override prepareFrame(frameState: FrameState): boolean {
+    const layer = this.getLayer();
+    this.items = [];
+    this.tiles.unpinAll();
+    const slots = layer.slots.filter((slot) => slot.visible && slot.frames.wanted && this.inView(slot, frameState));
+    if (!slots.length || !this.context()) {
+      this.ready = true;
+      return false;
+    }
+    let loading = false;
+    for (const slot of slots) loading = this.plan(slot, frameState) || loading;
+    layer.arrived.clear();
+    this.ready = !loading;
+    return true;
+  }
+
+  override renderFrame(frameState: FrameState): HTMLElement {
+    const gl = this.gl!;
+    const canvas = this.canvas!;
+    const layer = this.getLayer();
+    layer.stats.renders += 1;
+    const [width, height] = frameState.size;
+    const pixelWidth = Math.round(width * frameState.pixelRatio);
+    const pixelHeight = Math.round(height * frameState.pixelRatio);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+    }
+    gl.viewport(0, 0, pixelWidth, pixelHeight);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    if (!this.items.length) return canvas;
+    gl.useProgram(this.program);
+    gl.bindVertexArray(this.quad);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    const u = this.uniforms;
+    gl.uniform1i(u.u_a!, 0);
+    gl.uniform1i(u.u_b!, 1);
+    gl.uniform1i(u.u_lut!, 2);
+    const layerOpacity = frameState.layerStatesArray[frameState.layerIndex]?.opacity ?? 1;
+    // Map units to clip space: OpenLayers' map units to CSS pixels, then to -1..1, y up.
+    const [ta, tb, tc, td, te, tf] = frameState.coordinateToPixelTransform;
+    const clip = (x: number, y: number): [number, number] => [
+      ((ta * x + tc * y + te) / width) * 2 - 1,
+      1 - ((tb * x + td * y + tf) / height) * 2,
+    ];
+    for (const item of this.items) {
+      const { region, covers } = item;
+      const [ox, oy] = clip(region[0], region[1]);
+      const [ex, ey] = clip(region[2], region[1]);
+      const [nx, ny] = clip(region[0], region[3]);
+      gl.uniform2f(u.u_origin!, ox, oy);
+      gl.uniform2f(u.u_east!, ex - ox, ey - oy);
+      gl.uniform2f(u.u_north!, nx - ox, ny - oy);
+      const w = covers[2] - covers[0];
+      const h = covers[3] - covers[1];
+      // A texture's first row is its tile's northern edge.
+      gl.uniform4f(u.u_tex!,
+        (region[0] - covers[0]) / w, (covers[3] - region[1]) / h, (region[2] - covers[0]) / w, (covers[3] - region[3]) / h);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.textureOf(item.a ?? BLANK));
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.textureOf(item.b));
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, this.lut(item.slot));
+      gl.uniform1f(u.u_t!, item.a === null ? 1 : item.t);
+      gl.uniform1f(u.u_opacity!, item.slot.opacity * layerOpacity);
+      gl.uniform1i(u.u_coverage!, item.b !== BLANK && item.b.bands === 2 ? 1 : 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    gl.bindVertexArray(null);
+    return canvas;
+  }
+
+  /** Whether a slot's rectangle meets the view. */
+  private inView(slot: RadarSlot, frameState: FrameState): boolean {
+    return !slot.extent || intersects(slot.extent, frameState.extent!);
+  }
+
+  /**
+   * What a slot draws this time: its frame asked for, switched to once every
+   * tile of it in view is ready, else the frame it shows, each missing tile
+   * from a coarser or finer one of the same frame. True while any tile of
+   * either is still loading.
+   */
+  private plan(slot: RadarSlot, frameState: FrameState): boolean {
+    const layer = this.getLayer();
+    const grid = slot.source.getTileGrid()!;
+    const z = grid.getZForResolution(frameState.viewState.resolution, slot.source.zDirection);
+    let extent = getIntersection(frameState.extent!, grid.getExtent());
+    if (slot.extent) extent = getIntersection(extent, slot.extent);
+    if (isEmpty(extent)) return false;
+    const range = grid.getTileRangeForExtentAndZ(extent, z);
+    const [cx, cy] = frameState.viewState.center;
+    const coords: Array<TileCoord & { covers: Extent }> = [];
+    for (let x = range.minX; x <= range.maxX; x++) {
+      for (let y = range.minY; y <= range.maxY; y++) coords.push({ z, x, y, covers: grid.getTileCoordExtent([z, x, y]) });
+    }
+    // Nearest the middle first: those are loaded first.
+    const away = (e: Extent) => Math.hypot((e[0] + e[2]) / 2 - cx, (e[1] + e[3]) / 2 - cy);
+    coords.sort((p, q) => away(p.covers) - away(q.covers));
+
+    let loading = false;
+    const { frames } = slot;
+    if (frames.pending) {
+      const wanted = frames.wanted!;
+      const uploaded = this.pendingUploads;
+      const jobs = coords.map(({ z: tz, x, y }) => wanted.job(tz, x, y));
+      // Every tile decoded goes up now, every other is asked for.
+      for (const job of jobs) this.resolve(job, true);
+      if (settled(jobs, (job) => this.residentOf(job) !== undefined || layer.failed.has(job.key))) {
+        const fade = layer.fading && frames.shown !== null;
+        frames.settle(frameState.time, fade);
+        layer.stats.switches += 1;
+        if (fade) layer.stats.fades += 1;
+        layer.stats.switchUploads += this.pendingUploads - uploaded;
+      } else {
+        loading = true;
+      }
+    }
+    const shown = frames.shown;
+    if (!shown) return loading;
+    const t = frames.fade(frameState.time, CROSSFADE_MS);
+    const from = t < 1 ? frames.from : null;
+    if (from) frameState.animate = true;
+
+    const drawnFrames = new Set<string>();
+    const resident = (tile: TileCoord) => this.residentOf(shown.job(tile.z, tile.x, tile.y)) !== undefined;
+    const add = (region: Extent, covers: Extent, b: GpuTile<TileTexture>, a: GpuTile<TileTexture> | null) => {
+      if (b === BLANK && (a === null || a === BLANK)) return;
+      this.items.push({ slot, region, covers, b, a, t });
+      drawnFrames.add(shown.key);
+    };
+    // While another frame is on its way only that one is loaded: the frame
+    // shown fills the ground it has not got from coarser tiles until then.
+    const asking = !frames.pending;
+    for (const coord of coords) {
+      const region = getIntersection(coord.covers, extent);
+      const job = shown.job(coord.z, coord.x, coord.y);
+      const tile = this.resolve(job, false, asking);
+      if (tile !== undefined) {
+        const a = from ? this.residentOf(from.job(coord.z, coord.x, coord.y)) ?? null : null;
+        add(region, coord.covers, tile, a);
+        continue;
+      }
+      if (!layer.failed.has(job.key)) loading = true;
+      const up = ancestorTile(coord, grid.getMinZoom(), resident);
+      if (up) {
+        add(region, grid.getTileCoordExtent([up.z, up.x, up.y]), this.residentOf(shown.job(up.z, up.x, up.y))!, null);
+        continue;
+      }
+      for (const child of childTiles(coord, grid.getMaxZoom(), resident)) {
+        const covers = grid.getTileCoordExtent([child.z, child.x, child.y]);
+        add(getIntersection(covers, extent), covers, this.residentOf(shown.job(child.z, child.x, child.y))!, null);
+      }
+    }
+    if (drawnFrames.size) layer.stats.slotDraws += 1;
+    if (drawnFrames.size > 1) layer.stats.mixed += 1;
+    return loading;
+  }
+
+  /** A tile as it is on the GPU, pinned for this draw; undefined where it is not. */
+  private residentOf(job: TileJob): GpuTile<TileTexture> | undefined {
+    if (job.local) return BLANK;
+    this.tiles.pin(job.key);
+    return this.tiles.get(job.key);
+  }
+
+  /**
+   * A tile on the GPU, uploaded now if it has been decoded, else asked for
+   * where `ask`; undefined until it is there. `pending` for a frame not yet
+   * switched to.
+   */
+  private resolve(job: TileJob, pending: boolean, ask = true): GpuTile<TileTexture> | undefined {
+    const held = this.residentOf(job);
+    if (held !== undefined) return held;
+    const layer = this.getLayer();
+    const decoded = decodedTiles.get(job.key) ?? layer.arrived.get(job.key);
+    if (decoded === undefined) {
+      if (ask) layer.request(job);
+      return undefined;
+    }
+    this.upload(job, decoded);
+    if (pending && decoded !== BLANK) this.pendingUploads += 1;
+    return this.tiles.get(job.key);
+  }
+
+  private textureOf(tile: GpuTile<TileTexture>): WebGLTexture | null {
+    return tile === BLANK ? this.blank : tile.texture;
+  }
+
+  /** A slot's palette table, built the first time it is asked for. */
+  private lut(slot: RadarSlot): WebGLTexture | null {
+    const gl = this.gl!;
+    let texture = this.luts.get(slot.look);
+    if (!texture) {
+      texture = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, tableBytes(slot.encoding, slot.palette, slot.ink));
+      nearest(gl);
+      this.luts.set(slot.look, texture);
+    }
+    return texture;
+  }
+
+  /** The context, made the first time it is needed; null while there is none to be had. */
+  private context(): WebGL2RenderingContext | null {
+    if (this.gl && !this.gl.isContextLost()) return this.gl;
+    if (this.gl) this.lost();
+    if (this.retry !== null) return null;
+    const canvas = document.createElement("canvas");
+    canvas.className = this.getLayer().getClassName();
+    canvas.style.position = "absolute";
+    canvas.style.left = "0";
+    const gl = canvas.getContext("webgl2", { premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
+    const program = gl && link(gl);
+    if (!gl || !program) {
+      this.retryLater();
+      return null;
+    }
+    // Only for the context in use: one let go on purpose says so after the next may be up.
+    canvas.addEventListener("webglcontextlost", () => {
+      if (canvas === this.canvas) this.lost();
+    });
+    this.canvas = canvas;
+    this.gl = gl;
+    this.program = program;
+    for (const name of UNIFORMS) this.uniforms[name] = gl.getUniformLocation(program, name);
+    this.quad = gl.createVertexArray();
+    gl.bindVertexArray(this.quad);
+    this.buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+    const unit = gl.getAttribLocation(program, "a_unit");
+    gl.enableVertexAttribArray(unit);
+    gl.vertexAttribPointer(unit, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+    this.blank = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.blank);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(1));
+    nearest(gl);
+    return gl;
+  }
+
+  /** Taken away by the browser: everything on it is gone; a new one is made shortly. */
+  private lost() {
+    this.forget();
+    this.retryLater();
+  }
+
+  private retryLater() {
+    this.retry ??= setTimeout(() => {
+      this.retry = null;
+      this.getLayer().changed();
+    }, CONTEXT_RETRY_MS);
+  }
+
+  /** Drop every handle on the context, its textures' included, without asking it to delete them. */
+  private forget() {
+    this.tiles.clear(false);
+    this.luts.clear();
+    this.gl = null;
+    this.canvas = null;
+    this.program = null;
+    this.quad = null;
+    this.buffer = null;
+    this.blank = null;
+    this.items = [];
+  }
+
+  /** Let go of the context and everything on it. */
+  release() {
+    const gl = this.gl;
+    if (gl && !gl.isContextLost()) {
+      this.tiles.clear();
+      for (const texture of this.luts.values()) gl.deleteTexture(texture);
+      gl.deleteTexture(this.blank);
+      gl.deleteBuffer(this.buffer);
+      gl.deleteVertexArray(this.quad);
+      gl.deleteProgram(this.program);
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+    }
+    this.forget();
+  }
+
+  override disposeInternal(): void {
+    if (this.retry !== null) clearTimeout(this.retry);
+    this.retry = null;
+    this.release();
+    super.disposeInternal();
+  }
+}
+
+/**
+ * The flat map's radar, every source a slot of it; see the module's header.
+ * Made by `radarFrames`, one a map.
+ */
+export class RadarFrameLayer extends Layer {
+  /** In the order they are drawn: by `order`, then by when they were made. */
+  readonly slots: RadarSlot[] = [];
+
+  /** In the order they were made, as OpenLayers credits layers in the order they were added. */
+  private readonly made: RadarSlot[] = [];
+
+  readonly stats: FrameStats = {
+    renders: 0, slotDraws: 0, mixed: 0, switches: 0, fades: 0, uploads: 0, preUploads: 0, switchUploads: 0, loads: 0, failed: 0,
+  };
+
+  /** Tiles this layer loaded, until the next draw uploads them: the decoded tiles may not have kept them. */
+  readonly arrived = new globalThis.Map<string, Uint8Array | typeof BLANK>();
+
+  /** Tiles that failed to load: drawn as nothing, and not waited for, until `retryFailed`. */
+  readonly failed = new Set<string>();
+
+  /** Whether a step fades from the frame before: while playing, unless the reader turned it off. */
+  fading = false;
+
+  /** Whether a job's tile is on the GPU, for `heldOnScreen`. */
+  readonly residency: TileHolder = {
+    holds: (job) => this.hasRenderer() && (this.getRenderer() as FramesRenderer).holds(job.key),
+  };
+
+  private readonly loading = new globalThis.Map<string, Promise<void>>();
+
+  private upcoming: TileJob[] = [];
+
+  private upcomingKeys = new Set<string>();
+
+  private retained: ReadonlySet<string> = new Set();
+
+  private frame: number | null = null;
+
+  /** When a slot was last in view, in the map's clock. */
+  private lastDrawn = 0;
+
+  private readonly unsubscribe: Array<() => void>;
+
+  constructor() {
+    super({ zIndex: 80 });
+    this.unsubscribe = [
+      onFramesForgotten((now) => this.forget(now)),
+      onRetry(() => this.retryFailed()),
+      decodedTiles.onPut((key) => {
+        if (this.upcomingKeys.has(key)) this.kick();
+      }),
+    ];
+  }
+
+  override createRenderer(): LayerRenderer<RadarFrameLayer> {
+    return new FramesRenderer(this);
+  }
+
+  /** A slot for `source`, drawn from now on. */
+  slot(source: ValueTileSource, options: DrawingOptions): RadarSlot {
+    const slot = new RadarSlot(this, source, options);
+    const at = this.slots.findIndex((other) => other.order > slot.order);
+    this.slots.splice(at < 0 ? this.slots.length : at, 0, slot);
+    this.made.push(slot);
+    this.changed();
+    return slot;
+  }
+
+  /** A slot off the layer for good. */
+  remove(slot: RadarSlot) {
+    for (const slots of [this.slots, this.made]) {
+      const at = slots.indexOf(slot);
+      if (at >= 0) slots.splice(at, 1);
+    }
+    this.changed();
+  }
+
+  /** Fade each step from the frame before, or cut. */
+  setCrossfade(on: boolean) {
+    this.fading = on && CROSSFADE_MS > 0;
+  }
+
+  /**
+   * The tiles of the frames coming up, nearest first: uploaded a few an
+   * animation frame (`uploadsPerFrame`) as they are decoded, so that the
+   * step to them uploads nothing. Replaces the last call's.
+   */
+  setUpcoming(jobs: readonly TileJob[]) {
+    const keys = new Set<string>();
+    this.upcoming = jobs.filter((job) => !job.local && !keys.has(job.key) && keys.add(job.key));
+    this.upcomingKeys = keys;
+    this.retainOnGpu();
+    this.kick();
+  }
+
+  /** The tiles the plan of playback wants (lib/decodedTiles.ts `retain`), kept on the GPU over others. */
+  retain(keys: Iterable<string>) {
+    this.retained = new Set(keys);
+    this.retainOnGpu();
+  }
+
+  /** What the GPU keeps over other tiles: the plan's, and the frames coming up. */
+  retainedKeys(): Set<string> {
+    return new Set([...this.retained, ...this.upcomingKeys]);
+  }
+
+  /** Load a tile a frame drawn needs, a few at a time, and draw again once it is in. */
+  request(job: TileJob) {
+    if (this.loading.has(job.key) || this.failed.has(job.key) || this.loading.size >= MAX_LOADING) return;
+    const load = loadStoredTile(job)
+      .then((tile) => {
+        this.arrived.set(job.key, tile instanceof Uint8Array ? tile : BLANK);
+        this.stats.loads += 1;
+        tileArrived();
+      }, () => {
+        this.failed.add(job.key);
+        this.stats.failed += 1;
+      })
+      .finally(() => {
+        this.loading.delete(job.key);
+        this.changed();
+      });
+    this.loading.set(job.key, load);
+  }
+
+  /** Bytes and tiles on the GPU now. */
+  get gpu(): { bytes: number; tiles: number; capacity: number } {
+    const renderer = this.hasRenderer() ? this.getRenderer() as FramesRenderer : null;
+    return { bytes: renderer?.tiles.bytes ?? 0, tiles: renderer?.tiles.size ?? 0, capacity: frameTextureBytes() };
+  }
+
+  /** The credits of the slots drawn where the view is, as an OpenLayers layer gives its source's. */
+  override getAttributions(view?: View | ViewStateLayerStateExtent): string[] {
+    if (!this.isVisible(view)) return [];
+    const map = this.getMapInternal();
+    const frameState = view instanceof View ? view.getViewStateAndExtent() : view ?? map?.getView().getViewStateAndExtent();
+    if (!frameState) return [];
+    const credits: string[] = [];
+    for (const slot of this.made) {
+      if (!slot.visible || !slot.frames.wanted || (slot.extent && !intersects(slot.extent, frameState.extent))) continue;
+      const attributions = slot.source.getAttributions()?.(frameState);
+      if (attributions) credits.push(...(Array.isArray(attributions) ? attributions : [attributions]));
+    }
+    return credits;
+  }
+
+  /** Drawn; or, with no slot in view for `IDLE_AFTER_MS` while the map draws, its context let go. */
+  override render(frameState: FrameState | null, target: HTMLElement): HTMLElement | null {
+    const element = super.render(frameState, target);
+    if (!frameState) return element;
+    if (element || !this.lastDrawn) this.lastDrawn = frameState.time;
+    else if (frameState.time - this.lastDrawn > IDLE_AFTER_MS && (this.getRenderer() as FramesRenderer).live) this.clearRenderer();
+    // A context made by this draw has the frames coming up still to take.
+    this.kick();
+    return element;
+  }
+
+  override disposeInternal(): void {
+    for (const stop of this.unsubscribe) stop();
+    if (this.frame !== null) cancelAnimationFrame(this.frame);
+    super.disposeInternal();
+  }
+
+  private retainOnGpu() {
+    if (this.hasRenderer()) (this.getRenderer() as FramesRenderer).tiles.retain(this.retainedKeys());
+  }
+
+  /** Upload the next few tiles coming up, an animation frame from now. */
+  private kick() {
+    if (this.frame !== null || !this.upcoming.length || typeof requestAnimationFrame === "undefined") return;
+    this.frame = requestAnimationFrame(() => {
+      this.frame = null;
+      this.preUpload();
+    });
+  }
+
+  private preUpload() {
+    const renderer = this.hasRenderer() ? this.getRenderer() as FramesRenderer : null;
+    if (!renderer?.live) return;
+    let budget = uploadsPerFrame();
+    for (const job of this.upcoming) {
+      if (renderer.holds(job.key)) continue;
+      const tile = decodedTiles.peek(job.key);
+      if (tile === undefined) continue;
+      if (tile !== BLANK && budget === 0) {
+        this.kick();
+        return;
+      }
+      renderer.upload(job, tile);
+      if (tile !== BLANK) {
+        budget -= 1;
+        this.stats.preUploads += 1;
+      }
+    }
+  }
+
+  /**
+   * The earlier frames let go (layers/valueTiles.ts): with the map out of
+   * sight, everything, the context too; else every texture but those on
+   * screen, which stay until the frame after them is up.
+   */
+  private forget(now: boolean) {
+    this.setUpcoming([]);
+    this.arrived.clear();
+    if (now) this.clearRenderer();
+    else if (this.hasRenderer()) (this.getRenderer() as FramesRenderer).tiles.dropUnpinned();
+  }
+
+  /** Ask again for the tiles that failed; true when there was one. */
+  private retryFailed(): boolean {
+    if (!this.failed.size) return false;
+    this.failed.clear();
+    this.changed();
+    return true;
+  }
+}
+
+/** The frame layer of each map that has one. */
+const frameLayers = new WeakMap<Map, RadarFrameLayer>();
+
+/**
+ * The map's frame layer, put on it the first time it is asked for; null
+ * where the radar is drawn by tile layers instead: a browser without WebGL2,
+ * or the `radarRenderer` setting at "tiles".
+ */
+export function radarFrames(map: Map): RadarFrameLayer | null {
+  if (window.settings?.getString<string>("radarRenderer", "frames") === "tiles" || !webgl2Supported()) return null;
+  let layer = frameLayers.get(map);
+  if (!layer) {
+    layer = new RadarFrameLayer();
+    map.addLayer(layer);
+    frameLayers.set(map, layer);
+  }
+  return layer;
+}

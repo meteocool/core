@@ -114,6 +114,51 @@ export function decodedTileBytes(handheld = isHandheld()): number {
 }
 
 /**
+ * What the radar's frame layer (layers/radarFrames.ts) may keep in tile
+ * textures on a handheld device, in bytes: a byte a pixel and band, so 192
+ * of the common one-band tile. A phone's screen shows a few dozen tiles of
+ * DWD and the networks at once, most of them blank on any but a stormy day,
+ * and blanks cost no texture: this is the frame on screen, the one fading
+ * out and several frames ahead of the needle, beside the 32 MB decoded ahead
+ * of it (`decodedTileBytes`). It replaces the textures every radar layer
+ * kept of its own (`HANDHELD_RADAR_SHARED_BYTES`).
+ */
+const HANDHELD_FRAME_TEXTURE_BYTES = 48 * MB;
+
+/**
+ * The same on a desktop: a thousand one-band tiles, a whole loop of a
+ * laptop's screen at most zooms, so a loop played once is drawn from the GPU
+ * every time round after.
+ */
+const DESKTOP_FRAME_TEXTURE_BYTES = 256 * MB;
+
+/** The most bytes of tile textures the radar's frame layer keeps. */
+export function frameTextureBytes(handheld = isHandheld()): number {
+  return handheld ? HANDHELD_FRAME_TEXTURE_BYTES : DESKTOP_FRAME_TEXTURE_BYTES;
+}
+
+/**
+ * How many tiles of the frames coming up the frame layer uploads in one
+ * animation frame while nothing waits on them: on a phone few, so that an
+ * upload never costs a frame of a pan or a fade; on a desktop more.
+ */
+export function uploadsPerFrame(handheld = isHandheld()): number {
+  return handheld ? 3 : 12;
+}
+
+/**
+ * How many steps after the one on screen playback uploads ahead: on a phone
+ * the next alone. At a phone's screen a frame of DWD and the networks around
+ * it is a dozen megabytes of textures, most of their tiles cut at a
+ * network's edge and so two bytes a pixel: the frame shown, the one asked
+ * for and one more fill most of `frameTextureBytes`, and a second one more
+ * would push out the first before it is drawn.
+ */
+export function uploadAheadSteps(handheld = isHandheld()): number {
+  return handheld ? 1 : 2;
+}
+
+/**
  * How many tiles are loaded and decoded ahead at once (lib/framePreload.ts):
  * on a phone two, one for each of its workers, so the frame on screen is
  * not kept waiting behind them and the decoding's garbage comes no faster

@@ -38,7 +38,7 @@ import {
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cutRotationDeg, stormDetails,
   lightningLayerVisible, logoStyle,
-  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap,
+  mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap, radarCrossfade,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meetYouCoolOpen, meteocoolNowcast,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
@@ -248,6 +248,23 @@ window.settings = new Settings({
     cb: (val) => {
       precacheForecast.set(Boolean(val));
     },
+  },
+  /* Each step of playback fading from the one before, in the radar's values
+     (layers/radarFrames.ts). On unless turned off. */
+  radarCrossfade: {
+    type: "boolean",
+    default: true,
+    cb: (value) => {
+      radarCrossfade.set(Boolean(value));
+    },
+  },
+  /* What draws the flat map's radar: "frames", one layer of its own WebGL2
+     that switches each source to its next frame whole, or "tiles", a tile
+     layer per source, as before it. Read when a map is built; "frames" falls
+     back to "tiles" where the browser has no WebGL2 (layers/radarDrawing.ts). */
+  radarRenderer: {
+    type: "string",
+    default: "frames",
   },
   mapBaseLayer: {
     type: "string",

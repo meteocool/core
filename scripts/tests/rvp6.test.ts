@@ -5,7 +5,7 @@ import { dbz2color, rvp6ToDbz } from "../../src/lib/cmap_utils.ts";
 import { columnStyle, columnTable } from "../../src/lib/columnValues.ts";
 import {
   RVP6_ENTRIES, carriesValues, columnGreyTable, drawnTileId, encodingOf, greyTable, paintValues, rvp6PaletteColours, rvp6Style,
-  rvp6Table, valueStyle,
+  rvp6Table, valueStyle, valueTable,
 } from "../../src/lib/rvp6.ts";
 
 test("the classic table is the classic palette, byte for byte, where it has colours", () => {
@@ -157,4 +157,14 @@ test("a column product in grey keeps each byte's alpha and runs from the ink's f
     assert.equal(white[254][0], 255);
     assert.ok(white[1][0] < 255);
   }
+});
+
+test("the frame layer's table colours every byte as the tile layers' style does", () => {
+  assert.deepEqual(valueTable("rvp6-u8", "nws"), rvp6Table("nws"));
+  assert.deepEqual(valueTable("rvp6-u8", "nws", "white"), greyTable("nws", "white"));
+  assert.deepEqual(valueTable("height-250m-u8", "nws"), columnTable("height-250m-u8"), "an echo top keeps its own colours");
+  assert.deepEqual(valueTable("vil-0.5kg-u8", "classic", "black"), columnGreyTable("vil-0.5kg-u8", "black"));
+  const unknown = valueTable("something-else", "classic");
+  assert.equal(unknown.length, RVP6_ENTRIES);
+  assert.ok(unknown.every(([, , , a]) => a === 0), "an encoding this client cannot read draws nothing");
 });

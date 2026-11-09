@@ -3,7 +3,8 @@ import test from "node:test";
 import type { TestContext } from "node:test";
 import { crc32, deflateSync } from "node:zlib";
 import { blankTile, fillTemplate, present } from "../../src/layers/indexedTiles.ts";
-import { frameOnStep, loadValueTile, templateOf } from "../../src/layers/valueTiles.ts";
+import ValueTileSource, { frameOnStep, heldOnScreen, loadValueTile, templateOf } from "../../src/layers/valueTiles.ts";
+import type { ValueFrame } from "../../src/layers/valueTiles.ts";
 import { sourceTile } from "../../src/lib/tileIndex.ts";
 import { maskPath, tileExtent } from "../../src/layers/tileMask.ts";
 
@@ -196,4 +197,43 @@ test("a tile with nothing left in it to draw is a blank, kept as one", async (t)
   assert.equal(await loadValueTile(TEMPLATE, index, 5, 16, 11, [], null), blankTile());
   await loadStoredTile(valueTileJob(TEMPLATE, index, 5, 16, 11, [], null));
   assert.ok(decodedTiles.bytes < 1024, "a blank costs no quarter megabyte");
+});
+
+/** DWD's source as the radar map makes it: holed for every network until told otherwise. */
+const dwdSource = (url: string) => new ValueTileSource({ url, minZoom: 3, maxZoom: 9, tileSize: 512, holed: true });
+
+test("the frame put on gives every tile the very job the playback plan asks for", () => {
+  const source = dwdSource(TEMPLATE);
+  const extent = tileExtent(6, 33, 21);
+  const resolution = source.getTileGrid()!.getResolution(6);
+  const planned = source.tileJobs(TEMPLATE, null, extent, resolution, 48);
+  assert.ok(planned.length > 0);
+  const frame = source.currentFrame();
+  for (const job of planned) assert.equal(frame.job(job.z, job.x, job.y).key, job.key);
+});
+
+test("a new frame, or new holes in the one on, is told to whatever draws the source", () => {
+  const source = dwdSource(TEMPLATE);
+  const told: ValueFrame[] = [];
+  source.onFrame = (frame) => told.push(frame);
+  const next = TEMPLATE.replace("/v/", "/w/");
+  source.setUrl(next);
+  source.setHoles(new Map([[next, ["ch"]]]), next);
+  assert.equal(told.length, 2);
+  assert.notEqual(told[0].key, told[1].key, "the holes are part of the frame");
+  // Over Switzerland: a tile the hole does not meet keeps its key.
+  assert.notEqual(told[0].job(6, 33, 22).key, told[1].job(6, 33, 22).key);
+  assert.equal(told[0].job(6, 33, 18).key, told[1].job(6, 33, 18).key);
+});
+
+test("whether a tile is on the GPU is asked of what draws its source", () => {
+  const source = dwdSource(TEMPLATE);
+  const held = new Set<string>();
+  source.holder = () => ({ holds: (job) => held.has(job.key) });
+  source.setUrl(TEMPLATE);
+  const job = source.currentFrame().job(6, 33, 21);
+  assert.equal(heldOnScreen(job), false);
+  held.add(job.key);
+  assert.equal(heldOnScreen(job), true);
+  assert.equal(heldOnScreen({ ...job, drawnBy: undefined }), false);
 });

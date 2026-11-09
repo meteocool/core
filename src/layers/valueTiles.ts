@@ -96,8 +96,21 @@ export interface TileJob {
    * tile the frame's index says it does not have. Never worth decoding ahead.
    */
   local: boolean;
-  /** The source that will ask for it, and the key it will ask under: where to look for it on the GPU. */
-  drawnBy?: { source: ValueTileSource; sourceKey: string };
+  /** What will draw it: where to look for it on the GPU. */
+  drawnBy?: TileHolder;
+}
+
+/** Whatever draws a source's tiles, asked whether it holds one uploaded and ready to draw. */
+export interface TileHolder {
+  holds(job: TileJob): boolean;
+}
+
+/** One frame of a source as things stood when it was put on: its key, and each tile's job. */
+export interface ValueFrame {
+  /** What tells it apart: its URL and the networks cut out of it. */
+  key: string;
+  /** Tile `z`/`x`/`y` of it, as the loader is handed it. */
+  job(z: number, x: number, y: number): TileJob;
 }
 
 const pathNames = new WeakMap<MaskPath, string>();
@@ -134,20 +147,32 @@ export function valueTileJob(
 }
 
 /**
- * Whether the layer drawing a job's source already holds its tile, uploaded
- * and ready to draw. Its texture cache is keyed by the frame, so on a
+ * Whether what draws a job's source already holds its tile, uploaded and
+ * ready to draw: the frame layer's textures (layers/radarFrames.ts), or an
+ * OpenLayers layer's (`onScreenIn`). Either is keyed by the frame, so on a
  * desktop a whole loop of a viewport stays on the GPU after the first time
  * round, and those tiles need nothing decoded: they are drawn as soon as
  * the frame is shown, whatever the decoded tiles have let go.
  */
 export function heldOnScreen(job: TileJob): boolean {
-  if (!job.drawnBy) return false;
-  const { source, sourceKey } = job.drawnBy;
-  const layer = layerOf.get(source);
-  if (!layer?.hasRenderer()) return false;
-  const cache = (layer.getRenderer() as unknown as FrameCache).tileRepresentationCache;
-  const at = getCacheKey(source, [job.z, job.x, job.y], sourceKey);
-  return Boolean(cache?.containsKey(at) && cache.peek(at).ready);
+  return job.drawnBy?.holds(job) ?? false;
+}
+
+/**
+ * A source's tiles of the frame keyed `sourceKey` as the OpenLayers layer
+ * drawing it holds them: its texture cache is keyed by the source, the tile
+ * and the source's key.
+ */
+function onScreenIn(source: ValueTileSource, sourceKey: string): TileHolder {
+  return {
+    holds(job) {
+      const layer = layerOf.get(source);
+      if (!layer?.hasRenderer()) return false;
+      const cache = (layer.getRenderer() as unknown as FrameCache).tileRepresentationCache;
+      const at = getCacheKey(source, [job.z, job.x, job.y], sourceKey);
+      return Boolean(cache?.containsKey(at) && cache.peek(at).ready);
+    },
+  };
 }
 
 /** Whether a job's tile is ready to draw at once: answered on the spot, decoded, or on the GPU. */
@@ -238,6 +263,22 @@ export default class ValueTileSource extends DataTileSource {
   /** The only ground this source draws on, or anywhere. */
   private readonly keep: MaskPath | null;
 
+  /** The frame on now, as `setUrl` put it on. */
+  private frame!: ValueFrame;
+
+  /**
+   * What draws this source's tiles of the frame keyed `sourceKey`, asked by
+   * `heldOnScreen`: the OpenLayers layer showing the source, unless the frame
+   * layer draws it instead and says so.
+   */
+  holder: (sourceKey: string) => TileHolder = (sourceKey) => onScreenIn(this, sourceKey);
+
+  /**
+   * Told of every frame put on (`setUrl`), when the frame layer draws this
+   * source rather than an OpenLayers layer: that is how it learns of a step.
+   */
+  onFrame: ((frame: ValueFrame) => void) | null = null;
+
   /**
    * `holed`: DWD's reflectivity, built for its newest observation, which is
    * holed for every network until `setHoles` says otherwise. Anything else
@@ -304,7 +345,7 @@ export default class ValueTileSource extends DataTileSource {
   }
 
   /** The side of this source's tiles at zoom `z`, in pixels. */
-  private sizeAt(z: number): number {
+  sizeAt(z: number): number {
     const size = this.getTileGrid()!.getTileSize(z);
     return typeof size === "number" ? size : size[0];
   }
@@ -317,28 +358,55 @@ export default class ValueTileSource extends DataTileSource {
    */
   tileJobs(url: string, index: TileIndex | null | undefined, extent: MapExtent, resolution: number, max: number): TileJob[] {
     this.remember(url, index);
-    const { template, gate, holes, codes } = this.frameArgs(url);
-    const drawnBy = { source: this, sourceKey: frameKey(url, codes) };
+    const frame = this.frameFor(url);
     const grid = this.getTileGrid()!;
     // The zoom the renderer draws at, as it works it out.
     const z = grid.getZForResolution(resolution, this.zDirection);
     const jobs: TileJob[] = [];
     grid.forEachTileCoord(extent, z, ([tz, x, y]) => {
-      if (jobs.length < max) jobs.push({ ...valueTileJob(template, gate, tz, x, y, holes, this.keep, this.sizeAt(tz)), drawnBy });
+      if (jobs.length < max) jobs.push(frame.job(tz, x, y));
     });
     return jobs;
+  }
+
+  /**
+   * Frame `url` with the holes it has now, as the loader is handed its tiles
+   * once it is put on. Each tile's job is made once: the frame layer asks for
+   * every tile in view on every draw.
+   */
+  private frameFor(url: string): ValueFrame {
+    const { template, gate, holes, codes } = this.frameArgs(url);
+    const key = frameKey(url, codes);
+    const drawnBy = this.holder(key);
+    const keep = this.keep;
+    const made = new Map<string, TileJob>();
+    return {
+      key,
+      job: (z, x, y) => {
+        const at = `${z}/${x}/${y}`;
+        let job = made.get(at);
+        if (!job) {
+          job = { ...valueTileJob(template, gate, z, x, y, holes, keep, this.sizeAt(z)), drawnBy };
+          made.set(at, job);
+        }
+        return job;
+      },
+    };
+  }
+
+  /** The frame on now. */
+  currentFrame(): ValueFrame {
+    return this.frame;
   }
 
   setUrl(url: string, index?: TileIndex | null): void {
     this.remember(url, index);
     this.url = url;
-    const { template, gate, holes, codes } = this.frameArgs(url);
-    const keep = this.keep;
-    this.setLoader((z, x, y, options) => loadStoredTile(
-      valueTileJob(template, gate, z, x, y, holes, keep, this.sizeAt(z)),
-      options.signal,
-    ));
-    this.setKey(frameKey(url, codes));
+    const frame = this.frameFor(url);
+    this.frame = frame;
+    this.setLoader((z, x, y, options) => loadStoredTile(frame.job(z, x, y), options.signal));
+    this.setKey(frame.key);
+    this.onFrame?.(frame);
   }
 }
 
@@ -362,6 +430,20 @@ export function forgetEarlierFrames(): void {
   forgetting += 1;
   // Not drawn from, so nothing blinks: they go now.
   decodedTiles.clear();
+  for (const listener of [...forgetters]) listener(false);
+}
+
+/** Told by `forgetEarlierFrames` (false) and `dropEarlierFrames` (true): the frame layer's cue. */
+const forgetters = new Set<(now: boolean) => void>();
+
+/**
+ * Be told whenever the earlier frames are let go: `now` true where nothing
+ * of the map is on screen to blink (`dropEarlierFrames`), false where the
+ * frame on screen stays (`forgetEarlierFrames`). The returned function stops it.
+ */
+export function onFramesForgotten(listener: (now: boolean) => void): () => void {
+  forgetters.add(listener);
+  return () => forgetters.delete(listener);
 }
 
 /**
@@ -381,6 +463,7 @@ const valueLayers = new Set<WebGLTileLayer>();
 export function dropEarlierFrames(): void {
   forgetting += 1;
   decodedTiles.clear();
+  for (const listener of [...forgetters]) listener(true);
   for (const layer of valueLayers) {
     // A layer replaced and disposed (precipitation types) is let go here.
     if ((layer as unknown as { disposed: boolean }).disposed) valueLayers.delete(layer);

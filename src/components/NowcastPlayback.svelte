@@ -62,6 +62,7 @@ import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
 import { preloadMode } from "../lib/framePreload";
 import type { PreloadMode } from "../lib/framePreload";
 import { holdsForTiles, playOrder, shouldAdvance, waitLeft } from "../lib/playbackGate";
+import { uploadAheadSteps } from "../lib/gpuBudget";
 import { drawnByAny } from "../layers/networkAt";
 import type { CountryNetwork } from "../api/events";
 import { canPlay, nearestStep, nextFrame } from "../lib/playbackLoop";
@@ -124,13 +125,18 @@ let playTimeout;
 
 /**
  * A tick holding the frame on screen for the next one's tiles; aborted by
- * pause and close, so a wait that outlives them moves nothing on.
+ * pause and close, so a wait that outlives them moves nothing on. Nothing
+ * is uploaded ahead for the steps that would have come next either.
  */
 let readyWait: AbortController | null = null;
 function stopWaiting() {
   readyWait?.abort();
   readyWait = null;
+  cap?.prepareSteps([]);
 }
+
+/** How many steps after the one shown have their tiles uploaded ahead (`RadarCapability.prepareSteps`). */
+const UPLOAD_AHEAD = uploadAheadSteps();
 
 /**
  * A frame the player was opened to show, rather than the live edge.
@@ -592,6 +598,8 @@ const fsm = new StateMachine({
       const advance = (target: number, from: number) => {
         shown = target;
         sliderChangedHandler(shown);
+        const grid = gridConfig;
+        if (grid) cap.prepareSteps(playOrder(target, (step) => stepAfter(step, grid), UPLOAD_AHEAD + 1).slice(1));
         // Always round again: a loop that stops at the end only ever asked
         // for another press of play.
         playTimeout = window.setTimeout(playTick, from === 0 ? 800 : FRAME_MS);
