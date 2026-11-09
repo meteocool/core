@@ -1094,7 +1094,6 @@
     }
   },
   "meet": {
-    "entry": "Meet you cool",
     "title": "meet you cool",
     "intro": "Radars bij jou in de buurt zoeken iemand om samen de lucht mee af te speuren.",
     "name_age": "{name}, {age}",

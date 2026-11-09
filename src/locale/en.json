@@ -1094,7 +1094,6 @@
     }
   },
   "meet": {
-    "entry": "Meet you cool",
     "title": "meet you cool",
     "intro": "Radars near you are looking for someone to scan the sky with.",
     "name_age": "{name}, {age}",

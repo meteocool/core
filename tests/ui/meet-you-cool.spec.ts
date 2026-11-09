@@ -1,11 +1,11 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "./test";
-import { meetYouCool, openRadar, overlaps, timeline, topCard, topRadar } from "./app";
+import { meetYouCool, noGeocoder, openRadar, overlaps, radarMark, settled, timeline, topCard, topRadar } from "./app";
 
 /**
- * "meet you cool": the radars as profiles to swipe, opened from the foot of
- * About or from #meetyoucool. Whether a like is a match is chance; the specs
+ * "meet you cool": the radars as profiles to swipe, opened only from
+ * #meetyoucool, nothing in the app leading to it for now. Whether a like is a match is chance; the specs
  * fix it by standing in Math.random just before the like.
  */
 
@@ -23,14 +23,35 @@ async function open(page: import("@playwright/test").Page): Promise<void> {
 const nextLikeMatches = (page: import("@playwright/test").Page, match: boolean) =>
   page.evaluate((value) => { Math.random = () => value; }, match ? 0.1 : 0.9);
 
-test("it opens from the foot of About, which gets out of its way", async ({ page }) => {
-  await openRadar(page);
+/** Nothing on the page names it or links to it, and it is not open. */
+async function noWayIn(page: import("@playwright/test").Page): Promise<void> {
+  await expect(page.getByText(/meet you cool/i)).toHaveCount(0);
+  await expect(page.locator("a[href*='meetyoucool' i]")).toHaveCount(0);
+  await expect(meetYouCool(page)).toHaveCount(0);
+}
+
+test("nothing in the app leads to it: not the map, a radar's tray or page, Settings or About", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("layerSites", "true"));
+  await noGeocoder(page);
+  await openRadar(page, "/?layer=radar&latLonZ=50.20000,9.20000,7.20");
+  await noWayIn(page);
+
+  await expect.poll(() => radarMark(page, "deoft"), { timeout: 20_000 }).not.toBeNull();
+  const at = (await radarMark(page, "deoft"))!;
+  await page.mouse.click(at.x, at.y);
+  const tray = page.getByRole("group", { name: "Offenthal radar" });
+  await settled(tray);
+  await noWayIn(page);
+  await tray.getByRole("button", { name: "About this radar" }).click();
+  await expect(page.getByRole("heading", { name: "Sources" })).toBeVisible();
+  await noWayIn(page);
+  await page.keyboard.press("Escape");
+
   await page.getByRole("button", { name: "Settings" }).click();
+  await noWayIn(page);
   await page.getByRole("button", { name: "About meteocool" }).click();
-  await page.getByRole("link", { name: "Meet you cool" }).click();
-  await expect(meetYouCool(page)).toBeVisible();
-  await expect(topCard(page)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "About meteocool" })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "About meteocool" })).toBeVisible();
+  await noWayIn(page);
 });
 
 test("a link with #meetyoucool opens it, and closing it takes the hash off", async ({ page }) => {

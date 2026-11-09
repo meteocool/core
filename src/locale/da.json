@@ -1049,7 +1049,6 @@
     }
   },
   "meet": {
-    "entry": "Meet you cool",
     "title": "meet you cool",
     "intro": "Radarer i nærheden leder efter nogen at scanne himlen med.",
     "name_age": "{name}, {age}",

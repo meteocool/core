@@ -258,8 +258,8 @@ export const radarExplainerOpen = writable<boolean>(false);
  */
 export const radarInfoOpen = writable<boolean>(false);
 /**
- * "meet you cool", the radars' dating screen, is open: from the link at the
- * foot of About, or from `#meetyoucool` in the address (App.svelte).
+ * "meet you cool", the radars' dating screen, is open: only from
+ * `#meetyoucool` in the address (App.svelte), with no way into it in the app.
  */
 export const meetYouCoolOpen = writable<boolean>(false);
 /**

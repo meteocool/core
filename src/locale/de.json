@@ -1094,7 +1094,6 @@
     }
   },
   "meet": {
-    "entry": "Meet you cool",
     "title": "meet you cool",
     "intro": "Radare in deiner Nähe suchen jemanden, mit dem sie den Himmel absuchen können.",
     "name_age": "{name}, {age}",

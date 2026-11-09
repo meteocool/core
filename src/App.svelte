@@ -112,8 +112,8 @@ const loadRadarInfo = (code: string, language: string | null | undefined) => () 
 $: if (!$siteMode) radarInfoOpen.set(false);
 // "meet you cool", the radars' dating screen: its component and every
 // country's texts, all chunks of their own, loaded when it is opened. It
-// opens from About's foot, which sets the address's hash, or from a link
-// with `#meetyoucool`; going back past the hash closes it, and closing it
+// opens only from a link with `#meetyoucool`, nothing in the app leading to
+// it for now; going back past the hash closes it, and closing it
 // takes the hash off again, so a reload does not reopen it.
 const loadMeetYouCool = () => Promise.all([
   import("./components/MeetYouCool.svelte"),

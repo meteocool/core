@@ -1049,7 +1049,6 @@
     }
   },
   "meet": {
-    "entry": "Meet you cool",
     "title": "meet you cool",
     "intro": "Radari u tvojoj blizini traže nekoga s kim bi skenirali nebo.",
     "name_age": "{name}, {age}",

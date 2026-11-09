@@ -131,7 +131,7 @@ export default defineConfig(({ mode }) => {
             "**/radar-text-*",
             "radars/**",
             // "meet you cool", the radars' dating screen (App.svelte), opened
-            // by few and only from About's foot or #meetyoucool; it brings
+            // by few and only from #meetyoucool; it brings
             // every country's texts above, also left to first use.
             "**/MeetYouCool-*",
           ],

@@ -17,7 +17,7 @@ let sessionSwiped: ReadonlySet<string> = new Set();
  * sometimes a match (lib/meetYouCool.ts), and a match always waits for the
  * radar to write first, which it never does.
  *
- * Opened from the foot of About or from `#meetyoucool`, as a chunk of its own
+ * Opened only from `#meetyoucool`, as a chunk of its own
  * with every country's texts (App.svelte), so none of it is in the first
  * load. The matches are kept in this browser's localStorage and nowhere else.
  *

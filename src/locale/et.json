@@ -1049,7 +1049,6 @@
     }
   },
   "meet": {
-    "entry": "Meet you cool",
     "title": "meet you cool",
     "intro": "Sinu lähedal olevad radarid otsivad kedagi, kellega koos taevast skaneerida.",
     "name_age": "{name}, {age}",

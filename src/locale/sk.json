@@ -1094,7 +1094,6 @@
     }
   },
   "meet": {
-    "entry": "Meet you cool",
     "title": "meet you cool",
     "intro": "Radary vo tvojom okolí hľadajú niekoho, s kým by mohli skenovať oblohu.",
     "name_age": "{name}, {age}",
