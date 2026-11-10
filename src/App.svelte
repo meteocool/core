@@ -560,6 +560,8 @@ derived(
   }
   cellsAt = at;
 });
+// A live storm's age counts from the newest scan, not the clock (lib/cellPulse.ts `liveReference`).
+capLatestObservation.subscribe((newest) => stormmgr.setNewestScan(newest > 0 ? newest * 1000 : null));
 
 /* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the
    way there (see layers/cloudHints.ts). Only where that map is offered, and,
