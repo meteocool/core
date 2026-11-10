@@ -232,16 +232,9 @@ export const terrain3dVisible = writable<boolean>(true);
  */
 export const playbackFromStart = writable<boolean>(false);
 /**
- * Whether the forecast steps draw meteocool's own nowcast outside Germany
- * (lib/nowcast.ts), beside WN over it. The experimental `meteocoolNowcast`
- * setting; on by default (since 2026-10-13), on every environment alike.
- * Germany is WN's either way, so the default only changes the networks around it.
- */
-export const meteocoolNowcast = writable<boolean>(true);
-/**
  * Where meteocool's nowcast draws, as RadarCapability publishes it: the
  * networks with a run at all, and those whose run has a lead at the step on
- * screen. Null while the setting is off, which is WN alone, as ever. What the
+ * screen. Null before the first timeseries. What the
  * forecast step's wash leaves clear (layers/dwd.ts) and the player counts as
  * covered.
  */

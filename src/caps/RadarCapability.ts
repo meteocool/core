@@ -49,7 +49,6 @@ import {
   showForecastPlaybutton, snowLayerVisible, zoomlevel,
   observedProduct,
   radarProducts,
-  meteocoolNowcast,
   nowcastCoverage,
   framesPreloaded,
   archiveWindow,
@@ -286,22 +285,17 @@ export default class RadarCapability extends Capability {
 
   /**
    * Each network's run of meteocool's own nowcast, drawn on the forecast
-   * steps it has a lead for while the experimental setting is on: one layer
-   * per network, cut to its ground, with WN holed for it on those steps
+   * steps it has a lead for: one layer per network, cut to its ground, with WN holed for it on those steps
    * (`holes`). Handed the run's frames, never fetching. See lib/nowcast.ts.
    */
   private nowcasts: NetworkRadarLayer[];
 
-  /** Mirror of the `meteocoolNowcast` store: whether the runs are asked for and drawn. */
-  private nowcastOn = false;
-
-  /** Each network's run, from the same response as the grid; empty while the setting is off. */
+  /** Each network's run, from the same response as the grid. */
   private nowcastGrid: NowcastRuns<RadarFrame> = {};
 
   /** The network the grid in hand was sampled for, whose run the chart's forecast bars come from. */
   private gridNetwork: CountryNetwork | null = null;
 
-  private unsubscribeNowcast: (() => void) | null = null;
 
   /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
   stale: boolean;
@@ -413,19 +407,6 @@ export default class RadarCapability extends Capability {
       if (this.serverGrid && wanted && wanted !== this.gridProducts) this.reloadRadar();
       this.productsChanged();
     });
-    /* The runs come with the grid, asked for by name; turned off, they are
-       gone from the map at once, and the chart's bars are WN's again with
-       the grid that answers without them. */
-    this.unsubscribeNowcast = meteocoolNowcast.subscribe((on) => {
-      if (on === this.nowcastOn) return;
-      this.nowcastOn = on;
-      if (!on) this.nowcastGrid = {};
-      // A past window has no forecast to draw the runs on.
-      if (!this.serverGrid || this.past) return;
-      this.productsChanged();
-      this.reloadRadar();
-    });
-
     /* The networks follow the scrubber: their own newest frame on the live
        one, the grid's composite on any other past step, nothing on a forecast
        step. "Live" is the same predicate as the cell layer's gate in
@@ -603,11 +584,10 @@ export default class RadarCapability extends Capability {
       };
       // One network's nowcast run is complete: the timeseries again, which
       // carries every network's newest run, and with it the forecast layers
-      // re-pointed. Ignored with the setting off, as an old client does. One
-      // key for every network: four runs landing while the page is hidden
+      // re-pointed. One key for every network: four runs landing while the page is hidden
       // are one refetch when it is looked at.
       this.nowcastHandler = () => {
-        if (!this.nowcastOn || this.past) return;
+        if (this.past) return;
         whenVisible("radar:nowcast", () => {
           console.log("received websocket nowcast, refreshing the forecast");
           this.reloadRadar();
@@ -1275,20 +1255,18 @@ export default class RadarCapability extends Capability {
       const code = layer.network.code as CountryNetwork;
       layer.show(false, domains.includes(code) ? this.nowcastGrid[code]![shown] : null);
     }
-    const coverage = this.nowcastOn ? { withRun: domainsWithRun(this.nowcastGrid), shown: domains } : null;
+    const coverage = { withRun: domainsWithRun(this.nowcastGrid), shown: domains };
     const before = get(nowcastCoverage);
     // A write only when it changed: the wash and the player recompute coverage on every one.
     if (JSON.stringify(before) !== JSON.stringify(coverage)) nowcastCoverage.set(coverage);
   }
 
   /**
-   * The networks whose nowcast draws on a step: with the setting on, on a
-   * forecast step, those with a lead valid there (lib/nowcast.ts). Never an
+   * The networks whose nowcast draws on a step: on a forecast step, those with a lead valid there (lib/nowcast.ts). Never an
    * observed step, where the networks' own composites are, though a run
    * from a network that is a scan behind DWD can have a lead on one.
    */
   private nowcastDomainsAt(step: number): CountryNetwork[] {
-    if (!this.nowcastOn) return [];
     const frame = this.clientGrid?.[step];
     if (!frame?.url || frame.source === "observation") return [];
     return domainsAt(this.nowcastGrid, step);
@@ -1297,21 +1275,21 @@ export default class RadarCapability extends Capability {
   /**
    * The series the chart is drawn from: the timeseries' frames, with the
    * forecast steps' readings from the nowcast run of the network the point
-   * is in, where the setting is on and that network has one; see
+   * is in, where that network has one; see
    * `chartFrames`. Over DWD's own ground, WN's, as ever.
    */
   private chartSeries<F extends { source: string; dbz?: number | null }>(
     frames: Record<string, F | null>,
   ): Record<string, F | null> {
-    if (!this.nowcastOn || !this.gridNetwork) return frames;
+    if (!this.gridNetwork) return frames;
     return chartFrames(frames, this.nowcastGrid[this.gridNetwork]);
   }
 
-  /** What the timeseries is asked for with: the chosen product's past, and the nowcast runs while the setting is on. */
+  /** What the timeseries is asked for with: the chosen product's past, and the nowcast runs. */
   private timeseriesRequest(): TimeseriesProduct[] {
     const products: TimeseriesProduct[] = timeseriesProducts(this.chosen);
     // A past window has observed steps only.
-    return this.nowcastOn && !this.past ? [...products, NOWCAST_PRODUCT] : products;
+    return this.past ? products : [...products, NOWCAST_PRODUCT];
   }
 
   /**
@@ -1508,7 +1486,7 @@ export default class RadarCapability extends Capability {
     this.serverGrid = obj.frames;
     this.networkGrid = obj.networks ?? {};
     this.productGrid = obj.products ?? {};
-    this.nowcastGrid = this.nowcastOn ? nowcastRuns<RadarFrame>(obj.products) : {};
+    this.nowcastGrid = nowcastRuns<RadarFrame>(obj.products);
     this.serverTime = obj.server_time;
     // Only the backend knows: a replay is built to look identical from here,
     // so nothing in the frames gives it away.
@@ -1638,8 +1616,6 @@ export default class RadarCapability extends Capability {
     for (const nowcast of this.nowcasts) nowcast.destroy();
     nowcastCoverage.set(null);
     drawnEncoding.set(RVP6_ENCODING);
-    this.unsubscribeNowcast?.();
-    this.unsubscribeNowcast = null;
     this.unsubscribeProduct?.();
     this.unsubscribeProduct = null;
     this.unsubscribeLiveFrame?.();

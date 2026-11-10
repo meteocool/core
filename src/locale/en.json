@@ -94,7 +94,7 @@
   "snow": "Snow",
   "graupel": "Graupel",
   "sleet": "Sleet",
-  "lightning": "Lightning Strikes",
+  "lightning": "Live Lightning",
   "n/a": "n/a",
   "point_menu_title": "At This Location",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Playback",
     "playback_from_start": "Loop From Two Hours Back",
     "playback_from_start_hint": "Playback starts two hours before now instead of at now, so it shows how the rain got here before where it goes next.",
-    "meteocool_nowcast": "meteocool Nowcast (Experimental)",
-    "meteocool_nowcast_hint": "Forecasts the next two hours over Switzerland, France, Czechia, Poland, Belgium, Slovakia, Lithuania, Estonia, Croatia, Denmark, the Netherlands, Finland, Sweden and Norway from their own radar, as meteocool extrapolates it. Germany keeps the German Weather Service's forecast. Experimental: it may be wrong, late or missing.",
     "performance": "Performance",
     "mode": "Mode",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Locate me",
     "layer_switcher": "Map layers",
     "playback": {
-      "lightning": "Lightning Strikes",
-      "mesocyclones": "Mesocyclones",
+      "lightning": "Live Lightning",
       "cells": "Storm Cells",
       "radar_sites": "Radar Sites",
       "motion": "Rain Motion",
@@ -1031,7 +1028,6 @@
     "toast": {
       "station_gone": "That station has not reported lately."
     },
-    "title": "Weather Stations",
     "pill": "Stations",
     "toggle": "Show the weather stations",
     "observed": "Measured {time}",

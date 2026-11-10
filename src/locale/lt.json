@@ -94,7 +94,7 @@
   "snow": "Sniegas",
   "graupel": "Kruopos",
   "sleet": "Šlapdriba",
-  "lightning": "Žaibo iškrovos",
+  "lightning": "Žaibai realiu laiku",
   "n/a": "n.d.",
   "point_menu_title": "Šioje vietoje",
   "point_menu_precipitation": "Radaras",
@@ -179,8 +179,6 @@
     "playback": "Atkūrimas",
     "playback_from_start": "Kartoti nuo dviejų valandų atgal",
     "playback_from_start_hint": "Atkūrimas prasideda dvi valandas prieš dabartį, o ne nuo dabar, todėl matai, iš kur lietus atkeliavo, prieš pamatydamas, kur jis keliaus toliau.",
-    "meteocool_nowcast": "meteocool trumpalaikė prognozė (eksperimentinė)",
-    "meteocool_nowcast_hint": "Prognozuoja artimiausias dvi valandas Šveicarijoje, Prancūzijoje, Čekijoje, Lenkijoje, Belgijoje, Slovakijoje, Lietuvoje, Estijoje, Kroatijoje, Danijoje, Nyderlanduose, Suomijoje, Švedijoje ir Norvegijoje pagal jų pačių radarus, kuriuos ekstrapoliuoja meteocool. Vokietijoje lieka Vokietijos meteorologijos tarnybos prognozė. Eksperimentinė: ji gali būti klaidinga, vėluoti arba jos gali nebūti.",
     "performance": "Našumas",
     "mode": "Režimas",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Rasti mane",
     "layer_switcher": "Žemėlapio sluoksniai",
     "playback": {
-      "lightning": "Žaibo iškrovos",
-      "mesocyclones": "Mezociklonai",
+      "lightning": "Žaibai realiu laiku",
       "cells": "Audrų celės",
       "motion": "Kritulių judėjimas",
       "map_layers": "Žemėlapio sluoksniai",
@@ -960,7 +957,6 @@
     "toast": {
       "station_gone": "Ši stotis pastaruoju metu duomenų neperdavė."
     },
-    "title": "Meteorologijos stotys",
     "pill": "Stotys",
     "toggle": "Rodyti meteorologijos stotis",
     "observed": "Išmatuota {time}",

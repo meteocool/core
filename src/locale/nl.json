@@ -94,7 +94,7 @@
   "snow": "Sneeuw",
   "graupel": "Graupel",
   "sleet": "Natte sneeuw",
-  "lightning": "Blikseminslagen",
+  "lightning": "Live-bliksem",
   "n/a": "Onbekend",
   "point_menu_title": "Op deze locatie",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Afspelen",
     "playback_from_start": "Herhalen vanaf twee uur geleden",
     "playback_from_start_hint": "Het afspelen begint twee uur voor nu in plaats van bij nu, zodat je eerst ziet waar de regen vandaan kwam en dan waar hij heen gaat.",
-    "meteocool_nowcast": "meteocool-nowcast (experimenteel)",
-    "meteocool_nowcast_hint": "Voorspelt de komende twee uur boven Zwitserland, Frankrijk, Tsjechië, Polen, België, Slowakije, Litouwen, Estland, Kroatië, Denemarken, Nederland, Finland, Zweden en Noorwegen uit hun eigen radar, zoals meteocool die doortrekt. Duitsland houdt de verwachting van de Duitse weerdienst. Experimenteel: kan fout, te laat of afwezig zijn.",
     "performance": "Prestaties",
     "mode": "Modus",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Mijn locatie tonen",
     "layer_switcher": "Kaartlagen",
     "playback": {
-      "lightning": "Blikseminslagen",
-      "mesocyclones": "Mesocyclonen",
+      "lightning": "Live-bliksem",
       "cells": "Onweerscellen",
       "radar_sites": "Radarlocaties",
       "motion": "Beweging van de neerslag",
@@ -1031,7 +1028,6 @@
     "toast": {
       "station_gone": "Dat station heeft de laatste tijd niets gemeld."
     },
-    "title": "Weerstations",
     "pill": "Stations",
     "toggle": "Weerstations tonen",
     "observed": "Gemeten {time}",

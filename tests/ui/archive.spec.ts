@@ -291,10 +291,10 @@ test("in a window the overlays with no past are greyed in Settings, and back wit
   await page.goto(WINDOW_LINK);
   await settled(timeline(page));
   await page.getByRole("button", { name: "Settings" }).click();
-  for (const name of [/^Mesocyclones/, /^Radar Sites/, /^Rain Motion/]) {
+  for (const name of [/^Radar Sites/, /^Rain Motion/]) {
     await expect(page.getByRole("switch", { name })).toBeDisabled();
   }
-  for (const name of [/^Lightning Strikes/, /^Storm Cells/, /^Weather Stations/]) {
+  for (const name of [/^Live Lightning/, /^Storm Cells/]) {
     await expect(page.getByRole("switch", { name })).toBeEnabled();
   }
   await expect(page.getByText("Not kept in the archive").first()).toBeVisible();
@@ -303,6 +303,6 @@ test("in a window the overlays with no past are greyed in Settings, and back wit
   await windowPill(page).click();
   await expect(page.locator(".live-wrapper")).toHaveText("Latest");
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByRole("switch", { name: /^Mesocyclones/ })).toBeEnabled();
+  await expect(page.getByRole("switch", { name: /^Radar Sites/ })).toBeEnabled();
   await expect(page.getByText("Not kept in the archive")).toHaveCount(0);
 });

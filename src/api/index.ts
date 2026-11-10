@@ -278,7 +278,7 @@ export function fetchRadarTimeseries(
 ) {
   // The chosen product's own past, beside HX's and the networks': asked for,
   // since every frame carries its tile index (lib/observedProduct.ts). And
-  // with the experimental setting on, every network's nowcast run.
+  // outside a past window, every network's nowcast run.
   const query = {
     ...position,
     ...(products.length ? { products: [...products] } : {}),

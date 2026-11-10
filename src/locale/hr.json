@@ -94,7 +94,7 @@
   "snow": "Snijeg",
   "graupel": "Solika",
   "sleet": "Susnježica",
-  "lightning": "Udari munja",
+  "lightning": "Munje uživo",
   "n/a": "n/d",
   "point_menu_title": "Na ovoj lokaciji",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Reprodukcija",
     "playback_from_start": "Petlja od prije dva sata",
     "playback_from_start_hint": "Reprodukcija počinje dva sata prije sadašnjeg trenutka, a ne sada, pa pokazuje kako je kiša stigla ovamo prije nego što pokaže kamo ide dalje.",
-    "meteocool_nowcast": "Kratkoročna prognoza meteocool (eksperimentalno)",
-    "meteocool_nowcast_hint": "Prognozira sljedeća dva sata nad Švicarskom, Francuskom, Češkom, Poljskom, Belgijom, Slovačkom, Litvom, Estonijom, Hrvatskom, Danskom, Nizozemskom, Finskom, Švedskom i Norveškom iz njihovih vlastitih radara, kako ih ekstrapolira meteocool. Za Njemačku ostaje prognoza njemačke meteorološke službe. Eksperimentalno: može biti netočna, zakasniti ili izostati.",
     "performance": "Performanse",
     "mode": "Način rada",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Pronađi me",
     "layer_switcher": "Slojevi karte",
     "playback": {
-      "lightning": "Udari munja",
-      "mesocyclones": "Mezociklone",
+      "lightning": "Munje uživo",
       "cells": "Olujne ćelije",
       "motion": "Kretanje oborine",
       "map_layers": "Slojevi karte",
@@ -960,7 +957,6 @@
     "toast": {
       "station_gone": "Ta postaja u posljednje vrijeme nije javila podatke."
     },
-    "title": "Meteorološke postaje",
     "pill": "Postaje",
     "toggle": "Prikaži meteorološke postaje",
     "observed": "Izmjereno {time}",

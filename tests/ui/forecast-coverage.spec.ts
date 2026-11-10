@@ -1,11 +1,13 @@
+import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
 import { openRadar, playButton, timeline } from "./app";
+import { fixtureFile, type RecordedResponse } from "./offline";
 
 /**
  * Where the screen has radar but no forecast. Over Aquitaine Météo-France's
- * radar draws the present, and with meteocool's own nowcast turned off
- * (nowcast.spec.ts has it on), DWD's forecast, the only one, does not reach.
+ * radar draws the present, and with the recording's nowcast runs taken out
+ * (nowcast.spec.ts puts one in), DWD's forecast, the only one, does not reach.
  */
 const AQUITAINE_VIEW = "/?layer=radar&latLonZ=44.80000,-0.60000,8.00";
 /** Champagne, DWD's reach coming in from the right: most of the screen has no forecast, some of it does. */
@@ -16,7 +18,12 @@ const GERMANY_VIEW = "/?layer=radar&latLonZ=50.50000,10.00000,8.00";
 const noForecastNotice = (page: Page) => page.getByText("No Forecast Here");
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("meteocoolNowcast", "false"));
+  await page.route("**/v3/radar/timeseries*", (route) => {
+    const recorded = JSON.parse(readFileSync(fixtureFile("GET", new URL(route.request().url())), "utf8")) as RecordedResponse;
+    const answer = structuredClone(recorded.json) as { products?: Record<string, unknown> };
+    for (const key of Object.keys(answer.products ?? {})) if (key.startsWith("nowcast_")) delete answer.products![key];
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(answer) });
+  });
 });
 
 const stepIndex = async (page: Page): Promise<number> => Number(await timeline(page).getAttribute("aria-valuenow"));

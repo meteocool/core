@@ -94,7 +94,7 @@
   "snow": "Sneh",
   "graupel": "Snehové krúpky",
   "sleet": "Snehový dážď",
-  "lightning": "Blesky",
+  "lightning": "Blesky naživo",
   "n/a": "n/a",
   "point_menu_title": "Na tomto mieste",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Prehrávanie",
     "playback_from_start": "Opakovať od času pred dvoma hodinami",
     "playback_from_start_hint": "Prehrávanie sa začína dve hodiny pred súčasnosťou namiesto od teraz, takže najprv ukáže, odkiaľ dážď prišiel, a potom kam smeruje.",
-    "meteocool_nowcast": "Nowcast meteocool (experimentálny)",
-    "meteocool_nowcast_hint": "Predpovedá nasledujúce dve hodiny nad Švajčiarskom, Francúzskom, Českom, Poľskom, Belgickom, Slovenskom, Litvou, Estónskom, Chorvátskom, Dánskom, Holandskom, Fínskom, Švédskom a Nórskom z ich vlastného radaru, ako ho meteocool extrapoluje. Nemecko si ponecháva predpoveď nemeckej meteorologickej služby. Experimentálny: môže byť chybný, oneskorený alebo chýbať.",
     "performance": "Výkon",
     "mode": "Režim",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Zobraziť polohu",
     "layer_switcher": "Vrstvy mapy",
     "playback": {
-      "lightning": "Blesky",
-      "mesocyclones": "Mezocyklóny",
+      "lightning": "Blesky naživo",
       "cells": "Búrkové bunky",
       "radar_sites": "Radarové stanovištia",
       "motion": "Pohyb zrážok",
@@ -899,7 +896,7 @@
       "meso": "Mezocyklóny",
       "meso_from": "súbor mezocyklón DWD",
       "meso_how": "Zobrazujú sa tak, ako sú zverejnené.",
-      "lightning": "Blesky",
+      "lightning": "Blesky naživo",
       "lightning_from": "Blitzortung",
       "lightning_how": "Údery prichádzajú jednotlivo a hneď sa zobrazia. Dlaždice bleskov sa prestavujú každých päť minút."
     },
@@ -1031,7 +1028,6 @@
     "toast": {
       "station_gone": "Táto stanica v poslednom čase nič nehlásila."
     },
-    "title": "Meteostanice",
     "pill": "Stanice",
     "toggle": "Zobraziť meteostanice",
     "observed": "Namerané {time}",

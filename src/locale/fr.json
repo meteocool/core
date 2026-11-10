@@ -94,7 +94,7 @@
   "snow": "Neige",
   "graupel": "Graupel",
   "sleet": "Neige fondue",
-  "lightning": "Impacts de foudre",
+  "lightning": "Foudre en direct",
   "n/a": "n/d",
   "point_menu_title": "À cet endroit",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Lecture",
     "playback_from_start": "Boucle depuis il y a deux heures",
     "playback_from_start_hint": "La lecture commence deux heures avant maintenant plutôt que maintenant : elle montre d'où vient la pluie avant de montrer où elle va.",
-    "meteocool_nowcast": "Nowcast meteocool (expérimental)",
-    "meteocool_nowcast_hint": "Prévoit les deux heures à venir sur la Suisse, la France, la Tchéquie, la Pologne, la Belgique, la Slovaquie, la Lituanie, l'Estonie, la Croatie, le Danemark, les Pays-Bas, la Finlande, la Suède et la Norvège à partir de leur propre radar, extrapolé par meteocool. L'Allemagne garde la prévision du service météorologique allemand. Expérimental : peut être faux, en retard ou absent.",
     "performance": "Performances",
     "mode": "Mode",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Me localiser",
     "layer_switcher": "Couches de la carte",
     "playback": {
-      "lightning": "Impacts de foudre",
-      "mesocyclones": "Mésocyclones",
+      "lightning": "Foudre en direct",
       "cells": "Cellules orageuses",
       "radar_sites": "Sites radar",
       "motion": "Déplacement des précipitations",
@@ -1031,7 +1028,6 @@
     "toast": {
       "station_gone": "Cette station n’a rien transmis récemment."
     },
-    "title": "Stations météo",
     "pill": "Stations",
     "toggle": "Afficher les stations météo",
     "observed": "Mesuré à {time}",

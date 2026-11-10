@@ -5,8 +5,7 @@ import { openRadar, playButton, timeline } from "./app";
 import { fixtureFile, type RecordedResponse } from "./offline";
 
 /**
- * meteocool's own nowcast outside Germany, behind the experimental setting
- * (lib/nowcast.ts). The timeseries is answered here with the recording's
+ * meteocool's own nowcast outside Germany (lib/nowcast.ts). The timeseries is answered here with the recording's
  * runs taken out and a French one put in: an hour of leads from the first
  * forecast step, a run still being made, shaped as WN's steps are, as the
  * API sends it with `products=nowcast`.
@@ -62,7 +61,7 @@ async function answerWithRun(page: Page, leads = () => RUN_LEADS): Promise<strin
   return asked;
 }
 
-test("on by default: it is asked for, and France has a forecast to its run's last lead", async ({ page }) => {
+test("it is always asked for, and France has a forecast to its run's last lead", async ({ page }) => {
   const asked = await answerWithRun(page);
   await openRadar(page, AQUITAINE_VIEW);
   expect(asked.length).toBeGreaterThan(0);
@@ -90,23 +89,4 @@ test("while a run is a step behind WN's last, the player stops where the run doe
   await timeline(page).focus();
   await page.keyboard.press("End");
   await expect(noForecastNotice(page)).toBeHidden();
-});
-
-test("turned off, it is not asked for, remembered, and France has no forecast", async ({ page }) => {
-  const asked = await answerWithRun(page);
-  await openRadar(page, AQUITAINE_VIEW);
-  await page.getByRole("button", { name: "Settings" }).click();
-  const toggle = page.getByRole("switch", { name: "meteocool Nowcast (Experimental)" });
-  await expect(toggle).toBeChecked();
-  await toggle.uncheck();
-  expect(await page.evaluate(() => localStorage.getItem("meteocoolNowcast"))).toBe("false");
-  await page.keyboard.press("Escape");
-
-  const before = asked.length;
-  await page.reload();
-  await expect(timeline(page)).toBeVisible({ timeout: 30_000 });
-  await expect.poll(() => asked.length).toBeGreaterThan(before);
-  expect(asked.slice(before).every((products) => !products.includes("nowcast"))).toBe(true);
-  await step(page, 3);
-  await expect(noForecastNotice(page)).toBeVisible();
 });

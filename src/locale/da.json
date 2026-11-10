@@ -94,7 +94,7 @@
   "snow": "Sne",
   "graupel": "Snehagl",
   "sleet": "Slud",
-  "lightning": "Lynnedslag",
+  "lightning": "Lyn live",
   "n/a": "i/t",
   "point_menu_title": "På dette sted",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Afspilning",
     "playback_from_start": "Afspil fra to timer tilbage",
     "playback_from_start_hint": "Afspilningen starter to timer før nu i stedet for ved nu, så du ser, hvordan regnen kom hertil, før du ser, hvor den skal hen.",
-    "meteocool_nowcast": "meteocool-korttidsprognose (eksperimentel)",
-    "meteocool_nowcast_hint": "Forudsiger de næste to timer over Schweiz, Frankrig, Tjekkiet, Polen, Belgien, Slovakiet, Litauen, Estland, Kroatien, Danmark, Nederlandene, Finland, Sverige og Norge ud fra landenes egen radar, sådan som meteocool fremskriver den. Tyskland beholder den tyske vejrtjenestes prognose. Eksperimentel: den kan være forkert, forsinket eller mangle.",
     "performance": "Ydeevne",
     "mode": "Tilstand",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Find min placering",
     "layer_switcher": "Kortlag",
     "playback": {
-      "lightning": "Lynnedslag",
-      "mesocyclones": "Mesocykloner",
+      "lightning": "Lyn live",
       "cells": "Uvejrsceller",
       "motion": "Nedbørens bevægelse",
       "map_layers": "Kortlag",
@@ -960,7 +957,6 @@
     "toast": {
       "station_gone": "Den station har ikke meldt noget for nylig."
     },
-    "title": "Vejrstationer",
     "pill": "Stationer",
     "toggle": "Vis vejrstationer",
     "observed": "Målt {time}",

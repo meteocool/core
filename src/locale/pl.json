@@ -94,7 +94,7 @@
   "snow": "Śnieg",
   "graupel": "Krupa",
   "sleet": "Śnieg z deszczem",
-  "lightning": "Wyładowania",
+  "lightning": "Wyładowania na żywo",
   "n/a": "n/d",
   "point_menu_title": "W tym miejscu",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Odtwarzanie",
     "playback_from_start": "Pętla od dwóch godzin wstecz",
     "playback_from_start_hint": "Odtwarzanie zaczyna się dwie godziny przed chwilą obecną zamiast od teraz, więc najpierw widać, skąd przyszedł deszcz, a potem dokąd zmierza.",
-    "meteocool_nowcast": "Nowcast meteocool (eksperymentalny)",
-    "meteocool_nowcast_hint": "Prognozuje najbliższe dwie godziny nad Szwajcarią, Francją, Czechami, Polską, Belgią, Słowacją, Litwą, Estonią, Chorwacją, Danią, Holandią, Finlandią, Szwecją i Norwegią na podstawie ich własnego radaru, ekstrapolowanego przez meteocool. Niemcy zachowują prognozę niemieckiej służby meteorologicznej. Eksperymentalny: może być błędny, spóźniony lub go zabraknąć.",
     "performance": "Wydajność",
     "mode": "Tryb",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Zlokalizuj mnie",
     "layer_switcher": "Warstwy mapy",
     "playback": {
-      "lightning": "Wyładowania",
-      "mesocyclones": "Mezocyklony",
+      "lightning": "Wyładowania na żywo",
       "cells": "Komórki burzowe",
       "radar_sites": "Stacje radarowe",
       "motion": "Ruch opadów",
@@ -899,7 +896,7 @@
       "meso": "Mezocyklony",
       "meso_from": "plik mezocyklonów DWD",
       "meso_how": "Pokazywane tak, jak są publikowane.",
-      "lightning": "Wyładowania",
+      "lightning": "Wyładowania na żywo",
       "lightning_from": "Blitzortung",
       "lightning_how": "Wyładowania przychodzą pojedynczo i pojawiają się od razu. Kafelki wyładowań są przebudowywane co pięć minut."
     },
@@ -1031,7 +1028,6 @@
     "toast": {
       "station_gone": "Ta stacja ostatnio nie przesłała danych."
     },
-    "title": "Stacje pogodowe",
     "pill": "Stacje",
     "toggle": "Pokaż stacje pogodowe",
     "observed": "Pomiar {time}",

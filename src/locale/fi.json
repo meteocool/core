@@ -94,7 +94,7 @@
   "snow": "Lumi",
   "graupel": "Lumirae",
   "sleet": "Räntä",
-  "lightning": "Salamat",
+  "lightning": "Reaaliaikaiset salamat",
   "n/a": "Ei tietoa",
   "point_menu_title": "Tässä paikassa",
   "point_menu_precipitation": "Tutka",
@@ -179,8 +179,6 @@
     "playback": "Toisto",
     "playback_from_start": "Toista kahden tunnin takaa",
     "playback_from_start_hint": "Toisto alkaa kaksi tuntia ennen nykyhetkeä eikä nykyhetkestä, joten näet ensin, miten sade tuli tänne, ja sitten, minne se menee seuraavaksi.",
-    "meteocool_nowcast": "meteocoolin lähiennuste (kokeellinen)",
-    "meteocool_nowcast_hint": "Ennustaa seuraavat kaksi tuntia Sveitsin, Ranskan, Tšekin, Puolan, Belgian, Slovakian, Liettuan, Viron, Kroatian, Tanskan, Alankomaiden, Suomen, Ruotsin ja Norjan alueella niiden omasta tutkasta, sellaisena kuin meteocool sitä jatkaa eteenpäin. Saksassa käytetään edelleen Saksan sääpalvelun (DWD) ennustetta. Kokeellinen: ennuste voi olla väärä, myöhässä tai puuttua kokonaan.",
     "performance": "Suorituskyky",
     "mode": "Tila",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Paikanna minut",
     "layer_switcher": "Karttatasot",
     "playback": {
-      "lightning": "Salamat",
-      "mesocyclones": "Mesosyklonit",
+      "lightning": "Reaaliaikaiset salamat",
       "cells": "Ukkossolut",
       "motion": "Sateen liike",
       "map_layers": "Karttatasot",
@@ -898,7 +895,7 @@
       "meso": "Mesosyklonimerkinnät",
       "meso_from": "DWD:n mesosyklonitiedosto",
       "meso_how": "Näytetään sellaisina kuin ne julkaistaan.",
-      "lightning": "Salamat",
+      "lightning": "Reaaliaikaiset salamat",
       "lightning_from": "Blitzortung",
       "lightning_how": "Salamat saapuvat yksitellen ja näkyvät heti. Salamatiilet luodaan uudelleen viiden minuutin välein."
     },
@@ -960,7 +957,6 @@
     "toast": {
       "station_gone": "Tämä asema ei ole raportoinut viime aikoina."
     },
-    "title": "Sääasemat",
     "pill": "Asemat",
     "toggle": "Näytä sääasemat",
     "observed": "Mitattu {time}",

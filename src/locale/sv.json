@@ -94,7 +94,7 @@
   "snow": "Snö",
   "graupel": "Trindsnö",
   "sleet": "Snöblandat regn",
-  "lightning": "Blixtnedslag",
+  "lightning": "Blixtar i realtid",
   "n/a": "saknas",
   "point_menu_title": "På den här platsen",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Uppspelning",
     "playback_from_start": "Loopa från två timmar bakåt",
     "playback_from_start_hint": "Uppspelningen börjar två timmar före nu i stället för vid nu, så att den visar hur regnet kom hit innan den visar vart det tar vägen.",
-    "meteocool_nowcast": "meteocools korttidsprognos (experimentell)",
-    "meteocool_nowcast_hint": "Förutsäger de kommande två timmarna över Schweiz, Frankrike, Tjeckien, Polen, Belgien, Slovakien, Litauen, Estland, Kroatien, Danmark, Nederländerna, Finland, Sverige och Norge utifrån ländernas egen radar, så som meteocool extrapolerar den. Tyskland behåller den tyska vädertjänstens prognos. Experimentell: den kan vara fel, sen eller saknas.",
     "performance": "Prestanda",
     "mode": "Läge",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Visa min plats",
     "layer_switcher": "Kartlager",
     "playback": {
-      "lightning": "Blixtnedslag",
-      "mesocyclones": "Mesocykloner",
+      "lightning": "Blixtar i realtid",
       "cells": "Åskceller",
       "motion": "Nederbördens rörelse",
       "map_layers": "Kartlager",
@@ -960,7 +957,6 @@
     "toast": {
       "station_gone": "Den stationen har inte rapporterat på sistone."
     },
-    "title": "Väderstationer",
     "pill": "Stationer",
     "toggle": "Visa väderstationer",
     "observed": "Uppmätt {time}",

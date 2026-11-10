@@ -3,7 +3,7 @@
  *
  * WN is DWD's, so on a forecast step everywhere outside DWD's reach is
  * washed out, even where another network shows the present, unless
- * meteocool's experimental nowcast has a run there (lib/nowcast.ts). Over
+ * meteocool's own nowcast has a run there (lib/nowcast.ts). Over
  * France or Poland that reads as "no rain coming" when the truth is "no
  * forecast here". The player says so only when none of the screen has a
  * forecast: any of it covered, and the forecast shows where it reaches.

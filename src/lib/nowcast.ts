@@ -1,14 +1,12 @@
 /**
- * meteocool's own nowcast outside Germany, behind the
- * experimental "meteocool nowcast" setting.
+ * meteocool's own nowcast outside Germany.
  *
  * Each network around DWD but Ireland's (`NOWCAST_DOMAINS`) has a run of its
  * own: up to 24 leads, five to 120 minutes, on the timeline's own steps.
  * `/v3/radar/timeseries?products=nowcast` answers them under `products` as
  * `nowcast_<domain>`, each keyed by the step a lead is valid at and shaped as
  * WN's steps are in `frames`. A network without a fresh run is absent.
- * Germany's run is never served: WN is Germany's forecast, with the setting
- * on or off.
+ * Germany's run is never served: WN is Germany's forecast.
  *
  * Pure, with no store and no clock: RadarCapability holds the runs and draws
  * them, the player reads what it publishes.

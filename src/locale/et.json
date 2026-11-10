@@ -94,7 +94,7 @@
   "snow": "Lumi",
   "graupel": "Lumekruubid",
   "sleet": "Lörts",
-  "lightning": "Välgulöögid",
+  "lightning": "Välk reaalajas",
   "n/a": "puudub",
   "point_menu_title": "Selles kohas",
   "point_menu_precipitation": "Radar",
@@ -179,8 +179,6 @@
     "playback": "Taasesitus",
     "playback_from_start": "Kordus alates kahe tunni tagusest",
     "playback_from_start_hint": "Taasesitus algab praeguse hetke asemel kaks tundi tagasi, nii et näed enne, kuidas vihm siia jõudis, ja alles siis, kuhu see edasi liigub.",
-    "meteocool_nowcast": "meteocooli lühiprognoos (katseline)",
-    "meteocool_nowcast_hint": "Prognoosib järgmist kahte tundi Šveitsi, Prantsusmaa, Tšehhi, Poola, Belgia, Slovakkia, Leedu, Eesti, Horvaatia, Taani, Hollandi, Soome, Rootsi ja Norra kohal nende oma radariandmete põhjal, nii nagu meteocool neid ekstrapoleerib. Saksamaal jääb kehtima Saksa ilmateenistuse prognoos. Katseline: see võib olla vale, hilineda või puududa.",
     "performance": "Jõudlus",
     "mode": "Režiim",
     "modes": {
@@ -502,8 +500,7 @@
     "locate_me": "Leia mind",
     "layer_switcher": "Kaardikihid",
     "playback": {
-      "lightning": "Välgulöögid",
-      "mesocyclones": "Mesotsüklonid",
+      "lightning": "Välk reaalajas",
       "cells": "Äikeserakud",
       "motion": "Sademete liikumine",
       "map_layers": "Kaardikihid",
@@ -960,7 +957,6 @@
     "toast": {
       "station_gone": "See jaam pole viimasel ajal andmeid saatnud."
     },
-    "title": "Ilmajaamad",
     "pill": "Jaamad",
     "toggle": "Näita ilmajaamu",
     "observed": "Mõõdetud {time}",
