@@ -27,7 +27,11 @@ const boxes = (page: Page) => page.evaluate(() => {
 test("boxes of storms a scan behind the radar are greyed, the rest in colour", async ({ page }) => {
   await volumesBehind(page, "fr");
   await open3d(page, BORDER_3D);
-  await expect.poll(async () => Object.keys((await boxes(page)) ?? {}).length, { timeout: 20_000 }).toBeGreaterThan(1);
+  // Both networks' boxes in, whichever comes first: Germany's may be the other one.
+  await expect.poll(async () => {
+    const tally = await boxes(page);
+    return Boolean(tally?.fr && tally?.ch);
+  }, { timeout: 20_000 }).toBe(true);
   const tally = (await boxes(page))!;
   expect(tally.fr.greyed).toBeGreaterThan(0);
   expect(tally.fr.colour).toBe(0);

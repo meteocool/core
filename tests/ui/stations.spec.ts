@@ -105,17 +105,27 @@ test("choosing a parameter asks for that parameter alone, and the choice is reme
 test("a past frame asks for the stations at its time, and back to now for the newest", async ({ page }) => {
   expect(askedAt(await openWithStations(page))).toBeNull();
 
-  const past = page.waitForRequest(asksFor);
+  // Every time asked, in order. Keys pressed further apart than the request's
+  // debounce, as on a busy machine, ask for the steps passed through too, and
+  // the last of those can go out after "Back to now" is pressed.
+  const asked: (string | null)[] = [];
+  page.on("request", (request) => { if (asksFor(request)) asked.push(askedAt(request)); });
+  const from = Number(await timeline(page).getAttribute("aria-valuenow"));
   await timeline(page).focus();
   for (let i = 0; i < 3; i += 1) await page.keyboard.press("ArrowLeft");
-  const at = askedAt(await past);
-  expect(at).not.toBeNull();
-  // The frame on screen, as the address bar names it.
-  await expect.poll(() => new URL(page.url()).searchParams.get("t")).toBe(asFrame(at!));
+  await expect(timeline(page)).toHaveAttribute("aria-valuenow", String(from - 3));
+  // The frame on screen, as the address bar names it (which follows the
+  // needle a moment later), and the stations last asked for at it.
+  await expect.poll(() => {
+    const at = asked[asked.length - 1];
+    const frame = new URL(page.url()).searchParams.get("t");
+    return Boolean(at && frame && asFrame(at) === frame);
+  }).toBe(true);
 
-  const live = page.waitForRequest(asksFor);
+  const before = asked.length;
   await page.getByRole("button", { name: "Back to now" }).click();
-  expect(askedAt(await live)).toBeNull();
+  // Whatever a past step still had on its way, the last asked for is the newest.
+  await expect.poll(() => asked.length > before && asked[asked.length - 1] === null).toBe(true);
 });
 
 test("a forecast frame asks for nothing new and greys the newest stations, which no station has measured", async ({ page }) => {

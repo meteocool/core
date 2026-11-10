@@ -150,6 +150,18 @@ const UPLOAD_AHEAD = uploadAheadSteps();
 let seekTo: number | null = null;
 
 /**
+ * The second park, pending. A reader who moves the needle before it runs
+ * has put it where they want it: on a slow device the timer can come late,
+ * and would throw their first steps back to live.
+ */
+let parkTimer: number | undefined;
+function cancelPark() {
+  window.clearTimeout(parkTimer);
+  parkTimer = undefined;
+  seekTo = null;
+}
+
+/**
  * The step the player is on, unix seconds: what the needle sits on and what
  * a playback tick advances. Zero until the player has been opened.
  */
@@ -588,7 +600,9 @@ const fsm = new StateMachine({
         shown = liveEdge;
       };
       park();
-      setTimeout(() => {
+      window.clearTimeout(parkTimer);
+      parkTimer = window.setTimeout(() => {
+        parkTimer = undefined;
         park();
         seekTo = null;
       }, 200);
@@ -938,6 +952,7 @@ function released() {
 
 /** The needle has reached another step. */
 function seek(event: CustomEvent<number>) {
+  cancelPark();
   shown = event.detail;
   sliderChangedHandler(event.detail, true);
 }
@@ -985,6 +1000,7 @@ onDestroy(() => {
   if (playTimeout !== 0) window.clearTimeout(playTimeout);
   stopWaiting();
   window.clearTimeout(backToLiveTimer);
+  window.clearTimeout(parkTimer);
   headObserver?.disconnect();
   document.documentElement.classList.remove("plot-dry");
   cap.stopPreload();
