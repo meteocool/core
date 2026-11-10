@@ -75,10 +75,12 @@ import type { Ink } from "../lib/rvp6";
 
 /**
  * How long a step of playback fades from the frame before, in milliseconds:
- * the first two fifths of the player's 450 ms a frame, so the picture rests
- * on each frame for most of its time. 0 cuts.
+ * the whole of the player's 450 ms a frame, so the picture is always on its
+ * way from one frame to the next rather than resting on each. The layer
+ * redraws every animation frame while it fades, so while playing it draws
+ * continuously. 0 cuts.
  */
-export const CROSSFADE_MS = 180;
+export const CROSSFADE_MS = 450;
 
 /** How many tiles a layer loads at once for the frames it draws: OpenLayers' own queue had sixteen. */
 const MAX_LOADING = 8;
