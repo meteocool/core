@@ -11,7 +11,9 @@
  *   `/storms`); a box of sky by its patch, among the features of the few
  *   storms nearest it, fetched in full. One no storm claims stays a seed;
  * - a storm known by id is fetched in full (`/storms/{id}`), and again when
- *   its list copy shows it has moved on, or a `storms` event says so;
+ *   its list copy shows it has moved on, or a `storms` event says so. The
+ *   last detail of each storm is kept, so one reopened shows its history at
+ *   once rather than an empty panel while (or instead of) it is asked again;
  * - a storm with no volume yet gets the one cut from its newest patch, of
  *   the volumes listed now (`offerVolumes`), so its panel can cut it open on
  *   the flat map as well.
@@ -19,11 +21,11 @@
  * Each answer is applied only to the selection it was asked for.
  */
 import { get } from "svelte/store";
-import { fetchStorm, fetchStorms, quietly } from "../api";
+import { fetchStorm, fetchStorms, NothingPublished, quietly } from "../api";
 import type { Progress, RadarVolume, Storm, StormDetail } from "../api";
 import { selectedStorm } from "../stores";
 import {
-  holdsFeature, lookupOf, nearestStorms, positionOf, selectionKey, stormClaiming, volumeOfStorm, withDetail,
+  holdsFeature, keepHistory, lookupOf, nearestStorms, positionOf, selectionKey, stormClaiming, volumeOfStorm, withDetail,
   withStorm,
 } from "./stormSelection";
 import type { StormSelection } from "./stormSelection";
@@ -87,8 +89,20 @@ async function stormsAround([lon, lat]: [number, number]): Promise<Storm[]> {
 export function startStormResolver(nanobar?: Progress): { refresh: () => void; stop: () => void } {
   /** Lookups and fetches already asked, by what they were for, so nothing is asked twice. */
   const asked = new Set<string>();
-  /** The `last_seen` each held detail was fetched at, so a newer list copy fetches it again. */
-  const detailSeen = new Map<string, string>();
+  /**
+   * The newest detail of each storm opened, by id: what a storm reopened
+   * shows at once, and whose `last_seen` says whether a newer list copy needs
+   * it fetched again. A storm's history only grows, so an older detail is
+   * never worse than none.
+   */
+  const details = new Map<string, StormDetail>();
+
+  function remember(detail: StormDetail) {
+    const id = detail.storm.properties.id;
+    const held = details.get(id);
+    if (held && held.storm.properties.last_seen > detail.storm.properties.last_seen) return;
+    details.set(id, held ? keepHistory(detail, held) : detail);
+  }
 
   /** Apply what was found for a seed, if that seed is still what is selected. */
   function found(key: string, storm: Storm, detail: StormDetail | null) {
@@ -97,7 +111,7 @@ export function startStormResolver(nanobar?: Progress): { refresh: () => void; s
       const resolved = withStorm(current, storm);
       return detail ? withDetail(resolved, detail) : resolved;
     });
-    if (detail) detailSeen.set(storm.properties.id, detail.storm.properties.last_seen);
+    if (detail) remember(detail);
   }
 
   async function resolve(selection: StormSelection) {
@@ -140,12 +154,14 @@ export function startStormResolver(nanobar?: Progress): { refresh: () => void; s
     let detail: StormDetail;
     try {
       detail = await fetchStorm(id, nanobar);
-    } catch {
+    } catch (error) {
       // Gone from the working set, or not served: the panel says what the
-      // list copy or the seed can.
+      // list copy or the seed can. A request that failed is asked again the
+      // next time the selection changes, as a storm that is gone is not.
+      if (!(error instanceof NothingPublished)) asked.delete(key);
       return;
     }
-    detailSeen.set(id, detail.storm.properties.last_seen);
+    remember(detail);
     selectedStorm.update((current) => withDetail(current, detail));
     const current = get(selectedStorm);
     if (current?.id === id && !current.volume) attachVolume(current);
@@ -157,8 +173,21 @@ export function startStormResolver(nanobar?: Progress): { refresh: () => void; s
       void resolve(selection);
       return;
     }
+    const { id } = selection;
+    if (selection.detail) remember(selection.detail);
+    const held = details.get(id);
+    if (!selection.detail && held) {
+      // Reopened: the history it had, at once. Under the list copy's header,
+      // which may be newer; that makes the next step ask for a newer detail.
+      selectedStorm.update((current) => {
+        if (current?.id !== id || current.detail) return current;
+        const shown = withDetail(current, held);
+        return shown && current.summary ? { ...shown, summary: current.summary } : shown;
+      });
+      return;
+    }
     const seen = selection.summary?.properties.last_seen ?? "";
-    const fetchedAt = detailSeen.get(selection.id);
+    const fetchedAt = held?.storm.properties.last_seen;
     if (!selection.detail || (fetchedAt !== undefined && seen > fetchedAt)) {
       void fetchDetail(selection.id, seen);
     }

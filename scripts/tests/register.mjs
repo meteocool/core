@@ -12,11 +12,14 @@ import { registerHooks } from "node:module";
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier)) {
-      try {
-        return nextResolve(`${specifier}.ts`, context);
-      } catch {
-        // Not a TypeScript sibling; fall through to Node's own answer, whose
-        // error message is the more useful one.
+      // A sibling module, or a directory's index (`../api`).
+      for (const candidate of [`${specifier}.ts`, `${specifier}/index.ts`]) {
+        try {
+          return nextResolve(candidate, context);
+        } catch {
+          // Not this one; fall through to Node's own answer, whose error
+          // message is the more useful one.
+        }
       }
     }
     // OpenLayers' modules are imported by path the same way (`ol/proj`), and
@@ -30,5 +33,18 @@ registerHooks({
       return { ...nextResolve(specifier, { ...context, importAttributes }), importAttributes };
     }
     return nextResolve(specifier, context);
+  },
+  /*
+   * Vite fills `import.meta.env`; Node leaves it undefined, so a module that
+   * reads `import.meta.env.DEV` at the top (urls.ts, and everything that
+   * reaches the API client through it) throws on import. Under test it is an
+   * empty production build's: nothing set, not DEV.
+   */
+  load(url, context, nextLoad) {
+    const loaded = nextLoad(url, context);
+    if (!url.includes("/src/") || loaded.source == null) return loaded;
+    const source = String(loaded.source);
+    if (!source.includes("import.meta.env")) return loaded;
+    return { ...loaded, source: source.replaceAll("import.meta.env", "(import.meta.env ?? {})") };
   },
 });

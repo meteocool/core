@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  byId, claimsCell, existedBy, fromStorm, headingOf, holdsFeature, isResolution, knowsSeverity, lookupOf, mergedInto,
+  byId, claimsCell, existedBy, fromStorm, headingOf, holdsFeature, isResolution, keepHistory, knowsSeverity, lookupOf,
+  mergedInto,
   nearestStorms, newestPatches, outlineOf, positionOf, primaryCell, selectionKey, sourcesOf, stormClaiming, stormSource,
   trackerSeries,
   volumeOfStorm, withCell, withDetail, withStorm, withVolume,
@@ -298,4 +299,26 @@ test("the panel names every source behind a storm, the one its readings are from
 test("a seed cell is DWD's, a box of sky meteocool's", () => {
   assert.deepEqual(sourcesOf(withCell(null, cell("K1"))), ["dwd"]);
   assert.deepEqual(sourcesOf(withVolume(null, volume("v1"))), ["meteocool"]);
+});
+
+test("a newer detail without history keeps the older one's", () => {
+  const of = storm(A);
+  const older = detail(of, {
+    tracks: [trackerTrack("t1", [feature("core-1", -5), feature("core-2", 0)])],
+    konrad3d: [trackFeature(cell("C1"))],
+  });
+  const kept = keepHistory(detail(of), older);
+  assert.equal(kept.tracks?.[0].features?.length, 2);
+  assert.equal(kept.konrad3d?.[0].properties.code, "C1");
+  // Through the selection too: the panel's history does not empty on a refresh.
+  const open = withDetail(fromStorm(of), older)!;
+  assert.equal(withDetail(open, detail(of))!.detail?.tracks?.length, 1);
+});
+
+test("a newer detail with history replaces the older one's, and another storm's is never mixed in", () => {
+  const older = detail(storm(A), { tracks: [trackerTrack("t1", [feature("core-1", -5)])] });
+  const newer = detail(storm(A), { tracks: [trackerTrack("t1", [feature("core-1", -5), feature("core-2", 0)])] });
+  assert.equal(keepHistory(newer, older), newer);
+  const other = detail(storm(B));
+  assert.equal(keepHistory(other, older), other);
 });

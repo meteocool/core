@@ -147,8 +147,9 @@ export function primaryCell(detail: StormDetail): CellTrackProperties | null {
  * the cell a seed was), refreshed from the detail's copy; otherwise the
  * storm's own. A detail for a storm no longer selected changes nothing.
  */
-export function withDetail(current: StormSelection | null, detail: StormDetail): StormSelection | null {
-  if (!current || current.id !== detail.storm.id) return current;
+export function withDetail(current: StormSelection | null, fresh: StormDetail): StormSelection | null {
+  if (!current || current.id !== fresh.storm.id) return current;
+  const detail = current.detail ? keepHistory(fresh, current.detail) : fresh;
   const cells = (detail.konrad3d ?? []).map((cell) => cell.properties);
   const shown = current.cell ? cells.find((cell) => cell.code === current.cell!.code) : undefined;
   let cell: CellTrackProperties | null;
@@ -156,6 +157,29 @@ export function withDetail(current: StormSelection | null, detail: StormDetail):
   else if (current.cell && claimsCell(current, current.cell.code)) cell = current.cell;
   else cell = primaryCell(detail);
   return { ...current, summary: detail.storm, detail, cell };
+}
+
+/**
+ * A newer detail of a storm, keeping the history an older one had where the
+ * newer has none.
+ *
+ * A storm that has history does not lose it; a detail that comes back
+ * without its tracker tracks' features or its KONRAD3D tracks is one caught
+ * before the newest scan's tracks were written, or past the hour the features
+ * are kept for. Either way the older history is the better answer than an
+ * empty panel. Not for another storm's detail.
+ */
+export function keepHistory(fresh: StormDetail, previous: StormDetail): StormDetail {
+  if (fresh.storm.id !== previous.storm.id) return fresh;
+  const hasFeatures = (detail: StormDetail) => (detail.tracks ?? []).some((track) => (track.features ?? []).length);
+  const keepTracks = !hasFeatures(fresh) && hasFeatures(previous);
+  const keepCells = !(fresh.konrad3d ?? []).length && (previous.konrad3d ?? []).length > 0;
+  if (!keepTracks && !keepCells) return fresh;
+  return {
+    ...fresh,
+    tracks: keepTracks ? previous.tracks : fresh.tracks,
+    konrad3d: keepCells ? previous.konrad3d : fresh.konrad3d,
+  };
 }
 
 /** What a seed is looked up by, or null when the selection is not a seed. */
