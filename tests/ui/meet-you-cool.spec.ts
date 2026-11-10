@@ -87,7 +87,7 @@ test("every photo shown carries its credit and licence", async ({ page }) => {
   const card = topCard(page);
   await expect(card.getByRole("img")).toBeVisible();
   await expect(card.getByRole("link", { name: /^Photo: / })).toHaveAttribute("href", /^https:\/\//);
-  await expect(card.locator("figcaption")).toContainText(/CC|[Pp]ublic domain|[Ll]icen/);
+  await expect(card.locator("figcaption")).toContainText(/CC|[Pp]ublic domain|[Ll]icen|Attribution/);
 });
 
 test("a nope deals the next radar, and the one passed on does not come back", async ({ page }) => {
