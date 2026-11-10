@@ -433,7 +433,7 @@ export default class RadarCapability extends Capability {
       // place, with nothing reloaded and the grid neither refetched nor
       // re-announced.
       setDwdCmap(colorScheme, ink);
-      for (const network of [...this.networks, ...Object.values(this.wholes), this.around, ...this.nowcasts]) {
+      for (const network of this.networkLayers()) {
         network.setPalette(colorScheme, ink);
       }
     });
@@ -966,10 +966,20 @@ export default class RadarCapability extends Capability {
    * outdated warning with it. Here both are flags and the opacity is computed
    * from them, so they combine. Stale radar being inspected is dimmer still,
    * and each is undone only by its own cause.
+   *
+   * The popup fades every network's composite as it fades DWD's: a storm in
+   * France fading only Germany reads as Germany's radar being in doubt.
    */
   private applyRadarOpacity() {
     const base = (this.stale ? STALE_OPACITY : NOWCAST_OPACITY) * this.dim;
-    this.layer?.setOpacity(this.inspecting ? base * INSPECT_OPACITY : base);
+    const fade = this.inspecting ? INSPECT_OPACITY : 1;
+    this.layer?.setOpacity(base * fade);
+    for (const network of this.networkLayers()) network.setFade(fade);
+  }
+
+  /** Every network's layer: each country's, the wholes', the one around DWD's and the nowcasts'. */
+  private networkLayers(): NetworkRadarLayer[] {
+    return [...this.networks, ...Object.values(this.wholes), this.around, ...this.nowcasts];
   }
 
   /** Each network's newest composite, where it is fresh enough to draw: what the live step shows. */

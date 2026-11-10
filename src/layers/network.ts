@@ -329,6 +329,9 @@ export default class NetworkRadarLayer {
   /** Dimmed under an open radar's own sweep (`compositeDim`, site mode). */
   private dim = 1;
 
+  /** Faded further by the map it is drawn on, as the radar map fades it under an open storm (`setFade`). */
+  private fade = 1;
+
   constructor(map: Map, network: Network, onLiveFrame?: () => void, opacity = NOWCAST_OPACITY) {
     this.map = map;
     this.network = network;
@@ -337,8 +340,18 @@ export default class NetworkRadarLayer {
     this.opacity = opacity;
     compositeDim.subscribe((value) => {
       this.dim = value;
-      this.layer?.setOpacity(this.opacity * value);
+      this.layer?.setOpacity(this.strength());
     });
+  }
+
+  /** Fade it by `factor` of its own strength, 1 for none. */
+  setFade(factor: number) {
+    this.fade = factor;
+    this.layer?.setOpacity(this.strength());
+  }
+
+  private strength(): number {
+    return this.opacity * this.dim * this.fade;
   }
 
   /** Fetch the newest composite and show it, creating the layer on first use. */
@@ -470,7 +483,7 @@ export default class NetworkRadarLayer {
       // so this only settles which draws first. Europe's draws above DWD's
       // instead, which is hidden while it shows.
       order: this.network.coverage ? 79 : 81,
-      opacity: this.opacity * this.dim,
+      opacity: this.strength(),
       // The rectangle is a cheap first pass; `coverage` is the real edge.
       extent: this.network.extent,
     });
