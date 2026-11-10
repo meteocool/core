@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DASH, DASH_PERIOD, ENDED_MIN_ZOOM, isLive, LIVE_MINUTES, NOTCH_DEGREES, RING_OVERLAP_PX, RING_PATH_LENGTH, RING_RADIUS,
-  SEVERE, TICK_MS, crowdedOut, onlySlid, ringAngle, showsEnded,
+  SEVERE, TICK_MS, crowdedOut, liveReference, onlySlid, ringAngle, showsEnded,
 } from "../../src/lib/cellPulse.ts";
 
 /**
@@ -149,4 +149,21 @@ test("from zoom 10 in, where the rings come apart, no ring gives way", () => {
   assert.equal(crowdedOut([ring("new", 0, 10, 0, close), ring("old", 60, 0, 0, close)], close, null).size, 0);
   const far = atZoom(ENDED_MIN_ZOOM - 0.5);
   assert.equal(crowdedOut([ring("new", 0, 10, 0, far), ring("old", 60, 0, 0, far)], far, null).size, 1);
+});
+
+test("in the present a storm ages from the newest scan, not the clock", () => {
+  const clock = Date.UTC(2026, 10, 10, 11, 43);
+  const scan = Date.UTC(2026, 10, 10, 11, 40);
+  assert.equal(liveReference(null, scan, clock), scan);
+  // Seen at 11:30, finished by the tracker minutes later: live at the 11:40 scan, not by the clock.
+  const seen = Date.UTC(2026, 10, 10, 11, 30);
+  assert.ok(isLive((liveReference(null, scan, clock) - seen) / 60_000));
+  assert.ok(!isLive((clock - seen) / 60_000));
+});
+
+test("the clock stands in without a scan, and caps one ahead of it; a past frame keeps its own", () => {
+  const clock = Date.UTC(2026, 10, 10, 11, 43);
+  assert.equal(liveReference(null, null, clock), clock);
+  assert.equal(liveReference(null, clock + 300_000, clock), clock);
+  assert.equal(liveReference(clock - 600_000, clock - 180_000, clock), clock - 600_000);
 });

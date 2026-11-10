@@ -49,6 +49,18 @@ export function isLive(minutesSinceDetection: number): boolean {
 }
 
 /**
+ * The moment a cell's age is counted from, ms: the frame on screen, or in the
+ * present the newest scan, never past the clock. `/storms` names no run of its
+ * own, and counted from the clock the storms the tracker had just seen were
+ * already ten minutes old a few minutes after their scan: gone at the live
+ * step, back one step earlier.
+ */
+export function liveReference(at: number | null, newestScan: number | null, clock: number): number {
+  if (at !== null) return at;
+  return newestScan === null ? clock : Math.min(newestScan, clock);
+}
+
+/**
  * The zoom from which a cell that is not live is drawn at all: its dot, its
  * path, its outline and the joins into it.
  *

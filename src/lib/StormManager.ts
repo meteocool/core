@@ -10,6 +10,7 @@ import type { Progress, Storm } from "../api";
 import { hiddenStormMarks, selectedStorm } from "../stores";
 import { covers, padExtent, worldExtent } from "./cellGeometry";
 import type { Extent } from "./cellGeometry";
+import { liveReference } from "./cellPulse";
 import { drawStorms } from "./stormMarks";
 import type { MarkGeometry, StormMark } from "./stormMarks";
 import { selectionKey, withStorm } from "./stormSelection";
@@ -73,6 +74,9 @@ export default class StormManager {
 
   /** The moment drawn, ms, when the player is parked on an earlier frame; null for the present. */
   private at: number | null = null;
+
+  /** The newest observed scan, ms, which a live storm's age counts from; null before the radar has one. */
+  private newestScan: number | null = null;
 
   /** The storms still being seen, where the drawing has them: what a mesocyclone is matched against. */
   private live: LiveStorm[] = [];
@@ -154,6 +158,13 @@ export default class StormManager {
     this.draw();
   }
 
+  /** A new scan on the live step: the present's storms age from it. */
+  setNewestScan(ms: number | null): void {
+    if (ms === this.newestScan) return;
+    this.newestScan = ms;
+    if (this.at === null) this.draw();
+  }
+
   /** The storms held, by id, for a tap on one of them. */
   stormFor(id: string): Storm | undefined {
     return this.answer?.storms.find((storm) => storm.properties.id === id);
@@ -181,8 +192,8 @@ export default class StormManager {
 
   private draw(): void {
     if (!this.enabled || !this.answer) return;
-    const now = this.at ?? Date.now();
-    // The answer names no cycle of its own, as `/cells/tracks` did: the clock is the reference.
+    // The answer names no cycle of its own, as `/cells/tracks` did: in the present, the newest scan is the reference.
+    const now = liveReference(this.at, this.newestScan, Date.now());
     const { storms } = this.answer;
     const reference = now;
     const { marks, links, pings } = drawStorms(storms, {
