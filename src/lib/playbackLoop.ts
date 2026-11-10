@@ -7,7 +7,8 @@
  * now and after it, and from the past it loops the past radar instead.
  *
  * With one radar's sweep open, playback steps only through the steps that
- * radar has a sweep for (`only`), so it never runs over "no sweep".
+ * radar has a sweep for (`only`), so it never runs over "no sweep", and
+ * round all of them, wherever play was pressed.
  */
 
 const STEP_S = 5 * 60;
@@ -52,8 +53,8 @@ export function nextFrame(state: LoopState): number {
   if (only?.length) {
     const next = only.find((step) => step > shown);
     if (next !== undefined) return next;
-    // Past the last: back to where play was pressed, as the loop over the past radar goes.
-    return !fromStart && only.includes(loopFrom) && loopFrom < only[only.length - 1] ? loopFrom : only[0];
+    // Past the last: back to the first, so every round shows all of them.
+    return only[0];
   }
   if (noForecast) {
     if (shown < latestObservation) return shown + STEP_S;

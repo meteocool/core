@@ -71,11 +71,16 @@ test("with a radar open, playback skips the steps it has no sweep for and never 
   const radar = state({ only, loopFrom: NOW - 30 * MIN });
   assert.equal(nextFrame({ ...radar, shown: NOW - 25 * MIN }), NOW - 10 * MIN);
   assert.equal(nextFrame({ ...radar, shown: NOW - 20 * MIN }), NOW - 10 * MIN);
-  // Past its last sweep: back to where play was pressed, not into the forecast.
+  // Past its last sweep: back to its first, not into the forecast.
   assert.equal(nextFrame({ ...radar, shown: NOW }), NOW - 30 * MIN);
   assert.equal(nextFrame({ ...radar, shown: NOW + 30 * MIN, loopFrom: NOW + 30 * MIN }), NOW - 30 * MIN);
-  assert.equal(nextFrame({ ...radar, shown: NOW, loopFrom: NOW - 25 * MIN }), NOW - 25 * MIN);
-  assert.equal(nextFrame({ ...radar, shown: NOW, loopFrom: NOW - 25 * MIN, fromStart: true }), NOW - 30 * MIN);
+});
+
+test("with a radar open, playback goes round every sweep, not only those after where play was pressed", () => {
+  const only = [NOW - 30 * MIN, NOW - 25 * MIN, NOW - 10 * MIN, NOW];
+  const radar = state({ only, shown: NOW, loopFrom: NOW - 25 * MIN });
+  assert.equal(nextFrame(radar), NOW - 30 * MIN);
+  assert.equal(nextFrame({ ...radar, fromStart: true }), NOW - 30 * MIN);
 });
 
 test("a radar opened on a step it has no sweep for goes to its nearest one", () => {
