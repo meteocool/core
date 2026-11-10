@@ -43,6 +43,7 @@
   "failed_3d": "Die 3D-Karte konnte nicht geladen werden.",
   "guide_3d": {
     "title": "3D-Karte",
+    "back_to_map": "Zurück zur Hauptkarte",
     "open": "Bedienung und Legende",
     "pill": "Legende",
     "peel": "Schälen",

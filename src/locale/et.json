@@ -43,6 +43,7 @@
   "failed_3d": "3D-kaarti ei õnnestunud laadida.",
   "guide_3d": {
     "title": "3D-kaart",
+    "back_to_map": "Tagasi põhikaardile",
     "open": "Juhtimine ja legend",
     "pill": "Legend",
     "peel": "Koori",

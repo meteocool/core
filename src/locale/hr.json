@@ -43,6 +43,7 @@
   "failed_3d": "3D karta se nije mogla učitati.",
   "guide_3d": {
     "title": "3D karta",
+    "back_to_map": "Natrag na glavnu kartu",
     "open": "Upravljanje i legenda",
     "pill": "Legenda",
     "peel": "Oljušti",

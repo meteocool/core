@@ -43,6 +43,7 @@
   "failed_3d": "La carte 3D n’a pas pu être chargée.",
   "guide_3d": {
     "title": "Carte 3D",
+    "back_to_map": "Retour à la carte principale",
     "open": "Commandes et légende",
     "pill": "Légende",
     "peel": "Éplucher",

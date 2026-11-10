@@ -43,6 +43,7 @@
   "failed_3d": "Nie udało się wczytać mapy 3D.",
   "guide_3d": {
     "title": "Mapa 3D",
+    "back_to_map": "Powrót do mapy głównej",
     "open": "Sterowanie i legenda",
     "pill": "Legenda",
     "peel": "Obieranie",

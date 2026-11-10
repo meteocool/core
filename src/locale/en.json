@@ -43,6 +43,7 @@
   "failed_3d": "The 3D map could not be loaded.",
   "guide_3d": {
     "title": "3D Map",
+    "back_to_map": "Back to main map",
     "open": "Controls and legend",
     "pill": "Legend",
     "peel": "Peel",

@@ -43,6 +43,7 @@
   "failed_3d": "3D-kartan kunde inte laddas.",
   "guide_3d": {
     "title": "3D-karta",
+    "back_to_map": "Tillbaka till huvudkartan",
     "open": "Reglage och teckenförklaring",
     "pill": "Teckenförklaring",
     "peel": "Skala av",

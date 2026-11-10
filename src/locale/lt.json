@@ -43,6 +43,7 @@
   "failed_3d": "Nepavyko įkelti 3D žemėlapio.",
   "guide_3d": {
     "title": "3D žemėlapis",
+    "back_to_map": "Atgal į pagrindinį žemėlapį",
     "open": "Valdymas ir legenda",
     "pill": "Legenda",
     "peel": "Lukštenti",

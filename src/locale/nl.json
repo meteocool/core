@@ -43,6 +43,7 @@
   "failed_3d": "De 3D-kaart kon niet worden geladen.",
   "guide_3d": {
     "title": "3D-kaart",
+    "back_to_map": "Terug naar de hoofdkaart",
     "open": "Bediening en legenda",
     "pill": "Legenda",
     "peel": "Pellen",

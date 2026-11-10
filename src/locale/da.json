@@ -43,6 +43,7 @@
   "failed_3d": "3D-kortet kunne ikke indlæses.",
   "guide_3d": {
     "title": "3D-kort",
+    "back_to_map": "Tilbage til hovedkortet",
     "open": "Betjening og signaturforklaring",
     "pill": "Forklaring",
     "peel": "Skræl",

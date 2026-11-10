@@ -43,6 +43,7 @@
   "failed_3d": "3D mapu se nepodařilo načíst.",
   "guide_3d": {
     "title": "3D mapa",
+    "back_to_map": "Zpět na hlavní mapu",
     "open": "Ovládání a legenda",
     "pill": "Legenda",
     "peel": "Loupat",

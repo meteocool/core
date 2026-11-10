@@ -51,7 +51,7 @@ import { nextSelection } from "../lib/cellSelection";
 import { headingOf, volumeOfStorm, withVolume } from "../lib/stormSelection";
 import type { StormSelection } from "../lib/stormSelection";
 import { offerVolumes } from "../lib/stormResolver";
-import { moved3D, origin3D } from "../lib/open3d";
+import { moved3D } from "../lib/open3d";
 import { normaliseCut } from "../lib/cutAngle";
 import { startSweep, stopSweep } from "../lib/cutSweep";
 import { elementCentre, setElementCentre } from "../lib/viewCentre";
@@ -1222,10 +1222,10 @@ export default class Cells3DCapability extends Capability {
     const framed = this.framedCamera;
     const walked = this.walked;
     this.forgetCameraBeforeOpen();
+    // On the way back to the flat map, `leave` owns the camera and has
+    // forgotten the one from before the opening: two eases at once, and the
+    // later one wins.
     if (!gl || before === null) return;
-    // On the way back to the flat map, `leave` owns the camera: two eases at
-    // once, and the later one wins.
-    if (origin3D()) return;
     if (!walked && framed && this.stillAt(gl, framed)) {
       gl.easeTo({ ...before, duration: 900 });
       return;
@@ -1265,8 +1265,8 @@ export default class Cells3DCapability extends Capability {
   /**
    * Settle the camera onto a flat map's view, and say when it has.
    *
-   * The way out of a detour (lib/open3d.ts): the storm the reader came to see
-   * has closed, and the flat map they left is about to take the element. Cut
+   * The way out of a detour (lib/open3d.ts): the reader has asked to go back,
+   * and the flat map they left is about to take the element. Cut
    * straight to it and the picture snaps from a low, tilted look at one storm
    * to a map of the whole sky. So the camera first eases up and back (nadir,
    * north up, the centre and zoom the flat map was left at), and the switch

@@ -34,7 +34,7 @@ import { greyedOut, STALE_GREY, tagPrecedence } from "../lib/staleTint";
  *
  * Decluttered among themselves only, current before stale, strongest first: a line of showers can
  * put a dozen cores within a finger's width at a wide zoom, and a stack of
- * overlapping pills is neither readable nor tappable. At a wide zoom they are
+ * overlapping pills is neither readable nor tappable. At every zoom they are
  * thinned further, to one per neighbourhood; see `SPACING_PX`.
  *
  * One per storm, not one per tile: a storm is boxed by every map tile it
@@ -60,19 +60,21 @@ const DBZ_STEP = 5;
 const MIN_ZOOM = 5;
 
 /**
- * How far apart the pills are kept at a wide zoom, in pixels, by whole zoom
- * level; closer than that, only the stronger core keeps its pill.
+ * How far apart the pills are kept, in pixels; closer than that, only the
+ * stronger core keeps its pill.
  *
- * Not overlapping is too little there. At zoom 6 a field of showers over the
- * German Bight is 150 pixels across and twenty pills that merely do not touch
- * tile it solid, saying "these have volumes" twenty times. One per
- * neighbourhood says it once, and the 3D map shows the rest. From zoom 9 the
- * cores stand far enough apart that overlap is the only rule.
+ * Not overlapping is too little. A rain band across Upper Swabia at zoom 8
+ * put eight pills on a phone's screen with nothing but their own width
+ * between them, saying "these have volumes" eight times (November 2026). One
+ * per neighbourhood says it once, two or three to a screen, and the 3D map
+ * shows the rest. The same at every zoom: zoomed in, the cores stand further
+ * apart and more of them keep their pill on their own.
  *
- * Measured on the map, at the level's own scale, so the same pills stay put
- * while the map pans and change only as it crosses a level.
+ * Measured on the map, at the whole level's own scale, so the same pills
+ * stay put while the map pans and change only as it crosses a level. Between
+ * levels the screen spacing grows to up to twice this.
  */
-const SPACING_PX: Record<number, number> = { 5: 128, 6: 96, 7: 67, 8: 42 };
+const SPACING_PX = 160;
 
 /** The resolution of zoom 0 in OpenLayers' default grid, which every View here uses. */
 const ZOOM0_RESOLUTION = 156543.03392804097;
@@ -163,13 +165,10 @@ export function onePerStorm(clouds: RadarVolume[]): RadarVolume[] {
 
 /**
  * The pills a whole zoom level keeps: current before stale, strongest first,
- * each one at least that level's spacing from every one kept before it. Null
- * where every pill is kept.
+ * each one at least the spacing from every one kept before it.
  */
-function thin(features: Feature[], zoom: number): Set<Feature> | null {
-  const spacingPx = SPACING_PX[Math.max(zoom, MIN_ZOOM)];
-  if (!spacingPx) return null;
-  const spacing = spacingPx * (ZOOM0_RESOLUTION / 2 ** zoom);
+function thin(features: Feature[], zoom: number): Set<Feature> {
+  const spacing = SPACING_PX * (ZOOM0_RESOLUTION / 2 ** zoom);
   const kept: Array<[number, number]> = [];
   const keep = new Set<Feature>();
   for (const feature of [...features].sort(byPrecedence)) {
@@ -215,8 +214,8 @@ export default function makeCloudHints(): CloudHints {
    * zoom within it changes nothing; on the source's revision, so a new scan's
    * cores are thinned afresh.
    */
-  let thinned: { zoom: number; revision: number; keep: Set<Feature> | null } | null = null;
-  const keepsAt = (resolution: number): Set<Feature> | null => {
+  let thinned: { zoom: number; revision: number; keep: Set<Feature> } | null = null;
+  const keepsAt = (resolution: number): Set<Feature> => {
     const zoom = Math.floor(Math.log2(ZOOM0_RESOLUTION / resolution) + 1e-6);
     const revision = source.getRevision();
     if (thinned?.zoom !== zoom || thinned.revision !== revision) {
@@ -238,10 +237,7 @@ export default function makeCloudHints(): CloudHints {
     // over a stale one, and then the strongest.
     renderOrder: byPrecedence,
     // Thinned away is not drawn, and so not tappable either.
-    style: (feature, resolution) => {
-      const keep = keepsAt(resolution);
-      return !keep || keep.has(feature as Feature) ? hintStyle(feature) : undefined;
-    },
+    style: (feature, resolution) => (keepsAt(resolution).has(feature as Feature) ? hintStyle(feature) : undefined),
   });
 
   watchBasemap((basemap) => (isDarkBasemap(basemap) ? DARK : LIGHT), (next) => {

@@ -43,6 +43,7 @@
   "failed_3d": "Kunne ikke laste 3D-kartet.",
   "guide_3d": {
     "title": "3D-kart",
+    "back_to_map": "Tilbake til hovedkartet",
     "open": "Kontroller og tegnforklaring",
     "pill": "Tegnforklaring",
     "peel": "Skrell",

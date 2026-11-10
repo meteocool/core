@@ -43,6 +43,7 @@
   "failed_3d": "3D-karttaa ei voitu ladata.",
   "guide_3d": {
     "title": "3D-kartta",
+    "back_to_map": "Takaisin pääkarttaan",
     "open": "Ohjaimet ja selite",
     "pill": "Selite",
     "peel": "Kuori",

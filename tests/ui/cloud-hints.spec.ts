@@ -10,17 +10,23 @@ import { volumesBehind } from "./storms";
  */
 const FRANCE_VIEW = "/?layer=radar&latLonZ=45.00000,3.50000,9.00";
 
-/** Where the greyed tags are, in the map's coordinates. */
+/**
+ * Where the greyed tags are, in the map's coordinates: those drawn at this
+ * zoom, which keeps one tag per neighbourhood and leaves the rest unstyled.
+ */
 const greyedTags = (page: Page): Promise<number[][]> => page.evaluate(() => {
   const map = (window as any).lm.getCurrentMap();
   const hints = map?.getAllLayers().find((layer: any) => layer.getSource?.()?.getFeatures?.()
     ?.some((feature: any) => feature.get("cloud")));
+  const resolution = map?.getView().getResolution();
   return (hints?.getSource().getFeatures() ?? [])
-    .filter((feature: any) => feature.get("stale") === true)
+    .filter((feature: any) => feature.get("stale") === true && hints.getStyleFunction()(feature, resolution))
     .map((feature: any) => feature.getGeometry().getCoordinates());
 });
 
 test("a storm a scan behind the radar keeps its 3D tag, which still opens it in 3D", async ({ page }) => {
+  // A tag hunt, a trip to the 3D map and back: past 45 s on a loaded machine.
+  test.slow();
   await noGeocoder(page);
   await volumesBehind(page, "fr");
   await openRadar(page, FRANCE_VIEW);
@@ -61,4 +67,15 @@ test("a storm a scan behind the radar keeps its 3D tag, which still opens it in 
   expect(at).not.toBeNull();
   await page.mouse.click(at!.x, at!.y);
   await expect(page).toHaveURL(/layer=cells3d/, { timeout: 15_000 });
+
+  // A detour: closing the storm leaves the reader on the 3D map, and the
+  // button under the top line takes them back to the radar.
+  const back = page.getByRole("button", { name: "Back to main map" });
+  await expect(back).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).first().click();
+  await page.waitForTimeout(1_500);
+  await expect(page).toHaveURL(/layer=cells3d/);
+  await back.click();
+  await expect(page).toHaveURL(/layer=radar/, { timeout: 10_000 });
+  await expect(back).toBeHidden();
 });

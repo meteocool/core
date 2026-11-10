@@ -14,6 +14,7 @@ import Map from "./components/Map.svelte";
 import MapLoading from "./components/MapLoading.svelte";
 import Lazy from "./components/Lazy.svelte";
 import Guide3D from "./components/Guide3D.svelte";
+import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -93,7 +94,7 @@ import SiteSweepManager, { readThrough } from "./lib/SiteSweepManager";
 import { NETWORKS } from "./layers/network";
 import { dwdAttribution } from "./layers/attributions";
 import { VolumeFeed } from "./lib/scans";
-import { forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
+import { detourOrigin, forget3DOrigin, openCloudIn3D, origin3D, registerOpen3D, returnFrom3D } from "./lib/open3d";
 import { registerOpenRadar } from "./lib/openRadar";
 import { isMeetYouCoolHash } from "./lib/meetYouCoolLink";
 /* The storm panel is loaded when a storm is opened, not with the page: the
@@ -974,40 +975,28 @@ if (cells3d && isHandheld()) {
 sharedActiveCap.subscribe((cap) => { if (cap === "cells3d") dropEarlierFrames(); });
 
 /*
- * A storm opened on the 3D map from the flat one goes back when it closes.
- *
- * Opening a tag or a panel's "open on the 3D map" is a detour to look at one
- * storm; closing that storm is the end of it, and the reader is put back on
- * the map they left rather than on a tilted map they did not pick, one
- * switcher away from the radar. The camera settles to nadir and north-up over
- * the view they left first, so the flat map appears where the 3D one landed
- * and nothing jumps. Closing means the popup or sheet going: on a phone the
- * sheet can close with the cell still selected, and that counts.
+ * The way back from a detour to the 3D map: a tag or a panel's "open on the
+ * 3D map" took the reader there from the flat map, and a button on the 3D
+ * map takes them back (lib/open3d.ts). The camera settles to nadir and
+ * north-up over the view they left first, so the flat map appears where the
+ * 3D one landed and nothing jumps. A storm open at the time stays open, on
+ * the flat map's sheet.
  *
  * Only for a detour. A 3D map picked from the switcher or opened by a link
- * has nothing to go back to, and lib/open3d.ts forgets the origin as soon as
- * the reader is on any other map by their own doing.
+ * has nothing to go back to, and the origin is forgotten as soon as the
+ * reader is on any other map by their own doing.
  */
+sharedActiveCap.subscribe((cap) => { if (cap !== "cells3d") forget3DOrigin(); });
 let leaving3D = false;
-derived(
-  [selectedStorm, stormDetails, sharedActiveCap],
-  ([storm, details, cap]) => ({ open: Boolean(storm && details), cap }),
-).subscribe(({ open, cap }) => {
-  if (cap !== "cells3d") {
-    forget3DOrigin();
-    return;
-  }
+function backFrom3D(): void {
   const origin = origin3D();
-  if (open || !origin || leaving3D || !cells3d) return;
+  if (!origin || leaving3D || !cells3d) return;
   leaving3D = true;
   cells3d.leave(origin.view).finally(() => {
     leaving3D = false;
-    // Something was opened while the camera was on its way: the reader is
-    // looking at it, and stays.
-    if (get(selectedStorm) && get(stormDetails)) return;
     returnFrom3D();
   });
-});
+}
 
 /**
  * Whether this is a device with a real pointer that can hover.
@@ -1496,6 +1485,11 @@ if (postInitCb) postInitCb(lm);
      the bring-up takes it with it. -->
 {#if ($cells3dLoading || $cells3dFailed) && $sharedActiveCap === "cells3d"}
   <MapLoading failed={$cells3dFailed} onretry={() => cells3d?.retry()} />
+{/if}
+<!-- The way back to the map a tag or a panel came from; over the loading veil
+     too, which may be failing. -->
+{#if $detourOrigin && $sharedActiveCap === "cells3d" && $toolbarVisible === "yes"}
+  <BackFrom3D onback={backFrom3D} />
 {/if}
 <!-- The 3D map's legend, peel and scan picker, once it is up. In the apps as
      well: their own chrome is the zoom, locate and compass column, and none

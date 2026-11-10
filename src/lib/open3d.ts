@@ -1,4 +1,4 @@
-import { get, writable } from "svelte/store";
+import { get, readonly, writable } from "svelte/store";
 import { mapView, selectedStorm, sharedActiveCap, stormDetails } from "../stores";
 import type { MapView } from "../stores";
 import type { RadarVolume } from "../api";
@@ -21,21 +21,21 @@ import { withVolume, type StormSelection } from "./stormSelection";
  * ## The Way Back
  *
  * A storm opened this way was a detour: the reader was on the flat map, saw
- * a tag, and went to look at one storm. Closing that storm on the 3D map is
- * the end of the detour, and they expect to be back on the map they were on,
- * not on a tilted 3D map they never asked for, with a layer switcher between
- * them and the radar. So the map and the view they came from are kept here,
- * for as long as they stay on the 3D map, and App takes them back when the
- * storm closes (with the camera settling to nadir first; see
+ * a tag, and went to look at one storm. So the map and the view they came
+ * from are kept here, for as long as they stay on the 3D map, and the 3D map
+ * offers a button back to them (with the camera settling to nadir first; see
  * Cells3DCapability.leave). A 3D map picked from the switcher, or opened by a
- * link, is not a detour and is left alone.
+ * link, is not a detour and has no button.
+ *
+ * Closing the storm used to take the reader back by itself. It surprised
+ * them: they closed one storm to look at the next on the 3D map and were
+ * dropped onto the flat one (November 2026). Going back is theirs to ask for
+ * now, and they can ask at any time, a storm open or not.
  *
  * Moving the 3D map or picking another storm on it does not cancel the way
- * back. It used to: a reader who had looked around was taken to be using the
- * 3D map and was left on it, tilted, with no storm open and no obvious way
- * to the radar. Closing the storm always goes back now. A move only changes
- * where to: from where the reader is (Cells3DCapability reports it through
- * `moved3D`), not the view they left, which may be far away by then.
+ * back; it only changes where to: from where the reader is
+ * (Cells3DCapability reports it through `moved3D`), not the view they left,
+ * which may be far away by then.
  */
 
 /** Where a detour to the 3D map started, or null when the reader chose it. */
@@ -47,7 +47,10 @@ interface Origin {
 
 let switchTo3D: (() => void) | null = null;
 let switchBack: ((cap: string) => void) | null = null;
-let origin: Origin | null = null;
+const origin = writable<Origin | null>(null);
+
+/** The map a detour started from, while one is under way: what the button back reads. */
+export const detourOrigin = readonly(origin);
 
 /** Whether this build has a 3D map to open anything on; set with the switch. */
 export const open3DAvailable = writable(false);
@@ -70,7 +73,7 @@ function detour(): void {
   const from = get(sharedActiveCap);
   const view = get(mapView);
   switchTo3D();
-  origin = from && from !== "cells3d" ? { cap: from, view } : null;
+  origin.set(from && from !== "cells3d" ? { cap: from, view } : null);
 }
 
 /** Open a box of sky found in the composite, the 3D map's own kind, as a seed of its storm. */
@@ -95,23 +98,23 @@ export function openStormIn3D(selection: StormSelection): void {
 
 /** The map a detour started from, while one is under way. */
 export function origin3D(): Origin | null {
-  return origin;
+  return get(origin);
 }
 
 /** The reader has chosen a map of their own; there is nothing to go back to. */
 export function forget3DOrigin(): void {
-  origin = null;
+  origin.set(null);
 }
 
 /** The reader has moved the 3D map: go back from where it is now. */
 export function moved3D(): void {
-  if (origin) origin = { ...origin, view: null };
+  origin.update((from) => (from?.view ? { ...from, view: null } : from));
 }
 
 /** Go back to the map the detour started from. False when there was none. */
 export function returnFrom3D(): boolean {
-  const from = origin;
-  origin = null;
+  const from = get(origin);
+  origin.set(null);
   if (!from || !switchBack) return false;
   switchBack(from.cap);
   return true;
