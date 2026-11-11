@@ -27,6 +27,7 @@ import type { Ink, ValueTiles } from "../lib/rvp6";
 import { isDarkBasemap } from "../layers/casing";
 import type { RadarFrame, TimeseriesProduct } from "../api";
 import type { CountryNetwork } from "../api/events";
+import { stalledNetworks } from "../lib/feedOutage";
 import type { RadarScans } from "../lib/scans";
 import {
   capDescription,
@@ -51,6 +52,7 @@ import {
   observedProduct,
   radarProducts,
   nowcastCoverage,
+  stalledNetworks as stalledNetworksStore,
   framesPreloaded,
   archiveWindow,
   playbackRunning,
@@ -381,6 +383,7 @@ export default class RadarCapability extends Capability {
     this.networks = NETWORKS.map((network) => new NetworkRadarLayer(
       map, network, () => {
         this.notify("networks", this.liveNetworkFrames());
+        this.refreshStalled();
         // A country's new frame changes how old the products around it are.
         radarProducts.update((products) => ({ ...products, ranges: this.scanRanges(products.scans) }));
       },
@@ -1177,6 +1180,7 @@ export default class RadarCapability extends Capability {
    */
   private productsChanged() {
     const scans = this.newestScans();
+    this.refreshStalled(scans);
     // A past window is not judged by what is newest now: the choice is drawn
     // on every step it has a frame for, and the default on the others.
     if (!this.past && isWholeProduct(this.chosen) && givesUpChoice(this.chosen, scans, this.wholes[this.chosen].answered())) {
@@ -1193,6 +1197,22 @@ export default class RadarCapability extends Capability {
       this.source.setHoles(this.holes(), url);
     }
     this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
+  }
+
+  /**
+   * Which networks' radar has stopped arriving while DWD's still does, for
+   * the player's notice (lib/feedOutage.ts). None in a past window, which
+   * is the archive's and not a feed.
+   */
+  private refreshStalled(scans: NewestScans = this.newestScans()) {
+    const feeds = this.networks.map((layer) => ({
+      code: layer.network.code as CountryNetwork,
+      newestScan: layer.current()?.upstream_time ?? null,
+      answered: layer.answered(),
+    }));
+    const stalled = this.past ? [] : stalledNetworks(feeds, scans.hx);
+    // A write only when it changed: the player recomputes its notice on every one.
+    if (get(stalledNetworksStore).join() !== stalled.join()) stalledNetworksStore.set(stalled);
   }
 
   /** Whether a step is the live one, whose frames are each product's own newest: never in a past window. */
@@ -1721,6 +1741,7 @@ export default class RadarCapability extends Capability {
     this.around.destroy();
     for (const nowcast of this.nowcasts) nowcast.destroy();
     nowcastCoverage.set(null);
+    stalledNetworksStore.set([]);
     drawnEncoding.set(RVP6_ENCODING);
     this.unsubscribeProduct?.();
     this.unsubscribeProduct = null;

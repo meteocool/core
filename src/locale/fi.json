@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Täällä ei ole ennustetta",
   "forecast_no_coverage_body": "Sade-ennuste tulee Saksan sääpalvelulta (DWD), joten se kattaa vain Saksan ja sen lähialueet. Muualla tutka näyttää vain menneen ja nykyhetken.",
   "forecast_no_coverage_body_nowcast": "Tätä kartan osaa ei tällä hetkellä kata Saksan sääpalvelun (DWD) ennuste eikä meteocoolin lähiennuste. Tutka näyttää siellä vain menneen ja nykyhetken.",
+  "radar_feed_stopped": "Tutkatietoja ei saada",
+  "radar_feed_stopped_body": "Emme tällä hetkellä saa sääpalvelulta tutkatietoja tälle kartan alueelle. Tutkakuva on siellä vanhentunut tai puuttuu, eikä ennustetta ole ennen kuin tiedot palaavat.",
   "outdated": "Vanhentunut",
   "degraded": "Häiriöitä",
   "show_for_my_location": "Näytä sijainnissani",

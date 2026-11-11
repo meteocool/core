@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Geen verwachting hier",
   "forecast_no_coverage_body": "De regenverwachting komt van de Duitse weerdienst en dekt dus alleen Duitsland en de omgeving. De radar elders toont alleen het verleden en het heden.",
   "forecast_no_coverage_body_nowcast": "De verwachting van de Duitse weerdienst noch de nowcast van meteocool dekt op dit moment dit deel van de kaart. De radar toont daar alleen het verleden en het heden.",
+  "radar_feed_stopped": "Geen radargegevens binnen",
+  "radar_feed_stopped_body": "We ontvangen op dit moment geen radargegevens van de weerdienst voor dit deel van de kaart. De radar is daar verouderd of ontbreekt, en er is geen verwachting tot de gegevens terug zijn.",
   "outdated": "Verouderd",
   "degraded": "Beperkt",
   "show_for_my_location": "Toon voor mijn locatie",

@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Pas de prévision ici",
   "forecast_no_coverage_body": "La prévision de pluie vient du service météorologique allemand et ne couvre donc que l'Allemagne et ses environs. Ailleurs, le radar ne montre que le passé et le présent.",
   "forecast_no_coverage_body_nowcast": "Ni la prévision du service météorologique allemand ni le nowcast de meteocool ne couvrent cette partie de la carte à cette heure. Le radar n'y montre que le passé et le présent.",
+  "radar_feed_stopped": "Données radar indisponibles",
+  "radar_feed_stopped_body": "Nous ne recevons actuellement pas les données radar du service météorologique pour cette partie de la carte. Le radar y est ancien ou absent, et il n'y aura pas de prévision tant que les données ne seront pas revenues.",
   "outdated": "Obsolète",
   "degraded": "Dégradé",
   "show_for_my_location": "Afficher pour ma position",

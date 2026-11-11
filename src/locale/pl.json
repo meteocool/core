@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Brak prognozy w tym miejscu",
   "forecast_no_coverage_body": "Prognoza opadów pochodzi z niemieckiej służby meteorologicznej, więc obejmuje tylko Niemcy i ich okolice. Radar w innych miejscach pokazuje tylko przeszłość i teraźniejszość.",
   "forecast_no_coverage_body_nowcast": "Ani prognoza niemieckiej służby meteorologicznej, ani nowcast meteocool nie obejmuje o tej porze tej części mapy. Radar pokazuje tam tylko przeszłość i teraźniejszość.",
+  "radar_feed_stopped": "Brak danych radarowych",
+  "radar_feed_stopped_body": "Obecnie nie otrzymujemy danych radarowych od służby meteorologicznej dla tej części mapy. Radar jest tam nieaktualny lub go brak, a prognoza pojawi się dopiero po powrocie danych.",
   "outdated": "Nieaktualne",
   "degraded": "Ograniczone",
   "show_for_my_location": "Pokaż dla mojej lokalizacji",

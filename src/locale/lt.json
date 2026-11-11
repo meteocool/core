@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Čia prognozės nėra",
   "forecast_no_coverage_body": "Kritulių prognozę teikia Vokietijos meteorologijos tarnyba, todėl ji apima tik Vokietiją ir jos apylinkes. Kitur radaras rodo tik praeitį ir dabartį.",
   "forecast_no_coverage_body_nowcast": "Šiuo metu šios žemėlapio dalies neapima nei Vokietijos meteorologijos tarnybos prognozė, nei meteocool trumpalaikė prognozė. Radaras čia rodo tik praeitį ir dabartį.",
+  "radar_feed_stopped": "Radaro duomenys negaunami",
+  "radar_feed_stopped_body": "Šiuo metu negauname radaro duomenų iš meteorologijos tarnybos šiai žemėlapio daliai. Radaro vaizdas ten pasenęs arba jo nėra, o prognozės nebus, kol duomenys negrįš.",
   "outdated": "Pasenę",
   "degraded": "Sutrikimai",
   "show_for_my_location": "Rodyti mano vietai",

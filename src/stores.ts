@@ -240,6 +240,12 @@ export const playbackFromStart = writable<boolean>(false);
  */
 export const nowcastCoverage = writable<{ withRun: CountryNetwork[]; shown: CountryNetwork[] } | null>(null);
 /**
+ * The networks whose radar has stopped arriving while DWD's still does
+ * (lib/feedOutage.ts): the player says the weather service's data is not
+ * coming in where they draw, rather than that there is no forecast there.
+ */
+export const stalledNetworks = writable<CountryNetwork[]>([]);
+/**
  * "How the radar works" is open, from the radar product menu's "?". Held up
  * here, not in the menu: the tray the menu lives in can go while it is open.
  */

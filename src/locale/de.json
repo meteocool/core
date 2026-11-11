@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Keine Vorhersage hier",
   "forecast_no_coverage_body": "Die Regenvorhersage kommt vom Deutschen Wetterdienst und deckt deshalb nur Deutschland und die Umgebung ab. Das Radar anderswo zeigt nur Vergangenheit und Gegenwart.",
   "forecast_no_coverage_body_nowcast": "Weder die Vorhersage des Deutschen Wetterdienstes noch der meteocool-Nowcast deckt zu dieser Zeit diesen Kartenausschnitt ab. Das Radar zeigt dort nur Vergangenheit und Gegenwart.",
+  "radar_feed_stopped": "Keine Radardaten vom Wetterdienst",
+  "radar_feed_stopped_body": "Vom Wetterdienst kommen für diesen Kartenausschnitt gerade keine Radardaten an. Das Radar ist dort veraltet oder fehlt, und eine Vorhersage gibt es erst wieder, wenn die Daten zurück sind.",
   "outdated": "Veraltet",
   "degraded": "Eingeschränkt",
   "show_for_my_location": "Für meinen Standort",

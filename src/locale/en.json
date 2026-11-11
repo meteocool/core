@@ -125,6 +125,8 @@
   "forecast_no_coverage": "No Forecast Here",
   "forecast_no_coverage_body": "The rain forecast comes from Germany's weather service, so it only covers Germany and the area around it. The radar elsewhere shows the past and present only.",
   "forecast_no_coverage_body_nowcast": "Neither the German Weather Service's forecast nor meteocool's nowcast covers this part of the map at this time. The radar there shows the past and present only.",
+  "radar_feed_stopped": "Radar Data Not Coming In",
+  "radar_feed_stopped_body": "We are not receiving radar data from the weather service for this part of the map right now. The radar there is out of date or missing, and there is no forecast until the data is back.",
   "outdated": "Out of date",
   "degraded": "Degraded",
   "show_for_my_location": "Show for my location",

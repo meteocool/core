@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Siin prognoosi pole",
   "forecast_no_coverage_body": "Vihmaprognoos tuleb Saksamaa ilmateenistuselt, seega katab see ainult Saksamaad ja selle ümbrust. Mujal näitab radar ainult möödunut ja praegust.",
   "forecast_no_coverage_body_nowcast": "Seda kaardiosa ei kata praegu Saksa ilmateenistuse prognoos ega ka meteocooli lühiprognoos. Radar näitab seal ainult möödunut ja praegust.",
+  "radar_feed_stopped": "Radariandmed ei saabu",
+  "radar_feed_stopped_body": "Me ei saa praegu ilmateenistuselt selle kaardiosa radariandmeid. Radar on seal aegunud või puudub ning prognoosi pole enne, kui andmed tagasi on.",
   "outdated": "Aegunud",
   "degraded": "Häiritud",
   "show_for_my_location": "Näita minu asukoha kohta",

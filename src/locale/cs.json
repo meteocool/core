@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Tady není předpověď",
   "forecast_no_coverage_body": "Předpověď srážek pochází od německé meteorologické služby, proto pokrývá jen Německo a jeho okolí. Radar jinde ukazuje jen minulost a současnost.",
   "forecast_no_coverage_body_nowcast": "Předpověď německé meteorologické služby ani nowcast meteocool v tuto dobu nepokrývá tuto část mapy. Radar tam ukazuje jen minulost a současnost.",
+  "radar_feed_stopped": "Radarová data nepřicházejí",
+  "radar_feed_stopped_body": "Od meteorologické služby nyní nedostáváme radarová data pro tuto část mapy. Radar je tam zastaralý nebo chybí a předpověď bude k dispozici, až se data vrátí.",
   "outdated": "Zastaralé",
   "degraded": "Omezeno",
   "show_for_my_location": "Zobrazit pro mou polohu",

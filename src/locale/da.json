@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Ingen prognose her",
   "forecast_no_coverage_body": "Regnprognosen kommer fra den tyske vejrtjeneste, så den dækker kun Tyskland og området omkring. Andre steder viser radaren kun fortid og nutid.",
   "forecast_no_coverage_body_nowcast": "Hverken den tyske vejrtjenestes prognose eller meteocools korttidsprognose dækker denne del af kortet lige nu. Radaren viser her kun fortid og nutid.",
+  "radar_feed_stopped": "Ingen radardata lige nu",
+  "radar_feed_stopped_body": "Vi modtager i øjeblikket ikke radardata fra vejrtjenesten for denne del af kortet. Radaren er forældet eller mangler der, og der er ingen prognose, før dataene er tilbage.",
   "outdated": "Forældet",
   "degraded": "Nedsat",
   "show_for_my_location": "Vis for min placering",

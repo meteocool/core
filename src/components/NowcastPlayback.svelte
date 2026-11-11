@@ -16,7 +16,7 @@ import {
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
   nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible, stationLayerVisible,
-  drawnEncoding, archiveWindow, archivePickerOpen,
+  drawnEncoding, archiveWindow, archivePickerOpen, stalledNetworks,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -59,6 +59,7 @@ import {
   skRadarExtent4326,
 } from "../layers/extents";
 import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
+import { saysFeedStopped } from "../lib/feedOutage";
 import { preloadMode } from "../lib/framePreload";
 import type { PreloadMode } from "../lib/framePreload";
 import { holdsForTiles, playOrder, shouldAdvance, waitLeft } from "../lib/playbackGate";
@@ -296,6 +297,13 @@ $: forecastMissing = !forecastReachable || !$mapExtent4326 ? 0
   : runsShown.join() === runsAtAll.join() ? anyForecastMissing
     : uncoveredShare($mapExtent4326, forecastCovers(runsShown));
 $: outOfForecast = $onForecastStep && saysNoForecast(forecastMissing);
+/* The share of the screen drawn by a network whose radar has stopped
+   arriving (lib/feedOutage.ts): there the map's present is the last picture
+   that came, and the nowcast has no run, so the player says the weather
+   service's data is not coming in rather than "No Forecast Here". */
+$: stalledShare = !forecastReachable || !$mapExtent4326 || $stalledNetworks.length === 0 ? 0
+  : 1 - uncoveredShare($mapExtent4326, (lon, lat) => drawnByAny($stalledNetworks, fromLonLat([lon, lat])));
+$: feedStopped = saysFeedStopped(stalledShare, outOfForecast);
 /* None of the screen: playback has nothing to show past now (playbackLoop). */
 $: noForecast = anyForecastMissing === 1;
 
@@ -399,6 +407,8 @@ subscriptions.push(onWake(() => preload()));
 
 let forecastCoverageDismissed = false;
 $: if (!outOfForecast) forecastCoverageDismissed = false;
+let feedStoppedDismissed = false;
+$: if (!feedStopped) feedStoppedDismissed = false;
 
 /* Whether the player's strip has something to say: rain at the client's
    position, or a tapped point, which always gets an answer, even a flat one. */
@@ -1327,7 +1337,17 @@ onDestroy(() => {
   </DismissableStrip>
 {/if}
 
-{#if outOfForecast && !forecastCoverageDismissed}
+{#if feedStopped && !feedStoppedDismissed}
+  <DismissableStrip
+    title={$_("radar_feed_stopped")}
+    collapsed={$bottomToolbarMode !== "player"}
+    on:dismiss={() => { feedStoppedDismissed = true; }}>
+    <p class="notice">{$_("radar_feed_stopped_body")}</p>
+  </DismissableStrip>
+{/if}
+
+<!-- Not while the feed's notice is up, dismissed or not: that is the reason there is no forecast. -->
+{#if outOfForecast && !feedStopped && !forecastCoverageDismissed}
   <DismissableStrip
     title={$_("forecast_no_coverage")}
     collapsed={$bottomToolbarMode !== "player"}

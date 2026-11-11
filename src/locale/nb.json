@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Ingen varsel her",
   "forecast_no_coverage_body": "Nedbørvarselet kommer fra den tyske værtjenesten, så det dekker bare Tyskland og områdene rundt. Andre steder viser radaren bare fortid og nåtid.",
   "forecast_no_coverage_body_nowcast": "Verken varselet fra den tyske værtjenesten eller meteocools korttidsvarsel dekker denne delen av kartet akkurat nå. Der viser radaren bare fortid og nåtid.",
+  "radar_feed_stopped": "Ingen radardata akkurat nå",
+  "radar_feed_stopped_body": "Vi mottar for øyeblikket ikke radardata fra værtjenesten for denne delen av kartet. Radaren der er utdatert eller mangler, og det er ingen prognose før dataene er tilbake.",
   "outdated": "Utdatert",
   "degraded": "Redusert",
   "show_for_my_location": "Vis for posisjonen min",

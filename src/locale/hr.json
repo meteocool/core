@@ -125,6 +125,8 @@
   "forecast_no_coverage": "Ovdje nema prognoze",
   "forecast_no_coverage_body": "Prognoza kiše dolazi od njemačke meteorološke službe, pa pokriva samo Njemačku i okolno područje. Drugdje radar prikazuje samo prošlost i sadašnjost.",
   "forecast_no_coverage_body_nowcast": "Ni prognoza njemačke meteorološke službe ni kratkoročna prognoza meteocoola trenutačno ne pokrivaju ovaj dio karte. Radar ondje prikazuje samo prošlost i sadašnjost.",
+  "radar_feed_stopped": "Radarski podaci ne stižu",
+  "radar_feed_stopped_body": "Trenutačno ne primamo radarske podatke od meteorološke službe za ovaj dio karte. Radar je ondje zastario ili ga nema, a prognoze neće biti dok se podaci ne vrate.",
   "outdated": "Zastarjelo",
   "degraded": "Otežan rad",
   "show_for_my_location": "Prikaži za moju lokaciju",
