@@ -385,6 +385,8 @@ function planPreload(mode: PreloadMode, from: number): void {
   const order = $playbackRunning && grid ? playOrder(from, (step) => stepAfter(step, grid), steps.length + 1) : undefined;
   if (mode === "all") cap.preloadTimeline(from, { order });
   else if (mode === "ahead") cap.preloadTimeline(from, { ahead: PRELOAD_AHEAD_SLOW, order });
+  // No frame's tiles, every frame's preview.
+  else if (mode === "previews") cap.preloadTimeline(from, { ahead: 0 });
   else cap.stopPreload();
 }
 function preload(..._changed: unknown[]): void {

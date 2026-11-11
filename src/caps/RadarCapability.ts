@@ -6,11 +6,11 @@ import snow from "../assets/snow.png";
 import { dwdValueLayer, setDwdCmap, tileSourceUrl } from "../layers/dwd";
 import type { RadarDrawing } from "../layers/radarDrawing";
 import { radarFrames } from "../layers/radarFrames";
-import { decodedTiles, frameOnStep, heldOnScreen, loadStoredTile, tileReady } from "../layers/valueTiles";
+import { decodedTiles, frameOnStep, heldOnScreen, loadPreview, loadStoredTile, previews, tileReady } from "../layers/valueTiles";
 import type ValueTileSource from "../layers/valueTiles";
-import type { TileJob } from "../layers/valueTiles";
+import type { PreviewJob, TileJob } from "../layers/valueTiles";
 import { ENTRY_OVERHEAD, costOf } from "../lib/decodedTiles";
-import { decodeAheadParallel } from "../lib/gpuBudget";
+import { decodeAheadParallel, previewParallel } from "../lib/gpuBudget";
 import { getForViewAndSize, getIntersection, isEmpty } from "ol/extent";
 import NetworkRadarLayer, {
   AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, EUROPE_ECHO_TOP_18, EUROPE_ECHO_TOP_45, EUROPE_ECHO_TOP_50, EUROPE_VIL, NETWORKS,
@@ -20,6 +20,7 @@ import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
 import { ALL_NETWORKS } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
+import type { Extent } from "ol/extent";
 import type { TileIndex } from "../lib/tileIndex";
 import { RVP6_ENCODING, drawnTileId, encodingOf } from "../lib/rvp6";
 import type { Ink, ValueTiles } from "../lib/rvp6";
@@ -736,6 +737,23 @@ export default class RadarCapability extends Capability {
     },
   );
 
+  /** Loads the coarse preview of every frame of the timeline, ahead of its tiles; see lib/previewTiles.ts. */
+  private previewLoader = new FramePreloader(
+    (key) => {
+      const job = this.plannedPreviews.get(key);
+      return job ? loadPreview(job) : Promise.resolve(false);
+    },
+    () => {},
+    {
+      mayFetch: () => document.visibilityState !== "hidden",
+      parallel: previewParallel(),
+      has: (key) => previews.has(key),
+    },
+  );
+
+  /** The pieces of the preview plan in hand, by key. */
+  private plannedPreviews = new globalThis.Map<string, PreviewJob>();
+
   /** What the plan in hand was made from, when it stopped short of the timeline's end; see `preloadTimeline`. */
   private planCut: { from: number; options: PreloadOptions } | null = null;
 
@@ -746,14 +764,17 @@ export default class RadarCapability extends Capability {
   private plannedJobs = new globalThis.Map<string, TileJob>();
 
   /**
-   * The tiles one step needs where the map is looking, at its zoom, as each
-   * layer that draws on it will ask its loader for them: DWD's, each
-   * network's (its newest frame on the live step), or a product of all of
-   * theirs; each network's nowcast on a forecast step it has a lead for. The
-   * same choices `showNetworks` makes. Null while the map has no size to
-   * look with.
+   * What one step needs where the map is looking, of each layer that draws
+   * on it: DWD's (`ofDwd`), each network's (its newest frame on the live
+   * step), or a product of all of theirs; each network's nowcast on a
+   * forecast step it has a lead for (`ofNetwork`). The same choices
+   * `showNetworks` makes. Null while the map has no size to look with.
    */
-  private stepJobs(step: number): TileJob[] | null {
+  private stepNeeds<T>(
+    step: number,
+    ofDwd: (source: ValueTileSource, frame: { url: string; tiles?: TileIndex | null }, extent: Extent, resolution: number) => T[],
+    ofNetwork: (layer: NetworkRadarLayer, frame: RadarFrame, viewExtent: Extent, resolution: number) => T[],
+  ): T[] | null {
     const { source } = this;
     const size = this.map.getSize();
     const { center, resolution, rotation } = this.map.getView().getState();
@@ -763,7 +784,7 @@ export default class RadarCapability extends Capability {
     // and missed the tiles under the tray.
     const viewExtent = getForViewAndSize(center, resolution, rotation, size);
 
-    const jobs: TileJob[] = [];
+    const needs: T[] = [];
     const whole = this.wholeFrame(step);
     const around = whole ? null : this.aroundFrame(step);
     // A missed scan: nothing to load, but the frames after it still play.
@@ -772,28 +793,47 @@ export default class RadarCapability extends Capability {
       // Only what the layer draws: nothing outside DWD's grid is asked for.
       const layerExtent = this.layer?.getExtent();
       const extent = layerExtent ? getIntersection(viewExtent, layerExtent) : viewExtent;
-      if (!isEmpty(extent)) jobs.push(...source.tileJobs(frame.url, frame.tiles, extent, resolution, PRELOAD_MAX_TILES));
+      if (!isEmpty(extent)) needs.push(...ofDwd(source, frame, extent, resolution));
     }
     // Over the networks' countries DWD's tiles are holes: their own frames,
     // or a product of all of theirs on the steps it stands in for them.
-    if (whole) jobs.push(...this.wholes[whole.product].tileJobs(whole.frame, viewExtent, resolution, PRELOAD_MAX_TILES));
-    else if (around) jobs.push(...this.around.tileJobs(around, viewExtent, resolution, PRELOAD_MAX_TILES));
+    if (whole) needs.push(...ofNetwork(this.wholes[whole.product], whole.frame, viewExtent, resolution));
+    else if (around) needs.push(...ofNetwork(this.around, around, viewExtent, resolution));
     else {
       const live = !this.past && showsLatestFrame(step, this.getMostRecentObservation());
       for (const network of this.networks) {
         const own = live ? network.current() : this.networkGrid[network.network.code]?.[step];
-        if (own) jobs.push(...network.tileJobs(own, viewExtent, resolution, PRELOAD_MAX_TILES));
+        if (own) needs.push(...ofNetwork(network, own, viewExtent, resolution));
       }
     }
     // Each network's nowcast on a forecast step it has a lead for: WN's tiles are holes there.
     const domains = this.nowcastDomainsAt(step);
     for (const layer of this.nowcasts) {
       const code = layer.network.code as CountryNetwork;
-      if (domains.includes(code)) {
-        jobs.push(...layer.tileJobs(this.nowcastGrid[code]![step], viewExtent, resolution, PRELOAD_MAX_TILES));
-      }
+      if (domains.includes(code)) needs.push(...ofNetwork(layer, this.nowcastGrid[code]![step], viewExtent, resolution));
     }
-    return jobs;
+    return needs;
+  }
+
+  /**
+   * The tiles one step needs where the map is looking, at its zoom, as each
+   * layer that draws on it will ask its loader for them (`stepNeeds`).
+   */
+  private stepJobs(step: number): TileJob[] | null {
+    return this.stepNeeds(
+      step,
+      (source, frame, extent, resolution) => source.tileJobs(frame.url, frame.tiles, extent, resolution, PRELOAD_MAX_TILES),
+      (layer, frame, extent, resolution) => layer.tileJobs(frame, extent, resolution, PRELOAD_MAX_TILES),
+    );
+  }
+
+  /** The pieces of one step's coarse preview where the map is looking (lib/previewTiles.ts). */
+  private stepPreviews(step: number): PreviewJob[] | null {
+    return this.stepNeeds(
+      step,
+      (source, frame, extent, resolution) => source.previewJobs(frame.url, frame.tiles, extent, resolution),
+      (layer, frame, extent, resolution) => layer.previewJobs(frame, extent, resolution),
+    );
   }
 
   /** The keys of the tiles a step needs that are not ready to draw at once (`tileReady`); null while the map cannot say. */
@@ -826,6 +866,7 @@ export default class RadarCapability extends Capability {
     const known = new Set(steps);
     // Playing, the steps in the order the loop shows them; else nearest the needle.
     const around = played ? played.filter((step) => known.has(step)) : preloadOrder(steps, from);
+    if (!onlyFurther) this.preloadPreviews(played ? [...around, ...preloadOrder(steps, from)] : around);
     const order = ahead === undefined ? around
       : played ? around.slice(0, ahead + 1) : steps.filter((step) => step > from).slice(0, ahead);
     const needs: Array<[number, string[]]> = [];
@@ -857,11 +898,44 @@ export default class RadarCapability extends Capability {
     this.preloader.plan(needs);
   }
 
+  /**
+   * Load a coarse preview of each of `steps` for the map in view, in that
+   * order: every frame the timeline can show, however few of them the plan
+   * of tiles reaches, since all of them together cost about what one
+   * frame's tiles do; or as many as the previews' room holds, each piece
+   * reckoned at the most it can cost. Only where the frame layer draws the
+   * radar, which is what shows them (layers/radarFrames.ts).
+   */
+  private preloadPreviews(steps: readonly number[]) {
+    if (!radarFrames(this.map)) return;
+    const needs: Array<[number, string[]]> = [];
+    const jobs = new globalThis.Map<string, PreviewJob>();
+    const seen = new Set<number>();
+    let bytes = 0;
+    for (const step of steps) {
+      if (seen.has(step)) continue;
+      seen.add(step);
+      const pieces = this.stepPreviews(step);
+      if (!pieces) return;
+      const cost = pieces.reduce((sum, piece) => sum + (jobs.has(piece.key) ? 0 : piece.cost), 0);
+      if (bytes + cost > previews.capacity) break;
+      bytes += cost;
+      for (const piece of pieces) jobs.set(piece.key, piece);
+      needs.push([step, pieces.map((piece) => piece.key)]);
+    }
+    this.plannedPreviews = jobs;
+    previews.plan(jobs.keys());
+    this.previewLoader.plan(needs);
+  }
+
   /** No more frames decoded ahead, and none shown as decoded. */
   stopPreload() {
     this.planCut = null;
     this.planReach = 0;
     this.preloader.stop();
+    this.previewLoader.stop();
+    this.plannedPreviews = new globalThis.Map();
+    previews.clear();
     this.plannedJobs = new globalThis.Map();
     decodedTiles.retain([]);
     radarFrames(this.map)?.retain([]);

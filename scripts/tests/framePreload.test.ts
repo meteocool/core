@@ -35,8 +35,9 @@ test("once the reader moves through frames, every frame is preloaded", () => {
   assert.equal(preloadMode({ ...browsingOnWifi, playing: true }), "all");
 });
 
-test("on a slow or data-saving connection, only the next frames, only while playing", () => {
-  assert.equal(preloadMode({ ...browsingOnWifi, slow: true }), "none");
+test("on a slow or data-saving connection, only the next frames while playing, and only previews under a hand", () => {
+  assert.equal(preloadMode({ ...browsingOnWifi, slow: true }), "previews");
+  assert.equal(preloadMode({ ...browsingOnWifi, slow: true, browsing: false }), "none");
   assert.equal(preloadMode({ ...browsingOnWifi, slow: true, playing: true }), "ahead");
 });
 

@@ -1,5 +1,5 @@
 import ValueTileSource from "./valueTiles";
-import type { TileJob } from "./valueTiles";
+import type { PreviewJob, TileJob } from "./valueTiles";
 import LatestFrame from "./latestFrame";
 import { radarDrawing } from "./radarDrawing";
 import type { RadarDrawing } from "./radarDrawing";
@@ -418,6 +418,15 @@ export default class NetworkRadarLayer {
     const extent = getIntersection(viewExtent, this.network.extent);
     if (isEmpty(extent)) return [];
     return source.tileJobs(this.urlOf(frame), frame.tiles, extent, resolution, max);
+  }
+
+  /** The pieces of `frame`'s coarse preview where the map is looking (`ValueTileSource.previewJobs`). */
+  previewJobs(frame: RadarFrame, viewExtent: Extent, resolution: number): PreviewJob[] {
+    const { source } = this;
+    if (!source) return [];
+    const extent = getIntersection(viewExtent, this.network.extent);
+    if (isEmpty(extent)) return [];
+    return source.previewJobs(this.urlOf(frame), frame.tiles, extent, resolution);
   }
 
   /** The frame `show` would put on screen now: the live one, the step's, or none. */

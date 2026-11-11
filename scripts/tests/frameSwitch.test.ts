@@ -57,6 +57,45 @@ test("hidden, it shows nothing, and starts afresh from the next frame it is aske
   assert.equal(frames.shown?.key, "t5", "not an hour-old frame standing in");
 });
 
+test("told to wait, it draws nothing until its frame is whole, however many it is asked for meanwhile", () => {
+  const frames = new FrameSwitch<ReturnType<typeof frame>>();
+  frames.want(frame("t0"));
+  frames.hide();
+  frames.want(frame("t5"));
+  // Another source stands in for it: it comes in whole, not tile by tile.
+  frames.wait();
+  assert.equal(frames.shown, null);
+  assert.equal(frames.pending, true);
+  frames.want(frame("t10"));
+  assert.equal(frames.shown, null, "a newer frame asked for is not shown at once either");
+  frames.settle(1000, false);
+  assert.equal(frames.shown?.key, "t10");
+  assert.equal(frames.waiting, false);
+});
+
+test("a wait called off shows the frame asked for at once, drawn as its tiles come", () => {
+  const frames = new FrameSwitch<ReturnType<typeof frame>>();
+  frames.want(frame("t0"));
+  frames.hide();
+  frames.wait();
+  frames.want(frame("t5"));
+  frames.release();
+  assert.equal(frames.shown?.key, "t5");
+  assert.equal(frames.pending, false);
+  frames.want(frame("t10"));
+  assert.equal(frames.shown?.key, "t5", "from then on it switches whole, as ever");
+  frames.release();
+  assert.equal(frames.shown?.key, "t5", "calling off no wait changes nothing");
+});
+
+test("with no frame asked for there is nothing to wait for", () => {
+  const frames = new FrameSwitch<ReturnType<typeof frame>>();
+  frames.wait();
+  assert.equal(frames.waiting, false);
+  frames.want(frame("t0"));
+  assert.equal(frames.shown?.key, "t0");
+});
+
 test("a fade runs from the frame before for its duration, then is over", () => {
   const frames = new FrameSwitch<ReturnType<typeof frame>>();
   frames.want(frame("t0"));

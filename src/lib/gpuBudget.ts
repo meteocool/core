@@ -162,10 +162,37 @@ export function uploadAheadSteps(handheld = isHandheld()): number {
  * How many tiles are loaded and decoded ahead at once (lib/framePreload.ts):
  * on a phone two, one for each of its workers, so the frame on screen is
  * not kept waiting behind them and the decoding's garbage comes no faster
- * than it is collected; on a desktop four.
+ * than it is collected; on a desktop eight. What a tile waits for there is
+ * its round trip, not its decoding: a laptop's 377 tiles of a timeline were
+ * in after 4.2 s four at a time, and after 1.7 s at eight (November 2026).
  */
 export function decodeAheadParallel(handheld = isHandheld()): number {
-  return handheld ? 2 : 4;
+  return handheld ? 2 : 8;
+}
+
+/**
+ * The most bytes of coarse previews kept of the timeline's frames
+ * (lib/previewTiles.ts): each is the part of a tile a few zooms up that the
+ * map is looking at, some tens of kilobytes, so every frame of a phone's
+ * screen fits in a few megabytes, and of a desktop's in a few dozen. Over
+ * a dozen networks at once, a phone's is 5 to 7 MB (November 2026).
+ */
+export function previewBytes(handheld = isHandheld()): number {
+  return handheld ? 12 * MB : 48 * MB;
+}
+
+/**
+ * How many previews are loaded at once: many more than the tiles decoded
+ * ahead (`decodeAheadParallel`), on a phone as well. Each is a kilobyte or
+ * two on the wire, so what they wait for is the round trip, not the bytes or
+ * the decoding, and over HTTP/2 the round trips overlap: a desktop's two
+ * hundred took four seconds six at a time and half a second at sixteen; on
+ * a link with 200 ms of latency a phone's hundred and fifty came after the
+ * hand had crossed the timeline at eight, and within 2.5 s at thirty-two
+ * (November 2026).
+ */
+export function previewParallel(): number {
+  return 32;
 }
 
 /**

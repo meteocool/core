@@ -6,11 +6,12 @@ import type { FrameState } from "ol/Map";
 import type { ViewStateLayerStateExtent } from "ol/View";
 import { getIntersection, intersects, isEmpty } from "ol/extent";
 import type { Extent } from "ol/extent";
-import { decodedTiles, loadStoredTile, onFramesForgotten } from "./valueTiles";
+import { decodedTiles, loadStoredTile, onFramesForgotten, previews } from "./valueTiles";
 import type ValueTileSource from "./valueTiles";
 import type { TileHolder, TileJob, ValueFrame } from "./valueTiles";
 import type { DrawingOptions, Look, RadarDrawing } from "./radarDrawing";
 import { BLANK } from "../lib/decodedTiles";
+import type { PreviewPiece } from "../lib/previewTiles";
 import { GpuTiles } from "../lib/gpuTiles";
 import type { GpuTile } from "../lib/gpuTiles";
 import { FrameSwitch, ancestorTile, childTiles, settled } from "../lib/frameSwitch";
@@ -46,6 +47,22 @@ import type { Ink } from "../lib/rvp6";
  * animation frame while nothing else happens (`setUpcoming`), so a step of
  * playback uploads nothing. Playing, each step fades from the frame before in
  * value, before the palette: a cell moves through the intensities between.
+ *
+ * A hand on the timeline moves through frames faster than any of that: a
+ * frame not yet whole is then shown at once from its coarse preview where
+ * there is one (lib/previewTiles.ts), a part of a tile a few zooms up kept
+ * for every frame of the timeline, blurred rather than of another time, and
+ * each tile of it replaces the blur as it comes. Its tiles are asked for
+ * only once the needle has rested on it for `REST_MS`, so that the frames
+ * it only passed over are not in the way of the one it stopped on.
+ *
+ * A source hidden on a step (a network's observations, where the forecast
+ * begins) is not taken off at once either, while another comes in on the
+ * same step (its nowcast): the one stays as it was and the other draws
+ * nothing until it is whole or previewed, and then they change places in
+ * one draw. Hidden at once, the ground between them stood empty for as long
+ * as the newcomer's tiles took. Not for longer than `LINGER_MS`; after that
+ * the newcomer is drawn as it comes.
  *
  * A tile's decoded bytes are not let go once it is uploaded, on a phone
  * either: the decoded tiles are bounded by their bytes whatever they hold,
@@ -85,6 +102,21 @@ export const CROSSFADE_MS = 450;
 /** How many tiles a layer loads at once for the frames it draws: OpenLayers' own queue had sixteen. */
 const MAX_LOADING = 8;
 
+/**
+ * How long a frame has to have been asked for before the tiles its preview
+ * stands in for are loaded: longer than a hand moving along the timeline
+ * stays on a step, shorter than anyone notices on the step it stops on.
+ */
+export const REST_MS = 80;
+
+/**
+ * The longest a source hidden on a step stays drawn for the ones coming in
+ * on it to be whole. Long, as an empty map is worse than one a step behind,
+ * which is all any other source is while its next frame loads; but not for
+ * ever, should what comes in never be whole.
+ */
+export const LINGER_MS = 5000;
+
 /** How long to wait before drawing again while the context is lost. */
 const CONTEXT_RETRY_MS = 1000;
 
@@ -103,9 +135,10 @@ export interface FrameStats {
   slotDraws: number;
   /** Slots drawn with tiles of two frames other than a fade's: none, by design. */
   mixed: number;
-  /** Frames switched to, and how many of those faded. */
+  /** Frames switched to, how many of those faded, and how many were shown from their preview first. */
   switches: number;
   fades: number;
+  previewSwitches: number;
   /** Tiles uploaded: in all, ahead of their frame, and in a draw that then switched to their frame. */
   uploads: number;
   preUploads: number;
@@ -126,6 +159,8 @@ interface DrawItem {
   /** The frame faded from, the same tile; null when not fading. */
   a: GpuTile<TileTexture> | null;
   t: number;
+  /** A preview, stretched over many pixels of the screen: drawn smoothed. */
+  smooth: boolean;
 }
 
 const VERTEX = `#version 300 es
@@ -149,6 +184,7 @@ uniform sampler2D u_lut;    // 256 x 1, the palette
 uniform float u_t;          // how far the fade has come; 1 for none
 uniform float u_opacity;
 uniform bool u_coverage;    // whether the shown frame's tile has its coverage as a second band
+uniform bool u_smooth;      // a preview: its four nearest texels weighed, not the nearest taken
 in vec2 v_tex;
 out vec4 colour;
 
@@ -156,8 +192,22 @@ vec4 lookUp(float value) {
   return texelFetch(u_lut, ivec2(int(value), 0), 0);
 }
 
+// The texture between its texels, by hand: its own filter stays nearest.
+vec4 between(sampler2D tiles, vec2 at) {
+  vec2 size = vec2(textureSize(tiles, 0));
+  vec2 pixel = at * size - 0.5;
+  ivec2 corner = ivec2(floor(pixel));
+  vec2 f = pixel - floor(pixel);
+  ivec2 last = ivec2(size) - 1;
+  vec4 nw = texelFetch(tiles, clamp(corner, ivec2(0), last), 0);
+  vec4 ne = texelFetch(tiles, clamp(corner + ivec2(1, 0), ivec2(0), last), 0);
+  vec4 sw = texelFetch(tiles, clamp(corner + ivec2(0, 1), ivec2(0), last), 0);
+  vec4 se = texelFetch(tiles, clamp(corner + ivec2(1, 1), ivec2(0), last), 0);
+  return mix(mix(nw, ne, f.x), mix(sw, se, f.x), f.y);
+}
+
 void main() {
-  vec4 texel = texture(u_b, v_tex);
+  vec4 texel = u_smooth ? between(u_b, v_tex) : texture(u_b, v_tex);
   float b = floor(texel.r * 255.0 + 0.5);
   vec4 c = lookUp(b);
   if (u_t < 1.0) {
@@ -172,7 +222,7 @@ void main() {
   colour = vec4(c.rgb * alpha, alpha);
 }`;
 
-const UNIFORMS = ["u_origin", "u_east", "u_north", "u_tex", "u_a", "u_b", "u_lut", "u_t", "u_opacity", "u_coverage"] as const;
+const UNIFORMS = ["u_origin", "u_east", "u_north", "u_tex", "u_a", "u_b", "u_lut", "u_t", "u_opacity", "u_coverage", "u_smooth"] as const;
 
 let webgl2: boolean | undefined;
 
@@ -251,6 +301,15 @@ export class RadarSlot implements RadarDrawing {
 
   ink: Ink | null;
 
+  /** When the frame asked for was last another one, in the map's clock. */
+  askedAt = 0;
+
+  /** Hidden, but drawn as it was until what comes in on the same step is whole. */
+  lingering = false;
+
+  /** When it was hidden, in the map's clock. */
+  hiddenAt = 0;
+
   private gone = false;
 
   private readonly owner: RadarFrameLayer;
@@ -266,10 +325,14 @@ export class RadarSlot implements RadarDrawing {
     this.ink = options.ink;
     source.holder = () => owner.residency;
     source.onFrame = (frame) => {
+      if (frame.key !== this.frames.wanted?.key) this.askedAt = Date.now();
       this.frames.want(frame);
       owner.changed();
     };
     this.frames.want(source.currentFrame());
+    // Made on the step it first has a frame for: whole, where another stands in for it till then.
+    this.frames.wait();
+    this.askedAt = Date.now();
   }
 
   /** What its palette table is kept under. */
@@ -287,13 +350,36 @@ export class RadarSlot implements RadarDrawing {
     return this.opacity;
   }
 
-  /** Hidden, it shows nothing, and shown again it starts from its frame, drawn as it comes. */
+  /**
+   * Hidden, it is drawn as it was until the next draw finds nothing coming
+   * in for it to stand in for, or what comes in whole (`lingering`). Shown
+   * again, it starts from nothing and waits to be whole while another
+   * stands in for it; with none, it is drawn as its tiles come.
+   */
   setVisible(visible: boolean) {
     if (visible === this.visible) return;
     this.visible = visible;
-    if (!visible) this.frames.hide();
-    else this.frames.want(this.frames.wanted);
+    if (!visible) {
+      if (this.frames.shown) {
+        this.lingering = true;
+        this.hiddenAt = Date.now();
+      } else {
+        this.frames.hide();
+      }
+    } else if (this.lingering) {
+      // Back before it was gone: it carries on from the frame it shows.
+      this.lingering = false;
+    } else {
+      this.frames.wait();
+      this.askedAt = Date.now();
+    }
     this.owner.changed();
+  }
+
+  /** Gone from the picture: a hidden source that lingered. */
+  vanish() {
+    this.lingering = false;
+    this.frames.hide();
   }
 
   setLook(encoding: string, palette: string, ink: Ink | null) {
@@ -318,6 +404,7 @@ export class RadarSlot implements RadarDrawing {
 
   destroy() {
     this.gone = true;
+    this.lingering = false;
     this.source.onFrame = null;
     this.owner.remove(this);
   }
@@ -351,6 +438,9 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
 
   /** Tiles uploaded for frames asked for, counted so that a switch can say how many it waited on. */
   private pendingUploads = 0;
+
+  /** How many slots the last draw left on another frame than the one asked for. */
+  behind = 0;
 
   constructor(layer: RadarFrameLayer) {
     super(layer);
@@ -393,14 +483,34 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
   override prepareFrame(frameState: FrameState): boolean {
     const layer = this.getLayer();
     this.items = [];
+    this.behind = 0;
     this.tiles.unpinAll();
     const slots = layer.slots.filter((slot) => slot.visible && slot.frames.wanted && this.inView(slot, frameState));
-    if (!slots.length || !this.context()) {
+    // Hidden sources still drawn: not those out of sight, which stand in for nothing.
+    for (const slot of layer.slots) if (slot.lingering && (!slot.frames.shown || !this.inView(slot, frameState))) slot.vanish();
+    const lingerers = layer.slots.filter((slot) => slot.lingering);
+    const overdue = lingerers.some((slot) => frameState.time - slot.hiddenAt > LINGER_MS);
+    // Nothing stands in for a source coming in: it is drawn as its tiles come.
+    if (!lingerers.length || overdue) for (const slot of slots) slot.frames.release();
+    if ((!slots.length && !lingerers.length) || !this.context()) {
       this.ready = true;
       return false;
     }
     let loading = false;
     for (const slot of slots) loading = this.plan(slot, frameState) || loading;
+    if (lingerers.length) {
+      if (overdue || !slots.some((slot) => slot.frames.waiting)) {
+        // Every source that came in is on screen: the hidden ones go in the same draw.
+        for (const slot of lingerers) slot.vanish();
+      } else {
+        for (const slot of lingerers) this.plan(slot, frameState, true);
+        loading = true;
+        layer.drawAt(Math.min(...lingerers.map((slot) => slot.hiddenAt)) + LINGER_MS + 1);
+        // Drawn in the layer's order, whichever was planned first.
+        const order = new globalThis.Map(layer.slots.map((slot, index) => [slot, index]));
+        this.items.sort((p, q) => order.get(p.slot)! - order.get(q.slot)!);
+      }
+    }
     layer.arrived.clear();
     this.ready = !loading;
     return true;
@@ -461,6 +571,7 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
       gl.uniform1f(u.u_t!, item.a === null ? 1 : item.t);
       gl.uniform1f(u.u_opacity!, item.slot.opacity * layerOpacity);
       gl.uniform1i(u.u_coverage!, item.b !== BLANK && item.b.bands === 2 ? 1 : 0);
+      gl.uniform1i(u.u_smooth!, item.smooth ? 1 : 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
     gl.bindVertexArray(null);
@@ -474,17 +585,23 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
 
   /**
    * What a slot draws this time: its frame asked for, switched to once every
-   * tile of it in view is ready, else the frame it shows, each missing tile
-   * from a coarser or finer one of the same frame. True while any tile of
-   * either is still loading.
+   * tile of it in view is ready or its preview covers the rest, else the
+   * frame it shows; each missing tile from a coarser one of the same frame,
+   * its preview or finer ones. True while any tile of either is still
+   * loading. With `drawOnly`, the frame it shows as it is, nothing asked
+   * for: a hidden source standing in.
    */
-  private plan(slot: RadarSlot, frameState: FrameState): boolean {
+  private plan(slot: RadarSlot, frameState: FrameState, drawOnly = false): boolean {
     const layer = this.getLayer();
     const grid = slot.source.getTileGrid()!;
     const z = grid.getZForResolution(frameState.viewState.resolution, slot.source.zDirection);
     let extent = getIntersection(frameState.extent!, grid.getExtent());
     if (slot.extent) extent = getIntersection(extent, slot.extent);
-    if (isEmpty(extent)) return false;
+    if (isEmpty(extent)) {
+      // Nothing of it to draw here: nothing to wait for either.
+      slot.frames.release();
+      return false;
+    }
     const range = grid.getTileRangeForExtentAndZ(extent, z);
     const [cx, cy] = frameState.viewState.center;
     const coords: Array<TileCoord & { covers: Extent }> = [];
@@ -497,19 +614,30 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
 
     let loading = false;
     const { frames } = slot;
-    if (frames.pending) {
+    if (frames.pending && !drawOnly) {
       const wanted = frames.wanted!;
       const uploaded = this.pendingUploads;
       const jobs = coords.map(({ z: tz, x, y }) => wanted.job(tz, x, y));
-      // Every tile decoded goes up now, every other is asked for.
-      for (const job of jobs) this.resolve(job, true);
-      if (settled(jobs, (job) => this.residentOf(job) !== undefined || layer.failed.has(job.key))) {
+      // Every tile decoded goes up now.
+      for (const job of jobs) this.resolve(job, true, false);
+      const ready = (job: TileJob) => this.residentOf(job) !== undefined || layer.failed.has(job.key);
+      if (settled(jobs, ready)) {
         const fade = layer.fading && frames.shown !== null;
         frames.settle(frameState.time, fade);
         layer.stats.switches += 1;
         if (fade) layer.stats.fades += 1;
         layer.stats.switchUploads += this.pendingUploads - uploaded;
+      } else if (settled(coords, (coord) => ready(wanted.job(coord.z, coord.x, coord.y))
+        || this.previewOf(wanted, coord, getIntersection(coord.covers, extent)) !== undefined)) {
+        // Blurred, but of the time asked for: its tiles replace the preview as they come.
+        frames.settle(frameState.time, false);
+        layer.stats.switches += 1;
+        layer.stats.previewSwitches += 1;
+        loading = true;
       } else {
+        // Nothing to show of it yet: every tile is asked for.
+        for (const job of jobs) this.resolve(job, true);
+        this.behind += 1;
         loading = true;
       }
     }
@@ -521,37 +649,90 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
 
     const drawnFrames = new Set<string>();
     const resident = (tile: TileCoord) => this.residentOf(shown.job(tile.z, tile.x, tile.y)) !== undefined;
-    const add = (region: Extent, covers: Extent, b: GpuTile<TileTexture>, a: GpuTile<TileTexture> | null) => {
+    const add = (region: Extent, covers: Extent, b: GpuTile<TileTexture>, a: GpuTile<TileTexture> | null, smooth = false) => {
       if (b === BLANK && (a === null || a === BLANK)) return;
-      this.items.push({ slot, region, covers, b, a, t });
+      this.items.push({ slot, region, covers, b, a, t, smooth });
       drawnFrames.add(shown.key);
     };
     // While another frame is on its way only that one is loaded: the frame
     // shown fills the ground it has not got from coarser tiles until then.
-    const asking = !frames.pending;
+    const asking = !frames.pending && !drawOnly;
+    // A frame the needle may only be passing over: its preview stands in, and its tiles wait.
+    const rested = frameState.time - slot.askedAt >= REST_MS;
     for (const coord of coords) {
       const region = getIntersection(coord.covers, extent);
       const job = shown.job(coord.z, coord.x, coord.y);
-      const tile = this.resolve(job, false, asking);
+      const tile = this.resolve(job, false, false);
       if (tile !== undefined) {
         const a = from ? this.residentOf(from.job(coord.z, coord.x, coord.y)) ?? null : null;
         add(region, coord.covers, tile, a);
         continue;
       }
-      if (!layer.failed.has(job.key)) loading = true;
+      const failed = layer.failed.has(job.key);
+      if (!failed) loading = true;
+      const preview = failed ? undefined : this.previewOf(shown, coord, region);
+      if (asking && (rested || !preview)) layer.request(job);
+      else if (asking) layer.drawAt(slot.askedAt + REST_MS);
       const up = ancestorTile(coord, grid.getMinZoom(), resident);
       if (up) {
         add(region, grid.getTileCoordExtent([up.z, up.x, up.y]), this.residentOf(shown.job(up.z, up.x, up.y))!, null);
         continue;
       }
-      for (const child of childTiles(coord, grid.getMaxZoom(), resident)) {
+      if (preview) {
+        add(region, preview.covers, preview.tile, null, true);
+        continue;
+      }
+      const children = childTiles(coord, grid.getMaxZoom(), resident);
+      for (const child of children) {
         const covers = grid.getTileCoordExtent([child.z, child.x, child.y]);
         add(getIntersection(covers, extent), covers, this.residentOf(shown.job(child.z, child.x, child.y))!, null);
       }
+      if (children.length || failed) continue;
+      // A preview cut for the view before this one: what it has of this ground.
+      const part = this.previewOf(shown, coord, region, true);
+      if (part) add(getIntersection(region, part.covers), part.covers, part.tile, null, true);
     }
     if (drawnFrames.size) layer.stats.slotDraws += 1;
     if (drawnFrames.size > 1) layer.stats.mixed += 1;
     return loading;
+  }
+
+  /**
+   * The piece of a frame's preview that covers `region` of tile `coord`, on
+   * the GPU and pinned for this draw, uploaded now if it was not: a few
+   * tens of kilobytes. Undefined where the frame has none there. With
+   * `partly`, one that covers only some of the region will do.
+   */
+  private previewOf(
+    frame: ValueFrame, coord: TileCoord, region: Extent, partly = false,
+  ): { tile: GpuTile<TileTexture>; covers: Extent } | undefined {
+    const piece = previews.covering(frame.key, coord.z, coord.x, coord.y, region, partly);
+    if (!piece) return undefined;
+    this.tiles.pin(piece.key);
+    const held = this.tiles.get(piece.key);
+    if (held !== undefined) return { tile: held, covers: piece.covers };
+    this.uploadPiece(piece);
+    const tile = this.tiles.get(piece.key);
+    return tile === undefined ? undefined : { tile, covers: piece.covers };
+  }
+
+  /** Put a piece of a preview on the GPU, as `upload` does a tile. */
+  private uploadPiece(piece: PreviewPiece): void {
+    const gl = this.gl;
+    const { tile, width, height } = piece;
+    const bands = tile === BLANK ? 0 : tile.byteLength / (width * height);
+    if (tile === BLANK || (bands !== 1 && bands !== 2)) {
+      this.tiles.put(piece.key, BLANK, 0);
+      return;
+    }
+    const texture = gl?.createTexture();
+    if (!gl || !texture) return;
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    const [internal, format] = bands === 2 ? [gl.RG8, gl.RG] : [gl.R8, gl.RED];
+    gl.texImage2D(gl.TEXTURE_2D, 0, internal, width, height, 0, format, gl.UNSIGNED_BYTE, tile);
+    nearest(gl);
+    this.tiles.put(piece.key, { texture, bands }, tile.byteLength);
   }
 
   /** A tile as it is on the GPU, pinned for this draw; undefined where it is not. */
@@ -700,7 +881,7 @@ export class RadarFrameLayer extends Layer {
   private readonly made: RadarSlot[] = [];
 
   readonly stats: FrameStats = {
-    renders: 0, slotDraws: 0, mixed: 0, switches: 0, fades: 0, uploads: 0, preUploads: 0, switchUploads: 0, loads: 0, failed: 0,
+    renders: 0, slotDraws: 0, mixed: 0, switches: 0, fades: 0, previewSwitches: 0, uploads: 0, preUploads: 0, switchUploads: 0, loads: 0, failed: 0,
   };
 
   /** Tiles this layer loaded, until the next draw uploads them: the decoded tiles may not have kept them. */
@@ -727,6 +908,8 @@ export class RadarFrameLayer extends Layer {
 
   private frame: number | null = null;
 
+  private redraw: ReturnType<typeof setTimeout> | null = null;
+
   /** When a slot was last in view, in the map's clock. */
   private lastDrawn = 0;
 
@@ -739,6 +922,10 @@ export class RadarFrameLayer extends Layer {
       onRetry(() => this.retryFailed()),
       decodedTiles.onPut((key) => {
         if (this.upcomingKeys.has(key)) this.kick();
+      }),
+      // A preview of the frame a slot waits for: it can be shown now.
+      previews.onPut((piece) => {
+        if (this.slots.some((slot) => slot.visible && slot.frames.pending && slot.frames.wanted?.key === piece.frame)) this.changed();
       }),
     ];
   }
@@ -814,6 +1001,24 @@ export class RadarFrameLayer extends Layer {
     this.loading.set(job.key, load);
   }
 
+  /** Draw again at `time`, in the map's clock: something a draw put off is due then. */
+  drawAt(time: number) {
+    if (this.redraw !== null) return;
+    this.redraw = setTimeout(() => {
+      this.redraw = null;
+      this.changed();
+    }, Math.max(0, time - Date.now()));
+  }
+
+  /**
+   * How many of the sources drawn were, at the last draw, still on another
+   * frame than the one asked for: none once the map shows the time the
+   * timeline is on, sharp or not.
+   */
+  get behind(): number {
+    return this.hasRenderer() ? (this.getRenderer() as FramesRenderer).behind : 0;
+  }
+
   /** Bytes and tiles on the GPU now. */
   get gpu(): { bytes: number; tiles: number; capacity: number } {
     const renderer = this.hasRenderer() ? this.getRenderer() as FramesRenderer : null;
@@ -849,6 +1054,7 @@ export class RadarFrameLayer extends Layer {
   override disposeInternal(): void {
     for (const stop of this.unsubscribe) stop();
     if (this.frame !== null) cancelAnimationFrame(this.frame);
+    if (this.redraw !== null) clearTimeout(this.redraw);
     super.disposeInternal();
   }
 

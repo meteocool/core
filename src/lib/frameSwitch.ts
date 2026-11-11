@@ -46,9 +46,16 @@ export class FrameSwitch<F extends Keyed> {
   switchedAt = 0;
 
   /**
+   * Whether nothing is drawn until the frame asked for is whole (`wait`):
+   * something else stands in for it meanwhile.
+   */
+  waiting = false;
+
+  /**
    * Ask for a frame. With nothing shown yet it is shown at once and drawn as
-   * its tiles come; else it waits for `settle`. A newer snapshot of the frame
-   * shown (the same key) replaces it in place, and calls off a switch.
+   * its tiles come, unless it is to be shown only whole (`wait`); else it
+   * waits for `settle`. A newer snapshot of the frame shown (the same key)
+   * replaces it in place, and calls off a switch.
    */
   want(frame: F | null): void {
     if (frame && this.shown?.key === frame.key) {
@@ -57,7 +64,7 @@ export class FrameSwitch<F extends Keyed> {
       return;
     }
     this.wanted = frame;
-    if (!this.shown) this.shown = frame;
+    if (!this.shown && !this.waiting) this.shown = frame;
   }
 
   /** Whether another frame than the one shown is asked for. */
@@ -74,6 +81,7 @@ export class FrameSwitch<F extends Keyed> {
     this.from = fade ? this.shown : null;
     this.shown = this.wanted;
     this.switchedAt = now;
+    this.waiting = false;
   }
 
   /** How far the fade has come at `now`, 0 to 1; 1 once it is over, or when there is none. */
@@ -88,6 +96,26 @@ export class FrameSwitch<F extends Keyed> {
   hide(): void {
     this.shown = null;
     this.from = null;
+    this.waiting = false;
+  }
+
+  /**
+   * Start from nothing, and draw nothing until the frame asked for is whole
+   * (`settle`) or the wait is called off (`release`): for a source that
+   * comes in where another still stands, so the two change places in one
+   * draw rather than leaving the ground empty between them.
+   */
+  wait(): void {
+    this.shown = null;
+    this.from = null;
+    this.waiting = this.wanted !== null;
+  }
+
+  /** Call off a wait: the frame asked for is shown now, drawn as its tiles come. */
+  release(): void {
+    if (!this.waiting) return;
+    this.waiting = false;
+    if (!this.shown) this.shown = this.wanted;
   }
 }
 

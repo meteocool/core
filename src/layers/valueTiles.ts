@@ -11,7 +11,9 @@ import type { MaskPath } from "./tileMask";
 import { sourceTile } from "../lib/tileIndex";
 import type { TileIndex } from "../lib/tileIndex";
 import { BLANK, DecodedTiles, tileKey } from "../lib/decodedTiles";
-import { decodedTileBytes } from "../lib/gpuBudget";
+import { decodedTileBytes, previewBytes } from "../lib/gpuBudget";
+import { PREVIEW_BLOCK, PreviewStore, cropBytes, cropExtent, cropFor, cropName, pieceCost, previewScale, previewZoom } from "../lib/previewTiles";
+import type { Crop } from "../lib/previewTiles";
 import { getCacheKey } from "ol/renderer/webgl/TileLayerBase";
 import type WebGLTileLayer from "ol/layer/WebGLTile";
 
@@ -206,6 +208,60 @@ export function loadStoredTile(job: TileJob, signal?: AbortSignal): Promise<Uint
 }
 
 /**
+ * The coarse previews of the timeline's frames, for the map in view; see
+ * lib/previewTiles.ts.
+ */
+export const previews = new PreviewStore(previewBytes());
+
+/** One piece of a frame's preview: the part of a coarse tile the map is looking at. */
+export interface PreviewJob {
+  /** What `previews` keeps it under. */
+  key: string;
+  /** The frame it is of (`ValueFrame.key`). */
+  frame: string;
+  /** The coarse tile, as the loader is handed it: cut like the frame's own tiles. */
+  tile: TileJob;
+  crop: Crop;
+  /** How many of the tile's pixels go into one of the piece's, a side (`previewScale`). */
+  scale: number;
+  /** The ground the crop covers. */
+  covers: number[];
+  /** The most it costs to keep (`pieceCost`): two bytes a pixel where the tile is cut, one where it is not, nothing where it is blank. */
+  cost: number;
+}
+
+/**
+ * Load a piece of a preview and keep it: true once it is kept, or was
+ * already. The coarse tile goes the way of any other, the cut included, but
+ * is not kept decoded: only its crop is.
+ */
+export async function loadPreview(job: PreviewJob): Promise<boolean> {
+  if (previews.has(job.key)) return true;
+  const { tile, crop, scale } = job;
+  let bytes: Uint8Array | typeof BLANK = BLANK;
+  if (!tile.local) {
+    const kept = decodedTiles.peek(tile.key);
+    const loaded = kept ?? await loadValueTile(tile.template, tile.index, tile.z, tile.x, tile.y, tile.holes, tile.keep, undefined, tile.size);
+    if (loaded instanceof Uint8Array) {
+      const cut = cropBytes(loaded, tile.size, crop, scale);
+      // A crop of nothing is a blank, with no texture behind it.
+      bytes = drawsNothing(cut, (crop.width / scale) * (crop.height / scale)) ? BLANK : cut;
+    }
+  }
+  return previews.put({
+    key: job.key,
+    frame: job.frame,
+    z: tile.z,
+    x: tile.x,
+    y: tile.y,
+    covers: job.covers,
+    width: crop.width / scale,
+    height: crop.height / scale,
+    tile: bytes,
+  });
+}
+
+/**
  * A frame's name on a step it is drawn on: its tiles' template, or, where it
  * stands on a step other than the one it was measured for, the template and
  * that step.
@@ -370,6 +426,44 @@ export default class ValueTileSource extends DataTileSource {
   }
 
   /**
+   * The pieces of frame `url`'s preview for a view of `extent` at
+   * `resolution`: of each tile a few zooms above the one drawn, the part
+   * the view needs (lib/previewTiles.ts). From the nearest zoom to that
+   * which the frame's index speaks for, as a tile the frame lacks would
+   * preview as nothing there: none where it speaks for no zoom above the
+   * one drawn, and none where the view is already at the pyramid's top.
+   */
+  previewJobs(url: string, index: TileIndex | null | undefined, extent: MapExtent, resolution: number): PreviewJob[] {
+    this.remember(url, index);
+    const grid = this.getTileGrid()!;
+    const drawn = grid.getZForResolution(resolution, this.zDirection);
+    const known = this.indexFor(url);
+    let zoom = previewZoom(drawn, grid.getMinZoom());
+    while (zoom !== null && zoom < drawn && !known?.[String(zoom)]) zoom += 1;
+    if (zoom === null || zoom >= drawn) return [];
+    const scale = previewScale(drawn, zoom);
+    const frame = this.frameFor(url);
+    const jobs: PreviewJob[] = [];
+    grid.forEachTileCoord(extent, zoom, ([z, x, y]) => {
+      const tile = frame.job(z, x, y);
+      const ground = grid.getTileCoordExtent([z, x, y]);
+      const crop = cropFor(ground, tile.size, extent, PREVIEW_BLOCK * scale);
+      if (!crop) return;
+      const bands = tile.local ? 0 : tile.holes.length || tile.keep ? 2 : 1;
+      jobs.push({
+        key: `${tile.key}|${cropName(crop, scale)}`,
+        frame: frame.key,
+        tile,
+        crop,
+        scale,
+        covers: cropExtent(ground, tile.size, crop),
+        cost: pieceCost(crop.width / scale, crop.height / scale, bands),
+      });
+    });
+    return jobs;
+  }
+
+  /**
    * Frame `url` with the holes it has now, as the loader is handed its tiles
    * once it is put on. Each tile's job is made once: the frame layer asks for
    * every tile in view on every draw.
@@ -430,6 +524,7 @@ export function forgetEarlierFrames(): void {
   forgetting += 1;
   // Not drawn from, so nothing blinks: they go now.
   decodedTiles.clear();
+  previews.clear();
   for (const listener of [...forgetters]) listener(false);
 }
 
@@ -463,6 +558,7 @@ const valueLayers = new Set<WebGLTileLayer>();
 export function dropEarlierFrames(): void {
   forgetting += 1;
   decodedTiles.clear();
+  previews.clear();
   for (const listener of [...forgetters]) listener(true);
   for (const layer of valueLayers) {
     // A layer replaced and disposed (precipitation types) is let go here.

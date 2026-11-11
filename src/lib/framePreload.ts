@@ -17,8 +17,12 @@
  * to say.
  */
 
-/** What to preload: every frame, the next few after the needle, or nothing. */
-export type PreloadMode = "all" | "ahead" | "none";
+/**
+ * What to preload: every frame, the next few after the needle, only each
+ * frame's coarse preview (lib/previewTiles.ts), or nothing. The first two
+ * load the previews as well, before anything else.
+ */
+export type PreloadMode = "all" | "ahead" | "previews" | "none";
 
 /**
  * Whether to preload, and how much.
@@ -27,7 +31,9 @@ export type PreloadMode = "all" | "ahead" | "none";
  * on the timeline, or play. A page opened to see the radar now costs the
  * frame it shows and nothing more; every frame of a viewport is 3 to 8 MB.
  * On a slow or data-saving connection, only the next few frames, and only
- * while playing, as before there was a timeline to fill.
+ * while playing, as before there was a timeline to fill; with a hand on the
+ * timeline, the previews alone, a hundredth of what the frames weigh and
+ * what a slow connection needs most.
  */
 export function preloadMode({
   setting, radarShown, browsing, playing, slow,
@@ -43,7 +49,7 @@ export function preloadMode({
 }): PreloadMode {
   if (!setting || !radarShown || !browsing) return "none";
   if (!slow) return "all";
-  return playing ? "ahead" : "none";
+  return playing ? "ahead" : "previews";
 }
 
 /**

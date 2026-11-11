@@ -21,7 +21,7 @@ export const READY_TIMEOUT_MS = 1500;
 
 /** Whether playback waits for a frame's tiles at all: only while they are being decoded ahead. */
 export function holdsForTiles(mode: PreloadMode): boolean {
-  return mode !== "none";
+  return mode === "all" || mode === "ahead";
 }
 
 /** Whether to move on: the next frame is ready, or has been waited for long enough. */
