@@ -32,6 +32,8 @@ test("playback waits only while frames are being decoded ahead", () => {
   assert.equal(holdsForTiles("ahead"), true);
   assert.equal(holdsForTiles("none"), false, "with nothing filling the store, a wait would only time out");
   assert.equal(holdsForTiles("previews"), false, "previews are not what a step waits for");
+  assert.equal(holdsForTiles("all", true), false, "nor while the map is being zoomed or panned");
+  assert.equal(holdsForTiles("ahead", true), false);
 });
 
 test("the longest hold is a few frames of playback, not a stall", () => {

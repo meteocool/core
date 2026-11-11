@@ -1,6 +1,7 @@
 import Layer from "ol/layer/Layer";
 import LayerRenderer from "ol/renderer/Layer";
 import View from "ol/View";
+import ViewHint from "ol/ViewHint";
 import type Map from "ol/Map";
 import type { FrameState } from "ol/Map";
 import type { ViewStateLayerStateExtent } from "ol/View";
@@ -56,6 +57,14 @@ import type { Ink } from "../lib/rvp6";
  * only once the needle has rested on it for `REST_MS`, so that the frames
  * it only passed over are not in the way of the one it stopped on.
  *
+ * While the map is being zoomed or panned, a frame is moved to on less: a
+ * preview that covers only part of a tile will do, as the ground at the
+ * edges is new to every frame alike, and playback is not held for tiles
+ * meanwhile (lib/playbackGate.ts); so will the frame's own tiles of another
+ * zoom, coarser or finer. A tile missing is drawn from the frame's own
+ * coarser tiles before its preview, as those are sharper: zoomed into a
+ * loop that has played, each step is its tiles from the zoom before.
+ *
  * A source hidden on a step (a network's observations, where the forecast
  * begins) is not taken off at once either, while another comes in on the
  * same step (its nowcast): the one stays as it was and the other draws
@@ -108,6 +117,13 @@ const MAX_LOADING = 8;
  * stays on a step, shorter than anyone notices on the step it stops on.
  */
 export const REST_MS = 80;
+
+/**
+ * How many zooms up a missing tile is drawn from the frame's own coarser
+ * tiles where it has no preview: far enough that a loop played at one zoom
+ * still shows, blurred, three or four zooms in.
+ */
+const ANCESTOR_REACH = 4;
 
 /**
  * The longest a source hidden on a step stays drawn for the ones coming in
@@ -614,6 +630,8 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
 
     let loading = false;
     const { frames } = slot;
+    // Zoomed or panned right now: the ground in view is not what any frame was loaded for.
+    const moving = Boolean(frameState.viewHints[ViewHint.ANIMATING] || frameState.viewHints[ViewHint.INTERACTING]);
     if (frames.pending && !drawOnly) {
       const wanted = frames.wanted!;
       const uploaded = this.pendingUploads;
@@ -628,7 +646,8 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
         if (fade) layer.stats.fades += 1;
         layer.stats.switchUploads += this.pendingUploads - uploaded;
       } else if (settled(coords, (coord) => ready(wanted.job(coord.z, coord.x, coord.y))
-        || this.previewOf(wanted, coord, getIntersection(coord.covers, extent)) !== undefined)) {
+        || this.previewOf(wanted, coord, getIntersection(coord.covers, extent), moving) !== undefined
+        || (moving && this.standsIn(wanted, coord, grid.getMinZoom(), grid.getMaxZoom())))) {
         // Blurred, but of the time asked for: its tiles replace the preview as they come.
         frames.settle(frameState.time, false);
         layer.stats.switches += 1;
@@ -671,9 +690,13 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
       const failed = layer.failed.has(job.key);
       if (!failed) loading = true;
       const preview = failed ? undefined : this.previewOf(shown, coord, region);
+      // A preview cut for the view before this one: what it has of this ground.
+      const part = preview || failed ? undefined : this.previewOf(shown, coord, region, true);
       if (asking && (rested || !preview)) layer.request(job);
       else if (asking) layer.drawAt(slot.askedAt + REST_MS);
-      const up = ancestorTile(coord, grid.getMinZoom(), resident);
+      // The frame's own tiles before its preview, as far up as the preview is coarser than.
+      const above = preview ?? part;
+      const up = ancestorTile(coord, grid.getMinZoom(), resident, above ? Math.max(2, coord.z - above.z - 1) : ANCESTOR_REACH);
       if (up) {
         add(region, grid.getTileCoordExtent([up.z, up.x, up.y]), this.residentOf(shown.job(up.z, up.x, up.y))!, null);
         continue;
@@ -687,14 +710,21 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
         const covers = grid.getTileCoordExtent([child.z, child.x, child.y]);
         add(getIntersection(covers, extent), covers, this.residentOf(shown.job(child.z, child.x, child.y))!, null);
       }
-      if (children.length || failed) continue;
-      // A preview cut for the view before this one: what it has of this ground.
-      const part = this.previewOf(shown, coord, region, true);
-      if (part) add(getIntersection(region, part.covers), part.covers, part.tile, null, true);
+      if (!children.length && part) add(getIntersection(region, part.covers), part.covers, part.tile, null, true);
     }
     if (drawnFrames.size) layer.stats.slotDraws += 1;
     if (drawnFrames.size > 1) layer.stats.mixed += 1;
     return loading;
+  }
+
+  /**
+   * Whether a frame has something of its own on the GPU to draw tile
+   * `coord` from: a coarser tile above it, or a finer one under it. What a
+   * frame is moved to on while the map is being zoomed.
+   */
+  private standsIn(frame: ValueFrame, coord: TileCoord, minZ: number, maxZ: number): boolean {
+    const resident = (tile: TileCoord) => this.residentOf(frame.job(tile.z, tile.x, tile.y)) !== undefined;
+    return ancestorTile(coord, minZ, resident, ANCESTOR_REACH) !== null || childTiles(coord, maxZ, resident).length > 0;
   }
 
   /**
@@ -705,15 +735,15 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
    */
   private previewOf(
     frame: ValueFrame, coord: TileCoord, region: Extent, partly = false,
-  ): { tile: GpuTile<TileTexture>; covers: Extent } | undefined {
+  ): { tile: GpuTile<TileTexture>; covers: Extent; z: number } | undefined {
     const piece = previews.covering(frame.key, coord.z, coord.x, coord.y, region, partly);
     if (!piece) return undefined;
     this.tiles.pin(piece.key);
     const held = this.tiles.get(piece.key);
-    if (held !== undefined) return { tile: held, covers: piece.covers };
+    if (held !== undefined) return { tile: held, covers: piece.covers, z: piece.z };
     this.uploadPiece(piece);
     const tile = this.tiles.get(piece.key);
-    return tile === undefined ? undefined : { tile, covers: piece.covers };
+    return tile === undefined ? undefined : { tile, covers: piece.covers, z: piece.z };
   }
 
   /** Put a piece of a preview on the GPU, as `upload` does a tile. */

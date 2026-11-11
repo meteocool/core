@@ -955,6 +955,16 @@ export default class RadarCapability extends Capability {
   }
 
   /**
+   * Whether the map is being zoomed or panned right now, where the frame
+   * layer draws the radar: playback is then not held for tiles
+   * (lib/playbackGate.ts), as that layer shows a step from what it has.
+   */
+  get mapMoving(): boolean {
+    const view = this.map.getView();
+    return radarFrames(this.map) !== null && (view.getAnimating() || view.getInteracting());
+  }
+
+  /**
    * Whether every tile `step` needs for the map in view is ready to draw
    * (`tileReady`: decoded, or still on the GPU), so that putting it on
    * screen draws it whole at once. True while the map cannot say, which
@@ -967,11 +977,23 @@ export default class RadarCapability extends Capability {
   /**
    * Resolves true once every tile `step` needs for the map in view is
    * ready to draw, or false after `timeoutMs` or once `signal` aborts.
-   * Playback holds the frame on screen for it (lib/playbackGate.ts).
+   * Playback holds the frame on screen for it (lib/playbackGate.ts). False
+   * too as soon as the map starts to move, where the frame layer draws the
+   * radar: a hold is not kept through a zoom or a pan (`mapMoving`).
    */
   whenStepReady(step: number, timeoutMs: number, signal?: AbortSignal): Promise<boolean> {
     const missing = this.stepMissing(step);
-    return missing ? decodedTiles.whenAll(missing, timeoutMs, signal) : Promise.resolve(true);
+    if (!missing) return Promise.resolve(true);
+    const ready = decodedTiles.whenAll(missing, timeoutMs, signal);
+    if (!radarFrames(this.map)) return ready;
+    return new Promise((resolve) => {
+      const moved = () => resolve(false);
+      this.map.once("movestart", moved);
+      ready.then((all) => {
+        this.map.un("movestart", moved);
+        resolve(all);
+      });
+    });
   }
 
   regenerateGridConfig(): GridConfig {

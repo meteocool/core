@@ -12,16 +12,26 @@
  *
  * Only while frames are being decoded ahead (lib/framePreload.ts): with
  * nothing filling the store, waiting would only ever time out. A hand on the
- * timeline is never held: the frame it asks for is shown at once.
+ * timeline is never held: the frame it asks for is shown at once. Nor is
+ * playback held while the map itself is being zoomed or panned, where the
+ * radar's frame layer draws it: the tiles a step needs change with every
+ * moment of the move, so each step waited its whole timeout for tiles of a
+ * zoom the map was only passing through, and the loop stood still for as
+ * long as the fingers moved. The frame layer shows each step from what it
+ * has, or keeps the one before whole.
  */
 import type { PreloadMode } from "./framePreload";
 
 /** The longest the frame on screen is held for the next one's tiles. */
 export const READY_TIMEOUT_MS = 1500;
 
-/** Whether playback waits for a frame's tiles at all: only while they are being decoded ahead. */
-export function holdsForTiles(mode: PreloadMode): boolean {
-  return mode === "all" || mode === "ahead";
+/**
+ * Whether playback waits for a frame's tiles at all: only while they are
+ * being decoded ahead, and not while the map is `moving` under a layer that
+ * can show a step without them.
+ */
+export function holdsForTiles(mode: PreloadMode, moving = false): boolean {
+  return !moving && (mode === "all" || mode === "ahead");
 }
 
 /** Whether to move on: the next frame is ready, or has been waited for long enough. */

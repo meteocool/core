@@ -629,7 +629,7 @@ const fsm = new StateMachine({
       const hold = (target: number, from: number, started: number, mode: PreloadMode) => {
         if (fsm.state !== "playing") return;
         const waited = performance.now() - started;
-        if (!holdsForTiles(mode) || shouldAdvance(cap.stepReady(target), waited)) {
+        if (!holdsForTiles(mode, cap.mapMoving) || shouldAdvance(cap.stepReady(target), waited)) {
           advance(target, from);
           return;
         }
