@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Vi tar för närvarande inte emot radardata från vädertjänsten för den här delen av kartan. Radarn där är inaktuell eller saknas, och det finns ingen prognos förrän data är tillbaka.",
   "outdated": "Inaktuell",
   "degraded": "Begränsad",
+  "delayed": "Försenat",
+  "notice_info": "Meddelande",
+  "notice_warning": "Varning",
+  "forecast_feed_stopped": "Prognosen kommer inte",
+  "forecast_feed_stopped_body": "Radarn är aktuell här, men prognosen för den här delen av kartan tas inte fram just nu. Den kommer tillbaka av sig själv.",
+  "status": {
+    "title": "Status",
+    "late": "Försenat på den här kartan",
+    "all_arriving": "Allt på den här kartan kommer in.",
+    "all_arriving_radar": "Allt på den här kartan kommer in. Den senaste radarbilden är {minutes} min gammal.",
+    "radar_behind": "Radarn på den här kartan är inaktuell. Nyare data hämtas.",
+    "where": "{what}, {place}",
+    "europe": "Europa",
+    "state_down": "Inget nytt sedan {time}",
+    "state_delayed": "Försenat, senaste från {time}",
+    "state_none": "Inget på över en timme",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Prognos",
+      "alerts": "Regnvarningar",
+      "lightning": "Blixtar",
+      "stations": "Väderstationer",
+      "storms": "Åskceller"
+    },
+    "connection": {
+      "title": "Anslutning",
+      "offline": "Ingen internetanslutning. Kartan visar det den hade innan anslutningen bröts.",
+      "catching_up": "Hämtar ikapp det som kom medan kartan var stängd.",
+      "slow": "Anslutningen är långsam, så kartan kan ta en stund att uppdatera.",
+      "socket": "Liveanslutningen till meteocool är bruten. Kartan frågar i stället efter nya data varje minut."
+    },
+    "degraded": {
+      "api_errors": "Några av meteocools tjänster svarar inte.",
+      "slow_responses": "meteocool svarar långsamt.",
+      "stale_publish": "Ingen ny radarbild har kommit på längre tid än vanligt.",
+      "tile_errors": "Många radarrutor laddas inte, så delar av kartan kan vara tomma."
+    }
+  },
   "show_for_my_location": "Visa för min plats",
   "precipitation_at_point": "Nederbörd här",
   "forecast_none_here": "Ingen prognos här",
@@ -593,7 +631,9 @@
       "slow_responses": "svarstider",
       "slow_responses_reason": "p95 {p95} ms över {count} svar",
       "stale_publish": "publiceringstakt",
-      "stale_publish_reason": "ingen ny bild på {minutes} min efter förväntad tid"
+      "stale_publish_reason": "ingen ny bild på {minutes} min efter förväntad tid",
+      "tile_errors": "radarrutor",
+      "tile_errors_reason": "{failed} av {asked} misslyckades de senaste två minuterna"
     },
     "diagnostics": {
       "timesteps": "Tidssteg",

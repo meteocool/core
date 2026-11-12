@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Vom Wetterdienst kommen für diesen Kartenausschnitt gerade keine Radardaten an. Das Radar ist dort veraltet oder fehlt, und eine Vorhersage gibt es erst wieder, wenn die Daten zurück sind.",
   "outdated": "Veraltet",
   "degraded": "Eingeschränkt",
+  "delayed": "Verzögert",
+  "notice_info": "Hinweis",
+  "notice_warning": "Warnung",
+  "forecast_feed_stopped": "Keine aktuelle Vorhersage",
+  "forecast_feed_stopped_body": "Das Radar hier ist aktuell, aber die Vorhersage für diesen Teil der Karte wird gerade nicht berechnet. Sie kommt von selbst zurück.",
+  "status": {
+    "title": "Status",
+    "late": "Verspätet auf dieser Karte",
+    "all_arriving": "Alles auf dieser Karte kommt an.",
+    "all_arriving_radar": "Alles auf dieser Karte kommt an. Das neueste Radarbild ist {minutes} Min. alt.",
+    "radar_behind": "Das Radar auf dieser Karte ist veraltet. Neuere Daten werden geladen.",
+    "where": "{what}, {place}",
+    "europe": "Europa",
+    "state_down": "Nichts Neues seit {time}",
+    "state_delayed": "Verspätet, neuestes von {time}",
+    "state_none": "Seit über einer Stunde nichts",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Vorhersage",
+      "alerts": "Regenwarnungen",
+      "lightning": "Blitze",
+      "stations": "Wetterstationen",
+      "storms": "Gewitterzellen"
+    },
+    "connection": {
+      "title": "Verbindung",
+      "offline": "Keine Internetverbindung. Die Karte zeigt, was sie vor dem Verbindungsabbruch hatte.",
+      "catching_up": "Lädt nach, was angekommen ist, während die Karte nicht offen war.",
+      "slow": "Die Verbindung ist langsam, die Karte aktualisiert sich daher womöglich verzögert.",
+      "socket": "Die Live-Verbindung zu meteocool ist unterbrochen. Die Karte fragt stattdessen jede Minute nach neuen Daten."
+    },
+    "degraded": {
+      "api_errors": "Einige Dienste von meteocool antworten nicht.",
+      "slow_responses": "meteocool antwortet langsam.",
+      "stale_publish": "Schon länger als üblich ist kein neues Radarbild gekommen.",
+      "tile_errors": "Viele Radar-Kacheln laden nicht, Teile der Karte können leer sein."
+    }
+  },
   "show_for_my_location": "Für meinen Standort",
   "precipitation_at_point": "Niederschlag hier",
   "forecast_none_here": "Hier keine Vorhersage",
@@ -594,7 +632,9 @@
       "slow_responses": "Antwortzeiten",
       "slow_responses_reason": "p95 {p95} ms über {count} Antworten",
       "stale_publish": "Veröffentlichungstakt",
-      "stale_publish_reason": "seit {minutes} min über der erwarteten Zeit kein neues Bild"
+      "stale_publish_reason": "seit {minutes} min über der erwarteten Zeit kein neues Bild",
+      "tile_errors": "Radar-Kacheln",
+      "tile_errors_reason": "{failed} von {asked} in den letzten zwei Minuten fehlgeschlagen"
     },
     "diagnostics": {
       "timesteps": "Zeitschritte",

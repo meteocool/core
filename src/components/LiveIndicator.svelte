@@ -9,15 +9,18 @@ import {
   radarStale, replay,
 } from "../stores";
 import { shouldShowNetworkBanner } from "../lib/networkBanner";
-// The diagnostics panel is loaded when it is opened; it is a reader of everything and needed by nothing.
+import { statusVerdict } from "../lib/statusFeed";
+// The status sheet and the diagnostics panel behind it are loaded when they are opened.
+const loadStatusSheet = () => import("./StatusSheet.svelte");
 const loadConnectionInfo = () => import("./ConnectionInfo.svelte");
 import Lazy from "./Lazy.svelte";
 import type RadarCapability from "../caps/RadarCapability";
 
 export let cap: RadarCapability;
 
-/** The pill is the affordance: tapping it opens what it is summarising. */
-let showInfo = false;
+/** The pill is the affordance: tapping it opens what it is summarising, the status sheet, and the diagnostics from there. */
+let open: "status" | "details" | null = null;
+let pillButton: HTMLButtonElement | null = null;
 
 /** The clock of the frame on screen, while the player has one. */
 $: frameTime = $capTimeIndicator
@@ -48,6 +51,12 @@ $: state = (() => {
   if (connection === "offline") return "offline";
   if (connection === "catching-up") return "catching_up";
   if (connection === "degraded") return "degraded";
+  // The backend's verdict on what is on screen (lib/statusFeed.ts): radar
+  // that is not now any more over most of it, or anything else late there.
+  // A neighbour's sliver at the edge says nothing. Null in a past window,
+  // and without a status to trust.
+  if ($statusVerdict?.headline === "down") return "data_down";
+  if ($statusVerdict?.headline === "delayed") return "data_delayed";
   // A past window is the reader's choice, and the frame's tab says it and is
   // the way out of it (ArchiveFrame): it outranks whatever is only about now,
   // and leaves the pill nothing to say.
@@ -73,6 +82,8 @@ $: label = {
   catching_up: $_("catching_up"),
   degraded: $_("degraded"),
   stale: $_("outdated"),
+  data_down: $_("outdated"),
+  data_delayed: $_("delayed"),
   slow: $_("slow_connection"),
   live: $_("latest"),
   demo: $_("demo"),
@@ -85,10 +96,13 @@ $: label = {
    this one anyway, so nothing is lost by dropping it here. */
 $: showDot = state !== "time";
 
-/** Tapping the pill opens what it summarises. */
+/** Tapping the pill opens what it summarises, and a second tap closes it. */
 function activate() {
-  showInfo = true;
+  open = open === "status" ? null : "status";
 }
+
+/** A notice of ours marked a warning, for what is on screen: the live dot holds orange. */
+$: warned = $statusVerdict?.notices.some((notice) => notice.level === "warning") ?? false;
 
 /**
  * Only the live pill fades back.
@@ -235,6 +249,9 @@ onDestroy(() => {
   /* A warning holds its colour: only the live dot blinks. */
   .circle-container.slow,
   .circle-container.stale,
+  .circle-container.data_down,
+  .circle-container.data_delayed,
+  .circle-container.warned,
   .circle-container.degraded {
     color: var(--mc-orange);
   }
@@ -298,12 +315,18 @@ onDestroy(() => {
       class="live"
       class:clock={state === "time"}
       class:dim
-      title={$_("connection_details")}
+      title={$_("status.title")}
+      aria-expanded={open === "status"}
+      bind:this={pillButton}
       on:click={activate}>
       <span class="pill glass glass-pill">
         <!-- Demo holds a steady dot in the accent rather than the live pulse:
              the pulse says "arriving now", and a recording is not. -->
-        {#if state === "live"}
+        {#if state === "live" && warned}
+          <div class="circle-container warned">
+            <Icon icon={faCircle} />
+          </div>
+        {:else if state === "live"}
           <div class="circle-container circle-container-light-red" use:blink>
             <Icon icon={faCircle} />
           </div>
@@ -318,8 +341,16 @@ onDestroy(() => {
   </div>
 {/if}
 
-{#if showInfo}
+{#if open === "status"}
+  <Lazy load={loadStatusSheet} floating let:module>
+    <svelte:component
+      this={module.default}
+      opener={pillButton}
+      on:close={() => { open = null; }}
+      on:details={() => { open = "details"; }} />
+  </Lazy>
+{:else if open === "details"}
   <Lazy load={loadConnectionInfo} floating let:module>
-    <svelte:component this={module.default} {cap} on:close={() => { showInfo = false; }} />
+    <svelte:component this={module.default} {cap} on:close={() => { open = null; }} />
   </Lazy>
 {/if}

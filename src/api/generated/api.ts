@@ -1022,6 +1022,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether the radar, forecast, alerts, lightning, stations and storms are arriving, and our notices.
+         * @description What is late, and since when, as one answer for every client, and the notices in force.
+         *
+         *     Each component is judged against this server's clock from the newest of
+         *     what it is about: the radar by when its newest frame was published, the
+         *     forecast by its newest complete run, the alerts by the newest run they were
+         *     sent from, the lightning, stations and storms by their newest strike,
+         *     measurement and analysis. Judged every 30 seconds; the `status` event on
+         *     the `/radar` Socket.IO namespace says when a state or the notices changed,
+         *     and a client refetches this then.
+         *
+         *     A domain's component matters to a client where that domain's radar
+         *     coverage is on screen and the layer that draws it is on. A component that
+         *     is not listed is unknown here, not down.
+         */
+        get: operations["status_v3_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v3/telemetry/pressure": {
         parameters: {
             query?: never;
@@ -2064,6 +2096,34 @@ export interface components {
             lon: number;
         };
         /**
+         * ServiceStatus
+         * @description Whether what the map and the apps show is arriving, and our notices to their users.
+         *
+         *     One answer for every client, whoever asks, judged every 30 seconds against
+         *     this server's clock. A component this answer does not list is unknown here
+         *     (a network this environment does not receive, stations on a replay): a
+         *     client shows nothing for it, rather than call it down.
+         */
+        ServiceStatus: {
+            /** Components */
+            components: components["schemas"]["StatusComponent"][];
+            /**
+             * Notices
+             * @description Notices in force now: started and not ended
+             */
+            notices: components["schemas"]["StatusNotice"][];
+            /**
+             * Replay
+             * @description Whether this server replays a recorded window rather than live weather; every component is then allowed 45 minutes, for the gap as the recording loops.
+             */
+            replay: boolean;
+            /**
+             * Server Time
+             * @description Unix seconds now, on this server's clock; the components were judged within the last 30 seconds
+             */
+            server_time: number;
+        };
+        /**
          * SnowRefresh
          * @description A nudge that the snowfield overlay has been re-rendered.
          */
@@ -2073,6 +2133,95 @@ export interface components {
              * @constant
              */
             refresh: "overlay";
+        };
+        /**
+         * StatusComponent
+         * @description One thing a user can miss, and whether it is arriving.
+         *
+         *     `domain` is left out for the kinds that have none, `since` while `ok`.
+         */
+        StatusComponent: {
+            /**
+             * Domain
+             * @description Where: `de` for Germany, a network's country code, or `eu` for the composite of every network. Absent for `lightning` and `stations`.
+             */
+            domain?: string | null;
+            /**
+             * Kind
+             * @description `radar`: the domain's radar on the map. `forecast`: the domain's forecast on the timeline. `alerts`: the domain's rain alerts to phones. `lightning`: the strikes. `stations`: the weather stations' measurements. `storms`: the storm cells. A client ignores a kind it does not know.
+             * @enum {string}
+             */
+            kind: "radar" | "forecast" | "alerts" | "lightning" | "stations" | "storms";
+            /**
+             * Newest
+             * @description Unix seconds of what it was judged by: the newest radar scan, forecast run's issue, strike, measurement or storm analysis, for a client to show an age. Null when the newest is too old to be kept, which is always `down`.
+             */
+            newest: number | null;
+            /**
+             * Since
+             * @description Unix seconds since when it has been in this state; absent while `ok`, and when the newest is too old to be kept.
+             */
+            since?: number | null;
+            /**
+             * State
+             * @description `ok`: arriving. `delayed`: still shown, but older than it should be. `down`: no longer shown as now, or never was.
+             * @enum {string}
+             */
+            state: "ok" | "delayed" | "down";
+        };
+        /**
+         * StatusNotice
+         * @description A notice of ours to the users, in force now.
+         */
+        StatusNotice: {
+            /**
+             * Domains
+             * @description The domains it is about, as a component's `domain`; null for everywhere
+             */
+            domains?: string[] | null;
+            /**
+             * Ends
+             * @description Unix seconds it is in force until; null until withdrawn
+             */
+            ends?: number | null;
+            /**
+             * Id
+             * @description Stays the same while the notice is edited; a client dismisses a notice by it
+             */
+            id: string;
+            /**
+             * Level
+             * @description `warning` is shown before `info`
+             * @enum {string}
+             */
+            level: "info" | "warning";
+            /**
+             * Starts
+             * @description Unix seconds it is in force from
+             */
+            starts: number;
+            /**
+             * Text
+             * @description Its text by locale, `en` always there: a client picks the reader's locale, else `en`
+             */
+            text: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * StatusRefresh
+         * @description A nudge that the status has changed: a component's state, or the notices in force.
+         *
+         *     Carries nothing worth reading beyond when it was judged: clients refetch
+         *     `/v3/status`, which says what changed. Sent at most every 30 seconds, and
+         *     only on a change.
+         */
+        StatusRefresh: {
+            /**
+             * Judged At
+             * @description When the status that changed was judged, unix seconds
+             */
+            judged_at: number;
         };
         /**
          * StatusResponse
@@ -3488,6 +3637,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    status_v3_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceStatus"];
                 };
             };
         };

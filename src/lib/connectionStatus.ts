@@ -1,6 +1,6 @@
 import { derived, get, type Readable } from "svelte/store";
 import {
-  connectionStatus, degradedStatus, networkStatus, radarStale, reachability,
+  connectionStatus, degradedStatus, networkStatus, radarStale, reachability, serverStatus,
 } from "../stores";
 import { nextConnection, nextDeadline, type ConnectionSignals } from "./connectionState";
 
@@ -17,13 +17,15 @@ import { nextConnection, nextDeadline, type ConnectionSignals } from "./connecti
  */
 
 const signals: Readable<ConnectionSignals> = derived(
-  [networkStatus, reachability, degradedStatus, radarStale],
-  ([network, reach, degraded, stale]) => ({
+  [networkStatus, reachability, degradedStatus, radarStale, serverStatus],
+  ([network, reach, degraded, stale, status]) => ({
     browserOnline: network.online,
     unreachable: reach.unreachableSince !== null,
     degraded: degraded.degraded,
     inFlight: reach.inFlight,
-    stale,
+    // Only the map's own "we are behind" holds catching up: a refetch clears
+    // that, and nothing the map fetches clears the backend's verdict.
+    stale: stale && status === null,
   }),
 );
 

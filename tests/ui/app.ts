@@ -108,3 +108,9 @@ export async function topRadar(page: Page): Promise<string> {
   const label = await topCard(page).getAttribute("aria-label");
   return /^(.*)'s profile$/.exec(label ?? "")?.[1] ?? "";
 }
+
+/** The status pill on the top line: "Latest", "Out of date", "Delayed" and the rest. */
+export const statusPill = (page: Page): Locator => page.locator(".live-wrapper button");
+
+/** What the status pill opens: what is late on screen, in sentences. */
+export const statusSheet = (page: Page): Locator => page.getByRole("dialog", { name: "Status" });

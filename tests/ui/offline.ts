@@ -1,7 +1,7 @@
 import { crc32, deflateSync } from "node:zlib";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import type { Page, Route } from "@playwright/test";
+import type { Page, Route, WebSocketRoute } from "@playwright/test";
 
 /**
  * The UI tests' backend: answers recorded once (`npm run test:ui:record`,
@@ -121,20 +121,43 @@ export function fulfilBlankTile(route: Route, url: URL): Promise<void> {
 }
 
 /**
- * The live lightning feed (socket.io over a websocket, App.svelte), stood in
- * for by one that connects and stays quiet. Refused instead, the client
- * would retry over polling and the page report the connection as degraded.
+ * The live feed (socket.io over a websocket, App.svelte), stood in for by
+ * one that connects and stays quiet. Refused instead, the client would retry
+ * over polling and the page report the connection as degraded.
  *
- * Engine.IO v4: the server opens with its parameters, the client asks for
- * the default namespace with `40`, and the server confirms it. The ping
- * interval is longer than any test, so silence never reads as a dead line.
+ * Engine.IO v4: the server opens with its parameters, the client asks for a
+ * namespace with `40` (the map's is `/radar`: `40/radar,`), and the server
+ * confirms that namespace. The ping interval is longer than any test, so
+ * silence never reads as a dead line.
  */
 export async function quietLightningSocket(page: Page): Promise<void> {
+  const line = { open: new Set<WebSocketRoute>(), cut: false };
+  lines.set(page, line);
   await page.routeWebSocket(/\/socket\.io\//, (ws) => {
+    // A cut line refuses every attempt to reconnect, as a backend that is gone does.
+    if (line.cut) {
+      void ws.close({ code: 1011, reason: "cut" });
+      return;
+    }
+    line.open.add(ws);
+    ws.onClose(() => line.open.delete(ws));
     const open = { sid: "ui-test", upgrades: [], pingInterval: 3_600_000, pingTimeout: 3_600_000, maxPayload: 1_000_000 };
     ws.send(`0${JSON.stringify(open)}`);
     ws.onMessage((message) => {
-      if (typeof message === "string" && message.startsWith("40")) ws.send(`40${JSON.stringify({ sid: "ui-test-ns" })}`);
+      if (typeof message !== "string" || !message.startsWith("40")) return;
+      const namespace = /^40(\/[^,]*),/.exec(message)?.[1];
+      ws.send(`40${namespace ? `${namespace},` : ""}${JSON.stringify({ sid: "ui-test-ns" })}`);
     });
   });
+}
+
+/** Each page's stand-in line: the sockets open on it, and whether it has been cut. */
+const lines = new WeakMap<Page, { open: Set<WebSocketRoute>; cut: boolean }>();
+
+/** Cut the page's socket and refuse it from now on, as an outage would. */
+export async function cutSocket(page: Page): Promise<void> {
+  const line = lines.get(page);
+  if (!line) throw new Error("The page has no stand-in socket to cut.");
+  line.cut = true;
+  await Promise.all([...line.open].map((ws) => ws.close({ code: 1011, reason: "cut" })));
 }

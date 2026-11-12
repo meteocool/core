@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Vi mottar for øyeblikket ikke radardata fra værtjenesten for denne delen av kartet. Radaren der er utdatert eller mangler, og det er ingen prognose før dataene er tilbake.",
   "outdated": "Utdatert",
   "degraded": "Redusert",
+  "delayed": "Forsinket",
+  "notice_info": "Melding",
+  "notice_warning": "Advarsel",
+  "forecast_feed_stopped": "Prognosen kommer ikke",
+  "forecast_feed_stopped_body": "Radaren er oppdatert her, men prognosen for denne delen av kartet lages ikke akkurat nå. Den kommer tilbake av seg selv.",
+  "status": {
+    "title": "Status",
+    "late": "Forsinket på dette kartet",
+    "all_arriving": "Alt på dette kartet kommer inn.",
+    "all_arriving_radar": "Alt på dette kartet kommer inn. Det nyeste radarbildet er {minutes} min gammelt.",
+    "radar_behind": "Radaren på dette kartet er utdatert. Nyere data hentes.",
+    "where": "{what}, {place}",
+    "europe": "Europa",
+    "state_down": "Ingenting nytt siden {time}",
+    "state_delayed": "Forsinket, nyeste fra {time}",
+    "state_none": "Ingenting på over en time",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Prognose",
+      "alerts": "Regnvarsler",
+      "lightning": "Lyn",
+      "stations": "Værstasjoner",
+      "storms": "Tordenceller"
+    },
+    "connection": {
+      "title": "Tilkobling",
+      "offline": "Ingen internettilkobling. Kartet viser det det hadde før tilkoblingen falt ut.",
+      "catching_up": "Henter inn det som kom mens kartet var lukket.",
+      "slow": "Tilkoblingen er treg, så kartet kan bruke litt tid på å oppdatere seg.",
+      "socket": "Direktetilkoblingen til meteocool er brutt. Kartet spør i stedet etter nye data hvert minutt."
+    },
+    "degraded": {
+      "api_errors": "Noen av meteocools tjenester svarer ikke.",
+      "slow_responses": "meteocool svarer sakte.",
+      "stale_publish": "Det har ikke kommet et nytt radarbilde på lengre tid enn vanlig.",
+      "tile_errors": "Mange radarfliser lastes ikke, så deler av kartet kan være tomme."
+    }
+  },
   "show_for_my_location": "Vis for posisjonen min",
   "precipitation_at_point": "Nedbør her",
   "forecast_none_here": "Ingen varsel her",
@@ -593,7 +631,9 @@
       "slow_responses": "svartider",
       "slow_responses_reason": "p95 {p95} ms over {count} svar",
       "stale_publish": "publiseringstakt",
-      "stale_publish_reason": "ingen ny ramme {minutes} min etter forventet tid"
+      "stale_publish_reason": "ingen ny ramme {minutes} min etter forventet tid",
+      "tile_errors": "radarfliser",
+      "tile_errors_reason": "{failed} av {asked} mislyktes de siste to minuttene"
     },
     "diagnostics": {
       "timesteps": "Tidssteg",

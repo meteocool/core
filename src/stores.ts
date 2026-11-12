@@ -14,6 +14,7 @@ import type { CellTrackProperties } from "./api";
 import type { CountryNetwork } from "./api/events";
 import { withCell, type StormSelection } from "./lib/stormSelection";
 import type { ArchiveWindow } from "./lib/archive";
+import type { ServiceStatus } from "./lib/status";
 
 // XXX basically a list of places where global state was chosen instead of an actual, working
 // abstraction.
@@ -191,6 +192,20 @@ export const radarCadence = writable<Cadence>(EMPTY_CADENCE);
  */
 export const radarStale = writable<boolean>(false);
 /**
+ * The backend's own verdict on what is late (`GET /v3/status`, lib/status.ts),
+ * and when it was received; null with none to trust: none yet, a backend
+ * without the route, one older than lib/status.ts's TRUST_MS, or a past
+ * window, which has no now. While it is null the map's own rules judge
+ * (lib/feedOutage.ts, lib/freshness.ts). Written by lib/statusFeed.ts.
+ */
+export const serverStatus = writable<{ status: ServiceStatus; receivedAt: number } | null>(null);
+/**
+ * Whether the socket the nudges come over has been gone for a while
+ * (App.svelte). While it is, the map asks for what it would have been told
+ * of on a timer of its own.
+ */
+export const socketDown = writable<boolean>(false);
+/**
  * Whether the backend is replaying a recorded storm instead of serving live
  * weather, as the demo environment always is. Replay rewrites every timestamp
  * to the present, so nothing on the map can tell; the backend says so on the
@@ -240,11 +255,12 @@ export const playbackFromStart = writable<boolean>(false);
  */
 export const nowcastCoverage = writable<{ withRun: CountryNetwork[]; shown: CountryNetwork[] } | null>(null);
 /**
- * The networks whose radar has stopped arriving while DWD's still does
- * (lib/feedOutage.ts): the player says the weather service's data is not
+ * The domains whose radar has stopped arriving: by the backend's status,
+ * Germany's (`de`) among them, else measured against DWD's newest scan
+ * (lib/feedOutage.ts). The player says the weather service's data is not
  * coming in where they draw, rather than that there is no forecast there.
  */
-export const stalledNetworks = writable<CountryNetwork[]>([]);
+export const stalledNetworks = writable<string[]>([]);
 /**
  * "How the radar works" is open, from the radar product menu's "?". Held up
  * here, not in the menu: the tray the menu lives in can go while it is open.

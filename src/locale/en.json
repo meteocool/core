@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "We are not receiving radar data from the weather service for this part of the map right now. The radar there is out of date or missing, and there is no forecast until the data is back.",
   "outdated": "Out of date",
   "degraded": "Degraded",
+  "delayed": "Delayed",
+  "notice_info": "Notice",
+  "notice_warning": "Warning",
+  "forecast_feed_stopped": "Forecast Not Coming In",
+  "forecast_feed_stopped_body": "The radar here is current, but the forecast for this part of the map is not being made right now. It comes back on its own.",
+  "status": {
+    "title": "Status",
+    "late": "Late on this map",
+    "all_arriving": "Everything on this map is arriving.",
+    "all_arriving_radar": "Everything on this map is arriving. The newest radar is {minutes} min old.",
+    "radar_behind": "The radar on this map is out of date. Newer data is being fetched.",
+    "where": "{what}, {place}",
+    "europe": "Europe",
+    "state_down": "Nothing new since {time}",
+    "state_delayed": "Late, newest from {time}",
+    "state_none": "Nothing for over an hour",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Forecast",
+      "alerts": "Rain alerts",
+      "lightning": "Lightning",
+      "stations": "Weather stations",
+      "storms": "Storm cells"
+    },
+    "connection": {
+      "title": "Connection",
+      "offline": "No internet connection. The map shows what it had before the connection dropped.",
+      "catching_up": "Catching up on what arrived while the map was away.",
+      "slow": "The connection is slow, so the map may take a while to update.",
+      "socket": "The live connection to meteocool is down. The map asks for new data every minute instead."
+    },
+    "degraded": {
+      "api_errors": "Some of meteocool's services are not answering.",
+      "slow_responses": "meteocool is answering slowly.",
+      "stale_publish": "No new radar has come in for longer than usual.",
+      "tile_errors": "Many radar tiles are failing to load, so parts of the map may be empty."
+    }
+  },
   "show_for_my_location": "Show for my location",
   "precipitation_at_point": "Precipitation Here",
   "forecast_none_here": "No forecast here",
@@ -594,7 +632,9 @@
       "slow_responses": "response times",
       "slow_responses_reason": "p95 {p95} ms over {count} responses",
       "stale_publish": "publish cadence",
-      "stale_publish_reason": "no new frame for {minutes}m past the expected time"
+      "stale_publish_reason": "no new frame for {minutes}m past the expected time",
+      "tile_errors": "radar tiles",
+      "tile_errors_reason": "{failed} of {asked} failed in the last two minutes"
     },
     "diagnostics": {
       "timesteps": "Timesteps",

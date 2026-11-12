@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Nous ne recevons actuellement pas les données radar du service météorologique pour cette partie de la carte. Le radar y est ancien ou absent, et il n'y aura pas de prévision tant que les données ne seront pas revenues.",
   "outdated": "Obsolète",
   "degraded": "Dégradé",
+  "delayed": "En retard",
+  "notice_info": "Information",
+  "notice_warning": "Avertissement",
+  "forecast_feed_stopped": "Prévision indisponible",
+  "forecast_feed_stopped_body": "Le radar est à jour ici, mais la prévision pour cette partie de la carte n'est pas calculée en ce moment. Elle reviendra d'elle-même.",
+  "status": {
+    "title": "État",
+    "late": "En retard sur cette carte",
+    "all_arriving": "Tout ce qui est sur cette carte arrive.",
+    "all_arriving_radar": "Tout ce qui est sur cette carte arrive. L'image radar la plus récente date de {minutes} min.",
+    "radar_behind": "Le radar de cette carte est obsolète. Des données plus récentes sont en cours de chargement.",
+    "where": "{what}, {place}",
+    "europe": "Europe",
+    "state_down": "Rien de nouveau depuis {time}",
+    "state_delayed": "En retard, dernière donnée de {time}",
+    "state_none": "Rien depuis plus d'une heure",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Prévision",
+      "alerts": "Alertes pluie",
+      "lightning": "Foudre",
+      "stations": "Stations météo",
+      "storms": "Cellules orageuses"
+    },
+    "connection": {
+      "title": "Connexion",
+      "offline": "Pas de connexion Internet. La carte montre ce qu'elle avait avant la coupure.",
+      "catching_up": "Rattrapage de ce qui est arrivé pendant que la carte était fermée.",
+      "slow": "La connexion est lente, la carte peut donc mettre du temps à se mettre à jour.",
+      "socket": "La connexion en direct avec meteocool est interrompue. La carte demande de nouvelles données chaque minute à la place."
+    },
+    "degraded": {
+      "api_errors": "Certains services de meteocool ne répondent pas.",
+      "slow_responses": "meteocool répond lentement.",
+      "stale_publish": "Aucune nouvelle image radar n'est arrivée depuis plus longtemps que d'habitude.",
+      "tile_errors": "De nombreuses tuiles radar ne se chargent pas, des parties de la carte peuvent être vides."
+    }
+  },
   "show_for_my_location": "Afficher pour ma position",
   "precipitation_at_point": "Précipitations ici",
   "forecast_none_here": "Pas de prévision ici",
@@ -594,7 +632,9 @@
       "slow_responses": "temps de réponse",
       "slow_responses_reason": "p95 {p95} ms sur {count} réponses",
       "stale_publish": "cadence de publication",
-      "stale_publish_reason": "aucune nouvelle image depuis {minutes} min au-delà de l'heure prévue"
+      "stale_publish_reason": "aucune nouvelle image depuis {minutes} min au-delà de l'heure prévue",
+      "tile_errors": "tuiles radar",
+      "tile_errors_reason": "{failed} sur {asked} en échec ces deux dernières minutes"
     },
     "diagnostics": {
       "timesteps": "Pas de temps",

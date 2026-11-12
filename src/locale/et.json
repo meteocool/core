@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Me ei saa praegu ilmateenistuselt selle kaardiosa radariandmeid. Radar on seal aegunud või puudub ning prognoosi pole enne, kui andmed tagasi on.",
   "outdated": "Aegunud",
   "degraded": "Häiritud",
+  "delayed": "Hilinenud",
+  "notice_info": "Teade",
+  "notice_warning": "Hoiatus",
+  "forecast_feed_stopped": "Prognoos ei saabu",
+  "forecast_feed_stopped_body": "Radar on siin ajakohane, kuid selle kaardiosa prognoosi praegu ei koostata. See tuleb ise tagasi.",
+  "status": {
+    "title": "Olek",
+    "late": "Hilinenud sellel kaardil",
+    "all_arriving": "Kõik sellel kaardil saabub.",
+    "all_arriving_radar": "Kõik sellel kaardil saabub. Uusim radaripilt on {minutes} min vana.",
+    "radar_behind": "Selle kaardi radar on aegunud. Uuemaid andmeid laaditakse.",
+    "where": "{what}, {place}",
+    "europe": "Euroopa",
+    "state_down": "Midagi uut pole alates {time}",
+    "state_delayed": "Hilinenud, uusim kell {time}",
+    "state_none": "Üle tunni pole midagi",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Prognoos",
+      "alerts": "Vihmahoiatused",
+      "lightning": "Välk",
+      "stations": "Ilmajaamad",
+      "storms": "Äikeserakud"
+    },
+    "connection": {
+      "title": "Ühendus",
+      "offline": "Internetiühendus puudub. Kaart näitab seda, mis tal oli enne ühenduse katkemist.",
+      "catching_up": "Jõuan järele sellele, mis saabus ajal, kui kaart oli suletud.",
+      "slow": "Ühendus on aeglane, seega võib kaardi uuendamine võtta aega.",
+      "socket": "Otseühendus meteocooliga on katkenud. Kaart küsib selle asemel iga minut uusi andmeid."
+    },
+    "degraded": {
+      "api_errors": "Mõned meteocooli teenused ei vasta.",
+      "slow_responses": "meteocool vastab aeglaselt.",
+      "stale_publish": "Uut radaripilti pole saabunud tavalisest kauem.",
+      "tile_errors": "Paljud radaripaanid ei laadi, nii et osa kaardist võib olla tühi."
+    }
+  },
   "show_for_my_location": "Näita minu asukoha kohta",
   "precipitation_at_point": "Sademed siin",
   "forecast_none_here": "Siin prognoosi pole",
@@ -593,7 +631,9 @@
       "slow_responses": "vastuseajad",
       "slow_responses_reason": "p95 {p95} ms {count} vastuse põhjal",
       "stale_publish": "avaldamise sagedus",
-      "stale_publish_reason": "uut kaadrit pole {minutes} min üle oodatud aja"
+      "stale_publish_reason": "uut kaadrit pole {minutes} min üle oodatud aja",
+      "tile_errors": "radaripaanid",
+      "tile_errors_reason": "{failed} {asked}-st ebaõnnestus viimase kahe minuti jooksul"
     },
     "diagnostics": {
       "timesteps": "Ajasammud",

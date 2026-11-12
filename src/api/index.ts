@@ -627,6 +627,15 @@ export function fetchLightningStats(polygon: number[][], nanobar?: Progress, unt
     }));
 }
 
+/**
+ * What the backend judges late, and its notices (lib/status.ts). `optional`:
+ * a backend without the route answers 404, which leaves the map to its own
+ * rules rather than calling the API broken.
+ */
+export function fetchStatus(nanobar?: Progress) {
+  return request(nanobar, "/v3/status", () => apiClient.GET("/v3/status", {}), { optional: true });
+}
+
 /** Recent strikes, so a map that has just loaded can backfill. */
 export function fetchLightningCache(nanobar?: Progress) {
   return request(nanobar, "/lightning_cache", () => dataClient.GET("/lightning_cache", {}));

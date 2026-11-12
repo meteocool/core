@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Trenutačno ne primamo radarske podatke od meteorološke službe za ovaj dio karte. Radar je ondje zastario ili ga nema, a prognoze neće biti dok se podaci ne vrate.",
   "outdated": "Zastarjelo",
   "degraded": "Otežan rad",
+  "delayed": "Kasni",
+  "notice_info": "Obavijest",
+  "notice_warning": "Upozorenje",
+  "forecast_feed_stopped": "Prognoza ne stiže",
+  "forecast_feed_stopped_body": "Radar je ovdje ažuran, ali prognoza za ovaj dio karte trenutačno se ne izrađuje. Vratit će se sama.",
+  "status": {
+    "title": "Stanje",
+    "late": "Kasni na ovoj karti",
+    "all_arriving": "Sve na ovoj karti stiže.",
+    "all_arriving_radar": "Sve na ovoj karti stiže. Najnovija radarska slika stara je {minutes} min.",
+    "radar_behind": "Radar na ovoj karti je zastario. Učitavaju se noviji podaci.",
+    "where": "{what}, {place}",
+    "europe": "Europa",
+    "state_down": "Ništa novo od {time}",
+    "state_delayed": "Kasni, najnovije od {time}",
+    "state_none": "Ništa već više od sat vremena",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Prognoza",
+      "alerts": "Upozorenja na kišu",
+      "lightning": "Munje",
+      "stations": "Meteorološke postaje",
+      "storms": "Olujne ćelije"
+    },
+    "connection": {
+      "title": "Veza",
+      "offline": "Nema internetske veze. Karta prikazuje ono što je imala prije prekida.",
+      "catching_up": "Sustiže se ono što je stiglo dok karta nije bila otvorena.",
+      "slow": "Veza je spora pa ažuriranje karte može potrajati.",
+      "socket": "Veza uživo s meteocoolom je prekinuta. Karta umjesto toga svake minute traži nove podatke."
+    },
+    "degraded": {
+      "api_errors": "Neke usluge meteocoola ne odgovaraju.",
+      "slow_responses": "meteocool odgovara sporo.",
+      "stale_publish": "Nova radarska slika nije stigla dulje nego obično.",
+      "tile_errors": "Mnogo radarskih pločica se ne učitava, pa dijelovi karte mogu biti prazni."
+    }
+  },
   "show_for_my_location": "Prikaži za moju lokaciju",
   "precipitation_at_point": "Oborina ovdje",
   "forecast_none_here": "Ovdje nema prognoze",
@@ -593,7 +631,9 @@
       "slow_responses": "vrijeme odziva",
       "slow_responses_reason": "p95 {p95} ms, broj odgovora: {count}",
       "stale_publish": "ritam objave",
-      "stale_publish_reason": "nema nove slike {minutes} min nakon očekivanog vremena"
+      "stale_publish_reason": "nema nove slike {minutes} min nakon očekivanog vremena",
+      "tile_errors": "radarske pločice",
+      "tile_errors_reason": "{failed} od {asked} neuspjelo u posljednje dvije minute"
     },
     "diagnostics": {
       "timesteps": "Vremenski koraci",

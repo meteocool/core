@@ -1,0 +1,129 @@
+{
+ "status": 200,
+ "contentType": "application/json",
+ "json": {
+  "server_time": 1793836648,
+  "replay": false,
+  "components": [
+   {
+    "kind": "radar",
+    "domain": "de",
+    "state": "ok",
+    "newest": 1793836500
+   },
+   {
+    "kind": "radar",
+    "domain": "ch",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "fr",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "cz",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "pl",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "be",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "sk",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "lt",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "ee",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "ie",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "hr",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "dk",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "nl",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "fi",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "se",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "radar",
+    "domain": "no",
+    "state": "ok",
+    "newest": 1793836348
+   },
+   {
+    "kind": "forecast",
+    "domain": "de",
+    "state": "ok",
+    "newest": 1793836500
+   },
+   {
+    "kind": "lightning",
+    "state": "ok",
+    "newest": 1793836628
+   },
+   {
+    "kind": "stations",
+    "state": "ok",
+    "newest": 1793836048
+   },
+   {
+    "kind": "storms",
+    "domain": "de",
+    "state": "ok",
+    "newest": 1793836348
+   }
+  ],
+  "notices": []
+ }
+}

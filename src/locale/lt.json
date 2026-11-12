@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Šiuo metu negauname radaro duomenų iš meteorologijos tarnybos šiai žemėlapio daliai. Radaro vaizdas ten pasenęs arba jo nėra, o prognozės nebus, kol duomenys negrįš.",
   "outdated": "Pasenę",
   "degraded": "Sutrikimai",
+  "delayed": "Vėluoja",
+  "notice_info": "Pranešimas",
+  "notice_warning": "Įspėjimas",
+  "forecast_feed_stopped": "Prognozė negaunama",
+  "forecast_feed_stopped_body": "Radaro vaizdas čia naujas, bet šios žemėlapio dalies prognozė šiuo metu neskaičiuojama. Ji grįš savaime.",
+  "status": {
+    "title": "Būsena",
+    "late": "Vėluoja šiame žemėlapyje",
+    "all_arriving": "Visi šio žemėlapio duomenys gaunami.",
+    "all_arriving_radar": "Visi šio žemėlapio duomenys gaunami. Naujausias radaro vaizdas yra {minutes} min. senumo.",
+    "radar_behind": "Šio žemėlapio radaro vaizdas pasenęs. Kraunami naujesni duomenys.",
+    "where": "{what}, {place}",
+    "europe": "Europa",
+    "state_down": "Nieko naujo nuo {time}",
+    "state_delayed": "Vėluoja, naujausi iš {time}",
+    "state_none": "Nieko jau daugiau nei valandą",
+    "kind": {
+      "radar": "Radaras",
+      "forecast": "Prognozė",
+      "alerts": "Įspėjimai apie lietų",
+      "lightning": "Žaibai",
+      "stations": "Meteorologijos stotys",
+      "storms": "Audros celės"
+    },
+    "connection": {
+      "title": "Ryšys",
+      "offline": "Nėra interneto ryšio. Žemėlapis rodo tai, ką turėjo prieš nutrūkstant ryšiui.",
+      "catching_up": "Pasivejama tai, kas atėjo, kol žemėlapis buvo uždarytas.",
+      "slow": "Ryšys lėtas, todėl žemėlapis gali atsinaujinti negreitai.",
+      "socket": "Tiesioginis ryšys su meteocool nutrūko. Žemėlapis vietoj to kas minutę užklausia naujų duomenų."
+    },
+    "degraded": {
+      "api_errors": "Kai kurios meteocool paslaugos neatsako.",
+      "slow_responses": "meteocool atsako lėtai.",
+      "stale_publish": "Naujas radaro vaizdas negautas ilgiau nei įprasta.",
+      "tile_errors": "Daug radaro plytelių neįsikelia, todėl dalis žemėlapio gali būti tuščia."
+    }
+  },
   "show_for_my_location": "Rodyti mano vietai",
   "precipitation_at_point": "Krituliai čia",
   "forecast_none_here": "Čia prognozės nėra",
@@ -593,7 +631,9 @@
       "slow_responses": "atsako laikas",
       "slow_responses_reason": "p95 {p95} ms, atsakymų: {count}",
       "stale_publish": "skelbimo dažnis",
-      "stale_publish_reason": "naujo kadro nėra jau {minutes} min po numatyto laiko"
+      "stale_publish_reason": "naujo kadro nėra jau {minutes} min po numatyto laiko",
+      "tile_errors": "radaro plytelės",
+      "tile_errors_reason": "{failed} iš {asked} nepavyko per pastarąsias dvi minutes"
     },
     "diagnostics": {
       "timesteps": "Laiko žingsniai",

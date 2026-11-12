@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Vi modtager i øjeblikket ikke radardata fra vejrtjenesten for denne del af kortet. Radaren er forældet eller mangler der, og der er ingen prognose, før dataene er tilbage.",
   "outdated": "Forældet",
   "degraded": "Nedsat",
+  "delayed": "Forsinket",
+  "notice_info": "Meddelelse",
+  "notice_warning": "Advarsel",
+  "forecast_feed_stopped": "Prognosen kommer ikke",
+  "forecast_feed_stopped_body": "Radaren er opdateret her, men prognosen for denne del af kortet bliver ikke lavet lige nu. Den kommer tilbage af sig selv.",
+  "status": {
+    "title": "Status",
+    "late": "Forsinket på dette kort",
+    "all_arriving": "Alt på dette kort kommer ind.",
+    "all_arriving_radar": "Alt på dette kort kommer ind. Det nyeste radarbillede er {minutes} min gammelt.",
+    "radar_behind": "Radaren på dette kort er forældet. Nyere data hentes.",
+    "where": "{what}, {place}",
+    "europe": "Europa",
+    "state_down": "Intet nyt siden {time}",
+    "state_delayed": "Forsinket, nyeste fra {time}",
+    "state_none": "Intet i over en time",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Prognose",
+      "alerts": "Regnvarsler",
+      "lightning": "Lyn",
+      "stations": "Vejrstationer",
+      "storms": "Tordenceller"
+    },
+    "connection": {
+      "title": "Forbindelse",
+      "offline": "Ingen internetforbindelse. Kortet viser det, det havde, før forbindelsen røg.",
+      "catching_up": "Indhenter det, der kom, mens kortet var lukket.",
+      "slow": "Forbindelsen er langsom, så kortet kan være længe om at opdatere.",
+      "socket": "Live-forbindelsen til meteocool er afbrudt. Kortet spørger i stedet efter nye data hvert minut."
+    },
+    "degraded": {
+      "api_errors": "Nogle af meteocools tjenester svarer ikke.",
+      "slow_responses": "meteocool svarer langsomt.",
+      "stale_publish": "Der er ikke kommet et nyt radarbillede i længere tid end normalt.",
+      "tile_errors": "Mange radarfliser indlæses ikke, så dele af kortet kan være tomme."
+    }
+  },
   "show_for_my_location": "Vis for min placering",
   "precipitation_at_point": "Nedbør her",
   "forecast_none_here": "Ingen prognose her",
@@ -593,7 +631,9 @@
       "slow_responses": "svartider",
       "slow_responses_reason": "p95 {p95} ms over {count} svar",
       "stale_publish": "udgivelsesrytme",
-      "stale_publish_reason": "intet nyt billede i {minutes} min efter det forventede tidspunkt"
+      "stale_publish_reason": "intet nyt billede i {minutes} min efter det forventede tidspunkt",
+      "tile_errors": "radarfliser",
+      "tile_errors_reason": "{failed} af {asked} fejlede de seneste to minutter"
     },
     "diagnostics": {
       "timesteps": "Tidstrin",

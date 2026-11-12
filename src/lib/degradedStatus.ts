@@ -1,8 +1,9 @@
 import { get } from "svelte/store";
-import { apiHealth, degradedStatus, radarCadence } from "../stores";
+import { apiHealth, degradedStatus, radarCadence, serverStatus } from "../stores";
 import { evaluateDegraded, sinceRecovery, type DegradedSignals } from "./degraded";
 import { quantile, requestDurations } from "./requestTiming";
 import { overdueBy } from "./updateCadence";
+import { radarTileCounts } from "./tileStatus";
 import { t } from "../locale/t";
 
 /**
@@ -32,8 +33,12 @@ export const RECHECK_MS = 5000;
  */
 export const LATENCY_WINDOW_MS = 120_000;
 
-/** Our own API, not tiles or the basemap: this is a claim about the backend. */
-const API_MATCH = /\/v3\//;
+/**
+ * Our own API and the data service's (the lightning and mesocyclone caches,
+ * cells, storms, stations, sweeps), not tiles or the basemap: this is a
+ * claim about the backend.
+ */
+export const API_MATCH = /\/v3\/|\/(lightning_cache|mesocyclones|cells|storms|stations|sweeps)(\/|\?|$)/;
 
 /** Everything the criteria look at, read at one instant. */
 export function readDegradedSignals(now: number = Date.now()): DegradedSignals {
@@ -44,6 +49,8 @@ export function readDegradedSignals(now: number = Date.now()): DegradedSignals {
     recentSamples: recent.length,
     // The grid's timestamps are epoch seconds, so the comparison is too.
     publishOverdueS: overdueBy(get(radarCadence), Math.round(now / 1000)),
+    tiles: radarTileCounts(now),
+    statusTrusted: get(serverStatus) !== null,
   };
 }
 

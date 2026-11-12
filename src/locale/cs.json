@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Od meteorologické služby nyní nedostáváme radarová data pro tuto část mapy. Radar je tam zastaralý nebo chybí a předpověď bude k dispozici, až se data vrátí.",
   "outdated": "Zastaralé",
   "degraded": "Omezeno",
+  "delayed": "Zpožděno",
+  "notice_info": "Oznámení",
+  "notice_warning": "Varování",
+  "forecast_feed_stopped": "Předpověď nepřichází",
+  "forecast_feed_stopped_body": "Radar je tu aktuální, ale předpověď pro tuto část mapy se právě nepočítá. Vrátí se sama.",
+  "status": {
+    "title": "Stav",
+    "late": "Zpožděné na této mapě",
+    "all_arriving": "Vše na této mapě přichází.",
+    "all_arriving_radar": "Vše na této mapě přichází. Nejnovější radarový snímek je starý {minutes} min.",
+    "radar_behind": "Radar na této mapě je zastaralý. Načítají se novější data.",
+    "where": "{what}, {place}",
+    "europe": "Evropa",
+    "state_down": "Nic nového od {time}",
+    "state_delayed": "Zpožděno, nejnovější z {time}",
+    "state_none": "Nic déle než hodinu",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Předpověď",
+      "alerts": "Upozornění na déšť",
+      "lightning": "Blesky",
+      "stations": "Meteostanice",
+      "storms": "Bouřkové buňky"
+    },
+    "connection": {
+      "title": "Připojení",
+      "offline": "Žádné připojení k internetu. Mapa ukazuje, co měla před výpadkem.",
+      "catching_up": "Dohání se, co přišlo, zatímco byla mapa zavřená.",
+      "slow": "Připojení je pomalé, takže aktualizace mapy může chvíli trvat.",
+      "socket": "Živé spojení s meteocool je přerušené. Mapa se místo toho každou minutu ptá na nová data."
+    },
+    "degraded": {
+      "api_errors": "Některé služby meteocool neodpovídají.",
+      "slow_responses": "meteocool odpovídá pomalu.",
+      "stale_publish": "Nový radarový snímek nepřišel déle než obvykle.",
+      "tile_errors": "Mnoho radarových dlaždic se nenačítá, části mapy mohou být prázdné."
+    }
+  },
   "show_for_my_location": "Zobrazit pro mou polohu",
   "precipitation_at_point": "Srážky zde",
   "forecast_none_here": "Zde není předpověď",
@@ -594,7 +632,9 @@
       "slow_responses": "doba odezvy",
       "slow_responses_reason": "p95 {p95} ms z {count} odpovědí",
       "stale_publish": "frekvence publikování",
-      "stale_publish_reason": "žádný nový snímek {minutes} min po očekávaném čase"
+      "stale_publish_reason": "žádný nový snímek {minutes} min po očekávaném čase",
+      "tile_errors": "radarové dlaždice",
+      "tile_errors_reason": "{failed} z {asked} selhalo za poslední dvě minuty"
     },
     "diagnostics": {
       "timesteps": "Časové kroky",

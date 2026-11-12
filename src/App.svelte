@@ -44,8 +44,9 @@ import {
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meetYouCoolOpen,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
-  archiveWindow,
+  archiveWindow, socketDown,
 } from "./stores";
+import { cleanupStatusFeed, initStatusFeed, refreshStatus } from "./lib/statusFeed";
 import { archiveStrikes } from "./lib/ArchiveStrikes";
 import { shownIn } from "./lib/archive";
 import { parseStationChoice } from "./lib/stations";
@@ -515,9 +516,37 @@ const radarSocketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${
 let socketConnectedBefore = false;
 radarSocketIO.on("connect", () => {
   console.log("radar/forecast websocket connected!");
+  window.clearTimeout(socketDownTimer);
+  socketDownTimer = undefined;
+  socketDown.set(false);
   if (socketConnectedBefore && !wokeWithin(SOCKET_RESYNC_QUIET_MS)) wake("socket reconnected");
   socketConnectedBefore = true;
 });
+
+/* A socket that is gone says nothing of what it would have nudged: the map
+   would stand still with every layer it feeds. Once it has been gone a
+   while (a blip reconnects within seconds), `socketDown` says so, the
+   status sheet tells the reader, and the map asks on a timer of its own
+   (below). From the start too: a socket that never connects is as gone. */
+const SOCKET_DOWN_AFTER_MS = 30_000;
+let socketDownTimer: number | undefined;
+function socketLost() {
+  if (screenshot || socketDownTimer !== undefined || get(socketDown)) return;
+  socketDownTimer = window.setTimeout(() => {
+    socketDownTimer = undefined;
+    if (!radarSocketIO.connected) socketDown.set(true);
+  }, SOCKET_DOWN_AFTER_MS);
+}
+radarSocketIO.on("disconnect", socketLost);
+radarSocketIO.on("connect_error", socketLost);
+socketLost();
+onDestroy(() => window.clearTimeout(socketDownTimer));
+
+/* What is late, judged by the backend (lib/statusFeed.ts): asked for now,
+   when it says something changed, on waking and on its own timer. */
+if (!screenshot) initStatusFeed();
+onDestroy(cleanupStatusFeed);
+radarSocketIO.on("status", () => whenVisible("status", () => void refreshStatus()));
 
 const strikemgr = new StrikeManager(1000, lightningSource);
 
@@ -1308,8 +1337,37 @@ const unsubscribeWake = onWake(() => {
   void reloadCloudHints();
   stationmgr.resync();
   motionmgr.resync();
+  void refreshStatus();
 });
 onDestroy(unsubscribeWake);
+
+/* With the socket gone, what it would have nudged is asked for every
+   minute instead: the timeline and every network's newest frame, the
+   strikes, the storms and the cells (the status has its own timer,
+   lib/statusFeed.ts). Not in a hidden tab, which catches up on waking; not
+   in a past window, which nothing nudges. */
+const SOCKET_DOWN_REFRESH_MS = 60_000;
+let socketDownTick: number | undefined;
+function refreshWithoutSocket() {
+  if (get(archiveWindow)) return;
+  radarCap?.reloadAll();
+  void reloadLightning();
+  void reloadCyclones();
+  stormmgr.reload(get(mapExtent4326), { force: true, nanobar: quietly });
+  stormResolver.refresh();
+  void reloadCloudHints(undefined, quietly);
+  cells3d?.newRun();
+}
+const unsubscribeSocketDown = socketDown.subscribe((down) => {
+  window.clearInterval(socketDownTick);
+  socketDownTick = down
+    ? window.setInterval(() => whenVisible("socketDown", refreshWithoutSocket), SOCKET_DOWN_REFRESH_MS)
+    : undefined;
+});
+onDestroy(() => {
+  unsubscribeSocketDown();
+  window.clearInterval(socketDownTick);
+});
 
 /* The apps call this directly. Routed through wake() so a native foreground
    and the browser signals that accompany it still only resync once. */

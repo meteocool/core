@@ -60,6 +60,24 @@ export function retryFailedTiles(): boolean {
   return any;
 }
 
+/** How far back the radar's tile outcomes are counted, for the `tile-errors` criterion (lib/degraded.ts). */
+export const TILE_WINDOW_MS = 120_000;
+
+/** When each radar tile asked for landed or failed, oldest first, within `TILE_WINDOW_MS`. */
+const outcomes: { at: number; ok: boolean }[] = [];
+
+/** A radar tile asked for has landed (`ok`) or failed (layers/radarFrames.ts). */
+export function radarTileOutcome(ok: boolean, now: number = Date.now()): void {
+  outcomes.push({ at: now, ok });
+  while (outcomes.length && outcomes[0].at < now - TILE_WINDOW_MS) outcomes.shift();
+}
+
+/** How many radar tiles were asked for in the window, and how many of them failed. */
+export function radarTileCounts(now: number = Date.now()): { asked: number; failed: number } {
+  const recent = outcomes.filter((outcome) => outcome.at >= now - TILE_WINDOW_MS);
+  return { asked: recent.length, failed: recent.filter((outcome) => !outcome.ok).length };
+}
+
 /** What loads tiles past OpenLayers' sources, asked to retry its failures with theirs. */
 const retries = new Set<() => boolean>();
 

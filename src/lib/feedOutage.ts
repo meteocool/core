@@ -49,15 +49,17 @@ export function stalledNetworks(feeds: readonly NetworkFeed[], reference: number
 
 /**
  * Whether the player says the data is not arriving, given the share of the
- * screen that stalled networks draw on and whether it would otherwise say
- * there is no forecast.
+ * screen that stalled networks draw on, whether it would otherwise say
+ * there is no forecast, and whether a stalled network draws the middle of
+ * the screen.
  *
  * In place of "No Forecast Here" wherever a stalled network is on screen at
  * all: the forecast is missing there because its radar is. On any other step
- * only when they hold at least half the screen, so a border strip of a
- * silent neighbour does not put a notice over a map that is otherwise live.
+ * only when one draws where the reader is looking, the middle: a map of
+ * Germany, whose radar and forecast are live, says nothing of its silent
+ * neighbours, however much of a wide screen they take.
  */
-export function saysFeedStopped(stalledShare: number, noForecast: boolean): boolean {
+export function saysFeedStopped(stalledShare: number, noForecast: boolean, atCentre: boolean): boolean {
   if (stalledShare <= 0) return false;
-  return noForecast || stalledShare >= 0.5;
+  return noForecast || atCentre;
 }

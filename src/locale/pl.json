@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Obecnie nie otrzymujemy danych radarowych od służby meteorologicznej dla tej części mapy. Radar jest tam nieaktualny lub go brak, a prognoza pojawi się dopiero po powrocie danych.",
   "outdated": "Nieaktualne",
   "degraded": "Ograniczone",
+  "delayed": "Opóźnione",
+  "notice_info": "Informacja",
+  "notice_warning": "Ostrzeżenie",
+  "forecast_feed_stopped": "Brak aktualnej prognozy",
+  "forecast_feed_stopped_body": "Radar jest tu aktualny, ale prognoza dla tej części mapy nie jest teraz obliczana. Wróci sama.",
+  "status": {
+    "title": "Stan",
+    "late": "Opóźnione na tej mapie",
+    "all_arriving": "Wszystkie dane na tej mapie docierają.",
+    "all_arriving_radar": "Wszystkie dane na tej mapie docierają. Najnowszy obraz radarowy ma {minutes} min.",
+    "radar_behind": "Radar na tej mapie jest nieaktualny. Trwa pobieranie nowszych danych.",
+    "where": "{what}, {place}",
+    "europe": "Europa",
+    "state_down": "Nic nowego od {time}",
+    "state_delayed": "Opóźnione, najnowsze z {time}",
+    "state_none": "Brak danych od ponad godziny",
+    "kind": {
+      "radar": "Radar",
+      "forecast": "Prognoza",
+      "alerts": "Ostrzeżenia o deszczu",
+      "lightning": "Wyładowania",
+      "stations": "Stacje pogodowe",
+      "storms": "Komórki burzowe"
+    },
+    "connection": {
+      "title": "Połączenie",
+      "offline": "Brak połączenia z internetem. Mapa pokazuje to, co miała przed jego utratą.",
+      "catching_up": "Nadrabianie tego, co dotarło, gdy mapa była zamknięta.",
+      "slow": "Połączenie jest wolne, więc aktualizacja mapy może chwilę potrwać.",
+      "socket": "Połączenie na żywo z meteocool zostało przerwane. Mapa zamiast tego co minutę pyta o nowe dane."
+    },
+    "degraded": {
+      "api_errors": "Niektóre usługi meteocool nie odpowiadają.",
+      "slow_responses": "meteocool odpowiada powoli.",
+      "stale_publish": "Od dłuższego niż zwykle czasu nie dotarł żaden nowy obraz radarowy.",
+      "tile_errors": "Wiele kafelków radaru się nie wczytuje, więc części mapy mogą być puste."
+    }
+  },
   "show_for_my_location": "Pokaż dla mojej lokalizacji",
   "precipitation_at_point": "Opady tutaj",
   "forecast_none_here": "Brak prognozy dla tego miejsca",
@@ -594,7 +632,9 @@
       "slow_responses": "czasy odpowiedzi",
       "slow_responses_reason": "p95 {p95} ms z {count} odpowiedzi",
       "stale_publish": "częstotliwość publikacji",
-      "stale_publish_reason": "brak nowej klatki od {minutes} min po oczekiwanym czasie"
+      "stale_publish_reason": "brak nowej klatki od {minutes} min po oczekiwanym czasie",
+      "tile_errors": "kafelki radaru",
+      "tile_errors_reason": "{failed} z {asked} nieudanych w ostatnich dwóch minutach"
     },
     "diagnostics": {
       "timesteps": "Kroki czasowe",

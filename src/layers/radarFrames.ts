@@ -19,7 +19,7 @@ import { FrameSwitch, ancestorTile, childTiles, settled } from "../lib/frameSwit
 import type { TileCoord } from "../lib/frameSwitch";
 import { frameTextureBytes, uploadsPerFrame } from "../lib/gpuBudget";
 import { IDLE_AFTER_MS } from "../lib/idleLayers";
-import { onRetry, tileArrived } from "../lib/tileStatus";
+import { onRetry, radarTileOutcome, tileArrived } from "../lib/tileStatus";
 import { valueTable } from "../lib/rvp6";
 import type { Ink } from "../lib/rvp6";
 
@@ -1020,9 +1020,11 @@ export class RadarFrameLayer extends Layer {
         this.arrived.set(job.key, tile instanceof Uint8Array ? tile : BLANK);
         this.stats.loads += 1;
         tileArrived();
+        radarTileOutcome(true);
       }, () => {
         this.failed.add(job.key);
         this.stats.failed += 1;
+        radarTileOutcome(false);
       })
       .finally(() => {
         this.loading.delete(job.key);

@@ -1,3 +1,8 @@
+<script module lang="ts">
+/** The notices dismissed this session (lib/noticeQueue.ts): kept if the player is built again, gone on a reload. */
+let sessionDismissed = new Set<string>();
+</script>
+
 <script lang="ts">
 import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
   import { toolbarTransitionEnd, toolbarTransitionStart } from "../lib/toolbarTransition";
@@ -60,6 +65,10 @@ import {
 } from "../layers/extents";
 import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
 import { saysFeedStopped } from "../lib/feedOutage";
+import { statusVerdict } from "../lib/statusFeed";
+import { dismissalKey, nextNotice, rearmed, type Candidates, type QueuedNotice } from "../lib/noticeQueue";
+import { drawnByDomains } from "../layers/statusCoverage";
+import { viewCentre } from "../lib/status";
 import { preloadMode } from "../lib/framePreload";
 import type { PreloadMode } from "../lib/framePreload";
 import { holdsForTiles, playOrder, shouldAdvance, waitLeft } from "../lib/playbackGate";
@@ -265,10 +274,6 @@ $: outOfCoverage = $sharedActiveCap === "radar"
   && $mapExtent4326 !== null
   && !radarExtents4326.some((extent) => overlaps(extent, $mapExtent4326));
 
-let coverageDismissed = false;
-/* Re-armed on the way back in, so panning out again says so again. */
-$: if (!outOfCoverage) coverageDismissed = false;
-
 /* DWD's reach, the hole in the wash a forecast step draws (dwd.ts). */
 const forecastReach = new Polygon([dwdCoverageInv.getLinearRing(1)!.getCoordinates()]);
 /** Whether a forecast draws at a point: WN in DWD's reach, or one of these networks' nowcast runs on its own ground. */
@@ -298,12 +303,21 @@ $: forecastMissing = !forecastReachable || !$mapExtent4326 ? 0
     : uncoveredShare($mapExtent4326, forecastCovers(runsShown));
 $: outOfForecast = $onForecastStep && saysNoForecast(forecastMissing);
 /* The share of the screen drawn by a network whose radar has stopped
-   arriving (lib/feedOutage.ts): there the map's present is the last picture
-   that came, and the nowcast has no run, so the player says the weather
-   service's data is not coming in rather than "No Forecast Here". */
+   arriving (lib/feedOutage.ts, or the backend's status, which can blame
+   DWD's too): there the map's present is the last picture that came, and
+   the nowcast has no run, so the player says the weather service's data is
+   not coming in rather than "No Forecast Here". */
 $: stalledShare = !forecastReachable || !$mapExtent4326 || $stalledNetworks.length === 0 ? 0
-  : 1 - uncoveredShare($mapExtent4326, (lon, lat) => drawnByAny($stalledNetworks, fromLonLat([lon, lat])));
-$: feedStopped = saysFeedStopped(stalledShare, outOfForecast);
+  : 1 - uncoveredShare($mapExtent4326, (lon, lat) => drawnByDomains($stalledNetworks, lon, lat));
+$: stalledAtCentre = stalledShare > 0 && $mapExtent4326 !== null
+  && drawnByDomains($stalledNetworks, ...viewCentre($mapExtent4326));
+$: feedStopped = saysFeedStopped(stalledShare, outOfForecast, stalledAtCentre);
+/* The forecast not being made where the radar is arriving, by the backend's
+   status alone: the map cannot tell a forecast that is late from one that
+   was never made. Over as much of the screen as the radar's notice, by the
+   same rule. */
+$: forecastStopped = forecastReachable && $statusVerdict !== null
+  && saysFeedStopped($statusVerdict.forecastStopped, outOfForecast, $statusVerdict.forecastStoppedAtCentre);
 /* None of the screen: playback has nothing to show past now (playbackLoop). */
 $: noForecast = anyForecastMissing === 1;
 
@@ -405,11 +419,6 @@ $: preload(shown, steps, $mapExtent4326, $precacheForecast, $sharedActiveCap, ou
 /* A hidden page fetches nothing more; back on it, the rest. */
 subscriptions.push(onWake(() => preload()));
 
-let forecastCoverageDismissed = false;
-$: if (!outOfForecast) forecastCoverageDismissed = false;
-let feedStoppedDismissed = false;
-$: if (!feedStopped) feedStoppedDismissed = false;
-
 /* Whether the player's strip has something to say: rain at the client's
    position, or a tapped point, which always gets an answer, even a flat one. */
 $: chartShowable = (hasPrecipitation || $inspectLatLon !== null)
@@ -463,6 +472,57 @@ $: outlookShowable = $dryAtUser
   // one of them.
   && $live
   && !$playbackRunning;
+
+/**
+ * The one notice in the slot above the tray (lib/noticeQueue.ts): ours for
+ * this view first, then what the map finds for itself, a dismissed one
+ * yielding to the next. A condition dismissed comes back once it has
+ * cleared and returns; ours stay dismissed by id until a reload. The dry
+ * outlook keeps its own day-long snooze (lib/outlookDismissal.ts).
+ */
+$: candidates = {
+  ours: $statusVerdict?.notices ?? [],
+  noCoverage: outOfCoverage,
+  radarStopped: feedStopped,
+  forecastStopped,
+  noForecast: outOfForecast,
+  dryOutlook: outlookShowable && !outlookDismissed && $latLon !== null,
+} satisfies Candidates;
+let dismissed: ReadonlySet<string> = sessionDismissed;
+function rearm(applying: Candidates) {
+  const kept = rearmed(dismissed, applying);
+  if (kept.size !== dismissed.size) dismissed = sessionDismissed = kept;
+}
+$: rearm(candidates);
+$: shownNotice = nextNotice(candidates, dismissed);
+
+function dismissNotice(notice: QueuedNotice) {
+  if (notice.kind === "dry-outlook") {
+    dismissOutlook();
+    return;
+  }
+  dismissed = sessionDismissed = new Set([...dismissed, dismissalKey(notice)]);
+}
+
+/** A strip's heading and text, by what it is about. */
+function noticeWords(notice: QueuedNotice, nowcast: boolean): { title: string; body: string } {
+  switch (notice.kind) {
+    case "ours":
+      return { title: $_(notice.notice.level === "warning" ? "notice_warning" : "notice_info"), body: notice.notice.text };
+    case "no-coverage":
+      return { title: $_("radar_no_coverage"), body: $_("radar_no_coverage_body") };
+    case "radar-stopped":
+      return { title: $_("radar_feed_stopped"), body: $_("radar_feed_stopped_body") };
+    case "forecast-stopped":
+      return { title: $_("forecast_feed_stopped"), body: $_("forecast_feed_stopped_body") };
+    default:
+      return {
+        title: $_("forecast_no_coverage"),
+        body: $_(nowcast ? "forecast_no_coverage_body_nowcast" : "forecast_no_coverage_body"),
+      };
+  }
+}
+$: words = shownNotice && shownNotice.kind !== "dry-outlook" ? noticeWords(shownNotice, $nowcastCoverage !== null) : null;
 
 /* Between a tap and the grid that answers it, the strip is up with the last
    point's bars still in it. Flagged here rather than read off the capability,
@@ -1328,41 +1388,29 @@ onDestroy(() => {
   <ArchivePicker on:close={() => archivePickerOpen.set(false)} />
 {/if}
 
-{#if outOfCoverage && !coverageDismissed}
-  <DismissableStrip
-    title={$_("radar_no_coverage")}
-    collapsed={$bottomToolbarMode !== "player"}
-    on:dismiss={() => { coverageDismissed = true; }}>
-    <p class="notice">{$_("radar_no_coverage_body")}</p>
-  </DismissableStrip>
-{/if}
-
-{#if feedStopped && !feedStoppedDismissed}
-  <DismissableStrip
-    title={$_("radar_feed_stopped")}
-    collapsed={$bottomToolbarMode !== "player"}
-    on:dismiss={() => { feedStoppedDismissed = true; }}>
-    <p class="notice">{$_("radar_feed_stopped_body")}</p>
-  </DismissableStrip>
-{/if}
-
-<!-- Not while the feed's notice is up, dismissed or not: that is the reason there is no forecast. -->
-{#if outOfForecast && !feedStopped && !forecastCoverageDismissed}
-  <DismissableStrip
-    title={$_("forecast_no_coverage")}
-    collapsed={$bottomToolbarMode !== "player"}
-    on:dismiss={() => { forecastCoverageDismissed = true; }}>
-    <p class="notice">{$_($nowcastCoverage ? "forecast_no_coverage_body_nowcast" : "forecast_no_coverage_body")}</p>
-  </DismissableStrip>
-{/if}
-
-{#if outlookShowable && !outlookDismissed && $latLon}
-  <DryOutlook
-    lat={$latLon[0]}
-    lon={$latLon[1]}
-    collapsed={$bottomToolbarMode !== "player"}
-    on:dismiss={dismissOutlook}
-    on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
+<!-- One notice at a time, the queue's (lib/noticeQueue.ts); keyed, so one
+     replacing another leaves and comes in as a strip of its own. -->
+{#if shownNotice}
+  {#key dismissalKey(shownNotice)}
+    {#if shownNotice.kind === "dry-outlook"}
+      {#if $latLon}
+        <DryOutlook
+          lat={$latLon[0]}
+          lon={$latLon[1]}
+          collapsed={$bottomToolbarMode !== "player"}
+          on:dismiss={dismissOutlook}
+          on:unavailable={() => { outlookUnavailable = true; outlookFailedAt = Date.now(); }} />
+      {/if}
+    {:else if words}
+      {@const notice = shownNotice}
+      <DismissableStrip
+        title={words.title}
+        collapsed={$bottomToolbarMode !== "player"}
+        on:dismiss={() => dismissNotice(notice)}>
+        <p class="notice">{words.body}</p>
+      </DismissableStrip>
+    {/if}
+  {/key}
 {/if}
 
 <!-- Site mode: one radar's own sweep over the dimmed composites

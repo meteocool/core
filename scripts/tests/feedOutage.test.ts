@@ -35,14 +35,15 @@ test("nothing is stalled while DWD's own scan is unknown", () => {
 });
 
 test("in place of 'no forecast' wherever a stalled network is on screen", () => {
-  assert.equal(saysFeedStopped(0.1, true), true);
+  assert.equal(saysFeedStopped(0.1, true, false), true);
 });
 
-test("otherwise only when stalled networks hold half the screen", () => {
-  assert.equal(saysFeedStopped(0.1, false), false);
-  assert.equal(saysFeedStopped(0.5, false), true);
+test("otherwise only when a stalled network draws the middle of the screen", () => {
+  assert.equal(saysFeedStopped(0.1, false, true), true);
+  // A wide map of Germany with silent neighbours all round: nothing said.
+  assert.equal(saysFeedStopped(0.7, false, false), false);
 });
 
 test("never without a stalled network on screen", () => {
-  assert.equal(saysFeedStopped(0, true), false);
+  assert.equal(saysFeedStopped(0, true, true), false);
 });

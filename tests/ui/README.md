@@ -33,9 +33,17 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
   `echotop50`, `vil`) with the 404 a backend gives before their first frame,
   written by hand until a recording has them; `column-products.spec.ts`
   stands frames in for them itself;
+- answers `/v3/status` from `fixtures/api/GET_v3_status.json`, written by
+  hand until staging serves the route: every component `ok` for the
+  recorded views, its times the recording's. `status.spec.ts` serves its own
+  variants. A re-recording from a backend that has the route replaces it;
+  one from a backend that answers 404 records that 404, so write the
+  fixture again by hand after it (the variants start from it);
 - draws every map tile blank: radar, value tiles and the basemap; a value
   tile is a 512-pixel greyscale PNG of zeros, which decodes as a real one does;
-- connects the lightning socket to a stand-in that stays quiet;
+- connects the socket to a stand-in that confirms the namespace asked for
+  and stays quiet; `cutSocket` (`offline.ts`) cuts it and refuses it from
+  then on, for what the map does without it;
 - starts its clock at `fixtures/recording.json`'s `recordedAt` and lets it
   run on, so "now", the live frame and "3–8 min ago" are the recording's;
 - refuses anything else that would leave the machine, and fails the test

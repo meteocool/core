@@ -129,6 +129,44 @@
   "radar_feed_stopped_body": "Emme tällä hetkellä saa sääpalvelulta tutkatietoja tälle kartan alueelle. Tutkakuva on siellä vanhentunut tai puuttuu, eikä ennustetta ole ennen kuin tiedot palaavat.",
   "outdated": "Vanhentunut",
   "degraded": "Häiriöitä",
+  "delayed": "Myöhässä",
+  "notice_info": "Tiedote",
+  "notice_warning": "Varoitus",
+  "forecast_feed_stopped": "Ennustetta ei saada",
+  "forecast_feed_stopped_body": "Tutkakuva on täällä ajan tasalla, mutta tämän kartan alueen ennustetta ei juuri nyt lasketa. Se palaa itsestään.",
+  "status": {
+    "title": "Tila",
+    "late": "Myöhässä tällä kartalla",
+    "all_arriving": "Kaikki tämän kartan tiedot saapuvat.",
+    "all_arriving_radar": "Kaikki tämän kartan tiedot saapuvat. Uusin tutkakuva on {minutes} min vanha.",
+    "radar_behind": "Tämän kartan tutkakuva on vanhentunut. Uudempia tietoja haetaan.",
+    "where": "{what}, {place}",
+    "europe": "Eurooppa",
+    "state_down": "Ei mitään uutta klo {time} jälkeen",
+    "state_delayed": "Myöhässä, uusin klo {time}",
+    "state_none": "Ei mitään yli tuntiin",
+    "kind": {
+      "radar": "Tutka",
+      "forecast": "Ennuste",
+      "alerts": "Sadevaroitukset",
+      "lightning": "Salamat",
+      "stations": "Sääasemat",
+      "storms": "Ukkossolut"
+    },
+    "connection": {
+      "title": "Yhteys",
+      "offline": "Ei internetyhteyttä. Kartta näyttää sen, mitä sillä oli ennen yhteyden katkeamista.",
+      "catching_up": "Ladataan sitä, mitä tuli kartan ollessa suljettuna.",
+      "slow": "Yhteys on hidas, joten kartan päivittyminen voi kestää.",
+      "socket": "Suora yhteys meteocooliin on katkennut. Kartta kysyy sen sijaan uusia tietoja minuutin välein."
+    },
+    "degraded": {
+      "api_errors": "Osa meteocoolin palveluista ei vastaa.",
+      "slow_responses": "meteocool vastaa hitaasti.",
+      "stale_publish": "Uutta tutkakuvaa ei ole tullut tavallista pidempään.",
+      "tile_errors": "Monet tutkaruudut eivät lataudu, joten osa kartasta voi olla tyhjä."
+    }
+  },
   "show_for_my_location": "Näytä sijainnissani",
   "precipitation_at_point": "Sade tässä",
   "forecast_none_here": "Täällä ei ennustetta",
@@ -593,7 +631,9 @@
       "slow_responses": "vasteajat",
       "slow_responses_reason": "p95 {p95} ms ({count} vastauksen perusteella)",
       "stale_publish": "julkaisutahti",
-      "stale_publish_reason": "ei uutta kuvaa {minutes} min odotetun ajan jälkeen"
+      "stale_publish_reason": "ei uutta kuvaa {minutes} min odotetun ajan jälkeen",
+      "tile_errors": "tutkaruudut",
+      "tile_errors_reason": "{failed}/{asked} epäonnistui kahden viime minuutin aikana"
     },
     "diagnostics": {
       "timesteps": "Aika-askeleet",

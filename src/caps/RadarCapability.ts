@@ -28,6 +28,7 @@ import { isDarkBasemap } from "../layers/casing";
 import type { RadarFrame, TimeseriesProduct } from "../api";
 import type { CountryNetwork } from "../api/events";
 import { stalledNetworks } from "../lib/feedOutage";
+import { statusVerdict } from "../lib/statusFeed";
 import type { RadarScans } from "../lib/scans";
 import {
   capDescription,
@@ -53,6 +54,7 @@ import {
   radarProducts,
   nowcastCoverage,
   stalledNetworks as stalledNetworksStore,
+  serverStatus,
   framesPreloaded,
   archiveWindow,
   playbackRunning,
@@ -272,6 +274,8 @@ export default class RadarCapability extends Capability {
   private gridProducts = "";
 
   private unsubscribeProduct: (() => void) | null = null;
+  /** Off the backend's verdict (lib/statusFeed.ts) again, on destroy. */
+  private unsubscribeVerdict: (() => void) | null = null;
 
   /**
    * The chosen product's frame for each observed step it has one for, from
@@ -498,6 +502,24 @@ export default class RadarCapability extends Capability {
     radarStale.subscribe((value) => {
       this.stale = value;
       this.applyRadarOpacity();
+    });
+
+    /* The backend's verdict, while there is one to trust, says which networks
+       have stopped and whether the radar on screen is out of date; it moves
+       with the view as well as with the answer. When it lapses, the map's own
+       rules take over from what they find now. */
+    let judgedByServer = false;
+    this.unsubscribeVerdict = statusVerdict.subscribe((verdict) => {
+      this.refreshStalled();
+      if (this.past) return;
+      if (verdict) {
+        judgedByServer = true;
+        if (get(radarStale) !== verdict.radarDown) radarStale.set(verdict.radarDown);
+      } else if (judgedByServer) {
+        judgedByServer = false;
+        radarStale.set(false);
+        this.refreshStaleness();
+      }
     });
 
     /* Each step of playback fades from the one before where the frame layer
@@ -1050,7 +1072,8 @@ export default class RadarCapability extends Capability {
    * been replaced.
    */
   refreshStaleness() {
-    if (!this.clientGrid || this.past) return;
+    // The backend's verdict, while trusted, is the judge (statusVerdict above).
+    if (!this.clientGrid || this.past || get(serverStatus)) return;
     if (!isOutdated(this.getMostRecentObservation(), Date.now() / 1000, get(radarCadence))) return;
     radarStale.set(true);
     live.set(false);
@@ -1210,7 +1233,8 @@ export default class RadarCapability extends Capability {
       newestScan: layer.current()?.upstream_time ?? null,
       answered: layer.answered(),
     }));
-    const stalled = this.past ? [] : stalledNetworks(feeds, scans.hx);
+    const verdict = get(statusVerdict);
+    const stalled = this.past ? [] : verdict ? verdict.stalled : stalledNetworks(feeds, scans.hx);
     // A write only when it changed: the player recomputes its notice on every one.
     if (get(stalledNetworksStore).join() !== stalled.join()) stalledNetworksStore.set(stalled);
   }
@@ -1672,7 +1696,8 @@ export default class RadarCapability extends Capability {
       capLastUpdated.set(latestRadar);
       this.publishCadenceFromGrid();
     }
-    radarStale.set(false);
+    // Unless the backend's verdict judges it, which a new grid does not change.
+    if (!get(serverStatus)) radarStale.set(false);
     this.applyRadarOpacity();
     this.notify("grid", this.clientGridConfig);
   }
@@ -1742,6 +1767,8 @@ export default class RadarCapability extends Capability {
     for (const nowcast of this.nowcasts) nowcast.destroy();
     nowcastCoverage.set(null);
     stalledNetworksStore.set([]);
+    this.unsubscribeVerdict?.();
+    this.unsubscribeVerdict = null;
     drawnEncoding.set(RVP6_ENCODING);
     this.unsubscribeProduct?.();
     this.unsubscribeProduct = null;

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DEGRADED_CRITERIA, DEGRADED_TTL_MS, EMPTY_SIGNALS, PUBLISH_OVERDUE_S,
-  SLOW_MIN_SAMPLES, SLOW_P95_MS, evaluateDegraded, sinceRecovery, type DegradedSignals,
+  SLOW_MIN_SAMPLES, SLOW_P95_MS, TILE_FAILED_SHARE, TILE_MIN_ASKED, evaluateDegraded, sinceRecovery,
+  type DegradedSignals,
 } from "../../src/lib/degraded.ts";
 import { EMPTY_HEALTH, markAbsent, nextHealth } from "../../src/lib/apiHealth.ts";
 
@@ -113,6 +114,29 @@ test("a backend that has stopped publishing degrades, and one frame clears it", 
   assert.deepEqual(ids(signals({ publishOverdueS: PUBLISH_OVERDUE_S - 1 })), []);
   // Negative means the next one is not even due yet.
   assert.deepEqual(ids(signals({ publishOverdueS: -120 })), []);
+});
+
+test("an overdue publish is not the map's to judge while the backend's status is trusted", () => {
+  // The status says what is late itself (lib/statusFeed.ts).
+  assert.deepEqual(ids(signals({ publishOverdueS: PUBLISH_OVERDUE_S * 3, statusTrusted: true })), []);
+  assert.deepEqual(ids(signals({ publishOverdueS: PUBLISH_OVERDUE_S * 3, statusTrusted: false })), ["stale-publish"]);
+});
+
+test("more than a quarter of the radar tiles failing degrades, and fewer clears it", () => {
+  assert.deepEqual(ids(signals({ tiles: { asked: 20, failed: 6 } })), ["tile-errors"]);
+  // A quarter exactly is not more than a quarter.
+  assert.deepEqual(ids(signals({ tiles: { asked: 20, failed: 20 * TILE_FAILED_SHARE } })), []);
+  assert.deepEqual(ids(signals({ tiles: { asked: 20, failed: 0 } })), []);
+});
+
+test("a handful of radar tiles failing is too few to judge by", () => {
+  assert.deepEqual(ids(signals({ tiles: { asked: TILE_MIN_ASKED - 1, failed: TILE_MIN_ASKED - 1 } })), []);
+  assert.deepEqual(ids(signals({ tiles: { asked: TILE_MIN_ASKED, failed: TILE_MIN_ASKED } })), ["tile-errors"]);
+});
+
+test("the tile-errors reason says how many of how many", () => {
+  const [reason] = evaluateDegraded(signals({ tiles: { asked: 12, failed: 9 } }), 0, t).reasons;
+  assert.equal(reason.detail, "chrome.degraded.tile_errors_reason {\"failed\":9,\"asked\":12}");
 });
 
 test("no cadence learned yet is never a reason on its own", () => {

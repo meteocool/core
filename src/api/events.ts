@@ -45,6 +45,8 @@ export type VolumesEvent = Schemas["VolumesRefresh"];
 export type SweepsEvent = Schemas["SweepsRefresh"];
 /** The rain's motion arrows were drawn again: the new tile set, which a client showing them switches to. */
 export type MotionEvent = Schemas["MotionRefresh"];
+/** A component's state or the notices changed; refetch `/v3/status` (lib/statusFeed.ts). */
+export type StatusEvent = Schemas["StatusRefresh"];
 
 export interface ServerToClientEvents {
   cells: (cells: CellsEvent) => void;
@@ -55,6 +57,7 @@ export interface ServerToClientEvents {
   nowcast: (nowcast: NowcastEvent) => void;
   poke: (poke: PokeEvent) => void;
   snow: (snow: SnowEvent) => void;
+  status: (status: StatusEvent) => void;
   storms: (storms: StormsEvent) => void;
   sweeps: (sweeps: SweepsEvent) => void;
   volumes: (volumes: VolumesEvent) => void;

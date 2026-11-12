@@ -40,6 +40,13 @@ export interface DegradedSignals {
    * there is no pattern yet.
    */
   publishOverdueS: number | null;
+  /** The radar tiles asked for in the last two minutes, and how many of them failed. */
+  tiles: { asked: number; failed: number };
+  /**
+   * Whether the backend's own status is trusted (lib/statusFeed.ts): it knows
+   * what should have come, so the map does not guess from the cadence.
+   */
+  statusTrusted: boolean;
 }
 
 export const EMPTY_SIGNALS: DegradedSignals = {
@@ -50,6 +57,8 @@ export const EMPTY_SIGNALS: DegradedSignals = {
   recentP95Ms: null,
   recentSamples: 0,
   publishOverdueS: null,
+  tiles: { asked: 0, failed: 0 },
+  statusTrusted: false,
 };
 
 /**
@@ -120,6 +129,15 @@ export function sinceRecovery(durations: number[]): number[] {
  */
 export const PUBLISH_OVERDUE_S = 300;
 
+/**
+ * Below this many radar tiles in the window, a failed share is a couple of
+ * tiles wearing a percentage's hat.
+ */
+export const TILE_MIN_ASKED = 10;
+
+/** More than this share of the radar tiles failing, and the map has holes in it worth a warning. */
+export const TILE_FAILED_SHARE = 0.25;
+
 /** A tripped criterion, in the words the diagnostics panel prints. */
 export interface DegradedReason {
   id: string;
@@ -169,12 +187,24 @@ export const DEGRADED_CRITERIA: DegradedCriterion[] = [
     id: "stale-publish",
     label: "chrome.degraded.stale_publish",
     /* Clears itself on the next frame that lands, because the overdue figure is
-       measured from the newest publish rather than from when we noticed. */
+       measured from the newest publish rather than from when we noticed. Off
+       while the backend's status is trusted: it says what is late itself. */
     reason: (s, _now, t) => (
-      s.publishOverdueS !== null && s.publishOverdueS >= PUBLISH_OVERDUE_S
+      !s.statusTrusted && s.publishOverdueS !== null && s.publishOverdueS >= PUBLISH_OVERDUE_S
         ? t("chrome.degraded.stale_publish_reason", {
           values: { minutes: Math.round(s.publishOverdueS / 60) },
         })
+        : null
+    ),
+  },
+  {
+    id: "tile-errors",
+    label: "chrome.degraded.tile_errors",
+    /* Clears itself as the failures age out of the two-minute window, or as
+       tiles that land outnumber them. */
+    reason: (s, _now, t) => (
+      s.tiles.asked >= TILE_MIN_ASKED && s.tiles.failed / s.tiles.asked > TILE_FAILED_SHARE
+        ? t("chrome.degraded.tile_errors_reason", { values: { failed: s.tiles.failed, asked: s.tiles.asked } })
         : null
     ),
   },
