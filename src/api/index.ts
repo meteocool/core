@@ -18,6 +18,7 @@ import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
 import type { CountryNetwork } from "./events";
 import type { AlternativeProduct } from "../lib/observedProduct";
+import { GROUPS_ABSENT } from "../lib/stormGroups";
 
 type Schemas = ApiSchemas["schemas"];
 
@@ -52,6 +53,9 @@ export type StormStatus = StormProperties["status"];
 export type StormCollection = DataSchemas["schemas"]["StormCollection"];
 /** One storm with its KONRAD3D tracks and its tracker tracks. */
 export type StormDetail = DataSchemas["schemas"]["StormDetail"];
+/** A group of storms that are one system, as a GeoJSON feature: the outline of the area they share. */
+export type StormGroup = DataSchemas["schemas"]["StormGroupFeature"];
+export type StormGroupCollection = DataSchemas["schemas"]["StormGroupCollection"];
 export type TrackerTrack = DataSchemas["schemas"]["TrackerTrack"];
 export type TrackerFeature = DataSchemas["schemas"]["TrackerFeature"];
 /** One weather station's newest values, as `/stations/observations` answers them. */
@@ -104,10 +108,18 @@ interface Answer<T> {
  */
 interface RequestOptions {
   optional?: boolean;
+  /**
+   * For an `optional` call, the statuses that mean absence: a 404 unless
+   * said otherwise. A route a backend does not have yet can also answer 422,
+   * where its path reads as another route's parameter.
+   */
+  absent?: readonly number[];
 }
 
 /** The answer that means "there is nothing here", as opposed to "this broke". */
-const isAbsence = (response: Response | undefined): boolean => response?.status === 404;
+const isAbsence = (response: Response | undefined, absent: readonly number[] = [404]): boolean => (
+  response !== undefined && absent.includes(response.status)
+);
 
 /**
  * An `optional` endpoint with nothing published yet.
@@ -179,7 +191,12 @@ const pause = (ms: number) => new Promise((resolve) => { setTimeout(resolve, ms)
  * The same call once more, quietly: no loading bar, no retries, no report.
  * True when it answered, which is recorded as the endpoint recovering.
  */
-async function probe<T>(id: string, send: () => Promise<Answer<T>>, optional: boolean): Promise<boolean> {
+async function probe<T>(
+  id: string,
+  send: () => Promise<Answer<T>>,
+  optional: boolean,
+  absent?: readonly number[],
+): Promise<boolean> {
   const sentAt = Date.now();
   reachability.update(started);
   try {
@@ -188,7 +205,7 @@ async function probe<T>(id: string, send: () => Promise<Answer<T>>, optional: bo
       recordOutcome(id);
       return true;
     }
-    if (optional && isAbsence(response)) {
+    if (optional && isAbsence(response, absent)) {
       apiHealth.update((health) => markAbsent(health, id));
       return true;
     }
@@ -205,7 +222,7 @@ async function request<T>(
   nanobar: Progress | undefined,
   id: string,
   send: () => Promise<Answer<T>>,
-  { optional = false }: RequestOptions = {},
+  { optional = false, absent }: RequestOptions = {},
 ): Promise<T> {
   // The shared bar unless a caller brings its own: every request shows.
   const bar = nanobar ?? progress();
@@ -220,7 +237,7 @@ async function request<T>(
           recordOutcome(id);
           return data;
         }
-        if (optional && isAbsence(response)) {
+        if (optional && isAbsence(response, absent)) {
           apiHealth.update((health) => markAbsent(health, id));
           throw new NothingPublished(id);
         }
@@ -245,7 +262,7 @@ async function request<T>(
           // The reader's network, not a fault of ours: a warning rather than a
           // Sentry report, and asked again until it answers (lib/recovery.ts).
           console.warn(error);
-          noteTransientFailure(id, () => probe(id, send, optional));
+          noteTransientFailure(id, () => probe(id, send, optional, absent));
         } else {
           reportError(error);
         }
@@ -751,6 +768,17 @@ export function fetchCellTrack(code: string, nanobar?: Progress, options: Reques
 }
 
 /**
+ * The window storms are asked for in: since `sinceMinutes` ago, or a past
+ * window's (lib/archive.ts), every storm that overlapped it, seen since its
+ * start and born by its end, unix seconds.
+ */
+function stormWindow(sinceMinutes: number | { since: number; until: number }): { since: string; until?: string } {
+  return typeof sinceMinutes === "number"
+    ? { since: new Date(Date.now() - sinceMinutes * 60_000).toISOString() }
+    : { since: new Date(sinceMinutes.since * 1000).toISOString(), until: new Date(sinceMinutes.until * 1000).toISOString() };
+}
+
+/**
  * Storms inside a viewport, seen since `sinceMinutes` ago.
  *
  * Bounded both ways for the reason `fetchCellTracks` is. `optional`: a
@@ -762,15 +790,30 @@ export function fetchStorms(
   sinceMinutes: number | { since: number; until: number },
   nanobar?: Progress,
 ) {
-  // A past window's (lib/archive.ts): every storm that overlapped it, seen
-  // since its start and born by its end, unix seconds.
-  const window = typeof sinceMinutes === "number"
-    ? { since: new Date(Date.now() - sinceMinutes * 60_000).toISOString() }
-    : { since: new Date(sinceMinutes.since * 1000).toISOString(), until: new Date(sinceMinutes.until * 1000).toISOString() };
   return request(nanobar, "/storms", () =>
     dataClient.GET("/storms", {
-      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), ...window } },
+      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), ...stormWindow(sinceMinutes) } },
     }), { optional: true });
+}
+
+/**
+ * The groups of two or more storms that are one system, for the same
+ * viewport and window as `fetchStorms`: each the outline of the area its
+ * storms share.
+ *
+ * `optional`: a backend from before groups answers 404, or 422 where it
+ * reads `groups` as a storm's id. Either is a map with no groups on it, not a
+ * broken backend, and neither is retried.
+ */
+export function fetchStormGroups(
+  bbox: [number, number, number, number],
+  sinceMinutes: number | { since: number; until: number },
+  nanobar?: Progress,
+) {
+  return request(nanobar, "/storms/groups", () =>
+    dataClient.GET("/storms/groups", {
+      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), ...stormWindow(sinceMinutes) } },
+    }), { optional: true, absent: GROUPS_ABSENT });
 }
 
 /**

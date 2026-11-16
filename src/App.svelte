@@ -86,6 +86,7 @@ import makeMesocycloneLayer from "./layers/mesocyclones";
 import { mesoRadiusPx } from "./lib/mesocyclones";
 import type Point from "ol/geom/Point";
 import makeCellLayer from "./layers/cells";
+import makeStormGroupLayer from "./layers/stormGroups";
 import makeCellPulseLayer from "./layers/cellPulse";
 import makeCloudHints from "./layers/cloudHints";
 import makeRadarSiteMarks, { MIN_ZOOM as SITE_MARKS_MIN_ZOOM } from "./layers/radarSiteMarks";
@@ -563,7 +564,9 @@ cycloneLayerVisible.set(window.settings.getBoolean("layerMesocyclones"));
 
 const [pulseSource, pulseLayer, stopPulse, crowded] = makeCellPulseLayer();
 const [cellSource, cellLayer] = makeCellLayer(crowded);
-const stormmgr = new StormManager(cellSource, pulseSource);
+/* The storms that are one system, outlined under their marks (layers/stormGroups.ts). */
+const [stormGroupSource, stormGroupLayer] = makeStormGroupLayer();
+const stormmgr = new StormManager(cellSource, pulseSource, stormGroupSource);
 onDestroy(stopPulse);
 /* From a seed to its storm, and the storm to its detail; see lib/stormResolver.ts. */
 const stormResolver = startStormResolver(nb);
@@ -616,6 +619,7 @@ derived(
   // The ping only ever marks cells the tracks layer is already drawing, so it
   // appears and disappears with it rather than carrying a rule of its own.
   pulseLayer.setVisible(value);
+  stormGroupLayer.setVisible(value);
   // The panel stays open on another frame its storm is drawn on: the newest,
   // or an earlier one it had already appeared by. Before that, or with the
   // marks hidden, it would be a panel about a storm the map is not showing.
@@ -848,7 +852,7 @@ const lm = new LayerManager({
       name: "radar",
       capability: RadarCapability,
       additionalLayers: [
-        pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, motionArrows.layer, stationLayer.layer,
+        stormGroupLayer, pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, motionArrows.layer, stationLayer.layer,
         labelsOnly(),
         radolanOverlay({ followsForecast: true }),
         siteSweep.layer, beamRings.layer, siteMarks.layer,

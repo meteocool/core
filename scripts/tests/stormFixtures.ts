@@ -3,7 +3,7 @@
  * service sends them, each with only what the test at hand changes.
  */
 import type {
-  CellTrackProperties, RadarVolume, Storm, StormDetail, StormProperties, TrackerFeature, TrackerTrack,
+  CellTrackProperties, RadarVolume, Storm, StormDetail, StormGroup, StormProperties, TrackerFeature, TrackerTrack,
 } from "../../src/api/index.ts";
 
 export const T0 = Date.UTC(2026, 9, 12, 14, 0);
@@ -120,4 +120,25 @@ export function trackFeature(properties: CellTrackProperties): NonNullable<Storm
     geometry: { type: "LineString", coordinates: (properties.series ?? []).map((step) => [step.lon, step.lat]) },
     properties,
   } as NonNullable<StormDetail["konrad3d"]>[number];
+}
+
+/** A group of storms as `/storms/groups` lists it: a square round `[lon, lat]`, as a MultiPolygon. */
+export function group(id: string, storms: string[], properties: Partial<StormGroup["properties"]> = {},
+  [lon, lat]: [number, number] = [10, 50]): StormGroup {
+  const ring = [[lon - 0.1, lat - 0.1], [lon + 0.1, lat - 0.1], [lon + 0.1, lat + 0.1], [lon - 0.1, lat + 0.1], [lon - 0.1, lat - 0.1]];
+  return {
+    type: "Feature",
+    id,
+    geometry: { type: "MultiPolygon", coordinates: [[ring]] },
+    properties: {
+      id,
+      born_at: at(-60),
+      last_seen: at(0),
+      storms,
+      severity: 1,
+      peak_dbz: 50,
+      rating: 1.5,
+      ...properties,
+    },
+  };
 }

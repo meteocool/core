@@ -2,16 +2,18 @@ import { Feature } from "ol";
 import Point from "ol/geom/Point";
 import LineString from "ol/geom/LineString";
 import Polygon from "ol/geom/Polygon";
+import MultiPolygon from "ol/geom/MultiPolygon";
 import { fromLonLat } from "ol/proj";
 import type VectorSource from "ol/source/Vector";
 import { get } from "svelte/store";
-import { fetchStorms } from "../api";
-import type { Progress, Storm } from "../api";
-import { hiddenStormMarks, selectedStorm } from "../stores";
+import { fetchStormGroups, fetchStorms, NothingPublished } from "../api";
+import type { Progress, Storm, StormGroup } from "../api";
+import { heldStormGroups, hiddenStormMarks, selectedStorm } from "../stores";
 import { covers, padExtent, worldExtent } from "./cellGeometry";
 import type { Extent } from "./cellGeometry";
 import { liveReference } from "./cellPulse";
 import { drawStorms } from "./stormMarks";
+import { asksForGroups, groupOutlines } from "./stormGroups";
 import type { MarkGeometry, StormMark } from "./stormMarks";
 import { selectionKey, withStorm } from "./stormSelection";
 import { holdStorms } from "./stormResolver";
@@ -27,6 +29,11 @@ import type { ArchiveWindow } from "./archive";
  *
  * As with the tracks, an answer is the whole answer for a viewport, so
  * nothing is kept from the one before it.
+ *
+ * With the storms, `/storms/groups` for the same viewport and window: the
+ * storms that are one system, outlined on a layer of their own under the
+ * marks (layers/stormGroups.ts). A backend without groups is a map without
+ * outlines (lib/stormGroups.ts).
  */
 
 /**
@@ -70,7 +77,13 @@ export default class StormManager {
   private pending: symbol | null = null;
 
   /** The last answer as it came, so a past frame or a new selection can be drawn from it. */
-  private answer: { storms: Storm[] } | null = null;
+  private answer: { storms: Storm[]; groups: StormGroup[] } | null = null;
+
+  /** The source the groups' outlines are drawn from, if the map draws them. */
+  private groupSource: VectorSource | null;
+
+  /** When the backend last had no groups, ms, so it is not asked again on every pan; null for never. */
+  private groupsAbsentAt: number | null = null;
 
   /** The moment drawn, ms, when the player is parked on an earlier frame; null for the present. */
   private at: number | null = null;
@@ -91,9 +104,10 @@ export default class StormManager {
    */
   private past: ArchiveWindow | null = null;
 
-  constructor(vectorSource: VectorSource, pulseSource: VectorSource | null = null) {
+  constructor(vectorSource: VectorSource, pulseSource: VectorSource | null = null, groupSource: VectorSource | null = null) {
     this.vs = vectorSource;
     this.pulse = pulseSource;
+    this.groupSource = groupSource;
     holdStorms(() => this.answer?.storms ?? []);
     // The forecast is the selected storm's, and a cell walked to brings its own.
     selectedStorm.subscribe((selection) => {
@@ -119,17 +133,27 @@ export default class StormManager {
     this.pending = token;
 
     const past = this.past;
+    const window = past ? { since: past.start, until: past.end } : WINDOW_MINUTES;
+    // Beside the storms, and never in their way: a failure is no groups.
+    const groups = this.groupSource && asksForGroups(this.groupsAbsentAt, Date.now())
+      ? fetchStormGroups(padded, window, nanobar).then((answer) => answer.features ?? [], (error: unknown) => {
+        if (error instanceof NothingPublished) this.groupsAbsentAt = Date.now();
+        return [] as StormGroup[];
+      })
+      : Promise.resolve([] as StormGroup[]);
     let collection;
     try {
-      collection = await fetchStorms(padded, past ? { since: past.start, until: past.end } : WINDOW_MINUTES, nanobar);
+      collection = await fetchStorms(padded, window, nanobar);
     } catch {
       // Already reported, or no storms served (a 404 is absence): nothing to draw.
       return;
     }
+    const held = await groups;
     if (this.pending !== token || !sameWindow(past, this.past)) return;
 
     this.fetched = padded;
-    this.answer = { storms: collection.features ?? [] };
+    this.answer = { storms: collection.features ?? [], groups: held };
+    heldStormGroups.set(this.answer);
     this.draw();
     this.refreshSelection();
   }
@@ -148,6 +172,8 @@ export default class StormManager {
     this.live = [];
     this.vs.clear();
     this.pulse?.clear();
+    this.groupSource?.clear();
+    heldStormGroups.set({ storms: [], groups: [] });
     return true;
   }
 
@@ -194,12 +220,24 @@ export default class StormManager {
     if (!this.enabled || !this.answer) return;
     // The answer names no cycle of its own, as `/cells/tracks` did: in the present, the newest scan is the reference.
     const now = liveReference(this.at, this.newestScan, Date.now());
-    const { storms } = this.answer;
+    const { storms, groups } = this.answer;
     const reference = now;
     const { marks, links, pings } = drawStorms(storms, {
       now, reference, selection: get(selectedStorm), at: this.at, hidden: get(hiddenStormMarks),
     });
     this.live = pings.map(({ storm, coordinates }) => ({ storm, coordinates }));
+    if (this.groupSource) {
+      this.groupSource.clear(true);
+      this.groupSource.addFeatures(groupOutlines(groups, now).map((outline) => {
+        const feature = new Feature({
+          storms: outline.storms,
+          severity: outline.severity,
+          geometry: new MultiPolygon(outline.polygons.map((rings) => rings.map((ring) => ring.map((c) => fromLonLat(c))))),
+        });
+        feature.setId(outline.id);
+        return feature;
+      }));
+    }
     this.vs.clear(true);
     // Joins first, so the tracks and their marks draw over them.
     this.vs.addFeatures([...links, ...marks].map(featureOf));
@@ -225,6 +263,8 @@ export default class StormManager {
     this.live = [];
     this.vs.clear();
     this.pulse?.clear();
+    this.groupSource?.clear();
+    heldStormGroups.set({ storms: [], groups: [] });
   }
 
   enable(state: boolean): void {

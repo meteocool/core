@@ -10,7 +10,7 @@ import { RVP6_ENCODING } from "./lib/rvp6";
 import { showsForecastStep } from "./lib/freshness";
 import { DEFAULT_STATION_CHOICE, type ObservedProperties, type StationChoice } from "./lib/stations";
 import { derived, readable, writable } from "svelte/store";
-import type { CellTrackProperties } from "./api";
+import type { CellTrackProperties, Storm, StormGroup } from "./api";
 import type { CountryNetwork } from "./api/events";
 import { withCell, type StormSelection } from "./lib/stormSelection";
 import type { ArchiveWindow } from "./lib/archive";
@@ -370,6 +370,13 @@ export const cells3dFailed = writable<boolean>(false);
  * storm it belongs to is what is open, found by lib/stormResolver.ts.
  */
 export const selectedStorm = writable<StormSelection | null>(null);
+
+/**
+ * What the flat map holds of the storms in view: the storms and the groups
+ * of them that are one system, as StormManager last drew them. The panel
+ * reads how many storms a storm's system has from it.
+ */
+export const heldStormGroups = writable<{ storms: Storm[]; groups: StormGroup[] }>({ storms: [], groups: [] });
 
 /**
  * The selected storm's KONRAD3D track, for what still reads one: the family
