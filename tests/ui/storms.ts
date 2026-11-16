@@ -1,7 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { FIXTURES, fixtureFile, readRecording, type RecordedResponse } from "./offline";
+import { FIXTURES, fixtureFile, isStormGroups, readRecording, type RecordedResponse } from "./offline";
 
 /**
  * Storms for the UI tests.
@@ -177,8 +177,19 @@ export function konrad3dStorms(): Stand[] {
   return konrad3dTracks().map(stormOfTrack);
 }
 
-/** Answer `/storms` and `/storms/{id}` from these storms. */
+/** The recorded groups of storms, or a backend's answer from before them: a 404. */
+export function recordedGroups(): RecordedResponse {
+  const file = fixtureFile("GET", new URL("http://localhost/storms/groups"));
+  if (!existsSync(file)) return { status: 404, contentType: "application/json", json: { detail: "Not Found" } };
+  return JSON.parse(readFileSync(file, "utf8")) as RecordedResponse;
+}
+
+/** Answer `/storms` and `/storms/{id}` from these storms, and `/storms/groups` as recorded. */
 export function answerStorms(route: Route, url: URL, storms: Stand[]): Promise<void> {
+  if (isStormGroups(url)) {
+    const groups = recordedGroups();
+    return route.fulfill({ status: groups.status, json: groups.json });
+  }
   const id = /^\/storms\/([^/]+)$/.exec(url.pathname)?.[1];
   if (id) {
     const found = storms.find(({ storm }) => storm.id === id);

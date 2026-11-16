@@ -47,6 +47,13 @@ const API_PATHS = [
 const TILE_PATHS = [/^\/tiles\//];
 const TILE_HOSTS = ["map.meteocool.com"];
 
+/**
+ * The storms that are one system, recorded as an endpoint of its own
+ * (`fixtures/api/GET_storms_groups.json`) where every other path under
+ * `/storms/` is a storm's own answer, made from the listing (storms.ts).
+ */
+export const isStormGroups = (url: URL): boolean => url.pathname === "/storms/groups";
+
 export const isApi = (url: URL): boolean => isLocal(url) && API_PATHS.some((p) => p.test(url.pathname));
 export const isTile = (url: URL): boolean =>
   (isLocal(url) && TILE_PATHS.some((p) => p.test(url.pathname))) || TILE_HOSTS.includes(url.hostname);

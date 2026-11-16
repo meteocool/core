@@ -50,7 +50,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234500Z/core/178"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -122,7 +125,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232500Z/core/61"
       }
-     ]
+     ],
+     "rating": 0.1,
+     "notable": false,
+     "group": "01M6MG0000CEVENNES0000000A"
     }
    },
    {
@@ -185,7 +191,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/260"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": "01M6MG0000CEVENNES0000000A"
     }
    },
    {
@@ -244,7 +253,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231500Z/core/64"
       }
-     ]
+     ],
+     "rating": 0.5,
+     "notable": false,
+     "group": "01M6MG0000CEVENNES0000000A"
     }
    },
    {
@@ -320,7 +332,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/269"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -369,7 +384,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234500Z/core/54"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -428,7 +446,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T221000Z/core/129"
       }
-     ]
+     ],
+     "rating": 0.35,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -477,7 +498,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/224"
       }
-     ]
+     ],
+     "rating": 0.2,
+     "notable": false,
+     "group": "01M6MG0000CEVENNES0000000A"
     }
    },
    {
@@ -548,7 +572,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/220"
       }
-     ]
+     ],
+     "rating": 0.45,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -602,7 +629,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233500Z/core/235"
       }
-     ]
+     ],
+     "rating": 0.3,
+     "notable": false,
+     "group": "01M6MG0000CEVENNES0000000A"
     }
    },
    {
@@ -681,7 +711,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/212"
       }
-     ]
+     ],
+     "rating": 0.85,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -750,7 +783,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T225000Z/core/172"
       }
-     ]
+     ],
+     "rating": 1.1,
+     "notable": true,
+     "group": null
     }
    },
    {
@@ -799,7 +835,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/185"
       }
-     ]
+     ],
+     "rating": 0.4,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -848,7 +887,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/198"
       }
-     ]
+     ],
+     "rating": 1.2,
+     "notable": true,
+     "group": null
     }
    },
    {
@@ -903,7 +945,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232500Z/core/234"
       }
-     ]
+     ],
+     "rating": 0.25,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -952,7 +997,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/201"
       }
-     ]
+     ],
+     "rating": 0.4,
+     "notable": false,
+     "group": "01M6MG0000CEVENNES0000000A"
     }
    },
    {
@@ -1001,7 +1049,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T230000Z/core/163"
       }
-     ]
+     ],
+     "rating": 0.55,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1068,7 +1119,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232000Z/core/228"
       }
-     ]
+     ],
+     "rating": 0.65,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1117,7 +1171,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234500Z/core/181"
       }
-     ]
+     ],
+     "rating": 0.55,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1188,7 +1245,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T224500Z/core/210"
       }
-     ]
+     ],
+     "rating": 0.35,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1237,7 +1297,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231500Z/core/209"
       }
-     ]
+     ],
+     "rating": 0.45,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1297,7 +1360,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234500Z/core/184"
       }
-     ]
+     ],
+     "rating": 0.3,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1357,7 +1423,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/244"
       }
-     ]
+     ],
+     "rating": 0.5,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1422,7 +1491,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231500Z/core/245"
       }
-     ]
+     ],
+     "rating": 0.2,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1476,7 +1548,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/239"
       }
-     ]
+     ],
+     "rating": 0.4,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1531,7 +1606,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/241"
       }
-     ]
+     ],
+     "rating": 0.1,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1586,7 +1664,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231500Z/core/303"
       }
-     ]
+     ],
+     "rating": 0.25,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1641,7 +1722,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/266"
       }
-     ]
+     ],
+     "rating": 1.6,
+     "notable": true,
+     "group": "01M6MG0000DROME00000000000"
     }
    },
    {
@@ -1696,7 +1780,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232000Z/core/277"
       }
-     ]
+     ],
+     "rating": 0.35,
+     "notable": false,
+     "group": "01M6MG0000DROME00000000000"
     }
    },
    {
@@ -1745,7 +1832,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/231"
       }
-     ]
+     ],
+     "rating": 0.4,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -1794,7 +1884,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232000Z/core/224"
       }
-     ]
+     ],
+     "rating": 0.1,
+     "notable": false,
+     "group": "01M6MG0000VAR0000000000000"
     }
    },
    {
@@ -1848,7 +1941,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T225500Z/core/72"
       }
-     ]
+     ],
+     "rating": 0.1,
+     "notable": false,
+     "group": "01M6MG0000VAR0000000000000"
     }
    },
    {
@@ -1897,7 +1993,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/220"
       }
-     ]
+     ],
+     "rating": 0.4,
+     "notable": false,
+     "group": "01M6MG0000VAR0000000000000"
     }
    },
    {
@@ -2006,7 +2105,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234500Z/core/247"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2060,7 +2162,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/226"
       }
-     ]
+     ],
+     "rating": 0.5,
+     "notable": false,
+     "group": "01M6MG0000VAR0000000000000"
     }
    },
    {
@@ -2114,7 +2219,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/222"
       }
-     ]
+     ],
+     "rating": 0.35,
+     "notable": false,
+     "group": "01M6MG0000VAR0000000000000"
     }
    },
    {
@@ -2163,7 +2271,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233500Z/core/275"
       }
-     ]
+     ],
+     "rating": 0.55,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2212,7 +2323,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233500Z/core/262"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2261,7 +2375,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T225000Z/core/246"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2321,7 +2438,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/92"
       }
-     ]
+     ],
+     "rating": 0.5,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2370,7 +2490,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/234"
       }
-     ]
+     ],
+     "rating": 0.15,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2434,7 +2557,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/113"
       }
-     ]
+     ],
+     "rating": 0.1,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2518,7 +2644,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T225000Z/core/79"
       }
-     ]
+     ],
+     "rating": 0.25,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2641,7 +2770,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T211000Z/core/216"
       }
-     ]
+     ],
+     "rating": 0.2,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2739,7 +2871,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/225"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": "01M6MG0000CEVENNES0000000A"
     }
    },
    {
@@ -2803,7 +2938,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/250"
       }
-     ]
+     ],
+     "rating": 0.2,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2852,7 +2990,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232500Z/core/215"
       }
-     ]
+     ],
+     "rating": 0.55,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -2925,7 +3066,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/229"
       }
-     ]
+     ],
+     "rating": 0.2,
+     "notable": false,
+     "group": "01M6MG0000DROME00000000000"
     }
    },
    {
@@ -2974,7 +3118,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/56"
       }
-     ]
+     ],
+     "rating": 0.35,
+     "notable": false,
+     "group": "01M6MG0000DROME00000000000"
     }
    },
    {
@@ -3023,7 +3170,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232000Z/core/222"
       }
-     ]
+     ],
+     "rating": 0.4,
+     "notable": false,
+     "group": "01M6MG0000VAR0000000000000"
     }
    },
    {
@@ -3083,7 +3233,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232000Z/core/237"
       }
-     ]
+     ],
+     "rating": 0.65,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -11415,7 +11568,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233500Z/core/205"
       }
-     ]
+     ],
+     "rating": 0.85,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -11567,7 +11723,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T232500Z/core/180"
       }
-     ]
+     ],
+     "rating": 0.4,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -11622,7 +11781,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T230500Z/core/141"
       }
-     ]
+     ],
+     "rating": 0.2,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -11830,7 +11992,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T203500Z/core/112"
       }
-     ]
+     ],
+     "rating": 2.6,
+     "notable": true,
+     "group": "01M6MG0000CAMARGUE0000000B"
     }
    },
    {
@@ -11885,7 +12050,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/299"
       }
-     ]
+     ],
+     "rating": 0.15,
+     "notable": false,
+     "group": "01M6MG0000CAMARGUE0000000B"
     }
    },
    {
@@ -11977,7 +12145,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T210000Z/core/245"
       }
-     ]
+     ],
+     "rating": 2.3,
+     "notable": true,
+     "group": "01M6MG0000CAMARGUE0000000B"
     }
    },
    {
@@ -12026,7 +12197,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233500Z/core/309"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": "01M6MG0000CAMARGUE0000000B"
     }
    },
    {
@@ -12081,7 +12255,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T230000Z/core/204"
       }
-     ]
+     ],
+     "rating": 0.8,
+     "notable": false,
+     "group": "01M6MG0000CAMARGUE0000000B"
     }
    },
    {
@@ -12130,7 +12307,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T230500Z/core/202"
       }
-     ]
+     ],
+     "rating": 1.8,
+     "notable": true,
+     "group": "01M6MG0000CAMARGUE0000000B"
     }
    },
    {
@@ -12179,7 +12359,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233500Z/core/282"
       }
-     ]
+     ],
+     "rating": 0.3,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -12244,7 +12427,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T234000Z/core/252"
       }
-     ]
+     ],
+     "rating": 0.6,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -12293,7 +12479,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/283"
       }
-     ]
+     ],
+     "rating": 0.3,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -12342,7 +12531,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231000Z/core/294"
       }
-     ]
+     ],
+     "rating": 0.45,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -12391,7 +12583,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233000Z/core/182"
       }
-     ]
+     ],
+     "rating": null,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -12473,7 +12668,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T233500Z/core/277"
       }
-     ]
+     ],
+     "rating": 0.5,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -12522,7 +12720,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T231500Z/core/258"
       }
-     ]
+     ],
+     "rating": 0.1,
+     "notable": false,
+     "group": null
     }
    },
    {
@@ -16181,7 +16382,10 @@
        "domain": "fr",
        "track": "meteocool/tracker/fr/20261104T235000Z/core/12"
       }
-     ]
+     ],
+     "rating": 0.3,
+     "notable": false,
+     "group": null
     }
    }
   ]

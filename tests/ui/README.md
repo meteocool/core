@@ -21,6 +21,13 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
 - answers the backend's requests (`/v3`, `/cells`, `/storms`, `/sweeps`, `/mesocyclones`,
   `/lightning_cache`, `/stations`, `/geocoding`, see `offline.ts`) from
   `fixtures/api/*.json`, keyed by method and path (the query is ignored);
+- answers `/storms/groups` from `fixtures/api/GET_storms_groups.json`,
+  written by hand until a backend serves the route: four groups of the
+  recorded storms, whose active ones were given `rating`, `notable` and
+  `group` by hand too (the ended and merged ones are left as an older
+  backend sends them). A re-recording from a backend without the route
+  records its 404 and storms without the fields; write both again by hand
+  after it. `storm-groups.spec.ts` serves the older shape itself;
 - answers `/storms/{id}`, which the app asks for no storm while it is
   recorded, from the recorded `/storms` listing: each storm's own list copy,
   with no history (`storms.ts`). A KONRAD3D cell is rare in a recording, so

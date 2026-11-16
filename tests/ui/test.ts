@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { expect, test as base, type Page } from "@playwright/test";
 import { answerStorms, recordedStorms } from "./storms";
 import {
-  fixtureFile, fulfilBlankTile, isApi, isLocal, isTile, quietLightningSocket, readRecording,
+  fixtureFile, fulfilBlankTile, isApi, isLocal, isStormGroups, isTile, quietLightningSocket, readRecording,
   type RecordedResponse,
 } from "./offline";
 
@@ -69,7 +69,7 @@ async function offline(page: Page, unrecorded: string[]): Promise<void> {
     if (isApi(url)) {
       const file = fixtureFile(request.method(), url);
       // A storm's own answer is not recorded: made from its list copy, see storms.ts.
-      if (url.pathname.startsWith("/storms/")) return answerStorms(route, url, storms);
+      if (url.pathname.startsWith("/storms/") && !isStormGroups(url)) return answerStorms(route, url, storms);
       if (!existsSync(file)) {
         unrecorded.push(`${request.method()} ${url.pathname}`);
         return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
