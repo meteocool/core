@@ -1006,6 +1006,38 @@
         "title": "Mesocyclone",
         "type": "object"
       },
+      "MultiPolygonGeometry": {
+        "description": "An area made of one or more outlines, each its outer ring, closed.",
+        "properties": {
+          "coordinates": {
+            "items": {
+              "items": {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "MultiPolygon",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "MultiPolygonGeometry",
+        "type": "object"
+      },
       "NetworkRefresh": {
         "description": "A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.\n\nDeliberately not a `Poke`, for the reason `CellsRefresh` is not one: the\nfrontend's `poke` handler reloads DWD's whole radar timeseries, and a\nnetwork composite lands every minute or two. Clients refetch only that\none frame, and ignore a value they do not know.",
         "properties": {
@@ -2305,6 +2337,124 @@
         "title": "StormFeature",
         "type": "object"
       },
+      "StormGroupCollection": {
+        "description": "Groups of two or more storms as a GeoJSON feature collection.",
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/StormGroupFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "StormGroupCollection",
+        "type": "object"
+      },
+      "StormGroupFeature": {
+        "description": "A group of storms as a GeoJSON feature: the outline of the area its storms share.",
+        "properties": {
+          "geometry": {
+            "$ref": "#/components/schemas/MultiPolygonGeometry"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/StormGroupProperties"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "properties"
+        ],
+        "title": "StormGroupFeature",
+        "type": "object"
+      },
+      "StormGroupProperties": {
+        "description": "A group of storms that are one system.",
+        "properties": {
+          "born_at": {
+            "description": "When its first storm was born",
+            "format": "date-time",
+            "title": "Born At",
+            "type": "string"
+          },
+          "id": {
+            "description": "The group's id, as its storms' `group`",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_seen": {
+            "description": "When any of its storms was last observed",
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "peak_dbz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Peak reflectivity of its storms at their latest observation",
+            "title": "Peak Dbz"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How much the system stands out, from 0 to 3; null when it is not rated",
+            "title": "Rating"
+          },
+          "severity": {
+            "default": 0,
+            "description": "Severity class, the highest of its storms: 0 weak, 1 moderate, 2 strong, 3 extreme",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Severity",
+            "type": "integer"
+          },
+          "storms": {
+            "description": "Its storms' ids, highest rated first",
+            "items": {
+              "type": "string"
+            },
+            "title": "Storms",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "born_at",
+          "last_seen",
+          "storms"
+        ],
+        "title": "StormGroupProperties",
+        "type": "object"
+      },
       "StormProperties": {
         "description": "A storm's current state, and the tracks it is made of.",
         "properties": {
@@ -2316,6 +2466,18 @@
             "format": "date-time",
             "title": "Born At",
             "type": "string"
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The id of the group it belongs to: storms that share it are one system; use it for `/storms/groups`",
+            "title": "Group"
           },
           "hail": {
             "default": false,
@@ -2360,6 +2522,12 @@
           "meso": {
             "default": false,
             "title": "Meso",
+            "type": "boolean"
+          },
+          "notable": {
+            "default": true,
+            "description": "Whether the storm is one to mark on the map",
+            "title": "Notable",
             "type": "boolean"
           },
           "path": {
@@ -2432,6 +2600,18 @@
             ],
             "description": "The track whose attributes the storm shows",
             "title": "Primary Track"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How much the storm stands out, from 0 to 3; null when it is not rated",
+            "title": "Rating"
           },
           "severity": {
             "default": 0,
@@ -3873,6 +4053,98 @@
           }
         },
         "summary": "Storms as GeoJSON, filtered by viewport and time.",
+        "tags": [
+          "storms"
+        ]
+      }
+    },
+    "/storms/groups": {
+      "get": {
+        "operationId": "list_storm_groups_storms_groups_get",
+        "parameters": [
+          {
+            "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Viewport as `west,south,east,north` in WGS84 degrees",
+              "examples": [
+                "5,45,20,56"
+              ],
+              "title": "Bbox"
+            }
+          },
+          {
+            "description": "Only groups of storms seen since this time; defaults to the last few hours",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only groups of storms seen since this time; defaults to the last few hours",
+              "title": "Since"
+            }
+          },
+          {
+            "description": "Only groups of storms born by this time: with `since`, every storm that overlapped the window, for a past window on the map. Defaults to now",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only groups of storms born by this time: with `since`, every storm that overlapped the window, for a past window on the map. Defaults to now",
+              "title": "Until"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StormGroupCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Groups of two or more storms that are one system, as GeoJSON outlines, filtered by viewport and time.",
         "tags": [
           "storms"
         ]
