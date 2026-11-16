@@ -308,7 +308,9 @@
       "gust": "windstoten",
       "lightning": "bliksem",
       "area": "oppervlakte",
-      "area_above": "oppervlakte >{dbz} dBZ"
+      "area_above": "oppervlakte >{dbz} dBZ",
+      "system": "systeem",
+      "system_value": "{count, plural, one {# cel} other {# cellen}}"
     },
     "history": {
       "reflectivity": "Reflectiviteit",

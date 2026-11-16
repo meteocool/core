@@ -308,7 +308,9 @@
       "gust": "porywy wiatru",
       "lightning": "wyładowania",
       "area": "powierzchnia",
-      "area_above": "powierzchnia >{dbz} dBZ"
+      "area_above": "powierzchnia >{dbz} dBZ",
+      "system": "układ",
+      "system_value": "{count, plural, one {# komórka} few {# komórki} many {# komórek} other {# komórki}}"
     },
     "history": {
       "reflectivity": "Reflektywność",

@@ -308,7 +308,9 @@
       "gust": "Böen",
       "lightning": "Live-Blitze",
       "area": "Fläche",
-      "area_above": "Fläche >{dbz} dBZ"
+      "area_above": "Fläche >{dbz} dBZ",
+      "system": "System",
+      "system_value": "{count, plural, one {# Zelle} other {# Zellen}}"
     },
     "history": {
       "reflectivity": "Reflektivität",

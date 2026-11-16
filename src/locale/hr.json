@@ -308,7 +308,9 @@
       "gust": "udari vjetra",
       "lightning": "munje",
       "area": "površina",
-      "area_above": "površina >{dbz} dBZ"
+      "area_above": "površina >{dbz} dBZ",
+      "system": "sustav",
+      "system_value": "{count, plural, one {# ćelija} few {# ćelije} other {# ćelija}}"
     },
     "history": {
       "reflectivity": "Reflektivnost",

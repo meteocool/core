@@ -308,7 +308,9 @@
       "gust": "puuskat",
       "lightning": "salamat",
       "area": "pinta-ala",
-      "area_above": "pinta-ala >{dbz} dBZ"
+      "area_above": "pinta-ala >{dbz} dBZ",
+      "system": "järjestelmä",
+      "system_value": "{count, plural, one {# solu} other {# solua}}"
     },
     "history": {
       "reflectivity": "Heijastavuus",

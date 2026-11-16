@@ -308,7 +308,9 @@
       "gust": "gusts",
       "lightning": "lightning",
       "area": "area",
-      "area_above": "area >{dbz} dBZ"
+      "area_above": "area >{dbz} dBZ",
+      "system": "system",
+      "system_value": "{count, plural, one {# storm} other {# storms}}"
     },
     "history": {
       "reflectivity": "Reflectivity",

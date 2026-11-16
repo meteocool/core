@@ -308,7 +308,9 @@
       "gust": "byar",
       "lightning": "blixtar",
       "area": "yta",
-      "area_above": "yta >{dbz} dBZ"
+      "area_above": "yta >{dbz} dBZ",
+      "system": "system",
+      "system_value": "{count, plural, one {# cell} other {# celler}}"
     },
     "history": {
       "reflectivity": "Reflektivitet",

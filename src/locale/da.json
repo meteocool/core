@@ -308,7 +308,9 @@
       "gust": "vindstød",
       "lightning": "lyn",
       "area": "areal",
-      "area_above": "areal >{dbz} dBZ"
+      "area_above": "areal >{dbz} dBZ",
+      "system": "system",
+      "system_value": "{count, plural, one {# celle} other {# celler}}"
     },
     "history": {
       "reflectivity": "Reflektivitet",

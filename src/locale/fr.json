@@ -308,7 +308,9 @@
       "gust": "rafales",
       "lightning": "foudre",
       "area": "surface",
-      "area_above": "surface >{dbz} dBZ"
+      "area_above": "surface >{dbz} dBZ",
+      "system": "système",
+      "system_value": "{count, plural, one {# cellule} other {# cellules}}"
     },
     "history": {
       "reflectivity": "Réflectivité",

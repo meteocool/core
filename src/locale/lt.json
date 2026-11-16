@@ -308,7 +308,9 @@
       "gust": "gūsiai",
       "lightning": "žaibai",
       "area": "plotas",
-      "area_above": "plotas >{dbz} dBZ"
+      "area_above": "plotas >{dbz} dBZ",
+      "system": "sistema",
+      "system_value": "{count, plural, one {# celė} few {# celės} many {# celės} other {# celių}}"
     },
     "history": {
       "reflectivity": "Atspindingumas",

@@ -25,8 +25,9 @@ import { get } from "svelte/store";
 import { onDestroy } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import {
-  capLatestObservation, radarColormap, selectedStorm, sharedActiveCap, smallScreen, stormDetails,
+  capLatestObservation, heldStormGroups, radarColormap, selectedStorm, sharedActiveCap, smallScreen, stormDetails,
 } from "../stores";
+import { systemSize } from "../lib/stormGroups";
 import { afterClose } from "../lib/cellSelection";
 import { cellRecency, radarOffsetLabel } from "../lib/cellRecency";
 import { cellStatus } from "../lib/cellStatus";
@@ -461,7 +462,26 @@ function trackerReadings(t: Translate): Shown[] {
   return out;
 }
 
-$: readings = track ? cellReadings(track, (deg) => compass(deg, $_), $_) : trackerReadings($_);
+/**
+ * How many storms the system it is part of has, when it is one of two or
+ * more (lib/stormGroups.ts); null otherwise, and the reading is left out.
+ */
+$: system = systemSize(selection.summary ?? selection.detail?.storm ?? null, $heldStormGroups.groups, $heldStormGroups.storms);
+
+/** The system, as one more reading: a count, with no scale to measure it on. */
+const systemReading = (count: number, t: Translate): Shown => ({
+  key: "system",
+  label: t("storm.reading.system"),
+  text: t("storm.reading.system_value", { values: { count } }),
+  band: null,
+  bandName: null,
+  fill: null,
+});
+
+$: readings = [
+  ...(track ? cellReadings(track, (deg) => compass(deg, $_), $_) : trackerReadings($_)),
+  ...(system ? [systemReading(system, $_)] : []),
+];
 
 /** The current detection, in the shape the volumetric model reads. */
 $: shape = track && latest && (track.structure ?? []).length

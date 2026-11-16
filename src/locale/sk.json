@@ -308,7 +308,9 @@
       "gust": "nárazy vetra",
       "lightning": "blesky",
       "area": "plocha",
-      "area_above": "plocha >{dbz} dBZ"
+      "area_above": "plocha >{dbz} dBZ",
+      "system": "systém",
+      "system_value": "{count, plural, one {# bunka} few {# bunky} many {# bunky} other {# buniek}}"
     },
     "history": {
       "reflectivity": "Odrazivosť",

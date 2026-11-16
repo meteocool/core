@@ -308,7 +308,9 @@
       "gust": "puhangud",
       "lightning": "välk",
       "area": "pindala",
-      "area_above": "pindala >{dbz} dBZ"
+      "area_above": "pindala >{dbz} dBZ",
+      "system": "süsteem",
+      "system_value": "{count, plural, one {# rakk} other {# rakku}}"
     },
     "history": {
       "reflectivity": "Peegelduvus",
