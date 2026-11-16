@@ -237,6 +237,11 @@ test("a storm that is not notable is a quiet dot: its position alone, with no ba
   assert.deepEqual(pings, []);
 });
 
+test("a quiet storm still being seen is one a mesocyclone can be matched to", () => {
+  const { live } = drawStorms([storm(A, { notable: false }), storm(B, { notable: true })], options);
+  assert.deepEqual(live.map((l) => l.storm).sort(), [A, B].sort());
+});
+
 test("a quiet storm, selected, is drawn in full", () => {
   const quiet = storm(A, { notable: false });
   assert.equal(stormLook(quiet, A), "full");

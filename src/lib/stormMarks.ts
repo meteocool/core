@@ -76,6 +76,11 @@ export interface StormDrawing {
    * decides which rings give way zoomed out (lib/cellPulse.ts `crowdedOut`).
    */
   pings: { storm: string; severity: number; coordinates: LonLat; history_minutes: number }[];
+  /**
+   * Every storm still being seen where it is drawn, ringed or quiet: what a
+   * mesocyclone is matched against (lib/mesocyclones.ts).
+   */
+  live: { storm: string; coordinates: LonLat }[];
 }
 
 const pairs = (coordinates: number[][]): LonLat[] => coordinates.map((c) => [c[0], c[1]]);
@@ -233,6 +238,7 @@ export function drawStorms(storms: readonly Storm[], {
   const marks: StormMark[] = [];
   const links: StormMark[] = [];
   const pings: StormDrawing["pings"] = [];
+  const seen: StormDrawing["live"] = [];
 
   const liveOf = (storm: Storm) => storm.properties.status === "active"
     && isLive(ageMinutes(storm.properties.last_seen, reference));
@@ -261,6 +267,7 @@ export function drawStorms(storms: readonly Storm[], {
         marks.push({
           ...shared, kind: "position", id: p.id, quiet: true, geometry: { type: "Point", coordinates: centroidOf(storm) },
         });
+        if (live) seen.push({ storm: p.id, coordinates: centroidOf(storm) });
       }
       continue;
     }
@@ -274,6 +281,7 @@ export function drawStorms(storms: readonly Storm[], {
         const history_minutes = Math.max(0, ageMinutes(p.born_at, new Date(p.last_seen).getTime()));
         pings.push({ storm: p.id, severity: shared.severity, coordinates: centroid, history_minutes });
       }
+      if (live) seen.push({ storm: p.id, coordinates: centroid });
       // The list has no outlines: only the selected storm's is known, and
       // only in the present (it is its newest detection's).
       const outline = p.id === selected && at === null ? outlineOf(selection) : null;
@@ -355,5 +363,5 @@ export function drawStorms(storms: readonly Storm[], {
     });
   }
 
-  return { marks, links, pings };
+  return { marks, links, pings, live: seen };
 }

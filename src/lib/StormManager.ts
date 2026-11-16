@@ -222,10 +222,10 @@ export default class StormManager {
     const now = liveReference(this.at, this.newestScan, Date.now());
     const { storms, groups } = this.answer;
     const reference = now;
-    const { marks, links, pings } = drawStorms(storms, {
+    const { marks, links, pings, live } = drawStorms(storms, {
       now, reference, selection: get(selectedStorm), at: this.at, hidden: get(hiddenStormMarks),
     });
-    this.live = pings.map(({ storm, coordinates }) => ({ storm, coordinates }));
+    this.live = live;
     if (this.groupSource) {
       this.groupSource.clear(true);
       this.groupSource.addFeatures(groupOutlines(groups, now).map((outline) => {
