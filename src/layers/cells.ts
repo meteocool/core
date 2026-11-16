@@ -192,6 +192,7 @@ export const DIAMOND_REACH = 1.3;
  * not do at this size.
  */
 function positionStyle(feature: FeatureLike): Style {
+  if (feature.get("quiet")) return quietStyle(feature);
   const severity = feature.get("severity") ?? 0;
   const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
   const hail = Boolean(feature.get("hail"));
@@ -221,6 +222,34 @@ function positionStyle(feature: FeatureLike): Style {
           stroke: new Stroke({ color: rgba("#ffffff", opacity), width: 3 }),
         })
         : undefined,
+    });
+  });
+}
+
+/** A quiet storm's dot: how far it reaches, in pixels. */
+export const QUIET_RADIUS = 3;
+
+/**
+ * A storm the backend does not count as one to mark (lib/stormMarks.ts
+ * `stormLook`): a small dot in its colour, a little paler, with no badge
+ * and no ring.
+ *
+ * Still there, so a reader can see the radar's echo has been found and tap
+ * it, but nothing that competes with the storms that matter. Cased in the
+ * basemap's colour rather than white, so it does not light up on the dark
+ * map; the shape still tells DWD's from meteocool's.
+ */
+function quietStyle(feature: FeatureLike): Style {
+  const severity = feature.get("severity") ?? 0;
+  const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
+  const dwd = feature.get("source") === "dwd";
+  return cached(`quiet:${severity}:${opacity}:${dwd}:${casing}`, () => {
+    const fill = new Fill({ color: rgba(severityColour(severity), 0.6 * opacity) });
+    const stroke = new Stroke({ color: fadeCasing(casing, opacity), width: 1 });
+    return new Style({
+      image: dwd
+        ? new RegularShape({ points: 4, radius: QUIET_RADIUS * DIAMOND_REACH, fill, stroke })
+        : new Circle({ radius: QUIET_RADIUS, fill, stroke }),
     });
   });
 }

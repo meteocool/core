@@ -210,6 +210,16 @@ test("volumes that name no patch give a storm no box", () => {
   assert.equal(volumeOfStorm([volume("v")], selection), null);
 });
 
+test("a core whose parent is not served on its own leaves the storm the boxes of its other cores", () => {
+  const of = storm(A);
+  const selection = withDetail(fromStorm(of), detail(of, {
+    tracks: [trackerTrack("t1", [feature("c1", 0, { parent: "envelope-unserved" }), feature("c2", 0, { parent: "patch-now" })])],
+  }))!;
+  assert.deepEqual(newestPatches(selection).sort(), ["envelope-unserved", "patch-now"]);
+  assert.equal(volumeOfStorm([volume("box", { feature: "patch-now" })], selection)?.path, "box");
+  assert.equal(volumeOfStorm([volume("other", { feature: "patch-elsewhere" })], selection), null);
+});
+
 test("a tracker history is the primary track's features, one per frame, oldest first", () => {
   const of = storm(A, { primary_product: "meteocool/tracker", primary_track: "t1" });
   const series = trackerSeries(detail(of, {

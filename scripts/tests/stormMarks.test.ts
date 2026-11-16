@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { drawStorms, forecastCell, isDrawn, nearestOn, selectedMark, stormAsOf } from "../../src/lib/stormMarks.ts";
+import { drawStorms, forecastCell, isDrawn, nearestOn, selectedMark, stormAsOf, stormLook } from "../../src/lib/stormMarks.ts";
 import { fromStorm, withCell, withDetail } from "../../src/lib/stormSelection.ts";
 import { T0, at, cell, detail, sid, storm, trackFeature } from "./stormFixtures.ts";
 
@@ -209,4 +209,52 @@ test("the map key hides one kind of mark everywhere: paths, rings, hail and rota
   assert.deepEqual(pings, []);
   assert.equal(marks[0].hail, false);
   assert.equal(marks[0].meso, false);
+});
+
+test("a storm the backend calls notable is drawn in full", () => {
+  assert.equal(stormLook(storm(A, { notable: true }), null), "full");
+});
+
+test("a storm with no notable field, from a backend before it, is drawn in full as before", () => {
+  const older = storm(A);
+  assert.equal("notable" in older.properties, false);
+  assert.equal(stormLook(older, null), "full");
+  const { marks, pings } = drawStorms([storm(A, { hail: true })], options);
+  assert.deepEqual(kinds(marks, A), ["path", "position"]);
+  assert.equal(marks.find((m) => m.kind === "position")?.hail, true);
+  assert.equal(marks.some((m) => m.quiet), false);
+  assert.deepEqual(pings.map((p) => p.storm), [A]);
+});
+
+test("a storm that is not notable is a quiet dot: its position alone, with no badge or ring", () => {
+  assert.equal(stormLook(storm(A, { notable: false }), null), "quiet");
+  const { marks, pings } = drawStorms([storm(A, { notable: false, hail: true, meso: true })], options);
+  assert.deepEqual(kinds(marks, A), ["position"]);
+  const dot = marks[0];
+  assert.equal(dot.quiet, true);
+  assert.equal(dot.hail, false);
+  assert.equal(dot.meso, false);
+  assert.deepEqual(pings, []);
+});
+
+test("a quiet storm, selected, is drawn in full", () => {
+  const quiet = storm(A, { notable: false });
+  assert.equal(stormLook(quiet, A), "full");
+  const { marks, pings } = drawStorms([quiet], { ...options, selection: fromStorm(quiet) });
+  assert.deepEqual(kinds(marks, A), ["path", "position"]);
+  assert.equal(marks.some((m) => m.quiet), false);
+  assert.deepEqual(pings.map((p) => p.storm), [A]);
+});
+
+test("no join is drawn to or from a quiet storm", () => {
+  const merged = storm(B, { status: "merged", merged_into: A, last_seen: at(-5) }, [[9.8, 49.9], [9.95, 50]]);
+  const intoQuiet = drawStorms([merged, storm(A, { notable: false })], options);
+  assert.deepEqual(intoQuiet.links, []);
+  const quietMerged = { ...merged, properties: { ...merged.properties, notable: false } };
+  const fromQuiet = drawStorms([quietMerged, storm(A)], options);
+  assert.deepEqual(fromQuiet.links, []);
+  // Taken by the storm it merged into, a quiet one has nothing left to draw.
+  assert.deepEqual(kinds(fromQuiet.marks, B), []);
+  const branch = storm(B, { born_at: at(-40), split_from: A, notable: false }, [[10.12, 50.05], [10.2, 50.1]]);
+  assert.deepEqual(drawStorms([storm(A), branch], options).links, []);
 });

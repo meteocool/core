@@ -9,6 +9,10 @@
  * elsewhere it has meteocool's tracker's track and nothing else, a circle:
  * no forecast, no hail or rotation badge, a colour from its peak alone.
  *
+ * Only the storms that matter are marked so. The backend says which
+ * (`notable`); every other storm is a quiet dot, its position alone, still
+ * there to be tapped, and drawn in full once it is selected (`stormLook`).
+ *
  * Pure, and free of OpenLayers (StormManager projects the marks at the
  * edge), so the rules can be tested: what is drawn at all, what a merged
  * storm keeps, where a join goes, what an earlier frame shows.
@@ -53,6 +57,8 @@ export interface StormMark {
   age_minutes: number;
   /** Still being seen: ringed, and drawn at every zoom. */
   live: boolean;
+  /** A storm not marked in full: a small dot, with no badge (see `stormLook`). */
+  quiet?: boolean;
   /** For an ellipse: the moment it is for, its lead over the last detection, and where to label it. */
   forecast_at?: number;
   lead_minutes?: number;
@@ -123,6 +129,24 @@ export function stormAsOf(storm: Storm, atMs: number): Storm | null {
       merged_into: null,
     },
   };
+}
+
+/**
+ * How a storm is drawn: in `full`, as every storm was before the backend
+ * rated them (path, position, badge, live ring, joins), or `quiet`, a small
+ * dot where it is now and nothing else.
+ *
+ * Full for a storm the backend calls notable, and for one from a backend
+ * that does not say: without `notable`, every storm is marked as it always
+ * was. The selected storm is always shown in full, so what its panel is
+ * about is on the map.
+ */
+export type StormLook = "full" | "quiet";
+
+export function stormLook(storm: Storm, selected: string | null): StormLook {
+  if (storm.properties.id === selected) return "full";
+  // Typed as always there; a backend from before it leaves it out.
+  return (storm.properties as { notable?: boolean | null }).notable === false ? "quiet" : "full";
 }
 
 /**
@@ -212,6 +236,7 @@ export function drawStorms(storms: readonly Storm[], {
 
   const liveOf = (storm: Storm) => storm.properties.status === "active"
     && isLive(ageMinutes(storm.properties.last_seen, reference));
+  const quietOf = (storm: Storm) => stormLook(storm, selected) === "quiet";
 
   for (const storm of drawing) {
     const p = storm.properties;
@@ -219,16 +244,26 @@ export function drawStorms(storms: readonly Storm[], {
     /** Merged into a storm on the map: that one carries on, so this one no longer claims to be here. */
     const taken = p.status === "merged" && target !== undefined && p.id !== selected;
     const live = liveOf(storm);
+    const quiet = quietOf(storm);
     const shared = {
       storm: p.id,
       severity: Math.min(Math.max(p.severity ?? 0, 0), 3),
       source: stormSource(storm),
-      hail: Boolean(p.hail) && !hidden.has("hail"),
-      meso: Boolean(p.meso) && !hidden.has("rotation"),
+      hail: Boolean(p.hail) && !hidden.has("hail") && !quiet,
+      meso: Boolean(p.meso) && !hidden.has("rotation") && !quiet,
       age_minutes: ageMinutes(p.last_seen, now),
       live,
     };
     const path = pathOf(storm);
+    // A quiet storm is its position alone: no path, ring, outline or join.
+    if (quiet) {
+      if (!taken) {
+        marks.push({
+          ...shared, kind: "position", id: p.id, quiet: true, geometry: { type: "Point", coordinates: centroidOf(storm) },
+        });
+      }
+      continue;
+    }
     if (path.length > 1 && !hidden.has("path")) {
       marks.push({ ...shared, kind: "path", id: `${p.id}:path`, geometry: { type: "LineString", coordinates: path } });
     }
@@ -246,7 +281,7 @@ export function drawStorms(storms: readonly Storm[], {
         marks.push({ ...shared, kind: "outline", id: `${p.id}:outline`, geometry: { type: "Polygon", coordinates: [outline] } });
       }
     }
-    if (target && !hidden.has("join")) {
+    if (target && !hidden.has("join") && !quietOf(target)) {
       const start = path[path.length - 1];
       const t = target.properties;
       links.push({
@@ -267,7 +302,7 @@ export function drawStorms(storms: readonly Storm[], {
     // that storm's path cut back to the split, at its vertex nearest the
     // branch's first point.
     const parent = p.split_from ? byId.get(p.split_from) : undefined;
-    if (parent && !hidden.has("join")) {
+    if (parent && !hidden.has("join") && !quietOf(parent)) {
       const start = path[0];
       const then = stormAsOf(parent, new Date(p.born_at).getTime()) ?? parent;
       links.push({
