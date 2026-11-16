@@ -54,8 +54,8 @@ export type StormCollection = DataSchemas["schemas"]["StormCollection"];
 /** One storm with its KONRAD3D tracks and its tracker tracks. */
 export type StormDetail = DataSchemas["schemas"]["StormDetail"];
 /** A group of storms that are one system, as a GeoJSON feature: the outline of the area they share. */
-export type StormGroup = DataSchemas["schemas"]["StormGroupFeature"];
-export type StormGroupCollection = DataSchemas["schemas"]["StormGroupCollection"];
+export type StormGroup = DataSchemas["schemas"]["GroupFeature"];
+export type StormGroupCollection = DataSchemas["schemas"]["GroupCollection"];
 export type TrackerTrack = DataSchemas["schemas"]["TrackerTrack"];
 export type TrackerFeature = DataSchemas["schemas"]["TrackerFeature"];
 /** One weather station's newest values, as `/stations/observations` answers them. */

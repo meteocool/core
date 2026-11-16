@@ -215,8 +215,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Groups of two or more storms that are one system, as GeoJSON outlines, filtered by viewport and time. */
-        get: operations["list_storm_groups_storms_groups_get"];
+        /**
+         * Groups of storms as GeoJSON outlines, filtered by viewport and time.
+         * @description Every group two or more of the storms `/storms` lists for the same viewport and window are in.
+         *
+         *     Draw each group as one outline, its notable storms marked inside it as `/storms` gives them.
+         */
+        get: operations["list_groups_storms_groups_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -758,6 +763,79 @@ export interface components {
              */
             t: string;
         };
+        /**
+         * GroupCollection
+         * @description Groups of two storms or more as a GeoJSON feature collection, most recently seen first.
+         */
+        GroupCollection: {
+            /** Features */
+            features?: components["schemas"]["GroupFeature"][];
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+        };
+        /**
+         * GroupFeature
+         * @description A group of storms as a GeoJSON feature: its outline, the area of moderate echo its storms share.
+         */
+        GroupFeature: {
+            geometry: components["schemas"]["MultiPolygonGeometry"];
+            /** Id */
+            id: string;
+            properties: components["schemas"]["GroupProperties"];
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+        };
+        /**
+         * GroupProperties
+         * @description A group of storms: when it was first and last seen, its storms, and the highest of them.
+         */
+        GroupProperties: {
+            /**
+             * Born At
+             * Format: date-time
+             * @description When the group was first seen
+             */
+            born_at: string;
+            /**
+             * Id
+             * @description The group's id, stable while most of its storms stay together
+             */
+            id: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             * @description When any of its storms was last observed
+             */
+            last_seen: string;
+            /**
+             * Peak Dbz
+             * @description The highest peak reflectivity of its storms
+             */
+            peak_dbz?: number | null;
+            /**
+             * Rating
+             * @description The highest rating of its storms
+             */
+            rating?: number | null;
+            /**
+             * Severity
+             * @description The highest severity class of its storms: 0 weak to 3 extreme
+             */
+            severity: number;
+            /**
+             * Storms
+             * @description The ids of its storms in the window, highest rated first, as `/storms` lists them
+             */
+            storms: string[];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -808,8 +886,29 @@ export interface components {
             time: number;
         };
         /**
+         * MotionRefresh
+         * @description A nudge that the rain's motion arrows have been drawn again, from a newer field of some domain.
+         *
+         *     Deliberately not a `Poke`, which reloads DWD's whole timeseries: the
+         *     arrows are drawn again as each domain's field lands, every minute or two.
+         *     It names the new tile set, so a client showing the arrows needs no
+         *     request to find it; one that does not ignores it.
+         */
+        MotionRefresh: {
+            /**
+             * Tile Id
+             * @description The new tile set, `/{bucket}/{tile_id}/{z}/{x}/{y}.pbf` on the assets host
+             */
+            tile_id: string;
+            /**
+             * Valid At
+             * @description The newest field the arrows were drawn from, unix seconds
+             */
+            valid_at: number;
+        };
+        /**
          * MultiPolygonGeometry
-         * @description An area made of one or more outlines, each its outer ring, closed.
+         * @description An outline of one or more pieces, each its outer ring, closed.
          */
         MultiPolygonGeometry: {
             /** Coordinates */
@@ -1463,6 +1562,21 @@ export interface components {
             station: components["schemas"]["StationFeature"];
         };
         /**
+         * StatusRefresh
+         * @description A nudge that the status has changed: a component's state, or the notices in force.
+         *
+         *     Carries nothing worth reading beyond when it was judged: clients refetch
+         *     `/v3/status`, which says what changed. Sent at most every 30 seconds, and
+         *     only on a change.
+         */
+        StatusRefresh: {
+            /**
+             * Judged At
+             * @description When the status that changed was judged, unix seconds
+             */
+            judged_at: number;
+        };
+        /**
          * StormCollection
          * @description Storms as a GeoJSON feature collection, most recently seen first.
          */
@@ -1510,80 +1624,6 @@ export interface components {
             type: "Feature";
         };
         /**
-         * StormGroupCollection
-         * @description Groups of two or more storms as a GeoJSON feature collection.
-         */
-        StormGroupCollection: {
-            /** Features */
-            features?: components["schemas"]["StormGroupFeature"][];
-            /**
-             * Type
-             * @default FeatureCollection
-             * @constant
-             */
-            type: "FeatureCollection";
-        };
-        /**
-         * StormGroupFeature
-         * @description A group of storms as a GeoJSON feature: the outline of the area its storms share.
-         */
-        StormGroupFeature: {
-            geometry: components["schemas"]["MultiPolygonGeometry"];
-            /** Id */
-            id: string;
-            properties: components["schemas"]["StormGroupProperties"];
-            /**
-             * Type
-             * @default Feature
-             * @constant
-             */
-            type: "Feature";
-        };
-        /**
-         * StormGroupProperties
-         * @description A group of storms that are one system.
-         */
-        StormGroupProperties: {
-            /**
-             * Born At
-             * Format: date-time
-             * @description When its first storm was born
-             */
-            born_at: string;
-            /**
-             * Id
-             * @description The group's id, as its storms' `group`
-             */
-            id: string;
-            /**
-             * Last Seen
-             * Format: date-time
-             * @description When any of its storms was last observed
-             */
-            last_seen: string;
-            /**
-             * Peak Dbz
-             * @description Peak reflectivity of its storms at their latest observation
-             */
-            peak_dbz?: number | null;
-            /**
-             * Rating
-             * @description How much the system stands out, from 0 to 3; null when it is not rated
-             */
-            rating?: number | null;
-            /**
-             * Severity
-             * @description Severity class, the highest of its storms: 0 weak, 1 moderate, 2 strong, 3 extreme
-             * @default 0
-             */
-            severity: number;
-            /**
-             * Storms
-             * @description Its storms' ids, highest rated first
-             */
-            storms: string[];
-        };
-        /**
          * StormProperties
          * @description A storm's current state, and the tracks it is made of.
          */
@@ -1597,7 +1637,7 @@ export interface components {
             born_at: string;
             /**
              * Group
-             * @description The id of the group it belongs to: storms that share it are one system; use it for `/storms/groups`
+             * @description The id of the group it belongs to: the storms a viewer sees as one thing. See `/storms/groups`
              */
             group?: string | null;
             /**
@@ -1633,7 +1673,7 @@ export interface components {
             meso: boolean;
             /**
              * Notable
-             * @description Whether the storm is one to mark on the map
+             * @description Whether to mark the storm on a map: it rates high enough, or highest in its group, or KONRAD3D lists it. Draw the others quietly, inside their group's outline; every storm is still a storm
              * @default true
              */
             notable: boolean;
@@ -1666,7 +1706,7 @@ export interface components {
             primary_track?: string | null;
             /**
              * Rating
-             * @description How much the storm stands out, from 0 to 3; null when it is not rated
+             * @description How much the storm matters, from 0 to 3: how much heavy echo its core holds and how strong it is, averaged over its last three observations. It decides whether the storm is notable; it is not its severity. Null for a storm seen by DWD's KONRAD3D alone
              */
             rating?: number | null;
             /**
@@ -1993,7 +2033,7 @@ export interface components {
             outline: components["schemas"]["PolygonGeometry"];
             /**
              * Parent
-             * @description For a core, the id of the patch it sits in
+             * @description For a core, the id of the envelope it sits in: the area of moderate echo around it, which the storms of its group share. Null for a patch
              */
             parent?: string | null;
             peak: components["schemas"]["PointGeometry"];
@@ -2439,14 +2479,14 @@ export interface operations {
             };
         };
     };
-    list_storm_groups_storms_groups_get: {
+    list_groups_storms_groups_get: {
         parameters: {
             query?: {
                 /** @description Viewport as `west,south,east,north` in WGS84 degrees */
                 bbox?: string | null;
-                /** @description Only groups of storms seen since this time; defaults to the last few hours */
+                /** @description Only storms seen since this time; defaults to the last few hours */
                 since?: string | null;
-                /** @description Only groups of storms born by this time: with `since`, every storm that overlapped the window, for a past window on the map. Defaults to now */
+                /** @description Only storms born by this time: with `since`, every storm that overlapped the window, for a past window on the map. Defaults to now */
                 until?: string | null;
             };
             header?: never;
@@ -2461,7 +2501,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StormGroupCollection"];
+                    "application/json": components["schemas"]["GroupCollection"];
                 };
             };
             /** @description Validation Error */
