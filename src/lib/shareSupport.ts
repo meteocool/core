@@ -16,8 +16,9 @@ export function nativeShare(): boolean {
 /** Whether a share can go anywhere from here; see lib/share.ts's comment. */
 export function canShare(): boolean {
   if (dd.isApp()) return nativeShare();
-  if (typeof navigator === "undefined") return false;
-  return typeof navigator.share === "function" || typeof navigator.clipboard?.writeText === "function";
+  // A browser always has the share dialog, which shows the link to copy by
+  // hand where the clipboard is out of reach.
+  return typeof navigator !== "undefined";
 }
 
 /**

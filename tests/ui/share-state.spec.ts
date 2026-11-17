@@ -1,6 +1,8 @@
 import type { Page, Request } from "@playwright/test";
 import { expect, test } from "./test";
-import { noGeocoder, openRadar, radarMark, settled, stationPicker, stationToggle } from "./app";
+import {
+  noGeocoder, openRadar, radarMark, servePreviewCard, settled, shareFromMap, stationPicker, stationToggle,
+} from "./app";
 
 /**
  * What a link to the map carries of what it shows: the address bar, which
@@ -21,29 +23,12 @@ const parameters = (request: Request) => new URL(request.url()).searchParams.get
 const param = (url: string, name: string) => new URL(url).searchParams.get(name);
 const overlaysIn = (url: string) => (param(url, "overlays") ?? "").split(",");
 
-/** What the next share sends, caught in place of the platform's share sheet. */
-async function catchShares(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "share", {
-      configurable: true,
-      value: async (data: ShareData) => { (window as any).shared = data; },
-    });
-  });
-}
-
-/** Press the map's share button, and return the URL it sent. */
-async function shareFromMap(page: Page): Promise<string> {
-  await page.locator(".ol-share button").click();
-  await expect.poll(() => page.evaluate(() => (window as any).shared?.url ?? null)).not.toBeNull();
-  return page.evaluate(() => (window as any).shared.url as string);
-}
-
 /** Whether the radars' marks are drawn: Offenthal's is in view. */
 const marksShown = async (page: Page) => (await radarMark(page, "deoft")) !== null;
 
 test("the stations with Temp and the radars' marks go into the address bar, and into a share link", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("layerSites", "false"));
-  await catchShares(page);
+  await servePreviewCard(page);
   await noGeocoder(page);
   await openRadar(page, VIEW);
   await expect.poll(() => overlaysIn(page.url())).toContain("-sites");
@@ -68,7 +53,7 @@ test("the stations with Temp and the radars' marks go into the address bar, and 
 
 test("such a link opened somewhere nothing is saved shows the stations with Temp and the radars' marks", async ({ page, freshPage }) => {
   await page.addInitScript(() => localStorage.setItem("layerSites", "false"));
-  await catchShares(page);
+  await servePreviewCard(page);
   await noGeocoder(page);
   await openRadar(page, VIEW);
   await stationToggle(page).click();

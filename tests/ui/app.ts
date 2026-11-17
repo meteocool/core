@@ -114,3 +114,22 @@ export const statusPill = (page: Page): Locator => page.locator(".live-wrapper b
 
 /** What the status pill opens: what is late on screen, in sentences. */
 export const statusSheet = (page: Page): Locator => page.getByRole("dialog", { name: "Status" });
+
+/** A stand-in for a link's preview card: one pixel, as the image the card endpoint answers with. */
+export const PREVIEW_CARD = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+
+/** The share dialog's preview card, answered at once: nothing renders one offline. */
+export async function servePreviewCard(page: Page): Promise<void> {
+  await page.route("**/v3/preview/**", (route) => route.fulfill({ contentType: "image/png", body: PREVIEW_CARD }));
+}
+
+/** The share dialog's link field. */
+export const shareField = (page: Page): Locator => page.getByRole("textbox", { name: "Link" });
+
+/** Press the map's share button, and return the link the share dialog offers. */
+export async function shareFromMap(page: Page): Promise<string> {
+  await page.locator(".ol-share button").click();
+  await expect(shareField(page)).toBeVisible();
+  return shareField(page).inputValue();
+}

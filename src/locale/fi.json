@@ -790,7 +790,18 @@
     "copied": "Linkki kopioitu",
     "copy_failed": "Linkin kopiointi epäonnistui",
     "stale": "Tämä linkki jaettiin {ago}. Sää on voinut muuttua sen jälkeen.",
-    "stale_storm": "Tämä linkki jaettiin {ago}. Ukkonen on voinut liikkua tai muuttua sen jälkeen."
+    "stale_storm": "Tämä linkki jaettiin {ago}. Ukkonen on voinut liikkua tai muuttua sen jälkeen.",
+    "link": "Linkki",
+    "copy": "Kopioi",
+    "copied_short": "Kopioitu",
+    "preview_loading": "Luodaan esikatselua…",
+    "preview_failed": "Esikatselua ei voitu luoda.",
+    "retry": "Yritä uudelleen",
+    "preview_alt": "Jaetun kartan esikatselu",
+    "save": "Tallenna kuva",
+    "more": "Lisää",
+    "email": "Sähköposti",
+    "instagram_saved": "Kuva tallennettu. Julkaise se Instagramissa; linkki on leikepöydällä."
   },
   "radar_help": {
     "open": "Miten tutka toimii",

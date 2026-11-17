@@ -790,7 +790,18 @@
     "copied": "Link kopeeritud",
     "copy_failed": "Linki ei õnnestunud kopeerida",
     "stale": "Seda linki jagati {ago}. Ilm võib vahepeal olla muutunud.",
-    "stale_storm": "Seda linki jagati {ago}. Äike võib vahepeal olla liikunud või muutunud."
+    "stale_storm": "Seda linki jagati {ago}. Äike võib vahepeal olla liikunud või muutunud.",
+    "link": "Link",
+    "copy": "Kopeeri",
+    "copied_short": "Kopeeritud",
+    "preview_loading": "Eelvaadet luuakse…",
+    "preview_failed": "Eelvaadet ei õnnestunud luua.",
+    "retry": "Proovi uuesti",
+    "preview_alt": "Jagatud kaardi eelvaade",
+    "save": "Salvesta pilt",
+    "more": "Veel",
+    "email": "E-post",
+    "instagram_saved": "Pilt salvestatud. Postita see Instagrami; link on lõikelaual."
   },
   "radar_help": {
     "open": "Kuidas radar töötab",

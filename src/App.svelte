@@ -42,6 +42,7 @@ import {
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap, radarCrossfade,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
   toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meetYouCoolOpen,
+  shareDialog,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
   archiveWindow, socketDown,
@@ -105,6 +106,7 @@ import { isMeetYouCoolHash } from "./lib/meetYouCoolLink";
 const loadStormDetails = () => import("./components/StormDetails.svelte");
 const loadCellSheet = () => import("./components/CellSheet.svelte");
 const loadRadarExplainer = () => import("./components/RadarExplainer.svelte");
+const loadShareDialog = () => import("./components/ShareDialog.svelte");
 // A radar's own page: the panel and its country's texts, both chunks of
 // their own (lib/radarInfoLoad.ts), loaded together when it is opened.
 const loadRadarInfo = (code: string, language: string | null | undefined) => () => Promise.all([
@@ -1580,6 +1582,15 @@ if (postInitCb) postInitCb(lm);
   <Lazy load={loadRadarExplainer} floating let:module>
     <svelte:component this={module.default} on:close={() => radarExplainerOpen.set(false)} />
   </Lazy>
+{/if}
+
+{#if $shareDialog}
+  <!-- Keyed: a second press shares what is on screen now, from a fresh dialog. -->
+  {#key $shareDialog}
+    <Lazy load={loadShareDialog} floating let:module>
+      <svelte:component this={module.default} {...$shareDialog} on:close={() => shareDialog.set(null)} />
+    </Lazy>
+  {/key}
 {/if}
 
 

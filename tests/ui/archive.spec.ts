@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./test";
-import { RADAR_VIEW, noGeocoder, openRadar, productControl, settled, timeline } from "./app";
+import {
+  RADAR_VIEW, noGeocoder, openRadar, productControl, servePreviewCard, settled, shareFromMap, timeline,
+} from "./app";
 import { COVERAGE, linkTime, serveArchive } from "./archive";
 
 /**
@@ -213,12 +215,7 @@ test("the frame's tab names the window, and opens the picker on it", async ({ pa
 });
 
 test("a from= and to= link opens in the window, and the share link carries it", async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "share", {
-      configurable: true,
-      value: async (data: ShareData) => { (window as any).shared = data; },
-    });
-  });
+  await servePreviewCard(page);
   const asked = await serveArchive(page);
   await page.goto(WINDOW_LINK);
   await settled(timeline(page));
@@ -232,9 +229,7 @@ test("a from= and to= link opens in the window, and the share link carries it", 
   await page.keyboard.press("ArrowLeft");
   await expect.poll(() => new URL(page.url()).searchParams.get("t")).toBe(linkTime(END - 300));
 
-  await page.locator(".ol-share button").click();
-  await expect.poll(() => page.evaluate(() => (window as any).shared?.url ?? null)).not.toBeNull();
-  const shared = new URL(await page.evaluate(() => (window as any).shared.url as string));
+  const shared = new URL(await shareFromMap(page));
   expect(shared.searchParams.get("from")).toBe(linkTime(START));
   expect(shared.searchParams.get("to")).toBe(linkTime(END));
   expect(shared.searchParams.get("t")).toBe(linkTime(END - 300));

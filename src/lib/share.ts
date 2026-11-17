@@ -8,9 +8,10 @@
  *   build from before sharing has no handler for the message, and a webview's
  *   own `navigator.share` is missing on Android and patchy on iOS, so there
  *   the buttons stay hidden rather than do nothing;
- * - in a browser, through the Web Share API where there is one (phones,
- *   Safari, Chrome on Windows), and otherwise onto the clipboard with a word
- *   that it is there.
+ * - in a browser, onto the clipboard straight away and into the share dialog
+ *   (components/ShareDialog.svelte): the link, selected, the card a messenger
+ *   will unfurl it as, and the services to post it on, the platform's own
+ *   share sheet among them where there is one.
  */
 import { DeviceDetect as dd } from "./DeviceDetect";
 import { nativeShare } from "./shareSupport";
@@ -18,7 +19,7 @@ import { postToNative } from "./nativeBridge";
 import type { NativeShare } from "./nativeBridge";
 import type { LinkState } from "./deepLink";
 import { shareUrl } from "./shareLink";
-import { reportBrief } from "./Toast";
+import { shareDialog } from "../stores";
 import { currentState } from "./urlState";
 import { currentLocale, t } from "../locale/t";
 
@@ -59,23 +60,16 @@ export async function share(request: ShareRequest = {}): Promise<void> {
     return;
   }
 
-  if (typeof navigator.share === "function") {
-    try {
-      await navigator.share(link);
-      return;
-    } catch (error) {
-      // Closed without picking anything: that was the reader's answer.
-      if ((error as DOMException)?.name === "AbortError") return;
-      // Refused for some other reason (no user gesture left, a policy):
-      // the clipboard still works.
-    }
-  }
-  try {
-    await navigator.clipboard.writeText(link.url);
-    reportBrief(t("share.copied"), "success", "link-45deg");
-  } catch {
-    reportBrief(t("share.copy_failed"), "warning", "exclamation-triangle");
-  }
+  // Written in the press that asked for it, before anything else is awaited:
+  // Safari lets a page at the clipboard only that close to the gesture.
+  const copied = copyLink(link.url);
+  shareDialog.set({ ...link, copied });
+}
+
+/** Put `url` on the clipboard; whether it got there. */
+export function copyLink(url: string): Promise<boolean> {
+  if (typeof navigator.clipboard?.writeText !== "function") return Promise.resolve(false);
+  return navigator.clipboard.writeText(url).then(() => true, () => false);
 }
 
 /**

@@ -791,7 +791,18 @@
     "copied": "Link copied",
     "copy_failed": "Could not copy the link",
     "stale": "This link was shared {ago}. The weather may have changed since.",
-    "stale_storm": "This link was shared {ago}. The storm may have moved or changed since."
+    "stale_storm": "This link was shared {ago}. The storm may have moved or changed since.",
+    "link": "Link",
+    "copy": "Copy",
+    "copied_short": "Copied",
+    "preview_loading": "Generating preview…",
+    "preview_failed": "The preview could not be made.",
+    "retry": "Try again",
+    "preview_alt": "Preview of the shared map",
+    "save": "Save image",
+    "more": "More",
+    "email": "Email",
+    "instagram_saved": "Image saved. Post it on Instagram; the link is on your clipboard."
   },
   "radar_help": {
     "open": "How the radar works",

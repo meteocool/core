@@ -267,6 +267,17 @@ export const stalledNetworks = writable<string[]>([]);
  */
 export const radarExplainerOpen = writable<boolean>(false);
 /**
+ * The share dialog, and the link it is open on (lib/share.ts). Held up here
+ * with the other dialogs: the buttons that open it are in the map's controls
+ * and in panels that can close while it is open.
+ */
+export const shareDialog = writable<{
+  url: string;
+  title: string;
+  /** Whether the link made it onto the clipboard, which it is put on as the dialog opens. */
+  copied: Promise<boolean>;
+} | null>(null);
+/**
  * The open radar's own page (RadarInfo) is open, from the "i" in its tray.
  * Held up here with the explainer, which it links to: the tray can go while
  * it is open.

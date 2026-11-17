@@ -791,7 +791,18 @@
     "copied": "Link gekopieerd",
     "copy_failed": "Kon de link niet kopiëren",
     "stale": "Deze link is {ago} gedeeld. Het weer kan sindsdien veranderd zijn.",
-    "stale_storm": "Deze link is {ago} gedeeld. De bui kan sindsdien verplaatst of veranderd zijn."
+    "stale_storm": "Deze link is {ago} gedeeld. De bui kan sindsdien verplaatst of veranderd zijn.",
+    "link": "Link",
+    "copy": "Kopiëren",
+    "copied_short": "Gekopieerd",
+    "preview_loading": "Voorbeeld wordt gemaakt…",
+    "preview_failed": "Het voorbeeld kon niet worden gemaakt.",
+    "retry": "Opnieuw proberen",
+    "preview_alt": "Voorbeeld van de gedeelde kaart",
+    "save": "Afbeelding opslaan",
+    "more": "Meer",
+    "email": "E-mail",
+    "instagram_saved": "Afbeelding opgeslagen. Plaats haar op Instagram; de link staat op je klembord."
   },
   "radar_help": {
     "open": "Zo werkt de radar",

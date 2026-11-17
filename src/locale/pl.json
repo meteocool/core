@@ -791,7 +791,18 @@
     "copied": "Link skopiowany",
     "copy_failed": "Nie udało się skopiować linku",
     "stale": "Ten link udostępniono {ago}. Pogoda mogła się od tego czasu zmienić.",
-    "stale_storm": "Ten link udostępniono {ago}. Burza mogła się od tego czasu przesunąć lub zmienić."
+    "stale_storm": "Ten link udostępniono {ago}. Burza mogła się od tego czasu przesunąć lub zmienić.",
+    "link": "Link",
+    "copy": "Kopiuj",
+    "copied_short": "Skopiowano",
+    "preview_loading": "Tworzenie podglądu…",
+    "preview_failed": "Nie udało się utworzyć podglądu.",
+    "retry": "Spróbuj ponownie",
+    "preview_alt": "Podgląd udostępnionej mapy",
+    "save": "Zapisz obraz",
+    "more": "Więcej",
+    "email": "E-mail",
+    "instagram_saved": "Obraz zapisany. Opublikuj go na Instagramie; link jest w schowku."
   },
   "radar_help": {
     "open": "Jak działa radar",

@@ -790,7 +790,18 @@
     "copied": "Link kopieret",
     "copy_failed": "Kunne ikke kopiere linket",
     "stale": "Dette link blev delt {ago}. Vejret kan have ændret sig siden.",
-    "stale_storm": "Dette link blev delt {ago}. Uvejret kan have flyttet sig eller ændret sig siden."
+    "stale_storm": "Dette link blev delt {ago}. Uvejret kan have flyttet sig eller ændret sig siden.",
+    "link": "Link",
+    "copy": "Kopiér",
+    "copied_short": "Kopieret",
+    "preview_loading": "Laver forhåndsvisning…",
+    "preview_failed": "Forhåndsvisningen kunne ikke laves.",
+    "retry": "Prøv igen",
+    "preview_alt": "Forhåndsvisning af det delte kort",
+    "save": "Gem billede",
+    "more": "Mere",
+    "email": "E-mail",
+    "instagram_saved": "Billede gemt. Del det på Instagram; linket ligger i udklipsholderen."
   },
   "radar_help": {
     "open": "Sådan virker radaren",

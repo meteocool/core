@@ -791,7 +791,18 @@
     "copied": "Link kopiert",
     "copy_failed": "Link konnte nicht kopiert werden",
     "stale": "Dieser Link wurde {ago} geteilt. Das Wetter kann sich seitdem geändert haben.",
-    "stale_storm": "Dieser Link wurde {ago} geteilt. Das Unwetter kann seitdem weitergezogen sein oder sich verändert haben."
+    "stale_storm": "Dieser Link wurde {ago} geteilt. Das Unwetter kann seitdem weitergezogen sein oder sich verändert haben.",
+    "link": "Link",
+    "copy": "Kopieren",
+    "copied_short": "Kopiert",
+    "preview_loading": "Vorschau wird erstellt…",
+    "preview_failed": "Die Vorschau konnte nicht erstellt werden.",
+    "retry": "Erneut versuchen",
+    "preview_alt": "Vorschau der geteilten Karte",
+    "save": "Bild speichern",
+    "more": "Mehr",
+    "email": "E-Mail",
+    "instagram_saved": "Bild gespeichert. Poste es auf Instagram; der Link ist in der Zwischenablage."
   },
   "radar_help": {
     "open": "So funktioniert das Radar",

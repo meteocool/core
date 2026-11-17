@@ -28,6 +28,7 @@ import {
   volumeRedirect,
 } from "./api";
 import { appLinksResponse } from "./appLinks";
+import { PREVIEW_HEIGHT, PREVIEW_WIDTH, previewPath } from "../src/lib/sharePreview";
 
 interface Env {
   ASSETS: Fetcher;
@@ -95,15 +96,8 @@ function metaTags(
   previewOrigin: string,
 ): string {
   const copy = lang === "de" ? COPY.de : COPY.en;
-  // latLonZ lands in a URL the crawler fetches and in an attribute in our own
-  // markup, so it is encoded for both rather than interpolated raw.
-  // Commas are left literal: latLonZ is "lat,lon,zoom" and that is the exact
-  // shape the preview endpoint has always been sent. encodeURIComponent would
-  // turn them into %2C, which is a change to a URL nothing here can test.
-  const encoded = latLonZ ? encodeURIComponent(latLonZ).replaceAll("%2C", ",") : null;
-  const preview = `${previewOrigin}/v3/preview/og.png?aspectRatio=wide&frame=true&${
-    encoded ? `latLonZ=${encoded}` : "default"
-  }`;
+  // The same card the share dialog shows the sender (src/lib/sharePreview.ts).
+  const preview = `${previewOrigin}${previewPath(latLonZ)}`;
 
   return `
       <meta property="og:title" content="${escapeAttribute(copy.title)}" />
@@ -113,8 +107,8 @@ function metaTags(
       <meta property="og:type" content="website" />
       <meta property="og:url" content="${escapeAttribute(url)}" />
       <meta property="og:image" content="${escapeAttribute(preview)}" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="${PREVIEW_HEIGHT}" />
+      <meta property="og:image:width" content="${PREVIEW_WIDTH}" />
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content="${escapeAttribute(copy.title)}" />

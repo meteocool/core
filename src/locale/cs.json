@@ -791,7 +791,18 @@
     "copied": "Odkaz zkopírován",
     "copy_failed": "Odkaz se nepodařilo zkopírovat",
     "stale": "Tento odkaz byl sdílen {ago}. Počasí se mezitím mohlo změnit.",
-    "stale_storm": "Tento odkaz byl sdílen {ago}. Bouřka se mezitím mohla posunout nebo změnit."
+    "stale_storm": "Tento odkaz byl sdílen {ago}. Bouřka se mezitím mohla posunout nebo změnit.",
+    "link": "Odkaz",
+    "copy": "Kopírovat",
+    "copied_short": "Zkopírováno",
+    "preview_loading": "Vytváří se náhled…",
+    "preview_failed": "Náhled se nepodařilo vytvořit.",
+    "retry": "Zkusit znovu",
+    "preview_alt": "Náhled sdílené mapy",
+    "save": "Uložit obrázek",
+    "more": "Více",
+    "email": "E-mail",
+    "instagram_saved": "Obrázek uložen. Zveřejněte ho na Instagramu; odkaz je ve schránce."
   },
   "radar_help": {
     "open": "Jak funguje radar",

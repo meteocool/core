@@ -790,7 +790,18 @@
     "copied": "Länken har kopierats",
     "copy_failed": "Kunde inte kopiera länken",
     "stale": "Den här länken delades {ago}. Vädret kan ha ändrats sedan dess.",
-    "stale_storm": "Den här länken delades {ago}. Åskvädret kan ha flyttat sig eller förändrats sedan dess."
+    "stale_storm": "Den här länken delades {ago}. Åskvädret kan ha flyttat sig eller förändrats sedan dess.",
+    "link": "Länk",
+    "copy": "Kopiera",
+    "copied_short": "Kopierad",
+    "preview_loading": "Skapar förhandsvisning…",
+    "preview_failed": "Förhandsvisningen kunde inte skapas.",
+    "retry": "Försök igen",
+    "preview_alt": "Förhandsvisning av den delade kartan",
+    "save": "Spara bild",
+    "more": "Mer",
+    "email": "E-post",
+    "instagram_saved": "Bilden sparad. Lägg upp den på Instagram; länken finns i urklipp."
   },
   "radar_help": {
     "open": "Så fungerar radarn",

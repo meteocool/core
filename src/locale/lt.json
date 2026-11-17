@@ -790,7 +790,18 @@
     "copied": "Nuoroda nukopijuota",
     "copy_failed": "Nepavyko nukopijuoti nuorodos",
     "stale": "Šia nuoroda pasidalyta {ago}. Nuo to laiko orai galėjo pasikeisti.",
-    "stale_storm": "Šia nuoroda pasidalyta {ago}. Nuo to laiko audra galėjo pasislinkti ar pasikeisti."
+    "stale_storm": "Šia nuoroda pasidalyta {ago}. Nuo to laiko audra galėjo pasislinkti ar pasikeisti.",
+    "link": "Nuoroda",
+    "copy": "Kopijuoti",
+    "copied_short": "Nukopijuota",
+    "preview_loading": "Kuriama peržiūra…",
+    "preview_failed": "Peržiūros sukurti nepavyko.",
+    "retry": "Bandyti dar kartą",
+    "preview_alt": "Bendrinamo žemėlapio peržiūra",
+    "save": "Išsaugoti vaizdą",
+    "more": "Daugiau",
+    "email": "El. paštas",
+    "instagram_saved": "Vaizdas išsaugotas. Paskelbkite jį „Instagram“; nuoroda yra iškarpinėje."
   },
   "radar_help": {
     "open": "Kaip veikia radaras",

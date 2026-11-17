@@ -790,7 +790,18 @@
     "copied": "Poveznica je kopirana",
     "copy_failed": "Poveznica se nije mogla kopirati",
     "stale": "Ova poveznica podijeljena je {ago}. Vrijeme se od tada možda promijenilo.",
-    "stale_storm": "Ova poveznica podijeljena je {ago}. Oluja se od tada možda pomaknula ili promijenila."
+    "stale_storm": "Ova poveznica podijeljena je {ago}. Oluja se od tada možda pomaknula ili promijenila.",
+    "link": "Poveznica",
+    "copy": "Kopiraj",
+    "copied_short": "Kopirano",
+    "preview_loading": "Izrađuje se pregled…",
+    "preview_failed": "Pregled se nije mogao izraditi.",
+    "retry": "Pokušaj ponovno",
+    "preview_alt": "Pregled dijeljene karte",
+    "save": "Spremi sliku",
+    "more": "Više",
+    "email": "E-pošta",
+    "instagram_saved": "Slika je spremljena. Objavi je na Instagramu; poveznica je u međuspremniku."
   },
   "radar_help": {
     "open": "Kako radi radar",
