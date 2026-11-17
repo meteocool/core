@@ -3,6 +3,7 @@ import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
 import Stroke from "ol/style/Stroke";
 import Fill from "ol/style/Fill";
+import type { FeatureLike } from "ol/Feature";
 import { isDarkBasemap, watchBasemap } from "./casing";
 
 /**
@@ -32,28 +33,38 @@ const rgba = (hex: string, alpha: number): string => {
   return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
 };
 
-/** The one style, for the basemap: every outline looks the same. */
-const styleFor = (dark: boolean): Style => {
+/**
+ * The one style, for the basemap and a fade: every outline looks the same,
+ * and one changing shape cross-fades, old out and new in (lib/stormEasing.ts),
+ * through `fade`, in tenths.
+ */
+const styleFor = (dark: boolean, fade: number): Style => {
   const accent = dark ? GROUP_ACCENT.dark : GROUP_ACCENT.light;
   return new Style({
-    stroke: new Stroke({ color: rgba(accent, dark ? 0.8 : 0.7), width: 1.5, lineJoin: "round" }),
-    fill: new Fill({ color: rgba(accent, dark ? 0.07 : 0.05) }),
+    stroke: new Stroke({ color: rgba(accent, (dark ? 0.8 : 0.7) * fade), width: 1.5, lineJoin: "round" }),
+    fill: new Fill({ color: rgba(accent, (dark ? 0.07 : 0.05) * fade) }),
   });
 };
 
-const STYLES = { light: styleFor(false), dark: styleFor(true) };
+/** By basemap, then by fade in tenths. */
+const STYLES = {
+  light: Array.from({ length: 11 }, (_, tenth) => styleFor(false, tenth / 10)),
+  dark: Array.from({ length: 11 }, (_, tenth) => styleFor(true, tenth / 10)),
+};
+
+const tenthOf = (feature: FeatureLike): number => Math.min(Math.max(Math.round((feature.get("fade") ?? 1) * 10), 0), 10);
 
 /** The feature source, and the layer that draws it. */
 export default function makeStormGroupLayer(): [VectorSource, VectorLayer<VectorSource>] {
   const source = new VectorSource({ features: [] });
-  let style = STYLES.light;
+  let styles = STYLES.light;
   const layer = new VectorLayer({
     source,
     zIndex: GROUP_Z_INDEX,
-    style: () => style,
+    style: (feature) => styles[tenthOf(feature)],
   });
   watchBasemap(isDarkBasemap, (dark) => {
-    style = dark ? STYLES.dark : STYLES.light;
+    styles = dark ? STYLES.dark : STYLES.light;
     layer.changed();
   });
   return [source, layer];

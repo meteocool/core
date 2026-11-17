@@ -107,6 +107,16 @@ function cached<T extends Style | Style[]>(key: string, build: () => T): T {
 /** Opacity is bucketed so the cache has a handful of entries rather than one per cell. */
 const bucket = (opacity: number): number => Math.round(opacity * 10) / 10;
 
+/**
+ * How far a mark has faded in or out, 0 to 1, while the storms change
+ * (lib/stormEasing.ts): in tenths, as StormManager sets it, and 1 at rest.
+ * Every alpha a mark is drawn with is scaled by it.
+ */
+const fadeOf = (feature: FeatureLike): number => bucket(feature.get("fade") ?? 1);
+
+/** A mark's age fade and its transition fade together. */
+const opacityOf = (feature: FeatureLike): number => bucket(ageOpacity(feature.get("age_minutes") ?? 0) * fadeOf(feature));
+
 /** A casing colour at a fraction of its own alpha, so a faded track's casing fades with it. */
 const fadeCasing = (colour: string, factor: number): string => (
   colour.replace(/[\d.]+\)$/, (alpha) => `${parseFloat(alpha) * factor})`)
@@ -119,13 +129,14 @@ const fadeCasing = (colour: string, factor: number): string => (
  */
 function pathStyle(feature: FeatureLike): Style[] {
   const severity = feature.get("severity") ?? 0;
-  const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
+  const opacity = opacityOf(feature);
+  const fade = fadeOf(feature);
   const picked = isSelected(feature);
   const width = (picked ? 3 : 2) + Math.min(severity, 3);
-  return cached(`path:${severity}:${opacity}:${picked}:${casing}`, () => [
+  return cached(`path:${severity}:${opacity}:${picked}:${casing}:${fade}`, () => [
     new Style({
       stroke: new Stroke({
-        color: fadeCasing(casing, picked ? 1 : opacity),
+        color: fadeCasing(casing, picked ? fade : opacity),
         width: width + 4,
         lineCap: "round",
         lineJoin: "round",
@@ -133,7 +144,7 @@ function pathStyle(feature: FeatureLike): Style[] {
     }),
     new Style({
       stroke: new Stroke({
-        color: rgba(severityColour(severity), picked ? 1 : opacity),
+        color: rgba(severityColour(severity), picked ? fade : opacity),
         width,
         lineCap: "round",
         lineJoin: "round",
@@ -161,11 +172,12 @@ function pathStyle(feature: FeatureLike): Style[] {
  */
 function linkStyle(feature: FeatureLike): Style {
   const severity = feature.get("severity") ?? 0;
-  const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
+  const opacity = opacityOf(feature);
+  const fade = fadeOf(feature);
   const picked = isSelected(feature) || feature.get("from_storm") === selectedCode;
-  return cached(`link:${severity}:${opacity}:${picked}`, () => new Style({
+  return cached(`link:${severity}:${opacity}:${picked}:${fade}`, () => new Style({
     stroke: new Stroke({
-      color: rgba(severityColour(severity), picked ? 0.95 : 0.7 * opacity),
+      color: rgba(severityColour(severity), picked ? 0.95 * fade : 0.7 * opacity),
       width: (picked ? 2.5 : 1.5) + Math.min(severity, 3) * 0.5,
       lineCap: "round",
       lineJoin: "round",
@@ -194,15 +206,16 @@ export const DIAMOND_REACH = 1.3;
 function positionStyle(feature: FeatureLike): Style {
   if (feature.get("quiet")) return quietStyle(feature);
   const severity = feature.get("severity") ?? 0;
-  const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
+  const opacity = opacityOf(feature);
+  const fade = fadeOf(feature);
   const hail = Boolean(feature.get("hail"));
   const mark = badge(feature);
   const colour = severityColour(severity);
   const picked = isSelected(feature);
   const dwd = feature.get("source") === "dwd";
-  return cached(`position:${severity}:${opacity}:${hail}:${mark}:${picked}:${dwd}`, () => {
+  return cached(`position:${severity}:${opacity}:${hail}:${mark}:${picked}:${dwd}:${fade}`, () => {
     const radius = (picked ? 8 : 6) + 2 * Math.min(severity, 3);
-    const fill = new Fill({ color: rgba(colour, (picked ? 1 : 0.75) * opacity) });
+    const fill = new Fill({ color: rgba(colour, picked ? fade : 0.75 * opacity) });
     const stroke = new Stroke({
       // The open popup's own storm, ringed so it is findable among the rest.
       color: hail ? rgba("#e03131", opacity) : rgba("#ffffff", opacity),
@@ -241,7 +254,7 @@ export const QUIET_RADIUS = 3;
  */
 function quietStyle(feature: FeatureLike): Style {
   const severity = feature.get("severity") ?? 0;
-  const opacity = bucket(ageOpacity(feature.get("age_minutes") ?? 0));
+  const opacity = opacityOf(feature);
   const dwd = feature.get("source") === "dwd";
   return cached(`quiet:${severity}:${opacity}:${dwd}:${casing}`, () => {
     const fill = new Fill({ color: rgba(severityColour(severity), 0.6 * opacity) });
@@ -297,13 +310,14 @@ const LABEL_TICK_MS = 15_000;
 function forecastStyle(feature: FeatureLike): Style | undefined {
   if (!isSelected(feature)) return undefined;
   const severity = feature.get("severity") ?? 0;
-  return cached(`forecast:${severity}:${casing}`, () => new Style({
+  const fade = fadeOf(feature);
+  return cached(`forecast:${severity}:${casing}:${fade}`, () => new Style({
     image: new Circle({
       radius: 3,
-      fill: new Fill({ color: rgba(severityColour(severity), 0.95) }),
+      fill: new Fill({ color: rgba(severityColour(severity), 0.95 * fade) }),
       // The same casing as the ellipses, as a ring rather than a halo: these
       // dots sit inside the cone and land on the same varied background.
-      stroke: new Stroke({ color: casing, width: 1.5 }),
+      stroke: new Stroke({ color: fadeCasing(casing, fade), width: 1.5 }),
     }),
   }));
 }
@@ -376,13 +390,14 @@ function ellipseStyle(feature: FeatureLike, resolution: number): Style[] | undef
   const severity = feature.get("severity") ?? 0;
   const label = leadLabelStyle(feature, resolution);
   if (label) label.setGeometry(new Point(feature.get("tip") as number[]));
-  const rings = cached(`ellipse:${severity}:${casing}`, () => [
+  const fade = fadeOf(feature);
+  const rings = cached(`ellipse:${severity}:${casing}:${fade}`, () => [
     new Style({
-      stroke: new Stroke({ color: casing, width: 4, lineDash: ELLIPSE_DASH }),
+      stroke: new Stroke({ color: fadeCasing(casing, fade), width: 4, lineDash: ELLIPSE_DASH }),
     }),
     new Style({
       stroke: new Stroke({
-        color: rgba(severityColour(severity), 0.95),
+        color: rgba(severityColour(severity), 0.95 * fade),
         width: 2,
         lineDash: ELLIPSE_DASH,
       }),
@@ -411,7 +426,7 @@ function outlineStyle(feature: FeatureLike): Style | undefined {
   const minutes = feature.get("age_minutes") ?? 0;
   if (!outlineIsCurrent(minutes)) return undefined;
   const severity = feature.get("severity") ?? 0;
-  const opacity = bucket(ageOpacity(minutes));
+  const opacity = bucket(ageOpacity(minutes) * fadeOf(feature));
   return cached(`outline:${severity}:${opacity}`, () => new Style({
     stroke: new Stroke({ color: rgba(severityColour(severity), 0.6 * opacity), width: 1.5 }),
   }));

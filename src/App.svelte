@@ -1111,7 +1111,8 @@ lm.forEachMap((map) => {
     const code = cellsShown
       ? map.forEachFeatureAtPixel(
         event.pixel,
-        (feature) => feature.get("storm") as string | undefined,
+        // Not a mark fading out for good (lib/stormEasing.ts): what it was is gone.
+        (feature) => (feature.get("leaving") ? undefined : feature.get("storm") as string | undefined),
         { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
       ) ?? mesocycloneStorm(event.pixel)
       : undefined;

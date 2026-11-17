@@ -11,6 +11,7 @@ import {
 } from "../lib/cellPulse";
 import type { RingLayout } from "../lib/cellPulse";
 import { onMapMotion } from "../lib/mapMotion";
+import { EASE_MS } from "../lib/stormEasing";
 import { selectedMark } from "../lib/stormMarks";
 import { selectedStorm } from "../stores";
 
@@ -54,6 +55,9 @@ const SVG = "http://www.w3.org/2000/svg";
 
 /** The class the stylesheet keys on; see global.css. */
 export const PULSE_CLASS = "mc-cell-pulse";
+
+/** On a ring whose storm is fading in: it fades in too, over the storms' transition. */
+const ARRIVING_CLASS = "mc-arriving";
 
 /** On the container while the map moves: the rings hold still. */
 const STILL_CLASS = "mc-still";
@@ -170,6 +174,11 @@ export default function makeCellPulseLayer(): [VectorSource<Feature<Point>>, Lay
       let ring = rings.get(uid);
       if (!ring) {
         ring = makeRing();
+        // A storm fading in brings its ring in with it (lib/stormEasing.ts); see global.css.
+        if (feature.get("arriving")) {
+          ring.classList.add(ARRIVING_CLASS);
+          ring.style.animationDuration = `${EASE_MS}ms`;
+        }
         rings.set(uid, ring);
         pane.appendChild(ring);
       }

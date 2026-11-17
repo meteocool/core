@@ -14,7 +14,10 @@ import type { Extent } from "./cellGeometry";
 import { liveReference } from "./cellPulse";
 import { drawStorms } from "./stormMarks";
 import { asksForGroups, groupOutlines } from "./stormGroups";
-import type { MarkGeometry, StormMark } from "./stormMarks";
+import type { GroupOutline } from "./stormGroups";
+import type { StormMark } from "./stormMarks";
+import { EASE_MS, easeOut, eases, plan, settledOn, shapeAt, showingAt } from "./stormEasing";
+import type { Drawn, Easing, Shape } from "./stormEasing";
 import { selectionKey, withStorm } from "./stormSelection";
 import { holdStorms } from "./stormResolver";
 import { stormAtMesocyclone } from "./mesocyclones";
@@ -46,19 +49,95 @@ export const WINDOW_MINUTES = 180;
 /** How much larger than the view to fetch, so small pans cost nothing. */
 export const BBOX_PADDING = 0.25;
 
-const project = (geometry: MarkGeometry): Point | LineString | Polygon => {
-  switch (geometry.type) {
-    case "Point": return new Point(fromLonLat(geometry.coordinates));
-    case "LineString": return new LineString(geometry.coordinates.map((c) => fromLonLat(c)));
-    default: return new Polygon(geometry.coordinates.map((ring) => ring.map((c) => fromLonLat(c))));
+const project = (shape: Shape): Point | LineString | Polygon | MultiPolygon => {
+  switch (shape.type) {
+    case "Point": return new Point(fromLonLat(shape.coordinates));
+    case "LineString": return new LineString(shape.coordinates.map((c) => fromLonLat(c)));
+    case "Polygon": return new Polygon(shape.coordinates.map((ring) => ring.map((c) => fromLonLat(c))));
+    default: return new MultiPolygon(shape.coordinates.map((rings) => rings.map((ring) => ring.map((c) => fromLonLat(c)))));
   }
 };
 
-function featureOf(mark: StormMark): Feature {
-  const { geometry, tip, id, ...properties } = mark;
-  const feature = new Feature({ ...properties, geometry: project(geometry), ...(tip ? { tip: fromLonLat(tip) } : {}) });
-  feature.setId(id);
+/** Move a feature's geometry to `shape`, which is of the same type: only a position or a path is ever moved. */
+function moveTo(feature: Feature, shape: Shape): void {
+  const geometry = feature.getGeometry();
+  if (shape.type === "Point" && geometry instanceof Point) geometry.setCoordinates(fromLonLat(shape.coordinates));
+  else if (shape.type === "LineString" && geometry instanceof LineString) {
+    geometry.setCoordinates(shape.coordinates.map((c) => fromLonLat(c)));
+  }
+}
+
+/**
+ * A mark's fade as its style reads it, in tenths: the styles are cached per
+ * tenth (layers/cells.ts), and a feature whose tenth has not changed is not
+ * touched, so a frame of a fade redraws only when the eye could tell.
+ */
+const tenths = (alpha: number): number => Math.round(alpha * 10) / 10;
+
+/** What decides how a mark looks: a change of it cross-fades. */
+const lookOf = (mark: StormMark): string => (mark.kind === "position" || mark.kind === "path"
+  ? `${mark.kind}:${mark.quiet ? 1 : 0}:${mark.severity}:${mark.hail ? 1 : 0}:${mark.meso ? 1 : 0}:${mark.source}`
+  : `${mark.kind}:${mark.severity}:${mark.source}`);
+
+const drawnMark = (mark: StormMark): Drawn<StormMark> => ({
+  key: mark.id,
+  look: lookOf(mark),
+  moves: mark.kind === "position" || mark.kind === "path",
+  shape: mark.geometry,
+  value: mark,
+});
+
+const drawnOutline = (outline: GroupOutline): Drawn<GroupOutline> => ({
+  key: outline.id,
+  look: "",
+  moves: false,
+  shape: { type: "MultiPolygon", coordinates: outline.polygons },
+  value: outline,
+});
+
+function markFeature(easing: Easing<StormMark>): Feature {
+  const { geometry: _geometry, tip, id: _id, ...properties } = easing.item.value;
+  const feature = new Feature({
+    ...properties,
+    geometry: project(easing.from),
+    ...(tip ? { tip: fromLonLat(tip) } : {}),
+    fade: tenths(easing.fromAlpha),
+    leaving: easing.leaving,
+  });
+  feature.setId(easing.key);
   return feature;
+}
+
+function outlineFeature(easing: Easing<GroupOutline>): Feature {
+  const outline = easing.item.value;
+  const feature = new Feature({
+    storms: outline.storms,
+    severity: outline.severity,
+    geometry: project(easing.from),
+    fade: tenths(easing.fromAlpha),
+    leaving: easing.leaving,
+  });
+  feature.setId(easing.key);
+  return feature;
+}
+
+/** Whether the reader asked for less motion: every change then applies at once. */
+const reducedMotion = (): boolean => (
+  typeof window !== "undefined" && (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false)
+);
+
+/** One source's part of a transition: what it eases, and the features it draws them with. */
+interface Running<T> {
+  easings: Easing<T>[];
+  /** The ones that change as it runs, each with its feature. */
+  moving: { easing: Easing<T>; feature: Feature }[];
+}
+
+/** The easings that change as a transition runs, each with the feature drawing it. */
+function movingOf<T>(easings: Easing<T>[], features: Feature[]): Running<T>["moving"] {
+  return easings.flatMap((easing, index) => (
+    easing.fromAlpha !== easing.toAlpha || easing.from !== easing.to ? [{ easing, feature: features[index] }] : []
+  ));
 }
 
 export default class StormManager {
@@ -104,6 +183,33 @@ export default class StormManager {
    */
   private past: ArchiveWindow | null = null;
 
+  /** The storm marks' transition: running, or settled on what is drawn (lib/stormEasing.ts). */
+  private marks: Running<StormMark> = { easings: [], moving: [] };
+
+  /** The systems' outlines', the same way. */
+  private outlines: Running<GroupOutline> = { easings: [], moving: [] };
+
+  /** The live rings' points, by storm, kept so a ring stays the same ring while its storm moves. */
+  private pings = new Map<string, Feature<Point>>();
+
+  /** The rings that follow a sliding mark while a transition runs. */
+  private following: { ping: Feature<Point>; easing: Easing<StormMark> }[] = [];
+
+  /** When the running transition began (`performance.now()`), or null with none running. */
+  private easingSince: number | null = null;
+
+  /** The animation frame asked for, while a transition runs. */
+  private frameRequest: number | null = null;
+
+  /** Counts transitions, so what starts leaving in one has keys of its own. */
+  private seq = 0;
+
+  /** Whether anything has been drawn since the storms were last dropped: a first drawing appears at once. */
+  private drawnOnce = false;
+
+  /** When the player last stepped (`performance.now()`), for whether the next step is eased. */
+  private lastStep: number | null = null;
+
   constructor(vectorSource: VectorSource, pulseSource: VectorSource | null = null, groupSource: VectorSource | null = null) {
     this.vs = vectorSource;
     this.pulse = pulseSource;
@@ -114,10 +220,10 @@ export default class StormManager {
       const key = `${selectionKey(selection)}|${selection?.cell?.code ?? ""}|${selection?.summary ? 1 : 0}`;
       if (key === this.drawnFor) return;
       this.drawnFor = key;
-      this.draw();
+      this.draw("view");
     });
     // What the map key turns off is left out of the drawing, not hidden in its style.
-    hiddenStormMarks.subscribe(() => this.draw());
+    hiddenStormMarks.subscribe(() => this.draw("view"));
   }
 
   /**
@@ -154,7 +260,7 @@ export default class StormManager {
     this.fetched = padded;
     this.answer = { storms: collection.features ?? [], groups: held };
     heldStormGroups.set(this.answer);
-    this.draw();
+    this.draw("update");
     this.refreshSelection();
   }
 
@@ -170,9 +276,7 @@ export default class StormManager {
     this.fetched = null;
     this.answer = null;
     this.live = [];
-    this.vs.clear();
-    this.pulse?.clear();
-    this.groupSource?.clear();
+    this.dropDrawing();
     heldStormGroups.set({ storms: [], groups: [] });
     return true;
   }
@@ -181,14 +285,17 @@ export default class StormManager {
   showAt(atMs: number | null): void {
     if (atMs === this.at) return;
     this.at = atMs;
-    this.draw();
+    const now = performance.now();
+    const stepGap = this.lastStep === null ? Infinity : now - this.lastStep;
+    this.lastStep = now;
+    this.draw("step", stepGap);
   }
 
   /** A new scan on the live step: the present's storms age from it. */
   setNewestScan(ms: number | null): void {
     if (ms === this.newestScan) return;
     this.newestScan = ms;
-    if (this.at === null) this.draw();
+    if (this.at === null) this.draw("update");
   }
 
   /** The storms held, by id, for a tap on one of them. */
@@ -216,7 +323,13 @@ export default class StormManager {
     ));
   }
 
-  private draw(): void {
+  /**
+   * Draw the answer held, eased from what is drawn now (lib/stormEasing.ts):
+   * a new answer or scan, and a step of the player unless it came hard on
+   * the one before. A change of what is viewed (a selection, the map key)
+   * applies at once, as does everything with reduced motion.
+   */
+  private draw(change: "update" | "step" | "view", stepGap?: number): void {
     if (!this.enabled || !this.answer) return;
     // The answer names no cycle of its own, as `/cells/tracks` did: in the present, the newest scan is the reference.
     const now = liveReference(this.at, this.newestScan, Date.now());
@@ -226,44 +339,159 @@ export default class StormManager {
       now, reference, selection: get(selectedStorm), at: this.at, hidden: get(hiddenStormMarks),
     });
     this.live = live;
+
+    const ease = change !== "view" && eases({
+      reducedMotion: reducedMotion(), drawnBefore: this.drawnOnce, stepGap: change === "step" ? stepGap : undefined,
+    });
+    this.drawnOnce = true;
+    // Taken over from wherever a running transition has got to.
+    const t = this.easingSince === null ? 1 : (performance.now() - this.easingSince) / EASE_MS;
+    const seq = ++this.seq;
+    const transition = <T>(running: Running<T>, next: Drawn<T>[]): Easing<T>[] => (
+      ease ? plan(showingAt(running.easings, t), next, seq) : settledOn(next)
+    );
+
     if (this.groupSource) {
+      const easings = transition(this.outlines, groupOutlines(groups, now).map(drawnOutline));
+      const features = easings.map(outlineFeature);
+      this.outlines = { easings, moving: movingOf(easings, features) };
       this.groupSource.clear(true);
-      this.groupSource.addFeatures(groupOutlines(groups, now).map((outline) => {
-        const feature = new Feature({
-          storms: outline.storms,
-          severity: outline.severity,
-          geometry: new MultiPolygon(outline.polygons.map((rings) => rings.map((ring) => ring.map((c) => fromLonLat(c))))),
-        });
-        feature.setId(outline.id);
-        return feature;
-      }));
+      this.groupSource.addFeatures(features);
     }
-    this.vs.clear(true);
+
     // Joins first, so the tracks and their marks draw over them.
-    this.vs.addFeatures([...links, ...marks].map(featureOf));
-    if (this.pulse) {
-      this.pulse.clear(true);
-      // Not silent: the ping's timer starts and stops on this source changing.
-      if (pings.length) {
-        this.pulse.addFeatures(pings.map((ping) => new Feature({
-          storm: ping.storm,
-          severity: ping.severity,
-          history_minutes: ping.history_minutes,
-          geometry: new Point(fromLonLat(ping.coordinates)),
-        })));
+    const easings = transition(this.marks, [...links, ...marks].map(drawnMark))
+      .sort((a, b) => Number(b.item.value.kind === "link") - Number(a.item.value.kind === "link"));
+    const features = easings.map(markFeature);
+    this.marks = { easings, moving: movingOf(easings, features) };
+    this.vs.clear(true);
+    this.vs.addFeatures(features);
+
+    if (this.pulse) this.placePings(pings, easings, ease);
+
+    if (ease && (this.marks.moving.length || this.outlines.moving.length || this.following.length)) {
+      this.easingSince = performance.now();
+      if (this.frameRequest === null) this.frameRequest = requestAnimationFrame(this.frame);
+    } else {
+      this.stopEasing();
+    }
+  }
+
+  /**
+   * The live rings: one point per storm, kept from one drawing to the next
+   * so its ring stays the same ring, starting where its storm's mark starts
+   * and following it while it slides. A storm that fades in brings its ring
+   * in with it (layers/cellPulse.ts `arriving`).
+   */
+  private placePings(pings: ReturnType<typeof drawStorms>["pings"], easings: Easing<StormMark>[], ease: boolean): void {
+    const pulse = this.pulse!;
+    const positions = new Map<string, Easing<StormMark>>();
+    for (const easing of easings) {
+      if (!easing.leaving && easing.item.value.kind === "position") positions.set(easing.item.value.storm, easing);
+    }
+    const wanted = new Set(pings.map((ping) => ping.storm));
+    for (const [storm, feature] of this.pings) {
+      if (wanted.has(storm)) continue;
+      pulse.removeFeature(feature);
+      this.pings.delete(storm);
+    }
+    this.following = [];
+    const added: Feature<Point>[] = [];
+    for (const ping of pings) {
+      const easing = positions.get(ping.storm);
+      const start = easing && easing.from.type === "Point" ? easing.from.coordinates : ping.coordinates;
+      let feature = this.pings.get(ping.storm);
+      const properties = {
+        storm: ping.storm,
+        severity: ping.severity,
+        history_minutes: ping.history_minutes,
+        arriving: ease && !feature && (easing?.fromAlpha ?? 1) === 0,
+      };
+      if (feature) {
+        feature.setProperties(properties, true);
+        feature.getGeometry()!.setCoordinates(fromLonLat(start));
       } else {
-        this.pulse.changed();
+        feature = new Feature({ ...properties, geometry: new Point(fromLonLat(start)) });
+        this.pings.set(ping.storm, feature);
+        added.push(feature);
+      }
+      if (easing && easing.from !== easing.to) this.following.push({ ping: feature, easing });
+    }
+    // Not silent: the rings are laid out again on this source changing.
+    if (added.length) pulse.addFeatures(added);
+    else pulse.changed();
+  }
+
+  /** One frame of the running transition: only what changes is touched. */
+  private frame = (time: number): void => {
+    this.frameRequest = null;
+    if (this.easingSince === null) return;
+    const t = (time - this.easingSince) / EASE_MS;
+    if (t >= 1) {
+      this.settle();
+      return;
+    }
+    const e = easeOut(t);
+    for (const running of [this.marks, this.outlines] as Running<unknown>[]) {
+      for (const { easing, feature } of running.moving) {
+        if (easing.from !== easing.to) moveTo(feature, shapeAt(easing.from, easing.to, e));
+        feature.set("fade", tenths(easing.fromAlpha + (easing.toAlpha - easing.fromAlpha) * e));
       }
     }
+    for (const { ping, easing } of this.following) {
+      const shape = shapeAt(easing.from, easing.to, e);
+      if (shape.type === "Point") ping.getGeometry()!.setCoordinates(fromLonLat(shape.coordinates));
+    }
+    this.frameRequest = requestAnimationFrame(this.frame);
+  };
+
+  /** End the running transition: everything where it was going, what was leaving gone. */
+  private settle(): void {
+    const finish = <T>(running: Running<T>, source: VectorSource | null): Running<T> => {
+      for (const { easing, feature } of running.moving) {
+        if (easing.leaving) {
+          source?.removeFeature(feature);
+          continue;
+        }
+        if (easing.from !== easing.to) moveTo(feature, easing.to);
+        feature.set("fade", 1);
+      }
+      return { easings: settledOn(running.easings.filter((easing) => !easing.leaving).map((easing) => easing.item)), moving: [] };
+    };
+    this.marks = finish(this.marks, this.vs);
+    this.outlines = finish(this.outlines, this.groupSource);
+    for (const { ping, easing } of this.following) {
+      if (easing.to.type === "Point") ping.getGeometry()!.setCoordinates(fromLonLat(easing.to.coordinates));
+    }
+    for (const ping of this.pings.values()) ping.set("arriving", false, true);
+    this.following = [];
+    this.stopEasing();
+  }
+
+  private stopEasing(): void {
+    this.easingSince = null;
+    if (this.frameRequest !== null) cancelAnimationFrame(this.frameRequest);
+    this.frameRequest = null;
+  }
+
+  /** Drop everything drawn and any transition, so the next drawing appears at once. */
+  private dropDrawing(): void {
+    this.stopEasing();
+    this.marks = { easings: [], moving: [] };
+    this.outlines = { easings: [], moving: [] };
+    this.following = [];
+    this.pings.clear();
+    this.drawnOnce = false;
+    this.vs.clear();
+    this.pulse?.clear();
+    this.groupSource?.clear();
   }
 
   clearAll(): void {
     this.fetched = null;
     this.answer = null;
     this.live = [];
-    this.vs.clear();
-    this.pulse?.clear();
-    this.groupSource?.clear();
+    this.dropDrawing();
     heldStormGroups.set({ storms: [], groups: [] });
   }
 

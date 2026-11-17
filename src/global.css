@@ -107,6 +107,17 @@ input[type="range"] {
 .mc-cell-pulse.mc-still svg {
   animation-play-state: paused;
 }
+/* A ring whose storm is fading in fades in with it, over the storms'
+   transition (its duration is set from EASE_MS, lib/stormEasing.ts). With
+   reduced motion the storm is drawn at once and is never arriving. */
+.mc-cell-pulse > div > div.mc-arriving {
+  animation-name: mc-ring-arrive;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+@keyframes mc-ring-arrive {
+  from { opacity: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   .mc-cell-pulse svg { animation: none; }
 }
