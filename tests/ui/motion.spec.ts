@@ -55,3 +55,15 @@ test("turned off, the arrows stop being drawn and are not asked for again", asyn
   await openRadar(page);
   expect(asked.filter((path) => path === "/v3/motion/layer").length).toBe(1);
 });
+
+test("zoomed in past 8, the arrows come from the zoom-8 tiles", async ({ page }) => {
+  const asked: string[] = [];
+  page.on("request", (request) => asked.push(new URL(request.url()).pathname));
+  await page.addInitScript(() => localStorage.setItem("layerMotion", "true"));
+  await openRadar(page, "/?layer=radar&latLonZ=50.11000,8.68000,11.00");
+
+  const tiles = () => asked.filter((path) => path.startsWith(`/tiles/meteoradar/${TILE_SET}/`) && path.endsWith(".pbf"));
+  await expect.poll(() => tiles().length).toBeGreaterThan(0);
+  expect(tiles().map((path) => Number(path.split("/").at(-3)))).toEqual(tiles().map(() => 8));
+});
+

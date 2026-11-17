@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  ARROW_SIZE, FASTEST_KMH, STALE_AFTER_S, STILL_KMH, arrowLength, arrowsStale, motionArrow, motionOf, roundDeg, roundKmh,
+  ARROW_SIZE, COARSEST_LEVEL, FASTEST_KMH, FINEST_ZOOM, STALE_AFTER_S, STILL_KMH, arrowLength, arrowsStale, levelAtZoom,
+  motionArrow, motionOf, roundDeg, roundKmh,
 } from "../../src/lib/motionArrow.ts";
 import type { ArrowShape, Point } from "../../src/lib/motionArrow.ts";
 
@@ -89,4 +90,17 @@ test("the arrows are not the motion of an observed frame well before them", () =
 test("with no frame or no arrows yet, nothing is stale", () => {
   assert.equal(arrowsStale(null, 1_700_000_000, false), false);
   assert.equal(arrowsStale(1_700_000_000, null, false), false);
+});
+
+test("each zoom draws one level, a zoom out a level coarser", () => {
+  assert.equal(levelAtZoom(FINEST_ZOOM), 0);
+  assert.equal(levelAtZoom(9), 1);
+  assert.equal(levelAtZoom(8), 2);
+  assert.equal(levelAtZoom(6), 4);
+});
+
+test("past the finest zoom the finest level stays, far out the coarsest", () => {
+  assert.equal(levelAtZoom(14), 0);
+  assert.equal(levelAtZoom(FINEST_ZOOM - COARSEST_LEVEL), COARSEST_LEVEL);
+  assert.equal(levelAtZoom(1), COARSEST_LEVEL);
 });

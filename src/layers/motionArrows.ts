@@ -3,10 +3,11 @@ import VectorTileLayer from "ol/layer/VectorTile";
 import VectorTileSource from "ol/source/VectorTile";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
+import { createXYZ } from "ol/tilegrid";
 import type { FeatureLike } from "ol/Feature";
 import { imprintAttribution } from "./attributions";
 import { DARK_CASING, DARK_INK, LIGHT_CASING, LIGHT_INK, isDarkBasemap, watchBasemap } from "./casing";
-import { motionArrow } from "../lib/motionArrow";
+import { FINEST_ZOOM, levelAtZoom, motionArrow } from "../lib/motionArrow";
 import type { ArrowShape } from "../lib/motionArrow";
 import { tileBaseUrl } from "../urls";
 
@@ -15,15 +16,18 @@ import { tileBaseUrl } from "../urls";
  * block's mean motion (ng's ADR 0042), from a vector tile set the server
  * renders from every domain's newest motion field.
  *
- * The server sends each zoom the arrows of one block size, so they stay
+ * Each zoom draws the arrows of one block size, its `level`, so they stay
  * about as far apart on the screen at every zoom and nothing here thins or
- * declutters them. Arrows are drawn once per speed, direction and basemap
+ * declutters them. The tiles stop at zoom 8 and hold the levels of the
+ * zooms past it too; the style picks the zoom's own. Arrows are drawn once per speed, direction and basemap
  * into a canvas and kept (lib/motionArrow.ts rounds both), as the station
  * barbs are, and turn with the map.
  */
 
-/** The tile set's deepest zoom: past it, its arrows are drawn as they are. */
-const MAX_ZOOM = 10;
+/** The tile set's deepest zoom: past it, its tiles are drawn bigger. */
+const TILE_MAX_ZOOM = 8;
+/** The zooms the layer is drawn at, to find the level of a resolution. */
+const ZOOMS = createXYZ({ tileSize: 256, maxZoom: FINEST_ZOOM });
 /** How faint the arrows are while they are not the shown frame's motion. */
 const STALE_OPACITY = 0.35;
 /** Room around an arrow on its canvas, for the casing. */
@@ -77,12 +81,20 @@ function drawArrow(shape: ArrowShape, palette: Palette, ratio: number): HTMLCanv
   return canvas;
 }
 
+/** The level drawn at a resolution: the vector tile layer renders at whole zooms, nearer in. */
+function levelAt(resolution: number): number {
+  return levelAtZoom(ZOOMS.getZForResolution(resolution, 1));
+}
+
 export default function makeMotionArrowLayer(): MotionArrowLayer {
   let palette = LIGHT;
   let tileId: string | null = null;
   const styles = new Map<string, Style>();
 
-  const style = (feature: FeatureLike): Style | undefined => {
+  const style = (feature: FeatureLike, resolution: number): Style | undefined => {
+    // A tile set from before the levels were sent has one level a zoom already.
+    const level = feature.get("level");
+    if (level !== undefined && Number(level) !== levelAt(resolution)) return undefined;
     const shape = motionArrow(Number(feature.get("e")), Number(feature.get("n")));
     if (!shape) return undefined;
     const key = `${shape.kmh}:${shape.towardDeg}`;
@@ -124,7 +136,7 @@ export default function makeMotionArrowLayer(): MotionArrowLayer {
           format: new MVT(),
           attributions: [imprintAttribution],
           url: `${tileBaseUrl}/meteoradar/${next}/{z}/{x}/{y}.pbf`,
-          maxZoom: MAX_ZOOM,
+          maxZoom: TILE_MAX_ZOOM,
           // The server's zooms, one block size each, are 256-pixel tiles'.
           // At OpenLayers' default 512 a phone screen held about 20 arrows,
           // 113 pixels apart, too few to see the field turn; at 256 about

@@ -107,3 +107,17 @@ export function arrowsStale(frameS: number | null, arrowsS: number | null, onFor
   if (frameS === null || arrowsS === null || onForecast) return false;
   return arrowsS - frameS > STALE_AFTER_S;
 }
+
+/** The zoom the finest arrows, a block of one lattice cell, are drawn at; each coarser level a zoom out. */
+export const FINEST_ZOOM = 10;
+/** The coarsest level, 64 cells a side, drawn at every zoom out from its own. */
+export const COARSEST_LEVEL = 6;
+
+/**
+ * The level of arrows drawn at a whole zoom: one block size a zoom, so the
+ * arrows stay as far apart on the screen; the finest past `FINEST_ZOOM`, the
+ * coarsest far out.
+ */
+export function levelAtZoom(zoom: number): number {
+  return Math.min(COARSEST_LEVEL, Math.max(0, FINEST_ZOOM - zoom));
+}
