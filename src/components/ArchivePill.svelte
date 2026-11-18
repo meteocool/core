@@ -35,14 +35,15 @@ $: empty = $archiveCoverage.state === "empty";
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    height: 24px;
+    height: var(--mc-chip-h);
     box-sizing: border-box;
-    padding: 0 10px;
+    padding: 0 var(--mc-chip-pad);
     border: 0;
     border-radius: var(--mc-radius-pill);
     background: var(--mc-tint);
-    color: var(--mc-text-2);
-    font: 600 11px/1 var(--mc-font);
+    box-shadow: var(--mc-chip-edge);
+    color: var(--mc-text);
+    font: var(--mc-chip-font);
     white-space: nowrap;
     cursor: pointer;
     transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
@@ -50,9 +51,10 @@ $: empty = $archiveCoverage.state === "empty";
   .pill:hover { background: var(--mc-tint-hover); }
   .pill:active { transform: scale(var(--mc-press)); }
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-  .pill :global(svg) { width: 11px; height: 11px; }
+  .pill :global(svg) { width: var(--mc-chip-icon); height: var(--mc-chip-icon); }
   .pill[aria-pressed="true"] {
     background: color-mix(in srgb, var(--mc-accent) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mc-accent) 40%, transparent);
     color: var(--mc-accent);
   }
 </style>

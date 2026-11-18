@@ -354,21 +354,22 @@ const B = 5 * DIAMOND_REACH;
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    height: 24px;
+    height: var(--mc-chip-h);
     box-sizing: border-box;
-    padding: 0 10px;
+    padding: 0 var(--mc-chip-pad);
     border: 0;
     border-radius: var(--mc-radius-pill);
     background: var(--mc-tint);
+    box-shadow: var(--mc-chip-edge);
     color: var(--mc-text);
-    font: 600 11px/1 var(--mc-font);
+    font: var(--mc-chip-font);
     white-space: nowrap;
     transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
   }
   .pill:hover { background: var(--mc-tint-hover); }
   .pill:active { transform: scale(var(--mc-press)); }
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-  .pill svg { width: 18px; height: 10px; }
+  .pill svg { width: calc(var(--mc-chip-icon) * 1.65); height: calc(var(--mc-chip-icon) * 0.9); }
 
   /* The map behind the card on a phone, blurred out of its way. */
   .blur {

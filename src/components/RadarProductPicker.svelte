@@ -62,7 +62,7 @@ let width: number | null = null;
 let maxHeight: number | null = null;
 /** Where the control is, and the sizes its placer gave it, for its twin over the blur. */
 let twin: { left: number; top: number; width: number; height: number; vars: string } | null = null;
-const PILL_VARS = ["--picker-pill-h", "--picker-pill-pad", "--picker-pill-font"];
+const PILL_VARS = ["--picker-pill-h", "--picker-pill-pad"];
 
 /** Narrower than this, the menu takes the width beside the map's buttons rather than its own. */
 const PHONE_WIDTH = 520;
@@ -397,21 +397,22 @@ function portal(node: HTMLElement) {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    height: var(--picker-pill-h, 24px);
+    height: var(--picker-pill-h, var(--mc-chip-h));
     box-sizing: border-box;
-    padding: 0 var(--picker-pill-pad, 10px);
+    padding: 0 var(--picker-pill-pad, var(--mc-chip-pad));
     border: 0;
     border-radius: var(--mc-radius-pill);
     background: var(--mc-tint);
+    box-shadow: var(--mc-chip-edge);
     color: var(--mc-text);
-    font: 600 var(--picker-pill-font, 11px)/1 var(--mc-font);
+    font: var(--mc-chip-font);
     white-space: nowrap;
     transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
   }
   .pill:hover { background: var(--mc-tint-hover); }
   .pill:active { transform: scale(var(--mc-press)); }
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-  .pill :global(svg) { width: 12px; height: 12px; }
+  .pill :global(svg) { width: calc(var(--mc-chip-icon) + 1px); height: calc(var(--mc-chip-icon) + 1px); }
   .pill .age {
     color: var(--mc-text-2);
     font-weight: 500;

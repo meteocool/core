@@ -31,14 +31,15 @@ import { stationLayerVisible } from "../stores";
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    height: 24px;
+    height: var(--mc-chip-h);
     box-sizing: border-box;
-    padding: 0 10px;
+    padding: 0 var(--mc-chip-pad);
     border: 0;
     border-radius: var(--mc-radius-pill);
     background: var(--mc-tint);
-    color: var(--mc-text-2);
-    font: 600 11px/1 var(--mc-font);
+    box-shadow: var(--mc-chip-edge);
+    color: var(--mc-text);
+    font: var(--mc-chip-font);
     white-space: nowrap;
     cursor: pointer;
     transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast), color var(--mc-motion-fast);
@@ -46,10 +47,11 @@ import { stationLayerVisible } from "../stores";
   .pill:hover { background: var(--mc-tint-hover); }
   .pill:active { transform: scale(var(--mc-press)); }
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-  .pill svg { width: 18px; height: 10px; }
+  .pill svg { width: calc(var(--mc-chip-icon) * 1.8); height: calc(var(--mc-chip-icon) * 0.9); }
   /* On: in the accent, as a switch that is on. */
   .pill[aria-pressed="true"] {
     background: color-mix(in srgb, var(--mc-accent) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mc-accent) 40%, transparent);
     color: var(--mc-accent);
   }
 </style>

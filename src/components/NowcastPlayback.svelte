@@ -1206,7 +1206,7 @@ onDestroy(() => {
   .pills {
     flex: 0 0 auto;
     display: inline-flex;
-    gap: 6px;
+    gap: var(--mc-chip-gap);
   }
 
   /* The apps' badges and the repo mark, which the bottom bar carries on the

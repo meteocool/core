@@ -215,10 +215,20 @@
   --mc-gutter: 8px;
   --mc-tray-gap: 8px;
   --mc-pill-h: 28px;
+  /* The player's row of chips (Stations, Storms, the radar product, Archive):
+     a size up on a phone, where they are thumbed and swiped through. */
+  --mc-chip-h: 24px;
+  --mc-chip-pad: 10px;
+  --mc-chip-font: 600 11px/1 var(--mc-font);
+  --mc-chip-icon: 11px;
+  --mc-chip-gap: 6px;
+  /* An edge, so a chip reads as something to press over the strip's glass. */
+  --mc-chip-edge: inset 0 0 0 0.5px var(--mc-hairline);
   --mc-tray-pad: 8px;                                 /* a tray's horizontal padding */
   --mc-rail-gap: 10px;                                /* player grid column gap; the forecast bars key off both */
   --mc-bar-h: 84px;                                   /* the other maps' bottom bar */
-  --mc-player-base-h: 112px;                          /* the radar player: head row + the timeline's axis + transport and scale row */
+  /* The radar player: head row (its chips) + the timeline's axis + transport and scale row. */
+  --mc-player-base-h: calc(84px + var(--mc-chip-h));
   --mc-plot-h: 48px;                                  /* the timeline's strip, over its axis; shorter while it has no rain to plot (:root.plot-dry) */
   --mc-site-row-h: 28px;                              /* a row of site mode's controls: the segments, the tilt, the motion */
   --mc-player-h: calc(var(--mc-player-base-h) + var(--mc-plot-h));
@@ -386,7 +396,7 @@
 /* Keep the collapsed iOS tray near the edge, above the home indicator. */
 :root.is-ios {
   --mc-collapsed-bottom: max(12px, calc(var(--mc-safe-bottom) - 12px));
-  --mc-player-base-h: 112px;
+  --mc-player-base-h: calc(84px + var(--mc-chip-h));
   /* A home indicator means rounded glass, about 56px on a phone, and the
      band keeps its width round it (min() turns the inset into 0 or 1). */
   --mc-archive-radius: max(18px, calc(min(var(--mc-safe-bottom), 1px) * 56 - var(--mc-archive-frame-w)));
@@ -414,6 +424,12 @@
     --mc-type-label: 500 13px/1.25 var(--mc-font);
     --mc-type-value: 600 17px/1.2 var(--mc-font);
     --mc-drawer-pad: 16px;
+    --mc-chip-h: 34px;
+    --mc-chip-pad: 13px;
+    --mc-chip-font: 600 14px/1 var(--mc-font);
+    --mc-chip-icon: 14px;
+    --mc-chip-gap: 8px;
+    --mc-chip-edge: inset 0 0 0 1px var(--mc-hairline);
   }
 }
 
