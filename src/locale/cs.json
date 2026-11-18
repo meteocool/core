@@ -449,6 +449,8 @@
       "volume_body": "Klepnutím otevřete bouřku na 3D mapě.",
       "mesocyclone": "Mezocyklóna",
       "mesocyclone_body": "Rotace zjištěná produktem mezocyklón DWD.",
+      "lightning": "Blesky",
+      "lightning_body": "Údery z blitzortung.org, blednou během půl hodiny.",
       "show": "Zobrazit na mapě: {mark}"
     }
   },

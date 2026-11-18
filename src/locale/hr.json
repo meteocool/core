@@ -449,6 +449,8 @@
       "volume_body": "Dodirnite za otvaranje oluje na 3D karti.",
       "mesocyclone": "Mezociklona",
       "mesocyclone_body": "Rotacija otkrivena u DWD-ovom proizvodu mezociklona.",
+      "lightning": "Munje",
+      "lightning_body": "Udari s blitzortung.org, blijede tijekom pola sata.",
       "show": "Prikaži na karti: {mark}"
     }
   },

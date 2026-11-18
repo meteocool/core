@@ -115,6 +115,32 @@ test("a link from before leaves the stations and the radars' marks to the receiv
   expect(await marksShown(page)).toBe(false);
 });
 
+test("the lightning is switched in the storm key, not in Settings, and the address bar follows it", async ({ page }) => {
+  await noGeocoder(page);
+  await openRadar(page, VIEW);
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByRole("switch", { name: /Lightning/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Storms" }).click();
+  const lightning = page.getByRole("switch", { name: "Show on the map: Lightning" });
+  await expect(lightning).toBeChecked();
+  await lightning.uncheck();
+  await expect.poll(() => overlaysIn(page.url())).toContain("-lightning");
+  await lightning.check();
+  await expect.poll(() => overlaysIn(page.url())).toContain("lightning");
+});
+
+test("with the storm marks off, the storm key still switches the lightning", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("layerCells", "false"));
+  await noGeocoder(page);
+  await openRadar(page, VIEW);
+  await page.getByRole("button", { name: "Storms" }).click();
+  await expect(page.getByRole("switch", { name: "Show on the map: meteocool storm" })).toHaveCount(0);
+  await page.getByRole("switch", { name: "Show on the map: Lightning" }).uncheck();
+  await expect.poll(() => overlaysIn(page.url())).toContain("-lightning");
+});
+
 test("a link to a station opens its sheet, with the stations on and its parameter", async ({ page }) => {
   await noGeocoder(page);
   const asked = page.waitForRequest(asksForStations);

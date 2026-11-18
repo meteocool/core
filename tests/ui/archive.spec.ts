@@ -289,9 +289,7 @@ test("in a window the overlays with no past are greyed in Settings, and back wit
   for (const name of [/^Radar Sites/, /^Rain Motion/]) {
     await expect(page.getByRole("switch", { name })).toBeDisabled();
   }
-  for (const name of [/^Live Lightning/, /^Storm Cells/]) {
-    await expect(page.getByRole("switch", { name })).toBeEnabled();
-  }
+  await expect(page.getByRole("switch", { name: /^Storm Cells/ })).toBeEnabled();
   await expect(page.getByText("Not kept in the archive").first()).toBeVisible();
   await page.keyboard.press("Escape");
 

@@ -3,7 +3,7 @@ import { createEventDispatcher } from "svelte";
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
-  cells3dVisible, cellLayerVisible, cloudStyle, fullResolution3d, lightningLayerVisible, mapBaseLayer,
+  cells3dVisible, cellLayerVisible, cloudStyle, fullResolution3d, mapBaseLayer,
   siteMarksVisible, motionLayerVisible,
   playbackFromStart, radarColormap, terrain3dVisible,
 } from "../stores";
@@ -105,10 +105,10 @@ function setSolidGlass(value: boolean) {
 /* The radar map's overlays, named as its layer-switcher tile is. A layer
    kept on or off is a preference, so they are settings. Each store persists
    itself (App.svelte). One with no past is greyed in a past window, its
-   setting kept for live (lib/archive.ts). */
+   setting kept for live (lib/archive.ts). The lightning is switched in the
+   storm key (StormKey), with the storms it is read with. */
 const offersRadar = capabilityEnabled("radar");
 $: overlays = [
-  { store: lightningLayerVisible, on: $lightningLayerVisible, label: $_("chrome.playback.lightning"), feature: "lightning" },
   { store: cellLayerVisible, on: $cellLayerVisible, label: $_("chrome.playback.cells"), feature: "cells" },
   { store: siteMarksVisible, on: $siteMarksVisible, label: $_("chrome.playback.radar_sites"), feature: "sites" },
   { store: motionLayerVisible, on: $motionLayerVisible, label: $_("chrome.playback.motion"), feature: "motion" },

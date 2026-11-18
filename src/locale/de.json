@@ -449,6 +449,8 @@
       "volume_body": "Antippen, um das Gewitter in der 3D-Karte zu öffnen.",
       "mesocyclone": "Mesozyklone",
       "mesocyclone_body": "Eine Rotation aus dem Mesozyklonen-Produkt des DWD.",
+      "lightning": "Blitze",
+      "lightning_body": "Einschläge von blitzortung.org, die über eine halbe Stunde verblassen.",
       "show": "Auf der Karte zeigen: {mark}"
     }
   },

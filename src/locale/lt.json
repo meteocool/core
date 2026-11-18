@@ -449,6 +449,8 @@
       "volume_body": "Bakstelėkite, kad atidarytumėte audrą 3D žemėlapyje.",
       "mesocyclone": "Mezociklonas",
       "mesocyclone_body": "Sukimasis, aptiktas DWD mezociklonų produkte.",
+      "lightning": "Žaibai",
+      "lightning_body": "Iškrovos iš blitzortung.org, blunka per pusvalandį.",
       "show": "Rodyti žemėlapyje: {mark}"
     }
   },

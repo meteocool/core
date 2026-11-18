@@ -20,7 +20,7 @@ import {
   bottomToolbarMode, precacheForecast,
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
-  nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, cellLayerVisible, stationLayerVisible,
+  nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, stationLayerVisible,
   drawnEncoding, archiveWindow, archivePickerOpen, stalledNetworks,
 } from "../stores";
 
@@ -1467,8 +1467,8 @@ onDestroy(() => {
             <!-- DWD's weather stations over the map, on or off. First, so
                  the pills after it never move it. -->
             <StationToggle />
-            <!-- What the storm marks on the map are, while they are drawn. -->
-            {#if $cellLayerVisible}<StormKey />{/if}
+            <!-- What the storm marks on the map are, and the lightning's switch. -->
+            <StormKey />
             <RadarProductPicker variant="pill" />
             <!-- A past window, the archive's (lib/archive.ts). -->
             <ArchivePill on:open={() => archivePickerOpen.set(true)} />

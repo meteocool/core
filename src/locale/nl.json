@@ -449,6 +449,8 @@
       "volume_body": "Tik om het onweer op de 3D-kaart te openen.",
       "mesocyclone": "Mesocycloon",
       "mesocyclone_body": "Een rotatie uit het mesocycloonproduct van de DWD.",
+      "lightning": "Bliksem",
+      "lightning_body": "Inslagen van blitzortung.org, die in een halfuur vervagen.",
       "show": "Op de kaart tonen: {mark}"
     }
   },

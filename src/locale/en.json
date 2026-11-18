@@ -449,6 +449,8 @@
       "volume_body": "Tap to open the storm on the 3D map.",
       "mesocyclone": "Mesocyclone",
       "mesocyclone_body": "A rotation detected in DWD's mesocyclone product.",
+      "lightning": "Lightning",
+      "lightning_body": "Strikes from blitzortung.org, fading over half an hour.",
       "show": "Show on the map: {mark}"
     }
   },

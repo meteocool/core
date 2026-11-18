@@ -14,15 +14,20 @@
  * stays: it is looked up, not read alongside the map.
  *
  * Each row switches its mark off the map, and each strength chip its
- * storms (`hiddenStormMarks`); the pill carries a dot while any is off, so a
- * map with storms missing says why.
+ * storms (`hiddenStormMarks`); the lightning and the mesocyclones are layers
+ * of their own, switched here because they are read with the storms. With
+ * the storm marks off in Settings the key keeps just those two, so they can
+ * still be switched. The pill carries a dot while any is off, so a map with
+ * storms missing says why.
  */
 import { onDestroy, tick } from "svelte";
 import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import CloseDisc from "./CloseDisc.svelte";
 import SourceBadge from "./SourceBadge.svelte";
-import { archiveWindow, cycloneLayerVisible, hiddenStormMarks, smallScreen } from "../stores";
+import {
+  archiveWindow, cellLayerVisible, cycloneLayerVisible, hiddenStormMarks, lightningLayerVisible, smallScreen,
+} from "../stores";
 import { shownIn } from "../lib/archive";
 import type { StormMarkToggle } from "../stores";
 import { DIAMOND_REACH, SEVERITY_COLOURS } from "../layers/cells";
@@ -30,6 +35,7 @@ import { BAND_NAMES } from "../lib/cellMetrics";
 import { hideNativeControls } from "../lib/nativeBridge";
 import { topStackPx } from "../lib/safeArea";
 import mesocycloneIcon from "../assets/mesocyclone.png";
+import lightningIcon from "../assets/lightning.png";
 
 /** Space kept between the card and the window's edges, and above the pill. */
 const MARGIN = 8;
@@ -124,6 +130,9 @@ const MODERATE = SEVERITY_COLOURS[1];
 const D = 7 * DIAMOND_REACH;
 /** A smaller one, with a badge above it. */
 const B = 5 * DIAMOND_REACH;
+
+$: filtered = ($cellLayerVisible && $hiddenStormMarks.size > 0) || !$cycloneLayerVisible || !$lightningLayerVisible;
+$: lightningKept = shownIn($archiveWindow, "lightning");
 </script>
 
 <svelte:window on:pointerdown={outside} on:keydown={keydown} on:resize={() => close()} />
@@ -134,7 +143,7 @@ const B = 5 * DIAMOND_REACH;
   class="pill"
   aria-haspopup="dialog"
   aria-expanded={open}
-  class:filtered={$hiddenStormMarks.size > 0 || !$cycloneLayerVisible}
+  class:filtered={filtered}
   class:twinned={open && $smallScreen && twin !== null}
   title={$_("storm.key.open")}
   on:click={() => (open ? close() : show())}>
@@ -158,7 +167,7 @@ const B = 5 * DIAMOND_REACH;
       use:portal
       type="button"
       class="pill twin"
-      class:filtered={$hiddenStormMarks.size > 0 || !$cycloneLayerVisible}
+      class:filtered={filtered}
       tabindex="-1"
       aria-hidden="true"
       style="left: {twin.left}px; top: {twin.top}px; width: {twin.width}px; height: {twin.height}px"
@@ -196,6 +205,7 @@ const B = 5 * DIAMOND_REACH;
          card's right edge came out square. -->
     <div class="body">
     <ul>
+      {#if $cellLayerVisible}
       <li class:off={$hiddenStormMarks.has("meteocool")}>
         <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
           <circle cx="16" cy="12" r="7" fill={STRONG} stroke="#fff" stroke-width="1.5" />
@@ -268,10 +278,23 @@ const B = 5 * DIAMOND_REACH;
         </div>
         {@render toggle("volume")}
       </li>
+      {/if}
+      <li class:off={!$lightningLayerVisible || !lightningKept}>
+        <img class="swatch" src={lightningIcon} alt="" />
+        <div>
+          <strong>{$_("storm.key.lightning")}</strong>
+          <span>{lightningKept ? $_("storm.key.lightning_body") : $_("chrome.archive.no_past")}</span>
+        </div>
+        <input type="checkbox" role="switch" class="switch" checked={$lightningLayerVisible}
+          disabled={!lightningKept}
+          aria-label={$_("storm.key.show", { values: { mark: $_("storm.key.lightning") } })}
+          on:change={(e) => lightningLayerVisible.set(e.currentTarget.checked)} />
+      </li>
     </ul>
     <!-- What DWD's tracking adds, over Germany alone: after what holds everywhere. -->
     <h3 class="region">{$_("storm.key.germany_only")}</h3>
     <ul>
+      {#if $cellLayerVisible}
       <li class:off={$hiddenStormMarks.has("dwd")}>
         <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
           <path d="M16 {12 - D} {16 + D} 12 16 {12 + D} {16 - D} 12Z" fill={STRONG} stroke="#fff" stroke-width="1.5" stroke-linejoin="round" />
@@ -317,6 +340,7 @@ const B = 5 * DIAMOND_REACH;
         </div>
         {@render toggle("forecast")}
       </li>
+      {/if}
       <!-- DWD keeps no series of them: in a past window there are none to show. -->
       <li class:off={!$cycloneLayerVisible || !shownIn($archiveWindow, "mesocyclones")}>
         <img class="swatch" src={mesocycloneIcon} alt="" />

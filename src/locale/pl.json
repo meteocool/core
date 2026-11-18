@@ -449,6 +449,8 @@
       "volume_body": "Dotknij, aby otworzyć burzę na mapie 3D.",
       "mesocyclone": "Mezocyklon",
       "mesocyclone_body": "Rotacja wykryta w produkcie mezocyklonów DWD.",
+      "lightning": "Wyładowania",
+      "lightning_body": "Wyładowania z blitzortung.org, blednące przez pół godziny.",
       "show": "Pokaż na mapie: {mark}"
     }
   },

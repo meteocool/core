@@ -449,6 +449,8 @@
       "volume_body": "Touchez pour ouvrir l'orage sur la carte 3D.",
       "mesocyclone": "Mésocyclone",
       "mesocyclone_body": "Une rotation détectée par le produit mésocyclone du DWD.",
+      "lightning": "Foudre",
+      "lightning_body": "Impacts de blitzortung.org, qui s'estompent en une demi-heure.",
       "show": "Afficher sur la carte : {mark}"
     }
   },

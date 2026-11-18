@@ -449,6 +449,8 @@
       "volume_body": "Tryk for at åbne uvejret på 3D-kortet.",
       "mesocyclone": "Mesocyklon",
       "mesocyclone_body": "En rotation fra DWD's mesocyklonprodukt.",
+      "lightning": "Lyn",
+      "lightning_body": "Nedslag fra blitzortung.org, der falmer over en halv time.",
       "show": "Vis på kortet: {mark}"
     }
   },

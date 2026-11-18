@@ -449,6 +449,8 @@
       "volume_body": "Tryck för att öppna ovädret på 3D-kartan.",
       "mesocyclone": "Mesocyklon",
       "mesocyclone_body": "En rotation från DWD:s mesocyklonprodukt.",
+      "lightning": "Blixtar",
+      "lightning_body": "Nedslag från blitzortung.org, som bleknar under en halvtimme.",
       "show": "Visa på kartan: {mark}"
     }
   },

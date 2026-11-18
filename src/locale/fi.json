@@ -449,6 +449,8 @@
       "volume_body": "Napauta avataksesi ukkosen 3D-kartalla.",
       "mesocyclone": "Mesosykloni",
       "mesocyclone_body": "DWD:n mesosyklonituotteen havaitsema pyöriminen.",
+      "lightning": "Salamat",
+      "lightning_body": "Iskut blitzortung.orgista, haalistuvat puolen tunnin aikana.",
       "show": "Näytä kartalla: {mark}"
     }
   },

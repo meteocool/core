@@ -449,6 +449,8 @@
       "volume_body": "Puuduta, et avada äike 3D-kaardil.",
       "mesocyclone": "Mesotsüklon",
       "mesocyclone_body": "DWD mesotsüklonite tootes tuvastatud pöörlemine.",
+      "lightning": "Välk",
+      "lightning_body": "Löögid blitzortung.org-ist, tuhmuvad poole tunni jooksul.",
       "show": "Näita kaardil: {mark}"
     }
   },
