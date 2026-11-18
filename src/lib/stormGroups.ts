@@ -9,6 +9,7 @@
  */
 import type { Storm, StormGroup } from "../api";
 import { ACTIVE_MINUTES, OUTLINE_MAX_MINUTES } from "./cellGeometry";
+import { STEP_S } from "./archive";
 
 type LonLat = [number, number];
 
@@ -32,6 +33,21 @@ export function asksForGroups(absentAt: number | null, now: number): boolean {
   return absentAt === null || now - absentAt >= GROUPS_RECHECK_MS;
 }
 
+/**
+ * How far a group's outline may be from the radar frame on screen and still
+ * be that frame's: half a step of the radar's grid. Further, and it is an
+ * earlier or a later frame's shape, drawn dashed (layers/stormGroups.ts): a
+ * new scan lands before its systems do, and in that gap the echoes have
+ * moved on from the line round them.
+ */
+export const CURRENT_WITHIN_MS = (STEP_S * 1000) / 2;
+
+/** Whether a group's outline is the one for the frame at `moment`, ms. */
+export function outlineCurrentAt(group: StormGroup, moment: number): boolean {
+  const seen = Date.parse(group.properties.last_seen);
+  return Number.isFinite(seen) && Math.abs(seen - moment) <= CURRENT_WITHIN_MS;
+}
+
 /** One group's outline, as the map draws it. */
 export interface GroupOutline {
   id: string;
@@ -40,6 +56,8 @@ export interface GroupOutline {
   /** How many storms it has. */
   storms: number;
   severity: number;
+  /** Whether it is another frame's shape than the one at the moment drawn. */
+  stale: boolean;
 }
 
 /** A ring that is one: at least four positions, closed or not. */
@@ -80,8 +98,9 @@ export function groupShownAt(group: StormGroup, moment: number): boolean {
 
 /**
  * The outlines to draw at `moment`: one per group of two or more storms
- * with an area to outline. The backend lists only those; anything else is
- * left out rather than drawn wrong.
+ * with an area to outline, each marked stale when it is not that moment's.
+ * The backend lists only those; anything else is left out rather than
+ * drawn wrong.
  */
 export function groupOutlines(groups: readonly StormGroup[], moment: number): GroupOutline[] {
   const outlines: GroupOutline[] = [];
@@ -95,6 +114,7 @@ export function groupOutlines(groups: readonly StormGroup[], moment: number): Gr
       polygons,
       storms: p.storms.length,
       severity: Math.min(Math.max(p.severity ?? 0, 0), 3),
+      stale: !outlineCurrentAt(group, moment),
     });
   }
   return outlines;

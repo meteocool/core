@@ -89,7 +89,8 @@ const drawnMark = (mark: StormMark): Drawn<StormMark> => ({
 
 const drawnOutline = (outline: GroupOutline): Drawn<GroupOutline> => ({
   key: outline.id,
-  look: "",
+  // A system that catches up with the radar cross-fades from dashed to solid.
+  look: outline.stale ? "stale" : "",
   moves: false,
   shape: { type: "MultiPolygon", coordinates: outline.polygons },
   value: outline,
@@ -113,6 +114,7 @@ function outlineFeature(easing: Easing<GroupOutline>): Feature {
   const feature = new Feature({
     storms: outline.storms,
     severity: outline.severity,
+    stale: outline.stale,
     geometry: project(easing.from),
     fade: tenths(easing.fromAlpha),
     leaving: easing.leaving,

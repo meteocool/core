@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { flatPixel, noGeocoder, settled, statusPill, timeline } from "./app";
+import { backToNow, flatPixel, noGeocoder, settled, statusPill, timeline } from "./app";
 import { recordedStorms } from "./storms";
 import { expect, test } from "./test";
 
@@ -34,6 +34,8 @@ const drawn = (page: Page) => page.evaluate(() => {
     quiet: positions.filter((feature: any) => feature.get("quiet")).map((feature: any) => feature.getId() as string),
     full: positions.filter((feature: any) => !feature.get("quiet")).map((feature: any) => feature.getId() as string),
     groups: (groups?.getSource().getFeatures() ?? []).map((feature: any) => feature.getId() as string),
+    stale: (groups?.getSource().getFeatures() ?? [])
+      .filter((feature: any) => feature.get("stale") && !feature.get("leaving")).map((feature: any) => feature.getId() as string),
     groupsShown: Boolean(groups?.getVisible()),
   };
 });
@@ -67,6 +69,20 @@ test("notable storms are marked, the rest are quiet dots, and a system is one ou
   // A quiet storm has no ring of its own; a live notable one has.
   await expect.poll(() => ringsOn(page, STRONG)).toBe(1);
   expect(await ringsOn(page, QUIET)).toBe(0);
+});
+
+test("a system's outline is dashed a scan behind the radar and solid on its own scan", async ({ page }) => {
+  await openAt(page, STRONG.geometry.coordinates, 10);
+  await expect.poll(async () => (await drawn(page)).groups, { timeout: 15_000 }).toContain(CAMARGUE);
+  // The recording's systems are a scan behind its newest radar frame.
+  expect((await drawn(page)).stale).toContain(CAMARGUE);
+  // A step back is the systems' own scan.
+  await timeline(page).focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(async () => (await drawn(page)).stale).not.toContain(CAMARGUE);
+  expect((await drawn(page)).groups).toContain(CAMARGUE);
+  await backToNow(page).click();
+  await expect.poll(async () => (await drawn(page)).stale).toContain(CAMARGUE);
 });
 
 test("a quiet storm opens when tapped, is drawn in full while open, and its panel names its system", async ({ page, isMobile }) => {

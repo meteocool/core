@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { get } from "svelte/store";
 import {
-  GROUPS_ABSENT, GROUPS_RECHECK_MS, asksForGroups, groupOutlines, groupShownAt, systemSize,
+  CURRENT_WITHIN_MS, GROUPS_ABSENT, GROUPS_RECHECK_MS, asksForGroups, groupOutlines, groupShownAt, outlineCurrentAt,
+  systemSize,
 } from "../../src/lib/stormGroups.ts";
 import { fetchStormGroups, NothingPublished } from "../../src/api/index.ts";
 import { apiHealth } from "../../src/stores.ts";
@@ -63,6 +64,28 @@ test("on an earlier frame a group is outlined only when born by then and its out
   assert.equal(groupShownAt(g, T0 - 20 * 60_000), true);
   assert.equal(groupShownAt(g, T0 - 60 * 60_000), false, "its outline is an hour on from then");
   assert.equal(groupShownAt(g, T0 - 100 * 60_000), false, "not yet born");
+});
+
+test("an outline is the frame's when seen within half a radar step of it, and stale otherwise", () => {
+  assert.equal(CURRENT_WITHIN_MS, 150_000);
+  assert.equal(outlineCurrentAt(group(G, [A, B], { last_seen: at(0) }), T0), true);
+  assert.equal(outlineCurrentAt(group(G, [A, B], { last_seen: at(-2) }), T0), true, "the scan's own, a little off the grid");
+  assert.equal(outlineCurrentAt(group(G, [A, B], { last_seen: at(-5) }), T0), false, "a scan behind the radar");
+  assert.equal(outlineCurrentAt(group(G, [A, B], { last_seen: at(5) }), T0), false, "a later frame's shape");
+  assert.equal(outlineCurrentAt(group(G, [A, B], { last_seen: "not a time" }), T0), false);
+});
+
+test("in the present a system a scan behind the radar is drawn stale, and current once it catches up", () => {
+  const [behind] = groupOutlines([group(G, [A, B], { last_seen: at(-5) })], T0);
+  assert.equal(behind.stale, true);
+  const [caught] = groupOutlines([group(G, [A, B], { last_seen: at(0) })], T0);
+  assert.equal(caught.stale, false);
+});
+
+test("on an earlier frame a system's newest outline is stale, and on its own frame current", () => {
+  const g = group(G, [A, B], { born_at: at(-90), last_seen: at(0) });
+  assert.equal(groupOutlines([g], T0 - 20 * 60_000)[0].stale, true);
+  assert.equal(groupOutlines([g], T0)[0].stale, false);
 });
 
 test("a storm's system is as many storms as its group lists", () => {

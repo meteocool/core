@@ -20,10 +20,18 @@ import { isDarkBasemap, watchBasemap } from "./casing";
  * Under the storm marks and the lightning, over the radar and the radar's
  * sweeps: it says which of the echoes belong together, and nothing on it is
  * tapped. Hidden with the storm marks, which it belongs to.
+ *
+ * An outline that is not the radar frame's on screen (a newer scan than its
+ * systems on the live step, or a frame earlier than it while playing back)
+ * is drawn dashed, with a fainter wash: the shape is where the echoes were,
+ * not where they are on the image under it.
  */
 
 /** The accent, light and dark (glass.css `--mc-accent`). */
 export const GROUP_ACCENT = { light: "#007aff", dark: "#0a84ff" };
+
+/** The dash of an outline that is another frame's, in pixels. */
+export const STALE_DASH = [4, 4];
 
 /** Over the radar (80) and its sweeps (85, 86), under the lightning (90 up) and the storms (200 up). */
 export const GROUP_Z_INDEX = 88;
@@ -34,22 +42,32 @@ const rgba = (hex: string, alpha: number): string => {
 };
 
 /**
- * The one style, for the basemap and a fade: every outline looks the same,
- * and one changing shape cross-fades, old out and new in (lib/stormEasing.ts),
- * through `fade`, in tenths.
+ * The style for the basemap, whether the outline is another frame's, and a
+ * fade: one changing shape or look cross-fades, old out and new in
+ * (lib/stormEasing.ts), through `fade`, in tenths.
  */
-const styleFor = (dark: boolean, fade: number): Style => {
+const styleFor = (dark: boolean, stale: boolean, fade: number): Style => {
   const accent = dark ? GROUP_ACCENT.dark : GROUP_ACCENT.light;
+  const wash = (dark ? 0.07 : 0.05) * (stale ? 0.5 : 1);
   return new Style({
-    stroke: new Stroke({ color: rgba(accent, (dark ? 0.8 : 0.7) * fade), width: 1.5, lineJoin: "round" }),
-    fill: new Fill({ color: rgba(accent, (dark ? 0.07 : 0.05) * fade) }),
+    stroke: new Stroke({
+      color: rgba(accent, (dark ? 0.8 : 0.7) * fade),
+      width: 1.5,
+      lineJoin: "round",
+      ...(stale ? { lineDash: STALE_DASH, lineCap: "butt" as const } : {}),
+    }),
+    fill: new Fill({ color: rgba(accent, wash * fade) }),
   });
 };
 
-/** By basemap, then by fade in tenths. */
+const tenthsOf = (dark: boolean, stale: boolean): Style[] => (
+  Array.from({ length: 11 }, (_, tenth) => styleFor(dark, stale, tenth / 10))
+);
+
+/** By basemap, then current or stale, then by fade in tenths. */
 const STYLES = {
-  light: Array.from({ length: 11 }, (_, tenth) => styleFor(false, tenth / 10)),
-  dark: Array.from({ length: 11 }, (_, tenth) => styleFor(true, tenth / 10)),
+  light: { current: tenthsOf(false, false), stale: tenthsOf(false, true) },
+  dark: { current: tenthsOf(true, false), stale: tenthsOf(true, true) },
 };
 
 const tenthOf = (feature: FeatureLike): number => Math.min(Math.max(Math.round((feature.get("fade") ?? 1) * 10), 0), 10);
@@ -61,7 +79,7 @@ export default function makeStormGroupLayer(): [VectorSource, VectorLayer<Vector
   const layer = new VectorLayer({
     source,
     zIndex: GROUP_Z_INDEX,
-    style: (feature) => styles[tenthOf(feature)],
+    style: (feature) => (feature.get("stale") ? styles.stale : styles.current)[tenthOf(feature)],
   });
   watchBasemap(isDarkBasemap, (dark) => {
     styles = dark ? STYLES.dark : STYLES.light;
