@@ -1609,7 +1609,7 @@ if (postInitCb) postInitCb(lm);
     </Lazy>
   {:else}
     <div class="cell-details-panel mc-drawer">
-      <div class="scroll">
+      <div class="scroll mc-selectable">
         <Lazy load={loadStormDetails} let:module>
           <svelte:component this={module.default} selection={$selectedStorm} />
         </Lazy>
@@ -1637,7 +1637,7 @@ if (postInitCb) postInitCb(lm);
         </svelte:component>
       {:else}
         <div class="cell-details-panel mc-drawer">
-          <div class="scroll">
+          <div class="scroll mc-selectable">
             <svelte:component
               this={ModelCompare}
               lat={$modelCompareAt.lat}
@@ -1662,7 +1662,7 @@ if (postInitCb) postInitCb(lm);
     </Lazy>
   {:else}
     <div class="cell-details-panel mc-drawer">
-      <div class="scroll">
+      <div class="scroll mc-selectable">
         <Lazy load={loadStationDetails} let:module>
           <svelte:component this={module.default} station={$selectedStation} onClose={closeStation} />
         </Lazy>

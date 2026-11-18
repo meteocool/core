@@ -49,6 +49,20 @@ function close() {
   dispatch("close");
 }
 
+/*
+ * A tap on the map around the panel closes it, but only one that began
+ * there: a selection dragged out of the panel ends on the scrim, and the
+ * click that follows lands on it (the nearest element holding both ends).
+ */
+let pressedScrim = false;
+function scrimDown(event: PointerEvent) {
+  pressedScrim = event.target === event.currentTarget;
+}
+function scrimClick(event: MouseEvent) {
+  if (event.target === event.currentTarget && pressedScrim) close();
+  pressedScrim = false;
+}
+
 /** Where the keyboard goes next, and what a screen reader announces. */
 function autofocus(node: HTMLElement) {
   node.focus({ preventScroll: true });
@@ -194,7 +208,7 @@ onMount(() => {
     <!-- The sheet is the dialog, and draws the close disc in its corner, where
          it stays while the reading scrolls; see lib/sheetContext.ts. -->
     <svelte:component this={module.default} full halfway={false} material="reading" onClose={close} dialogLabelledBy={titleId}>
-      <div class="panel in-sheet" tabindex="-1" use:autofocus>
+      <div class="panel in-sheet mc-selectable" tabindex="-1" use:autofocus>
         <header>
           <h2 id={titleId}>{title}</h2>
         </header>
@@ -203,9 +217,9 @@ onMount(() => {
     </svelte:component>
   </Lazy>
 {:else}
-  <div class="scrim" on:click|self={close} role="presentation">
+  <div class="scrim" on:pointerdown={scrimDown} on:click={scrimClick} role="presentation">
     <div
-      class="panel floating glass glass-tray glass-reading"
+      class="panel floating glass glass-tray glass-reading mc-selectable"
       class:wide
       class:broad
       role="dialog"

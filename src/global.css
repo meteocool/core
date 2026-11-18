@@ -135,3 +135,21 @@ html.screenshot .ol-share,
 html.screenshot .maplibregl-ctrl-top-right {
   display: none !important;
 }
+
+/* Text that is there to be read can be selected and copied. App.svelte turns
+   selection off for everything, so a long press on the map or a drag over the
+   chrome never lights up a label; a surface of reading (a panel, a drawer)
+   opts back in with this class. Its controls stay unselectable, so a tap or
+   a drag on a row, a switch or a chart never starts a selection. */
+.mc-selectable,
+.mc-selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+.mc-selectable :is(button, [role="button"], [role="radio"], [role="switch"], [role="slider"], label, input, select, summary, svg, canvas),
+.mc-selectable :is(button, [role="button"], [role="radio"], [role="switch"], [role="slider"], label, input, select, summary, svg, canvas) * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

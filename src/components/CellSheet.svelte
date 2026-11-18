@@ -356,6 +356,9 @@ let bodyEligible = false;
 
 function bodyDown(event: PointerEvent) {
   if (event.button > 0) return;
+  // A mouse dragging over the body is selecting its text; the grip moves the
+  // sheet. A finger selects with a long press, which this never sees as a drag.
+  if (event.pointerType === "mouse") return;
   // The models own their drags, the CAPPI's height included; see above.
   if ((event.target as HTMLElement).closest(".model, .cappi")) return;
   const el = event.currentTarget as HTMLElement;
@@ -648,7 +651,7 @@ function bodyUp(event: PointerEvent) {
     <span></span>
   </div>
   <div
-    class="body"
+    class="body mc-selectable"
     class:scrolled
     class:shares={$share !== null}
     on:scroll={(e) => { scrolled = e.currentTarget.scrollTop > 0; showIndicator(e.currentTarget); }}
