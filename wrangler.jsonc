@@ -74,7 +74,8 @@
       "name": "meteocool-next",
       "compatibility_date": "2026-09-20",
       "logpush": true,
-      "workers_dev": true,
+      "workers_dev": false,
+      "preview_urls": false,
       "routes": [
         { "pattern": "next.meteocool.com", "custom_domain": true },
       ],
@@ -96,7 +97,8 @@
       "name": "meteocool-demo",
       "compatibility_date": "2026-09-20",
       "logpush": true,
-      "workers_dev": true,
+      "workers_dev": false,
+      "preview_urls": false,
       "routes": [
         { "pattern": "demo.meteocool.com", "custom_domain": true },
       ],
