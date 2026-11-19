@@ -89,7 +89,11 @@
     "glow": "Lueur",
     "glow_body": "Une lumière translucide dès l'écho le plus faible, chaque intensité dans sa couleur.",
     "shells": "Coques",
-    "shells_body": "Une surface tous les 10 dBZ, emboîtées comme les couches d'un oignon."
+    "shells_body": "Une surface tous les 10 dBZ, emboîtées comme les couches d'un oignon.",
+    "sky": "Ciel",
+    "sky_body": "Un nuage blanc tel qu'un satellite le voit, éclairé par le soleil. Coupé, il montre les couleurs du radar.",
+    "tinted": "Teinté",
+    "tinted_body": "Le nuage blanc, teinté là où l'écho en altitude est fort."
   },
   "time_3d": {
     "choose": "Afficher les orages à une heure antérieure",

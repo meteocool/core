@@ -89,7 +89,11 @@
     "glow": "Glød",
     "glow_body": "Gjennomsiktig lys fra det svakeste ekkoet og opp, hver styrke i sin egen farge.",
     "shells": "Skall",
-    "shells_body": "En flate for hver 10 dBZ, lagt inni hverandre som en løk."
+    "shells_body": "En flate for hver 10 dBZ, lagt inni hverandre som en løk.",
+    "sky": "Himmel",
+    "sky_body": "En hvit sky slik en satellitt ser den, opplyst av solen. Skåret opp viser den radarens farger.",
+    "tinted": "Tonet",
+    "tinted_body": "Den hvite skyen, tonet der ekkoet høyt oppe er kraftig."
   },
   "time_3d": {
     "choose": "Vis tordenværene på et tidligere tidspunkt",

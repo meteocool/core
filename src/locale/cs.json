@@ -89,7 +89,11 @@
     "glow": "Záře",
     "glow_body": "Průsvitné světlo od nejslabší odrazivosti, každá síla ve své barvě.",
     "shells": "Slupky",
-    "shells_body": "Plocha po každých 10 dBZ, do sebe vložené jako slupky cibule."
+    "shells_body": "Plocha po každých 10 dBZ, do sebe vložené jako slupky cibule.",
+    "sky": "Obloha",
+    "sky_body": "Bílý mrak, jak ho vidí družice, osvětlený sluncem. Rozříznutý ukáže barvy radaru.",
+    "tinted": "Tónovaný",
+    "tinted_body": "Bílý mrak, tónovaný tam, kde je echo ve výšce silné."
   },
   "time_3d": {
     "choose": "Zobrazit bouřky v dřívějším čase",

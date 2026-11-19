@@ -16,7 +16,7 @@ import Lazy from "./components/Lazy.svelte";
 import Guide3D from "./components/Guide3D.svelte";
 import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
-import { cloudStyleOf, DEFAULT_CLOUD_STYLE } from "./lib/cloudStyle";
+import { DEFAULT_CLOUD_STYLE, mapStyleOf } from "./lib/cloudStyle";
 import { studioOpen } from "./lib/studio/store";
 import { closeStudio, openStudio, studioOffered } from "./lib/studio/session";
 import Logo from "./components/Logo.svelte";
@@ -343,12 +343,13 @@ window.settings = new Settings({
       fullResolution3d.set(Boolean(value));
     },
   },
-  /* How the 3D map draws its storms (lib/cloudStyle.ts). */
+  /* How the 3D map draws its storms (lib/cloudStyle.ts): one the map offers.
+     A Studio-only style is Studio's to set, on the store alone. */
   layer3dStyle: {
     type: "string",
     default: DEFAULT_CLOUD_STYLE,
     cb: (value) => {
-      cloudStyle.set(cloudStyleOf(value));
+      cloudStyle.set(mapStyleOf(value));
     },
   },
   radarLegendUnit: {

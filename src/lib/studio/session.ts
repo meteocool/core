@@ -3,10 +3,12 @@
  *
  * Studio borrows the 3D map: its peel becomes a setting of the scene's, which
  * a keyframe may put anywhere. Leaving hands it back as it was, so a reader
- * who only looked in finds the map they left.
+ * who only looked in finds the map they left; and with it the map's style,
+ * if Studio left the storms in one only it offers (lib/cloudStyle.ts).
  */
 import { get } from "svelte/store";
-import { peelLevel, peelManual } from "../../stores";
+import { cloudStyle, peelLevel, peelManual } from "../../stores";
+import { isMapStyle, mapStyleOf } from "../cloudStyle";
 import { isHandheld } from "../gpuBudget";
 import { studioOpen } from "./store";
 
@@ -34,4 +36,8 @@ export function closeStudio(): void {
     peelManual.set(peelBefore.manual);
   }
   peelBefore = null;
+  // A style only Studio offers goes with it: the map is back in the reader's own.
+  if (!isMapStyle(get(cloudStyle))) {
+    cloudStyle.set(mapStyleOf(typeof window === "undefined" ? null : window.settings?.get("layer3dStyle")));
+  }
 }

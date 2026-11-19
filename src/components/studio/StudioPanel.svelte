@@ -24,7 +24,8 @@ import Icon from "../Icon.svelte";
 import Segmented from "../Segmented.svelte";
 import CloseDisc from "../CloseDisc.svelte";
 import { cloudStyle, peelLevel, peelManual } from "../../stores";
-import { CLOUD_STYLES } from "../../lib/cloudStyle";
+import { CLOUD_STYLES, isMapStyle } from "../../lib/cloudStyle";
+import StyleGlyph from "../StyleGlyph.svelte";
 import type { CloudStyle } from "../../lib/cloudStyle";
 import type { Director } from "../../lib/studio/director";
 import { LENSES, LENS_FOV, lensOf, VIEWS } from "../../lib/studio/camera";
@@ -130,9 +131,14 @@ function setLens(name: LensName) {
   studioFov.set(LENS_FOV[name]);
 }
 
-/** The reader's own choice, kept as the map's pill keeps it: the `layer3dStyle` setting. */
+/**
+ * The reader's own choice, kept as the map's pill keeps it (the
+ * `layer3dStyle` setting) when the map offers it too. A Studio style goes to
+ * the store alone, and leaving Studio hands the map back its own.
+ */
 function setStyle(style: CloudStyle) {
-  window.settings.set("layer3dStyle", style);
+  cloudStyle.set(style);
+  if (isMapStyle(style)) window.settings.set("layer3dStyle", style);
 }
 
 function peel(event: Event) {
@@ -273,14 +279,20 @@ function peel(event: Event) {
 
     <h3>{$_("studio.clouds")}</h3>
     <div class="lens">
-      <span class="caption">{$_("style_3d.title")}</span>
-      <Segmented
-        compact
-        stretch
-        label={$_("style_3d.choose")}
-        options={CLOUD_STYLES.map((style) => ({ value: style, label: $_(`style_3d.${style}`) }))}
-        value={$cloudStyle}
-        on:change={(event) => setStyle(event.detail)} />
+      <span class="caption" id="studio-style">{$_("style_3d.title")}</span>
+      <!-- Every style, the shells among them, each as the map's pill draws it. -->
+      <div class="styles" role="radiogroup" aria-labelledby="studio-style">
+        {#each CLOUD_STYLES as style (style)}
+          <button type="button" class="style" role="radio" aria-checked={$cloudStyle === style}
+            class:on={$cloudStyle === style} on:click={() => setStyle(style)}>
+            <StyleGlyph {style} small />
+            <span>{$_(`style_3d.${style}`)}</span>
+          </button>
+        {/each}
+      </div>
+      {#if $cloudStyle === "shells" && !$studioPlanes.length}
+        <p class="hint">{$_("studio.shells_hint")}</p>
+      {/if}
     </div>
     <div class="controls">
       <label>
@@ -509,4 +521,37 @@ function peel(event: Event) {
   }
   .basemap:hover { background: var(--mc-tint-hover); }
   .basemap:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  /* The storm styles: a picture over its name, as many to a row as fit. */
+  .styles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: 4px;
+  }
+  .style {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    padding: 6px 2px 5px;
+    border: 0;
+    border-radius: var(--mc-radius-inner);
+    background: var(--mc-tint);
+    color: var(--mc-text-2);
+    font: 600 11px/1.1 var(--mc-font);
+    cursor: pointer;
+  }
+  .style span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .style:hover { background: var(--mc-tint-hover); color: var(--mc-text); }
+  .style.on {
+    background: color-mix(in srgb, var(--studio-accent) 22%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--studio-accent);
+    color: var(--mc-text);
+  }
+  .style:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 1px; }
 </style>

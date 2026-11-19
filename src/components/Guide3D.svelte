@@ -24,7 +24,7 @@ import { _ } from "svelte-i18n";
 import CloseDisc from "./CloseDisc.svelte";
 import { cells3dVisible, cloudStyle, radarColormap, selectedStorm, smallScreen } from "../stores";
 import { dbzColour, dbzStops } from "../lib/cellVolume";
-import { shellLevels, STYLE_FIELD } from "../lib/cloudStyle";
+import { hullTint, shellLevels, STYLE_FIELD } from "../lib/cloudStyle";
 import { BAND_NAMES } from "../lib/cellMetrics";
 import { SEVERITY_COLOURS } from "../layers/cells";
 import { VERTICAL_SCALE } from "../layers/terrain";
@@ -78,14 +78,26 @@ const TICKS = [20, 40, 60];
 const at = (dbz: number) => ((dbz - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
 const rgb = (dbz: number, colormap: string) => `rgb(${dbzColour(dbz, colormap).join(", ")})`;
 
-/* The palette as the style on the map uses it: run through, or for the
-   shells one flat colour from each level to the next. */
+/* A tinted hull's colour over a column whose echo aloft is this strong: the
+   cloud's white with as much of the palette as the map lays on it. */
+const hull = (dbz: number, colormap: string) => {
+  const weight = hullTint(dbz);
+  return `rgb(${dbzColour(dbz, colormap).map((channel) => Math.round(255 + (channel - 255) * weight)).join(", ")})`;
+};
+
+/* The palette as the style on the map uses it: run through, for the shells
+   one flat colour from each level to the next, and for a tinted hull mixed
+   into white as the hull has it. The white cloud shows the palette only
+   where it is cut, so its scale is the palette's. */
 $: ramp = $cloudStyle === "shells"
   ? `linear-gradient(to right, ${shellLevels(STYLE_FIELD.shells.floor).flatMap((level, i, levels) => {
     const colour = rgb(level, $radarColormap);
     return [`${colour} ${at(level)}%`, `${colour} ${at(levels[i + 1] ?? SCALE_MAX)}%`];
   }).join(", ")})`
-  : `linear-gradient(to right, ${dbzStops($radarColormap).map(([dbz, colour]) => `${colour} ${at(dbz)}%`).join(", ")})`;
+  : $cloudStyle === "tinted"
+    ? `linear-gradient(to right, ${Array.from({ length: 13 }, (_unused, i) => SCALE_MIN + i * 5)
+      .map((dbz) => `${hull(dbz, $radarColormap)} ${at(dbz)}%`).join(", ")})`
+    : `linear-gradient(to right, ${dbzStops($radarColormap).map(([dbz, colour]) => `${colour} ${at(dbz)}%`).join(", ")})`;
 
 /* A cloud is three shells, faint envelope to strong core, as the map shades
    one, in the palette the settings name. */

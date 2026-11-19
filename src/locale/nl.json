@@ -89,7 +89,11 @@
     "glow": "Gloed",
     "glow_body": "Doorschijnend licht vanaf de zwakste echo, elke sterkte in haar eigen kleur.",
     "shells": "Schillen",
-    "shells_body": "Een oppervlak om de 10 dBZ, in elkaar als de rokken van een ui."
+    "shells_body": "Een oppervlak om de 10 dBZ, in elkaar als de rokken van een ui.",
+    "sky": "Lucht",
+    "sky_body": "Een witte wolk zoals een satelliet die ziet, verlicht door de zon. Opengesneden toont hij de kleuren van de radar.",
+    "tinted": "Getint",
+    "tinted_body": "De witte wolk, getint waar de echo hoog in de lucht sterk is."
   },
   "time_3d": {
     "choose": "Toon de buien op een eerder tijdstip",

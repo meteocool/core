@@ -89,7 +89,11 @@
     "glow": "Sjaj",
     "glow_body": "Prozirno svjetlo od najslabijeg odjeka, svaka jačina u svojoj boji.",
     "shells": "Ljuske",
-    "shells_body": "Ploha na svakih 10 dBZ, jedna u drugoj kao ljuske luka."
+    "shells_body": "Ploha na svakih 10 dBZ, jedna u drugoj kao ljuske luka.",
+    "sky": "Nebo",
+    "sky_body": "Bijeli oblak kakvim ga vidi satelit, obasjan suncem. Presječen pokazuje boje radara.",
+    "tinted": "Obojeni",
+    "tinted_body": "Bijeli oblak, obojen ondje gdje je jeka u visini jaka."
   },
   "time_3d": {
     "choose": "Prikaži oluje u ranijem trenutku",

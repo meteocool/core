@@ -89,7 +89,11 @@
     "glow": "Poświata",
     "glow_body": "Przezroczyste światło od najsłabszego echa, każda siła we własnym kolorze.",
     "shells": "Powłoki",
-    "shells_body": "Powierzchnia co 10 dBZ, jedna w drugiej jak warstwy cebuli."
+    "shells_body": "Powierzchnia co 10 dBZ, jedna w drugiej jak warstwy cebuli.",
+    "sky": "Niebo",
+    "sky_body": "Biała chmura, jaką widzi satelita, oświetlona słońcem. Przecięta pokazuje kolory radaru.",
+    "tinted": "Barwiona",
+    "tinted_body": "Biała chmura, zabarwiona tam, gdzie echo wysoko jest silne."
   },
   "time_3d": {
     "choose": "Pokaż burze z wcześniejszej godziny",

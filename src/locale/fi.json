@@ -89,7 +89,11 @@
     "glow": "Hehku",
     "glow_body": "Läpikuultavaa valoa heikoimmasta kaiusta alkaen, jokainen voimakkuus omalla värillään.",
     "shells": "Kuoret",
-    "shells_body": "Pinta 10 dBZ:n välein, sisäkkäin kuin sipulin kerrokset."
+    "shells_body": "Pinta 10 dBZ:n välein, sisäkkäin kuin sipulin kerrokset.",
+    "sky": "Taivas",
+    "sky_body": "Valkoinen pilvi sellaisena kuin satelliitti sen näkee, auringon valaisemana. Leikattuna se näyttää tutkan värit.",
+    "tinted": "Sävytetty",
+    "tinted_body": "Valkoinen pilvi, sävytetty siltä kohdin, missä kaiku on ylhäällä voimakas."
   },
   "time_3d": {
     "choose": "Näytä ukkoset aiemmalta ajalta",

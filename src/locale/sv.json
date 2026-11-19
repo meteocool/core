@@ -89,7 +89,11 @@
     "glow": "Glöd",
     "glow_body": "Genomskinligt ljus från det svagaste ekot och uppåt, varje styrka i sin egen färg.",
     "shells": "Skal",
-    "shells_body": "En yta för var 10:e dBZ, inuti varandra som en lök."
+    "shells_body": "En yta för var 10:e dBZ, inuti varandra som en lök.",
+    "sky": "Himmel",
+    "sky_body": "Ett vitt moln som en satellit ser det, upplyst av solen. Uppskuret visar det radarns färger.",
+    "tinted": "Tonad",
+    "tinted_body": "Det vita molnet, tonat där ekot högt upp är starkt."
   },
   "time_3d": {
     "choose": "Visa åskvädren vid en tidigare tidpunkt",

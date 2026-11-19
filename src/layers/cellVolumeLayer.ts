@@ -15,13 +15,15 @@
  *
  * ## Styles
  *
- * The same field can be drawn three ways (lib/cloudStyle.ts), and the reader
+ * The same field can be drawn five ways (lib/cloudStyle.ts), and the reader
  * picks: the lit cloud described above, the field as unlit see-through
- * light from its faintest echo up, or a surface at every tenth dBZ, nested.
- * One program draws all three: the ray, the box, the cut and the depth are
- * the same, and only what a sample along the ray adds differs. The peel
- * works on each from its own floor; the cut leaves a flat face on the cloud
- * and the light, and opens the shells hollow.
+ * light from its faintest echo up, a surface at every tenth dBZ, nested, or
+ * a white cloud in sunlight, plain or with its hull tinted by the column
+ * under it. One program draws them all: the ray, the box, the cut and the
+ * depth are the same, and only what a sample along the ray adds differs.
+ * The peel works on each from its own floor; the cut leaves a flat face in
+ * the radar's colours on the cloud, the light and the white cloud, and
+ * opens the shells hollow.
  *
  * ## How a Raymarcher Gets onto a MapLibre Map
  *
@@ -68,7 +70,7 @@ import type { BoxPart } from "../lib/volumeBox";
 import { stormsOf, tileEdges, type TileEdges } from "../lib/tileStorms";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
-import { SHELL_STEP, SHELL_TOP, STYLE_FIELD } from "../lib/cloudStyle";
+import { HULL_TINT, SHELL_STEP, SHELL_TOP, STYLE_FIELD } from "../lib/cloudStyle";
 import type { CloudStyle } from "../lib/cloudStyle";
 import { peelLow, peelShare } from "../lib/peel";
 import { carryPlane, MAX_PLANES } from "../lib/studio/planes";
@@ -84,7 +86,7 @@ const DBZ_LOW = STYLE_FIELD.cloud.floor;
 /** Where the echo is as opaque as it gets; see `CellCutaway` for the reasoning. */
 const DBZ_HIGH = DBZ_LOW + STYLE_FIELD.cloud.band;
 /** The styles, as the shader numbers them. */
-const STYLE_INDEX: Record<CloudStyle, number> = { cloud: 0, glow: 1, shells: 2 };
+const STYLE_INDEX: Record<CloudStyle, number> = { cloud: 0, glow: 1, shells: 2, sky: 3, tinted: 4 };
 /**
  * How opaque a shell is, the faintest and from `SHELL_SOLID_DBZ` up: the
  * outer ones are tinted glass, so a storm left whole still hints at what is
@@ -105,8 +107,34 @@ const PEEL_CORE_VOXELS = 300;
 const PEEL_BAND = DBZ_HIGH - DBZ_LOW;
 /** Opacity per kilometre of fully dense storm; see the shader's march. */
 const OPACITY_PER_KM = 0.62;
-/** The same for the glow, whose density climbs slowly, so its core has to be denser to close. */
-const GLOW_OPACITY_PER_KM = 1.2;
+/**
+ * The same for the glow, far less: light, not a body. At 1.2 the tens of
+ * kilometres of weak echo a ray crosses in a rain shield added up to a green
+ * wall, and the glow was the cloud without its shading. At this a ray
+ * through a whole shield is still a veil, and what shows through it is the
+ * light the cores give off (`GLOW_LIGHT`).
+ */
+const GLOW_OPACITY_PER_KM = 0.4;
+/**
+ * How much light the glow gives off for the light it stops, the faintest
+ * echo and the strongest: weak echo is about as bright as it is opaque, a
+ * core several times so, which is what lets it shine through the veil in
+ * front of it and bloom where it is thick.
+ */
+const GLOW_LIGHT: [number, number] = [0.8, 2.6];
+/**
+ * The same for the sky's white cloud, which is nearly opaque a few hundred
+ * metres in, as a real one is; and what its own shadows count it as, less,
+ * or every side turned from the sun is black. Strings, to be GLSL floats.
+ */
+const SKY_OPACITY_PER_KM = "4.5";
+const SKY_SHADOW_PER_KM = "1.4";
+/**
+ * Kilometres to a unit of Mercator, for the ground the sky's noise is laid
+ * on: about the scale at mid-latitudes. What matters is that every tile
+ * shares the frame, not how true a kilometre it is.
+ */
+const NOISE_KM_PER_MERCATOR = 30000;
 /**
  * The least a storm has to show to be drawn: this much of its silhouette, in
  * km2, at least half opaque at the map's tilt; see `solidKm2`. A 2 by 2 km
@@ -169,11 +197,13 @@ uniform float uDbzScale;
 uniform float uSteps;
 uniform float uLow;        // where the echo starts to show, which the peel raises
 uniform float uHigh;       // and where it is as opaque as it gets
-uniform int uStyle;        // 0 a lit cloud, 1 unlit light, 2 nested surfaces; see lib/cloudStyle.ts
+uniform int uStyle;        // 0 a lit cloud, 1 unlit light, 2 nested surfaces, 3 a white cloud, 4 tinted; see lib/cloudStyle.ts
 uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
 uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
 uniform vec3 uBoxMin;      // the part of the cube that is drawn: all of it, bar a tile's apron
 uniform vec3 uBoxMax;
+uniform sampler2D uColumn; // the strongest echo in each column, for tinted; see columnMax
+uniform vec4 uWorld;       // the cube's corner and size on the ground, in km of one frame for every tile
 
 out vec4 fragColour;
 
@@ -295,8 +325,11 @@ void marchMedium(vec3 origin, vec3 direction, float near, float far, bool cutFac
       alpha = clamp((here + there) * 1.05, 0.0, 1.0);
       colour *= 1.12;
     } else if (uStyle == 1) {
-      // Unlit: each reflectivity in its own colour, as on the radar beneath.
+      // Unlit: each reflectivity in its own colour, as on the radar beneath,
+      // and giving off more light than it stops, the more the stronger it is.
       alpha = clamp(density * stepKm * ${GLOW_OPACITY_PER_KM}, 0.0, 1.0);
+      float strength = clamp((field.x - uLow) / (uHigh - uLow), 0.0, 1.0);
+      colour *= mix(${GLOW_LIGHT[0]}, ${GLOW_LIGHT[1]}, strength * strength);
     } else {
       float lambert = 0.42 + 0.58 * max(dot(fieldNormal(p, dt), light), 0.0);
       alpha = clamp(density * stepKm * ${OPACITY_PER_KM}, 0.0, 1.0);
@@ -420,6 +453,171 @@ void marchShells(vec3 origin, vec3 direction, float near, float far, float dithe
   }
 }
 
+/*
+ * The sky and its tint: the storm as a white cloud in sunlight.
+ *
+ * Lit by a sun that casts shadows rather than by the field's gradient: a
+ * real cloud is white because light scatters through it, and grey where the
+ * rest of the cloud stands between it and the sun, which a gradient cannot
+ * say. So each sample looks towards the sun through a few more of the field,
+ * and up through two, for the open sky over it.
+ *
+ * Everything that differs between tiles is measured in the world, never in
+ * a tile's own cube, so the tiles of one storm agree at their seams: the sun
+ * is one direction in kilometres, the detail that breaks up the cloud's edge
+ * is a noise laid over the ground in one frame for all of them (uWorld), and
+ * the column's echo comes from the tile's own texture, which runs a voxel
+ * into each neighbour as the volume does. What a tile cannot know is its
+ * neighbour's cloud beyond that voxel: a shadow sample past the tile's side
+ * reads the edge of its own texture, held, which is close to the
+ * neighbour's for the kilometre or two a shadow reaches.
+ */
+
+/** Where the sun is, in kilometres: from the west, a little south of it, about 33 degrees up. */
+const vec3 SUN = vec3(-0.8, -0.25, 0.55);
+const vec3 SUNLIGHT = vec3(1.0, 0.97, 0.92);
+const vec3 SKYLIGHT = vec3(0.58, 0.65, 0.76);
+
+float hash3(vec3 p) {
+  p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+  p += dot(p, p.yxz + 33.33);
+  return fract((p.x + p.y) * p.z);
+}
+
+/** Smooth value noise, 0 to 1, a cell a unit across. */
+float noise3(vec3 p) {
+  vec3 i = floor(p);
+  vec3 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y),
+    f.z);
+}
+
+/** A point of the cube in kilometres of the world, the same frame in every tile. */
+vec3 worldKm(vec3 p) {
+  return vec3(uWorld.xy + p.xy * uWorld.zw, p.z * uExtentKm.z);
+}
+
+/**
+ * How much cloud a point is, for its shadows: the inner part of its edge
+ * only. The hull that is seen is the edge with billows eaten out of it
+ * (skyDensity), and shadows cast by the whole edge fell on it from cloud
+ * that was no longer there, which mottled every top grey.
+ */
+float skyBody(vec3 p) {
+  vec2 field = sampleField(p);
+  return smoothstep(mix(uLow, uHigh, 0.25), uHigh, field.x) * field.y;
+}
+
+/**
+ * How much cloud a point is, its edge broken into billows.
+ *
+ * The radar's field is smooth at the scale of a voxel, and a cloud drawn from
+ * it alone is a blob. Two octaves of noise, about 2.5 km and 800 m across,
+ * eat into its soft edge and leave its inside solid, so the hull is lumpy as
+ * a cumulus is and the storm keeps its shape. Only where the edge is: no
+ * noise is worked out inside the cloud or outside it.
+ */
+float skyDensity(vec3 p, vec2 field) {
+  float body = smoothstep(uLow, uHigh, field.x) * field.y;
+  if (body <= 0.0 || body >= 1.0) return body;
+  vec3 w = worldKm(p);
+  float n = 0.6 * noise3(w * vec3(0.4, 0.4, 0.5)) + 0.4 * noise3(w * vec3(1.3, 1.3, 1.5));
+  return clamp((body - 0.5 * n) / (1.0 - 0.5 * n), 0.0, 1.0);
+}
+
+/**
+ * The light that reaches a point of the cloud: the sun's, through what of
+ * the cloud stands between them, and the sky's, through what is overhead.
+ *
+ * Four samples towards the sun, spaced wider as they go out to 3 km, and two
+ * straight up: six lookups a step, what the cloud spends on its gradient.
+ */
+vec3 skyLight(vec3 p, float heightKm, float towardSun) {
+  vec3 sun = normalize(SUN);
+  float depth = 0.0;
+  float last = 0.0;
+  for (int k = 0; k < 4; k += 1) {
+    float at = 0.25 + 0.2375 * float(k * k + k);
+    depth += skyBody(p + sun * at / uExtentKm) * (at - last);
+    last = at;
+  }
+  depth *= ${SKY_SHADOW_PER_KM};
+  // Light scattered many times gets further into a cloud than the first
+  // bounce does: a second, fainter falloff keeps a deep shadow grey, not black.
+  float sunlit = 0.7 * exp(-depth) + 0.3 * exp(-0.15 * depth);
+  float over = (skyBody(p + vec3(0.0, 0.0, 0.6 / uExtentKm.z)) * 0.6
+    + skyBody(p + vec3(0.0, 0.0, 1.8 / uExtentKm.z)) * 1.2) * ${SKY_SHADOW_PER_KM};
+  // The sky lights the top of a cloud, and the ground, darker, its base. Not
+  // all of it from straight up: the side of a tower under its own top still
+  // sees half the sky, so what is overhead takes only some of it away.
+  float open = (0.45 + 0.55 * exp(-0.5 * over)) * mix(0.55, 1.0, clamp(heightKm / 9.0, 0.0, 1.0));
+  // A little brighter looking into the sun, where light comes through the edge.
+  float phase = 0.88 + 0.55 * pow(max(towardSun, 0.0), 6.0);
+  return SUNLIGHT * sunlit * phase * 1.25 + SKYLIGHT * open * 0.5;
+}
+
+/** The strongest echo in the column over this point of the ground, in dBZ. */
+float columnMax(vec3 p) {
+  return texture(uColumn, p.xy).r * 255.0 / uDbzScale + uDbzFloor;
+}
+
+/**
+ * The white cloud, and with uStyle 4 its hull tinted by the column under it.
+ *
+ * What it costs: per sample that is cloud, the six lookups of its light
+ * (what the cloud spends on its gradient), one of a 2D texture for the
+ * tint, and two octaves of noise, arithmetic only, where the edge is. And
+ * it stops sooner: nearly opaque, a ray is done a few hundred metres into
+ * the cloud, where the cloud's runs on through kilometres of it.
+ */
+void marchSky(vec3 origin, vec3 direction, float near, float far, bool cutFace, float dither) {
+  float count = clamp(ceil((far - near) * uSteps), 4.0, uSteps);
+  float dt = (far - near) / count;
+  float stepKm = dt * length(direction * uExtentKm);
+  float towardSun = dot(normalize(direction * uExtentKm), normalize(SUN));
+  bool tinted = uStyle == 4;
+
+  for (float i = 0.0; i < uSteps; i += 1.0) {
+    if (i >= count) break;
+    vec3 p = origin + direction * (near + dt * (i + dither));
+    vec2 field = sampleField(p);
+    if (cutFace && i < 1.0) {
+      // The face of a cut is the radar's, as in every style: it is what a cut is for.
+      vec2 behind = sampleField(p + direction * dt * 0.5);
+      float here = smoothstep(uLow, uHigh, field.x) * field.y;
+      float there = smoothstep(uLow, uHigh, behind.x) * behind.y;
+      float alpha = clamp((here + there) * 1.05, 0.0, 1.0);
+      if (alpha <= 0.002) continue;
+      if (!wrote) {
+        gl_FragDepth = depthOf(p);
+        wrote = true;
+      }
+      lay(paint(field.x) * 1.12, alpha);
+      continue;
+    }
+    float density = skyDensity(p, field);
+    if (density <= 0.002) continue;
+    if (!wrote) {
+      gl_FragDepth = depthOf(p);
+      wrote = true;
+    }
+    vec3 colour = skyLight(p, p.z * uExtentKm.z, towardSun);
+    if (tinted) {
+      // One more lookup a step, of a small 2D texture; see hullTint.
+      float dbz = columnMax(p);
+      float t = clamp((dbz - ${HULL_TINT.from}.0) / ${HULL_TINT.full - HULL_TINT.from}.0, 0.0, 1.0);
+      colour *= mix(vec3(1.0), paint(dbz), ${HULL_TINT.strength} * t * t * (3.0 - 2.0 * t));
+    }
+    // Exposed as film is: a sunlit top just short of white, a shadow grey.
+    colour = 1.0 - exp(-2.4 * colour);
+    lay(colour, 1.0 - exp(-density * stepKm * ${SKY_OPACITY_PER_KM}));
+    if (accumulated.a > 0.985) break;
+  }
+}
+
 void main() {
   vec2 ndc = (gl_FragCoord.xy / uViewport) * 2.0 - 1.0;
   vec3 origin = unproject(ndc, -1.0);
@@ -450,6 +648,7 @@ void main() {
 
   float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
   if (uStyle == 2) marchShells(origin, direction, near, far, dither);
+  else if (uStyle >= 3) marchSky(origin, direction, near, far, cutFace, dither);
   else marchMedium(origin, direction, near, far, cutFace, dither);
 
   if (!wrote) discard;
@@ -587,6 +786,52 @@ function coreDbz(cutaway: Cutaway): number {
     if (remaining <= 0) break;
   }
   return Math.max(DBZ_LOW, byte / header.dbz_scale + header.dbz_floor - PEEL_BAND);
+}
+
+/**
+ * The strongest echo aloft in each column of a storm's box, from
+ * `HULL_TINT.aloftKm` up, as the stored byte: what `tinted` colours its hull
+ * by, x across and y down a texture as big as the box's floor.
+ *
+ * Worked out from the volume itself rather than fetched as a product of its
+ * own: nothing more to load, and it stands exactly under the cloud it
+ * colours, apron and all, so neighbouring tiles agree at their seam as their
+ * volumes do. An echo the radars saw poorly counts for 20 dBZ less, as the
+ * shells take it, or a smear of interpolation at the edge of coverage tints
+ * a hull as a core would. Then softened over the eight neighbours of each
+ * column, a voxel's width each way: a column maximum is speckled at the
+ * scale of a voxel, which on a hull reads as grain, not as a storm. At a
+ * tile's side the softening has only its own apron to go on, so there the
+ * two tiles can differ by a fraction of a voxel's echo.
+ */
+export function columnMax(cutaway: Pick<Cutaway, "header" | "voxels">): Uint8Array {
+  const { voxels, header } = cutaway;
+  const { nx, ny, nz } = header;
+  const plane = nx * ny;
+  const unseen = 20 * header.dbz_scale;
+  const peak = new Float32Array(plane);
+  // The first layer whose middle is aloft.
+  const lowest = Math.max(0, Math.ceil((HULL_TINT.aloftKm * 1000) / header.step_m[2] - 0.5));
+  for (let z = lowest, at = lowest * plane * 2; z < nz; z += 1) {
+    for (let i = 0; i < plane; i += 1, at += 2) {
+      const value = voxels[at] - (1 - voxels[at + 1] / 255) * unseen;
+      if (value > peak[i]) peak[i] = value;
+    }
+  }
+  const soft = new Uint8Array(plane);
+  for (let y = 0; y < ny; y += 1) {
+    for (let x = 0; x < nx; x += 1) {
+      let sum = 0;
+      for (let dy = -1; dy <= 1; dy += 1) {
+        const row = Math.min(Math.max(y + dy, 0), ny - 1) * nx;
+        for (let dx = -1; dx <= 1; dx += 1) {
+          sum += peak[row + Math.min(Math.max(x + dx, 0), nx - 1)] * (2 - Math.abs(dx)) * (2 - Math.abs(dy));
+        }
+      }
+      soft[y * nx + x] = Math.round(sum / 16);
+    }
+  }
+  return soft;
 }
 
 /**
@@ -764,6 +1009,8 @@ interface Cloud {
   /** Whether it peels when not cut; see `setClouds`. */
   peels: boolean;
   texture: WebGLTexture | null;
+  /** The strongest echo in each of its columns, for `tinted`; made the first time that style draws it. */
+  column: WebGLTexture | null;
 }
 
 export interface CloudsLayer extends CustomLayerInterface {
@@ -920,6 +1167,26 @@ export function makeCloudsLayer(
     return texture;
   }
 
+  /** A storm's column maximum (`columnMax`) as a texture, for `tinted`. */
+  function uploadColumn(context: WebGL2RenderingContext, cutaway: Cutaway): WebGLTexture {
+    const texture = context.createTexture()!;
+    context.bindTexture(context.TEXTURE_2D, texture);
+    context.pixelStorei(context.UNPACK_ALIGNMENT, 1);
+    context.texImage2D(context.TEXTURE_2D, 0, context.R8, cutaway.header.nx, cutaway.header.ny, 0,
+      context.RED, context.UNSIGNED_BYTE, columnMax(cutaway));
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_S, context.CLAMP_TO_EDGE);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_WRAP_T, context.CLAMP_TO_EDGE);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.LINEAR);
+    context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.LINEAR);
+    return texture;
+  }
+
+  /** Let go of a storm's column texture, if it has one. */
+  function dropColumn(context: WebGL2RenderingContext | null, cloud: Cloud | undefined): void {
+    if (context && cloud?.column) context.deleteTexture(cloud.column);
+    if (cloud) cloud.column = null;
+  }
+
   return {
     id,
     type: "custom",
@@ -930,6 +1197,7 @@ export function makeCloudsLayer(
       for (const [key, cloud] of clouds) {
         if (wanted.has(key)) continue;
         if (gl && cloud.texture) gl.deleteTexture(cloud.texture);
+        dropColumn(gl, cloud);
         clouds.delete(key);
       }
       for (const { key, cutaway, dim = 1, peels = true, system = null } of next) {
@@ -942,6 +1210,7 @@ export function makeCloudsLayer(
           continue;
         }
         if (kept?.texture && gl) gl.deleteTexture(kept.texture);
+        dropColumn(gl, kept);
         // Steps are counted on the tile, so a step is the same length in every box.
         const tile = drawnPart(cutaway.header);
         const across = Math.max(
@@ -963,6 +1232,7 @@ export function makeCloudsLayer(
           dim,
           peels,
           texture: gl ? upload(gl, cutaway) : null,
+          column: null,
         });
       }
       const storms = stormsOf([...clouds].map(([key, { cutaway: { header }, system, edges }]) => [
@@ -1057,6 +1327,9 @@ export function makeCloudsLayer(
       context.bindTexture(context.TEXTURE_2D, rampTexture);
       context.uniform1i(at("uRamp"), 1);
       context.uniform1i(at("uVolume"), 0);
+      // A unit of its own whether or not the style reads it: two samplers of
+      // different kinds on one unit fail the draw.
+      context.uniform1i(at("uColumn"), 2);
       context.uniform2f(at("uViewport"), width, height);
       // Whatever MapLibre has set for this layer; see "Depth" above.
       const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
@@ -1115,6 +1388,16 @@ export function makeCloudsLayer(
         context.uniform1f(at("uSteps"), cloud.steps);
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
+        if (style === "sky" || style === "tinted") {
+          const { model } = cloud;
+          context.uniform4f(at("uWorld"), model[12] * NOISE_KM_PER_MERCATOR, model[13] * NOISE_KM_PER_MERCATOR,
+            model[0] * NOISE_KM_PER_MERCATOR, model[5] * NOISE_KM_PER_MERCATOR);
+        }
+        if (style === "tinted") {
+          context.activeTexture(context.TEXTURE2);
+          cloud.column ??= uploadColumn(context, cloud.cutaway);
+          context.bindTexture(context.TEXTURE_2D, cloud.column);
+        }
 
         // Not the storm a reader opened, nor the clouds its cut reaches: a
         // cut shows the envelope the peel would take away.
@@ -1142,6 +1425,7 @@ export function makeCloudsLayer(
       for (const cloud of clouds.values()) {
         if (cloud.texture) context.deleteTexture(cloud.texture);
         cloud.texture = null;
+        dropColumn(context, cloud);
       }
       if (rampTexture) context.deleteTexture(rampTexture);
       if (program) context.deleteProgram(program);

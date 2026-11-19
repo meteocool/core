@@ -89,7 +89,11 @@
     "glow": "Helendus",
     "glow_body": "Läbipaistev valgus alates nõrgimast kajast, iga tugevus oma värviga.",
     "shells": "Koored",
-    "shells_body": "Pind iga 10 dBZ järel, üksteise sees nagu sibula kihid."
+    "shells_body": "Pind iga 10 dBZ järel, üksteise sees nagu sibula kihid.",
+    "sky": "Taevas",
+    "sky_body": "Valge pilv, nagu satelliit seda näeb, päikesest valgustatud. Läbi lõigatuna näitab see radari värve.",
+    "tinted": "Toonitud",
+    "tinted_body": "Valge pilv, toonitud seal, kus kaja kõrgel on tugev."
   },
   "time_3d": {
     "choose": "Näita äikesi varasemal ajal",

@@ -1,12 +1,13 @@
 <script lang="ts">
 /**
- * How the 3D map draws its storms (a lit cloud, see-through light or nested
- * shells; lib/cloudStyle.ts), picked here in the peel's tray along the
- * bottom edge (PeelSlider).
+ * How the 3D map draws its storms (a lit cloud, a white cloud plain or
+ * tinted, or see-through light; lib/cloudStyle.ts), picked here in the
+ * peel's tray along the bottom edge (PeelSlider). Only the styles the map
+ * offers: the shells are Studio's.
  *
- * The pill is the picture of the style on the map, in the palette the storms
- * are painted in, and no word: the tray is a slider and two pills on a
- * phone's width. The menu names each and says what it is for.
+ * The pill is the picture of the style on the map (StyleGlyph), in the
+ * palette the storms are painted in, and no word: the tray is a slider and
+ * two pills on a phone's width. The menu names each and says what it is for.
  *
  * It writes the `layer3dStyle` setting, as the settings dialog does, so the
  * choice is kept across visits.
@@ -16,9 +17,9 @@
  */
 import { tick } from "svelte";
 import { _ } from "svelte-i18n";
-import { cloudStyle, radarColormap } from "../stores";
-import { CLOUD_STYLES, type CloudStyle } from "../lib/cloudStyle";
-import { dbzColour } from "../lib/cellVolume";
+import { cloudStyle } from "../stores";
+import { MAP_STYLES, type CloudStyle } from "../lib/cloudStyle";
+import StyleGlyph from "./StyleGlyph.svelte";
 
 /** Space kept between the menu and the window's edges, and above the control. */
 const MARGIN = 8;
@@ -28,9 +29,6 @@ let trigger: HTMLButtonElement;
 let menu: HTMLDivElement | undefined;
 let left = 0;
 let bottom = 0;
-
-/* A storm as three nested levels, envelope to core, as the guide draws one. */
-$: levels = [30, 45, 58].map((dbz) => `rgb(${dbzColour(dbz, $radarColormap).join(", ")})`);
 
 async function show() {
   const rect = trigger.getBoundingClientRect();
@@ -85,29 +83,6 @@ function portal(node: HTMLElement) {
 }
 </script>
 
-<!-- One storm in a style, in a 32x24 box: soft and shaded, blurred light, or hard-edged shells. -->
-{#snippet picture(style: CloudStyle)}
-  <svg class="picture" viewBox="0 0 32 24" aria-hidden="true">
-    {#if style === "cloud"}
-      <ellipse cx="16" cy="13" rx="13" ry="9" fill={levels[0]} opacity="0.55" />
-      <ellipse cx="15" cy="12" rx="8" ry="6" fill={levels[1]} opacity="0.8" />
-      <ellipse cx="14.5" cy="11" rx="3.8" ry="3.2" fill={levels[2]} />
-    {:else if style === "glow"}
-      <g class="lit">
-        <ellipse cx="16" cy="12.5" rx="11" ry="7.5" fill={levels[0]} />
-        <ellipse cx="15.5" cy="12" rx="6.5" ry="4.8" fill={levels[1]} />
-        <ellipse cx="15" cy="11.5" rx="3" ry="2.6" fill={levels[2]} />
-      </g>
-    {:else}
-      <g class="hard">
-        <ellipse cx="16" cy="12.5" rx="13" ry="9" fill={levels[0]} />
-        <ellipse cx="15.5" cy="12.5" rx="8.5" ry="6" fill={levels[1]} />
-        <ellipse cx="15" cy="12.5" rx="4" ry="3" fill={levels[2]} />
-      </g>
-    {/if}
-  </svg>
-{/snippet}
-
 <svelte:window on:pointerdown={outside} on:keydown={keydown} on:resize={() => close()} />
 
 <button
@@ -119,7 +94,7 @@ function portal(node: HTMLElement) {
   title={$_("style_3d.choose")}
   aria-label={$_("style_3d.aria", { values: { style: $_(`style_3d.${$cloudStyle}`) } })}
   on:click={() => (open ? close() : show())}>
-  {@render picture($cloudStyle)}
+  <StyleGlyph style={$cloudStyle} small />
 </button>
 
 {#if open}
@@ -132,14 +107,14 @@ function portal(node: HTMLElement) {
     style:left={`${left}px`}
     style:bottom={`${bottom}px`}>
     <div class="heading">{$_("style_3d.title")}</div>
-    {#each CLOUD_STYLES as style (style)}
+    {#each MAP_STYLES as style (style)}
       <button
         type="button"
         role="menuitemradio"
         class="option"
         aria-checked={$cloudStyle === style}
         on:click={() => choose(style)}>
-        {@render picture(style)}
+        <StyleGlyph {style} />
         <span class="text">
           <span class="name">{$_(`style_3d.${style}`)}</span>
           <span class="what">{$_(`style_3d.${style}_body`)}</span>
@@ -168,25 +143,6 @@ function portal(node: HTMLElement) {
   .pill:hover { background: var(--mc-tint-hover); }
   .pill:active { transform: scale(var(--mc-press)); }
   .pill:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
-  .pill .picture {
-    width: 24px;
-    height: 18px;
-  }
-
-  .picture {
-    flex: none;
-    width: 32px;
-    height: 24px;
-    overflow: visible;
-  }
-  .picture .lit {
-    filter: blur(1.6px) saturate(1.3);
-  }
-  .picture .hard ellipse {
-    stroke: rgba(0, 0, 0, 0.45);
-    stroke-width: 0.9;
-  }
-
   .menu {
     position: fixed;
     z-index: var(--mc-z-dialog);

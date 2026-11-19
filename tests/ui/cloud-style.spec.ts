@@ -32,24 +32,34 @@ test("the tray's pill picks the style, which is kept and written into the link",
 
   await stylePill(page).click();
   const options = styleMenu(page).getByRole("menuitemradio");
-  await expect(options).toHaveCount(3);
-  await expect(options.filter({ hasText: "Cloud" })).toHaveAttribute("aria-checked", "true");
-  await options.filter({ hasText: "Shells" }).click();
+  const option = (name: string) => styleMenu(page).getByRole("menuitemradio", { name: new RegExp(`^${name}\\b`) });
+  // Every style the map offers; the shells are Studio's.
+  await expect(options).toHaveCount(4);
+  await expect(option("Shells")).toHaveCount(0);
+  await expect(option("Cloud")).toHaveAttribute("aria-checked", "true");
+  await option("Tinted").click();
 
   await expect(styleMenu(page)).toBeHidden();
-  await expect(stylePill(page)).toHaveAccessibleName("Storm style: Shells");
-  await expect(page).toHaveURL(/[?&]style=shells(&|$)/);
-  expect(await stored(page)).toBe("shells");
+  await expect(stylePill(page)).toHaveAccessibleName("Storm style: Tinted");
+  await expect(page).toHaveURL(/[?&]style=tinted(&|$)/);
+  expect(await stored(page)).toBe("tinted");
 
   // The reader's own from here on: a visit without a link opens in it.
   await openTray(page, MAP_3D);
-  await expect(stylePill(page)).toHaveAccessibleName("Storm style: Shells");
+  await expect(stylePill(page)).toHaveAccessibleName("Storm style: Tinted");
 });
 
 test("a link's style is shown without becoming the reader's own", async ({ page }) => {
-  await openTray(page, `${MAP_3D}&style=glow`);
-  await expect(stylePill(page)).toHaveAccessibleName("Storm style: Glow");
+  await openTray(page, `${MAP_3D}&style=sky`);
+  await expect(stylePill(page)).toHaveAccessibleName("Storm style: Sky");
   expect(await stored(page)).toBeNull();
+});
+
+test("outside Studio, a setting or a link naming the shells shows the map's default", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("layer3dStyle", "shells"));
+  await openTray(page, `${MAP_3D}&style=shells`);
+  await expect(stylePill(page)).toHaveAccessibleName("Storm style: Cloud");
+  await expect(page).toHaveURL(/[?&]style=cloud(&|$)/);
 });
 
 test("the style's pill stands in the tray beside the slider, neither over the other", async ({ page }) => {

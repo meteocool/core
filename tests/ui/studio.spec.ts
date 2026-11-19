@@ -196,8 +196,12 @@ test.describe("on a desktop", () => {
     // How the storms are drawn is picked here too, where the map's own pill is put away.
     await panel(page).getByRole("radio", { name: "Shells" }).click();
     await expect(page).toHaveURL(/[?&]style=shells/);
-    // Out of Studio, the map has its own lens again.
+    await expect(panel(page).getByRole("radio", { name: "Shells" })).toHaveAttribute("aria-checked", "true");
+    // The shells say nothing until something cuts them, and with no plane the panel says so.
+    await expect(panel(page)).toContainText("add a section plane");
+    // Out of Studio, the map has its own lens again, and its own style: the shells are Studio's.
     await panel(page).getByRole("button", { name: "Close" }).click();
+    await expect(page).toHaveURL(/[?&]style=cloud/);
     await expect.poll(async () => (await camera()).fov).toBeCloseTo(36.87, 1);
     expect(await page.evaluate(() => (window as any).lm.getCapability("cells3d").gl.getMaxPitch() as number)).toBe(84);
   });

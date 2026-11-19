@@ -89,7 +89,11 @@
     "glow": "Švytėjimas",
     "glow_body": "Permatoma šviesa nuo silpniausio aido, kiekvienas stiprumas savo spalva.",
     "shells": "Lukštai",
-    "shells_body": "Paviršius kas 10 dBZ, vienas kitame kaip svogūno lukštai."
+    "shells_body": "Paviršius kas 10 dBZ, vienas kitame kaip svogūno lukštai.",
+    "sky": "Dangus",
+    "sky_body": "Baltas debesis, kokį jį mato palydovas, apšviestas saulės. Perpjautas jis rodo radaro spalvas.",
+    "tinted": "Atspalvintas",
+    "tinted_body": "Baltas debesis, atspalvintas ten, kur aidas aukštai yra stiprus."
   },
   "time_3d": {
     "choose": "Rodyti audras ankstesniu laiku",

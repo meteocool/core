@@ -89,7 +89,11 @@
     "glow": "Leuchten",
     "glow_body": "Durchscheinendes Licht ab dem schwächsten Echo, jede Stärke in ihrer eigenen Farbe.",
     "shells": "Schalen",
-    "shells_body": "Eine Fläche alle 10 dBZ, ineinander wie die Schalen einer Zwiebel."
+    "shells_body": "Eine Fläche alle 10 dBZ, ineinander wie die Schalen einer Zwiebel.",
+    "sky": "Himmel",
+    "sky_body": "Eine weiße Wolke, wie ein Satellit sie sieht, von der Sonne beleuchtet. Aufgeschnitten zeigt sie die Farben des Radars.",
+    "tinted": "Getönt",
+    "tinted_body": "Die weiße Wolke, getönt, wo das Echo in der Höhe stark ist."
   },
   "time_3d": {
     "choose": "Gewitter zu einer früheren Zeit zeigen",

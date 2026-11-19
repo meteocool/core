@@ -8,7 +8,7 @@ import {
   playbackFromStart, radarColormap, terrain3dVisible,
 } from "../stores";
 import { isHandheld } from "../lib/gpuBudget";
-import { CLOUD_STYLES, type CloudStyle } from "../lib/cloudStyle";
+import { MAP_STYLES, type CloudStyle } from "../lib/cloudStyle";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
 import { archiveWindow } from "../stores";
@@ -376,7 +376,7 @@ function setPlaybackFromStart(value: boolean) {
   {#if offers3d}
     <h2 id="settings-style-3d">{$_("settings.map_3d")}: {$_("style_3d.title")}</h2>
     <div class="group" role="radiogroup" aria-labelledby="settings-style-3d">
-      {#each CLOUD_STYLES as style (style)}
+      {#each MAP_STYLES as style (style)}
         <button
           type="button"
           class="row"

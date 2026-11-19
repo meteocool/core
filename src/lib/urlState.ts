@@ -690,6 +690,8 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
           openStudio();
         }
         peelLevel.set(studio.still.peel);
+        // The scene's style, a Studio-only one too, which the setting would not take.
+        if (get(cloudStyle) !== studio.still.style) cloudStyle.set(studio.still.style);
         cells3d?.setStudioCamera(studio.still.camera);
       } else if (!opening) {
         closeStudio();
