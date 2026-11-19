@@ -13,9 +13,9 @@ import { get } from "svelte/store";
 import { cloudStyle, cloudsTime, peelLevel, peelManual } from "../../stores";
 import { currentLocale, t } from "../../locale/t";
 import {
-  keyframeAt, orbitScene, sample, scansOf, timelapseScene, withKeyframe, withoutKeyframe,
+  keyframeAt, orbitScene, pairsOf, sample, SCAN_SECONDS, scansOf, timelapseScene, withKeyframe, withoutKeyframe,
 } from "./scene";
-import type { Scene, SceneState, StudioCamera } from "./scene";
+import type { Moment, Scene, SceneState, StudioCamera } from "./scene";
 import { viewCamera } from "./camera";
 import type { ViewName } from "./camera";
 import logoUrl from "../../assets/logo.svg";
@@ -31,6 +31,8 @@ export interface Stage {
   setStudioCamera(camera: StudioCamera): void;
   easeStudioCamera(camera: Partial<Pick<StudioCamera, "pitch" | "bearing" | "zoom">>, ms?: number): void;
   stageScan(scan: number | null): Promise<boolean>;
+  blendScans(blend: { from: number; to: number; fraction: number } | null): void;
+  prepareBlend(from: number, to: number): void;
   setDirected(on: boolean): void;
   newestScan3D(): number | null;
   canvas(): HTMLCanvasElement | null;
@@ -52,6 +54,12 @@ export class Director {
 
   /** The running playback, so a newer one or a pause ends it. */
   private playing: symbol | null = null;
+
+  /** Whether `load` is putting the scene's scans on the map one by one. */
+  private loading = false;
+
+  /** The time the storms on the map are at, between two scans; null when they stand on one. */
+  private moment: number | null = null;
 
   private recording: Recording | null = null;
 
@@ -77,8 +85,11 @@ export class Director {
     };
   }
 
-  /** Put a moment of a scene on the map. */
-  apply(state: SceneState): void {
+  /**
+   * Put a moment of a scene on the map: between two scans, the scan the
+   * storms set off from, and both drawn at once as far on as the moment is.
+   */
+  apply(state: Moment): void {
     this.stage.setStudioCamera(state.camera);
     if (get(studioFov) !== state.camera.fov) studioFov.set(state.camera.fov);
     // Only when they differ: every write redraws their sheets and handles.
@@ -87,11 +98,23 @@ export class Director {
     if (get(peelLevel) !== state.peel) peelLevel.set(state.peel);
     // The store, not the setting: a scene's style is the scene's, not the reader's choice for next time.
     if (get(cloudStyle) !== state.style) cloudStyle.set(state.style);
-    this.showScan(state.scan);
+    void this.stageScan(state.scan);
+    // Not while loading: each scan is put on the map alone then, to be drawn with its neighbours after.
+    const { toward } = state;
+    this.moment = toward && state.scan !== null ? state.scan + toward.fraction * SCAN_SECONDS : null;
+    this.stage.blendScans(toward && state.scan !== null && !this.loading
+      ? { from: state.scan, to: toward.scan, fraction: toward.fraction }
+      : null);
   }
 
-  /** Put a scan's storms on the map; whether it is there once everything of it has loaded. */
+  /** Put one scan's storms on the map, alone; whether it is there once everything of it has loaded. */
   showScan(scan: number | null): Promise<boolean> {
+    this.moment = null;
+    this.stage.blendScans(null);
+    return this.stageScan(scan);
+  }
+
+  private stageScan(scan: number | null): Promise<boolean> {
     if (scan === this.asked) return Promise.resolve(true);
     this.asked = scan;
     return this.stage.stageScan(scan).then((shown) => {
@@ -164,21 +187,37 @@ export class Director {
   async load(): Promise<boolean> {
     const scene = get(studioScene);
     const scans = scansOf(scene).filter(({ scan }) => !this.ready.has(scan));
-    if (!scans.length) return true;
+    // And the storms' motion between each two, worked out now rather than on the frame each pair comes up.
+    const prepare = () => {
+      for (const { from, to } of pairsOf(scene)) this.stage.prepareBlend(from, to);
+    };
+    if (!scans.length) {
+      prepare();
+      return true;
+    }
     const token = Symbol("load");
     this.playing = token;
     this.stage.setDirected(true);
+    this.loading = true;
+    // Where the reader had the playhead, for the scene to be back at once loaded.
+    const playhead = get(studioPlayhead);
     try {
       for (const [index, { scan, at }] of scans.entries()) {
         studioLoading.set({ done: index, of: scans.length });
         this.seek(at);
-        // `seek` asked for it; this is the same scan, awaited.
+        // `seek` asked for the scan the storms set off from, which may be
+        // the one before this; this one, awaited.
         this.asked = undefined;
-        await this.showScan(scan);
+        await this.stageScan(scan);
         if (this.playing !== token) return false;
       }
+      prepare();
+      // Loading walked the playhead through the scene; it goes back where it was.
+      this.loading = false;
+      this.seek(playhead);
       return true;
     } finally {
+      this.loading = false;
       studioLoading.set(null);
       if (this.playing === token) {
         this.playing = null;
@@ -190,12 +229,17 @@ export class Director {
   /**
    * Play the scene from the playhead to its end, or from its start if the
    * playhead is at the end. Loads its scans first.
+   *
+   * From where the playhead was before the load: loading leaves it on the
+   * last scan it loaded, and the first play of a time-lapse played its last
+   * second.
    */
   async play(): Promise<void> {
     const scene = get(studioScene);
     if (!scene.keyframes.length) return;
+    const playhead = get(studioPlayhead);
     if (!(await this.load())) return;
-    const from = get(studioPlayhead) >= scene.duration - 1e-3 ? 0 : get(studioPlayhead);
+    const from = playhead >= scene.duration - 1e-3 ? 0 : playhead;
     await this.run(from, () => {});
   }
 
@@ -279,10 +323,14 @@ export class Director {
     return true;
   }
 
-  /** The time of the scan on the map, as a recording says it: the reader's own date and clock. */
+  /**
+   * The time of the storms on the map, as a recording says it: the reader's
+   * own date and clock, running on through the minutes between two scans as
+   * the storms do.
+   */
   private caption(): string {
     const { shown, newest } = get(cloudsTime);
-    const scan = shown ?? newest;
+    const scan = this.moment ?? shown ?? newest;
     if (scan === null) return "";
     return new Date(scan * 1000).toLocaleString(currentLocale(), {
       year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,

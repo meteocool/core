@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  decodeStudio, DEFAULT_FOV, emptyScene, encodeStudio, keyframeAt, ORBIT_DURATION, orbitScene, sample, scansOf,
+  decodeStudio, DEFAULT_FOV, emptyScene, encodeStudio, keyframeAt, ORBIT_DURATION, orbitScene, pairsOf, sample, scansOf,
   STUDIO_MAX_PITCH,
   timelapseScene, unwound, withDuration, withKeyframe, withoutKeyframe,
 } from "../../src/lib/studio/scene.ts";
@@ -131,10 +131,40 @@ test("the scan runs evenly between two keyframes, on the radar's five-minute clo
   assert.ok(scans.every(({ at }, i) => i === 0 || at > scans[i - 1].at));
 });
 
+test("between two scans the storms are on their way from one to the next, continuously", () => {
+  const scene = timelapseScene(state(), SCAN - 3600, SCAN, 12);
+  // Twelve intervals in twelve seconds: a second each.
+  assert.deepEqual(sample(scene, 6.4)!.toward, { scan: SCAN - 1500, fraction: sample(scene, 6.4)!.toward!.fraction });
+  near(sample(scene, 6.4)!.toward!.fraction, 0.4, 1e-9);
+  near(sample(scene, 6.95)!.toward!.fraction, 0.95, 1e-9);
+  // On a scan, and at either end, they stand on it.
+  assert.equal(sample(scene, 0)!.toward, null);
+  assert.equal(sample(scene, 6)!.toward, null);
+  assert.equal(sample(scene, 12)!.toward, null);
+  // The time the storms are at never jumps: each frame a little on from the last.
+  let before = SCAN - 3600;
+  for (let at = 0; at <= 12; at += 0.01) {
+    const moment = sample(scene, at)!;
+    const time = moment.scan! + (moment.toward ? moment.toward.fraction * 300 : 0);
+    assert.ok(time >= before - 1e-6 && time - before < 300 * 0.011 + 1e-6, `${at}s: ${time} after ${before}`);
+    before = time;
+  }
+  // The scan the storms are on their way to is loaded with the one they leave.
+  const scans = scansOf(scene);
+  assert.equal(scans[1].scan, SCAN - 3300);
+  assert.ok(scans[1].at < 1, String(scans[1].at));
+  // Twelve pairs, each a scan and the next, in order.
+  const pairs = pairsOf(scene);
+  assert.equal(pairs.length, 12);
+  assert.deepEqual(pairs[0], { from: SCAN - 3600, to: SCAN - 3300 });
+  assert.deepEqual(pairs[11], { from: SCAN - 300, to: SCAN });
+});
+
 test("to or from the newest scan there is no clock to run on, so the scan holds", () => {
   let scene = withKeyframe(emptyScene(), keyframe(0, { scan: SCAN - 600 }));
   scene = withKeyframe(scene, keyframe(10, { scan: null }));
   assert.equal(sample(scene, 9.9)!.scan, SCAN - 600);
+  assert.equal(sample(scene, 9.9)!.toward, null);
   assert.equal(sample(scene, 10)!.scan, null);
   assert.deepEqual(scansOf(orbitScene(state({ scan: null }))).map(({ scan }) => scan), [null]);
 });

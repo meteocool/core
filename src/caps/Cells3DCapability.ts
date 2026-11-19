@@ -4,7 +4,7 @@ import { circular as circularPolygon } from "ol/geom/Polygon";
 import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
-  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, MapGeoJSONFeature, Marker,
+  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, MapGeoJSONFeature, Marker, RasterLayerSpecification,
   StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
@@ -77,6 +77,8 @@ import type { Place, Quarter, ScanFinds } from "../lib/cloudHistory";
 import { networkAt } from "../layers/networkAt";
 import { defaultPeel } from "../lib/peel";
 import { handOver } from "../lib/volumeHandover";
+import { cloudMotion, columnDepth } from "../lib/cloudMotion";
+import type { Motion } from "../lib/cloudMotion";
 import type { Placed } from "../lib/volumeHandover";
 import { FetchRetries } from "../lib/fetchRetries";
 import { makeStudioPlanesLayer } from "../layers/studioPlanesLayer";
@@ -266,6 +268,24 @@ const STRIKE_SOURCE = "strikes";
 
 /** One EUMETNET network's draped composite: its source and its layer share the id. */
 const networkLayerId = (code: NetworkCode) => `radar-${code}`;
+
+/**
+ * The drape's two sets of layers: the first always there, the second, over
+ * it, only while Studio blends two scans; see `applyDrapeBlend`.
+ */
+type DrapeSlot = 0 | 1;
+const DRAPE_SLOTS: readonly DrapeSlot[] = [0, 1];
+/** A draped layer's id in a set: the first set's are the ids they always had. */
+const drapeLayerId = (id: string, slot: DrapeSlot) => (slot ? `${id}-next` : id);
+/**
+ * How many steps the drape's crossfade between two scans takes. Not every
+ * frame: on the terrain, a draped raster whose opacity changes has every
+ * tile of the ground drawn again under it, which took a frame of a blend
+ * from 9 ms to 24 on the demo's storms. In eight, each step is an eighth of
+ * a third of the drape's opacity, which reads as a fade under the clouds,
+ * and a time-lapse of a second a scan pays for eight frames of sixty.
+ */
+const DRAPE_STEPS = 8;
 
 /** Which tier a volume is in: what the list says, else what its own header says, else openable. */
 const tierOf = (listed: { tier?: number }, cutaway: Cutaway) => listed.tier ?? cutaway.header.tier ?? 2;
@@ -506,6 +526,15 @@ interface PastRadar {
   networks: Partial<Record<NetworkCode, RadarFrame>>;
 }
 
+/** A volume as the clouds layer takes it. */
+interface StudioCloud {
+  key: string;
+  cutaway: Cutaway;
+  system: string | null;
+  dim: number;
+  peels: boolean;
+}
+
 /** An earlier scan on the map in place of the newest; see `showScan`. */
 interface PastScan {
   /** On DWD's clock, as the picker has it. */
@@ -611,7 +640,13 @@ export default class Cells3DCapability extends Capability {
   private radarIndex: TileIndex | null | undefined = undefined;
 
   /** The `masked://` registration of that frame; see `ensureRadar`. */
-  private radarMask: { url: string; palette: string; key: string; tiles: string } | null = null;
+  private radarMasks: Array<{ url: string; palette: string; key: string; tiles: string } | null> = [null, null];
+
+  /** The scans the drape's two sets of layers show while Studio blends two; see `applyDrapeBlend`. */
+  private drapeSlots: [Scan, Scan] | null = null;
+
+  /** Each set's opacity. */
+  private drapeOpacity: [number, number] = [RADAR_OPACITY, 0];
 
   /** The scan of that frame; see lib/scans.ts. */
   private radarScan: Scan | null = null;
@@ -620,7 +655,7 @@ export default class Cells3DCapability extends Capability {
   private networkFrames: Partial<Record<NetworkCode, RadarFrame>> = {};
 
   /** Each network's `masked://` registration, by the frame it was made for. */
-  private networkMasks: Partial<Record<NetworkCode, { tileId: string; palette: string; key: string; tiles: string }>> = {};
+  private networkMasks: Array<Partial<Record<NetworkCode, { tileId: string; palette: string; key: string; tiles: string }>>> = [{}, {}];
 
   /**
    * The flat map's strike buffer, read rather than duplicated.
@@ -834,6 +869,22 @@ export default class Cells3DCapability extends Capability {
   private studioHeld = new Map<string, Cutaway>();
 
   private studioHeldBytes = 0;
+
+  /**
+   * What each scan put on the map when it was last the one shown in Studio,
+   * of the volumes held: what it looks like, from where the scene had the
+   * camera then, for `blendScans` to draw it with its neighbour.
+   */
+  private studioDrawn = new Map<Scan, StudioCloud[]>();
+
+  /** Two scans drawn at once, and how far between them; see `blendScans`. */
+  private blend: { from: Scan; to: Scan; fraction: number } | null = null;
+
+  /** Whether the layer is drawing that blend, which it is once both scans are in `studioDrawn`. */
+  private blending = false;
+
+  /** The storms' motion between each pair of scans blended, by `from:to`; see lib/cloudMotion.ts and `prepareBlend`. */
+  private blendMotions = new Map<string, Motion>();
 
   /** A Studio camera asked for before there was a map to stand it on: a link that opens in Studio. */
   private requestedStudioCamera: StudioCamera | null = null;
@@ -1514,10 +1565,7 @@ export default class Cells3DCapability extends Capability {
     this.unmiddleDrag = null;
     gl.remove();
     this.gl = null;
-    forgetMaskedTiles(this.radarMask?.key);
-    this.radarMask = null;
-    for (const mask of Object.values(this.networkMasks)) forgetMaskedTiles(mask?.key);
-    this.networkMasks = {};
+    this.forgetDrapeMasks();
     this.detach();
     this.container = null;
   }
@@ -2154,15 +2202,19 @@ export default class Cells3DCapability extends Capability {
     const { hide } = this.handOver();
     const drawn = [...this.cutaways].filter(([path, { cutaway }]) => !hide.has(path) && (
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
-    ));
-    this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway, tier, system }]) => ({
+    )).map(([key, { cutaway, tier, system }]): StudioCloud => ({
       key,
       cutaway,
       system,
       dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
       // Held whole: its layers are interpolation, which a peel cannot reveal anything in.
       peels: tier !== TIER_UNOPENABLE,
-    })));
+    }));
+    this.keepDrawn(drawn);
+    const blended = this.blended();
+    this.blending = blended !== null;
+    this.cloudsLayer?.setClouds(blended ?? drawn);
+    this.cloudsLayer?.setBlend(blended && this.blend ? this.blend.fraction : null);
     // Kept past its scan, there is nothing newer in it to show: the slice
     // stops where it is, rather than turning through a storm the radar has
     // already moved on from. It stays in colour, as every storm does.
@@ -2434,8 +2486,12 @@ export default class Cells3DCapability extends Capability {
     this.studio = on;
     if (on) selectedStorm.set(null);
     else {
+      // Outside Studio the map shows one scan, the newest, and never blends.
+      this.blendScans(null);
       this.studioHeld.clear();
       this.studioHeldBytes = 0;
+      this.studioDrawn.clear();
+      this.blendMotions.clear();
       this.setDirected(false);
       if (this.past || this.pastLoading !== null) this.showLatest();
     }
@@ -2533,7 +2589,110 @@ export default class Cells3DCapability extends Capability {
       if (this.studioHeldBytes + bytes > STUDIO_HELD_BYTES) return;
       this.studioHeld.set(path, cutaway);
       this.studioHeldBytes += bytes;
+      // What the motion between two scans is matched by, worked out as each
+      // volume lands rather than all of a scan's on the frame it is blended.
+      columnDepth(cutaway);
     }
+  }
+
+  /** The scan on the map, as `studioDrawn` and a blend name it: the newest's own, for the newest. */
+  private scanShown(): Scan | null {
+    return this.past?.scan ?? this.latestScan();
+  }
+
+  /**
+   * Keep what the scan on the map draws, while in Studio, for a blend to
+   * draw it again: of the volumes held, and of its own, not those of the
+   * scan before it standing in for volumes still on their way.
+   */
+  private keepDrawn(drawn: StudioCloud[]): void {
+    const scan = this.scanShown();
+    if (!this.studio || scan === null || this.pastLoading !== null) return;
+    const listed = new Set(this.clouds.map((cloud) => cloud.path));
+    this.studioDrawn.set(scan, drawn.filter(({ key }) => listed.has(key) && this.studioHeld.has(key)));
+  }
+
+  /**
+   * Both scans of the blend as the layer takes them, each cloud with its
+   * side and its storm's drift; null where either has not been on the map
+   * in Studio yet, and the scan on the map is drawn alone meanwhile.
+   */
+  private blended(): Array<StudioCloud & { side: 0 | 1; drift: readonly [number, number] }> | null {
+    const blend = this.blend;
+    if (!this.studio || !blend) return null;
+    const [from, to] = [this.keptDrawn(blend.from), this.keptDrawn(blend.to)];
+    const motion = this.motionOf(blend.from, blend.to);
+    if (!from || !to || !motion) return null;
+    // A cloud the motion was not worked out for (the camera has moved since) moves with them all.
+    const still: readonly [number, number] = [0, 0];
+    const drift = (key: string) => motion.byKey.get(key) ?? motion.all ?? still;
+    return [
+      ...from.map((cloud) => ({ ...cloud, side: 0 as const, drift: drift(cloud.key) })),
+      ...to.map((cloud) => ({ ...cloud, side: 1 as const, drift: drift(cloud.key) })),
+    ];
+  }
+
+  /** What a scan drew when last on the map in Studio; see `studioDrawn`. The newest's own for anything newer. */
+  private keptDrawn(scan: Scan): StudioCloud[] | undefined {
+    const latest = this.latestScan();
+    return this.studioDrawn.get(latest !== null && scan >= latest ? latest : scan);
+  }
+
+  /** The storms' motion from one scan to the next, worked out the first time it is asked; null before both have been drawn. */
+  private motionOf(from: Scan, to: Scan): Motion | null {
+    const pair = `${from}:${to}`;
+    const known = this.blendMotions.get(pair);
+    if (known) return known;
+    const [earlier, later] = [this.keptDrawn(from), this.keptDrawn(to)];
+    if (!earlier || !later) return null;
+    const motion = cloudMotion([
+      ...earlier.map((cloud) => ({ ...cloud, side: 0 as const })), ...later.map((cloud) => ({ ...cloud, side: 1 as const })),
+    ]);
+    this.blendMotions.set(pair, motion);
+    return motion;
+  }
+
+  /**
+   * Work out the storms' motion between two scans ahead of their blend: a
+   * scene's load does, for every pair it will play, so the frame a pair
+   * comes up on does not pay for it (tens of milliseconds, matching every
+   * storm in view).
+   */
+  prepareBlend(from: Scan, to: Scan): void {
+    if (!this.studio) return;
+    // Worked out again where the two scans have been drawn from elsewhere
+    // since (a scene changed, its camera moved): only then, not as a scene
+    // plays, where a camera on the move adds tiles every few hundred ms.
+    const known = this.blendMotions.get(`${from}:${to}`);
+    const drawn = [...this.keptDrawn(from) ?? [], ...this.keptDrawn(to) ?? []];
+    if (known && drawn.some(({ key }) => !known.byKey.has(key))) this.blendMotions.delete(`${from}:${to}`);
+    this.motionOf(from, to);
+  }
+
+  /**
+   * Draw two scans at once, `fraction` of the way from the earlier to the
+   * later, or one again for null: Studio playing through the minutes between
+   * two scans (lib/studio/scene.ts), the storms carried along their motion
+   * from one to the other (layers/cellVolumeLayer.ts). Each scan is drawn
+   * as it was when last on the map in Studio, which a scene's load has seen
+   * to; until both have been, the scan on the map is drawn alone.
+   *
+   * A new pair hands the layer its clouds, and uploads the textures of the
+   * scan new to it; a frame of the same pair only moves the fraction.
+   */
+  blendScans(blend: { from: Scan; to: Scan; fraction: number } | null): void {
+    const next = this.studio ? blend : null;
+    const same = next !== null && this.blend !== null && next.from === this.blend.from && next.to === this.blend.to;
+    const wasBlending = this.blending;
+    this.blend = next;
+    // The same pair, not yet drawn, waits for the load that brings its
+    // second scan, whose own `pushClouds` draws it.
+    if (same) {
+      if (wasBlending) this.cloudsLayer?.setBlend(next.fraction);
+    } else if (next !== null || wasBlending) {
+      this.pushClouds();
+    }
+    this.applyDrapeBlend();
   }
 
   /** Put the volumes Studio kept back on the map where they are wanted again. */
@@ -3217,43 +3376,49 @@ export default class Cells3DCapability extends Capability {
    * MapLibre cannot clip a raster, so the tiles go through `maskedTiles.ts`.
    */
   private ensureRadar(gl: GlMap): void {
-    // An earlier scan's frame in place of the newest while one is shown.
-    const past = this.drapedPast;
-    const url = past ? past.url : this.radarUrl;
-    const index = past ? past.index : this.radarIndex;
+    for (const slot of DRAPE_SLOTS) this.ensureRadarIn(gl, slot);
+  }
+
+  /** `ensureRadar` for one of the drape's two sets of layers; see `drapeFor`. */
+  private ensureRadarIn(gl: GlMap, slot: DrapeSlot): void {
+    const id = drapeLayerId(RADAR_SOURCE, slot);
+    const drape = this.drapeFor(slot);
+    const url = drape?.url ?? null;
     if (!url) {
       // An earlier scan the grid has no frame for: no radar, rather than the
       // newest under storms from before it.
-      if (past && gl.getLayer(RADAR_SOURCE)) gl.setLayoutProperty(RADAR_SOURCE, "visibility", "none");
+      if ((!drape || drape.past) && gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", "none");
       return;
     }
 
-    if (this.radarMask?.url !== url || this.radarMask.palette !== this.colormap) {
-      forgetMaskedTiles(this.radarMask?.key);
-      this.radarMask = {
+    let mask = this.radarMasks[slot];
+    if (mask?.url !== url || mask.palette !== this.colormap) {
+      forgetMaskedTiles(mask?.key);
+      mask = {
         url,
         palette: this.colormap,
         ...registerMaskedTiles({
           template: url,
-          index,
+          index: drape!.index,
           erase: HOLES,
           palette: this.colormap,
         }),
       };
+      this.radarMasks[slot] = mask;
     }
-    const { tiles } = this.radarMask;
+    const { tiles } = mask;
 
-    const existing = gl.getSource(RADAR_SOURCE);
+    const existing = gl.getSource(id);
     if (existing) {
       // Unchanged is left alone: `setTiles` reloads every tile on screen, and
       // this runs on every refresh and every return to this map.
       const source = existing as unknown as { tiles?: string[]; setTiles(tiles: string[]): void };
       if (source.tiles?.[0] !== tiles) source.setTiles([tiles]);
-      gl.setLayoutProperty(RADAR_SOURCE, "visibility", "visible");
+      gl.setLayoutProperty(id, "visibility", "visible");
       return;
     }
 
-    gl.addSource(RADAR_SOURCE, {
+    gl.addSource(id, {
       type: "raster",
       tiles: [tiles],
       tileSize: 512,
@@ -3264,11 +3429,102 @@ export default class Cells3DCapability extends Capability {
       attribution: dwdAttribution,
     });
     gl.addLayer({
-      id: RADAR_SOURCE,
+      id,
       type: "raster",
-      source: RADAR_SOURCE,
-      paint: { "raster-opacity": RADAR_OPACITY, "raster-resampling": "nearest" },
+      source: id,
+      paint: this.drapePaint(slot),
     }, this.rasterAnchor(gl));
+  }
+
+  /** Let go of every `masked://` registration of the drape's, both sets'. */
+  private forgetDrapeMasks(): void {
+    for (const mask of this.radarMasks) forgetMaskedTiles(mask?.key);
+    for (const masks of this.networkMasks) {
+      for (const mask of Object.values(masks)) forgetMaskedTiles(mask?.key);
+    }
+    this.radarMasks = [null, null];
+    this.networkMasks = [{}, {}];
+  }
+
+  /** A draped radar layer's paint: at once, not eased, since a blend moves its opacity every frame. */
+  private drapePaint(slot: DrapeSlot): RasterLayerSpecification["paint"] {
+    return {
+      "raster-opacity": this.drapeOpacity[slot],
+      "raster-opacity-transition": { duration: 0, delay: 0 },
+      "raster-resampling": "nearest",
+    };
+  }
+
+  /**
+   * What one of the drape's two sets of layers shows. Outside a blend the
+   * first shows the scan on the map (an earlier one's, or the newest) and
+   * the second nothing; in a blend each shows one of its two scans, the one
+   * it already had where it can (see `applyDrapeBlend`). `past` says a
+   * missing frame means no radar, not the newest one left as it was.
+   */
+  private drapeFor(slot: DrapeSlot): { url: string | null; index?: TileIndex | null; networks: PastRadar["networks"]; past: boolean } | null {
+    if (this.drapeSlots) {
+      const scan = this.drapeSlots[slot];
+      const latest = this.latestScan();
+      if (latest !== null && scan >= latest) {
+        return { url: this.radarUrl, index: this.radarIndex, networks: this.networkFrames, past: false };
+      }
+      const frame = this.radarAt?.(scan) ?? null;
+      return { url: frame?.url ?? null, index: frame?.tiles, networks: frame?.networks ?? {}, past: true };
+    }
+    if (slot === 1) return null;
+    const past = this.drapedPast;
+    return past
+      ? { ...past, past: true }
+      : { url: this.radarUrl, index: this.radarIndex, networks: this.networkFrames, past: false };
+  }
+
+  /**
+   * Crossfade the radar draped under the storms between a blend's two
+   * scans, as the storms go from one to the other; or show the one scan on
+   * the map again.
+   *
+   * Two sets of layers, one over the other, each holding one scan: the one
+   * holding a scan keeps it when the next pair comes up, so only the other
+   * set loads, and it loads while its own scan is still faint. Their
+   * opacities are worked out so the two together are the one drape's
+   * opacity, each scan's share of it its weight in the blend. A crossfade,
+   * not carried along the motion as the storms are: a raster is one picture
+   * of the whole map, with no storms in it to carry. Under the clouds, at a
+   * third of their opacity, the two frames of a moving storm read as a
+   * smear behind it, not as two.
+   */
+  private applyDrapeBlend(): void {
+    const blend = this.blend;
+    let slots: [Scan, Scan] | null = null;
+    if (blend) {
+      const held = this.drapeSlots;
+      slots = held && (held[1] === blend.from || held[0] === blend.to) && held[0] !== blend.from && held[1] !== blend.to
+        ? [blend.to, blend.from]
+        : [blend.from, blend.to];
+    }
+    const changed = slots?.[0] !== this.drapeSlots?.[0] || slots?.[1] !== this.drapeSlots?.[1];
+    this.drapeSlots = slots;
+    // In steps: see `DRAPE_STEPS`.
+    const fraction = blend ? Math.round(blend.fraction * DRAPE_STEPS) / DRAPE_STEPS : 0;
+    const upper = blend && slots ? (slots[1] === blend.to ? fraction : 1 - fraction) : 0;
+    // The upper set at its share of the drape; the lower at what makes the two its whole.
+    this.drapeOpacity = slots
+      ? [(RADAR_OPACITY * (1 - upper)) / (1 - RADAR_OPACITY * upper), RADAR_OPACITY * upper]
+      : [RADAR_OPACITY, 0];
+    const gl = this.gl;
+    if (!gl || !this.styleReady || !this.shown) return;
+    if (changed) {
+      this.ensureRadar(gl);
+      this.ensureNetworks(gl);
+    }
+    for (const slot of DRAPE_SLOTS) {
+      for (const id of [RADAR_SOURCE, ...NETWORKS.map(({ code }) => networkLayerId(code))].map((base) => drapeLayerId(base, slot))) {
+        if (gl.getLayer(id) && gl.getPaintProperty(id, "raster-opacity") !== this.drapeOpacity[slot]) {
+          gl.setPaintProperty(id, "raster-opacity", this.drapeOpacity[slot]);
+        }
+      }
+    }
   }
 
   /**
@@ -3281,18 +3537,24 @@ export default class Cells3DCapability extends Capability {
    * only reloads what is on screen.
    */
   private ensureNetworks(gl: GlMap): void {
+    for (const slot of DRAPE_SLOTS) this.ensureNetworksIn(gl, slot);
+  }
+
+  /** `ensureNetworks` for one of the drape's two sets of layers; see `drapeFor`. */
+  private ensureNetworksIn(gl: GlMap, slot: DrapeSlot): void {
     // An earlier scan's composites, as the grid has them for its step.
-    const frames = this.drapedPast ? this.drapedPast.networks : this.networkFrames;
+    const frames = this.drapeFor(slot)?.networks ?? {};
+    const masks = this.networkMasks[slot];
     for (const network of NETWORKS) {
       const { code } = network;
-      const id = networkLayerId(code);
+      const id = drapeLayerId(networkLayerId(code), slot);
       const frame = frames[code];
       if (!frame) {
         if (gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", "none");
         continue;
       }
 
-      let mask = this.networkMasks[code];
+      let mask = masks[code];
       const tileId = drawnTileId(frame);
       if (mask?.tileId !== tileId || mask.palette !== this.colormap) {
         forgetMaskedTiles(mask?.key);
@@ -3306,7 +3568,7 @@ export default class Cells3DCapability extends Capability {
             palette: this.colormap,
           }),
         };
-        this.networkMasks[code] = mask;
+        masks[code] = mask;
       }
 
       const existing = gl.getSource(id);
@@ -3329,7 +3591,7 @@ export default class Cells3DCapability extends Capability {
         id,
         type: "raster",
         source: id,
-        paint: { "raster-opacity": RADAR_OPACITY, "raster-resampling": "nearest" },
+        paint: this.drapePaint(slot),
       }, this.rasterAnchor(gl));
     }
   }
@@ -3602,10 +3864,7 @@ export default class Cells3DCapability extends Capability {
     this.unmiddleDrag = null;
     this.gl?.remove();
     this.gl = null;
-    forgetMaskedTiles(this.radarMask?.key);
-    this.radarMask = null;
-    for (const mask of Object.values(this.networkMasks)) forgetMaskedTiles(mask?.key);
-    this.networkMasks = {};
+    this.forgetDrapeMasks();
     this.detach();
     this.container = null;
   }

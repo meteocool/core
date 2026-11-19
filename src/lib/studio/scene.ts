@@ -21,7 +21,7 @@ import { foldDegrees } from "./planes";
 import type { SectionPlane } from "./planes";
 
 /** Between two scans of a radar composite, in seconds. */
-const SCAN_SECONDS = 300;
+export const SCAN_SECONDS = 300;
 
 /** The field of view the 3D map has outside Studio, in degrees: MapLibre's own. */
 export const DEFAULT_FOV = 36.87;
@@ -63,6 +63,22 @@ export interface SceneState {
 export interface Keyframe extends SceneState {
   /** When, in seconds from the start of the scene. */
   at: number;
+}
+
+/**
+ * A moment of a scene as it plays: everything a keyframe holds, and where
+ * between two scans the storms are.
+ *
+ * The radar sees the storms every five minutes, and a scene runs through
+ * those minutes continuously: at a moment between two scans the storms are
+ * on their way from `scan` to the next, `fraction` of the way there, and the
+ * map draws them moving (layers/cellVolumeLayer.ts). `scan` stays the one
+ * they set off from, on the five-minute clock, so a keyframe made at that
+ * moment still names a scan.
+ */
+export interface Moment extends SceneState {
+  /** The scan after `scan`, and how far the storms have gone towards it, 0 to 1; null where they stand on `scan`. */
+  toward: { scan: number; fraction: number } | null;
 }
 
 export interface Scene {
@@ -163,13 +179,14 @@ function planeBetween(from: SectionPlane, to: SectionPlane, t: number): SectionP
  *
  * The camera and the peel ease through the keyframes. A plane moves straight
  * from one keyframe to the next where both have it, and otherwise is there
- * from the keyframe that has it on. The scan runs evenly between two
- * keyframes' scans and lands on the radar's own five-minute clock; from or
+ * from the keyframe that has it on. Time runs evenly between two keyframes'
+ * scans: the scan is the last one on the radar's own five-minute clock, and
+ * `toward` how far on from it to the next the moment is (`Moment`). From or
  * to "the newest" there is no clock to run on, so it holds until the next
  * keyframe. The style is one or another, and changes at the keyframe that
  * says so.
  */
-export function sample(scene: Scene, at: number): SceneState | null {
+export function sample(scene: Scene, at: number): Moment | null {
   const { keyframes } = scene;
   if (!keyframes.length) return null;
   const times = keyframes.map((keyframe) => keyframe.at);
@@ -195,16 +212,22 @@ export function sample(scene: Scene, at: number): SceneState | null {
     const next = to?.planes.find((other) => other.id === plane.id);
     return next ? planeBetween(plane, next, t) : plane;
   });
-  const scan = to && from.scan !== null && to.scan !== null
-    ? Math.floor(mix(from.scan, to.scan, t) / SCAN_SECONDS + 1e-6) * SCAN_SECONDS
-    : from.scan;
-  return { camera, planes, peel: clamp(channel((k) => k.peel), [0, 1]), scan, style: from.style };
+  let scan = from.scan;
+  let toward: Moment["toward"] = null;
+  if (to && from.scan !== null && to.scan !== null) {
+    const time = mix(from.scan, to.scan, t);
+    scan = Math.floor(time / SCAN_SECONDS + 1e-6) * SCAN_SECONDS;
+    const fraction = (time - scan) / SCAN_SECONDS;
+    if (fraction > 1e-6) toward = { scan: scan + SCAN_SECONDS, fraction };
+  }
+  return { camera, planes, peel: clamp(channel((k) => k.peel), [0, 1]), scan, style: from.style, toward };
 }
 
 /**
  * Every scan a scene shows, in the order it first shows them, each with the
  * first second it is on screen: what has to be loaded before the scene can
- * play, and where the camera will be when each is.
+ * play, and where the camera will be when each is. A scan the storms are on
+ * their way towards is shown from then, drawn with the one they left.
  */
 export function scansOf(scene: Scene, fps = 10): Array<{ scan: number | null; at: number }> {
   const seen = new Set<number | null>();
@@ -213,9 +236,26 @@ export function scansOf(scene: Scene, fps = 10): Array<{ scan: number | null; at
   for (let frame = 0; frame <= frames; frame += 1) {
     const at = (frame / frames) * scene.duration;
     const state = sample(scene, at);
-    if (!state || seen.has(state.scan)) continue;
-    seen.add(state.scan);
-    out.push({ scan: state.scan, at });
+    if (!state) continue;
+    for (const scan of state.toward ? [state.scan, state.toward.scan] : [state.scan]) {
+      if (seen.has(scan)) continue;
+      seen.add(scan);
+      out.push({ scan, at });
+    }
+  }
+  return out;
+}
+
+/** Every pair of scans a scene blends between, in the order it plays them. */
+export function pairsOf(scene: Scene, fps = 10): Array<{ from: number; to: number }> {
+  const seen = new Set<string>();
+  const out: Array<{ from: number; to: number }> = [];
+  const frames = Math.max(1, Math.round(scene.duration * fps));
+  for (let frame = 0; frame <= frames; frame += 1) {
+    const state = sample(scene, (frame / frames) * scene.duration);
+    if (!state?.toward || state.scan === null || seen.has(`${state.scan}`)) continue;
+    seen.add(`${state.scan}`);
+    out.push({ from: state.scan, to: state.toward.scan });
   }
   return out;
 }
