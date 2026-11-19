@@ -1,0 +1,23 @@
+"Airbus A320 Lufthansa With cockpit interior" by izcyk
+https://sketchfab.com/3d-models/airbus-a320-lufthansa-with-cockpit-interior-3752efaa49d24f7096c0024dc8a9c26c
+
+Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)
+http://creativecommons.org/licenses/by/4.0/
+
+Changes: converted from the published model into the format the flight
+loads (scripts/models/convert-aircraft.py): scaled to the aircraft's true
+size, turned into its own axes, meshes of one material joined, vertices
+packed, textures re-encoded as WebP.
+
+The landing gear is made to retract: its legs and doors are kept as parts
+of their own, each turning on the hinge of the model's own rig, and a plain
+grey well is added behind each belly door, where the model is open into the
+cabin.
+
+The outside is repainted: the airline's livery, titles and marks removed and
+the hull left white; "meteowings" titles along both sides; the meteocool logo
+on both sides of the fin and of each engine, in place of the engine maker's
+name; and stripes in the radar's colours up the rear fuselage and the fin,
+round each engine's intake and up each wingtip. A few small parts whose
+texture was a stretch of the hull's painted elsewhere are drawn in the colour
+of the hull round them. The inside is unchanged.
