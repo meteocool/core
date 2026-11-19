@@ -10,6 +10,14 @@ import { DEFAULT_FOV, emptyScene } from "./scene";
 import type { Scene } from "./scene";
 import type { SectionPlane } from "./planes";
 
+/**
+ * The basemap Studio opens on: the imagery, which is what a picture of
+ * weather is taken over. Studio's own choice (the `studioBaseLayer` setting),
+ * apart from the map's: a reader who likes their map plain keeps it plain,
+ * and finds it so again on leaving Studio.
+ */
+export const STUDIO_BASEMAP = "satellite";
+
 /** Whether the 3D map is in Studio. Only on a desktop; see `studioOffered`. */
 export const studioOpen = writable<boolean>(false);
 

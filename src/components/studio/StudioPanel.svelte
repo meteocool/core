@@ -34,7 +34,7 @@ import {
   flipped, foldDegrees, isLevel, MAX_PLANES, nextPlaneId, planeAt, PLANE_TOP_KM, pushed,
 } from "../../lib/studio/planes";
 import type { SectionPlane } from "../../lib/studio/planes";
-import { studioFov, studioPlanes, studioScene, studioSelectedPlane } from "../../lib/studio/store";
+import { STUDIO_BASEMAP, studioFov, studioPlanes, studioScene, studioSelectedPlane } from "../../lib/studio/store";
 
 export let director: Director;
 export let onclose: () => void;
@@ -56,16 +56,17 @@ const LEVEL_GLYPH = { icon: [512, 512, [], "", "M48 256a48 48 0 0 1 48-48h320a48
  */
 const BASEMAPS = ["system", ...BASE_LAYERS.filter((name) => name !== "topographic")];
 
-/* The reader's own choice, the `mapBaseLayer` setting, as Settings keeps it:
-   the store holds the basemap it resolves to, never "system", so the choice
-   itself is read from the setting, again whenever the store moves. */
-const chosenBasemap = (_resolved?: string) => window.settings.getString<string>("mapBaseLayer", "system");
+/* Studio's own basemap, the `studioBaseLayer` setting, which starts on the
+   imagery (STUDIO_BASEMAP) and is kept apart from the map's. The store holds
+   the basemap it resolves to, never "system", so the choice itself is read
+   from the setting, again whenever the store moves. */
+const chosenBasemap = (_resolved?: string) => window.settings.getString<string>("studioBaseLayer", STUDIO_BASEMAP);
 let basemap = chosenBasemap();
 $: basemap = chosenBasemap($mapBaseLayer);
 
 function setBasemap(event: Event) {
   basemap = (event.currentTarget as HTMLSelectElement).value;
-  window.settings.set("mapBaseLayer", basemap);
+  window.settings.set("studioBaseLayer", basemap);
 }
 
 $: selected = $studioPlanes.find((plane) => plane.id === $studioSelectedPlane) ?? null;

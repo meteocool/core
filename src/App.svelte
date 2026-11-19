@@ -17,7 +17,7 @@ import Guide3D from "./components/Guide3D.svelte";
 import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
 import { DEFAULT_CLOUD_STYLE, mapStyleOf } from "./lib/cloudStyle";
-import { studioOpen } from "./lib/studio/store";
+import { STUDIO_BASEMAP, studioOpen } from "./lib/studio/store";
 import { closeStudio, openStudio, studioOffered } from "./lib/studio/session";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -278,7 +278,17 @@ window.settings = new Settings({
     type: "string",
     default: "system",
     cb: (val) => {
-      mapBaseLayer.set(resolveBaseLayer(val));
+      // Studio draws on its own basemap; the map's is back once it closes.
+      if (!get(studioOpen)) mapBaseLayer.set(resolveBaseLayer(val));
+    },
+  },
+  /* The basemap meteocool Studio draws on, apart from the map's own; see
+     STUDIO_BASEMAP. */
+  studioBaseLayer: {
+    type: "string",
+    default: STUDIO_BASEMAP,
+    cb: (val) => {
+      if (get(studioOpen)) mapBaseLayer.set(resolveBaseLayer(val));
     },
   },
   radarColorMapping: {
@@ -1400,10 +1410,14 @@ window.enterForeground = () => wake("native bridge");
    so the map has to as well or they end up disagreeing. Only while the basemap
    follows the system: writable.set() with an unchanged value notifies nobody,
    so the immediate first call here is a no-op. */
+/** The basemap on the map now: Studio's own while it is open, the map's otherwise. */
+const drawnBaseLayer = () => resolveBaseLayer(window.settings.get(get(studioOpen) ? "studioBaseLayer" : "mapBaseLayer"));
 const baseLayerSub = colorSchemeDark.subscribe(() => {
-  mapBaseLayer.set(resolveBaseLayer(window.settings.get("mapBaseLayer")));
+  mapBaseLayer.set(drawnBaseLayer());
 });
 onDestroy(baseLayerSub);
+// Into Studio and out of it, the basemap changes hands.
+onDestroy(studioOpen.subscribe(() => mapBaseLayer.set(drawnBaseLayer())));
 
 const refreshSub = tileRefreshSignal.subscribe((n) => {
   if (n > 0) lm.refreshTiles();

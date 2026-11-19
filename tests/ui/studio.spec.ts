@@ -59,12 +59,12 @@ test.describe("on a desktop", () => {
     await openStudio(page);
     await expect.poll(() => boxes(page), { timeout: 30_000 }).toEqual(["none", "none"]);
 
-    // A light/dark switch rebuilds every layer: they come back put away.
+    // Another basemap rebuilds every layer: they come back put away.
     await page.evaluate(() => {
       (window as any).restyled = false;
       (window as any).lm.getCapability("cells3d").gl.once("style.load", () => { (window as any).restyled = true; });
     });
-    await page.emulateMedia({ colorScheme: "dark" });
+    await panel(page).getByRole("combobox", { name: "Basemap" }).selectOption("dark");
     await expect.poll(() => page.evaluate(() => (window as any).restyled), { timeout: 30_000 }).toBe(true);
     await expect.poll(() => boxes(page), { timeout: 30_000 }).toEqual(["none", "none"]);
 
@@ -73,14 +73,32 @@ test.describe("on a desktop", () => {
     await expect.poll(() => boxes(page), { timeout: 30_000 }).toEqual(["visible", "visible"]);
   });
 
-  test("the basemap is picked in the panel, as in Settings, and kept", async ({ page }) => {
+  test("Studio draws on the imagery by default, on a basemap of its own that leaves the map's alone", async ({ page }) => {
+    const drawn = () => page.evaluate(async () => {
+      const entry = performance.getEntriesByType("resource").map(({ name }) => name).find((name) => /\/src\/stores\.ts/.test(name));
+      const { mapBaseLayer } = await import(/* @vite-ignore */ entry ?? "/src/stores.ts");
+      let value = "";
+      mapBaseLayer.subscribe((name: string) => { value = name; })();
+      return value;
+    });
+    await page.goto(MAP_3D);
+    await expect(enter(page)).toBeVisible({ timeout: 90_000 });
+    const before = await drawn();
+    expect(before).not.toBe("satellite");
+
     await openStudio(page);
     const basemap = panel(page).getByRole("combobox", { name: "Basemap" });
-    await expect(basemap).toHaveValue("system");
+    await expect(basemap).toHaveValue("satellite");
+    await expect.poll(drawn).toBe("satellite");
+
+    // Another picked here is Studio's, kept for the next time, and not the map's.
     await basemap.selectOption("osm");
-    await expect.poll(() => page.evaluate(() => window.settings.getString("mapBaseLayer", "system"))).toBe("osm");
-    await basemap.selectOption("system");
-    await expect.poll(() => page.evaluate(() => window.settings.getString("mapBaseLayer", "system"))).toBe("system");
+    await expect.poll(drawn).toBe("osm");
+    expect(await page.evaluate(() => window.settings.getString("studioBaseLayer", "satellite"))).toBe("osm");
+    expect(await page.evaluate(() => window.settings.getString("mapBaseLayer", "system"))).toBe("system");
+
+    await panel(page).getByRole("button", { name: "Close" }).click();
+    await expect.poll(drawn).toBe(before);
   });
 
   test("Back leaves Studio, as it leaves anything opened over the map", async ({ page }) => {

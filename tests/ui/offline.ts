@@ -43,9 +43,9 @@ const API_PATHS = [
   /^\/lightning_cache/, /^\/geocoding\//,
 ];
 
-/** Map tiles: radar frames, value tiles and the basemap. Drawn blank, never recorded. */
+/** Map tiles: radar frames, value tiles and the basemaps, the satellite imagery among them. Drawn blank, never recorded. */
 const TILE_PATHS = [/^\/tiles\//];
-const TILE_HOSTS = ["map.meteocool.com"];
+const TILE_HOSTS = ["map.meteocool.com", "tiles.versatiles.org"];
 
 /**
  * The storms that are one system, recorded as an endpoint of its own
