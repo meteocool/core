@@ -204,6 +204,9 @@ export class PreviewStore {
 
   private wanted: ReadonlySet<string> = new Set();
 
+  /** The plan's keys not yet answered for, by the frame each is of. */
+  private readonly due = new Map<string, Set<string>>();
+
   private readonly listeners = new Set<(piece: PreviewPiece) => void>();
 
   private used = 0;
@@ -229,9 +232,31 @@ export class PreviewStore {
     return this.pieces.has(key);
   }
 
-  /** The keys taken in from now on; what is held under others stays while there is room. */
-  plan(keys: Iterable<string>): void {
+  /**
+   * The keys taken in from now on; what is held under others stays while
+   * there is room. With `frameOf`, the frame each key is a piece of: that
+   * frame is then waited for (`awaits`) until each has been put.
+   */
+  plan(keys: Iterable<string>, frameOf?: (key: string) => string | undefined): void {
     this.wanted = new Set(keys);
+    this.due.clear();
+    if (!frameOf) return;
+    for (const key of this.wanted) {
+      const frame = this.pieces.has(key) ? undefined : frameOf(key);
+      if (frame === undefined) continue;
+      const ofFrame = this.due.get(frame);
+      if (ofFrame) ofFrame.add(key);
+      else this.due.set(frame, new Set([key]));
+    }
+  }
+
+  /**
+   * Whether a piece the plan names for `frame` is still to come: its
+   * preview is on its way, and worth a moment's wait. A piece that never
+   * comes is waited for for good, so the caller bounds its wait.
+   */
+  awaits(frame: string): boolean {
+    return this.due.has(frame);
   }
 
   /** Let every piece go, and take none in until the next plan. */
@@ -239,12 +264,16 @@ export class PreviewStore {
     this.pieces.clear();
     this.frames.clear();
     this.wanted = new Set();
+    this.due.clear();
     this.used = 0;
   }
 
   /** Keep a piece of the plan; false where it is not kept. */
   put(piece: PreviewPiece): boolean {
     if (!this.wanted.has(piece.key)) return false;
+    // Answered for, kept or not.
+    const due = this.due.get(piece.frame);
+    if (due?.delete(piece.key) && !due.size) this.due.delete(piece.frame);
     const held = this.pieces.get(piece.key);
     if (held) this.remove(held);
     // A frame has one piece a coarse tile: a newer crop of it replaces the last.

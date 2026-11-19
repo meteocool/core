@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
-import { openRadar, timeline } from "./app";
+import { openRadar, preloadedShares, timeline } from "./app";
 
 /**
  * A frame the timeline moves to is shown at once from its coarse preview
@@ -48,6 +48,37 @@ test("a step back is shown from its preview while its own tiles are still on the
   }
   // Its tiles replace the preview.
   await expect.poll(async () => (await frames(page))!.complete, { timeout: 20_000 }).toBe(true);
+});
+
+/** The radar's tiles above the zoom the test's view is drawn from: what the previews are cut from. */
+const ABOVE_VIEW_ZOOM = /^\/tiles\/(meteoradar|meteonowcast)\/[^/]+\/[0-4]\/\d+\/\d+\.png$/;
+
+test("a step on the timeline loads every frame's preview before any other frame's tiles", async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  let holding = false;
+  await page.route((url) => ABOVE_VIEW_ZOOM.test(url.pathname), async (route) => {
+    if (holding) await held;
+    await route.fallback();
+  });
+  await openRadar(page);
+  test.skip(await frames(page) === null, "the radar is drawn by tile layers here");
+  await expect.poll(async () => (await frames(page))!.complete, { timeout: 20_000 }).toBe(true);
+
+  holding = true;
+  await timeline(page).focus();
+  await page.keyboard.press("ArrowLeft");
+  const whole = async () => (await preloadedShares(page)).filter((share) => share === 1).length;
+  try {
+    // The frame stepped to sharpens, and the one left is still whole; no other frame's tiles are asked for.
+    await expect.poll(async () => (await frames(page))!.complete, { timeout: 20_000 }).toBe(true);
+    await page.waitForTimeout(1500);
+    expect(await whole()).toBeLessThanOrEqual(2);
+  } finally {
+    release();
+  }
+  // The previews in, the frames' tiles follow.
+  await expect.poll(async () => (await preloadedShares(page)).every((share) => share === 1), { timeout: 20_000 }).toBe(true);
 });
 
 /** The nowcasts' tiles, at any zoom: previews of them included. */

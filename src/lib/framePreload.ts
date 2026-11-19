@@ -20,7 +20,8 @@
 /**
  * What to preload: every frame, the next few after the needle, only each
  * frame's coarse preview (lib/previewTiles.ts), or nothing. The first two
- * load the previews as well, before anything else.
+ * load the previews as well, and before any frame's tiles unless playing
+ * (`previewsFirst`).
  */
 export type PreloadMode = "all" | "ahead" | "previews" | "none";
 
@@ -50,6 +51,19 @@ export function preloadMode({
   if (!setting || !radarShown || !browsing) return "none";
   if (!slow) return "all";
   return playing ? "ahead" : "previews";
+}
+
+/**
+ * Whether the frames' tiles wait until every frame's preview is in.
+ *
+ * Under a hand or a key on the timeline they do: the needle can be anywhere
+ * on it within the second, and a frame it lands on with no preview leaves
+ * the map on another time, while the tiles of the frames around where it
+ * started, a hundred times the bytes, take the connection. Not while
+ * playing: the next frame is known, and playback waits for its tiles.
+ */
+export function previewsFirst({ playing }: { playing: boolean }): boolean {
+  return !playing;
 }
 
 /**
@@ -121,7 +135,8 @@ const REMEMBERED = 6000;
  * A new plan (the map moved, the needle moved, a frame arrived) replaces the
  * queue, not what is in flight. A tile that failed is not asked for again
  * until the next plan. Given `has`, a tile counts as ready while `has` says
- * so (a store that may let it go again); else once it has loaded.
+ * so (a store that may let it go again); else once it has loaded. While
+ * `hold` says so, what is queued stays queued, until `resume`.
  */
 export class FramePreloader {
   private needs: FrameNeeds = [];
@@ -146,6 +161,8 @@ export class FramePreloader {
 
   private readonly onIdle: (() => void) | undefined;
 
+  private readonly hold: () => boolean;
+
   private readonly reportEvery: number;
 
   private reportTimer: ReturnType<typeof setTimeout> | null = null;
@@ -157,8 +174,14 @@ export class FramePreloader {
   constructor(
     fetchTile: (key: string) => Promise<boolean>,
     onProgress: (progress: Map<number, number>) => void,
-    { mayFetch = () => true, parallel = PRELOAD_PARALLEL, has, onIdle, reportEvery = 0 }: {
+    { mayFetch = () => true, parallel = PRELOAD_PARALLEL, has, onIdle, hold = () => false, reportEvery = 0 }: {
       mayFetch?: () => boolean;
+      /**
+       * Asked before each load: true keeps the queue as it is, nothing more
+       * started, until `resume` is called. For what should wait its turn
+       * behind another preloader (`previewsFirst`).
+       */
+      hold?: () => boolean;
       parallel?: number;
       has?: (key: string) => boolean;
       /** Told when the last tile of a plan has been loaded or has failed. */
@@ -177,6 +200,7 @@ export class FramePreloader {
     this.parallel = parallel;
     this.has = has ?? ((key) => this.loaded.has(key));
     this.onIdle = onIdle;
+    this.hold = hold;
     this.reportEvery = reportEvery;
   }
 
@@ -194,6 +218,16 @@ export class FramePreloader {
     }
     this.queue = [...queued];
     this.report();
+    this.pump();
+  }
+
+  /** Whether nothing is queued or on its way: the plan is in, as far as it will be. */
+  get idle(): boolean {
+    return !this.queue.length && !this.inFlight.size;
+  }
+
+  /** Carry on with what is queued: what `hold` waited for may be over. */
+  resume(): void {
     this.pump();
   }
 
@@ -222,6 +256,7 @@ export class FramePreloader {
 
   private pump(): void {
     while (this.inFlight.size < this.parallel && this.queue.length) {
+      if (this.hold()) return;
       if (!this.mayFetch()) {
         this.queue = [];
         return;

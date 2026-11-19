@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FrameSwitch, ancestorTile, blendTexel, childTiles, fadeWeight, settled } from "../../src/lib/frameSwitch.ts";
+import {
+  FrameSwitch, ancestorTile, blendTexel, childTiles, fadeWeight, settled, waitsToAsk,
+} from "../../src/lib/frameSwitch.ts";
 import type { TileCoord } from "../../src/lib/frameSwitch.ts";
 
 /**
@@ -159,4 +161,26 @@ test("a frame is switched to only once every one of its tiles is settled", () =>
   assert.equal(settled(["a", "b"], (key) => ready.has(key)), true);
   assert.equal(settled(["a", "b", "c"], (key) => ready.has(key)), false);
   assert.equal(settled([], () => false), true, "a frame with nothing in view");
+});
+
+test("a source that shows nothing asks for its frame's tiles at once", () => {
+  assert.equal(waitsToAsk(0, false, false, 80, 1000), 0);
+  assert.equal(waitsToAsk(0, false, true, 80, 1000), 0);
+});
+
+test("a frame the needle may only be passing over waits out the rest before its tiles are asked for", () => {
+  assert.equal(waitsToAsk(0, true, false, 80, 1000), 80);
+  assert.equal(waitsToAsk(50, true, false, 80, 1000), 30);
+  assert.equal(waitsToAsk(80, true, false, 80, 1000), 0);
+  assert.equal(waitsToAsk(500, true, false, 80, 1000), 0);
+});
+
+test("a frame whose preview is on its way waits for that, but not for good", () => {
+  assert.equal(waitsToAsk(80, true, true, 80, 1000), 920);
+  assert.equal(waitsToAsk(999, true, true, 80, 1000), 1);
+  assert.equal(waitsToAsk(1000, true, true, 80, 1000), 0);
+});
+
+test("the wait for a preview is never shorter than the rest", () => {
+  assert.equal(waitsToAsk(10, true, true, 80, 0), 70);
 });

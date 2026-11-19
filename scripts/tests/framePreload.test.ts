@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allPreloaded, FramePreloader, slotShare, frameProgress, preloadMode, preloadOrder } from "../../src/lib/framePreload.ts";
+import {
+  allPreloaded, FramePreloader, slotShare, frameProgress, preloadMode, preloadOrder, previewsFirst,
+} from "../../src/lib/framePreload.ts";
 
 /**
  * The timeline's frames fetched ahead for the map in view, and how far each
@@ -44,6 +46,14 @@ test("on a slow or data-saving connection, only the next frames while playing, a
 test("with the setting off, or the radar not on screen, nothing is preloaded", () => {
   assert.equal(preloadMode({ ...browsingOnWifi, setting: false, playing: true }), "none");
   assert.equal(preloadMode({ ...browsingOnWifi, radarShown: false, playing: true }), "none");
+});
+
+test("under a hand on the timeline, every frame's preview comes before any frame's tiles", () => {
+  assert.equal(previewsFirst({ playing: false }), true);
+});
+
+test("playing, the next frame's tiles do not wait for the previews", () => {
+  assert.equal(previewsFirst({ playing: true }), false);
 });
 
 test("frames are fetched nearest the needle first, the later of two as near first", () => {
@@ -239,4 +249,56 @@ test("tiles coming in quickly are reported together, a plan at once", async () =
   assert.equal(reports.length, 2);
   assert.ok(Math.abs(reports.at(-1)!.get(0)! - 2 / 3) < 1e-9);
   preloader.stop();
+});
+
+test("held, a plan is queued and nothing of it asked for until it is carried on with", () => {
+  const { fetchTile, asked } = controlledFetch();
+  let held = true;
+  const preloader = new FramePreloader(fetchTile, () => {}, { parallel: 2, hold: () => held });
+  preloader.plan([[0, ["a", "b"]], [300, ["c"]]]);
+  assert.deepEqual(asked, []);
+  assert.equal(preloader.idle, false, "it still has the plan to load");
+  // Carried on with too soon: still held.
+  preloader.resume();
+  assert.deepEqual(asked, []);
+  held = false;
+  preloader.resume();
+  assert.deepEqual(asked, ["a", "b"]);
+});
+
+test("held again, what is in flight comes in and nothing more is asked for", async () => {
+  const { fetchTile, asked, answer } = controlledFetch();
+  let held = false;
+  const preloader = new FramePreloader(fetchTile, () => {}, { parallel: 1, hold: () => held });
+  preloader.plan([[0, ["a", "b"]]]);
+  held = true;
+  await answer("a");
+  assert.deepEqual(asked, ["a"]);
+  held = false;
+  preloader.resume();
+  assert.deepEqual(asked, ["a", "b"]);
+});
+
+test("one preloader waits for another: the second starts when the first has nothing left", async () => {
+  const first = controlledFetch();
+  const second = controlledFetch();
+  const tiles: FramePreloader = new FramePreloader(second.fetchTile, () => {}, { hold: () => !previews.idle });
+  const previews = new FramePreloader(first.fetchTile, () => {}, { parallel: 2, onIdle: () => tiles.resume() });
+  previews.plan([[0, ["p0"]], [300, ["p1"]]]);
+  tiles.plan([[0, ["t0"]], [300, ["t1"]]]);
+  assert.deepEqual(second.asked, []);
+  await first.answer("p0");
+  assert.deepEqual(second.asked, [], "one preview is still on its way");
+  await first.answer("p1", false);
+  assert.deepEqual(second.asked, ["t0", "t1"], "a failed preview is not waited for");
+});
+
+test("a preloader with nothing to load is idle, and holds nothing up", () => {
+  const { fetchTile, asked } = controlledFetch();
+  const previews = new FramePreloader(() => Promise.resolve(true), () => {}, { has: () => true });
+  const tiles = new FramePreloader(fetchTile, () => {}, { hold: () => !previews.idle });
+  previews.plan([[0, ["p0"]]]);
+  assert.equal(previews.idle, true);
+  tiles.plan([[0, ["t0"]]]);
+  assert.deepEqual(asked, ["t0"]);
 });

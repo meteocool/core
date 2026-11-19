@@ -15,7 +15,7 @@ import { BLANK } from "../lib/decodedTiles";
 import type { PreviewPiece } from "../lib/previewTiles";
 import { GpuTiles } from "../lib/gpuTiles";
 import type { GpuTile } from "../lib/gpuTiles";
-import { FrameSwitch, ancestorTile, childTiles, settled } from "../lib/frameSwitch";
+import { FrameSwitch, ancestorTile, childTiles, settled, waitsToAsk } from "../lib/frameSwitch";
 import type { TileCoord } from "../lib/frameSwitch";
 import { frameTextureBytes, uploadsPerFrame } from "../lib/gpuBudget";
 import { IDLE_AFTER_MS } from "../lib/idleLayers";
@@ -54,8 +54,11 @@ import type { Ink } from "../lib/rvp6";
  * there is one (lib/previewTiles.ts), a part of a tile a few zooms up kept
  * for every frame of the timeline, blurred rather than of another time, and
  * each tile of it replaces the blur as it comes. Its tiles are asked for
- * only once the needle has rested on it for `REST_MS`, so that the frames
- * it only passed over are not in the way of the one it stopped on.
+ * only once the needle has rested on it for `REST_MS`, previewed yet or
+ * not, so that the frames it only passed over are not in the way of the
+ * one it stopped on, nor of the previews still loading; and where its
+ * preview is on its way, only once that is in, or `PREVIEW_WAIT_MS` have
+ * passed (`waitsToAsk`). A source that shows nothing yet asks at once.
  *
  * While the map is being zoomed or panned, a frame is moved to on less: a
  * preview that covers only part of a tile will do, as the ground at the
@@ -117,6 +120,16 @@ const MAX_LOADING = 8;
  * stays on a step, shorter than anyone notices on the step it stops on.
  */
 export const REST_MS = 80;
+
+/**
+ * How long a frame rested on with nothing to show waits for its preview,
+ * where one is on its way, before its tiles are asked for regardless: the
+ * preview is a hundredth of them and shows the frame at once, and its tiles
+ * asked for beside it are in its way on a slow connection. No longer than a
+ * preview takes on such a one; a preview that failed is not waited for
+ * beyond it.
+ */
+export const PREVIEW_WAIT_MS = 1000;
 
 /**
  * How many zooms up a missing tile is drawn from the frame's own coarser
@@ -654,8 +667,15 @@ class FramesRenderer extends LayerRenderer<RadarFrameLayer> {
         layer.stats.previewSwitches += 1;
         loading = true;
       } else {
-        // Nothing to show of it yet: every tile is asked for.
-        for (const job of jobs) this.resolve(job, true);
+        // Nothing to show of it yet: every tile is asked for, unless the
+        // needle may only be passing over it, or its preview is on its way.
+        const waited = frameState.time - slot.askedAt;
+        const wait = waitsToAsk(waited, frames.shown !== null, previews.awaits(wanted.key), REST_MS, PREVIEW_WAIT_MS);
+        if (wait === 0) {
+          for (const job of jobs) this.resolve(job, true);
+        } else {
+          layer.drawAt(frameState.time + wait);
+        }
         this.behind += 1;
         loading = true;
       }

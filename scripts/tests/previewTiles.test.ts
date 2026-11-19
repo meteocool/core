@@ -149,3 +149,37 @@ test("a newer crop of a frame's coarse tile replaces the last, and those listeni
   store.put(piece("a", "f1", [3, 4, 2], [0, 0, 256, 512]));
   assert.deepEqual(told, ["a", "a2"]);
 });
+
+test("a frame is waited for until every piece the plan names for it has been put", () => {
+  const store = new PreviewStore(10_000);
+  const frames: Record<string, string> = { a: "f1", b: "f1", c: "f2" };
+  store.plan(["a", "b", "c"], (key) => frames[key]);
+  assert.equal(store.awaits("f1"), true);
+  assert.equal(store.awaits("f2"), true);
+  assert.equal(store.awaits("f3"), false, "the plan names nothing of it");
+  store.put(piece("a", "f1", [3, 4, 2], TILE));
+  assert.equal(store.awaits("f1"), true, "one piece of it is still to come");
+  store.put(piece("b", "f1", [3, 5, 2], TILE));
+  assert.equal(store.awaits("f1"), false);
+  assert.equal(store.awaits("f2"), true);
+});
+
+test("a frame whose pieces are already held is not waited for, nor one of a plan that names no frames", () => {
+  const store = new PreviewStore(10_000);
+  store.plan(["a"], () => "f1");
+  store.put(piece("a", "f1", [3, 4, 2], TILE));
+  store.plan(["a"], () => "f1");
+  assert.equal(store.awaits("f1"), false);
+  store.plan(["b"]);
+  assert.equal(store.awaits("f1"), false);
+});
+
+test("a piece there was no room for is not waited for any longer, nor anything once cleared", () => {
+  const store = new PreviewStore(300);
+  store.plan(["a", "b"], (key) => (key === "a" ? "f1" : "f2"));
+  assert.equal(store.put(piece("a", "f1", [3, 4, 2], TILE, 1000)), false, "too large to keep");
+  assert.equal(store.awaits("f1"), false);
+  assert.equal(store.awaits("f2"), true);
+  store.clear();
+  assert.equal(store.awaits("f2"), false);
+});

@@ -69,7 +69,7 @@ import { statusVerdict } from "../lib/statusFeed";
 import { dismissalKey, nextNotice, rearmed, type Candidates, type QueuedNotice } from "../lib/noticeQueue";
 import { drawnByDomains } from "../layers/statusCoverage";
 import { viewCentre } from "../lib/status";
-import { preloadMode } from "../lib/framePreload";
+import { preloadMode, previewsFirst } from "../lib/framePreload";
 import type { PreloadMode } from "../lib/framePreload";
 import { holdsForTiles, playOrder, shouldAdvance, waitLeft } from "../lib/playbackGate";
 import { uploadAheadSteps } from "../lib/gpuBudget";
@@ -405,7 +405,9 @@ function stepAfter(from: number, grid: GridConfig): number {
 function planPreload(mode: PreloadMode, from: number): void {
   const grid = gridConfig;
   const order = $playbackRunning && grid ? playOrder(from, (step) => stepAfter(step, grid), steps.length + 1) : undefined;
-  if (mode === "all") cap.preloadTimeline(from, { order });
+  // Under a hand, every frame's preview before any frame's tiles.
+  const first = previewsFirst({ playing: $playbackRunning });
+  if (mode === "all") cap.preloadTimeline(from, { order, previewsFirst: first });
   else if (mode === "ahead") cap.preloadTimeline(from, { ahead: PRELOAD_AHEAD_SLOW, order });
   // No frame's tiles, every frame's preview.
   else if (mode === "previews") cap.preloadTimeline(from, { ahead: 0 });

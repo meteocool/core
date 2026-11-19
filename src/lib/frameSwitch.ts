@@ -178,3 +178,18 @@ export function settled<J>(jobs: Iterable<J>, ready: (job: J) => boolean): boole
   for (const job of jobs) if (!ready(job)) return false;
   return true;
 }
+
+/**
+ * How much longer, in milliseconds, a frame asked for with nothing of it to
+ * show waits before its tiles are asked for; 0 to ask now.
+ *
+ * A source that shows nothing asks at once. One that shows another frame
+ * (`showsAnother`) waits `rest` since the frame was asked for, as the
+ * needle may only be passing over it; and, where the frame's preview is on
+ * its way (`previewDue`), `previewWait` in all: the preview shows the frame
+ * sooner than its tiles would, and those are in its way on a slow line.
+ */
+export function waitsToAsk(waited: number, showsAnother: boolean, previewDue: boolean, rest: number, previewWait: number): number {
+  if (!showsAnother) return 0;
+  return Math.max(0, (previewDue ? Math.max(rest, previewWait) : rest) - waited);
+}

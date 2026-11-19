@@ -110,11 +110,13 @@ const PLANNED_SHARE = 0.8;
 /**
  * What to decode ahead (`RadarCapability.preloadTimeline`): with `ahead`,
  * only that many frames after the one given; with `order`, the steps in the
- * order playback will show them, the one given first.
+ * order playback will show them, the one given first; with `previewsFirst`,
+ * only once every frame's preview is in.
  */
 export interface PreloadOptions {
   ahead?: number;
   order?: readonly number[];
+  previewsFirst?: boolean;
 }
 
 /**
@@ -750,6 +752,8 @@ export default class RadarCapability extends Capability {
       mayFetch: () => document.visibilityState !== "hidden",
       parallel: decodeAheadParallel(),
       reportEvery: 100,
+      // Behind the previews, where the plan says so: carried on with once those are in.
+      hold: () => this.previewsFirst && !this.previewLoader.idle,
       has: (key) => {
         const job = this.plannedJobs.get(key);
         return job ? tileReady(job) : decodedTiles.has(key);
@@ -773,8 +777,13 @@ export default class RadarCapability extends Capability {
       mayFetch: () => document.visibilityState !== "hidden",
       parallel: previewParallel(),
       has: (key) => previews.has(key),
+      // The frames' tiles may have waited for these.
+      onIdle: () => this.preloader.resume(),
     },
   );
+
+  /** Whether the plan in hand has the frames' tiles wait for the previews. */
+  private previewsFirst = false;
 
   /** The pieces of the preview plan in hand, by key. */
   private plannedPreviews = new globalThis.Map<string, PreviewJob>();
@@ -883,8 +892,15 @@ export default class RadarCapability extends Capability {
    * those held cost on average, and a plan cut short is tried again once
    * loaded (`onlyFurther`), taken only if it then reaches further. How far
    * each frame has got is `framesPreloaded`.
+   *
+   * Every frame's preview is loaded as well, and with `previewsFirst`
+   * before any frame's tiles: those are queued, and start once the
+   * previews are in or have failed.
    */
-  preloadTimeline(from: number, { ahead, order: played, onlyFurther = false }: PreloadOptions & { onlyFurther?: boolean } = {}) {
+  preloadTimeline(
+    from: number,
+    { ahead, order: played, previewsFirst = false, onlyFurther = false }: PreloadOptions & { onlyFurther?: boolean } = {},
+  ) {
     if (!this.clientGrid) return;
     const last = this.getLastPlayableStep();
     const steps = Object.keys(this.clientGrid).map(Number).filter((step) => step <= last).sort((a, b) => a - b);
@@ -915,7 +931,8 @@ export default class RadarCapability extends Capability {
     }
     // Tried again once this plan is loaded, and taken only where it reaches further.
     if (onlyFurther && needs.length <= this.planReach) return;
-    this.planCut = cut ? { from, options: { ahead, order: played } } : null;
+    this.planCut = cut ? { from, options: { ahead, order: played, previewsFirst } } : null;
+    this.previewsFirst = previewsFirst;
     this.planReach = needs.length;
     this.plannedJobs = jobs;
     decodedTiles.retain(jobs.keys());
@@ -949,12 +966,13 @@ export default class RadarCapability extends Capability {
       needs.push([step, pieces.map((piece) => piece.key)]);
     }
     this.plannedPreviews = jobs;
-    previews.plan(jobs.keys());
+    previews.plan(jobs.keys(), (key) => jobs.get(key)?.frame);
     this.previewLoader.plan(needs);
   }
 
   /** No more frames decoded ahead, and none shown as decoded. */
   stopPreload() {
+    this.previewsFirst = false;
     this.planCut = null;
     this.planReach = 0;
     this.preloader.stop();
