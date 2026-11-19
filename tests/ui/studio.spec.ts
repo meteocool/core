@@ -44,6 +44,9 @@ test.describe("on a desktop", () => {
     await expect(panel(page)).toBeHidden();
     await expect(enter(page)).toBeVisible();
     await expect(page).not.toHaveURL(/[?&]studio=/);
+    // Which scan the storms are from is Studio's to choose: the map's own tray has no picker for it.
+    await expect(page.getByRole("button", { name: /^Storms/ })).toHaveCount(0);
+    await expect(page.locator(".peel .picker")).toHaveCount(0);
   });
 
   test("Back leaves Studio, as it leaves anything opened over the map", async ({ page }) => {

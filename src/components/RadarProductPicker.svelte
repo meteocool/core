@@ -310,7 +310,7 @@ function portal(node: HTMLElement) {
       </button>
       <CloseDisc material="chrome" on:click={() => close(true)} />
     </div>
-    <!-- The options scroll inside the card, as ScanPicker's do, not the card
+    <!-- The options scroll inside the card, not the card
          itself: WebKit does not clip a styled scrollbar to its scroller's
          rounded corners. -->
     <div class="options">

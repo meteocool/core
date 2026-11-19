@@ -94,7 +94,7 @@ $: ringColour = rgb(40, $radarColormap);
 
 /*
  * How much of the bottom edge the card or the pill takes, for what stands on
- * that edge beside it: the scan picker's list (ScanPicker).
+ * that edge beside it.
  */
 let cardWidth = 0;
 let pillWidth = 0;

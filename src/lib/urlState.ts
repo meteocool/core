@@ -271,7 +271,8 @@ export function currentState(): LinkState | null {
 
   // The 3D map's earlier scan, and its peel once the reader has set it.
   if (layer === "cells3d") {
-    const scan = get(cloudsTime).shown;
+    // An earlier scan is Studio's to show; outside it the map is on the newest.
+    const scan = get(studioOpen) ? get(cloudsTime).shown : null;
     if (scan !== null && !tracked) state.time = scan;
     if (get(peelManual) && !storm) state.peel = get(peelLevel);
     state.style = get(cloudStyle);
@@ -668,13 +669,16 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
         peelManual.set(true);
         peelLevel.set(link.peel);
       }
-      const scan = link.time ?? null;
-      if ((scan !== null || !opening) && get(cloudsTime).shown !== scan) holding(restoreScan(scan, token));
-
       // Studio, where it is offered: its planes, lens and scene, and the
       // camera exactly, which may be tilted past what the link's own says.
       // A link without it, on Back, is the map outside Studio.
       const studio = link.studio && studioOffered() ? decodeStudio(link.studio) : null;
+      // An earlier scan goes with Studio: a link to one from before the map
+      // lost its scan picker, or opened where Studio is not offered, is the
+      // map on the newest scan.
+      const scan = studio ? link.time ?? null : null;
+      if ((scan !== null || !opening) && get(cloudsTime).shown !== scan) holding(restoreScan(scan, token));
+
       if (studio) {
         const entering = !get(studioOpen);
         if (JSON.stringify(get(studioPlanes)) !== JSON.stringify(studio.still.planes)) studioPlanes.set(studio.still.planes);
@@ -757,8 +761,8 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
     ...Object.values(OVERLAY_STORES), observedProduct, hiddenStormMarks, stationChoice,
     capTimeIndicator, capLatestObservation, playbackRunning, inspectLatLon, siteMode, archiveWindow,
     srvManualMotion, srvPrefersManual, selectedStation, modelCompareAt, cloudStyle,
-    // Only what a link says of them: the peel moves every frame while the
-    // storms peel on their own, and the scan picker reports its progress.
+    // Only what a link says of them: the peel once the reader has set it,
+    // and the scan on the map, not how far looking for one has got.
     derived([peelManual, peelLevel], ([manual, level]) => (manual ? level : null)),
     derived(cloudsTime, (time) => time.shown),
     studioOpen, studioPlanes, studioFov, studioScene,

@@ -47,8 +47,8 @@ import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes, quietly } from "../api";
 import {
   capDescription, cells3dFailed, cells3dLoading, cells3dVisible, cloudStyle, cloudsTime, colorSchemeDark, cutRotationDeg,
-  cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedStorm, sharedActiveCap, stormDetails,
-  showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d, mapBaseLayer,
+  cutSweepDeg, mapView, peelLevel, peelManual, peelTop, radarColormap, selectedCell, selectedStorm, sharedActiveCap,
+  stormDetails, showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d, mapBaseLayer,
 } from "../stores";
 import { derived, get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
@@ -74,6 +74,7 @@ import {
 } from "../lib/cloudHistory";
 import type { Place, Quarter, ScanFinds } from "../lib/cloudHistory";
 import { networkAt } from "../layers/networkAt";
+import { defaultPeel } from "../lib/peel";
 import { makeStudioPlanesLayer } from "../layers/studioPlanesLayer";
 import type { StudioPlanesLayer } from "../layers/studioPlanesLayer";
 import { clipPlanes, isLevel } from "../lib/studio/planes";
@@ -851,17 +852,20 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeSelection = selectedStorm.subscribe((selection) => {
       if (this.shown) void this.openSelection(selection);
     });
-    // The slider's peel, once the reader has moved it; until then, null, and
-    // the clouds peel on their own and report where they are (ensureVolumes).
-    this.unsubscribePeel = derived([peelManual, peelLevel], ([manual, level]) => (manual ? level : null))
-      .subscribe((peel) => this.cloudsLayer?.setPeel(peel));
+    // The peel: where the style starts it, or where the reader has put it.
+    this.unsubscribePeel = derived([peelManual, peelLevel], (peel) => peel)
+      .subscribe(([own, level]) => this.cloudsLayer?.setPeel(level, own));
     // Turning the slice in the popup turns it here. Only a uniform changes, so
     // this is a repaint and nothing is rebuilt.
     this.unsubscribeCut = cutRotationDeg.subscribe(() => this.applyCut());
     this.unsubscribeSweep = cutSweepDeg.subscribe(() => this.applyCut());
     this.unsubscribeColormap = radarColormap.subscribe((name) => this.applyColormap(name));
     // A uniform and each storm's box: nothing is fetched or uploaded again.
-    this.unsubscribeStyle = cloudStyle.subscribe((style) => this.cloudsLayer?.setStyle(style));
+    this.unsubscribeStyle = cloudStyle.subscribe((style) => {
+      this.cloudsLayer?.setStyle(style);
+      // Each style starts its peel where it reads best, until the reader has chosen one.
+      if (!get(peelManual)) peelLevel.set(defaultPeel(style));
+    });
     this.unsubscribeCellsWanted = cells3dVisible.subscribe((wanted) => this.applyCellsWanted(wanted));
     this.unsubscribeTerrain = terrain3dVisible.subscribe((wanted) => {
       this.terrainWanted = wanted;
@@ -2073,10 +2077,10 @@ export default class Cells3DCapability extends Capability {
   /** The one layer that draws every storm's volume, added once per style. */
   private ensureVolumes(gl: GlMap): void {
     if (this.cloudsLayer || !this.maplibre) return;
-    const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap, (peel) => {
-      if (!get(peelManual)) peelLevel.set(peel);
-    }, get(cloudStyle));
-    if (get(peelManual)) layer.setPeel(get(peelLevel));
+    const layer = makeCloudsLayer(
+      VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap, (dbz) => peelTop.set(dbz), get(cloudStyle),
+    );
+    layer.setPeel(get(peelLevel), get(peelManual));
     gl.addLayer(layer);
     this.cloudsLayer = layer;
     this.pushClouds();
@@ -2301,8 +2305,9 @@ export default class Cells3DCapability extends Capability {
    *
    * Out of it, everything Studio changed about the map goes back: the cut is
    * an opened storm's again, the lens the map's own, the tilt within what a
-   * map is looked at from. The scan on the map stays, as the picker beside
-   * the peel then says.
+   * map is looked at from, and the storms the newest scan's: an earlier one
+   * is Studio's to show, and the map outside it has no way to say which scan
+   * it is on, or to leave it.
    */
   private setStudio(on: boolean): void {
     this.studio = on;
@@ -2311,6 +2316,7 @@ export default class Cells3DCapability extends Capability {
       this.studioHeld.clear();
       this.studioHeldBytes = 0;
       this.setDirected(false);
+      if (this.past || this.pastLoading !== null) this.showLatest();
     }
     const gl = this.gl;
     if (!gl) return;

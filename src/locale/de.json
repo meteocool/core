@@ -64,7 +64,7 @@
     "compass_does": "Norden oben, Blick senkrecht von oben",
     "legend": "Legende",
     "clouds": "Gewitterwolken",
-    "clouds_body": "Radarecho in 3D, nach Stärke eingefärbt. Jede schält sich bis auf den Kern ab und wächst wieder.",
+    "clouds_body": "Radarecho in 3D, nach Stärke eingefärbt. Das Schälen lässt bei jeder das schwache Äußere weg, bis hin zum Kern.",
     "scale_aria": "Reflektivität von {min} bis {max} dBZ",
     "box": "Kästen",
     "box_body": "Der Raum, in den sich ein Gewitter öffnet, nach Spitzenwert eingefärbt. Klicke hinein, um es zu öffnen. Ausgegraut, solange das Radar einen Scan weiter ist.",

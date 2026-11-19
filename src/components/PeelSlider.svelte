@@ -12,41 +12,39 @@ export const PEEL_MAX_WIDTH = 560;
  * The 3D map's peel, by hand: how far every storm is thinned towards its
  * core, as the iPhone's AR view offers it.
  *
- * Until it is touched it follows the clouds, which peel on their own
- * (layers/cellVolumeLayer.ts); touched, it holds them where it was left, and
- * they stay held for the rest of the visit rather than starting up again
- * under the reader's hand. The track is the palette the clouds are painted
- * in, weak to strong, which is what moving the thumb to the right leaves.
+ * Until it is touched it stands where the style on the map starts it
+ * (lib/peel.ts); touched, it is the reader's for the rest of the visit. The
+ * track is the palette the clouds are painted in, and says what the thumb
+ * means: from the faintest echo the style draws, at the left, to what a full
+ * peel leaves of the strongest storm on the map, at the right. So over a
+ * line of thunderstorms it runs from blue to red, and over a field of light
+ * showers it is one colour from end to end, as there is nothing to peel.
  *
  * It takes the bottom edge the flat map's tray has, and publishes its height
  * as --mc-peel-h for what stands on that edge above it: the guide's pill and
- * card, and the credits. At its end, how the storms are drawn (StylePicker)
- * and which scan they are from (ScanPicker), so the edge stays one strip of
- * controls; the peel works in every style, and on an earlier scan's storms
- * as on the newest's.
+ * card, and the credits. At its end, how the storms are drawn (StylePicker),
+ * so the edge stays one strip of controls. Which scan the storms are from is
+ * Studio's to choose (StudioTimeline); the map here is always the newest.
  */
 import { onDestroy } from "svelte";
 import { _ } from "svelte-i18n";
-import { cloudStyle, peelLevel, peelManual, radarColormap } from "../stores";
+import { cloudStyle, peelLevel, peelManual, peelTop, radarColormap } from "../stores";
 import { dbzColour } from "../lib/cellVolume";
 import { STYLE_FIELD } from "../lib/cloudStyle";
 import { faCubes } from "@fortawesome/free-solid-svg-icons/faCubes";
 import Icon from "./Icon.svelte";
-import ScanPicker from "./ScanPicker.svelte";
 import StylePicker from "./StylePicker.svelte";
 
-/** Put an earlier scan's storms on the map, or the newest for null; without it, no picker. */
-export let pickScan: ((scan: number | null) => void) | null = null;
 /** Go into meteocool Studio (lib/studio); without it, where Studio is not offered, no way in. */
 export let openStudio: (() => void) | null = null;
 
-/** The reflectivity the track spans: the faintest the style draws to a typical core. */
-const TRACK_MAX = 56;
+/** The reflectivity the track spans: the faintest the style draws to what a full peel leaves of the strongest storm. */
 $: trackMin = STYLE_FIELD[$cloudStyle].floor;
+$: trackMax = Math.max($peelTop ?? trackMin, trackMin);
 
 $: track = `linear-gradient(to right, ${
   Array.from({ length: 10 }, (_unused, i) => {
-    const [r, g, b] = dbzColour(trackMin + ((TRACK_MAX - trackMin) * i) / 9, $radarColormap);
+    const [r, g, b] = dbzColour(trackMin + ((trackMax - trackMin) * i) / 9, $radarColormap);
     return `rgb(${r}, ${g}, ${b}) ${(i / 9) * 100}%`;
   }).join(", ")
 })`;
@@ -75,9 +73,6 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     on:input={moved} />
   <div class="pickers">
     <StylePicker />
-    {#if pickScan}
-      <ScanPicker pick={pickScan} />
-    {/if}
     {#if openStudio}
       <button type="button" class="studio" on:click={openStudio} title={$_("studio.open_title")}>
         <Icon icon={faCubes} />
@@ -115,7 +110,7 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
   .label {
     flex: none;
   }
-  /* The way into Studio, at the tray's end: a pill as the scan picker's is. */
+  /* The way into Studio, at the tray's end: a pill as the style picker's is. */
   .studio {
     flex: none;
     display: inline-flex;

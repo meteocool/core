@@ -64,7 +64,7 @@
     "compass_does": "Północ u góry, widok z góry",
     "legend": "Legenda",
     "clouds": "Chmury burzowe",
-    "clouds_body": "Echo radarowe w 3D, barwione według siły. Każda chmura kurczy się do rdzenia i znów rośnie.",
+    "clouds_body": "Echo radarowe w 3D, barwione według siły. Obieranie usuwa słabą zewnętrzną część każdej chmury, aż po rdzeń.",
     "scale_aria": "Odbiciowość od {min} do {max} dBZ",
     "box": "Ramki",
     "box_body": "Obszar, w którym otwiera się burza, barwiony według maksimum. Kliknij w niego, aby ją otworzyć. Wyszarzony, dopóki radar jest o jeden skan dalej.",

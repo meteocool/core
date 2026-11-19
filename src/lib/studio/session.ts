@@ -1,10 +1,9 @@
 /**
  * Going into meteocool Studio and coming back out.
  *
- * Studio borrows the 3D map: its peel becomes a setting of the scene's, held
- * where Studio puts it, and the storms stop peeling on their own. Leaving
- * hands both back as they were, so a reader who only looked in finds the map
- * they left.
+ * Studio borrows the 3D map: its peel becomes a setting of the scene's, which
+ * a keyframe may put anywhere. Leaving hands it back as it was, so a reader
+ * who only looked in finds the map they left.
  */
 import { get } from "svelte/store";
 import { peelLevel, peelManual } from "../../stores";
@@ -24,9 +23,6 @@ export const studioOffered = (): boolean => !isHandheld();
 export function openStudio(): void {
   if (get(studioOpen)) return;
   peelBefore = { manual: get(peelManual), level: get(peelLevel) };
-  // Held from here on; from whole, unless the reader had already set one.
-  if (!peelBefore.manual) peelLevel.set(0);
-  peelManual.set(true);
   studioOpen.set(true);
 }
 

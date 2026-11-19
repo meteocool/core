@@ -64,7 +64,7 @@
     "compass_does": "Sever hore, pohľad zvisle zhora",
     "legend": "Legenda",
     "clouds": "Búrkové oblaky",
-    "clouds_body": "Radarové echo v 3D, zafarbené podľa sily. Každý sa olupuje až na jadro a znova dorastá.",
+    "clouds_body": "Radarové echo v 3D, zafarbené podľa sily. Lúpanie pri každom vynechá slabý vonkajšok, až po jadro.",
     "scale_aria": "Odrazivosť od {min} do {max} dBZ",
     "box": "Rámčeky",
     "box_body": "Priestor, do ktorého sa búrka otvorí, zafarbený podľa maxima. Klikni dovnútra a otvoríš ju. Sivý, kým je radar o jeden sken ďalej.",

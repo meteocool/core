@@ -64,7 +64,7 @@
     "compass_does": "Noorden boven, recht van bovenaf",
     "legend": "Legenda",
     "clouds": "Onweerswolken",
-    "clouds_body": "Radarecho in 3D, gekleurd naar sterkte. Elke wolk pelt af tot de kern en groeit weer aan.",
+    "clouds_body": "Radarecho in 3D, gekleurd naar sterkte. Het afpellen laat bij elke wolk de zwakke buitenkant weg, tot aan de kern.",
     "scale_aria": "Reflectiviteit van {min} tot {max} dBZ",
     "box": "Kaders",
     "box_body": "De ruimte waarin een onweer opengaat, gekleurd naar zijn piek. Klik erin om het te openen. Grijs zolang de radar een scan verder is.",

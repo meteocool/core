@@ -64,7 +64,7 @@
     "compass_does": "Nord en haut, vue à la verticale",
     "legend": "Légende",
     "clouds": "Nuages d'orage",
-    "clouds_body": "L'écho radar en 3D, coloré selon l'intensité. Chacun s'effeuille jusqu'au noyau, puis se reforme.",
+    "clouds_body": "L'écho radar en 3D, coloré selon l'intensité. L'effeuillage retire l'extérieur faible de chacun, jusqu'au noyau.",
     "scale_aria": "Réflectivité de {min} à {max} dBZ",
     "box": "Boîtes",
     "box_body": "L'espace dans lequel un orage s'ouvre, coloré selon son maximum. Cliquez dedans pour l'ouvrir. Grisé tant que le radar a un balayage d’avance.",

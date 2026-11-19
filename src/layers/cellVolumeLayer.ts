@@ -6,12 +6,12 @@
  * This puts them all on the map at once: the same field and the same shader,
  * standing on the ground each storm is over, at the scale of the terrain, as
  * a sky of clouds. The one being inspected is sliced along its track, as the
- * panel cuts it; every other one that could be opened peels, over and over:
- * its faint envelope thins away shell by shell until only the strongest echo
- * is left standing, then grows back. A cut shows a storm's core from one
- * side; the peel shows where in the cloud the intensity sits, which is the
- * question a map full of storms is asking. One the radars did not see
- * well enough to open is held whole: its inside is interpolation.
+ * panel cuts it; every other one that could be opened is peeled: its faint
+ * envelope left out, as far towards the strongest echo as the peel says
+ * (lib/peel.ts). A cut shows a storm's core from one side; the peel shows
+ * where in the cloud the intensity sits, which is the question a map full
+ * of storms is asking. One the radars did not see well enough to open is
+ * held whole: its inside is interpolation.
  *
  * ## Styles
  *
@@ -70,6 +70,7 @@ import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
 import { SHELL_STEP, SHELL_TOP, STYLE_FIELD } from "../lib/cloudStyle";
 import type { CloudStyle } from "../lib/cloudStyle";
+import { peelLow, peelShare } from "../lib/peel";
 import { carryPlane, MAX_PLANES } from "../lib/studio/planes";
 import type { ClipPlane } from "../lib/studio/planes";
 import { VERTICAL_SCALE } from "./terrain";
@@ -92,20 +93,6 @@ const STYLE_INDEX: Record<CloudStyle, number> = { cloud: 0, glow: 1, shells: 2 }
  */
 const SHELL_ALPHA_MIN = 0.5;
 const SHELL_SOLID_DBZ = 40;
-/**
- * How large a storm has to stand on screen, in CSS pixels across its box,
- * for the running peel to be worth drawing on it.
- *
- * Zoomed out, a storm is a few dozen pixels of soft cloud, and peeling it to
- * its core changes nothing anyone can see, while the slider following the
- * peel (PeelSlider) swung back and forth under a map that did not move. A
- * coarse tile reaches this around zoom 7. Below it a storm is drawn whole,
- * and with none on screen above it the peel stands still and says so.
- */
-const PEEL_MIN_PX = 64;
-
-/** Seconds for one peel: whole storm, down to its core, and back. */
-const PEEL_SECONDS = 10;
 /**
  * How much storm the peel stops at, in voxels: the strongest this many are
  * what is left standing. A threshold taken from the single strongest voxel
@@ -139,25 +126,6 @@ const VIEW_PITCH_DEG = 55;
 const STEPS = 128;
 /** The box `STEPS` is counted for, in voxels across: the 40 km box before tiles. */
 const STEPS_VOXELS = 160;
-/**
- * How often the peel asks for a frame.
- *
- * The peel is ten seconds of slow easing; it does not need the display's
- * refresh rate, and asking for one repaint per frame kept MapLibre drawing
- * the whole map (basemap, extrusions, radar drape and a raymarch per storm)
- * at 60 to 120 Hz for as long as the 3D view was open. A dozen frames a
- * second is enough that it still reads as a motion rather than a flicker.
- */
-const PEEL_FPS = 12;
-/**
- * How long the peel keeps running after the reader last did anything.
- *
- * Long enough for a few whole peels after a pan lands, so what the reader was
- * looking at finishes; short enough that a map left open on a desk stops
- * animating. It picks up again on the next touch of the map, and the peel
- * resumes from where it stopped rather than jumping.
- */
-const PEEL_IDLE_SECONDS = 3 * PEEL_SECONDS;
 /**
  * How far from an opened storm the cut reaches, in km: every cloud whose box
  * comes this close to where the cut passes through is cut by the same plane.
@@ -686,21 +654,6 @@ export function solidKm2(cutaway: Cutaway): number {
 export const isFaint = (cutaway: Cutaway): boolean => solidKm2(cutaway) < SOLID_KM2_MIN;
 
 /**
- * How far through its peel a storm is, 0 whole to 1 down to the core.
- *
- * Eased, and held at both ends: a peel that never stops is only ever halfway
- * between two pictures, and the two worth looking at are the whole storm and
- * what is left of it.
- */
-function peelAt(seconds: number): number {
-  const t = (seconds / PEEL_SECONDS) % 1;
-  const rise = Math.min(Math.max((t - 0.1) / 0.35, 0), 1);
-  const fall = Math.min(Math.max((t - 0.6) / 0.35, 0), 1);
-  const eased = (x: number) => x * x * (3 - 2 * x);
-  return eased(rise) - eased(fall);
-}
-
-/**
  * Each storm's peel floor, by the key each of its tiles is held under: the
  * strongest `coreDbz` among the tiles of one storm that peel, so they peel as
  * one cloud (see `Cloud.peelFloor`). A storm from before tiles, with no
@@ -823,8 +776,7 @@ export interface CloudsLayer extends CustomLayerInterface {
    *
    * `peels: false` holds a storm whole: one the radars did not see well
    * enough to open, whose layers are interpolation, so peeling them shows
-   * nothing about where the intensity sits, and costs a frame every
-   * twelfth of a second for as long as one is on screen.
+   * nothing about where the intensity sits.
    */
   setClouds(clouds: ReadonlyArray<{
     key: string; cutaway: Cutaway; dim?: number; peels?: boolean; system?: string | null;
@@ -841,10 +793,11 @@ export interface CloudsLayer extends CustomLayerInterface {
   /** Draw the storms this way; see lib/cloudStyle.ts. */
   setStyle(style: CloudStyle): void;
   /**
-   * Hold every storm at this peel, 0 whole to 1 down to its core, instead of
-   * peeling on its own; null lets it run again.
+   * Thin every storm to this peel, 0 whole to 1 down to its core (lib/peel.ts).
+   * `own` says the reader set it themself: then it is drawn wherever the
+   * camera stands, where a style's default comes in only close up.
    */
-  setPeel(peel: number | null): void;
+  setPeel(peel: number, own: boolean): void;
   /**
    * Cut every cloud by Studio's section planes, in place of the opened
    * storm's own cut; null hands the cutting back to `setCut`. Every cloud,
@@ -855,7 +808,7 @@ export interface CloudsLayer extends CustomLayerInterface {
 }
 
 /**
- * Every storm with a volume, drawn at once: the one a reader opened cut, the rest peeling.
+ * Every storm with a volume, drawn at once: the one a reader opened cut, the rest peeled.
  *
  * One layer rather than one per storm, so they share a program and are drawn
  * in a single pass sorted far to near: they are translucent, and translucent
@@ -867,13 +820,16 @@ export function makeCloudsLayer(
   id: string,
   MercatorCoordinate: typeof import("maplibre-gl").MercatorCoordinate,
   initialColormap: string,
-  /** Told where the running peel is, each frame it moves, for a slider to follow. */
-  onPeel: (peel: number) => void = () => {},
+  /**
+   * Told what a full peel leaves of the strongest storm held, in dBZ, each
+   * time the storms change; null with none that peels. What the far end of
+   * a peel slider stands for.
+   */
+  onPeelTop: (dbz: number | null) => void = () => {},
   initialStyle: CloudStyle = "cloud",
 ): CloudsLayer {
   let gl: WebGL2RenderingContext | null = null;
   let map: GlMap | null = null;
-  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let program: WebGLProgram | null = null;
   let rampTexture: WebGLTexture | null = null;
   const clouds = new Map<string, Cloud>();
@@ -883,40 +839,11 @@ export function makeCloudsLayer(
   let style = initialStyle;
   /** Uniform locations, looked up once per program rather than a dozen times a frame. */
   let uniforms = new Map<string, WebGLUniformLocation | null>();
-  /** The pending peel frame, if one has been asked for. */
-  let peelTimer: ReturnType<typeof setTimeout> | null = null;
-  /**
-   * The peel's own clock, in seconds. It advances only while the peel is
-   * being drawn, so a peel that stopped for idleness resumes from the same
-   * shell rather than jumping to wherever the wall clock has got to.
-   */
-  let peelTime = 0;
-  let lastFrameAt: number | null = null;
-  /** The peel the reader set by hand, which stops the running one; see `setPeel`. */
-  let manualPeel: number | null = null;
+  /** How far every storm is thinned, and whether the reader chose it; see `setPeel`. */
+  let peel = 0;
+  let peelOwn = false;
   /** Studio's section planes, while it is open; see `setSections`. */
   let sections: readonly ClipPlane[] | null = null;
-  /** When the reader last touched the map, or the storms changed. */
-  let activeSince = performance.now();
-  const wake = () => { activeSince = performance.now(); schedulePeel(); };
-  const mapEvents = ["movestart", "move", "mousedown", "touchstart", "wheel"] as const;
-
-  const peelActive = (): boolean => (
-    !still && performance.now() - activeSince < PEEL_IDLE_SECONDS * 1000
-  );
-
-  /** Ask for the next peel frame, once, a twelfth of a second from now. */
-  function schedulePeel(): void {
-    if (peelTimer !== null || !peelActive()) return;
-    peelTimer = setTimeout(() => {
-      peelTimer = null;
-      // Only while the map is on the page: switched away from, its element
-      // is taken out and the map is meant to sleep, and a repaint asked for
-      // would keep it raymarching into a canvas nobody can see. Coming back
-      // repaints it, and `render` picks the loop up again.
-      if (map?.getContainer().isConnected) map.triggerRepaint();
-    }, 1000 / PEEL_FPS);
-  }
 
   /** The palette as a texture the shader looks reflectivity up in, -32 to +64 dBZ. */
   function paintRamp(context: WebGL2RenderingContext): void {
@@ -1043,18 +970,13 @@ export function makeCloudsLayer(
       ]));
       const floors = peelFloors([...clouds].map(([key, cloud]) => [key, { ...cloud, system: storms.get(key)! }]));
       for (const [key, floor] of floors) clouds.get(key)!.peelFloor = floor;
-      // New storms are worth peeling for a while, whatever the reader was doing.
-      wake();
+      const peeling = [...clouds.values()].filter((cloud) => cloud.peels);
+      onPeelTop(peeling.length ? Math.max(...peeling.map((cloud) => cloud.peelFloor)) : null);
     },
 
     setCut(key, headingDeg) {
-      // Opened or closed, the peel starts again from the whole storm: it is
-      // held while one is open (see render), and resuming mid-peel would
-      // jump every other storm to a different shell the moment it closed.
-      if (key !== cutKey) peelTime = 0;
       cutKey = key;
       cutHeading = headingDeg;
-      wake();
     },
 
     setColormap(name) {
@@ -1062,19 +984,16 @@ export function makeCloudsLayer(
       if (gl) paintRamp(gl);
     },
 
-    setPeel(peel) {
-      manualPeel = peel;
-      if (peel === null) wake();
-      else if (map?.getContainer().isConnected) map.triggerRepaint();
+    setPeel(level, own) {
+      peel = level;
+      peelOwn = own;
+      if (map?.getContainer().isConnected) map.triggerRepaint();
     },
 
     setStyle(next) {
       if (next === style) return;
       style = next;
       for (const cloud of clouds.values()) fit(cloud);
-      // From whole, so what the reader sees first is the style, not a shell of it.
-      peelTime = 0;
-      wake();
       if (map?.getContainer().isConnected) map.triggerRepaint();
     },
 
@@ -1099,10 +1018,6 @@ export function makeCloudsLayer(
 
       // Storms handed over before the layer existed get their textures now.
       for (const cloud of clouds.values()) cloud.texture ??= upload(context, cloud.cutaway);
-
-      // Touching the map restarts the peel where it left off.
-      for (const event of mapEvents) added.on(event, wake);
-      wake();
     },
 
     render(context: WebGL2RenderingContext, options: CustomRenderMethodInput) {
@@ -1110,19 +1025,10 @@ export function makeCloudsLayer(
       // `mainMatrix`, the one documented to take spherical mercator; see the
       // model matrix above for the space the boxes are built in.
       const main = options.defaultProjectionData.mainMatrix;
-      // One phase for every unopened storm, off a clock of the peel's own that
-      // runs only while it is drawing, so the peel keeps its pace however fast
-      // the map draws and resumes where it paused. Held whole for anyone who
-      // has asked for less motion.
-      const now = performance.now() / 1000;
-      // Held whole while a storm is cut open: the reader is reading that one,
-      // and a dozen others peeling around it kept the map redrawing at the
-      // peel's pace under the sweep and the detail panel, which made the open
-      // storm the laggiest thing on screen.
-      // A peel set by hand stands, reduced motion or not, until a storm is cut.
-      // Studio's planes leave the peel to the reader's hand: it cuts and peels at once.
-      const manual = manualPeel !== null && (cutKey === null || sections !== null);
-      const holding = still || (cutKey !== null && sections === null);
+      // One peel for every storm, drawn in full where the reader set it and
+      // otherwise only close up; see lib/peel.ts. Standing still: nothing
+      // here asks for another frame.
+      const peelNow = peel * peelShare(map?.getZoom() ?? 0, peelOwn);
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
 
@@ -1137,27 +1043,6 @@ export function makeCloudsLayer(
         })
         .sort((a, b) => b.depth - a.depth);
 
-      // Large enough on screen for the running peel to show; see PEEL_MIN_PX.
-      const cssPx = width / Math.max(1, map?.getCanvas().clientWidth ?? width);
-      const peelsHere = (rect: ReturnType<typeof screenRect>) => rect === "all"
-        || (rect !== null && Math.max(rect[2], rect[3]) >= PEEL_MIN_PX * cssPx);
-      const showsPeel = ordered.some(({ cloud, rect }) => cloud.peels && peelsHere(rect));
-
-      const running = peelActive() && !holding && manualPeel === null;
-      const active = running && showsPeel;
-      if (active && lastFrameAt !== null) peelTime += Math.min(now - lastFrameAt, 1 / PEEL_FPS);
-      lastFrameAt = now;
-      // Nothing on screen it would show on: back to whole, once, so the slider
-      // stands at the left rather than wherever the peel was, and the peel
-      // starts from whole on the way back in.
-      if (running && !showsPeel && peelTime !== 0) {
-        peelTime = 0;
-        onPeel(0);
-      }
-      const peel = manual ? manualPeel! : holding ? 0 : peelAt(peelTime);
-      if (active) onPeel(peel);
-      /** Whether any storm that peels is on screen, which is what a peel frame is for. */
-      let peeling = false;
 
       context.useProgram(program);
       const at = (name: string) => {
@@ -1231,14 +1116,15 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
 
-        const peelsNow = !plane && cloud.peels && (manual || (!holding && peelsHere(rect)));
-        if (peelsNow) peeling = true;
+        // Not the storm a reader opened, nor the clouds its cut reaches: a
+        // cut shows the envelope the peel would take away.
+        const peelsNow = !plane && cloud.peels;
         context.uniform1i(at("uPlaneCount"), cuts.length);
         context.uniform1f(at("uDim"), cloud.dim);
         // From the style's floor to the storm's core. The top of the ramp
         // stays where the style has it until the peel has thinned the storm
         // to within a cloud's band of it, so a core is never fainter peeled.
-        const low = peelsNow ? field.floor + (cloud.peelFloor - field.floor) * peel : field.floor;
+        const low = peelsNow ? peelLow(field.floor, cloud.peelFloor, peelNow) : field.floor;
         context.uniform1f(at("uLow"), low);
         context.uniform1f(at("uHigh"), Math.max(field.floor + field.band, low + PEEL_BAND));
         if (cuts.length) {
@@ -1250,17 +1136,9 @@ export function makeCloudsLayer(
 
       context.disable(context.SCISSOR_TEST);
       context.depthMask(true);
-      // The peel moves on its own, so the map has to keep drawing while any
-      // storm but the open one is on screen and the reader is still about,
-      // at the peel's own pace instead of the display's. See `schedulePeel`.
-      if (active && peeling) schedulePeel();
     },
 
     onRemove(removed: GlMap, context: WebGL2RenderingContext) {
-      for (const event of mapEvents) removed.off(event, wake);
-      if (peelTimer !== null) clearTimeout(peelTimer);
-      peelTimer = null;
-      lastFrameAt = null;
       for (const cloud of clouds.values()) {
         if (cloud.texture) context.deleteTexture(cloud.texture);
         cloud.texture = null;

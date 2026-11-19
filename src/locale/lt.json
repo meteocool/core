@@ -64,7 +64,7 @@
     "compass_does": "Šiaurė viršuje, žiūrint tiesiai žemyn",
     "legend": "Legenda",
     "clouds": "Audros debesys",
-    "clouds_body": "Radaro aidas 3D, nuspalvintas pagal stiprį. Kiekvienas debesis nusilukštena iki branduolio ir vėl užauga.",
+    "clouds_body": "Radaro aidas 3D, nuspalvintas pagal stiprį. Lukštenimas pašalina silpną kiekvieno debesies išorę, iki branduolio.",
     "scale_aria": "Atspindingumas nuo {min} iki {max} dBZ",
     "box": "Dėžės",
     "box_body": "Erdvė, kurioje audra atveriama, nuspalvinta pagal jos maksimumą. Spustelėk jos viduje, kad atvertum audrą. Pilka, kol radaras yra vienu skenavimu priekyje.",

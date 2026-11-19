@@ -1561,14 +1561,11 @@ if (postInitCb) postInitCb(lm);
 {#if $detourOrigin && $sharedActiveCap === "cells3d" && $toolbarVisible === "yes"}
   <BackFrom3D onback={backFrom3D} />
 {/if}
-<!-- The 3D map's legend, peel and scan picker, once it is up. In the apps as
+<!-- The 3D map's legend and peel, once it is up. In the apps as
      well: their own chrome is the zoom, locate and compass column, and none
      of this is in it. A toolbar asked away is a display that wants none of
      it either. -->
 {#if $sharedActiveCap === "cells3d" && !$cells3dLoading && !$cells3dFailed && $toolbarVisible === "yes"}
-  <!-- Not while a storm is open: a cut storm does not peel, and its panel
-       says when it was seen. With the picker of which scan the storms are
-       from, which stays on its choice meanwhile. -->
   {#if $studioOpen && cells3d}
     <!-- Studio takes the map's own chrome for looking away: its tools and
          timeline stand where the legend and the peel's tray do. -->
@@ -1576,10 +1573,9 @@ if (postInitCb) postInitCb(lm);
       <svelte:component this={module.default} stage={cells3d} />
     </Lazy>
   {:else}
+    <!-- Not while a storm is open: a cut storm does not peel. -->
     {#if !$selectedStorm}
-      <PeelSlider
-        pickScan={cells3d ? (scan) => cells3d.showScan(scan) : null}
-        openStudio={cells3d && studioOnOffer && !$smallScreen ? openStudio : null} />
+      <PeelSlider openStudio={cells3d && studioOnOffer && !$smallScreen ? openStudio : null} />
     {/if}
     <Guide3D />
   {/if}

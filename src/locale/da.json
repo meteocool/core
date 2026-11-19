@@ -64,7 +64,7 @@
     "compass_does": "Nord opad, set lige oppefra",
     "legend": "Signaturforklaring",
     "clouds": "Uvejrsskyer",
-    "clouds_body": "Radarekko i 3D, farvet efter styrke. Hver sky skrælles ned til kernen og vokser ud igen.",
+    "clouds_body": "Radarekko i 3D, farvet efter styrke. Skrælningen fjerner det svage ydre af hver sky, ind mod kernen.",
     "scale_aria": "Reflektivitet fra {min} til {max} dBZ",
     "box": "Kasser",
     "box_body": "Rummet, som et uvejr åbner sig i, farvet efter dets maksimum. Klik inde i kassen for at åbne uvejret. Grå, mens radaren er et scan foran.",

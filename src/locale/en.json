@@ -64,7 +64,7 @@
     "compass_does": "North up, looking straight down",
     "legend": "Legend",
     "clouds": "Storm clouds",
-    "clouds_body": "Radar echo in 3D, coloured by strength. Each peels down to its core and grows back.",
+    "clouds_body": "Radar echo in 3D, coloured by strength. The peel leaves out the faint outside of each, towards its core.",
     "scale_aria": "Reflectivity from {min} to {max} dBZ",
     "box": "Boxes",
     "box_body": "The space a storm opens into, coloured by its peak. Click inside it to open the storm. Greyed while the radar is a scan ahead of it.",
@@ -108,6 +108,10 @@
     "camera": "Camera",
     "clouds": "Clouds",
     "recording_note": "Recording… Esc stops",
+    "video": {
+      "tagline": "Chase it or avoid it.",
+      "pitch": "Free & open-source rain radar"
+    },
     "plane": {
       "upright": "Upright",
       "level": "Level",

@@ -64,7 +64,7 @@
     "compass_does": "Pohjoinen ylös, katse suoraan alas",
     "legend": "Selite",
     "clouds": "Ukkospilvet",
-    "clouds_body": "Tutkakaiku 3D:nä, väritetty voimakkuuden mukaan. Jokainen kuoriutuu ytimeensä asti ja kasvaa takaisin.",
+    "clouds_body": "Tutkakaiku 3D:nä, väritetty voimakkuuden mukaan. Kuorinta jättää kustakin pois heikon ulkokerroksen, ydintä kohti.",
     "scale_aria": "Heijastavuus {min}–{max} dBZ",
     "box": "Laatikot",
     "box_body": "Tila, johon ukkospilvi avautuu, väritetty sen huippuarvon mukaan. Avaa ukkospilvi napsauttamalla laatikon sisällä. Harmaana, kun tutka on yhden keilauksen sitä edellä.",

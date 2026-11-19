@@ -64,7 +64,7 @@
     "compass_does": "Põhi üles, vaade otse ülalt",
     "legend": "Legend",
     "clouds": "Äikesepilved",
-    "clouds_body": "Radarikaja 3D-s, värvitud tugevuse järgi. Iga pilv kooritakse tuumani ja kasvab siis tagasi.",
+    "clouds_body": "Radarikaja 3D-s, värvitud tugevuse järgi. Koorimine jätab igast pilvest välja nõrga väliskihi, tuuma suunas.",
     "scale_aria": "Peegelduvus {min} kuni {max} dBZ",
     "box": "Kastid",
     "box_body": "Ruum, kuhu äike avaneb, värvitud selle tipptugevuse järgi. Äikese avamiseks klõpsa kasti sees. Hall, kui radar on sellest ühe skaneeringu võrra ees.",

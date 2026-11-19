@@ -64,7 +64,7 @@
     "compass_does": "Nord opp, sett rett ovenfra",
     "legend": "Tegnforklaring",
     "clouds": "Tordenskyer",
-    "clouds_body": "Radarekko i 3D, farget etter styrke. Hver sky skrelles ned til kjernen og vokser ut igjen.",
+    "clouds_body": "Radarekko i 3D, farget etter styrke. Skrellingen fjerner det svake ytre av hver sky, inn mot kjernen.",
     "scale_aria": "Reflektivitet fra {min} til {max} dBZ",
     "box": "Bokser",
     "box_body": "Rommet et tordenvær åpner seg i, farget etter toppverdien. Klikk inni for å åpne tordenværet. Grået ut mens radaren er ett skann foran.",

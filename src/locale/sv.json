@@ -64,7 +64,7 @@
     "compass_does": "Norr uppåt, sett rakt uppifrån",
     "legend": "Teckenförklaring",
     "clouds": "Åskmoln",
-    "clouds_body": "Radareko i 3D, färgat efter styrka. Varje moln skalas av ner till kärnan och växer tillbaka.",
+    "clouds_body": "Radareko i 3D, färgat efter styrka. Skalningen tar bort det svaga yttre av varje moln, in mot kärnan.",
     "scale_aria": "Reflektivitet från {min} till {max} dBZ",
     "box": "Lådor",
     "box_body": "Utrymmet som ett åskväder öppnas i, färgat efter sitt maxvärde. Klicka inuti för att öppna åskvädret. Gråtonat medan radarn ligger en skanning före.",

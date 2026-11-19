@@ -5,8 +5,8 @@
  * time on it, and none of the credits the data is published under, both of
  * which are page elements over the canvas. So each frame is drawn again onto
  * a canvas of the recording's own (the part of the map the chosen shape
- * frames, then the time, the name and the credits over it), and that canvas
- * is what is recorded.
+ * frames, then the time and the credits over it, and a badge saying whose
+ * map this is), and that canvas is what is recorded.
  *
  * Recorded as it plays, by the browser's own recorder: a scene's scans are
  * loaded before it starts (director.ts), so playing it is only drawing.
@@ -55,6 +55,72 @@ export function canRecord(): boolean {
     && "captureStream" in HTMLCanvasElement.prototype && TYPES.some(({ mime }) => MediaRecorder.isTypeSupported(mime));
 }
 
+/** Whose picture a recording is: the logo and a few words, drawn in its top left corner. */
+export interface Badge {
+  /** The logo, loaded; null where it would not load, and the badge is words alone. */
+  logo: CanvasImageSource | null;
+  /** The name, then what is said under it: a line that sells, and a line that says what it is. */
+  name: string;
+  tagline: string;
+  pitch: string;
+}
+
+/** An image for a canvas to draw, or null if it will not load: a recording is not held up for a logo. */
+export function loadImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = url;
+  });
+}
+
+/**
+ * The badge, as a plate of dark glass with the logo and the words on it.
+ * `unit` is a hundredth of the picture's short side, which everything on a
+ * recording is sized by.
+ */
+export function drawBadge(context: CanvasRenderingContext2D, badge: Badge, unit: number): void {
+  const pad = unit * 1.5;
+  const mark = badge.logo ? unit * 7.4 : 0;
+  const fonts = [
+    `700 ${unit * 2.7}px system-ui, sans-serif`,
+    `600 ${unit * 1.9}px system-ui, sans-serif`,
+    `400 ${unit * 1.6}px system-ui, sans-serif`,
+  ];
+  const lines = [badge.name, badge.tagline, badge.pitch];
+  const widths = lines.map((line, i) => {
+    context.font = fonts[i];
+    return context.measureText(line).width;
+  });
+  const left = unit * 3;
+  const top = unit * 3;
+  const height = unit * 7.4 + pad * 2;
+  const width = pad + mark + (mark ? pad : 0) + Math.max(...widths) + pad * 1.4;
+
+  context.save();
+  context.shadowColor = "rgba(0, 0, 0, 0.35)";
+  context.shadowBlur = unit * 1.2;
+  context.fillStyle = "rgba(22, 22, 26, 0.62)";
+  context.beginPath();
+  context.roundRect(left, top, width, height, unit * 2.4);
+  context.fill();
+  context.shadowBlur = 0;
+  if (badge.logo) context.drawImage(badge.logo, left + pad, top + pad, mark, mark);
+
+  const textLeft = left + pad + mark + (mark ? pad : 0);
+  context.textAlign = "left";
+  context.textBaseline = "alphabetic";
+  const baselines = [top + pad + unit * 2.5, top + pad + unit * 5.1, top + pad + unit * 7.2];
+  const inks = ["#fff", "#fff", "rgba(255, 255, 255, 0.82)"];
+  lines.forEach((line, i) => {
+    context.font = fonts[i];
+    context.fillStyle = inks[i];
+    context.fillText(line, textLeft, baselines[i]);
+  });
+  context.restore();
+}
+
 export interface Recording {
   /** Stop, and hand over what was recorded. */
   finish(): Promise<{ blob: Blob; extension: string }>;
@@ -63,8 +129,8 @@ export interface Recording {
 }
 
 /**
- * Start recording `source`, cropped to `aspect`, with `caption` and
- * `credits` drawn over every frame. `eachFrame` is how the caller is told a
+ * Start recording `source`, cropped to `aspect`, with `caption`, `credits`
+ * and the `badge` drawn over every frame. `eachFrame` is how the caller is told a
  * frame has been drawn onto the source, and returns how to stop being told.
  */
 export function startRecording(options: {
@@ -74,6 +140,7 @@ export function startRecording(options: {
   /** The time the frame on screen is of, as it should read; asked every frame. */
   caption(): string;
   credits: string;
+  badge: Badge;
 }): Recording {
   const { source, aspect } = options;
   const crop = cropOf(source.width, source.height, aspect);
@@ -93,14 +160,13 @@ export function startRecording(options: {
     context.fillStyle = "#fff";
     context.textAlign = "left";
     context.font = `600 ${unit * 3.4}px system-ui, sans-serif`;
-    context.fillText(options.caption(), unit * 3, size.height - unit * 6.4);
-    context.font = `600 ${unit * 2.2}px system-ui, sans-serif`;
-    context.fillText("meteocool.com", unit * 3, size.height - unit * 3);
+    context.fillText(options.caption(), unit * 3, size.height - unit * 3);
     context.textAlign = "right";
     context.font = `${unit * 1.5}px system-ui, sans-serif`;
     context.fillStyle = "rgba(255, 255, 255, 0.85)";
     context.fillText(options.credits, size.width - unit * 3, size.height - unit * 3, size.width * 0.62);
     context.shadowBlur = 0;
+    drawBadge(context, options.badge, unit);
   };
 
   const type = TYPES.find(({ mime }) => MediaRecorder.isTypeSupported(mime))!;

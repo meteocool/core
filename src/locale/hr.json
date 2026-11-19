@@ -64,7 +64,7 @@
     "compass_does": "Sjever gore, pogled ravno odozgo",
     "legend": "Legenda",
     "clouds": "Olujni oblaci",
-    "clouds_body": "Radarski odjek u 3D-u, obojen prema jačini. Svaki se oljušti do svoje jezgre i ponovno naraste.",
+    "clouds_body": "Radarski odjek u 3D-u, obojen prema jačini. Ljuštenje uklanja slabi vanjski dio svakoga, prema jezgri.",
     "scale_aria": "Reflektivnost od {min} do {max} dBZ",
     "box": "Kutije",
     "box_body": "Prostor u koji se oluja otvara, obojen prema njezinu maksimumu. Klikni unutar njega da otvoriš oluju. Posivljen je dok je radar jedan sken ispred njega.",

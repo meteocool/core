@@ -11,14 +11,15 @@
  */
 import { get } from "svelte/store";
 import { cloudStyle, cloudsTime, peelLevel, peelManual } from "../../stores";
-import { currentLocale } from "../../locale/t";
+import { currentLocale, t } from "../../locale/t";
 import {
   keyframeAt, orbitScene, sample, scansOf, timelapseScene, withKeyframe, withoutKeyframe,
 } from "./scene";
 import type { Scene, SceneState, StudioCamera } from "./scene";
 import { viewCamera } from "./camera";
 import type { ViewName } from "./camera";
-import { download, RECORD_FPS, startRecording } from "./record";
+import logoUrl from "../../assets/logo.svg";
+import { download, loadImage, RECORD_FPS, startRecording } from "./record";
 import type { Recording } from "./record";
 import {
   studioAspect, studioFov, studioLoading, studioPlanes, studioPlayhead, studioPlaying, studioRecording, studioScene,
@@ -70,7 +71,7 @@ export class Director {
     return {
       camera,
       planes: get(studioPlanes).map((plane) => ({ ...plane })),
-      peel: get(peelManual) ? get(peelLevel) : 0,
+      peel: get(peelLevel),
       scan: get(cloudsTime).shown,
       style: get(cloudStyle),
     };
@@ -241,6 +242,7 @@ export class Director {
     const source = this.stage.canvas();
     if (!scene.keyframes.length || !source) return false;
     if (!(await this.load())) return false;
+    const logo = await loadImage(logoUrl);
     studioRecording.set(0);
     this.seek(0);
     // A frame with the opening on it, before anything is recorded.
@@ -251,6 +253,7 @@ export class Director {
       eachFrame: (listener) => this.stage.onFrame(listener),
       caption: () => this.caption(),
       credits,
+      badge: { logo, name: "meteocool.com", tagline: t("studio.video.tagline"), pitch: t("studio.video.pitch") },
     });
     this.recording = recording;
     const finished = await this.run(0, (at) => {

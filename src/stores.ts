@@ -9,6 +9,7 @@ import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange
 import { RVP6_ENCODING } from "./lib/rvp6";
 import { showsForecastStep } from "./lib/freshness";
 import { DEFAULT_CLOUD_STYLE, type CloudStyle } from "./lib/cloudStyle";
+import { defaultPeel } from "./lib/peel";
 import { DEFAULT_STATION_CHOICE, type ObservedProperties, type StationChoice } from "./lib/stations";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties, Storm, StormGroup } from "./api";
@@ -297,13 +298,19 @@ export const meetYouCoolOpen = writable<boolean>(false);
  */
 export const fullResolution3d = writable<boolean>(false);
 /**
- * The 3D map's peel, 0 every storm whole to 1 down to its core. The clouds
- * write it as they peel on their own, so the slider follows them; the slider
- * writes it and sets `peelManual`, which stops them peeling on their own for
- * the rest of the visit.
+ * The 3D map's peel, 0 every storm whole to 1 down to its core (lib/peel.ts).
+ * It stands where the style on the map starts it until the reader moves the
+ * slider, which sets `peelManual`: from then on it is theirs, whatever the
+ * style, for the rest of the visit.
  */
-export const peelLevel = writable<number>(0);
+export const peelLevel = writable<number>(defaultPeel(DEFAULT_CLOUD_STYLE));
 export const peelManual = writable<boolean>(false);
+/**
+ * What a full peel leaves of the strongest storm on the 3D map, in dBZ, as
+ * the clouds' layer reports it; null before there is one. What the far end
+ * of the peel slider's track is drawn in.
+ */
+export const peelTop = writable<number | null>(null);
 /**
  * How the 3D map draws its storms: a lit cloud, unlit light, or nested
  * shells (lib/cloudStyle.ts). Mirrors the `layer3dStyle` setting.
