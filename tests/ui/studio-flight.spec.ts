@@ -1,0 +1,178 @@
+import type { Page } from "@playwright/test";
+import { expect, test } from "./test";
+
+/**
+ * Studio's flight: the 3D map from the cockpit of an airliner. On a desktop
+ * only, as Studio is.
+ *
+ * The recording's volumes are blank tiles and its map tiles blank, so
+ * nothing here is about what the view looks like; it is about the mode: the
+ * flight deck taking Studio's place, the camera set free and flown by the
+ * keys, and everything put back exactly on landing.
+ */
+/* From straight above, as studio.spec.ts opens it: a tilted map is several
+   times the tiles, drawn here by a software renderer. */
+const MAP_3D = "/?layer=cells3d&latLonZ=50.50000,9.50000,7.00&pitch=0&bearing=0";
+
+const panel = (page: Page) => page.getByRole("region", { name: "meteocool Studio" });
+const timeline = (page: Page) => page.getByRole("region", { name: "Time and scene" });
+const deck = (page: Page) => page.getByRole("region", { name: "Flight deck" });
+const throttle = (page: Page) => deck(page).getByLabel("Throttle");
+const flightPlan = (page: Page) => page.getByRole("region", { name: "Flight plan" });
+
+/** From Studio's panel to the air: the plan as it is proposed, and off. */
+async function takeOff(page: Page): Promise<void> {
+  await panel(page).getByRole("button", { name: "Fly", exact: true }).click();
+  await expect(flightPlan(page)).toBeVisible();
+  await flightPlan(page).getByRole("button", { name: "Take off" }).click();
+}
+
+/** The 3D map's camera as MapLibre has it. */
+const camera = (page: Page) => page.evaluate(() => {
+  const { gl } = (window as any).lm.getCapability("cells3d");
+  return {
+    pitch: gl.getPitch() as number,
+    roll: gl.getRoll() as number,
+    maxPitch: gl.getMaxPitch() as number,
+    clamped: gl.getCenterClampedToGround() as boolean,
+    handlers: ["dragPan", "scrollZoom", "dragRotate", "keyboard", "doubleClickZoom", "touchZoomRotate", "touchPitch"]
+      .map((name) => gl[name].isEnabled() as boolean),
+  };
+});
+
+test.describe("on a desktop", () => {
+  test.skip(({ isMobile }) => isMobile, "Studio is a desktop's");
+  // One flight at a time: three at once, each drawn by a software renderer,
+  // take each other's frames and time out on a busy machine.
+  test.describe.configure({ mode: "default" });
+  // A small window: the flight's view to the horizon is the most a software
+  // renderer is asked to draw anywhere in the suite, and nothing here is
+  // about how much of it there is.
+  test.use({ viewport: { width: 1024, height: 640 } });
+
+  // Without the aircraft's model: half a million triangles drawn by a
+  // software renderer leave the flight a frame every few seconds, and
+  // nothing here is about what the aircraft looks like.
+  test.beforeEach(async ({ page }) => {
+    await page.route("**/models/a320/**", (route) => route.abort());
+  });
+
+  test("Fly puts the flight deck up and flies the camera, and Escape brings Studio back as it was", async ({ page }) => {
+    // The 3D map brought up, then Studio's chunk: slow on a loaded machine.
+    test.slow();
+    await page.goto(MAP_3D);
+    await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+    await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+    await panel(page).getByRole("radio", { name: "Glow" }).click();
+    const where = () => new URL(page.url()).searchParams.get("latLonZ");
+    const tookOff = where();
+
+    // Fly opens the flight's plan first: a chart, a briefing, and nothing flown yet.
+    await panel(page).getByRole("button", { name: "Fly", exact: true }).click();
+    await expect(flightPlan(page)).toBeVisible();
+    await expect(panel(page)).toBeHidden();
+    await expect(flightPlan(page).getByText("NOT FOR NAVIGATION")).toBeVisible();
+    expect((await camera(page)).clamped).toBe(true);
+    // Cancelled, Studio is back as it was; planned again and taken off, the deck is up.
+    await flightPlan(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(panel(page)).toBeVisible();
+    await takeOff(page);
+    await expect(deck(page)).toBeVisible();
+    await expect(panel(page)).toBeHidden();
+    await expect(timeline(page)).toBeHidden();
+    // The free camera: not held to the ground, at the horizon, nothing a hand can move it by.
+    await expect.poll(async () => (await camera(page)).clamped).toBe(false);
+    const flying = await camera(page);
+    expect(flying.pitch).toBeGreaterThan(75);
+    expect(flying.pitch).toBeLessThan(105);
+    expect(flying.maxPitch).toBe(180);
+    expect(flying.handlers).toEqual(flying.handlers.map(() => false));
+    // The air is nowhere a link can stand: the address keeps where the flight took off.
+    await page.waitForTimeout(1500);
+    expect(where()).toBe(tookOff);
+
+    // W held opens the throttle.
+    await expect(throttle(page)).toHaveText(/^\d+%$/);
+    const opening = Number((await throttle(page).textContent())!.replace("%", ""));
+    await page.keyboard.down("KeyW");
+    // By any amount: how far it gets is the frames the machine managed, which is not the flight's doing.
+    await expect.poll(async () => Number((await throttle(page).textContent())!.replace("%", "")), { timeout: 30_000 })
+      .toBeGreaterThan(Math.min(opening, 99));
+    await page.keyboard.up("KeyW");
+    // The aircraft is the map's to draw while flying, and the mouse turns the eye in its seat.
+    const aircraft = () => page.evaluate(() => Boolean((window as any).lm.getCapability("cells3d").gl.getLayer("flight-aircraft")));
+    const bearing = () => page.evaluate(() => (window as any).lm.getCapability("cells3d").gl.getBearing() as number);
+    expect(await aircraft()).toBe(true);
+    const ahead = await bearing();
+    await page.mouse.move(500, 300);
+    await page.mouse.down();
+    await page.mouse.move(700, 300, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(async () => Math.abs(await bearing() - ahead), { timeout: 30_000 }).toBeGreaterThan(10);
+    // V stands the eye outside, level whatever the aircraft does.
+    await page.keyboard.press("v");
+    await expect(deck(page)).toHaveClass(/view-outside/);
+    // Studio's own keys do nothing meanwhile: Space is the speed brake, not play.
+    await page.keyboard.press("k");
+    await expect(deck(page)).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(deck(page)).toBeHidden();
+    await expect(panel(page)).toBeVisible();
+    await expect(timeline(page)).toBeVisible();
+    expect(await aircraft()).toBe(false);
+    const landed = await camera(page);
+    expect(landed.maxPitch).toBe(89);
+    expect(landed.roll).toBe(0);
+    expect(landed.clamped).toBe(true);
+    expect(landed.pitch).toBeLessThanOrEqual(89);
+    expect(landed.handlers).toEqual(landed.handlers.map(() => true));
+    // The style Studio had before the flight, and no keyframe made by the K pressed in flight.
+    await expect(panel(page).getByRole("radio", { name: "Glow" })).toHaveAttribute("aria-checked", "true");
+    await expect(timeline(page).locator(".marks i")).toHaveCount(0);
+  });
+
+  test("the Leave button lands too, and closing Studio while flying puts the map back outside it", async ({ page }) => {
+    test.slow();
+    await page.goto(MAP_3D);
+    await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+    await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+    await takeOff(page);
+    await expect(deck(page)).toBeVisible();
+    await deck(page).getByRole("button", { name: "Leave" }).click();
+    await expect(panel(page)).toBeVisible();
+
+    await takeOff(page);
+    await expect(deck(page)).toBeVisible();
+    // Back, as it leaves Studio from anywhere.
+    await page.goBack();
+    await expect(deck(page)).toBeHidden();
+    await expect(panel(page)).toBeHidden();
+    const outside = await camera(page);
+    expect(outside.maxPitch).toBe(84);
+    expect(outside.roll).toBe(0);
+    expect(outside.clamped).toBe(true);
+    expect(outside.handlers).toEqual(outside.handlers.map(() => true));
+  });
+
+  test("the plan's switches reach the flight: the radar off the ground, and on again after landing", async ({ page }) => {
+    test.slow();
+    await page.goto(MAP_3D);
+    await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+    await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+    const offGround = () => page.evaluate(() => (window as any).lm.getCapability("cells3d").radarOffGround as boolean);
+    await panel(page).getByRole("button", { name: "Fly", exact: true }).click();
+    await expect(flightPlan(page)).toBeVisible();
+    // The briefing reads the plan back, the cloud base among it.
+    await expect(flightPlan(page).getByText("CLD BASE")).toBeVisible();
+    await flightPlan(page).getByLabel("Painted on the ground under the storms").uncheck();
+    await flightPlan(page).getByRole("button", { name: "Take off" }).click();
+    await expect(deck(page)).toBeVisible();
+    expect(await offGround()).toBe(true);
+    // How fast the flight is drawn is on the deck.
+    await expect(deck(page).getByText(/\d+ fps/)).toBeVisible({ timeout: 15_000 });
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeVisible();
+    expect(await offGround()).toBe(false);
+  });
+});

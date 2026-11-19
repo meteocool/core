@@ -18,6 +18,8 @@ import {
 import type { Moment, Scene, SceneState, StudioCamera } from "./scene";
 import { viewCamera } from "./camera";
 import type { ViewName } from "./camera";
+import type { AircraftScreen, AircraftView, WeatherView } from "../../layers/aircraftLayer";
+import type { StormMark } from "./flight/marks";
 import logoUrl from "../../assets/logo.svg";
 import { download, loadImage, RECORD_FPS, startRecording } from "./record";
 import type { Recording } from "./record";
@@ -25,7 +27,79 @@ import {
   studioAspect, studioFov, studioLoading, studioPlanes, studioPlayhead, studioPlaying, studioRecording, studioScene,
 } from "./store";
 
-/** What of the 3D map a scene is played onto; Cells3DCapability is one. */
+/**
+ * Where the aircraft of Studio's flight is and how it sits (lib/studio/flight):
+ * true metres above sea level, degrees, nose up and right wing down positive.
+ */
+export interface FlightPose {
+  lon: number;
+  lat: number;
+  altitude: number;
+  heading: number;
+  pitch: number;
+  roll: number;
+}
+
+/** The ways a flight looks into a storm; see `Stage.inspectStorm`. */
+export type InspectMode = "cut" | "peel" | "xray";
+
+/**
+ * Where the eye of a flight is, when it is not simply the aircraft's own
+ * nose: turned in the cockpit, or standing outside it (flight/view.ts).
+ */
+export interface FlightEye {
+  /** Which way it looks, as an aircraft's attitude is said. */
+  heading: number;
+  pitch: number;
+  roll: number;
+  /** Where it stands from the aircraft, true metres. */
+  north: number;
+  east: number;
+  up: number;
+}
+
+/**
+ * Studio's own code that the map calls while Studio is open; see
+ * support.ts, which is where it is gathered and why.
+ */
+export interface StudioSupport {
+  makeStudioPlanesLayer: typeof import("../../layers/studioPlanesLayer").makeStudioPlanesLayer;
+  clipPlanes: typeof import("./planes").clipPlanes;
+  isLevel: typeof import("./planes").isLevel;
+}
+
+/**
+ * The flight's own code that the map calls while one is under way; see
+ * flight/support.ts, which is where it is gathered and why.
+ */
+export interface FlightSupport {
+  flightWanted: typeof import("./flight/selection").flightWanted;
+  flightFine: typeof import("./flight/selection").flightFine;
+  nearEnoughForFine: typeof import("./flight/selection").nearEnoughForFine;
+  withinHold: typeof import("./flight/selection").withinHold;
+  reflectivityAt: typeof import("./flight/weather").reflectivityAt;
+  makeAircraftLayer: typeof import("../../layers/aircraftLayer").makeAircraftLayer;
+  /** Where the aircraft's model and textures are served from. */
+  aircraftFiles: string;
+  destination: typeof import("./flight/geo").destination;
+  distanceM: typeof import("./flight/geo").distanceM;
+  /** The sky of a flight with its clouds beginning so high, km, for the storm layer to draw the white cloud from; see flight/cloudscape.ts. */
+  cloudscape: (baseKm: number) => string;
+  /** What that sky draws besides its clouds: its sun, and the picture the clouds are drawn in. */
+  makeScenicPass: typeof import("../../layers/scenicPass").makeScenicPass;
+}
+
+/** A listed volume, as the flight aims at and charts one. */
+export interface StormTileInfo {
+  lon: number;
+  lat: number;
+  peakDbz: number | null;
+  areaKm2: number | null;
+  coarse: boolean;
+  tile: readonly number[] | null;
+}
+
+/** What of the 3D map a scene is played onto, and flown over; Cells3DCapability is one. */
 export interface Stage {
   studioCamera(): StudioCamera | null;
   setStudioCamera(camera: StudioCamera): void;
@@ -38,6 +112,97 @@ export interface Stage {
   canvas(): HTMLCanvasElement | null;
   onFrame(listener: () => void): () => void;
   repaint(): void;
+  /**
+   * Put the map into the flight, or take it back out exactly as it was: a
+   * free camera that may look at and above the horizon, no hand on the map,
+   * a sky, and the storms chosen from the aircraft rather than the screen.
+   */
+  setFlying(on: boolean, support?: FlightSupport): void;
+  /** Hand the map what of Studio's own code it calls: what cuts storms by its planes, and draws them. */
+  setStudioSupport(support: StudioSupport): void;
+  /**
+   * Stand the camera with the aircraft: one frame of the flight. At its
+   * nose, looking where it points, or where `eye` says.
+   */
+  setFlightCamera(pose: FlightPose, eye?: FlightEye): void;
+  /**
+   * The weather going past the eye this frame, for the map to draw under the
+   * aircraft (layers/weatherPass.ts); and a light inside the clouds, where
+   * lightning is: a place, its height in km, and how bright, 0 to 1.
+   */
+  setFlightWeather(weather: WeatherView | null, glow?: { lon: number; lat: number; km: number; brightness: number } | null): void;
+  /** Every lightning strike within `km` of a place since `since`, ms since the epoch: where, and when. */
+  strikesNear(lon: number, lat: number, km: number, since: number): Array<{ lon: number; lat: number; at: number }>;
+  /**
+   * Draw the flight at this share of its full sharpness, 1 down to about a
+   * quarter: fewer pixels and coarser clouds, for a machine that cannot keep up.
+   */
+  setFlightQuality(share: number): void;
+  /** Have the clouds of a flight begin this high, kilometres above the sea (flight/cloudBase.ts). */
+  setCloudBase(km: number): void;
+  /** Paint the radar's picture on the ground under the storms, or leave the ground as the basemap has it. */
+  setRadarOnGround(on: boolean): void;
+  /**
+   * Look into the storm at a place, or into none for null: `cut` open across
+   * the line of sight (`from` is the bearing from the eye to it), `peel`ed to
+   * its core in the radar's colours, or seen through as light (`xray`).
+   * Whether there is a storm drawn there to look into.
+   */
+  inspectStorm(target: { lon: number; lat: number; from: number; mode: InspectMode } | null): boolean;
+  /** The storm cells the radar network tracks, as marks for the view (flight/marks.ts); none where it tracks none. */
+  trackedCells(): StormMark[];
+  /** Draw the aircraft as this camera sees it, or not at all for null (layers/aircraftLayer.ts). */
+  setAircraft(view: AircraftView | null, screens?: AircraftScreen[]): void;
+  /** The ground's height at a point, true metres; null where the map has none loaded there. */
+  groundElevation(lon: number, lat: number): number | null;
+  /** Every listed volume, for the flight to aim at and chart. */
+  stormTiles(): StormTileInfo[];
+  /** The reflectivity at a point from the volumes held, dBZ; null where none reaches. */
+  reflectivityAt(lon: number, lat: number, altitude: number): number | null;
+  /** When the newest strike within `km` of a point struck, ms since the epoch; null with none recent. */
+  strikeNear(lon: number, lat: number, km: number): number | null;
+}
+
+/**
+ * Start recording the map, as Studio records: the frame `studioAspect`
+ * chooses, the time as `caption` says it, the `credits`, and the badge.
+ * Null where the map has no canvas yet.
+ */
+export async function recordStage(
+  stage: Stage, credits: string, caption: () => string, audio: MediaStream | null = null,
+): Promise<Recording | null> {
+  const source = stage.canvas();
+  if (!source) return null;
+  const logo = await loadImage(logoUrl);
+  return startRecording({
+    source,
+    aspect: get(studioAspect),
+    eachFrame: (listener) => stage.onFrame(listener),
+    caption,
+    credits,
+    badge: { logo, name: "meteocool.com", tagline: t("studio.video.tagline"), pitch: t("studio.video.pitch") },
+    audio,
+  });
+}
+
+/** Stop a recording and hand it to the reader as a download. */
+export async function saveRecording(recording: Recording): Promise<void> {
+  const { blob, extension } = await recording.finish();
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  download(blob, `meteocool-studio-${stamp}.${extension}`);
+}
+
+/**
+ * A scan's time as a recording says it: the reader's own date and clock.
+ * `moment` is the time between two scans a scene stands at, if it does.
+ */
+export function captionOf(moment: number | null = null): string {
+  const { shown, newest } = get(cloudsTime);
+  const scan = moment ?? shown ?? newest;
+  if (scan === null) return "";
+  return new Date(scan * 1000).toLocaleString(currentLocale(), {
+    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+  });
 }
 
 /** How far back a time-lapse made with one click starts: an hour. */
@@ -287,22 +452,14 @@ export class Director {
    */
   async record(credits: string): Promise<boolean> {
     const scene = get(studioScene);
-    const source = this.stage.canvas();
-    if (!scene.keyframes.length || !source) return false;
+    if (!scene.keyframes.length || !this.stage.canvas()) return false;
     if (!(await this.load())) return false;
-    const logo = await loadImage(logoUrl);
     studioRecording.set(0);
     this.seek(0);
     // A frame with the opening on it, before anything is recorded.
     await nextFrame();
-    const recording = startRecording({
-      source,
-      aspect: get(studioAspect),
-      eachFrame: (listener) => this.stage.onFrame(listener),
-      caption: () => this.caption(),
-      credits,
-      badge: { logo, name: "meteocool.com", tagline: t("studio.video.tagline"), pitch: t("studio.video.pitch") },
-    });
+    const recording = await recordStage(this.stage, credits, () => captionOf(this.moment));
+    if (!recording) return false;
     this.recording = recording;
     const finished = await this.run(0, (at) => {
       studioRecording.set(at / scene.duration);
@@ -316,25 +473,9 @@ export class Director {
       await nextFrame();
     }
     this.recording = null;
-    const { blob, extension } = await recording.finish();
+    await saveRecording(recording);
     studioRecording.set(null);
-    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
-    download(blob, `meteocool-studio-${stamp}.${extension}`);
     return true;
-  }
-
-  /**
-   * The time of the storms on the map, as a recording says it: the reader's
-   * own date and clock, running on through the minutes between two scans as
-   * the storms do.
-   */
-  private caption(): string {
-    const { shown, newest } = get(cloudsTime);
-    const scan = this.moment ?? shown ?? newest;
-    if (scan === null) return "";
-    return new Date(scan * 1000).toLocaleString(currentLocale(), {
-      year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
-    });
   }
 
   /** Studio closed: stop whatever is running, and forget what this visit loaded, which the map has let go of. */

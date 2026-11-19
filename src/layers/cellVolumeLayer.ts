@@ -121,6 +121,13 @@ import { VERTICAL_SCALE } from "./terrain";
 const DBZ_LOW = STYLE_FIELD.cloud.floor;
 /** Where the echo is as opaque as it gets; see `CellCutaway` for the reasoning. */
 const DBZ_HIGH = DBZ_LOW + STYLE_FIELD.cloud.band;
+/**
+ * How far a scenic sky's cloud may stand out past the echo it is made from
+ * (`CloudsLayer.setScenic`): kilometres east-west, north-south and upwards,
+ * and from how far below a style's floor it draws. The box a cloud is
+ * marched in is that much larger.
+ */
+const SCENIC_REACH = { km: [6.5, 6.5, 3], dbz: 10 } as const;
 /** The styles, as the shader numbers them. */
 const STYLE_INDEX: Record<CloudStyle, number> = { cloud: 0, glow: 1, shells: 2, sky: 3, tinted: 4 };
 /**
@@ -217,7 +224,74 @@ void main() {
   gl_Position = vec4(corner * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
-const FRAGMENT = `#version 300 es
+/**
+ * The white cloud's shape and light, as the map draws it: what a point of
+ * the radar's field is as cloud (`skyBody` for its shadows, `skyDensity` for
+ * what is seen) and the light that reaches it (`skyLight`). The one part of
+ * the shader with another to take its place: `CloudsLayer.setScenic`.
+ */
+const SKY_PLAIN = `/**
+ * How much cloud a point is, for its shadows: the inner part of its edge
+ * only. The hull that is seen is the edge with billows eaten out of it
+ * (skyDensity), and shadows cast by the whole edge fell on it from cloud
+ * that was no longer there, which mottled every top grey.
+ */
+float skyBody(vec3 p) {
+  vec2 field = sampleField(p);
+  return smoothstep(mix(uLow, uHigh, 0.25), uHigh, field.x) * field.y;
+}
+
+/**
+ * How much cloud a point is, its edge broken into billows.
+ *
+ * The radar's field is smooth at the scale of a voxel, and a cloud drawn from
+ * it alone is a blob. Two octaves of noise, about 2.5 km and 800 m across,
+ * eat into its soft edge and leave its inside solid, so the hull is lumpy as
+ * a cumulus is and the storm keeps its shape. Only where the edge is: no
+ * noise is worked out inside the cloud or outside it.
+ */
+float skyDensity(vec3 p, vec2 field) {
+  float body = smoothstep(uLow, uHigh, field.x) * field.y;
+  if (body <= 0.0 || body >= 1.0) return body;
+  vec3 w = worldKm(p);
+  float n = 0.6 * noise3(w * vec3(0.4, 0.4, 0.5)) + 0.4 * noise3(w * vec3(1.3, 1.3, 1.5));
+  return clamp((body - 0.5 * n) / (1.0 - 0.5 * n), 0.0, 1.0);
+}
+
+/**
+ * The light that reaches a point of the cloud: the sun's, through what of
+ * the cloud stands between them, and the sky's, through what is overhead.
+ *
+ * Four samples towards the sun, spaced wider as they go out to 3 km, and two
+ * straight up: six lookups a step, what the cloud spends on its gradient.
+ */
+vec3 skyLight(vec3 p, float heightKm, float towardSun) {
+  vec3 sun = normalize(SUN);
+  float depth = 0.0;
+  float last = 0.0;
+  for (int k = 0; k < 4; k += 1) {
+    float at = 0.25 + 0.2375 * float(k * k + k);
+    depth += skyBody(p + sun * at / uExtentKm) * (at - last);
+    last = at;
+  }
+  depth *= ${SKY_SHADOW_PER_KM};
+  // Light scattered many times gets further into a cloud than the first
+  // bounce does: a second, fainter falloff keeps a deep shadow grey, not black.
+  float sunlit = 0.7 * exp(-depth) + 0.3 * exp(-0.15 * depth);
+  float over = (skyBody(p + vec3(0.0, 0.0, 0.6 / uExtentKm.z)) * 0.6
+    + skyBody(p + vec3(0.0, 0.0, 1.8 / uExtentKm.z)) * 1.2) * ${SKY_SHADOW_PER_KM};
+  // The sky lights the top of a cloud, and the ground, darker, its base. Not
+  // all of it from straight up: the side of a tower under its own top still
+  // sees half the sky, so what is overhead takes only some of it away.
+  float open = (0.45 + 0.55 * exp(-0.5 * over)) * mix(0.55, 1.0, clamp(heightKm / 9.0, 0.0, 1.0));
+  // A little brighter looking into the sun, where light comes through the edge.
+  float phase = 0.88 + 0.55 * pow(max(towardSun, 0.0), 6.0);
+  return SUNLIGHT * sunlit * phase * 1.25 + SKYLIGHT * open * 0.5;
+}
+
+`;
+
+const fragment = (sky: string) => `#version 300 es
 precision highp float;
 precision highp sampler3D;
 
@@ -244,6 +318,7 @@ uniform vec3 uBoxMin;      // the part of the cube that is drawn: all of it, bar
 uniform vec3 uBoxMax;
 uniform sampler2D uColumn; // the strongest echo in each column, for tinted; see columnMax
 uniform vec4 uWorld;       // the cube's corner and size on the ground, in km of one frame for every tile
+uniform vec4 uGlow;        // a light inside the clouds: where, in that frame and km up, and how bright; see setGlow
 
 out vec4 fragColour;
 
@@ -317,6 +392,8 @@ float densityOf(vec2 field) {
 
 vec4 accumulated = vec4(0.0);
 bool wrote = false;
+// How far along its ray the sample being lit is, km: for a sky that fades with distance.
+float rayKm = 0.0;
 
 /**
  * A surface's opacity, for a cloud at uWeight: the share of it that lets
@@ -550,65 +627,7 @@ vec3 worldKm(vec3 p) {
   return vec3(uWorld.xy + p.xy * uWorld.zw, p.z * uExtentKm.z);
 }
 
-/**
- * How much cloud a point is, for its shadows: the inner part of its edge
- * only. The hull that is seen is the edge with billows eaten out of it
- * (skyDensity), and shadows cast by the whole edge fell on it from cloud
- * that was no longer there, which mottled every top grey.
- */
-float skyBody(vec3 p) {
-  vec2 field = sampleField(p);
-  return smoothstep(mix(uLow, uHigh, 0.25), uHigh, field.x) * field.y;
-}
-
-/**
- * How much cloud a point is, its edge broken into billows.
- *
- * The radar's field is smooth at the scale of a voxel, and a cloud drawn from
- * it alone is a blob. Two octaves of noise, about 2.5 km and 800 m across,
- * eat into its soft edge and leave its inside solid, so the hull is lumpy as
- * a cumulus is and the storm keeps its shape. Only where the edge is: no
- * noise is worked out inside the cloud or outside it.
- */
-float skyDensity(vec3 p, vec2 field) {
-  float body = smoothstep(uLow, uHigh, field.x) * field.y;
-  if (body <= 0.0 || body >= 1.0) return body;
-  vec3 w = worldKm(p);
-  float n = 0.6 * noise3(w * vec3(0.4, 0.4, 0.5)) + 0.4 * noise3(w * vec3(1.3, 1.3, 1.5));
-  return clamp((body - 0.5 * n) / (1.0 - 0.5 * n), 0.0, 1.0);
-}
-
-/**
- * The light that reaches a point of the cloud: the sun's, through what of
- * the cloud stands between them, and the sky's, through what is overhead.
- *
- * Four samples towards the sun, spaced wider as they go out to 3 km, and two
- * straight up: six lookups a step, what the cloud spends on its gradient.
- */
-vec3 skyLight(vec3 p, float heightKm, float towardSun) {
-  vec3 sun = normalize(SUN);
-  float depth = 0.0;
-  float last = 0.0;
-  for (int k = 0; k < 4; k += 1) {
-    float at = 0.25 + 0.2375 * float(k * k + k);
-    depth += skyBody(p + sun * at / uExtentKm) * (at - last);
-    last = at;
-  }
-  depth *= ${SKY_SHADOW_PER_KM};
-  // Light scattered many times gets further into a cloud than the first
-  // bounce does: a second, fainter falloff keeps a deep shadow grey, not black.
-  float sunlit = 0.7 * exp(-depth) + 0.3 * exp(-0.15 * depth);
-  float over = (skyBody(p + vec3(0.0, 0.0, 0.6 / uExtentKm.z)) * 0.6
-    + skyBody(p + vec3(0.0, 0.0, 1.8 / uExtentKm.z)) * 1.2) * ${SKY_SHADOW_PER_KM};
-  // The sky lights the top of a cloud, and the ground, darker, its base. Not
-  // all of it from straight up: the side of a tower under its own top still
-  // sees half the sky, so what is overhead takes only some of it away.
-  float open = (0.45 + 0.55 * exp(-0.5 * over)) * mix(0.55, 1.0, clamp(heightKm / 9.0, 0.0, 1.0));
-  // A little brighter looking into the sun, where light comes through the edge.
-  float phase = 0.88 + 0.55 * pow(max(towardSun, 0.0), 6.0);
-  return SUNLIGHT * sunlit * phase * 1.25 + SKYLIGHT * open * 0.5;
-}
-
+${sky}
 /** The strongest echo in the column over this point of the ground, in dBZ. */
 float columnMax(vec3 p) {
   return texture(uColumn, p.xy).r * 255.0 / uDbzScale + uDbzFloor;
@@ -648,6 +667,7 @@ void marchSky(vec3 origin, vec3 direction, float near, float far, bool cutFace, 
       lay(paint(field.x) * 1.12, alpha);
       continue;
     }
+    rayKm = (near + dt * (i + dither)) * stepKm / dt;
     float density = skyDensity(p, field);
     if (density <= 0.002) continue;
     if (!wrote) {
@@ -716,7 +736,7 @@ export const DIM_UNOPENABLE = 0.45;
    gl-matrix reaches this project only as one of MapLibre's own dependencies,
    which is not something to start importing from. */
 /** Anything indexable by 16 numbers: MapLibre hands over gl-matrix's own type. */
-type Mat4 = ArrayLike<number>;
+export type Mat4 = ArrayLike<number>;
 
 function multiply(a: Mat4, b: Mat4): Float64Array {
   const out = new Float64Array(16);
@@ -731,7 +751,7 @@ function multiply(a: Mat4, b: Mat4): Float64Array {
   return out;
 }
 
-function invert(m: Mat4): Float64Array | null {
+export function invert(m: Mat4): Float64Array | null {
   const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
   const a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7];
   const a20 = m[8], a21 = m[9], a22 = m[10], a23 = m[11];
@@ -757,7 +777,7 @@ function invert(m: Mat4): Float64Array | null {
   ]);
 }
 
-function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
+export function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
@@ -768,7 +788,7 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string): WebG
 }
 
 /** A column-major 4x4 applied to a point, returning clip-space x, y, z, w. */
-function apply(m: Mat4, x: number, y: number, z: number): [number, number, number, number] {
+export function apply(m: Mat4, x: number, y: number, z: number): [number, number, number, number] {
   return [
     m[0] * x + m[4] * y + m[8] * z + m[12],
     m[1] * x + m[5] * y + m[9] * z + m[13],
@@ -780,6 +800,11 @@ function apply(m: Mat4, x: number, y: number, z: number): [number, number, numbe
 const CORNERS: Array<[number, number, number]> = [
   [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1],
 ];
+
+/** A box's twelve edges, as pairs of `CORNERS`: those that differ along one axis, which is one bit of the index. */
+const BOX_EDGES: Array<[number, number]> = CORNERS.flatMap((_, a) => [1, 2, 4]
+  .map((bit) => [a, a | bit] as [number, number])
+  .filter(([from, to]) => from !== to));
 
 /** The corners of the drawn part of a box, in its unit cube. */
 function cornersOf(box: { min: [number, number, number]; max: [number, number, number] }): Array<[number, number, number]> {
@@ -795,23 +820,45 @@ function cornersOf(box: { min: [number, number, number]; max: [number, number, n
  * ray meets the box. With one cloud that was fine, but a dozen is a dozen
  * fullscreen raymarches a frame. Scissoring each to the rectangle its eight
  * corners project to keeps the cost to the pixels the storm is on, which at the zoom a whole region is looked at is a small fraction of
- * the screen. A corner behind the camera makes the projection meaningless,
- * so that case falls back to the whole viewport rather than guessing.
+ * the screen.
+ *
+ * A corner behind the camera does not project anywhere meaningful, and from
+ * a camera among the storms (Studio's flight) every nearby box has one. So
+ * the box is cut at the near plane first: of its twelve edges, those that
+ * cross it are cut where they do, and the rectangle is that of the corners
+ * in front together with the cuts. A box wholly behind covers nothing; a
+ * camera inside one has the cut all round the middle of the screen, and the
+ * rectangle comes out as the whole viewport, as it should.
  */
-function screenRect(
+export function screenRect(
   forward: Mat4, corners: ReadonlyArray<[number, number, number]>, width: number, height: number,
-): [number, number, number, number] | "all" | null {
+): [number, number, number, number] | null {
+  const clip = corners.map(([x, y, z]) => apply(forward, x, y, z));
+  // How far in front of the near plane (z = -w in clip space) each corner is.
+  const front = clip.map(([, , z, w]) => z + w);
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const [x, y, z] of corners) {
-    const [cx, cy, , cw] = apply(forward, x, y, z);
-    if (cw <= 0) return "all";
-    const px = (cx / cw * 0.5 + 0.5) * width;
-    const py = (cy / cw * 0.5 + 0.5) * height;
+  const add = (cx: number, cy: number, cw: number) => {
+    // On the near plane itself w is tiny but positive for any real projection.
+    const w = Math.max(cw, 1e-9);
+    const px = (cx / w * 0.5 + 0.5) * width;
+    const py = (cy / w * 0.5 + 0.5) * height;
     x0 = Math.min(x0, px); x1 = Math.max(x1, px);
     y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+  };
+  for (let i = 0; i < clip.length; i += 1) {
+    if (front[i] >= 0) add(clip[i][0], clip[i][1], clip[i][3]);
   }
-  const left = Math.max(0, Math.floor(x0) - 2), bottom = Math.max(0, Math.floor(y0) - 2);
-  const right = Math.min(width, Math.ceil(x1) + 2), top = Math.min(height, Math.ceil(y1) + 2);
+  if (!front.some((distance) => distance >= 0)) return null;
+  for (const [a, b] of BOX_EDGES) {
+    if ((front[a] >= 0) === (front[b] >= 0)) continue;
+    const t = front[a] / (front[a] - front[b]);
+    const [ax, ay, , aw] = clip[a];
+    const [bx, by, , bw] = clip[b];
+    add(ax + (bx - ax) * t, ay + (by - ay) * t, aw + (bw - aw) * t);
+  }
+  if (x0 === Infinity) return null;
+  const left = Math.max(0, Math.floor(Math.max(x0, -1e7)) - 2), bottom = Math.max(0, Math.floor(Math.max(y0, -1e7)) - 2);
+  const right = Math.min(width, Math.ceil(Math.min(x1, 1e7)) + 2), top = Math.min(height, Math.ceil(Math.min(y1, 1e7)) + 2);
   return right > left && top > bottom ? [left, bottom, right - left, top - bottom] : null;
 }
 
@@ -1130,6 +1177,26 @@ export function carried(model: Float64Array, side: 0 | 1, drift: readonly [numbe
   return out;
 }
 
+/**
+ * What a scenic sky draws besides its clouds' shape, for one context: its
+ * sun, and the picture its clouds are drawn in before they are laid over the
+ * map. Whoever has such a sky brings this with it (`CloudsLayer.setScenic`,
+ * layers/scenicPass.ts): none of it is part of the map.
+ */
+export interface ScenicPass {
+  /** The sun, in the open sky: behind the clouds, which are drawn after it, and the ground. */
+  drawSun(main: Mat4): void;
+  /**
+   * Draw what follows into a picture `scale` of the map's each way, with the
+   * map's depths in it: its size, or null where this machine will have none
+   * and the clouds go straight onto the map.
+   */
+  begin(mapWidth: number, mapHeight: number, scale: number): { width: number; height: number } | null;
+  /** Lay that picture over the map, which is drawn onto again after. */
+  end(mapWidth: number, mapHeight: number): void;
+  dispose(): void;
+}
+
 export interface CloudsLayer extends CustomLayerInterface {
   /**
    * Replace the set of storms drawn; ones already uploaded are kept, not reloaded.
@@ -1163,10 +1230,37 @@ export interface CloudsLayer extends CustomLayerInterface {
    * edge, and nothing stands whole in front of the face.
    */
   setCut(key: string | null, headingDeg: number): void;
+  /**
+   * Draw one storm another way than the rest, to look into it: the cloud
+   * handed over under `key` and every one near it (`CUT_REACH_KM`, as a cut
+   * reaches), in `style` and peeled to `peel`, whatever the map's own are.
+   * None for null.
+   */
+  setInspection(inspection: { key: string; style: CloudStyle; peel: number } | null): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
   /** Draw the storms this way; see lib/cloudStyle.ts. */
   setStyle(style: CloudStyle): void;
+  /**
+   * Draw the white cloud from another description of its shape and light,
+   * GLSL in place of `SKY_PLAIN` with the same three functions, or from the
+   * map's own again for null. Studio's flight has one, of clouds to fly
+   * among rather than to read a storm from, and brings it with it: it is
+   * not part of the map. With it comes what else such a sky draws (`pass`).
+   */
+  setScenic(sky: string | null, pass?: ((context: WebGL2RenderingContext) => ScenicPass) | null): void;
+  /**
+   * A light inside the clouds, for a scenic sky to shine with (lightning):
+   * where it is, how many kilometres up, and how bright, 0 to 1. None for null.
+   */
+  setGlow(glow: { lon: number; lat: number; km: number; brightness: number } | null): void;
+  /**
+   * March the clouds in this share of their usual steps, 1 down to a half
+   * or so: coarser, and that much cheaper, for a view that has to keep
+   * moving. At 0 they are not drawn at all. And a scenic sky's clouds in a
+   * picture this share of the map's each way (`scale`).
+   */
+  setDetail(share: number, scale?: number): void;
   /**
    * Thin every storm to this peel, 0 whole to 1 down to its core (lib/peel.ts).
    * `own` says the reader set it themself: then it is drawn wherever the
@@ -1205,11 +1299,25 @@ export function makeCloudsLayer(
 ): CloudsLayer {
   let gl: WebGL2RenderingContext | null = null;
   let map: GlMap | null = null;
+  /** The program drawn with: the map's own, or the scenic one while there is one; see `setScenic`. */
   let program: WebGLProgram | null = null;
+  let plainProgram: WebGLProgram | null = null;
+  let scenicProgram: WebGLProgram | null = null;
+  /**
+   * What a scenic sky brings besides its shape, made for this context while
+   * the sky is drawn; see `ScenicPass`.
+   */
+  let scenicPass: ScenicPass | null = null;
+  let makeScenicPass: ((context: WebGL2RenderingContext) => ScenicPass) | null = null;
+  let scenicScale = 0.5;
+  let scenicSky: string | null = null;
   let rampTexture: WebGLTexture | null = null;
   const clouds = new Map<string, Cloud>();
   let cutKey: string | null = null;
   let cutHeading = 0;
+  let inspection: { key: string; style: CloudStyle; peel: number } | null = null;
+  let glow: [number, number, number, number] = [0, 0, 0, 0];
+  let detail = 1;
   let colormap = initialColormap;
   let style = initialStyle;
   /** Uniform locations, looked up once per program rather than a dozen times a frame. */
@@ -1263,9 +1371,17 @@ export function makeCloudsLayer(
    * draws: marched only where there is echo, not the air above the storm's
    * top, nor the empty part of a tile at the storm's edge.
    */
-  function boxFor(cutaway: Cutaway, floor: number): { box: BoxPart; corners: Array<[number, number, number]> } {
+  function boxFor(cutaway: Cutaway, floor: number, scenic = false): { box: BoxPart; corners: Array<[number, number, number]> } {
     const tile = drawnPart(cutaway.header);
-    const echo = echoPart(cutaway, floor);
+    let echo = echoPart(cutaway, floor - (scenic ? SCENIC_REACH.dbz : 0));
+    if (echo && scenic) {
+      // A scenic cloud stands out past its echo, sideways and upwards: room for that, or it is cut off flat at the box.
+      const pad = [0, 1, 2].map((axis) => (SCENIC_REACH.km[axis] * 1000) / cutaway.extentM[axis]);
+      echo = {
+        min: [Math.max(echo.min[0] - pad[0], 0), Math.max(echo.min[1] - pad[1], 0), echo.min[2]],
+        max: [Math.min(echo.max[0] + pad[0], 1), Math.min(echo.max[1] + pad[1], 1), Math.min(echo.max[2] + pad[2], 1)],
+      };
+    }
     const box = echo ? overlap(tile, echo) : tile;
     return { box, corners: cornersOf(box) };
   }
@@ -1273,10 +1389,13 @@ export function makeCloudsLayer(
   /** A storm's box at the floor of the style on the map, worked out once a floor. */
   function fittedOf(boxes: Cloud["boxes"], cutaway: Cutaway): { box: BoxPart; corners: Array<[number, number, number]> } {
     const { floor } = STYLE_FIELD[style];
-    let fitted = boxes.get(floor);
+    const scenic = scenicSky !== null && (style === "sky" || style === "tinted");
+    // A scenic sky's boxes are kept apart from the map's own for the same floor.
+    const key = scenic ? floor - 1000 : floor;
+    let fitted = boxes.get(key);
     if (!fitted) {
-      fitted = boxFor(cutaway, floor);
-      boxes.set(floor, fitted);
+      fitted = boxFor(cutaway, floor, scenic);
+      boxes.set(key, fitted);
     }
     return fitted;
   }
@@ -1321,6 +1440,48 @@ export function makeCloudsLayer(
   function dropColumn(context: WebGL2RenderingContext | null, cloud: Cloud | undefined): void {
     if (context && cloud?.column) context.deleteTexture(cloud.column);
     if (cloud) cloud.column = null;
+  }
+
+
+  /** The shader with this description of the white cloud in it, linked. */
+  function link(context: WebGL2RenderingContext, sky: string): WebGLProgram {
+    const linked = context.createProgram()!;
+    context.attachShader(linked, compile(context, context.VERTEX_SHADER, VERTEX));
+    context.attachShader(linked, compile(context, context.FRAGMENT_SHADER, fragment(sky)));
+    context.linkProgram(linked);
+    if (!context.getProgramParameter(linked, context.LINK_STATUS)) {
+      throw new Error(context.getProgramInfoLog(linked) ?? "volume shader would not link");
+    }
+    return linked;
+  }
+
+  /**
+   * Draw with the scenic sky where one has been handed over, else the
+   * map's own; a scenic one that will not compile is let go of with a
+   * warning, and the storms stay as the map draws them.
+   */
+  function useSky(context: WebGL2RenderingContext): void {
+    if (scenicProgram) context.deleteProgram(scenicProgram);
+    scenicProgram = null;
+    if (scenicSky !== null) {
+      try {
+        scenicProgram = link(context, scenicSky);
+      } catch (error) {
+        console.warn("The scenic sky would not compile", error);
+      }
+    }
+    scenicPass?.dispose();
+    scenicPass = null;
+    if (scenicProgram && makeScenicPass) {
+      try {
+        scenicPass = makeScenicPass(context);
+      } catch (error) {
+        // The clouds are drawn all the same: straight onto the map, and without a sun.
+        console.warn("The scenic sky's own passes would not compile", error);
+      }
+    }
+    program = scenicProgram ?? plainProgram;
+    uniforms = new Map();
   }
 
   return {
@@ -1408,6 +1569,42 @@ export function makeCloudsLayer(
       if (map?.getContainer().isConnected) map.triggerRepaint();
     },
 
+    setScenic(sky, pass = null) {
+      if (sky === scenicSky) return;
+      scenicSky = sky;
+      makeScenicPass = sky === null ? null : pass;
+      for (const cloud of clouds.values()) fit(cloud);
+      if (gl) useSky(gl);
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
+    setGlow(next) {
+      if (!next || next.brightness <= 0) {
+        if (glow[3] === 0) return;
+        glow = [0, 0, 0, 0];
+      } else {
+        const at = MercatorCoordinate.fromLngLat({ lng: next.lon, lat: next.lat }, 0);
+        glow = [at.x * NOISE_KM_PER_MERCATOR, at.y * NOISE_KM_PER_MERCATOR, next.km, next.brightness];
+      }
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
+    setDetail(share, scale = 0.5) {
+      // Nothing, for a view that cloud round the eye hides altogether.
+      const next = share <= 0 ? 0 : Math.min(Math.max(share, 0.4), 1);
+      const size = Math.min(Math.max(scale, 0.2), 1);
+      if (next === detail && size === scenicScale) return;
+      detail = next;
+      scenicScale = size;
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
+    setInspection(next) {
+      if (next?.key === inspection?.key && next?.style === inspection?.style && next?.peel === inspection?.peel) return;
+      inspection = next;
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
     setSections(planes) {
       sections = planes ? planes.slice(0, CLIP_PLANES) : null;
       if (map?.getContainer().isConnected) map.triggerRepaint();
@@ -1422,23 +1619,19 @@ export function makeCloudsLayer(
     onAdd(added: GlMap, context: WebGL2RenderingContext) {
       map = added;
       gl = context;
-      program = context.createProgram()!;
-      context.attachShader(program, compile(context, context.VERTEX_SHADER, VERTEX));
-      context.attachShader(program, compile(context, context.FRAGMENT_SHADER, FRAGMENT));
-      context.linkProgram(program);
-      if (!context.getProgramParameter(program, context.LINK_STATUS)) {
-        throw new Error(context.getProgramInfoLog(program) ?? "volume shader would not link");
-      }
+      plainProgram = link(context, SKY_PLAIN);
+      useSky(context);
 
       paintRamp(context);
-      uniforms = new Map();
 
       // Storms handed over before the layer existed get their textures now.
       for (const cloud of clouds.values()) cloud.texture ??= upload(context, cloud.cutaway);
     },
 
     render(context: WebGL2RenderingContext, options: CustomRenderMethodInput) {
-      if (!program || !clouds.size) return;
+      if (!program) return;
+      if (scenicProgram && scenicPass && detail > 0) scenicPass.drawSun(options.defaultProjectionData.mainMatrix);
+      if (!clouds.size || detail <= 0) return;
       // `mainMatrix`, the one documented to take spherical mercator; see the
       // model matrix above for the space the boxes are built in.
       const main = options.defaultProjectionData.mainMatrix;
@@ -1446,8 +1639,12 @@ export function makeCloudsLayer(
       // otherwise only close up; see lib/peel.ts. Standing still: nothing
       // here asks for another frame.
       const peelNow = peel * peelShare(map?.getZoom() ?? 0, peelOwn);
-      const width = context.drawingBufferWidth;
-      const height = context.drawingBufferHeight;
+      const [mapWidth, mapHeight] = [context.drawingBufferWidth, context.drawingBufferHeight];
+      // A scenic sky is drawn aside, smaller, and laid over the map after; see `ScenicPass`.
+      const apart = scenicPass && program === scenicProgram && (style === "sky" || style === "tinted")
+        ? scenicPass.begin(mapWidth, mapHeight, scenicScale) : null;
+      const width = apart ? apart.width : mapWidth;
+      const height = apart ? apart.height : mapHeight;
 
       // Far to near, down the tiles' quadtree from where the camera stands,
       // and by where each box's middle lands in clip space where it cannot
@@ -1493,6 +1690,7 @@ export function makeCloudsLayer(
       const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
       context.uniform2f(at("uDepthRange"), depthNear, depthFar);
       context.uniform1i(at("uStyle"), STYLE_INDEX[style]);
+      context.uniform4f(at("uGlow"), glow[0], glow[1], glow[2], glow[3]);
       const field = STYLE_FIELD[style];
 
       context.enable(context.BLEND);
@@ -1509,6 +1707,10 @@ export function makeCloudsLayer(
       const along = (cutHeading * Math.PI) / 180;
       const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
       const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
+      // The storm looked into, and where it stands: the clouds round it are drawn as it is.
+      const inspected = inspection ? clouds.get(inspection.key) : undefined;
+      const inspectPoint = inspected ? cutPointOf(inspected.model, inspected.cutaway) : null;
+      const inspectMetre = inspected ? inspected.model[0] / inspected.cutaway.extentM[0] : 0;
 
       for (const { key, cloud, model, weight, forward, rect } of ordered) {
         if (rect === null) continue;
@@ -1530,12 +1732,8 @@ export function makeCloudsLayer(
           : plane ? [plane] : [];
         if (cuts.some((cut) => cutAway(cloud.corners, cut))) continue;
 
-        if (rect === "all") {
-          context.disable(context.SCISSOR_TEST);
-        } else {
-          context.enable(context.SCISSOR_TEST);
-          context.scissor(rect[0], rect[1], rect[2], rect[3]);
-        }
+        context.enable(context.SCISSOR_TEST);
+        context.scissor(rect[0], rect[1], rect[2], rect[3]);
 
         context.activeTexture(context.TEXTURE0);
         context.bindTexture(context.TEXTURE_3D, cloud.texture);
@@ -1544,17 +1742,23 @@ export function makeCloudsLayer(
         context.uniform3f(at("uExtentKm"), extentM[0] / 1000, extentM[1] / 1000, extentM[2] / 1000);
         context.uniform3f(at("uBoxMin"), ...cloud.box.min);
         context.uniform3f(at("uBoxMax"), ...cloud.box.max);
-        context.uniform1f(at("uSteps"), cloud.steps);
+        // A scenic sky's cloud is soft at every scale: three steps in four do for it.
+        context.uniform1f(at("uSteps"), Math.max(8, Math.round(cloud.steps * detail * (apart ? 0.75 : 1))));
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
-        if (style === "sky" || style === "tinted") {
+        const looked = inspection !== null && inspectPoint !== null
+          && (key === inspection.key || kmFromCut(model, cloud.box, inspectPoint, inspectMetre) <= CUT_REACH_KM);
+        const drawnAs = looked ? inspection!.style : style;
+        const drawnField = looked ? STYLE_FIELD[drawnAs] : field;
+        context.uniform1i(at("uStyle"), STYLE_INDEX[drawnAs]);
+        if (drawnAs === "sky" || drawnAs === "tinted") {
           // Where the cloud stands now: the billows stay put in the world
           // while a storm moves through them, so its two copies between two
           // scans share theirs, and nothing jumps when the next pair comes up.
           context.uniform4f(at("uWorld"), model[12] * NOISE_KM_PER_MERCATOR, model[13] * NOISE_KM_PER_MERCATOR,
             model[0] * NOISE_KM_PER_MERCATOR, model[5] * NOISE_KM_PER_MERCATOR);
         }
-        if (style === "tinted") {
+        if (drawnAs === "tinted") {
           context.activeTexture(context.TEXTURE2);
           cloud.column ??= uploadColumn(context, cloud.cutaway);
           context.bindTexture(context.TEXTURE_2D, cloud.column);
@@ -1571,9 +1775,11 @@ export function makeCloudsLayer(
         // From the style's floor to the storm's core. The top of the ramp
         // stays where the style has it until the peel has thinned the storm
         // to within a cloud's band of it, so a core is never fainter peeled.
-        const low = peelsNow ? peelLow(field.floor, cloud.peelFloor, peelNow) : field.floor;
+        const low = looked
+          ? peelLow(drawnField.floor, cloud.peelFloor, inspection!.peel)
+          : peelsNow ? peelLow(field.floor, cloud.peelFloor, peelNow) : field.floor;
         context.uniform1f(at("uLow"), low);
-        context.uniform1f(at("uHigh"), Math.max(field.floor + field.band, low + PEEL_BAND));
+        context.uniform1f(at("uHigh"), Math.max(drawnField.floor + drawnField.band, low + PEEL_BAND));
         if (cuts.length) {
           context.uniform3fv(at("uPlaneNormal"), cuts.flatMap((cut) => cut.normal));
           context.uniform3fv(at("uPlanePoint"), cuts.flatMap((cut) => cut.point));
@@ -1582,6 +1788,7 @@ export function makeCloudsLayer(
       }
 
       context.disable(context.SCISSOR_TEST);
+      if (apart) scenicPass?.end(mapWidth, mapHeight);
       context.depthMask(true);
     },
 
@@ -1592,8 +1799,13 @@ export function makeCloudsLayer(
         dropColumn(context, cloud);
       }
       if (rampTexture) context.deleteTexture(rampTexture);
-      if (program) context.deleteProgram(program);
+      if (plainProgram) context.deleteProgram(plainProgram);
+      scenicPass?.dispose();
+      scenicPass = null;
+      if (scenicProgram) context.deleteProgram(scenicProgram);
       program = null;
+      plainProgram = null;
+      scenicProgram = null;
       rampTexture = null;
       gl = null;
       map = null;

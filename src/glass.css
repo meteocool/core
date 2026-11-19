@@ -915,6 +915,10 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
 }
 .maplibre-host .studio-plane-handle.selected { opacity: 1; box-shadow: 0 0 0 3px rgba(255, 158, 28, 0.4), 0 1px 4px rgba(0, 0, 0, 0.45); }
 .maplibre-host .studio-plane-handle:active { cursor: grabbing; }
+/* Studio's flight (Cells3DCapability.setFlying): nothing of the map's own
+   over the view from the cockpit. The flight deck carries the credits. */
+.maplibre-host.flying .maplibregl-control-container,
+.maplibre-host.flying .studio-plane-handle { display: none; }
 .maplibre-host .maplibregl-ctrl-group:not(:empty) { box-shadow: var(--mc-glass-ring); }
 .maplibre-host .maplibregl-ctrl-group:hover { background: var(--mc-glass-fill-strong); }
 .maplibre-host .maplibregl-ctrl-group button {

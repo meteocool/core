@@ -1,0 +1,675 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { bearingDeg, destination, distanceM, offsetM, wrap180, wrap360 } from "../../src/lib/studio/flight/geo.ts";
+import {
+  densityRatio, indicatedFromTrue, machOf, speedOfSound, temperatureK, trueFromIndicated,
+} from "../../src/lib/studio/flight/atmosphere.ts";
+import {
+  ahead, BANK_HOLD, BANK_LIMIT, levelFlight, NO_INPUT, PITCH_DOWN_LIMIT, PITCH_UP_LIMIT, step, STILL_AIR, terrainAhead,
+  trimThrottle,
+} from "../../src/lib/studio/flight/physics.ts";
+import type { AircraftState, ControlInput, Environment } from "../../src/lib/studio/flight/physics.ts";
+import {
+  approachTo, chooseApproach, edgeKm, MAX_START_KM, rankSystems, reliefAt, START_ALTITUDE_M, START_KM, startAltitude, stormSystems, SUN_BEARING,
+} from "../../src/lib/studio/flight/spawn.ts";
+import type { StormTile } from "../../src/lib/studio/flight/spawn.ts";
+import { flightFine, flightWanted } from "../../src/lib/studio/flight/selection.ts";
+import type { CoarsePlace } from "../../src/lib/studio/flight/selection.ts";
+import { cloudOf, gustAt, rainOf, reflectivityAt, turbulenceOf } from "../../src/lib/studio/flight/weather.ts";
+import { actionOf, controlInput, gamepadInput, isFlightKey, merged } from "../../src/lib/studio/flight/controls.ts";
+import { screenRect } from "../../src/layers/cellVolumeLayer.ts";
+import { attitudeOf, cockpitEye, inAircraft, outsideEye, rotation, seenFrom } from "../../src/lib/studio/flight/view.ts";
+import { coresOf, flatOffset, markAltitude, marksNear } from "../../src/lib/studio/flight/marks.ts";
+import { BASE_RANGE_KM, cloudBase, condensationLevel } from "../../src/lib/studio/flight/cloudBase.ts";
+import { parseModel, VERTEX_BYTES } from "../../src/lib/studio/flight/model.ts";
+import {
+  ALTITUDE_RANGE, approachOf, atMach, briefing, flightLevel, headed, highGround, levelled, MACH_RANGE, movedTo, planFrom, position,
+  retargeted, weatherOf,
+} from "../../src/lib/studio/flight/plan.ts";
+
+const near = (a: number, b: number, tolerance: number) => assert.ok(Math.abs(a - b) <= tolerance, `${a} is not ${b} ± ${tolerance}`);
+
+/* ---- geo ---- */
+
+test("a degree of latitude is 111 km, and a destination comes back as its distance and bearing", () => {
+  near(distanceM(10, 45, 10, 46), 111_195, 5);
+  const [lon, lat] = destination(3, 43, 72, 150_000);
+  near(distanceM(3, 43, lon, lat), 150_000, 1);
+  near(bearingDeg(3, 43, lon, lat), 72, 0.01);
+  const [east, north] = offsetM(3, 43, ...destination(3, 43, 90, 10_000));
+  near(east, 10_000, 5);
+  near(north, 0, 10);
+});
+
+test("angles fold into a turn and into a compass", () => {
+  assert.equal(wrap360(-30), 330);
+  assert.equal(wrap360(725), 5);
+  assert.equal(wrap180(270), -90);
+  assert.equal(wrap180(-190), 170);
+  assert.equal(wrap180(180), 180);
+});
+
+/* ---- atmosphere ---- */
+
+test("the standard atmosphere: -56.5 C above the tropopause, a third of the density at FL350", () => {
+  near(temperatureK(0), 288.15, 1e-9);
+  near(temperatureK(12_000), 216.65, 1e-9);
+  near(densityRatio(0), 1, 1e-9);
+  near(densityRatio(10_668), 0.31, 0.01);
+  near(speedOfSound(0), 340.3, 0.1);
+  near(speedOfSound(10_668), 296.5, 0.5);
+  // 250 kt indicated at FL350 is about 430 kt true.
+  near(trueFromIndicated(128.6, 10_668), 230, 3);
+  near(indicatedFromTrue(trueFromIndicated(150, 7300), 7300), 150, 1e-9);
+  near(machOf(speedOfSound(5000) * 0.8, 5000), 0.8, 1e-9);
+});
+
+/* ---- physics ---- */
+
+const FL350 = 10_668;
+const fly = (state: AircraftState, seconds: number, input: ControlInput = NO_INPUT, env: Environment = STILL_AIR) => {
+  let flown = state;
+  for (let t = 0; t < seconds; t += 0.05) flown = step(flown, input, 0.05, env);
+  return flown;
+};
+const held = (state: AircraftState, throttle: number) => ({ ...state, throttle, spool: throttle });
+const cruise = levelFlight(5, 45, FL350, 90, 0.78 * speedOfSound(FL350));
+
+test("level cruise at FL350 settles near Mach 0.8 at 85% thrust, and full thrust stays short of 0.9", () => {
+  const steady = fly(held(cruise, 0.85), 900, NO_INPUT, { ...STILL_AIR, autopilot: FL350 });
+  near(machOf(steady.tas, steady.altitude), 0.8, 0.02);
+  near(steady.altitude, FL350, 30);
+  const flat = fly(held(cruise, 1), 1500, NO_INPUT, { ...STILL_AIR, autopilot: FL350 });
+  const mach = machOf(flat.tas, flat.altitude);
+  assert.ok(mach > 0.85 && mach < 0.9, `full thrust tops out at Mach ${mach}`);
+});
+
+test("trimmed, nothing drifts: the start holds its height, speed and heading", () => {
+  const start = levelFlight(3, 43, 7300, 72, 220);
+  assert.ok(start.throttle > 0.5 && start.throttle < 0.85, `trim ${start.throttle}`);
+  near(trimThrottle(7300, 220), start.throttle, 1e-12);
+  const later = fly(start, 20);
+  near(later.altitude, 7300, 5);
+  near(later.tas, 220, 0.5);
+  near(later.heading, 72, 0.01);
+});
+
+test("idle in level flight bleeds the speed off until the wing stalls, the nose drops, and speed recovers it", () => {
+  const start = held(levelFlight(3, 43, 7300, 0, 220), 0);
+  let state = start;
+  let stalledAt: number | null = null;
+  let recovered = false;
+  let pitchAtStall = 0;
+  for (let t = 0; t < 400 && !recovered; t += 0.05) {
+    // The autopilot is taken off by a stall, as the pilot does; until then it holds the height.
+    const env = { ...STILL_AIR, autopilot: stalledAt === null ? 7300 : null };
+    state = step(state, NO_INPUT, 0.05, env);
+    if (state.stalled && stalledAt === null) {
+      stalledAt = t;
+      pitchAtStall = state.pitch;
+      assert.ok(state.tas < 125, `stalled at ${state.tas} m/s`);
+    }
+    if (stalledAt !== null && !state.stalled) {
+      recovered = true;
+      assert.ok(state.pitch < pitchAtStall - 5, "the nose dropped");
+    }
+  }
+  assert.notEqual(stalledAt, null);
+  assert.ok(recovered, "speed brings it out of the stall");
+  assert.ok(state.altitude < 7300, "the stall cost height");
+});
+
+test("let go, the attitude holds; a level turn at 30 degrees stays level and turns 1.5 degrees a second", () => {
+  const start = { ...levelFlight(3, 43, 7300, 0, 220), roll: 30 };
+  const turning = fly(start, 20);
+  near(turning.roll, 30, 0.01);
+  near(turning.altitude, 7300, 15);
+  // Heading after 20 s, from a 30 degree bank at 220 m/s.
+  near(turning.heading, 20 * 1.475, 0.8);
+
+  const nosed = fly({ ...levelFlight(3, 43, 7300, 0, 220), pitch: 6, pitchHold: 6 }, 5);
+  near(nosed.pitch, 6, 0.05);
+});
+
+test("the bank stops at its limit, and let go past 33 degrees it rolls back to 33", () => {
+  const start = levelFlight(3, 43, 7300, 0, 220);
+  const hard = fly(start, 8, { ...NO_INPUT, roll: 1 });
+  assert.ok(hard.roll <= BANK_LIMIT + 2 && hard.roll > BANK_LIMIT - 2, `banked ${hard.roll}`);
+  const back = fly(hard, 15);
+  near(back.roll, BANK_HOLD, 0.5);
+  const left = fly(start, 8, { ...NO_INPUT, roll: -1 });
+  assert.ok(left.roll >= -BANK_LIMIT - 2, `banked ${left.roll}`);
+});
+
+test("the pitch stops at its limits", () => {
+  const start = levelFlight(3, 43, 7300, 0, 220);
+  const up = fly(start, 20, { ...NO_INPUT, pitch: 1 });
+  assert.ok(up.pitch <= PITCH_UP_LIMIT + 1, `pitched ${up.pitch}`);
+  const down = fly(start, 12, { ...NO_INPUT, pitch: -1 });
+  assert.ok(down.pitch >= PITCH_DOWN_LIMIT - 1, `pitched ${down.pitch}`);
+  assert.ok(down.verticalSpeed < -30);
+});
+
+test("the throttle moves with W and S, and time warp covers four times the ground", () => {
+  const start = levelFlight(3, 43, 7300, 90, 220);
+  near(fly(held(start, 0.2), 2, { ...NO_INPUT, throttle: 1 }).throttle, 0.9, 0.01);
+  assert.equal(fly(start, 4, { ...NO_INPUT, throttle: -1 }).throttle, 0);
+  const plain = fly(start, 10);
+  const warped = fly(start, 10, NO_INPUT, { ...STILL_AIR, warp: 4 });
+  near(distanceM(3, 43, warped.lon, warped.lat) / distanceM(3, 43, plain.lon, plain.lat), 4, 0.01);
+  near(warped.altitude, plain.altitude, 1e-6);
+});
+
+test("the speed brake slows the aircraft, and a gust rocks it", () => {
+  const start = levelFlight(3, 43, 7300, 0, 220);
+  assert.ok(fly(start, 10, { ...NO_INPUT, brake: true }).tas < fly(start, 10).tas - 5);
+  const rocked = fly(start, 1, NO_INPUT, { ...STILL_AIR, gust: { roll: 5, pitch: 0, vertical: -4 } });
+  assert.ok(rocked.roll > 2);
+  assert.ok(rocked.altitude < 7300 - 2);
+});
+
+test("the ground coming up warns ahead of time, and not over flat ground well below", () => {
+  const descending = { ...levelFlight(3, 43, 1500, 0, 150), verticalSpeed: -40, flightPath: -15 };
+  assert.ok(terrainAhead(descending, () => 900));
+  assert.ok(!terrainAhead(levelFlight(3, 43, 1500, 0, 150), () => 200));
+  // A ridge 10 s ahead, and not under the aircraft yet.
+  const ridgeAt = ahead(levelFlight(3, 43, 2000, 0, 150), 10);
+  assert.ok(terrainAhead(levelFlight(3, 43, 2000, 0, 150), (lon, lat) => (Math.abs(lat - ridgeAt.lat) < 0.01 ? 1950 : 0)));
+  assert.ok(!terrainAhead(levelFlight(3, 43, 2000, 0, 150), () => null));
+});
+
+/* ---- spawn ---- */
+
+const tile = (lon: number, lat: number, peakDbz: number, patch: Partial<StormTile> = {}): StormTile => ({
+  lon, lat, peakDbz, areaKm2: 400, coarse: true, tile: [9, 0, 0], ...patch,
+});
+
+test("adjacent tiles are one system, far ones another; coarse tiles where there are any", () => {
+  const tiles = [
+    tile(4.0, 43.6, 55), tile(4.7, 43.6, 50), tile(4.7, 43.2, 45),
+    tile(12, 52, 40),
+    tile(4.1, 43.6, 60, { coarse: false, tile: [11, 0, 0] }),
+  ];
+  const systems = stormSystems(tiles);
+  assert.equal(systems.length, 2);
+  assert.equal(systems[0].tiles, 3);
+  assert.equal(systems[0].peakDbz, 55);
+  assert.ok(systems[0].radiusKm > 30);
+  // Fine tiles only, they are grouped themselves.
+  assert.equal(stormSystems([tile(4, 43, 50, { coarse: false, tile: [11, 0, 0] })]).length, 1);
+});
+
+test("of two equal systems, the one by the mountains wins, and nearness to where the reader looked counts", () => {
+  const plain = stormSystems([tile(-1.0, 47.0, 55)])[0];
+  const alpine = stormSystems([tile(10.5, 46.5, 55)])[0];
+  assert.ok(reliefAt(10.5, 46.5) > reliefAt(-1, 47));
+  assert.deepEqual(rankSystems([plain, alpine], 4.5, 46.8)[0], alpine);
+  // Looked at from right over the plain one, it is the nearer that wins.
+  const strong = stormSystems([tile(-1.0, 47.0, 58)])[0];
+  assert.deepEqual(rankSystems([strong, alpine], -1.0, 47.0)[0], strong);
+});
+
+test("the approach starts short of the system, nose on it, with the sun behind where it can", () => {
+  const tiles = [tile(4.0, 44.0, 55)];
+  const approach = approachTo(stormSystems(tiles)[0], tiles);
+  const km = distanceM(approach.lon, approach.lat, 4.0, 44.0) / 1000;
+  assert.ok(km > START_KM && km < START_KM + 60, `starts ${km} km out`);
+  near(wrap180(bearingDeg(approach.lon, approach.lat, 4.0, 44.0) - approach.heading), 0, 0.5);
+  // Flying away from the sun, give or take one of the twelve bearings and the relief.
+  assert.ok(Math.abs(wrap180(approach.heading - (SUN_BEARING + 180))) <= 60, `heading ${approach.heading}`);
+  assert.equal(approach.altitude, START_ALTITUDE_M);
+});
+
+test("the approach starts short of the system's near edge, not of its far reach", () => {
+  // A line of storms 300 km long, north to south: from the west, it is near.
+  const line = Array.from({ length: 7 }, (_, i) => tile(4.0, 42.0 + i * 0.45, 55));
+  const system = stormSystems(line)[0];
+  assert.ok(system.radiusKm > 120);
+  assert.ok(edgeKm(system, 270) < 50, `edge ${edgeKm(system, 270)}`);
+  near(edgeKm(system, 0), system.radiusKm, 3);
+  // From along the line, no further from its towers than a couple of minutes' flight.
+  const along = approachTo({ ...system, extent: system.extent }, line);
+  assert.ok(distanceM(along.lon, along.lat, system.lon, system.lat) <= MAX_START_KM * 1000 + 1);
+});
+
+test("a system is aimed at its towers, not the middle of its rain", () => {
+  const tiles = [tile(4.0, 43.0, 62), ...Array.from({ length: 6 }, (_, i) => tile(5.0 + i * 0.7, 43.5, 32))];
+  const system = stormSystems(tiles)[0];
+  assert.ok(distanceM(system.lon, system.lat, 4.0, 43.0) < 5000, `aimed at ${system.lon}, ${system.lat}`);
+});
+
+test("the approach does not start inside another storm", () => {
+  const target = tile(4.0, 44.0, 60);
+  const lonely = approachTo(stormSystems([target])[0], [target]);
+  // Another system right where the lonely approach would have started.
+  const blocker = tile(lonely.lon, lonely.lat, 35, { tile: [11, 0, 0], coarse: false });
+  const system = stormSystems([target])[0];
+  const approach = approachTo(system, [target, blocker]);
+  assert.ok(distanceM(approach.lon, approach.lat, blocker.lon, blocker.lat) > 15_000);
+});
+
+test("the start is raised over high ground, and with no weather it starts over where the reader looked", () => {
+  near(startAltitude(7, 46, 90, () => 4800), 7800, 1e-9);
+  assert.equal(startAltitude(7, 46, 90, () => null), START_ALTITUDE_M);
+  const clear = chooseApproach([], { lon: 4.6, lat: 43.3, bearing: 20 }, 0);
+  assert.equal(clear.target, null);
+  assert.equal(clear.heading, 20);
+  near(distanceM(clear.lon, clear.lat, 4.6, 43.3), 30_000, 10);
+  near(bearingDeg(clear.lon, clear.lat, 4.6, 43.3), 20, 0.5);
+});
+
+test("the next system comes round in turn", () => {
+  const tiles = [tile(4.0, 44.0, 60), tile(12, 52, 45)];
+  const look = { lon: 4, lat: 44, bearing: 0 };
+  const first = chooseApproach(tiles, look, 0).target!;
+  const second = chooseApproach(tiles, look, 1).target!;
+  assert.notDeepEqual(first, second);
+  assert.deepEqual(chooseApproach(tiles, look, 2).target, first);
+});
+
+/* ---- selection ---- */
+
+test("held in flight: ahead and close first, then nearest, as far as the budget goes", () => {
+  const lookout = { lon: 4, lat: 44, heading: 90, fovDeg: 90 };
+  const at = (bearing: number, km: number, name: string) => {
+    const [lon, lat] = destination(4, 44, bearing, km * 1000);
+    return { lon, lat, name };
+  };
+  const volumes = [
+    at(270, 50, "behind"), at(90, 200, "far ahead"), at(80, 100, "ahead"), at(180, 20, "close behind"), at(90, 400, "too far"),
+  ];
+  const held = flightWanted(volumes, lookout, 1000, () => 100).map(({ name }) => name);
+  assert.deepEqual(held, ["close behind", "ahead", "far ahead", "behind"]);
+  assert.deepEqual(flightWanted(volumes, lookout, 250, () => 100).map(({ name }) => name), ["close behind", "ahead"]);
+});
+
+test("drawn fine in flight: near tiles, nearest first, with hysteresis and within the budget", () => {
+  const lookout = { lon: 4, lat: 44 };
+  const place = (km: number, code: string): CoarsePlace => {
+    const [lon, lat] = destination(4, 44, 0, km * 1000);
+    return { code, lon, lat, coarseBytes: 10, fineBytes: 40 };
+  };
+  const places = [place(80, "border"), place(20, "near"), place(50, "middle"), place(150, "far")];
+  assert.deepEqual([...flightFine(places, lookout, new Set(), 1000)].sort(), ["middle", "near"]);
+  // Already fine, the one at 80 km stays fine until 90.
+  assert.deepEqual([...flightFine(places, lookout, new Set(["border"]), 1000)].sort(), ["border", "middle", "near"]);
+  // Room for one more fine tile's extra bytes: the nearest.
+  assert.deepEqual([...flightFine(places, lookout, new Set(), 30)], ["near"]);
+});
+
+/* ---- weather ---- */
+
+/** A 4 x 4 x 4 volume of 1 km voxels, every voxel `dbz` but one column of 55 at x 2, y 2: the one in its middle. */
+function volume(lon: number, lat: number, dbz: number) {
+  const header = {
+    code: "T", reference_time: "", lon, lat, nx: 4, ny: 4, nz: 4, step_m: [1000, 1000, 1000] as [number, number, number],
+    origin_m: [-2000, -2000, 0] as [number, number, number], dbz_floor: -32, dbz_scale: 2, sites: [], coverage: 1,
+  };
+  const voxels = new Uint8Array(4 * 4 * 4 * 2);
+  for (let z = 0; z < 4; z += 1) {
+    for (let y = 0; y < 4; y += 1) {
+      for (let x = 0; x < 4; x += 1) {
+        const at = ((z * 4 + y) * 4 + x) * 2;
+        voxels[at] = ((x === 2 && y === 2 ? 55 : dbz) + 32) * 2;
+        voxels[at + 1] = 255;
+      }
+    }
+  }
+  return { header, voxels, extentM: [4000, 4000, 4000] as [number, number, number] };
+}
+
+test("the reflectivity at a point is the voxel's it stands in, null outside every volume", () => {
+  const box = volume(4, 44, 20);
+  near(reflectivityAt([box], 4, 44, 500)!, 55, 1e-9);
+  // 1.5 km west and 1.5 km south of the middle: the corner voxel.
+  const [lon, lat] = destination(...destination(4, 44, 270, 1500), 180, 1500);
+  near(reflectivityAt([box], lon, lat, 3500)!, 20, 1e-9);
+  assert.equal(reflectivityAt([box], 4, 44, 4500), null);
+  assert.equal(reflectivityAt([box], 4.2, 44, 500), null);
+  // Overlapping, the stronger.
+  near(reflectivityAt([box, volume(4, 44, 40)], lon, lat, 500)!, 40, 1e-9);
+});
+
+test("turbulence, cloud and rain come in with the echo", () => {
+  assert.equal(turbulenceOf(null), 0);
+  assert.equal(turbulenceOf(10), 0);
+  assert.equal(turbulenceOf(55), 1);
+  assert.ok(turbulenceOf(35) > 0 && turbulenceOf(35) < 0.6);
+  assert.equal(cloudOf(10), 0);
+  assert.equal(cloudOf(40), 1);
+  assert.equal(rainOf(25), 0);
+  assert.equal(rainOf(50), 1);
+  assert.deepEqual(gustAt(3, 0), { roll: 0, pitch: 0, vertical: 0 });
+  assert.notDeepEqual(gustAt(3, 1), gustAt(4, 1));
+  assert.deepEqual(gustAt(3, 1), gustAt(3, 1));
+});
+
+/* ---- controls ---- */
+
+test("keys by their place on the keyboard: forward is nose down, A and D the rudder, W and S the throttle", () => {
+  const input = controlInput(new Set(["ArrowUp", "ArrowRight", "KeyW", "KeyA", "ShiftLeft", "Space"]));
+  assert.deepEqual(input, { pitch: -1, roll: 1, yaw: -1, throttle: 1, brake: true, warp: true });
+  assert.deepEqual(controlInput(new Set(["Numpad5", "Numpad4", "KeyS"])), {
+    pitch: 1, roll: -1, yaw: 0, throttle: -1, brake: false, warp: false,
+  });
+  // Both ways at once is neither.
+  assert.equal(controlInput(new Set(["ArrowLeft", "ArrowRight"])).roll, 0);
+});
+
+test("the one-press keys, and which keys the flight keeps from the page", () => {
+  assert.equal(actionOf("Escape"), "leave");
+  assert.equal(actionOf("KeyL"), "autopilot");
+  assert.equal(actionOf("Backspace"), "restart");
+  assert.equal(actionOf("Digit7", "?"), "help");
+  assert.equal(actionOf("KeyQ"), null);
+  assert.ok(isFlightKey("Space"));
+  assert.ok(isFlightKey("ArrowDown"));
+  assert.ok(!isFlightKey("KeyQ"));
+});
+
+test("a gamepad flies with its left stick, triggers and bumpers, past a dead zone", () => {
+  const buttons = Array.from({ length: 8 }, () => ({ value: 0, pressed: false }));
+  buttons[7] = { value: 1, pressed: true };
+  buttons[4] = { value: 1, pressed: true };
+  const pad = gamepadInput({ axes: [0.05, 1], buttons });
+  assert.deepEqual(pad, { pitch: 1, roll: 0, yaw: -1, throttle: 1, brake: false });
+  assert.deepEqual(merged({ ...NO_INPUT, roll: 1 }, pad), { pitch: 1, roll: 1, yaw: -1, throttle: 1, brake: false });
+});
+
+/* ---- the storms' scissor ---- */
+
+/** A camera at the origin looking down -z, 90 degrees across, as GL's perspective matrix has it. */
+function perspective(near = 0.1, far = 1000): number[] {
+  const f = 1;
+  return [f, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) / (near - far), -1, 0, 0, (2 * far * near) / (near - far), 0];
+}
+/** A box's model matrix through the camera: the unit cube scaled by `size` and moved to `at`. */
+function through(at: [number, number, number], size: [number, number, number] = [1, 1, 1]): number[] {
+  const p = perspective();
+  const model = [size[0], 0, 0, 0, 0, size[1], 0, 0, 0, 0, size[2], 0, ...at, 1];
+  return Array.from({ length: 16 }, (_, i) => {
+    const [c, r] = [Math.floor(i / 4), i % 4];
+    return [0, 1, 2, 3].reduce((sum, k) => sum + p[k * 4 + r] * model[c * 4 + k], 0);
+  });
+}
+const UNIT: Array<[number, number, number]> = [
+  [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1],
+];
+
+test("a box in front is scissored to where it projects, one behind not drawn, one around the camera everywhere", () => {
+  const rect = screenRect(through([-0.5, -0.5, -10]), UNIT, 1000, 1000)!;
+  assert.ok(rect[2] < 150 && rect[3] < 150, `rect ${rect}`);
+  assert.equal(screenRect(through([-0.5, -0.5, 5]), UNIT, 1000, 1000), null);
+  assert.deepEqual(screenRect(through([-2, -2, -2], [4, 4, 4]), UNIT, 1000, 1000), [0, 0, 1000, 1000]);
+});
+
+test("a box reaching behind the camera off to one side covers only its side of the screen", () => {
+  // From x 2 to 3 and z -20 to +5: beside the camera, and past it.
+  const rect = screenRect(through([2, -0.5, -20], [1, 1, 25]), UNIT, 1000, 1000)!;
+  assert.ok(rect[0] > 500, `rect ${rect}`);
+  assert.equal(rect[0] + rect[2], 1000);
+});
+
+/* ---- the eye ---- */
+
+/** A point of the aircraft's frame as a camera sees it: right, up, and how far in front. */
+function seen(modelView: number[], [x, y, z]: [number, number, number]): [number, number, number] {
+  const at = (row: number) => modelView[row] * x + modelView[4 + row] * y + modelView[8 + row] * z + modelView[12 + row];
+  return [at(0), at(1), -at(2)];
+}
+
+test("an attitude comes back out of the turn it makes", () => {
+  for (const attitude of [{ heading: 59, pitch: 4, roll: -25 }, { heading: 301, pitch: -12, roll: 40 }]) {
+    const back = attitudeOf(rotation(attitude));
+    near(back.heading, attitude.heading, 1e-9);
+    near(back.pitch, attitude.pitch, 1e-9);
+    near(back.roll, attitude.roll, 1e-9);
+  }
+});
+
+test("from the seat, looking ahead, the eye has the aircraft's own attitude and sees the nose in front of it", () => {
+  const attitude = { heading: 120, pitch: 3, roll: 20 };
+  const seat: [number, number, number] = [14, -0.5, -0.7];
+  const eye = cockpitEye(attitude, { yaw: 0, pitch: 0 }, seat);
+  near(eye.heading, 120, 1e-9);
+  near(eye.pitch, 3, 1e-9);
+  near(eye.roll, 20, 1e-9);
+  // A point two metres ahead of the seat, half a metre to its right and a little below it.
+  const [right, up, front] = seen(eye.modelView, [16, 0, -0.5]);
+  near(right, 0.5, 1e-9);
+  near(up, -0.2, 1e-9);
+  near(front, 2, 1e-9);
+  // The seat is forward of the aircraft's middle: north-east of it on this heading, and above.
+  assert.ok(eye.north < 0 && eye.east > 0 && eye.up > 0);
+});
+
+test("a head turned right looks right of the nose, and sees what was ahead on its left", () => {
+  const level = { heading: 0, pitch: 0, roll: 0 };
+  const eye = cockpitEye(level, { yaw: 90, pitch: 0 }, [0, 0, 0]);
+  near(eye.heading, 90, 1e-9);
+  const [right, , front] = seen(eye.modelView, [10, 0, 0]);
+  near(right, -10, 1e-9);
+  near(front, 0, 1e-9);
+  // In a right bank, the same head looks down along the wing.
+  const banked = cockpitEye({ heading: 0, pitch: 0, roll: 30 }, { yaw: 90, pitch: 0 }, [0, 0, 0]);
+  near(banked.pitch, -30, 1e-9);
+});
+
+test("from outside, the eye stands off the aircraft, level, with the aircraft in the middle of its view", () => {
+  const eye = outsideEye({ heading: 40, pitch: 5, roll: 35 }, { yaw: 0, pitch: -10 }, 80);
+  near(eye.roll, 0, 1e-9);
+  near(eye.heading, 40, 1e-9);
+  near(Math.hypot(eye.north, eye.east, eye.up), 80, 1e-9);
+  // Behind it and above: south-west of an aircraft heading north-east.
+  assert.ok(eye.north < 0 && eye.east < 0 && eye.up > 0);
+  const [right, up, front] = seen(eye.modelView, [0, 0, 0]);
+  near(right, 0, 1e-9);
+  near(up, 0, 1e-9);
+  near(front, 80, 1e-9);
+});
+
+test("the sun over the left wing of an aircraft heading north is on its left, wherever it stood in the world", () => {
+  const [forward, right, down] = inAircraft({ heading: 0, pitch: 0, roll: 0 }, [0, -1, 0]);
+  near(forward, 0, 1e-9);
+  near(right, -1, 1e-9);
+  near(down, 0, 1e-9);
+  near(inAircraft({ heading: 270, pitch: 0, roll: 0 }, [0, -1, 0])[0], 1, 1e-9);
+});
+
+/* ---- the model's file ---- */
+
+test("a model's file is read back as its chunks, and anything else refused", () => {
+  const header = new TextEncoder().encode(JSON.stringify({
+    title: "t", author: "a", licence: "l", source: "s",
+    materials: [{ texture: null, colour: [1, 1, 1], opacity: 1 }],
+    chunks: [{ material: 0, vertices: 3, indices: 3, offset: 0, min: [0, 0, 0], size: [1, 1, 1], uvMin: [0, 0], uvSize: [1, 1] }],
+  }).padEnd(400, " "));
+  const body = new Uint8Array(3 * VERTEX_BYTES + 8);
+  new Uint16Array(body.buffer, 3 * VERTEX_BYTES, 3).set([0, 1, 2]);
+  const file = new Uint8Array(8 + header.length + body.length);
+  file.set([0x4d, 0x43, 0x4d, 0x31]);
+  new DataView(file.buffer).setUint32(4, header.length, true);
+  file.set(header, 8);
+  file.set(body, 8 + header.length);
+  const model = parseModel(file.buffer);
+  assert.equal(model.chunks.length, 1);
+  assert.equal(model.chunks[0].vertices.byteLength, 3 * VERTEX_BYTES);
+  assert.deepEqual([...model.chunks[0].indices], [0, 1, 2]);
+  assert.throws(() => parseModel(new Uint8Array(16).buffer));
+  assert.throws(() => parseModel(file.buffer.slice(0, file.length - 8)));
+});
+
+/* ---- the plan and its briefing ---- */
+
+const planTiles: StormTile[] = [
+  { lon: 4.0, lat: 43.6, peakDbz: 62, areaKm2: 900, coarse: true, tile: [9, 261, 186] },
+  { lon: 4.5, lat: 43.6, peakDbz: 55, areaKm2: 700, coarse: true, tile: [9, 262, 186] },
+  { lon: 11.0, lat: 50.0, peakDbz: 41, areaKm2: 500, coarse: true, tile: [9, 271, 173] },
+];
+
+test("a plan starts as the approach the flight would choose, and reads back as one", () => {
+  const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
+  const approach = approachTo(systems[0], planTiles);
+  const plan = planFrom(approach, "sky");
+  assert.deepEqual(approachOf(plan), approach);
+  assert.equal(plan.aimed, true);
+  assert.equal(plan.view, "cockpit");
+  assert.equal(plan.turbulence, true);
+});
+
+test("a start moved keeps its nose on the storm, until the reader turns it; handed back, it is on the storm again", () => {
+  const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
+  const plan = planFrom(approachTo(systems[0], planTiles), "sky");
+  const moved = movedTo(plan, 2.0, 43.0);
+  near(moved.heading, bearingDeg(2.0, 43.0, systems[0].lon, systems[0].lat), 1e-9);
+  const turned = headed(moved, 400);
+  assert.equal(turned.heading, 40);
+  assert.equal(turned.aimed, false);
+  assert.equal(movedTo(turned, 1.0, 43.0).heading, 40);
+  const back = headed(movedTo(turned, 1.0, 43.0), null);
+  near(back.heading, bearingDeg(1.0, 43.0, systems[0].lon, systems[0].lat), 1e-9);
+});
+
+test("another level keeps the Mach number, and both stay in what a flight starts at", () => {
+  const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
+  const plan = atMach(planFrom(approachTo(systems[0], planTiles), "sky"), 0.7);
+  near(machOf(plan.tas, plan.altitude), 0.7, 1e-9);
+  const high = levelled(plan, 11_000);
+  near(machOf(high.tas, high.altitude), 0.7, 1e-9);
+  assert.ok(high.tas < plan.tas);
+  assert.equal(levelled(plan, 50_000).altitude, ALTITUDE_RANGE[1]);
+  near(machOf(atMach(plan, 2).tas, plan.altitude), MACH_RANGE[1], 1e-9);
+});
+
+test("another storm is flown at from its own best side, at the level and speed already chosen", () => {
+  const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
+  const plan = levelled(planFrom(approachTo(systems[0], planTiles), "sky"), 9000);
+  const other = retargeted(plan, systems[1], planTiles);
+  assert.equal(other.target, systems[1]);
+  assert.equal(other.altitude, plan.altitude);
+  near(other.heading, bearingDeg(other.lon, other.lat, systems[1].lon, systems[1].lat), 1e-9);
+});
+
+test("a place and a level are written as a chart and a crew write them", () => {
+  assert.equal(position(2.62, 43.02), "N43°01' E002°37'");
+  assert.equal(position(-0.5, -12.25), "S12°15' W000°30'");
+  assert.equal(flightLevel(7315.2), "FL240");
+});
+
+test("the briefing reads the plan back: the route, the weather at its end, the ground on the way", () => {
+  const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
+  const plan = movedTo(planFrom(approachTo(systems[0], planTiles), "sky"), 2.6, 43.0);
+  const lines = briefing(plan, systems, Date.UTC(2026, 10, 19, 18, 15) / 1000);
+  const line = (item: string) => lines.find((each) => each.item === item);
+  assert.match(line("route")!.text, /^N43°00' E002°36' DCT CB .* TRK \d{3}° · \d+ NM$/);
+  assert.match(line("level")!.text, /^FL240 · \d+ KT IAS · M\.\d\d · TAS \d+ KT$/);
+  assert.match(line("weather")!.text, /SEV TS .* MAX 62 DBZ/);
+  assert.equal(line("weather")!.caution, true);
+  assert.match(line("time")!.text, /MIN TO FIRST ECHO · \d+ MIN TO CORE · \d+ MIN AT ×4/);
+  // The other system is in Franconia, a long way off: not within 150 NM.
+  assert.equal(line("others"), undefined);
+  assert.match(line("radar")!.text, /^SCAN 1815Z/);
+  assert.equal(lines[lines.length - 1].text, "NOT FOR NAVIGATION");
+  // Turned away from the storm, the route says by how much, and minds it past a right angle's half.
+  const away = briefing(headed(plan, plan.heading + 90), systems, null);
+  assert.match(away[0].text, /HDG \d{3}° \(90° R OF TRK\)/);
+  assert.equal(away[0].caution, true);
+});
+
+test("high ground on the way is named, and a level under it minded", () => {
+  const alps = { lon: 9.0, lat: 45.0, heading: 0 };
+  assert.deepEqual(highGround(alps, 200), { name: "Alps", summit: 4810 });
+  assert.equal(highGround({ lon: 10.0, lat: 53.0, heading: 0 }, 100), null);
+  const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
+  const low = { ...levelled(planFrom(approachTo(systems[0], planTiles), "sky"), ALTITUDE_RANGE[0]), ...alps, target: null };
+  const terrain = briefing(low, systems, null).find((each) => each.item === "terrain")!;
+  assert.match(terrain.text, /ALPS ON TRACK · HIGHEST GROUND 15800 FT · FL050 IS BELOW SAFE LEVEL/);
+  assert.equal(terrain.caution, true);
+});
+
+test("with no weather the briefing says so, and what a storm's echo means is graded by its strength", () => {
+  const plan = planFrom({ lon: 10, lat: 53, heading: 90, altitude: 7300, target: null }, "sky");
+  const lines = briefing({ ...plan, turbulence: false }, [], null);
+  assert.match(lines[0].text, /NO DESTINATION/);
+  assert.match(lines.find((each) => each.item === "weather")!.text, /NIL SIG WX/);
+  assert.match(lines.find((each) => each.item === "inside")!.text, /TURB OFF/);
+  assert.equal(weatherOf(60).severe, true);
+  assert.equal(weatherOf(38).severe, false);
+  assert.match(weatherOf(20).text, /LGT/);
+});
+
+/* ---- the storms marked in the view ---- */
+
+test("the cores of the listed storms are their strongest tiles, one to a storm", () => {
+  const fine = (lon: number, lat: number, peakDbz: number): StormTile => ({ lon, lat, peakDbz, areaKm2: 100, coarse: false, tile: [11, 0, 0] });
+  const cores = coresOf([
+    fine(4.0, 43.5, 61), fine(4.1, 43.5, 58), fine(4.0, 43.6, 55), fine(5.2, 43.5, 47), fine(6.5, 43.5, 30),
+    { lon: 4.0, lat: 43.5, peakDbz: 63, areaKm2: 900, coarse: true, tile: [9, 0, 0] },
+  ]);
+  assert.deepEqual(cores.map((core) => core.peakDbz), [61, 47]);
+  // A list of coarse tiles alone still has cores.
+  assert.equal(coresOf([{ lon: 4.0, lat: 43.5, peakDbz: 63, areaKm2: 900, coarse: true, tile: [9, 0, 0] }]).length, 1);
+});
+
+test("the marks for a view are tracked cells before cores of the same storm, those ahead before those behind", () => {
+  const mark = (lon: number, lat: number, peakDbz: number, top: number | null = null) => ({ lon, lat, peakDbz, top, heading: null, speed: null, hail: false });
+  const cells = [mark(4.0, 44.0, 55, 11_000), mark(4.0, 43.6, 30)];
+  const cores = [mark(4.05, 44.02, 60), mark(4.0, 42.5, 50), mark(4.0, 46.9, 50)];
+  // From 43.0N heading north: the tracked cell ahead, then the core behind; the core on the cell is the cell, the far one out of reach.
+  const marks = marksNear(cells, cores, 4.0, 43.0, 0);
+  assert.deepEqual(marks.map(({ lat, peakDbz }) => [lat, peakDbz]), [[44.0, 55], [42.5, 50]]);
+  assert.equal(markAltitude(marks[0]), 12_500);
+  assert.ok(markAltitude(mark(0, 0, 62)) > markAltitude(mark(0, 0, 45)));
+  assert.ok(markAltitude(mark(0, 0, 90)) <= 15_000);
+});
+
+test("a point ahead of a level eye is in the middle of its picture, one to its right right of it, one below below", () => {
+  const level = { heading: 90, pitch: 0, roll: 0 };
+  const middle = seenFrom(level, [0, 1000, 0], 60, 1.5)!;
+  near(middle.x, 0.5, 1e-9);
+  near(middle.y, 0.5, 1e-9);
+  near(middle.ahead, 1000, 1e-9);
+  // South is to the right of an eye looking east.
+  assert.ok(seenFrom(level, [-200, 1000, 0], 60, 1.5)!.x > 0.5);
+  assert.ok(seenFrom(level, [0, 1000, 200], 60, 1.5)!.y > 0.5);
+  // The edge of a 60 degree lens is 30 degrees up.
+  near(seenFrom(level, [0, 1000, -1000 * Math.tan(Math.PI / 6)], 60, 1.5)!.y, 0, 1e-9);
+  assert.equal(seenFrom(level, [0, -1000, 0], 60, 1.5), null);
+});
+
+test("a place north on the flat map is further than its true distance, as the map draws it", () => {
+  const [north, east] = flatOffset(4, 43, 4, 44);
+  assert.ok(north > 111_195 && north < 111_195 * 1.02);
+  near(east, 0, 1e-6);
+  near(flatOffset(4, 43, 5, 43)[1], 111_195 * Math.cos((43 * Math.PI) / 180), 30);
+});
+
+/* ---- where the clouds begin ---- */
+
+test("air lifts 125 m for every degree between its temperature and its dew point before it condenses", () => {
+  near(condensationLevel({ elevation: 300, temperature: 20, dewPoint: 12 }), 1300, 1e-9);
+  near(condensationLevel({ elevation: 300, temperature: 5, dewPoint: 9 }), 300, 1e-9);
+});
+
+test("the cloud base is the middle one of the stations in reach that are not in the rain", () => {
+  const station = (lon: number, lat: number, spread: number, elevation = 400) => ({ lon, lat, elevation, temperature: 20, dewPoint: 20 - spread });
+  const stations = [
+    station(10.0, 50.0, 8), station(10.2, 50.1, 10), station(9.8, 49.9, 12), station(10.1, 50.2, 30),
+    // In the rain, and a country away: neither counts.
+    station(10.0, 50.05, 0.3), station(20.0, 50.0, 2),
+  ];
+  const base = cloudBase(stations, 10, 50)!;
+  assert.equal(base.stations, 4);
+  near(base.km, (400 + 11 * 125) / 1000, 1e-9);
+  assert.equal(cloudBase(stations.slice(0, 2), 10, 50), null);
+  // Never under what is believed, nor over it.
+  assert.equal(cloudBase([station(10, 50, 60), station(10, 50, 60), station(10, 50, 60)], 10, 50)!.km, BASE_RANGE_KM[1]);
+});
+
+test("the briefing says where the clouds begin, and whether stations said so", () => {
+  const plan = planFrom({ lon: 10, lat: 50, heading: 90, altitude: 7300, target: null }, "sky");
+  const line = (lines: ReturnType<typeof briefing>) => lines.find((each) => each.item === "base")!.text;
+  assert.match(line(briefing(plan, [], null)), /^4900 FT · ASSUMED/);
+  assert.match(line(briefing(plan, [], null, { km: 0.9, stations: 7 })), /^3000 FT · FROM 7 STATIONS$/);
+  assert.match(line(briefing({ ...plan, altitude: 1600 }, [], null, { km: 2.1, stations: 1 })), /FROM 1 STATION · FL052 IS UNDER IT/);
+});

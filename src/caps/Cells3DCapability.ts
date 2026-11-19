@@ -5,7 +5,7 @@ import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
   DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, MapGeoJSONFeature, Marker, RasterLayerSpecification,
-  StyleSpecification,
+  SkySpecification, StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
 import type { UserLocation } from "./Capability";
@@ -81,12 +81,14 @@ import { cloudMotion, columnDepth } from "../lib/cloudMotion";
 import type { Motion } from "../lib/cloudMotion";
 import type { Placed } from "../lib/volumeHandover";
 import { FetchRetries } from "../lib/fetchRetries";
-import { makeStudioPlanesLayer } from "../layers/studioPlanesLayer";
 import type { StudioPlanesLayer } from "../layers/studioPlanesLayer";
-import { clipPlanes, isLevel } from "../lib/studio/planes";
 import { DEFAULT_FOV, STUDIO_MAX_PITCH } from "../lib/studio/scene";
 import type { StudioCamera } from "../lib/studio/scene";
-import { studioFov, studioOpen, studioPlanes, studioSelectedPlane } from "../lib/studio/store";
+import { studioFlying, studioFov, studioOpen, studioPlanes, studioSelectedPlane } from "../lib/studio/store";
+import type { FlightEye, FlightPose, FlightSupport, InspectMode, StormTileInfo, StudioSupport } from "../lib/studio/director";
+import type { AircraftLayer, AircraftScreen, AircraftView, WeatherView } from "../layers/aircraftLayer";
+import type { StormMark } from "../lib/studio/flight/marks";
+import type { CoarsePlace, Lookout } from "../lib/studio/flight/selection";
 
 import { maplibreLocateControl } from "../lib/GeolocateControl";
 import { maplibreShareControl } from "../lib/ShareControl";
@@ -190,6 +192,57 @@ const STUDIO_SCANS_KEPT = 30;
 const DIRECTED_MOVE_MS = 400;
 
 /**
+ * The sky while flying: deep blue overhead, pale at the horizon, and a haze
+ * the distant ground fades into, as it does seen from an aircraft. Without
+ * it, a camera at the horizon looks at the map's edge against nothing.
+ */
+const FLIGHT_SKY: SkySpecification = {
+  "sky-color": "#1f5fb8",
+  "horizon-color": "#d7e6f4",
+  "fog-color": "#cbdbea",
+  "sky-horizon-blend": 0.55,
+  "horizon-fog-blend": 0.75,
+  "fog-ground-blend": 0.35,
+  "atmosphere-blend": 0,
+};
+
+/**
+ * How far the zoom may go while flying. The zoom is not the camera's: a
+ * camera put by its position and attitude has one worked out for it, which
+ * can fall outside the map's own range, and a zoom clamped back into it
+ * moves the camera somewhere else.
+ */
+const FLIGHT_ZOOM: [number, number] = [0, 22];
+
+/** The ways a hand moves the map, every one of them off while flying. */
+const FLIGHT_HANDLERS = [
+  "dragPan", "scrollZoom", "dragRotate", "keyboard", "doubleClickZoom", "touchZoomRotate", "touchPitch", "boxZoom",
+] as const;
+
+/**
+ * Which way MapLibre's roll turns the picture, against the aircraft's (right
+ * wing down positive): in a right bank the horizon's right end rises.
+ */
+const ROLL_SIGN = 1;
+
+/** The aircraft of a flight, drawn over everything; see layers/aircraftLayer.ts. */
+const AIRCRAFT_LAYER = "flight-aircraft";
+
+/**
+ * How a storm a flight looks into is drawn, bar the cut, which is the
+ * layer's own: peeled most of the way to its core in the radar's colours, or
+ * as light to be seen through, the weakest of it left out.
+ */
+const INSPECTIONS: Record<Exclude<InspectMode, "cut">, { style: "cloud" | "glow"; peel: number }> = {
+  peel: { style: "cloud", peel: 0.72 },
+  xray: { style: "glow", peel: 0.3 },
+};
+
+/** Where the camera lands on leaving a flight: how far ahead of the aircraft it looks, and from how high. */
+const LANDING_KM = 15;
+const LANDING_VIEW = { pitch: 65, zoom: 9.5 };
+
+/**
  * How many volumes load at once.
  *
  * A dozen of them is several megabytes, and fetched all together they queue
@@ -214,6 +267,13 @@ const VOLUME_FETCHES = 4;
  * the same 39 MB holds 54 tiles.
  */
 const RESIDENT_BYTES = 24 * 160 * 160 * 32 * 2;
+/**
+ * The same for a flight, which is a desktop's and looks to the horizon: a
+ * storm system is more sky than the map's share holds, and what was left
+ * out stood as slabs of cloud with their sides cut off where the rest
+ * should have been.
+ */
+const FLIGHT_BYTES = RESIDENT_BYTES * 2.5;
 /** One tile's texture, apron included, as the worker builds it (`voxels.TILE_VOXELS`, `APRON`). */
 const TILE_TEXTURE_BYTES = 106 * 106 * 32 * 2;
 /** One core's tile or one coarse tile: half as many voxels across (`voxels.across`). */
@@ -889,6 +949,49 @@ export default class Cells3DCapability extends Capability {
   /** A Studio camera asked for before there was a map to stand it on: a link that opens in Studio. */
   private requestedStudioCamera: StudioCamera | null = null;
 
+  /**
+   * What flying changed about the map, to put back exactly on landing; null
+   * when not flying. See `setFlying`.
+   */
+  private flight: {
+    minZoom: number;
+    maxZoom: number;
+    maxPitch: number;
+    clamped: boolean;
+    handlers: Record<(typeof FLIGHT_HANDLERS)[number], boolean>;
+  } | null = null;
+
+  /**
+   * Studio's and the flight's own code that this map calls, handed over by
+   * each as it starts (`setStudioSupport`, `setFlying`) rather than imported
+   * here: the map is loaded by everyone who opens it, they only with Studio.
+   */
+  private studioSupport: StudioSupport | null = null;
+  private flightSupport: FlightSupport | null = null;
+
+  /** The storm a flight is looking into, as the layer has it; see `inspectStorm`. */
+  private inspected: { key: string; heading: number; mode: InspectMode } | null = null;
+
+  /** Where a flight's clouds begin, kilometres above the sea; see `setCloudBase`. */
+  private cloudBaseKm = 1.5;
+
+  /** Whether a flight has taken the radar's picture off the ground; see `setRadarOnGround`. */
+  private radarOffGround = false;
+
+  /** Where the aircraft was last put; what the storms are chosen from while flying. */
+  private flightPose: FlightPose | null = null;
+
+  /** Which way the flight's camera last looked: the aircraft's own heading, or its eye's. */
+  private flightLooking: number | null = null;
+
+  /** The aircraft, drawn while flying, and how it was last asked to be; see `setAircraft`. */
+  private aircraftLayer: AircraftLayer | null = null;
+  private aircraftView: AircraftView | null = null;
+  private aircraftScreens: AircraftScreen[] = [];
+  private flightWeather: WeatherView | null = null;
+  /** The share of its full sharpness a flight is drawn at; see `setFlightQuality`. */
+  private flightQuality = 1;
+
   /** Whether a scene is moving the camera, frame by frame; see `setDirected`. */
   private directed = false;
 
@@ -1194,6 +1297,13 @@ export default class Cells3DCapability extends Capability {
         this.studioLayer = null;
         this.applyData();
         this.applyCut();
+        // The sky is the style's, and a new style has none; nor the aircraft, a layer of the old one.
+        if (gl.getLayer(AIRCRAFT_LAYER)) gl.removeLayer(AIRCRAFT_LAYER);
+        this.aircraftLayer = null;
+        if (this.flight) {
+          gl.setSky(FLIGHT_SKY);
+          this.ensureAircraft(gl);
+        }
       });
       // Keep the shared View in step so switching back to the flat map lands
       // where this one was left, and so anything reading the viewport agrees.
@@ -1327,8 +1437,11 @@ export default class Cells3DCapability extends Capability {
 
   /** The camera has come to rest somewhere else: tell the rest of the app, and load what stands there. */
   private cameraMoved(gl: GlMap): void {
-    this.pushCameraToView();
-    if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
+    // A camera in the air is nowhere the flat map or a link can stand: they keep where it took off from.
+    if (!this.flight) {
+      this.pushCameraToView();
+      if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
+    }
     // Some places crossed the line between coarse tiles and fine: other outlines.
     if (this.updateDetail() && this.styleReady) this.ensureClouds(gl);
     // The camera has come to other storms: load theirs, let go of the far ones.
@@ -1363,6 +1476,7 @@ export default class Cells3DCapability extends Capability {
    * opens where this one was left.
    */
   willLoseFocus(): void {
+    this.setFlying(false);
     this.pushCameraToView();
     this.shown = false;
     cells3dFailed.set(false);
@@ -1870,7 +1984,15 @@ export default class Cells3DCapability extends Capability {
   /** Tell the layer which storm is open, and which way its slice now runs. */
   private applyCut(): void {
     const turn = get(cutRotationDeg) + get(cutSweepDeg);
-    this.cloudsLayer?.setCut(this.opened?.path ?? null, (this.opened?.heading ?? 0) + turn);
+    // A flight cuts the storm it looks into; the map, the one a reader opened.
+    const looked = this.inspected;
+    if (looked) {
+      this.cloudsLayer?.setCut(looked.mode === "cut" ? looked.key : null, looked.heading);
+      this.cloudsLayer?.setInspection(looked.mode === "cut" ? null : { key: looked.key, ...INSPECTIONS[looked.mode] });
+    } else {
+      this.cloudsLayer?.setInspection(null);
+      this.cloudsLayer?.setCut(this.opened?.path ?? null, (this.opened?.heading ?? 0) + turn);
+    }
     if (this.shown) this.gl?.triggerRepaint();
   }
 
@@ -2015,6 +2137,12 @@ export default class Cells3DCapability extends Capability {
    * of the whole list, so a first attach has something to draw at once.
    */
   private wanted(): RadarVolume[] {
+    // From the cockpit, the aircraft chooses; see lib/studio/flight/selection.ts.
+    const lookout = this.lookout();
+    if (lookout) {
+      const usable = this.levelled().filter((cloud) => !this.faint.has(cloud.path) && !this.retries.givenUp(cloud.path));
+      return lookout.support.flightWanted(usable, lookout, FLIGHT_BYTES, textureBytes);
+    }
     const gl = this.gl;
     const bounds = gl?.getBounds();
     const centre = gl?.getCenter();
@@ -2077,6 +2205,8 @@ export default class Cells3DCapability extends Capability {
       const code = tileCode(COARSE_ZOOM, cloud.tile[1] >> shift, cloud.tile[2] >> shift);
       tiles.set(code, [...tiles.get(code) ?? [], cloud]);
     }
+    const lookout = this.lookout();
+    if (lookout) return this.keepFine(this.flightDetail(lookout, tiles, usable));
     const fine = new Set<string>();
     const candidates: FineCandidate[] = [];
     // Everything in view, drawn coarse: what the fine tiles have to fit beside.
@@ -2099,15 +2229,48 @@ export default class Cells3DCapability extends Capability {
       });
     }
     for (const code of fineWithin(candidates, RESIDENT_BYTES - coarseInView)) fine.add(code);
+    return this.keepFine(fine);
+  }
+
+  /** Make `fine` the coarse tiles drawn as their tiles; whether that changed any. */
+  private keepFine(fine: Set<string>): boolean {
     const changed = fine.size !== this.fineTiles.size || [...fine].some((code) => !this.fineTiles.has(code));
     this.fineTiles = fine;
     return changed;
   }
 
+  /**
+   * `updateDetail` from the cockpit: by distance from the aircraft, not size
+   * on screen, within what is held around it; see lib/studio/flight/selection.ts.
+   */
+  private flightDetail(
+    lookout: Lookout & { support: FlightSupport }, tiles: Map<string, RadarVolume[]>, usable: (cloud: RadarVolume) => boolean,
+  ): Set<string> {
+    let coarseHeld = 0;
+    const places: CoarsePlace[] = [];
+    for (const cloud of this.clouds) {
+      if (!cloud.coarse || !cloud.tile || !lookout.support.withinHold(lookout, cloud.lon, cloud.lat)) continue;
+      const code = tileCode(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
+      const coarseBytes = usable(cloud) ? textureBytes(cloud) : 0;
+      coarseHeld += coarseBytes;
+      places.push({
+        code, lon: cloud.lon, lat: cloud.lat, coarseBytes,
+        fineBytes: (tiles.get(code) ?? []).reduce((sum, tile) => sum + textureBytes(tile), 0),
+      });
+    }
+    return lookout.support.flightFine(places, lookout, this.fineTiles, FLIGHT_BYTES - coarseHeld);
+  }
+
   /** Whether a coarse tile stands large enough on screen to be drawn as its tiles; see `FINE_ABOVE_PX`. */
   private drawnFine(gl: GlMap, tile: readonly number[]): boolean {
+    const code = tileCode(tile[0], tile[1], tile[2]);
+    // From the cockpit, by how near the aircraft it is.
+    if (this.flight && this.flightPose && this.flightSupport) {
+      const [lon, lat] = tileCentre(tile[0], tile[1], tile[2]);
+      return this.flightSupport.nearEnoughForFine(this.flightPose, lon, lat, this.fineTiles.has(code));
+    }
     const across = this.acrossPx(gl, tileBounds(tile[0], tile[1], tile[2]));
-    return across > (this.fineTiles.has(tileCode(tile[0], tile[1], tile[2])) ? COARSE_BELOW_PX : FINE_ABOVE_PX);
+    return across > (this.fineTiles.has(code) ? COARSE_BELOW_PX : FINE_ABOVE_PX);
   }
 
   /** How large a stretch of ground, west, south, east, north, stands on screen, in CSS pixels across. */
@@ -2166,7 +2329,8 @@ export default class Cells3DCapability extends Capability {
     const placed = (path: string, at: { network?: string | null; tile?: readonly number[] | null; reference_time: string }): Placed => ({
       path, network: networkOf(at), tile: at.tile ?? null, scan: scanTime(at.reference_time),
     });
-    const centre = this.gl?.getCenter();
+    // Nearest the aircraft while flying: the map's centre is then a point in the air ahead.
+    const centre = this.flight && this.flightPose ? { lng: this.flightPose.lon, lat: this.flightPose.lat } : this.gl?.getCenter();
     const distance = ({ lon, lat }: { lon: number; lat: number }) => (centre
       ? Math.hypot((lon - centre.lng) * Math.cos((lat * Math.PI) / 180), lat - centre.lat)
       : 0);
@@ -2180,7 +2344,7 @@ export default class Cells3DCapability extends Capability {
     const bytes = new Map([...this.cutaways].map(([path, { cutaway }]) => [path, cutaway.voxels.byteLength]));
     return handOver(
       wanted.map((cloud) => placed(cloud.path, cloud)), held, pending, (volume) => bytes.get(volume.path) ?? 0,
-      RESIDENT_BYTES,
+      this.flight ? FLIGHT_BYTES : RESIDENT_BYTES,
     );
   }
 
@@ -2246,6 +2410,8 @@ export default class Cells3DCapability extends Capability {
       VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap, (dbz) => peelTop.set(dbz), get(cloudStyle),
     );
     layer.setPeel(get(peelLevel), get(peelManual));
+    // A flight under way has its own sky, and a layer made anew in it (a style change) is to have it too.
+    layer.setScenic(this.flightSupport?.cloudscape(this.cloudBaseKm) ?? null, this.flightSupport?.makeScenicPass);
     gl.addLayer(layer);
     this.cloudsLayer = layer;
     this.pushClouds();
@@ -2483,6 +2649,8 @@ export default class Cells3DCapability extends Capability {
    * it is on, or to leave it.
    */
   private setStudio(on: boolean): void {
+    // A flight is Studio's: it lands first, while the map is still in Studio to land in.
+    if (!on) this.setFlying(false);
     this.studio = on;
     if (on) selectedStorm.set(null);
     else {
@@ -2523,17 +2691,32 @@ export default class Cells3DCapability extends Capability {
       this.studioLayer = null;
       return;
     }
-    if (this.studioLayer) return;
-    this.studioLayer = makeStudioPlanesLayer(STUDIO_PLANES_LAYER);
+    // Studio's panel, which is what makes planes, brings what draws them; see `setStudioSupport`.
+    if (this.studioLayer || !this.studioSupport) return;
+    this.studioLayer = this.studioSupport.makeStudioPlanesLayer(STUDIO_PLANES_LAYER);
     gl.addLayer(this.studioLayer);
+    this.applySections();
+  }
+
+  /**
+   * Studio's panel is up, and with it the code that cuts storms by its
+   * planes and draws them: until then the map has neither, and no plane to
+   * need them for.
+   */
+  setStudioSupport(support: StudioSupport): void {
+    this.studioSupport = support;
+    if (this.gl && this.styleReady) this.ensureStudio(this.gl);
     this.applySections();
   }
 
   /** Cut the clouds by Studio's planes and draw them, or by none of them outside Studio. */
   private applySections(): void {
-    const planes = this.studio ? get(studioPlanes) : [];
+    // Not while flying: from the cockpit a plane is not to be seen, only the hole it cuts in a storm.
+    const support = this.studioSupport;
+    const cutting = this.studio && !this.flight && support !== null;
+    const planes = cutting ? get(studioPlanes) : [];
     const selected = get(studioSelectedPlane);
-    this.cloudsLayer?.setSections(this.studio ? clipPlanes(planes) : null);
+    this.cloudsLayer?.setSections(cutting && support ? support.clipPlanes(planes) : null);
     this.studioLayer?.setPlanes(planes, selected);
 
     // A handle on the ground under each plane that stands on it, to drag it
@@ -2541,7 +2724,7 @@ export default class Cells3DCapability extends Capability {
     const gl = this.gl;
     const maplibre = this.maplibre;
     if (!gl || !maplibre) return;
-    const held = new Set(planes.filter((plane) => !isLevel(plane)).map((plane) => plane.id));
+    const held = new Set(planes.filter((plane) => !support?.isLevel(plane)).map((plane) => plane.id));
     for (const [id, handle] of this.studioHandles) {
       if (held.has(id)) continue;
       handle.remove();
@@ -2739,7 +2922,8 @@ export default class Cells3DCapability extends Capability {
    * it stops, where the camera was left.
    */
   setDirected(on: boolean): void {
-    if (this.directed === on) return;
+    // A flight directs the camera until it lands, whatever a paused scene says.
+    if (this.directed === on || (!on && this.flight)) return;
     this.directed = on;
     if (!on && this.gl) this.cameraMoved(this.gl);
   }
@@ -2789,6 +2973,301 @@ export default class Cells3DCapability extends Capability {
   /** Draw a frame, whether or not anything changed: a recording wants one each tick. */
   repaint(): void {
     if (this.shown) this.gl?.triggerRepaint();
+  }
+
+  /**
+   * Put the map into Studio's flight, or take it back out (lib/studio/flight).
+   *
+   * In: the camera is set free (its centre no longer held to the ground, its
+   * tilt allowed to the horizon and past it, its zoom whatever its position
+   * works out to), no hand moves the map, the controls are put away, a sky
+   * goes up, the section planes stop cutting, and the storms are chosen from
+   * the aircraft (`wanted`, `updateDetail`). Its moves are acted on now and
+   * then, as a scene's are, and never reach the flat map or the link.
+   *
+   * Out: all of that exactly as it was, the camera level again and landed on
+   * a Studio view of where the flight ended: looking at the ground a little
+   * ahead of the aircraft, along its heading. Also on leaving Studio, the 3D
+   * map, or the page, whichever comes first.
+   */
+  setFlying(on: boolean, support?: FlightSupport): void {
+    const gl = this.gl;
+    if (on) {
+      if (this.flight || !gl || !this.studio || !support) return;
+      this.flightSupport = support;
+      this.cloudsLayer?.setScenic(support.cloudscape(this.cloudBaseKm), support.makeScenicPass);
+      this.flight = {
+        minZoom: gl.getMinZoom(),
+        maxZoom: gl.getMaxZoom(),
+        maxPitch: gl.getMaxPitch(),
+        clamped: gl.getCenterClampedToGround(),
+        handlers: Object.fromEntries(FLIGHT_HANDLERS.map((name) => [name, gl[name].isEnabled()])) as Record<
+          (typeof FLIGHT_HANDLERS)[number], boolean
+        >,
+      };
+      for (const name of FLIGHT_HANDLERS) gl[name].disable();
+      gl.setCenterClampedToGround(false);
+      gl.setMinZoom(FLIGHT_ZOOM[0]);
+      gl.setMaxZoom(FLIGHT_ZOOM[1]);
+      gl.setMaxPitch(180);
+      this.container?.classList.add("flying");
+      if (this.styleReady) {
+        gl.setSky(FLIGHT_SKY);
+        this.ensureAircraft(gl);
+      }
+      this.applySections();
+      this.setDirected(true);
+      return;
+    }
+    const before = this.flight;
+    if (!before) return;
+    const pose = this.flightPose;
+    const had = this.flightSupport;
+    this.flight = null;
+    this.flightSupport = null;
+    this.cloudsLayer?.setScenic(null);
+    this.flightPose = null;
+    this.flightLooking = null;
+    this.aircraftView = null;
+    this.aircraftScreens = [];
+    this.flightWeather = null;
+    this.cloudsLayer?.setGlow(null);
+    this.setFlightQuality(1);
+    studioFlying.set(false);
+    if (gl) {
+      if (gl.getLayer(AIRCRAFT_LAYER)) gl.removeLayer(AIRCRAFT_LAYER);
+      this.aircraftLayer = null;
+      if (this.styleReady) gl.setSky(undefined as unknown as SkySpecification);
+      gl.setCenterClampedToGround(before.clamped);
+      if (pose && had) {
+        const [lon, lat] = had.destination(pose.lon, pose.lat, pose.heading, LANDING_KM * 1000);
+        gl.jumpTo({ center: [lon, lat], bearing: pose.heading, roll: 0, ...LANDING_VIEW, elevation: 0 });
+      } else {
+        gl.setRoll(0);
+      }
+      if (gl.getPitch() > before.maxPitch) gl.setPitch(before.maxPitch);
+      gl.setMaxPitch(before.maxPitch);
+      gl.setMinZoom(before.minZoom);
+      gl.setMaxZoom(before.maxZoom);
+      for (const name of FLIGHT_HANDLERS) {
+        if (before.handlers[name]) gl[name].enable();
+      }
+    }
+    this.container?.classList.remove("flying");
+    this.inspected = null;
+    this.applyCut();
+    this.setRadarOnGround(true);
+    this.applySections();
+    // The once a directed camera's moves are acted on when it stops: where it landed.
+    this.setDirected(false);
+  }
+
+  /**
+   * Stand the camera in the cockpit. Drawn as tall as the world is
+   * (`VERTICAL_SCALE`), or the aircraft would sit wrong against the storm
+   * tops and the peaks it is flying among; the instruments read true.
+   */
+  setFlightCamera(pose: FlightPose, eye?: FlightEye): void {
+    const gl = this.gl;
+    const support = this.flightSupport;
+    if (!this.flight || !gl || !support) return;
+    this.flightPose = pose;
+    const looking = eye ?? pose;
+    this.flightLooking = looking.heading;
+    // The eye's place from the aircraft is true metres, as the aircraft drawn round it is: only its height over the sea is stretched.
+    const [lon, lat] = eye
+      ? support.destination(pose.lon, pose.lat, (Math.atan2(eye.east, eye.north) * 180) / Math.PI, Math.hypot(eye.north, eye.east))
+      : [pose.lon, pose.lat];
+    // Straight up or down has no heading for the map to turn to: a degree short of both.
+    const pitch = Math.min(Math.max(looking.pitch, -89), 89);
+    gl.jumpTo(gl.calculateCameraOptionsFromCameraLngLatAltRotation(
+      [lon, lat], pose.altitude * VERTICAL_SCALE + (eye?.up ?? 0), looking.heading, 90 + pitch, ROLL_SIGN * looking.roll,
+    ));
+  }
+
+  setAircraft(view: AircraftView | null, screens: AircraftScreen[] = []): void {
+    this.aircraftView = this.flight ? view : null;
+    this.aircraftScreens = screens;
+    this.aircraftLayer?.setView(this.aircraftView);
+    this.aircraftLayer?.setScreens(screens);
+    // Over everything, also what was put on the map since: storms that came in, strikes.
+    const gl = this.gl;
+    if (!gl || !this.aircraftLayer) return;
+    const order = gl.getLayersOrder();
+    if (order[order.length - 1] !== AIRCRAFT_LAYER) gl.moveLayer(AIRCRAFT_LAYER);
+  }
+
+  /** The aircraft's layer, on top of everything, there while flying. */
+  private ensureAircraft(gl: GlMap): void {
+    const support = this.flightSupport;
+    if (this.aircraftLayer || !this.flight || !support) return;
+    this.aircraftLayer = support.makeAircraftLayer(AIRCRAFT_LAYER, support.aircraftFiles);
+    this.aircraftLayer.setView(this.aircraftView);
+    this.aircraftLayer.setScreens(this.aircraftScreens);
+    this.aircraftLayer.setWeather(this.flightWeather);
+    gl.addLayer(this.aircraftLayer);
+  }
+
+  /** The ground's height, true metres: the map's terrain is drawn `VERTICAL_SCALE` tall. */
+  groundElevation(lon: number, lat: number): number | null {
+    const elevation = this.gl?.queryTerrainElevation([lon, lat]) ?? null;
+    return elevation === null ? null : elevation / VERTICAL_SCALE;
+  }
+
+  /** A flight's clouds begin this high: its sky is drawn again for it, where it has moved by enough to see. */
+  setCloudBase(km: number): void {
+    if (Math.abs(km - this.cloudBaseKm) < 0.05) return;
+    this.cloudBaseKm = km;
+    if (this.flightSupport) this.cloudsLayer?.setScenic(this.flightSupport.cloudscape(km), this.flightSupport.makeScenicPass);
+  }
+
+  /**
+   * A flight may fly over the ground as the basemap has it, without the
+   * radar's colours on it: the storms are in the sky there. Back on with the
+   * landing, whatever the flight had.
+   */
+  setRadarOnGround(on: boolean): void {
+    this.radarOffGround = !on && this.flight !== null;
+    this.applyDrapeBlend();
+  }
+
+  /** How opaque one of the drape's two sets of layers is drawn: as its blend has it, or not at all. */
+  private drapeShown(slot: DrapeSlot): number {
+    return this.radarOffGround ? 0 : this.drapeOpacity[slot];
+  }
+
+  /**
+   * Look into the storm at a place, for a flight. The volume drawn there,
+   * the finest of those held: found again each time, since the one drawn
+   * changes as the aircraft comes nearer. A cut stands across the line of
+   * sight, with the side towards the eye taken away.
+   */
+  inspectStorm(target: { lon: number; lat: number; from: number; mode: InspectMode } | null): boolean {
+    let found: { key: string; zoom: number } | null = null;
+    if (target && this.flight) {
+      for (const [key, { cutaway }] of this.cutaways) {
+        const tile = cutaway.header.tile;
+        if (!tile) continue;
+        const [west, south, east, north] = tileBounds(tile[0], tile[1], tile[2]);
+        if (target.lon < west || target.lon > east || target.lat < south || target.lat > north) continue;
+        if (!found || tile[0] > found.zoom) found = { key, zoom: tile[0] };
+      }
+    }
+    // The layer's cut runs along its heading and takes away what is to the right of it.
+    this.inspected = found && target ? { key: found.key, heading: target.from + 90, mode: target.mode } : null;
+    this.applyCut();
+    return found !== null;
+  }
+
+  trackedCells(): StormMark[] {
+    return this.cells.map((cell) => ({
+      lon: cell.lon,
+      lat: cell.lat,
+      peakDbz: cell.max_dbz ?? 0,
+      top: cell.echo_top_m ?? null,
+      heading: cell.heading_deg ?? null,
+      speed: cell.speed_kmh === null || cell.speed_kmh === undefined ? null : cell.speed_kmh / 3.6,
+      hail: cell.hail_flag > 0,
+    }));
+  }
+
+  stormTiles(): StormTileInfo[] {
+    return this.clouds.map((cloud) => ({
+      lon: cloud.lon, lat: cloud.lat, peakDbz: cloud.peak_dbz ?? null, areaKm2: cloud.area_km2 ?? null,
+      coarse: cloud.coarse, tile: cloud.tile ?? null,
+    }));
+  }
+
+  reflectivityAt(lon: number, lat: number, altitude: number): number | null {
+    return this.flightSupport?.reflectivityAt([...this.cutaways.values()].map(({ cutaway }) => cutaway), lon, lat, altitude) ?? null;
+  }
+
+  setFlightWeather(weather: WeatherView | null, glow: { lon: number; lat: number; km: number; brightness: number } | null = null): void {
+    this.flightWeather = this.flight ? weather : null;
+    this.aircraftLayer?.setWeather(this.flightWeather);
+    this.cloudsLayer?.setGlow(this.flight ? glow : null);
+    this.applyCloudDetail();
+  }
+
+  /**
+   * Fewer pixels and coarser clouds for a flight a machine cannot draw fast
+   * enough at full sharpness; all of both again on landing.
+   */
+  setFlightQuality(share: number): void {
+    const next = this.flight ? Math.min(Math.max(share, 0.1), 1) : 1;
+    if (next === this.flightQuality) return;
+    this.flightQuality = next;
+    const full = mapPixelRatio(window.devicePixelRatio, isHandheld(), get(fullResolution3d));
+    // The clouds give up their sharpness first (`applyCloudDetail`): the map
+    // keeps all of its own until that has not been enough, and then loses
+    // pixels by the root, a share of the work being that share of the pixels:
+    // down to half a screen's points each way, where nothing else has kept it moving.
+    this.gl?.setPixelRatio(Math.max(Math.min(full, 0.5), full * Math.min(1, Math.sqrt(next / 0.45))));
+    this.applyCloudDetail();
+  }
+
+  /**
+   * How finely a flight's clouds are marched: as its sharpness has it, and
+   * less the more cloud there is round the eye, which hides them. Deep in
+   * cloud nothing of them is seen at all, and nothing is drawn: every cloud
+   * in the way of a ray is marched, seen or not, and from inside a storm
+   * that was most of a frame.
+   */
+  private applyCloudDetail(): void {
+    const veil = this.flightWeather?.veil ?? 0;
+    // Their own picture: a screen's point across at full sharpness, two of them at the least, whatever the map's pixels are.
+    const points = 0.45 + 0.55 * this.flightQuality;
+    const scale = points / (this.gl?.getPixelRatio() ?? 1);
+    this.cloudsLayer?.setDetail(veil > 0.94 ? 0 : (0.55 + 0.45 * this.flightQuality) * (1 - 0.45 * veil), scale);
+  }
+
+  /** Every strike in the flat map's buffer within reach of a place, each by when it struck, which is also its name there. */
+  strikesNear(lon: number, lat: number, km: number, since: number): Array<{ lon: number; lat: number; at: number }> {
+    const support = this.flightSupport;
+    if (!support) return [];
+    const found: Array<{ lon: number; lat: number; at: number }> = [];
+    for (const strike of this.strikes?.getFeatures() ?? []) {
+      const at = Number(strike.getId());
+      if (!Number.isFinite(at) || at < since) continue;
+      const coordinates = (strike.getGeometry() as Point | undefined)?.getCoordinates();
+      if (!coordinates) continue;
+      const [x, y] = toLonLat(coordinates);
+      if (support.distanceM(lon, lat, x, y) <= km * 1000) found.push({ lon: x, lat: y, at });
+    }
+    return found;
+  }
+
+  /** From the flat map's strike buffer, as the strikes drawn here are; see `ensureStrikes`. */
+  strikeNear(lon: number, lat: number, km: number): number | null {
+    const support = this.flightSupport;
+    if (!support) return null;
+    let newest: number | null = null;
+    const since = Date.now() - 60_000;
+    for (const strike of this.strikes?.getFeatures() ?? []) {
+      const at = Number(strike.getId());
+      if (!Number.isFinite(at) || at < since || (newest !== null && at <= newest)) continue;
+      const coordinates = (strike.getGeometry() as Point | undefined)?.getCoordinates();
+      if (!coordinates) continue;
+      const [x, y] = toLonLat(coordinates);
+      if (support.distanceM(lon, lat, x, y) <= km * 1000) newest = at;
+    }
+    return newest;
+  }
+
+  /**
+   * Where the aircraft is and which way it looks, for choosing its storms;
+   * null when not flying, or before its first frame.
+   */
+  private lookout(): (Lookout & { support: FlightSupport }) | null {
+    const gl = this.gl;
+    const pose = this.flightPose;
+    const support = this.flightSupport;
+    if (!this.flight || !pose || !gl || !support) return null;
+    const { clientWidth: width, clientHeight: height } = gl.getContainer();
+    const half = (gl.getVerticalFieldOfView() * Math.PI) / 360;
+    const across = (2 * Math.atan(Math.tan(half) * (width / Math.max(height, 1))) * 180) / Math.PI;
+    // Ahead is where the eye looks: turned in its seat, or outside, that is not the nose.
+    return { lon: pose.lon, lat: pose.lat, heading: this.flightLooking ?? pose.heading, fovDeg: across, support };
   }
 
   /**
@@ -3449,7 +3928,7 @@ export default class Cells3DCapability extends Capability {
   /** A draped radar layer's paint: at once, not eased, since a blend moves its opacity every frame. */
   private drapePaint(slot: DrapeSlot): RasterLayerSpecification["paint"] {
     return {
-      "raster-opacity": this.drapeOpacity[slot],
+      "raster-opacity": this.drapeShown(slot),
       "raster-opacity-transition": { duration: 0, delay: 0 },
       "raster-resampling": "nearest",
     };
@@ -3520,8 +3999,8 @@ export default class Cells3DCapability extends Capability {
     }
     for (const slot of DRAPE_SLOTS) {
       for (const id of [RADAR_SOURCE, ...NETWORKS.map(({ code }) => networkLayerId(code))].map((base) => drapeLayerId(base, slot))) {
-        if (gl.getLayer(id) && gl.getPaintProperty(id, "raster-opacity") !== this.drapeOpacity[slot]) {
-          gl.setPaintProperty(id, "raster-opacity", this.drapeOpacity[slot]);
+        if (gl.getLayer(id) && gl.getPaintProperty(id, "raster-opacity") !== this.drapeShown(slot)) {
+          gl.setPaintProperty(id, "raster-opacity", this.drapeShown(slot));
         }
       }
     }
@@ -3823,6 +4302,7 @@ export default class Cells3DCapability extends Capability {
   }
 
   destroy(): void {
+    this.setFlying(false);
     // A look still in flight lands nowhere.
     this.pastToken = null;
     this.picking = null;

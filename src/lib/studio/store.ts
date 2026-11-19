@@ -42,3 +42,47 @@ export const studioRecording = writable<number | null>(null);
 /** The shape a video is recorded in, as its frame over the map shows; see record.ts. */
 export type Aspect = "window" | "16:9" | "1:1" | "9:16";
 export const studioAspect = writable<Aspect>("16:9");
+
+/**
+ * Whether the reader is flying (lib/studio/flight): the 3D map seen from the
+ * cockpit of an airliner, Studio's panel and timeline put away for the
+ * flight deck.
+ */
+export const studioFlying = writable<boolean>(false);
+
+/** Where a flight is seen from: the cockpit, outside the aircraft, or with no aircraft and nothing over the view. */
+export type FlightView = "cockpit" | "outside" | "clean";
+
+/** The warnings a flight sounds, by name. */
+export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice";
+
+/**
+ * What of a flight changes now and then rather than every frame: a store
+ * per frame would redraw the deck sixty times a second. The instruments
+ * read the pilot's telemetry each frame instead (lib/studio/flight/pilot.ts).
+ */
+export interface FlightStatus {
+  view: FlightView;
+  warnings: FlightWarning[];
+  paused: boolean;
+  recording: boolean;
+  /** The keys card, shown on entry and on H. */
+  keys: boolean;
+  autopilot: boolean;
+  warp: boolean;
+  /** No storm on the radar to fly at. */
+  clearSky: boolean;
+  /** Below 2,500 ft over the ground: the radar altimeter reads out. */
+  low: boolean;
+  /** How the storm being looked into is opened (`Stage.inspectStorm`); null when none is. */
+  inspecting: "cut" | "peel" | "xray" | null;
+  /** The landing gear: up and locked, on its way, or down and locked (G). */
+  gear: "up" | "moving" | "down";
+}
+
+export const INITIAL_FLIGHT_STATUS: FlightStatus = {
+  view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
+  clearSky: false, low: false, inspecting: null, gear: "up",
+};
+
+export const flightStatus = writable<FlightStatus>(INITIAL_FLIGHT_STATUS);

@@ -18,6 +18,7 @@ import { faEyeSlash } from "@fortawesome/free-solid-svg-icons/faEyeSlash";
 import { faVideo } from "@fortawesome/free-solid-svg-icons/faVideo";
 import { faCamera } from "@fortawesome/free-solid-svg-icons/faCamera";
 import { faCircleDot } from "@fortawesome/free-solid-svg-icons/faCircleDot";
+import { faPlane } from "@fortawesome/free-solid-svg-icons/faPlane";
 import { BASE_LAYERS } from "../../lib/baseLayers";
 import { mapBaseLayer } from "../../stores";
 import Icon from "../Icon.svelte";
@@ -34,10 +35,14 @@ import {
   flipped, foldDegrees, isLevel, MAX_PLANES, nextPlaneId, planeAt, PLANE_TOP_KM, pushed,
 } from "../../lib/studio/planes";
 import type { SectionPlane } from "../../lib/studio/planes";
-import { STUDIO_BASEMAP, studioFov, studioPlanes, studioScene, studioSelectedPlane } from "../../lib/studio/store";
+import {
+  STUDIO_BASEMAP, studioFov, studioPlanes, studioRecording, studioScene, studioSelectedPlane,
+} from "../../lib/studio/store";
 
 export let director: Director;
 export let onclose: () => void;
+/** Take off from where the camera is (lib/studio/flight). */
+export let onfly: () => void;
 
 /** As thick as a new slab is, and as thin and thick as one goes, km. */
 const SLAB_KM = 4;
@@ -268,6 +273,10 @@ function peel(event: Event) {
         value={lens ?? "normal"}
         on:change={(event) => setLens(event.detail)} />
     </div>
+    <button type="button" class="chip fly" on:click={onfly} disabled={$studioRecording !== null}
+      title={$_("studio.flight.fly_title")}>
+      <Icon icon={faPlane} /> {$_("studio.flight.fly")}
+    </button>
 
     <h3 id="studio-basemap">{$_("studio.basemap")}</h3>
     <select class="basemap" value={basemap} aria-labelledby="studio-basemap" on:change={setBasemap}>
@@ -394,6 +403,7 @@ function peel(event: Event) {
   .chip:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .chip:disabled { cursor: default; opacity: 0.45; }
   .chip.icon { width: var(--mc-pill-h); padding: 0; }
+  .chip.fly { width: 100%; margin-top: 10px; }
   .chip :global(svg) { width: 11px; height: 11px; }
 
   .planes {

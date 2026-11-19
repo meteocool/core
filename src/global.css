@@ -153,3 +153,13 @@ html.screenshot .maplibregl-ctrl-top-right {
   user-select: none;
   -webkit-touch-callout: none;
 }
+
+/* Studio's flight (components/studio/flight): the page's own chrome steps
+   aside for the flight deck, which carries the map's credits itself. */
+html.mc-flying .top-left,
+html.mc-flying .live-wrapper,
+html.mc-flying .lsToggle,
+html.mc-flying .bottomToolbar,
+html.mc-flying .back-from-3d {
+  display: none !important;
+}

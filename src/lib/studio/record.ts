@@ -141,6 +141,8 @@ export function startRecording(options: {
   caption(): string;
   credits: string;
   badge: Badge;
+  /** What the picture sounds like, to go into the video with it; none for a silent one. */
+  audio?: MediaStream | null;
 }): Recording {
   const { source, aspect } = options;
   const crop = cropOf(source.width, source.height, aspect);
@@ -171,6 +173,8 @@ export function startRecording(options: {
 
   const type = TYPES.find(({ mime }) => MediaRecorder.isTypeSupported(mime))!;
   const stream = canvas.captureStream(RECORD_FPS);
+  // The sound is its maker's, lent: it is recorded here, and left running when the recording stops.
+  for (const track of options.audio?.getAudioTracks() ?? []) stream.addTrack(track);
   const recorder = new MediaRecorder(stream, { mimeType: type.mime, videoBitsPerSecond: BITS_PER_SECOND });
   const chunks: Blob[] = [];
   recorder.addEventListener("dataavailable", (event) => {
@@ -188,7 +192,7 @@ export function startRecording(options: {
   const stop = () => {
     unlisten();
     if (recorder.state !== "inactive") recorder.stop();
-    for (const track of stream.getTracks()) track.stop();
+    for (const track of stream.getVideoTracks()) track.stop();
   };
   return {
     async finish() {
