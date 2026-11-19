@@ -80,6 +80,17 @@
     "cells_body": "Door de DWD gevolgde cellen in lagen, omlijnd naar zwaarte:",
     "heights": "Hoogtes {scale}× overdreven."
   },
+  "style_3d": {
+    "title": "Buienstijl",
+    "choose": "Kies hoe de buien worden getekend",
+    "aria": "Buienstijl: {style}",
+    "cloud": "Wolk",
+    "cloud_body": "Een belichte wolk van alles vanaf lichte regen.",
+    "glow": "Gloed",
+    "glow_body": "Doorschijnend licht vanaf de zwakste echo, elke sterkte in haar eigen kleur.",
+    "shells": "Schillen",
+    "shells_body": "Een oppervlak om de 10 dBZ, in elkaar als de rokken van een ui."
+  },
   "time_3d": {
     "choose": "Toon de buien op een eerder tijdstip",
     "title": "Scantijd",

@@ -80,6 +80,17 @@
     "cells_body": "Buňky sledované DWD ve stupních, ohraničené podle nebezpečnosti:",
     "heights": "Výšky {scale}× převýšené."
   },
+  "style_3d": {
+    "title": "Styl bouřek",
+    "choose": "Zvolit, jak se bouřky kreslí",
+    "aria": "Styl bouřek: {style}",
+    "cloud": "Oblak",
+    "cloud_body": "Osvětlený oblak ze všeho od slabého deště výš.",
+    "glow": "Záře",
+    "glow_body": "Průsvitné světlo od nejslabší odrazivosti, každá síla ve své barvě.",
+    "shells": "Slupky",
+    "shells_body": "Plocha po každých 10 dBZ, do sebe vložené jako slupky cibule."
+  },
   "time_3d": {
     "choose": "Zobrazit bouřky v dřívějším čase",
     "title": "Čas skenu",

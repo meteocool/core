@@ -80,6 +80,17 @@
     "cells_body": "DWD jälgitavad rakud astmetena, kontuuri värv näitab ohtlikkust:",
     "heights": "Kõrgused on joonistatud {scale}× tegelikust kõrgemana."
   },
+  "style_3d": {
+    "title": "Äikesepilvede stiil",
+    "choose": "Vali, kuidas äikesepilvi joonistatakse",
+    "aria": "Äikesepilvede stiil: {style}",
+    "cloud": "Pilv",
+    "cloud_body": "Valgustatud pilv kõigest alates nõrgast vihmast.",
+    "glow": "Helendus",
+    "glow_body": "Läbipaistev valgus alates nõrgimast kajast, iga tugevus oma värviga.",
+    "shells": "Koored",
+    "shells_body": "Pind iga 10 dBZ järel, üksteise sees nagu sibula kihid."
+  },
   "time_3d": {
     "choose": "Näita äikesi varasemal ajal",
     "title": "Skaneeringu aeg",

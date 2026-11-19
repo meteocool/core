@@ -80,6 +80,17 @@
     "cells_body": "Vom DWD verfolgte Zellen in Stufen, umrandet nach Unwetterstufe:",
     "heights": "Höhen {scale}-fach überhöht."
   },
+  "style_3d": {
+    "title": "Gewitter-Darstellung",
+    "choose": "Wählen, wie die Gewitter gezeichnet werden",
+    "aria": "Gewitter-Darstellung: {style}",
+    "cloud": "Wolke",
+    "cloud_body": "Eine beleuchtete Wolke aus allem ab leichtem Regen.",
+    "glow": "Leuchten",
+    "glow_body": "Durchscheinendes Licht ab dem schwächsten Echo, jede Stärke in ihrer eigenen Farbe.",
+    "shells": "Schalen",
+    "shells_body": "Eine Fläche alle 10 dBZ, ineinander wie die Schalen einer Zwiebel."
+  },
   "time_3d": {
     "choose": "Gewitter zu einer früheren Zeit zeigen",
     "title": "Scanzeit",

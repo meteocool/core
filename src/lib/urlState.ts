@@ -28,7 +28,7 @@ import type { CellTrack, Progress, StormDetail } from "../api";
 import type Cells3DCapability from "../caps/Cells3DCapability";
 import type { CameraRequest } from "../caps/Cells3DCapability";
 import {
-  capLatestObservation, capTimeIndicator, cellLayerVisible, cells3dLoading, cells3dVisible, cloudsTime, cutRotationDeg,
+  capLatestObservation, capTimeIndicator, cellLayerVisible, cells3dLoading, cells3dVisible, cloudStyle, cloudsTime, cutRotationDeg,
   cycloneLayerVisible, frameRequest, hiddenStormMarks, inspectLatLon, lightningLayerVisible, mapExtent4326, mapView,
   modelCompareAt, observedProduct, peelLevel, peelManual, playbackRunning, selectedStation, selectedStorm,
   sharedActiveCap, siteMarksVisible, siteMode, srvManualMotion, srvPrefersManual, stationChoice,
@@ -147,6 +147,7 @@ export function applyLinkedChoices(settings: Settings, link: LinkState = opening
   if (link.hide) settings.override("hiddenStormMarks", STORM_MARKS.filter((mark) => link.hide!.includes(mark)).join(","));
   if (link.stationParameter) settings.override("stationParameter", link.stationParameter);
   if (link.motion) settings.override("srvMotion", formatManualMotion(link.motion));
+  if (link.style) settings.override("layer3dStyle", link.style);
   if (link.storm || link.cell) settings.override(OVERLAY_SETTINGS.cells, true);
   // A linked radar opens whether or not the reader keeps the radars' marks on.
   if (link.radar) settings.override(OVERLAY_SETTINGS.sites, true);
@@ -270,6 +271,7 @@ export function currentState(): LinkState | null {
     const scan = get(cloudsTime).shown;
     if (scan !== null && !tracked) state.time = scan;
     if (get(peelManual) && !storm) state.peel = get(peelLevel);
+    state.style = get(cloudStyle);
   }
 
   // The model comparison's drawer, on whichever map it was opened over.
@@ -714,7 +716,7 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
     sharedActiveCap, mapView, selectedStorm, stormDetails, cutRotationDeg,
     ...Object.values(OVERLAY_STORES), observedProduct, hiddenStormMarks, stationChoice,
     capTimeIndicator, capLatestObservation, playbackRunning, inspectLatLon, siteMode, archiveWindow,
-    srvManualMotion, srvPrefersManual, selectedStation, modelCompareAt,
+    srvManualMotion, srvPrefersManual, selectedStation, modelCompareAt, cloudStyle,
     // Only what a link says of them: the peel moves every frame while the
     // storms peel on their own, and the scan picker reports its progress.
     derived([peelManual, peelLevel], ([manual, level]) => (manual ? level : null)),

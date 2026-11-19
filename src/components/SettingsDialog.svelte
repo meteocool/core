@@ -3,11 +3,12 @@ import { createEventDispatcher } from "svelte";
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
-  cells3dVisible, cellLayerVisible, fullResolution3d, lightningLayerVisible, mapBaseLayer,
+  cells3dVisible, cellLayerVisible, cloudStyle, fullResolution3d, lightningLayerVisible, mapBaseLayer,
   siteMarksVisible, motionLayerVisible,
   playbackFromStart, radarColormap, terrain3dVisible,
 } from "../stores";
 import { isHandheld } from "../lib/gpuBudget";
+import { CLOUD_STYLES, type CloudStyle } from "../lib/cloudStyle";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
 import { archiveWindow } from "../stores";
@@ -118,6 +119,10 @@ const offers3d = capabilityEnabled("cells3d");
 
 function setCells3d(value: boolean) {
   window.settings.set("layer3dCells", value);
+}
+
+function setCloudStyle(value: CloudStyle) {
+  window.settings.set("layer3dStyle", value);
 }
 
 function setTerrain3d(value: boolean) {
@@ -369,6 +374,24 @@ function setPlaybackFromStart(value: boolean) {
   {/if}
 
   {#if offers3d}
+    <h2 id="settings-style-3d">{$_("settings.map_3d")}: {$_("style_3d.title")}</h2>
+    <div class="group" role="radiogroup" aria-labelledby="settings-style-3d">
+      {#each CLOUD_STYLES as style (style)}
+        <button
+          type="button"
+          class="row"
+          role="radio"
+          aria-checked={$cloudStyle === style}
+          on:click={() => setCloudStyle(style)}>
+          <span class="label">
+            {$_(`style_3d.${style}`)}
+            <span class="sublabel">{$_(`style_3d.${style}_body`)}</span>
+          </span>
+          <span class="check" aria-hidden="true">{$cloudStyle === style ? "✓" : ""}</span>
+        </button>
+      {/each}
+    </div>
+
     <h2>{$_("settings.map_3d")}</h2>
     <div class="group">
       <label class="row">

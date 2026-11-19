@@ -80,6 +80,17 @@
     "cells_body": "DWD:s spårade celler i nivåer, konturerade efter svårighetsgrad:",
     "heights": "Höjderna ritas {scale} gånger högre än i verkligheten."
   },
+  "style_3d": {
+    "title": "Ovädersstil",
+    "choose": "Välj hur ovädren ritas",
+    "aria": "Ovädersstil: {style}",
+    "cloud": "Moln",
+    "cloud_body": "Ett belyst moln av allt från lätt regn och uppåt.",
+    "glow": "Glöd",
+    "glow_body": "Genomskinligt ljus från det svagaste ekot och uppåt, varje styrka i sin egen färg.",
+    "shells": "Skal",
+    "shells_body": "En yta för var 10:e dBZ, inuti varandra som en lök."
+  },
   "time_3d": {
     "choose": "Visa åskvädren vid en tidigare tidpunkt",
     "title": "Skanningstid",

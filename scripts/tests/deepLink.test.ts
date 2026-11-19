@@ -398,6 +398,16 @@ test("the 3D map's peel round-trips in hundredths, held between none and all", (
   assert.equal(parseLink("?peel=deep").peel, undefined);
 });
 
+test("the 3D map's style round-trips, on that map only, and an unknown one is dropped", () => {
+  const search = linkSearch("", { layer: "cells3d", style: "shells" });
+  assert.equal(search, "?layer=cells3d&style=shells");
+  assert.equal(parseLink(search).style, "shells");
+  assert.equal(linkSearch("", { layer: "radar", style: "shells" }), "?layer=radar");
+  assert.equal(parseLink("?layer=cells3d&style=plasma").style, undefined);
+  // Beside an open storm too: it is how the cut storm is drawn.
+  assert.equal(linkSearch("", { layer: "cells3d", cloud: PATH, style: "glow" }), "?layer=cells3d&cloud=20260924T194500/R39853139&style=glow");
+});
+
 test("the peel means nothing beside an open storm", () => {
   assert.equal(parseLink(`?cloud=20260924T194500/R39853139&peel=0.5`).peel, undefined);
   assert.equal(linkSearch("", { cloud: PATH, peel: 0.5 }), "?cloud=20260924T194500/R39853139");

@@ -80,6 +80,17 @@
     "cells_body": "DWD's sporede celler i lag, omkranset efter alvor:",
     "heights": "Højderne er tegnet {scale}× højere end i virkeligheden."
   },
+  "style_3d": {
+    "title": "Uvejrsstil",
+    "choose": "Vælg, hvordan uvejrene tegnes",
+    "aria": "Uvejrsstil: {style}",
+    "cloud": "Sky",
+    "cloud_body": "En belyst sky af alt fra let regn og op.",
+    "glow": "Glød",
+    "glow_body": "Gennemsigtigt lys fra det svageste ekko og op, hver styrke i sin egen farve.",
+    "shells": "Skaller",
+    "shells_body": "En flade for hver 10 dBZ, lagt inden i hinanden som et løg."
+  },
   "time_3d": {
     "choose": "Vis uvejrene på et tidligere tidspunkt",
     "title": "Scantidspunkt",

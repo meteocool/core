@@ -13,6 +13,16 @@
  * question a map full of storms is asking. One the radars did not see
  * well enough to open is held whole: its inside is interpolation.
  *
+ * ## Styles
+ *
+ * The same field can be drawn three ways (lib/cloudStyle.ts), and the reader
+ * picks: the lit cloud described above, the field as unlit see-through
+ * light from its faintest echo up, or a surface at every tenth dBZ, nested.
+ * One program draws all three: the ray, the box, the cut and the depth are
+ * the same, and only what a sample along the ray adds differs. The peel
+ * works on each from its own floor; the cut leaves a flat face on the cloud
+ * and the light, and opens the shells hollow.
+ *
  * ## How a Raymarcher Gets onto a MapLibre Map
  *
  * MapLibre has no volume primitive and never will. It has
@@ -54,15 +64,32 @@
  */
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
 import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
+import type { BoxPart } from "../lib/volumeBox";
 import { stormsOf, tileEdges, type TileEdges } from "../lib/tileStorms";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
+import { SHELL_STEP, SHELL_TOP, STYLE_FIELD } from "../lib/cloudStyle";
+import type { CloudStyle } from "../lib/cloudStyle";
 import { VERTICAL_SCALE } from "./terrain";
 
-/** Reflectivity below this is drizzle or the fringe of the anvil. */
-const DBZ_LOW = 20;
+/**
+ * Reflectivity below this is drizzle or the fringe of the anvil: where the
+ * cloud style starts to show, and what a storm is measured above whatever
+ * style it is drawn in (`solidKm2`, `coreDbz`).
+ */
+const DBZ_LOW = STYLE_FIELD.cloud.floor;
 /** Where the echo is as opaque as it gets; see `CellCutaway` for the reasoning. */
-const DBZ_HIGH = 34;
+const DBZ_HIGH = DBZ_LOW + STYLE_FIELD.cloud.band;
+/** The styles, as the shader numbers them. */
+const STYLE_INDEX: Record<CloudStyle, number> = { cloud: 0, glow: 1, shells: 2 };
+/**
+ * How opaque a shell is, the faintest and from `SHELL_SOLID_DBZ` up: the
+ * outer ones are tinted glass, so a storm left whole still hints at what is
+ * in it, and the rest are solid. Much clearer than this and a rain shield
+ * is a dozen panes of glass behind one another, none of them a surface.
+ */
+const SHELL_ALPHA_MIN = 0.5;
+const SHELL_SOLID_DBZ = 40;
 /**
  * How large a storm has to stand on screen, in CSS pixels across its box,
  * for the running peel to be worth drawing on it.
@@ -89,6 +116,8 @@ const PEEL_CORE_VOXELS = 300;
 const PEEL_BAND = DBZ_HIGH - DBZ_LOW;
 /** Opacity per kilometre of fully dense storm; see the shader's march. */
 const OPACITY_PER_KM = 0.62;
+/** The same for the glow, whose density climbs slowly, so its core has to be denser to close. */
+const GLOW_OPACITY_PER_KM = 1.2;
 /**
  * The least a storm has to show to be drawn: this much of its silhouette, in
  * km2, at least half opaque at the map's tilt; see `solidKm2`. A 2 by 2 km
@@ -164,6 +193,8 @@ uniform float uDbzScale;
 uniform float uSteps;
 uniform float uCut;        // 1 for the storm being inspected and the clouds near it, 0 for every other
 uniform float uLow;        // where the echo starts to show, which the peel raises
+uniform float uHigh;       // and where it is as opaque as it gets
+uniform int uStyle;        // 0 a lit cloud, 1 unlit light, 2 nested surfaces; see lib/cloudStyle.ts
 uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
 uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
 uniform vec3 uBoxMin;      // the part of the cube that is drawn: all of it, bar a tile's apron
@@ -214,6 +245,206 @@ vec3 fieldNormal(vec3 p, float step) {
   return length(g) > 1e-6 ? normalize(-g) : vec3(0.0, 0.0, 1.0);
 }
 
+vec3 paint(float dbz) {
+  return texture(uRamp, vec2(clamp((dbz + 32.0) / 96.0, 0.0, 1.0), 0.5)).rgb;
+}
+
+/** The depth of a point in the cube, in the range MapLibre is drawing with. */
+float depthOf(vec3 p) {
+  vec4 clip = uForward * vec4(p, 1.0);
+  return mix(uDepthRange.x, uDepthRange.y, clamp(0.5 + 0.5 * clip.z / clip.w, 0.0, 1.0));
+}
+
+/**
+ * How much of the storm a sample is, 0 to 1.
+ *
+ * The cloud is nearly solid a little above its floor, which is what gives it
+ * an outside. The light rises slowly over the whole of its range instead, so
+ * the weak echo around a core tints it and does not hide it.
+ */
+float densityOf(vec2 field) {
+  if (uStyle == 1) {
+    float t = clamp((field.x - uLow) / (uHigh - uLow), 0.0, 1.0);
+    return t * t * t * field.y;
+  }
+  return smoothstep(uLow, uHigh, field.x) * field.y;
+}
+
+vec4 accumulated = vec4(0.0);
+bool wrote = false;
+
+void lay(vec3 colour, float alpha) {
+  accumulated.rgb += (1.0 - accumulated.a) * colour * alpha;
+  accumulated.a += (1.0 - accumulated.a) * alpha;
+}
+
+/** The cloud and the light: the field as a medium, denser where the echo is stronger. */
+void marchMedium(vec3 origin, vec3 direction, float near, float far, bool cutFace, float dither) {
+  // Steps in proportion to the length of the ray inside the box: uSteps for
+  // one whole width of it, fewer for a ray that only clips an edge or a
+  // corner, and never more than uSteps. Every step then covers about the
+  // same distance, so a storm boxed by many tiles costs what its own length
+  // of ray does, not a full march per tile it brushes.
+  float count = clamp(ceil((far - near) * uSteps), 4.0, uSteps);
+  float dt = (far - near) / count;
+  vec3 light = normalize(vec3(-0.45, -0.7, 0.75));
+  // Opacity per kilometre of storm, not per step. A step in the unit cube
+  // is a different distance along every direction (the box is 40 by 40
+  // by 16 km), so the step has to be measured in the world before it can
+  // mean anything, and measured this way the storm is exactly as opaque
+  // here as in the panel.
+  float stepKm = dt * length(direction * uExtentKm);
+
+  for (float i = 0.0; i < uSteps; i += 1.0) {
+    if (i >= count) break;
+    vec3 p = origin + direction * (near + dt * (i + dither));
+    vec2 field = sampleField(p);
+    float density = densityOf(field);
+    if (density <= 0.002) continue;
+
+    if (!wrote) {
+      // The first sample that is actually storm is what this pixel's depth is,
+      // so the map's own geometry occludes it in the right order.
+      gl_FragDepth = depthOf(p);
+      wrote = true;
+    }
+
+    vec3 colour = paint(field.x);
+    float alpha;
+    if (cutFace && i < 1.0) {
+      vec2 behind = sampleField(p + direction * dt * 0.5);
+      // The face is the echo itself, whatever the style thins it to: a
+      // slice through light would be as faint as the light.
+      float here = smoothstep(uLow, min(uHigh, uLow + ${DBZ_HIGH - DBZ_LOW}.0), field.x) * field.y;
+      float there = smoothstep(uLow, min(uHigh, uLow + ${DBZ_HIGH - DBZ_LOW}.0), behind.x) * behind.y;
+      alpha = clamp((here + there) * 1.05, 0.0, 1.0);
+      colour *= 1.12;
+    } else if (uStyle == 1) {
+      // Unlit: each reflectivity in its own colour, as on the radar beneath.
+      alpha = clamp(density * stepKm * ${GLOW_OPACITY_PER_KM}, 0.0, 1.0);
+    } else {
+      float lambert = 0.42 + 0.58 * max(dot(fieldNormal(p, dt), light), 0.0);
+      alpha = clamp(density * stepKm * ${OPACITY_PER_KM}, 0.0, 1.0);
+      colour *= lambert;
+    }
+    lay(colour, alpha);
+    if (accumulated.a > 0.985) break;
+  }
+}
+
+/**
+ * Reflectivity as the shells see it: the echo, less where the radars saw it
+ * poorly, so a surface closes where coverage runs out instead of standing
+ * on interpolation.
+ */
+float seen(vec3 p) {
+  vec2 field = sampleField(p);
+  return field.x - (1.0 - field.y) * 20.0;
+}
+
+/** The shell a reflectivity is inside: its level in dBZ, or far below any for none. */
+float shellOf(float dbz) {
+  if (dbz < uLow) return -1000.0;
+  return max(uLow, min(floor(dbz / ${SHELL_STEP}.0) * ${SHELL_STEP}.0, ${SHELL_TOP}.0));
+}
+
+float shellAlpha(float level) {
+  return clamp(mix(${SHELL_ALPHA_MIN}, 1.0, (level - ${STYLE_FIELD.shells.floor}.0) / ${SHELL_SOLID_DBZ - STYLE_FIELD.shells.floor}.0), ${SHELL_ALPHA_MIN}, 1.0);
+}
+
+vec3 shellNormal(vec3 p, float step) {
+  vec3 d = vec3(step, 0.0, 0.0);
+  vec3 g = vec3(
+    (seen(p + d.xyz) - seen(p - d.xyz)) / uExtentKm.x,
+    (seen(p + d.zxy) - seen(p - d.zxy)) / uExtentKm.y,
+    (seen(p + d.yzx) - seen(p - d.yzx)) / uExtentKm.z);
+  return length(g) > 1e-6 ? normalize(-g) : vec3(0.0, 0.0, 1.0);
+}
+
+/** The next shell in from this one, or the outermost from outside them all. */
+float shellInside(float level) {
+  return level < -500.0 ? uLow : (floor(level / ${SHELL_STEP}.0 + 1e-4) + 1.0) * ${SHELL_STEP}.0;
+}
+
+/** The next shell out from this one; far below any from the outermost. */
+float shellOutside(float level) {
+  if (level <= uLow + 1e-3) return -1000.0;
+  return max(uLow, (ceil(level / ${SHELL_STEP}.0 - 1e-4) - 1.0) * ${SHELL_STEP}.0);
+}
+
+/** One shell's surface where the ray meets it, from outside it or from within. */
+void layShell(float level, vec3 p, vec3 light, vec3 toEye, float step, bool within) {
+  if (!wrote) {
+    gl_FragDepth = depthOf(p);
+    wrote = true;
+  }
+  vec3 normal = shellNormal(p, step);
+  // Lit from the side as the cloud is, and a little from the eye, so a
+  // face turned from the light still has a shape. From within, a shell is
+  // its own shade: the inside of a bowl, and solid, or an opened storm is
+  // a view of whatever stands behind it.
+  float lit = 0.34 + 0.5 * max(dot(within ? -normal : normal, light), 0.0) + 0.16 * abs(dot(normal, toEye));
+  lay(paint(level) * (within ? 0.72 * lit : lit), within ? max(shellAlpha(level), 0.92) : shellAlpha(level));
+}
+
+/**
+ * The shells: a surface wherever the ray goes from under a level to over it.
+ *
+ * Found between two samples and put where the field, taken as a straight
+ * line between them, crosses the level, so a surface is smooth at a step
+ * that would otherwise terrace it.
+ *
+ * A storm left whole shows each shell from outside only: the back of one is
+ * behind its front, and a ray that enters this box already inside one
+ * (through the side of a neighbouring tile of the same storm) draws nothing
+ * until it reaches the next. A storm cut open is hollow: the cut is not
+ * capped, so the shells stand in it one inside another, and a ray leaving a
+ * shell from within draws its inner side. Every tile the cut reaches does,
+ * whichever side a ray came in by, so the shells of one storm agree across
+ * its tiles.
+ */
+void marchShells(vec3 origin, vec3 direction, float near, float far, float dither) {
+  float count = clamp(ceil((far - near) * uSteps), 4.0, uSteps);
+  float dt = (far - near) / count;
+  vec3 light = normalize(vec3(-0.45, -0.7, 0.75));
+  vec3 toEye = -normalize(direction * uExtentKm);
+  bool hollow = uCut > 0.5;
+
+  float t0 = near;
+  float v0 = seen(origin + direction * near);
+  float s0 = shellOf(v0);
+
+  // One sample more than there are steps: the last is where the ray leaves,
+  // or a surface in the last part of a step is missed along a tile's side.
+  for (float i = 0.0; i <= uSteps; i += 1.0) {
+    if (i > count) break;
+    float t1 = i < count ? near + dt * (i + dither) : far;
+    float v1 = seen(origin + direction * t1);
+    float s1 = shellOf(v1);
+    // Every level crossed in this step, nearest first: inwards, then outwards.
+    for (int crossed = 0; crossed < ${SHELL_TOP / SHELL_STEP + 1}; crossed += 1) {
+      float level = shellInside(s0);
+      if (level > s1 + 1e-3) break;
+      vec3 p = origin + direction * mix(t0, t1, clamp((level - v0) / max(v1 - v0, 1e-4), 0.0, 1.0));
+      layShell(level, p, light, toEye, dt, false);
+      s0 = level;
+      if (accumulated.a > 0.985) return;
+    }
+    for (int crossed = 0; crossed < ${SHELL_TOP / SHELL_STEP + 1}; crossed += 1) {
+      if (s0 <= s1 + 1e-3) break;
+      if (hollow) {
+        vec3 p = origin + direction * mix(t0, t1, clamp((v0 - s0) / max(v0 - v1, 1e-4), 0.0, 1.0));
+        layShell(s0, p, light, toEye, dt, true);
+        if (accumulated.a > 0.985) return;
+      }
+      s0 = shellOutside(s0);
+    }
+    t0 = t1;
+    v0 = v1;
+    s0 = s1;
+  }
+}
+
 void main() {
   vec2 ndc = (gl_FragCoord.xy / uViewport) * 2.0 - 1.0;
   vec3 origin = unproject(ndc, -1.0);
@@ -240,55 +471,9 @@ void main() {
     if (far <= near) discard;
   }
 
-  // Steps in proportion to the length of the ray inside the box: uSteps for
-  // one whole width of it, fewer for a ray that only clips an edge or a
-  // corner, and never more than uSteps. Every step then covers about the
-  // same distance, so a storm boxed by many tiles costs what its own length
-  // of ray does, not a full march per tile it brushes.
-  float count = clamp(ceil((far - near) * uSteps), 4.0, uSteps);
-  float dt = (far - near) / count;
-  vec3 light = normalize(vec3(-0.45, -0.7, 0.75));
-  vec4 accumulated = vec4(0.0);
   float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-  bool wrote = false;
-
-  for (float i = 0.0; i < uSteps; i += 1.0) {
-    if (i >= count) break;
-    vec3 p = origin + direction * (near + dt * (i + dither));
-    vec2 field = sampleField(p);
-    float density = smoothstep(uLow, uLow + ${PEEL_BAND}.0, field.x) * field.y;
-    if (density <= 0.002) continue;
-
-    if (!wrote) {
-      // The first sample that is actually storm is what this pixel's depth is,
-      // so the map's own geometry occludes it in the right order.
-      vec4 clip = uForward * vec4(p, 1.0);
-      gl_FragDepth = mix(uDepthRange.x, uDepthRange.y, clamp(0.5 + 0.5 * clip.z / clip.w, 0.0, 1.0));
-      wrote = true;
-    }
-
-    vec3 colour = texture(uRamp, vec2(clamp((field.x + 32.0) / 96.0, 0.0, 1.0), 0.5)).rgb;
-    float alpha;
-    if (cutFace && i < 1.0) {
-      vec2 behind = sampleField(p + direction * dt * 0.5);
-      float smoothed = 0.5 * (density + smoothstep(uLow, uLow + ${PEEL_BAND}.0, behind.x) * behind.y);
-      alpha = clamp(smoothed * 2.1, 0.0, 1.0);
-      colour *= 1.12;
-    } else {
-      float lambert = 0.42 + 0.58 * max(dot(fieldNormal(p, dt), light), 0.0);
-      // Opacity per kilometre of storm, not per step. A step in the unit cube
-      // is a different distance along every direction (the box is 40 by 40
-      // by 16 km), so the step has to be measured in the world before it can
-      // mean anything, and measured this way the storm is exactly as opaque
-      // here as in the panel.
-      float stepKm = dt * length(direction * uExtentKm);
-      alpha = clamp(density * stepKm * ${OPACITY_PER_KM}, 0.0, 1.0);
-      colour *= lambert;
-    }
-    accumulated.rgb += (1.0 - accumulated.a) * colour * alpha;
-    accumulated.a += (1.0 - accumulated.a) * alpha;
-    if (accumulated.a > 0.985) break;
-  }
+  if (uStyle == 2) marchShells(origin, direction, near, far, dither);
+  else marchMedium(origin, direction, near, far, cutFace, dither);
 
   if (!wrote) discard;
   // Premultiplied: a storm the radars did not see well enough to
@@ -587,10 +772,13 @@ interface Cloud {
   model: Float64Array;
   /**
    * The part of its unit cube that is marched, and its corners: the tile,
-   * bar its apron, cut down to where it holds any echo (`echoPart`).
+   * bar its apron, cut down to where it holds any echo the style on the map
+   * draws (`echoPart`). `boxes` keeps each floor's once it has been worked
+   * out, so going back to a style costs nothing.
    */
-  box: { min: [number, number, number]; max: [number, number, number] };
+  box: BoxPart;
   corners: Array<[number, number, number]>;
+  boxes: Map<number, { box: BoxPart; corners: Array<[number, number, number]> }>;
   /** Samples along a ray through it; see `STEPS`. */
   steps: number;
   /** Where its own peel would stop: the reflectivity only its core reaches. */
@@ -641,6 +829,8 @@ export interface CloudsLayer extends CustomLayerInterface {
   setCut(key: string | null, headingDeg: number): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
+  /** Draw the storms this way; see lib/cloudStyle.ts. */
+  setStyle(style: CloudStyle): void;
   /**
    * Hold every storm at this peel, 0 whole to 1 down to its core, instead of
    * peeling on its own; null lets it run again.
@@ -663,6 +853,7 @@ export function makeCloudsLayer(
   initialColormap: string,
   /** Told where the running peel is, each frame it moves, for a slider to follow. */
   onPeel: (peel: number) => void = () => {},
+  initialStyle: CloudStyle = "cloud",
 ): CloudsLayer {
   let gl: WebGL2RenderingContext | null = null;
   let map: GlMap | null = null;
@@ -673,6 +864,7 @@ export function makeCloudsLayer(
   let cutKey: string | null = null;
   let cutHeading = 0;
   let colormap = initialColormap;
+  let style = initialStyle;
   /** Uniform locations, looked up once per program rather than a dozen times a frame. */
   let uniforms = new Map<string, WebGLUniformLocation | null>();
   /** The pending peel frame, if one has been asked for. */
@@ -744,6 +936,30 @@ export function makeCloudsLayer(
     ]);
   }
 
+  /**
+   * The part of a storm's cube that holds anything a style with this floor
+   * draws: marched only where there is echo, not the air above the storm's
+   * top, nor the empty part of a tile at the storm's edge.
+   */
+  function boxFor(cutaway: Cutaway, floor: number): { box: BoxPart; corners: Array<[number, number, number]> } {
+    const tile = drawnPart(cutaway.header);
+    const echo = echoPart(cutaway, floor);
+    const box = echo ? overlap(tile, echo) : tile;
+    return { box, corners: cornersOf(box) };
+  }
+
+  /** Put a storm's box at the floor of the style on the map. */
+  function fit(cloud: Cloud): void {
+    const { floor } = STYLE_FIELD[style];
+    let fitted = cloud.boxes.get(floor);
+    if (!fitted) {
+      fitted = boxFor(cloud.cutaway, floor);
+      cloud.boxes.set(floor, fitted);
+    }
+    cloud.box = fitted.box;
+    cloud.corners = fitted.corners;
+  }
+
   function upload(context: WebGL2RenderingContext, cutaway: Cutaway): WebGLTexture {
     const { header } = cutaway;
     const texture = context.createTexture()!;
@@ -786,16 +1002,13 @@ export function makeCloudsLayer(
         const across = Math.max(
           cutaway.header.nx * (tile.max[0] - tile.min[0]), cutaway.header.ny * (tile.max[1] - tile.min[1]),
         );
-        // Marched only where there is echo to draw: not the air above the
-        // storm's top, nor the empty part of a tile at the storm's edge.
-        const echo = echoPart(cutaway, DBZ_LOW);
-        const box = echo ? overlap(tile, echo) : tile;
+        const fitted = boxFor(cutaway, STYLE_FIELD[style].floor);
         const own = peels ? coreDbz(cutaway) : DBZ_LOW;
         clouds.set(key, {
           cutaway,
           model: modelFor(cutaway),
-          box,
-          corners: cornersOf(box),
+          ...fitted,
+          boxes: new Map([[STYLE_FIELD[style].floor, fitted]]),
           steps: Math.max(16, Math.round((STEPS * across) / STEPS_VOXELS)),
           // A pass over every voxel, so only for a storm that will use it.
           coreDbz: own,
@@ -837,6 +1050,15 @@ export function makeCloudsLayer(
       else if (map?.getContainer().isConnected) map.triggerRepaint();
     },
 
+    setStyle(next) {
+      if (next === style) return;
+      style = next;
+      for (const cloud of clouds.values()) fit(cloud);
+      // From whole, so what the reader sees first is the style, not a shell of it.
+      peelTime = 0;
+      wake();
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
 
     onAdd(added: GlMap, context: WebGL2RenderingContext) {
       map = added;
@@ -930,6 +1152,8 @@ export function makeCloudsLayer(
       // Whatever MapLibre has set for this layer; see "Depth" above.
       const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
       context.uniform2f(at("uDepthRange"), depthNear, depthFar);
+      context.uniform1i(at("uStyle"), STYLE_INDEX[style]);
+      const field = STYLE_FIELD[style];
 
       context.enable(context.BLEND);
       context.blendFunc(context.ONE, context.ONE_MINUS_SRC_ALPHA);
@@ -983,7 +1207,12 @@ export function makeCloudsLayer(
         if (peelsNow) peeling = true;
         context.uniform1f(at("uCut"), plane ? 1 : 0);
         context.uniform1f(at("uDim"), cloud.dim);
-        context.uniform1f(at("uLow"), peelsNow ? DBZ_LOW + (cloud.peelFloor - DBZ_LOW) * peel : DBZ_LOW);
+        // From the style's floor to the storm's core. The top of the ramp
+        // stays where the style has it until the peel has thinned the storm
+        // to within a cloud's band of it, so a core is never fainter peeled.
+        const low = peelsNow ? field.floor + (cloud.peelFloor - field.floor) * peel : field.floor;
+        context.uniform1f(at("uLow"), low);
+        context.uniform1f(at("uHigh"), Math.max(field.floor + field.band, low + PEEL_BAND));
         if (plane) {
           context.uniform3f(at("uPlaneNormal"), ...plane.normal);
           context.uniform3f(at("uPlanePoint"), ...plane.point);

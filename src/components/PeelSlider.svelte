@@ -20,26 +20,29 @@ export const PEEL_MAX_WIDTH = 560;
  *
  * It takes the bottom edge the flat map's tray has, and publishes its height
  * as --mc-peel-h for what stands on that edge above it: the guide's pill and
- * card, and the credits. At its end, which scan the storms are from
- * (ScanPicker), so the edge stays one strip of controls; the peel works on
- * an earlier scan's storms as on the newest's.
+ * card, and the credits. At its end, how the storms are drawn (StylePicker)
+ * and which scan they are from (ScanPicker), so the edge stays one strip of
+ * controls; the peel works in every style, and on an earlier scan's storms
+ * as on the newest's.
  */
 import { onDestroy } from "svelte";
 import { _ } from "svelte-i18n";
-import { peelLevel, peelManual, radarColormap } from "../stores";
+import { cloudStyle, peelLevel, peelManual, radarColormap } from "../stores";
 import { dbzColour } from "../lib/cellVolume";
+import { STYLE_FIELD } from "../lib/cloudStyle";
 import ScanPicker from "./ScanPicker.svelte";
+import StylePicker from "./StylePicker.svelte";
 
 /** Put an earlier scan's storms on the map, or the newest for null; without it, no picker. */
 export let pickScan: ((scan: number | null) => void) | null = null;
 
-/** The reflectivity the track spans: the clouds' faintest to a typical core. */
-const TRACK_MIN = 20;
+/** The reflectivity the track spans: the faintest the style draws to a typical core. */
 const TRACK_MAX = 56;
+$: trackMin = STYLE_FIELD[$cloudStyle].floor;
 
 $: track = `linear-gradient(to right, ${
   Array.from({ length: 10 }, (_unused, i) => {
-    const [r, g, b] = dbzColour(TRACK_MIN + ((TRACK_MAX - TRACK_MIN) * i) / 9, $radarColormap);
+    const [r, g, b] = dbzColour(trackMin + ((TRACK_MAX - trackMin) * i) / 9, $radarColormap);
     return `rgb(${r}, ${g}, ${b}) ${(i / 9) * 100}%`;
   }).join(", ")
 })`;
@@ -54,7 +57,7 @@ $: document.documentElement.style.setProperty("--mc-peel-h", `calc(${height}px +
 onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
 </script>
 
-<div class="peel glass glass-tray" class:picking={pickScan !== null} bind:offsetHeight={height}
+<div class="peel glass glass-tray" bind:offsetHeight={height}
   style:max-width={`${PEEL_MAX_WIDTH}px`}>
   <span class="label" aria-hidden="true">{$_("guide_3d.peel")}</span>
   <input
@@ -66,9 +69,12 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     aria-label={$_("guide_3d.peel_aria")}
     style:--track={track}
     on:input={moved} />
-  {#if pickScan}
-    <ScanPicker pick={pickScan} />
-  {/if}
+  <div class="pickers">
+    <StylePicker />
+    {#if pickScan}
+      <ScanPicker pick={pickScan} />
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -84,14 +90,17 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     box-sizing: border-box;
     height: var(--mc-control);
     margin: 0 auto;
-    padding: 0 16px;
+    /* The pickers' pills at the end, as far in from it as from the top and bottom. */
+    padding: 0 calc((var(--mc-control) - var(--mc-pill-h)) / 2) 0 16px;
     border-radius: var(--mc-radius-pill);
     color: var(--mc-text);
     font: 600 13px/1 var(--mc-font);
   }
-  /* The picker's pill at the end, as far in from it as from the top and bottom. */
-  .peel.picking {
-    padding-right: calc((var(--mc-control) - var(--mc-pill-h)) / 2);
+  .pickers {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .label {
     flex: none;

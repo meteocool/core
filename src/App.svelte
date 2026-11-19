@@ -16,6 +16,7 @@ import Lazy from "./components/Lazy.svelte";
 import Guide3D from "./components/Guide3D.svelte";
 import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
+import { cloudStyleOf, DEFAULT_CLOUD_STYLE } from "./lib/cloudStyle";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import ArchiveFrame from "./components/ArchiveFrame.svelte";
@@ -35,7 +36,7 @@ import type { StormMarkToggle } from "./stores";
 import {
   bottomToolbarMode,
   colorSchemeDark,
-  cellLayerVisible, hiddenStormMarks, cells3dFailed, cells3dLoading, cells3dVisible, cycloneLayerVisible, lastFocus, observedProduct,
+  cellLayerVisible, hiddenStormMarks, cells3dFailed, cells3dLoading, cells3dVisible, cloudStyle, cycloneLayerVisible, lastFocus, observedProduct,
   layerswitcherVisible,
   capLatestObservation, capTimeIndicator, cutRotationDeg, stormDetails,
   lightningLayerVisible, logoStyle,
@@ -338,6 +339,14 @@ window.settings = new Settings({
     default: false,
     cb: (value) => {
       fullResolution3d.set(Boolean(value));
+    },
+  },
+  /* How the 3D map draws its storms (lib/cloudStyle.ts). */
+  layer3dStyle: {
+    type: "string",
+    default: DEFAULT_CLOUD_STYLE,
+    cb: (value) => {
+      cloudStyle.set(cloudStyleOf(value));
     },
   },
   radarLegendUnit: {

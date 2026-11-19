@@ -42,7 +42,7 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes, quietly } from "../api";
 import {
-  capDescription, cells3dFailed, cells3dLoading, cells3dVisible, cloudsTime, colorSchemeDark, cutRotationDeg,
+  capDescription, cells3dFailed, cells3dLoading, cells3dVisible, cloudStyle, cloudsTime, colorSchemeDark, cutRotationDeg,
   cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedStorm, sharedActiveCap, stormDetails,
   showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d,
 } from "../stores";
@@ -704,6 +704,8 @@ export default class Cells3DCapability extends Capability {
 
   private unsubscribeColormap: (() => void) | null = null;
 
+  private unsubscribeStyle: (() => void) | null = null;
+
   private unsubscribeSweep: (() => void) | null = null;
 
   private unsubscribeLocale: (() => void) | null = null;
@@ -796,6 +798,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeCut = cutRotationDeg.subscribe(() => this.applyCut());
     this.unsubscribeSweep = cutSweepDeg.subscribe(() => this.applyCut());
     this.unsubscribeColormap = radarColormap.subscribe((name) => this.applyColormap(name));
+    // A uniform and each storm's box: nothing is fetched or uploaded again.
+    this.unsubscribeStyle = cloudStyle.subscribe((style) => this.cloudsLayer?.setStyle(style));
     this.unsubscribeCellsWanted = cells3dVisible.subscribe((wanted) => this.applyCellsWanted(wanted));
     this.unsubscribeTerrain = terrain3dVisible.subscribe((wanted) => {
       this.terrainWanted = wanted;
@@ -1959,7 +1963,7 @@ export default class Cells3DCapability extends Capability {
     if (this.cloudsLayer || !this.maplibre) return;
     const layer = makeCloudsLayer(VOLUME_LAYER, this.maplibre.MercatorCoordinate, this.colormap, (peel) => {
       if (!get(peelManual)) peelLevel.set(peel);
-    });
+    }, get(cloudStyle));
     if (get(peelManual)) layer.setPeel(get(peelLevel));
     gl.addLayer(layer);
     this.cloudsLayer = layer;
@@ -3121,6 +3125,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeCut = null;
     this.unsubscribeColormap?.();
     this.unsubscribeColormap = null;
+    this.unsubscribeStyle?.();
+    this.unsubscribeStyle = null;
     this.unsubscribeCellsWanted?.();
     this.unsubscribeCellsWanted = null;
     this.unsubscribeTerrain?.();

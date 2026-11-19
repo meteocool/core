@@ -80,6 +80,17 @@
     "cells_body": "Śledzone przez DWD komórki w warstwach, obrysowane według zagrożenia:",
     "heights": "Wysokości narysowane {scale}× większe niż w rzeczywistości."
   },
+  "style_3d": {
+    "title": "Styl burz",
+    "choose": "Wybierz, jak rysowane są burze",
+    "aria": "Styl burz: {style}",
+    "cloud": "Chmura",
+    "cloud_body": "Oświetlona chmura ze wszystkiego od słabego deszczu wzwyż.",
+    "glow": "Poświata",
+    "glow_body": "Przezroczyste światło od najsłabszego echa, każda siła we własnym kolorze.",
+    "shells": "Powłoki",
+    "shells_body": "Powierzchnia co 10 dBZ, jedna w drugiej jak warstwy cebuli."
+  },
   "time_3d": {
     "choose": "Pokaż burze z wcześniejszej godziny",
     "title": "Czas skanu",

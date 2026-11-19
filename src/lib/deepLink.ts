@@ -16,7 +16,8 @@
  * Content is everything that changes what the receiver sees of the weather:
  * the overlays and what they show, the radar product, which storm marks the
  * key has put away, an open storm, station, radar or model comparison, the
- * frame or scan, the cut and the peel. A link made now says each of those
+ * frame or scan, the cut, the peel and how the 3D map draws its storms (a
+ * style shows echo another leaves out). A link made now says each of those
  * explicitly, so a receiver who keeps the stations on sees them off if the
  * sender had them off; a link from before a parameter existed leaves that
  * choice to the receiver, as it always did.
@@ -37,6 +38,8 @@ import type { ManualMotion } from "./srvMotion";
 import type { StormMarkToggle } from "../stores";
 import { inWindow, isWindow, onGrid } from "./archive";
 import type { ArchiveWindow } from "./archive";
+import { CLOUD_STYLES } from "./cloudStyle";
+import type { CloudStyle } from "./cloudStyle";
 
 /**
  * The switchable overlays of either map, in the order a link lists them: the
@@ -133,6 +136,8 @@ export interface LinkState {
   motion?: ManualMotion;
   /** How far the 3D map's storms are peeled, 0 to 1, when the reader set it. Only without a selection. */
   peel?: number;
+  /** How the 3D map draws its storms (lib/cloudStyle.ts). Only on that map. */
+  style?: CloudStyle;
   /** A weather station's sheet, by its id. */
   station?: string;
   /** The point the model comparison is open for, as [lat, lon]. */
@@ -163,7 +168,7 @@ export interface LinkRadar {
 const OWNED = [
   "layer", "latLonZ", "pitch", "bearing", "overlays", "product", "hide", "stationParameter",
   "from", "to", "t", "point", "radar", "sweep", "tilt", "motion",
-  "storm", "cell", "details", "cloud", "cut", "peel", "station", "compare", "shared",
+  "storm", "cell", "details", "cloud", "cut", "peel", "style", "station", "compare", "shared",
 ] as const;
 type OwnedKey = (typeof OWNED)[number];
 
@@ -455,6 +460,9 @@ export function parseLink(search: string | URLSearchParams): LinkState {
   const peel = finite(params.get("peel"));
   if (peel !== null && !selection) state.peel = Math.round(Math.min(Math.max(peel, 0), 1) * 100) / 100;
 
+  const style = params.get("style");
+  if ((CLOUD_STYLES as readonly (string | null)[]).includes(style)) state.style = style as CloudStyle;
+
   const compare = parsePair(params.get("compare"));
   if (compare && !selection) state.compare = compare;
 
@@ -515,6 +523,7 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
       ? fixed(Math.round(normaliseCut(state.cut)), 0)
       : null,
     peel: selection || state.peel === undefined ? null : String(Math.round(Math.min(Math.max(state.peel, 0), 1) * 100) / 100),
+    style: state.layer === "cells3d" && state.style ? state.style : null,
     station,
     compare: !selection && state.compare ? `${fixed(state.compare[0], 5)},${fixed(state.compare[1], 5)}` : null,
     shared: state.shared === undefined ? null : frameLink(state.shared),

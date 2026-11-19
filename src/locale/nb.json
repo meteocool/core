@@ -80,6 +80,17 @@
     "cells_body": "Celler sporet av DWD, i trinn, omrisset etter alvorlighetsgrad:",
     "heights": "Høydene er tegnet {scale}× høyere enn i virkeligheten."
   },
+  "style_3d": {
+    "title": "Uværsstil",
+    "choose": "Velg hvordan uværene tegnes",
+    "aria": "Uværsstil: {style}",
+    "cloud": "Sky",
+    "cloud_body": "En belyst sky av alt fra lett regn og opp.",
+    "glow": "Glød",
+    "glow_body": "Gjennomsiktig lys fra det svakeste ekkoet og opp, hver styrke i sin egen farge.",
+    "shells": "Skall",
+    "shells_body": "En flate for hver 10 dBZ, lagt inni hverandre som en løk."
+  },
   "time_3d": {
     "choose": "Vis tordenværene på et tidligere tidspunkt",
     "title": "Skanntid",

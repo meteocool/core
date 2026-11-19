@@ -80,6 +80,17 @@
     "cells_body": "DWD's tracked cells in tiers, outlined by severity:",
     "heights": "Heights drawn {scale}× taller than life."
   },
+  "style_3d": {
+    "title": "Storm Style",
+    "choose": "Choose how the storms are drawn",
+    "aria": "Storm style: {style}",
+    "cloud": "Cloud",
+    "cloud_body": "A lit cloud of everything from light rain up.",
+    "glow": "Glow",
+    "glow_body": "See-through light from the faintest echo up, every strength in its own colour.",
+    "shells": "Shells",
+    "shells_body": "A surface at every 10 dBZ, nested like an onion."
+  },
   "time_3d": {
     "choose": "Show the storms at an earlier time",
     "title": "Scan Time",

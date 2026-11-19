@@ -80,6 +80,17 @@
     "cells_body": "DWD sekamos celės pakopomis, apvestos pagal pavojingumą:",
     "heights": "Aukščiai nupiešti {scale}× didesni nei iš tikrųjų."
   },
+  "style_3d": {
+    "title": "Audrų stilius",
+    "choose": "Pasirinkti, kaip piešiamos audros",
+    "aria": "Audrų stilius: {style}",
+    "cloud": "Debesis",
+    "cloud_body": "Apšviestas debesis iš visko nuo silpno lietaus.",
+    "glow": "Švytėjimas",
+    "glow_body": "Permatoma šviesa nuo silpniausio aido, kiekvienas stiprumas savo spalva.",
+    "shells": "Lukštai",
+    "shells_body": "Paviršius kas 10 dBZ, vienas kitame kaip svogūno lukštai."
+  },
   "time_3d": {
     "choose": "Rodyti audras ankstesniu laiku",
     "title": "Skenavimo laikas",

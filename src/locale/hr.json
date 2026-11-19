@@ -80,6 +80,17 @@
     "cells_body": "Ćelije koje prati DWD, u slojevima, obrubljene prema jačini:",
     "heights": "Visine su nacrtane {scale}× više od stvarnih."
   },
+  "style_3d": {
+    "title": "Stil oluja",
+    "choose": "Odaberi kako se oluje crtaju",
+    "aria": "Stil oluja: {style}",
+    "cloud": "Oblak",
+    "cloud_body": "Osvijetljen oblak svega od slabe kiše naviše.",
+    "glow": "Sjaj",
+    "glow_body": "Prozirno svjetlo od najslabijeg odjeka, svaka jačina u svojoj boji.",
+    "shells": "Ljuske",
+    "shells_body": "Ploha na svakih 10 dBZ, jedna u drugoj kao ljuske luka."
+  },
   "time_3d": {
     "choose": "Prikaži oluje u ranijem trenutku",
     "title": "Vrijeme skena",

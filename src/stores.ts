@@ -8,6 +8,7 @@ import { EMPTY_CADENCE, type Cadence } from "./lib/updateCadence";
 import { DEFAULT_PRODUCT, type NewestScans, type ObservedProduct, type ScanRange } from "./lib/observedProduct";
 import { RVP6_ENCODING } from "./lib/rvp6";
 import { showsForecastStep } from "./lib/freshness";
+import { DEFAULT_CLOUD_STYLE, type CloudStyle } from "./lib/cloudStyle";
 import { DEFAULT_STATION_CHOICE, type ObservedProperties, type StationChoice } from "./lib/stations";
 import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties, Storm, StormGroup } from "./api";
@@ -303,6 +304,11 @@ export const fullResolution3d = writable<boolean>(false);
  */
 export const peelLevel = writable<number>(0);
 export const peelManual = writable<boolean>(false);
+/**
+ * How the 3D map draws its storms: a lit cloud, unlit light, or nested
+ * shells (lib/cloudStyle.ts). Mirrors the `layer3dStyle` setting.
+ */
+export const cloudStyle = writable<CloudStyle>(DEFAULT_CLOUD_STYLE);
 /**
  * Which scan the 3D map's storms are from, as Cells3DCapability.showScan
  * publishes it for the picker beside the peel slider. Scans are epoch

@@ -22,8 +22,9 @@ import { get } from "svelte/store";
 import { fade, scale } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import CloseDisc from "./CloseDisc.svelte";
-import { cells3dVisible, radarColormap, selectedStorm, smallScreen } from "../stores";
+import { cells3dVisible, cloudStyle, radarColormap, selectedStorm, smallScreen } from "../stores";
 import { dbzColour, dbzStops } from "../lib/cellVolume";
+import { shellLevels, STYLE_FIELD } from "../lib/cloudStyle";
 import { BAND_NAMES } from "../lib/cellMetrics";
 import { SEVERITY_COLOURS } from "../layers/cells";
 import { VERTICAL_SCALE } from "../layers/terrain";
@@ -77,7 +78,14 @@ const TICKS = [20, 40, 60];
 const at = (dbz: number) => ((dbz - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
 const rgb = (dbz: number, colormap: string) => `rgb(${dbzColour(dbz, colormap).join(", ")})`;
 
-$: ramp = `linear-gradient(to right, ${dbzStops($radarColormap).map(([dbz, colour]) => `${colour} ${at(dbz)}%`).join(", ")})`;
+/* The palette as the style on the map uses it: run through, or for the
+   shells one flat colour from each level to the next. */
+$: ramp = $cloudStyle === "shells"
+  ? `linear-gradient(to right, ${shellLevels(STYLE_FIELD.shells.floor).flatMap((level, i, levels) => {
+    const colour = rgb(level, $radarColormap);
+    return [`${colour} ${at(level)}%`, `${colour} ${at(levels[i + 1] ?? SCALE_MAX)}%`];
+  }).join(", ")})`
+  : `linear-gradient(to right, ${dbzStops($radarColormap).map(([dbz, colour]) => `${colour} ${at(dbz)}%`).join(", ")})`;
 
 /* A cloud is three shells, faint envelope to strong core, as the map shades
    one, in the palette the settings name. */
@@ -253,6 +261,7 @@ const compass = !dd.isApp();
           <div>
             <strong>{$_("guide_3d.clouds")}</strong>
             <span>{$_("guide_3d.clouds_body")}</span>
+            <span class="style">{$_(`style_3d.${$cloudStyle}`)}: {$_(`style_3d.${$cloudStyle}_body`)}</span>
             <div class="scale" role="img" aria-label={$_("guide_3d.scale_aria", { values: { min: SCALE_MIN, max: SCALE_MAX } })}>
               <div class="ramp" style:background={ramp}></div>
               <div class="ticks" aria-hidden="true">
@@ -527,6 +536,11 @@ const compass = !dd.isApp();
   }
   .legend span {
     color: var(--mc-text-2);
+  }
+
+  .legend .style {
+    display: block;
+    margin-top: 4px;
   }
 
   .scale {

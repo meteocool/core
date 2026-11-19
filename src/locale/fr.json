@@ -80,6 +80,17 @@
     "cells_body": "Cellules suivies par le DWD, en paliers, bordées selon leur sévérité :",
     "heights": "Hauteurs exagérées {scale} fois."
   },
+  "style_3d": {
+    "title": "Style des orages",
+    "choose": "Choisir comment les orages sont dessinés",
+    "aria": "Style des orages : {style}",
+    "cloud": "Nuage",
+    "cloud_body": "Un nuage éclairé de tout ce qui dépasse la pluie faible.",
+    "glow": "Lueur",
+    "glow_body": "Une lumière translucide dès l'écho le plus faible, chaque intensité dans sa couleur.",
+    "shells": "Coques",
+    "shells_body": "Une surface tous les 10 dBZ, emboîtées comme les couches d'un oignon."
+  },
   "time_3d": {
     "choose": "Afficher les orages à une heure antérieure",
     "title": "Heure du balayage",

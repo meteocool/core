@@ -80,6 +80,17 @@
     "cells_body": "DWD:n seuraamat solut kerroksina, ääriviivat vaarallisuuden mukaan:",
     "heights": "Korkeudet piirretty {scale}-kertaisina."
   },
+  "style_3d": {
+    "title": "Myrskyjen tyyli",
+    "choose": "Valitse, miten myrskyt piirretään",
+    "aria": "Myrskyjen tyyli: {style}",
+    "cloud": "Pilvi",
+    "cloud_body": "Valaistu pilvi kaikesta heikosta sateesta ylöspäin.",
+    "glow": "Hehku",
+    "glow_body": "Läpikuultavaa valoa heikoimmasta kaiusta alkaen, jokainen voimakkuus omalla värillään.",
+    "shells": "Kuoret",
+    "shells_body": "Pinta 10 dBZ:n välein, sisäkkäin kuin sipulin kerrokset."
+  },
   "time_3d": {
     "choose": "Näytä ukkoset aiemmalta ajalta",
     "title": "Keilausaika",
