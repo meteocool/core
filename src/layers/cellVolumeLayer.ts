@@ -47,6 +47,41 @@
  * axis. Without it the storm is mirrored north to south, which looks almost
  * right and is completely wrong.
  *
+ * ## Between two scans
+ *
+ * Studio plays the storms as a film (lib/studio/scene.ts), and the radar
+ * sees them every five minutes. Between two scans this draws both: the
+ * earlier scan's clouds carried forward along the storms' motion by the
+ * share of the five minutes gone, the later one's carried back by the share
+ * still to come, so the two stand on top of each other wherever the motion
+ * was right (lib/cloudMotion.ts), and each weighted by how near the moment
+ * is to its own scan. A storm moves across, and grows or dies where it is,
+ * rather than fading out in one place and in at another.
+ *
+ * Weighted in its density, not in its colour: opacity through a cloud is
+ * the exponent of its density summed along the ray, so two copies of one
+ * cloud at weights that add to one stop exactly the light the cloud does,
+ * where two copies faded in colour would stand half as opaque at the middle
+ * of every step, or twice. Its light is its own, unweighted: each copy is
+ * shaded as the whole cloud would be, so a storm half way between two scans
+ * is no brighter or darker for it. Carried by its model matrix, so a tile
+ * moves as a whole box and nothing samples across its seam; one offset and
+ * one weight a cloud, both uniforms, so a frame of a blend uploads nothing.
+ *
+ * The shells are surfaces, and two copies of a surface are two surfaces,
+ * not one in between. Both are carried as the clouds are, and only at the
+ * middle third of the step do they hand over, each one's surfaces fading by
+ * their alpha as the other's come in, so a shell moves with its storm and
+ * changes shape once, softly, rather than standing doubled for the whole
+ * five minutes.
+ *
+ * What it costs: every cloud twice, and each copy, half as dense, would
+ * march twice as deep into a storm before it is opaque enough to stop, four
+ * times the frame. So a copy stops where it has stopped its own share of
+ * the light a ray stops at (`OPAQUE`): with the other copy over or under
+ * it, nothing past that point could show. Twice the frame, then, for the
+ * minutes between two scans.
+ *
  * ## Depth
  *
  * The volume is depth-*tested* but does not depth-*write*: terrain and other
@@ -106,6 +141,8 @@ const SHELL_SOLID_DBZ = 40;
 const PEEL_CORE_VOXELS = 300;
 /** The softness of the peel's edge, in dBZ: as wide as the unpeeled ramp. */
 const PEEL_BAND = DBZ_HIGH - DBZ_LOW;
+/** How opaque a ray gets before it stops: nothing behind that shows through. */
+const OPAQUE = 0.985;
 /** Opacity per kilometre of fully dense storm; see the shader's march. */
 const OPACITY_PER_KM = 0.62;
 /**
@@ -200,6 +237,8 @@ uniform float uLow;        // where the echo starts to show, which the peel rais
 uniform float uHigh;       // and where it is as opaque as it gets
 uniform int uStyle;        // 0 a lit cloud, 1 unlit light, 2 nested surfaces, 3 a white cloud, 4 tinted; see lib/cloudStyle.ts
 uniform float uDim;        // how much of its opacity a storm keeps: less for one not seen well enough to open
+uniform float uWeight;     // how much of its density a cloud keeps between two scans; see "Between two scans"
+uniform float uOpaque;     // how opaque a ray gets before nothing behind can show: its weight's share of OPAQUE
 uniform vec2 uDepthRange;  // the near and far of glDepthRange, which gl_FragDepth is not mapped by
 uniform vec3 uBoxMin;      // the part of the cube that is drawn: all of it, bar a tile's apron
 uniform vec3 uBoxMax;
@@ -279,6 +318,15 @@ float densityOf(vec2 field) {
 vec4 accumulated = vec4(0.0);
 bool wrote = false;
 
+/**
+ * A surface's opacity, for a cloud at uWeight: the share of it that lets
+ * two copies, one over the other at weights adding to one, stop what the
+ * surface alone does. Left as it is at a weight of one.
+ */
+float weighed(float alpha) {
+  return uWeight >= 1.0 ? alpha : 1.0 - pow(1.0 - min(alpha, 0.999), uWeight);
+}
+
 void lay(vec3 colour, float alpha) {
   accumulated.rgb += (1.0 - accumulated.a) * colour * alpha;
   accumulated.a += (1.0 - accumulated.a) * alpha;
@@ -323,21 +371,22 @@ void marchMedium(vec3 origin, vec3 direction, float near, float far, bool cutFac
       // slice through light would be as faint as the light.
       float here = smoothstep(uLow, min(uHigh, uLow + ${DBZ_HIGH - DBZ_LOW}.0), field.x) * field.y;
       float there = smoothstep(uLow, min(uHigh, uLow + ${DBZ_HIGH - DBZ_LOW}.0), behind.x) * behind.y;
-      alpha = clamp((here + there) * 1.05, 0.0, 1.0);
+      // A face of two copies of one cloud, one over the other, is one face.
+      alpha = weighed(clamp((here + there) * 1.05, 0.0, 1.0));
       colour *= 1.12;
     } else if (uStyle == 1) {
       // Unlit: each reflectivity in its own colour, as on the radar beneath,
       // and giving off more light than it stops, the more the stronger it is.
-      alpha = clamp(density * stepKm * ${GLOW_OPACITY_PER_KM}, 0.0, 1.0);
+      alpha = clamp(density * uWeight * stepKm * ${GLOW_OPACITY_PER_KM}, 0.0, 1.0);
       float strength = clamp((field.x - uLow) / (uHigh - uLow), 0.0, 1.0);
       colour *= mix(${GLOW_LIGHT[0]}, ${GLOW_LIGHT[1]}, strength * strength);
     } else {
       float lambert = 0.42 + 0.58 * max(dot(fieldNormal(p, dt), light), 0.0);
-      alpha = clamp(density * stepKm * ${OPACITY_PER_KM}, 0.0, 1.0);
+      alpha = clamp(density * uWeight * stepKm * ${OPACITY_PER_KM}, 0.0, 1.0);
       colour *= lambert;
     }
     lay(colour, alpha);
-    if (accumulated.a > 0.985) break;
+    if (accumulated.a > uOpaque) break;
   }
 }
 
@@ -393,7 +442,7 @@ void layShell(float level, vec3 p, vec3 light, vec3 toEye, float step, bool with
   // its own shade: the inside of a bowl, and solid, or an opened storm is
   // a view of whatever stands behind it.
   float lit = 0.34 + 0.5 * max(dot(within ? -normal : normal, light), 0.0) + 0.16 * abs(dot(normal, toEye));
-  lay(paint(level) * (within ? 0.72 * lit : lit), within ? max(shellAlpha(level), 0.92) : shellAlpha(level));
+  lay(paint(level) * (within ? 0.72 * lit : lit), weighed(within ? max(shellAlpha(level), 0.92) : shellAlpha(level)));
 }
 
 /**
@@ -437,14 +486,14 @@ void marchShells(vec3 origin, vec3 direction, float near, float far, float dithe
       vec3 p = origin + direction * mix(t0, t1, clamp((level - v0) / max(v1 - v0, 1e-4), 0.0, 1.0));
       layShell(level, p, light, toEye, dt, false);
       s0 = level;
-      if (accumulated.a > 0.985) return;
+      if (accumulated.a > uOpaque) return;
     }
     for (int crossed = 0; crossed < ${SHELL_TOP / SHELL_STEP + 1}; crossed += 1) {
       if (s0 <= s1 + 1e-3) break;
       if (hollow) {
         vec3 p = origin + direction * mix(t0, t1, clamp((v0 - s0) / max(v0 - v1, 1e-4), 0.0, 1.0));
         layShell(s0, p, light, toEye, dt, true);
-        if (accumulated.a > 0.985) return;
+        if (accumulated.a > uOpaque) return;
       }
       s0 = shellOutside(s0);
     }
@@ -590,7 +639,7 @@ void marchSky(vec3 origin, vec3 direction, float near, float far, bool cutFace, 
       vec2 behind = sampleField(p + direction * dt * 0.5);
       float here = smoothstep(uLow, uHigh, field.x) * field.y;
       float there = smoothstep(uLow, uHigh, behind.x) * behind.y;
-      float alpha = clamp((here + there) * 1.05, 0.0, 1.0);
+      float alpha = weighed(clamp((here + there) * 1.05, 0.0, 1.0));
       if (alpha <= 0.002) continue;
       if (!wrote) {
         gl_FragDepth = depthOf(p);
@@ -614,8 +663,9 @@ void marchSky(vec3 origin, vec3 direction, float near, float far, bool cutFace, 
     }
     // Exposed as film is: a sunlit top just short of white, a shadow grey.
     colour = 1.0 - exp(-2.4 * colour);
-    lay(colour, 1.0 - exp(-density * stepKm * ${SKY_OPACITY_PER_KM}));
-    if (accumulated.a > 0.985) break;
+    // Weighted here only: its shadows (skyLight) are the whole cloud's.
+    lay(colour, 1.0 - exp(-density * uWeight * stepKm * ${SKY_OPACITY_PER_KM}));
+    if (accumulated.a > uOpaque) break;
   }
 }
 
@@ -1009,9 +1059,75 @@ interface Cloud {
   dim: number;
   /** Whether it peels when not cut; see `setClouds`. */
   peels: boolean;
+  /**
+   * Which scan it is of while two are drawn: 0 the earlier, 1 the later;
+   * null for a cloud that stands on its own scan. See "Between two scans".
+   */
+  side: 0 | 1 | null;
+  /** How far its storm went from its scan to the other, in Mercator units; see lib/cloudMotion.ts. */
+  drift: readonly [number, number];
   texture: WebGLTexture | null;
   /** The strongest echo in each of its columns, for `tinted`; made the first time that style draws it. */
   column: WebGLTexture | null;
+}
+
+/**
+ * What `setClouds` works out of a volume, each a pass over its voxels, kept
+ * as long as the volume is: Studio hands the same volumes back scan after
+ * scan as a scene plays, and a pass over each of a scan's on the frame its
+ * storms come in would hold the frame up.
+ */
+interface Measured {
+  edges: TileEdges | null;
+  coreDbz: number | null;
+  boxes: Map<number, { box: BoxPart; corners: Array<[number, number, number]> }>;
+}
+const measured = new WeakMap<Cutaway, Measured>();
+
+/** The drift of a cloud that goes nowhere. */
+const STILL: readonly [number, number] = [0, 0];
+
+function measuredOf(cutaway: Cutaway): Measured {
+  let known = measured.get(cutaway);
+  if (!known) {
+    known = { edges: tileEdges(cutaway), coreDbz: null, boxes: new Map() };
+    measured.set(cutaway, known);
+  }
+  return known;
+}
+
+/** A storm's own `coreDbz`, worked out once. */
+function coreOf(cutaway: Cutaway): number {
+  const known = measuredOf(cutaway);
+  known.coreDbz ??= coreDbz(cutaway);
+  return known.coreDbz;
+}
+
+/**
+ * How much of its density each scan's clouds keep `fraction` of the way from
+ * the earlier to the later, in a style: in proportion, or for the shells,
+ * whose copies are surfaces, handed over in the middle third (see "Between
+ * two scans").
+ */
+export function blendWeights(fraction: number, style: CloudStyle): [number, number] {
+  const f = Math.min(Math.max(fraction, 0), 1);
+  if (style !== "shells") return [1 - f, f];
+  const t = Math.min(Math.max((f - 1 / 3) * 3, 0), 1);
+  const later = t * t * (3 - 2 * t);
+  return [1 - later, later];
+}
+
+/**
+ * A cloud's model matrix carried `fraction` of the way from its scan to the
+ * other along its storm's drift: the earlier scan's forward by that share
+ * of it, the later one's back by the rest.
+ */
+export function carried(model: Float64Array, side: 0 | 1, drift: readonly [number, number], fraction: number): Float64Array {
+  const share = side === 0 ? fraction : fraction - 1;
+  const out = new Float64Array(model);
+  out[12] += drift[0] * share;
+  out[13] += drift[1] * share;
+  return out;
 }
 
 export interface CloudsLayer extends CustomLayerInterface {
@@ -1025,10 +1141,21 @@ export interface CloudsLayer extends CustomLayerInterface {
    * `peels: false` holds a storm whole: one the radars did not see well
    * enough to open, whose layers are interpolation, so peeling them shows
    * nothing about where the intensity sits.
+   *
+   * `side` and `drift` are for two scans drawn at once (`setBlend`): which
+   * of the two a cloud is of, and how far its storm went from one to the
+   * other, in Mercator units.
    */
   setClouds(clouds: ReadonlyArray<{
     key: string; cutaway: Cutaway; dim?: number; peels?: boolean; system?: string | null;
+    side?: 0 | 1 | null; drift?: readonly [number, number];
   }>): void;
+  /**
+   * How far between its two scans a blend stands, 0 the earlier to 1 the
+   * later; null for none, where every cloud is drawn whole where it is. A
+   * frame of a blend only moves this: see "Between two scans".
+   */
+  setBlend(fraction: number | null): void;
   /**
    * Open one storm, by the key it was handed over under, with a cut at this
    * heading. Every cloud near it is cut by the same plane (`CUT_REACH_KM`),
@@ -1092,6 +1219,8 @@ export function makeCloudsLayer(
   let peelOwn = false;
   /** Studio's section planes, while it is open; see `setSections`. */
   let sections: readonly ClipPlane[] | null = null;
+  /** How far between two scans the clouds stand; null drawing one. See `setBlend`. */
+  let blend: number | null = null;
 
   /** The palette as a texture the shader looks reflectivity up in, -32 to +64 dBZ. */
   function paintRamp(context: WebGL2RenderingContext): void {
@@ -1141,14 +1270,20 @@ export function makeCloudsLayer(
     return { box, corners: cornersOf(box) };
   }
 
+  /** A storm's box at the floor of the style on the map, worked out once a floor. */
+  function fittedOf(boxes: Cloud["boxes"], cutaway: Cutaway): { box: BoxPart; corners: Array<[number, number, number]> } {
+    const { floor } = STYLE_FIELD[style];
+    let fitted = boxes.get(floor);
+    if (!fitted) {
+      fitted = boxFor(cutaway, floor);
+      boxes.set(floor, fitted);
+    }
+    return fitted;
+  }
+
   /** Put a storm's box at the floor of the style on the map. */
   function fit(cloud: Cloud): void {
-    const { floor } = STYLE_FIELD[style];
-    let fitted = cloud.boxes.get(floor);
-    if (!fitted) {
-      fitted = boxFor(cloud.cutaway, floor);
-      cloud.boxes.set(floor, fitted);
-    }
+    const fitted = fittedOf(cloud.boxes, cloud.cutaway);
     cloud.box = fitted.box;
     cloud.corners = fitted.corners;
   }
@@ -1201,13 +1336,15 @@ export function makeCloudsLayer(
         dropColumn(gl, cloud);
         clouds.delete(key);
       }
-      for (const { key, cutaway, dim = 1, peels = true, system = null } of next) {
+      for (const { key, cutaway, dim = 1, peels = true, system = null, side = null, drift = STILL } of next) {
         const kept = clouds.get(key);
         if (kept?.cutaway === cutaway) {
-          if (peels && !kept.peels) kept.coreDbz = coreDbz(cutaway);
+          if (peels && !kept.peels) kept.coreDbz = coreOf(cutaway);
           kept.dim = dim;
           kept.peels = peels;
           kept.system = system;
+          kept.side = side;
+          kept.drift = drift;
           continue;
         }
         if (kept?.texture && gl) gl.deleteTexture(kept.texture);
@@ -1217,21 +1354,24 @@ export function makeCloudsLayer(
         const across = Math.max(
           cutaway.header.nx * (tile.max[0] - tile.min[0]), cutaway.header.ny * (tile.max[1] - tile.min[1]),
         );
-        const fitted = boxFor(cutaway, STYLE_FIELD[style].floor);
-        const own = peels ? coreDbz(cutaway) : DBZ_LOW;
+        const known = measuredOf(cutaway);
+        const fitted = fittedOf(known.boxes, cutaway);
+        // A pass over every voxel, so only for a storm that will use it.
+        const own = peels ? coreOf(cutaway) : DBZ_LOW;
         clouds.set(key, {
           cutaway,
           model: modelFor(cutaway),
           ...fitted,
-          boxes: new Map([[STYLE_FIELD[style].floor, fitted]]),
+          boxes: known.boxes,
           steps: Math.max(16, Math.round((STEPS * across) / STEPS_VOXELS)),
-          // A pass over every voxel, so only for a storm that will use it.
           coreDbz: own,
           peelFloor: own,
           system,
-          edges: tileEdges(cutaway),
+          edges: known.edges,
           dim,
           peels,
+          side,
+          drift,
           texture: gl ? upload(gl, cutaway) : null,
           column: null,
         });
@@ -1273,6 +1413,12 @@ export function makeCloudsLayer(
       if (map?.getContainer().isConnected) map.triggerRepaint();
     },
 
+    setBlend(fraction) {
+      if (fraction === blend) return;
+      blend = fraction;
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
     onAdd(added: GlMap, context: WebGL2RenderingContext) {
       map = added;
       gl = context;
@@ -1308,15 +1454,23 @@ export function makeCloudsLayer(
       // say; see lib/drawOrder.ts.
       const unmain = invert(main);
       const camera = unmain ? cameraOf(unmain) : [0.5, 0.5, 0];
+      // Between two scans, each cloud carried along its storm and weighted by
+      // how near its own scan the moment is; see "Between two scans". One of
+      // no weight at all is not drawn.
+      const weights = blend === null ? null : blendWeights(blend, style);
       const ordered = farToNear([...clouds.entries()]
         .filter(([, cloud]) => cloud.texture)
         .map(([key, cloud]) => {
-          const forward = multiply(main, cloud.model);
+          const side = weights === null ? null : cloud.side;
+          const weight = side === null ? 1 : weights![side];
+          const model = side === null ? cloud.model : carried(cloud.model, side, cloud.drift, blend!);
+          const forward = multiply(main, model);
           const [, , z, w] = apply(forward, 0.5, 0.5, 0.25);
-          const rect = screenRect(forward, cloud.corners, width, height);
-          return { key, cloud, forward, rect, depth: w > 0 ? z / w : Infinity, tile: cloud.cutaway.header.tile ?? null };
+          const rect = weight > 1e-3 ? screenRect(forward, cloud.corners, width, height) : null;
+          return {
+            key, cloud, model, weight, forward, rect, depth: w > 0 ? z / w : Infinity, tile: cloud.cutaway.header.tile ?? null,
+          };
         }), camera);
-
 
       context.useProgram(program);
       const at = (name: string) => {
@@ -1356,7 +1510,7 @@ export function makeCloudsLayer(
       const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
       const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
 
-      for (const { key, cloud, forward, rect } of ordered) {
+      for (const { key, cloud, model, weight, forward, rect } of ordered) {
         if (rect === null) continue;
         const inverse = invert(forward);
         if (!inverse) continue;
@@ -1366,12 +1520,13 @@ export function makeCloudsLayer(
         // its face; see `CUT_REACH_KM`. One wholly on the side that is gone
         // is not drawn at all.
         const plane = opened !== undefined && cutPoint !== null
-          && (key === cutKey || kmFromCut(cloud.model, cloud.box, cutPoint, metre) <= CUT_REACH_KM)
-          ? carryCut(cloud.model, opened.model, cutPoint, along)
+          && (key === cutKey || kmFromCut(model, cloud.box, cutPoint, metre) <= CUT_REACH_KM)
+          ? carryCut(model, opened.model, cutPoint, along)
           : null;
-        // Studio's planes in this cloud's cube, or the opened storm's one.
+        // Studio's planes in this cloud's cube, or the opened storm's one:
+        // where it stands now, so a storm moves through a plane that stays.
         const cuts = sections
-          ? sections.map((section) => carryPlane(cloud.model, extentM, section))
+          ? sections.map((section) => carryPlane(model, extentM, section))
           : plane ? [plane] : [];
         if (cuts.some((cut) => cutAway(cloud.corners, cut))) continue;
 
@@ -1393,7 +1548,9 @@ export function makeCloudsLayer(
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
         if (style === "sky" || style === "tinted") {
-          const { model } = cloud;
+          // Where the cloud stands now: the billows stay put in the world
+          // while a storm moves through them, so its two copies between two
+          // scans share theirs, and nothing jumps when the next pair comes up.
           context.uniform4f(at("uWorld"), model[12] * NOISE_KM_PER_MERCATOR, model[13] * NOISE_KM_PER_MERCATOR,
             model[0] * NOISE_KM_PER_MERCATOR, model[5] * NOISE_KM_PER_MERCATOR);
         }
@@ -1408,6 +1565,9 @@ export function makeCloudsLayer(
         const peelsNow = !plane && cloud.peels;
         context.uniform1i(at("uPlaneCount"), cuts.length);
         context.uniform1f(at("uDim"), cloud.dim);
+        context.uniform1f(at("uWeight"), weight);
+        // Two copies whose transmittances multiply to what one stops at.
+        context.uniform1f(at("uOpaque"), 1 - (1 - OPAQUE) ** weight);
         // From the style's floor to the storm's core. The top of the ramp
         // stays where the style has it until the peel has thinned the storm
         // to within a cloud's band of it, so a core is never fainter peeled.
