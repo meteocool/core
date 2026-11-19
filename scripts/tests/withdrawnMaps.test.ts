@@ -5,14 +5,16 @@ import { LayerManager } from "../../src/lib/LayerManager.ts";
 
 /**
  * The satellite and aerosol maps are gone, but settings and links that name
- * them are not: a stored basemap, a stored capability, a shared link, an app
- * calling window.lm.setTarget. Each falls back to what a new reader gets.
+ * them are not: a stored capability, a shared link, an app calling
+ * window.lm.setTarget. Each falls back to what a new reader gets. The
+ * satellite basemap is back, as the imagery basemap.
  */
 
-test("a stored satellite basemap follows the colour scheme, like the default", () => {
-  assert.equal(resolveBaseLayer("satellite", false), "light");
-  assert.equal(resolveBaseLayer("satellite", true), "dark");
+test("a basemap no longer drawn follows the colour scheme, like the default", () => {
+  assert.equal(resolveBaseLayer("aerosols", false), "light");
+  assert.equal(resolveBaseLayer("aerosols", true), "dark");
   assert.equal(resolveBaseLayer("system", true), "dark");
+  assert.equal(resolveBaseLayer("satellite", false), "satellite");
   assert.equal(resolveBaseLayer(undefined, false), "light");
   assert.equal(resolveBaseLayer("osm", true), "osm");
   assert.equal(resolveBaseLayer("topographic", true), "topographic");

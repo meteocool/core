@@ -204,7 +204,8 @@
       "light": "Light",
       "dark": "Dark",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (Biking)"
+      "cyclosm": "CyclOSM (Biking)",
+      "satellite": "Satellite"
     },
     "color_map": "Radar Color Map",
     "color_maps": {

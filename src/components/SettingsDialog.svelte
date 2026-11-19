@@ -32,7 +32,7 @@ import { shownIn } from "../lib/archive";
  * are by default.
  */
 
-const BASE_LAYERS = ["system", "light", "dark", "osm", "cyclosm"];
+const BASE_LAYERS = ["system", "light", "dark", "osm", "cyclosm", "satellite"];
 const COLOR_MAPS = ["classic", "nws", "pyart_stepseq", "homeyer", "lang"];
 
 const dispatch = createEventDispatcher<{ about: void }>();

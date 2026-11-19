@@ -204,7 +204,8 @@
       "light": "Hele",
       "dark": "Tume",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (rattasõit)"
+      "cyclosm": "CyclOSM (rattasõit)",
+      "satellite": "Satelliit"
     },
     "color_map": "Radari värviskaala",
     "color_maps": {

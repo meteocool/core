@@ -47,6 +47,8 @@ export const noaaAttribution = link("https://www.weather.gov/disclaimer", "NOAA/
 export const blitzortungAttribution = `© ${link("https://www.blitzortung.org/", "Blitzortung.org")}`;
 export const mapterhornAttribution = `© ${link("https://mapterhorn.com/attribution", "Mapterhorn")}`;
 export const protomapsAttribution = `© ${link("https://protomaps.com", "Protomaps")}`;
+/** The satellite basemap's imagery: Copernicus Sentinel-2 and national orthophotos, each listed on the page this links. */
+export const versatilesAttribution = `Imagery: ${link("https://versatiles.org/sources/", "VersaTiles sources")}`;
 export const imprintAttribution = "| <a href=\"/imprint.html\">Imprint</a> · <a href=\"/imprint.html#data\">Licences</a>";
 
 /**
@@ -62,6 +64,7 @@ export const imprintAttribution = "| <a href=\"/imprint.html\">Imprint</a> · <a
 export const ATTRIBUTION_ORDER = [
   osmAttribution,
   protomapsAttribution,
+  versatilesAttribution,
   mapterhornAttribution,
   dwdAttribution,
   meteoSwissAttribution,

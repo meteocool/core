@@ -88,7 +88,8 @@ export interface BasemapTheme {
 export interface RaisedLines {
   /** The water's edge. Under the weather the fills make the coast; over it, only a line can. */
   coastline: string;
-  waterway: string;
+  /** Null leaves the rivers to whatever is under the weather. */
+  waterway: string | null;
   boundaryCountry: string;
   /** By road `kind`, for the kinds the theme draws. */
   roads: Record<string, string>;
@@ -105,7 +106,7 @@ export type BasemapPart = "all" | "fills" | "lines";
  * 81, DWD's 80) and under the strikes, place names, storms and the wash over
  * where no radar reaches.
  */
-const RAISED_Z_INDEX = 85;
+export const RAISED_Z_INDEX = 85;
 
 /**
  * Road widths grow with zoom. Pinned to one pixel value, they looked like a
@@ -152,7 +153,7 @@ export function themeStyleFunction(theme: BasemapTheme, part: BasemapPart = "all
         // Rivers and canals arrive as lines at high zoom and polygons below.
         const geometry = feature.getGeometry()?.getType();
         if (geometry === "LineString" || geometry === "MultiLineString") {
-          if (!lines) return undefined;
+          if (!lines || raised?.waterway === null) return undefined;
           const bucket = Math.round(zoom);
           return remember(`waterway:${bucket}`, () => strokeStyle(raised?.waterway ?? theme.waterway, roadWidth(1.2, zoom), 2));
         }

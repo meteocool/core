@@ -204,7 +204,8 @@
       "light": "Svijetla",
       "dark": "Tamna",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (biciklizam)"
+      "cyclosm": "CyclOSM (biciklizam)",
+      "satellite": "Satelitska"
     },
     "color_map": "Paleta boja radara",
     "color_maps": {

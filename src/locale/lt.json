@@ -204,7 +204,8 @@
       "light": "Šviesus",
       "dark": "Tamsus",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (dviračiams)"
+      "cyclosm": "CyclOSM (dviračiams)",
+      "satellite": "Palydovinis"
     },
     "color_map": "Radaro spalvų skalė",
     "color_maps": {

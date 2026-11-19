@@ -204,7 +204,8 @@
       "light": "Lyst",
       "dark": "Mørkt",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (cykling)"
+      "cyclosm": "CyclOSM (cykling)",
+      "satellite": "Satellit"
     },
     "color_map": "Radarfarveskala",
     "color_maps": {

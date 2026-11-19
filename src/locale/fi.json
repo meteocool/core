@@ -204,7 +204,8 @@
       "light": "Vaalea",
       "dark": "Tumma",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (pyöräily)"
+      "cyclosm": "CyclOSM (pyöräily)",
+      "satellite": "Satelliitti"
     },
     "color_map": "Tutkan väriasteikko",
     "color_maps": {

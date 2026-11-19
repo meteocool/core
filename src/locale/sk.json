@@ -204,7 +204,8 @@
       "light": "Svetlý",
       "dark": "Tmavý",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (cyklistika)"
+      "cyclosm": "CyclOSM (cyklistika)",
+      "satellite": "Satelitná"
     },
     "color_map": "Farebná škála radaru",
     "color_maps": {

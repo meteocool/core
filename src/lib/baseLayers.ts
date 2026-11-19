@@ -2,7 +2,7 @@
  * The basemaps LayerManager.baseLayerFactory draws. "topographic" is an old
  * name it still answers with the light one.
  */
-export const BASE_LAYERS: readonly string[] = ["light", "dark", "osm", "cyclosm", "topographic"];
+export const BASE_LAYERS: readonly string[] = ["light", "dark", "osm", "cyclosm", "satellite", "topographic"];
 
 /**
  * The basemap a `mapBaseLayer` setting means.
@@ -13,9 +13,10 @@ export const BASE_LAYERS: readonly string[] = ["light", "dark", "osm", "cyclosm"
  * the scheme, picking Dark in dark mode stored nothing, and the map went light
  * again with the system.
  *
- * A basemap no longer drawn follows the scheme too: "satellite", withdrawn
- * with the satellite map, would otherwise have the label, casing and chrome
- * palettes treat the light basemap drawn in its place as dark.
+ * A basemap no longer drawn follows the scheme too, or the label, casing
+ * and chrome palettes would be picked for one the map does not show.
+ * "satellite" was one until the satellite imagery came back as a basemap; a
+ * reader who had the old satellite map stored gets the imagery again.
  */
 export function resolveBaseLayer(value: unknown, dark: boolean): string {
   const name = typeof value === "string" ? value : "";

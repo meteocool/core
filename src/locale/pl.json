@@ -204,7 +204,8 @@
       "light": "Jasny",
       "dark": "Ciemny",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (rowerowa)"
+      "cyclosm": "CyclOSM (rowerowa)",
+      "satellite": "Satelitarna"
     },
     "color_map": "Paleta kolorów radaru",
     "color_maps": {

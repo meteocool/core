@@ -204,7 +204,8 @@
       "light": "Hell",
       "dark": "Dunkel",
       "osm": "OpenStreetMap",
-      "cyclosm": "CyclOSM (Fahrrad)"
+      "cyclosm": "CyclOSM (Fahrrad)",
+      "satellite": "Satellit"
     },
     "color_map": "Radar-Farbschema",
     "color_maps": {

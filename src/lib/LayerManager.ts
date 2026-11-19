@@ -24,6 +24,7 @@ import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import { get } from "svelte/store";
 import { cartoDark, cartoLight, osm, cyclosm } from "../layers/base";
+import { satellite } from "../layers/satellite";
 import {
   archiveWindow, inspectLatLon, latLon, mapBaseLayer, mapExtent4326, mapTapped, mapView, pointMenuAt, sharedActiveCap,
   zoomlevel,
@@ -488,6 +489,8 @@ export class LayerManager {
         return cartoDark();
       case "cyclosm":
         return cyclosm();
+      case "satellite":
+        return satellite();
       case "light":
       case "topographic":
       default:
