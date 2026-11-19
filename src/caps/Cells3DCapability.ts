@@ -241,6 +241,8 @@ const INSPECTIONS: Record<Exclude<InspectMode, "cut">, { style: "cloud" | "glow"
 /** Where the camera lands on leaving a flight: how far ahead of the aircraft it looks, and from how high. */
 const LANDING_KM = 15;
 const LANDING_VIEW = { pitch: 65, zoom: 9.5 };
+/** The nearest a flight's map is drawn from the eye, metres: nearer than a wheel is to the ground under it. */
+const FLIGHT_NEAR_M = 1.5;
 
 /**
  * How many volumes load at once.
@@ -3038,6 +3040,7 @@ export default class Cells3DCapability extends Capability {
       if (gl.getLayer(AIRCRAFT_LAYER)) gl.removeLayer(AIRCRAFT_LAYER);
       this.aircraftLayer = null;
       if (this.styleReady) gl.setSky(undefined as unknown as SkySpecification);
+      gl._camera?.transform?.clearNearFarZOverride?.();
       gl.setCenterClampedToGround(before.clamped);
       if (pose && had) {
         const [lon, lat] = had.destination(pose.lon, pose.lat, pose.heading, LANDING_KM * 1000);
@@ -3080,9 +3083,23 @@ export default class Cells3DCapability extends Capability {
       : [pose.lon, pose.lat];
     // Straight up or down has no heading for the map to turn to: a degree short of both.
     const pitch = Math.min(Math.max(looking.pitch, -89), 89);
+    const height = pose.altitude * VERTICAL_SCALE + (eye?.up ?? 0);
+    const transform = gl._camera?.transform;
+    // The map works out how near it draws from afresh, for the far end of what it draws.
+    transform?.clearNearFarZOverride?.();
     gl.jumpTo(gl.calculateCameraOptionsFromCameraLngLatAltRotation(
-      [lon, lat], pose.altitude * VERTICAL_SCALE + (eye?.up ?? 0), looking.heading, 90 + pitch, ROLL_SIGN * looking.roll,
+      [lon, lat], height, looking.heading, 90 + pitch, ROLL_SIGN * looking.roll,
     ));
+    // The map draws nothing nearer than a fiftieth of the way to what it
+    // looks at, and a camera at the horizon looks kilometres off: low down
+    // the ground under the aircraft would be cut away. Near the ground it
+    // draws from a fifth of the height over it, and never from further than
+    // it would have.
+    if (transform?.overrideNearFarZ) {
+      const over = height - (gl.queryTerrainElevation([lon, lat]) ?? 0);
+      const nearest = Math.max(FLIGHT_NEAR_M, over * 0.2) * transform.pixelsPerMeter;
+      if (nearest < transform.nearZ) transform.overrideNearFarZ(nearest, transform.farZ);
+    }
   }
 
   setAircraft(view: AircraftView | null, screens: AircraftScreen[] = []): void {
