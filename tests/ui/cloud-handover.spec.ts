@@ -87,20 +87,59 @@ async function serveTiles(page: Page, { fail = null as string | null } = {}) {
   return { release: () => release(), requests };
 }
 
-/** Every set of volumes handed to the layer, from now on, by tile code. */
+/**
+ * Every set of volumes handed to the layer, from now on, by tile code: to
+ * whichever layer the map holds, as a style loading again makes a new one.
+ */
 const watchLayer = (page: Page) => page.evaluate(() => {
   const capability = (window as any).lm.getCapability("cells3d");
-  const layer = capability.cloudsLayer;
   const pushes: string[][] = [];
   (window as any).__pushes = pushes;
-  const set = layer.setClouds.bind(layer);
-  layer.setClouds = (next: Array<{ cutaway: { header: { code: string } } }>) => {
-    pushes.push(next.map((cloud) => cloud.cutaway.header.code));
-    return set(next);
+  (window as any).__layers = 0;
+  const watch = (layer: any) => {
+    if (!layer || layer.__watched) return layer;
+    const set = layer.setClouds.bind(layer);
+    layer.setClouds = (next: Array<{ cutaway: { header: { code: string } } }>) => {
+      pushes.push(next.map((cloud) => cloud.cutaway.header.code));
+      return set(next);
+    };
+    layer.__watched = true;
+    (window as any).__layers += 1;
+    return layer;
   };
+  let current = watch(capability.cloudsLayer);
+  Object.defineProperty(capability, "cloudsLayer", {
+    configurable: true,
+    get: () => current,
+    set: (layer) => { current = watch(layer); },
+  });
 });
 const pushes = (page: Page): Promise<string[][]> => page.evaluate(() => (window as any).__pushes);
 const drawnNow = async (page: Page) => (await pushes(page)).at(-1) ?? [];
+
+/** What the map holds and is fetching, for a failure to say where it stuck. */
+const held = (page: Page) => page.evaluate(() => {
+  const capability = (window as any).lm.getCapability("cells3d");
+  const code = (path: string) => /-(T\d+)\.mcvx$/.exec(path)?.[1] ?? path;
+  return JSON.stringify({
+    zoom: capability.gl.getZoom(),
+    layers: (window as any).__layers,
+    fine: [...capability.fineTiles],
+    wanted: capability.wanted().map((volume: { path: string }) => code(volume.path)),
+    held: [...capability.cutaways.keys()].map(code),
+    fetching: [...capability.fetching.keys()].map(code),
+    retries: [...capability.retries.failures].map(([path, failure]: [string, unknown]) => [code(path), failure]),
+  });
+});
+
+/** Wait until the layer is handed exactly the four fine tiles, saying what it held if it never is. */
+async function untilFine(page: Page, timeout: number) {
+  try {
+    await expect.poll(async () => [...await drawnNow(page)].sort(), { timeout }).toEqual([...FINE_CODES].sort());
+  } catch (error) {
+    throw new Error(`${(error as Error).message}\nheld: ${await held(page)}`);
+  }
+}
 
 const COARSE_CODE = tileCode(...COARSE);
 const FINE_CODES = FINE.map((tile) => tileCode(...tile));
@@ -136,7 +175,7 @@ test.describe("handing a storm over to finer tiles", () => {
     await page.waitForTimeout(1000);
     expect(await drawnNow(page)).toEqual([COARSE_CODE]);
     release();
-    await expect.poll(async () => [...await drawnNow(page)].sort(), { timeout: 15_000 }).toEqual([...FINE_CODES].sort());
+    await untilFine(page, 15_000);
     // Never less than the whole place in between: the coarse tile, or all four.
     for (const drawn of await pushes(page)) {
       const whole = drawn.includes(COARSE_CODE) || FINE_CODES.every((code) => drawn.includes(code));
@@ -151,7 +190,7 @@ test.describe("handing a storm over to finer tiles", () => {
     await openOnCoarse(page);
     release();
     await zoomIn(page);
-    await expect.poll(async () => [...await drawnNow(page)].sort(), { timeout: 20_000 }).toEqual([...FINE_CODES].sort());
+    await untilFine(page, 20_000);
     expect(requests.get(failing)).toBe(2);
   });
 });

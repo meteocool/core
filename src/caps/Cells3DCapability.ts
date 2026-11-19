@@ -1900,11 +1900,14 @@ export default class Cells3DCapability extends Capability {
             system: cloud.system ?? null,
           });
         }
-        if (this.loadToken !== token) return;
-        // What the new volumes stood in for can go now; see `handOver`.
+        // What the new volumes stood in for can go now; see `handOver`. Drawn
+        // even by a load a newer one has taken over: that one may have
+        // finished already, and then nothing else would draw them. Each of
+        // these works from the map's state as it is now, not this load's.
         this.dropUnlisted();
         this.hold();
         this.pushClouds();
+        if (this.loadToken !== token) return;
         if (this.faint.size + this.givenUp() > faintInBatch && this.gl && this.styleReady) this.ensureClouds(this.gl);
         // Switched away: the rest waits for `attach`, whose refresh fetches
         // whatever is still missing.
