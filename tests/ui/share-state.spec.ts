@@ -118,10 +118,6 @@ test("a link from before leaves the stations and the radars' marks to the receiv
 test("the lightning is switched in the storm key, not in Settings, and the address bar follows it", async ({ page }) => {
   await noGeocoder(page);
   await openRadar(page, VIEW);
-  await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByRole("switch", { name: /Lightning/ })).toHaveCount(0);
-  await page.keyboard.press("Escape");
-
   await page.getByRole("button", { name: "Storms" }).click();
   const lightning = page.getByRole("switch", { name: "Show on the map: Lightning" });
   await expect(lightning).toBeChecked();
@@ -129,6 +125,11 @@ test("the lightning is switched in the storm key, not in Settings, and the addre
   await expect.poll(() => overlaysIn(page.url())).toContain("-lightning");
   await lightning.check();
   await expect.poll(() => overlaysIn(page.url())).toContain("lightning");
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByRole("switch", { name: "Storm Cells" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: /Lightning/ })).toHaveCount(0);
 });
 
 test("with the storm marks off, the storm key still switches the lightning", async ({ page }) => {
