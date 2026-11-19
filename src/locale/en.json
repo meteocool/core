@@ -106,6 +106,7 @@
     "open_title": "Open meteocool Studio: section planes, camera views and animated scenes",
     "planes": "Section planes",
     "camera": "Camera",
+    "basemap": "Basemap",
     "clouds": "Clouds",
     "recording_note": "Recording… Esc stops",
     "video": {
@@ -129,7 +130,7 @@
       "face_camera_title": "Turn the plane so its cut faces the camera",
       "hide": "Stop cutting with this plane",
       "show": "Cut with this plane again",
-      "remove": "Remove this plane",
+      "remove": "Remove plane {id}",
       "handle": "Section plane {id}: drag to move it"
     },
     "view": {

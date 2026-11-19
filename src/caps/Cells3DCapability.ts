@@ -2139,11 +2139,12 @@ export default class Cells3DCapability extends Capability {
     // On the ground with the radar, under the storms: see `drapeAnchor`.
     const under = drapeAnchor(gl.getStyle().layers);
     const casing = boxCasing(this.dark);
+    const visibility = this.boxVisibility();
     gl.addLayer({
       id: CLOUD_BOX_CASING,
       type: "line",
       source: CLOUD_SOURCE,
-      layout: { "line-join": "round" },
+      layout: { "line-join": "round", visibility },
       paint: {
         "line-color": `rgba(${casing.colour.join(", ")})`,
         "line-width": casing.width,
@@ -2154,7 +2155,7 @@ export default class Cells3DCapability extends Capability {
       id: CLOUD_BOX,
       type: "line",
       source: CLOUD_SOURCE,
-      layout: { "line-join": "round" },
+      layout: { "line-join": "round", visibility },
       paint: {
         "line-color": boxColour(this.colormap, this.dark),
         "line-width": 1.5,
@@ -2324,7 +2325,19 @@ export default class Cells3DCapability extends Capability {
     gl.setMaxPitch(on ? STUDIO_MAX_PITCH : MAX_PITCH);
     this.applyLens();
     if (this.styleReady) this.ensureStudio(gl);
+    for (const id of [CLOUD_BOX_CASING, CLOUD_BOX]) {
+      if (gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", this.boxVisibility());
+    }
     this.applySections();
+  }
+
+  /**
+   * The storms' boxes on the ground are for finding one to open, and Studio
+   * opens none: there they are only a grid drawn over every picture. Put
+   * away while in Studio, back on leaving it; a restyle adds them as this says.
+   */
+  private boxVisibility(): "visible" | "none" {
+    return this.studio ? "none" : "visible";
   }
 
   /** The layer Studio's planes are drawn by, there while in Studio and gone outside it. */

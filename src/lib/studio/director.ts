@@ -130,11 +130,15 @@ export class Director {
     });
   }
 
-  /** A scene of one turn round what the camera is looking at, in place of the one there. */
+  /**
+   * A scene of one slow turn round what the camera is looking at, in place
+   * of the one there. Its own length, not the scene's: a turn in the twelve
+   * seconds a new scene runs is a blur. The length can be changed after.
+   */
   makeOrbit(): void {
     const state = this.capture();
     if (!state) return;
-    this.replaceScene(orbitScene(state, get(studioScene).duration));
+    this.replaceScene(orbitScene(state));
   }
 
   /** A scene of the last hour of storms from where the camera stands, in place of the one there. */

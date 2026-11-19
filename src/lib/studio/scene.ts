@@ -220,8 +220,14 @@ export function scansOf(scene: Scene, fps = 10): Array<{ scan: number | null; at
   return out;
 }
 
+/**
+ * How long an orbit takes to go round, in seconds: slow enough to look at
+ * the storms as they turn, whatever length the scene had before.
+ */
+export const ORBIT_DURATION = 48;
+
 /** A turn all the way round what the camera is looking at, at one moment held still. */
-export function orbitScene(state: SceneState, duration = DEFAULT_DURATION): Scene {
+export function orbitScene(state: SceneState, duration = ORBIT_DURATION): Scene {
   return {
     duration,
     keyframes: [0, 1, 2, 3].map((third) => ({

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  decodeStudio, DEFAULT_FOV, emptyScene, encodeStudio, keyframeAt, orbitScene, sample, scansOf, STUDIO_MAX_PITCH,
+  decodeStudio, DEFAULT_FOV, emptyScene, encodeStudio, keyframeAt, ORBIT_DURATION, orbitScene, sample, scansOf,
+  STUDIO_MAX_PITCH,
   timelapseScene, unwound, withDuration, withKeyframe, withoutKeyframe,
 } from "../../src/lib/studio/scene.ts";
 import type { Keyframe, SceneState } from "../../src/lib/studio/scene.ts";
@@ -77,17 +78,32 @@ test("the camera turns the short way round, and all the way round for an orbit",
   scene = withKeyframe(scene, keyframe(10, {}, { bearing: 10 }));
   near(sample(scene, 5)!.camera.bearing, 0);
 
-  const orbit = orbitScene(state({}, { bearing: 30 }), 12);
+  const orbit = orbitScene(state({}, { bearing: 30 }));
+  assert.equal(orbit.duration, ORBIT_DURATION);
   assert.deepEqual(orbit.keyframes.map(({ camera }) => camera.bearing), [30, 150, 270, 30]);
+  assert.deepEqual(orbit.keyframes.map(({ at }) => at), [0, 1, 2, 3].map((third) => (ORBIT_DURATION * third) / 3));
   // Always onward: never back the way it came.
   let before = -Infinity;
-  for (let at = 0; at <= 12; at += 0.25) {
+  for (let at = 0; at <= ORBIT_DURATION; at += 0.5) {
     const turned = unwound([30, sample(orbit, at)!.camera.bearing])[1];
     const onward = turned < before - 1e-6 ? turned + 360 : turned;
     assert.ok(onward >= before - 1e-6, `${at}s: ${onward} after ${before}`);
     before = onward;
   }
-  near(sample(orbit, 6)!.camera.bearing, 210, 1e-6);
+  near(sample(orbit, ORBIT_DURATION / 2)!.camera.bearing, 210, 1e-6);
+});
+
+test("an orbit goes round slowly, whatever length a new scene has, and can be made shorter after", () => {
+  // Slow enough to look at: no faster than a turn in 45 seconds, and well past a new scene's length.
+  assert.ok(ORBIT_DURATION >= 45 && ORBIT_DURATION <= 60, String(ORBIT_DURATION));
+  assert.ok(ORBIT_DURATION > emptyScene().duration);
+  const orbit = orbitScene(state({}, { bearing: 0 }));
+  // Eased out of standing still: a tenth of the way in, less than a tenth of the way round.
+  const tenth = sample(orbit, ORBIT_DURATION / 10)!.camera.bearing;
+  assert.ok(tenth > 0 && tenth < 36, String(tenth));
+  const shorter = withDuration(orbit, 12);
+  assert.equal(shorter.duration, 12);
+  near(sample(shorter, 6)!.camera.bearing, 180, 1e-6);
 });
 
 test("what a camera cannot do, a scene does not ask of it", () => {

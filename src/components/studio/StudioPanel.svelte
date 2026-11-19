@@ -1,8 +1,8 @@
 <script lang="ts">
 /**
- * Studio's tools: the section planes, the camera, and how the clouds are
- * drawn (their style, lib/cloudStyle.ts, and their peel). A panel down the
- * left edge, as a CAD program's inspector is.
+ * Studio's tools: the section planes, the camera, the basemap, and how the
+ * clouds are drawn (their style, lib/cloudStyle.ts, and their peel). A
+ * panel down the left edge, as a CAD program's inspector is.
  *
  * The planes are the scene's own (lib/studio/planes.ts): added here where
  * the camera is looking, then turned, leaned, pushed and thinned to a slab
@@ -10,12 +10,16 @@
  * also dragged by its handle on the map.
  */
 import { _ } from "svelte-i18n";
-import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
+import logo from "../../assets/logo.svg";
 import { faTrash } from "@fortawesome/free-solid-svg-icons/faTrash";
 import { faRightLeft } from "@fortawesome/free-solid-svg-icons/faRightLeft";
 import { faEye } from "@fortawesome/free-solid-svg-icons/faEye";
 import { faEyeSlash } from "@fortawesome/free-solid-svg-icons/faEyeSlash";
 import { faVideo } from "@fortawesome/free-solid-svg-icons/faVideo";
+import { faCamera } from "@fortawesome/free-solid-svg-icons/faCamera";
+import { faCircleDot } from "@fortawesome/free-solid-svg-icons/faCircleDot";
+import { BASE_LAYERS } from "../../lib/baseLayers";
+import { mapBaseLayer } from "../../stores";
 import Icon from "../Icon.svelte";
 import Segmented from "../Segmented.svelte";
 import CloseDisc from "../CloseDisc.svelte";
@@ -40,6 +44,29 @@ const SLAB_RANGE: [number, number] = [0.5, 30];
 /** As far as the push slider carries a plane to either side before it is let go, km. */
 const PUSH_KM = 40;
 
+/* What the add buttons start with: the plane they add, seen edge on, an
+   upright dash and a level one. In Font Awesome's shape, for Icon.svelte. */
+const UPRIGHT_GLYPH = { icon: [512, 512, [], "", "M256 48a48 48 0 0 1 48 48v320a48 48 0 0 1-96 0V96a48 48 0 0 1 48-48z"] };
+const LEVEL_GLYPH = { icon: [512, 512, [], "", "M48 256a48 48 0 0 1 48-48h320a48 48 0 0 1 0 96H96a48 48 0 0 1-48-48z"] };
+
+/**
+ * The basemaps Settings offers, in its order: following the system, then
+ * every one drawn, less the old name the light one still answers to.
+ */
+const BASEMAPS = ["system", ...BASE_LAYERS.filter((name) => name !== "topographic")];
+
+/* The reader's own choice, the `mapBaseLayer` setting, as Settings keeps it:
+   the store holds the basemap it resolves to, never "system", so the choice
+   itself is read from the setting, again whenever the store moves. */
+const chosenBasemap = (_resolved?: string) => window.settings.getString<string>("mapBaseLayer", "system");
+let basemap = chosenBasemap();
+$: basemap = chosenBasemap($mapBaseLayer);
+
+function setBasemap(event: Event) {
+  basemap = (event.currentTarget as HTMLSelectElement).value;
+  window.settings.set("mapBaseLayer", basemap);
+}
+
 $: selected = $studioPlanes.find((plane) => plane.id === $studioSelectedPlane) ?? null;
 $: lens = lensOf($studioFov);
 
@@ -61,10 +88,11 @@ function change(patch: Partial<SectionPlane> | ((plane: SectionPlane) => Section
   }));
 }
 
-function remove() {
-  const id = $studioSelectedPlane;
-  studioPlanes.update((planes) => planes.filter((plane) => plane.id !== id));
-  studioSelectedPlane.set($studioPlanes[0]?.id ?? null);
+/** Take a plane out of the scene; if it was the selected one, the first left is selected. */
+function remove(id: number) {
+  let left: SectionPlane[] = [];
+  studioPlanes.update((planes) => (left = planes.filter((plane) => plane.id !== id)));
+  if ($studioSelectedPlane === id) studioSelectedPlane.set(left[0]?.id ?? null);
 }
 
 /** Turn the selected plane to face the camera, so its cut is what is looked at. */
@@ -115,7 +143,7 @@ function peel(event: Event) {
 
 <section class="panel glass glass-tray glass-reading" aria-label={$_("studio.title")}>
   <header>
-    <h2><span class="brand">meteocool</span> Studio</h2>
+    <h2><img src={logo} alt="" class="logo" /><span><span class="brand">meteocool</span> Studio</span></h2>
     <CloseDisc on:click={onclose} />
   </header>
 
@@ -123,10 +151,10 @@ function peel(event: Event) {
     <h3>{$_("studio.planes")}</h3>
     <div class="row">
       <button type="button" class="chip" disabled={$studioPlanes.length >= MAX_PLANES} on:click={() => add("upright")}>
-        <Icon icon={faPlus} /> {$_("studio.plane.upright")}
+        <Icon icon={UPRIGHT_GLYPH} /> {$_("studio.plane.upright")}
       </button>
       <button type="button" class="chip" disabled={$studioPlanes.length >= MAX_PLANES} on:click={() => add("level")}>
-        <Icon icon={faPlus} /> {$_("studio.plane.level")}
+        <Icon icon={LEVEL_GLYPH} /> {$_("studio.plane.level")}
       </button>
     </div>
     {#if $studioPlanes.length}
@@ -141,6 +169,11 @@ function peel(event: Event) {
               aria-pressed={plane.id === $studioSelectedPlane}
               on:click={() => studioSelectedPlane.set(plane.id)}>
               <span class="tag">{plane.id}</span>{nameOf(plane)}
+            </button>
+            <button type="button" class="drop" on:click={() => remove(plane.id)}
+              aria-label={$_("studio.plane.remove", { values: { id: plane.id } })}
+              title={$_("studio.plane.remove", { values: { id: plane.id } })}>
+              <Icon icon={faTrash} />
             </button>
           </li>
         {/each}
@@ -206,15 +239,11 @@ function peel(event: Event) {
             title={$_(selected.enabled ? "studio.plane.hide" : "studio.plane.show")}>
             <Icon icon={selected.enabled ? faEye : faEyeSlash} />
           </button>
-          <button type="button" class="chip icon" on:click={remove}
-            aria-label={$_("studio.plane.remove")} title={$_("studio.plane.remove")}>
-            <Icon icon={faTrash} />
-          </button>
         </div>
       </div>
     {/if}
 
-    <h3>{$_("studio.camera")}</h3>
+    <h3><Icon icon={faCamera} /> {$_("studio.camera")}</h3>
     <div class="views" role="group" aria-label={$_("studio.view.aria")}>
       {#each VIEWS as view (view)}
         <button type="button" class="chip" on:click={() => director.lookFrom(view)} title={$_(`studio.view.${view}_title`)}>
@@ -223,7 +252,7 @@ function peel(event: Event) {
       {/each}
     </div>
     <div class="lens">
-      <span class="caption">{$_("studio.lens.label")}</span>
+      <span class="caption"><Icon icon={faCircleDot} /> {$_("studio.lens.label")}</span>
       <Segmented
         compact
         stretch
@@ -232,6 +261,15 @@ function peel(event: Event) {
         value={lens ?? "normal"}
         on:change={(event) => setLens(event.detail)} />
     </div>
+
+    <h3 id="studio-basemap">{$_("studio.basemap")}</h3>
+    <select class="basemap" value={basemap} aria-labelledby="studio-basemap" on:change={setBasemap}>
+      {#each BASEMAPS as name (name)}
+        <option value={name}>
+          {$_(`settings.base_layers.${name}`)}{name === "system" ? ` · ${$_(`settings.base_layers.${$mapBaseLayer}`)}` : ""}
+        </option>
+      {/each}
+    </select>
 
     <h3>{$_("studio.clouds")}</h3>
     <div class="lens">
@@ -277,9 +315,19 @@ function peel(event: Event) {
     padding: 12px 12px 4px 16px;
   }
   h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin: 0;
     font: var(--mc-type-heading);
     letter-spacing: -0.01em;
+  }
+  /* As the top-left logo draws it, a size down for the panel's title. */
+  .logo {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.28));
   }
   .brand { font-weight: 400; color: var(--mc-text-2); }
   .body {
@@ -288,6 +336,9 @@ function peel(event: Event) {
     padding: 0 16px 14px;
   }
   h3 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin: 14px 0 8px;
     font: 600 11px/1 var(--mc-font);
     letter-spacing: 0.06em;
@@ -340,11 +391,17 @@ function peel(event: Event) {
     padding: 0;
     list-style: none;
   }
-  .plane {
+  .planes li {
     display: flex;
     align-items: center;
+    gap: 2px;
+  }
+  .plane {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
     gap: 8px;
-    width: 100%;
     height: 30px;
     padding: 0 8px;
     border: 0;
@@ -359,6 +416,23 @@ function peel(event: Event) {
   .plane.on { background: color-mix(in srgb, var(--studio-accent) 22%, transparent); }
   .plane.off { color: var(--mc-text-3); }
   .plane:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 1px; }
+  /* Every row's own way out, not only the selected one's. */
+  .drop {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--mc-radius-inner);
+    background: transparent;
+    color: var(--mc-text-2);
+    cursor: pointer;
+  }
+  .drop :global(svg) { width: 12px; height: 12px; }
+  .drop:hover { background: var(--mc-tint); color: #ff453a; }
+  .drop:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 1px; }
   .tag {
     display: inline-grid;
     place-items: center;
@@ -413,5 +487,26 @@ function peel(event: Event) {
     gap: 6px;
     margin-top: 10px;
   }
-  .caption { font-size: 12px; color: var(--mc-text-2); }
+  .caption {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--mc-text-2);
+  }
+  h3 :global(svg), .caption :global(svg) { width: 11px; height: 11px; }
+  .basemap {
+    width: 100%;
+    height: var(--mc-pill-h);
+    box-sizing: border-box;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+    color: var(--mc-text);
+    font: 600 12px/1 var(--mc-font);
+    cursor: pointer;
+  }
+  .basemap:hover { background: var(--mc-tint-hover); }
+  .basemap:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
 </style>

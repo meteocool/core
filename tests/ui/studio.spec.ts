@@ -17,9 +17,15 @@ const MAP_3D = "/?layer=cells3d&latLonZ=50.50000,9.50000,7.00&pitch=0&bearing=0"
 const enter = (page: Page) => page.getByRole("button", { name: "Studio", exact: true });
 const panel = (page: Page) => page.getByRole("region", { name: "meteocool Studio" });
 const timeline = (page: Page) => page.getByRole("region", { name: "Time and scene" });
-const planes = (page: Page) => panel(page).locator(".planes button");
+const planes = (page: Page) => panel(page).locator(".planes button.plane");
 const handles = (page: Page) => page.locator(".studio-plane-handle");
 const marks = (page: Page) => timeline(page).locator(".marks i");
+
+/** Whether the storms' boxes on the ground are drawn: both their outline and its halo. */
+const boxes = (page: Page) => page.evaluate(() => {
+  const { gl } = (window as any).lm.getCapability("cells3d");
+  return ["cloud-box", "cloud-box-casing"].map((id) => (gl.getLayer(id) ? gl.getLayoutProperty(id, "visibility") ?? "visible" : "absent"));
+});
 
 /** The 3D map up, and Studio opened from the end of its peel tray. */
 async function openStudio(page: Page): Promise<void> {
@@ -49,6 +55,34 @@ test.describe("on a desktop", () => {
     await expect(page.locator(".peel .picker")).toHaveCount(0);
   });
 
+  test("the storms' boxes on the ground are put away in Studio, also across a restyle, and back after", async ({ page }) => {
+    await openStudio(page);
+    await expect.poll(() => boxes(page), { timeout: 30_000 }).toEqual(["none", "none"]);
+
+    // A light/dark switch rebuilds every layer: they come back put away.
+    await page.evaluate(() => {
+      (window as any).restyled = false;
+      (window as any).lm.getCapability("cells3d").gl.once("style.load", () => { (window as any).restyled = true; });
+    });
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect.poll(() => page.evaluate(() => (window as any).restyled), { timeout: 30_000 }).toBe(true);
+    await expect.poll(() => boxes(page), { timeout: 30_000 }).toEqual(["none", "none"]);
+
+    await panel(page).getByRole("button", { name: "Close" }).click();
+    await expect(panel(page)).toBeHidden();
+    await expect.poll(() => boxes(page), { timeout: 30_000 }).toEqual(["visible", "visible"]);
+  });
+
+  test("the basemap is picked in the panel, as in Settings, and kept", async ({ page }) => {
+    await openStudio(page);
+    const basemap = panel(page).getByRole("combobox", { name: "Basemap" });
+    await expect(basemap).toHaveValue("system");
+    await basemap.selectOption("osm");
+    await expect.poll(() => page.evaluate(() => window.settings.getString("mapBaseLayer", "system"))).toBe("osm");
+    await basemap.selectOption("system");
+    await expect.poll(() => page.evaluate(() => window.settings.getString("mapBaseLayer", "system"))).toBe("system");
+  });
+
   test("Back leaves Studio, as it leaves anything opened over the map", async ({ page }) => {
     await openStudio(page);
     await expect(page).toHaveURL(/[?&]studio=/);
@@ -71,8 +105,17 @@ test.describe("on a desktop", () => {
     // Three is as many as a scene holds.
     await panel(page).getByRole("button", { name: "Upright", exact: true }).click();
     await expect(panel(page).getByRole("button", { name: "Upright", exact: true })).toBeDisabled();
-    await panel(page).getByRole("button", { name: "Remove this plane" }).click();
+    await expect(planes(page).nth(2)).toHaveAttribute("aria-pressed", "true");
+
+    // Each row has its own way out, the selected plane's or not: the selection stays where it was.
+    await expect(panel(page).getByRole("button", { name: /^Remove plane \d$/ })).toHaveCount(3);
+    await panel(page).getByRole("button", { name: "Remove plane 3" }).click();
+    await panel(page).getByRole("button", { name: "Upright", exact: true }).click();
+    await expect(planes(page)).toHaveCount(3);
+    await planes(page).nth(1).click();
+    await panel(page).getByRole("button", { name: "Remove plane 3" }).click();
     await expect(planes(page)).toHaveCount(2);
+    await expect(planes(page).nth(1)).toHaveAttribute("aria-pressed", "true");
 
     // The address has caught up with the scene.
     const withPlanes = async () => {
@@ -103,9 +146,10 @@ test.describe("on a desktop", () => {
     await timeline(page).getByRole("button", { name: "Remove the keyframe here" }).click();
     await expect(marks(page)).toHaveCount(0);
 
-    // One turn round, in two seconds.
+    // One slow turn round, whatever the scene's length was; then made two seconds.
     await timeline(page).getByRole("button", { name: "Orbit" }).click();
     await expect(marks(page)).toHaveCount(4);
+    await expect(timeline(page)).toContainText("0.0 / 48 s");
     const length = timeline(page).getByRole("spinbutton", { name: "Length of the scene in seconds" });
     await length.fill("2");
     await length.blur();
