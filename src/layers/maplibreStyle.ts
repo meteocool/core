@@ -141,17 +141,76 @@ function matchKind(kinds: Record<string, string>, fallback: string): ExpressionS
   ] as unknown as ExpressionSpecification;
 }
 
-export function basemapStyle(theme: BasemapTheme): StyleSpecification {
+/**
+ * Raster imagery in place of the theme's fills: the satellite basemap. The
+ * theme then only draws its lines over it.
+ */
+export interface BasemapImagery {
+  tiles: string;
+  maxzoom: number;
+  attribution: string;
+}
+
+const IMAGERY = "imagery";
+
+/**
+ * The imagery, drained as `muteTheme` drains a theme and for the same reason:
+ * forests and fields in full colour are the storms' green and yellow.
+ */
+const IMAGERY_PAINT = {
+  "raster-saturation": -0.55,
+  "raster-contrast": -0.1,
+  "raster-brightness-max": 0.85,
+};
+
+export function basemapStyle(theme: BasemapTheme, imagery?: BasemapImagery): StyleSpecification {
   const layers: LayerSpecification[] = [
     { id: "background", type: "background", paint: { "background-color": theme.earth } },
-    {
-      id: "earth",
-      type: "fill",
-      source: SOURCE,
-      "source-layer": "earth",
-      paint: { "fill-color": theme.earth },
-    },
   ];
+  if (imagery) {
+    layers.push({ id: IMAGERY, type: "raster", source: IMAGERY, paint: IMAGERY_PAINT });
+  } else {
+    pushFills(layers, theme);
+  }
+  pushLines(layers, theme, !imagery);
+  if (!imagery) pushBuildings(layers, theme);
+  pushBoundaries(layers, theme);
+
+  return {
+    version: 8,
+    // No glyph or sprite endpoint: meteocool hosts neither, and pointing at
+    // one would fail on every tile. With no glyphs URL, MapLibre draws the
+    // place names' letters itself, from the fonts the browser has; see
+    // `placeLabels`.
+    sources: {
+      [SOURCE]: {
+        type: "vector",
+        tiles: [`${mapEndpoint}/{z}/{x}/{y}.mvt`],
+        maxzoom: MAP_MAX_ZOOM,
+        attribution: [osmAttribution, protomapsAttribution, imprintAttribution].join(" "),
+      },
+      ...(imagery ? {
+        [IMAGERY]: {
+          type: "raster" as const,
+          tiles: [imagery.tiles],
+          tileSize: 512,
+          maxzoom: imagery.maxzoom,
+          attribution: imagery.attribution,
+        },
+      } : {}),
+    },
+    layers,
+  };
+}
+
+function pushFills(layers: LayerSpecification[], theme: BasemapTheme): void {
+  layers.push({
+    id: "earth",
+    type: "fill",
+    source: SOURCE,
+    "source-layer": "earth",
+    paint: { "fill-color": theme.earth },
+  });
 
   if (Object.keys(theme.landcover).length) {
     layers.push({
@@ -173,26 +232,29 @@ export function basemapStyle(theme: BasemapTheme): StyleSpecification {
     });
   }
 
-  layers.push(
-    {
-      id: "water",
-      type: "fill",
-      source: SOURCE,
-      "source-layer": "water",
-      filter: ["==", ["geometry-type"], "Polygon"],
-      paint: { "fill-color": theme.water },
-    },
-    {
+  layers.push({
+    id: "water",
+    type: "fill",
+    source: SOURCE,
+    "source-layer": "water",
+    filter: ["==", ["geometry-type"], "Polygon"],
+    paint: { "fill-color": theme.water },
+  });
+}
+
+/** Rivers (unless the imagery has them) and roads, weakest class first so a motorway is drawn over a track. */
+function pushLines(layers: LayerSpecification[], theme: BasemapTheme, rivers: boolean): void {
+  if (rivers) {
+    layers.push({
       id: "waterway",
       type: "line",
       source: SOURCE,
       "source-layer": "water",
       filter: ["==", ["geometry-type"], "LineString"],
       paint: { "line-color": theme.waterway, "line-width": widthByZoom(1.2) },
-    },
-  );
+    });
+  }
 
-  // Roads, weakest class first so a motorway is drawn over a track.
   const ordered = ["ferry", "rail", "path", "minor_road", "major_road", "highway"];
   ordered
     .filter((kind) => theme.roadKinds.includes(kind) && theme.roads[kind])
@@ -208,9 +270,13 @@ export function basemapStyle(theme: BasemapTheme): StyleSpecification {
         paint: { "line-color": spec.color, "line-width": widthByZoom(spec.width) },
       });
     });
+}
 
-  // Flat, as on the 2D map: under a radar overlay they are texture, and
-  // extruding them would compete with the storms this map exists to show.
+/**
+ * Flat, as on the 2D map: under a radar overlay they are texture, and
+ * extruding them would compete with the storms this map exists to show.
+ */
+function pushBuildings(layers: LayerSpecification[], theme: BasemapTheme): void {
   layers.push({
     id: "buildings",
     type: "fill",
@@ -222,7 +288,9 @@ export function basemapStyle(theme: BasemapTheme): StyleSpecification {
       ...(theme.buildingStroke ? { "fill-outline-color": theme.buildingStroke } : {}),
     },
   });
+}
 
+function pushBoundaries(layers: LayerSpecification[], theme: BasemapTheme): void {
   layers.push({
     id: "boundary-country",
     type: "line",
@@ -243,23 +311,6 @@ export function basemapStyle(theme: BasemapTheme): StyleSpecification {
       paint: { "line-color": theme.boundaryRegion, "line-width": 0.8, "line-dasharray": [4, 4] },
     });
   }
-
-  return {
-    version: 8,
-    // No glyph or sprite endpoint: meteocool hosts neither, and pointing at
-    // one would fail on every tile. With no glyphs URL, MapLibre draws the
-    // place names' letters itself, from the fonts the browser has; see
-    // `placeLabels`.
-    sources: {
-      [SOURCE]: {
-        type: "vector",
-        tiles: [`${mapEndpoint}/{z}/{x}/{y}.mvt`],
-        maxzoom: MAP_MAX_ZOOM,
-        attribution: [osmAttribution, protomapsAttribution, imprintAttribution].join(" "),
-      },
-    },
-    layers,
-  };
 }
 
 /** The id of the place names' layer, which the 3D map adds over everything it draws. */

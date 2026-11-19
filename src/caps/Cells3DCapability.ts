@@ -15,7 +15,10 @@ import { darkLabels, lightLabels } from "../layers/labels";
 import { placeNameKeys } from "../layers/placeName";
 import { chooseLocale } from "../locale/choose";
 import { locale } from "svelte-i18n";
-import { blitzortungAttribution, dwdAttribution } from "../layers/attributions";
+import { blitzortungAttribution, dwdAttribution, imprintAttribution, versatilesAttribution } from "../layers/attributions";
+import {
+  installSatelliteProtocol, SATELLITE_MAX_ZOOM, SATELLITE_PROTOCOL_TILES, satelliteTheme3d,
+} from "../layers/satellite";
 import { tileSourceUrl } from "../layers/dwd";
 import { drawnTileId } from "../lib/rvp6";
 import { NETWORKS } from "../layers/network";
@@ -44,7 +47,7 @@ import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes, quietly } from 
 import {
   capDescription, cells3dFailed, cells3dLoading, cells3dVisible, cloudStyle, cloudsTime, colorSchemeDark, cutRotationDeg,
   cutSweepDeg, mapView, peelLevel, peelManual, radarColormap, selectedCell, selectedStorm, sharedActiveCap, stormDetails,
-  showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d,
+  showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d, mapBaseLayer,
 } from "../stores";
 import { derived, get } from "svelte/store";
 import { nextSelection } from "../lib/cellSelection";
@@ -612,7 +615,11 @@ export default class Cells3DCapability extends Capability {
   private picking: symbol | null = null;
 
 
+  /** Whether what the map is drawn over is dark: the dark scheme, or the satellite imagery. */
   private dark = false;
+
+  /** The satellite basemap in place of the drawn one. */
+  private satellite = false;
 
   /** Guards the two-way camera sync against echoing a move back and forth. */
   private syncing = false;
@@ -816,8 +823,15 @@ export default class Cells3DCapability extends Capability {
       this.nameKeys = placeNameKeys(tag);
       if (this.gl && this.styleReady) this.ensureLabels(this.gl);
     });
-    this.unsubscribeTheme = colorSchemeDark.subscribe((value) => {
-      this.dark = Boolean(value);
+    /* The drawn basemap here follows the scheme, whichever drawn basemap the
+       flat map shows: it is a muted one of its own, made to sit under the
+       storms. The satellite imagery replaces it, with the dark palettes. */
+    this.unsubscribeTheme = derived([colorSchemeDark, mapBaseLayer], (both) => both).subscribe(([scheme, basemap]) => {
+      const satellite = basemap === "satellite";
+      const dark = Boolean(scheme) || satellite;
+      if (dark === this.dark && satellite === this.satellite) return;
+      this.dark = dark;
+      this.satellite = satellite;
       if (!this.gl) return;
       if (!this.shown) {
         this.styleStale = true;
@@ -838,6 +852,13 @@ export default class Cells3DCapability extends Capability {
   }
 
   private style(): StyleSpecification {
+    if (this.satellite) {
+      return basemapStyle(satelliteTheme3d, {
+        tiles: SATELLITE_PROTOCOL_TILES,
+        maxzoom: SATELLITE_MAX_ZOOM,
+        attribution: [versatilesAttribution, imprintAttribution].join(" "),
+      });
+    }
     return basemapStyle(muteTheme(this.dark ? darkTheme : lightTheme));
   }
 
@@ -950,6 +971,7 @@ export default class Cells3DCapability extends Capability {
       this.maplibre = maplibre;
       // The radar rasters' tiles come through `masked://`; see `ensureRadar`.
       installMaskedProtocol(maplibre);
+      installSatelliteProtocol(maplibre);
       built = true;
       let settle!: () => void;
       this.settled = new Promise((resolve) => { settle = resolve; });

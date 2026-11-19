@@ -17,7 +17,7 @@ import { darkTheme } from "./base";
  * 512 px WebP tiles. Everywhere has them to zoom 12; past that only the
  * orthophoto countries do, to zoom 16 for most of them. Elsewhere a tile past
  * 12 is a 404, so a missing tile is cut out of the nearest ancestor that
- * exists (see loadSatelliteTile) instead of leaving a hole in the map.
+ * exists (see satelliteTile) instead of leaving a hole in the map.
  */
 const SATELLITE_TILES = "https://tiles.versatiles.org/tiles/satellite-raster";
 
@@ -48,54 +48,86 @@ export function ancestorCrop(z: number, x: number, y: number, levels: number) {
   };
 }
 
-async function fetchImage(url: string): Promise<Blob | null> {
-  const response = await fetch(url);
+async function fetchImage(url: string, signal?: AbortSignal): Promise<Blob | null> {
+  const response = await fetch(url, { signal });
   if (response.ok) return response.blob();
   if (response.status === 404) return null;
   throw new Error(`${response.status} for ${url}`);
 }
 
 /**
- * Loads one tile, falling back to a crop of its nearest ancestor where the
- * imagery ends.
+ * Tile (z, x, y), or where the imagery ends a crop of its nearest ancestor
+ * scaled up to a whole tile; null if not even zoom 12 has it.
  *
- * OpenLayers would draw a cached parent over an errored tile, but only one it
- * happens to hold: open the map at zoom 14 over Warsaw and no zoom 12 tile was
- * ever fetched, so the map stayed blank. Walking up one zoom at a time, since
- * how deep the orthophotos go differs from country to country.
+ * Both maps need the fallback. OpenLayers and MapLibre alike draw a cached
+ * parent over a missing tile, but only one they happen to hold: open the map
+ * at zoom 14 over Warsaw and no zoom 12 tile was ever fetched, so the map
+ * stayed blank. Walking up one zoom at a time, since how deep the
+ * orthophotos go differs from country to country.
  */
-function loadSatelliteTile(tile: Tile, src: string) {
+export async function satelliteTile(
+  z: number, x: number, y: number, signal?: AbortSignal,
+): Promise<Blob | HTMLCanvasElement | null> {
+  const own = await fetchImage(tileUrl(z, x, y), signal);
+  if (own) return own;
+  for (let levels = 1; z - levels >= 0; levels++) {
+    const crop = ancestorCrop(z, x, y, levels);
+    const blob = await fetchImage(tileUrl(crop.z, crop.x, crop.y), signal);
+    if (!blob) {
+      if (crop.z <= SATELLITE_GLOBAL_ZOOM) return null;
+      continue;
+    }
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = TILE_SIZE;
+    canvas.getContext("2d")!.drawImage(bitmap, crop.sx, crop.sy, crop.size, crop.size, 0, 0, TILE_SIZE, TILE_SIZE);
+    bitmap.close();
+    return canvas;
+  }
+  return null;
+}
+
+/** The flat map's tiles, through satelliteTile. */
+function loadSatelliteTile(tile: Tile) {
   const imageTile = tile as ImageTile;
   const [z, x, y] = imageTile.getTileCoord();
-  (async () => {
-    const own = await fetchImage(src);
-    if (own) {
+  satelliteTile(z, x, y).then((found) => {
+    if (!found) {
+      imageTile.setState(TileState.ERROR);
+    } else if (found instanceof Blob) {
       const image = imageTile.getImage() as HTMLImageElement;
-      const url = URL.createObjectURL(own);
+      const url = URL.createObjectURL(found);
       const revoke = () => URL.revokeObjectURL(url);
       image.addEventListener("load", revoke, { once: true });
       image.addEventListener("error", revoke, { once: true });
       // OpenLayers is already listening on this image, and takes it from here.
       image.src = url;
-      return;
+    } else {
+      imageTile.setImage(found);
     }
-    for (let levels = 1; z - levels >= 0; levels++) {
-      const crop = ancestorCrop(z, x, y, levels);
-      const blob = await fetchImage(tileUrl(crop.z, crop.x, crop.y));
-      if (!blob) {
-        if (crop.z <= SATELLITE_GLOBAL_ZOOM) break;
-        continue;
-      }
-      const bitmap = await createImageBitmap(blob);
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = TILE_SIZE;
-      canvas.getContext("2d")!.drawImage(bitmap, crop.sx, crop.sy, crop.size, crop.size, 0, 0, TILE_SIZE, TILE_SIZE);
-      bitmap.close();
-      imageTile.setImage(canvas);
-      return;
-    }
-    imageTile.setState(TileState.ERROR);
-  })().catch(() => imageTile.setState(TileState.ERROR));
+  }).catch(() => imageTile.setState(TileState.ERROR));
+}
+
+/** The URL scheme the 3D map reads the imagery through; see installSatelliteProtocol. */
+export const SATELLITE_SCHEME = "satellite";
+
+/** The 3D map's tile template, answered by installSatelliteProtocol. */
+export const SATELLITE_PROTOCOL_TILES = `${SATELLITE_SCHEME}://{z}/{x}/{y}`;
+
+let protocolInstalled = false;
+
+/** Teach MapLibre `satellite://z/x/y`, once, so its tiles get the same fallback. */
+export function installSatelliteProtocol(maplibre: {
+  addProtocol(scheme: string, load: (params: { url: string }, abort: AbortController) => Promise<{ data: unknown }>): void;
+}): void {
+  if (protocolInstalled) return;
+  protocolInstalled = true;
+  maplibre.addProtocol(SATELLITE_SCHEME, async (params, abort) => {
+    const [z, x, y] = params.url.slice(`${SATELLITE_SCHEME}://`.length).split("/").map(Number);
+    const found = await satelliteTile(z, x, y, abort.signal);
+    if (!found) throw new Error(`no imagery for ${params.url}`);
+    return { data: found instanceof Blob ? await found.arrayBuffer() : await createImageBitmap(found) };
+  });
 }
 
 /**
@@ -116,6 +148,18 @@ export const satelliteTheme: BasemapTheme = {
       highway: "rgba(255, 255, 255, 0.22)",
     },
   },
+};
+
+/**
+ * The same lines for the 3D map. There they lie on the imagery, under the
+ * weather like everything else on that map, so they take the raised colours:
+ * the dark theme's own would vanish into a forest.
+ */
+export const satelliteTheme3d: BasemapTheme = {
+  ...satelliteTheme,
+  roads: { highway: { ...darkTheme.roads.highway, color: satelliteTheme.raised!.roads.highway } },
+  boundaryCountry: satelliteTheme.raised!.boundaryCountry,
+  raised: undefined,
 };
 
 export function satellite() {

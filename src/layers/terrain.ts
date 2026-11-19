@@ -44,8 +44,14 @@ const TERRAIN_TILES = `https://map.meteocool.com/mapterhorn-${TERRAIN_VERSION}/{
  */
 const TERRAIN_MAX_ZOOM = 12;
 
-/** Under the water's outlines and the roads, over the land and the sea. */
-const HILLSHADE_BEFORE = "waterway";
+/**
+ * Under the basemap's first line, over its fills: the water's outlines and
+ * the roads over the land and the sea, or the roads over the satellite
+ * imagery, which has no rivers drawn.
+ */
+function hillshadeBefore(gl: GlMap): string | undefined {
+  return gl.getStyle().layers.find((layer) => layer.type === "line")?.id;
+}
 
 function hillshade(dark: boolean): HillshadeLayerSpecification {
   return {
@@ -97,7 +103,7 @@ export function applyTerrain(gl: GlMap, wanted: boolean, dark: boolean, drapeSiz
     maxzoom: TERRAIN_MAX_ZOOM,
     attribution: mapterhornAttribution,
   });
-  gl.addLayer(hillshade(dark), gl.getLayer(HILLSHADE_BEFORE) ? HILLSHADE_BEFORE : undefined);
+  gl.addLayer(hillshade(dark), hillshadeBefore(gl));
   gl.setTerrain({ source: TERRAIN_SOURCE, exaggeration: VERTICAL_SCALE });
   if (drapeSize) setDrapeSize(gl, drapeSize);
 }
