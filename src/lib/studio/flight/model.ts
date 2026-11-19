@@ -10,9 +10,10 @@
  * as two 16-bit steps across the chunk's own stretch of it. Indices are 16
  * bits. Positions are metres in the aircraft's frame: forward, right, down.
  *
- * Some chunks belong to a part that moves, the landing gear's legs and
- * doors: each part turns about a hinge of its own as the gear goes up and
- * down (`partPose`). A file without parts is an aircraft whose gear is fixed.
+ * Some chunks belong to a part that moves: the landing gear's legs and
+ * doors, and the wings' flaps, slats and spoilers. Each part turns about a
+ * hinge of its own as what drives it moves (`partPose`). A file without
+ * parts is an aircraft on which nothing does.
  */
 
 export const VERTEX_BYTES = 16;
@@ -40,16 +41,26 @@ export interface ModelChunk {
   part?: string;
 }
 
+/** What moves a part: the landing gear, the flaps' lever (slats and flaps both), or the spoilers. */
+export type PartDrive = "gear" | "flaps" | "spoilers";
+
 /**
- * A part that turns as the gear moves: about `axis` (a unit vector, the
- * right-handed way) through `pivot`, by an angle in degrees that follows
- * the gear's position, 0 up to 1 down, through `keys` (position, angle),
- * eased between each two.
+ * How far each of those is along, 0 to 1: the gear up to down, the flaps in
+ * to all the way out, the spoilers flat to all the way up.
+ */
+export type PartPositions = Record<PartDrive, number>;
+
+/**
+ * A part that turns as what drives it moves: about `axis` (a unit vector,
+ * the right-handed way) through `pivot`, by an angle in degrees that
+ * follows that position, 0 to 1, through `keys` (position, angle), eased
+ * between each two. Driven by the gear where the file does not say.
  */
 export interface ModelPart {
   pivot: Vec3;
   axis: Vec3;
   keys: Array<[number, number]>;
+  drive?: PartDrive;
 }
 
 export interface AircraftModel {
@@ -110,11 +121,11 @@ export function parseModel(buffer: ArrayBuffer): AircraftModel {
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
-/** A part's angle, degrees, with the gear at `gear` (0 up to 1 down). */
-export function partAngle(part: ModelPart, gear: number): number {
+/** A part's angle, degrees, with what drives it at `position` (0 to 1). */
+export function partAngle(part: ModelPart, position: number): number {
   const { keys } = part;
   if (!keys.length) return 0;
-  const at = Math.min(Math.max(gear, 0), 1);
+  const at = Math.min(Math.max(position, 0), 1);
   if (at <= keys[0][0]) return keys[0][1];
   for (let i = 1; i < keys.length; i++) {
     const [to, angle] = keys[i];
@@ -127,13 +138,13 @@ export function partAngle(part: ModelPart, gear: number): number {
 }
 
 /**
- * Where a part is with the gear at `gear`: its turn about its hinge as a
- * 4x4 from the part's place in the model to where it is now, columns first,
- * and the 3x3 of the turn alone (rows), for its normals. Null where it is
- * where the model has it.
+ * Where a part is with what drives it at `position`: its turn about its
+ * hinge as a 4x4 from the part's place in the model to where it is now,
+ * columns first, and the 3x3 of the turn alone (rows), for its normals.
+ * Null where it is where the model has it.
  */
-export function partPose(part: ModelPart, gear: number): { matrix: number[]; turn: [Vec3, Vec3, Vec3] } | null {
-  const angle = partAngle(part, gear);
+export function partPose(part: ModelPart, position: number): { matrix: number[]; turn: [Vec3, Vec3, Vec3] } | null {
+  const angle = partAngle(part, position);
   if (Math.abs(angle) < 1e-4) return null;
   const radians = (angle * Math.PI) / 180;
   const [x, y, z] = part.axis;
@@ -159,17 +170,18 @@ export function partPose(part: ModelPart, gear: number): { matrix: number[]; tur
 }
 
 /**
- * Every part's place with the gear at `gear`, for a frame seen through
- * `modelView`: the model-view it is drawn with, and the light (`light`, in
- * the aircraft's frame) as its own turned normals meet it. Parts where the
- * model has them are left out: they are drawn as the rest is.
+ * Every part's place with the gear, the flaps and the spoilers where
+ * `positions` has them, for a frame seen through `modelView`: the
+ * model-view it is drawn with, and the light (`light`, in the aircraft's
+ * frame) as its own turned normals meet it. Parts where the model has them
+ * are left out: they are drawn as the rest is.
  */
 export function posedParts(
-  parts: Record<string, ModelPart>, gear: number, modelView: ArrayLike<number>, light: Vec3,
+  parts: Record<string, ModelPart>, positions: PartPositions, modelView: ArrayLike<number>, light: Vec3,
 ): Map<string, { modelView: Float32Array; light: Vec3 }> {
   const posed = new Map<string, { modelView: Float32Array; light: Vec3 }>();
   for (const [name, part] of Object.entries(parts)) {
-    const pose = partPose(part, gear);
+    const pose = partPose(part, positions[part.drive ?? "gear"] ?? 0);
     if (!pose) continue;
     const { turn } = pose;
     posed.set(name, {

@@ -14,6 +14,10 @@ of their own, each turning on the hinge of the model's own rig, and a plain
 grey well is added behind each belly door, where the model is open into the
 cabin.
 
+The wings' flaps, slats and spoilers and the fairings under the flaps, which
+the model has as meshes of their own, are kept as parts too, each given a
+hinge along its own leading edge to slide and turn on.
+
 The outside is repainted: the airline's livery, titles and marks removed and
 the hull left white; "meteowings" titles along both sides; the meteocool logo
 on both sides of the fin and of each engine, in place of the engine maker's

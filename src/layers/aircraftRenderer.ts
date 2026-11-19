@@ -34,6 +34,10 @@ export interface AircraftView {
   flash: number;
   /** How far the landing gear is down, 0 up to 1 down; down, as the model has it, where not said. */
   gear?: number;
+  /** How far the flaps and slats are out, 0 in to 1 all the way; in where not said. */
+  flaps?: number;
+  /** How far the spoilers on the wings stand up, 0 flat to 1 all the way; flat where not said. */
+  spoilers?: number;
 }
 
 /** A live screen: a picture, and the four corners it is stretched over, in the aircraft's frame. */
@@ -167,7 +171,7 @@ interface Drawn {
   size: Vec3;
   uvMin: [number, number];
   uvSize: [number, number];
-  /** The gear's part it belongs to, which moves; see `posedParts`. */
+  /** The moving part it belongs to; see `posedParts`. */
   part?: string;
 }
 
@@ -385,9 +389,11 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       webgl.uniform1i(uniform(program, "uTexture"), 0);
       webgl.activeTexture(webgl.TEXTURE0);
 
-      // The gear's legs and doors where they are now; the rest as the model has it.
+      // The gear's legs and doors, the flaps, slats and spoilers where they are now; the rest as the model has it.
       const still = new Float32Array(view.modelView);
-      const posed = posedParts(parts, view.gear ?? 1, view.modelView, view.light);
+      const posed = posedParts(
+        parts, { gear: view.gear ?? 1, flaps: view.flaps ?? 0, spoilers: view.spoilers ?? 0 }, view.modelView, view.light,
+      );
       const pass = (clear: boolean) => {
         for (const chunk of drawn) {
           const material = materials[chunk.material];

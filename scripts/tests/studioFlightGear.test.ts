@@ -80,13 +80,13 @@ test("a leg turns about its hinge: down where the model has it, folded inward wi
 
 test("a turned part's normals meet the light as the part's own frame has it", () => {
   const light: [number, number, number] = [0, -0.6, -0.8];
-  const posed = posedParts({ leg: LEG }, 0, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], light).get("leg")!;
+  const posed = posedParts({ leg: LEG }, { gear: 0, flaps: 0, spoilers: 0 }, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], light).get("leg")!;
   const turn = partPose(LEG, 0)!.turn;
   const normal = [0, 0, 1];
   const turned = turn.map((row) => row[0] * normal[0] + row[1] * normal[1] + row[2] * normal[2]);
   near(turned[0] * light[0] + turned[1] * light[1] + turned[2] * light[2],
     normal[0] * posed.light[0] + normal[1] * posed.light[1] + normal[2] * posed.light[2], 1e-9);
-  assert.equal(posedParts({ leg: LEG }, 1, posed.modelView, light).size, 0);
+  assert.equal(posedParts({ leg: LEG }, { gear: 1, flaps: 1, spoilers: 1 }, posed.modelView, light).size, 0);
 });
 
 function file(header: object): ArrayBuffer {

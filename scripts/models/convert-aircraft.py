@@ -17,7 +17,9 @@ which reads this).
 
 The landing gear and its doors are kept apart from the rest (`GEAR`), each
 part with the hinge it turns on and how far it turns as the gear goes up,
-which the flight animates.
+which the flight animates. So are the wings' flaps, slats and spoilers and
+the fairings under the flaps (`SURFACES`), which the model has as meshes of
+their own: each with a hinge worked out from its own shape.
 
 The outside is repainted on the way (`livery`): the airline's colours, titles
 and marks come off, the hull is left white, and ours go on: "meteowings"
@@ -157,6 +159,79 @@ GEAR = {
     "gear.bellyDoorLeft": {"nodes": ("node50_001_306", "node12_005_219"), "axis": (1, 0, 0), "keys": door(-75)},
     "gear.bellyDoorRight": {"nodes": ("node52_001_308", "node14_004_221"), "axis": (1, 0, 0), "keys": door(75)},
 }
+
+
+# What moves on the wings, by the rig's node that holds each mesh. A part's
+# `drive` says what moves it: how far the flaps' lever is out (0 in to 1
+# full, slats and flaps both) or how far the spoilers stand (0 flat to 1 all
+# the way, as on the ground). Each hinge is worked out from the part's own
+# shape (`hinge`), along its leading edge and pointing to the right, so a
+# positive angle is always trailing edge down.
+FLAPS = [(0.0, 0.0), (0.25, 10.0), (0.5, 15.0), (0.75, 20.0), (1.0, 35.0)]
+"""The flaps' angle at each of the lever's five places, as an A320's: 0, 1+F, 2, 3 and FULL."""
+SLATS = [(0.0, 0.0), (0.25, -18.0), (0.5, -22.0), (0.75, -22.0), (1.0, -27.0)]
+"""The slats', which droop the other way: nose down."""
+FAIRINGS = [(at, angle * 0.6) for at, angle in FLAPS]
+"""The fairings under the flaps follow them down, by a little over half the angle: their noses stay on the wing."""
+SPOILERS = [(0.0, 0.0), (1.0, -50.0)]
+"""The spoilers: flat, and all the way up as on the ground. In flight they are asked for half of it or less."""
+
+KINDS = {
+    # Each: its keys, and where its hinge is from the middle of its leading edge, metres aft and down.
+    # A flap turns about a line well under its nose, which slides it aft as it droops.
+    "flap": {"drive": "flaps", "keys": FLAPS, "aft": 0.0, "down": 0.9},
+    # A slat about one behind and far below, which carries it forward and down round the wing's nose.
+    "slat": {"drive": "flaps", "keys": SLATS, "aft": 0.3, "down": 0.7},
+    # A spoiler about its own leading edge.
+    "spoiler": {"drive": "spoilers", "keys": SPOILERS, "aft": 0.0, "down": 0.0},
+    # A fairing about its nose, straight across the aircraft.
+    "fairing": {"drive": "flaps", "keys": FAIRINGS, "aft": 0.25, "down": 0.0},
+}
+
+SURFACES = {
+    "flap.leftInner": {"node": "node45_001_298", "kind": "flap"},
+    "flap.rightInner": {"node": "node34_004_283", "kind": "flap"},
+    "flap.leftOuter": {"node": "node38_004_286", "kind": "flap"},
+    "flap.rightOuter": {"node": "node42_002_290", "kind": "flap"},
+    "slat.leftInner": {"node": "node85_343", "kind": "slat"},
+    "slat.rightInner": {"node": "node89_347", "kind": "slat"},
+    "slat.leftOuter": {"node": "node87_345", "kind": "slat"},
+    "slat.rightOuter": {"node": "node91_349", "kind": "slat"},
+    "spoiler.leftInner": {"node": "node101_358", "kind": "spoiler"},
+    "spoiler.rightInner": {"node": "node94_351", "kind": "spoiler"},
+    "spoiler.leftOuter": {"node": "node98_354", "kind": "spoiler"},
+    "spoiler.rightOuter": {"node": "node105_251", "kind": "spoiler"},
+    "fairing.left1": {"node": "node21_005_271", "kind": "fairing"},
+    "fairing.left2": {"node": "node23_005_273", "kind": "fairing"},
+    "fairing.left3": {"node": "node25_005_275", "kind": "fairing"},
+    "fairing.right1": {"node": "node27_005_277", "kind": "fairing"},
+    "fairing.right2": {"node": "node29_005_279", "kind": "fairing"},
+    "fairing.right3": {"node": "node31_004_281", "kind": "fairing"},
+}
+
+
+def hinge(points: np.ndarray, kind: str) -> tuple:
+    """
+    The line a surface turns about, from its points (forward, right, down):
+    a point on it and its direction. Along the surface's leading edge, from
+    the foremost point at its inner end to the one at its outer end, turned
+    to point to the right on either wing, and moved aft and down from there
+    as its kind has it. A fairing's is straight across, through its nose.
+    """
+    plan = KINDS[kind]
+    lateral = np.abs(points[:, 1])
+    inner, outer = lateral.min(), lateral.max()
+    if kind == "fairing":
+        nose = points[points[:, 0] > points[:, 0].max() - 0.3]
+        pivot = np.array([points[:, 0].max() - plan["aft"], np.median(points[:, 1]), nose[:, 2].min() + plan["down"]])
+        return pivot, np.array([0.0, 1.0, 0.0])
+    ends = []
+    for at in (inner, outer):
+        end = points[np.abs(lateral - at) < 0.05 * (outer - inner) + 0.02]
+        ends.append(end[end[:, 0].argmax()])
+    axis = ends[1] - ends[0]
+    axis = axis / np.linalg.norm(axis) * np.sign(axis[1])
+    return (ends[0] + ends[1]) / 2 + [-plan["aft"], 0.0, plan["down"]], axis
 
 
 def radar_ramp() -> list:
@@ -575,18 +650,19 @@ def well(door: np.ndarray) -> tuple:
     return np.array(points, float), np.array(normals, float), np.array(corners)
 
 
-def part_of(path, gear_nodes: dict):
-    """The gear's part a mesh belongs to, by the rig's nodes above it; None for the rest of the aircraft."""
+def part_of(path, nodes: dict):
+    """The moving part a mesh belongs to, by the rig's nodes above it; None for the rest of the aircraft."""
     for name in str(path).split("/"):
-        if name in gear_nodes:
-            return gear_nodes[name]
+        if name in nodes:
+            return nodes[name]
     return None
 
 
 def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
     stage = Usd.Stage.Open(scene)
     cache = UsdGeom.XformCache()
-    gear_nodes = {node: part for part, plan in GEAR.items() for node in plan["nodes"]}
+    nodes = {node: part for part, plan in GEAR.items() for node in plan["nodes"]}
+    nodes.update({plan["node"]: part for part, plan in SURFACES.items()})
     meshes = []
     for prim in stage.Traverse():
         if not prim.IsA(UsdGeom.Mesh):
@@ -603,7 +679,7 @@ def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
         indices = np.array(mesh.GetFaceVertexIndicesAttr().Get())
         assert (counts == 3).all(), "triangles only"
         material = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()[0].GetPrim().GetName()
-        meshes.append([material, world, normals, uv, indices, part_of(prim.GetPath(), gear_nodes)])
+        meshes.append([material, world, normals, uv, indices, part_of(prim.GetPath(), nodes)])
 
     low = np.min([m[1].min(0) for m in meshes], axis=0)
     high = np.max([m[1].max(0) for m in meshes], axis=0)
@@ -626,6 +702,14 @@ def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
         parts[part] = {
             "pivot": [round(float(v), 4) for v in pivot], "axis": list(plan["axis"]),
             "keys": [[at, angle] for at, angle in plan["keys"]],
+        }
+
+    for part, plan in SURFACES.items():
+        pivot, axis = hinge(np.concatenate([m[1] for m in meshes if m[5] == part]), plan["kind"])
+        kind = KINDS[plan["kind"]]
+        parts[part] = {
+            "pivot": [round(float(v), 4) for v in pivot], "axis": [round(float(v), 5) for v in axis],
+            "keys": [[at, angle] for at, angle in kind["keys"]], "drive": kind["drive"],
         }
 
     for door in ("gear.bellyDoorLeft", "gear.bellyDoorRight"):
@@ -708,7 +792,7 @@ def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
         body.extend(b"\0" * (-len(body) % 4))
 
     for material in names:
-        for part in [None, *GEAR]:
+        for part in [None, *GEAR, *SURFACES]:
             group, held = [], 0
             for name, position, normals, uv, indices, owner in meshes:
                 if name != material or owner != part:
