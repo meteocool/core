@@ -896,6 +896,25 @@ sl-button[disabled]::part(base) { opacity: 0.4; }
   overflow: hidden;                                   /* clips button hover fills to the capsule */
   transition: background-color var(--mc-motion-fast);
 }
+/* Studio's section planes: the handle each is dragged over the ground by
+   (Cells3DCapability.applySections), numbered as its plane is in the panel. */
+.maplibre-host .studio-plane-handle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--mc-orange);
+  color: #1c1c1e;
+  font: 700 11px/1 var(--mc-font);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  opacity: 0.8;
+}
+.maplibre-host .studio-plane-handle.selected { opacity: 1; box-shadow: 0 0 0 3px rgba(255, 158, 28, 0.4), 0 1px 4px rgba(0, 0, 0, 0.45); }
+.maplibre-host .studio-plane-handle:active { cursor: grabbing; }
 .maplibre-host .maplibregl-ctrl-group:not(:empty) { box-shadow: var(--mc-glass-ring); }
 .maplibre-host .maplibregl-ctrl-group:hover { background: var(--mc-glass-fill-strong); }
 .maplibre-host .maplibregl-ctrl-group button {

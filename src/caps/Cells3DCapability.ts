@@ -4,7 +4,7 @@ import { circular as circularPolygon } from "ol/geom/Polygon";
 import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
-  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, MapGeoJSONFeature,
+  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, MapGeoJSONFeature, Marker,
   StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
@@ -14,6 +14,7 @@ import { basemapStyle, muteTheme, PLACE_LABELS, placeLabels } from "../layers/ma
 import { darkLabels, lightLabels } from "../layers/labels";
 import { placeNameKeys } from "../layers/placeName";
 import { chooseLocale } from "../locale/choose";
+import { t } from "../locale/t";
 import { locale } from "svelte-i18n";
 import { blitzortungAttribution, dwdAttribution, imprintAttribution, versatilesAttribution } from "../layers/attributions";
 import {
@@ -73,6 +74,12 @@ import {
 } from "../lib/cloudHistory";
 import type { Place, Quarter, ScanFinds } from "../lib/cloudHistory";
 import { networkAt } from "../layers/networkAt";
+import { makeStudioPlanesLayer } from "../layers/studioPlanesLayer";
+import type { StudioPlanesLayer } from "../layers/studioPlanesLayer";
+import { clipPlanes, isLevel } from "../lib/studio/planes";
+import { DEFAULT_FOV, STUDIO_MAX_PITCH } from "../lib/studio/scene";
+import type { StudioCamera } from "../lib/studio/scene";
+import { studioFov, studioOpen, studioPlanes, studioSelectedPlane } from "../lib/studio/store";
 
 import { maplibreLocateControl } from "../lib/GeolocateControl";
 import { maplibreShareControl } from "../lib/ShareControl";
@@ -158,6 +165,22 @@ const SETTLE_CEILING_MS = 15000;
 const CELL_SOURCE = "cells";
 /** Every storm's raymarched volume, in the one layer that draws them all. */
 const VOLUME_LAYER = "cell-volume-raymarched";
+/** Studio's section planes, drawn as sheets over the storms; see layers/studioPlanesLayer.ts. */
+const STUDIO_PLANES_LAYER = "studio-planes";
+/**
+ * How much of the storms' volumes Studio keeps hold of, in bytes, across the
+ * scans of a scene: what makes a scan already shown come back at once, which
+ * is what playing a scene is. Past it, a scan is fetched again as it comes up.
+ */
+const STUDIO_HELD_BYTES = 600 * 1024 * 1024;
+/** How many scans' lists of storms Studio keeps, where the map keeps `PAST_KEPT`: the two hours a scene can run. */
+const STUDIO_SCANS_KEPT = 30;
+/**
+ * How often, in milliseconds, a camera a scene is moving has its moves acted
+ * on (other storms loaded, the view published): every frame of one would do
+ * all of that sixty times a second.
+ */
+const DIRECTED_MOVE_MS = 400;
 
 /**
  * How many volumes load at once.
@@ -778,6 +801,38 @@ export default class Cells3DCapability extends Capability {
   private strikeTimer: ReturnType<typeof setTimeout> | null = null;
 
 
+  /**
+   * Whether the map is in Studio (lib/studio): its section planes cut every
+   * cloud in place of an opened storm's own cut, a tap opens nothing, the
+   * camera tilts further, and the volumes of scans already shown are held.
+   */
+  private studio = false;
+
+  /** Studio's planes, drawn; see `ensureStudio`. */
+  private studioLayer: StudioPlanesLayer | null = null;
+
+  /** The handle each upright plane is dragged by, by the plane's id. */
+  private studioHandles = new Map<number, Marker>();
+
+  private unsubscribeStudio: Array<() => void> = [];
+
+  /** Volumes kept across scans while in Studio, by path; see `STUDIO_HELD_BYTES`. */
+  private studioHeld = new Map<string, Cutaway>();
+
+  private studioHeldBytes = 0;
+
+  /** A Studio camera asked for before there was a map to stand it on: a link that opens in Studio. */
+  private requestedStudioCamera: StudioCamera | null = null;
+
+  /** Whether a scene is moving the camera, frame by frame; see `setDirected`. */
+  private directed = false;
+
+  /** When a directed camera's move was last acted on; see `DIRECTED_MOVE_MS`. */
+  private directedMoveAt = 0;
+
+  /** The newest load of the storms' volumes, for `stageScan` to wait on. */
+  private cloudsLoading: Promise<void> = Promise.resolve();
+
   /** The locate disc's action; see `CapabilityOptions.locate`. */
   private readonly locate: (() => void) | null;
   /** Takes back the ⌃-click correction, where one was needed; see lib/ctrlDrag.ts. */
@@ -823,6 +878,12 @@ export default class Cells3DCapability extends Capability {
       this.nameKeys = placeNameKeys(tag);
       if (this.gl && this.styleReady) this.ensureLabels(this.gl);
     });
+    this.unsubscribeStudio = [
+      studioOpen.subscribe((open) => this.setStudio(open)),
+      studioPlanes.subscribe(() => this.applySections()),
+      studioSelectedPlane.subscribe(() => this.applySections()),
+      studioFov.subscribe(() => this.applyLens()),
+    ];
     /* The drawn basemap here follows the scheme, whichever drawn basemap the
        flat map shows: it is a muted one of its own, made to sit under the
        storms. The satellite imagery replaces it, with the dark palettes. */
@@ -1061,6 +1122,8 @@ export default class Cells3DCapability extends Capability {
         // Taken off here, so it goes back above the layers added before it.
         if (gl.getLayer(VOLUME_LAYER)) gl.removeLayer(VOLUME_LAYER);
         this.cloudsLayer = null;
+        if (gl.getLayer(STUDIO_PLANES_LAYER)) gl.removeLayer(STUDIO_PLANES_LAYER);
+        this.studioLayer = null;
         this.applyData();
         this.applyCut();
       });
@@ -1076,21 +1139,20 @@ export default class Cells3DCapability extends Capability {
         if (event.originalEvent) moved3D();
       });
       gl.on("moveend", () => {
-        this.pushCameraToView();
-        if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
-        // Some places crossed the line between coarse tiles and fine: other outlines.
-        if (this.updateDetail() && this.styleReady) this.ensureClouds(gl);
-        // The camera has come to other storms: load theirs, let go of the far ones.
-        void this.loadClouds();
-        // An earlier scan's are found only where the camera has been: look
-        // here too, or once the one being looked for is in.
-        if (this.pastLoading !== null) this.pastMoved = true;
-        else if (this.past) void this.lookAgain();
+        // A scene moves the camera every frame: acted on now and then, and once it stops.
+        if (this.directed) {
+          const now = performance.now();
+          if (now - this.directedMoveAt < DIRECTED_MOVE_MS) return;
+          this.directedMoveAt = now;
+        }
+        this.cameraMoved(gl);
       });
       // Tapping a storm opens the same popup the flat map opens, and tapping
       // past one closes it. The panel is rendered above whichever map is
       // showing, so it needs no separate plumbing here.
       gl.on("click", (event) => {
+        // In Studio the storms are the subject, not things to open: a tap is the camera's.
+        if (this.studio) return;
         const hits = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) });
         // A KONRAD3D cell first, when both are under the finger: it has a
         // history and a heading, and the popup it opens carries the cutaway
@@ -1156,10 +1218,13 @@ export default class Cells3DCapability extends Capability {
         console.error(event.error);
       });
       gl.on("mousemove", (event) => {
-        const over = gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) }).length > 0;
+        const over = !this.studio && gl.queryRenderedFeatures(event.point, { layers: this.pickable(gl) }).length > 0;
         gl.getCanvas().style.cursor = over ? "pointer" : "";
       });
       this.gl = gl;
+      // Studio asked for before there was a map: a link that opens in it.
+      if (this.studio) this.setStudio(true);
+      if (this.requestedStudioCamera) this.setStudioCamera(this.requestedStudioCamera);
       // Built after the switch that asked for it, so LayerManager had no
       // camera to publish then; and MapLibre does not report its first one.
       if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
@@ -1190,6 +1255,20 @@ export default class Cells3DCapability extends Capability {
     // of a first bring-up). `open` has framed it by then, so the map comes
     // into view already easing onto the storm.
     if (built) void Promise.all([this.settled, opening]).finally(() => cells3dLoading.set(false));
+  }
+
+  /** The camera has come to rest somewhere else: tell the rest of the app, and load what stands there. */
+  private cameraMoved(gl: GlMap): void {
+    this.pushCameraToView();
+    if (get(sharedActiveCap) === this.getName()) mapView.set(this.currentView());
+    // Some places crossed the line between coarse tiles and fine: other outlines.
+    if (this.updateDetail() && this.styleReady) this.ensureClouds(gl);
+    // The camera has come to other storms: load theirs, let go of the far ones.
+    void this.loadClouds();
+    // An earlier scan's are found only where the camera has been: look
+    // here too, or once the one being looked for is in.
+    if (this.pastLoading !== null) this.pastMoved = true;
+    else if (this.past) void this.lookAgain();
   }
 
   /**
@@ -1404,6 +1483,8 @@ export default class Cells3DCapability extends Capability {
     this.requested = null;
     this.forgetCameraBeforeOpen();
     this.cloudsLayer = null;
+    this.studioLayer = null;
+    this.studioHandles.clear();
     this.styleReady = false;
     this.styleStale = false;
     this.failedSources.clear();
@@ -1739,12 +1820,20 @@ export default class Cells3DCapability extends Capability {
    * again after a pass that found one, until a pass finds none. A volume that
    * would not load is not asked for again in the same call.
    */
-  private async loadClouds(): Promise<void> {
+  private loadClouds(): Promise<void> {
+    const run = this.loadCloudsNow();
+    this.cloudsLoading = run;
+    return run;
+  }
+
+  private async loadCloudsNow(): Promise<void> {
     const token = Symbol("clouds");
     this.loadToken = token;
     // A new list brings new coarse tiles, each to be measured on screen.
     this.updateDetail();
     this.dropUnlisted();
+    // A scan Studio has shown before comes back from what it kept, with no fetch.
+    this.takeHeld();
     this.pushClouds();
 
     // A fast pan or zoom moves on before the last place's volumes are in:
@@ -1783,6 +1872,7 @@ export default class Cells3DCapability extends Capability {
             system: cloud.system ?? null,
           });
         }
+        this.hold();
         this.pushClouds();
         if (this.faint.size > faintInBatch && this.gl && this.styleReady) this.ensureClouds(this.gl);
         // Switched away: the rest waits for `attach`, whose refresh fetches
@@ -1991,6 +2081,7 @@ export default class Cells3DCapability extends Capability {
     this.cloudsLayer = layer;
     this.pushClouds();
     this.applyCut();
+    this.applySections();
   }
 
   /**
@@ -2203,6 +2294,203 @@ export default class Cells3DCapability extends Capability {
       this.gl.jumpTo({ center: [lon, lat], zoom: (view.getZoom() ?? 6) - 1 });
     }
     this.syncing = false;
+  }
+
+  /**
+   * Put the map into Studio, or back out of it; see `studio`.
+   *
+   * Out of it, everything Studio changed about the map goes back: the cut is
+   * an opened storm's again, the lens the map's own, the tilt within what a
+   * map is looked at from. The scan on the map stays, as the picker beside
+   * the peel then says.
+   */
+  private setStudio(on: boolean): void {
+    this.studio = on;
+    if (on) selectedStorm.set(null);
+    else {
+      this.studioHeld.clear();
+      this.studioHeldBytes = 0;
+      this.setDirected(false);
+    }
+    const gl = this.gl;
+    if (!gl) return;
+    if (!on && gl.getPitch() > MAX_PITCH) gl.setPitch(MAX_PITCH);
+    gl.setMaxPitch(on ? STUDIO_MAX_PITCH : MAX_PITCH);
+    this.applyLens();
+    if (this.styleReady) this.ensureStudio(gl);
+    this.applySections();
+  }
+
+  /** The layer Studio's planes are drawn by, there while in Studio and gone outside it. */
+  private ensureStudio(gl: GlMap): void {
+    if (!this.studio) {
+      if (gl.getLayer(STUDIO_PLANES_LAYER)) gl.removeLayer(STUDIO_PLANES_LAYER);
+      this.studioLayer = null;
+      return;
+    }
+    if (this.studioLayer) return;
+    this.studioLayer = makeStudioPlanesLayer(STUDIO_PLANES_LAYER);
+    gl.addLayer(this.studioLayer);
+    this.applySections();
+  }
+
+  /** Cut the clouds by Studio's planes and draw them, or by none of them outside Studio. */
+  private applySections(): void {
+    const planes = this.studio ? get(studioPlanes) : [];
+    const selected = get(studioSelectedPlane);
+    this.cloudsLayer?.setSections(this.studio ? clipPlanes(planes) : null);
+    this.studioLayer?.setPlanes(planes, selected);
+
+    // A handle on the ground under each plane that stands on it, to drag it
+    // by. A level plane has no place on the ground; its height is in its panel.
+    const gl = this.gl;
+    const maplibre = this.maplibre;
+    if (!gl || !maplibre) return;
+    const held = new Set(planes.filter((plane) => !isLevel(plane)).map((plane) => plane.id));
+    for (const [id, handle] of this.studioHandles) {
+      if (held.has(id)) continue;
+      handle.remove();
+      this.studioHandles.delete(id);
+    }
+    for (const plane of planes) {
+      if (!held.has(plane.id)) continue;
+      let handle = this.studioHandles.get(plane.id);
+      if (!handle) {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "studio-plane-handle";
+        element.textContent = String(plane.id);
+        element.title = t("studio.plane.handle", { values: { id: plane.id } });
+        element.addEventListener("pointerdown", () => studioSelectedPlane.set(plane.id));
+        handle = new maplibre.Marker({ element, draggable: true }).setLngLat([plane.lon, plane.lat]).addTo(gl);
+        const dragged = handle;
+        dragged.on("drag", () => {
+          const { lng, lat } = dragged.getLngLat();
+          studioPlanes.update((all) => all.map((other) => (other.id === plane.id ? { ...other, lon: lng, lat } : other)));
+        });
+        this.studioHandles.set(plane.id, handle);
+      }
+      const at = handle.getLngLat();
+      if (at.lng !== plane.lon || at.lat !== plane.lat) handle.setLngLat([plane.lon, plane.lat]);
+      handle.getElement().classList.toggle("selected", plane.id === selected);
+    }
+    if (this.shown) gl.triggerRepaint();
+  }
+
+  /** The lens Studio asks for, or the map's own outside it. */
+  private applyLens(): void {
+    const gl = this.gl;
+    if (!gl) return;
+    const fov = this.studio ? get(studioFov) : DEFAULT_FOV;
+    if (Math.abs(gl.getVerticalFieldOfView() - fov) > 0.01) gl.setVerticalFieldOfView(fov);
+  }
+
+  /** Keep hold of the volumes on the map while in Studio, as far as `STUDIO_HELD_BYTES` goes. */
+  private hold(): void {
+    if (!this.studio) return;
+    for (const [path, { cutaway }] of this.cutaways) {
+      if (this.studioHeld.has(path)) continue;
+      const bytes = cutaway.voxels.byteLength;
+      if (this.studioHeldBytes + bytes > STUDIO_HELD_BYTES) return;
+      this.studioHeld.set(path, cutaway);
+      this.studioHeldBytes += bytes;
+    }
+  }
+
+  /** Put the volumes Studio kept back on the map where they are wanted again. */
+  private takeHeld(): void {
+    if (!this.studio || !this.studioHeld.size) return;
+    for (const cloud of this.wanted()) {
+      if (this.cutaways.has(cloud.path)) continue;
+      const cutaway = this.studioHeld.get(cloud.path);
+      if (!cutaway) continue;
+      this.cutaways.set(cloud.path, {
+        code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat, tier: tierOf(cloud, cutaway),
+        system: cloud.system ?? null,
+      });
+    }
+  }
+
+  /** Where Studio's camera stands; null before the map is up. */
+  studioCamera(): StudioCamera | null {
+    const gl = this.gl;
+    if (!gl) return null;
+    const { lng, lat } = gl.getCenter();
+    return {
+      lon: lng, lat, zoom: gl.getZoom(), pitch: gl.getPitch(), bearing: gl.getBearing(), fov: gl.getVerticalFieldOfView(),
+    };
+  }
+
+  /** Stand the camera exactly here, at once: one frame of a scene. Before the map is up, once it is. */
+  setStudioCamera(camera: StudioCamera): void {
+    const gl = this.gl;
+    this.requestedStudioCamera = gl ? null : camera;
+    if (!gl) return;
+    if (Math.abs(gl.getVerticalFieldOfView() - camera.fov) > 0.01) gl.setVerticalFieldOfView(camera.fov);
+    gl.jumpTo({ center: [camera.lon, camera.lat], zoom: camera.zoom, pitch: camera.pitch, bearing: camera.bearing });
+  }
+
+  /** Move the camera there over a moment, where it is the reader who asked: a named view. */
+  easeStudioCamera(camera: Partial<Pick<StudioCamera, "pitch" | "bearing" | "zoom">>, ms = 700): void {
+    this.gl?.easeTo({ ...camera, duration: ms });
+  }
+
+  /**
+   * A scene is moving the camera, or has stopped: while it does, its moves
+   * are acted on only now and then (`DIRECTED_MOVE_MS`), and once more when
+   * it stops, where the camera was left.
+   */
+  setDirected(on: boolean): void {
+    if (this.directed === on) return;
+    this.directed = on;
+    if (!on && this.gl) this.cameraMoved(this.gl);
+  }
+
+  /**
+   * Put a scan's storms on the map, as `showScan` does, and say when they
+   * are: once everything of it that is wanted in view has loaded. Whether it
+   * is the scan on the map by then; not, where it had nothing here, or
+   * another was asked for meanwhile.
+   */
+  async stageScan(scan: Scan | null): Promise<boolean> {
+    const latest = this.latestScan();
+    const live = scan === null || (latest !== null && scan >= latest);
+    if (live) this.showLatest();
+    else if (this.past?.scan !== scan) await this.findScan(scan);
+    else if (this.pastLoading !== null) this.showScan(scan);
+    // Every load asked for meanwhile, until none is left running.
+    let run: Promise<void>;
+    do {
+      run = this.cloudsLoading;
+      await run;
+    } while (run !== this.cloudsLoading);
+    return live ? this.past === null : this.past?.scan === scan;
+  }
+
+  /** The newest scan there is, which a scene's earlier ones count back from; null before the first list. */
+  newestScan3D(): Scan | null {
+    return this.latestScan();
+  }
+
+  /** The canvas the map is drawn on, for a recording to read; null before the map is up. */
+  canvas(): HTMLCanvasElement | null {
+    return this.gl?.getCanvas() ?? null;
+  }
+
+  /**
+   * Tell `listener` after every frame the map draws, while the frame is
+   * still on its canvas to be read. Returns how to stop.
+   */
+  onFrame(listener: () => void): () => void {
+    const gl = this.gl;
+    if (!gl) return () => {};
+    gl.on("render", listener);
+    return () => gl.off("render", listener);
+  }
+
+  /** Draw a frame, whether or not anything changed: a recording wants one each tick. */
+  repaint(): void {
+    if (this.shown) this.gl?.triggerRepaint();
   }
 
   /**
@@ -2570,7 +2858,7 @@ export default class Cells3DCapability extends Capability {
     this.pastFinds.set(scan, finds);
     // The one on the map is never the oldest: it was just looked at.
     for (const old of this.pastFinds.keys()) {
-      if (this.pastFinds.size <= PAST_KEPT) break;
+      if (this.pastFinds.size <= (this.studio ? STUDIO_SCANS_KEPT : PAST_KEPT)) break;
       this.pastFinds.delete(old);
     }
     return finds;
@@ -2700,6 +2988,7 @@ export default class Cells3DCapability extends Capability {
         code: volume.code, cutaway, lon: volume.lon, lat: volume.lat, tier: tierOf(volume, cutaway), system: null,
       });
     }
+    this.hold();
     void this.loadClouds();
     if (this.gl && this.styleReady) this.ensureClouds(this.gl);
   }
@@ -2765,6 +3054,7 @@ export default class Cells3DCapability extends Capability {
     this.ensureCells(gl);
     this.ensureClouds(gl);
     this.ensureVolumes(gl);
+    this.ensureStudio(gl);
     this.ensureStrikes();
     this.ensureLabels(gl);
     this.ensureLocation(gl);
@@ -3141,6 +3431,8 @@ export default class Cells3DCapability extends Capability {
     this.volumes.stop();
     this.unsubscribeTheme?.();
     this.unsubscribeTheme = null;
+    for (const unsubscribe of this.unsubscribeStudio) unsubscribe();
+    this.unsubscribeStudio = [];
     this.unsubscribeSelection?.();
     this.unsubscribeSelection = null;
     this.unsubscribeCut?.();

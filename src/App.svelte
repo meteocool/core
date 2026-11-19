@@ -17,6 +17,8 @@ import Guide3D from "./components/Guide3D.svelte";
 import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
 import { cloudStyleOf, DEFAULT_CLOUD_STYLE } from "./lib/cloudStyle";
+import { studioOpen } from "./lib/studio/store";
+import { closeStudio, openStudio, studioOffered } from "./lib/studio/session";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import ArchiveFrame from "./components/ArchiveFrame.svelte";
@@ -1021,6 +1023,10 @@ sharedActiveCap.subscribe((cap) => { if (cap === "cells3d") dropEarlierFrames();
  * reader is on any other map by their own doing.
  */
 sharedActiveCap.subscribe((cap) => { if (cap !== "cells3d") forget3DOrigin(); });
+// Studio is a mode of the 3D map, and goes with it.
+sharedActiveCap.subscribe((cap) => { if (cap !== "cells3d") closeStudio(); });
+const studioOnOffer = studioOffered();
+const loadStudio = () => import("./components/studio/Studio.svelte");
 let leaving3D = false;
 function backFrom3D(): void {
   const origin = origin3D();
@@ -1563,10 +1569,20 @@ if (postInitCb) postInitCb(lm);
   <!-- Not while a storm is open: a cut storm does not peel, and its panel
        says when it was seen. With the picker of which scan the storms are
        from, which stays on its choice meanwhile. -->
-  {#if !$selectedStorm}
-    <PeelSlider pickScan={cells3d ? (scan) => cells3d.showScan(scan) : null} />
+  {#if $studioOpen && cells3d}
+    <!-- Studio takes the map's own chrome for looking away: its tools and
+         timeline stand where the legend and the peel's tray do. -->
+    <Lazy load={loadStudio} floating let:module>
+      <svelte:component this={module.default} stage={cells3d} />
+    </Lazy>
+  {:else}
+    {#if !$selectedStorm}
+      <PeelSlider
+        pickScan={cells3d ? (scan) => cells3d.showScan(scan) : null}
+        openStudio={cells3d && studioOnOffer && !$smallScreen ? openStudio : null} />
+    {/if}
+    <Guide3D />
   {/if}
-  <Guide3D />
 {/if}
 <PointMenu layerManager={lm} />
 

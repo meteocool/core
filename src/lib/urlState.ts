@@ -54,6 +54,9 @@ import { currentLocale, t } from "../locale/t";
 import { setElementCentre } from "./viewCentre";
 import { onWake } from "./wakeup";
 import { radarSite } from "./radarSites";
+import { decodeStudio, encodeStudio } from "./studio/scene";
+import { closeStudio, openStudio, studioOffered } from "./studio/session";
+import { studioFov, studioOpen, studioPlanes, studioPlayhead, studioScene, studioSelectedPlane } from "./studio/store";
 
 /** The setting each overlay is stored under, whose callback drives its store. */
 const OVERLAY_SETTINGS: Record<Overlay, string> = {
@@ -272,6 +275,21 @@ export function currentState(): LinkState | null {
     if (scan !== null && !tracked) state.time = scan;
     if (get(peelManual) && !storm) state.peel = get(peelLevel);
     state.style = get(cloudStyle);
+    // Studio, with the map as it stands and the scene made in it.
+    if (get(studioOpen) && !storm && view?.pitch !== undefined && view.bearing !== undefined) {
+      state.studio = encodeStudio({
+        still: {
+          // MapLibre's own zoom, one under the flat map's.
+          camera: {
+            lon: view.lon, lat: view.lat, zoom: view.zoom - 1, pitch: view.pitch, bearing: view.bearing, fov: get(studioFov),
+          },
+          planes: get(studioPlanes),
+          peel: get(peelLevel),
+          scan,
+        },
+        scene: get(studioScene),
+      });
+    }
   }
 
   // The model comparison's drawer, on whichever map it was opened over.
@@ -651,6 +669,26 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
       }
       const scan = link.time ?? null;
       if ((scan !== null || !opening) && get(cloudsTime).shown !== scan) holding(restoreScan(scan, token));
+
+      // Studio, where it is offered: its planes, lens and scene, and the
+      // camera exactly, which may be tilted past what the link's own says.
+      // A link without it, on Back, is the map outside Studio.
+      const studio = link.studio && studioOffered() ? decodeStudio(link.studio) : null;
+      if (studio) {
+        const entering = !get(studioOpen);
+        if (JSON.stringify(get(studioPlanes)) !== JSON.stringify(studio.still.planes)) studioPlanes.set(studio.still.planes);
+        studioFov.set(studio.still.camera.fov);
+        if (JSON.stringify(get(studioScene)) !== JSON.stringify(studio.scene)) studioScene.set(studio.scene);
+        if (entering) {
+          studioSelectedPlane.set(studio.still.planes[0]?.id ?? null);
+          studioPlayhead.set(0);
+          openStudio();
+        }
+        peelLevel.set(studio.still.peel);
+        cells3d?.setStudioCamera(studio.still.camera);
+      } else if (!opening) {
+        closeStudio();
+      }
     }
 
     // The model comparison, on either map: opened where the link says, or
@@ -680,7 +718,8 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
     const before = window.location.search;
     // Until a map has come to rest there is no view to write, only the one
     // the page was opened on; that one is kept as it was.
-    const keep = get(mapView) ? [] : ["latLonZ", "pitch", "bearing"];
+    // A Studio scene is written with the camera it stands at, so it is kept likewise.
+    const keep = get(mapView) ? [] : ["latLonZ", "pitch", "bearing", "studio"];
     const search = linkSearch(before, state, keep);
     const push = !settling && isNavigation(parseLink(before), state);
     settling = false;
@@ -721,6 +760,7 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
     // storms peel on their own, and the scan picker reports its progress.
     derived([peelManual, peelLevel], ([manual, level]) => (manual ? level : null)),
     derived(cloudsTime, (time) => time.shown),
+    studioOpen, studioPlanes, studioFov, studioScene,
   ];
   const unsubscribers = watched.map((store) => store.subscribe(() => schedule()));
 

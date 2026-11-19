@@ -70,6 +70,8 @@ import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
 import { SHELL_STEP, SHELL_TOP, STYLE_FIELD } from "../lib/cloudStyle";
 import type { CloudStyle } from "../lib/cloudStyle";
+import { carryPlane, MAX_PLANES } from "../lib/studio/planes";
+import type { ClipPlane } from "../lib/studio/planes";
 import { VERTICAL_SCALE } from "./terrain";
 
 /**
@@ -169,6 +171,11 @@ const PEEL_IDLE_SECONDS = 3 * PEEL_SECONDS;
  * and puts the edge of what is cut past the sides of the screen.
  */
 const CUT_REACH_KM = 40;
+/**
+ * How many planes the shader cuts one cloud by: Studio's section planes
+ * (lib/studio/planes.ts), a slab among them being two.
+ */
+const CLIP_PLANES = MAX_PLANES * 2;
 
 const VERTEX = `#version 300 es
 void main() {
@@ -186,12 +193,12 @@ uniform mat4 uInverse;     // clip space back to the unit cube
 uniform mat4 uForward;     // and out again, for the depth of the entry point
 uniform vec2 uViewport;
 uniform vec3 uExtentKm;    // what one unit of the cube is worth, per axis
-uniform vec3 uPlaneNormal;
-uniform vec3 uPlanePoint;
+uniform int uPlaneCount;   // how many planes cut this cloud: the opened storm's one, or Studio's
+uniform vec3 uPlaneNormal[${CLIP_PLANES}];
+uniform vec3 uPlanePoint[${CLIP_PLANES}];
 uniform float uDbzFloor;
 uniform float uDbzScale;
 uniform float uSteps;
-uniform float uCut;        // 1 for the storm being inspected and the clouds near it, 0 for every other
 uniform float uLow;        // where the echo starts to show, which the peel raises
 uniform float uHigh;       // and where it is as opaque as it gets
 uniform int uStyle;        // 0 a lit cloud, 1 unlit light, 2 nested surfaces; see lib/cloudStyle.ts
@@ -408,7 +415,7 @@ void marchShells(vec3 origin, vec3 direction, float near, float far, float dithe
   float dt = (far - near) / count;
   vec3 light = normalize(vec3(-0.45, -0.7, 0.75));
   vec3 toEye = -normalize(direction * uExtentKm);
-  bool hollow = uCut > 0.5;
+  bool hollow = uPlaneCount > 0;
 
   float t0 = near;
   float v0 = seen(origin + direction * near);
@@ -454,13 +461,15 @@ void main() {
   if (!hitBox(origin, direction, near, far)) discard;
   near = max(near, 0.0);
 
-  // The cut, trimmed off the ray rather than tested per sample, so the exposed
+  // The cuts, trimmed off the ray rather than tested per sample, so the exposed
   // face lands exactly on the plane instead of on whichever step came first.
-  // Only the storm a reader has opened is cut, and the clouds around it.
+  // One plane for the storm a reader has opened and the clouds around it;
+  // Studio's section planes for every cloud, each taking its own side away.
   bool cutFace = false;
-  if (uCut > 0.5) {
-    float facing = dot(direction, uPlaneNormal);
-    float atPlane = dot(uPlanePoint - origin, uPlaneNormal);
+  for (int k = 0; k < ${CLIP_PLANES}; k += 1) {
+    if (k >= uPlaneCount) break;
+    float facing = dot(direction, uPlaneNormal[k]);
+    float atPlane = dot(uPlanePoint[k] - origin, uPlaneNormal[k]);
     if (abs(facing) < 1e-6) {
       if (atPlane < 0.0) discard;
     } else {
@@ -468,8 +477,8 @@ void main() {
       if (facing > 0.0) far = min(far, t);
       else if (t > near) { near = t; cutFace = true; }
     }
-    if (far <= near) discard;
   }
+  if (far <= near) discard;
 
   float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
   if (uStyle == 2) marchShells(origin, direction, near, far, dither);
@@ -836,6 +845,13 @@ export interface CloudsLayer extends CustomLayerInterface {
    * peeling on its own; null lets it run again.
    */
   setPeel(peel: number | null): void;
+  /**
+   * Cut every cloud by Studio's section planes, in place of the opened
+   * storm's own cut; null hands the cutting back to `setCut`. Every cloud,
+   * not only those near one: a section plane is the reader's own, placed
+   * where they want the map to end.
+   */
+  setSections(planes: readonly ClipPlane[] | null): void;
 }
 
 /**
@@ -878,6 +894,8 @@ export function makeCloudsLayer(
   let lastFrameAt: number | null = null;
   /** The peel the reader set by hand, which stops the running one; see `setPeel`. */
   let manualPeel: number | null = null;
+  /** Studio's section planes, while it is open; see `setSections`. */
+  let sections: readonly ClipPlane[] | null = null;
   /** When the reader last touched the map, or the storms changed. */
   let activeSince = performance.now();
   const wake = () => { activeSince = performance.now(); schedulePeel(); };
@@ -1060,6 +1078,11 @@ export function makeCloudsLayer(
       if (map?.getContainer().isConnected) map.triggerRepaint();
     },
 
+    setSections(planes) {
+      sections = planes ? planes.slice(0, CLIP_PLANES) : null;
+      if (map?.getContainer().isConnected) map.triggerRepaint();
+    },
+
     onAdd(added: GlMap, context: WebGL2RenderingContext) {
       map = added;
       gl = context;
@@ -1097,8 +1120,9 @@ export function makeCloudsLayer(
       // peel's pace under the sweep and the detail panel, which made the open
       // storm the laggiest thing on screen.
       // A peel set by hand stands, reduced motion or not, until a storm is cut.
-      const manual = manualPeel !== null && cutKey === null;
-      const holding = still || cutKey !== null;
+      // Studio's planes leave the peel to the reader's hand: it cuts and peels at once.
+      const manual = manualPeel !== null && (cutKey === null || sections !== null);
+      const holding = still || (cutKey !== null && sections === null);
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
 
@@ -1165,7 +1189,7 @@ export function makeCloudsLayer(
       context.disable(context.CULL_FACE);
 
       // The cut, on the map, carried into each cut tile's cube; see `carryCut`.
-      const opened = cutKey !== null ? clouds.get(cutKey) : undefined;
+      const opened = cutKey !== null && sections === null ? clouds.get(cutKey) : undefined;
       const along = (cutHeading * Math.PI) / 180;
       const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
       const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
@@ -1183,7 +1207,11 @@ export function makeCloudsLayer(
           && (key === cutKey || kmFromCut(cloud.model, cloud.box, cutPoint, metre) <= CUT_REACH_KM)
           ? carryCut(cloud.model, opened.model, cutPoint, along)
           : null;
-        if (plane && cutAway(cloud.corners, plane)) continue;
+        // Studio's planes in this cloud's cube, or the opened storm's one.
+        const cuts = sections
+          ? sections.map((section) => carryPlane(cloud.model, extentM, section))
+          : plane ? [plane] : [];
+        if (cuts.some((cut) => cutAway(cloud.corners, cut))) continue;
 
         if (rect === "all") {
           context.disable(context.SCISSOR_TEST);
@@ -1205,7 +1233,7 @@ export function makeCloudsLayer(
 
         const peelsNow = !plane && cloud.peels && (manual || (!holding && peelsHere(rect)));
         if (peelsNow) peeling = true;
-        context.uniform1f(at("uCut"), plane ? 1 : 0);
+        context.uniform1i(at("uPlaneCount"), cuts.length);
         context.uniform1f(at("uDim"), cloud.dim);
         // From the style's floor to the storm's core. The top of the ramp
         // stays where the style has it until the peel has thinned the storm
@@ -1213,9 +1241,9 @@ export function makeCloudsLayer(
         const low = peelsNow ? field.floor + (cloud.peelFloor - field.floor) * peel : field.floor;
         context.uniform1f(at("uLow"), low);
         context.uniform1f(at("uHigh"), Math.max(field.floor + field.band, low + PEEL_BAND));
-        if (plane) {
-          context.uniform3f(at("uPlaneNormal"), ...plane.normal);
-          context.uniform3f(at("uPlanePoint"), ...plane.point);
+        if (cuts.length) {
+          context.uniform3fv(at("uPlaneNormal"), cuts.flatMap((cut) => cut.normal));
+          context.uniform3fv(at("uPlanePoint"), cuts.flatMap((cut) => cut.point));
         }
         context.drawArrays(context.TRIANGLES, 0, 3);
       }

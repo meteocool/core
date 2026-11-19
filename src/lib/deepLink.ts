@@ -138,6 +138,12 @@ export interface LinkState {
   peel?: number;
   /** How the 3D map draws its storms (lib/cloudStyle.ts). Only on that map. */
   style?: CloudStyle;
+  /**
+   * meteocool Studio open on the 3D map, with its scene: the section planes,
+   * the lens and the keyframes, as lib/studio/scene.ts writes them. Opaque
+   * here; what it holds is that module's to say.
+   */
+  studio?: string;
   /** A weather station's sheet, by its id. */
   station?: string;
   /** The point the model comparison is open for, as [lat, lon]. */
@@ -168,7 +174,7 @@ export interface LinkRadar {
 const OWNED = [
   "layer", "latLonZ", "pitch", "bearing", "overlays", "product", "hide", "stationParameter",
   "from", "to", "t", "point", "radar", "sweep", "tilt", "motion",
-  "storm", "cell", "details", "cloud", "cut", "peel", "style", "station", "compare", "shared",
+  "storm", "cell", "details", "cloud", "cut", "peel", "style", "studio", "station", "compare", "shared",
 ] as const;
 type OwnedKey = (typeof OWNED)[number];
 
@@ -206,6 +212,9 @@ function parseView(text: string | null): LinkView | null {
  * is the only thing that knows; this only keeps the value a plain word.
  */
 const LAYER = /^[A-Za-z0-9]{1,32}$/;
+
+/** A Studio scene, as lib/studio/scene.ts encodes one: URL-safe base64, and no longer than a long scene makes it. */
+const STUDIO = /^[A-Za-z0-9_-]{1,8192}$/;
 
 /**
  * A track code. KONRAD3D's are 22 digits today; the pattern is looser than
@@ -462,6 +471,9 @@ export function parseLink(search: string | URLSearchParams): LinkState {
 
   const style = params.get("style");
   if ((CLOUD_STYLES as readonly (string | null)[]).includes(style)) state.style = style as CloudStyle;
+  // Studio is the 3D map's, and has no storm open in it.
+  const studio = params.get("studio");
+  if (studio && state.layer === "cells3d" && !selection && STUDIO.test(studio)) state.studio = studio;
 
   const compare = parsePair(params.get("compare"));
   if (compare && !selection) state.compare = compare;
@@ -524,6 +536,7 @@ function values(state: LinkState): Record<OwnedKey, string | null> {
       : null,
     peel: selection || state.peel === undefined ? null : String(Math.round(Math.min(Math.max(state.peel, 0), 1) * 100) / 100),
     style: state.layer === "cells3d" && state.style ? state.style : null,
+    studio: state.layer === "cells3d" && !selection && state.studio ? state.studio : null,
     station,
     compare: !selection && state.compare ? `${fixed(state.compare[0], 5)},${fixed(state.compare[1], 5)}` : null,
     shared: state.shared === undefined ? null : frameLink(state.shared),
@@ -571,7 +584,7 @@ export function linkSearch(search: string, state: LinkState, keep: readonly stri
  * Whether going from one state to the other is a step the Back button should
  * be able to undo.
  *
- * Switching map, or opening, changing or closing a storm, a radar, a
+ * Switching map, going into or out of Studio, or opening, changing or closing a storm, a radar, a
  * station's sheet, a past window or the model comparison, is navigation: it is what a
  * reader would expect Back to take them out of. Everything else (panning,
  * zooming, tilting, turning the slice, scrubbing, toggling an overlay or
@@ -587,6 +600,7 @@ export function isNavigation(from: LinkState, to: LinkState): boolean {
     || (from.cell ?? null) !== (to.cell ?? null) || (from.cloud ?? null) !== (to.cloud ?? null)
     || (from.radar?.site ?? null) !== (to.radar?.site ?? null)
     || (from.station ?? null) !== (to.station ?? null)
+    || (from.studio === undefined) !== (to.studio === undefined)
     || (from.window?.start ?? null) !== (to.window?.start ?? null) || (from.window?.end ?? null) !== (to.window?.end ?? null)
     || from.compare?.join(",") !== to.compare?.join(",");
 }

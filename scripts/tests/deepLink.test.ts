@@ -533,3 +533,24 @@ test("in a window a frame stays beside a storm, which every step draws", () => {
   assert.equal(state.time, FROM + 3600);
   assert.match(linkSearch("", state), /&t=20261101T1300Z&/);
 });
+
+test("a Studio scene round-trips on the 3D map, and means nothing anywhere else", () => {
+  const scene = "WzEsWzEwLDUwXV0_-x";
+  const search = linkSearch("", { layer: "cells3d", studio: scene });
+  assert.equal(search, `?layer=cells3d&studio=${scene}`);
+  assert.equal(parseLink(search).studio, scene);
+  // The flat map has no Studio, and a storm open on the 3D map is not in it.
+  assert.equal(parseLink(`?layer=radar&studio=${scene}`).studio, undefined);
+  assert.equal(linkSearch("", { layer: "radar", studio: scene }), "?layer=radar");
+  assert.equal(parseLink(`?layer=cells3d&storm=${STORM}&studio=${scene}`).studio, undefined);
+  // Only what the encoding writes.
+  assert.equal(parseLink("?layer=cells3d&studio=a+b/c==").studio, undefined);
+  assert.equal(parseLink(`?layer=cells3d&studio=${"A".repeat(9000)}`).studio, undefined);
+});
+
+test("going into Studio or out of it is navigation; changing the scene is not", () => {
+  const map: LinkState = { layer: "cells3d" };
+  assert.equal(isNavigation(map, { ...map, studio: "abc" }), true);
+  assert.equal(isNavigation({ ...map, studio: "abc" }, map), true);
+  assert.equal(isNavigation({ ...map, studio: "abc" }, { ...map, studio: "abd" }), false);
+});

@@ -30,11 +30,15 @@ import { _ } from "svelte-i18n";
 import { cloudStyle, peelLevel, peelManual, radarColormap } from "../stores";
 import { dbzColour } from "../lib/cellVolume";
 import { STYLE_FIELD } from "../lib/cloudStyle";
+import { faCubes } from "@fortawesome/free-solid-svg-icons/faCubes";
+import Icon from "./Icon.svelte";
 import ScanPicker from "./ScanPicker.svelte";
 import StylePicker from "./StylePicker.svelte";
 
 /** Put an earlier scan's storms on the map, or the newest for null; without it, no picker. */
 export let pickScan: ((scan: number | null) => void) | null = null;
+/** Go into meteocool Studio (lib/studio); without it, where Studio is not offered, no way in. */
+export let openStudio: (() => void) | null = null;
 
 /** The reflectivity the track spans: the faintest the style draws to a typical core. */
 const TRACK_MAX = 56;
@@ -74,6 +78,12 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     {#if pickScan}
       <ScanPicker pick={pickScan} />
     {/if}
+    {#if openStudio}
+      <button type="button" class="studio" on:click={openStudio} title={$_("studio.open_title")}>
+        <Icon icon={faCubes} />
+        <span>Studio</span>
+      </button>
+    {/if}
   </div>
 </div>
 
@@ -105,6 +115,26 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
   .label {
     flex: none;
   }
+  /* The way into Studio, at the tray's end: a pill as the scan picker's is. */
+  .studio {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--mc-pill-h);
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+    color: var(--mc-text);
+    font: 600 12px/1 var(--mc-font);
+    cursor: pointer;
+    transition: transform var(--mc-motion-fast) var(--mc-ease), background-color var(--mc-motion-fast);
+  }
+  .studio:hover { background: var(--mc-tint-hover); }
+  .studio:active { transform: scale(var(--mc-press)); }
+  .studio:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .studio :global(svg) { width: 12px; height: 12px; }
 
   /* A native range, so keyboard, focus and touch come with it; only drawn. */
   input {
