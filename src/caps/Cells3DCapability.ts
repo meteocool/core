@@ -709,6 +709,9 @@ export default class Cells3DCapability extends Capability {
    */
   private fetching = new Map<string, { volume: Promise<Cutaway>; abort: AbortController }>();
 
+  /** The boxes last handed to their source, as JSON; see `ensureClouds`. */
+  private cloudsDrawn: string | null = null;
+
   /** The volumes that would not load, asked for again a little later; see `FetchRetries`. */
   private retries = new FetchRetries();
 
@@ -2236,10 +2239,17 @@ export default class Cells3DCapability extends Capability {
       }),
     };
     const source = gl.getSource(CLOUD_SOURCE);
+    // Every volume landing asks for the boxes again, and most change none of
+    // them. Set anyway, the source was rebuilt each time, and a tap landing
+    // while it was found no box under it and opened nothing.
+    const drawn = JSON.stringify(data);
     if (source) {
+      if (drawn === this.cloudsDrawn) return;
+      this.cloudsDrawn = drawn;
       (source as unknown as { setData(data: unknown): void }).setData(data);
       return;
     }
+    this.cloudsDrawn = drawn;
     gl.addSource(CLOUD_SOURCE, { type: "geojson", data, attribution: dwdAttribution });
     // Fainter for a storm that does not open, as the storm itself is.
     const unopenable: ExpressionSpecification = ["==", ["get", "tier"], TIER_UNOPENABLE];
