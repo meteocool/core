@@ -26,7 +26,8 @@ type Stand = { storm: Json; detail: Json };
 const FIVE_MINUTES = 5 * 60_000;
 const ISO_TIME = /"(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z)"/g;
 
-const recorded = (name: string): Json => (JSON.parse(
+/** A recorded answer's body, as the fixture keeps it. */
+export const recorded = (name: string): Json => (JSON.parse(
   readFileSync(path.join(FIXTURES, "api", `${name}.json`), "utf8"),
 ) as RecordedResponse).json as Json;
 
