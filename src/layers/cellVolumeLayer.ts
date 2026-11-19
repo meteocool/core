@@ -67,6 +67,7 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
 import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
 import type { BoxPart } from "../lib/volumeBox";
+import { cameraOf, farToNear } from "../lib/drawOrder";
 import { stormsOf, tileEdges, type TileEdges } from "../lib/tileStorms";
 import type { Cutaway } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
@@ -1302,16 +1303,19 @@ export function makeCloudsLayer(
       const width = context.drawingBufferWidth;
       const height = context.drawingBufferHeight;
 
-      // Far to near, by where each box's middle lands in clip space.
-      const ordered = [...clouds.entries()]
+      // Far to near, down the tiles' quadtree from where the camera stands,
+      // and by where each box's middle lands in clip space where it cannot
+      // say; see lib/drawOrder.ts.
+      const unmain = invert(main);
+      const camera = unmain ? cameraOf(unmain) : [0.5, 0.5, 0];
+      const ordered = farToNear([...clouds.entries()]
         .filter(([, cloud]) => cloud.texture)
         .map(([key, cloud]) => {
           const forward = multiply(main, cloud.model);
           const [, , z, w] = apply(forward, 0.5, 0.5, 0.25);
           const rect = screenRect(forward, cloud.corners, width, height);
-          return { key, cloud, forward, rect, depth: w > 0 ? z / w : Infinity };
-        })
-        .sort((a, b) => b.depth - a.depth);
+          return { key, cloud, forward, rect, depth: w > 0 ? z / w : Infinity, tile: cloud.cutaway.header.tile ?? null };
+        }), camera);
 
 
       context.useProgram(program);

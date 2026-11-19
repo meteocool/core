@@ -37,7 +37,8 @@ import {
   drapeAnchor, HANDHELD_DRAPE_SIZE, HANDHELD_TILE_CACHE_ZOOM_LEVELS, isHandheld, mapPixelRatio,
 } from "../lib/gpuBudget";
 import { drawnExtentM, tileBounds, tileCentre, tileCode } from "../lib/volumeBox";
-import { atLevel, COARSE_ZOOM, fineAt } from "../lib/volumeLevels";
+import { atLevel, COARSE_ZOOM, fineAt, fineWithin, footprintOnScreen } from "../lib/volumeLevels";
+import type { Bounds, FineCandidate } from "../lib/volumeLevels";
 import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
 import type { CloudsLayer } from "../layers/cellVolumeLayer";
@@ -75,6 +76,9 @@ import {
 import type { Place, Quarter, ScanFinds } from "../lib/cloudHistory";
 import { networkAt } from "../layers/networkAt";
 import { defaultPeel } from "../lib/peel";
+import { handOver } from "../lib/volumeHandover";
+import type { Placed } from "../lib/volumeHandover";
+import { FetchRetries } from "../lib/fetchRetries";
 import { makeStudioPlanesLayer } from "../layers/studioPlanesLayer";
 import type { StudioPlanesLayer } from "../layers/studioPlanesLayer";
 import { clipPlanes, isLevel } from "../lib/studio/planes";
@@ -704,6 +708,12 @@ export default class Cells3DCapability extends Capability {
    * longer wanted is called off (`loadClouds`).
    */
   private fetching = new Map<string, { volume: Promise<Cutaway>; abort: AbortController }>();
+
+  /** The volumes that would not load, asked for again a little later; see `FetchRetries`. */
+  private retries = new FetchRetries();
+
+  /** The next time the volumes that failed are asked for again; see `retryLater`. */
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** When a link or a history step last pointed the camera; see `frameOpened`. */
   private cameraSetAt = -Infinity;
@@ -1482,6 +1492,9 @@ export default class Cells3DCapability extends Capability {
     this.fetching.clear();
     this.pastFetches.clear();
     this.cutaways.clear();
+    this.retries.clear();
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
     this.fineTiles.clear();
     this.opened = null;
     this.requested = null;
@@ -1849,23 +1862,31 @@ export default class Cells3DCapability extends Capability {
     }
 
     const tried = new Set<string>();
-    const missing = () => this.wanted().filter((cloud) => !this.cutaways.has(cloud.path) && !tried.has(cloud.path));
+    const missing = () => this.wanted().filter((cloud) => (
+      !this.cutaways.has(cloud.path) && !tried.has(cloud.path) && this.retries.ready(cloud.path, Date.now())
+    ));
     for (let pass = missing(); pass.length; pass = missing()) {
-      const faintBefore = this.faint.size;
+      const letGoBefore = this.faint.size + this.givenUp();
       for (let i = 0; i < pass.length; i += VOLUME_FETCHES) {
         const batch = pass.slice(i, i + VOLUME_FETCHES);
-        const faintInBatch = this.faint.size;
+        const faintInBatch = this.faint.size + this.givenUp();
         for (const cloud of batch) tried.add(cloud.path);
         const loaded = await Promise.all(batch.map(async (cloud) => {
           try {
             return { cloud, cutaway: await this.fetchVolume(cloud) };
-          } catch {
+          } catch (error) {
+            // Called off because the camera moved on: not a failure.
+            if ((error as { name?: string } | null)?.name !== "AbortError") {
+              this.retries.failed(cloud.path, Date.now(), error instanceof VolumeGone);
+            }
             return null;
           }
         }));
-        if (this.loadToken !== token) return;
+        // Kept even when a newer load has taken over: it was paid for, and
+        // fetched again it would only arrive later.
+        const listed = new Set(this.clouds.map((cloud) => cloud.path));
         for (const found of loaded) {
-          if (!found) continue;
+          if (!found || !listed.has(found.cloud.path)) continue;
           const { cloud, cutaway } = found;
           if (isFaint(cutaway)) {
             this.faint.add(cloud.path);
@@ -1876,15 +1897,36 @@ export default class Cells3DCapability extends Capability {
             system: cloud.system ?? null,
           });
         }
+        if (this.loadToken !== token) return;
+        // What the new volumes stood in for can go now; see `handOver`.
+        this.dropUnlisted();
         this.hold();
         this.pushClouds();
-        if (this.faint.size > faintInBatch && this.gl && this.styleReady) this.ensureClouds(this.gl);
+        if (this.faint.size + this.givenUp() > faintInBatch && this.gl && this.styleReady) this.ensureClouds(this.gl);
         // Switched away: the rest waits for `attach`, whose refresh fetches
         // whatever is still missing.
         if (!this.shown) return;
       }
-      if (this.faint.size === faintBefore) return;
+      if (this.faint.size + this.givenUp() === letGoBefore) break;
     }
+    this.retryLater();
+  }
+
+  /** How many listed volumes would not load and are no longer asked for; see `FetchRetries`. */
+  private givenUp(): number {
+    return this.clouds.filter((cloud) => this.retries.givenUp(cloud.path)).length;
+  }
+
+  /** Ask again for the volumes that failed, once the soonest of them is due. */
+  private retryLater(): void {
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    const next = this.retries.next();
+    if (next === null || !this.shown) return;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (this.shown) void this.loadClouds();
+    }, Math.max(0, next - Date.now()));
   }
 
   /** One storm's volume, shared with any other load that asked for it meanwhile. */
@@ -1907,7 +1949,7 @@ export default class Cells3DCapability extends Capability {
    * then those just past its edges, strongest first and nearer first among
    * equals within each, up to `RESIDENT_BYTES`.
    *
-   * On screen by projecting each storm, not by the viewport's bounds: tilted,
+   * On screen by projecting each storm's ground, not by the viewport's bounds: tilted,
    * the bounds are the box around a trapezoid running to the horizon, mostly
    * ground nobody can see, and ranked by strength alone the storms off to its
    * sides took the places of the ones in front of the camera. Zoomed out over
@@ -1922,7 +1964,7 @@ export default class Cells3DCapability extends Capability {
     const gl = this.gl;
     const bounds = gl?.getBounds();
     const centre = gl?.getCenter();
-    let candidates = this.levelled().filter((cloud) => !this.faint.has(cloud.path));
+    let candidates = this.levelled().filter((cloud) => !this.faint.has(cloud.path) && !this.retries.givenUp(cloud.path));
     let shown = new Set<RadarVolume>();
     if (gl && bounds && centre) {
       const west = bounds.getWest();
@@ -1931,17 +1973,19 @@ export default class Cells3DCapability extends Capability {
       const north = bounds.getNorth();
       const dx = (east - west) * VIEW_MARGIN;
       const dy = (north - south) * VIEW_MARGIN;
-      candidates = candidates.filter((cloud) => (
-        cloud.lon >= west - dx && cloud.lon <= east + dx && cloud.lat >= south - dy && cloud.lat <= north + dy
-      ));
+      // By its tile's ground where it has one, by its middle where not.
+      const groundOf = (cloud: RadarVolume): Bounds => (
+        cloud.tile ? tileBounds(cloud.tile[0], cloud.tile[1], cloud.tile[2]) : [cloud.lon, cloud.lat, cloud.lon, cloud.lat]
+      );
+      candidates = candidates.filter((cloud) => {
+        const [w, s, e, n] = groundOf(cloud);
+        return e >= west - dx && w <= east + dx && n >= south - dy && s <= north + dy;
+      });
       const { clientWidth: width, clientHeight: height } = gl.getContainer();
-      shown = new Set(candidates.filter((cloud) => {
-        // Inside the bounds proper as well: a point past the horizon projects
-        // to somewhere meaningless, which can be on the canvas.
-        if (cloud.lon < west || cloud.lon > east || cloud.lat < south || cloud.lat > north) return false;
-        const { x, y } = gl.project([cloud.lon, cloud.lat]);
-        return x >= 0 && x <= width && y >= 0 && y <= height;
-      }));
+      const view: Bounds = [west, south, east, north];
+      shown = new Set(candidates.filter((cloud) => (
+        footprintOnScreen(groundOf(cloud), view, (lonLat) => gl.project(lonLat), width, height)
+      )));
     }
     const distance = (cloud: RadarVolume) => (centre
       ? Math.hypot((cloud.lon - centre.lng) * Math.cos((cloud.lat * Math.PI) / 180), cloud.lat - centre.lat)
@@ -1964,16 +2008,43 @@ export default class Cells3DCapability extends Capability {
   /**
    * Work out again which coarse tiles stand large enough on screen to be
    * drawn as their tiles; see `FINE_ABOVE_PX`. Whether that changed anything.
+   *
+   * In view, only as many as `RESIDENT_BYTES` holds with everything else in
+   * view drawn coarse, the largest on screen first (`fineWithin`).
    */
   private updateDetail(): boolean {
     const gl = this.gl;
     if (!gl) return false;
+    const usable = (cloud: RadarVolume) => !this.faint.has(cloud.path) && !this.retries.givenUp(cloud.path);
+    const tiles = new Map<string, RadarVolume[]>();
+    for (const cloud of this.clouds) {
+      if (cloud.coarse || !cloud.tile || !usable(cloud)) continue;
+      const shift = cloud.tile[0] - COARSE_ZOOM;
+      const code = tileCode(COARSE_ZOOM, cloud.tile[1] >> shift, cloud.tile[2] >> shift);
+      tiles.set(code, [...tiles.get(code) ?? [], cloud]);
+    }
     const fine = new Set<string>();
+    const candidates: FineCandidate[] = [];
+    // Everything in view, drawn coarse: what the fine tiles have to fit beside.
+    let coarseInView = 0;
     for (const cloud of this.clouds) {
       if (!cloud.coarse || !cloud.tile) continue;
       const code = tileCode(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
-      if (this.drawnFine(gl, cloud.tile)) fine.add(code);
+      const inView = this.inView(gl, tileBounds(cloud.tile[0], cloud.tile[1], cloud.tile[2]));
+      if (inView && usable(cloud)) coarseInView += textureBytes(cloud);
+      if (!this.drawnFine(gl, cloud.tile)) continue;
+      if (!inView) {
+        fine.add(code);
+        continue;
+      }
+      candidates.push({
+        code,
+        across: this.acrossPx(gl, tileBounds(cloud.tile[0], cloud.tile[1], cloud.tile[2])),
+        coarseBytes: usable(cloud) ? textureBytes(cloud) : 0,
+        fineBytes: (tiles.get(code) ?? []).reduce((sum, tile) => sum + textureBytes(tile), 0),
+      });
     }
+    for (const code of fineWithin(candidates, RESIDENT_BYTES - coarseInView)) fine.add(code);
     const changed = fine.size !== this.fineTiles.size || [...fine].some((code) => !this.fineTiles.has(code));
     this.fineTiles = fine;
     return changed;
@@ -2017,12 +2088,46 @@ export default class Cells3DCapability extends Capability {
     return atLevel(this.clouds, coarse, this.opened?.path ?? null);
   }
 
-  /** Forget every volume no longer listed or no longer wanted in view, bar the open one. */
+  /**
+   * Forget every volume no longer listed or no longer wanted in view, bar the
+   * open one and those standing in for volumes still on their way (`handOver`).
+   */
   private dropUnlisted(): void {
     const wanted = new Set(this.wanted().map((cloud) => cloud.path));
+    const { keep } = this.handOver();
     for (const path of this.cutaways.keys()) {
-      if (!wanted.has(path) && path !== this.opened?.path) this.cutaways.delete(path);
+      if (!wanted.has(path) && !keep.has(path) && path !== this.opened?.path) this.cutaways.delete(path);
     }
+  }
+
+  /**
+   * Which held volumes stand in for wanted ones still on their way, and which
+   * of those already in wait behind them; see `lib/volumeHandover.ts`. The
+   * open storm is neither: it stays as it is, and `pushClouds` keeps its
+   * successors off the map.
+   */
+  private handOver(): { keep: Set<string>; hide: Set<string> } {
+    const wanted = this.wanted();
+    const listed = new Map(this.clouds.map((cloud) => [cloud.path, cloud]));
+    const placed = (path: string, at: { network?: string | null; tile?: readonly number[] | null; reference_time: string }): Placed => ({
+      path, network: networkOf(at), tile: at.tile ?? null, scan: scanTime(at.reference_time),
+    });
+    const centre = this.gl?.getCenter();
+    const distance = ({ lon, lat }: { lon: number; lat: number }) => (centre
+      ? Math.hypot((lon - centre.lng) * Math.cos((lat * Math.PI) / 180), lat - centre.lat)
+      : 0);
+    const held = [...this.cutaways]
+      .filter(([path]) => path !== this.opened?.path)
+      .sort(([, a], [, b]) => distance(a) - distance(b))
+      .map(([path, { cutaway }]) => placed(path, listed.get(path) ?? cutaway.header));
+    const pending = wanted
+      .filter((cloud) => !this.cutaways.has(cloud.path))
+      .map((cloud) => placed(cloud.path, cloud));
+    const bytes = new Map([...this.cutaways].map(([path, { cutaway }]) => [path, cutaway.voxels.byteLength]));
+    return handOver(
+      wanted.map((cloud) => placed(cloud.path, cloud)), held, pending, (volume) => bytes.get(volume.path) ?? 0,
+      RESIDENT_BYTES,
+    );
   }
 
   /**
@@ -2039,7 +2144,9 @@ export default class Cells3DCapability extends Capability {
     const open = this.opened ? this.cutaways.get(this.opened.path) : undefined;
     const stale = open && !this.clouds.some((cloud) => cloud.path === this.opened?.path);
     const held = this.heldOpen();
-    const drawn = [...this.cutaways].filter(([path, { cutaway }]) => (
+    // Volumes in, waiting behind what stands in for them until the rest are in too.
+    const { hide } = this.handOver();
+    const drawn = [...this.cutaways].filter(([path, { cutaway }]) => !hide.has(path) && (
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
     ));
     this.cloudsLayer?.setClouds(drawn.map(([key, { cutaway, tier, system }]) => ({
@@ -2724,6 +2831,7 @@ export default class Cells3DCapability extends Capability {
   private forgetFaint(): void {
     const listed = new Set(this.clouds.map((cloud) => cloud.path));
     for (const path of this.faint) if (!listed.has(path)) this.faint.delete(path);
+    this.retries.keepOnly(listed);
   }
 
   /** The scan "Latest" is: the newest German storms', else the radar's under them. */

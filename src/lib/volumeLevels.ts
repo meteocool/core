@@ -67,3 +67,62 @@ export function fineAt(clouds: readonly RadarVolume[], lon: number, lat: number)
   }
   return null;
 }
+
+/** West, south, east, north, in degrees. */
+export type Bounds = readonly [number, number, number, number];
+
+/**
+ * Whether any of a stretch of ground stands on screen.
+ *
+ * By its footprint, not its middle: a coarse tile is 40 km across, and one
+ * whose middle stood just past the edge of the screen while most of it
+ * filled a corner was ranked as off screen, behind stronger storms that
+ * were (`wanted`). Cut to the map's bounds first: a point past the horizon
+ * projects to somewhere meaningless, which can be on the canvas.
+ */
+export function footprintOnScreen(
+  ground: Bounds, view: Bounds, project: (lonLat: [number, number]) => { x: number; y: number },
+  width: number, height: number,
+): boolean {
+  const [west, south, east, north] = [
+    Math.max(ground[0], view[0]), Math.max(ground[1], view[1]), Math.min(ground[2], view[2]), Math.min(ground[3], view[3]),
+  ];
+  if (west > east || south > north) return false;
+  const corners = ([[west, south], [east, south], [east, north], [west, north]] as const)
+    .map(([lon, lat]) => project([lon, lat]));
+  const xs = corners.map(({ x }) => x);
+  const ys = corners.map(({ y }) => y);
+  return Math.max(...xs) >= 0 && Math.min(...xs) <= width && Math.max(...ys) >= 0 && Math.min(...ys) <= height;
+}
+
+/** A coarse tile that stands large enough to be drawn as its tiles, and what that costs. */
+export interface FineCandidate {
+  code: string;
+  /** How large it stands on screen, in pixels across. */
+  across: number;
+  /** Its own texture, and its tiles' together, in bytes. */
+  coarseBytes: number;
+  fineBytes: number;
+}
+
+/**
+ * Which coarse tiles to draw as their tiles: the largest on screen first,
+ * as far as `spare` bytes go over drawing every one of them coarse.
+ *
+ * Tilted over a large outbreak, every coarse tile near the camera turned
+ * fine at once, the fine tiles outran the textures the map holds, and the
+ * weakest tiles in view were left out, in the middle of a storm. Kept
+ * coarse where the budget runs out instead, a place is drawn at a coarser
+ * grain rather than not at all.
+ */
+export function fineWithin(candidates: readonly FineCandidate[], spare: number): Set<string> {
+  const fine = new Set<string>();
+  let left = spare;
+  for (const candidate of [...candidates].sort((a, b) => b.across - a.across)) {
+    const extra = candidate.fineBytes - candidate.coarseBytes;
+    if (extra > left) continue;
+    left -= extra;
+    fine.add(candidate.code);
+  }
+  return fine;
+}
