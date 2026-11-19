@@ -157,6 +157,14 @@ export default class StormManager {
   /** The most recent request, so a slower earlier answer cannot overwrite it. */
   private pending: symbol | null = null;
 
+  /**
+   * The viewport that request asks for, padded, while it is out. A move
+   * inside it waits for that answer instead of asking again: the bottom bar
+   * settling just after the first fetch nudges the view a few pixels, and
+   * that sent the storms and the groups twice.
+   */
+  private requested: Extent | null = null;
+
   /** The last answer as it came, so a past frame or a new selection can be drawn from it. */
   private answer: { storms: Storm[]; groups: StormGroup[] } | null = null;
 
@@ -234,11 +242,13 @@ export default class StormManager {
    */
   async reload(extent: Extent | null, { force = false, nanobar }: { force?: boolean; nanobar?: Progress } = {}): Promise<void> {
     if (!this.enabled || !extent) return;
-    if (!force && covers(this.fetched, worldExtent(extent))) return;
+    const seen = worldExtent(extent);
+    if (!force && (covers(this.fetched, seen) || covers(this.requested, seen))) return;
 
     const padded = worldExtent(padExtent(extent, BBOX_PADDING));
     const token = Symbol("storms");
     this.pending = token;
+    this.requested = padded;
 
     const past = this.past;
     const window = past ? { since: past.start, until: past.end } : WINDOW_MINUTES;
@@ -253,10 +263,13 @@ export default class StormManager {
     try {
       collection = await fetchStorms(padded, window, nanobar);
     } catch {
-      // Already reported, or no storms served (a 404 is absence): nothing to draw.
+      // Already reported, or no storms served (a 404 is absence): nothing to
+      // draw, and the next move asks again.
+      if (this.pending === token) this.requested = null;
       return;
     }
     const held = await groups;
+    if (this.pending === token) this.requested = null;
     if (this.pending !== token || !sameWindow(past, this.past)) return;
 
     this.fetched = padded;
@@ -275,6 +288,7 @@ export default class StormManager {
     if (sameWindow(next, this.past)) return false;
     this.past = next;
     this.pending = null;
+    this.requested = null;
     this.fetched = null;
     this.answer = null;
     this.live = [];
@@ -491,6 +505,7 @@ export default class StormManager {
 
   clearAll(): void {
     this.fetched = null;
+    this.requested = null;
     this.answer = null;
     this.live = [];
     this.dropDrawing();
