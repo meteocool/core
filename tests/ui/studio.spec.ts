@@ -75,7 +75,7 @@ test.describe("on a desktop", () => {
     const withPlanes = async () => {
       const studio = new URL(page.url()).searchParams.get("studio") ?? "";
       try {
-        return (JSON.parse(atob(studio.replace(/-/g, "+").replace(/_/g, "/")))[1][8] as unknown[]).length;
+        return (JSON.parse(atob(studio.replace(/-/g, "+").replace(/_/g, "/")))[1][9] as unknown[]).length;
       } catch {
         return -1;
       }
@@ -128,7 +128,7 @@ test.describe("on a desktop", () => {
     await expect(play).toBeEnabled();
   });
 
-  test("the named views and lenses move the camera", async ({ page }) => {
+  test("the named views and lenses move the camera, and the style is picked in the panel", async ({ page }) => {
     await openStudio(page);
     const camera = () => page.evaluate(() => {
       const { gl } = (window as any).lm.getCapability("cells3d");
@@ -145,6 +145,10 @@ test.describe("on a desktop", () => {
 
     await panel(page).getByRole("radio", { name: "Flat" }).click();
     await expect.poll(async () => (await camera()).fov).toBeCloseTo(5, 1);
+
+    // How the storms are drawn is picked here too, where the map's own pill is put away.
+    await panel(page).getByRole("radio", { name: "Shells" }).click();
+    await expect(page).toHaveURL(/[?&]style=shells/);
     // Out of Studio, the map has its own lens again.
     await panel(page).getByRole("button", { name: "Close" }).click();
     await expect.poll(async () => (await camera()).fov).toBeCloseTo(36.87, 1);
@@ -155,7 +159,7 @@ test.describe("on a desktop", () => {
 test("a phone's 3D map has no Studio, and a Studio link opens the map without it", async ({ page, isMobile }) => {
   test.skip(!isMobile, "a phone's");
   // An empty scene, as a desktop writes one.
-  const scene = btoa(JSON.stringify([1, [9.5, 50.5, 6, 0, 0, 36.87, 0, 0, []], 12, []])).replace(/=+$/, "");
+  const scene = btoa(JSON.stringify([1, [9.5, 50.5, 6, 0, 0, 36.87, 0, 0, 0, []], 12, []])).replace(/=+$/, "");
   await page.goto(`${MAP_3D}&studio=${scene}`);
   test.slow();
   await expect(page.getByRole("button", { name: "Legend" })).toBeVisible({ timeout: 90_000 });

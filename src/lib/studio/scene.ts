@@ -3,7 +3,8 @@
  *
  * A scene is a short film of the map, so many seconds long, written as
  * keyframes: at this second the camera stands here, the section planes
- * there, the storms are peeled this far and are those of this scan. Between
+ * there, the storms are drawn in this style, peeled this far, and are those
+ * of this scan. Between
  * two keyframes everything moves from one to the other, and playing the
  * scene is asking it, frame after frame, what it holds at that second.
  *
@@ -14,6 +15,8 @@
  * No map and no stores here. The director (director.ts) plays a scene onto
  * the map; this is the arithmetic, which the tests and the links share.
  */
+import { CLOUD_STYLES, DEFAULT_CLOUD_STYLE } from "../cloudStyle";
+import type { CloudStyle } from "../cloudStyle";
 import { foldDegrees } from "./planes";
 import type { SectionPlane } from "./planes";
 
@@ -53,6 +56,8 @@ export interface SceneState {
   peel: number;
   /** The scan the storms are from, epoch seconds; null for the newest, whatever it is by then. */
   scan: number | null;
+  /** How the storms are drawn: a lit cloud, see-through light or nested shells (lib/cloudStyle.ts). */
+  style: CloudStyle;
 }
 
 export interface Keyframe extends SceneState {
@@ -161,7 +166,8 @@ function planeBetween(from: SectionPlane, to: SectionPlane, t: number): SectionP
  * from the keyframe that has it on. The scan runs evenly between two
  * keyframes' scans and lands on the radar's own five-minute clock; from or
  * to "the newest" there is no clock to run on, so it holds until the next
- * keyframe.
+ * keyframe. The style is one or another, and changes at the keyframe that
+ * says so.
  */
 export function sample(scene: Scene, at: number): SceneState | null {
   const { keyframes } = scene;
@@ -192,7 +198,7 @@ export function sample(scene: Scene, at: number): SceneState | null {
   const scan = to && from.scan !== null && to.scan !== null
     ? Math.floor(mix(from.scan, to.scan, t) / SCAN_SECONDS + 1e-6) * SCAN_SECONDS
     : from.scan;
-  return { camera, planes, peel: clamp(channel((k) => k.peel), [0, 1]), scan };
+  return { camera, planes, peel: clamp(channel((k) => k.peel), [0, 1]), scan, style: from.style };
 }
 
 /**
@@ -242,13 +248,13 @@ const VERSION = 1;
 const round = (value: number, places: number) => Number(value.toFixed(places));
 
 type PackedPlane = [number, number, number, number, number, number, number, number];
-type PackedState = [number, number, number, number, number, number, number, number, PackedPlane[]];
+type PackedState = [number, number, number, number, number, number, number, number, number, PackedPlane[]];
 type PackedKeyframe = [number, ...PackedState];
 
-function packState({ camera, planes, peel, scan }: SceneState): PackedState {
+function packState({ camera, planes, peel, scan, style }: SceneState): PackedState {
   return [
     round(camera.lon, 4), round(camera.lat, 4), round(camera.zoom, 2), round(camera.pitch, 1),
-    round(camera.bearing, 1), round(camera.fov, 2), round(peel, 2), scan ?? 0,
+    round(camera.bearing, 1), round(camera.fov, 2), round(peel, 2), scan ?? 0, CLOUD_STYLES.indexOf(style),
     planes.map((plane) => [
       plane.id, round(plane.lon, 4), round(plane.lat, 4), round(plane.heightKm, 2), round(plane.facingDeg, 1),
       round(plane.tiltDeg, 1), plane.slabKm === null ? -1 : round(plane.slabKm, 2), plane.enabled ? 1 : 0,
@@ -257,12 +263,12 @@ function packState({ camera, planes, peel, scan }: SceneState): PackedState {
 }
 
 function unpackState(packed: unknown): SceneState | null {
-  if (!Array.isArray(packed) || packed.length !== 9 || !Array.isArray(packed[8])) return null;
-  const numbers = packed.slice(0, 8);
+  if (!Array.isArray(packed) || packed.length !== 10 || !Array.isArray(packed[9])) return null;
+  const numbers = packed.slice(0, 9);
   if (!numbers.every((value) => typeof value === "number" && Number.isFinite(value))) return null;
-  const [lon, lat, zoom, pitch, bearing, fov, peel, scan] = numbers as number[];
+  const [lon, lat, zoom, pitch, bearing, fov, peel, scan, style] = numbers as number[];
   const planes: SectionPlane[] = [];
-  for (const plane of packed[8] as unknown[]) {
+  for (const plane of packed[9] as unknown[]) {
     if (!Array.isArray(plane) || plane.length !== 8 || !plane.every((value) => typeof value === "number" && Number.isFinite(value))) {
       return null;
     }
@@ -279,6 +285,8 @@ function unpackState(packed: unknown): SceneState | null {
     planes,
     peel: clamp(peel, [0, 1]),
     scan: scan > 0 ? scan : null,
+    // One a newer build writes and this one does not know is drawn as the default.
+    style: CLOUD_STYLES[style] ?? DEFAULT_CLOUD_STYLE,
   };
 }
 

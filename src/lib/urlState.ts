@@ -286,6 +286,7 @@ export function currentState(): LinkState | null {
           planes: get(studioPlanes),
           peel: get(peelLevel),
           scan,
+          style: get(cloudStyle),
         },
         scene: get(studioScene),
       });

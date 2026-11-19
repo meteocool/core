@@ -22,6 +22,7 @@ const state = (patch: Partial<SceneState> = {}, camera: Partial<SceneState["came
   planes: [],
   peel: 0,
   scan: null,
+  style: "cloud",
   ...patch,
 });
 const keyframe = (at: number, patch: Partial<SceneState> = {}, camera: Partial<SceneState["camera"]> = {}): Keyframe => ({
@@ -139,10 +140,12 @@ test("a plane moves from one keyframe to the next, and one only the first has st
 
 test("a scene goes into a link and comes back the same, to what a reader can tell apart", () => {
   let scene = timelapseScene(state({ peel: 0.4, planes: [plane({ slabKm: 3.5, facingDeg: 123.4 })] }), SCAN - 3600, SCAN, 20);
-  scene = withKeyframe(scene, keyframe(7.25, { scan: SCAN - 1200, planes: [plane({ enabled: false, tiltDeg: -90 })] }, {
+  scene = withKeyframe(scene, keyframe(7.25, {
+    scan: SCAN - 1200, style: "shells", planes: [plane({ enabled: false, tiltDeg: -90 })],
+  }, {
     lon: 19.123456, lat: 52.654321, zoom: 8.416, pitch: 71.23, bearing: 301.99, fov: 16,
   }));
-  const still = state({ planes: [plane({ id: 2, tiltDeg: 90, heightKm: 4 })], scan: null }, { bearing: 45 });
+  const still = state({ planes: [plane({ id: 2, tiltDeg: 90, heightKm: 4 })], scan: null, style: "glow" }, { bearing: 45 });
   const text = encodeStudio({ still, scene });
   assert.match(text, /^[A-Za-z0-9_-]+$/);
   const back = decodeStudio(text)!;
@@ -152,6 +155,7 @@ test("a scene goes into a link and comes back the same, to what a reader can tel
   const middle = back.scene.keyframes[1];
   assert.equal(middle.at, 7.25);
   assert.equal(middle.scan, SCAN - 1200);
+  assert.deepEqual(back.scene.keyframes.map(({ style }) => style), ["cloud", "shells", "cloud"]);
   assert.deepEqual(middle.camera, { lon: 19.1235, lat: 52.6543, zoom: 8.42, pitch: 71.2, bearing: 302, fov: 16 });
   assert.deepEqual(middle.planes, [plane({ enabled: false, tiltDeg: -90 })]);
   assert.deepEqual(back.scene.keyframes[0].planes, [plane({ slabKm: 3.5, facingDeg: 123.4 })]);
@@ -164,13 +168,14 @@ test("anything that is not a scene is refused, not guessed at", () => {
   assert.equal(decodeStudio(btoa("{}")), null);
   assert.equal(decodeStudio(btoa(JSON.stringify([2, [], 12, []]))), null);
   assert.equal(decodeStudio(btoa(JSON.stringify([1, [1, 2, 3], 12, []]))), null);
-  assert.equal(decodeStudio(btoa(JSON.stringify([1, [10, 50, 8, 55, 0, 36.9, 0, 0, [["x"]]], 12, []]))), null);
-  // Out of range, a link's numbers are brought back into it.
-  const wild = decodeStudio(btoa(JSON.stringify([1, [10, 50, 8, 400, 725, 1, 9, 0, []], 5000, []])))!;
+  assert.equal(decodeStudio(btoa(JSON.stringify([1, [10, 50, 8, 55, 0, 36.9, 0, 0, 0, [["x"]]], 12, []]))), null);
+  // Out of range, a link's numbers are brought back into it, and a style this build does not know is the default.
+  const wild = decodeStudio(btoa(JSON.stringify([1, [10, 50, 8, 400, 725, 1, 9, 0, 7, []], 5000, []])))!;
   assert.deepEqual(
     [wild.still.camera.pitch, wild.still.camera.bearing, wild.still.camera.fov, wild.still.peel, wild.scene.duration],
     [STUDIO_MAX_PITCH, 5, 4, 1, 120],
   );
+  assert.equal(wild.still.style, "cloud");
 });
 
 test("a recording frames the largest part of the map of its shape, at an even size no larger than full HD", () => {
@@ -210,4 +215,15 @@ test("a lens is known by its field of view, and anything between two is none of 
   assert.equal(lensOf(LENS_FOV.flat), "flat");
   assert.equal(lensOf(36.9), "normal");
   assert.equal(lensOf(25), null);
+});
+
+test("the style is one or another, and changes at the keyframe that says so", () => {
+  let scene = withKeyframe(emptyScene(), keyframe(0, { style: "cloud" }));
+  scene = withKeyframe(scene, keyframe(6, { style: "shells" }));
+  scene = withKeyframe(scene, keyframe(10, { style: "glow" }));
+  assert.deepEqual([0, 5.9, 6, 9.9, 10, 12].map((at) => sample(scene, at)!.style), [
+    "cloud", "cloud", "shells", "shells", "glow", "glow",
+  ]);
+  // The presets keep the style the map is in.
+  assert.ok(orbitScene(state({ style: "glow" })).keyframes.every(({ style }) => style === "glow"));
 });

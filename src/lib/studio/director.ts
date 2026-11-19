@@ -3,14 +3,14 @@
  *
  * The scene says what the map holds at each second (scene.ts); this asks it,
  * frame after frame, and puts the answer on the map: the camera where it
- * says, the planes, the peel, the scan. It also goes the other way, reading
+ * says, the planes, the style, the peel, the scan. It also goes the other way, reading
  * the map as it stands into a keyframe, and it records a scene to a video.
  *
  * The map is the 3D capability's, reached through `Stage`, which is all of
  * it this needs.
  */
 import { get } from "svelte/store";
-import { cloudsTime, peelLevel, peelManual } from "../../stores";
+import { cloudStyle, cloudsTime, peelLevel, peelManual } from "../../stores";
 import { currentLocale } from "../../locale/t";
 import {
   keyframeAt, orbitScene, sample, scansOf, timelapseScene, withKeyframe, withoutKeyframe,
@@ -72,6 +72,7 @@ export class Director {
       planes: get(studioPlanes).map((plane) => ({ ...plane })),
       peel: get(peelManual) ? get(peelLevel) : 0,
       scan: get(cloudsTime).shown,
+      style: get(cloudStyle),
     };
   }
 
@@ -83,6 +84,8 @@ export class Director {
     if (JSON.stringify(get(studioPlanes)) !== JSON.stringify(state.planes)) studioPlanes.set(state.planes);
     peelManual.set(true);
     if (get(peelLevel) !== state.peel) peelLevel.set(state.peel);
+    // The store, not the setting: a scene's style is the scene's, not the reader's choice for next time.
+    if (get(cloudStyle) !== state.style) cloudStyle.set(state.style);
     this.showScan(state.scan);
   }
 

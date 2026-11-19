@@ -159,7 +159,7 @@
       "loading": "Loading scan {done} of {of}…",
       "keyframe": "Keyframe",
       "keyframe_update": "Update keyframe",
-      "keyframe_title": "Keep the camera, planes, peel and time as they are now at this point of the scene (K)",
+      "keyframe_title": "Keep the camera, planes, style, peel and time as they are now at this point of the scene (K)",
       "keyframe_remove": "Remove the keyframe here",
       "orbit": "Orbit",
       "orbit_title": "Replace the scene with one turn around what the camera is looking at",

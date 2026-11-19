@@ -1,7 +1,8 @@
 <script lang="ts">
 /**
  * Studio's tools: the section planes, the camera, and how the clouds are
- * drawn. A panel down the left edge, as a CAD program's inspector is.
+ * drawn (their style, lib/cloudStyle.ts, and their peel). A panel down the
+ * left edge, as a CAD program's inspector is.
  *
  * The planes are the scene's own (lib/studio/planes.ts): added here where
  * the camera is looking, then turned, leaned, pushed and thinned to a slab
@@ -18,7 +19,9 @@ import { faVideo } from "@fortawesome/free-solid-svg-icons/faVideo";
 import Icon from "../Icon.svelte";
 import Segmented from "../Segmented.svelte";
 import CloseDisc from "../CloseDisc.svelte";
-import { peelLevel, peelManual } from "../../stores";
+import { cloudStyle, peelLevel, peelManual } from "../../stores";
+import { CLOUD_STYLES } from "../../lib/cloudStyle";
+import type { CloudStyle } from "../../lib/cloudStyle";
 import type { Director } from "../../lib/studio/director";
 import { LENSES, LENS_FOV, lensOf, VIEWS } from "../../lib/studio/camera";
 import type { LensName } from "../../lib/studio/camera";
@@ -97,6 +100,11 @@ function nameOf(plane: SectionPlane): string {
 
 function setLens(name: LensName) {
   studioFov.set(LENS_FOV[name]);
+}
+
+/** The reader's own choice, kept as the map's pill keeps it: the `layer3dStyle` setting. */
+function setStyle(style: CloudStyle) {
+  window.settings.set("layer3dStyle", style);
 }
 
 function peel(event: Event) {
@@ -226,6 +234,16 @@ function peel(event: Event) {
     </div>
 
     <h3>{$_("studio.clouds")}</h3>
+    <div class="lens">
+      <span class="caption">{$_("style_3d.title")}</span>
+      <Segmented
+        compact
+        stretch
+        label={$_("style_3d.choose")}
+        options={CLOUD_STYLES.map((style) => ({ value: style, label: $_(`style_3d.${style}`) }))}
+        value={$cloudStyle}
+        on:change={(event) => setStyle(event.detail)} />
+    </div>
     <div class="controls">
       <label>
         <span>{$_("guide_3d.peel")}</span>
