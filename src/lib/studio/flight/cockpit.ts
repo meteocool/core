@@ -17,6 +17,9 @@ export const SUN: Vec3 = [-0.25 / 1.0025, -0.8 / 1.0025, -0.55 / 1.0025];
 /** The captain's eye: the left seat, at the height the windshield is looked through from. */
 export const SEAT: Vec3 = [14.62, -0.54, -0.74];
 
+/** How far under the middle the aircraft is placed by its wheels reach, down and locked, metres. */
+export const WHEELS_BELOW_M = 4.1;
+
 /** A flat four-cornered place on the model: top left, top right, bottom right, bottom left, as a picture on it is seen. */
 export type Quad = [Vec3, Vec3, Vec3, Vec3];
 

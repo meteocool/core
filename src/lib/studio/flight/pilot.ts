@@ -20,19 +20,19 @@ import { captionOf, recordStage, saveRecording } from "../director";
 import type { InspectMode, Stage, StormTileInfo } from "../director";
 import type { Recording } from "../record";
 import { flightStatus, INITIAL_FLIGHT_STATUS, studioFlying, studioFov, studioOpen } from "../store";
-import type { FlightStatus, FlightWarning } from "../store";
+import type { FlightCrash, FlightStatus, FlightWarning } from "../store";
 import { indicatedFromTrue, machOf } from "./atmosphere";
 import { Keys } from "./controls";
 import type { FlightAction } from "./controls";
-import { levelFlight, MAX_DT, moveGear, overspeed, step, terrainAhead } from "./physics";
-import type { AircraftState } from "./physics";
+import { FLAPS_MOST, levelFlight, MAX_DT, moveGear, overspeed, SPEEDBRAKE, step, terrainAhead } from "./physics";
+import type { AircraftState, Environment } from "./physics";
 import { approachOf } from "./plan";
 import type { FlightPlan } from "./plan";
 import { chooseApproach, START_TAS, towards } from "./spawn";
 import type { Approach } from "./spawn";
 import { USUAL_BASE_KM } from "./cloudBase";
 import { cloudBaseAt } from "./stationAir";
-import { EXHAUSTS, SEAT, SUN, throughWindows } from "./cockpit";
+import { EXHAUSTS, SEAT, SUN, throughWindows, WHEELS_BELOW_M } from "./cockpit";
 import { FLIGHT_SUPPORT } from "./support";
 import { coresOf, echoTop, flatOffset, MARK_APART_KM, MARK_REACH_KM, markAltitude, marksNear, MARKS_SHOWN } from "./marks";
 import { bearingDeg, destination, distanceM } from "./geo";
@@ -117,6 +117,29 @@ export const WARP = 4;
 /** Below this height over the ground, the radar altimeter reads out: 2,500 ft. */
 const LOW_M = 762;
 
+/**
+ * How high the aircraft is with its wheels on the ground, true metres over
+ * it: the map draws heights taller than life and the aircraft as it is, so
+ * its wheels reach the drawn ground from that much less far up.
+ */
+const STAND_M = WHEELS_BELOW_M / VERTICAL_SCALE;
+/** How far ahead the ground's slope is taken over, metres, and below what height it is asked for at all. */
+const SLOPE_RUN_M = 40;
+const SLOPE_BELOW_M = 60;
+/** Time runs no faster than it does this near the ground, metres: a landing is flown, not skipped. */
+const WARP_ABOVE_M = 300;
+/** Gear up this low and this slow, the aircraft says so: metres, and m/s indicated. */
+const GEAR_WARNING = { below: 150, slower: 98 };
+/** Coming down faster than this near the ground, m/s, it says so too, gear down or not. */
+const SINK_WARNING_MS = 9;
+/** How long the reason a flight ended stays up, seconds. */
+const CRASH_SHOWN_S = 5;
+/** How far the eye stays over the ground, outside, metres. */
+const EYE_OVER_GROUND_M = 1.2;
+/** How much of a rough air's shaking a fast roll over the ground is, at most, and the speed it is that at, m/s. */
+const ROLL_SHAKE = 0.3;
+const ROLL_SHAKE_MS = 70;
+
 /** How long the keys card stays up on entry, ms. */
 const KEYS_MS = 7000;
 
@@ -164,10 +187,14 @@ export interface Telemetry {
   /** A cut to black and back, 0 to 1; a lightning flash, 0 to 1. */
   fade: number;
   flash: number;
-  /** Whether the speed brake is out. */
+  /** Whether the spoilers are up at all: the speed brake's in the air, all of them after a landing. */
   brake: boolean;
   /** How far the landing gear is down, 0 up to 1 down: on its way between (G). */
   gear: number;
+  /** Where the flap lever is, 0 to 4 (J out, U in); the flaps follow at their own pace (`state.flaps`). */
+  flapLever: number;
+  /** How far the aircraft has rolled since it last touched down, metres. */
+  rolled: number;
   /** Seconds flown. */
   time: number;
 }
@@ -186,6 +213,12 @@ export class Pilot {
   private autopilot: number | null = null;
   /** Whether the reader has asked for the gear down (G); it gets there at its own pace. A flight starts in the air, gear up. */
   private gearDown = false;
+  /** Whether the speed brake's lever is pulled (B). */
+  private speedbrake = false;
+  /** Whether the radar's colours are painted on the ground: as the plan had it, until O. */
+  private radarOnGround = false;
+  /** Until when the reason the flight ended is shown, seconds flown. */
+  private crashUntil = -Infinity;
   private paused = false;
   private frame: number | null = null;
   private last: number | null = null;
@@ -257,14 +290,16 @@ export class Pilot {
     this.telemetry = {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, hail: 0, ice: 0, frost: 0, draft: 0, temperature: 0, fps: 60, quality: 1,
-      storms: stage.stormTiles(), marks: [], fade: 0, flash: 0, brake: false, time: 0, gear: 0,
+      storms: stage.stormTiles(), marks: [], fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
     };
   }
 
   /** Take off: the map into the flight, the cockpit's style and lens, and the loop running. */
   start(): void {
     this.stage.setFlying(true, FLIGHT_SUPPORT);
-    this.stage.setRadarOnGround(this.flightPlan.radarOnGround);
+    this.radarOnGround = this.flightPlan.radarOnGround;
+    this.stage.setRadarOnGround(this.radarOnGround);
+    this.status({ radarOnGround: this.radarOnGround });
     this.quality = settledQuality;
     this.telemetry.quality = this.quality;
     this.stage.setFlightQuality(this.quality);
@@ -330,6 +365,18 @@ export class Pilot {
     this.listeners.clear();
   }
 
+  /** End the flight, as the reader has said to. */
+  leave(): void {
+    this.options.onLeave();
+  }
+
+  /** Fly on: the question whether to end the flight is taken back. */
+  stay(): void {
+    this.status({ leaving: false });
+    // The frame it resumes on is not as long as the question took.
+    this.last = null;
+  }
+
   /** Be told after every frame, with the telemetry; returns how to stop. */
   onFrame(listener: (telemetry: Telemetry) => void): () => void {
     this.listeners.add(listener);
@@ -338,11 +385,27 @@ export class Pilot {
 
   /** Do what a key press asks; the deck's buttons call this too. */
   act(action: FlightAction): void {
+    // Asked whether to end the flight, the keys answer that and nothing else: Enter ends it, Escape flies on.
+    if (get(flightStatus).leaving) {
+      if (action === "confirm") this.leave();
+      else if (action === "leave") this.stay();
+      return;
+    }
     switch (action) {
       case "leave":
-        this.options.onLeave();
+        // Not at a keystroke: the flight is held, and the reader asked.
+        this.status({ leaving: true });
+        break;
+      case "confirm":
+        return;
+      case "radar":
+        this.radarOnGround = !this.radarOnGround;
+        this.stage.setRadarOnGround(this.radarOnGround);
+        this.status({ radarOnGround: this.radarOnGround });
         break;
       case "autopilot":
+        // It flies; it does not taxi.
+        if (this.telemetry.state.onGround) return;
         this.autopilot = this.autopilot === null ? this.telemetry.state.altitude : null;
         this.status({ autopilot: this.autopilot !== null });
         break;
@@ -378,10 +441,23 @@ export class Pilot {
         this.inspectNext();
         break;
       case "gear":
+        // Standing on it, it stays down.
+        if (this.telemetry.state.onGround) return;
         this.gearDown = !this.gearDown;
         break;
       case "fullscreen":
         toggleFullscreen();
+        break;
+      case "flapsOut":
+      case "flapsIn": {
+        const lever = Math.min(Math.max(this.telemetry.flapLever + (action === "flapsOut" ? 1 : -1), 0), FLAPS_MOST);
+        if (lever === this.telemetry.flapLever) return;
+        this.telemetry.flapLever = lever;
+        this.status({ flaps: lever });
+        break;
+      }
+      case "speedbrake":
+        this.speedbrake = !this.speedbrake;
         break;
       case "help":
         if (this.keysTimer !== null) clearTimeout(this.keysTimer);
@@ -538,7 +614,7 @@ export class Pilot {
     if (typeof document !== "undefined" && document.hidden) return;
     this.keepUp(elapsed);
     this.dt = dt;
-    if (this.paused) {
+    if (this.paused || get(flightStatus).leaving) {
       if (this.recording) this.stage.repaint();
       return;
     }
@@ -569,32 +645,39 @@ export class Pilot {
     const dbz = air.dbz;
     const rough = this.flightPlan.turbulence;
     const turbulence = rough ? air.turbulence : 0;
-    const env = {
-      warp: input.warp ? WARP : 1, gust: roughAir(telemetry.time, turbulence, rough ? air.draft : 0), autopilot: this.autopilot,
-      gear: telemetry.gear,
-    };
-    for (let left = dt; left > 1e-6; left -= MAX_DT) state = step(state, input, Math.min(left, MAX_DT), env);
-    // An autopilot does not fly a stall.
-    if (state.stalled && this.autopilot !== null) this.act("autopilot");
-
-    const ground = this.stage.groundElevation(state.lon, state.lat);
+    const ground = this.stage.groundElevation(lon, lat);
     // Over the sea the terrain may be drawn below it; the water is the floor.
     const floor = Math.max(ground ?? 0, 0);
-    if (state.altitude <= floor) {
-      // No crash: the approach again, through black.
-      state = { ...state, altitude: floor };
-      this.cut();
-    }
+    const low = altitude - floor < SLOPE_BELOW_M;
+    // Time runs faster only well clear of the ground, and never on it.
+    const warp = input.warp && altitude - floor > WARP_ABOVE_M ? WARP : 1;
+    const env: Environment = {
+      warp, gust: state.onGround ? { roll: 0, pitch: 0, vertical: 0 } : roughAir(telemetry.time, turbulence, rough ? air.draft : 0),
+      autopilot: this.autopilot, gear: telemetry.gear, flapLever: telemetry.flapLever, speedbrake: this.speedbrake,
+      ground: floor + STAND_M, slope: low ? this.slopeAhead(state, floor) : 0, ice: telemetry.frost,
+    };
+    const before = state;
+    for (let left = dt; left > 1e-6; left -= MAX_DT) state = step(state, input, Math.min(left, MAX_DT), env);
+    // An autopilot does not fly a stall, nor a landing.
+    if ((state.stalled || state.onGround) && this.autopilot !== null) this.act("autopilot");
+    this.landed(before, state, dt);
+
     telemetry.state = state;
     telemetry.ground = ground;
-    telemetry.radarAltitude = state.altitude - floor;
+    telemetry.radarAltitude = Math.max(0, state.altitude - floor - STAND_M);
     telemetry.ias = indicatedFromTrue(state.tas, state.altitude);
     telemetry.mach = machOf(state.tas, state.altitude);
     telemetry.dbz = dbz;
     telemetry.turbulence = turbulence;
-    telemetry.brake = input.brake;
+    telemetry.brake = state.spoilers > 0.05;
     telemetry.gear = moveGear(telemetry.gear, this.gearDown, dt);
-    this.status({ gear: telemetry.gear <= 0 ? "up" : telemetry.gear >= 1 ? "down" : "moving" });
+    this.status({
+      gear: telemetry.gear <= 0 ? "up" : telemetry.gear >= 1 ? "down" : "moving",
+      flapsMoving: Math.abs(state.flaps - telemetry.flapLever) > 0.02,
+      spoilers: state.spoilers < 0.05 ? "in" : state.spoilers > SPEEDBRAKE + 0.1 ? "ground" : "brake",
+      onGround: state.onGround, reverse: state.reverse > 0.5, alphaFloor: state.alphaFloor,
+    });
+    if (telemetry.time > this.crashUntil) this.status({ crash: null });
     // Cloud thickens and thins over half a second or so, as it does past the glass.
     telemetry.cloud += (air.cloud - telemetry.cloud) * (1 - Math.exp(-dt / 0.5));
     telemetry.rain += (air.rain - telemetry.rain) * (1 - Math.exp(-dt / 0.3));
@@ -613,11 +696,59 @@ export class Pilot {
       telemetry.target = null;
     }
     const warnings: FlightWarning[] = [];
-    if (this.terrain) warnings.push("terrain");
+    const coming = telemetry.radarAltitude < LOW_M && state.verticalSpeed < -SINK_WARNING_MS;
+    // The ground ahead is no surprise to an aircraft with its wheels down for it; coming down too fast still is.
+    if (!state.onGround) {
+      if (telemetry.gear < 1 && this.terrain) warnings.push("terrain");
+      else if (coming) warnings.push("sink");
+      if (telemetry.gear < 1 && telemetry.radarAltitude < GEAR_WARNING.below && telemetry.ias < GEAR_WARNING.slower) warnings.push("gear");
+    }
     if (state.stalled) warnings.push("stall");
-    if (overspeed(state, telemetry.ias)) warnings.push("overspeed");
+    if (overspeed(state, telemetry.ias, telemetry.gear)) warnings.push("overspeed");
     if (telemetry.frost > 0.35) warnings.push("ice");
-    this.status({ warnings, warp: input.warp, low: telemetry.radarAltitude < LOW_M });
+    this.status({ warnings, warp: warp > 1, low: telemetry.radarAltitude < LOW_M });
+  }
+
+  /** How steeply the ground rises ahead of the aircraft, a rise over its run; level where the map has no ground there. */
+  private slopeAhead(state: AircraftState, floor: number): number {
+    const [lon, lat] = destination(state.lon, state.lat, state.heading, SLOPE_RUN_M);
+    const ahead = this.stage.groundElevation(lon, lat);
+    return ahead === null ? 0 : (Math.max(ahead, 0) - floor) / SLOPE_RUN_M;
+  }
+
+  /**
+   * What a step on the ground, or onto it, or off it, means for the flight:
+   * a landing is kept as it was made and its roll measured; one that was
+   * not a landing ends the flight, which starts again from the approach
+   * through black, saying why.
+   */
+  private landed(before: AircraftState, state: AircraftState, dt: number): void {
+    const telemetry = this.telemetry;
+    if (state.crash) {
+      if (this.fading) return;
+      this.crashUntil = telemetry.time + CRASH_SHOWN_S;
+      this.status({ crash: state.crash as FlightCrash, landing: null });
+      this.sound?.touchdown(state.touchdown?.sink ?? 10, true);
+      this.cut();
+      return;
+    }
+    if (!state.onGround) {
+      if (before.onGround) this.status({ landing: null });
+      return;
+    }
+    const touchdown = state.touchdown;
+    if (!before.onGround && touchdown) {
+      telemetry.rolled = 0;
+      this.sound?.touchdown(touchdown.sink, false);
+    }
+    telemetry.rolled += state.tas * dt;
+    if (!touchdown) return;
+    const stopped = state.tas === 0;
+    const landing = get(flightStatus).landing;
+    // Written when it touches down and when it stops; the deck reads how far it has rolled each frame meanwhile.
+    if (!landing || landing.stopped !== stopped || !before.onGround) {
+      this.status({ landing: { sink: touchdown.sink, speed: touchdown.tas, load: touchdown.load, rolled: telemetry.rolled, stopped } });
+    }
   }
 
   /** A frame of a cut: to black, the aircraft put back, and in again. */
@@ -632,10 +763,13 @@ export class Pilot {
       this.telemetry.rain = 0;
       this.autopilot = null;
       this.terrain = false;
-      // Back at the start of the approach, in the air: gear up.
+      // Back at the start of the approach, in the air: clean, gear up.
       this.gearDown = false;
+      this.speedbrake = false;
       this.telemetry.gear = 0;
-      this.status({ gear: "up" });
+      this.telemetry.flapLever = 0;
+      this.telemetry.rolled = 0;
+      this.status({ gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false, reverse: false, alphaFloor: false, landing: null });
       this.status({ autopilot: false, warnings: [], clearSky: this.approach.target === null });
     }
     this.telemetry.fade = fading.at < FADE_OUT_S
@@ -794,9 +928,9 @@ export class Pilot {
       // A long way short of enough is made up in one step, not in six.
       this.quality = Math.max(QUALITY_LEAST, this.quality - (this.fps < 20 ? 0.3 : 0.15));
       this.sinceLowered = 0;
-    } else if (this.plenty > 10 && this.quality < 1 && this.sinceLowered > 45) {
+    } else if (this.plenty > 6 && this.quality < 1 && this.sinceLowered > 25) {
       // Not straight back to where it was just too much: that only goes round again.
-      this.quality = Math.min(1, this.quality + 0.1);
+      this.quality = Math.min(1, this.quality + 0.15);
     } else {
       return;
     }
@@ -818,13 +952,19 @@ export class Pilot {
     const { view } = get(flightStatus);
     const pose = { lon: state.lon, lat: state.lat, altitude: state.altitude, heading: state.heading, pitch: state.pitch, roll: state.roll };
     const outside = view === "outside";
-    const shake = this.reducedMotion || outside ? 0 : turbulence;
+    // Rough air shakes the seat, and so does rolling fast over open ground.
+    const rumble = state.onGround ? ROLL_SHAKE * Math.min(1, state.tas / ROLL_SHAKE_MS) : 0;
+    const shake = this.reducedMotion || outside ? 0 : Math.max(turbulence, rumble);
     const shaken = {
       heading: state.heading + noise(time * 11, 4) * 0.4 * shake,
       pitch: state.pitch + noise(time * 13, 5) * 0.6 * shake,
       roll: state.roll + noise(time * 9, 6) * 0.8 * shake,
     };
-    const eye = outside ? outsideEye(pose, this.orbit, this.distance) : cockpitEye(shaken, this.head, SEAT);
+    // Outside, the eye stays over the ground: low down it is not let look up from under it.
+    const room = ((this.telemetry.radarAltitude ?? Infinity) + STAND_M) * VERTICAL_SCALE - EYE_OVER_GROUND_M;
+    const lowest = (Math.asin(Math.min(1, Math.max(0, room) / this.distance)) * 180) / Math.PI;
+    const orbit = { yaw: this.orbit.yaw, pitch: Math.min(this.orbit.pitch, lowest) };
+    const eye = outside ? outsideEye(pose, orbit, this.distance) : cockpitEye(shaken, this.head, SEAT);
     this.stage.setFlightCamera(pose, eye);
     this.stage.setAircraft(view === "clean" ? null : {
       modelView: eye.modelView,
@@ -835,6 +975,8 @@ export class Pilot {
       veil: 0,
       flash: 0,
       gear: this.telemetry.gear,
+      flaps: state.flaps / FLAPS_MOST,
+      spoilers: state.spoilers,
     }, outside ? [] : this.screens);
     this.telemetry.marks = view === "clean" ? [] : this.seen(eye, view === "cockpit");
 

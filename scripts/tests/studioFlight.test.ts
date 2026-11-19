@@ -5,8 +5,8 @@ import {
   densityRatio, indicatedFromTrue, machOf, speedOfSound, temperatureK, trueFromIndicated,
 } from "../../src/lib/studio/flight/atmosphere.ts";
 import {
-  ahead, BANK_HOLD, BANK_LIMIT, levelFlight, NO_INPUT, PITCH_DOWN_LIMIT, PITCH_UP_LIMIT, step, STILL_AIR, terrainAhead,
-  trimThrottle,
+  ahead, BANK_HOLD, BANK_LIMIT, FLAP_NOTCH_S, LANDING_LIMITS, levelFlight, NO_INPUT, parked, PITCH_DOWN_LIMIT, PITCH_UP_LIMIT,
+  SPEEDBRAKE, speedsFor, step, STILL_AIR, TAIL_STRIKE, terrainAhead, trimThrottle,
 } from "../../src/lib/studio/flight/physics.ts";
 import type { AircraftState, ControlInput, Environment } from "../../src/lib/studio/flight/physics.ts";
 import {
@@ -75,13 +75,15 @@ const fly = (state: AircraftState, seconds: number, input: ControlInput = NO_INP
 const held = (state: AircraftState, throttle: number) => ({ ...state, throttle, spool: throttle });
 const cruise = levelFlight(5, 45, FL350, 90, 0.78 * speedOfSound(FL350));
 
-test("level cruise at FL350 settles near Mach 0.8 at 85% thrust, and full thrust stays short of 0.9", () => {
-  const steady = fly(held(cruise, 0.85), 900, NO_INPUT, { ...STILL_AIR, autopilot: FL350 });
-  near(machOf(steady.tas, steady.altitude), 0.8, 0.02);
-  near(steady.altitude, FL350, 30);
-  const flat = fly(held(cruise, 1), 1500, NO_INPUT, { ...STILL_AIR, autopilot: FL350 });
+test("cruise at Mach 0.78 at FL350 takes about three quarters of the thrust there is, and all of it stays short of Mach 0.85", () => {
+  assert.ok(cruise.throttle > 0.65 && cruise.throttle < 0.85, `trim ${cruise.throttle}`);
+  const steady = fly(cruise, 300);
+  near(machOf(steady.tas, steady.altitude), 0.78, 0.005);
+  near(steady.altitude, FL350, 10);
+  const flat = fly(held(cruise, 1), 900, NO_INPUT, { ...STILL_AIR, autopilot: FL350 });
   const mach = machOf(flat.tas, flat.altitude);
-  assert.ok(mach > 0.85 && mach < 0.9, `full thrust tops out at Mach ${mach}`);
+  assert.ok(mach > 0.8 && mach < 0.85, `full thrust tops out at Mach ${mach}`);
+  near(flat.altitude, FL350, 30);
 });
 
 test("trimmed, nothing drifts: the start holds its height, speed and heading", () => {
@@ -94,41 +96,67 @@ test("trimmed, nothing drifts: the start holds its height, speed and heading", (
   near(later.heading, 72, 0.01);
 });
 
-test("idle in level flight bleeds the speed off until the wing stalls, the nose drops, and speed recovers it", () => {
-  const start = held(levelFlight(3, 43, 7300, 0, 220), 0);
-  let state = start;
-  let stalledAt: number | null = null;
-  let recovered = false;
-  let pitchAtStall = 0;
-  for (let t = 0; t < 400 && !recovered; t += 0.05) {
-    // The autopilot is taken off by a stall, as the pilot does; until then it holds the height.
-    const env = { ...STILL_AIR, autopilot: stalledAt === null ? 7300 : null };
-    state = step(state, NO_INPUT, 0.05, env);
-    if (state.stalled && stalledAt === null) {
-      stalledAt = t;
-      pitchAtStall = state.pitch;
-      assert.ok(state.tas < 125, `stalled at ${state.tas} m/s`);
-    }
-    if (stalledAt !== null && !state.stalled) {
-      recovered = true;
-      assert.ok(state.pitch < pitchAtStall - 5, "the nose dropped");
-    }
+test("at idle the flight path is held while the speed bleeds off; short of the stall the nose is let down, and it never stalls", () => {
+  let state = held(levelFlight(3, 43, 3000, 0, 130), 0);
+  const level = fly(state, 40);
+  near(level.altitude, 3000, 5);
+  assert.ok(level.tas < 115, `slowed to ${level.tas}`);
+  assert.ok(level.pitch > state.pitch + 2, "the nose came up to hold the path");
+  let slowest = Infinity;
+  for (let t = 0; t < 240; t += 0.05) {
+    // The lever is held back, as a hand on it does: the engines are not let go to full thrust for the angle of attack.
+    state = step(state, { ...NO_INPUT, throttle: -1 }, 0.05);
+    assert.ok(!state.stalled, `stalled at ${t} s`);
+    slowest = Math.min(slowest, indicatedFromTrue(state.tas, state.altitude));
   }
-  assert.notEqual(stalledAt, null);
-  assert.ok(recovered, "speed brings it out of the stall");
-  assert.ok(state.altitude < 7300, "the stall cost height");
+  const clean = speedsFor(0);
+  assert.ok(slowest > clean.stall, `as slow as ${slowest} m/s, the stall at ${clean.stall}`);
+  assert.ok(state.altitude < 2900, "and then it comes down");
 });
 
-test("let go, the attitude holds; a level turn at 30 degrees stays level and turns 1.5 degrees a second", () => {
+test("a wing taken past its stall loses lift, drops the nose, and flies again", () => {
+  const slow = levelFlight(3, 43, 3000, 0, 80);
+  let state = { ...slow, pitch: 24, alpha: 24 };
+  state = step(state, NO_INPUT, 0.05);
+  assert.ok(state.stalled);
+  assert.ok(state.loadFactor < 1.1, `still carrying ${state.loadFactor} g`);
+  let recovered = false;
+  for (let t = 0; t < 60 && !recovered; t += 0.05) {
+    state = step(state, NO_INPUT, 0.05);
+    recovered = !state.stalled;
+  }
+  assert.ok(recovered, "it flies again");
+  assert.ok(state.pitch < 16, `the nose came down to ${state.pitch}`);
+});
+
+test("slow and pulled back, the engines go to full thrust on their own, until the lever is moved", () => {
+  let state = held(levelFlight(3, 43, 3000, 0, 105), 0.2);
+  state = fly(state, 6, { ...NO_INPUT, pitch: 1 });
+  assert.ok(state.alphaFloor);
+  assert.equal(state.throttle, 1);
+  assert.ok(!state.stalled);
+  // Let go, the wing comes back from the edge, and the lever has its say again.
+  state = fly(state, 4, { ...NO_INPUT, throttle: -1 });
+  assert.ok(!state.alphaFloor);
+  assert.ok(state.throttle < 0.5, `throttle at ${state.throttle}`);
+});
+
+test("let go, the flight path holds; a level turn at 30 degrees stays level and turns 1.5 degrees a second", () => {
   const start = { ...levelFlight(3, 43, 7300, 0, 220), roll: 30 };
   const turning = fly(start, 20);
   near(turning.roll, 30, 0.01);
   near(turning.altitude, 7300, 15);
+  near(turning.loadFactor, 1 / Math.cos(Math.PI / 6), 0.02);
   // Heading after 20 s, from a 30 degree bank at 220 m/s.
-  near(turning.heading, 20 * 1.475, 0.8);
+  near(turning.heading, 20 * 1.475, 1);
 
-  const nosed = fly({ ...levelFlight(3, 43, 7300, 0, 220), pitch: 6, pitchHold: 6 }, 5);
-  near(nosed.pitch, 6, 0.05);
+  // A pull is a load factor, and the nose follows the path up; let go, the path stays where it was left.
+  const pulled = fly(levelFlight(3, 43, 7300, 0, 220), 3, { ...NO_INPUT, pitch: 1 });
+  assert.ok(pulled.loadFactor > 1.6 && pulled.loadFactor <= 2.5, `pulled ${pulled.loadFactor} g`);
+  assert.ok(pulled.flightPath > 4);
+  const after = fly(pulled, 5);
+  near(after.loadFactor, Math.cos((after.flightPath * Math.PI) / 180), 0.05);
+  near(fly(after, 5).flightPath, after.flightPath, 0.3);
 });
 
 test("the bank stops at its limit, and let go past 33 degrees it rolls back to 33", () => {
@@ -176,6 +204,134 @@ test("the ground coming up warns ahead of time, and not over flat ground well be
   const ridgeAt = ahead(levelFlight(3, 43, 2000, 0, 150), 10);
   assert.ok(terrainAhead(levelFlight(3, 43, 2000, 0, 150), (lon, lat) => (Math.abs(lat - ridgeAt.lat) < 0.01 ? 1950 : 0)));
   assert.ok(!terrainAhead(levelFlight(3, 43, 2000, 0, 150), () => null));
+});
+
+/* ---- flaps, spoilers, the ground ---- */
+
+test("each step of the flaps lets the wing fly slower, and costs drag; they take their time to travel", () => {
+  const stalls = [0, 1, 2, 3, 4].map((flaps) => speedsFor(flaps).stall);
+  for (let flaps = 1; flaps < stalls.length; flaps++) assert.ok(stalls[flaps] < stalls[flaps - 1]);
+  // About 144 kt clean and 105 kt with everything out, at this weight.
+  near(stalls[0], 74, 2);
+  near(stalls[4], 54, 2);
+  near(speedsFor(4).lowest, stalls[4] * 1.23, 1e-9);
+  assert.ok(speedsFor(4).limit < speedsFor(1).limit && speedsFor(1).limit < speedsFor(0).limit);
+  assert.ok(speedsFor(0, 0, 1).limit < speedsFor(0).limit, "the gear has a limit of its own");
+
+  const start = levelFlight(3, 43, 1500, 0, 95);
+  const out = fly(start, 8, NO_INPUT, { ...STILL_AIR, flapLever: 2 });
+  near(out.flaps, 8 / FLAP_NOTCH_S, 0.02);
+  near(fly(out, 10, NO_INPUT, { ...STILL_AIR, flapLever: 2 }).flaps, 2, 1e-9);
+  const dirty = fly(start, 30, NO_INPUT, { ...STILL_AIR, flapLever: 4 });
+  assert.ok(dirty.tas < fly(start, 30).tas - 8, "the flaps slow it");
+  near(dirty.altitude, 1500, 15);
+});
+
+test("the speed brake stands the spoilers half up: more drag, and a faster way down; not with the flaps all the way out", () => {
+  const start = held(levelFlight(3, 43, 6000, 0, 200), 0);
+  const braked = fly(start, 20, NO_INPUT, { ...STILL_AIR, speedbrake: true });
+  near(braked.spoilers, SPEEDBRAKE, 1e-9);
+  assert.ok(braked.tas < fly(start, 20).tas - 6, `${braked.tas} against ${fly(start, 20).tas}`);
+  near(fly(start, 5, { ...NO_INPUT, brake: true }).spoilers, SPEEDBRAKE, 1e-9);
+  const approach = levelFlight(3, 43, 600, 0, 70, { flaps: 4, gear: 1, path: -3 });
+  assert.equal(fly(approach, 5, NO_INPUT, { ...STILL_AIR, gear: 1, flapLever: 4, speedbrake: true }).spoilers, 0);
+});
+
+const FIELD: Environment = { ...STILL_AIR, gear: 1, flapLever: 4, ground: 100, slope: 0 };
+/** Down a three degree approach from 150 m up, flared from ten metres, engines to idle: what touches down. */
+function land(env: Environment = FIELD, flare = 0.5): AircraftState {
+  let state = levelFlight(3, 43, 250, 0, 71, { flaps: 4, gear: 1, path: -3 });
+  for (let t = 0; t < 120 && !state.onGround; t += 0.05) {
+    const low = state.altitude - 100 < 10;
+    state = step(state, { ...NO_INPUT, pitch: low ? flare : 0, throttle: low ? -1 : 0 }, 0.05, env);
+  }
+  return state;
+}
+
+test("a trimmed approach comes down its three degrees; flared, it lands on its wheels, and the landing is kept as it was", () => {
+  const approach = levelFlight(3, 43, 600, 0, 71, { flaps: 4, gear: 1, path: -3 });
+  assert.ok(approach.pitch > 0 && approach.pitch < 5, `nose at ${approach.pitch}`);
+  const later = fly(approach, 30, NO_INPUT, { ...FIELD, ground: 0 });
+  near(later.flightPath, -3, 0.2);
+  near(later.tas, 71, 1.5);
+
+  const down = land();
+  assert.ok(down.onGround);
+  assert.equal(down.crash, null);
+  assert.equal(down.altitude, 100);
+  assert.ok(down.touchdown !== null && down.touchdown.sink < LANDING_LIMITS.firm, `came down at ${down.touchdown?.sink} m/s`);
+  assert.ok(down.touchdown!.sink < land(FIELD, 0).touchdown!.sink, "a flare softens it");
+});
+
+test("on the ground the spoilers stand up and the brakes come on; reversers and held brakes shorten the roll", () => {
+  const roll = (input: ControlInput) => {
+    let state = land();
+    let metres = 0;
+    let spoilers = 0;
+    for (let t = 0; t < 120 && state.tas > 0; t += 0.05) {
+      state = step(state, input, 0.05, FIELD);
+      metres += state.tas * 0.05;
+      spoilers = Math.max(spoilers, state.spoilers);
+    }
+    return { state, metres, spoilers };
+  };
+  const plain = roll(NO_INPUT);
+  assert.equal(plain.state.tas, 0);
+  assert.equal(plain.spoilers, 1);
+  assert.equal(plain.state.pitch, 0);
+  // About three metres a second each second from 140 kt: under a kilometre.
+  assert.ok(plain.metres > 600 && plain.metres < 1100, `rolled ${plain.metres} m`);
+  assert.ok(roll({ ...NO_INPUT, brake: true }).metres < plain.metres - 100);
+  // The brakes that come on by themselves hold their rate: behind them the reversers save the brakes, not the roll.
+  near(roll({ ...NO_INPUT, throttle: -1 }).metres, plain.metres, 60);
+  // Standing, it stays.
+  near(fly(plain.state, 20, NO_INPUT, FIELD).tas, 0, 1e-9);
+});
+
+test("what is not a landing ends the flight, and says why", () => {
+  assert.equal(land({ ...FIELD, gear: 0 }).crash, "gear");
+  assert.equal(land({ ...FIELD, slope: 0.2 }).crash, "terrain");
+  const dive = fly(levelFlight(3, 43, 300, 0, 71, { flaps: 4, gear: 1, path: -9 }), 60, NO_INPUT, { ...FIELD, autopilot: null });
+  assert.equal(dive.crash, "hard");
+  const banked = { ...levelFlight(3, 43, 101, 0, 71, { flaps: 4, gear: 1, path: -1 }), roll: 14 };
+  assert.equal(fly(banked, 5, NO_INPUT, FIELD).crash, "attitude");
+  const fast = levelFlight(3, 43, 101, 0, 125, { gear: 1, path: -1 });
+  assert.equal(fly(fast, 5, NO_INPUT, { ...FIELD, flapLever: 0 }).crash, "fast");
+  // Crashed, nothing more happens to it.
+  const wreck = land({ ...FIELD, gear: 0 });
+  assert.equal(step(wreck, { ...NO_INPUT, throttle: 1 }, 0.05, FIELD), wreck);
+});
+
+test("from standing: full thrust, the nose will not come up before there is air over the tail, and rotated it flies", () => {
+  const env: Environment = { ...FIELD, flapLever: 1 };
+  let state = parked(3, 43, 100, 90);
+  near(fly(state, 20, NO_INPUT, env).tas, 0, 1e-9);
+  let early = state;
+  for (let t = 0; t < 12; t += 0.05) early = step(early, { ...NO_INPUT, throttle: 1, pitch: 1 }, 0.05, env);
+  assert.ok(early.onGround && early.pitch < 0.5, `nose at ${early.pitch} at ${early.tas} m/s`);
+  let seconds = 0;
+  let metres = 0;
+  for (; seconds < 60 && state.onGround; seconds += 0.05) {
+    state = step(state, { ...NO_INPUT, throttle: 1, pitch: state.tas > 72 ? 0.8 : 0 }, 0.05, env);
+    metres += state.tas * 0.05;
+    assert.ok(state.pitch <= TAIL_STRIKE + 1e-9);
+  }
+  assert.ok(!state.onGround, "it left the ground");
+  assert.ok(seconds > 20 && seconds < 40, `after ${seconds} s`);
+  assert.ok(metres > 700 && metres < 1600, `after ${metres} m`);
+  near(state.heading, 90, 0.01);
+  const climbing = fly(state, 15, { ...NO_INPUT, throttle: 1 }, env);
+  assert.ok(!climbing.onGround && climbing.altitude > 150, `at ${climbing.altitude} m`);
+  assert.equal(climbing.crash, null);
+});
+
+test("on the ground the rudder steers the nose wheel, and a landed aircraft at idle does not bounce back into the air", () => {
+  const taxi = fly({ ...parked(3, 43, 100, 0), tas: 8 }, 3, { ...NO_INPUT, yaw: 1, throttle: 1 }, FIELD);
+  assert.ok(taxi.heading > 15 && taxi.heading < 60, `turned to ${taxi.heading}`);
+  assert.equal(taxi.roll, 0);
+  const down = land();
+  const held = fly(down, 2, { ...NO_INPUT, pitch: 1 }, FIELD);
+  assert.ok(held.onGround);
 });
 
 /* ---- spawn ---- */

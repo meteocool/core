@@ -47,6 +47,14 @@ const CUES: Partial<Record<FlightAction, SoundCue>> = {
   view: "view", style: "style", inspect: "style", next: "next", restart: "restart", help: "help",
 };
 
+/** The heights called out on the way down, metres, and as they are said: 500, 100, 50, 30, 20 and 10 ft. */
+const HEIGHT_CALLS: Array<[number, string]> = [
+  [152.4, "Five hundred"], [30.5, "One hundred"], [15.2, "Fifty"], [9.1, "Thirty"], [6.1, "Twenty"], [3, "Ten"],
+];
+const RETARD_M = 6.1;
+/** What is said as a warning starts, besides what it sounds like. */
+const WARNING_WORDS: Array<[FlightStatus["warnings"][number], string]> = [["gear", "Too low, gear"], ["sink", "Sink rate"]];
+
 export class FlightSound {
   private readonly context: AudioContext | null = null;
   private readonly graph: SoundGraph | null = null;
@@ -61,6 +69,9 @@ export class FlightSound {
   /** The speech of the terrain warning: whether one of ours is under way, and which cycle of whoops is next to be spoken after. */
   private speaking = false;
   private terrainCycles = 0;
+  /** The height over the ground a frame ago, metres, and what was being warned of then: what is said is said on passing. */
+  private heightBefore = Infinity;
+  private warnedOf: FlightStatus["warnings"] = [];
   private readonly listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
 
   constructor() {
@@ -94,8 +105,10 @@ export class FlightSound {
   /** A frame of the flight, after it has flown: set the sound to it. */
   update(telemetry: Telemetry, status: FlightStatus, dt: number): void {
     if (!this.graph || this.disposed) return;
+    const { state } = telemetry;
     const input: SoundInput = {
-      throttle: telemetry.state.throttle,
+      // Behind the reversers the engines run up again, whatever the lever says.
+      throttle: Math.max(state.throttle, 0.7 * state.reverse),
       ias: telemetry.ias,
       mach: telemetry.mach,
       dbz: telemetry.dbz,
@@ -107,8 +120,11 @@ export class FlightSound {
       fade: telemetry.fade,
       storm: telemetry.target ? { peakDbz: telemetry.target.peakDbz, distance: telemetry.target.distance } : null,
       gear: telemetry.gear,
+      flaps: state.flaps,
+      rolling: state.onGround ? state.tas : 0,
     };
     this.strike = false;
+    this.callOut(telemetry, status);
     this.memory ??= initialMemory(input, status);
     const { levels, events, memory } = mixSound(this.memory, input, status, this.muted, dt);
     this.memory = memory;
@@ -154,6 +170,59 @@ export class FlightSound {
       this.out.connect(this.tap);
     }
     return this.tap.stream;
+  }
+
+  /** The wheels meeting the ground: how hard, m/s, and whether that was the end of the flight. */
+  touchdown(sink: number, crash: boolean): void {
+    if (!this.graph || !this.playing()) return;
+    const strength = crash ? 1.6 : Math.min(1.4, 0.45 + sink / 4);
+    this.graph.play({ kind: "thump", strength });
+    this.graph.play({ kind: "rattle", strength: Math.min(1, strength) });
+    if (sink > 1.5 || crash) this.graph.play({ kind: "creak", strength: 1 });
+  }
+
+  /**
+   * What an airliner says on the way down to a landing, in the cockpit: the
+   * height over the ground as it passes five hundred, a hundred, fifty,
+   * thirty, twenty and ten feet with the gear down, "retard" at twenty with
+   * the engines still pulling, and what it warns of low down, once each time
+   * it starts to.
+   */
+  private callOut(telemetry: Telemetry, status: FlightStatus): void {
+    const height = telemetry.state.onGround ? 0 : (telemetry.radarAltitude ?? Infinity);
+    const before = this.heightBefore;
+    this.heightBefore = height;
+    const warned = this.warnedOf;
+    this.warnedOf = status.warnings;
+    if (status.view !== "cockpit" || !this.playing()) return;
+    for (const [warning, words] of WARNING_WORDS) {
+      if (status.warnings.includes(warning) && !warned.includes(warning)) this.say(words);
+    }
+    if (telemetry.gear < 1 || height >= before) return;
+    for (const [metres, words] of HEIGHT_CALLS) {
+      if (before > metres && height <= metres) {
+        this.say(words);
+        if (metres === RETARD_M && telemetry.state.throttle > 0.05) this.say("Retard");
+      }
+    }
+  }
+
+  /** Say a few words, in whatever voice the browser has; nothing where it has none. */
+  private say(words: string): void {
+    if (typeof speechSynthesis === "undefined") return;
+    try {
+      const utterance = new SpeechSynthesisUtterance(words);
+      utterance.lang = "en-US";
+      utterance.rate = 1.2;
+      utterance.pitch = 0.8;
+      utterance.volume = 0.6;
+      utterance.onend = () => { this.speaking = false; };
+      utterance.onerror = () => { this.speaking = false; };
+      this.speaking = true;
+      speechSynthesis.speak(utterance);
+    } catch {
+      // No voice here.
+    }
   }
 
   /** A strike nearby: thunder, whether or not a flash was drawn for it. */

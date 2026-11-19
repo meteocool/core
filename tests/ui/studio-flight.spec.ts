@@ -19,6 +19,7 @@ const timeline = (page: Page) => page.getByRole("region", { name: "Time and scen
 const deck = (page: Page) => page.getByRole("region", { name: "Flight deck" });
 const throttle = (page: Page) => deck(page).getByLabel("Throttle");
 const flightPlan = (page: Page) => page.getByRole("region", { name: "Flight plan" });
+const leaveAsk = (page: Page) => page.getByRole("alertdialog", { name: "End the flight?" });
 
 /** From Studio's panel to the air: the plan as it is proposed, and off. */
 async function takeOff(page: Page): Promise<void> {
@@ -116,7 +117,16 @@ test.describe("on a desktop", () => {
     await page.keyboard.press("k");
     await expect(deck(page)).toBeVisible();
 
+    // Escape does not end the flight: it asks, and Escape again flies on.
     await page.keyboard.press("Escape");
+    await expect(leaveAsk(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(leaveAsk(page)).toBeHidden();
+    await expect(deck(page)).toBeVisible();
+    // Asked again and answered with Enter, it ends.
+    await page.keyboard.press("Escape");
+    await expect(leaveAsk(page)).toBeVisible();
+    await page.keyboard.press("Enter");
     await expect(deck(page)).toBeHidden();
     await expect(panel(page)).toBeVisible();
     await expect(timeline(page)).toBeVisible();
@@ -140,6 +150,7 @@ test.describe("on a desktop", () => {
     await takeOff(page);
     await expect(deck(page)).toBeVisible();
     await deck(page).getByRole("button", { name: "Leave" }).click();
+    await leaveAsk(page).getByRole("button", { name: "End flight" }).click();
     await expect(panel(page)).toBeVisible();
 
     await takeOff(page);
@@ -155,7 +166,7 @@ test.describe("on a desktop", () => {
     expect(outside.handlers).toEqual(outside.handlers.map(() => true));
   });
 
-  test("the plan's switches reach the flight: the radar off the ground, and on again after landing", async ({ page }) => {
+  test("the flight starts over the plain map; O and the plan paint the radar on the ground, J sets the flaps, and landing puts it back", async ({ page }) => {
     test.slow();
     await page.goto(MAP_3D);
     await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
@@ -165,13 +176,22 @@ test.describe("on a desktop", () => {
     await expect(flightPlan(page)).toBeVisible();
     // The briefing reads the plan back, the cloud base among it.
     await expect(flightPlan(page).getByText("CLD BASE")).toBeVisible();
-    await flightPlan(page).getByLabel("Painted on the ground under the storms").uncheck();
+    // Not painted on the ground unless asked for.
+    await expect(flightPlan(page).getByLabel("Painted on the ground under the storms")).not.toBeChecked();
     await flightPlan(page).getByRole("button", { name: "Take off" }).click();
     await expect(deck(page)).toBeVisible();
     expect(await offGround()).toBe(true);
+    await page.keyboard.press("o");
+    await expect.poll(offGround).toBe(false);
+    await page.keyboard.press("o");
+    await expect.poll(offGround).toBe(true);
     // How fast the flight is drawn is on the deck.
     await expect(deck(page).getByText(/\d+ fps/)).toBeVisible({ timeout: 15_000 });
+    // A step of flaps: the lever's place reads out while they travel and after.
+    await page.keyboard.press("j");
+    await expect(deck(page).getByLabel("Flaps")).toHaveText("1");
     await page.keyboard.press("Escape");
+    await page.keyboard.press("Enter");
     await expect(panel(page)).toBeVisible();
     expect(await offGround()).toBe(false);
   });

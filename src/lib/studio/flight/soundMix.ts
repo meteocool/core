@@ -16,7 +16,7 @@
  * and there are no cockpit sounds; the clean view is outside's, gentler.
  */
 import type { FlightStatus, FlightView } from "../store";
-import { GEAR_S, MMO, VMO_MS } from "./physics";
+import { FLAP_NOTCH_S, GEAR_S, MMO, VMO_MS } from "./physics";
 
 /** What of the telemetry the sound follows. */
 export interface SoundInput {
@@ -40,6 +40,10 @@ export interface SoundInput {
   storm: { peakDbz: number; distance: number } | null;
   /** How far the landing gear is down, 0 up to 1 down; up where not said. */
   gear?: number;
+  /** Where the flaps are, in the lever's places; in where not said. */
+  flaps?: number;
+  /** How fast the aircraft is rolling over the ground, m/s; none in the air. */
+  rolling?: number;
 }
 
 export type SoundStatus = Pick<FlightStatus, "view" | "warnings" | "paused" | "autopilot" | "warp" | "low">;
@@ -59,6 +63,9 @@ export interface SoundMemory {
   /** Where the gear was a frame ago, and which way it was going then: 1 down, -1 up, 0 not at all. */
   gear: number;
   gearGoing: number;
+  /** Where the flaps were a frame ago, and for how long their motor has been heard since it was last started, seconds. */
+  flaps: number;
+  flapsFor: number;
 }
 
 /** Sounds a frame starts, each once. */
@@ -137,6 +144,8 @@ const HAIL_DBZ: [number, number] = [52, 62];
 
 /** How much louder the airflow is with the gear all the way down. */
 export const GEAR_WIND = 0.3;
+/** The speed over the ground at which its rumble is loudest, m/s. */
+export const ROLLING_LOUDEST_MS = 60;
 
 /** The throttle's detents: idle, climb, and full. */
 export const DETENTS = [0, 0.85, 1];
@@ -157,7 +166,7 @@ const ramp = (value: number, low: number, high: number) => clamp01((value - low)
 export function initialMemory(input: Pick<SoundInput, "throttle">, status: Pick<SoundStatus, "autopilot" | "low">): SoundMemory {
   return {
     spool: input.throttle, throttle: input.throttle, flash: 0, autopilot: status.autopilot, low: status.low, seatbelt: false, thunderQuiet: 4,
-    gear: 0, gearGoing: 0,
+    gear: 0, gearGoing: 0, flaps: 0, flapsFor: Infinity,
   };
 }
 
@@ -270,13 +279,29 @@ export function mixSound(
     events.push({ kind: "gearLock", strength: gear >= 1 ? 1 : 0.75 });
   }
 
+  // The flaps' motor, quieter than the gear's and for as long as they travel: started again each place they pass.
+  const flaps = input.flaps ?? memory.flaps;
+  let flapsFor = memory.flapsFor + dt;
+  if (!cutting && flaps !== memory.flaps && flapsFor >= FLAP_NOTCH_S * 0.6) {
+    events.push({ kind: "gearMotor", seconds: FLAP_NOTCH_S * 0.6 });
+    flapsFor = 0;
+  }
+
+  // Rolling: the wheels over open ground, felt more than heard, and its bumps.
+  const rolling = ramp(input.rolling ?? 0, 2, ROLLING_LOUDEST_MS);
+  if (rolling > 0 && !cutting && fires(1 + 5 * rolling, dt, random)) {
+    events.push({ kind: "thump", strength: (0.25 + 0.5 * rolling) * (0.5 + 0.5 * random()) * (cockpit ? 1 : 0.6) });
+  }
+
   const has = (warning: FlightStatus["warnings"][number]) => cockpit && status.warnings.includes(warning);
   const levels: SoundLevels = {
     volume: muted || status.paused ? 0 : VOLUME,
     world: 1 - 0.85 * clamp01(input.fade),
     engine,
     wind,
-    rumble: (cockpit ? 1 : 0.4) * ramp(turbulence, LIGHT_TURBULENCE, 1) ** 1.3 * (turbulence > SEVERE_TURBULENCE ? 1.3 : 1),
+    rumble: (cockpit ? 1 : 0.4) * Math.max(
+      ramp(turbulence, LIGHT_TURBULENCE, 1) ** 1.3 * (turbulence > SEVERE_TURBULENCE ? 1.3 : 1), 0.8 * rolling,
+    ),
     rain,
     thunder: { gain: view.thunder, cutoff: view.thunderCutoff },
     cabin: view.cabin,
@@ -288,7 +313,7 @@ export function mixSound(
     events,
     memory: {
       spool, throttle: input.throttle, flash: input.flash, autopilot: status.autopilot, low: status.low, seatbelt, thunderQuiet,
-      gear, gearGoing,
+      gear, gearGoing, flaps, flapsFor,
     },
   };
 }

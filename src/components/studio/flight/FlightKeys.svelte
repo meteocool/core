@@ -11,12 +11,15 @@ const ROWS: Array<[string[], string]> = [
   [["←", "→"], "roll"],
   [["⇧"], "warp"],
   [["Space"], "brake"],
+  [["B"], "speedbrake"],
+  [["U", "J"], "flaps"],
   [["G"], "gear"],
   [["L"], "autopilot"],
   [["N", "⌫"], "next"],
   [["V"], "view"],
   [["Drag"], "look"],
   [["C"], "style"],
+  [["O"], "radar"],
   [["I"], "inspect"],
   [["R"], "record"],
   [["P"], "pause"],
@@ -55,7 +58,8 @@ const ROWS: Array<[string[], string]> = [
   }
   dl {
     display: grid;
-    grid-template-columns: auto auto;
+    /* Two keys and what they do, side by side: the card is as long as half its rows. */
+    grid-template-columns: auto auto auto auto;
     gap: 5px 14px;
     margin: 0;
   }

@@ -267,8 +267,8 @@
       },
       "model_credit": "Aircraft: “Airbus A320 Lufthansa With cockpit interior” by izcyk, CC BY 4.0",
       "leave": "Leave",
-      "leave_title": "Back to Studio (Esc)",
-      "leave_title_plan": "Back to the flight plan (Esc)",
+      "leave_title": "End the flight, back to Studio (Esc)",
+      "leave_title_plan": "End the flight, back to its plan (Esc)",
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",
       "paused": "Paused · P resumes",
@@ -291,16 +291,17 @@
         "heading": "Heading",
         "air": "Outside",
         "frames": "Frames",
-        "target": "Storm"
+        "target": "Storm",
+        "radio": "Over ground"
       },
       "keys": {
         "title": "Flying",
-        "throttle": "Throttle up / down",
+        "throttle": "Throttle up / down · on the ground, S at idle: reverse",
         "rudder": "Rudder left / right",
         "pitch": "Nose down / nose up",
         "roll": "Roll left / right",
         "warp": "Hold: four times as fast",
-        "brake": "Hold: speed brake",
+        "brake": "Hold: speed brake · on the ground, the brakes",
         "gear": "Landing gear down / up",
         "autopilot": "Autopilot: wings level, hold altitude",
         "next": "Next storm / start again",
@@ -313,8 +314,48 @@
         "mute": "Sound off / on",
         "fullscreen": "Full screen",
         "help": "These keys",
-        "leave": "Back to Studio",
-        "leave_plan": "Back to the flight plan"
+        "leave": "End the flight (asks first)",
+        "leave_plan": "End the flight, back to its plan (asks first)",
+        "flaps": "Flaps in / out, a step",
+        "speedbrake": "Speed brake out / in",
+        "radar": "Radar colours on the ground on / off"
+      },
+      "gear_low": "TOO LOW  GEAR",
+      "sink": "SINK RATE",
+      "alpha_floor": "A.FLOOR · full thrust",
+      "crash": {
+        "terrain": "Ground too steep to land on",
+        "gear": "Down with the gear up",
+        "hard": "Touched down too hard",
+        "attitude": "Touched down wing or tail first",
+        "fast": "Touched down too fast"
+      },
+      "flaps": {
+        "label": "Flaps",
+        "full": "Full"
+      },
+      "spoilers": {
+        "label": "Spd brk",
+        "brake": "Out",
+        "ground": "Ground"
+      },
+      "reverse": "Reverse",
+      "landing": {
+        "title": "Landed",
+        "rolling": "Rolling out",
+        "butter": "Butter",
+        "smooth": "Smooth",
+        "firm": "Firm",
+        "hard": "Hard",
+        "rolled": "Roll",
+        "again": "W: take off again · ⌫: back to the approach"
+      },
+      "leave_ask": {
+        "title": "End the flight?",
+        "text": "The flight is held while you decide. Ending it goes back to Studio.",
+        "stay": "Keep flying",
+        "end": "End flight",
+        "text_plan": "The flight is held while you decide. Ending it goes back to the flight plan."
       }
     }
   },

@@ -91,9 +91,13 @@ function drawMarks(telemetry: Telemetry): void {
 /** Whether the browser puts a page over the whole screen: the disc beside the way out. */
 const canFullscreen = fullscreenSupported();
 
-let readouts: Record<"speed" | "altitude" | "heading" | "target" | "air" | "frames", HTMLElement | null> = {
-  speed: null, altitude: null, heading: null, target: null, air: null, frames: null,
+let readouts: Record<"speed" | "altitude" | "heading" | "target" | "air" | "frames" | "radio" | "rolled", HTMLElement | null> = {
+  speed: null, altitude: null, heading: null, target: null, air: null, frames: null, radio: null, rolled: null,
 };
+
+/** How a landing went, by how fast it came down, m/s: up to 120, 300 and 600 ft a minute, and harder. */
+const landingGrade = (sink: number) => (sink < 0.6 ? "butter" : sink < 1.5 ? "smooth" : sink < 3 ? "firm" : "hard");
+const FLAP_NAMES = ["0", "1", "2", "3"];
 
 let attribution = credits();
 const creditsTimer = setInterval(() => { attribution = credits(); }, 3000);
@@ -116,11 +120,16 @@ function frame(telemetry: Telemetry): void {
   write(readouts.speed, `${Math.round(telemetry.ias * KNOTS)} kt · M${telemetry.mach.toFixed(2)}`);
   const feet = state.altitude * FEET;
   write(readouts.altitude, `${Math.round(feet / 10) * 10} ft · FL${String(Math.round(feet / 100)).padStart(3, "0")}`);
+  // Low down, how high over the ground: to the ten feet, and to the foot for the last fifty.
+  const over = (telemetry.radarAltitude ?? 0) * FEET;
+  write(readouts.radio, `${over < 50 ? Math.round(over) : Math.round(over / 10) * 10} ft`);
+  write(readouts.rolled, `${Math.round(telemetry.rolled / 10) * 10} m`);
   write(readouts.heading, `${String(Math.round(state.heading) % 360).padStart(3, "0")}°`);
   const { target } = telemetry;
-  write(readouts.target, target
-    ? `${(target.distance / 1852).toFixed(0)} NM · ${Math.floor(target.seconds / 60)}:${String(Math.floor(target.seconds % 60)).padStart(2, "0")}`
-    : "–");
+  // How far, and how long at this speed: no time for an aircraft standing still, or as good as.
+  const minutes = target && target.seconds < 6 * 3600
+    ? ` · ${Math.floor(target.seconds / 60)}:${String(Math.floor(target.seconds % 60)).padStart(2, "0")}` : "";
+  write(readouts.target, target ? `${(target.distance / 1852).toFixed(0)} NM${minutes}` : "–");
   // The air outside, and what it is doing: its temperature, and how fast it is carrying the aircraft up or down.
   const draft = Math.round((telemetry.draft * 196.85) / 100) * 100;
   write(readouts.air, `${Math.round(telemetry.temperature)} °C${Math.abs(draft) >= 300 ? ` · ${draft > 0 ? "↑" : "↓"} ${Math.abs(draft)} fpm` : ""}`);
@@ -162,6 +171,7 @@ onDestroy(() => {
 
 const WARNINGS = {
   terrain: "studio.flight.terrain", stall: "studio.flight.stall", overspeed: "studio.flight.overspeed", ice: "studio.flight.ice",
+  gear: "studio.flight.gear_low", sink: "studio.flight.sink",
 } as const;
 </script>
 
@@ -187,7 +197,12 @@ const WARNINGS = {
     </div>
     <dl class="readouts">
       <div class="corner-nw"><dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd></div>
-      <div class="corner-ne" class:beside-screen={canFullscreen}><dt>{$_("studio.flight.readout.altitude")}</dt><dd bind:this={readouts.altitude}></dd></div>
+      <div class="corner-ne" class:beside-screen={canFullscreen}>
+        <dt>{$_("studio.flight.readout.altitude")}</dt><dd bind:this={readouts.altitude}></dd>
+        <!-- Low down the height over the ground reads out with it; hidden, not gone, so the frame has somewhere to write. -->
+        <dt hidden={!status.low || status.onGround}>{$_("studio.flight.readout.radio")}</dt>
+        <dd hidden={!status.low || status.onGround} bind:this={readouts.radio}></dd>
+      </div>
       <div class="corner-sw">
         <dt>{$_("studio.flight.readout.heading")}</dt><dd bind:this={readouts.heading}></dd>
         <dt>{$_("studio.flight.readout.air")}</dt><dd bind:this={readouts.air}></dd>
@@ -196,6 +211,20 @@ const WARNINGS = {
       <div class="corner-se">
         <dt>{$_("studio.flight.readout.target")}</dt><dd bind:this={readouts.target}></dd>
         <dt>THR</dt><dd><output class="throttle" bind:this={throttle} aria-label={$_("studio.flight.throttle")}>0%</output></dd>
+        {#if status.reverse}
+          <dt>{$_("studio.flight.reverse")}</dt><dd class="surface out">REV</dd>
+        {/if}
+        {#if status.flaps > 0 || status.flapsMoving}
+          <!-- Where the lever is; lit while the flaps are still on their way there. -->
+          <dt>{$_("studio.flight.flaps.label")}</dt>
+          <dd class="surface" class:moving={status.flapsMoving} aria-label={$_("studio.flight.flaps.label")}>
+            {FLAP_NAMES[status.flaps] ?? $_("studio.flight.flaps.full")}
+          </dd>
+        {/if}
+        {#if status.spoilers !== "in"}
+          <dt>{$_("studio.flight.spoilers.label")}</dt>
+          <dd class="surface out">{$_(`studio.flight.spoilers.${status.spoilers}`)}</dd>
+        {/if}
         {#if status.gear !== "up"}
           <!-- The landing gear, as the panel shows it: three greens down and locked, three reds on the way; nothing up. -->
           <dt>{$_("studio.flight.gear.label")}</dt>
@@ -206,9 +235,15 @@ const WARNINGS = {
   {/if}
 
   <div class="alerts" role="status">
+    {#if status.crash}
+      <p class="warning steady">{$_(`studio.flight.crash.${status.crash}`)}</p>
+    {/if}
     {#each status.warnings as warning (warning)}
       <p class="warning">{$_(WARNINGS[warning])}</p>
     {/each}
+    {#if status.alphaFloor && status.view !== "clean"}
+      <p class="note caution">{$_("studio.flight.alpha_floor")}</p>
+    {/if}
     {#if status.clearSky && status.view !== "clean"}
       <p class="note">{$_("studio.flight.clear_sky")}</p>
     {/if}
@@ -219,6 +254,23 @@ const WARNINGS = {
 
   {#if status.keys && status.view !== "clean"}
     <FlightKeys />
+  {/if}
+
+  {#if status.landing && status.view !== "clean"}
+    <!-- A landing, as it was made: how hard, how fast, and how far it has rolled. -->
+    <section class="landing glass glass-tray" aria-label={$_("studio.flight.landing.title")}>
+      <h2>{$_(status.landing.stopped ? "studio.flight.landing.title" : "studio.flight.landing.rolling")}
+        <span class="grade {landingGrade(status.landing.sink)}">{$_(`studio.flight.landing.${landingGrade(status.landing.sink)}`)}</span></h2>
+      <p>
+        <b>−{Math.round((status.landing.sink * 196.85) / 10) * 10} fpm</b>
+        <b>{Math.round(status.landing.speed * KNOTS)} kt</b>
+        <b>{status.landing.load.toFixed(1)} g</b>
+        <span>{$_("studio.flight.landing.rolled")} <b bind:this={readouts.rolled}></b></span>
+      </p>
+      {#if status.landing.stopped}
+        <p class="again">{$_("studio.flight.landing.again")}</p>
+      {/if}
+    </section>
   {/if}
 
   {#if status.view !== "clean"}
@@ -249,6 +301,19 @@ const WARNINGS = {
   {/if}
   {#if status.recording}
     <span class="rec" aria-hidden="true">REC</span>
+  {/if}
+  {#if status.leaving}
+    <!-- Asked before a flight ends: Escape alone does not end one. -->
+    <div class="ask" role="alertdialog" aria-modal="true" aria-labelledby="flight-leave-title">
+      <section class="glass glass-tray">
+        <h2 id="flight-leave-title">{$_("studio.flight.leave_ask.title")}</h2>
+        <p>{$_($studioFlightOnly ? "studio.flight.leave_ask.text_plan" : "studio.flight.leave_ask.text")}</p>
+        <div class="choices">
+          <button type="button" class="glass-pill" on:click={() => pilot.stay()}>{$_("studio.flight.leave_ask.stay")} <kbd>Esc</kbd></button>
+          <button type="button" class="glass-pill end" on:click={() => pilot.leave()}>{$_("studio.flight.leave_ask.end")} <kbd>↵</kbd></button>
+        </div>
+      </section>
+    </div>
   {/if}
 
   <p class="credits">{status.view === "clean" ? attribution : `${$_("studio.flight.model_credit")} | ${attribution}`}</p>
@@ -307,6 +372,35 @@ const WARNINGS = {
     border-bottom-width: 0;
   }
   .gear.moving i { border-top-color: #ff453a; }
+  .surface { color: #3ddc84; }
+  .surface.moving { color: #7fd4ff; }
+  .surface.out { color: #ffb340; }
+
+  /* The landing, as it was made: low in the middle, out of the way of the view ahead. */
+  .landing {
+    position: absolute;
+    left: 50%;
+    bottom: 84px;
+    padding: 10px 16px 12px;
+    color: var(--mc-text);
+    text-align: center;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .landing h2 { margin: 0 0 6px; font: var(--mc-type-heading); }
+  .landing p { display: flex; gap: 14px; justify-content: center; margin: 0; font: 600 13px/1.3 var(--mc-font); }
+  .landing .again { margin-top: 8px; color: var(--mc-text-2); font-weight: 500; }
+  .grade {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: var(--mc-radius-pill);
+    font: 700 11px/1.4 var(--mc-font);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .grade.butter, .grade.smooth { background: rgba(61, 220, 132, 0.25); color: #3ddc84; }
+  .grade.firm { background: rgba(255, 179, 64, 0.25); color: #ffb340; }
+  .grade.hard { background: rgba(255, 69, 58, 0.25); color: #ff453a; }
   .corner-nw { top: 16px; left: 16px; }
   .corner-ne { top: 16px; right: 120px; }
   /* Clear of the whole-screen disc as well, where there is one. */
@@ -423,6 +517,37 @@ const WARNINGS = {
     background: rgba(5, 7, 10, 0.6);
     font: 600 13px/1.2 var(--mc-font);
   }
+  /* The question before a flight ends: over everything, the view dimmed behind it. */
+  .ask {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(5, 7, 10, 0.45);
+    pointer-events: auto;
+  }
+  .ask section { max-width: 340px; padding: 18px 20px; color: var(--mc-text); text-align: center; }
+  .ask h2 { margin: 0 0 6px; font: var(--mc-type-heading); }
+  .ask p { margin: 0 0 14px; color: var(--mc-text-2); font: 13px/1.4 var(--mc-font); }
+  .ask .choices { display: flex; gap: 10px; justify-content: center; }
+  .ask button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--mc-pill-h);
+    padding: 0 14px;
+    border: 1px solid color-mix(in srgb, var(--mc-text) 25%, transparent);
+    background: transparent;
+    color: var(--mc-text);
+    font: 600 13px/1 var(--mc-font);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .ask button.end { border-color: transparent; background: var(--mc-accent); color: #fff; }
+  .ask button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+  .ask kbd { opacity: 0.7; font: 600 11px/1 var(--mc-font); }
+  .warning.steady { animation: none; letter-spacing: 0.02em; white-space: normal; }
+  .note.caution { color: #ffb340; font-weight: 700; }
   @keyframes blink { to { visibility: hidden; } }
   @media (prefers-reduced-motion: reduce) {
     .warning { animation: none; }

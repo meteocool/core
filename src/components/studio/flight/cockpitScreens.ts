@@ -164,6 +164,7 @@ export class CockpitScreens {
       warnings: status.warnings, brake: telemetry.brake, throttle: state.throttle, turbulence: telemetry.turbulence,
       altitude: state.altitude, radarAltitude: telemetry.radarAltitude, gear,
       autopilotLost: telemetry.time - this.autopilotLostAt < AP_OFF_S,
+      flaps: status.flaps, groundSpoilers: status.spoilers === "ground", reverse: status.reverse, alphaFloor: status.alphaFloor,
     });
     // With reduced motion, a flashing light is lit steadily.
     const flashing = this.reducedMotion || flashOn(telemetry.time);

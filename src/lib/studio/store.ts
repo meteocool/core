@@ -63,7 +63,23 @@ export const studioFlightOnly = writable<boolean>(false);
 export type FlightView = "cockpit" | "outside" | "clean";
 
 /** The warnings a flight sounds, by name. */
-export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice";
+export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice" | "gear" | "sink";
+
+/** Why a flight ended on the ground and not on its wheels (lib/studio/flight/physics.ts). */
+export type FlightCrash = "terrain" | "gear" | "hard" | "attitude" | "fast";
+
+/**
+ * A landing as it was made: how fast it came down, m/s, and how fast it was
+ * going, m/s; what the gear felt, g; how far it has rolled since, metres;
+ * and whether it has come to a stop.
+ */
+export interface FlightLanding {
+  sink: number;
+  speed: number;
+  load: number;
+  rolled: number;
+  stopped: boolean;
+}
 
 /**
  * What of a flight changes now and then rather than every frame: a store
@@ -87,11 +103,27 @@ export interface FlightStatus {
   inspecting: "cut" | "peel" | "xray" | null;
   /** The landing gear: up and locked, on its way, or down and locked (G). */
   gear: "up" | "moving" | "down";
+  /** Where the flap lever is, 0 (in) to 4 (all the way out), and whether the flaps are still on their way there. */
+  flaps: number;
+  flapsMoving: boolean;
+  /** The spoilers: flat, up as the speed brake, or all of them up on the ground after a landing. */
+  spoilers: "in" | "brake" | "ground";
+  /** On its wheels; the engines' thrust turned back; the engines held at full thrust for the angle of attack. */
+  onGround: boolean;
+  reverse: boolean;
+  alphaFloor: boolean;
+  /** The last landing, until the aircraft flies again; and why the flight just ended, for a moment after it has. */
+  landing: FlightLanding | null;
+  crash: FlightCrash | null;
+  /** The radar's colours painted on the ground under the storms (O); and the flight held while the reader is asked whether to end it. */
+  radarOnGround: boolean;
+  leaving: boolean;
 }
 
 export const INITIAL_FLIGHT_STATUS: FlightStatus = {
   view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
-  clearSky: false, low: false, inspecting: null, gear: "up",
+  clearSky: false, low: false, inspecting: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
+  reverse: false, alphaFloor: false, landing: null, crash: null, radarOnGround: false, leaving: false,
 };
 
 export const flightStatus = writable<FlightStatus>(INITIAL_FLIGHT_STATUS);

@@ -79,8 +79,8 @@ test("the fan's tone and the engines' level rise with the spool, from idle", () 
 /* ---- airflow ---- */
 
 test("the wind rises with the indicated speed, the brake adds to it, and a roar comes near the limits", () => {
-  const slow = fly({ ...CRUISE, ias: 70 }, 0.1).levels.wind;
-  const fast = fly({ ...CRUISE, ias: 160 }, 0.1).levels.wind;
+  const slow = fly({ ...CRUISE, ias: 70, mach: 0.3 }, 0.1).levels.wind;
+  const fast = fly({ ...CRUISE, ias: 160, mach: 0.7 }, 0.1).levels.wind;
   assert.ok(fast.gain > 3 * slow.gain, `${fast.gain} vs ${slow.gain}`);
   assert.ok(fast.hz > slow.hz);
   assert.equal(fast.brake, 0);

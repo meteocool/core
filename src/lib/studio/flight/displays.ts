@@ -86,6 +86,12 @@ export interface EcamInput {
   gear: number;
   /** The autopilot let go of in the last few seconds. */
   autopilotLost: boolean;
+  /** Where the flap lever is, 0 to 4; in where not said. */
+  flaps?: number;
+  /** Every spoiler up, after a landing; the engines' thrust turned back; the engines held at full thrust for the angle of attack. */
+  groundSpoilers?: boolean;
+  reverse?: boolean;
+  alphaFloor?: boolean;
 }
 
 export interface Ecam {
@@ -98,6 +104,8 @@ export interface Ecam {
   masterCaution: boolean;
 }
 
+/** The flap lever's places, as the display names them. */
+const FLAP_PLACES = ["0", "1", "2", "3", "FULL"];
 /** Above this rough air the seat belt signs are on. */
 const BELTS_TURBULENCE = 0.1;
 /** Below this the seat belt signs are on whatever the air, m: 10,000 ft. */
@@ -126,19 +134,33 @@ export function ecamOf(input: EcamInput): Ecam {
       case "ice":
         cautions.push({ text: "A.ICE SEVERE ICE DETECTED", colour: "amber" });
         break;
+      case "gear":
+        warnings.push({ text: "L/G GEAR NOT DOWN", colour: "red" });
+        break;
+      case "sink":
+        warnings.push({ text: "GPWS SINK RATE", colour: "red" });
+        break;
       default:
         cautions.push({ text: warning.toUpperCase(), colour: "amber" });
     }
   }
+  if (input.alphaFloor) cautions.push({ text: "A.FLOOR", colour: "amber" });
   const memo: EcamLine[] = [];
   const low = input.radarAltitude !== null && input.radarAltitude < LANDING_MEMO_M;
+  const flaps = input.flaps ?? 0;
   if (low) {
     memo.push({ text: input.gear >= 1 ? "LDG LDG GEAR DN" : "LDG LDG GEAR....DN", colour: input.gear >= 1 ? "green" : "cyan" });
+    // The flaps for a landing: the last two places of the lever.
+    memo.push({ text: flaps >= 3 ? `    FLAPS ${FLAP_PLACES[flaps]}` : "    FLAPS.....FULL", colour: flaps >= 3 ? "green" : "cyan" });
+  } else if (flaps > 0) {
+    memo.push({ text: `FLAPS ${FLAP_PLACES[flaps]}`, colour: "green" });
   }
+  if (input.groundSpoilers) memo.push({ text: "GND SPLRS", colour: "green" });
+  if (input.reverse) memo.push({ text: "REV", colour: "green" });
   if (input.turbulence > BELTS_TURBULENCE || input.altitude < BELTS_BELOW_M) memo.push({ text: "SEAT BELTS", colour: "green" });
   memo.push({ text: "NO SMOKING", colour: "green" });
   // The speed brake with thrust on is a waste the display points out.
-  if (input.brake) memo.push({ text: "SPEED BRK", colour: input.throttle > 0.1 ? "amber" : "green" });
+  if (input.brake && !input.groundSpoilers) memo.push({ text: "SPEED BRK", colour: input.throttle > 0.1 ? "amber" : "green" });
   return {
     warnings: [...warnings, ...cautions],
     memo,

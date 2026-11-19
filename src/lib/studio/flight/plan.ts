@@ -83,7 +83,7 @@ export function planFrom(approach: Approach, style: CloudStyle): FlightPlan {
     view: "cockpit",
     style,
     turbulence: true,
-    radarOnGround: true,
+    radarOnGround: false,
     marks: true,
   };
 }
