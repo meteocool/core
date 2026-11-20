@@ -26,7 +26,7 @@ import type { FlightPlan } from "../../lib/studio/flight/plan";
 import { cropOf } from "../../lib/studio/record";
 import { closeStudio } from "../../lib/studio/session";
 import { STUDIO_SUPPORT } from "../../lib/studio/support";
-import { studioAspect, studioFlying, studioPlaying, studioRecording } from "../../lib/studio/store";
+import { studioAspect, studioFlightOnly, studioFlying, studioPlaying, studioRecording } from "../../lib/studio/store";
 
 /** The 3D map. */
 export let stage: Stage;
@@ -38,8 +38,12 @@ const director = new Director(stage);
 /** The flight under way; null when the reader is not flying. */
 let pilot: Pilot | null = null;
 
-/** Whether the reader is planning a flight: the page before it (flight/Preflight.svelte). */
-let planning = false;
+/**
+ * Whether the reader is planning a flight: the page before it
+ * (flight/Preflight.svelte). On the flight's own page that is where Studio
+ * opens, and what a flight comes back to.
+ */
+let planning = $studioFlightOnly;
 
 /** To the flight's plan: a scene playing stops first. Not while one records. */
 function plan(): void {
@@ -56,11 +60,18 @@ function fly(flightPlan: FlightPlan): void {
   pilot.start();
 }
 
-/** Back to Studio, the map and its tools as they were. */
+/** Put the plan away: back to Studio's tools, or off the flight's own page's map altogether. */
+function cancel(): void {
+  planning = false;
+  if ($studioFlightOnly) closeStudio();
+}
+
+/** Back to Studio, the map and its tools as they were; on the flight's own page, to the plan. */
 function land(): void {
   const flying = pilot;
   pilot = null;
   flying?.stop();
+  if (flying && $studioFlightOnly) planning = true;
 }
 
 // The map can end a flight itself: when the 3D map is put away under it.
@@ -111,8 +122,8 @@ function keydown(event: KeyboardEvent) {
   {#if $studioFlying && pilot}
     <FlightDeck {pilot} {credits} />
   {:else if planning}
-    <Preflight {stage} ontakeoff={fly} oncancel={() => { planning = false; }} />
-  {:else}
+    <Preflight {stage} ontakeoff={fly} oncancel={cancel} />
+  {:else if !$studioFlightOnly}
   {#if frame && width && height}
     <div
       class="frame"

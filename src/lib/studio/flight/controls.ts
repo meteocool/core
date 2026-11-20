@@ -16,7 +16,7 @@ import type { ControlInput } from "./physics";
 /** What a press does, once. */
 export type FlightAction =
   | "autopilot" | "next" | "restart" | "view" | "style" | "inspect" | "record" | "pause" | "mute" | "help" | "leave"
-  | "gear";
+  | "gear" | "fullscreen";
 
 const HELD: Record<string, true> = {
   KeyW: true, KeyS: true, KeyA: true, KeyD: true,
@@ -36,6 +36,7 @@ const ACTIONS: Record<string, FlightAction> = {
   KeyM: "mute",
   KeyI: "inspect",
   KeyG: "gear",
+  KeyF: "fullscreen",
   KeyH: "help",
   Slash: "help",
   Escape: "leave",

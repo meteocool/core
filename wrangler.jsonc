@@ -12,7 +12,7 @@
   // the Worker never sees the request.
   //
   // No `not_found_handling`: this is a multi-page build (index, ios, android,
-  // imprint, privacy), not an SPA, so a missing asset should 404 rather than be
+  // meteoair, imprint, privacy), not an SPA, so a missing asset should 404 rather than be
   // rewritten to index.html.
   //
   // `html_handling: "none"`: by default Cloudflare 307s /ios.html to /ios. The

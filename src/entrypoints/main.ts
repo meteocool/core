@@ -20,6 +20,13 @@ import App from "../App.svelte";
 import { i18nReady } from "../locale/i18n";
 import { unsupportedBrowser } from "../lib/browserSupport";
 import { linkPlacesView } from "../lib/urlState";
+import { enterFlightPage, followFlightPageHash, isFlightPageHash, showFlightPage } from "../lib/studio/flightPage";
+
+// `#meteoair` makes this the flight's own page (lib/studio/flightPage.ts):
+// settled before the app is made, and again whenever the hash changes its mind.
+const flightPage = !screenshot && isFlightPageHash(window.location.hash);
+if (flightPage) enterFlightPage();
+followFlightPageHash(flightPage);
 
 if (import.meta.env.PROD && !screenshot) registerServiceWorker();
 
@@ -52,6 +59,11 @@ const app = unsupportedBrowser ? null : i18nReady.then(() => mount(App, {
   props: {
     device: "web",
     postInitCb(layermanager) {
+      // The flight's page asks nobody where they are: it is about the weather.
+      if (flightPage) {
+        void showFlightPage(layermanager);
+        return;
+      }
       if ("geolocation" in navigator && !screenshot) {
         navigator.geolocation.getCurrentPosition((position) => {
           // Marked either way, but flown to only when the link did not say

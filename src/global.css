@@ -163,3 +163,18 @@ html.mc-flying .bottomToolbar,
 html.mc-flying .back-from-3d {
   display: none !important;
 }
+
+/* The flight's own page (meteoair.html): the radar map with nothing over it
+   but its credits, under that page's words. What the app would put on it is
+   never made there (App.svelte, `flightOnly`); these are the maps' own
+   controls, and the 3D map's while the flight's plan is up over it. */
+html.mc-flight-page .live-wrapper,
+html.mc-flight-page .lsToggle,
+html.mc-flight-page .ol-zoom,
+html.mc-flight-page .ol-rotate,
+html.mc-flight-page .ol-geolocate,
+html.mc-flight-page .ol-share,
+html.mc-flight-page .maplibregl-ctrl-top-right {
+  display: none !important;
+}
+html.mc-flight-page { --attributions-bottom-padding: 0px; }

@@ -51,7 +51,7 @@ function proxyTargets(mode: string) {
  * newer slips into it.
  */
 function browserCheck(): Plugin {
-  const pages = /^\/(index|ios|android)\.html$/;
+  const pages = /^\/(index|ios|android|meteoair)\.html$/;
   return {
     name: "meteocool:browser-check",
     async transformIndexHtml(_html, ctx) {
@@ -164,6 +164,7 @@ export default defineConfig(({ mode }) => {
           index: here("index.html"),
           ios: here("ios.html"),
           android: here("android.html"),
+          meteoair: here("meteoair.html"),
           imprint: here("imprint.html"),
           privacy: here("privacy.html"),
         },

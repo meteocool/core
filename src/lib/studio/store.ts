@@ -50,6 +50,15 @@ export const studioAspect = writable<Aspect>("16:9");
  */
 export const studioFlying = writable<boolean>(false);
 
+/**
+ * Whether this page is for the flight alone (meteoair.html): Studio opens
+ * straight on the flight's plan, with no panel or timeline of its own, and
+ * the map the page opens on is the radar with nothing over it but that
+ * page's own words. Set once by the page's entrypoint, before anything is
+ * drawn.
+ */
+export const studioFlightOnly = writable<boolean>(false);
+
 /** Where a flight is seen from: the cockpit, outside the aircraft, or with no aircraft and nothing over the view. */
 export type FlightView = "cockpit" | "outside" | "clean";
 

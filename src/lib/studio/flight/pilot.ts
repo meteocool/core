@@ -40,6 +40,7 @@ import type { StormMark } from "./marks";
 import { cockpitEye, inAircraft, outsideEye, seenFrom } from "./view";
 import type { Attitude as FlightAttitude, Eye, Look } from "./view";
 import { VERTICAL_SCALE } from "../../../layers/terrain";
+import { toggleFullscreen } from "../../fullscreen";
 import { airAt, noise, roughAir } from "./weather";
 import { boltPaths, FLASH_S, flicker, glare, thunderDelay } from "./lightning";
 import type { Bolt } from "../../../layers/weatherPass";
@@ -378,6 +379,9 @@ export class Pilot {
         break;
       case "gear":
         this.gearDown = !this.gearDown;
+        break;
+      case "fullscreen":
+        toggleFullscreen();
         break;
       case "help":
         if (this.keysTimer !== null) clearTimeout(this.keysTimer);

@@ -17,7 +17,7 @@ import Guide3D from "./components/Guide3D.svelte";
 import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
 import { DEFAULT_CLOUD_STYLE, mapStyleOf } from "./lib/cloudStyle";
-import { STUDIO_BASEMAP, studioOpen } from "./lib/studio/store";
+import { STUDIO_BASEMAP, studioFlightOnly, studioOpen } from "./lib/studio/store";
 import { closeStudio, openStudio, studioOffered } from "./lib/studio/session";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
@@ -164,6 +164,13 @@ const loadStationSheet = () => Promise.all([loadCellSheet(), loadStationDetails(
 
 export let device;
 export let postInitCb;
+
+/**
+ * Whether this is the flight's own page (meteoair.html): the radar map with
+ * nothing over it and nothing on it to open, under that page's own words,
+ * and the 3D map only as the flight draws it.
+ */
+const flightOnly = get(studioFlightOnly);
 
 dd.set(device);
 
@@ -500,6 +507,15 @@ window.settings = new Settings({
    come up the way the link says without the link rewriting the reader's own
    choices. */
 applyLinkedChoices(window.settings);
+/* The flight's own page shows the weather and nothing to tap on it: no storm
+   marks, stations, radars or arrows. Held for this page load, as a link's
+   choices are, so the reader's own are not touched. */
+if (flightOnly) {
+  for (const key of ["layerCells", "layerStations", "layerSites", "layerMotion"]) window.settings.override(key, false);
+  // And on the dark basemap, which that page's words are set over.
+  window.settings.override("mapBaseLayer", "dark");
+  bottomToolbarMode.set("hidden");
+}
 
 /* A screenshot draws the radar, the strikes and the cyclones once, and keeps
    nothing up to date: no socket, no timers, no cells or "3D" tags. */
@@ -661,7 +677,7 @@ capLatestObservation.subscribe((newest) => stormmgr.setNewestScan(newest > 0 ? n
    way there (see layers/cloudHints.ts). Only where that map is offered, and,
    like the cells, only on the newest observation, which is the scan the cores
    were found in. A core older than that radar is tagged grey. */
-const hintsWanted = capabilityEnabled("cells3d") && !screenshot;
+const hintsWanted = capabilityEnabled("cells3d") && !screenshot && !flightOnly;
 const hints = makeCloudHints();
 const cloudHintLayer = hints.layer;
 derived(
@@ -870,7 +886,8 @@ onDestroy(() => window.clearInterval(fadeInterval));
 const lm = new LayerManager({
   settings: window.settings,
   nanobar: nb,
-  initialCapability: openingLink.layer,
+  // The flight's own page opens on the radar, whatever map was up last.
+  initialCapability: flightOnly ? "radar" : openingLink.layer,
   capabilities: [
     {
       name: "radar",
@@ -1438,9 +1455,12 @@ onDestroy(cleanupUIConstants);
 
 /* The URL from here on: the rest of the opening link, once there is data for
    it, then the address bar kept in step with the page, and Back and Forward. */
-onDestroy(startUrlState({
-  lm, settings: window.settings, stormmgr, stationmgr, cells3d, nanobar: nb,
-}));
+// Not on the flight's own page, whose address is the page's and says nothing of the map.
+if (!flightOnly) {
+  onDestroy(startUrlState({
+    lm, settings: window.settings, stormmgr, stationmgr, cells3d, nanobar: nb,
+  }));
+}
 onDestroy(exposeShareLink());
 
 if (postInitCb) postInitCb(lm);
@@ -1554,13 +1574,13 @@ if (postInitCb) postInitCb(lm);
   }
 </style>
 
-{#if !dd.isApp()}
+{#if !dd.isApp() && !flightOnly}
   <Logo layerManager={lm} />
 {/if}
 
 <!-- toolbarVisible holds "yes"/"no", and "no" is a truthy string: testing the
      store itself left ?toolbar=no showing the whole toolbar. -->
-{#if $toolbarVisible === "yes"}
+{#if $toolbarVisible === "yes" && !flightOnly}
   <BottomToolbar layerManager={lm} />
 {/if}
 
@@ -1573,7 +1593,7 @@ if (postInitCb) postInitCb(lm);
 {/if}
 <!-- The way back to the map a tag or a panel came from; over the loading veil
      too, which may be failing. -->
-{#if $detourOrigin && $sharedActiveCap === "cells3d" && $toolbarVisible === "yes"}
+{#if $detourOrigin && $sharedActiveCap === "cells3d" && $toolbarVisible === "yes" && !flightOnly}
   <BackFrom3D onback={backFrom3D} />
 {/if}
 <!-- The 3D map's legend and peel, once it is up. In the apps as
@@ -1587,7 +1607,7 @@ if (postInitCb) postInitCb(lm);
     <Lazy load={loadStudio} floating let:module>
       <svelte:component this={module.default} stage={cells3d} />
     </Lazy>
-  {:else}
+  {:else if !flightOnly}
     <!-- Not while a storm is open: a cut storm does not peel. -->
     {#if !$selectedStorm}
       <PeelSlider openStudio={cells3d && studioOnOffer && !$smallScreen ? openStudio : null} />
@@ -1595,7 +1615,9 @@ if (postInitCb) postInitCb(lm);
     <Guide3D />
   {/if}
 {/if}
-<PointMenu layerManager={lm} />
+{#if !flightOnly}
+  <PointMenu layerManager={lm} />
+{/if}
 
 <!-- The open radar's own page goes with the radar: closing the radar closes it. -->
 {#if $radarInfoOpen && $siteMode}
@@ -1707,7 +1729,7 @@ if (postInitCb) postInitCb(lm);
   {/if}
 {/if}
 
-{#if $toolbarVisible === "yes"}
+{#if $toolbarVisible === "yes" && !flightOnly}
   <NowcastPlayback cap={lm.getCapability("radar") as RadarCapability} />
 {/if}
 <ArchiveFrame />

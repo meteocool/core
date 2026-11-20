@@ -21,6 +21,8 @@ import { onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons/faRightFromBracket";
 import { faVolumeXmark } from "@fortawesome/free-solid-svg-icons/faVolumeXmark";
+import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
+import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
 import Icon from "../../Icon.svelte";
 import FlightKeys from "./FlightKeys.svelte";
 import CloseDisc from "../../CloseDisc.svelte";
@@ -31,7 +33,8 @@ import { CockpitScreens } from "./cockpitScreens";
 import { cloudsTime } from "../../../stores";
 import { MARKS_SHOWN } from "../../../lib/studio/flight/marks";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
-import { flightStatus } from "../../../lib/studio/store";
+import { flightStatus, studioFlightOnly } from "../../../lib/studio/store";
+import { fullscreen, fullscreenSupported } from "../../../lib/fullscreen";
 import { flightMuted } from "../../../lib/studio/flight/sound";
 
 export let pilot: Pilot;
@@ -84,6 +87,9 @@ function drawMarks(telemetry: Telemetry): void {
     write(detail as HTMLElement, parts.join(" · "));
   });
 }
+
+/** Whether the browser puts a page over the whole screen: the disc beside the way out. */
+const canFullscreen = fullscreenSupported();
 
 let readouts: Record<"speed" | "altitude" | "heading" | "target" | "air" | "frames", HTMLElement | null> = {
   speed: null, altitude: null, heading: null, target: null, air: null, frames: null,
@@ -181,7 +187,7 @@ const WARNINGS = {
     </div>
     <dl class="readouts">
       <div class="corner-nw"><dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd></div>
-      <div class="corner-ne"><dt>{$_("studio.flight.readout.altitude")}</dt><dd bind:this={readouts.altitude}></dd></div>
+      <div class="corner-ne" class:beside-screen={canFullscreen}><dt>{$_("studio.flight.readout.altitude")}</dt><dd bind:this={readouts.altitude}></dd></div>
       <div class="corner-sw">
         <dt>{$_("studio.flight.readout.heading")}</dt><dd bind:this={readouts.heading}></dd>
         <dt>{$_("studio.flight.readout.air")}</dt><dd bind:this={readouts.air}></dd>
@@ -216,9 +222,19 @@ const WARNINGS = {
   {/if}
 
   {#if status.view !== "clean"}
-    <button type="button" class="leave glass glass-pill" on:click={() => pilot.act("leave")} title={$_("studio.flight.leave_title")}>
-      <Icon icon={faRightFromBracket} /> {$_("studio.flight.leave")}
-    </button>
+    <div class="corner">
+      {#if canFullscreen}
+        <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("fullscreen")}
+          title={$_($fullscreen ? "studio.flight.fullscreen_exit" : "studio.flight.fullscreen")}
+          aria-label={$_($fullscreen ? "studio.flight.fullscreen_exit" : "studio.flight.fullscreen")} aria-pressed={$fullscreen}>
+          <Icon icon={$fullscreen ? faCompress : faExpand} />
+        </button>
+      {/if}
+      <button type="button" class="leave glass glass-pill" on:click={() => pilot.act("leave")}
+        title={$_($studioFlightOnly ? "studio.flight.leave_title_plan" : "studio.flight.leave_title")}>
+        <Icon icon={faRightFromBracket} /> {$_("studio.flight.leave")}
+      </button>
+    </div>
   {/if}
   {#if $flightMuted && status.view !== "clean"}
     <span class="muted" title={$_("studio.flight.muted_title")}><Icon icon={faVolumeXmark} /> {$_("studio.flight.muted")}</span>
@@ -293,6 +309,8 @@ const WARNINGS = {
   .gear.moving i { border-top-color: #ff453a; }
   .corner-nw { top: 16px; left: 16px; }
   .corner-ne { top: 16px; right: 120px; }
+  /* Clear of the whole-screen disc as well, where there is one. */
+  .corner-ne.beside-screen { right: 162px; }
   .corner-sw { bottom: 32px; left: 16px; }
   .corner-se { bottom: 32px; right: 16px; }
 
@@ -410,10 +428,16 @@ const WARNINGS = {
     .warning { animation: none; }
   }
 
-  .leave {
+  /* The way out and the whole screen, side by side in the corner. */
+  .corner {
     position: absolute;
     top: 14px;
     right: 14px;
+    display: flex;
+    gap: 8px;
+  }
+  .leave.full { width: var(--mc-pill-h); padding: 0; justify-content: center; }
+  .leave {
     display: inline-flex;
     align-items: center;
     gap: 6px;

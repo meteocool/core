@@ -1,6 +1,8 @@
 <script lang="ts">
 /** The flight's keys, as a card: on entry for a few seconds, and on H. */
 import { _ } from "svelte-i18n";
+import { fullscreenSupported } from "../../../lib/fullscreen";
+import { studioFlightOnly } from "../../../lib/studio/store";
 
 const ROWS: Array<[string[], string]> = [
   [["W", "S"], "throttle"],
@@ -19,8 +21,10 @@ const ROWS: Array<[string[], string]> = [
   [["R"], "record"],
   [["P"], "pause"],
   [["M"], "mute"],
+  ...(fullscreenSupported() ? [[["F"], "fullscreen"] as [string[], string]] : []),
   [["H"], "help"],
-  [["Esc"], "leave"],
+  // On the flight's own page the way out of a flight is to its plan.
+  [["Esc"], $studioFlightOnly ? "leave_plan" : "leave"],
 ];
 </script>
 
