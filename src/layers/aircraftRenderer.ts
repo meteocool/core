@@ -13,9 +13,21 @@
  *
  * The cockpit's screens and lights are live: each is a picture handed in (or
  * a part of one), drawn on a sheet just in front of the model's own.
+ *
+ * An aircraft that has broken up is the same meshes drawn in pieces: each
+ * piece that has come off is drawn where it has got to, with only its own
+ * side of every mesh that reaches into it, and the hull without it. The
+ * shader makes the cut (by where a point is on the model as it was built,
+ * lib/studio/flight/model.ts), a ragged one, and blackens what is near it
+ * and what is seen of the inside through it. An aircraft in one piece is
+ * drawn by a shader that knows nothing of this.
+ *
+ * Over it all, what burns and bursts (aircraftEffects.ts).
  */
-import { parseModel, posedParts, VERTEX_BYTES } from "../lib/studio/flight/model";
+import { BREAKS, multiply4, parseModel, pieceOf, PIECES, piecesOf, posedParts, VERTEX_BYTES } from "../lib/studio/flight/model";
 import type { AircraftModel } from "../lib/studio/flight/model";
+import { blastGlare, makeEffectsPass } from "./aircraftEffects";
+import type { EffectsPass } from "./aircraftEffects";
 import { perspective } from "../lib/studio/flight/view";
 import type { Vec3 } from "../lib/studio/flight/view";
 
@@ -38,6 +50,48 @@ export interface AircraftView {
   flaps?: number;
   /** How far the spoilers on the wings stand up, 0 flat to 1 all the way; flat where not said. */
   spoilers?: number;
+  /**
+   * The surfaces the stick and the pedals move, -1 to 1 each, as the
+   * controls' own signs have them: `ailerons` right wing down positive (the
+   * right one up, the left one down), `elevator` nose up positive (trailing
+   * edges up), `rudder` nose right positive (trailing edge right). Neutral
+   * where not said.
+   */
+  ailerons?: number;
+  elevator?: number;
+  rudder?: number;
+  /**
+   * The pieces an aircraft that has broken up is in. A piece named here has
+   * come off: it is drawn where its 4x4 puts it (columns first, from where
+   * the model has it to where it is now, in the frame `modelView` draws,
+   * which stays the hull's), or not at all for null. A piece not named is
+   * still on. Whole where not said.
+   */
+  pieces?: Partial<Record<AircraftPiece, ArrayLike<number> | null>>;
+  /** What burns and bursts on and round it; nothing where not said. */
+  effects?: AircraftEffects;
+}
+
+/** What an aircraft breaks into besides its hull: each wing with its engine, and the tail with its fin and tailplane. */
+export type AircraftPiece = "leftWing" | "rightWing" | "tail";
+
+/**
+ * Fire, smoke and blasts, in the frame `modelView` draws (the hull's:
+ * metres forward, right, down). `time` is a clock in seconds that only runs
+ * forward; each fire and blast says when on it it began.
+ */
+export interface AircraftEffects {
+  time: number;
+  /** A fire that burns on: where, how large (metres across), how strong (0 to 1), since when. It trails smoke down `air`. */
+  fires: Array<{ at: Vec3; size: number; strength: number; born: number }>;
+  /** A blast: a fireball that swells and goes to smoke, with debris thrown out. Where, how large (metres across at its most), when. */
+  blasts: Array<{ at: Vec3; size: number; born: number }>;
+  /** How the air goes past in that frame, m/s: what carries smoke away. Still for an aircraft lying on the ground. */
+  air: Vec3;
+  /** Which way is up in that frame, a unit vector: smoke and fire rise that way. */
+  up: Vec3;
+  /** Without a blast's flash, on the picture and on the aircraft: for a reader who has asked for less motion. With it where not said. */
+  calm?: boolean;
 }
 
 /** A live screen: a picture, and the four corners it is stretched over, in the aircraft's frame. */
@@ -57,7 +111,8 @@ export interface AircraftScreen {
   hidden?: boolean;
 }
 
-const VERTEX = `#version 300 es
+/* The aircraft's two shaders are one text: with BROKEN defined, the one that draws it in pieces. */
+const VERTEX = `
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aUv;
@@ -69,13 +124,24 @@ uniform vec2 uUvMin;
 uniform vec2 uUvSize;
 out vec3 vNormal;
 out vec2 vUv;
+#ifdef BROKEN
+// Where the point is on the model as it was built, and from the eye.
+out vec3 vPlace;
+out vec3 vSeen;
+#endif
 void main() {
   vNormal = aNormal;
   vUv = aUv * uUvSize + uUvMin;
-  gl_Position = uProjection * uModelView * vec4(aPosition * uSize + uMin, 1.0);
+  vec4 place = vec4(aPosition * uSize + uMin, 1.0);
+  vec4 seen = uModelView * place;
+#ifdef BROKEN
+  vPlace = place.xyz;
+  vSeen = seen.xyz;
+#endif
+  gl_Position = uProjection * seen;
 }`;
 
-const FRAGMENT = `#version 300 es
+const FRAGMENT = `
 precision highp float;
 in vec3 vNormal;
 in vec2 vUv;
@@ -86,14 +152,67 @@ uniform float uOpacity;
 uniform vec3 uLight;
 // Ambient, lit side, and a little for the side turned away: no face of an inside is black.
 uniform vec3 uLighting;
+#ifdef BROKEN
+in vec3 vPlace;
+in vec3 vSeen;
+uniform mat4 uModelView;
+// The pieces this draw is of, a bit each (hull, left wing, right wing, tail); all four for a mesh that is not cut.
+uniform int uKeep;
+// Where the wings and the tail come off, and how far a break wanders from its line; metres.
+uniform vec3 uBreaks;
+// Which breaks are open: the left wing's, the right wing's, the tail's.
+uniform vec3 uTorn;
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+#endif
 out vec4 colour;
 void main() {
   vec4 base = uTextured ? texture(uTexture, vUv) : vec4(uColour, 1.0);
   float facing = dot(normalize(vNormal), uLight);
   float lit = uLighting.x + uLighting.y * max(facing, 0.0) + uLighting.z * max(-facing, 0.0);
+#ifdef BROKEN
+  // How far the point is past each break, the ragged way a torn skin runs: positive is off the hull.
+  float root = uBreaks.x + uBreaks.z * (noise(vPlace.xz * 2.6) * 2.0 - 1.0);
+  float left = -vPlace.y - root;
+  float right = vPlace.y - root;
+  float tail = uBreaks.y + uBreaks.z * (noise(vPlace.yz * 2.6 + 7.0) * 2.0 - 1.0) - vPlace.x;
+  int piece = tail > 0.0 ? 3 : left > 0.0 ? 1 : right > 0.0 ? 2 : 0;
+  if (((uKeep >> piece) & 1) == 0) discard;
+  // Burnt black near an open break: at a wing's, as far as the wing's root reaches along and up the fuselage.
+  vec2 off = vec2(max(max(vPlace.x - 4.5, -2.5 - vPlace.x), 0.0), max(max(vPlace.z - 1.7, 0.3 - vPlace.z), 0.0));
+  float near = min(
+    min(uTorn.x > 0.5 ? length(vec3(left, off)) : 9.0, uTorn.y > 0.5 ? length(vec3(right, off)) : 9.0),
+    uTorn.z > 0.5 ? abs(tail) : 9.0);
+  // In patches, whichever way the skin there faces.
+  float soot = (noise(vPlace.xy * 2.7) + noise(vPlace.xz * 2.7 + 5.0) + noise(vPlace.yz * 2.7 + 9.0)) / 3.0;
+  soot += (noise(vPlace.xy * 11.0) + noise(vPlace.xz * 11.0 + 5.0) + noise(vPlace.yz * 11.0 + 9.0) - 1.5) * 0.12;
+  float burnt = 1.0 - smoothstep(0.0, 0.9, near + (soot - 0.5) * 0.9);
+  // And what is seen from behind, through a break: the inside of a skin, in the dark and sooted.
+  vec3 face = normalize(cross(dFdx(vSeen), dFdy(vSeen)));
+  if (dot(face, mat3(uModelView) * vNormal) < 0.0) face = -face;
+  float inner = dot(face, vSeen) > 0.0 ? 1.0 : 0.0;
+  base.rgb = mix(base.rgb, vec3(0.035, 0.03, 0.028), max(burnt * 0.93, inner * 0.55));
+  lit *= 1.0 - 0.55 * inner;
+#endif
   float alpha = base.a * uOpacity;
   colour = vec4(base.rgb * lit * alpha, alpha);
 }`;
+
+const WHOLE = "#version 300 es\n";
+const BROKEN = "#version 300 es\n#define BROKEN\n";
+/** Every piece's bit: what a mesh that needs no cutting is drawn with. */
+const EVERY_PIECE = (1 << PIECES.length) - 1;
+/** What every mesh of an aircraft in one piece is drawn as part of: the hull, which is the first of `PIECES`. */
+const ALL_HULL = [0];
 
 /** One triangle over the whole picture, in one colour: the veil of cloud, the flash. */
 const VEIL_VERTEX = `#version 300 es
@@ -111,6 +230,10 @@ void main() { colour = uColour; }`;
 /** How near and how far the aircraft is drawn from, metres: from a seat, and from outside. */
 const INSIDE_RANGE: [number, number] = [0.05, 150];
 const OUTSIDE_RANGE: [number, number] = [2, 4000];
+
+/** How near the eye smoke and flame begin to be drawn, and from where in full, metres: none is cut off sharp by the lens's near edge. */
+const INSIDE_FADE: [number, number] = [0.3, 2.5];
+const OUTSIDE_FADE: [number, number] = [2, 12];
 
 /** Ambient, lit, turned away; see the shader. */
 const INSIDE_LIGHTING: Vec3 = [0.62, 0.42, 0.1];
@@ -173,6 +296,18 @@ interface Drawn {
   uvSize: [number, number];
   /** The moving part it belongs to; see `posedParts`. */
   part?: string;
+  /**
+   * The pieces it has something of, by their places in `PIECES`: a moving
+   * part is of one piece, whole; the rest, of every piece its box reaches.
+   */
+  pieces: number[];
+}
+
+/** A piece as one frame draws it: through which model-view, lit from where (in its own frame), and its moving parts where they are. */
+interface Frame {
+  modelView: Float32Array;
+  light: Vec3;
+  posed: ReturnType<typeof posedParts>;
 }
 
 /** A unit square's vertices in the model's own packing, for a screen stretched over four corners. */
@@ -188,7 +323,7 @@ function screenVertices(): Uint8Array {
   return bytes;
 }
 
-const SCREEN_VERTEX = `#version 300 es
+const SCREEN_VERTEX = `
 layout(location = 0) in vec3 aPosition;
 layout(location = 2) in vec2 aUv;
 uniform mat4 uModelView;
@@ -215,9 +350,12 @@ export interface AircraftRenderer {
 }
 
 export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftRenderer {
-  const program = compile(context, VERTEX, FRAGMENT);
+  const program = compile(context, WHOLE + VERTEX, WHOLE + FRAGMENT);
   const veil = compile(context, VEIL_VERTEX, VEIL_FRAGMENT);
-  const screen = compile(context, SCREEN_VERTEX, FRAGMENT);
+  const screen = compile(context, WHOLE + SCREEN_VERTEX, WHOLE + FRAGMENT);
+  /* Made when first needed, and by most flights never: the shader of an aircraft in pieces, and what burns. */
+  let torn: WebGLProgram | null = null;
+  let effects: EffectsPass | null = null;
   const screenVao = context.createVertexArray()!;
   let drawn: Drawn[] = [];
   let textures: Array<WebGLTexture | null> = [];
@@ -287,9 +425,11 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       const indices = gl.createBuffer()!;
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, chunk.indices, gl.STATIC_DRAW);
+      const middle = chunk.min.map((least, axis) => least + chunk.size[axis] / 2);
       return {
         vao, buffers: [vertices, indices], count: chunk.indices.length, material: chunk.material,
         min: chunk.min, size: chunk.size, uvMin: chunk.uvMin, uvSize: chunk.uvSize, part: chunk.part,
+        pieces: (chunk.part ? [pieceOf(middle)] : piecesOf(chunk.min, chunk.size)).map((piece) => PIECES.indexOf(piece)),
       };
     });
     gl.bindVertexArray(null);
@@ -381,47 +521,85 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
 
       const [near, far] = view.inside ? INSIDE_RANGE : OUTSIDE_RANGE;
       const projection = perspective(view.fov, width / Math.max(height, 1), near, far);
-      webgl.useProgram(program);
-      webgl.uniformMatrix4fv(uniform(program, "uModelView"), false, new Float32Array(view.modelView));
-      webgl.uniformMatrix4fv(uniform(program, "uProjection"), false, new Float32Array(projection));
-      webgl.uniform3f(uniform(program, "uLight"), ...view.light);
-      webgl.uniform3f(uniform(program, "uLighting"), ...(view.inside ? INSIDE_LIGHTING : OUTSIDE_LIGHTING));
-      webgl.uniform1i(uniform(program, "uTexture"), 0);
+      const off = view.pieces;
+      const broken = off !== undefined && PIECES.some((name) => name in off);
+      if (broken) torn ??= compile(context, BROKEN + VERTEX, BROKEN + FRAGMENT);
+      const shader = broken && torn ? torn : program;
+      // A blast lights what is round it for as long as it flashes.
+      const glare = view.effects ? blastGlare(view.effects) : 0;
+      const [ambient, lit, away] = view.inside ? INSIDE_LIGHTING : OUTSIDE_LIGHTING;
+      webgl.useProgram(shader);
+      webgl.uniformMatrix4fv(uniform(shader, "uProjection"), false, new Float32Array(projection));
+      webgl.uniform3f(uniform(shader, "uLighting"), ambient + 0.55 * glare, lit, away);
+      webgl.uniform1i(uniform(shader, "uTexture"), 0);
       webgl.activeTexture(webgl.TEXTURE0);
 
-      // The gear's legs and doors, the flaps, slats and spoilers where they are now; the rest as the model has it.
-      const still = new Float32Array(view.modelView);
-      const posed = posedParts(
-        parts, { gear: view.gear ?? 1, flaps: view.flaps ?? 0, spoilers: view.spoilers ?? 0 }, view.modelView, view.light,
-      );
+      // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder where they are now; the rest as the model has it.
+      const positions = {
+        gear: view.gear ?? 1, flaps: view.flaps ?? 0, spoilers: view.spoilers ?? 0,
+        ailerons: view.ailerons ?? 0, elevator: view.elevator ?? 0, rudder: view.rudder ?? 0,
+      };
+      const frame = (moved?: ArrayLike<number>): Frame => {
+        const modelView = new Float32Array(moved ? multiply4(view.modelView, moved) : view.modelView);
+        // A piece that has turned sees the sun from where it has turned to.
+        const light = moved
+          ? [0, 1, 2].map((i) => moved[i * 4] * view.light[0] + moved[i * 4 + 1] * view.light[1] + moved[i * 4 + 2] * view.light[2]) as Vec3
+          : view.light;
+        return { modelView, light, posed: posedParts(parts, positions, modelView, light) };
+      };
+      const hull = frame();
+      // Each piece's frame: the hull's while it is on, its own once it is off, none once it is gone.
+      const frames = PIECES.map((name): Frame | null => {
+        const moved = name === "hull" ? undefined : off?.[name];
+        return moved === undefined ? hull : moved && frame(moved);
+      });
+      if (broken) {
+        webgl.uniform3f(uniform(shader, "uBreaks"), BREAKS.wingRoot, BREAKS.tail, BREAKS.ragged);
+        webgl.uniform3f(uniform(shader, "uTorn"), ...(["leftWing", "rightWing", "tail"] as const).map((name) => (off && name in off ? 1 : 0)) as Vec3);
+      }
       const pass = (clear: boolean) => {
         for (const chunk of drawn) {
           const material = materials[chunk.material];
           if ((material.opacity < 1) === clear) continue;
-          const moved = chunk.part ? posed.get(chunk.part) : undefined;
-          webgl.uniformMatrix4fv(uniform(program, "uModelView"), false, moved?.modelView ?? still);
-          webgl.uniform3f(uniform(program, "uLight"), ...(moved?.light ?? view.light));
           const texture = textures[chunk.material];
-          webgl.uniform1i(uniform(program, "uTextured"), texture ? 1 : 0);
+          webgl.uniform1i(uniform(shader, "uTextured"), texture ? 1 : 0);
           if (texture) webgl.bindTexture(webgl.TEXTURE_2D, texture);
-          webgl.uniform3f(uniform(program, "uColour"), ...material.colour);
-          webgl.uniform1f(uniform(program, "uOpacity"), clear ? 1 : material.opacity * (view.inside ? GLASS_FROM_INSIDE : 1));
-          webgl.uniform3f(uniform(program, "uMin"), ...chunk.min);
-          webgl.uniform3f(uniform(program, "uSize"), ...chunk.size);
-          webgl.uniform2f(uniform(program, "uUvMin"), ...chunk.uvMin);
-          webgl.uniform2f(uniform(program, "uUvSize"), ...chunk.uvSize);
+          webgl.uniform3f(uniform(shader, "uColour"), ...material.colour);
+          webgl.uniform1f(uniform(shader, "uOpacity"), clear ? 1 : material.opacity * (view.inside ? GLASS_FROM_INSIDE : 1));
+          webgl.uniform3f(uniform(shader, "uMin"), ...chunk.min);
+          webgl.uniform3f(uniform(shader, "uSize"), ...chunk.size);
+          webgl.uniform2f(uniform(shader, "uUvMin"), ...chunk.uvMin);
+          webgl.uniform2f(uniform(shader, "uUvSize"), ...chunk.uvSize);
           webgl.bindVertexArray(chunk.vao);
-          webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+          // Once for all of it that is still together, and once for each piece of it that is off.
+          let done = 0;
+          for (const piece of broken ? chunk.pieces : ALL_HULL) {
+            const through = frames[piece];
+            if (!through || done & (1 << piece)) continue;
+            let keep = 0;
+            for (const other of chunk.pieces) if (frames[other] === through) keep |= 1 << other;
+            done |= keep;
+            const moved = chunk.part ? through.posed.get(chunk.part) : undefined;
+            webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, moved?.modelView ?? through.modelView);
+            webgl.uniform3f(uniform(shader, "uLight"), ...(moved?.light ?? through.light));
+            if (broken) webgl.uniform1i(uniform(shader, "uKeep"), chunk.pieces.every((other) => keep & (1 << other)) ? EVERY_PIECE : keep);
+            webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+          }
         }
       };
       // Everything solid, then the screens on it, then the glass over both.
       webgl.disable(webgl.BLEND);
       pass(true);
       if (view.inside) drawScreens(view, screens, projection);
-      webgl.useProgram(program);
+      webgl.useProgram(shader);
       webgl.enable(webgl.BLEND);
       webgl.depthMask(false);
       pass(false);
+      // What burns, over the aircraft and behind whatever of it is nearer.
+      if (view.effects && (view.effects.fires.length || view.effects.blasts.length)) {
+        effects ??= makeEffectsPass(context, (vertex, fragment) => compile(context, vertex, fragment));
+        effects.draw(view.effects, view.modelView, projection, view.light, view.inside ? INSIDE_FADE : OUTSIDE_FADE);
+      }
       webgl.depthMask(true);
       webgl.bindVertexArray(null);
       webgl.bindTexture(webgl.TEXTURE_2D, null);
@@ -436,7 +614,10 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       screenTextures.clear();
       for (const buffer of screenBuffers) context.deleteBuffer(buffer);
       context.deleteVertexArray(screenVao);
-      for (const each of [program, veil, screen]) context.deleteProgram(each);
+      for (const each of [program, veil, screen, torn]) if (each) context.deleteProgram(each);
+      torn = null;
+      effects?.dispose();
+      effects = null;
       drawn = [];
       textures = [];
     },

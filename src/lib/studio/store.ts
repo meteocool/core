@@ -18,7 +18,7 @@ import type { SectionPlane } from "./planes";
  */
 export const STUDIO_BASEMAP = "satellite";
 
-/** Whether the 3D map is in Studio. Only on a desktop; see `studioOffered`. */
+/** Whether the 3D map is in Studio. Its tools only on a desktop (`studioOffered`); for the flight alone, anywhere. */
 export const studioOpen = writable<boolean>(false);
 
 /** The section planes cutting the map, and the one being worked on, by its id. */
@@ -63,10 +63,15 @@ export const studioFlightOnly = writable<boolean>(false);
 export type FlightView = "cockpit" | "outside" | "clean";
 
 /** The warnings a flight sounds, by name. */
-export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice" | "gear" | "sink";
+export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice" | "gear" | "sink" | "bank";
 
-/** Why a flight ended on the ground and not on its wheels (lib/studio/flight/physics.ts). */
-export type FlightCrash = "terrain" | "gear" | "hard" | "attitude" | "fast";
+/**
+ * Why a flight ended on the ground and not on its wheels (lib/studio/flight/physics.ts),
+ * or before it got there (lib/studio/flight/damage.ts): pulled apart by more
+ * load than the airframe bears, shaken apart by more speed, or a wing in
+ * the ground; or that it did not touch down at all, but flew into it.
+ */
+export type FlightCrash = "terrain" | "gear" | "hard" | "attitude" | "fast" | "breakup" | "flutter" | "wing" | "impact";
 
 /**
  * A landing as it was made: how fast it came down, m/s, and how fast it was

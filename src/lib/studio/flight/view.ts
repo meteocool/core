@@ -121,6 +121,18 @@ export function seenFrom(camera: Attitude, offset: Vec3, fov: number, aspect: nu
   return { x: 0.5 + (0.5 * right) / (forward * half * aspect), y: 0.5 + (0.5 * down) / (forward * half), ahead: forward };
 }
 
+/**
+ * The way a point of a camera's picture is looked along: `seenFrom` the
+ * other way round. The point is across and down the picture, 0 to 1 each;
+ * the answer is in the frame the camera's attitude is given in (the
+ * aircraft's, for a head turned in its seat), and reaches a metre ahead of
+ * the camera.
+ */
+export function lookedAlong(camera: Attitude, x: number, y: number, fov: number, aspect: number): Vec3 {
+  const half = Math.tan((fov * RADIANS) / 2);
+  return apply(rotation(camera), [1, (2 * x - 1) * half * aspect, (2 * y - 1) * half]);
+}
+
 /** A direction in the world, as the aircraft has it. */
 export function inAircraft(attitude: Attitude, world: Vec3): Vec3 {
   return apply(transpose(rotation(attitude)), world);

@@ -16,9 +16,15 @@ import { studioOpen } from "./store";
 let peelBefore: { manual: boolean; level: number } | null = null;
 
 /**
- * Whether Studio is offered at all: on a desktop. Its tools are a panel, a
+ * Whether Studio's tools are offered: on a desktop. They are a panel, a
  * timeline and a pointer's precision, and a scene's scans are more volumes
  * than a phone's memory holds (lib/gpuBudget.ts).
+ *
+ * Not what the flight's own page asks (components/meteoair/Landing.svelte):
+ * it opens Studio for the flight alone, on a phone as well. A flight needs
+ * none of those tools, is flown by thumbs where there are no keys
+ * (components/studio/flight/TouchControls.svelte), and holds the newest
+ * scan's volumes and no other, as the 3D map does by itself.
  */
 export const studioOffered = (): boolean => !isHandheld();
 

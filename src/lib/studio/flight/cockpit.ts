@@ -3,6 +3,7 @@
  * frame: metres forward of its middle, right of its centreline, and down.
  * Measured on the model; they move only if the model is exchanged.
  */
+import type { FlightAction } from "./controls";
 import type { Vec3 } from "./view";
 
 /** Where the model and its textures are served from. */
@@ -154,6 +155,10 @@ const ATC_MESSAGE: Quad = [[15.3075, -0.7132, -0.5827], [15.3075, -0.7008, -0.58
 const AUTO_BRAKE: Quad[] = [0.1404, 0.1601, 0.1874].map((left) => [
   [15.5222, left, -0.3925], [15.5222, left + 0.0174, -0.3925], [15.5172, left + 0.0174, -0.3752], [15.5172, left, -0.3752],
 ]);
+/** The one of them the flight has: MED, which brakes as hard as the aircraft's own autobrake does. */
+const AUTO_BRAKE_MED = AUTO_BRAKE[1];
+/** Where an autobrake button's DECEL ends and its ON begins, down the button. */
+const AUTO_BRAKE_SPLIT = 0.42;
 const BRAKE_FAN_HOT: Quad = [[15.5339, 0.2166, -0.4303], [15.5339, 0.2339, -0.4303], [15.5289, 0.2339, -0.4131], [15.5289, 0.2166, -0.4131]];
 /** The engines' fire lights on the pedestal, either side of the middle. */
 const ENGINE_FIRE: Quad[] = [-0.0396, 0.0234].map((left) => [
@@ -180,7 +185,11 @@ export const COCKPIT_LIGHTS = {
   /** With the ground ahead, the terrain is on the navigation displays. */
   terrainOnNd: TERRAIN_ON_ND.map((corners) => ({ corners: lifted(corners, OVER_PANEL), ...cell(516, 572) })),
   autoLand: [AUTO_LAND, mirrored(AUTO_LAND)].map((corners) => ({ corners: lifted(corners, OVER_PANEL), ...cell(770, 830) })),
-  autoBrake: AUTO_BRAKE.map((corners) => ({ corners: lifted(corners, OVER_PANEL), ...cell(580, 636) })),
+  /** LO and MAX, which the flight has not: kept dark. */
+  autoBrake: [AUTO_BRAKE[0], AUTO_BRAKE[2]].map((corners) => ({ corners: lifted(corners, OVER_PANEL), ...cell(580, 636) })),
+  /** MED's two lights: ON while it is armed, under DECEL while it is braking. */
+  autoBrakeDecel: [{ corners: lifted(partOf(AUTO_BRAKE_MED, 0, 0, 1, AUTO_BRAKE_SPLIT), OVER_PANEL), ...cell(580, 636, 0, AUTO_BRAKE_SPLIT) }],
+  autoBrakeArmed: [{ corners: lifted(partOf(AUTO_BRAKE_MED, 0, AUTO_BRAKE_SPLIT, 1, 1), OVER_PANEL), ...cell(580, 636, AUTO_BRAKE_SPLIT, 1) }],
   brakeFanHot: [{ corners: lifted(BRAKE_FAN_HOT, OVER_PANEL), ...cell(452, 508) }],
   engineFire: ENGINE_FIRE.map((corners) => ({ corners: lifted(corners, OVER_PANEL), ...cell(388, 444) })),
   /** Its unlit picture is in the texture's top row, the lit one under it. */
@@ -209,4 +218,166 @@ export function throughWindows([forward, right, down]: Vec3): boolean {
   if (round > 115 || up > 30) return false;
   // The glareshield hides more than the side windows' sills do.
   return up > (round < 55 ? -11 : -19);
+}
+
+/**
+ * One face of a control a hand can be put on: flat on the model, as a
+ * `Quad`, and how far what stands on it (a lever's handle, a knob) reaches
+ * off the face towards whoever looks at it, metres. A pedal's also says
+ * which way it pushes the rudder.
+ */
+export interface ControlFace {
+  corners: Quad;
+  height: number;
+  push?: -1 | 1;
+}
+
+/**
+ * A control of the flight deck: where it is, and what a hand on it does.
+ * Either a click does what a key does (`press`: one thing, or for a lever
+ * one for the forward half of its face and one for the aft half), or the
+ * control is the hand's for as long as the mouse is held on it (`hold`),
+ * and moves with it: the stick, the rudder, the thrust levers.
+ */
+export interface CockpitControl {
+  faces: ControlFace[];
+  press?: FlightAction | [FlightAction, FlightAction];
+  hold?: "stick" | "rudder" | "thrust";
+}
+
+/** A face on the pedestal, seen from above: from `forward` aft to `aft`, `left` to `right`, at `down`. */
+const onPedestal = (forward: number, aft: number, left: number, right: number, down: number): Quad => (
+  [[forward, left, down], [forward, right, down], [aft, right, down], [aft, left, down]]
+);
+/** The top of the pedestal's aft panels, which lie level. */
+const PEDESTAL = 0.011;
+/** A small button's face, a little larger than its picture: a hand is not as exact as a light. */
+const button = (quad: Quad): Quad => partOf(quad, -0.15, -0.15, 1.15, 1.15);
+/** A rudder pedal, its top forward: from `left` to `right`. */
+const pedal = (left: number, right: number): Quad => [[15.62, left, 0.14], [15.62, right, 0.14], [15.34, right, 0.23], [15.34, left, 0.23]];
+
+/**
+ * The controls of the flight deck that do something in a flight, each
+ * where the model has it: measured as the screens and the lights are. The
+ * captain's own stick and pedals; the first officer's are out of reach.
+ */
+export const COCKPIT_CONTROLS = {
+  /** The flap lever's panel, right of the thrust levers: its scale runs from 0 forward to FULL aft. Forward half in a notch, aft half out. */
+  flaps: { faces: [{ corners: onPedestal(14.915, 14.82, 0.05, 0.19, PEDESTAL), height: 0.015 }], press: ["flapsIn", "flapsOut"] },
+  /** The speed brake's lever and panel, left of them. */
+  speedBrake: { faces: [{ corners: onPedestal(14.93, 14.82, -0.19, -0.048, PEDESTAL), height: 0.05 }], press: "speedbrake" },
+  /** The landing gear's lever, on the main panel right of the engine display. */
+  gear: {
+    faces: [{ corners: [[15.487, 0.124, -0.278], [15.487, 0.1825, -0.278], [15.4602, 0.1825, -0.18], [15.4602, 0.124, -0.18]], height: 0.055 }],
+    press: "gear",
+  },
+  /** The thrust levers' quadrant, between the trim wheels: dragged forward and back. */
+  thrust: { faces: [{ corners: onPedestal(15.21, 15.015, -0.076, 0.076, 0), height: 0.095 }], hold: "thrust" },
+  /** The captain's sidestick, on the console left of the seat: the ailerons and the elevator. */
+  sidestick: { faces: [{ corners: onPedestal(15.24, 15.07, -0.91, -0.81, -0.12), height: 0.21 }], hold: "stick" },
+  /** The captain's rudder pedals, under the main panel. */
+  pedals: {
+    faces: [{ corners: pedal(-0.62, -0.537), height: 0.03, push: -1 }, { corners: pedal(-0.509, -0.425), height: 0.03, push: 1 }],
+    hold: "rudder",
+  },
+  /** The rudder trim's knob behind the levers, sprung to its middle: turned and held either way, the rudder goes with it. */
+  rudderTrim: {
+    faces: [
+      { corners: onPedestal(14.848, 14.806, -0.002, 0.0175, PEDESTAL), height: 0.03, push: -1 },
+      { corners: onPedestal(14.848, 14.806, 0.0175, 0.037, PEDESTAL), height: 0.03, push: 1 },
+    ],
+    hold: "rudder",
+  },
+  /** AP1, on the glareshield. */
+  autopilot: { faces: [{ corners: button(AP1), height: 0.004 }], press: "autopilot" },
+  /** The autobrake's MED, beside the gear's lights. */
+  autobrake: { faces: [{ corners: button(AUTO_BRAKE_MED), height: 0.004 }], press: "autobrake" },
+  /** The parking brake's handle, at the pedestal's aft end. */
+  parkingBrake: { faces: [{ corners: onPedestal(14.77, 14.71, -0.045, 0.045, PEDESTAL), height: 0.025 }], press: "parkingBrake" },
+  /** The weather radar's panel, on the pedestal's left: its colours painted on the ground, or not. */
+  weatherRadar: {
+    faces: [{ corners: [[14.985, -0.2533, 0.0081], [14.985, -0.1117, 0.0081], [14.92, -0.1117, 0.0184], [14.92, -0.2533, 0.0184]], height: 0.02 }],
+    press: "radar",
+  },
+} satisfies Record<string, CockpitControl>;
+
+export type CockpitControlName = keyof typeof COCKPIT_CONTROLS;
+
+/**
+ * A control a line of sight meets: which, which of its faces, where on that
+ * face it is pointed at (across and down it, 0 to 1 each), and how far off
+ * it is, metres.
+ */
+export interface CockpitPick {
+  name: CockpitControlName;
+  face: number;
+  across: number;
+  down: number;
+  distance: number;
+}
+
+/** A hand reaches no control further off than this, metres. */
+const REACH_M = 3;
+/** A face is met this far behind itself too, metres: a flat button has no depth to be met in otherwise. */
+const SKIN_M = 0.003;
+
+const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/**
+ * Where a line from `eye` along `way` meets a face: the box the face makes
+ * with what stands on it. In the face's own measures (across it, down it,
+ * and off it), the box is three pairs of walls, and the line is inside it
+ * between the last wall it comes in through and the first it leaves by.
+ * Null where it misses, or meets the face from behind.
+ */
+function met(eye: Vec3, way: Vec3, { corners, height }: ControlFace): { distance: number; across: number; down: number } | null {
+  const across = minus(corners[1], corners[0]);
+  const down = minus(corners[3], corners[0]);
+  const normal: Vec3 = [
+    down[1] * across[2] - down[2] * across[1], down[2] * across[0] - down[0] * across[2], down[0] * across[1] - down[1] * across[0],
+  ];
+  const length = Math.hypot(...normal);
+  const off = normal.map((value) => value / length) as Vec3;
+  // A vector as so much of the face's two edges, which need not be square to each other, and so far off it.
+  const [aa, ab, bb] = [dot(across, across), dot(across, down), dot(down, down)];
+  const within = (v: Vec3): Vec3 => {
+    const [va, vb] = [dot(v, across), dot(v, down)];
+    return [(va * bb - vb * ab) / (aa * bb - ab * ab), (vb * aa - va * ab) / (aa * bb - ab * ab), dot(v, off)];
+  };
+  const from = within(minus(eye, corners[0]));
+  const along = within(way);
+  if (along[2] >= 0) return null;
+  const walls: Array<[number, number]> = [[0, 1], [0, 1], [-SKIN_M, height]];
+  let [enters, leaves] = [0, Infinity];
+  for (let i = 0; i < 3; i += 1) {
+    const [low, high] = walls[i];
+    if (Math.abs(along[i]) < 1e-12) {
+      if (from[i] < low || from[i] > high) return null;
+      continue;
+    }
+    const [a, b] = [(low - from[i]) / along[i], (high - from[i]) / along[i]];
+    enters = Math.max(enters, Math.min(a, b));
+    leaves = Math.min(leaves, Math.max(a, b));
+  }
+  if (enters > leaves) return null;
+  // Pointed at: where the line reaches the face itself, which under a lever's handle may be past the face's edge.
+  const reaches = -from[2] / along[2];
+  const on = (i: number) => Math.min(1, Math.max(0, from[i] + along[i] * reaches));
+  return { distance: enters * Math.hypot(...way), across: on(0), down: on(1) };
+}
+
+/**
+ * The control a line of sight meets first: from `eye` along `way`, both in
+ * the aircraft's frame (`lookedAlong` in view.ts makes the way from a point
+ * of the picture). Null where it meets none within reach.
+ */
+export function controlAlong(eye: Vec3, way: Vec3): CockpitPick | null {
+  let nearest: CockpitPick | null = null;
+  for (const [name, control] of Object.entries(COCKPIT_CONTROLS) as Array<[CockpitControlName, CockpitControl]>) {
+    for (const [face, box] of control.faces.entries()) {
+      const hit = met(eye, way, box);
+      if (hit && hit.distance <= REACH_M && (!nearest || hit.distance < nearest.distance)) nearest = { name, face, ...hit };
+    }
+  }
+  return nearest;
 }

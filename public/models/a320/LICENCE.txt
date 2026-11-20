@@ -18,6 +18,11 @@ The wings' flaps, slats and spoilers and the fairings under the flaps, which
 the model has as meshes of their own, are kept as parts too, each given a
 hinge along its own leading edge to slide and turn on.
 
+The ailerons, the elevators and the rudder, which the model has as shells of
+the hull's mesh, are taken out of it as parts too
+(scripts/models/control_surfaces.py), each turning about the middle of its
+own rounded nose. No triangle is changed.
+
 The outside is repainted: the airline's livery, titles and marks removed and
 the hull left white; "meteowings" titles along both sides; the meteocool logo
 on both sides of the fin and of each engine, in place of the engine maker's

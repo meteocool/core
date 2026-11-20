@@ -5,8 +5,12 @@ import {
   MACH_ABOVE_FT, minutesSeconds, N1_IDLE, N1_MAX, n1Of, progressPage, utc,
 } from "../../src/lib/studio/flight/displays.ts";
 import type { EcamInput } from "../../src/lib/studio/flight/displays.ts";
-import { COCKPIT_LIGHTS, COCKPIT_SCREENS, lifted, mirrored, partOf, SEAT } from "../../src/lib/studio/flight/cockpit.ts";
-import type { Quad } from "../../src/lib/studio/flight/cockpit.ts";
+import { COCKPIT_CONTROLS, COCKPIT_LIGHTS, COCKPIT_SCREENS, controlAlong, lifted, mirrored, partOf, SEAT } from "../../src/lib/studio/flight/cockpit.ts";
+import type { CockpitControl, CockpitControlName, ControlFace, Quad } from "../../src/lib/studio/flight/cockpit.ts";
+import { actionOf, gamepadActions, isFlightKey } from "../../src/lib/studio/flight/controls.ts";
+import type { FlightAction } from "../../src/lib/studio/flight/controls.ts";
+import { lookedAlong, seenFrom } from "../../src/lib/studio/flight/view.ts";
+import type { Vec3 } from "../../src/lib/studio/flight/view.ts";
 import { levelFlight, MMO, NO_INPUT, step, STILL_AIR, VMO_MS } from "../../src/lib/studio/flight/physics.ts";
 
 const near = (a: number, b: number, tolerance: number) => assert.ok(Math.abs(a - b) <= tolerance, `${a} is not ${b} ± ${tolerance}`);
@@ -203,4 +207,112 @@ test("a lifted quad stands off its face towards the seat, and a part of one keep
   const half = partOf(quad, 0, 0.5, 1, 1);
   assert.deepEqual(half[0], [0.5, -1, -0.5]);
   assert.deepEqual(half[2], quad[2]);
+});
+
+/* ---- a hand on the controls ---- */
+
+const CONTROLS = Object.entries(COCKPIT_CONTROLS) as Array<[CockpitControlName, CockpitControl]>;
+/** A point of a face: so far across and down it, and so far off it, as a share of what stands on it: its top, unless said. */
+const pointOf = ({ corners, height }: ControlFace, across: number, down: number, off = 1): Vec3 => (
+  partOf(lifted(corners, height * off), across, down, across, down)[0]
+);
+const from = (point: Vec3): Vec3 => [point[0] - SEAT[0], point[1] - SEAT[1], point[2] - SEAT[2]];
+
+test("every control faces the seat, and a look at the middle of each of its faces meets it and no other", () => {
+  for (const [name, control] of CONTROLS) {
+    control.faces.forEach((face, index) => {
+      const normal = normalOf(face.corners);
+      const towards = SEAT.map((v, i) => v - face.corners[0][i]);
+      assert.ok(normal.reduce((sum, v, i) => sum + v * towards[i], 0) > 0, `${name} ${index} faces away from the seat`);
+      const pick = controlAlong(SEAT, from(pointOf(face, 0.5, 0.5)));
+      assert.equal(pick?.name, name);
+      assert.equal(pick?.face, index);
+      // Within reach of the seat, all of them, the pedals at a leg's length.
+      assert.ok(pick!.distance > 0.3 && pick!.distance < 1.5, `${name} is ${pick!.distance} m off`);
+    });
+    assert.ok((control.press === undefined) !== (control.hold === undefined), `${name} is clicked or held, one of the two`);
+  }
+});
+
+test("a control is picked where it is drawn: a point of the picture, looked along, meets the control seen there", () => {
+  const [fov, aspect] = [28, 1440 / 900];
+  for (const [name, control] of CONTROLS) {
+    control.faces.forEach((face, index) => {
+      const offset = from(pointOf(face, 0.5, 0.5));
+      // The head turned most of the way to it: the control off the middle of the picture.
+      const head = {
+        heading: (Math.atan2(offset[1], offset[0]) * 180) / Math.PI + 4,
+        pitch: (Math.atan2(-offset[2], Math.hypot(offset[0], offset[1])) * 180) / Math.PI - 3,
+        roll: 0,
+      };
+      // The same point ten times as far off is at the same place in the picture.
+      const at = seenFrom(head, offset.map((v) => v * 10) as Vec3, fov, aspect);
+      assert.ok(at && at.x > 0 && at.x < 1 && at.y > 0 && at.y < 1, `${name} is out of the picture`);
+      const pick = controlAlong(SEAT, lookedAlong(head, at.x, at.y, fov, aspect));
+      assert.equal(pick?.name, name);
+      assert.equal(pick?.face, index);
+    });
+  }
+});
+
+test("where on a face it is pointed at: the flap lever's forward half and its aft half, a pedal for each foot", () => {
+  const [flaps] = COCKPIT_CONTROLS.flaps.faces;
+  const forward = controlAlong(SEAT, from(pointOf(flaps, 0.3, 0.2, 0)))!;
+  const aft = controlAlong(SEAT, from(pointOf(flaps, 0.3, 0.8, 0)))!;
+  assert.equal(forward.name, "flaps");
+  near(forward.down, 0.2, 0.01);
+  near(aft.down, 0.8, 0.01);
+  near(aft.across, 0.3, 0.01);
+  assert.deepEqual(COCKPIT_CONTROLS.flaps.press, ["flapsIn", "flapsOut"]);
+  const [left, right] = COCKPIT_CONTROLS.pedals.faces;
+  assert.ok(left.corners[0][1] < right.corners[0][1]);
+  assert.deepEqual([left.push, right.push], [-1, 1]);
+});
+
+test("no control is met out of the windows, from behind, or by a look past its edge", () => {
+  assert.equal(controlAlong(SEAT, [1, 0, -0.05]), null);
+  assert.equal(controlAlong(SEAT, [-1, 0, 0.2]), null);
+  // From under the pedestal, looking up through the flap lever: its back.
+  const [flaps] = COCKPIT_CONTROLS.flaps.faces;
+  const under = pointOf(flaps, 0.5, 0.5, -20);
+  assert.equal(controlAlong(under, [0, 0, -1])?.name, undefined);
+  // Just short of the gear lever's panel, on the seat's side of it, and just onto it.
+  const [gear] = COCKPIT_CONTROLS.gear.faces;
+  assert.equal(controlAlong(SEAT, from(pointOf(gear, -0.3, 0.5, 0)))?.name, undefined);
+  assert.equal(controlAlong(SEAT, from(pointOf(gear, 0.1, 0.5, 0)))?.name, "gear");
+});
+
+/* ---- the same by a key and by a gamepad ---- */
+
+test("whatever a control of the flight deck is clicked for, a key does and a gamepad's button does", () => {
+  const KEYS = ["KeyU", "KeyJ", "KeyB", "KeyG", "KeyL", "KeyX", "KeyK", "KeyO"];
+  const byKey = new Set(KEYS.map((code) => actionOf(code)));
+  const buttons = Array.from({ length: 17 }, () => ({ pressed: true }));
+  const byPad = new Set(gamepadActions(buttons, []));
+  for (const [name, control] of CONTROLS) {
+    for (const action of [control.press ?? []].flat() as FlightAction[]) {
+      assert.ok(byKey.has(action), `no key for ${name}'s ${action}`);
+      // The radar's colours on the ground are the map's, not the aircraft's: a key's and the panel's only.
+      if (action !== "radar") assert.ok(byPad.has(action), `no gamepad button for ${name}'s ${action}`);
+    }
+  }
+  assert.equal(actionOf("KeyX"), "autobrake");
+  assert.equal(actionOf("KeyK"), "parkingBrake");
+  assert.ok(isFlightKey("KeyK") && isFlightKey("KeyX"));
+});
+
+test("a gamepad's button does its action once a press: as it goes down, not while it is held", () => {
+  const pad = (...down: number[]) => Array.from({ length: 17 }, (_unused, index) => ({ pressed: down.includes(index) }));
+  const held = (buttons: Array<{ pressed: boolean }>) => buttons.map((button) => button.pressed);
+  // Up and down on the pad are the flaps in and out, as U and J are; X and Y the speed brake and the gear.
+  assert.deepEqual(gamepadActions(pad(13), []), ["flapsOut"]);
+  assert.deepEqual(gamepadActions(pad(12), held(pad())), ["flapsIn"]);
+  assert.deepEqual(gamepadActions(pad(13), held(pad(13))), []);
+  assert.deepEqual(gamepadActions(pad(2, 3, 13), held(pad(13))), ["speedbrake", "gear"]);
+  assert.deepEqual(gamepadActions(pad(14, 15), []), ["autobrake", "parkingBrake"]);
+  assert.deepEqual(gamepadActions(pad(10), []), ["autopilot"]);
+  // The ones that fly are held, and do nothing once: the brake, the bumpers, the triggers.
+  assert.deepEqual(gamepadActions(pad(1, 4, 5, 6, 7), []), []);
+  // A pad with fewer buttons than the standard layout has none of the rest.
+  assert.deepEqual(gamepadActions([{ pressed: false }, { pressed: false }, { pressed: true }], []), ["speedbrake"]);
 });

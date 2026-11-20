@@ -10,13 +10,18 @@
  * a gamepad into those two, and lets go of everything when the window loses
  * the focus or the tab is hidden, where a key's release never arrives and it
  * would stay held for good.
+ *
+ * A gamepad is the same two: its sticks, triggers and bumpers fly
+ * (`gamepadInput`), and its other buttons do one thing each press
+ * (`gamepadActions`), so that whatever a lever or a button of the flight
+ * deck does can be done without letting go of it.
  */
 import type { ControlInput } from "./physics";
 
 /** What a press does, once. */
 export type FlightAction =
   | "autopilot" | "next" | "restart" | "view" | "style" | "inspect" | "record" | "pause" | "mute" | "help" | "leave"
-  | "gear" | "fullscreen" | "flapsOut" | "flapsIn" | "speedbrake" | "radar" | "confirm";
+  | "gear" | "fullscreen" | "flapsOut" | "flapsIn" | "speedbrake" | "radar" | "confirm" | "autobrake" | "parkingBrake";
 
 const HELD: Record<string, true> = {
   KeyW: true, KeyS: true, KeyA: true, KeyD: true,
@@ -41,6 +46,8 @@ const ACTIONS: Record<string, FlightAction> = {
   KeyJ: "flapsOut",
   KeyU: "flapsIn",
   KeyB: "speedbrake",
+  KeyX: "autobrake",
+  KeyK: "parkingBrake",
   KeyO: "radar",
   Enter: "confirm",
   KeyH: "help",
@@ -94,6 +101,38 @@ export function gamepadInput(pad: { axes: readonly number[]; buttons: ReadonlyAr
   };
 }
 
+/**
+ * What a gamepad's other buttons do, once a press, by their place in the
+ * standard layout: the flaps on the pad's up and down as on U and J, the
+ * brakes to set on its left and right, the speed brake and the gear on the
+ * two face buttons flying leaves free, and the autopilot and the view under
+ * the sticks. The button time runs faster by also answers yes where the
+ * flight asks whether to end, which the back button asks.
+ */
+const PAD_ACTIONS: Record<number, FlightAction> = {
+  0: "confirm", 2: "speedbrake", 3: "gear", 8: "leave", 9: "pause", 10: "autopilot", 11: "view",
+  12: "flapsIn", 13: "flapsOut", 14: "autobrake", 15: "parkingBrake",
+};
+
+/**
+ * The actions of the buttons that have just gone down: down now, and not
+ * when the pad was last looked at (`before`, by the button's place).
+ */
+export function gamepadActions(buttons: ReadonlyArray<{ pressed: boolean }>, before: readonly boolean[]): FlightAction[] {
+  return Object.entries(PAD_ACTIONS)
+    .filter(([index]) => buttons[Number(index)]?.pressed && !before[Number(index)])
+    .map(([, action]) => action);
+}
+
+/** How often a gamepad's buttons are looked at, ms: none is pressed for less. */
+const PAD_EVERY_MS = 40;
+
+/** The first gamepad in the standard layout, if one is plugged in. */
+function standardPad(): Gamepad | undefined {
+  if (typeof navigator === "undefined" || !navigator.getGamepads) return undefined;
+  return [...navigator.getGamepads()].find((one) => one?.connected && one.mapping === "standard") ?? undefined;
+}
+
 /** The keyboard and a gamepad together: whichever is pushed further, axis by axis. */
 export function merged(a: ControlInput, b: ControlInput): ControlInput {
   const larger = (x: number, y: number) => (Math.abs(x) >= Math.abs(y) ? x : y);
@@ -119,6 +158,11 @@ function typing(target: EventTarget | null): boolean {
  */
 export class Keys {
   private readonly held = new Set<string>();
+  /** What the touch controls ask, where there are any and a finger is on them; see `setTouch`. */
+  private touch: (ControlInput & { warp: boolean }) | null = null;
+  /** A gamepad's buttons as they were when last looked at, down or not, and what looks at them. */
+  private padDown: boolean[] = [];
+  private padTimer: ReturnType<typeof setInterval> | null = null;
   private readonly listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
   private readonly onAction: (action: FlightAction) => void;
 
@@ -157,22 +201,52 @@ export class Keys {
       [document, "visibilitychange", hidden, false],
     );
     for (const [target, type, listener, capture] of this.listeners) target.addEventListener(type, listener, capture);
+    // On a clock of its own, not the flight's: a paused flight reads no stick, and a button still resumes it.
+    this.padTimer = setInterval(() => this.pressPad(), PAD_EVERY_MS);
+  }
+
+  /** A gamepad's buttons, looked at again: each that has gone down since does its action. */
+  private pressPad(): void {
+    const pad = standardPad();
+    if (!pad) {
+      this.padDown = [];
+      return;
+    }
+    const actions = gamepadActions(pad.buttons, this.padDown);
+    this.padDown = pad.buttons.map((button) => button.pressed);
+    for (const action of actions) this.onAction(action);
   }
 
   stop(): void {
     for (const [target, type, listener, capture] of this.listeners) target.removeEventListener(type, listener, capture);
     this.listeners.length = 0;
     this.held.clear();
+    this.touch = null;
+    if (this.padTimer !== null) clearInterval(this.padTimer);
+    this.padTimer = null;
+    this.padDown = [];
   }
 
   /** What the keys held and the first gamepad ask, now. */
   read(): ControlInput & { warp: boolean } {
     const keys = controlInput(this.held);
-    const pad = typeof navigator !== "undefined" && navigator.getGamepads
-      ? [...navigator.getGamepads()].find((one) => one?.connected && one.mapping === "standard")
-      : undefined;
-    if (!pad) return keys;
-    return { ...merged(keys, gamepadInput(pad)), warp: keys.warp || Boolean(pad.buttons[0]?.pressed) };
+    const pad = standardPad();
+    if (!pad) return this.withTouch(keys);
+    return this.withTouch({ ...merged(keys, gamepadInput(pad)), warp: keys.warp || Boolean(pad.buttons[0]?.pressed) });
+  }
+
+  /**
+   * A third hand on the controls, beside the keys and a gamepad: a phone's
+   * stick, lever and buttons on the glass (components/studio/flight/TouchControls.svelte),
+   * as they stand now; null with no finger on any of them.
+   */
+  setTouch(input: (ControlInput & { warp: boolean }) | null): void {
+    this.touch = input;
+  }
+
+  private withTouch(input: ControlInput & { warp: boolean }): ControlInput & { warp: boolean } {
+    const touch = this.touch;
+    return touch ? { ...merged(input, touch), warp: input.warp || touch.warp } : input;
   }
 
   /** Whether anything is held at all: a stick input takes the autopilot off. */

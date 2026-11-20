@@ -586,4 +586,43 @@ function keydown(event: KeyboardEvent): void {
     }
     .chart { min-height: 260px; }
   }
+  /* A screen the plan has to be scrolled on: the way off stays at its foot, whatever is scrolled. */
+  @media (max-width: 900px), (max-height: 560px) {
+    footer {
+      position: sticky;
+      bottom: -14px;
+      z-index: 1;
+      margin: 0 -18px -14px;
+      padding: 10px 18px 14px;
+      background: var(--mc-glass-fill-solid);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+    }
+  }
+  /* A phone on its side is wide enough for the chart beside the rest again,
+     which leaves a thumb somewhere to scroll the plan by that is not the chart. */
+  @media (min-width: 640px) and (max-width: 900px) and (max-height: 560px) {
+    .sheet {
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 1.1fr);
+      grid-template-areas: "head head" "chart side" "brief side" "foot foot";
+    }
+    .chart { min-height: 200px; }
+  }
+  /* Under a finger, what is pressed is a finger's size. */
+  @media (pointer: coarse) {
+    .chip, select { height: 40px; }
+    .chip { padding: 0 16px; font-size: 13px; }
+    .chip.go { padding: 0 22px; }
+    .slider input { height: 32px; }
+    .check { min-height: 32px; }
+    footer .credit { font-size: 10px; }
+  }
+  /* A phone held upright: the numbers beside a slider take less of its row. */
+  @media (max-width: 480px) {
+    .sheet { padding: 14px 14px 12px; }
+    footer { margin: 0 -14px -12px; padding: 10px 14px 12px; bottom: -12px; }
+    .slider output { min-width: 0; }
+    .slider { flex-wrap: wrap; row-gap: 2px; }
+    footer .credit { display: none; }
+  }
 </style>

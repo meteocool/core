@@ -126,3 +126,110 @@ test("with everything in and flat, every surface is where the model has it", () 
   const posed = posedParts(model.parts, { gear: 1, flaps: 0, spoilers: 0 }, IDENTITY, LIGHT);
   assert.deepEqual([...posed.keys()].filter((name) => !name.startsWith("gear.")), []);
 });
+
+/* ---- what the stick and the pedals move ---- */
+
+const CONTROLS = ["aileron.left", "aileron.right", "elevator.left", "elevator.right", "rudder"];
+/**
+ * A part's trailing edge, with what drives it at `position`: the middle of
+ * its rearmost points as the model has them. On a swept surface that is its
+ * tip's corner, where it is narrowest and moves least.
+ */
+function trailing(part: string, position: number): number[] {
+  const still = points(part, 0);
+  const rearmost = Math.min(...still.map((point) => point[0]));
+  const edge = points(part, position).filter((_, i) => still[i][0] < rearmost + 0.25);
+  return [0, 1, 2].map((axis) => edge.reduce((sum, point) => sum + point[axis], 0) / edge.length);
+}
+
+test("the model has its ailerons, elevators and rudder, each drawn, on its own side, and driven by the stick or the pedals", () => {
+  for (const name of CONTROLS) {
+    assert.ok(model.parts[name], name);
+    assert.ok(model.chunks.some((chunk) => chunk.part === name), `${name} has nothing drawn`);
+    near(Math.hypot(...model.parts[name].axis), 1, 1e-4);
+    assert.equal(partAngle(model.parts[name], 0), 0, name);
+  }
+  assert.deepEqual(named("aileron").map((name) => model.parts[name].drive), ["ailerons", "ailerons"]);
+  assert.deepEqual(named("elevator").map((name) => model.parts[name].drive), ["elevator", "elevator"]);
+  assert.equal(model.parts.rudder.drive, "rudder");
+  for (const name of [...named("aileron"), ...named("elevator")]) {
+    const side = name.endsWith("left") ? -1 : 1;
+    assert.ok(points(name, 0).every((point) => Math.sign(point[1]) === side), name);
+    assert.ok(model.parts[name].axis[1] > 0.8, `${name} turns about ${model.parts[name].axis}`);
+  }
+  // The ailerons are the outermost of the trailing edge, beyond the flaps; the elevators behind everything but the rudder's top.
+  assert.ok(extreme("aileron.right", 0, 1, Math.min) > extreme("flap.rightOuter", 0, 1, Math.max));
+  assert.ok(extreme("aileron.left", 0, 1, Math.max) < extreme("flap.leftOuter", 0, 1, Math.min));
+  assert.ok(extreme("elevator.right", 0, 0, Math.max) < -16);
+  assert.ok(model.parts.rudder.axis[2] < -0.8, "the rudder's hinge stands up");
+  assert.ok(points("rudder", 0).every((point) => Math.abs(point[1]) < 0.3 && point[2] < -1.5));
+});
+
+test("a positive `ailerons` raises the right aileron's trailing edge and lowers the left one's, as far as an A320's go", () => {
+  near(partAngle(model.parts["aileron.right"], 1), -25, 1e-9);
+  near(partAngle(model.parts["aileron.left"], 1), 25, 1e-9);
+  near(partAngle(model.parts["aileron.right"], -1), 25, 1e-9);
+  // Down is positive: up is less of it.
+  assert.ok(trailing("aileron.right", 1)[2] < trailing("aileron.right", 0)[2] - 0.2);
+  assert.ok(trailing("aileron.left", 1)[2] > trailing("aileron.left", 0)[2] + 0.2);
+  assert.ok(trailing("aileron.right", -1)[2] > trailing("aileron.right", 0)[2] + 0.2);
+  assert.ok(trailing("aileron.left", -1)[2] < trailing("aileron.left", 0)[2] - 0.2);
+  // The two wings mirror each other.
+  near(trailing("aileron.right", 1)[2] - trailing("aileron.right", 0)[2], trailing("aileron.left", -1)[2] - trailing("aileron.left", 0)[2], 0.02);
+});
+
+test("a positive `elevator` raises both elevators' trailing edges, further than a negative one lowers them", () => {
+  for (const name of named("elevator")) {
+    near(partAngle(model.parts[name], 1), -30, 1e-9);
+    near(partAngle(model.parts[name], -1), 17, 1e-9);
+    const up = trailing(name, 0)[2] - trailing(name, 1)[2];
+    const down = trailing(name, -1)[2] - trailing(name, 0)[2];
+    assert.ok(up > 0.2, `${name} up ${up}`);
+    assert.ok(down > 0.1 && down < up, `${name} down ${down}`);
+  }
+  near(trailing("elevator.left", 1)[2], trailing("elevator.right", 1)[2], 0.03);
+});
+
+test("a positive `rudder` swings the rudder's trailing edge to the right, and a negative one to the left", () => {
+  near(partAngle(model.parts.rudder, 1), 25, 1e-9);
+  assert.ok(trailing("rudder", 1)[1] > 0.25, `${trailing("rudder", 1)}`);
+  assert.ok(trailing("rudder", -1)[1] < -0.25, `${trailing("rudder", -1)}`);
+  near(trailing("rudder", 0)[1], 0, 0.02);
+});
+
+test("a surface follows the stick straight, and holds at its stops", () => {
+  near(partAngle(model.parts["aileron.right"], 0.5), -12.5, 1e-9);
+  near(partAngle(model.parts["aileron.right"], -0.2), 5, 1e-9);
+  near(partAngle(model.parts["elevator.left"], 0.1), -3, 1e-9);
+  near(partAngle(model.parts.rudder, 3), 25, 1e-9);
+  near(partAngle(model.parts.rudder, -3), -25, 1e-9);
+});
+
+test("each surface turns about its own nose: deflected all the way, its nose has hardly left its slot", () => {
+  for (const name of CONTROLS) {
+    const still = points(name, 0);
+    for (const position of [-1, 1]) {
+      const now = points(name, position);
+      // The nose: what is within a hand's width of the hinge.
+      const part = model.parts[name];
+      const fromHinge = (point: number[]) => {
+        const from = point.map((value, axis) => value - part.pivot[axis]);
+        const along = from[0] * part.axis[0] + from[1] * part.axis[1] + from[2] * part.axis[2];
+        return Math.hypot(...from.map((value, axis) => value - along * part.axis[axis]));
+      };
+      const noses = still.map((point, i) => [fromHinge(point), Math.hypot(...point.map((value, axis) => value - now[i][axis]))]).filter(([reach]) => reach < 0.12);
+      assert.ok(noses.length > 4, `${name} has a nose at its hinge`);
+      assert.ok(noses.every(([, shift]) => shift < 0.07), `${name} nose moves ${Math.max(...noses.map(([, shift]) => shift))}`);
+    }
+  }
+});
+
+test("only what a control drives moves with it, and nothing does in the middle", () => {
+  // But for the gear's own, which is down here.
+  const moving = (positions: Partial<PartPositions>) =>
+    [...posedParts(model.parts, at(positions), IDENTITY, LIGHT).keys()].filter((name) => !name.startsWith("gear.")).sort();
+  assert.deepEqual(moving({ ailerons: 0.4 }), ["aileron.left", "aileron.right"]);
+  assert.deepEqual(moving({ elevator: -0.4 }), ["elevator.left", "elevator.right"]);
+  assert.deepEqual(moving({ rudder: 1 }), ["rudder"]);
+  assert.deepEqual(moving({ ailerons: 0, elevator: 0, rudder: 0 }), []);
+});

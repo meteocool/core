@@ -59,6 +59,8 @@ export interface CockpitInputs {
   status: FlightStatus;
   /** The radar scan on the map, ms since 1970; null before one is. */
   scan: number | null;
+  /** The brakes a hand sets on the flight deck (`Pilot.brakes`): the autobrake armed, the parking brake set. */
+  brakes: { autobrake: boolean; parking: boolean };
 }
 
 /** The lights' picture: the rows of buttons unlit and lit in the model's texture, and a lit bar under them. */
@@ -219,6 +221,9 @@ export class CockpitScreens {
     // The flight directors are on throughout, as they are in flight.
     this.light("flightDirector", true, loaded);
     this.light("terrainOnNd", status.warnings.includes("terrain"), loaded);
+    // The autobrake: armed, and after a landing braking for as long as the aircraft has it do so.
+    this.light("autoBrakeArmed", inputs.brakes.autobrake, loaded);
+    this.light("autoBrakeDecel", inputs.brakes.autobrake && state.onGround && state.autobrake, loaded);
     for (const dark of ["gpwsFault", "autoLand", "autoBrake", "brakeFanHot", "engineFire", "atcMessage"] as const) this.light(dark, false, loaded);
     for (const [screen, drawn] of this.bound) screen.version = drawn.version;
   }

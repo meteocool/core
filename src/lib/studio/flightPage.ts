@@ -17,7 +17,7 @@ export const FLIGHT_PAGE_HASH = "#meteoair";
 /** The class on <html> the stylesheet keys on; see global.css. */
 export const FLIGHT_PAGE_CLASS = "mc-flight-page";
 
-const TITLE = "meteoair · fly an airliner through today's storms";
+const TITLE = "meteoair · fly through live clouds";
 
 /** Whether a location's hash asks for the flight's page, in whatever case it was typed. */
 export function isFlightPageHash(hash: string | null | undefined): boolean {

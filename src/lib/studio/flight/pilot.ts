@@ -15,6 +15,7 @@
 import { get } from "svelte/store";
 import { cloudStyle, cloudsTime, peelLevel, peelManual } from "../../../stores";
 import { isMapStyle, mapStyleOf } from "../../cloudStyle";
+import { isHandheld } from "../../gpuBudget";
 import type { CloudStyle } from "../../cloudStyle";
 import { captionOf, recordStage, saveRecording } from "../director";
 import type { InspectMode, Stage, StormTileInfo } from "../director";
@@ -24,7 +25,7 @@ import type { FlightCrash, FlightStatus, FlightWarning } from "../store";
 import { indicatedFromTrue, machOf } from "./atmosphere";
 import { Keys } from "./controls";
 import type { FlightAction } from "./controls";
-import { FLAPS_MOST, levelFlight, MAX_DT, moveGear, overspeed, SPEEDBRAKE, step, terrainAhead } from "./physics";
+import { FLAPS_MOST, levelFlight, MAX_DT, moveGear, overspeed, PITCH_RATE, ROLL_RATE, SPEEDBRAKE, step, terrainAhead } from "./physics";
 import type { AircraftState, Environment } from "./physics";
 import { approachOf } from "./plan";
 import type { FlightPlan } from "./plan";
@@ -42,10 +43,18 @@ import type { Attitude as FlightAttitude, Eye, Look } from "./view";
 import { VERTICAL_SCALE } from "../../../layers/terrain";
 import { toggleFullscreen } from "../../fullscreen";
 import { airAt, noise, roughAir } from "./weather";
+import { advance, BLAST_FROM, broken, intact, shown } from "./damage";
+import type { Damage } from "./damage";
 import { boltPaths, FLASH_S, flicker, glare, thunderDelay } from "./lightning";
 import type { Bolt } from "../../../layers/weatherPass";
 import { FlightSound } from "./sound";
 import type { AircraftScreen } from "../../../layers/aircraftLayer";
+import { COCKPIT_CONTROLS, controlAlong } from "./cockpit";
+import type { CockpitControl, CockpitPick } from "./cockpit";
+import { merged } from "./controls";
+import { NO_INPUT } from "./physics";
+import type { ControlInput } from "./physics";
+import { lookedAlong } from "./view";
 
 /** A marked storm's lightning: the strikes this near it, km, in this long, ms. */
 const STRIKES_ROUND_KM = 14;
@@ -61,17 +70,25 @@ const FPS_PLENTY = 47;
 /** How long into a flight its frames begin to count, seconds flown. */
 const SETTLE_S = 6;
 const QUALITY_LEAST = 0.1;
+/**
+ * The sharpness a phone's or a tablet's first flight starts at: the clouds
+ * coarser, the map at all of its pixels still. Its GPU and its memory are a
+ * fraction of a desktop's (lib/gpuBudget.ts), and the first seconds of a
+ * flight are when the most is asked of both; it is given more once its
+ * frames have been plenty for a while, as any flight is.
+ */
+const HANDHELD_QUALITY = 0.45;
 /** The longest a frame is taken to have been, seconds. */
 const LONGEST_FRAME_S = 8;
 
 /** The sharpness the last flight settled at: the next one on this machine starts there, not at the top again. */
-let settledQuality = 1;
+let settledQuality = isHandheld() ? HANDHELD_QUALITY : 1;
 
 /** How often the cloud base is asked for again, seconds flown: the aircraft has come to other air by then. */
 const BASE_S = 120;
 
 /** The ways of looking into a storm, in the order the key takes them. */
-const INSPECT_MODES: InspectMode[] = ["cut", "peel", "xray"];
+const INSPECT_MODES: InspectMode[] = ["xray", "cut", "peel"];
 
 /** How fast rain falls, m/s: next to nothing beside an aircraft's speed, and what makes it slant. */
 const FALL_M_S = 7;
@@ -106,8 +123,14 @@ const ORBIT_PITCH: [number, number] = [-80, 80];
 const OUTSIDE_DISTANCE = 60;
 const OUTSIDE_RANGE: [number, number] = [28, 600];
 
+/** The lens from the seat as the wheel narrows it, degrees: down to one that reads a button's lettering. */
+const COCKPIT_FOV_RANGE: [number, number] = [9, FLIGHT_FOV];
+
 /** How far a pixel of mouse turns the eye, degrees. */
 const LOOK_PER_PX = 0.16;
+
+/** How far the mouse drags the stick for it to be all the way over, or the thrust levers for them to move as fast as they go, CSS pixels. */
+const HAND_FULL_PX = 90;
 
 const clamp = (value: number, [low, high]: readonly [number, number]) => Math.min(Math.max(value, low), high);
 
@@ -132,8 +155,31 @@ const WARP_ABOVE_M = 300;
 const GEAR_WARNING = { below: 150, slower: 98 };
 /** Coming down faster than this near the ground, m/s, it says so too, gear down or not. */
 const SINK_WARNING_MS = 9;
-/** How long the reason a flight ended stays up, seconds. */
+/** Banked steeper than this in the air, degrees, it says so. */
+const BANK_WARNING = 45;
+/** How long the reason a flight ended stays up into the next one, seconds. */
 const CRASH_SHOWN_S = 5;
+/**
+ * A flight that has ended on the ground is not cut at once: its wreck is
+ * watched until it has stopped sliding and this much longer, seconds, and
+ * this long after anything last blew up, which is how long that is heard
+ * for; for at least this long, and no longer than that.
+ */
+const WRECK_WATCHED_S = { after: 2.8, blast: 5, least: 6, most: 11 };
+/**
+ * From where. Far enough off that a fireball is a thing in the picture and
+ * not the picture, metres, for the gentlest end and the most violent; from
+ * this far above, degrees. And from ahead of the wreck and to one side,
+ * looking back (so many degrees round from the way it was going): the
+ * smoke of a wreck that slides blows away from there, and what is thrown
+ * from one comes on into the picture. Where the ground rises in the way of
+ * that (the eye is to stand this many metres clear of it), from the next
+ * place round, and where it does all round, from steeply above.
+ */
+const WRECK_EYE = { distance: [70, 105], pitch: -20, round: [145, -145, 40, -40], clear: 6, steep: -45 } as const;
+/** How far under its middle a hull lying on its belly reaches, metres; and how long the gear takes to fold under one, seconds. */
+const BELLY_BELOW_M = 2.3;
+const GEAR_FOLDS_S = 0.4;
 /** How far the eye stays over the ground, outside, metres. */
 const EYE_OVER_GROUND_M = 1.2;
 /** How much of a rough air's shaking a fast roll over the ground is, at most, and the speed it is that at, m/s. */
@@ -166,6 +212,8 @@ export interface Telemetry {
   cloud: number;
   rain: number;
   turbulence: number;
+  /** How much rougher again the air is than rough, 0 to 1: nothing short of a storm's core (weather.ts). */
+  severity: number;
   /** Hail and ice crystals going past, 0 to 1 each; ice built up on the glass, 0 to 1. */
   hail: number;
   ice: number;
@@ -219,6 +267,16 @@ export class Pilot {
   private radarOnGround = false;
   /** Until when the reason the flight ended is shown, seconds flown. */
   private crashUntil = -Infinity;
+  /** What the airframe has been through, and what has come off it (damage.ts); and how many flights there have been, which is its chance's seed. */
+  private damage: Damage = intact();
+  private flights = 1;
+  /**
+   * A wreck being watched before the cut: since when and until when,
+   * seconds flown, and where from (the way the eye looks, how far off it
+   * stands, how far down it looks), which stays put while the wreck swings
+   * round.
+   */
+  private wreck: { since: number; until: number; stopped: boolean; bearing: number; distance: number; pitch: number } | null = null;
   private paused = false;
   private frame: number | null = null;
   private last: number | null = null;
@@ -259,6 +317,14 @@ export class Pilot {
   private head: Look = { ...COCKPIT_LOOK };
   private orbit: Look = { ...OUTSIDE_LOOK };
   private distance = OUTSIDE_DISTANCE;
+  /** The lens from the seat, degrees: the wheel narrows it, to look closely at the panel. */
+  private zoomed = FLIGHT_FOV;
+  /** The lens this frame is drawn with: the seat's own, the flight's from outside. */
+  private fov = FLIGHT_FOV;
+  /** What the surfaces the stick and pedals move stand at, -1 to 1: they follow what is asked of them at their own pace. */
+  private surfaces = { ailerons: 0, elevator: 0, rudder: 0 };
+  /** The stick, pedals and lever as last read. */
+  private input: ReturnType<Keys["read"]> | null = null;
   /** The cockpit's live screens, which the deck draws; see `setScreens`. */
   private screens: AircraftScreen[] = [];
   /** The storms marked in the view, chosen now and then (`slow`) and placed every frame (`seen`). */
@@ -289,7 +355,7 @@ export class Pilot {
     this.tas = flightPlan.tas;
     this.telemetry = {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
-      cloud: 0, rain: 0, turbulence: 0, hail: 0, ice: 0, frost: 0, draft: 0, temperature: 0, fps: 60, quality: 1,
+      cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, draft: 0, temperature: 0, fps: 60, quality: 1,
       storms: stage.stormTiles(), marks: [], fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
     };
   }
@@ -383,6 +449,16 @@ export class Pilot {
     return () => this.listeners.delete(listener);
   }
 
+  /** The lightning under way, for a map of the flight to show where it is: each flash where it is, and when it began, seconds flown. */
+  flashing(): ReadonlyArray<{ lon: number; lat: number; born: number; seed: number; ground: boolean }> {
+    return this.flashes;
+  }
+
+  /** The radar's picture as the map has it on the ground, for a map of the flight to draw (`Stage.radarTiles`). */
+  radarTiles(): string[] {
+    return this.stage.radarTiles();
+  }
+
   /** Do what a key press asks; the deck's buttons call this too. */
   act(action: FlightAction): void {
     // Asked whether to end the flight, the keys answer that and nothing else: Enter ends it, Escape flies on.
@@ -459,6 +535,18 @@ export class Pilot {
       case "speedbrake":
         this.speedbrake = !this.speedbrake;
         break;
+      case "autobrake": {
+        this.autobrake = !this.autobrake;
+        // Armed again while rolling out a landing, it brakes the rest of it.
+        const { state } = this.telemetry;
+        if (this.autobrake && state.onGround && state.touchdown) this.telemetry.state = { ...state, autobrake: true };
+        break;
+      }
+      case "parkingBrake":
+        // It holds wheels that stand on the ground: in the air there is nothing for it to hold.
+        if (!this.telemetry.state.onGround) return;
+        this.parkingBrake = !this.parkingBrake;
+        break;
       case "help":
         if (this.keysTimer !== null) clearTimeout(this.keysTimer);
         this.keysTimer = null;
@@ -470,14 +558,14 @@ export class Pilot {
   }
 
   /**
-   * Look into a marked storm, by its place among the marks in the view: cut
-   * open across the line of sight, to begin with. The one already looked
+   * Look into a marked storm, by its place among the marks in the view: seen
+   * through to its core, to begin with. The one already looked
    * into is let go of instead.
    */
   inspect(index: number): void {
     const seen = this.telemetry.marks[index];
     if (!seen) return;
-    this.lookInto(seen.inspected ? null : { mark: seen.mark, mode: this.inspected?.mode ?? "cut" });
+    this.lookInto(seen.inspected ? null : { mark: seen.mark, mode: this.inspected?.mode ?? INSPECT_MODES[0] });
   }
 
   /** Look into the storm another way, or let go of it for null. */
@@ -487,7 +575,7 @@ export class Pilot {
 
   /**
    * The key's turn: the storm flown at, or the one nearest the middle of the
-   * view, cut open; then peeled, then seen through, then left alone again.
+   * view, seen through; then cut open, then peeled, then left alone again.
    */
   private inspectNext(): void {
     if (this.inspected) {
@@ -498,7 +586,7 @@ export class Pilot {
     const marks = this.telemetry.marks;
     const chosen = marks.find((seen) => seen.target)
       ?? [...marks].sort((a, b) => Math.hypot(a.x - 0.5, a.y - 0.45) - Math.hypot(b.x - 0.5, b.y - 0.45))[0];
-    if (chosen) this.lookInto({ mark: chosen.mark, mode: "cut" });
+    if (chosen) this.lookInto({ mark: chosen.mark, mode: INSPECT_MODES[0] });
   }
 
   private lookInto(next: { mark: StormMark; mode: InspectMode } | null): void {
@@ -527,24 +615,33 @@ export class Pilot {
     for (const listener of this.listeners) listener(this.telemetry);
   }
 
+  /** What a phone's controls on the glass ask of the aircraft, beside the keys and a gamepad; null with no finger on them. */
+  touch(input: Parameters<Keys["setTouch"]>[0]): void {
+    this.keys.setTouch(input);
+  }
+
   /** Turn the eye by a drag of the mouse, in pixels: the head in its seat, or the eye round the aircraft. */
   lookBy(dx: number, dy: number): void {
     if (get(flightStatus).view === "outside") {
       // Dragging the picture: the eye goes the other way round.
       this.orbit = { yaw: (this.orbit.yaw - dx * LOOK_PER_PX * 1.6) % 360, pitch: clamp(this.orbit.pitch - dy * LOOK_PER_PX * 1.6, ORBIT_PITCH) };
     } else {
+      // Through a long lens the same drag turns the head by less: the picture moves as far under the hand.
+      const per = LOOK_PER_PX * (this.zoomed / FLIGHT_FOV);
       this.head = {
-        yaw: clamp(this.head.yaw + dx * LOOK_PER_PX, [-HEAD_YAW, HEAD_YAW]),
-        pitch: clamp(this.head.pitch - dy * LOOK_PER_PX, HEAD_PITCH),
+        yaw: clamp(this.head.yaw + dx * per, [-HEAD_YAW, HEAD_YAW]),
+        pitch: clamp(this.head.pitch - dy * per, HEAD_PITCH),
       };
     }
     if (this.paused) this.refresh();
   }
 
-  /** Stand nearer or further off, outside: a wheel's turn. */
+  /** A wheel's turn: stand nearer or further off, outside; from the seat, look closer at the panel or back out again. */
   zoomBy(steps: number): void {
-    if (get(flightStatus).view !== "outside") return;
-    this.distance = clamp(this.distance * 1.12 ** steps, OUTSIDE_RANGE);
+    const { view } = get(flightStatus);
+    if (view === "outside") this.distance = clamp(this.distance * 1.12 ** steps, OUTSIDE_RANGE);
+    else if (view === "cockpit") this.zoomed = clamp(this.zoomed * 1.1 ** steps, COCKPIT_FOV_RANGE);
+    else return;
     if (this.paused) this.refresh();
   }
 
@@ -553,7 +650,96 @@ export class Pilot {
     this.head = { ...COCKPIT_LOOK };
     this.orbit = { ...OUTSIDE_LOOK };
     this.distance = OUTSIDE_DISTANCE;
+    this.zoomed = FLIGHT_FOV;
     if (this.paused) this.refresh();
+  }
+
+  /** The stick, a pedal or the thrust levers of the flight deck with the mouse held on it, and what that asks of the aircraft; see `hold`. */
+  private hand: { hold: NonNullable<CockpitControl["hold"]>; input: ControlInput } | null = null;
+  /** The autobrake armed (X, its MED button): after a landing the wheels are braked without a foot on them. */
+  private autobrake = true;
+  /** The parking brake set (K, its handle): the wheels held where they stand. */
+  private parkingBrake = false;
+
+  /**
+   * The control of the flight deck at a point of the view, CSS pixels from
+   * its top left: what the mouse is over, from the seat (cockpit.ts). Null
+   * where there is none, and in the views that show no flight deck.
+   */
+  controlAt(x: number, y: number): CockpitPick | null {
+    if (get(flightStatus).view !== "cockpit") return null;
+    const canvas = this.stage.canvas();
+    const [width, height] = [canvas?.clientWidth || 1, canvas?.clientHeight || 1];
+    // Rough air shakes the cockpit and the eye in it alike: from the seat, a control is where the head's turn alone puts it.
+    const head = { heading: this.head.yaw, pitch: this.head.pitch, roll: 0 };
+    return controlAlong(SEAT, lookedAlong(head, x / width, y / height, this.zoomed, width / height));
+  }
+
+  /**
+   * A click on the control at a point of the view: a lever moved, a button
+   * pushed, as its key does it. Returns the control, null where there is
+   * none; one that is held, not clicked, is left alone.
+   */
+  press(x: number, y: number): CockpitPick | null {
+    const pick = this.controlAt(x, y);
+    const press = pick && (COCKPIT_CONTROLS[pick.name] as CockpitControl).press;
+    // A lever's forward half moves it forward, its aft half aft.
+    if (press) this.act(typeof press === "string" ? press : press[pick.down < 0.5 ? 0 : 1]);
+    return pick;
+  }
+
+  /**
+   * Take hold of the control at a point of the view, if it is one that is
+   * held: the stick, a pedal, the thrust levers. It is the hand's until
+   * `release`, and `moveHeld` moves it; a pedal is pushed at once. Returns
+   * whether there was one to take hold of.
+   */
+  hold(x: number, y: number): boolean {
+    const pick = this.controlAt(x, y);
+    const control = pick && (COCKPIT_CONTROLS[pick.name] as CockpitControl);
+    if (!pick || !control?.hold) return false;
+    this.hand = { hold: control.hold, input: { ...NO_INPUT, yaw: control.faces[pick.face].push ?? 0 } };
+    return true;
+  }
+
+  /**
+   * Move the control held, by how far the mouse has gone since it took
+   * hold, CSS pixels: the stick as far over (towards the bottom of the view
+   * is pulled back, nose up), the thrust levers pushed forward or pulled
+   * back as fast, as W and S do.
+   */
+  moveHeld(dx: number, dy: number): void {
+    const hand = this.hand;
+    if (!hand) return;
+    const unit = (pixels: number) => Math.min(Math.max(pixels / HAND_FULL_PX, -1), 1);
+    if (hand.hold === "stick") hand.input = { ...NO_INPUT, roll: unit(dx), pitch: unit(dy) };
+    else if (hand.hold === "thrust") hand.input = { ...NO_INPUT, throttle: unit(-dy) };
+  }
+
+  /** Let go of the control held: the stick and the pedals spring back, the levers stay where they were put. */
+  release(): void {
+    this.hand = null;
+  }
+
+  /** The brakes a hand sets and no readout shows, for the deck to say and to light: the autobrake armed, the parking brake set. */
+  get brakes(): { autobrake: boolean; parking: boolean } {
+    return { autobrake: this.autobrake, parking: this.parkingBrake };
+  }
+
+  /**
+   * What the keys ask, and with it what a hand on the flight deck's own
+   * controls does: the stick, a pedal or the levers under the mouse, and
+   * the wheels held by the parking brake. And the autobrake kept off where
+   * it is not armed.
+   */
+  private withHand(input: ReturnType<Keys["read"]>): ReturnType<Keys["read"]> {
+    const { state } = this.telemetry;
+    // In the air there is nothing for the parking brake to hold, and no landing is made on locked wheels: it lets go.
+    if (!state.onGround) this.parkingBrake = false;
+    // Every touchdown arms the aircraft's autobrake; disarmed here, it is let go of again before it has braked.
+    if (!this.autobrake && state.autobrake) this.telemetry.state = { ...state, autobrake: false };
+    const asked = this.hand ? merged(input, this.hand.input) : input;
+    return { ...asked, brake: asked.brake || this.parkingBrake, warp: input.warp };
   }
 
   /** The pictures on the cockpit's screens, drawn by the deck every frame. */
@@ -619,7 +805,8 @@ export class Pilot {
       return;
     }
     const telemetry = this.telemetry;
-    const input = this.keys.read();
+    const input = this.withHand(this.keys.read());
+    this.input = input;
     if (this.autopilot !== null && Keys.moving(input)) this.act("autopilot");
 
     if (this.fading) this.fade(dt);
@@ -645,21 +832,27 @@ export class Pilot {
     const dbz = air.dbz;
     const rough = this.flightPlan.turbulence;
     const turbulence = rough ? air.turbulence : 0;
+    const severity = rough ? air.severity : 0;
     const ground = this.stage.groundElevation(lon, lat);
     // Over the sea the terrain may be drawn below it; the water is the floor.
     const floor = Math.max(ground ?? 0, 0);
     const low = altitude - floor < SLOPE_BELOW_M;
-    // Time runs faster only well clear of the ground, and never on it.
-    const warp = input.warp && altitude - floor > WARP_ABOVE_M ? WARP : 1;
+    // Time runs faster only well clear of the ground, never on it, and not for an aircraft coming apart.
+    const warp = input.warp && altitude - floor > WARP_ABOVE_M && !broken(this.damage) ? WARP : 1;
     const env: Environment = {
-      warp, gust: state.onGround ? { roll: 0, pitch: 0, vertical: 0 } : roughAir(telemetry.time, turbulence, rough ? air.draft : 0),
+      warp,
+      gust: state.onGround ? { roll: 0, pitch: 0, vertical: 0 } : roughAir(telemetry.time, turbulence, rough ? air.draft : 0, severity),
       autopilot: this.autopilot, gear: telemetry.gear, flapLever: telemetry.flapLever, speedbrake: this.speedbrake,
-      ground: floor + STAND_M, slope: low ? this.slopeAhead(state, floor) : 0, ice: telemetry.frost,
+      // A wreck lies on its belly, not on its wheels.
+      ground: floor + (state.crash ? BELLY_BELOW_M / VERTICAL_SCALE : STAND_M),
+      slope: low ? this.slopeAhead(state, floor) : 0, ice: telemetry.frost,
+      lost: this.damage.lost, flapsStuck: this.damage.flapsStuck,
     };
     const before = state;
     for (let left = dt; left > 1e-6; left -= MAX_DT) state = step(state, input, Math.min(left, MAX_DT), env);
-    // An autopilot does not fly a stall, nor a landing.
-    if ((state.stalled || state.onGround) && this.autopilot !== null) this.act("autopilot");
+    this.strain(state, floor, dt);
+    // An autopilot does not fly a stall, nor a landing, nor what is left of an aircraft.
+    if ((state.stalled || state.onGround || broken(this.damage)) && this.autopilot !== null) this.act("autopilot");
     this.landed(before, state, dt);
 
     telemetry.state = state;
@@ -669,8 +862,11 @@ export class Pilot {
     telemetry.mach = machOf(state.tas, state.altitude);
     telemetry.dbz = dbz;
     telemetry.turbulence = turbulence;
+    telemetry.severity = severity;
     telemetry.brake = state.spoilers > 0.05;
-    telemetry.gear = moveGear(telemetry.gear, this.gearDown, dt);
+    // The gear folds under a wreck, and one jammed by too much air stays where it is.
+    if (state.crash) telemetry.gear = Math.max(0, telemetry.gear - dt / GEAR_FOLDS_S);
+    else if (!this.damage.gearStuck) telemetry.gear = moveGear(telemetry.gear, this.gearDown, dt);
     this.status({
       gear: telemetry.gear <= 0 ? "up" : telemetry.gear >= 1 ? "down" : "moving",
       flapsMoving: Math.abs(state.flaps - telemetry.flapLever) > 0.02,
@@ -703,10 +899,55 @@ export class Pilot {
       else if (coming) warnings.push("sink");
       if (telemetry.gear < 1 && telemetry.radarAltitude < GEAR_WARNING.below && telemetry.ias < GEAR_WARNING.slower) warnings.push("gear");
     }
+    if (!state.onGround && Math.abs(state.roll) > BANK_WARNING) warnings.push("bank");
     if (state.stalled) warnings.push("stall");
     if (overspeed(state, telemetry.ias, telemetry.gear)) warnings.push("overspeed");
     if (telemetry.frost > 0.35) warnings.push("ice");
+    // What is left of an aircraft has nothing more to be warned of: why it is so is already said.
+    if (state.crash || broken(this.damage)) warnings.length = 0;
     this.status({ warnings, warp: warp > 1, low: telemetry.radarAltitude < LOW_M });
+  }
+
+  /**
+   * What the flight just did to the airframe (damage.ts), and the noise of
+   * it: a piece tearing off, the flaps or the gear jamming, a blast. An
+   * aircraft that has lost a part in the air says why from then on.
+   */
+  private strain(state: AircraftState, floor: number, dt: number): void {
+    const flight = {
+      ias: indicatedFromTrue(state.tas, state.altitude), mach: machOf(state.tas, state.altitude), gear: this.telemetry.gear,
+      // The ground under the hull's middle, as far down as the aircraft is drawn over it.
+      over: (state.altitude - floor) * VERTICAL_SCALE,
+    };
+    const whole = this.damage.violence === null;
+    const { damage, events } = advance(this.damage, state, flight, dt);
+    this.damage = damage;
+    // Meeting the ground for good is a blast, or where it only slides, the airframe giving way: by how hard it came down.
+    if (whole && damage.violence !== null && !events.some((event) => event.kind === "blast")) {
+      this.sound?.breakup(Math.min(1, 0.35 + 2 * damage.violence));
+    }
+    for (const event of events) {
+      if (event.kind === "blast") this.sound?.explosion(event.strength);
+      else this.sound?.breakup(event.strength);
+    }
+    if (damage.cause && !state.crash && events.some((event) => event.kind === "torn")) {
+      this.crashUntil = Infinity;
+      this.status({ crash: this.ended(state) });
+    }
+  }
+
+  /**
+   * Why the flight ended: what first broke the aircraft, where something
+   * did before it met the ground; else how it met it, which for one that
+   * blew up there was no kind of touchdown.
+   */
+  private ended(state: AircraftState): FlightCrash | null {
+    const { cause, violence } = this.damage;
+    if (cause === "ground") return "wing";
+    if (cause === "flutter") return "flutter";
+    if (cause === "load") return "breakup";
+    if (state.crash && violence !== null && violence >= BLAST_FROM) return "impact";
+    return state.crash;
   }
 
   /** How steeply the ground rises ahead of the aircraft, a rise over its run; level where the map has no ground there. */
@@ -719,17 +960,33 @@ export class Pilot {
   /**
    * What a step on the ground, or onto it, or off it, means for the flight:
    * a landing is kept as it was made and its roll measured; one that was
-   * not a landing ends the flight, which starts again from the approach
-   * through black, saying why.
+   * not a landing ends the flight, saying why. Its wreck is watched from
+   * outside while it slides, burns and comes to rest, and then the flight
+   * starts again from the approach, through black.
    */
   private landed(before: AircraftState, state: AircraftState, dt: number): void {
     const telemetry = this.telemetry;
     if (state.crash) {
       if (this.fading) return;
-      this.crashUntil = telemetry.time + CRASH_SHOWN_S;
-      this.status({ crash: state.crash as FlightCrash, landing: null });
-      this.sound?.touchdown(state.touchdown?.sink ?? 10, true);
-      this.cut();
+      if (!this.wreck) {
+        this.wreck = {
+          since: telemetry.time, until: telemetry.time + WRECK_WATCHED_S.most, stopped: false, ...this.wreckEye(state),
+        };
+        this.crashUntil = Infinity;
+        this.status({ crash: this.ended(state), landing: null });
+      }
+      const wreck = this.wreck;
+      if (!wreck.stopped && state.tas === 0) {
+        wreck.stopped = true;
+        wreck.until = Math.min(wreck.until, Math.max(wreck.since + WRECK_WATCHED_S.least, telemetry.time + WRECK_WATCHED_S.after));
+      }
+      // Not while it still has something coming, nor with a blast still in the air and in the ears; but not for ever.
+      const { blasts, coming, clock } = this.damage;
+      const settled = !coming.length && blasts.every((blast) => clock - blast.born >= WRECK_WATCHED_S.blast);
+      if (telemetry.time >= wreck.until && (settled || telemetry.time >= wreck.since + WRECK_WATCHED_S.most)) {
+        this.crashUntil = telemetry.time + CRASH_SHOWN_S;
+        this.cut();
+      }
       return;
     }
     if (!state.onGround) {
@@ -751,6 +1008,26 @@ export class Pilot {
     }
   }
 
+  /**
+   * Where a wreck is watched from (`WRECK_EYE`): the first of its places
+   * that stands clear of the ground, further off the harder it came down.
+   */
+  private wreckEye(state: AircraftState): { bearing: number; distance: number; pitch: number } {
+    const [near, far] = WRECK_EYE.distance;
+    const distance = near + (far - near) * (this.damage.violence ?? 0);
+    const radians = Math.PI / 180;
+    const clearance = (bearing: number, pitch: number) => {
+      const [lon, lat] = destination(state.lon, state.lat, bearing + 180, distance * Math.cos(pitch * radians));
+      const ground = Math.max(this.stage.groundElevation(lon, lat) ?? 0, 0);
+      // The eye's height is in metres as the aircraft is drawn; the ground's are true ones, drawn taller.
+      return (state.altitude - ground) * VERTICAL_SCALE - distance * Math.sin(pitch * radians);
+    };
+    const round = WRECK_EYE.round.find((each) => clearance(state.track + each, WRECK_EYE.pitch) > WRECK_EYE.clear);
+    return round === undefined
+      ? { bearing: state.track + WRECK_EYE.round[0], distance, pitch: WRECK_EYE.steep }
+      : { bearing: state.track + round, distance, pitch: WRECK_EYE.pitch };
+  }
+
   /** A frame of a cut: to black, the aircraft put back, and in again. */
   private fade(dt: number): void {
     const fading = this.fading!;
@@ -761,6 +1038,12 @@ export class Pilot {
       this.telemetry.state = state;
       this.telemetry.cloud = 0;
       this.telemetry.rain = 0;
+      // A new aircraft: whole, with no ice on it, and nothing of the last one's end left to watch.
+      this.flights += 1;
+      this.damage = intact(this.flights);
+      this.wreck = null;
+      this.telemetry.frost = 0;
+      this.crashUntil = Math.min(this.crashUntil, this.telemetry.time + CRASH_SHOWN_S);
       this.autopilot = null;
       this.terrain = false;
       // Back at the start of the approach, in the air: clean, gear up.
@@ -949,9 +1232,14 @@ export class Pilot {
    */
   private place(): void {
     const { state, turbulence, time, cloud } = this.telemetry;
-    const { view } = get(flightStatus);
-    const pose = { lon: state.lon, lat: state.lat, altitude: state.altitude, heading: state.heading, pitch: state.pitch, roll: state.roll };
+    // A wreck is watched from outside, wherever the reader was sitting; the view they chose is theirs again after the cut.
+    const view = this.wreck ? "outside" : get(flightStatus).view;
+    const pose ={ lon: state.lon, lat: state.lat, altitude: state.altitude, heading: state.heading, pitch: state.pitch, roll: state.roll };
     const outside = view === "outside";
+    // The seat's lens is the wheel's; the map's camera is given the same one, so the two pictures stay one.
+    this.fov = view === "cockpit" ? this.zoomed : FLIGHT_FOV;
+    if (get(studioFov) !== this.fov) studioFov.set(this.fov);
+    this.moveSurfaces();
     // Rough air shakes the seat, and so does rolling fast over open ground.
     const rumble = state.onGround ? ROLL_SHAKE * Math.min(1, state.tas / ROLL_SHAKE_MS) : 0;
     const shake = this.reducedMotion || outside ? 0 : Math.max(turbulence, rumble);
@@ -963,12 +1251,20 @@ export class Pilot {
     // Outside, the eye stays over the ground: low down it is not let look up from under it.
     const room = ((this.telemetry.radarAltitude ?? Infinity) + STAND_M) * VERTICAL_SCALE - EYE_OVER_GROUND_M;
     const lowest = (Math.asin(Math.min(1, Math.max(0, room) / this.distance)) * 180) / Math.PI;
-    const orbit = { yaw: this.orbit.yaw, pitch: Math.min(this.orbit.pitch, lowest) };
-    const eye = outside ? outsideEye(pose, orbit, this.distance) : cockpitEye(shaken, this.head, SEAT);
+    // A wreck's eye stands where it stood when the wreck came down, and does not swing round with it.
+    const orbit = this.wreck
+      ? { yaw: this.wreck.bearing - state.heading, pitch: this.wreck.pitch }
+      : { yaw: this.orbit.yaw, pitch: Math.min(this.orbit.pitch, lowest) };
+    const eye = outside
+      ? outsideEye(pose, orbit, this.wreck?.distance ?? this.distance)
+      : cockpitEye(shaken, this.head, SEAT);
+    // What has come off the aircraft, each piece where it has got to, and what burns (damage.ts): nothing for a whole one.
+    const wrecked = shown(this.damage, state);
+    if (wrecked && this.reducedMotion) wrecked.effects.calm = true;
     this.stage.setFlightCamera(pose, eye);
     this.stage.setAircraft(view === "clean" ? null : {
       modelView: eye.modelView,
-      fov: FLIGHT_FOV,
+      fov: this.fov,
       light: inAircraft(pose, SUN),
       inside: !outside,
       // The cloud round the eye and the lightning on the glass are the weather's to draw, under the aircraft.
@@ -977,12 +1273,14 @@ export class Pilot {
       gear: this.telemetry.gear,
       flaps: state.flaps / FLAPS_MOST,
       spoilers: state.spoilers,
+      ...this.surfaces,
+      ...wrecked,
     }, outside ? [] : this.screens);
     this.telemetry.marks = view === "clean" ? [] : this.seen(eye, view === "cockpit");
 
     // The weather going past: carried by the air, which goes the other way to the aircraft.
     const path = (state.flightPath * Math.PI) / 180;
-    const course = (state.heading * Math.PI) / 180;
+    const course = (state.track * Math.PI) / 180;
     const air = inAircraft(pose, [
       -state.tas * Math.cos(path) * Math.cos(course), -state.tas * Math.cos(path) * Math.sin(course), state.tas * Math.sin(path) + FALL_M_S,
     ]);
@@ -991,7 +1289,7 @@ export class Pilot {
     this.telemetry.flash = this.reducedMotion ? 0 : lightning.glare;
     const { rain, hail, ice, frost } = this.telemetry;
     this.stage.setFlightWeather({
-      modelView: eye.modelView, fov: FLIGHT_FOV, eye: eye.at, travel: this.travel, air,
+      modelView: eye.modelView, fov: this.fov, eye: eye.at, travel: this.travel, air,
       rain, hail, ice,
       // Shreds of cloud where it is thin: at its edge, going in and coming out.
       wisps: Math.min(1, cloud * 3) * (1 - 0.7 * cloud),
@@ -1002,6 +1300,26 @@ export class Pilot {
       // Trails form where the air is cold enough to freeze the exhaust at once, and show against clear sky.
       trails: { from: EXHAUSTS, strength: Math.min(1, Math.max(0, (-38 - this.telemetry.temperature) / 6)) * (1 - cloud) },
     }, this.reducedMotion ? null : lightning.glow);
+  }
+
+  /**
+   * The ailerons, the elevator and the rudder, as the frame draws them: what
+   * the fly-by-wire is asking of the roll and the pitch (which is not only
+   * what the stick asks: it also flies the turn and the gusts), and the
+   * pedals, each reached at a surface's own pace.
+   */
+  private moveSurfaces(): void {
+    const { state } = this.telemetry;
+    const unit = (value: number) => Math.min(Math.max(value, -1), 1);
+    const wanted = {
+      ailerons: unit(state.rollRate / ROLL_RATE),
+      elevator: unit(state.pitchRate / PITCH_RATE + (state.onGround ? this.input?.pitch ?? 0 : 0)),
+      rudder: unit(this.input?.yaw ?? 0),
+    };
+    const closing = 1 - Math.exp(-this.dt / 0.12);
+    for (const name of ["ailerons", "elevator", "rudder"] as const) {
+      this.surfaces[name] += (wanted[name] - this.surfaces[name]) * closing;
+    }
   }
 
   /**
@@ -1020,7 +1338,7 @@ export class Pilot {
       // The world is drawn taller than it is, the aircraft and the mark with it; the eye's own place from the aircraft is not.
       const up = (markAltitude(mark) - state.altitude) * VERTICAL_SCALE;
       const offset: [number, number, number] = [north - eye.north, east - eye.east, -(up - eye.up)];
-      const at = seenFrom(eye, offset, FLIGHT_FOV, width / height);
+      const at = seenFrom(eye, offset, this.fov, width / height);
       if (!at || at.x < 0.03 || at.x > 0.97 || at.y < 0.05 || at.y > 0.9) continue;
       // From the seat a storm is marked only where a window shows it: not through the panel, the floor or the roof.
       if (fromSeat && !throughWindows(inAircraft(state, offset))) continue;

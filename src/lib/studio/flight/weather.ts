@@ -89,6 +89,18 @@ export function gustAt(t: number, turbulence: number): { roll: number; pitch: nu
 
 /* ---- The air round the aircraft ---- */
 
+/** The echo a storm's core is taken to begin at, and the one where it is as bad as it gets, dBZ. */
+export const CORE_DBZ = [47, 62];
+/** How much stronger the draughts of the worst core are than the echo alone would make them. */
+const CORE_DRAFT = 0.8;
+/**
+ * What the worst core adds to the gusts: to the roll a slow lean that
+ * takes a wing a long way down, a heave and a slam, degrees a second; to
+ * the pitch a heave and a slam; to the air's rise and fall a heave, a chop
+ * and a slam, m/s.
+ */
+const CORE_GUST = { roll: [16, 14, 36], pitch: [3, 7], vertical: [10, 8, 34] } as const;
+
 /** How far round the aircraft the radar's field is read for what the air is doing, metres across and up. */
 export const AIR_REACH_M = { across: 1800, up: 1000 };
 
@@ -108,8 +120,10 @@ export function temperatureAt(altitude: number, offset = 0): number {
 export interface Air {
   /** The echo at the aircraft, dBZ; null where the radar has none to give. */
   dbz: number | null;
-  /** How rough, 0 to 1. */
+  /** How rough, 0 to 1: all of it from a strong echo up. */
   turbulence: number;
+  /** How much rougher than that again, 0 to 1: nothing short of a storm's core, all of it in the heaviest. */
+  severity: number;
   /** How fast the air itself rises (or, negative, sinks), m/s. */
   draft: number;
   /** What goes past the windows, 0 to 1 each: cloud, rain, hail, ice crystals. */
@@ -131,9 +145,15 @@ export interface Air {
  * - Rough air goes with strong echo, and more with echo that changes over a
  *   short way: the edge of a core, where air going up meets air coming
  *   down, is rougher than its middle.
+ * - A core is another thing again. From about 50 dBZ the air is severe, and
+ *   in the heaviest echo there is, 60 dBZ and over, extreme: gusts with
+ *   edges to them that an airframe flown fast into them is not built for,
+ *   which is why nobody flies into one. The edge of such a core is no
+ *   better than its middle.
  * - Strong echo held up high is a storm still growing, and the air in it is
  *   going up; strong echo low down is rain falling, and drags the air down
- *   with it. Both by more the stronger the echo.
+ *   with it. Both by more the stronger the echo, and in a core by nearly as
+ *   much again.
  * - Echo is cloud from where a white cloud is drawn, rain where it is warm,
  *   ice where it is well below freezing, a mix between; hail from where a
  *   core is strong enough to make it.
@@ -161,16 +181,18 @@ export function airAt(
     0.75 * ramp(shear, 2, 9) * ramp(near, 20, 40),
     0.18 * ramp(near, 30, 50),
   ));
+  const severity = Math.max(ramp(here, CORE_DBZ[0], CORE_DBZ[1]), 0.6 * ramp(shear, 4, 10) * ramp(near, 52, CORE_DBZ[1]));
   const temperature = temperatureAt(altitude, temperatureOffset);
   // Going up where a strong echo is held aloft in the cold, coming down where it rains hard.
-  const rising = ramp(here, 34, 60) * ramp(-temperature, -2, 12) * 22;
-  const sinking = ramp(here, 38, 58) * ramp(temperature, -4, 8) * ramp(baseM + 800 - altitude, 0, 1500) * 14;
+  const rising = ramp(here, 34, 60) * ramp(-temperature, -2, 12) * 22 * (1 + CORE_DRAFT * severity);
+  const sinking = ramp(here, 38, 58) * ramp(temperature, -4, 8) * ramp(baseM + 800 - altitude, 0, 1500) * 14 * (1 + CORE_DRAFT * severity);
   const cloud = altitude >= baseM - 150 ? ramp(here, 7, 26) : 0;
   const wet = ramp(here, 24, 48);
   const frozen = ramp(-temperature, 2, 14);
   return {
     dbz,
     turbulence,
+    severity,
     draft: rising - sinking,
     cloud,
     rain: wet * (1 - frozen),
@@ -186,16 +208,27 @@ export function airAt(
  * and m/s up and down. A slow heave that lifts and drops the aircraft, a
  * faster chop on top of it, and now and then a jolt; with `draft`, the air's
  * own rise or fall, which is steady only in that it wanders slowly.
+ *
+ * With `severity`, a storm's core on top of all that: the air there is
+ * columns going up beside columns coming down, and flying from one into
+ * the next is a wall. Larger heaves, a hard fast chop, and slams with
+ * edges to them that throw a wing up and the nose with it.
  */
-export function roughAir(t: number, turbulence: number, draft = 0): { roll: number; pitch: number; vertical: number } {
+export function roughAir(t: number, turbulence: number, draft = 0, severity = 0): { roll: number; pitch: number; vertical: number } {
   // The draft is not one column of air: it comes and goes over some seconds.
   const steady = draft * (0.65 + 0.35 * noise(t * 0.23, 9));
   if (turbulence <= 0) return { roll: 0, pitch: 0, vertical: steady };
   // A jolt: the sharp peaks of a noise, cubed, so most of the time there is none.
   const jolt = noise(t * 3.1, 7) ** 3;
+  const core = Math.max(0, severity) * turbulence;
+  // A slam: the same, faster and so sharper, and from another noise, so the two do not come together.
+  const slam = core > 0 ? noise(t * 4.9, 13) ** 3 : 0;
   return {
-    roll: (noise(t, 1) * 8 + noise(t * 4.3, 4) * 5 + jolt * 14) * turbulence,
-    pitch: (noise(t, 2) * 2.6 + noise(t * 3.7, 5) * 1.8 + jolt * 5) * turbulence,
-    vertical: steady + (noise(t * 0.7, 3) * 8 + noise(t * 3.3, 6) * 4 + jolt * 16) * turbulence * turbulence,
+    roll: (noise(t, 1) * 8 + noise(t * 4.3, 4) * 5 + jolt * 14) * turbulence
+      + (noise(t * 0.37, 15) * CORE_GUST.roll[0] + noise(t * 1.7, 10) * CORE_GUST.roll[1] + slam * CORE_GUST.roll[2]) * core,
+    pitch: (noise(t, 2) * 2.6 + noise(t * 3.7, 5) * 1.8 + jolt * 5) * turbulence
+      + (noise(t * 2.3, 11) * CORE_GUST.pitch[0] + slam * CORE_GUST.pitch[1]) * core,
+    vertical: steady + (noise(t * 0.7, 3) * 8 + noise(t * 3.3, 6) * 4 + jolt * 16) * turbulence * turbulence
+      + (noise(t * 1.9, 12) * CORE_GUST.vertical[0] + noise(t * 5.3, 14) * CORE_GUST.vertical[1] + slam * CORE_GUST.vertical[2]) * core,
   };
 }

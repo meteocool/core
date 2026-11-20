@@ -143,9 +143,15 @@ export interface Stage {
   /** Paint the radar's picture on the ground under the storms, or leave the ground as the basemap has it. */
   setRadarOnGround(on: boolean): void;
   /**
+   * The radar's picture as it is draped on the ground now, painted or not:
+   * a tile template (`{z}/{x}/{y}`) for each radar in it, for
+   * layers/maskedTiles.ts `loadMaskedTile` to answer.
+   */
+  radarTiles(): string[];
+  /**
    * Look into the storm at a place, or into none for null: `cut` open across
    * the line of sight (`from` is the bearing from the eye to it), `peel`ed to
-   * its core in the radar's colours, or seen through as light (`xray`).
+   * its core in the radar's colours, or left as it is with its core showing through it (`xray`).
    * Whether there is a storm drawn there to look into.
    */
   inspectStorm(target: { lon: number; lat: number; from: number; mode: InspectMode } | null): boolean;

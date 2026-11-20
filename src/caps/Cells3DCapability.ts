@@ -4,7 +4,7 @@ import { circular as circularPolygon } from "ol/geom/Polygon";
 import type Point from "ol/geom/Point";
 import type BaseLayer from "ol/layer/Base";
 import type {
-  DataDrivenPropertyValueSpecification, ExpressionSpecification, Map as GlMap, MapGeoJSONFeature, Marker, RasterLayerSpecification,
+  DataDrivenPropertyValueSpecification, ExpressionSpecification, FilterSpecification, Map as GlMap, MapGeoJSONFeature, Marker, RasterLayerSpecification,
   SkySpecification, StyleSpecification,
 } from "maplibre-gl";
 import Capability from "./Capability";
@@ -231,16 +231,37 @@ const AIRCRAFT_LAYER = "flight-aircraft";
 /**
  * How a storm a flight looks into is drawn, bar the cut, which is the
  * layer's own: peeled most of the way to its core in the radar's colours, or
- * as light to be seen through, the weakest of it left out.
+ * left as it is, in the flight's own style, with the stronger half of what
+ * is inside it showing through.
  */
-const INSPECTIONS: Record<Exclude<InspectMode, "cut">, { style: "cloud" | "glow"; peel: number }> = {
+const INSPECTIONS: Record<Exclude<InspectMode, "cut">, { style: "cloud" | null; peel: number }> = {
   peel: { style: "cloud", peel: 0.72 },
-  xray: { style: "glow", peel: 0.3 },
+  xray: { style: null, peel: 0.55 },
 };
 
 /** Where the camera lands on leaving a flight: how far ahead of the aircraft it looks, and from how high. */
 const LANDING_KM = 15;
 const LANDING_VIEW = { pitch: 65, zoom: 9.5 };
+/**
+ * The place names of a flight. Fewer of them: countries, regions, cities and
+ * towns, and each with more room round it than the map gives, since low
+ * down every village in sight would otherwise have its name over the view.
+ * And smaller the lower the aircraft is: the map draws a name the larger the
+ * nearer it is, and from a few hundred metres up the nearest ones are a few
+ * hundred metres off. `LABEL_SIZES` is the share of its size a name is drawn
+ * at from each height over the ground down, true metres (the first is about
+ * 3,000 ft); a height has to be left by `LABEL_SLACK_M` before the size
+ * changes back, so one flown along does not set the names over and over.
+ */
+const FLIGHT_LABELS = [
+  "any",
+  ["in", ["get", "kind"], ["literal", ["country", "region"]]],
+  ["in", ["get", "kind_detail"], ["literal", ["city", "town"]]],
+] as unknown as ExpressionSpecification;
+const FLIGHT_LABEL_ROOM_PX = 34;
+const LABEL_SIZES: Array<[number, number]> = [[915, 0.36], [1800, 0.62], [Infinity, 0.9]];
+const LABEL_SLACK_M = 60;
+
 /** The nearest a flight's map is drawn from the eye, metres: nearer than a wheel is to the ground under it. */
 const FLIGHT_NEAR_M = 1.5;
 
@@ -971,8 +992,10 @@ export default class Cells3DCapability extends Capability {
   private studioSupport: StudioSupport | null = null;
   private flightSupport: FlightSupport | null = null;
 
+  /** The share of their size a flight's place names are drawn at; see `FLIGHT_LABELS`. */
+  private flightLabelSize = LABEL_SIZES[LABEL_SIZES.length - 1][1];
   /** The storm a flight is looking into, as the layer has it; see `inspectStorm`. */
-  private inspected: { key: string; heading: number; mode: InspectMode } | null = null;
+  private inspected: { key: string; heading: number; mode: InspectMode; at: [number, number] } | null = null;
 
   /** Where a flight's clouds begin, kilometres above the sea; see `setCloudBase`. */
   private cloudBaseKm = 1.5;
@@ -1990,7 +2013,10 @@ export default class Cells3DCapability extends Capability {
     const looked = this.inspected;
     if (looked) {
       this.cloudsLayer?.setCut(looked.mode === "cut" ? looked.key : null, looked.heading);
-      this.cloudsLayer?.setInspection(looked.mode === "cut" ? null : { key: looked.key, ...INSPECTIONS[looked.mode] });
+      // Seen through, a storm is where its mark is: its tile, from far off, is as wide as several storms.
+      this.cloudsLayer?.setInspection(looked.mode === "cut" ? null : {
+        key: looked.key, ...INSPECTIONS[looked.mode], ...(looked.mode === "xray" ? { at: looked.at } : null),
+      });
     } else {
       this.cloudsLayer?.setInspection(null);
       this.cloudsLayer?.setCut(this.opened?.path ?? null, (this.opened?.heading ?? 0) + turn);
@@ -3019,6 +3045,7 @@ export default class Cells3DCapability extends Capability {
       }
       this.applySections();
       this.setDirected(true);
+      this.applyFlightLabels();
       return;
     }
     const before = this.flight;
@@ -3057,6 +3084,8 @@ export default class Cells3DCapability extends Capability {
       }
     }
     this.container?.classList.remove("flying");
+    this.flightLabelSize = LABEL_SIZES[LABEL_SIZES.length - 1][1];
+    this.applyFlightLabels();
     this.inspected = null;
     this.applyCut();
     this.setRadarOnGround(true);
@@ -3084,6 +3113,7 @@ export default class Cells3DCapability extends Capability {
     // Straight up or down has no heading for the map to turn to: a degree short of both.
     const pitch = Math.min(Math.max(looking.pitch, -89), 89);
     const height = pose.altitude * VERTICAL_SCALE + (eye?.up ?? 0);
+    this.sizeFlightLabels(pose.altitude - (gl.queryTerrainElevation([pose.lon, pose.lat]) ?? 0) / VERTICAL_SCALE);
     const transform = gl._camera?.transform;
     // The map works out how near it draws from afresh, for the far end of what it draws.
     transform?.clearNearFarZOverride?.();
@@ -3148,6 +3178,16 @@ export default class Cells3DCapability extends Capability {
     this.applyDrapeBlend();
   }
 
+  /** The frames the drape's first set of layers shows, as their `masked://` templates: the same tiles the ground is painted with. */
+  radarTiles(): string[] {
+    const gl = this.gl;
+    const shown = (id: string) => Boolean(gl?.getLayer(id)) && gl?.getLayoutProperty(id, "visibility") !== "none";
+    return [
+      shown(RADAR_SOURCE) ? this.radarMasks[0]?.tiles : undefined,
+      ...NETWORKS.map(({ code }) => (shown(networkLayerId(code)) ? this.networkMasks[0][code]?.tiles : undefined)),
+    ].filter((tiles): tiles is string => tiles !== undefined);
+  }
+
   /** How opaque one of the drape's two sets of layers is drawn: as its blend has it, or not at all. */
   private drapeShown(slot: DrapeSlot): number {
     return this.radarOffGround ? 0 : this.drapeOpacity[slot];
@@ -3171,7 +3211,8 @@ export default class Cells3DCapability extends Capability {
       }
     }
     // The layer's cut runs along its heading and takes away what is to the right of it.
-    this.inspected = found && target ? { key: found.key, heading: target.from + 90, mode: target.mode } : null;
+    this.inspected = found && target
+      ? { key: found.key, heading: target.from + 90, mode: target.mode, at: [target.lon, target.lat] } : null;
     this.applyCut();
     return found !== null;
   }
@@ -4196,6 +4237,32 @@ export default class Cells3DCapability extends Capability {
       return;
     }
     gl.addLayer(layer, gl.getLayer(LOCATION_DOT) ? LOCATION_DOT : undefined);
+    this.applyFlightLabels();
+  }
+
+  /**
+   * The place names as a flight has them (`FLIGHT_LABELS`), at the size for
+   * the height the aircraft is at; or, with no flight, as the map has them.
+   */
+  private applyFlightLabels(): void {
+    const gl = this.gl;
+    if (!gl || !this.styleReady || !gl.getLayer(PLACE_LABELS)) return;
+    const layer = placeLabels(this.dark ? darkLabels : lightLabels, this.nameKeys);
+    const size = layer.layout?.["text-size"] as ExpressionSpecification;
+    const flying = this.flight !== null;
+    gl.setFilter(PLACE_LABELS, flying ? ["all", layer.filter, FLIGHT_LABELS] as FilterSpecification : layer.filter ?? null);
+    gl.setLayoutProperty(PLACE_LABELS, "text-size", flying ? ["*", this.flightLabelSize, size] : size);
+    gl.setLayoutProperty(PLACE_LABELS, "text-padding", flying ? FLIGHT_LABEL_ROOM_PX : 2);
+  }
+
+  /** Set the names to the size for a height over the ground, true metres, where that is another than they have. */
+  private sizeFlightLabels(over: number): void {
+    const band = LABEL_SIZES.findIndex(([, share]) => share === this.flightLabelSize);
+    const from = band > 0 ? LABEL_SIZES[band - 1][0] : -Infinity;
+    // Only once well into another band: at an edge the height wanders either side of it.
+    if (over >= from - LABEL_SLACK_M && over < LABEL_SIZES[band][0] + LABEL_SLACK_M) return;
+    this.flightLabelSize = LABEL_SIZES.find(([below]) => over < below)![1];
+    this.applyFlightLabels();
   }
 
   /**

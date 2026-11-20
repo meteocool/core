@@ -25,6 +25,8 @@ import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
 import Icon from "../../Icon.svelte";
 import FlightKeys from "./FlightKeys.svelte";
+import TouchControls from "./TouchControls.svelte";
+import FlightMinimap from "./FlightMinimap.svelte";
 import CloseDisc from "../../CloseDisc.svelte";
 import Segmented from "../../Segmented.svelte";
 import type { InspectMode } from "../../../lib/studio/director";
@@ -33,9 +35,12 @@ import { CockpitScreens } from "./cockpitScreens";
 import { cloudsTime } from "../../../stores";
 import { MARKS_SHOWN } from "../../../lib/studio/flight/marks";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
+import { COCKPIT_CONTROLS } from "../../../lib/studio/flight/cockpit";
+import type { CockpitControl, CockpitPick } from "../../../lib/studio/flight/cockpit";
 import { flightStatus, studioFlightOnly } from "../../../lib/studio/store";
 import { fullscreen, fullscreenSupported } from "../../../lib/fullscreen";
 import { flightMuted } from "../../../lib/studio/flight/sound";
+import { touchCapable, touchControls } from "../../../lib/studio/flight/touch";
 
 export let pilot: Pilot;
 /** The credits the map shows, which the deck shows in its place. */
@@ -46,6 +51,8 @@ const cockpit = new CockpitScreens();
 pilot.setScreens(cockpit.screens);
 
 let fade: HTMLDivElement | null = null;
+/* The map of the flight, which only the view from outside has: there is no navigation display to look at there. */
+let minimap: FlightMinimap | null = null;
 let throttle: HTMLOutputElement | null = null;
 /* The storms marked in the view (lib/studio/flight/marks.ts): as many labels
    as the view ever carries, each put where its storm is every frame, and
@@ -115,7 +122,7 @@ function frame(telemetry: Telemetry): void {
   const { state } = telemetry;
   if (fade) fade.style.opacity = String(telemetry.fade);
   if (status.view === "clean") return;
-  if (status.view === "cockpit") cockpit.draw(telemetry, { status, scan: $cloudsTime.shown ?? $cloudsTime.newest });
+  if (status.view === "cockpit") cockpit.draw(telemetry, { status, scan: $cloudsTime.shown ?? $cloudsTime.newest, brakes: pilot.brakes });
   write(throttle, `${Math.round(state.throttle * 100)}%`);
   write(readouts.speed, `${Math.round(telemetry.ias * KNOTS)} kt · M${telemetry.mach.toFixed(2)}`);
   const feet = state.altitude * FEET;
@@ -136,27 +143,148 @@ function frame(telemetry: Telemetry): void {
   // How fast the flight is drawn, and at what share of its sharpness where it has had to give some up.
   write(readouts.frames, `${Math.round(telemetry.fps)} fps${telemetry.quality < 0.99 ? ` · ${Math.round(telemetry.quality * 100)}%` : ""}`);
   drawMarks(telemetry);
+  minimap?.draw(telemetry);
 }
 
 /* The mouse turns the eye: a drag anywhere on the view, the head in its
    seat or the eye round the aircraft; twice clicked, it looks ahead again;
-   the wheel stands it nearer or further off, outside. */
+   the wheel stands it nearer or further off, outside, and looks closer
+   from the seat.
+
+   From the seat the mouse is also the hand on the flight deck's own
+   controls (lib/studio/flight/cockpit.ts). Over one, a note beside it says
+   what it is, how it stands and what a hand does there. A press that goes
+   nowhere is a click: a lever moved, a button pushed. And the stick, the
+   pedals and the thrust levers are held: they are the mouse's from the
+   press to its release, and it is they that move, not the eye. */
 let turning = false;
+/** A press under way: where it began, how far it has gone since, and whether it took hold of a control. */
+let pressed: { x: number; y: number; moved: number; holding: boolean } | null = null;
+/** Where the mouse is over the view, and the control of the flight deck it is over there. */
+let pointer: { x: number; y: number } | null = null;
+let over: CockpitPick | null = null;
+let note: HTMLElement | null = null;
+/** A press that goes no further than this is a click, CSS pixels. */
+const CLICK_PX = 4;
+
+/** What kind of hand a control takes, for the pointer over it: a click, or what it holds. */
+$: hand = over && !turning ? (COCKPIT_CONTROLS[over.name] as CockpitControl).hold ?? "press" : null;
+
+/** Where a mouse's event is in the view, CSS pixels from its top left. */
+function within(event: MouseEvent): [number, number] {
+  const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  return [event.clientX - box.left, event.clientY - box.top];
+}
+
 function pointerdown(event: PointerEvent): void {
   if (event.button !== 0) return;
-  turning = true;
+  const [x, y] = within(event);
+  // A finger's moves on the view are the touch controls' to read (a look, a pinch), and never reach here: it holds
+  // nothing, and whether it clicked is told from where it lifts. A second finger down is a pinch, and no click at all.
+  const finger = event.pointerType === "touch";
+  pressed = { x, y, moved: finger && pressed ? Infinity : 0, holding: !finger && pilot.hold(x, y) };
   (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
 }
 function pointermove(event: PointerEvent): void {
-  if (turning) pilot.lookBy(event.movementX, event.movementY);
+  const [x, y] = within(event);
+  pointer = { x, y };
+  if (!pressed) {
+    point();
+  } else if (pressed.holding) {
+    pilot.moveHeld(x - pressed.x, y - pressed.y);
+  } else {
+    pressed.moved += Math.abs(event.movementX) + Math.abs(event.movementY);
+    if (!turning && pressed.moved <= CLICK_PX) return;
+    turning = true;
+    over = null;
+    pilot.lookBy(event.movementX, event.movementY);
+  }
 }
-function pointerup(): void {
+function pointerup(event: PointerEvent): void {
+  const press = pressed;
+  pressed = null;
+  if (press && event.pointerType === "touch") {
+    const [x, y] = within(event);
+    press.moved += Math.abs(x - press.x) + Math.abs(y - press.y);
+  }
+  if (press?.holding) pilot.release();
+  else if (press && !turning && press.moved <= CLICK_PX && event.type === "pointerup") pilot.press(press.x, press.y);
   turning = false;
+  // A finger lifted is over nothing; a mouse is still where it was.
+  if (event.pointerType !== "mouse") pointer = null;
+  point();
+}
+function pointerleave(): void {
+  if (pressed) return;
+  pointer = null;
+  point();
+}
+function dblclick(event: MouseEvent): void {
+  // Twice on a control is two clicks on it, not a look ahead.
+  if (!pilot.controlAt(...within(event))) pilot.recentre();
+  point();
 }
 function wheel(event: WheelEvent): void {
   event.preventDefault();
   pilot.zoomBy(Math.sign(event.deltaY));
+  point();
 }
+
+/**
+ * Look again for the control under the mouse, and say what it is: the mouse
+ * has moved, or the view has under it. Every frame as well, as a lever
+ * under the mouse may be moving. A control held stays the one.
+ */
+function point(): void {
+  if (!pressed) {
+    const found = pointer ? pilot.controlAt(pointer.x, pointer.y) : null;
+    // The markup follows the control, not every pixel across it: only the lever's two halves do different things.
+    const same = (a: CockpitPick | null, b: CockpitPick | null) => a?.name === b?.name && a?.face === b?.face
+      && (a?.down ?? 0) < 0.5 === (b?.down ?? 0) < 0.5;
+    if (!same(found, over)) over = found;
+  }
+  say();
+}
+
+/** How the control under the mouse stands, if that is something to say, and what a hand does there. */
+function told(pick: CockpitPick): [string | null, string] {
+  const t = (key: string) => $_(`studio.flight.cockpit.${key}`);
+  const onOff = (on: boolean) => t(on ? "on" : "off");
+  const side = pick.face === 0 ? "left" : "right";
+  switch (pick.name) {
+    case "flaps": return [FLAP_NAMES[status.flaps] ?? $_("studio.flight.flaps.full"), t(pick.down < 0.5 ? "flaps.in" : "flaps.out")];
+    case "speedBrake": return [status.spoilers === "in" ? t("speedBrake.in") : $_(`studio.flight.spoilers.${status.spoilers}`), t("speedBrake.hint")];
+    case "gear": return [t(`gear.${status.gear}`), t(status.onGround ? "gear.ground" : "gear.hint")];
+    case "thrust": return [
+      `${Math.round(pilot.telemetry.state.throttle * 100)}%${status.reverse ? " · REV" : ""}`, t(status.onGround ? "thrust.ground" : "thrust.hint"),
+    ];
+    case "sidestick": return [null, t("sidestick.hint")];
+    case "pedals": return [null, t(`pedals.${side}`)];
+    case "rudderTrim": return [null, t(`rudderTrim.${side}`)];
+    case "autopilot": return [onOff(status.autopilot), t(status.onGround ? "autopilot.ground" : "autopilot.hint")];
+    case "autobrake": return [pilot.brakes.autobrake ? t("autobrake.armed") : t("off"), t("autobrake.hint")];
+    case "parkingBrake": return [pilot.brakes.parking ? t("parkingBrake.set") : t("off"), t(status.onGround ? "parkingBrake.hint" : "parkingBrake.air")];
+    default: return [onOff(status.radarOnGround), t("weatherRadar.hint")];
+  }
+}
+
+/** Write the note and put it beside the mouse, clear of the view's edge. */
+function say(): void {
+  if (!note) return;
+  const shown = over !== null && pointer !== null && status.view === "cockpit";
+  note.hidden = !shown;
+  if (!over || !pointer || !shown) return;
+  const [state, does] = told(over);
+  const [title, hint] = note.children as unknown as [HTMLElement, HTMLElement];
+  write(title, `${$_(`studio.flight.cockpit.${over.name}.name`)}${state === null ? "" : ` · ${state}`}`);
+  write(hint, does);
+  const deck = note.parentElement!;
+  const [width, height] = [note.offsetWidth, note.offsetHeight];
+  const left = pointer.x + 18 + width > deck.clientWidth ? pointer.x - 12 - width : pointer.x + 18;
+  const top = pointer.y + 22 + height > deck.clientHeight ? pointer.y - 12 - height : pointer.y + 22;
+  note.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+}
+onMount(() => pilot.onFrame(point));
 
 let unlisten: (() => void) | null = null;
 onMount(() => {
@@ -171,22 +299,26 @@ onDestroy(() => {
 
 const WARNINGS = {
   terrain: "studio.flight.terrain", stall: "studio.flight.stall", overspeed: "studio.flight.overspeed", ice: "studio.flight.ice",
-  gear: "studio.flight.gear_low", sink: "studio.flight.sink",
+  gear: "studio.flight.gear_low", sink: "studio.flight.sink", bank: "studio.flight.bank",
 } as const;
 </script>
 
-<div class="flight-deck view-{status.view}" aria-label={$_("studio.flight.aria")} role="region">
+<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:touch={$touchControls} aria-label={$_("studio.flight.aria")} role="region">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="look"
     class:turning
-    title={$_("studio.flight.look_title")}
+    data-hand={hand}
+    title={over ? undefined : $_("studio.flight.look_title")}
     on:pointerdown={pointerdown}
     on:pointermove={pointermove}
     on:pointerup={pointerup}
     on:pointercancel={pointerup}
-    on:dblclick={() => pilot.recentre()}
+    on:pointerleave={pointerleave}
+    on:dblclick={dblclick}
     on:wheel={wheel}></div>
+  <!-- What the mouse is over on the flight deck, from the seat: written and placed as it moves (`say`). -->
+  <p class="hand-note" bind:this={note} role="tooltip" hidden><b></b><span></span></p>
 
   {#if status.view !== "clean"}
     <div class="marks">
@@ -248,12 +380,15 @@ const WARNINGS = {
       <p class="note">{$_("studio.flight.clear_sky")}</p>
     {/if}
     {#if status.paused}
-      <p class="note">{$_("studio.flight.paused")}</p>
+      <p class="note">{$_($touchControls ? "studio.flight.touch.paused" : "studio.flight.paused")}</p>
     {/if}
   </div>
 
   {#if status.keys && status.view !== "clean"}
     <FlightKeys />
+  {:else if status.view === "outside"}
+    <!-- Where the keys' card stands while that is up. -->
+    <FlightMinimap {pilot} bind:this={minimap} />
   {/if}
 
   {#if status.landing && status.view !== "clean"}
@@ -268,7 +403,7 @@ const WARNINGS = {
         <span>{$_("studio.flight.landing.rolled")} <b bind:this={readouts.rolled}></b></span>
       </p>
       {#if status.landing.stopped}
-        <p class="again">{$_("studio.flight.landing.again")}</p>
+        <p class="again">{$_($touchControls ? "studio.flight.touch.again" : "studio.flight.landing.again")}</p>
       {/if}
     </section>
   {/if}
@@ -293,7 +428,7 @@ const WARNINGS = {
   {/if}
   {#if status.inspecting && status.view !== "clean"}
     <div class="inspect glass glass-pill" role="group" aria-label={$_("studio.flight.inspect.title")}>
-      <Segmented compact label={$_("studio.flight.inspect.title")}
+      <Segmented label={$_("studio.flight.inspect.title")}
         options={INSPECT.map((mode) => ({ value: mode, label: $_(`studio.flight.inspect.${mode}`) }))}
         value={status.inspecting} on:change={(event) => pilot.inspectAs(event.detail)} />
       <CloseDisc on:click={() => pilot.inspectAs(null)} />
@@ -301,6 +436,10 @@ const WARNINGS = {
   {/if}
   {#if status.recording}
     <span class="rec" aria-hidden="true">REC</span>
+  {/if}
+  {#if touchCapable()}
+    <!-- A phone's stick, lever and buttons: over the readouts, under the question below. -->
+    <TouchControls {pilot} />
   {/if}
   {#if status.leaving}
     <!-- Asked before a flight ends: Escape alone does not end one. -->
@@ -347,6 +486,25 @@ const WARNINGS = {
     touch-action: none;
   }
   .flight-deck > .look.turning { cursor: grabbing; }
+  /* Over a control of the flight deck: a finger for one that is clicked or pushed, and the way the others are dragged. */
+  .flight-deck > .look[data-hand="press"], .flight-deck > .look[data-hand="rudder"] { cursor: pointer; }
+  .flight-deck > .look[data-hand="thrust"] { cursor: ns-resize; }
+  .flight-deck > .look[data-hand="stick"] { cursor: move; }
+  /* The note beside the mouse: the control's name and how it stands, and under it what a hand does there. */
+  .hand-note {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 6px 10px 7px;
+    border-radius: 8px;
+    background: rgba(5, 7, 10, 0.8);
+    font: 500 12px/1.4 var(--mc-font);
+    white-space: nowrap;
+    will-change: transform;
+  }
+  .hand-note b { display: block; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hand-note span { color: #c9d0d8; }
 
   /* The readouts: four in the corners, over the view. */
   .readouts { margin: 0; }
@@ -407,6 +565,17 @@ const WARNINGS = {
   .corner-ne.beside-screen { right: 162px; }
   .corner-sw { bottom: 32px; left: 16px; }
   .corner-se { bottom: 32px; right: 16px; }
+
+  /* The map of the flight, from outside: on the left over the readouts there, clear of the corners and the middle. */
+  .flight-deck > :global(.flight-minimap) {
+    position: absolute;
+    left: 16px;
+    bottom: 124px;
+  }
+  /* A low window has less room between its corners. */
+  @media (max-height: 560px) {
+    .flight-deck > :global(.flight-minimap) { --flight-minimap-size: 144px; }
+  }
 
   /* A storm's mark: a small diamond over it on a thin stem, and two lines of
      small print beside it. Quiet: it is a note on the view, not part of it. */
@@ -471,21 +640,36 @@ const WARNINGS = {
   .mark:hover i, .mark.inspected i { background: color-mix(in srgb, var(--mark, #fff) 55%, transparent); }
   .mark.inspected i { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 0 3px rgba(0, 0, 0, 0.7); }
 
-  /* How the storm looked into is opened: a small bar, low and in the middle. */
+  /* How the storm looked into is opened: a bar at the top, in the middle, large enough to hit while flying. */
   .flight-deck > .inspect {
     position: absolute;
+    top: 14px;
     left: 50%;
-    bottom: 34px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 4px 4px 6px;
+    gap: 10px;
+    padding: 6px 8px 6px 8px;
     transform: translateX(-50%);
     pointer-events: auto;
     /* Over the view the bar's writing is light in either theme: the chosen one's lens is a lighter glass, not a white card. */
     --mc-sheet-card: rgba(255, 255, 255, 0.26);
   }
   .flight-deck > .inspect :global(*) { pointer-events: auto; }
+  .flight-deck > .inspect :global(.segmented button) {
+    height: 40px;
+    padding: 0 20px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  /* The warnings and a recording's mark stand clear of it. */
+  .flight-deck.inspecting .alerts { top: max(13%, 84px); }
+  .flight-deck.inspecting .rec { top: 78px; }
+  /* In a window too narrow for it between the speed and the altitude, it goes under them. */
+  @media (max-width: 1100px) {
+    .flight-deck > .inspect { top: 60px; }
+    .flight-deck.inspecting .alerts { top: max(13%, 130px); }
+    .flight-deck.inspecting .rec { top: 124px; }
+  }
   .mark.target i { border-color: #ff4fd8; }
   .mark.target span:first-of-type { color: #ffc2f1; }
 
@@ -615,5 +799,68 @@ const WARNINGS = {
     text-overflow: ellipsis;
     white-space: nowrap;
     text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+  }
+
+  /* Flown by touch (TouchControls.svelte), the foot of the screen is the
+     thumbs': the stick on the right, the lever on the left, the strip of
+     buttons between them. What stood there stands along the top instead, and
+     inside whatever a phone's screen cuts off its corners and its edges. */
+  .flight-deck.touch {
+    --deck-left: max(16px, calc(env(safe-area-inset-left, 0px) + 6px));
+    --deck-right: max(14px, calc(env(safe-area-inset-right, 0px) + 6px));
+    --deck-top: max(12px, env(safe-area-inset-top, 0px));
+  }
+  .flight-deck.touch .corner-nw { top: var(--deck-top); left: var(--deck-left); }
+  .flight-deck.touch .corner-sw { top: var(--deck-top); bottom: auto; left: calc(var(--deck-left) + 180px); }
+  .flight-deck.touch .corner-ne { top: var(--deck-top); right: calc(var(--deck-right) + 106px); }
+  .flight-deck.touch .corner-ne.beside-screen { right: calc(var(--deck-right) + 148px); }
+  .flight-deck.touch .corner-se { top: calc(var(--deck-top) + 46px); bottom: auto; right: var(--deck-right); }
+  .flight-deck.touch .corner { top: calc(var(--deck-top) - 2px); right: var(--deck-right); }
+  /* The strip's own button says whether the sound is off. */
+  .flight-deck.touch .muted { display: none; }
+  /* Over the strip, opened or not. */
+  .flight-deck.touch .landing { bottom: calc(max(14px, env(safe-area-inset-bottom, 0px)) + 112px); }
+  /* The credits between the thumbs, under the strip. */
+  .flight-deck.touch .credits { right: auto; left: 50%; max-width: 46%; text-align: center; transform: translateX(-50%); }
+  /* The map from outside: under the readouts on the left, over the lever. */
+  .flight-deck.touch > :global(.flight-minimap) {
+    top: calc(var(--deck-top) + 112px);
+    bottom: auto;
+    left: var(--deck-left);
+  }
+  /* No keys to answer with. */
+  .flight-deck.touch .ask kbd { display: none; }
+  .flight-deck.touch .ask button { height: 44px; padding: 0 18px; }
+  .flight-deck.touch .leave { height: 36px; }
+  .flight-deck.touch .leave.full { width: 36px; }
+
+  /* A phone: less of everything, and only what a flight is flown by. */
+  @media (max-height: 520px), (max-width: 560px) {
+    .flight-deck.touch .readouts > div { gap: 1px 8px; padding: 5px 9px; }
+    .flight-deck.touch .readouts dt { font-size: 10px; }
+    .flight-deck.touch .readouts dd { font-size: 13px; }
+    /* The heading stays; the air outside and the frames a second are a desk's to read. */
+    .flight-deck.touch .corner-sw :is(dt, dd):nth-of-type(n + 2) { display: none; }
+    .flight-deck.touch .corner-sw { left: calc(var(--deck-left) + 160px); }
+    .flight-deck.touch > :global(.flight-minimap) { --flight-minimap-size: 104px; top: calc(var(--deck-top) + 46px); }
+  }
+  /* On its side there is no room left between the top row's readouts. */
+  @media (max-height: 520px) {
+    .flight-deck.touch .warning { padding: 5px 12px; font-size: 16px; }
+    .flight-deck.touch .landing { padding: 8px 12px 9px; }
+    .flight-deck.touch .landing p { gap: 10px; font-size: 12px; }
+    /* Under the top row, which has no room left between its readouts. */
+    .flight-deck.touch > .inspect { top: calc(var(--deck-top) + 44px); gap: 6px; padding: 4px 6px; }
+    .flight-deck.touch > .inspect :global(.segmented button) { height: 34px; padding: 0 14px; font-size: 14px; }
+    .flight-deck.touch.inspecting .alerts { top: calc(var(--deck-top) + 96px); }
+  }
+  /* Held upright, the top row is two: the heading goes under the speed. */
+  @media (max-width: 560px) {
+    .flight-deck.touch .corner-sw { top: calc(var(--deck-top) + 46px); left: var(--deck-left); }
+    .flight-deck.touch .corner-ne, .flight-deck.touch .corner-ne.beside-screen { top: calc(var(--deck-top) + 46px); right: var(--deck-right); }
+    .flight-deck.touch .corner-se { top: calc(var(--deck-top) + 92px); }
+    .flight-deck.touch > :global(.flight-minimap) { top: calc(var(--deck-top) + 92px); }
+    .flight-deck.touch .alerts { top: calc(var(--deck-top) + 150px); }
+    .flight-deck.touch > .inspect { top: calc(var(--deck-top) + 100px); }
   }
 </style>

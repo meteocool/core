@@ -11,9 +11,14 @@
  * bits. Positions are metres in the aircraft's frame: forward, right, down.
  *
  * Some chunks belong to a part that moves: the landing gear's legs and
- * doors, and the wings' flaps, slats and spoilers. Each part turns about a
- * hinge of its own as what drives it moves (`partPose`). A file without
- * parts is an aircraft on which nothing does.
+ * doors, the wings' flaps, slats and spoilers, and the ailerons, the
+ * elevators and the rudder. Each part turns about a hinge of its own as
+ * what drives it moves (`partPose`). A file without parts is an aircraft on
+ * which nothing does.
+ *
+ * An aircraft that has broken up is drawn in pieces, each a part of the
+ * same meshes: which piece a point of the model is of is said here too
+ * (`pieceOf`), by where the point is.
  */
 
 export const VERTEX_BYTES = 16;
@@ -41,20 +46,32 @@ export interface ModelChunk {
   part?: string;
 }
 
-/** What moves a part: the landing gear, the flaps' lever (slats and flaps both), or the spoilers. */
-export type PartDrive = "gear" | "flaps" | "spoilers";
+/** What a part is moved by and travels with, one way: the landing gear, the flaps' lever (slats and flaps both), or the spoilers. */
+export type TravelDrive = "gear" | "flaps" | "spoilers";
+
+/** What a part is deflected by, either way from its middle: the stick's two axes and the pedals. */
+export type ControlDrive = "ailerons" | "elevator" | "rudder";
+
+export type PartDrive = TravelDrive | ControlDrive;
+
+const CONTROLS: ReadonlySet<PartDrive> = new Set<PartDrive>(["ailerons", "elevator", "rudder"]);
 
 /**
- * How far each of those is along, 0 to 1: the gear up to down, the flaps in
- * to all the way out, the spoilers flat to all the way up.
+ * Where each of those is. What travels, 0 to 1: the gear up to down, the
+ * flaps in to all the way out, the spoilers flat to all the way up. What is
+ * deflected, -1 to 1, with the signs of the flight's own controls:
+ * `ailerons` right wing down, `elevator` nose up, `rudder` nose right; in
+ * the middle where not said.
  */
-export type PartPositions = Record<PartDrive, number>;
+export type PartPositions = Record<TravelDrive, number> & Partial<Record<ControlDrive, number>>;
 
 /**
  * A part that turns as what drives it moves: about `axis` (a unit vector,
  * the right-handed way) through `pivot`, by an angle in degrees that
- * follows that position, 0 to 1, through `keys` (position, angle), eased
- * between each two. Driven by the gear where the file does not say.
+ * follows that position through `keys` (position, angle). What travels is
+ * eased between each two keys, as a leg swings; what is deflected follows
+ * them straight, as a surface follows the stick. Driven by the gear where
+ * the file does not say.
  */
 export interface ModelPart {
   pivot: Vec3;
@@ -121,17 +138,18 @@ export function parseModel(buffer: ArrayBuffer): AircraftModel {
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
-/** A part's angle, degrees, with what drives it at `position` (0 to 1). */
+/** A part's angle, degrees, with what drives it at `position`: held at its first key before it, and at its last past it. */
 export function partAngle(part: ModelPart, position: number): number {
   const { keys } = part;
   if (!keys.length) return 0;
-  const at = Math.min(Math.max(position, 0), 1);
-  if (at <= keys[0][0]) return keys[0][1];
+  if (!(position > keys[0][0])) return keys[0][1];
+  const straight = CONTROLS.has(part.drive ?? "gear");
   for (let i = 1; i < keys.length; i++) {
     const [to, angle] = keys[i];
-    if (at <= to) {
+    if (position <= to) {
       const [from, before] = keys[i - 1];
-      return before + (angle - before) * smooth(to > from ? (at - from) / (to - from) : 1);
+      const along = to > from ? (position - from) / (to - from) : 1;
+      return before + (angle - before) * (straight ? along : smooth(along));
     }
   }
   return keys[keys.length - 1][1];
@@ -170,8 +188,8 @@ export function partPose(part: ModelPart, position: number): { matrix: number[];
 }
 
 /**
- * Every part's place with the gear, the flaps and the spoilers where
- * `positions` has them, for a frame seen through `modelView`: the
+ * Every part's place with the gear, the flaps, the spoilers and the
+ * controls where `positions` has them, for a frame seen through `modelView`: the
  * model-view it is drawn with, and the light (`light`, in the aircraft's
  * frame) as its own turned normals meet it. Parts where the model has them
  * are left out: they are drawn as the rest is.
@@ -203,4 +221,43 @@ export function multiply4(a: ArrayLike<number>, b: ArrayLike<number>): number[] 
     }
   }
   return out;
+}
+
+/** What an aircraft breaks into: its hull, each wing with its engine and its leg, and the tail with its fin and tailplane. */
+export type ModelPiece = "hull" | "leftWing" | "rightWing" | "tail";
+
+/** The pieces in the order the renderer counts them: a piece's place here is its number in the shader. */
+export const PIECES: readonly ModelPiece[] = ["hull", "leftWing", "rightWing", "tail"];
+
+/**
+ * Where the aircraft comes apart, metres in its own frame: a wing at the
+ * fuselage's side, outside the fairing under the belly and inside the flaps'
+ * inner ends, so the engine, the main leg and every surface of the wing go
+ * with it; the tail behind the rear doors, ahead of where the fin and the
+ * tailplane leave the fuselage. A break is not a clean cut: it wanders
+ * `ragged` metres either side of its line (the renderer's shader says how).
+ */
+export const BREAKS = { wingRoot: 2.15, tail: -13.8, ragged: 0.15 };
+
+/** Which piece a point of the model is of, as the model has it (before any part has moved). */
+export function pieceOf([forward, right]: Vec3 | readonly number[]): ModelPiece {
+  if (forward < BREAKS.tail) return "tail";
+  if (right < -BREAKS.wingRoot) return "leftWing";
+  if (right > BREAKS.wingRoot) return "rightWing";
+  return "hull";
+}
+
+/**
+ * Which pieces a box of the model (its least corner, its size) may have
+ * points of, the breaks being ragged: what a mesh has to be drawn as part of.
+ */
+export function piecesOf(min: readonly number[], size: readonly number[]): ModelPiece[] {
+  const { wingRoot, tail, ragged } = BREAKS;
+  const found: ModelPiece[] = [];
+  const ahead = min[0] + size[0] >= tail - ragged;
+  if (ahead && min[1] <= wingRoot + ragged && min[1] + size[1] >= -wingRoot - ragged) found.push("hull");
+  if (ahead && min[1] < -wingRoot + ragged) found.push("leftWing");
+  if (ahead && min[1] + size[1] > wingRoot - ragged) found.push("rightWing");
+  if (min[0] < tail + ragged) found.push("tail");
+  return found;
 }

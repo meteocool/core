@@ -69,6 +69,51 @@ test("rough air is still in calm, carries the draft, and is rougher the more tur
   assert.ok(spread(1) < 30);
 });
 
+test("short of a storm's core the air is only rough; from there it is severe, by 62 dBZ as bad as it gets, and its draughts with it", () => {
+  for (const dbz of [20, 35, 45]) assert.equal(airAt(everywhere(dbz), 6000, 1500).severity, 0, `${dbz} dBZ`);
+  const cores = [50, 55, 60, 62, 70].map((dbz) => airAt(everywhere(dbz), 6000, 1500));
+  assert.deepEqual(cores.map((air) => air.turbulence), [1, 1, 1, 1, 1]);
+  assert.ok(cores[0].severity > 0.1 && cores[0].severity < 0.3, `${cores[0].severity}`);
+  for (let i = 1; i < 4; i++) assert.ok(cores[i].severity > cores[i - 1].severity);
+  assert.ok(cores[2].severity > 0.8);
+  assert.deepEqual([cores[3].severity, cores[4].severity], [1, 1]);
+  // The edge of a heavy core is no better than its middle.
+  assert.ok(airAt((east) => (east > 0 ? 62 : 30), 6000, 1500).severity > 0.3);
+  assert.equal(airAt((east) => (east > 0 ? 45 : 20), 6000, 1500).severity, 0);
+  // The draughts: up to 22 m/s from the echo alone, and most of that again in the worst of it.
+  assert.ok(cores[3].draft > 35 && cores[3].draft < 42, `up ${cores[3].draft}`);
+  assert.ok(airAt(everywhere(62), 1200, 1500).draft < -15);
+  near(airAt(everywhere(45), 7000, 1500).draft, 22 * (11 / 26), 1e-9);
+});
+
+test("a core's gusts are the rough air's and more: larger, sharper, and a wing thrown a long way down", () => {
+  assert.deepEqual(roughAir(12.3, 1, 5, 0), roughAir(12.3, 1, 5));
+  assert.deepEqual(roughAir(12.3, 0, 0, 1), { roll: 0, pitch: 0, vertical: 0 });
+  const measure = (severity: number) => {
+    let [vertical, roll, pitch, sharpest, lean, bank] = [0, 0, 0, 0, 0, 0];
+    let last = roughAir(0, 1, 0, severity).vertical;
+    for (let t = 0.05; t < 300; t += 0.05) {
+      const gust = roughAir(t, 1, 0, severity);
+      vertical = Math.max(vertical, Math.abs(gust.vertical));
+      roll = Math.max(roll, Math.abs(gust.roll));
+      pitch = Math.max(pitch, Math.abs(gust.pitch));
+      sharpest = Math.max(sharpest, Math.abs(gust.vertical - last) / 0.05);
+      last = gust.vertical;
+      // Where the roll gusts alone would take the bank, nothing flown against them.
+      bank += gust.roll * 0.05;
+      lean = Math.max(lean, Math.abs(bank));
+    }
+    return { vertical, roll, pitch, sharpest, lean };
+  };
+  const [rough, severe, extreme] = [measure(0), measure(0.5), measure(1)];
+  assert.ok(rough.vertical < 24 && rough.roll < 30, JSON.stringify(rough));
+  assert.ok(severe.vertical > rough.vertical * 1.3 && extreme.vertical > rough.vertical * 1.8, `${rough.vertical}, ${severe.vertical}, ${extreme.vertical}`);
+  assert.ok(extreme.vertical < 70);
+  assert.ok(extreme.sharpest > rough.sharpest * 2, `${rough.sharpest} against ${extreme.sharpest} m/s a second`);
+  assert.ok(extreme.roll > rough.roll * 1.8 && extreme.pitch > rough.pitch * 1.5);
+  assert.ok(extreme.lean > rough.lean * 2.5 && extreme.lean > 30, `${rough.lean} against ${extreme.lean} degrees`);
+});
+
 test("a flash flickers: brightest at once, dark between strokes, over within its time", () => {
   near(flicker(0), 1, 1e-9);
   assert.ok(flicker(0.06) < 0.3);

@@ -279,9 +279,20 @@ function tape(
 }
 
 /** The tile a storm stands in, across, km. */
-const tileKm = (tile: readonly number[] | null, lat: number) => (
+export const tileKm = (tile: readonly number[] | null, lat: number) => (
   tile ? (40075 * Math.cos(lat * RADIANS)) / 2 ** tile[0] : 26
 );
+
+/**
+ * The listed storms as a radar's picture paints them, the weakest first so
+ * the strongest is painted last. The finer tiles where the list has them: a
+ * coarse one is the same sky again as one square forty kilometres across,
+ * at its strongest tile's peak.
+ */
+export function stormPicture(storms: Telemetry["storms"]): Telemetry["storms"] {
+  const fine = storms.filter((storm) => !storm.coarse);
+  return [...(fine.length ? fine : storms)].sort((one, other) => (one.peakDbz ?? 0) - (other.peakDbz ?? 0));
+}
 
 /** The ranges the rings stand at, NM; the outermost is the edge of the display. */
 export const RINGS_NM = [20, 40, 80];
@@ -308,11 +319,7 @@ export function drawNd(context: CanvasRenderingContext2D, width: number, height:
   context.arc(cx, cy, radius, (-90 - 60) * RADIANS, (-90 + 60) * RADIANS);
   context.closePath();
   context.clip();
-  // The finer tiles where the list has them: a coarse one is the same sky
-  // again as one square forty kilometres across, at its strongest tile's peak.
-  const fine = telemetry.storms.filter((storm) => !storm.coarse);
-  const storms = [...(fine.length ? fine : telemetry.storms)].sort((a, b) => (a.peakDbz ?? 0) - (b.peakDbz ?? 0));
-  for (const storm of storms) {
+  for (const storm of stormPicture(telemetry.storms)) {
     const colour = radarColour(storm.peakDbz ?? 0);
     if (!colour) continue;
     const dLon = (storm.lon - state.lon) * Math.cos(state.lat * RADIANS) * 111_195;

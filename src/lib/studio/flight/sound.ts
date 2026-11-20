@@ -11,8 +11,13 @@
  * flight is silent and nothing else changes.
  *
  * What it plays is the mix's (soundMix.ts) made audible by the graph
- * (soundGraph.ts). The terrain warning also says "pull up" between its
- * whoops, where the browser can speak.
+ * (soundGraph.ts). The cockpit's callouts ("bank angle", "pull up",
+ * "retard", the heights) are spoken with the browser's own voice, where it
+ * has one: one at a time, in the order the mix's queue gives them, a
+ * warning cutting a lesser callout off. Where it has none, each is a short
+ * tone instead. The browser's voice is not part of the graph, so a
+ * recording of the flight carries the tones and the whoops but not the
+ * words.
  */
 import { get, writable } from "svelte/store";
 import type { FlightStatus } from "../store";
@@ -20,8 +25,8 @@ import type { FlightAction } from "./controls";
 import type { Telemetry } from "./pilot";
 import { SoundGraph } from "./soundGraph";
 import type { SoundCue } from "./soundGraph";
-import { initialMemory, mixSound, VOLUME } from "./soundMix";
-import type { SoundInput, SoundMemory } from "./soundMix";
+import { CalloutQueue, initialMemory, mixSound, VOLUME } from "./soundMix";
+import type { Callout, SoundInput, SoundMemory, Spoken } from "./soundMix";
 
 /** Whether the reader turned the flight's sound off: kept for the next flight too. */
 const MUTED_KEY = "studioFlightMuted";
@@ -47,13 +52,13 @@ const CUES: Partial<Record<FlightAction, SoundCue>> = {
   view: "view", style: "style", inspect: "style", next: "next", restart: "restart", help: "help",
 };
 
-/** The heights called out on the way down, metres, and as they are said: 500, 100, 50, 30, 20 and 10 ft. */
-const HEIGHT_CALLS: Array<[number, string]> = [
-  [152.4, "Five hundred"], [30.5, "One hundred"], [15.2, "Fifty"], [9.1, "Thirty"], [6.1, "Twenty"], [3, "Ten"],
-];
-const RETARD_M = 6.1;
-/** What is said as a warning starts, besides what it sounds like. */
-const WARNING_WORDS: Array<[FlightStatus["warnings"][number], string]> = [["gear", "Too low, gear"], ["sink", "Sink rate"]];
+/** How long a tone in place of a callout takes, ms: the voice's turn passes on after it. */
+const TONE_MS = 450;
+/** The ways a browser's voice fails that are not its being cut off: after one of them it is not asked again. */
+const INTERRUPTED = ["interrupted", "canceled"];
+
+/** Now, in seconds: the clock the callouts' turns are kept on. */
+const seconds = () => performance.now() / 1000;
 
 export class FlightSound {
   private readonly context: AudioContext | null = null;
@@ -66,12 +71,10 @@ export class FlightSound {
   private tap: MediaStreamAudioDestinationNode | null = null;
   private strike = false;
   private suspendTimer: ReturnType<typeof setTimeout> | null = null;
-  /** The speech of the terrain warning: whether one of ours is under way, and which cycle of whoops is next to be spoken after. */
-  private speaking = false;
-  private terrainCycles = 0;
-  /** The height over the ground a frame ago, metres, and what was being warned of then: what is said is said on passing. */
-  private heightBefore = Infinity;
-  private warnedOf: FlightStatus["warnings"] = [];
+  /** The cockpit's voice: whose turn it is, what the browser is saying for it now, and whether the browser cannot speak after all. */
+  private readonly voice = new CalloutQueue();
+  private utterance: SpeechSynthesisUtterance | null = null;
+  private voiceless = typeof speechSynthesis === "undefined";
   private readonly listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
 
   constructor() {
@@ -88,7 +91,6 @@ export class FlightSound {
       this.graph = null;
       return;
     }
-    this.graph.onTerrainCycle = (at) => this.sayPullUp(at);
     // A key or a click is what lets a page play; any of them may be the one.
     const wake = () => this.sync();
     this.listeners.push(
@@ -98,6 +100,7 @@ export class FlightSound {
     );
     for (const [target, type, listener, capture] of this.listeners) target.addEventListener(type, listener, capture);
     this.sync();
+    this.prime();
     // Heard as soon as the context runs, which may be a moment after it is made.
     if (this.wanted()) this.graph.cue("takeoff");
   }
@@ -122,18 +125,22 @@ export class FlightSound {
       gear: telemetry.gear,
       flaps: state.flaps,
       rolling: state.onGround ? state.tas : 0,
+      lever: state.throttle,
+      height: telemetry.radarAltitude ?? Infinity,
+      sink: -state.verticalSpeed,
+      onGround: state.onGround,
     };
     this.strike = false;
-    this.callOut(telemetry, status);
     this.memory ??= initialMemory(input, status);
-    const { levels, events, memory } = mixSound(this.memory, input, status, this.muted, dt);
+    const { levels, events, callouts, quiet, memory } = mixSound(this.memory, input, status, this.muted, dt);
     this.memory = memory;
     // A context not playing would only pile the sounds up for when it does.
     if (!this.playing()) return;
     this.graph.set(levels);
     for (const event of events) this.graph.play(event);
-    if (!levels.alerts.terrain) this.terrainCycles = 0;
-    if (!levels.alerts.terrain && this.speaking) this.silence();
+    const now = seconds();
+    for (const kind of quiet) this.speak(this.voice.drop(kind, now));
+    for (const callout of callouts) this.speak(this.voice.push(callout, now));
   }
 
   /** What the reader did: its click, and a pause's or a recording's sound. */
@@ -182,47 +189,18 @@ export class FlightSound {
   }
 
   /**
-   * What an airliner says on the way down to a landing, in the cockpit: the
-   * height over the ground as it passes five hundred, a hundred, fifty,
-   * thirty, twenty and ten feet with the gear down, "retard" at twenty with
-   * the engines still pulling, and what it warns of low down, once each time
-   * it starts to.
+   * The airframe giving way: a wing or the tail tearing off, 0 to 1 by how
+   * much of it goes. Heard in every view.
    */
-  private callOut(telemetry: Telemetry, status: FlightStatus): void {
-    const height = telemetry.state.onGround ? 0 : (telemetry.radarAltitude ?? Infinity);
-    const before = this.heightBefore;
-    this.heightBefore = height;
-    const warned = this.warnedOf;
-    this.warnedOf = status.warnings;
-    if (status.view !== "cockpit" || !this.playing()) return;
-    for (const [warning, words] of WARNING_WORDS) {
-      if (status.warnings.includes(warning) && !warned.includes(warning)) this.say(words);
-    }
-    if (telemetry.gear < 1 || height >= before) return;
-    for (const [metres, words] of HEIGHT_CALLS) {
-      if (before > metres && height <= metres) {
-        this.say(words);
-        if (metres === RETARD_M && telemetry.state.throttle > 0.05) this.say("Retard");
-      }
-    }
+  breakup(strength: number): void {
+    if (!this.graph || !this.playing()) return;
+    this.graph.play({ kind: "breakup", strength });
   }
 
-  /** Say a few words, in whatever voice the browser has; nothing where it has none. */
-  private say(words: string): void {
-    if (typeof speechSynthesis === "undefined") return;
-    try {
-      const utterance = new SpeechSynthesisUtterance(words);
-      utterance.lang = "en-US";
-      utterance.rate = 1.2;
-      utterance.pitch = 0.8;
-      utterance.volume = 0.6;
-      utterance.onend = () => { this.speaking = false; };
-      utterance.onerror = () => { this.speaking = false; };
-      this.speaking = true;
-      speechSynthesis.speak(utterance);
-    } catch {
-      // No voice here.
-    }
+  /** An explosion: the aircraft meeting the ground for good, 0 to 1 by how large. Heard in every view. */
+  explosion(strength: number): void {
+    if (!this.graph || !this.playing()) return;
+    this.graph.play({ kind: "explosion", strength });
   }
 
   /** A strike nearby: thunder, whether or not a flash was drawn for it. */
@@ -255,7 +233,6 @@ export class FlightSound {
     if (this.suspendTimer !== null) clearTimeout(this.suspendTimer);
     const { context, graph } = this;
     if (!context || !graph) return;
-    graph.onTerrainCycle = null;
     graph.setVolume(0, context.currentTime, 0.08);
     setTimeout(() => {
       graph.dispose();
@@ -287,6 +264,7 @@ export class FlightSound {
       graph.setVolume(VOLUME, context.currentTime, 0.12);
       return;
     }
+    this.silence();
     if (context.state !== "running") return;
     // A pause's click is let finish before the volume goes.
     graph.setVolume(0, context.currentTime + (this.paused ? 0.15 : 0), 0.04);
@@ -296,37 +274,85 @@ export class FlightSound {
     }, SUSPEND_MS);
   }
 
-  /** The terrain warning's voice, after every other pair of whoops: "pull up". */
-  private sayPullUp(at: number): void {
-    const context = this.context;
-    if (!context || typeof speechSynthesis === "undefined" || this.terrainCycles++ % 2 !== 0) return;
-    const delay = Math.max(0, (at + 1.05 - context.currentTime) * 1000);
-    setTimeout(() => {
-      if (!this.playing() || this.terrainCycles === 0) return;
-      try {
-        const utterance = new SpeechSynthesisUtterance("Pull up");
-        utterance.lang = "en-US";
-        utterance.rate = 1.15;
-        utterance.pitch = 0.8;
-        utterance.volume = 0.6;
-        utterance.onend = () => { this.speaking = false; };
-        utterance.onerror = () => { this.speaking = false; };
-        this.speaking = true;
-        speechSynthesis.speak(utterance);
-      } catch {
-        // No voice here: the whoops say it alone.
-      }
-    }, delay);
+  /**
+   * Have the browser's voice say nothing, now, while the take-off's click
+   * or key is still being handled: some browsers let a page speak only
+   * once it has from one, and the first words are slow to come anywhere.
+   */
+  private prime(): void {
+    if (this.voiceless) return;
+    try {
+      const utterance = new SpeechSynthesisUtterance(" ");
+      utterance.volume = 0;
+      speechSynthesis.speak(utterance);
+    } catch {
+      this.voiceless = true;
+    }
   }
 
-  /** Stop the warning's voice, if it is ours that is speaking. */
-  private silence(): void {
-    if (!this.speaking) return;
-    this.speaking = false;
+  /** Do as the callouts' queue says: stop what is being said, and say the next. */
+  private speak({ cut, say }: Spoken): void {
+    if (cut) this.stopSpeaking();
+    if (say) this.utter(say);
+  }
+
+  /**
+   * Say a callout in whatever voice the browser has, and pass the turn on
+   * when it is over; a tone through the graph where it has none.
+   */
+  private utter(callout: Callout): void {
+    const over = () => {
+      if (this.disposed) return;
+      const next = this.voice.done(callout, seconds());
+      // What waited is only worth saying while the sound plays.
+      if (this.playing()) this.speak(next);
+      else this.silence();
+    };
+    if (!this.voiceless) {
+      try {
+        const utterance = new SpeechSynthesisUtterance(callout.words);
+        utterance.lang = "en-US";
+        utterance.rate = 1.2;
+        utterance.pitch = 0.8;
+        utterance.volume = 0.6;
+        utterance.onend = () => {
+          if (this.utterance !== utterance) return;
+          this.utterance = null;
+          over();
+        };
+        utterance.onerror = (event) => {
+          if (!INTERRUPTED.includes(event.error)) this.voiceless = true;
+          if (this.utterance !== utterance) return;
+          this.utterance = null;
+          over();
+        };
+        // Held on to until it ends: a browser may drop one nothing refers to, and never say it ended.
+        this.utterance = utterance;
+        speechSynthesis.speak(utterance);
+        return;
+      } catch {
+        this.utterance = null;
+        this.voiceless = true;
+      }
+    }
+    this.graph?.play({ kind: "attention", rank: callout.rank });
+    setTimeout(over, TONE_MS);
+  }
+
+  /** Stop the browser's voice, if it is one of ours it is saying. */
+  private stopSpeaking(): void {
+    if (!this.utterance) return;
+    this.utterance = null;
     try {
       speechSynthesis.cancel();
     } catch {
       // Nothing to stop.
     }
+  }
+
+  /** Nothing more is said: what is being said is cut off, and what waited is forgotten. */
+  private silence(): void {
+    this.voice.clear();
+    this.stopSpeaking();
   }
 }

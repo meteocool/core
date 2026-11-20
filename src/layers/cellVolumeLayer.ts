@@ -1194,7 +1194,33 @@ export interface ScenicPass {
   begin(mapWidth: number, mapHeight: number, scale: number): { width: number; height: number } | null;
   /** Lay that picture over the map, which is drawn onto again after. */
   end(mapWidth: number, mapHeight: number): void;
+  /**
+   * The storm a flight sees through (`CloudsLayer.setInspection`): what of
+   * these clouds' echo is `low` dBZ or stronger and within `reachKm` of
+   * where the storm is looked into, in the radar's colours (`ramp`), over
+   * the clouds as they have just been drawn, whatever cloud is in front of
+   * it there. Between `begin` and `end` where there is such a picture, and
+   * as small as one (`scale`) where there is not.
+   */
+  drawCores(
+    cores: readonly StormCore[], low: number, reachKm: number, ramp: WebGLTexture,
+    mapWidth: number, mapHeight: number, scale: number,
+  ): void;
   dispose(): void;
+}
+
+/** One cloud of a storm seen through, as the layer has just drawn it; see `ScenicPass.drawCores`. */
+export interface StormCore {
+  cutaway: Cutaway;
+  texture: WebGLTexture;
+  /** Its unit cube to clip space, and back. */
+  forward: Mat4;
+  inverse: Mat4;
+  /** Where the storm is looked into, on the ground, in its cube. */
+  at: [number, number];
+  /** Samples along a ray across its whole width, and how much of its density it keeps between two scans. */
+  steps: number;
+  weight: number;
 }
 
 export interface CloudsLayer extends CustomLayerInterface {
@@ -1234,9 +1260,14 @@ export interface CloudsLayer extends CustomLayerInterface {
    * Draw one storm another way than the rest, to look into it: the cloud
    * handed over under `key` and every one near it (`CUT_REACH_KM`, as a cut
    * reaches), in `style` and peeled to `peel`, whatever the map's own are.
+   * Or, for no style, seen through: drawn as the rest are, with what `peel`
+   * would leave of the cloud style's laid over it by a scenic sky's pass
+   * (`ScenicPass.drawCores`), which is the only one to have such a picture.
+   * `at` is where the storm is, as longitude and latitude, where that is
+   * known better than by its tile: what the clouds near it are near.
    * None for null.
    */
-  setInspection(inspection: { key: string; style: CloudStyle; peel: number } | null): void;
+  setInspection(inspection: { key: string; style: CloudStyle | null; peel: number; at?: readonly [number, number] } | null): void;
   /** Paint the storms in this radar palette, by the name the settings store it under. */
   setColormap(name: string): void;
   /** Draw the storms this way; see lib/cloudStyle.ts. */
@@ -1315,7 +1346,7 @@ export function makeCloudsLayer(
   const clouds = new Map<string, Cloud>();
   let cutKey: string | null = null;
   let cutHeading = 0;
-  let inspection: { key: string; style: CloudStyle; peel: number } | null = null;
+  let inspection: { key: string; style: CloudStyle | null; peel: number; at?: readonly [number, number] } | null = null;
   let glow: [number, number, number, number] = [0, 0, 0, 0];
   let detail = 1;
   let colormap = initialColormap;
@@ -1600,7 +1631,8 @@ export function makeCloudsLayer(
     },
 
     setInspection(next) {
-      if (next?.key === inspection?.key && next?.style === inspection?.style && next?.peel === inspection?.peel) return;
+      if (next?.key === inspection?.key && next?.style === inspection?.style && next?.peel === inspection?.peel
+        && next?.at?.[0] === inspection?.at?.[0] && next?.at?.[1] === inspection?.at?.[1]) return;
       inspection = next;
       if (map?.getContainer().isConnected) map.triggerRepaint();
     },
@@ -1631,7 +1663,9 @@ export function makeCloudsLayer(
     render(context: WebGL2RenderingContext, options: CustomRenderMethodInput) {
       if (!program) return;
       if (scenicProgram && scenicPass && detail > 0) scenicPass.drawSun(options.defaultProjectionData.mainMatrix);
-      if (!clouds.size || detail <= 0) return;
+      // Not drawn, the clouds are hidden by cloud round the eye; a storm seen through is to be seen through that too.
+      const hidden = detail <= 0;
+      if (!clouds.size || (hidden && !(scenicPass && inspection?.style === null))) return;
       // `mainMatrix`, the one documented to take spherical mercator; see the
       // model matrix above for the space the boxes are built in.
       const main = options.defaultProjectionData.mainMatrix;
@@ -1641,7 +1675,7 @@ export function makeCloudsLayer(
       const peelNow = peel * peelShare(map?.getZoom() ?? 0, peelOwn);
       const [mapWidth, mapHeight] = [context.drawingBufferWidth, context.drawingBufferHeight];
       // A scenic sky is drawn aside, smaller, and laid over the map after; see `ScenicPass`.
-      const apart = scenicPass && program === scenicProgram && (style === "sky" || style === "tinted")
+      const apart = !hidden && scenicPass && program === scenicProgram && (style === "sky" || style === "tinted")
         ? scenicPass.begin(mapWidth, mapHeight, scenicScale) : null;
       const width = apart ? apart.width : mapWidth;
       const height = apart ? apart.height : mapHeight;
@@ -1709,8 +1743,14 @@ export function makeCloudsLayer(
       const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
       // The storm looked into, and where it stands: the clouds round it are drawn as it is.
       const inspected = inspection ? clouds.get(inspection.key) : undefined;
-      const inspectPoint = inspected ? cutPointOf(inspected.model, inspected.cutaway) : null;
-      const inspectMetre = inspected ? inspected.model[0] / inspected.cutaway.extentM[0] : 0;
+      // Told where it is, that is where: whichever of its tiles is held, and through the moment one takes another's place.
+      const inspectAt = inspection?.at && MercatorCoordinate.fromLngLat({ lng: inspection.at[0], lat: inspection.at[1] }, 0);
+      const inspectPoint = inspectAt ? [inspectAt.x, inspectAt.y, 0] as const
+        : inspected ? cutPointOf(inspected.model, inspected.cutaway) : null;
+      const inspectMetre = inspectAt ? inspectAt.meterInMercatorCoordinateUnits()
+        : inspected ? inspected.model[0] / inspected.cutaway.extentM[0] : 0;
+      // Seen through, its clouds are drawn as the rest and kept for the pass that lays their cores over them all.
+      const cores: StormCore[] = [];
 
       for (const { key, cloud, model, weight, forward, rect } of ordered) {
         if (rect === null) continue;
@@ -1732,6 +1772,17 @@ export function makeCloudsLayer(
           : plane ? [plane] : [];
         if (cuts.some((cut) => cutAway(cloud.corners, cut))) continue;
 
+        const looked = inspection !== null && inspectPoint !== null
+          && (key === inspection.key || kmFromCut(model, cloud.box, inspectPoint, inspectMetre) <= CUT_REACH_KM);
+        const lookedAs = looked ? inspection!.style : null;
+        if (looked && !lookedAs) {
+          cores.push({
+            cutaway: cloud.cutaway, texture: cloud.texture!, forward, inverse, steps: cloud.steps * (hidden ? 0.5 : detail), weight,
+            at: [(inspectPoint![0] - model[12]) / model[0], (inspectPoint![1] - model[13]) / model[5]],
+          });
+        }
+        if (hidden) continue;
+
         context.enable(context.SCISSOR_TEST);
         context.scissor(rect[0], rect[1], rect[2], rect[3]);
 
@@ -1746,10 +1797,8 @@ export function makeCloudsLayer(
         context.uniform1f(at("uSteps"), Math.max(8, Math.round(cloud.steps * detail * (apart ? 0.75 : 1))));
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
-        const looked = inspection !== null && inspectPoint !== null
-          && (key === inspection.key || kmFromCut(model, cloud.box, inspectPoint, inspectMetre) <= CUT_REACH_KM);
-        const drawnAs = looked ? inspection!.style : style;
-        const drawnField = looked ? STYLE_FIELD[drawnAs] : field;
+        const drawnAs = lookedAs ?? style;
+        const drawnField = lookedAs ? STYLE_FIELD[drawnAs] : field;
         context.uniform1i(at("uStyle"), STYLE_INDEX[drawnAs]);
         if (drawnAs === "sky" || drawnAs === "tinted") {
           // Where the cloud stands now: the billows stay put in the world
@@ -1775,7 +1824,7 @@ export function makeCloudsLayer(
         // From the style's floor to the storm's core. The top of the ramp
         // stays where the style has it until the peel has thinned the storm
         // to within a cloud's band of it, so a core is never fainter peeled.
-        const low = looked
+        const low = lookedAs
           ? peelLow(drawnField.floor, cloud.peelFloor, inspection!.peel)
           : peelsNow ? peelLow(field.floor, cloud.peelFloor, peelNow) : field.floor;
         context.uniform1f(at("uLow"), low);
@@ -1787,6 +1836,12 @@ export function makeCloudsLayer(
         context.drawArrays(context.TRIANGLES, 0, 3);
       }
 
+      if (cores.length) {
+        // One floor for every cloud of it, the opened one's: each to its own, their cores would not meet at a seam.
+        const core = !inspected ? Infinity : inspected.peels ? inspected.peelFloor : coreOf(inspected.cutaway);
+        const low = peelLow(DBZ_LOW, core, inspection!.peel);
+        scenicPass?.drawCores(cores, low, CUT_REACH_KM, rampTexture!, mapWidth, mapHeight, scenicScale);
+      }
       context.disable(context.SCISSOR_TEST);
       if (apart) scenicPass?.end(mapWidth, mapHeight);
       context.depthMask(true);

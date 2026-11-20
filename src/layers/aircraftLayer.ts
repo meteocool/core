@@ -12,6 +12,7 @@ import type { CustomLayerInterface, Map as GlMap } from "maplibre-gl";
 import { loadAircraft, makeAircraftRenderer } from "./aircraftRenderer";
 import type { AircraftRenderer, AircraftScreen, AircraftView } from "./aircraftRenderer";
 
+import { layCoresLate } from "./scenicPass";
 import { makeWeatherPass } from "./weatherPass";
 import type { WeatherPass, WeatherView } from "./weatherPass";
 
@@ -73,6 +74,8 @@ export function makeAircraftLayer(id: string, base: string): AircraftLayer {
     render() {
       // The weather outside first: the aircraft is drawn over it, and from the cockpit hides all of it but what the windows show.
       if (weather) weatherPass?.draw(weather);
+      // The core of a storm seen through, over the cloud round the eye that would hide it, and under the aircraft.
+      layCoresLate();
       if (view) renderer?.draw(view, screens);
     },
   };

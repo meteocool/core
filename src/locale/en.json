@@ -189,17 +189,18 @@
       "fly_title": "Plan a flight in an airliner towards the storms, and fly it (keyboard or gamepad)",
       "page": {
         "by": "by meteocool",
-        "headline": "Fly an airliner through today's storms.",
+        "headline": "Fly through live clouds.",
         "lede": "The thunderstorms on this radar are real and minutes old. meteoair builds them in three dimensions and puts you in the cockpit of an A320 among them.",
         "board": "Plan a flight",
         "hint": "Move the map to the weather you want to fly at first.",
-        "desktop_only": "meteoair flies on a desktop: it needs a keyboard or a gamepad, and more memory than a phone has.",
+        "hint_touch": "Move the map to the weather you want to fly at first. Then turn your phone sideways: you fly with your thumbs.",
+        "unavailable": "meteoair flies on the 3D map, which this page does not have.",
         "open_map": "Open the radar map",
         "live": "Live weather",
         "live_text": "Radar volumes from across Europe, with rain, hail, icing and lightning where the storms are.",
         "deck": "A working flight deck",
         "deck_text": "Live cockpit screens, weather radar, autopilot and warnings; seen from the cockpit or from outside.",
-        "controls": "Keys or gamepad",
+        "controls": "Keys, gamepad or touch",
         "controls_text": "Pick a storm, a level and a speed on the flight plan, then take off. Record the flight as a video.",
         "back": "Back",
         "fullscreen": "Full screen",
@@ -258,6 +259,15 @@
         "hail": "hail",
         "tops": "tops"
       },
+      "minimap": {
+        "title": "Map round the aircraft",
+        "range": "Radar map, {nm} NM to its edge",
+        "range_title": "{nm} NM to the edge of the map · click for another range",
+        "heading_up": "HDG",
+        "north_up": "N",
+        "heading_up_title": "Heading up · click for north up",
+        "north_up_title": "North up · click for heading up"
+      },
       "inspect": {
         "title": "Look into the storm",
         "mark_title": "Look into this storm",
@@ -308,7 +318,7 @@
         "view": "Cockpit, outside, clean view",
         "look": "Look around / look ahead again",
         "style": "Cloud style",
-        "inspect": "Look into the storm ahead: cut, peeled, X-ray",
+        "inspect": "Look into the storm ahead: X-ray, cut, peeled",
         "record": "Record a video / stop",
         "pause": "Pause",
         "mute": "Sound off / on",
@@ -318,17 +328,137 @@
         "leave_plan": "End the flight, back to its plan (asks first)",
         "flaps": "Flaps in / out, a step",
         "speedbrake": "Speed brake out / in",
-        "radar": "Radar colours on the ground on / off"
+        "radar": "Radar colours on the ground on / off",
+        "autobrake": "Autobrake armed / off",
+        "parking": "Parking brake, on the ground",
+        "click": "Move a lever or push a button of the flight deck",
+        "zoom": "Look closer at the flight deck",
+        "pad": {
+          "title": "Gamepad",
+          "stick": "Nose down / up, roll left / right",
+          "throttle": "Throttle down / up · on the ground, LT at idle: reverse",
+          "leave": "End the flight (asks first; A ends it)"
+        }
+      },
+      "cockpit": {
+        "on": "On",
+        "off": "Off",
+        "flaps": {
+          "name": "Flap lever",
+          "in": "Click: in a notch · U",
+          "out": "Click: out a notch · J"
+        },
+        "speedBrake": {
+          "name": "Speed brake",
+          "hint": "Click: out / in · B",
+          "in": "In"
+        },
+        "gear": {
+          "name": "Landing gear",
+          "hint": "Click: down / up · G",
+          "ground": "Stays down on the ground",
+          "up": "Up",
+          "moving": "In transit",
+          "down": "Down"
+        },
+        "thrust": {
+          "name": "Thrust levers",
+          "hint": "Drag forward or back · W / S",
+          "ground": "Drag forward or back · held back at idle: reverse · W / S"
+        },
+        "sidestick": {
+          "name": "Sidestick",
+          "hint": "Drag: back for nose up, sideways to roll · arrow keys"
+        },
+        "pedals": {
+          "name": "Rudder pedals",
+          "left": "Hold: rudder left · A",
+          "right": "Hold: rudder right · D"
+        },
+        "rudderTrim": {
+          "name": "Rudder trim",
+          "left": "Hold: nose left · A",
+          "right": "Hold: nose right · D"
+        },
+        "autopilot": {
+          "name": "Autopilot",
+          "hint": "Click: on / off · L",
+          "ground": "It flies; it does not taxi"
+        },
+        "autobrake": {
+          "name": "Autobrake",
+          "hint": "Click: arm / disarm · X",
+          "armed": "Armed"
+        },
+        "parkingBrake": {
+          "name": "Parking brake",
+          "hint": "Click: set / release · K",
+          "air": "Holds the wheels on the ground only",
+          "set": "Set"
+        },
+        "weatherRadar": {
+          "name": "Radar on the ground",
+          "hint": "Click: paint the radar's colours on the ground, or not · O"
+        }
+      },
+      "touch": {
+        "aria": "Touch controls",
+        "stick": "Stick: nose up and down, roll left and right",
+        "throttle": "Throttle lever",
+        "throttle_short": "THR",
+        "idle": "IDLE",
+        "reverse": "REV",
+        "rudder": "Rudder",
+        "rudder_short": "RUD",
+        "brake": "Brake",
+        "brake_title": "Hold: speed brake · on the ground, the brakes",
+        "warp_title": "Hold: four times as fast",
+        "gear": "Gear",
+        "flaps": "Flaps",
+        "flaps_in": "Flaps in a step",
+        "flaps_out": "Flaps out a step",
+        "speedbrake": "Spd brk",
+        "autopilot": "A/P",
+        "more": "More controls",
+        "less": "Fewer controls",
+        "view": "View",
+        "next": "Next",
+        "restart": "Restart",
+        "pause": "Pause",
+        "resume": "Resume",
+        "inspect": "Inspect",
+        "sound": "Sound",
+        "tilt": "Tilt",
+        "tilt_title": "Fly by tilting the phone, from how it is held now",
+        "tilt_refused": "This browser does not say how the phone is held: tilt is off.",
+        "help": "Help",
+        "show": "Show the flight deck again",
+        "turn": "Turn your phone sideways to fly",
+        "turn_fullscreen": "Turn your phone sideways to fly · tap for full screen",
+        "paused": "Paused",
+        "again": "Throttle up: take off again · Restart: back to the approach",
+        "hint": {
+          "stick": "Right thumb: the stick. Pull it down for nose up.",
+          "throttle": "Left thumb: the throttle stays where you put it. Below idle on the ground: reverse.",
+          "holds": "Beside it, while held: the brake, and four times the speed. Under it: the rudder.",
+          "strip": "In the middle: gear, flaps, speed brake, autopilot; the arrow opens the rest.",
+          "look": "Drag the view to look around; pinch to zoom."
+        }
       },
       "gear_low": "TOO LOW  GEAR",
       "sink": "SINK RATE",
+      "bank": "BANK ANGLE",
       "alpha_floor": "A.FLOOR · full thrust",
       "crash": {
         "terrain": "Ground too steep to land on",
         "gear": "Down with the gear up",
         "hard": "Touched down too hard",
         "attitude": "Touched down wing or tail first",
-        "fast": "Touched down too fast"
+        "fast": "Touched down too fast",
+        "breakup": "Broke up: more load than the airframe bears",
+        "flutter": "Broke up: far past its speed limit",
+        "wing": "A wing struck the ground",
+        "impact": "Flew into the ground"
       },
       "flaps": {
         "label": "Flaps",

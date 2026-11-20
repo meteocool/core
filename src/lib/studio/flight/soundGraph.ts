@@ -22,7 +22,11 @@
  *   rattles of what is loose in it;
  * - rain hissing and pattering on the windshield, and hail ticking on it;
  * - thunder: a crack that tears, and a long rumble that rolls;
- * - the cockpit's alerts and chimes, and the interface's clicks.
+ * - the cockpit's alerts and chimes, and the interface's clicks;
+ * - the end of a flight: the airframe breaking up (a crack of metal, its
+ *   tearing and groaning, the air rushing in) and an explosion (a boom, its
+ *   blast, a long low rumble and the fire crackling after it), heard the
+ *   same from every view.
  *
  * Everything goes through one limiter, then the volume, then a soft clip
  * that keeps the last of a peak under full scale.
@@ -41,14 +45,13 @@ const TRIM = {
   rumble: 0.5, whine: 0.07, whineHigh: 0.018, buzz: 0.05, hiss: 0.22,
   wind: 0.55, brake: 0.55, roar: 0.5, turbulence: 0.9,
   rain: 0.22, patter: 0.32, hail: 0.5,
-  thunder: 1.1, thump: 0.9, cabin: 0.8, alerts: 0.5, ui: 0.32, warp: 4,
+  thunder: 1.1, thump: 0.9, cabin: 0.8, alerts: 0.5, ui: 0.32, warp: 4, crash: 1,
 };
 
 /** How many hailstones a second at the hardest. */
 const HAIL_RATE = 45;
 
-/** How the terrain warning and the stall's cricket repeat, seconds. */
-const TERRAIN_CYCLE_S = 2.6;
+/** How the stall's cricket repeats, seconds. */
 const CRICKET_CYCLE_S = 1;
 
 type Color = "white" | "pink" | "brown";
@@ -206,6 +209,51 @@ function rattleBuffer(context: BaseAudioContext): AudioBuffer {
   return buffer;
 }
 
+/**
+ * Metal tearing: the stick and slip of a creak, far harder and longer, each
+ * slip a grain of noise; fast as it starts to go and slowing as it parts.
+ */
+function tearBuffer(context: BaseAudioContext, seconds: number): AudioBuffer {
+  const { sampleRate } = context;
+  const length = Math.round(seconds * sampleRate);
+  const buffer = context.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+  const from = 110 + Math.random() * 60;
+  const to = 18 + Math.random() * 14;
+  const grain = Math.round(sampleRate * 0.004);
+  let at = 0;
+  while (at < length) {
+    const x = at / length;
+    const envelope = Math.min(1, x / 0.04) * (1 - x) ** 0.7;
+    const amplitude = envelope * (0.35 + 0.65 * Math.random());
+    for (let k = 0; k < grain && at + k < length; k++) {
+      data[at + k] += amplitude * Math.exp(-k / (grain * 0.3)) * (k < 3 ? 1 - k * 0.6 : Math.random() * 2 - 1);
+    }
+    const rate = from * (to / from) ** x;
+    at += Math.max(8, Math.round((sampleRate / rate) * (0.55 + Math.random() * 0.9)));
+  }
+  return buffer;
+}
+
+/** A fire crackling: pops at random, most of them small, many at first and fewer as it burns down. */
+function crackleBuffer(context: BaseAudioContext, seconds: number): AudioBuffer {
+  const { sampleRate } = context;
+  const length = Math.round(seconds * sampleRate);
+  const buffer = context.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+  let at = 0;
+  while (at < length) {
+    const x = at / length;
+    const amplitude = Math.random() ** 3 * (1 - 0.6 * x);
+    const decay = sampleRate * (0.0004 + 0.0025 * Math.random() * amplitude);
+    for (let k = 0; k < decay * 6 && at + k < length; k++) data[at + k] += amplitude * Math.exp(-k / decay) * (Math.random() * 2 - 1);
+    // Thirty-odd a second to begin with, a handful by the end.
+    const rate = 34 * (1 - x) ** 1.5 + 5;
+    at += Math.max(1, Math.round((-Math.log(1 - Math.random()) / rate) * sampleRate));
+  }
+  return buffer;
+}
+
 /** A thunder's rumble as an envelope: a few rolls, each later one weaker, over a long decay. */
 function rollCurve(seconds: number, onset: number, rolls: number): Float32Array {
   const points = 256;
@@ -243,9 +291,6 @@ function softClip(): Float32Array<ArrayBuffer> {
 }
 
 export class SoundGraph {
-  /** The latest terrain warning cycle's start, in the context's time; the voice is fitted between its whoops. */
-  onTerrainCycle: ((at: number) => void) | null = null;
-
   private readonly context: BaseAudioContext;
   private readonly targets = new Map<AudioParam, number>();
   private readonly white: AudioBuffer;
@@ -254,7 +299,7 @@ export class SoundGraph {
   private readonly volume: GainNode;
   private readonly scene: GainNode;
   private readonly ui: GainNode;
-  private readonly busses: Record<"engine" | "wind" | "thunder" | "thump" | "cabin" | "alerts" | "hail", GainNode>;
+  private readonly busses: Record<"engine" | "wind" | "thunder" | "thump" | "cabin" | "alerts" | "hail" | "crash", GainNode>;
   private readonly filters: Record<"engine" | "wind" | "thunder", BiquadFilterNode>;
   private readonly engine: {
     rumble: GainNode; rumbleFilter: BiquadFilterNode; whine: GainNode; whineFilter: BiquadFilterNode;
@@ -266,7 +311,7 @@ export class SoundGraph {
   private readonly warp: { gain: GainNode; filter: BiquadFilterNode; on: boolean };
   private readonly alerts: {
     overspeed: GainNode; shaker: GainNode; cricket: GainNode; cricketGate: GainNode; terrain: GainNode;
-    cricketAt: number; terrainAt: number; terrainSources: AudioScheduledSourceNode[];
+    cricketAt: number; terrainOn: boolean; terrainSources: AudioScheduledSourceNode[];
   };
   private readonly sources: AudioScheduledSourceNode[] = [];
   private hailAt = 0;
@@ -343,6 +388,8 @@ export class SoundGraph {
       cabin: gain(0, this.scene),
       alerts: gain(0, this.scene),
       hail: gain(0, this.scene),
+      // The end of the flight is no view's own, and is not lost in the cut to black that follows it: past the scene, as the clicks are.
+      crash: gain(TRIM.crash, limiter),
     };
 
     // The engines.
@@ -411,7 +458,7 @@ export class SoundGraph {
     // Chirping: the tone switched on and off two dozen times a second.
     oscillator("square", 24, gain(0.5, chirp.gain));
     const terrain = gain(0, alerts);
-    this.alerts = { overspeed, shaker, cricket, cricketGate, terrain, cricketAt: 0, terrainAt: 0, terrainSources: [] };
+    this.alerts = { overspeed, shaker, cricket, cricketGate, terrain, cricketAt: 0, terrainOn: false, terrainSources: [] };
   }
 
   /** Set the continuous sounds to a frame's mix; also keeps the repeating alerts and the hail going. */
@@ -501,6 +548,13 @@ export class SoundGraph {
         this.thump(event.strength * 0.8, t);
         this.burst(this.white, t, 0.07, 0.45 * event.strength, this.busses.cabin, filterOf(this.context, "bandpass", 1500, 1.4));
         break;
+      case "whoops":
+        this.whoop(t);
+        this.whoop(t + 0.55);
+        break;
+      case "attention": this.attention(event.rank, t); break;
+      case "breakup": this.breakup(event.strength, t); break;
+      case "explosion": this.explosion(event.strength, t); break;
     }
   }
 
@@ -610,18 +664,12 @@ export class SoundGraph {
       this.alerts.cricketAt = 0;
     }
 
+    // The pull-up warning's whoops are started by the mix, a pair at a time; here they are let through, and cut short as it ends.
     const terrain = this.alerts.terrain;
     if (alerts.terrain) {
       this.to(terrain.gain, 1, time, 0.01);
-      if (this.alerts.terrainAt < time) this.alerts.terrainAt = time + 0.02;
-      while (this.alerts.terrainAt < time + 0.15) {
-        const at = this.alerts.terrainAt;
-        this.whoop(at);
-        this.whoop(at + 0.55);
-        this.onTerrainCycle?.(at);
-        this.alerts.terrainAt += TERRAIN_CYCLE_S;
-      }
-    } else if (this.alerts.terrainAt !== 0) {
+      this.alerts.terrainOn = true;
+    } else if (this.alerts.terrainOn) {
       this.to(terrain.gain, 0, time, 0.01);
       for (const source of this.alerts.terrainSources) {
         try {
@@ -631,7 +679,26 @@ export class SoundGraph {
         }
       }
       this.alerts.terrainSources = [];
-      this.alerts.terrainAt = 0;
+      this.alerts.terrainOn = false;
+    }
+  }
+
+  /**
+   * A tone where the cockpit would speak and the browser cannot: a tick for
+   * a height or the levers, two beeps for a bank, and two of two notes for
+   * a warning. The pull-up warning has its whoops.
+   */
+  private attention(rank: number, t: number): void {
+    const alerts = this.busses.alerts;
+    if (rank <= 0) {
+      this.tone("sine", 1000, t, 0.06, 0.35, alerts);
+    } else if (rank === 1) {
+      for (const at of [t, t + 0.22]) this.tone("triangle", 1480, at, 0.13, 0.5, alerts);
+    } else if (rank === 2) {
+      for (const at of [t, t + 0.34]) {
+        this.tone("triangle", 1320, at, 0.12, 0.5, alerts);
+        this.tone("triangle", 990, at + 0.13, 0.14, 0.5, alerts);
+      }
     }
   }
 
@@ -710,7 +777,7 @@ export class SoundGraph {
   }
 
   /** A bump of rough air: a low thud and a dull knock under it. */
-  private thump(strength: number, t: number): void {
+  private thump(strength: number, t: number, to: AudioNode = this.busses.thump): void {
     const context = this.context;
     const oscillator = context.createOscillator();
     const from = 48 + Math.random() * 24;
@@ -720,7 +787,7 @@ export class SoundGraph {
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(strength, t + 0.008);
     gain.gain.setTargetAtTime(0, t + 0.03, 0.09);
-    oscillator.connect(gain).connect(this.busses.thump);
+    oscillator.connect(gain).connect(to);
     oscillator.start(t);
     oscillator.stop(t + 0.7);
     oscillator.onended = () => oscillator.disconnect();
@@ -728,7 +795,160 @@ export class SoundGraph {
     knock.gain.setValueAtTime(0, t);
     knock.gain.linearRampToValueAtTime(strength * 0.9, t + 0.005);
     knock.gain.setTargetAtTime(0, t + 0.015, 0.06);
-    this.burst(this.brown, t, 0.5, 1, this.busses.thump, filterOf(context, "lowpass", 260 + Math.random() * 120, 0.8), knock);
+    this.burst(this.brown, t, 0.5, 1, to, filterOf(context, "lowpass", 260 + Math.random() * 120, 0.8), knock);
+  }
+
+  /** A gain that jumps up at `t` and dies away: the shape of something struck. */
+  private struck(t: number, level: number, attack: number, decay: number): GainNode {
+    const gain = this.context.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(level, t + attack);
+    gain.gain.setTargetAtTime(0, t + attack, decay);
+    return gain;
+  }
+
+  /**
+   * The airframe giving way, over half a second to a second and a half by
+   * how much of it goes: the crack of metal failing, with the ring of the
+   * skin and a thud through the structure; the tearing, a groan low in the
+   * frame under a ripping edge, slowing as the piece parts; and the air
+   * rushing through where it was. To one side, as a wing is.
+   */
+  private breakup(strength: number, t: number): void {
+    const context = this.context;
+    const amount = Math.min(Math.max(strength, 0), 1);
+    const level = 0.45 + 0.55 * amount;
+    const seconds = 0.5 + amount;
+    const pan = context.createStereoPanner();
+    pan.pan.value = (Math.random() < 0.5 ? -1 : 1) * (0.25 + 0.4 * Math.random());
+    pan.connect(this.busses.crash);
+
+    // The crack: a snap of noise, and the skin ringing at a few pitches that are no chord.
+    this.burst(this.white, t, 0.12, 1, pan, filterOf(context, "highpass", 1800, 0.7), this.struck(t, 1.5 * level, 0.001, 0.022));
+    const ring = 700 + Math.random() * 500;
+    for (const [ratio, gain, decay] of [[1, 1, 0.16], [2.32, 0.7, 0.11], [3.87, 0.5, 0.08], [5.9, 0.3, 0.05]]) {
+      const partial = filterOf(context, "bandpass", ring * ratio, 28);
+      this.burst(this.white, t, decay * 6, 1, pan, partial, this.struck(t, 9 * gain * level, 0.001, decay));
+    }
+    this.thump(1.1 * level, t, pan);
+
+    // The tearing, from a moment after: the groan, and the rip over it.
+    const tear = context.createBufferSource();
+    tear.buffer = tearBuffer(context, seconds);
+    const low = 190 + Math.random() * 120;
+    const groan = context.createGain();
+    groan.gain.value = 7 * level;
+    for (const [hz, q] of [[low, 7], [low * 2.6, 9], [low * 4.3, 10]]) {
+      const body = filterOf(context, "bandpass", hz, q);
+      body.frequency.setValueAtTime(hz, t + 0.04);
+      body.frequency.exponentialRampToValueAtTime(hz * 0.6, t + 0.04 + seconds);
+      tear.connect(body).connect(groan);
+    }
+    const rip = context.createGain();
+    rip.gain.value = 0.9 * level;
+    tear.connect(filterOf(context, "highpass", 2200, 0.7)).connect(rip);
+    groan.connect(pan);
+    rip.connect(pan);
+    tear.start(t + 0.04);
+    tear.onended = () => tear.disconnect();
+
+    // The air: in with a rush as it opens, and falling away.
+    const air = filterOf(context, "bandpass", 500, 0.8);
+    air.frequency.setValueAtTime(500, t + 0.05);
+    air.frequency.exponentialRampToValueAtTime(1900, t + 0.05 + seconds * 0.35);
+    air.frequency.exponentialRampToValueAtTime(900, t + 0.05 + seconds + 0.6);
+    const rush = context.createGain();
+    rush.gain.setValueAtTime(0, t + 0.05);
+    rush.gain.linearRampToValueAtTime(0.8 * level, t + 0.05 + seconds * 0.3);
+    rush.gain.setTargetAtTime(0, t + 0.05 + seconds * 0.5, 0.15 + seconds * 0.22);
+    this.burst(this.white, t + 0.05, seconds + 1.2, 1, pan, air, rush);
+  }
+
+  /**
+   * An explosion, larger and longer with `strength`: a boom falling away
+   * below hearing, the blast's burst of noise closing down over it, a low
+   * rumble that rolls on for seconds, what was thrown up coming down, and
+   * the fire crackling as it dies back.
+   */
+  private explosion(strength: number, t: number): void {
+    const context = this.context;
+    const amount = Math.min(Math.max(strength, 0), 1);
+    const level = 0.5 + 0.5 * amount;
+    const bus = this.busses.crash;
+
+    // The boom: two low tones dropping, the lower one the longer.
+    for (const [from, to, gain, decay] of [[82, 30, 1.2, 0.28], [47, 21, 1.1, 0.55]]) {
+      const oscillator = context.createOscillator();
+      oscillator.frequency.setValueAtTime(from, t);
+      oscillator.frequency.exponentialRampToValueAtTime(to, t + decay * 2.5);
+      oscillator.connect(this.struck(t, gain * level, 0.006, decay * (0.7 + 0.3 * amount))).connect(bus);
+      oscillator.start(t);
+      oscillator.stop(t + decay * 8);
+      oscillator.onended = () => oscillator.disconnect();
+    }
+
+    // The blast: all of the noise at once, closing down to a roar.
+    const blast = filterOf(context, "lowpass", 7000, 0.6);
+    blast.frequency.setValueAtTime(7000, t);
+    blast.frequency.exponentialRampToValueAtTime(350, t + 0.7);
+    this.burst(this.white, t, 1.6, 1, bus, blast, this.struck(t, 2.2 * level, 0.002, 0.16 + 0.12 * amount));
+
+    // The rumble after it, rolling as it goes; a little to one side and drifting back.
+    const seconds = 2.5 + 3 * amount;
+    const roll = new Float32Array(160);
+    const swells = 0.7 + Math.random() * 0.8;
+    const phase = Math.random() * Math.PI * 2;
+    for (let p = 1; p < roll.length - 1; p++) {
+      const at = (p / (roll.length - 1)) * seconds;
+      roll[p] = Math.exp(-at / (seconds * 0.35)) * (1 + 0.3 * Math.sin(2 * Math.PI * swells * at + phase)) * Math.min(1, (seconds - at) / 0.5);
+    }
+    const rumble = context.createGain();
+    rumble.gain.value = 0;
+    rumble.gain.setValueCurveAtTime(roll, t, seconds);
+    const lowpass = filterOf(context, "lowpass", 420, 0.7);
+    lowpass.frequency.setTargetAtTime(90, t + 0.3, seconds * 0.25);
+    const rumbleLevel = context.createGain();
+    rumbleLevel.gain.value = 3 * level;
+    const pan = context.createStereoPanner();
+    const side = Math.random() * 0.8 - 0.4;
+    pan.pan.setValueAtTime(side, t);
+    pan.pan.linearRampToValueAtTime(0, t + seconds);
+    const source = context.createBufferSource();
+    source.buffer = this.brown;
+    source.loop = true;
+    source.connect(lowpass).connect(rumble).connect(rumbleLevel).connect(pan).connect(bus);
+    source.start(t, Math.random() * 3);
+    source.stop(t + seconds);
+    source.onended = () => source.disconnect();
+
+    // What it threw up, landing.
+    for (let i = 0, at = t + 0.25; i < 2 + Math.round(4 * amount); i++, at += 0.08 + Math.random() * 0.35) {
+      this.thump((0.3 + 0.5 * Math.random()) * level, at, bus);
+    }
+
+    // The fire: its crackle and the low flutter of the flames, dying back over a few seconds.
+    const burning = 3 + 3 * amount;
+    const fire = context.createGain();
+    fire.gain.setValueAtTime(0, t + 0.15);
+    fire.gain.linearRampToValueAtTime(level, t + 0.5);
+    fire.gain.setTargetAtTime(0, t + 0.8, burning * 0.25);
+    fire.connect(bus);
+    const crackle = context.createBufferSource();
+    crackle.buffer = crackleBuffer(context, burning);
+    const pops = context.createGain();
+    pops.gain.value = 1.6;
+    crackle.connect(filterOf(context, "highpass", 900, 0.7)).connect(pops).connect(fire);
+    crackle.start(t + 0.15);
+    const flames = context.createBufferSource();
+    flames.buffer = this.brown;
+    flames.loop = true;
+    const flutter = context.createGain();
+    flutter.gain.value = 1.2;
+    flames.connect(filterOf(context, "bandpass", 260, 0.6)).connect(flutter).connect(fire);
+    flames.start(t + 0.15, Math.random() * 3);
+    flames.stop(t + 0.15 + burning);
+    crackle.onended = () => crackle.disconnect();
+    flames.onended = () => flames.disconnect();
   }
 
   /** A creak of the cockpit's panels, somewhere around the reader. */
@@ -865,6 +1085,8 @@ export class SoundGraph {
     if (through) source.connect(through).connect(gain);
     else source.connect(gain);
     gain.connect(to);
+    // The noise is a loop with no seam: a long burst that starts late in it goes round.
+    source.loop = true;
     source.start(t, Math.random() * (buffer.duration - 1));
     source.stop(t + seconds + 0.05);
     source.onended = () => source.disconnect();

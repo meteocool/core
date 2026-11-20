@@ -23,7 +23,8 @@ import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
 import Icon from "../Icon.svelte";
 import type { LayerManager } from "../../lib/LayerManager";
 import { fullscreen, fullscreenSupported, toggleFullscreen } from "../../lib/fullscreen";
-import { closeStudio, openStudio, studioOffered } from "../../lib/studio/session";
+import { closeStudio, openStudio } from "../../lib/studio/session";
+import { touchFirst } from "../../lib/studio/flight/touch";
 import { studioOpen } from "../../lib/studio/store";
 import { cells3dFailed, sharedActiveCap } from "../../stores";
 
@@ -32,8 +33,14 @@ export let layerManager: LayerManager;
 /** The element every map is drawn into; see Map.svelte. */
 const MAP_TARGET = "map";
 
-/** Whether there is a flight to offer: on a desktop, in a build with the 3D map. */
-const offered = studioOffered() && Boolean(layerManager.getCapability("cells3d"));
+/**
+ * Whether there is a flight to offer: in a build with the 3D map, on a phone
+ * as on a desktop. Studio's tools are a desktop's (`studioOffered`); the
+ * flight has controls of its own for a touch screen.
+ */
+const offered = Boolean(layerManager.getCapability("cells3d"));
+/** Whether it will be flown by touch: the page says how, in place of the keys. */
+const byTouch = touchFirst();
 
 /* The flight's code is Studio's, fetched when Studio opens; here that is
    what the page is for, so it is fetched while the reader reads, and the
@@ -90,11 +97,11 @@ const FEATURES = [
           <button type="button" class="board" on:click={board}>
             <Icon icon={faPlaneDeparture} /> {$_("studio.flight.page.board")}
           </button>
-          <p class="hint">{$_("studio.flight.page.hint")}</p>
+          <p class="hint">{$_(byTouch ? "studio.flight.page.hint_touch" : "studio.flight.page.hint")}</p>
         </div>
       {:else}
         <div class="go">
-          <p class="hint grounded">{$_("studio.flight.page.desktop_only")}</p>
+          <p class="hint grounded">{$_("studio.flight.page.unavailable")}</p>
           <a class="board quiet" href="https://meteocool.com/">{$_("studio.flight.page.open_map")}</a>
         </div>
       {/if}

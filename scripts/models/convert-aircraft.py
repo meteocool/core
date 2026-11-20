@@ -19,7 +19,9 @@ The landing gear and its doors are kept apart from the rest (`GEAR`), each
 part with the hinge it turns on and how far it turns as the gear goes up,
 which the flight animates. So are the wings' flaps, slats and spoilers and
 the fairings under the flaps (`SURFACES`), which the model has as meshes of
-their own: each with a hinge worked out from its own shape.
+their own: each with a hinge worked out from its own shape. The ailerons,
+the elevators and the rudder the model has only as meshes of the hull: they
+are taken out of it as parts once the file is written (`control_surfaces.py`).
 
 The outside is repainted on the way (`livery`): the airline's colours, titles
 and marks come off, the hull is left white, and ours go on: "meteowings"
@@ -42,6 +44,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from pxr import Usd, UsdGeom, UsdShade
+
+from control_surfaces import cut_file
 
 LENGTH_M = 37.57
 """An A320 from nose to tail, which the model is scaled to."""
@@ -814,6 +818,7 @@ def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
     (out_dir / "a320.bin").write_bytes(b"MCM1" + struct.pack("<I", len(header)) + header + bytes(body))
     print(f"{len(chunks)} chunks, {sum(c['vertices'] for c in chunks)} vertices, "
           f"{sum(c['indices'] for c in chunks) // 3} triangles, {(len(body) + len(header)) / 1e6:.1f} MB, scale {scale:.4f}")
+    cut_file(str(out_dir / "a320.bin"))
 
 
 if __name__ == "__main__":
