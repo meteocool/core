@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+  <head>
+    <title>meteoair · fly an airliner through today's storms</title>
+
+    <meta charset="utf8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="A flight simulator over the live weather radar: real thunderstorms, minutes old, in three dimensions, from the cockpit of an airliner. In the browser, by meteocool." />
+    <meta name="theme-color" content="#070b11" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="meteoair · fly an airliner through today's storms" />
+    <meta property="og:description" content="A flight simulator over the live weather radar: real thunderstorms, minutes old, in three dimensions, from the cockpit of an airliner." />
+    <meta name="twitter:card" content="summary" />
+    <!-- The hosts the map talks to, warmed before the bundle asks for them. -->
+    <link rel="preconnect" href="https://map.meteocool.com" />
+    <link rel="dns-prefetch" href="https://map.meteocool.com" />
+    <link rel="preconnect" href="https://tiles-a.meteocool.com" />
+    <link rel="dns-prefetch" href="https://tiles-a.meteocool.com" />
+    <link rel="preconnect" href="https://api.ng.meteocool.com" />
+    <link rel="dns-prefetch" href="https://api.ng.meteocool.com" />
+    <link rel="preconnect" href="https://api.meteocool.com" />
+    <link rel="dns-prefetch" href="https://api.meteocool.com" />
+    <link rel="preconnect" href="https://data.meteocool.com" />
+    <link rel="dns-prefetch" href="https://data.meteocool.com" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+    <link rel="icon" type="image/png" href="favicon.ico" />
+    <style>
+      /* The page's own ground until the map is drawn: its wash, not the app's paper. */
+      html, body { height: 100%; background: #070b11; }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      <p style="margin: 2em; color: #f4f6f8; font: 16px/1.5 system-ui, sans-serif">
+        meteoair is a flight simulator over the live weather radar, and needs JavaScript to run.
+        <a href="https://meteocool.com/" style="color: #ff9f0a">meteocool.com</a>
+      </p>
+    </noscript>
+    <script type="module" src="/src/entrypoints/meteoair.ts"></script>
+  </body>
+</html>
